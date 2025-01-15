@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.68"
 name = "r-efi"
-version = "4.4.0"
+version = "4.5.0"
 description = "UEFI Reference Specification Protocol Constants and Definitions"
 homepage = "https://github.com/r-efi/r-efi/wiki"
 readme = "README.md"

@@ -39,6 +39,14 @@
 #![cfg_attr(feature = "nightly", warn(fuzzy_provenance_casts))]
 #![cfg_attr(feature = "nightly", allow(internal_features))]
 
+/// Default hasher for [`HashMap`] and [`HashSet`].
+#[cfg(feature = "default-hasher")]
+pub type DefaultHashBuilder = foldhash::fast::RandomState;
+
+/// Dummy default hasher for [`HashMap`] and [`HashSet`].
+#[cfg(not(feature = "default-hasher"))]
+pub enum DefaultHashBuilder {}
+
 #[cfg(test)]
 #[macro_use]
 extern crate std;
@@ -53,31 +61,12 @@ doc_comment::doctest!("../README.md");
 #[macro_use]
 mod macros;
 
-#[cfg(feature = "raw")]
-/// Experimental and unsafe `RawTable` API. This module is only available if the
-/// `raw` feature is enabled.
-pub mod raw {
-    // The RawTable API is still experimental and is not properly documented yet.
-    #[allow(missing_docs)]
-    #[path = "mod.rs"]
-    mod inner;
-    pub use inner::*;
-
-    #[cfg(feature = "rayon")]
-    /// [rayon]-based parallel iterator types for hash maps.
-    /// You will rarely need to interact with it directly unless you have need
-    /// to name one of the iterator types.
-    ///
-    /// [rayon]: https://docs.rs/rayon/1.0/rayon
-    pub mod rayon {
-        pub use crate::external_trait_impls::rayon::raw::*;
-    }
-}
-#[cfg(not(feature = "raw"))]
 mod raw;
 
 mod external_trait_impls;
 mod map;
+#[cfg(feature = "raw-entry")]
+mod raw_entry;
 #[cfg(feature = "rustc-internal-api")]
 mod rustc_entry;
 mod scopeguard;

@@ -997,7 +997,7 @@ pub type BootInstallMultipleProtocolInterfaces = eficall! {fn(
 ) -> crate::base::Status};
 
 pub type BootUninstallMultipleProtocolInterfaces = eficall! {fn(
-    *mut crate::base::Handle,
+    crate::base::Handle,
     // XXX: Actual definition is variadic. See eficall!{} for details.
     *mut core::ffi::c_void,
     *mut core::ffi::c_void,

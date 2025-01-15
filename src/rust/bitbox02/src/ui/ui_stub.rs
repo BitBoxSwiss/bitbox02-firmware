@@ -30,7 +30,7 @@ pub struct Component<'a> {
     _p: PhantomData<&'a ()>,
 }
 
-impl<'a> Component<'a> {
+impl Component<'_> {
     pub fn screen_stack_push(&mut self) {
         if self.is_pushed {
             panic!("component pushed twice");
@@ -39,7 +39,7 @@ impl<'a> Component<'a> {
     }
 }
 
-impl<'a> Drop for Component<'a> {
+impl Drop for Component<'_> {
     fn drop(&mut self) {
         if !self.is_pushed {
             panic!("component not pushed");

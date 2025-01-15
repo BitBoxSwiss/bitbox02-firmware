@@ -16,6 +16,8 @@ enum EHAction {
     None,
     Cleanup(usize),
     Catch(usize),
+    Filter(usize),
+    Terminate,
 }
 
 fn parse_pointer_encoding(input: &mut StaticSlice) -> gimli::Result<constants::DwEhPe> {
@@ -25,7 +27,7 @@ fn parse_pointer_encoding(input: &mut StaticSlice) -> gimli::Result<constants::D
     if eh_pe.is_valid_encoding() {
         Ok(eh_pe)
     } else {
-        Err(gimli::Error::UnknownPointerEncoding)
+        Err(gimli::Error::UnknownPointerEncoding(eh_pe))
     }
 }
 
@@ -92,31 +94,31 @@ fn find_eh_action(
 
     let call_site_encoding = parse_pointer_encoding(reader)?;
     let call_site_table_length = reader.read_uleb128()?;
-    reader.truncate(call_site_table_length as _)?;
+    let (mut call_site_table, mut action_table) = reader.split_at(call_site_table_length as _);
 
-    while !reader.is_empty() {
+    while !call_site_table.is_empty() {
         let cs_start = unsafe {
             deref_pointer(parse_encoded_pointer(
                 call_site_encoding,
                 unwind_ctx,
-                reader,
+                &mut call_site_table,
             )?)
         };
         let cs_len = unsafe {
             deref_pointer(parse_encoded_pointer(
                 call_site_encoding,
                 unwind_ctx,
-                reader,
+                &mut call_site_table,
             )?)
         };
         let cs_lpad = unsafe {
             deref_pointer(parse_encoded_pointer(
                 call_site_encoding,
                 unwind_ctx,
-                reader,
+                &mut call_site_table,
             )?)
         };
-        let cs_action = reader.read_uleb128()?;
+        let cs_action = call_site_table.read_uleb128()?;
         if ip < func_start + cs_start {
             break;
         }
@@ -125,14 +127,23 @@ fn find_eh_action(
                 return Ok(EHAction::None);
             } else {
                 let lpad = lpad_base + cs_lpad;
-                return Ok(match cs_action {
-                    0 => EHAction::Cleanup(lpad),
-                    _ => EHAction::Catch(lpad),
+                if cs_action == 0 {
+                    return Ok(EHAction::Cleanup(lpad));
+                }
+
+                action_table.skip((cs_action - 1) as _)?;
+                let ttype_index = action_table.read_sleb128()?;
+                return Ok(if ttype_index == 0 {
+                    EHAction::Cleanup(lpad)
+                } else if ttype_index > 0 {
+                    EHAction::Catch(lpad)
+                } else {
+                    EHAction::Filter(lpad)
                 });
             }
         }
     }
-    Ok(EHAction::None)
+    Ok(EHAction::Terminate)
 }
 
 #[lang = "eh_personality"]
@@ -161,12 +172,17 @@ unsafe fn rust_eh_personality(
     if actions.contains(UnwindAction::SEARCH_PHASE) {
         match eh_action {
             EHAction::None | EHAction::Cleanup(_) => UnwindReasonCode::CONTINUE_UNWIND,
-            EHAction::Catch(_) => UnwindReasonCode::HANDLER_FOUND,
+            EHAction::Catch(_) | EHAction::Filter(_) => UnwindReasonCode::HANDLER_FOUND,
+            EHAction::Terminate => UnwindReasonCode::FATAL_PHASE1_ERROR,
         }
     } else {
         match eh_action {
             EHAction::None => UnwindReasonCode::CONTINUE_UNWIND,
-            EHAction::Cleanup(lpad) | EHAction::Catch(lpad) => {
+            // Forced unwinding hits a terminate action.
+            EHAction::Filter(_) if actions.contains(UnwindAction::FORCE_UNWIND) => {
+                UnwindReasonCode::CONTINUE_UNWIND
+            }
+            EHAction::Cleanup(lpad) | EHAction::Catch(lpad) | EHAction::Filter(lpad) => {
                 _Unwind_SetGR(
                     unwind_ctx,
                     Arch::UNWIND_DATA_REG.0 .0 as _,
@@ -176,6 +192,7 @@ unsafe fn rust_eh_personality(
                 _Unwind_SetIP(unwind_ctx, lpad);
                 UnwindReasonCode::INSTALL_CONTEXT
             }
+            EHAction::Terminate => UnwindReasonCode::FATAL_PHASE2_ERROR,
         }
     }
 }

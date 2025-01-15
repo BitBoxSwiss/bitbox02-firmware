@@ -92,11 +92,11 @@ pub fn sqrt(x: f64) -> f64 {
             }
         }
     }
-    #[cfg(target_feature = "sse2")]
+    #[cfg(all(target_feature = "sse2", not(feature = "force-soft-floats")))]
     {
         // Note: This path is unlikely since LLVM will usually have already
         // optimized sqrt calls into hardware instructions if sse2 is available,
-        // but if someone does end up here they'll apprected the speed increase.
+        // but if someone does end up here they'll appreciate the speed increase.
         #[cfg(target_arch = "x86")]
         use core::arch::x86::*;
         #[cfg(target_arch = "x86_64")]
@@ -107,7 +107,7 @@ pub fn sqrt(x: f64) -> f64 {
             _mm_cvtsd_f64(m_sqrt)
         }
     }
-    #[cfg(not(target_feature = "sse2"))]
+    #[cfg(any(not(target_feature = "sse2"), feature = "force-soft-floats"))]
     {
         use core::num::Wrapping;
 

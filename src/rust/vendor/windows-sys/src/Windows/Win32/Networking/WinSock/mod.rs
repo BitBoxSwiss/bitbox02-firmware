@@ -1,296 +1,261 @@
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn AcceptEx(slistensocket : SOCKET, sacceptsocket : SOCKET, lpoutputbuffer : *mut ::core::ffi::c_void, dwreceivedatalength : u32, dwlocaladdresslength : u32, dwremoteaddresslength : u32, lpdwbytesreceived : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
-::windows_targets::link!("mswsock.dll" "system" fn EnumProtocolsA(lpiprotocols : *const i32, lpprotocolbuffer : *mut ::core::ffi::c_void, lpdwbufferlength : *mut u32) -> i32);
-::windows_targets::link!("mswsock.dll" "system" fn EnumProtocolsW(lpiprotocols : *const i32, lpprotocolbuffer : *mut ::core::ffi::c_void, lpdwbufferlength : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn FreeAddrInfoEx(paddrinfoex : *const ADDRINFOEXA) -> ());
-::windows_targets::link!("ws2_32.dll" "system" fn FreeAddrInfoExW(paddrinfoex : *const ADDRINFOEXW) -> ());
-::windows_targets::link!("ws2_32.dll" "system" fn FreeAddrInfoW(paddrinfo : *const ADDRINFOW) -> ());
-::windows_targets::link!("mswsock.dll" "system" fn GetAcceptExSockaddrs(lpoutputbuffer : *const ::core::ffi::c_void, dwreceivedatalength : u32, dwlocaladdresslength : u32, dwremoteaddresslength : u32, localsockaddr : *mut *mut SOCKADDR, localsockaddrlength : *mut i32, remotesockaddr : *mut *mut SOCKADDR, remotesockaddrlength : *mut i32) -> ());
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn GetAddrInfoExA(pname : ::windows_sys::core::PCSTR, pservicename : ::windows_sys::core::PCSTR, dwnamespace : u32, lpnspid : *const ::windows_sys::core::GUID, hints : *const ADDRINFOEXA, ppresult : *mut *mut ADDRINFOEXA, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lpnamehandle : *mut super::super::Foundation:: HANDLE) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetAddrInfoExCancel(lphandle : *const super::super::Foundation:: HANDLE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn GetAddrInfoExOverlappedResult(lpoverlapped : *const super::super::System::IO:: OVERLAPPED) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn GetAddrInfoExW(pname : ::windows_sys::core::PCWSTR, pservicename : ::windows_sys::core::PCWSTR, dwnamespace : u32, lpnspid : *const ::windows_sys::core::GUID, hints : *const ADDRINFOEXW, ppresult : *mut *mut ADDRINFOEXW, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lphandle : *mut super::super::Foundation:: HANDLE) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn GetAddrInfoW(pnodename : ::windows_sys::core::PCWSTR, pservicename : ::windows_sys::core::PCWSTR, phints : *const ADDRINFOW, ppresult : *mut *mut ADDRINFOW) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetAddressByNameA(dwnamespace : u32, lpservicetype : *const ::windows_sys::core::GUID, lpservicename : ::windows_sys::core::PCSTR, lpiprotocols : *const i32, dwresolution : u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpcsaddrbuffer : *mut ::core::ffi::c_void, lpdwbufferlength : *mut u32, lpaliasbuffer : ::windows_sys::core::PSTR, lpdwaliasbufferlength : *mut u32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetAddressByNameW(dwnamespace : u32, lpservicetype : *const ::windows_sys::core::GUID, lpservicename : ::windows_sys::core::PCWSTR, lpiprotocols : *const i32, dwresolution : u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpcsaddrbuffer : *mut ::core::ffi::c_void, lpdwbufferlength : *mut u32, lpaliasbuffer : ::windows_sys::core::PWSTR, lpdwaliasbufferlength : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn GetHostNameW(name : ::windows_sys::core::PWSTR, namelen : i32) -> i32);
-::windows_targets::link!("mswsock.dll" "system" fn GetNameByTypeA(lpservicetype : *const ::windows_sys::core::GUID, lpservicename : ::windows_sys::core::PSTR, dwnamelength : u32) -> i32);
-::windows_targets::link!("mswsock.dll" "system" fn GetNameByTypeW(lpservicetype : *const ::windows_sys::core::GUID, lpservicename : ::windows_sys::core::PWSTR, dwnamelength : u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn GetNameInfoW(psockaddr : *const SOCKADDR, sockaddrlength : socklen_t, pnodebuffer : ::windows_sys::core::PWSTR, nodebuffersize : u32, pservicebuffer : ::windows_sys::core::PWSTR, servicebuffersize : u32, flags : i32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetServiceA(dwnamespace : u32, lpguid : *const ::windows_sys::core::GUID, lpservicename : ::windows_sys::core::PCSTR, dwproperties : u32, lpbuffer : *mut ::core::ffi::c_void, lpdwbuffersize : *mut u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetServiceW(dwnamespace : u32, lpguid : *const ::windows_sys::core::GUID, lpservicename : ::windows_sys::core::PCWSTR, dwproperties : u32, lpbuffer : *mut ::core::ffi::c_void, lpdwbuffersize : *mut u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO) -> i32);
-::windows_targets::link!("mswsock.dll" "system" fn GetTypeByNameA(lpservicename : ::windows_sys::core::PCSTR, lpservicetype : *mut ::windows_sys::core::GUID) -> i32);
-::windows_targets::link!("mswsock.dll" "system" fn GetTypeByNameW(lpservicename : ::windows_sys::core::PCWSTR, lpservicetype : *mut ::windows_sys::core::GUID) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn InetNtopW(family : i32, paddr : *const ::core::ffi::c_void, pstringbuf : ::windows_sys::core::PWSTR, stringbufsize : usize) -> ::windows_sys::core::PCWSTR);
-::windows_targets::link!("ws2_32.dll" "system" fn InetPtonW(family : i32, pszaddrstring : ::windows_sys::core::PCWSTR, paddrbuf : *mut ::core::ffi::c_void) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn ProcessSocketNotifications(completionport : super::super::Foundation:: HANDLE, registrationcount : u32, registrationinfos : *mut SOCK_NOTIFY_REGISTRATION, timeoutms : u32, completioncount : u32, completionportentries : *mut super::super::System::IO:: OVERLAPPED_ENTRY, receivedentrycount : *mut u32) -> u32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlEthernetAddressToStringA(addr : *const DL_EUI48, s : ::windows_sys::core::PSTR) -> ::windows_sys::core::PSTR);
-::windows_targets::link!("ntdll.dll" "system" fn RtlEthernetAddressToStringW(addr : *const DL_EUI48, s : ::windows_sys::core::PWSTR) -> ::windows_sys::core::PWSTR);
-::windows_targets::link!("ntdll.dll" "system" fn RtlEthernetStringToAddressA(s : ::windows_sys::core::PCSTR, terminator : *mut ::windows_sys::core::PCSTR, addr : *mut DL_EUI48) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlEthernetStringToAddressW(s : ::windows_sys::core::PCWSTR, terminator : *mut ::windows_sys::core::PCWSTR, addr : *mut DL_EUI48) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringA(addr : *const IN_ADDR, s : ::windows_sys::core::PSTR) -> ::windows_sys::core::PSTR);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringExA(address : *const IN_ADDR, port : u16, addressstring : ::windows_sys::core::PSTR, addressstringlength : *mut u32) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringExW(address : *const IN_ADDR, port : u16, addressstring : ::windows_sys::core::PWSTR, addressstringlength : *mut u32) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringW(addr : *const IN_ADDR, s : ::windows_sys::core::PWSTR) -> ::windows_sys::core::PWSTR);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ntdll.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn RtlIpv4StringToAddressA(s : ::windows_sys::core::PCSTR, strict : super::super::Foundation:: BOOLEAN, terminator : *mut ::windows_sys::core::PCSTR, addr : *mut IN_ADDR) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ntdll.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn RtlIpv4StringToAddressExA(addressstring : ::windows_sys::core::PCSTR, strict : super::super::Foundation:: BOOLEAN, address : *mut IN_ADDR, port : *mut u16) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ntdll.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn RtlIpv4StringToAddressExW(addressstring : ::windows_sys::core::PCWSTR, strict : super::super::Foundation:: BOOLEAN, address : *mut IN_ADDR, port : *mut u16) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ntdll.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn RtlIpv4StringToAddressW(s : ::windows_sys::core::PCWSTR, strict : super::super::Foundation:: BOOLEAN, terminator : *mut ::windows_sys::core::PCWSTR, addr : *mut IN_ADDR) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringA(addr : *const IN6_ADDR, s : ::windows_sys::core::PSTR) -> ::windows_sys::core::PSTR);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringExA(address : *const IN6_ADDR, scopeid : u32, port : u16, addressstring : ::windows_sys::core::PSTR, addressstringlength : *mut u32) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringExW(address : *const IN6_ADDR, scopeid : u32, port : u16, addressstring : ::windows_sys::core::PWSTR, addressstringlength : *mut u32) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringW(addr : *const IN6_ADDR, s : ::windows_sys::core::PWSTR) -> ::windows_sys::core::PWSTR);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressA(s : ::windows_sys::core::PCSTR, terminator : *mut ::windows_sys::core::PCSTR, addr : *mut IN6_ADDR) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressExA(addressstring : ::windows_sys::core::PCSTR, address : *mut IN6_ADDR, scopeid : *mut u32, port : *mut u16) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressExW(addressstring : ::windows_sys::core::PCWSTR, address : *mut IN6_ADDR, scopeid : *mut u32, port : *mut u16) -> i32);
-::windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressW(s : ::windows_sys::core::PCWSTR, terminator : *mut ::windows_sys::core::PCWSTR, addr : *mut IN6_ADDR) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_IO\"`"] fn SetAddrInfoExA(pname : ::windows_sys::core::PCSTR, pservicename : ::windows_sys::core::PCSTR, paddresses : *const SOCKET_ADDRESS, dwaddresscount : u32, lpblob : *const super::super::System::Com:: BLOB, dwflags : u32, dwnamespace : u32, lpnspid : *const ::windows_sys::core::GUID, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lpnamehandle : *mut super::super::Foundation:: HANDLE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_IO\"`"] fn SetAddrInfoExW(pname : ::windows_sys::core::PCWSTR, pservicename : ::windows_sys::core::PCWSTR, paddresses : *const SOCKET_ADDRESS, dwaddresscount : u32, lpblob : *const super::super::System::Com:: BLOB, dwflags : u32, dwnamespace : u32, lpnspid : *const ::windows_sys::core::GUID, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lpnamehandle : *mut super::super::Foundation:: HANDLE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn SetServiceA(dwnamespace : u32, dwoperation : SET_SERVICE_OPERATION, dwflags : u32, lpserviceinfo : *const SERVICE_INFOA, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpdwstatusflags : *mut u32) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn SetServiceW(dwnamespace : u32, dwoperation : SET_SERVICE_OPERATION, dwflags : u32, lpserviceinfo : *const SERVICE_INFOW, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpdwstatusflags : *mut u32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("windows.networking.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn SetSocketMediaStreamingMode(value : super::super::Foundation:: BOOL) -> ::windows_sys::core::HRESULT);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("mswsock.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn TransmitFile(hsocket : SOCKET, hfile : super::super::Foundation:: HANDLE, nnumberofbytestowrite : u32, nnumberofbytespersend : u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lptransmitbuffers : *const TRANSMIT_FILE_BUFFERS, dwreserved : u32) -> super::super::Foundation:: BOOL);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WPUCompleteOverlappedRequest(s : SOCKET, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, dwerror : u32, cbtransferred : u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAAccept(s : SOCKET, addr : *mut SOCKADDR, addrlen : *mut i32, lpfncondition : LPCONDITIONPROC, dwcallbackdata : usize) -> SOCKET);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAAddressToStringA(lpsaaddress : *const SOCKADDR, dwaddresslength : u32, lpprotocolinfo : *const WSAPROTOCOL_INFOA, lpszaddressstring : ::windows_sys::core::PSTR, lpdwaddressstringlength : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAAddressToStringW(lpsaaddress : *const SOCKADDR, dwaddresslength : u32, lpprotocolinfo : *const WSAPROTOCOL_INFOW, lpszaddressstring : ::windows_sys::core::PWSTR, lpdwaddressstringlength : *mut u32) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSAAdvertiseProvider(puuidproviderid : *const ::windows_sys::core::GUID, pnspv2routine : *const NSPV2_ROUTINE) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAAsyncGetHostByAddr(hwnd : super::super::Foundation:: HWND, wmsg : u32, addr : ::windows_sys::core::PCSTR, len : i32, r#type : i32, buf : ::windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAAsyncGetHostByName(hwnd : super::super::Foundation:: HWND, wmsg : u32, name : ::windows_sys::core::PCSTR, buf : ::windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAAsyncGetProtoByName(hwnd : super::super::Foundation:: HWND, wmsg : u32, name : ::windows_sys::core::PCSTR, buf : ::windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAAsyncGetProtoByNumber(hwnd : super::super::Foundation:: HWND, wmsg : u32, number : i32, buf : ::windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAAsyncGetServByName(hwnd : super::super::Foundation:: HWND, wmsg : u32, name : ::windows_sys::core::PCSTR, proto : ::windows_sys::core::PCSTR, buf : ::windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAAsyncGetServByPort(hwnd : super::super::Foundation:: HWND, wmsg : u32, port : i32, proto : ::windows_sys::core::PCSTR, buf : ::windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAAsyncSelect(s : SOCKET, hwnd : super::super::Foundation:: HWND, wmsg : u32, levent : i32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSACancelAsyncRequest(hasynctaskhandle : super::super::Foundation:: HANDLE) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSACancelBlockingCall() -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSACleanup() -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSACloseEvent(hevent : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAConnect(s : SOCKET, name : *const SOCKADDR, namelen : i32, lpcallerdata : *const WSABUF, lpcalleedata : *mut WSABUF, lpsqos : *const QOS, lpgqos : *const QOS) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSAConnectByList(s : SOCKET, socketaddress : *const SOCKET_ADDRESS_LIST, localaddresslength : *mut u32, localaddress : *mut SOCKADDR, remoteaddresslength : *mut u32, remoteaddress : *mut SOCKADDR, timeout : *const TIMEVAL, reserved : *const super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSAConnectByNameA(s : SOCKET, nodename : ::windows_sys::core::PCSTR, servicename : ::windows_sys::core::PCSTR, localaddresslength : *mut u32, localaddress : *mut SOCKADDR, remoteaddresslength : *mut u32, remoteaddress : *mut SOCKADDR, timeout : *const TIMEVAL, reserved : *const super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSAConnectByNameW(s : SOCKET, nodename : ::windows_sys::core::PCWSTR, servicename : ::windows_sys::core::PCWSTR, localaddresslength : *mut u32, localaddress : *mut SOCKADDR, remoteaddresslength : *mut u32, remoteaddress : *mut SOCKADDR, timeout : *const TIMEVAL, reserved : *const super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSACreateEvent() -> super::super::Foundation:: HANDLE);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("fwpuclnt.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSADeleteSocketPeerTargetName(socket : SOCKET, peeraddr : *const SOCKADDR, peeraddrlen : u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSADuplicateSocketA(s : SOCKET, dwprocessid : u32, lpprotocolinfo : *mut WSAPROTOCOL_INFOA) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSADuplicateSocketW(s : SOCKET, dwprocessid : u32, lpprotocolinfo : *mut WSAPROTOCOL_INFOW) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAEnumNameSpaceProvidersA(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOA) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSAEnumNameSpaceProvidersExA(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOEXA) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSAEnumNameSpaceProvidersExW(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOEXW) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAEnumNameSpaceProvidersW(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOW) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAEnumNetworkEvents(s : SOCKET, heventobject : super::super::Foundation:: HANDLE, lpnetworkevents : *mut WSANETWORKEVENTS) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAEnumProtocolsA(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOA, lpdwbufferlength : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAEnumProtocolsW(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOW, lpdwbufferlength : *mut u32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAEventSelect(s : SOCKET, heventobject : super::super::Foundation:: HANDLE, lnetworkevents : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAGetLastError() -> WSA_ERROR);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSAGetOverlappedResult(s : SOCKET, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcbtransfer : *mut u32, fwait : super::super::Foundation:: BOOL, lpdwflags : *mut u32) -> super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAGetQOSByName(s : SOCKET, lpqosname : *const WSABUF, lpqos : *mut QOS) -> super::super::Foundation:: BOOL);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassInfoA(lpproviderid : *const ::windows_sys::core::GUID, lpserviceclassid : *const ::windows_sys::core::GUID, lpdwbufsize : *mut u32, lpserviceclassinfo : *mut WSASERVICECLASSINFOA) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassInfoW(lpproviderid : *const ::windows_sys::core::GUID, lpserviceclassid : *const ::windows_sys::core::GUID, lpdwbufsize : *mut u32, lpserviceclassinfo : *mut WSASERVICECLASSINFOW) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassNameByClassIdA(lpserviceclassid : *const ::windows_sys::core::GUID, lpszserviceclassname : ::windows_sys::core::PSTR, lpdwbufferlength : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassNameByClassIdW(lpserviceclassid : *const ::windows_sys::core::GUID, lpszserviceclassname : ::windows_sys::core::PWSTR, lpdwbufferlength : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAHtonl(s : SOCKET, hostlong : u32, lpnetlong : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAHtons(s : SOCKET, hostshort : u16, lpnetshort : *mut u16) -> i32);
-::windows_targets::link!("fwpuclnt.dll" "system" fn WSAImpersonateSocketPeer(socket : SOCKET, peeraddr : *const SOCKADDR, peeraddrlen : u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAInstallServiceClassA(lpserviceclassinfo : *const WSASERVICECLASSINFOA) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAInstallServiceClassW(lpserviceclassinfo : *const WSASERVICECLASSINFOW) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSAIoctl(s : SOCKET, dwiocontrolcode : u32, lpvinbuffer : *const ::core::ffi::c_void, cbinbuffer : u32, lpvoutbuffer : *mut ::core::ffi::c_void, cboutbuffer : u32, lpcbbytesreturned : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAIsBlocking() -> super::super::Foundation:: BOOL);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAJoinLeaf(s : SOCKET, name : *const SOCKADDR, namelen : i32, lpcallerdata : *const WSABUF, lpcalleedata : *mut WSABUF, lpsqos : *const QOS, lpgqos : *const QOS, dwflags : u32) -> SOCKET);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSALookupServiceBeginA(lpqsrestrictions : *const WSAQUERYSETA, dwcontrolflags : u32, lphlookup : *mut super::super::Foundation:: HANDLE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSALookupServiceBeginW(lpqsrestrictions : *const WSAQUERYSETW, dwcontrolflags : u32, lphlookup : *mut super::super::Foundation:: HANDLE) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSALookupServiceEnd(hlookup : super::super::Foundation:: HANDLE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSALookupServiceNextA(hlookup : super::super::Foundation:: HANDLE, dwcontrolflags : u32, lpdwbufferlength : *mut u32, lpqsresults : *mut WSAQUERYSETA) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSALookupServiceNextW(hlookup : super::super::Foundation:: HANDLE, dwcontrolflags : u32, lpdwbufferlength : *mut u32, lpqsresults : *mut WSAQUERYSETW) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSANSPIoctl(hlookup : super::super::Foundation:: HANDLE, dwcontrolcode : u32, lpvinbuffer : *const ::core::ffi::c_void, cbinbuffer : u32, lpvoutbuffer : *mut ::core::ffi::c_void, cboutbuffer : u32, lpcbbytesreturned : *mut u32, lpcompletion : *const WSACOMPLETION) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSANtohl(s : SOCKET, netlong : u32, lphostlong : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSANtohs(s : SOCKET, netshort : u16, lphostshort : *mut u16) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAPoll(fdarray : *mut WSAPOLLFD, fds : u32, timeout : i32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAProviderCompleteAsyncCall(hasynccall : super::super::Foundation:: HANDLE, iretcode : i32) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSAProviderConfigChange(lpnotificationhandle : *mut super::super::Foundation:: HANDLE, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("fwpuclnt.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSAQuerySocketSecurity(socket : SOCKET, securityquerytemplate : *const SOCKET_SECURITY_QUERY_TEMPLATE, securityquerytemplatelen : u32, securityqueryinfo : *mut SOCKET_SECURITY_QUERY_INFO, securityqueryinfolen : *mut u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSARecv(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytesrecvd : *mut u32, lpflags : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSARecvDisconnect(s : SOCKET, lpinbounddisconnectdata : *const WSABUF) -> i32);
-::windows_targets::link!("mswsock.dll" "system" fn WSARecvEx(s : SOCKET, buf : ::windows_sys::core::PSTR, len : i32, flags : *mut i32) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSARecvFrom(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytesrecvd : *mut u32, lpflags : *mut u32, lpfrom : *mut SOCKADDR, lpfromlen : *mut i32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSARemoveServiceClass(lpserviceclassid : *const ::windows_sys::core::GUID) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAResetEvent(hevent : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
-::windows_targets::link!("fwpuclnt.dll" "system" fn WSARevertImpersonation() -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSASend(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytessent : *mut u32, dwflags : u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSASendDisconnect(s : SOCKET, lpoutbounddisconnectdata : *const WSABUF) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSASendMsg(handle : SOCKET, lpmsg : *const WSAMSG, dwflags : u32, lpnumberofbytessent : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSASendTo(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytessent : *mut u32, dwflags : u32, lpto : *const SOCKADDR, itolen : i32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSASetBlockingHook(lpblockfunc : super::super::Foundation:: FARPROC) -> super::super::Foundation:: FARPROC);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSASetEvent(hevent : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
-::windows_targets::link!("ws2_32.dll" "system" fn WSASetLastError(ierror : i32) -> ());
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("mswsock.dll" "system" fn AcceptEx(slistensocket : SOCKET, sacceptsocket : SOCKET, lpoutputbuffer : *mut core::ffi::c_void, dwreceivedatalength : u32, dwlocaladdresslength : u32, dwremoteaddresslength : u32, lpdwbytesreceived : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
+windows_targets::link!("mswsock.dll" "system" fn EnumProtocolsA(lpiprotocols : *const i32, lpprotocolbuffer : *mut core::ffi::c_void, lpdwbufferlength : *mut u32) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn EnumProtocolsW(lpiprotocols : *const i32, lpprotocolbuffer : *mut core::ffi::c_void, lpdwbufferlength : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn FreeAddrInfoEx(paddrinfoex : *const ADDRINFOEXA));
+windows_targets::link!("ws2_32.dll" "system" fn FreeAddrInfoExW(paddrinfoex : *const ADDRINFOEXW));
+windows_targets::link!("ws2_32.dll" "system" fn FreeAddrInfoW(paddrinfo : *const ADDRINFOW));
+windows_targets::link!("mswsock.dll" "system" fn GetAcceptExSockaddrs(lpoutputbuffer : *const core::ffi::c_void, dwreceivedatalength : u32, dwlocaladdresslength : u32, dwremoteaddresslength : u32, localsockaddr : *mut *mut SOCKADDR, localsockaddrlength : *mut i32, remotesockaddr : *mut *mut SOCKADDR, remotesockaddrlength : *mut i32));
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn GetAddrInfoExA(pname : windows_sys::core::PCSTR, pservicename : windows_sys::core::PCSTR, dwnamespace : u32, lpnspid : *const windows_sys::core::GUID, hints : *const ADDRINFOEXA, ppresult : *mut *mut ADDRINFOEXA, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lpnamehandle : *mut super::super::Foundation:: HANDLE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn GetAddrInfoExCancel(lphandle : *const super::super::Foundation:: HANDLE) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn GetAddrInfoExOverlappedResult(lpoverlapped : *const super::super::System::IO:: OVERLAPPED) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn GetAddrInfoExW(pname : windows_sys::core::PCWSTR, pservicename : windows_sys::core::PCWSTR, dwnamespace : u32, lpnspid : *const windows_sys::core::GUID, hints : *const ADDRINFOEXW, ppresult : *mut *mut ADDRINFOEXW, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lphandle : *mut super::super::Foundation:: HANDLE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn GetAddrInfoW(pnodename : windows_sys::core::PCWSTR, pservicename : windows_sys::core::PCWSTR, phints : *const ADDRINFOW, ppresult : *mut *mut ADDRINFOW) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetAddressByNameA(dwnamespace : u32, lpservicetype : *const windows_sys::core::GUID, lpservicename : windows_sys::core::PCSTR, lpiprotocols : *const i32, dwresolution : u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpcsaddrbuffer : *mut core::ffi::c_void, lpdwbufferlength : *mut u32, lpaliasbuffer : windows_sys::core::PSTR, lpdwaliasbufferlength : *mut u32) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetAddressByNameW(dwnamespace : u32, lpservicetype : *const windows_sys::core::GUID, lpservicename : windows_sys::core::PCWSTR, lpiprotocols : *const i32, dwresolution : u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpcsaddrbuffer : *mut core::ffi::c_void, lpdwbufferlength : *mut u32, lpaliasbuffer : windows_sys::core::PWSTR, lpdwaliasbufferlength : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn GetHostNameW(name : windows_sys::core::PWSTR, namelen : i32) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetNameByTypeA(lpservicetype : *const windows_sys::core::GUID, lpservicename : windows_sys::core::PSTR, dwnamelength : u32) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetNameByTypeW(lpservicetype : *const windows_sys::core::GUID, lpservicename : windows_sys::core::PWSTR, dwnamelength : u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn GetNameInfoW(psockaddr : *const SOCKADDR, sockaddrlength : socklen_t, pnodebuffer : windows_sys::core::PWSTR, nodebuffersize : u32, pservicebuffer : windows_sys::core::PWSTR, servicebuffersize : u32, flags : i32) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetServiceA(dwnamespace : u32, lpguid : *const windows_sys::core::GUID, lpservicename : windows_sys::core::PCSTR, dwproperties : u32, lpbuffer : *mut core::ffi::c_void, lpdwbuffersize : *mut u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetServiceW(dwnamespace : u32, lpguid : *const windows_sys::core::GUID, lpservicename : windows_sys::core::PCWSTR, dwproperties : u32, lpbuffer : *mut core::ffi::c_void, lpdwbuffersize : *mut u32, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetTypeByNameA(lpservicename : windows_sys::core::PCSTR, lpservicetype : *mut windows_sys::core::GUID) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn GetTypeByNameW(lpservicename : windows_sys::core::PCWSTR, lpservicetype : *mut windows_sys::core::GUID) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn InetNtopW(family : i32, paddr : *const core::ffi::c_void, pstringbuf : windows_sys::core::PWSTR, stringbufsize : usize) -> windows_sys::core::PCWSTR);
+windows_targets::link!("ws2_32.dll" "system" fn InetPtonW(family : i32, pszaddrstring : windows_sys::core::PCWSTR, paddrbuf : *mut core::ffi::c_void) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn ProcessSocketNotifications(completionport : super::super::Foundation:: HANDLE, registrationcount : u32, registrationinfos : *mut SOCK_NOTIFY_REGISTRATION, timeoutms : u32, completioncount : u32, completionportentries : *mut super::super::System::IO:: OVERLAPPED_ENTRY, receivedentrycount : *mut u32) -> u32);
+windows_targets::link!("ntdll.dll" "system" fn RtlEthernetAddressToStringA(addr : *const DL_EUI48, s : windows_sys::core::PSTR) -> windows_sys::core::PSTR);
+windows_targets::link!("ntdll.dll" "system" fn RtlEthernetAddressToStringW(addr : *const DL_EUI48, s : windows_sys::core::PWSTR) -> windows_sys::core::PWSTR);
+windows_targets::link!("ntdll.dll" "system" fn RtlEthernetStringToAddressA(s : windows_sys::core::PCSTR, terminator : *mut windows_sys::core::PCSTR, addr : *mut DL_EUI48) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlEthernetStringToAddressW(s : windows_sys::core::PCWSTR, terminator : *mut windows_sys::core::PCWSTR, addr : *mut DL_EUI48) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringA(addr : *const IN_ADDR, s : windows_sys::core::PSTR) -> windows_sys::core::PSTR);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringExA(address : *const IN_ADDR, port : u16, addressstring : windows_sys::core::PSTR, addressstringlength : *mut u32) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringExW(address : *const IN_ADDR, port : u16, addressstring : windows_sys::core::PWSTR, addressstringlength : *mut u32) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4AddressToStringW(addr : *const IN_ADDR, s : windows_sys::core::PWSTR) -> windows_sys::core::PWSTR);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4StringToAddressA(s : windows_sys::core::PCSTR, strict : super::super::Foundation:: BOOLEAN, terminator : *mut windows_sys::core::PCSTR, addr : *mut IN_ADDR) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4StringToAddressExA(addressstring : windows_sys::core::PCSTR, strict : super::super::Foundation:: BOOLEAN, address : *mut IN_ADDR, port : *mut u16) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4StringToAddressExW(addressstring : windows_sys::core::PCWSTR, strict : super::super::Foundation:: BOOLEAN, address : *mut IN_ADDR, port : *mut u16) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv4StringToAddressW(s : windows_sys::core::PCWSTR, strict : super::super::Foundation:: BOOLEAN, terminator : *mut windows_sys::core::PCWSTR, addr : *mut IN_ADDR) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringA(addr : *const IN6_ADDR, s : windows_sys::core::PSTR) -> windows_sys::core::PSTR);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringExA(address : *const IN6_ADDR, scopeid : u32, port : u16, addressstring : windows_sys::core::PSTR, addressstringlength : *mut u32) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringExW(address : *const IN6_ADDR, scopeid : u32, port : u16, addressstring : windows_sys::core::PWSTR, addressstringlength : *mut u32) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6AddressToStringW(addr : *const IN6_ADDR, s : windows_sys::core::PWSTR) -> windows_sys::core::PWSTR);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressA(s : windows_sys::core::PCSTR, terminator : *mut windows_sys::core::PCSTR, addr : *mut IN6_ADDR) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressExA(addressstring : windows_sys::core::PCSTR, address : *mut IN6_ADDR, scopeid : *mut u32, port : *mut u16) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressExW(addressstring : windows_sys::core::PCWSTR, address : *mut IN6_ADDR, scopeid : *mut u32, port : *mut u16) -> i32);
+windows_targets::link!("ntdll.dll" "system" fn RtlIpv6StringToAddressW(s : windows_sys::core::PCWSTR, terminator : *mut windows_sys::core::PCWSTR, addr : *mut IN6_ADDR) -> i32);
+#[cfg(all(feature = "Win32_System_Com", feature = "Win32_System_IO"))]
+windows_targets::link!("ws2_32.dll" "system" fn SetAddrInfoExA(pname : windows_sys::core::PCSTR, pservicename : windows_sys::core::PCSTR, paddresses : *const SOCKET_ADDRESS, dwaddresscount : u32, lpblob : *const super::super::System::Com:: BLOB, dwflags : u32, dwnamespace : u32, lpnspid : *const windows_sys::core::GUID, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lpnamehandle : *mut super::super::Foundation:: HANDLE) -> i32);
+#[cfg(all(feature = "Win32_System_Com", feature = "Win32_System_IO"))]
+windows_targets::link!("ws2_32.dll" "system" fn SetAddrInfoExW(pname : windows_sys::core::PCWSTR, pservicename : windows_sys::core::PCWSTR, paddresses : *const SOCKET_ADDRESS, dwaddresscount : u32, lpblob : *const super::super::System::Com:: BLOB, dwflags : u32, dwnamespace : u32, lpnspid : *const windows_sys::core::GUID, timeout : *const TIMEVAL, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPLOOKUPSERVICE_COMPLETION_ROUTINE, lpnamehandle : *mut super::super::Foundation:: HANDLE) -> i32);
 #[cfg(feature = "Win32_System_Com")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_System_Com\"`"] fn WSASetServiceA(lpqsreginfo : *const WSAQUERYSETA, essoperation : WSAESETSERVICEOP, dwcontrolflags : u32) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn SetServiceA(dwnamespace : u32, dwoperation : SET_SERVICE_OPERATION, dwflags : u32, lpserviceinfo : *const SERVICE_INFOA, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpdwstatusflags : *mut u32) -> i32);
 #[cfg(feature = "Win32_System_Com")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_System_Com\"`"] fn WSASetServiceW(lpqsreginfo : *const WSAQUERYSETW, essoperation : WSAESETSERVICEOP, dwcontrolflags : u32) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("fwpuclnt.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSASetSocketPeerTargetName(socket : SOCKET, peertargetname : *const SOCKET_PEER_TARGET_NAME, peertargetnamelen : u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-::windows_targets::link!("fwpuclnt.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"] fn WSASetSocketSecurity(socket : SOCKET, securitysettings : *const SOCKET_SECURITY_SETTINGS, securitysettingslen : u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSASocketA(af : i32, r#type : i32, protocol : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOA, g : u32, dwflags : u32) -> SOCKET);
-::windows_targets::link!("ws2_32.dll" "system" fn WSASocketW(af : i32, r#type : i32, protocol : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOW, g : u32, dwflags : u32) -> SOCKET);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAStartup(wversionrequested : u16, lpwsadata : *mut WSADATA) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAStringToAddressA(addressstring : ::windows_sys::core::PCSTR, addressfamily : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOA, lpaddress : *mut SOCKADDR, lpaddresslength : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAStringToAddressW(addressstring : ::windows_sys::core::PCWSTR, addressfamily : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOW, lpaddress : *mut SOCKADDR, lpaddresslength : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAUnadvertiseProvider(puuidproviderid : *const ::windows_sys::core::GUID) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSAUnhookBlockingHook() -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSAWaitForMultipleEvents(cevents : u32, lphevents : *const super::super::Foundation:: HANDLE, fwaitall : super::super::Foundation:: BOOL, dwtimeout : u32, falertable : super::super::Foundation:: BOOL) -> super::super::Foundation:: WAIT_EVENT);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCDeinstallProvider(lpproviderid : *const ::windows_sys::core::GUID, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCDeinstallProvider32(lpproviderid : *const ::windows_sys::core::GUID, lperrno : *mut i32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSCEnableNSProvider(lpproviderid : *const ::windows_sys::core::GUID, fenable : super::super::Foundation:: BOOL) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSCEnableNSProvider32(lpproviderid : *const ::windows_sys::core::GUID, fenable : super::super::Foundation:: BOOL) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WSCEnumNameSpaceProviders32(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOW) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"] fn WSCEnumNameSpaceProvidersEx32(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOEXW) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCEnumProtocols(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOW, lpdwbufferlength : *mut u32, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCEnumProtocols32(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOW, lpdwbufferlength : *mut u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCGetApplicationCategory(path : ::windows_sys::core::PCWSTR, pathlength : u32, extra : ::windows_sys::core::PCWSTR, extralength : u32, ppermittedlspcategories : *mut u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderInfo(lpproviderid : *const ::windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *mut u8, infosize : *mut usize, flags : u32, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderInfo32(lpproviderid : *const ::windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *mut u8, infosize : *mut usize, flags : u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderPath(lpproviderid : *const ::windows_sys::core::GUID, lpszproviderdllpath : ::windows_sys::core::PWSTR, lpproviderdllpathlen : *mut i32, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderPath32(lpproviderid : *const ::windows_sys::core::GUID, lpszproviderdllpath : ::windows_sys::core::PWSTR, lpproviderdllpathlen : *mut i32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCInstallNameSpace(lpszidentifier : ::windows_sys::core::PCWSTR, lpszpathname : ::windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const ::windows_sys::core::GUID) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCInstallNameSpace32(lpszidentifier : ::windows_sys::core::PCWSTR, lpszpathname : ::windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const ::windows_sys::core::GUID) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn SetServiceW(dwnamespace : u32, dwoperation : SET_SERVICE_OPERATION, dwflags : u32, lpserviceinfo : *const SERVICE_INFOW, lpserviceasyncinfo : *const SERVICE_ASYNC_INFO, lpdwstatusflags : *mut u32) -> i32);
+windows_targets::link!("windows.networking.dll" "system" fn SetSocketMediaStreamingMode(value : super::super::Foundation:: BOOL) -> windows_sys::core::HRESULT);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("mswsock.dll" "system" fn TransmitFile(hsocket : SOCKET, hfile : super::super::Foundation:: HANDLE, nnumberofbytestowrite : u32, nnumberofbytespersend : u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lptransmitbuffers : *const TRANSMIT_FILE_BUFFERS, dwreserved : u32) -> super::super::Foundation:: BOOL);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WPUCompleteOverlappedRequest(s : SOCKET, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, dwerror : u32, cbtransferred : u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAccept(s : SOCKET, addr : *mut SOCKADDR, addrlen : *mut i32, lpfncondition : LPCONDITIONPROC, dwcallbackdata : usize) -> SOCKET);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAddressToStringA(lpsaaddress : *const SOCKADDR, dwaddresslength : u32, lpprotocolinfo : *const WSAPROTOCOL_INFOA, lpszaddressstring : windows_sys::core::PSTR, lpdwaddressstringlength : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAddressToStringW(lpsaaddress : *const SOCKADDR, dwaddresslength : u32, lpprotocolinfo : *const WSAPROTOCOL_INFOW, lpszaddressstring : windows_sys::core::PWSTR, lpdwaddressstringlength : *mut u32) -> i32);
 #[cfg(feature = "Win32_System_Com")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_System_Com\"`"] fn WSCInstallNameSpaceEx(lpszidentifier : ::windows_sys::core::PCWSTR, lpszpathname : ::windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const ::windows_sys::core::GUID, lpproviderspecific : *const super::super::System::Com:: BLOB) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSAAdvertiseProvider(puuidproviderid : *const windows_sys::core::GUID, pnspv2routine : *const NSPV2_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAsyncGetHostByAddr(hwnd : super::super::Foundation:: HWND, wmsg : u32, addr : windows_sys::core::PCSTR, len : i32, r#type : i32, buf : windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAsyncGetHostByName(hwnd : super::super::Foundation:: HWND, wmsg : u32, name : windows_sys::core::PCSTR, buf : windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAsyncGetProtoByName(hwnd : super::super::Foundation:: HWND, wmsg : u32, name : windows_sys::core::PCSTR, buf : windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAsyncGetProtoByNumber(hwnd : super::super::Foundation:: HWND, wmsg : u32, number : i32, buf : windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAsyncGetServByName(hwnd : super::super::Foundation:: HWND, wmsg : u32, name : windows_sys::core::PCSTR, proto : windows_sys::core::PCSTR, buf : windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAsyncGetServByPort(hwnd : super::super::Foundation:: HWND, wmsg : u32, port : i32, proto : windows_sys::core::PCSTR, buf : windows_sys::core::PSTR, buflen : i32) -> super::super::Foundation:: HANDLE);
+windows_targets::link!("ws2_32.dll" "system" fn WSAAsyncSelect(s : SOCKET, hwnd : super::super::Foundation:: HWND, wmsg : u32, levent : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSACancelAsyncRequest(hasynctaskhandle : super::super::Foundation:: HANDLE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSACancelBlockingCall() -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSACleanup() -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSACloseEvent(hevent : WSAEVENT) -> super::super::Foundation:: BOOL);
+windows_targets::link!("ws2_32.dll" "system" fn WSAConnect(s : SOCKET, name : *const SOCKADDR, namelen : i32, lpcallerdata : *const WSABUF, lpcalleedata : *mut WSABUF, lpsqos : *const QOS, lpgqos : *const QOS) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSAConnectByList(s : SOCKET, socketaddress : *const SOCKET_ADDRESS_LIST, localaddresslength : *mut u32, localaddress : *mut SOCKADDR, remoteaddresslength : *mut u32, remoteaddress : *mut SOCKADDR, timeout : *const TIMEVAL, reserved : *const super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSAConnectByNameA(s : SOCKET, nodename : windows_sys::core::PCSTR, servicename : windows_sys::core::PCSTR, localaddresslength : *mut u32, localaddress : *mut SOCKADDR, remoteaddresslength : *mut u32, remoteaddress : *mut SOCKADDR, timeout : *const TIMEVAL, reserved : *const super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSAConnectByNameW(s : SOCKET, nodename : windows_sys::core::PCWSTR, servicename : windows_sys::core::PCWSTR, localaddresslength : *mut u32, localaddress : *mut SOCKADDR, remoteaddresslength : *mut u32, remoteaddress : *mut SOCKADDR, timeout : *const TIMEVAL, reserved : *const super::super::System::IO:: OVERLAPPED) -> super::super::Foundation:: BOOL);
+windows_targets::link!("ws2_32.dll" "system" fn WSACreateEvent() -> WSAEVENT);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("fwpuclnt.dll" "system" fn WSADeleteSocketPeerTargetName(socket : SOCKET, peeraddr : *const SOCKADDR, peeraddrlen : u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSADuplicateSocketA(s : SOCKET, dwprocessid : u32, lpprotocolinfo : *mut WSAPROTOCOL_INFOA) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSADuplicateSocketW(s : SOCKET, dwprocessid : u32, lpprotocolinfo : *mut WSAPROTOCOL_INFOW) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAEnumNameSpaceProvidersA(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOA) -> i32);
 #[cfg(feature = "Win32_System_Com")]
-::windows_targets::link!("ws2_32.dll" "system" #[doc = "Required features: `\"Win32_System_Com\"`"] fn WSCInstallNameSpaceEx32(lpszidentifier : ::windows_sys::core::PCWSTR, lpszpathname : ::windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const ::windows_sys::core::GUID, lpproviderspecific : *const super::super::System::Com:: BLOB) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCInstallProvider(lpproviderid : *const ::windows_sys::core::GUID, lpszproviderdllpath : ::windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCInstallProvider64_32(lpproviderid : *const ::windows_sys::core::GUID, lpszproviderdllpath : ::windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCInstallProviderAndChains64_32(lpproviderid : *const ::windows_sys::core::GUID, lpszproviderdllpath : ::windows_sys::core::PCWSTR, lpszproviderdllpath32 : ::windows_sys::core::PCWSTR, lpszlspname : ::windows_sys::core::PCWSTR, dwserviceflags : u32, lpprotocolinfolist : *mut WSAPROTOCOL_INFOW, dwnumberofentries : u32, lpdwcatalogentryid : *mut u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCSetApplicationCategory(path : ::windows_sys::core::PCWSTR, pathlength : u32, extra : ::windows_sys::core::PCWSTR, extralength : u32, permittedlspcategories : u32, pprevpermlspcat : *mut u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCSetProviderInfo(lpproviderid : *const ::windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *const u8, infosize : usize, flags : u32, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCSetProviderInfo32(lpproviderid : *const ::windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *const u8, infosize : usize, flags : u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCUnInstallNameSpace(lpproviderid : *const ::windows_sys::core::GUID) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCUnInstallNameSpace32(lpproviderid : *const ::windows_sys::core::GUID) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCUpdateProvider(lpproviderid : *const ::windows_sys::core::GUID, lpszproviderdllpath : ::windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCUpdateProvider32(lpproviderid : *const ::windows_sys::core::GUID, lpszproviderdllpath : ::windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCWriteNameSpaceOrder(lpproviderid : *mut ::windows_sys::core::GUID, dwnumberofentries : u32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCWriteNameSpaceOrder32(lpproviderid : *mut ::windows_sys::core::GUID, dwnumberofentries : u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn WSCWriteProviderOrder(lpwdcatalogentryid : *mut u32, dwnumberofentries : u32) -> i32);
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-::windows_targets::link!("ws2_32.dll" "system" fn WSCWriteProviderOrder32(lpwdcatalogentryid : *mut u32, dwnumberofentries : u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn __WSAFDIsSet(fd : SOCKET, param1 : *mut FD_SET) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn accept(s : SOCKET, addr : *mut SOCKADDR, addrlen : *mut i32) -> SOCKET);
-::windows_targets::link!("ws2_32.dll" "system" fn bind(s : SOCKET, name : *const SOCKADDR, namelen : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn closesocket(s : SOCKET) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn connect(s : SOCKET, name : *const SOCKADDR, namelen : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn freeaddrinfo(paddrinfo : *const ADDRINFOA) -> ());
-::windows_targets::link!("ws2_32.dll" "system" fn getaddrinfo(pnodename : ::windows_sys::core::PCSTR, pservicename : ::windows_sys::core::PCSTR, phints : *const ADDRINFOA, ppresult : *mut *mut ADDRINFOA) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn gethostbyaddr(addr : ::windows_sys::core::PCSTR, len : i32, r#type : i32) -> *mut HOSTENT);
-::windows_targets::link!("ws2_32.dll" "system" fn gethostbyname(name : ::windows_sys::core::PCSTR) -> *mut HOSTENT);
-::windows_targets::link!("ws2_32.dll" "system" fn gethostname(name : ::windows_sys::core::PSTR, namelen : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn getnameinfo(psockaddr : *const SOCKADDR, sockaddrlength : socklen_t, pnodebuffer : ::windows_sys::core::PSTR, nodebuffersize : u32, pservicebuffer : ::windows_sys::core::PSTR, servicebuffersize : u32, flags : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn getpeername(s : SOCKET, name : *mut SOCKADDR, namelen : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn getprotobyname(name : ::windows_sys::core::PCSTR) -> *mut PROTOENT);
-::windows_targets::link!("ws2_32.dll" "system" fn getprotobynumber(number : i32) -> *mut PROTOENT);
-::windows_targets::link!("ws2_32.dll" "system" fn getservbyname(name : ::windows_sys::core::PCSTR, proto : ::windows_sys::core::PCSTR) -> *mut SERVENT);
-::windows_targets::link!("ws2_32.dll" "system" fn getservbyport(port : i32, proto : ::windows_sys::core::PCSTR) -> *mut SERVENT);
-::windows_targets::link!("ws2_32.dll" "system" fn getsockname(s : SOCKET, name : *mut SOCKADDR, namelen : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn getsockopt(s : SOCKET, level : i32, optname : i32, optval : ::windows_sys::core::PSTR, optlen : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn htonl(hostlong : u32) -> u32);
-::windows_targets::link!("ws2_32.dll" "system" fn htons(hostshort : u16) -> u16);
-::windows_targets::link!("ws2_32.dll" "system" fn inet_addr(cp : ::windows_sys::core::PCSTR) -> u32);
-::windows_targets::link!("ws2_32.dll" "system" fn inet_ntoa(r#in : IN_ADDR) -> ::windows_sys::core::PSTR);
-::windows_targets::link!("ws2_32.dll" "system" fn inet_ntop(family : i32, paddr : *const ::core::ffi::c_void, pstringbuf : ::windows_sys::core::PSTR, stringbufsize : usize) -> ::windows_sys::core::PCSTR);
-::windows_targets::link!("ws2_32.dll" "system" fn inet_pton(family : i32, pszaddrstring : ::windows_sys::core::PCSTR, paddrbuf : *mut ::core::ffi::c_void) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn ioctlsocket(s : SOCKET, cmd : i32, argp : *mut u32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn listen(s : SOCKET, backlog : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn ntohl(netlong : u32) -> u32);
-::windows_targets::link!("ws2_32.dll" "system" fn ntohs(netshort : u16) -> u16);
-::windows_targets::link!("ws2_32.dll" "system" fn recv(s : SOCKET, buf : ::windows_sys::core::PSTR, len : i32, flags : SEND_RECV_FLAGS) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn recvfrom(s : SOCKET, buf : ::windows_sys::core::PSTR, len : i32, flags : i32, from : *mut SOCKADDR, fromlen : *mut i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn select(nfds : i32, readfds : *mut FD_SET, writefds : *mut FD_SET, exceptfds : *mut FD_SET, timeout : *const TIMEVAL) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn send(s : SOCKET, buf : ::windows_sys::core::PCSTR, len : i32, flags : SEND_RECV_FLAGS) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn sendto(s : SOCKET, buf : ::windows_sys::core::PCSTR, len : i32, flags : i32, to : *const SOCKADDR, tolen : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn setsockopt(s : SOCKET, level : i32, optname : i32, optval : ::windows_sys::core::PCSTR, optlen : i32) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn shutdown(s : SOCKET, how : WINSOCK_SHUTDOWN_HOW) -> i32);
-::windows_targets::link!("ws2_32.dll" "system" fn socket(af : i32, r#type : WINSOCK_SOCKET_TYPE, protocol : i32) -> SOCKET);
+windows_targets::link!("ws2_32.dll" "system" fn WSAEnumNameSpaceProvidersExA(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOEXA) -> i32);
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSAEnumNameSpaceProvidersExW(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOEXW) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAEnumNameSpaceProvidersW(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOW) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAEnumNetworkEvents(s : SOCKET, heventobject : WSAEVENT, lpnetworkevents : *mut WSANETWORKEVENTS) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAEnumProtocolsA(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOA, lpdwbufferlength : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAEnumProtocolsW(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOW, lpdwbufferlength : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAEventSelect(s : SOCKET, heventobject : WSAEVENT, lnetworkevents : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAGetLastError() -> WSA_ERROR);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSAGetOverlappedResult(s : SOCKET, lpoverlapped : *const super::super::System::IO:: OVERLAPPED, lpcbtransfer : *mut u32, fwait : super::super::Foundation:: BOOL, lpdwflags : *mut u32) -> super::super::Foundation:: BOOL);
+windows_targets::link!("ws2_32.dll" "system" fn WSAGetQOSByName(s : SOCKET, lpqosname : *const WSABUF, lpqos : *mut QOS) -> super::super::Foundation:: BOOL);
+windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassInfoA(lpproviderid : *const windows_sys::core::GUID, lpserviceclassid : *const windows_sys::core::GUID, lpdwbufsize : *mut u32, lpserviceclassinfo : *mut WSASERVICECLASSINFOA) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassInfoW(lpproviderid : *const windows_sys::core::GUID, lpserviceclassid : *const windows_sys::core::GUID, lpdwbufsize : *mut u32, lpserviceclassinfo : *mut WSASERVICECLASSINFOW) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassNameByClassIdA(lpserviceclassid : *const windows_sys::core::GUID, lpszserviceclassname : windows_sys::core::PSTR, lpdwbufferlength : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAGetServiceClassNameByClassIdW(lpserviceclassid : *const windows_sys::core::GUID, lpszserviceclassname : windows_sys::core::PWSTR, lpdwbufferlength : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAHtonl(s : SOCKET, hostlong : u32, lpnetlong : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAHtons(s : SOCKET, hostshort : u16, lpnetshort : *mut u16) -> i32);
+windows_targets::link!("fwpuclnt.dll" "system" fn WSAImpersonateSocketPeer(socket : SOCKET, peeraddr : *const SOCKADDR, peeraddrlen : u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAInstallServiceClassA(lpserviceclassinfo : *const WSASERVICECLASSINFOA) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAInstallServiceClassW(lpserviceclassinfo : *const WSASERVICECLASSINFOW) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSAIoctl(s : SOCKET, dwiocontrolcode : u32, lpvinbuffer : *const core::ffi::c_void, cbinbuffer : u32, lpvoutbuffer : *mut core::ffi::c_void, cboutbuffer : u32, lpcbbytesreturned : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAIsBlocking() -> super::super::Foundation:: BOOL);
+windows_targets::link!("ws2_32.dll" "system" fn WSAJoinLeaf(s : SOCKET, name : *const SOCKADDR, namelen : i32, lpcallerdata : *const WSABUF, lpcalleedata : *mut WSABUF, lpsqos : *const QOS, lpgqos : *const QOS, dwflags : u32) -> SOCKET);
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSALookupServiceBeginA(lpqsrestrictions : *const WSAQUERYSETA, dwcontrolflags : u32, lphlookup : *mut super::super::Foundation:: HANDLE) -> i32);
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSALookupServiceBeginW(lpqsrestrictions : *const WSAQUERYSETW, dwcontrolflags : u32, lphlookup : *mut super::super::Foundation:: HANDLE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSALookupServiceEnd(hlookup : super::super::Foundation:: HANDLE) -> i32);
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSALookupServiceNextA(hlookup : super::super::Foundation:: HANDLE, dwcontrolflags : u32, lpdwbufferlength : *mut u32, lpqsresults : *mut WSAQUERYSETA) -> i32);
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSALookupServiceNextW(hlookup : super::super::Foundation:: HANDLE, dwcontrolflags : u32, lpdwbufferlength : *mut u32, lpqsresults : *mut WSAQUERYSETW) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSANSPIoctl(hlookup : super::super::Foundation:: HANDLE, dwcontrolcode : u32, lpvinbuffer : *const core::ffi::c_void, cbinbuffer : u32, lpvoutbuffer : *mut core::ffi::c_void, cboutbuffer : u32, lpcbbytesreturned : *mut u32, lpcompletion : *const WSACOMPLETION) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSANtohl(s : SOCKET, netlong : u32, lphostlong : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSANtohs(s : SOCKET, netshort : u16, lphostshort : *mut u16) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAPoll(fdarray : *mut WSAPOLLFD, fds : u32, timeout : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAProviderCompleteAsyncCall(hasynccall : super::super::Foundation:: HANDLE, iretcode : i32) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSAProviderConfigChange(lpnotificationhandle : *mut super::super::Foundation:: HANDLE, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("fwpuclnt.dll" "system" fn WSAQuerySocketSecurity(socket : SOCKET, securityquerytemplate : *const SOCKET_SECURITY_QUERY_TEMPLATE, securityquerytemplatelen : u32, securityqueryinfo : *mut SOCKET_SECURITY_QUERY_INFO, securityqueryinfolen : *mut u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSARecv(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytesrecvd : *mut u32, lpflags : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSARecvDisconnect(s : SOCKET, lpinbounddisconnectdata : *const WSABUF) -> i32);
+windows_targets::link!("mswsock.dll" "system" fn WSARecvEx(s : SOCKET, buf : windows_sys::core::PSTR, len : i32, flags : *mut i32) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSARecvFrom(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytesrecvd : *mut u32, lpflags : *mut u32, lpfrom : *mut SOCKADDR, lpfromlen : *mut i32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSARemoveServiceClass(lpserviceclassid : *const windows_sys::core::GUID) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAResetEvent(hevent : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
+windows_targets::link!("fwpuclnt.dll" "system" fn WSARevertImpersonation() -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSASend(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytessent : *mut u32, dwflags : u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSASendDisconnect(s : SOCKET, lpoutbounddisconnectdata : *const WSABUF) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSASendMsg(handle : SOCKET, lpmsg : *const WSAMSG, dwflags : u32, lpnumberofbytessent : *mut u32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("ws2_32.dll" "system" fn WSASendTo(s : SOCKET, lpbuffers : *const WSABUF, dwbuffercount : u32, lpnumberofbytessent : *mut u32, dwflags : u32, lpto : *const SOCKADDR, itolen : i32, lpoverlapped : *mut super::super::System::IO:: OVERLAPPED, lpcompletionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSASetBlockingHook(lpblockfunc : super::super::Foundation:: FARPROC) -> super::super::Foundation:: FARPROC);
+windows_targets::link!("ws2_32.dll" "system" fn WSASetEvent(hevent : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
+windows_targets::link!("ws2_32.dll" "system" fn WSASetLastError(ierror : i32));
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSASetServiceA(lpqsreginfo : *const WSAQUERYSETA, essoperation : WSAESETSERVICEOP, dwcontrolflags : u32) -> i32);
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSASetServiceW(lpqsreginfo : *const WSAQUERYSETW, essoperation : WSAESETSERVICEOP, dwcontrolflags : u32) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("fwpuclnt.dll" "system" fn WSASetSocketPeerTargetName(socket : SOCKET, peertargetname : *const SOCKET_PEER_TARGET_NAME, peertargetnamelen : u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+#[cfg(feature = "Win32_System_IO")]
+windows_targets::link!("fwpuclnt.dll" "system" fn WSASetSocketSecurity(socket : SOCKET, securitysettings : *const SOCKET_SECURITY_SETTINGS, securitysettingslen : u32, overlapped : *const super::super::System::IO:: OVERLAPPED, completionroutine : LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSASocketA(af : i32, r#type : i32, protocol : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOA, g : u32, dwflags : u32) -> SOCKET);
+windows_targets::link!("ws2_32.dll" "system" fn WSASocketW(af : i32, r#type : i32, protocol : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOW, g : u32, dwflags : u32) -> SOCKET);
+windows_targets::link!("ws2_32.dll" "system" fn WSAStartup(wversionrequested : u16, lpwsadata : *mut WSADATA) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAStringToAddressA(addressstring : windows_sys::core::PCSTR, addressfamily : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOA, lpaddress : *mut SOCKADDR, lpaddresslength : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAStringToAddressW(addressstring : windows_sys::core::PCWSTR, addressfamily : i32, lpprotocolinfo : *const WSAPROTOCOL_INFOW, lpaddress : *mut SOCKADDR, lpaddresslength : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAUnadvertiseProvider(puuidproviderid : *const windows_sys::core::GUID) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAUnhookBlockingHook() -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSAWaitForMultipleEvents(cevents : u32, lphevents : *const super::super::Foundation:: HANDLE, fwaitall : super::super::Foundation:: BOOL, dwtimeout : u32, falertable : super::super::Foundation:: BOOL) -> super::super::Foundation:: WAIT_EVENT);
+windows_targets::link!("ws2_32.dll" "system" fn WSCDeinstallProvider(lpproviderid : *const windows_sys::core::GUID, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCDeinstallProvider32(lpproviderid : *const windows_sys::core::GUID, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCEnableNSProvider(lpproviderid : *const windows_sys::core::GUID, fenable : super::super::Foundation:: BOOL) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCEnableNSProvider32(lpproviderid : *const windows_sys::core::GUID, fenable : super::super::Foundation:: BOOL) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCEnumNameSpaceProviders32(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOW) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSCEnumNameSpaceProvidersEx32(lpdwbufferlength : *mut u32, lpnspbuffer : *mut WSANAMESPACE_INFOEXW) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCEnumProtocols(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOW, lpdwbufferlength : *mut u32, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCEnumProtocols32(lpiprotocols : *const i32, lpprotocolbuffer : *mut WSAPROTOCOL_INFOW, lpdwbufferlength : *mut u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCGetApplicationCategory(path : windows_sys::core::PCWSTR, pathlength : u32, extra : windows_sys::core::PCWSTR, extralength : u32, ppermittedlspcategories : *mut u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderInfo(lpproviderid : *const windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *mut u8, infosize : *mut usize, flags : u32, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderInfo32(lpproviderid : *const windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *mut u8, infosize : *mut usize, flags : u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderPath(lpproviderid : *const windows_sys::core::GUID, lpszproviderdllpath : windows_sys::core::PWSTR, lpproviderdllpathlen : *mut i32, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCGetProviderPath32(lpproviderid : *const windows_sys::core::GUID, lpszproviderdllpath : windows_sys::core::PWSTR, lpproviderdllpathlen : *mut i32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCInstallNameSpace(lpszidentifier : windows_sys::core::PCWSTR, lpszpathname : windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const windows_sys::core::GUID) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCInstallNameSpace32(lpszidentifier : windows_sys::core::PCWSTR, lpszpathname : windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const windows_sys::core::GUID) -> i32);
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSCInstallNameSpaceEx(lpszidentifier : windows_sys::core::PCWSTR, lpszpathname : windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const windows_sys::core::GUID, lpproviderspecific : *const super::super::System::Com:: BLOB) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+#[cfg(feature = "Win32_System_Com")]
+windows_targets::link!("ws2_32.dll" "system" fn WSCInstallNameSpaceEx32(lpszidentifier : windows_sys::core::PCWSTR, lpszpathname : windows_sys::core::PCWSTR, dwnamespace : u32, dwversion : u32, lpproviderid : *const windows_sys::core::GUID, lpproviderspecific : *const super::super::System::Com:: BLOB) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCInstallProvider(lpproviderid : *const windows_sys::core::GUID, lpszproviderdllpath : windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCInstallProvider64_32(lpproviderid : *const windows_sys::core::GUID, lpszproviderdllpath : windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCInstallProviderAndChains64_32(lpproviderid : *const windows_sys::core::GUID, lpszproviderdllpath : windows_sys::core::PCWSTR, lpszproviderdllpath32 : windows_sys::core::PCWSTR, lpszlspname : windows_sys::core::PCWSTR, dwserviceflags : u32, lpprotocolinfolist : *mut WSAPROTOCOL_INFOW, dwnumberofentries : u32, lpdwcatalogentryid : *mut u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCSetApplicationCategory(path : windows_sys::core::PCWSTR, pathlength : u32, extra : windows_sys::core::PCWSTR, extralength : u32, permittedlspcategories : u32, pprevpermlspcat : *mut u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCSetProviderInfo(lpproviderid : *const windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *const u8, infosize : usize, flags : u32, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCSetProviderInfo32(lpproviderid : *const windows_sys::core::GUID, infotype : WSC_PROVIDER_INFO_TYPE, info : *const u8, infosize : usize, flags : u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCUnInstallNameSpace(lpproviderid : *const windows_sys::core::GUID) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCUnInstallNameSpace32(lpproviderid : *const windows_sys::core::GUID) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCUpdateProvider(lpproviderid : *const windows_sys::core::GUID, lpszproviderdllpath : windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCUpdateProvider32(lpproviderid : *const windows_sys::core::GUID, lpszproviderdllpath : windows_sys::core::PCWSTR, lpprotocolinfolist : *const WSAPROTOCOL_INFOW, dwnumberofentries : u32, lperrno : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCWriteNameSpaceOrder(lpproviderid : *mut windows_sys::core::GUID, dwnumberofentries : u32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCWriteNameSpaceOrder32(lpproviderid : *mut windows_sys::core::GUID, dwnumberofentries : u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn WSCWriteProviderOrder(lpwdcatalogentryid : *mut u32, dwnumberofentries : u32) -> i32);
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+windows_targets::link!("ws2_32.dll" "system" fn WSCWriteProviderOrder32(lpwdcatalogentryid : *mut u32, dwnumberofentries : u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn __WSAFDIsSet(fd : SOCKET, param1 : *mut FD_SET) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn accept(s : SOCKET, addr : *mut SOCKADDR, addrlen : *mut i32) -> SOCKET);
+windows_targets::link!("ws2_32.dll" "system" fn bind(s : SOCKET, name : *const SOCKADDR, namelen : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn closesocket(s : SOCKET) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn connect(s : SOCKET, name : *const SOCKADDR, namelen : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn freeaddrinfo(paddrinfo : *const ADDRINFOA));
+windows_targets::link!("ws2_32.dll" "system" fn getaddrinfo(pnodename : windows_sys::core::PCSTR, pservicename : windows_sys::core::PCSTR, phints : *const ADDRINFOA, ppresult : *mut *mut ADDRINFOA) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn gethostbyaddr(addr : windows_sys::core::PCSTR, len : i32, r#type : i32) -> *mut HOSTENT);
+windows_targets::link!("ws2_32.dll" "system" fn gethostbyname(name : windows_sys::core::PCSTR) -> *mut HOSTENT);
+windows_targets::link!("ws2_32.dll" "system" fn gethostname(name : windows_sys::core::PSTR, namelen : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn getnameinfo(psockaddr : *const SOCKADDR, sockaddrlength : socklen_t, pnodebuffer : windows_sys::core::PSTR, nodebuffersize : u32, pservicebuffer : windows_sys::core::PSTR, servicebuffersize : u32, flags : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn getpeername(s : SOCKET, name : *mut SOCKADDR, namelen : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn getprotobyname(name : windows_sys::core::PCSTR) -> *mut PROTOENT);
+windows_targets::link!("ws2_32.dll" "system" fn getprotobynumber(number : i32) -> *mut PROTOENT);
+windows_targets::link!("ws2_32.dll" "system" fn getservbyname(name : windows_sys::core::PCSTR, proto : windows_sys::core::PCSTR) -> *mut SERVENT);
+windows_targets::link!("ws2_32.dll" "system" fn getservbyport(port : i32, proto : windows_sys::core::PCSTR) -> *mut SERVENT);
+windows_targets::link!("ws2_32.dll" "system" fn getsockname(s : SOCKET, name : *mut SOCKADDR, namelen : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn getsockopt(s : SOCKET, level : i32, optname : i32, optval : windows_sys::core::PSTR, optlen : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn htonl(hostlong : u32) -> u32);
+windows_targets::link!("ws2_32.dll" "system" fn htons(hostshort : u16) -> u16);
+windows_targets::link!("ws2_32.dll" "system" fn inet_addr(cp : windows_sys::core::PCSTR) -> u32);
+windows_targets::link!("ws2_32.dll" "system" fn inet_ntoa(r#in : IN_ADDR) -> windows_sys::core::PSTR);
+windows_targets::link!("ws2_32.dll" "system" fn inet_ntop(family : i32, paddr : *const core::ffi::c_void, pstringbuf : windows_sys::core::PSTR, stringbufsize : usize) -> windows_sys::core::PCSTR);
+windows_targets::link!("ws2_32.dll" "system" fn inet_pton(family : i32, pszaddrstring : windows_sys::core::PCSTR, paddrbuf : *mut core::ffi::c_void) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn ioctlsocket(s : SOCKET, cmd : i32, argp : *mut u32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn listen(s : SOCKET, backlog : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn ntohl(netlong : u32) -> u32);
+windows_targets::link!("ws2_32.dll" "system" fn ntohs(netshort : u16) -> u16);
+windows_targets::link!("ws2_32.dll" "system" fn recv(s : SOCKET, buf : windows_sys::core::PSTR, len : i32, flags : SEND_RECV_FLAGS) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn recvfrom(s : SOCKET, buf : windows_sys::core::PSTR, len : i32, flags : i32, from : *mut SOCKADDR, fromlen : *mut i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn select(nfds : i32, readfds : *mut FD_SET, writefds : *mut FD_SET, exceptfds : *mut FD_SET, timeout : *const TIMEVAL) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn send(s : SOCKET, buf : windows_sys::core::PCSTR, len : i32, flags : SEND_RECV_FLAGS) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn sendto(s : SOCKET, buf : windows_sys::core::PCSTR, len : i32, flags : i32, to : *const SOCKADDR, tolen : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn setsockopt(s : SOCKET, level : i32, optname : i32, optval : windows_sys::core::PCSTR, optlen : i32) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn shutdown(s : SOCKET, how : WINSOCK_SHUTDOWN_HOW) -> i32);
+windows_targets::link!("ws2_32.dll" "system" fn socket(af : i32, r#type : WINSOCK_SOCKET_TYPE, protocol : i32) -> SOCKET);
 pub const AAL5_MODE_MESSAGE: u32 = 1u32;
 pub const AAL5_MODE_STREAMING: u32 = 2u32;
 pub const AAL5_SSCS_FRAME_RELAY: u32 = 4u32;
@@ -304,6 +269,7 @@ pub const ADDRINFOEX_VERSION_3: u32 = 3u32;
 pub const ADDRINFOEX_VERSION_4: u32 = 4u32;
 pub const ADDRINFOEX_VERSION_5: u32 = 5u32;
 pub const ADDRINFOEX_VERSION_6: u32 = 6u32;
+pub const ADDR_ANY: u32 = 0u32;
 pub const AF_12844: u16 = 25u16;
 pub const AF_APPLETALK: u16 = 16u16;
 pub const AF_ATM: u16 = 22u16;
@@ -372,7 +338,7 @@ pub const ARP_HW_802: ARP_HARDWARE_TYPE = 6i32;
 pub const ARP_HW_ENET: ARP_HARDWARE_TYPE = 1i32;
 pub const ARP_REQUEST: ARP_OPCODE = 1i32;
 pub const ARP_RESPONSE: ARP_OPCODE = 2i32;
-pub const ASSOCIATE_NAMERES_CONTEXT: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x59a38b67_d4fe_46e1_ba3c_87ea74ca3049);
+pub const ASSOCIATE_NAMERES_CONTEXT: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x59a38b67_d4fe_46e1_ba3c_87ea74ca3049);
 pub const ATMPROTO_AAL1: u32 = 1u32;
 pub const ATMPROTO_AAL2: u32 = 2u32;
 pub const ATMPROTO_AAL34: u32 = 3u32;
@@ -607,6 +573,8 @@ pub const IGMP_VERSION3_REPORT_TYPE: u32 = 34u32;
 pub const IMPLINK_HIGHEXPER: u32 = 158u32;
 pub const IMPLINK_IP: u32 = 155u32;
 pub const IMPLINK_LOWEXPER: u32 = 156u32;
+pub const IN4ADDR_ANY: u32 = 0u32;
+pub const IN4ADDR_BROADCAST: u32 = 4294967295u32;
 pub const IN4ADDR_LINKLOCALPREFIX_LENGTH: u32 = 16u32;
 pub const IN4ADDR_LOOPBACK: u32 = 16777343u32;
 pub const IN4ADDR_LOOPBACKPREFIX_LENGTH: u32 = 8u32;
@@ -619,6 +587,8 @@ pub const IN6ADDR_TEREDOPREFIX_LENGTH: u32 = 32u32;
 pub const IN6ADDR_V4MAPPEDPREFIX_LENGTH: u32 = 96u32;
 pub const IN6_EMBEDDEDV4_BITS_IN_BYTE: u32 = 8u32;
 pub const IN6_EMBEDDEDV4_UOCTET_POSITION: u32 = 8u32;
+pub const INADDR_ANY: u32 = 0u32;
+pub const INADDR_BROADCAST: u32 = 4294967295u32;
 pub const INADDR_LOOPBACK: u32 = 2130706433u32;
 pub const INADDR_NONE: u32 = 4294967295u32;
 pub const INCL_WINSOCK_API_PROTOTYPES: u32 = 1u32;
@@ -1114,13 +1084,13 @@ pub const NLA_INTERFACE: NLA_BLOB_DATA_TYPE = 1i32;
 pub const NLA_INTERNET_NO: NLA_INTERNET = 1i32;
 pub const NLA_INTERNET_UNKNOWN: NLA_INTERNET = 0i32;
 pub const NLA_INTERNET_YES: NLA_INTERNET = 2i32;
-pub const NLA_NAMESPACE_GUID: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6642243a_3ba8_4aa6_baa5_2e0bd71fdd83);
+pub const NLA_NAMESPACE_GUID: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6642243a_3ba8_4aa6_baa5_2e0bd71fdd83);
 pub const NLA_NETWORK_AD_HOC: NLA_CONNECTIVITY_TYPE = 0i32;
 pub const NLA_NETWORK_MANAGED: NLA_CONNECTIVITY_TYPE = 1i32;
 pub const NLA_NETWORK_UNKNOWN: NLA_CONNECTIVITY_TYPE = 3i32;
 pub const NLA_NETWORK_UNMANAGED: NLA_CONNECTIVITY_TYPE = 2i32;
 pub const NLA_RAW_DATA: NLA_BLOB_DATA_TYPE = 0i32;
-pub const NLA_SERVICE_CLASS_GUID: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x0037e515_b5c9_4a43_bada_8b48a87ad239);
+pub const NLA_SERVICE_CLASS_GUID: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x0037e515_b5c9_4a43_bada_8b48a87ad239);
 pub const NSPROTO_IPX: u32 = 1000u32;
 pub const NSPROTO_SPX: u32 = 1256u32;
 pub const NSPROTO_SPXII: u32 = 1257u32;
@@ -1305,8 +1275,8 @@ pub const RCVALL_IPLEVEL: RCVALL_VALUE = 3i32;
 pub const RCVALL_OFF: RCVALL_VALUE = 0i32;
 pub const RCVALL_ON: RCVALL_VALUE = 1i32;
 pub const RCVALL_SOCKETLEVELONLY: RCVALL_VALUE = 2i32;
-pub const REAL_TIME_NOTIFICATION_CAPABILITY: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6b59819a_5cae_492d_a901_2a3c2c50164f);
-pub const REAL_TIME_NOTIFICATION_CAPABILITY_EX: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6843da03_154a_4616_a508_44371295f96b);
+pub const REAL_TIME_NOTIFICATION_CAPABILITY: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6b59819a_5cae_492d_a901_2a3c2c50164f);
+pub const REAL_TIME_NOTIFICATION_CAPABILITY_EX: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6843da03_154a_4616_a508_44371295f96b);
 pub const RESOURCEDISPLAYTYPE_DOMAIN: RESOURCE_DISPLAY_TYPE = 1u32;
 pub const RESOURCEDISPLAYTYPE_FILE: RESOURCE_DISPLAY_TYPE = 4u32;
 pub const RESOURCEDISPLAYTYPE_GENERIC: RESOURCE_DISPLAY_TYPE = 0u32;
@@ -1398,23 +1368,23 @@ pub const SERVICE_MULTIPLE: u32 = 1u32;
 pub const SERVICE_REGISTER: SET_SERVICE_OPERATION = 1u32;
 pub const SERVICE_RESOURCE: u32 = 1u32;
 pub const SERVICE_SERVICE: u32 = 2u32;
-pub const SERVICE_TYPE_VALUE_CONN: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("ConnectionOriented");
-pub const SERVICE_TYPE_VALUE_CONNA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("ConnectionOriented");
-pub const SERVICE_TYPE_VALUE_CONNW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("ConnectionOriented");
-pub const SERVICE_TYPE_VALUE_IPXPORTA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("IpxSocket");
-pub const SERVICE_TYPE_VALUE_IPXPORTW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("IpxSocket");
-pub const SERVICE_TYPE_VALUE_OBJECTID: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("ObjectId");
-pub const SERVICE_TYPE_VALUE_OBJECTIDA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("ObjectId");
-pub const SERVICE_TYPE_VALUE_OBJECTIDW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("ObjectId");
-pub const SERVICE_TYPE_VALUE_SAPID: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("SapId");
-pub const SERVICE_TYPE_VALUE_SAPIDA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("SapId");
-pub const SERVICE_TYPE_VALUE_SAPIDW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("SapId");
-pub const SERVICE_TYPE_VALUE_TCPPORT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("TcpPort");
-pub const SERVICE_TYPE_VALUE_TCPPORTA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("TcpPort");
-pub const SERVICE_TYPE_VALUE_TCPPORTW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("TcpPort");
-pub const SERVICE_TYPE_VALUE_UDPPORT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("UdpPort");
-pub const SERVICE_TYPE_VALUE_UDPPORTA: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("UdpPort");
-pub const SERVICE_TYPE_VALUE_UDPPORTW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("UdpPort");
+pub const SERVICE_TYPE_VALUE_CONN: windows_sys::core::PCWSTR = windows_sys::core::w!("ConnectionOriented");
+pub const SERVICE_TYPE_VALUE_CONNA: windows_sys::core::PCSTR = windows_sys::core::s!("ConnectionOriented");
+pub const SERVICE_TYPE_VALUE_CONNW: windows_sys::core::PCWSTR = windows_sys::core::w!("ConnectionOriented");
+pub const SERVICE_TYPE_VALUE_IPXPORTA: windows_sys::core::PCSTR = windows_sys::core::s!("IpxSocket");
+pub const SERVICE_TYPE_VALUE_IPXPORTW: windows_sys::core::PCWSTR = windows_sys::core::w!("IpxSocket");
+pub const SERVICE_TYPE_VALUE_OBJECTID: windows_sys::core::PCWSTR = windows_sys::core::w!("ObjectId");
+pub const SERVICE_TYPE_VALUE_OBJECTIDA: windows_sys::core::PCSTR = windows_sys::core::s!("ObjectId");
+pub const SERVICE_TYPE_VALUE_OBJECTIDW: windows_sys::core::PCWSTR = windows_sys::core::w!("ObjectId");
+pub const SERVICE_TYPE_VALUE_SAPID: windows_sys::core::PCWSTR = windows_sys::core::w!("SapId");
+pub const SERVICE_TYPE_VALUE_SAPIDA: windows_sys::core::PCSTR = windows_sys::core::s!("SapId");
+pub const SERVICE_TYPE_VALUE_SAPIDW: windows_sys::core::PCWSTR = windows_sys::core::w!("SapId");
+pub const SERVICE_TYPE_VALUE_TCPPORT: windows_sys::core::PCWSTR = windows_sys::core::w!("TcpPort");
+pub const SERVICE_TYPE_VALUE_TCPPORTA: windows_sys::core::PCSTR = windows_sys::core::s!("TcpPort");
+pub const SERVICE_TYPE_VALUE_TCPPORTW: windows_sys::core::PCWSTR = windows_sys::core::w!("TcpPort");
+pub const SERVICE_TYPE_VALUE_UDPPORT: windows_sys::core::PCWSTR = windows_sys::core::w!("UdpPort");
+pub const SERVICE_TYPE_VALUE_UDPPORTA: windows_sys::core::PCSTR = windows_sys::core::s!("UdpPort");
+pub const SERVICE_TYPE_VALUE_UDPPORTW: windows_sys::core::PCWSTR = windows_sys::core::w!("UdpPort");
 pub const SET_SERVICE_PARTIAL_SUCCESS: u32 = 1u32;
 pub const SG_CONSTRAINED_GROUP: u32 = 2u32;
 pub const SG_UNCONSTRAINED_GROUP: u32 = 1u32;
@@ -1516,7 +1486,7 @@ pub const SNAP_CONTROL: u32 = 3u32;
 pub const SNAP_DSAP: u32 = 170u32;
 pub const SNAP_OUI: u32 = 0u32;
 pub const SNAP_SSAP: u32 = 170u32;
-pub const SOCKET_DEFAULT2_QM_POLICY: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xaec2ef9c_3a4d_4d3e_8842_239942e39a47);
+pub const SOCKET_DEFAULT2_QM_POLICY: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xaec2ef9c_3a4d_4d3e_8842_239942e39a47);
 pub const SOCKET_ERROR: i32 = -1i32;
 pub const SOCKET_INFO_CONNECTION_ENCRYPTED: u32 = 2u32;
 pub const SOCKET_INFO_CONNECTION_IMPERSONATED: u32 = 4u32;
@@ -1576,8 +1546,10 @@ pub const SO_DISCDATA: i32 = 28674i32;
 pub const SO_DISCDATALEN: i32 = 28678i32;
 pub const SO_DISCOPT: i32 = 28675i32;
 pub const SO_DISCOPTLEN: i32 = 28679i32;
+pub const SO_DONTLINGER: i32 = -129i32;
 pub const SO_DONTROUTE: i32 = 16i32;
 pub const SO_ERROR: i32 = 4103i32;
+pub const SO_EXCLUSIVEADDRUSE: i32 = -5i32;
 pub const SO_GROUP_ID: i32 = 8193i32;
 pub const SO_GROUP_PRIORITY: i32 = 8194i32;
 pub const SO_KEEPALIVE: i32 = 8i32;
@@ -1785,14 +1757,16 @@ pub const WSAETOOMANYREFS: WSA_ERROR = 10059i32;
 pub const WSAEUSERS: WSA_ERROR = 10068i32;
 pub const WSAEWOULDBLOCK: WSA_ERROR = 10035i32;
 pub const WSAHOST_NOT_FOUND: WSA_ERROR = 11001i32;
-pub const WSAID_ACCEPTEX: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xb5367df1_cbac_11cf_95ca_00805f48a192);
-pub const WSAID_CONNECTEX: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x25a207b9_ddf3_4660_8ee9_76e58c74063e);
-pub const WSAID_DISCONNECTEX: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7fda2e11_8630_436f_a031_f536a6eec157);
-pub const WSAID_GETACCEPTEXSOCKADDRS: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xb5367df2_cbac_11cf_95ca_00805f48a192);
-pub const WSAID_TRANSMITFILE: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xb5367df0_cbac_11cf_95ca_00805f48a192);
-pub const WSAID_TRANSMITPACKETS: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xd9689da0_1f90_11d3_9971_00c04f68c876);
-pub const WSAID_WSAPOLL: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x18c76f85_dc66_4964_972e_23c27238312b);
-pub const WSAID_WSARECVMSG: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf689d7c8_6f1f_436b_8a53_e54fe351c322);
+pub const WSAID_ACCEPTEX: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xb5367df1_cbac_11cf_95ca_00805f48a192);
+pub const WSAID_CONNECTEX: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x25a207b9_ddf3_4660_8ee9_76e58c74063e);
+pub const WSAID_DISCONNECTEX: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x7fda2e11_8630_436f_a031_f536a6eec157);
+pub const WSAID_GETACCEPTEXSOCKADDRS: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xb5367df2_cbac_11cf_95ca_00805f48a192);
+pub const WSAID_MULTIPLE_RIO: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x8509e081_96dd_4005_b165_9e2ee8c79e3f);
+pub const WSAID_TRANSMITFILE: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xb5367df0_cbac_11cf_95ca_00805f48a192);
+pub const WSAID_TRANSMITPACKETS: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xd9689da0_1f90_11d3_9971_00c04f68c876);
+pub const WSAID_WSAPOLL: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x18c76f85_dc66_4964_972e_23c27238312b);
+pub const WSAID_WSARECVMSG: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xf689d7c8_6f1f_436b_8a53_e54fe351c322);
+pub const WSAID_WSASENDMSG: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xa441e712_754f_43ca_84a7_0dee44cf606d);
 pub const WSANOTINITIALISED: WSA_ERROR = 10093i32;
 pub const WSANO_DATA: WSA_ERROR = 11004i32;
 pub const WSANO_RECOVERY: WSA_ERROR = 11003i32;
@@ -1815,6 +1789,7 @@ pub const WSA_FLAG_NO_HANDLE_INHERIT: u32 = 128u32;
 pub const WSA_FLAG_OVERLAPPED: u32 = 1u32;
 pub const WSA_FLAG_REGISTERED_IO: u32 = 256u32;
 pub const WSA_INFINITE: u32 = 4294967295u32;
+pub const WSA_INVALID_EVENT: WSAEVENT = 0i32 as _;
 pub const WSA_INVALID_HANDLE: WSA_ERROR = 6i32;
 pub const WSA_INVALID_PARAMETER: WSA_ERROR = 87i32;
 pub const WSA_IO_INCOMPLETE: WSA_ERROR = 996i32;
@@ -1960,208 +1935,149 @@ pub type WSA_ERROR = i32;
 pub type WSC_PROVIDER_INFO_TYPE = i32;
 pub type eWINDOW_ADVANCE_METHOD = i32;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct AAL5_PARAMETERS {
     pub ForwardMaxCPCSSDUSize: u32,
     pub BackwardMaxCPCSSDUSize: u32,
     pub Mode: u8,
     pub SSCSType: u8,
 }
-impl ::core::marker::Copy for AAL5_PARAMETERS {}
-impl ::core::clone::Clone for AAL5_PARAMETERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct AALUSER_PARAMETERS {
     pub UserDefined: u32,
 }
-impl ::core::marker::Copy for AALUSER_PARAMETERS {}
-impl ::core::clone::Clone for AALUSER_PARAMETERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct AAL_PARAMETERS_IE {
     pub AALType: AAL_TYPE,
     pub AALSpecificParameters: AAL_PARAMETERS_IE_0,
 }
-impl ::core::marker::Copy for AAL_PARAMETERS_IE {}
-impl ::core::clone::Clone for AAL_PARAMETERS_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union AAL_PARAMETERS_IE_0 {
     pub AAL5Parameters: AAL5_PARAMETERS,
     pub AALUserParameters: AALUSER_PARAMETERS,
 }
-impl ::core::marker::Copy for AAL_PARAMETERS_IE_0 {}
-impl ::core::clone::Clone for AAL_PARAMETERS_IE_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOA {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PSTR,
+    pub ai_canonname: windows_sys::core::PSTR,
     pub ai_addr: *mut SOCKADDR,
     pub ai_next: *mut ADDRINFOA,
 }
-impl ::core::marker::Copy for ADDRINFOA {}
-impl ::core::clone::Clone for ADDRINFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEX2A {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PSTR,
+    pub ai_canonname: windows_sys::core::PSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEX2A,
     pub ai_version: i32,
-    pub ai_fqdn: ::windows_sys::core::PSTR,
-}
-impl ::core::marker::Copy for ADDRINFOEX2A {}
-impl ::core::clone::Clone for ADDRINFOEX2A {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub ai_fqdn: windows_sys::core::PSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEX2W {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PWSTR,
+    pub ai_canonname: windows_sys::core::PWSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEX2W,
     pub ai_version: i32,
-    pub ai_fqdn: ::windows_sys::core::PWSTR,
-}
-impl ::core::marker::Copy for ADDRINFOEX2W {}
-impl ::core::clone::Clone for ADDRINFOEX2W {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub ai_fqdn: windows_sys::core::PWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEX3 {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PWSTR,
+    pub ai_canonname: windows_sys::core::PWSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEX3,
     pub ai_version: i32,
-    pub ai_fqdn: ::windows_sys::core::PWSTR,
+    pub ai_fqdn: windows_sys::core::PWSTR,
     pub ai_interfaceindex: i32,
 }
-impl ::core::marker::Copy for ADDRINFOEX3 {}
-impl ::core::clone::Clone for ADDRINFOEX3 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEX4 {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PWSTR,
+    pub ai_canonname: windows_sys::core::PWSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEX4,
     pub ai_version: i32,
-    pub ai_fqdn: ::windows_sys::core::PWSTR,
+    pub ai_fqdn: windows_sys::core::PWSTR,
     pub ai_interfaceindex: i32,
     pub ai_resolutionhandle: super::super::Foundation::HANDLE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for ADDRINFOEX4 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for ADDRINFOEX4 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEX5 {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PWSTR,
+    pub ai_canonname: windows_sys::core::PWSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEX5,
     pub ai_version: i32,
-    pub ai_fqdn: ::windows_sys::core::PWSTR,
+    pub ai_fqdn: windows_sys::core::PWSTR,
     pub ai_interfaceindex: i32,
     pub ai_resolutionhandle: super::super::Foundation::HANDLE,
     pub ai_ttl: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for ADDRINFOEX5 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for ADDRINFOEX5 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEX6 {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PWSTR,
+    pub ai_canonname: windows_sys::core::PWSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEX5,
     pub ai_version: i32,
-    pub ai_fqdn: ::windows_sys::core::PWSTR,
+    pub ai_fqdn: windows_sys::core::PWSTR,
     pub ai_interfaceindex: i32,
     pub ai_resolutionhandle: super::super::Foundation::HANDLE,
     pub ai_ttl: u32,
@@ -2169,72 +2085,50 @@ pub struct ADDRINFOEX6 {
     pub ai_servers: *mut ADDRINFO_DNS_SERVER,
     pub ai_responseflags: u64,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for ADDRINFOEX6 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for ADDRINFOEX6 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEXA {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PSTR,
+    pub ai_canonname: windows_sys::core::PSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEXA,
 }
-impl ::core::marker::Copy for ADDRINFOEXA {}
-impl ::core::clone::Clone for ADDRINFOEXA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOEXW {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PWSTR,
+    pub ai_canonname: windows_sys::core::PWSTR,
     pub ai_addr: *mut SOCKADDR,
-    pub ai_blob: *mut ::core::ffi::c_void,
+    pub ai_blob: *mut core::ffi::c_void,
     pub ai_bloblen: usize,
-    pub ai_provider: *mut ::windows_sys::core::GUID,
+    pub ai_provider: *mut windows_sys::core::GUID,
     pub ai_next: *mut ADDRINFOEXW,
 }
-impl ::core::marker::Copy for ADDRINFOEXW {}
-impl ::core::clone::Clone for ADDRINFOEXW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFOW {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
     pub ai_addrlen: usize,
-    pub ai_canonname: ::windows_sys::core::PWSTR,
+    pub ai_canonname: windows_sys::core::PWSTR,
     pub ai_addr: *mut SOCKADDR,
     pub ai_next: *mut ADDRINFOW,
 }
-impl ::core::marker::Copy for ADDRINFOW {}
-impl ::core::clone::Clone for ADDRINFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADDRINFO_DNS_SERVER {
     pub ai_servertype: u32,
     pub ai_flags: u64,
@@ -2242,34 +2136,19 @@ pub struct ADDRINFO_DNS_SERVER {
     pub ai_addr: *mut SOCKADDR,
     pub Anonymous: ADDRINFO_DNS_SERVER_0,
 }
-impl ::core::marker::Copy for ADDRINFO_DNS_SERVER {}
-impl ::core::clone::Clone for ADDRINFO_DNS_SERVER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union ADDRINFO_DNS_SERVER_0 {
-    pub ai_template: ::windows_sys::core::PWSTR,
-}
-impl ::core::marker::Copy for ADDRINFO_DNS_SERVER_0 {}
-impl ::core::clone::Clone for ADDRINFO_DNS_SERVER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub ai_template: windows_sys::core::PWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct AFPROTOCOLS {
     pub iAddressFamily: i32,
     pub iProtocol: i32,
 }
-impl ::core::marker::Copy for AFPROTOCOLS {}
-impl ::core::clone::Clone for AFPROTOCOLS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ARP_HEADER {
     pub HardwareAddressSpace: u16,
     pub ProtocolAddressSpace: u16,
@@ -2278,48 +2157,28 @@ pub struct ARP_HEADER {
     pub Opcode: u16,
     pub SenderHardwareAddress: [u8; 1],
 }
-impl ::core::marker::Copy for ARP_HEADER {}
-impl ::core::clone::Clone for ARP_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ASSOCIATE_NAMERES_CONTEXT_INPUT {
     pub TransportSettingId: TRANSPORT_SETTING_ID,
     pub Handle: u64,
 }
-impl ::core::marker::Copy for ASSOCIATE_NAMERES_CONTEXT_INPUT {}
-impl ::core::clone::Clone for ASSOCIATE_NAMERES_CONTEXT_INPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_ADDRESS {
     pub AddressType: u32,
     pub NumofDigits: u32,
     pub Addr: [u8; 20],
 }
-impl ::core::marker::Copy for ATM_ADDRESS {}
-impl ::core::clone::Clone for ATM_ADDRESS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_BHLI {
     pub HighLayerInfoType: u32,
     pub HighLayerInfoLength: u32,
     pub HighLayerInfo: [u8; 8],
 }
-impl ::core::marker::Copy for ATM_BHLI {}
-impl ::core::clone::Clone for ATM_BHLI {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_BLLI {
     pub Layer2Protocol: u32,
     pub Layer2UserSpecifiedProtocol: u32,
@@ -2328,13 +2187,8 @@ pub struct ATM_BLLI {
     pub Layer3IPI: u32,
     pub SnapID: [u8; 5],
 }
-impl ::core::marker::Copy for ATM_BLLI {}
-impl ::core::clone::Clone for ATM_BLLI {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_BLLI_IE {
     pub Layer2Protocol: u32,
     pub Layer2Mode: u8,
@@ -2348,13 +2202,8 @@ pub struct ATM_BLLI_IE {
     pub Layer3IPI: u32,
     pub SnapID: [u8; 5],
 }
-impl ::core::marker::Copy for ATM_BLLI_IE {}
-impl ::core::clone::Clone for ATM_BLLI_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_BROADBAND_BEARER_CAPABILITY_IE {
     pub BearerClass: u8,
     pub TrafficType: u8,
@@ -2362,74 +2211,42 @@ pub struct ATM_BROADBAND_BEARER_CAPABILITY_IE {
     pub ClippingSusceptability: u8,
     pub UserPlaneConnectionConfig: u8,
 }
-impl ::core::marker::Copy for ATM_BROADBAND_BEARER_CAPABILITY_IE {}
-impl ::core::clone::Clone for ATM_BROADBAND_BEARER_CAPABILITY_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_CALLING_PARTY_NUMBER_IE {
     pub ATM_Number: ATM_ADDRESS,
     pub Presentation_Indication: u8,
     pub Screening_Indicator: u8,
 }
-impl ::core::marker::Copy for ATM_CALLING_PARTY_NUMBER_IE {}
-impl ::core::clone::Clone for ATM_CALLING_PARTY_NUMBER_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_CAUSE_IE {
     pub Location: u8,
     pub Cause: u8,
     pub DiagnosticsLength: u8,
     pub Diagnostics: [u8; 4],
 }
-impl ::core::marker::Copy for ATM_CAUSE_IE {}
-impl ::core::clone::Clone for ATM_CAUSE_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_CONNECTION_ID {
     pub DeviceNumber: u32,
     pub VPI: u32,
     pub VCI: u32,
 }
-impl ::core::marker::Copy for ATM_CONNECTION_ID {}
-impl ::core::clone::Clone for ATM_CONNECTION_ID {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(4))]
+#[derive(Clone, Copy)]
 pub struct ATM_PVC_PARAMS {
     pub PvcConnectionId: ATM_CONNECTION_ID,
     pub PvcQos: QOS,
 }
-impl ::core::marker::Copy for ATM_PVC_PARAMS {}
-impl ::core::clone::Clone for ATM_PVC_PARAMS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_QOS_CLASS_IE {
     pub QOSClassForward: u8,
     pub QOSClassBackward: u8,
 }
-impl ::core::marker::Copy for ATM_QOS_CLASS_IE {}
-impl ::core::clone::Clone for ATM_QOS_CLASS_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct ATM_TD {
     pub PeakCellRate_CLP0: u32,
     pub PeakCellRate_CLP01: u32,
@@ -2439,234 +2256,128 @@ pub struct ATM_TD {
     pub MaxBurstSize_CLP01: u32,
     pub Tagging: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for ATM_TD {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for ATM_TD {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct ATM_TRAFFIC_DESCRIPTOR_IE {
     pub Forward: ATM_TD,
     pub Backward: ATM_TD,
     pub BestEffort: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for ATM_TRAFFIC_DESCRIPTOR_IE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for ATM_TRAFFIC_DESCRIPTOR_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ATM_TRANSIT_NETWORK_SELECTION_IE {
     pub TypeOfNetworkId: u8,
     pub NetworkIdPlan: u8,
     pub NetworkIdLength: u8,
     pub NetworkId: [u8; 1],
 }
-impl ::core::marker::Copy for ATM_TRANSIT_NETWORK_SELECTION_IE {}
-impl ::core::clone::Clone for ATM_TRANSIT_NETWORK_SELECTION_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct CMSGHDR {
     pub cmsg_len: usize,
     pub cmsg_level: i32,
     pub cmsg_type: i32,
 }
-impl ::core::marker::Copy for CMSGHDR {}
-impl ::core::clone::Clone for CMSGHDR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct CSADDR_INFO {
     pub LocalAddr: SOCKET_ADDRESS,
     pub RemoteAddr: SOCKET_ADDRESS,
     pub iSocketType: i32,
     pub iProtocol: i32,
 }
-impl ::core::marker::Copy for CSADDR_INFO {}
-impl ::core::clone::Clone for CSADDR_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union DL_EI48 {
     pub Byte: [u8; 3],
 }
-impl ::core::marker::Copy for DL_EI48 {}
-impl ::core::clone::Clone for DL_EI48 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union DL_EI64 {
     pub Byte: [u8; 5],
 }
-impl ::core::marker::Copy for DL_EI64 {}
-impl ::core::clone::Clone for DL_EI64 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union DL_EUI48 {
     pub Byte: [u8; 6],
     pub Anonymous: DL_EUI48_0,
 }
-impl ::core::marker::Copy for DL_EUI48 {}
-impl ::core::clone::Clone for DL_EUI48 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DL_EUI48_0 {
     pub Oui: DL_OUI,
     pub Ei48: DL_EI48,
 }
-impl ::core::marker::Copy for DL_EUI48_0 {}
-impl ::core::clone::Clone for DL_EUI48_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union DL_EUI64 {
     pub Byte: [u8; 8],
     pub Value: u64,
     pub Anonymous: DL_EUI64_0,
 }
-impl ::core::marker::Copy for DL_EUI64 {}
-impl ::core::clone::Clone for DL_EUI64 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DL_EUI64_0 {
     pub Oui: DL_OUI,
     pub Anonymous: DL_EUI64_0_0,
 }
-impl ::core::marker::Copy for DL_EUI64_0 {}
-impl ::core::clone::Clone for DL_EUI64_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union DL_EUI64_0_0 {
     pub Ei64: DL_EI64,
     pub Anonymous: DL_EUI64_0_0_0,
 }
-impl ::core::marker::Copy for DL_EUI64_0_0 {}
-impl ::core::clone::Clone for DL_EUI64_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DL_EUI64_0_0_0 {
     pub Type: u8,
     pub Tse: u8,
     pub Ei48: DL_EI48,
 }
-impl ::core::marker::Copy for DL_EUI64_0_0_0 {}
-impl ::core::clone::Clone for DL_EUI64_0_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union DL_OUI {
     pub Byte: [u8; 3],
     pub Anonymous: DL_OUI_0,
 }
-impl ::core::marker::Copy for DL_OUI {}
-impl ::core::clone::Clone for DL_OUI {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DL_OUI_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for DL_OUI_0 {}
-impl ::core::clone::Clone for DL_OUI_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct DL_TEREDO_ADDRESS {
     pub Reserved: [u8; 6],
     pub Anonymous: DL_TEREDO_ADDRESS_0,
 }
-impl ::core::marker::Copy for DL_TEREDO_ADDRESS {}
-impl ::core::clone::Clone for DL_TEREDO_ADDRESS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub union DL_TEREDO_ADDRESS_0 {
     pub Eui64: DL_EUI64,
     pub Anonymous: DL_TEREDO_ADDRESS_0_0,
 }
-impl ::core::marker::Copy for DL_TEREDO_ADDRESS_0 {}
-impl ::core::clone::Clone for DL_TEREDO_ADDRESS_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct DL_TEREDO_ADDRESS_0_0 {
     pub Flags: u16,
     pub MappedPort: u16,
     pub MappedAddress: IN_ADDR,
 }
-impl ::core::marker::Copy for DL_TEREDO_ADDRESS_0_0 {}
-impl ::core::clone::Clone for DL_TEREDO_ADDRESS_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct DL_TEREDO_ADDRESS_PRV {
     pub Reserved: [u8; 6],
     pub Anonymous: DL_TEREDO_ADDRESS_PRV_0,
 }
-impl ::core::marker::Copy for DL_TEREDO_ADDRESS_PRV {}
-impl ::core::clone::Clone for DL_TEREDO_ADDRESS_PRV {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub union DL_TEREDO_ADDRESS_PRV_0 {
     pub Eui64: DL_EUI64,
     pub Anonymous: DL_TEREDO_ADDRESS_PRV_0_0,
 }
-impl ::core::marker::Copy for DL_TEREDO_ADDRESS_PRV_0 {}
-impl ::core::clone::Clone for DL_TEREDO_ADDRESS_PRV_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct DL_TEREDO_ADDRESS_PRV_0_0 {
     pub Flags: u16,
     pub MappedPort: u16,
@@ -2676,63 +2387,35 @@ pub struct DL_TEREDO_ADDRESS_PRV_0_0 {
     pub LocalPort: u16,
     pub DlDestination: DL_EUI48,
 }
-impl ::core::marker::Copy for DL_TEREDO_ADDRESS_PRV_0_0 {}
-impl ::core::clone::Clone for DL_TEREDO_ADDRESS_PRV_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Kernel\"`"]
 #[cfg(feature = "Win32_System_Kernel")]
+#[derive(Clone, Copy)]
 pub struct DL_TUNNEL_ADDRESS {
     pub CompartmentId: super::super::System::Kernel::COMPARTMENT_ID,
     pub ScopeId: SCOPE_ID,
     pub IpAddress: [u8; 1],
 }
-#[cfg(feature = "Win32_System_Kernel")]
-impl ::core::marker::Copy for DL_TUNNEL_ADDRESS {}
-#[cfg(feature = "Win32_System_Kernel")]
-impl ::core::clone::Clone for DL_TUNNEL_ADDRESS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ETHERNET_HEADER {
     pub Destination: DL_EUI48,
     pub Source: DL_EUI48,
     pub Anonymous: ETHERNET_HEADER_0,
 }
-impl ::core::marker::Copy for ETHERNET_HEADER {}
-impl ::core::clone::Clone for ETHERNET_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union ETHERNET_HEADER_0 {
     pub Type: u16,
     pub Length: u16,
 }
-impl ::core::marker::Copy for ETHERNET_HEADER_0 {}
-impl ::core::clone::Clone for ETHERNET_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct FD_SET {
     pub fd_count: u32,
     pub fd_array: [SOCKET; 64],
 }
-impl ::core::marker::Copy for FD_SET {}
-impl ::core::clone::Clone for FD_SET {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct FLOWSPEC {
     pub TokenRate: u32,
     pub TokenBucketSize: u32,
@@ -2743,13 +2426,8 @@ pub struct FLOWSPEC {
     pub MaxSduSize: u32,
     pub MinimumPolicedSize: u32,
 }
-impl ::core::marker::Copy for FLOWSPEC {}
-impl ::core::clone::Clone for FLOWSPEC {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct GROUP_FILTER {
     pub gf_interface: u32,
     pub gf_group: SOCKADDR_STORAGE,
@@ -2757,153 +2435,88 @@ pub struct GROUP_FILTER {
     pub gf_numsrc: u32,
     pub gf_slist: [SOCKADDR_STORAGE; 1],
 }
-impl ::core::marker::Copy for GROUP_FILTER {}
-impl ::core::clone::Clone for GROUP_FILTER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct GROUP_REQ {
     pub gr_interface: u32,
     pub gr_group: SOCKADDR_STORAGE,
 }
-impl ::core::marker::Copy for GROUP_REQ {}
-impl ::core::clone::Clone for GROUP_REQ {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct GROUP_SOURCE_REQ {
     pub gsr_interface: u32,
     pub gsr_group: SOCKADDR_STORAGE,
     pub gsr_source: SOCKADDR_STORAGE,
 }
-impl ::core::marker::Copy for GROUP_SOURCE_REQ {}
-impl ::core::clone::Clone for GROUP_SOURCE_REQ {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct HOSTENT {
-    pub h_name: ::windows_sys::core::PSTR,
+    pub h_name: windows_sys::core::PSTR,
     pub h_aliases: *mut *mut i8,
     pub h_addrtype: i16,
     pub h_length: i16,
     pub h_addr_list: *mut *mut i8,
 }
-impl ::core::marker::Copy for HOSTENT {}
-impl ::core::clone::Clone for HOSTENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMPV4_ADDRESS_MASK_MESSAGE {
     pub Header: ICMP_MESSAGE,
     pub AddressMask: u32,
 }
-impl ::core::marker::Copy for ICMPV4_ADDRESS_MASK_MESSAGE {}
-impl ::core::clone::Clone for ICMPV4_ADDRESS_MASK_MESSAGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMPV4_ROUTER_ADVERT_ENTRY {
     pub RouterAdvertAddr: IN_ADDR,
     pub PreferenceLevel: i32,
 }
-impl ::core::marker::Copy for ICMPV4_ROUTER_ADVERT_ENTRY {}
-impl ::core::clone::Clone for ICMPV4_ROUTER_ADVERT_ENTRY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMPV4_ROUTER_ADVERT_HEADER {
     pub RaHeader: ICMP_MESSAGE,
 }
-impl ::core::marker::Copy for ICMPV4_ROUTER_ADVERT_HEADER {}
-impl ::core::clone::Clone for ICMPV4_ROUTER_ADVERT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMPV4_ROUTER_SOLICIT {
     pub RsHeader: ICMP_MESSAGE,
 }
-impl ::core::marker::Copy for ICMPV4_ROUTER_SOLICIT {}
-impl ::core::clone::Clone for ICMPV4_ROUTER_SOLICIT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMPV4_TIMESTAMP_MESSAGE {
     pub Header: ICMP_MESSAGE,
     pub OriginateTimestamp: u32,
     pub ReceiveTimestamp: u32,
     pub TransmitTimestamp: u32,
 }
-impl ::core::marker::Copy for ICMPV4_TIMESTAMP_MESSAGE {}
-impl ::core::clone::Clone for ICMPV4_TIMESTAMP_MESSAGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMP_ERROR_INFO {
     pub srcaddress: SOCKADDR_INET,
     pub protocol: IPPROTO,
     pub r#type: u8,
     pub code: u8,
 }
-impl ::core::marker::Copy for ICMP_ERROR_INFO {}
-impl ::core::clone::Clone for ICMP_ERROR_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMP_HEADER {
     pub Type: u8,
     pub Code: u8,
     pub Checksum: u16,
 }
-impl ::core::marker::Copy for ICMP_HEADER {}
-impl ::core::clone::Clone for ICMP_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ICMP_MESSAGE {
     pub Header: ICMP_HEADER,
     pub Data: ICMP_MESSAGE_0,
 }
-impl ::core::marker::Copy for ICMP_MESSAGE {}
-impl ::core::clone::Clone for ICMP_MESSAGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union ICMP_MESSAGE_0 {
     pub Data32: [u32; 1],
     pub Data16: [u16; 2],
     pub Data8: [u8; 4],
 }
-impl ::core::marker::Copy for ICMP_MESSAGE_0 {}
-impl ::core::clone::Clone for ICMP_MESSAGE_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IGMPV3_QUERY_HEADER {
     pub Type: u8,
     pub Anonymous1: IGMPV3_QUERY_HEADER_0,
@@ -2913,55 +2526,30 @@ pub struct IGMPV3_QUERY_HEADER {
     pub Anonymous2: IGMPV3_QUERY_HEADER_1,
     pub SourceCount: u16,
 }
-impl ::core::marker::Copy for IGMPV3_QUERY_HEADER {}
-impl ::core::clone::Clone for IGMPV3_QUERY_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IGMPV3_QUERY_HEADER_0 {
     pub MaxRespCode: u8,
     pub Anonymous: IGMPV3_QUERY_HEADER_0_0,
 }
-impl ::core::marker::Copy for IGMPV3_QUERY_HEADER_0 {}
-impl ::core::clone::Clone for IGMPV3_QUERY_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IGMPV3_QUERY_HEADER_0_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IGMPV3_QUERY_HEADER_0_0 {}
-impl ::core::clone::Clone for IGMPV3_QUERY_HEADER_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IGMPV3_QUERY_HEADER_1 {
     pub QueriersQueryInterfaceCode: u8,
     pub Anonymous: IGMPV3_QUERY_HEADER_1_0,
 }
-impl ::core::marker::Copy for IGMPV3_QUERY_HEADER_1 {}
-impl ::core::clone::Clone for IGMPV3_QUERY_HEADER_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IGMPV3_QUERY_HEADER_1_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IGMPV3_QUERY_HEADER_1_0 {}
-impl ::core::clone::Clone for IGMPV3_QUERY_HEADER_1_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IGMPV3_REPORT_HEADER {
     pub Type: u8,
     pub Reserved: u8,
@@ -2969,274 +2557,154 @@ pub struct IGMPV3_REPORT_HEADER {
     pub Reserved2: u16,
     pub RecordCount: u16,
 }
-impl ::core::marker::Copy for IGMPV3_REPORT_HEADER {}
-impl ::core::clone::Clone for IGMPV3_REPORT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IGMPV3_REPORT_RECORD_HEADER {
     pub Type: u8,
     pub AuxillaryDataLength: u8,
     pub SourceCount: u16,
     pub MulticastAddress: IN_ADDR,
 }
-impl ::core::marker::Copy for IGMPV3_REPORT_RECORD_HEADER {}
-impl ::core::clone::Clone for IGMPV3_REPORT_RECORD_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IGMP_HEADER {
     pub Anonymous1: IGMP_HEADER_0,
     pub Anonymous2: IGMP_HEADER_1,
     pub Checksum: u16,
     pub MulticastAddress: IN_ADDR,
 }
-impl ::core::marker::Copy for IGMP_HEADER {}
-impl ::core::clone::Clone for IGMP_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IGMP_HEADER_0 {
     pub Anonymous: IGMP_HEADER_0_0,
     pub VersionType: u8,
 }
-impl ::core::marker::Copy for IGMP_HEADER_0 {}
-impl ::core::clone::Clone for IGMP_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IGMP_HEADER_0_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IGMP_HEADER_0_0 {}
-impl ::core::clone::Clone for IGMP_HEADER_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IGMP_HEADER_1 {
     pub Reserved: u8,
     pub MaxRespTime: u8,
     pub Code: u8,
 }
-impl ::core::marker::Copy for IGMP_HEADER_1 {}
-impl ::core::clone::Clone for IGMP_HEADER_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN6_ADDR {
     pub u: IN6_ADDR_0,
 }
-impl ::core::marker::Copy for IN6_ADDR {}
-impl ::core::clone::Clone for IN6_ADDR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IN6_ADDR_0 {
     pub Byte: [u8; 16],
     pub Word: [u16; 8],
 }
-impl ::core::marker::Copy for IN6_ADDR_0 {}
-impl ::core::clone::Clone for IN6_ADDR_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN6_PKTINFO {
     pub ipi6_addr: IN6_ADDR,
     pub ipi6_ifindex: u32,
 }
-impl ::core::marker::Copy for IN6_PKTINFO {}
-impl ::core::clone::Clone for IN6_PKTINFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN6_PKTINFO_EX {
     pub pkt_info: IN6_PKTINFO,
     pub scope_id: SCOPE_ID,
 }
-impl ::core::marker::Copy for IN6_PKTINFO_EX {}
-impl ::core::clone::Clone for IN6_PKTINFO_EX {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct INET_PORT_RANGE {
     pub StartPort: u16,
     pub NumberOfPorts: u16,
 }
-impl ::core::marker::Copy for INET_PORT_RANGE {}
-impl ::core::clone::Clone for INET_PORT_RANGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct INET_PORT_RESERVATION_INFORMATION {
     pub OwningPid: u32,
 }
-impl ::core::marker::Copy for INET_PORT_RESERVATION_INFORMATION {}
-impl ::core::clone::Clone for INET_PORT_RESERVATION_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct INET_PORT_RESERVATION_INSTANCE {
     pub Reservation: INET_PORT_RANGE,
     pub Token: INET_PORT_RESERVATION_TOKEN,
 }
-impl ::core::marker::Copy for INET_PORT_RESERVATION_INSTANCE {}
-impl ::core::clone::Clone for INET_PORT_RESERVATION_INSTANCE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct INET_PORT_RESERVATION_TOKEN {
     pub Token: u64,
 }
-impl ::core::marker::Copy for INET_PORT_RESERVATION_TOKEN {}
-impl ::core::clone::Clone for INET_PORT_RESERVATION_TOKEN {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct INTERFACE_INFO {
     pub iiFlags: u32,
     pub iiAddress: sockaddr_gen,
     pub iiBroadcastAddress: sockaddr_gen,
     pub iiNetmask: sockaddr_gen,
 }
-impl ::core::marker::Copy for INTERFACE_INFO {}
-impl ::core::clone::Clone for INTERFACE_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct INTERFACE_INFO_EX {
     pub iiFlags: u32,
     pub iiAddress: SOCKET_ADDRESS,
     pub iiBroadcastAddress: SOCKET_ADDRESS,
     pub iiNetmask: SOCKET_ADDRESS,
 }
-impl ::core::marker::Copy for INTERFACE_INFO_EX {}
-impl ::core::clone::Clone for INTERFACE_INFO_EX {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN_ADDR {
     pub S_un: IN_ADDR_0,
 }
-impl ::core::marker::Copy for IN_ADDR {}
-impl ::core::clone::Clone for IN_ADDR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IN_ADDR_0 {
     pub S_un_b: IN_ADDR_0_0,
     pub S_un_w: IN_ADDR_0_1,
     pub S_addr: u32,
 }
-impl ::core::marker::Copy for IN_ADDR_0 {}
-impl ::core::clone::Clone for IN_ADDR_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN_ADDR_0_0 {
     pub s_b1: u8,
     pub s_b2: u8,
     pub s_b3: u8,
     pub s_b4: u8,
 }
-impl ::core::marker::Copy for IN_ADDR_0_0 {}
-impl ::core::clone::Clone for IN_ADDR_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN_ADDR_0_1 {
     pub s_w1: u16,
     pub s_w2: u16,
 }
-impl ::core::marker::Copy for IN_ADDR_0_1 {}
-impl ::core::clone::Clone for IN_ADDR_0_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN_PKTINFO {
     pub ipi_addr: IN_ADDR,
     pub ipi_ifindex: u32,
 }
-impl ::core::marker::Copy for IN_PKTINFO {}
-impl ::core::clone::Clone for IN_PKTINFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN_PKTINFO_EX {
     pub pkt_info: IN_PKTINFO,
     pub scope_id: SCOPE_ID,
 }
-impl ::core::marker::Copy for IN_PKTINFO_EX {}
-impl ::core::clone::Clone for IN_PKTINFO_EX {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IN_RECVERR {
     pub protocol: IPPROTO,
     pub info: u32,
     pub r#type: u8,
     pub code: u8,
 }
-impl ::core::marker::Copy for IN_RECVERR {}
-impl ::core::clone::Clone for IN_RECVERR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct IPTLS_METADATA {
     pub SequenceNumber: u64,
 }
-impl ::core::marker::Copy for IPTLS_METADATA {}
-impl ::core::clone::Clone for IPTLS_METADATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_HEADER {
     pub Anonymous1: IPV4_HEADER_0,
     pub Anonymous2: IPV4_HEADER_1,
@@ -3249,197 +2717,107 @@ pub struct IPV4_HEADER {
     pub SourceAddress: IN_ADDR,
     pub DestinationAddress: IN_ADDR,
 }
-impl ::core::marker::Copy for IPV4_HEADER {}
-impl ::core::clone::Clone for IPV4_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV4_HEADER_0 {
     pub VersionAndHeaderLength: u8,
     pub Anonymous: IPV4_HEADER_0_0,
 }
-impl ::core::marker::Copy for IPV4_HEADER_0 {}
-impl ::core::clone::Clone for IPV4_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_HEADER_0_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IPV4_HEADER_0_0 {}
-impl ::core::clone::Clone for IPV4_HEADER_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV4_HEADER_1 {
     pub TypeOfServiceAndEcnField: u8,
     pub Anonymous: IPV4_HEADER_1_0,
 }
-impl ::core::marker::Copy for IPV4_HEADER_1 {}
-impl ::core::clone::Clone for IPV4_HEADER_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_HEADER_1_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IPV4_HEADER_1_0 {}
-impl ::core::clone::Clone for IPV4_HEADER_1_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV4_HEADER_2 {
     pub FlagsAndOffset: u16,
     pub Anonymous: IPV4_HEADER_2_0,
 }
-impl ::core::marker::Copy for IPV4_HEADER_2 {}
-impl ::core::clone::Clone for IPV4_HEADER_2 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_HEADER_2_0 {
     pub _bitfield: u16,
 }
-impl ::core::marker::Copy for IPV4_HEADER_2_0 {}
-impl ::core::clone::Clone for IPV4_HEADER_2_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_OPTION_HEADER {
     pub Anonymous: IPV4_OPTION_HEADER_0,
     pub OptionLength: u8,
 }
-impl ::core::marker::Copy for IPV4_OPTION_HEADER {}
-impl ::core::clone::Clone for IPV4_OPTION_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV4_OPTION_HEADER_0 {
     pub OptionType: u8,
     pub Anonymous: IPV4_OPTION_HEADER_0_0,
 }
-impl ::core::marker::Copy for IPV4_OPTION_HEADER_0 {}
-impl ::core::clone::Clone for IPV4_OPTION_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_OPTION_HEADER_0_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IPV4_OPTION_HEADER_0_0 {}
-impl ::core::clone::Clone for IPV4_OPTION_HEADER_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_ROUTING_HEADER {
     pub OptionHeader: IPV4_OPTION_HEADER,
     pub Pointer: u8,
 }
-impl ::core::marker::Copy for IPV4_ROUTING_HEADER {}
-impl ::core::clone::Clone for IPV4_ROUTING_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_TIMESTAMP_OPTION {
     pub OptionHeader: IPV4_OPTION_HEADER,
     pub Pointer: u8,
     pub Anonymous: IPV4_TIMESTAMP_OPTION_0,
 }
-impl ::core::marker::Copy for IPV4_TIMESTAMP_OPTION {}
-impl ::core::clone::Clone for IPV4_TIMESTAMP_OPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV4_TIMESTAMP_OPTION_0 {
     pub FlagsOverflow: u8,
     pub Anonymous: IPV4_TIMESTAMP_OPTION_0_0,
 }
-impl ::core::marker::Copy for IPV4_TIMESTAMP_OPTION_0 {}
-impl ::core::clone::Clone for IPV4_TIMESTAMP_OPTION_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV4_TIMESTAMP_OPTION_0_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IPV4_TIMESTAMP_OPTION_0_0 {}
-impl ::core::clone::Clone for IPV4_TIMESTAMP_OPTION_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_EXTENSION_HEADER {
     pub NextHeader: u8,
     pub Length: u8,
 }
-impl ::core::marker::Copy for IPV6_EXTENSION_HEADER {}
-impl ::core::clone::Clone for IPV6_EXTENSION_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_FRAGMENT_HEADER {
     pub NextHeader: u8,
     pub Reserved: u8,
     pub Anonymous: IPV6_FRAGMENT_HEADER_0,
     pub Id: u32,
 }
-impl ::core::marker::Copy for IPV6_FRAGMENT_HEADER {}
-impl ::core::clone::Clone for IPV6_FRAGMENT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV6_FRAGMENT_HEADER_0 {
     pub Anonymous: IPV6_FRAGMENT_HEADER_0_0,
     pub OffsetAndFlags: u16,
 }
-impl ::core::marker::Copy for IPV6_FRAGMENT_HEADER_0 {}
-impl ::core::clone::Clone for IPV6_FRAGMENT_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_FRAGMENT_HEADER_0_0 {
     pub _bitfield: u16,
 }
-impl ::core::marker::Copy for IPV6_FRAGMENT_HEADER_0_0 {}
-impl ::core::clone::Clone for IPV6_FRAGMENT_HEADER_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_HEADER {
     pub Anonymous: IPV6_HEADER_0,
     pub PayloadLength: u16,
@@ -3448,121 +2826,66 @@ pub struct IPV6_HEADER {
     pub SourceAddress: IN6_ADDR,
     pub DestinationAddress: IN6_ADDR,
 }
-impl ::core::marker::Copy for IPV6_HEADER {}
-impl ::core::clone::Clone for IPV6_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV6_HEADER_0 {
     pub VersionClassFlow: u32,
     pub Anonymous: IPV6_HEADER_0_0,
 }
-impl ::core::marker::Copy for IPV6_HEADER_0 {}
-impl ::core::clone::Clone for IPV6_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_HEADER_0_0 {
     pub _bitfield: u32,
 }
-impl ::core::marker::Copy for IPV6_HEADER_0_0 {}
-impl ::core::clone::Clone for IPV6_HEADER_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_MREQ {
     pub ipv6mr_multiaddr: IN6_ADDR,
     pub ipv6mr_interface: u32,
 }
-impl ::core::marker::Copy for IPV6_MREQ {}
-impl ::core::clone::Clone for IPV6_MREQ {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV6_NEIGHBOR_ADVERTISEMENT_FLAGS {
     pub Anonymous: IPV6_NEIGHBOR_ADVERTISEMENT_FLAGS_0,
     pub Value: u32,
 }
-impl ::core::marker::Copy for IPV6_NEIGHBOR_ADVERTISEMENT_FLAGS {}
-impl ::core::clone::Clone for IPV6_NEIGHBOR_ADVERTISEMENT_FLAGS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_NEIGHBOR_ADVERTISEMENT_FLAGS_0 {
     pub _bitfield: u8,
     pub Reserved2: [u8; 3],
 }
-impl ::core::marker::Copy for IPV6_NEIGHBOR_ADVERTISEMENT_FLAGS_0 {}
-impl ::core::clone::Clone for IPV6_NEIGHBOR_ADVERTISEMENT_FLAGS_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_OPTION_HEADER {
     pub Type: u8,
     pub DataLength: u8,
 }
-impl ::core::marker::Copy for IPV6_OPTION_HEADER {}
-impl ::core::clone::Clone for IPV6_OPTION_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_OPTION_JUMBOGRAM {
     pub Header: IPV6_OPTION_HEADER,
     pub JumbogramLength: [u8; 4],
 }
-impl ::core::marker::Copy for IPV6_OPTION_JUMBOGRAM {}
-impl ::core::clone::Clone for IPV6_OPTION_JUMBOGRAM {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_OPTION_ROUTER_ALERT {
     pub Header: IPV6_OPTION_HEADER,
     pub Value: [u8; 2],
 }
-impl ::core::marker::Copy for IPV6_OPTION_ROUTER_ALERT {}
-impl ::core::clone::Clone for IPV6_OPTION_ROUTER_ALERT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union IPV6_ROUTER_ADVERTISEMENT_FLAGS {
     pub Anonymous: IPV6_ROUTER_ADVERTISEMENT_FLAGS_0,
     pub Value: u8,
 }
-impl ::core::marker::Copy for IPV6_ROUTER_ADVERTISEMENT_FLAGS {}
-impl ::core::clone::Clone for IPV6_ROUTER_ADVERTISEMENT_FLAGS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_ROUTER_ADVERTISEMENT_FLAGS_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for IPV6_ROUTER_ADVERTISEMENT_FLAGS_0 {}
-impl ::core::clone::Clone for IPV6_ROUTER_ADVERTISEMENT_FLAGS_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPV6_ROUTING_HEADER {
     pub NextHeader: u8,
     pub Length: u8,
@@ -3570,15 +2893,8 @@ pub struct IPV6_ROUTING_HEADER {
     pub SegmentsLeft: u8,
     pub Reserved: [u8; 4],
 }
-impl ::core::marker::Copy for IPV6_ROUTING_HEADER {}
-impl ::core::clone::Clone for IPV6_ROUTING_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct IPX_ADDRESS_DATA {
     pub adapternum: i32,
     pub netnum: [u8; 4],
@@ -3588,15 +2904,8 @@ pub struct IPX_ADDRESS_DATA {
     pub maxpkt: i32,
     pub linkspeed: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for IPX_ADDRESS_DATA {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for IPX_ADDRESS_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPX_NETNUM_DATA {
     pub netnum: [u8; 4],
     pub hopcount: u16,
@@ -3604,13 +2913,8 @@ pub struct IPX_NETNUM_DATA {
     pub cardnum: i32,
     pub router: [u8; 6],
 }
-impl ::core::marker::Copy for IPX_NETNUM_DATA {}
-impl ::core::clone::Clone for IPX_NETNUM_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IPX_SPXCONNSTATUS_DATA {
     pub ConnectionState: u8,
     pub WatchDogActive: u8,
@@ -3631,36 +2935,21 @@ pub struct IPX_SPXCONNSTATUS_DATA {
     pub RetransmittedPackets: u16,
     pub SuppressedPacket: u16,
 }
-impl ::core::marker::Copy for IPX_SPXCONNSTATUS_DATA {}
-impl ::core::clone::Clone for IPX_SPXCONNSTATUS_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IP_MREQ {
     pub imr_multiaddr: IN_ADDR,
     pub imr_interface: IN_ADDR,
 }
-impl ::core::marker::Copy for IP_MREQ {}
-impl ::core::clone::Clone for IP_MREQ {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IP_MREQ_SOURCE {
     pub imr_multiaddr: IN_ADDR,
     pub imr_sourceaddr: IN_ADDR,
     pub imr_interface: IN_ADDR,
 }
-impl ::core::marker::Copy for IP_MREQ_SOURCE {}
-impl ::core::clone::Clone for IP_MREQ_SOURCE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct IP_MSFILTER {
     pub imsf_multiaddr: IN_ADDR,
     pub imsf_interface: IN_ADDR,
@@ -3668,24 +2957,14 @@ pub struct IP_MSFILTER {
     pub imsf_numsrc: u32,
     pub imsf_slist: [IN_ADDR; 1],
 }
-impl ::core::marker::Copy for IP_MSFILTER {}
-impl ::core::clone::Clone for IP_MSFILTER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LINGER {
     pub l_onoff: u16,
     pub l_linger: u16,
 }
-impl ::core::marker::Copy for LINGER {}
-impl ::core::clone::Clone for LINGER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LM_IRPARMS {
     pub nTXDataBytes: u32,
     pub nRXDataBytes: u32,
@@ -3696,13 +2975,8 @@ pub struct LM_IRPARMS {
     pub nTXPackets: u8,
     pub nRXPackets: u8,
 }
-impl ::core::marker::Copy for LM_IRPARMS {}
-impl ::core::clone::Clone for LM_IRPARMS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MLDV2_QUERY_HEADER {
     pub IcmpHeader: ICMP_HEADER,
     pub Anonymous1: MLDV2_QUERY_HEADER_0,
@@ -3712,106 +2986,61 @@ pub struct MLDV2_QUERY_HEADER {
     pub Anonymous2: MLDV2_QUERY_HEADER_1,
     pub SourceCount: u16,
 }
-impl ::core::marker::Copy for MLDV2_QUERY_HEADER {}
-impl ::core::clone::Clone for MLDV2_QUERY_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union MLDV2_QUERY_HEADER_0 {
     pub MaxRespCode: u16,
     pub Anonymous: MLDV2_QUERY_HEADER_0_0,
 }
-impl ::core::marker::Copy for MLDV2_QUERY_HEADER_0 {}
-impl ::core::clone::Clone for MLDV2_QUERY_HEADER_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MLDV2_QUERY_HEADER_0_0 {
     pub _bitfield: u16,
 }
-impl ::core::marker::Copy for MLDV2_QUERY_HEADER_0_0 {}
-impl ::core::clone::Clone for MLDV2_QUERY_HEADER_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union MLDV2_QUERY_HEADER_1 {
     pub QueriersQueryInterfaceCode: u8,
     pub Anonymous: MLDV2_QUERY_HEADER_1_0,
 }
-impl ::core::marker::Copy for MLDV2_QUERY_HEADER_1 {}
-impl ::core::clone::Clone for MLDV2_QUERY_HEADER_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MLDV2_QUERY_HEADER_1_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for MLDV2_QUERY_HEADER_1_0 {}
-impl ::core::clone::Clone for MLDV2_QUERY_HEADER_1_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MLDV2_REPORT_HEADER {
     pub IcmpHeader: ICMP_HEADER,
     pub Reserved: u16,
     pub RecordCount: u16,
 }
-impl ::core::marker::Copy for MLDV2_REPORT_HEADER {}
-impl ::core::clone::Clone for MLDV2_REPORT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MLDV2_REPORT_RECORD_HEADER {
     pub Type: u8,
     pub AuxillaryDataLength: u8,
     pub SourceCount: u16,
     pub MulticastAddress: IN6_ADDR,
 }
-impl ::core::marker::Copy for MLDV2_REPORT_RECORD_HEADER {}
-impl ::core::clone::Clone for MLDV2_REPORT_RECORD_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MLD_HEADER {
     pub IcmpHeader: ICMP_HEADER,
     pub MaxRespTime: u16,
     pub Reserved: u16,
     pub MulticastAddress: IN6_ADDR,
 }
-impl ::core::marker::Copy for MLD_HEADER {}
-impl ::core::clone::Clone for MLD_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NAPI_DOMAIN_DESCRIPTION_BLOB {
     pub AuthLevel: u32,
     pub cchDomainName: u32,
     pub OffsetNextDomainDescription: u32,
     pub OffsetThisDomainName: u32,
 }
-impl ::core::marker::Copy for NAPI_DOMAIN_DESCRIPTION_BLOB {}
-impl ::core::clone::Clone for NAPI_DOMAIN_DESCRIPTION_BLOB {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NAPI_PROVIDER_INSTALLATION_BLOB {
     pub dwVersion: u32,
     pub dwProviderType: u32,
@@ -3819,72 +3048,42 @@ pub struct NAPI_PROVIDER_INSTALLATION_BLOB {
     pub cDomains: u32,
     pub OffsetFirstDomain: u32,
 }
-impl ::core::marker::Copy for NAPI_PROVIDER_INSTALLATION_BLOB {}
-impl ::core::clone::Clone for NAPI_PROVIDER_INSTALLATION_BLOB {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_NEIGHBOR_ADVERT_HEADER {
     pub nd_na_hdr: ICMP_MESSAGE,
     pub nd_na_target: IN6_ADDR,
 }
-impl ::core::marker::Copy for ND_NEIGHBOR_ADVERT_HEADER {}
-impl ::core::clone::Clone for ND_NEIGHBOR_ADVERT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_NEIGHBOR_SOLICIT_HEADER {
     pub nd_ns_hdr: ICMP_MESSAGE,
     pub nd_ns_target: IN6_ADDR,
 }
-impl ::core::marker::Copy for ND_NEIGHBOR_SOLICIT_HEADER {}
-impl ::core::clone::Clone for ND_NEIGHBOR_SOLICIT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_DNSSL {
     pub nd_opt_dnssl_type: u8,
     pub nd_opt_dnssl_len: u8,
     pub nd_opt_dnssl_reserved: u16,
     pub nd_opt_dnssl_lifetime: u32,
 }
-impl ::core::marker::Copy for ND_OPTION_DNSSL {}
-impl ::core::clone::Clone for ND_OPTION_DNSSL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_HDR {
     pub nd_opt_type: u8,
     pub nd_opt_len: u8,
 }
-impl ::core::marker::Copy for ND_OPTION_HDR {}
-impl ::core::clone::Clone for ND_OPTION_HDR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_MTU {
     pub nd_opt_mtu_type: u8,
     pub nd_opt_mtu_len: u8,
     pub nd_opt_mtu_reserved: u16,
     pub nd_opt_mtu_mtu: u32,
 }
-impl ::core::marker::Copy for ND_OPTION_MTU {}
-impl ::core::clone::Clone for ND_OPTION_MTU {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_PREFIX_INFO {
     pub nd_opt_pi_type: u8,
     pub nd_opt_pi_len: u8,
@@ -3895,82 +3094,47 @@ pub struct ND_OPTION_PREFIX_INFO {
     pub Anonymous2: ND_OPTION_PREFIX_INFO_1,
     pub nd_opt_pi_prefix: IN6_ADDR,
 }
-impl ::core::marker::Copy for ND_OPTION_PREFIX_INFO {}
-impl ::core::clone::Clone for ND_OPTION_PREFIX_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union ND_OPTION_PREFIX_INFO_0 {
     pub nd_opt_pi_flags_reserved: u8,
     pub Flags: ND_OPTION_PREFIX_INFO_0_0,
 }
-impl ::core::marker::Copy for ND_OPTION_PREFIX_INFO_0 {}
-impl ::core::clone::Clone for ND_OPTION_PREFIX_INFO_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_PREFIX_INFO_0_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for ND_OPTION_PREFIX_INFO_0_0 {}
-impl ::core::clone::Clone for ND_OPTION_PREFIX_INFO_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union ND_OPTION_PREFIX_INFO_1 {
     pub nd_opt_pi_reserved2: u32,
     pub Anonymous: ND_OPTION_PREFIX_INFO_1_0,
 }
-impl ::core::marker::Copy for ND_OPTION_PREFIX_INFO_1 {}
-impl ::core::clone::Clone for ND_OPTION_PREFIX_INFO_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_PREFIX_INFO_1_0 {
     pub nd_opt_pi_reserved3: [u8; 3],
     pub nd_opt_pi_site_prefix_len: u8,
 }
-impl ::core::marker::Copy for ND_OPTION_PREFIX_INFO_1_0 {}
-impl ::core::clone::Clone for ND_OPTION_PREFIX_INFO_1_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_RDNSS {
     pub nd_opt_rdnss_type: u8,
     pub nd_opt_rdnss_len: u8,
     pub nd_opt_rdnss_reserved: u16,
     pub nd_opt_rdnss_lifetime: u32,
 }
-impl ::core::marker::Copy for ND_OPTION_RDNSS {}
-impl ::core::clone::Clone for ND_OPTION_RDNSS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_RD_HDR {
     pub nd_opt_rh_type: u8,
     pub nd_opt_rh_len: u8,
     pub nd_opt_rh_reserved1: u16,
     pub nd_opt_rh_reserved2: u32,
 }
-impl ::core::marker::Copy for ND_OPTION_RD_HDR {}
-impl ::core::clone::Clone for ND_OPTION_RD_HDR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_ROUTE_INFO {
     pub nd_opt_ri_type: u8,
     pub nd_opt_ri_len: u8,
@@ -3979,143 +3143,88 @@ pub struct ND_OPTION_ROUTE_INFO {
     pub nd_opt_ri_route_lifetime: u32,
     pub nd_opt_ri_prefix: IN6_ADDR,
 }
-impl ::core::marker::Copy for ND_OPTION_ROUTE_INFO {}
-impl ::core::clone::Clone for ND_OPTION_ROUTE_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union ND_OPTION_ROUTE_INFO_0 {
     pub nd_opt_ri_flags_reserved: u8,
     pub Flags: ND_OPTION_ROUTE_INFO_0_0,
 }
-impl ::core::marker::Copy for ND_OPTION_ROUTE_INFO_0 {}
-impl ::core::clone::Clone for ND_OPTION_ROUTE_INFO_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_OPTION_ROUTE_INFO_0_0 {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for ND_OPTION_ROUTE_INFO_0_0 {}
-impl ::core::clone::Clone for ND_OPTION_ROUTE_INFO_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_REDIRECT_HEADER {
     pub nd_rd_hdr: ICMP_MESSAGE,
     pub nd_rd_target: IN6_ADDR,
     pub nd_rd_dst: IN6_ADDR,
 }
-impl ::core::marker::Copy for ND_REDIRECT_HEADER {}
-impl ::core::clone::Clone for ND_REDIRECT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_ROUTER_ADVERT_HEADER {
     pub nd_ra_hdr: ICMP_MESSAGE,
     pub nd_ra_reachable: u32,
     pub nd_ra_retransmit: u32,
 }
-impl ::core::marker::Copy for ND_ROUTER_ADVERT_HEADER {}
-impl ::core::clone::Clone for ND_ROUTER_ADVERT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ND_ROUTER_SOLICIT_HEADER {
     pub nd_rs_hdr: ICMP_MESSAGE,
 }
-impl ::core::marker::Copy for ND_ROUTER_SOLICIT_HEADER {}
-impl ::core::clone::Clone for ND_ROUTER_SOLICIT_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NETRESOURCE2A {
     pub dwScope: u32,
     pub dwType: u32,
     pub dwUsage: u32,
     pub dwDisplayType: u32,
-    pub lpLocalName: ::windows_sys::core::PSTR,
-    pub lpRemoteName: ::windows_sys::core::PSTR,
-    pub lpComment: ::windows_sys::core::PSTR,
+    pub lpLocalName: windows_sys::core::PSTR,
+    pub lpRemoteName: windows_sys::core::PSTR,
+    pub lpComment: windows_sys::core::PSTR,
     pub ns_info: NS_INFOA,
-    pub ServiceType: ::windows_sys::core::GUID,
+    pub ServiceType: windows_sys::core::GUID,
     pub dwProtocols: u32,
     pub lpiProtocols: *mut i32,
 }
-impl ::core::marker::Copy for NETRESOURCE2A {}
-impl ::core::clone::Clone for NETRESOURCE2A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NETRESOURCE2W {
     pub dwScope: u32,
     pub dwType: u32,
     pub dwUsage: u32,
     pub dwDisplayType: u32,
-    pub lpLocalName: ::windows_sys::core::PWSTR,
-    pub lpRemoteName: ::windows_sys::core::PWSTR,
-    pub lpComment: ::windows_sys::core::PWSTR,
+    pub lpLocalName: windows_sys::core::PWSTR,
+    pub lpRemoteName: windows_sys::core::PWSTR,
+    pub lpComment: windows_sys::core::PWSTR,
     pub ns_info: NS_INFOA,
-    pub ServiceType: ::windows_sys::core::GUID,
+    pub ServiceType: windows_sys::core::GUID,
     pub dwProtocols: u32,
     pub lpiProtocols: *mut i32,
 }
-impl ::core::marker::Copy for NETRESOURCE2W {}
-impl ::core::clone::Clone for NETRESOURCE2W {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NLA_BLOB {
     pub header: NLA_BLOB_1,
     pub data: NLA_BLOB_0,
 }
-impl ::core::marker::Copy for NLA_BLOB {}
-impl ::core::clone::Clone for NLA_BLOB {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union NLA_BLOB_0 {
-    pub rawData: [u8; 1],
+    pub rawData: [i8; 1],
     pub interfaceData: NLA_BLOB_0_2,
     pub locationData: NLA_BLOB_0_3,
     pub connectivity: NLA_BLOB_0_1,
     pub ICS: NLA_BLOB_0_0,
 }
-impl ::core::marker::Copy for NLA_BLOB_0 {}
-impl ::core::clone::Clone for NLA_BLOB_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NLA_BLOB_0_0 {
     pub remote: NLA_BLOB_0_0_0,
 }
-impl ::core::marker::Copy for NLA_BLOB_0_0 {}
-impl ::core::clone::Clone for NLA_BLOB_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NLA_BLOB_0_0_0 {
     pub speed: u32,
     pub r#type: u32,
@@ -4123,86 +3232,45 @@ pub struct NLA_BLOB_0_0_0 {
     pub machineName: [u16; 256],
     pub sharedAdapterName: [u16; 256],
 }
-impl ::core::marker::Copy for NLA_BLOB_0_0_0 {}
-impl ::core::clone::Clone for NLA_BLOB_0_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NLA_BLOB_0_1 {
     pub r#type: NLA_CONNECTIVITY_TYPE,
     pub internet: NLA_INTERNET,
 }
-impl ::core::marker::Copy for NLA_BLOB_0_1 {}
-impl ::core::clone::Clone for NLA_BLOB_0_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NLA_BLOB_0_2 {
     pub dwType: u32,
     pub dwSpeed: u32,
-    pub adapterName: [u8; 1],
-}
-impl ::core::marker::Copy for NLA_BLOB_0_2 {}
-impl ::core::clone::Clone for NLA_BLOB_0_2 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub adapterName: [i8; 1],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NLA_BLOB_0_3 {
-    pub information: [u8; 1],
-}
-impl ::core::marker::Copy for NLA_BLOB_0_3 {}
-impl ::core::clone::Clone for NLA_BLOB_0_3 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub information: [i8; 1],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NLA_BLOB_1 {
     pub r#type: NLA_BLOB_DATA_TYPE,
     pub dwSize: u32,
     pub nextOffset: u32,
 }
-impl ::core::marker::Copy for NLA_BLOB_1 {}
-impl ::core::clone::Clone for NLA_BLOB_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct NL_BANDWIDTH_INFORMATION {
     pub Bandwidth: u64,
     pub Instability: u64,
     pub BandwidthPeaked: super::super::Foundation::BOOLEAN,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for NL_BANDWIDTH_INFORMATION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for NL_BANDWIDTH_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NL_INTERFACE_OFFLOAD_ROD {
     pub _bitfield: u8,
 }
-impl ::core::marker::Copy for NL_INTERFACE_OFFLOAD_ROD {}
-impl ::core::clone::Clone for NL_INTERFACE_OFFLOAD_ROD {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct NL_NETWORK_CONNECTIVITY_HINT {
     pub ConnectivityLevel: NL_NETWORK_CONNECTIVITY_LEVEL_HINT,
     pub ConnectivityCost: NL_NETWORK_CONNECTIVITY_COST_HINT,
@@ -4210,64 +3278,29 @@ pub struct NL_NETWORK_CONNECTIVITY_HINT {
     pub OverDataLimit: super::super::Foundation::BOOLEAN,
     pub Roaming: super::super::Foundation::BOOLEAN,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for NL_NETWORK_CONNECTIVITY_HINT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for NL_NETWORK_CONNECTIVITY_HINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct NL_PATH_BANDWIDTH_ROD {
     pub Bandwidth: u64,
     pub Instability: u64,
     pub BandwidthPeaked: super::super::Foundation::BOOLEAN,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for NL_PATH_BANDWIDTH_ROD {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for NL_PATH_BANDWIDTH_ROD {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct NPI_MODULEID {
     pub Length: u16,
     pub Type: NPI_MODULEID_TYPE,
     pub Anonymous: NPI_MODULEID_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for NPI_MODULEID {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for NPI_MODULEID {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub union NPI_MODULEID_0 {
-    pub Guid: ::windows_sys::core::GUID,
+    pub Guid: windows_sys::core::GUID,
     pub IfLuid: super::super::Foundation::LUID,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for NPI_MODULEID_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for NPI_MODULEID_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
+#[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct NSPV2_ROUTINE {
     pub cbSize: u32,
     pub dwMajorVersion: u32,
@@ -4280,17 +3313,9 @@ pub struct NSPV2_ROUTINE {
     pub NSPv2SetServiceEx: LPNSPV2SETSERVICEEX,
     pub NSPv2ClientSessionRundown: LPNSPV2CLIENTSESSIONRUNDOWN,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-impl ::core::marker::Copy for NSPV2_ROUTINE {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-impl ::core::clone::Clone for NSPV2_ROUTINE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_IO"))]
+#[cfg(all(feature = "Win32_System_Com", feature = "Win32_System_IO"))]
+#[derive(Clone, Copy)]
 pub struct NSP_ROUTINE {
     pub cbSize: u32,
     pub dwMajorVersion: u32,
@@ -4305,80 +3330,42 @@ pub struct NSP_ROUTINE {
     pub NSPGetServiceClassInfo: LPNSPGETSERVICECLASSINFO,
     pub NSPIoctl: LPNSPIOCTL,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for NSP_ROUTINE {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for NSP_ROUTINE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NS_INFOA {
     pub dwNameSpace: u32,
     pub dwNameSpaceFlags: u32,
-    pub lpNameSpace: ::windows_sys::core::PSTR,
-}
-impl ::core::marker::Copy for NS_INFOA {}
-impl ::core::clone::Clone for NS_INFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpNameSpace: windows_sys::core::PSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NS_INFOW {
     pub dwNameSpace: u32,
     pub dwNameSpaceFlags: u32,
-    pub lpNameSpace: ::windows_sys::core::PWSTR,
-}
-impl ::core::marker::Copy for NS_INFOW {}
-impl ::core::clone::Clone for NS_INFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpNameSpace: windows_sys::core::PWSTR,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct NS_SERVICE_INFOA {
     pub dwNameSpace: u32,
     pub ServiceInfo: SERVICE_INFOA,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for NS_SERVICE_INFOA {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for NS_SERVICE_INFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct NS_SERVICE_INFOW {
     pub dwNameSpace: u32,
     pub ServiceInfo: SERVICE_INFOW,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for NS_SERVICE_INFOW {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for NS_SERVICE_INFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PRIORITY_STATUS {
     pub Sender: SOCKET_PRIORITY_HINT,
     pub Receiver: SOCKET_PRIORITY_HINT,
 }
-impl ::core::marker::Copy for PRIORITY_STATUS {}
-impl ::core::clone::Clone for PRIORITY_STATUS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PROTOCOL_INFOA {
     pub dwServiceFlags: u32,
     pub iAddressFamily: i32,
@@ -4387,15 +3374,10 @@ pub struct PROTOCOL_INFOA {
     pub iSocketType: i32,
     pub iProtocol: i32,
     pub dwMessageSize: u32,
-    pub lpProtocol: ::windows_sys::core::PSTR,
-}
-impl ::core::marker::Copy for PROTOCOL_INFOA {}
-impl ::core::clone::Clone for PROTOCOL_INFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpProtocol: windows_sys::core::PSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PROTOCOL_INFOW {
     pub dwServiceFlags: u32,
     pub iAddressFamily: i32,
@@ -4404,138 +3386,77 @@ pub struct PROTOCOL_INFOW {
     pub iSocketType: i32,
     pub iProtocol: i32,
     pub dwMessageSize: u32,
-    pub lpProtocol: ::windows_sys::core::PWSTR,
-}
-impl ::core::marker::Copy for PROTOCOL_INFOW {}
-impl ::core::clone::Clone for PROTOCOL_INFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpProtocol: windows_sys::core::PWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PROTOENT {
-    pub p_name: ::windows_sys::core::PSTR,
+    pub p_name: windows_sys::core::PSTR,
     pub p_aliases: *mut *mut i8,
     pub p_proto: i16,
 }
-impl ::core::marker::Copy for PROTOENT {}
-impl ::core::clone::Clone for PROTOENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct Q2931_IE {
     pub IEType: Q2931_IE_TYPE,
     pub IELength: u32,
     pub IE: [u8; 1],
 }
-impl ::core::marker::Copy for Q2931_IE {}
-impl ::core::clone::Clone for Q2931_IE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct QOS {
     pub SendingFlowspec: FLOWSPEC,
     pub ReceivingFlowspec: FLOWSPEC,
     pub ProviderSpecific: WSABUF,
 }
-impl ::core::marker::Copy for QOS {}
-impl ::core::clone::Clone for QOS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RCVALL_IF {
     pub Mode: RCVALL_VALUE,
     pub Interface: u32,
 }
-impl ::core::marker::Copy for RCVALL_IF {}
-impl ::core::clone::Clone for RCVALL_IF {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct REAL_TIME_NOTIFICATION_SETTING_INPUT {
     pub TransportSettingId: TRANSPORT_SETTING_ID,
-    pub BrokerEventGuid: ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for REAL_TIME_NOTIFICATION_SETTING_INPUT {}
-impl ::core::clone::Clone for REAL_TIME_NOTIFICATION_SETTING_INPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub BrokerEventGuid: windows_sys::core::GUID,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct REAL_TIME_NOTIFICATION_SETTING_INPUT_EX {
     pub TransportSettingId: TRANSPORT_SETTING_ID,
-    pub BrokerEventGuid: ::windows_sys::core::GUID,
+    pub BrokerEventGuid: windows_sys::core::GUID,
     pub Unmark: super::super::Foundation::BOOLEAN,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for REAL_TIME_NOTIFICATION_SETTING_INPUT_EX {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for REAL_TIME_NOTIFICATION_SETTING_INPUT_EX {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct REAL_TIME_NOTIFICATION_SETTING_OUTPUT {
     pub ChannelStatus: CONTROL_CHANNEL_TRIGGER_STATUS,
 }
-impl ::core::marker::Copy for REAL_TIME_NOTIFICATION_SETTING_OUTPUT {}
-impl ::core::clone::Clone for REAL_TIME_NOTIFICATION_SETTING_OUTPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RIORESULT {
     pub Status: i32,
     pub BytesTransferred: u32,
     pub SocketContext: u64,
     pub RequestContext: u64,
 }
-impl ::core::marker::Copy for RIORESULT {}
-impl ::core::clone::Clone for RIORESULT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RIO_BUF {
     pub BufferId: RIO_BUFFERID,
     pub Offset: u32,
     pub Length: u32,
 }
-impl ::core::marker::Copy for RIO_BUF {}
-impl ::core::clone::Clone for RIO_BUF {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type RIO_BUFFERID = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RIO_CMSG_BUFFER {
     pub TotalLength: u32,
 }
-impl ::core::marker::Copy for RIO_CMSG_BUFFER {}
-impl ::core::clone::Clone for RIO_CMSG_BUFFER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type RIO_CQ = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct RIO_EXTENSION_FUNCTION_TABLE {
     pub cbSize: u32,
     pub RIOReceive: LPFN_RIORECEIVE,
@@ -4552,94 +3473,42 @@ pub struct RIO_EXTENSION_FUNCTION_TABLE {
     pub RIOResizeCompletionQueue: LPFN_RIORESIZECOMPLETIONQUEUE,
     pub RIOResizeRequestQueue: LPFN_RIORESIZEREQUESTQUEUE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for RIO_EXTENSION_FUNCTION_TABLE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for RIO_EXTENSION_FUNCTION_TABLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct RIO_NOTIFICATION_COMPLETION {
     pub Type: RIO_NOTIFICATION_COMPLETION_TYPE,
     pub Anonymous: RIO_NOTIFICATION_COMPLETION_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for RIO_NOTIFICATION_COMPLETION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for RIO_NOTIFICATION_COMPLETION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub union RIO_NOTIFICATION_COMPLETION_0 {
     pub Event: RIO_NOTIFICATION_COMPLETION_0_0,
     pub Iocp: RIO_NOTIFICATION_COMPLETION_0_1,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for RIO_NOTIFICATION_COMPLETION_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for RIO_NOTIFICATION_COMPLETION_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct RIO_NOTIFICATION_COMPLETION_0_0 {
     pub EventHandle: super::super::Foundation::HANDLE,
     pub NotifyReset: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for RIO_NOTIFICATION_COMPLETION_0_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for RIO_NOTIFICATION_COMPLETION_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct RIO_NOTIFICATION_COMPLETION_0_1 {
     pub IocpHandle: super::super::Foundation::HANDLE,
-    pub CompletionKey: *mut ::core::ffi::c_void,
-    pub Overlapped: *mut ::core::ffi::c_void,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for RIO_NOTIFICATION_COMPLETION_0_1 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for RIO_NOTIFICATION_COMPLETION_0_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub CompletionKey: *mut core::ffi::c_void,
+    pub Overlapped: *mut core::ffi::c_void,
 }
 pub type RIO_RQ = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct RM_FEC_INFO {
     pub FECBlockSize: u16,
     pub FECProActivePackets: u16,
     pub FECGroupSize: u8,
     pub fFECOnDemandParityEnabled: super::super::Foundation::BOOLEAN,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for RM_FEC_INFO {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for RM_FEC_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RM_RECEIVER_STATS {
     pub NumODataPacketsReceived: u64,
     pub NumRDataPacketsReceived: u64,
@@ -4660,13 +3529,8 @@ pub struct RM_RECEIVER_STATS {
     pub TotalSelectiveNaksSent: u64,
     pub TotalParityNaksSent: u64,
 }
-impl ::core::marker::Copy for RM_RECEIVER_STATS {}
-impl ::core::clone::Clone for RM_RECEIVER_STATS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RM_SENDER_STATS {
     pub DataBytesSent: u64,
     pub TotalBytesSent: u64,
@@ -4682,102 +3546,54 @@ pub struct RM_SENDER_STATS {
     pub RateKBitsPerSecLast: u64,
     pub TotalODataPacketsSent: u64,
 }
-impl ::core::marker::Copy for RM_SENDER_STATS {}
-impl ::core::clone::Clone for RM_SENDER_STATS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RM_SEND_WINDOW {
     pub RateKbitsPerSec: u32,
     pub WindowSizeInMSecs: u32,
     pub WindowSizeInBytes: u32,
 }
-impl ::core::marker::Copy for RM_SEND_WINDOW {}
-impl ::core::clone::Clone for RM_SEND_WINDOW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct RSS_SCALABILITY_INFO {
     pub RssEnabled: super::super::Foundation::BOOLEAN,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for RSS_SCALABILITY_INFO {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for RSS_SCALABILITY_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SCOPE_ID {
     pub Anonymous: SCOPE_ID_0,
 }
-impl ::core::marker::Copy for SCOPE_ID {}
-impl ::core::clone::Clone for SCOPE_ID {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union SCOPE_ID_0 {
     pub Anonymous: SCOPE_ID_0_0,
     pub Value: u32,
 }
-impl ::core::marker::Copy for SCOPE_ID_0 {}
-impl ::core::clone::Clone for SCOPE_ID_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SCOPE_ID_0_0 {
     pub _bitfield: u32,
 }
-impl ::core::marker::Copy for SCOPE_ID_0_0 {}
-impl ::core::clone::Clone for SCOPE_ID_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+#[derive(Clone, Copy)]
 pub struct SERVENT {
-    pub s_name: ::windows_sys::core::PSTR,
+    pub s_name: windows_sys::core::PSTR,
     pub s_aliases: *mut *mut i8,
-    pub s_proto: ::windows_sys::core::PSTR,
+    pub s_proto: windows_sys::core::PSTR,
     pub s_port: i16,
 }
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::core::marker::Copy for SERVENT {}
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::core::clone::Clone for SERVENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
 #[cfg(target_arch = "x86")]
+#[derive(Clone, Copy)]
 pub struct SERVENT {
-    pub s_name: ::windows_sys::core::PSTR,
+    pub s_name: windows_sys::core::PSTR,
     pub s_aliases: *mut *mut i8,
     pub s_port: i16,
-    pub s_proto: ::windows_sys::core::PSTR,
-}
-#[cfg(target_arch = "x86")]
-impl ::core::marker::Copy for SERVENT {}
-#[cfg(target_arch = "x86")]
-impl ::core::clone::Clone for SERVENT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub s_proto: windows_sys::core::PSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_ADDRESS {
     pub dwAddressType: u32,
     pub dwAddressFlags: u32,
@@ -4786,122 +3602,72 @@ pub struct SERVICE_ADDRESS {
     pub lpAddress: *mut u8,
     pub lpPrincipal: *mut u8,
 }
-impl ::core::marker::Copy for SERVICE_ADDRESS {}
-impl ::core::clone::Clone for SERVICE_ADDRESS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_ADDRESSES {
     pub dwAddressCount: u32,
     pub Addresses: [SERVICE_ADDRESS; 1],
 }
-impl ::core::marker::Copy for SERVICE_ADDRESSES {}
-impl ::core::clone::Clone for SERVICE_ADDRESSES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct SERVICE_ASYNC_INFO {
     pub lpServiceCallbackProc: LPSERVICE_CALLBACK_PROC,
     pub lParam: super::super::Foundation::LPARAM,
     pub hAsyncTaskHandle: super::super::Foundation::HANDLE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for SERVICE_ASYNC_INFO {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for SERVICE_ASYNC_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct SERVICE_INFOA {
-    pub lpServiceType: *mut ::windows_sys::core::GUID,
-    pub lpServiceName: ::windows_sys::core::PSTR,
-    pub lpComment: ::windows_sys::core::PSTR,
-    pub lpLocale: ::windows_sys::core::PSTR,
+    pub lpServiceType: *mut windows_sys::core::GUID,
+    pub lpServiceName: windows_sys::core::PSTR,
+    pub lpComment: windows_sys::core::PSTR,
+    pub lpLocale: windows_sys::core::PSTR,
     pub dwDisplayHint: RESOURCE_DISPLAY_TYPE,
     pub dwVersion: u32,
     pub dwTime: u32,
-    pub lpMachineName: ::windows_sys::core::PSTR,
+    pub lpMachineName: windows_sys::core::PSTR,
     pub lpServiceAddress: *mut SERVICE_ADDRESSES,
     pub ServiceSpecificInfo: super::super::System::Com::BLOB,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for SERVICE_INFOA {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for SERVICE_INFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct SERVICE_INFOW {
-    pub lpServiceType: *mut ::windows_sys::core::GUID,
-    pub lpServiceName: ::windows_sys::core::PWSTR,
-    pub lpComment: ::windows_sys::core::PWSTR,
-    pub lpLocale: ::windows_sys::core::PWSTR,
+    pub lpServiceType: *mut windows_sys::core::GUID,
+    pub lpServiceName: windows_sys::core::PWSTR,
+    pub lpComment: windows_sys::core::PWSTR,
+    pub lpLocale: windows_sys::core::PWSTR,
     pub dwDisplayHint: RESOURCE_DISPLAY_TYPE,
     pub dwVersion: u32,
     pub dwTime: u32,
-    pub lpMachineName: ::windows_sys::core::PWSTR,
+    pub lpMachineName: windows_sys::core::PWSTR,
     pub lpServiceAddress: *mut SERVICE_ADDRESSES,
     pub ServiceSpecificInfo: super::super::System::Com::BLOB,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for SERVICE_INFOW {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for SERVICE_INFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_TYPE_INFO {
     pub dwTypeNameOffset: u32,
     pub dwValueCount: u32,
     pub Values: [SERVICE_TYPE_VALUE; 1],
 }
-impl ::core::marker::Copy for SERVICE_TYPE_INFO {}
-impl ::core::clone::Clone for SERVICE_TYPE_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_TYPE_INFO_ABSA {
-    pub lpTypeName: ::windows_sys::core::PSTR,
+    pub lpTypeName: windows_sys::core::PSTR,
     pub dwValueCount: u32,
     pub Values: [SERVICE_TYPE_VALUE_ABSA; 1],
 }
-impl ::core::marker::Copy for SERVICE_TYPE_INFO_ABSA {}
-impl ::core::clone::Clone for SERVICE_TYPE_INFO_ABSA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_TYPE_INFO_ABSW {
-    pub lpTypeName: ::windows_sys::core::PWSTR,
+    pub lpTypeName: windows_sys::core::PWSTR,
     pub dwValueCount: u32,
     pub Values: [SERVICE_TYPE_VALUE_ABSW; 1],
 }
-impl ::core::marker::Copy for SERVICE_TYPE_INFO_ABSW {}
-impl ::core::clone::Clone for SERVICE_TYPE_INFO_ABSW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_TYPE_VALUE {
     pub dwNameSpace: u32,
     pub dwValueType: u32,
@@ -4909,41 +3675,26 @@ pub struct SERVICE_TYPE_VALUE {
     pub dwValueNameOffset: u32,
     pub dwValueOffset: u32,
 }
-impl ::core::marker::Copy for SERVICE_TYPE_VALUE {}
-impl ::core::clone::Clone for SERVICE_TYPE_VALUE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_TYPE_VALUE_ABSA {
     pub dwNameSpace: u32,
     pub dwValueType: u32,
     pub dwValueSize: u32,
-    pub lpValueName: ::windows_sys::core::PSTR,
-    pub lpValue: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for SERVICE_TYPE_VALUE_ABSA {}
-impl ::core::clone::Clone for SERVICE_TYPE_VALUE_ABSA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpValueName: windows_sys::core::PSTR,
+    pub lpValue: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SERVICE_TYPE_VALUE_ABSW {
     pub dwNameSpace: u32,
     pub dwValueType: u32,
     pub dwValueSize: u32,
-    pub lpValueName: ::windows_sys::core::PWSTR,
-    pub lpValue: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for SERVICE_TYPE_VALUE_ABSW {}
-impl ::core::clone::Clone for SERVICE_TYPE_VALUE_ABSW {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpValueName: windows_sys::core::PWSTR,
+    pub lpValue: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SNAP_HEADER {
     pub Dsap: u8,
     pub Ssap: u8,
@@ -4951,62 +3702,37 @@ pub struct SNAP_HEADER {
     pub Oui: [u8; 3],
     pub Type: u16,
 }
-impl ::core::marker::Copy for SNAP_HEADER {}
-impl ::core::clone::Clone for SNAP_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR {
     pub sa_family: ADDRESS_FAMILY,
-    pub sa_data: [u8; 14],
-}
-impl ::core::marker::Copy for SOCKADDR {}
-impl ::core::clone::Clone for SOCKADDR {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub sa_data: [i8; 14],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_ATM {
     pub satm_family: u16,
     pub satm_number: ATM_ADDRESS,
     pub satm_blli: ATM_BLLI,
     pub satm_bhli: ATM_BHLI,
 }
-impl ::core::marker::Copy for SOCKADDR_ATM {}
-impl ::core::clone::Clone for SOCKADDR_ATM {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_DL {
     pub sdl_family: ADDRESS_FAMILY,
     pub sdl_data: [u8; 8],
     pub sdl_zero: [u8; 4],
 }
-impl ::core::marker::Copy for SOCKADDR_DL {}
-impl ::core::clone::Clone for SOCKADDR_DL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_IN {
     pub sin_family: ADDRESS_FAMILY,
     pub sin_port: u16,
     pub sin_addr: IN_ADDR,
-    pub sin_zero: [u8; 8],
-}
-impl ::core::marker::Copy for SOCKADDR_IN {}
-impl ::core::clone::Clone for SOCKADDR_IN {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub sin_zero: [i8; 8],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_IN6 {
     pub sin6_family: ADDRESS_FAMILY,
     pub sin6_port: u16,
@@ -5014,35 +3740,20 @@ pub struct SOCKADDR_IN6 {
     pub sin6_addr: IN6_ADDR,
     pub Anonymous: SOCKADDR_IN6_0,
 }
-impl ::core::marker::Copy for SOCKADDR_IN6 {}
-impl ::core::clone::Clone for SOCKADDR_IN6 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union SOCKADDR_IN6_0 {
     pub sin6_scope_id: u32,
     pub sin6_scope_struct: SCOPE_ID,
 }
-impl ::core::marker::Copy for SOCKADDR_IN6_0 {}
-impl ::core::clone::Clone for SOCKADDR_IN6_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_IN6_PAIR {
     pub SourceAddress: *mut SOCKADDR_IN6,
     pub DestinationAddress: *mut SOCKADDR_IN6,
 }
-impl ::core::marker::Copy for SOCKADDR_IN6_PAIR {}
-impl ::core::clone::Clone for SOCKADDR_IN6_PAIR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_IN6_W2KSP1 {
     pub sin6_family: i16,
     pub sin6_port: u16,
@@ -5050,88 +3761,53 @@ pub struct SOCKADDR_IN6_W2KSP1 {
     pub sin6_addr: IN6_ADDR,
     pub sin6_scope_id: u32,
 }
-impl ::core::marker::Copy for SOCKADDR_IN6_W2KSP1 {}
-impl ::core::clone::Clone for SOCKADDR_IN6_W2KSP1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union SOCKADDR_INET {
     pub Ipv4: SOCKADDR_IN,
     pub Ipv6: SOCKADDR_IN6,
     pub si_family: ADDRESS_FAMILY,
 }
-impl ::core::marker::Copy for SOCKADDR_INET {}
-impl ::core::clone::Clone for SOCKADDR_INET {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_IPX {
     pub sa_family: i16,
-    pub sa_netnum: [u8; 4],
-    pub sa_nodenum: [u8; 6],
+    pub sa_netnum: [i8; 4],
+    pub sa_nodenum: [i8; 6],
     pub sa_socket: u16,
 }
-impl ::core::marker::Copy for SOCKADDR_IPX {}
-impl ::core::clone::Clone for SOCKADDR_IPX {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_IRDA {
     pub irdaAddressFamily: u16,
     pub irdaDeviceID: [u8; 4],
-    pub irdaServiceName: [u8; 25],
-}
-impl ::core::marker::Copy for SOCKADDR_IRDA {}
-impl ::core::clone::Clone for SOCKADDR_IRDA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub irdaServiceName: [i8; 25],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_NB {
     pub snb_family: i16,
     pub snb_type: u16,
-    pub snb_name: [u8; 16],
-}
-impl ::core::marker::Copy for SOCKADDR_NB {}
-impl ::core::clone::Clone for SOCKADDR_NB {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub snb_name: [i8; 16],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_STORAGE {
     pub ss_family: ADDRESS_FAMILY,
-    pub __ss_pad1: [u8; 6],
+    pub __ss_pad1: [i8; 6],
     pub __ss_align: i64,
-    pub __ss_pad2: [u8; 112],
-}
-impl ::core::marker::Copy for SOCKADDR_STORAGE {}
-impl ::core::clone::Clone for SOCKADDR_STORAGE {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub __ss_pad2: [i8; 112],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_STORAGE_XP {
     pub ss_family: i16,
-    pub __ss_pad1: [u8; 6],
+    pub __ss_pad1: [i8; 6],
     pub __ss_align: i64,
-    pub __ss_pad2: [u8; 112],
-}
-impl ::core::marker::Copy for SOCKADDR_STORAGE_XP {}
-impl ::core::clone::Clone for SOCKADDR_STORAGE_XP {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub __ss_pad2: [i8; 112],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_TP {
     pub tp_family: u16,
     pub tp_addr_type: u16,
@@ -5139,24 +3815,14 @@ pub struct SOCKADDR_TP {
     pub tp_tsel_len: u16,
     pub tp_addr: [u8; 64],
 }
-impl ::core::marker::Copy for SOCKADDR_TP {}
-impl ::core::clone::Clone for SOCKADDR_TP {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_UN {
     pub sun_family: ADDRESS_FAMILY,
-    pub sun_path: [u8; 108],
-}
-impl ::core::marker::Copy for SOCKADDR_UN {}
-impl ::core::clone::Clone for SOCKADDR_UN {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub sun_path: [i8; 108],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKADDR_VNS {
     pub sin_family: u16,
     pub net_address: [u8; 4],
@@ -5165,78 +3831,45 @@ pub struct SOCKADDR_VNS {
     pub hops: u8,
     pub filler: [u8; 5],
 }
-impl ::core::marker::Copy for SOCKADDR_VNS {}
-impl ::core::clone::Clone for SOCKADDR_VNS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type SOCKET = usize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_ADDRESS {
     pub lpSockaddr: *mut SOCKADDR,
     pub iSockaddrLength: i32,
 }
-impl ::core::marker::Copy for SOCKET_ADDRESS {}
-impl ::core::clone::Clone for SOCKET_ADDRESS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_ADDRESS_LIST {
     pub iAddressCount: i32,
     pub Address: [SOCKET_ADDRESS; 1],
 }
-impl ::core::marker::Copy for SOCKET_ADDRESS_LIST {}
-impl ::core::clone::Clone for SOCKET_ADDRESS_LIST {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_PEER_TARGET_NAME {
     pub SecurityProtocol: SOCKET_SECURITY_PROTOCOL,
     pub PeerAddress: SOCKADDR_STORAGE,
     pub PeerTargetNameStringLen: u32,
     pub AllStrings: [u16; 1],
 }
-impl ::core::marker::Copy for SOCKET_PEER_TARGET_NAME {}
-impl ::core::clone::Clone for SOCKET_PEER_TARGET_NAME {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Kernel\"`"]
 #[cfg(feature = "Win32_System_Kernel")]
+#[derive(Clone, Copy)]
 pub struct SOCKET_PROCESSOR_AFFINITY {
     pub Processor: super::super::System::Kernel::PROCESSOR_NUMBER,
     pub NumaNodeId: u16,
     pub Reserved: u16,
 }
-#[cfg(feature = "Win32_System_Kernel")]
-impl ::core::marker::Copy for SOCKET_PROCESSOR_AFFINITY {}
-#[cfg(feature = "Win32_System_Kernel")]
-impl ::core::clone::Clone for SOCKET_PROCESSOR_AFFINITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_SECURITY_QUERY_INFO {
     pub SecurityProtocol: SOCKET_SECURITY_PROTOCOL,
     pub Flags: u32,
     pub PeerApplicationAccessTokenHandle: u64,
     pub PeerMachineAccessTokenHandle: u64,
 }
-impl ::core::marker::Copy for SOCKET_SECURITY_QUERY_INFO {}
-impl ::core::clone::Clone for SOCKET_SECURITY_QUERY_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_SECURITY_QUERY_INFO_IPSEC2 {
     pub SecurityProtocol: SOCKET_SECURITY_PROTOCOL,
     pub Flags: u32,
@@ -5245,27 +3878,17 @@ pub struct SOCKET_SECURITY_QUERY_INFO_IPSEC2 {
     pub MmSaId: u64,
     pub QmSaId: u64,
     pub NegotiationWinerr: u32,
-    pub SaLookupContext: ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for SOCKET_SECURITY_QUERY_INFO_IPSEC2 {}
-impl ::core::clone::Clone for SOCKET_SECURITY_QUERY_INFO_IPSEC2 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub SaLookupContext: windows_sys::core::GUID,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_SECURITY_QUERY_TEMPLATE {
     pub SecurityProtocol: SOCKET_SECURITY_PROTOCOL,
     pub PeerAddress: SOCKADDR_STORAGE,
     pub PeerTokenAccessMask: u32,
 }
-impl ::core::marker::Copy for SOCKET_SECURITY_QUERY_TEMPLATE {}
-impl ::core::clone::Clone for SOCKET_SECURITY_QUERY_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_SECURITY_QUERY_TEMPLATE_IPSEC2 {
     pub SecurityProtocol: SOCKET_SECURITY_PROTOCOL,
     pub PeerAddress: SOCKADDR_STORAGE,
@@ -5273,69 +3896,44 @@ pub struct SOCKET_SECURITY_QUERY_TEMPLATE_IPSEC2 {
     pub Flags: u32,
     pub FieldMask: u32,
 }
-impl ::core::marker::Copy for SOCKET_SECURITY_QUERY_TEMPLATE_IPSEC2 {}
-impl ::core::clone::Clone for SOCKET_SECURITY_QUERY_TEMPLATE_IPSEC2 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_SECURITY_SETTINGS {
     pub SecurityProtocol: SOCKET_SECURITY_PROTOCOL,
     pub SecurityFlags: u32,
 }
-impl ::core::marker::Copy for SOCKET_SECURITY_SETTINGS {}
-impl ::core::clone::Clone for SOCKET_SECURITY_SETTINGS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCKET_SECURITY_SETTINGS_IPSEC {
     pub SecurityProtocol: SOCKET_SECURITY_PROTOCOL,
     pub SecurityFlags: u32,
     pub IpsecFlags: u32,
-    pub AuthipMMPolicyKey: ::windows_sys::core::GUID,
-    pub AuthipQMPolicyKey: ::windows_sys::core::GUID,
-    pub Reserved: ::windows_sys::core::GUID,
+    pub AuthipMMPolicyKey: windows_sys::core::GUID,
+    pub AuthipQMPolicyKey: windows_sys::core::GUID,
+    pub Reserved: windows_sys::core::GUID,
     pub Reserved2: u64,
     pub UserNameStringLen: u32,
     pub DomainNameStringLen: u32,
     pub PasswordStringLen: u32,
     pub AllStrings: [u16; 1],
 }
-impl ::core::marker::Copy for SOCKET_SECURITY_SETTINGS_IPSEC {}
-impl ::core::clone::Clone for SOCKET_SECURITY_SETTINGS_IPSEC {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SOCK_NOTIFY_REGISTRATION {
     pub socket: SOCKET,
-    pub completionKey: *mut ::core::ffi::c_void,
+    pub completionKey: *mut core::ffi::c_void,
     pub eventFilter: u16,
     pub operation: u8,
     pub triggerFlags: u8,
     pub registrationResult: u32,
 }
-impl ::core::marker::Copy for SOCK_NOTIFY_REGISTRATION {}
-impl ::core::clone::Clone for SOCK_NOTIFY_REGISTRATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TCP_ACK_FREQUENCY_PARAMETERS {
     pub TcpDelayedAckFrequency: u8,
 }
-impl ::core::marker::Copy for TCP_ACK_FREQUENCY_PARAMETERS {}
-impl ::core::clone::Clone for TCP_ACK_FREQUENCY_PARAMETERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_HDR {
     pub th_sport: u16,
     pub th_dport: u16,
@@ -5347,25 +3945,13 @@ pub struct TCP_HDR {
     pub th_sum: u16,
     pub th_urp: u16,
 }
-impl ::core::marker::Copy for TCP_HDR {}
-impl ::core::clone::Clone for TCP_HDR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TCP_ICW_PARAMETERS {
     pub Level: TCP_ICW_LEVEL,
 }
-impl ::core::marker::Copy for TCP_ICW_PARAMETERS {}
-impl ::core::clone::Clone for TCP_ICW_PARAMETERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct TCP_INFO_v0 {
     pub State: TCPSTATE,
     pub Mss: u32,
@@ -5387,17 +3973,8 @@ pub struct TCP_INFO_v0 {
     pub TimeoutEpisodes: u32,
     pub SynRetrans: u8,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for TCP_INFO_v0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for TCP_INFO_v0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct TCP_INFO_v1 {
     pub State: TCPSTATE,
     pub Mss: u32,
@@ -5428,531 +4005,290 @@ pub struct TCP_INFO_v1 {
     pub SndLimTimeSnd: u32,
     pub SndLimBytesSnd: u64,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for TCP_INFO_v1 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for TCP_INFO_v1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TCP_INITIAL_RTO_PARAMETERS {
     pub Rtt: u16,
     pub MaxSynRetransmissions: u8,
 }
-impl ::core::marker::Copy for TCP_INITIAL_RTO_PARAMETERS {}
-impl ::core::clone::Clone for TCP_INITIAL_RTO_PARAMETERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_FASTOPEN {
     pub Kind: u8,
     pub Length: u8,
     pub Cookie: [u8; 1],
 }
-impl ::core::marker::Copy for TCP_OPT_FASTOPEN {}
-impl ::core::clone::Clone for TCP_OPT_FASTOPEN {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_MSS {
     pub Kind: u8,
     pub Length: u8,
     pub Mss: u16,
 }
-impl ::core::marker::Copy for TCP_OPT_MSS {}
-impl ::core::clone::Clone for TCP_OPT_MSS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_SACK {
     pub Kind: u8,
     pub Length: u8,
     pub Block: [TCP_OPT_SACK_0; 1],
 }
-impl ::core::marker::Copy for TCP_OPT_SACK {}
-impl ::core::clone::Clone for TCP_OPT_SACK {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_SACK_0 {
     pub Left: u32,
     pub Right: u32,
 }
-impl ::core::marker::Copy for TCP_OPT_SACK_0 {}
-impl ::core::clone::Clone for TCP_OPT_SACK_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_SACK_PERMITTED {
     pub Kind: u8,
     pub Length: u8,
 }
-impl ::core::marker::Copy for TCP_OPT_SACK_PERMITTED {}
-impl ::core::clone::Clone for TCP_OPT_SACK_PERMITTED {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_TS {
     pub Kind: u8,
     pub Length: u8,
     pub Val: u32,
     pub EcR: u32,
 }
-impl ::core::marker::Copy for TCP_OPT_TS {}
-impl ::core::clone::Clone for TCP_OPT_TS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_UNKNOWN {
     pub Kind: u8,
     pub Length: u8,
 }
-impl ::core::marker::Copy for TCP_OPT_UNKNOWN {}
-impl ::core::clone::Clone for TCP_OPT_UNKNOWN {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C, packed(1))]
+#[derive(Clone, Copy)]
 pub struct TCP_OPT_WS {
     pub Kind: u8,
     pub Length: u8,
     pub ShiftCnt: u8,
 }
-impl ::core::marker::Copy for TCP_OPT_WS {}
-impl ::core::clone::Clone for TCP_OPT_WS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TIMESTAMPING_CONFIG {
     pub Flags: u32,
     pub TxTimestampsBuffered: u16,
 }
-impl ::core::marker::Copy for TIMESTAMPING_CONFIG {}
-impl ::core::clone::Clone for TIMESTAMPING_CONFIG {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TIMEVAL {
     pub tv_sec: i32,
     pub tv_usec: i32,
 }
-impl ::core::marker::Copy for TIMEVAL {}
-impl ::core::clone::Clone for TIMEVAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TRANSMIT_FILE_BUFFERS {
-    pub Head: *mut ::core::ffi::c_void,
+    pub Head: *mut core::ffi::c_void,
     pub HeadLength: u32,
-    pub Tail: *mut ::core::ffi::c_void,
+    pub Tail: *mut core::ffi::c_void,
     pub TailLength: u32,
 }
-impl ::core::marker::Copy for TRANSMIT_FILE_BUFFERS {}
-impl ::core::clone::Clone for TRANSMIT_FILE_BUFFERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct TRANSMIT_PACKETS_ELEMENT {
     pub dwElFlags: u32,
     pub cLength: u32,
     pub Anonymous: TRANSMIT_PACKETS_ELEMENT_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for TRANSMIT_PACKETS_ELEMENT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for TRANSMIT_PACKETS_ELEMENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub union TRANSMIT_PACKETS_ELEMENT_0 {
     pub Anonymous: TRANSMIT_PACKETS_ELEMENT_0_0,
-    pub pBuffer: *mut ::core::ffi::c_void,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for TRANSMIT_PACKETS_ELEMENT_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for TRANSMIT_PACKETS_ELEMENT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pBuffer: *mut core::ffi::c_void,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct TRANSMIT_PACKETS_ELEMENT_0_0 {
     pub nFileOffset: i64,
     pub hFile: super::super::Foundation::HANDLE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for TRANSMIT_PACKETS_ELEMENT_0_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for TRANSMIT_PACKETS_ELEMENT_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct TRANSPORT_SETTING_ID {
-    pub Guid: ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for TRANSPORT_SETTING_ID {}
-impl ::core::clone::Clone for TRANSPORT_SETTING_ID {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub Guid: windows_sys::core::GUID,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VLAN_TAG {
     pub Anonymous: VLAN_TAG_0,
     pub Type: u16,
 }
-impl ::core::marker::Copy for VLAN_TAG {}
-impl ::core::clone::Clone for VLAN_TAG {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union VLAN_TAG_0 {
     pub Tag: u16,
     pub Anonymous: VLAN_TAG_0_0,
 }
-impl ::core::marker::Copy for VLAN_TAG_0 {}
-impl ::core::clone::Clone for VLAN_TAG_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VLAN_TAG_0_0 {
     pub _bitfield: u16,
 }
-impl ::core::marker::Copy for VLAN_TAG_0_0 {}
-impl ::core::clone::Clone for VLAN_TAG_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WCE_DEVICELIST {
     pub numDevice: u32,
     pub Device: [WCE_IRDA_DEVICE_INFO; 1],
 }
-impl ::core::marker::Copy for WCE_DEVICELIST {}
-impl ::core::clone::Clone for WCE_DEVICELIST {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WCE_IRDA_DEVICE_INFO {
     pub irdaDeviceID: [u8; 4],
-    pub irdaDeviceName: [u8; 22],
+    pub irdaDeviceName: [i8; 22],
     pub Reserved: [u8; 2],
 }
-impl ::core::marker::Copy for WCE_IRDA_DEVICE_INFO {}
-impl ::core::clone::Clone for WCE_IRDA_DEVICE_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_DEVICELIST {
     pub numDevice: u32,
     pub Device: [WINDOWS_IRDA_DEVICE_INFO; 1],
 }
-impl ::core::marker::Copy for WINDOWS_DEVICELIST {}
-impl ::core::clone::Clone for WINDOWS_DEVICELIST {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_IAS_QUERY {
     pub irdaDeviceID: [u8; 4],
-    pub irdaClassName: [u8; 64],
-    pub irdaAttribName: [u8; 256],
+    pub irdaClassName: [i8; 64],
+    pub irdaAttribName: [i8; 256],
     pub irdaAttribType: u32,
     pub irdaAttribute: WINDOWS_IAS_QUERY_0,
 }
-impl ::core::marker::Copy for WINDOWS_IAS_QUERY {}
-impl ::core::clone::Clone for WINDOWS_IAS_QUERY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union WINDOWS_IAS_QUERY_0 {
     pub irdaAttribInt: i32,
     pub irdaAttribOctetSeq: WINDOWS_IAS_QUERY_0_0,
     pub irdaAttribUsrStr: WINDOWS_IAS_QUERY_0_1,
 }
-impl ::core::marker::Copy for WINDOWS_IAS_QUERY_0 {}
-impl ::core::clone::Clone for WINDOWS_IAS_QUERY_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_IAS_QUERY_0_0 {
     pub Len: u32,
     pub OctetSeq: [u8; 1024],
 }
-impl ::core::marker::Copy for WINDOWS_IAS_QUERY_0_0 {}
-impl ::core::clone::Clone for WINDOWS_IAS_QUERY_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_IAS_QUERY_0_1 {
     pub Len: u32,
     pub CharSet: u32,
     pub UsrStr: [u8; 256],
 }
-impl ::core::marker::Copy for WINDOWS_IAS_QUERY_0_1 {}
-impl ::core::clone::Clone for WINDOWS_IAS_QUERY_0_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_IAS_SET {
-    pub irdaClassName: [u8; 64],
-    pub irdaAttribName: [u8; 256],
+    pub irdaClassName: [i8; 64],
+    pub irdaAttribName: [i8; 256],
     pub irdaAttribType: u32,
     pub irdaAttribute: WINDOWS_IAS_SET_0,
 }
-impl ::core::marker::Copy for WINDOWS_IAS_SET {}
-impl ::core::clone::Clone for WINDOWS_IAS_SET {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union WINDOWS_IAS_SET_0 {
     pub irdaAttribInt: i32,
     pub irdaAttribOctetSeq: WINDOWS_IAS_SET_0_0,
     pub irdaAttribUsrStr: WINDOWS_IAS_SET_0_1,
 }
-impl ::core::marker::Copy for WINDOWS_IAS_SET_0 {}
-impl ::core::clone::Clone for WINDOWS_IAS_SET_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_IAS_SET_0_0 {
     pub Len: u16,
     pub OctetSeq: [u8; 1024],
 }
-impl ::core::marker::Copy for WINDOWS_IAS_SET_0_0 {}
-impl ::core::clone::Clone for WINDOWS_IAS_SET_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_IAS_SET_0_1 {
     pub Len: u8,
     pub CharSet: u8,
     pub UsrStr: [u8; 256],
 }
-impl ::core::marker::Copy for WINDOWS_IAS_SET_0_1 {}
-impl ::core::clone::Clone for WINDOWS_IAS_SET_0_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WINDOWS_IRDA_DEVICE_INFO {
     pub irdaDeviceID: [u8; 4],
-    pub irdaDeviceName: [u8; 22],
+    pub irdaDeviceName: [i8; 22],
     pub irdaDeviceHints1: u8,
     pub irdaDeviceHints2: u8,
     pub irdaCharSet: u8,
 }
-impl ::core::marker::Copy for WINDOWS_IRDA_DEVICE_INFO {}
-impl ::core::clone::Clone for WINDOWS_IRDA_DEVICE_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSABUF {
     pub len: u32,
-    pub buf: ::windows_sys::core::PSTR,
-}
-impl ::core::marker::Copy for WSABUF {}
-impl ::core::clone::Clone for WSABUF {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub buf: windows_sys::core::PSTR,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub struct WSACOMPLETION {
     pub Type: WSACOMPLETIONTYPE,
     pub Parameters: WSACOMPLETION_0,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSACOMPLETION {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSACOMPLETION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub union WSACOMPLETION_0 {
     pub WindowMessage: WSACOMPLETION_0_3,
     pub Event: WSACOMPLETION_0_1,
     pub Apc: WSACOMPLETION_0_0,
     pub Port: WSACOMPLETION_0_2,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSACOMPLETION_0 {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSACOMPLETION_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub struct WSACOMPLETION_0_0 {
     pub lpOverlapped: *mut super::super::System::IO::OVERLAPPED,
     pub lpfnCompletionProc: LPWSAOVERLAPPED_COMPLETION_ROUTINE,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSACOMPLETION_0_0 {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSACOMPLETION_0_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub struct WSACOMPLETION_0_1 {
     pub lpOverlapped: *mut super::super::System::IO::OVERLAPPED,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSACOMPLETION_0_1 {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSACOMPLETION_0_1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub struct WSACOMPLETION_0_2 {
     pub lpOverlapped: *mut super::super::System::IO::OVERLAPPED,
     pub hPort: super::super::Foundation::HANDLE,
     pub Key: usize,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSACOMPLETION_0_2 {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSACOMPLETION_0_2 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub struct WSACOMPLETION_0_3 {
     pub hWnd: super::super::Foundation::HWND,
     pub uMsg: u32,
     pub context: super::super::Foundation::WPARAM,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSACOMPLETION_0_3 {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSACOMPLETION_0_3 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+#[derive(Clone, Copy)]
 pub struct WSADATA {
     pub wVersion: u16,
     pub wHighVersion: u16,
     pub iMaxSockets: u16,
     pub iMaxUdpDg: u16,
-    pub lpVendorInfo: ::windows_sys::core::PSTR,
-    pub szDescription: [u8; 257],
-    pub szSystemStatus: [u8; 129],
-}
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::core::marker::Copy for WSADATA {}
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::core::clone::Clone for WSADATA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpVendorInfo: windows_sys::core::PSTR,
+    pub szDescription: [i8; 257],
+    pub szSystemStatus: [i8; 129],
 }
 #[repr(C)]
 #[cfg(target_arch = "x86")]
+#[derive(Clone, Copy)]
 pub struct WSADATA {
     pub wVersion: u16,
     pub wHighVersion: u16,
-    pub szDescription: [u8; 257],
-    pub szSystemStatus: [u8; 129],
+    pub szDescription: [i8; 257],
+    pub szSystemStatus: [i8; 129],
     pub iMaxSockets: u16,
     pub iMaxUdpDg: u16,
-    pub lpVendorInfo: ::windows_sys::core::PSTR,
-}
-#[cfg(target_arch = "x86")]
-impl ::core::marker::Copy for WSADATA {}
-#[cfg(target_arch = "x86")]
-impl ::core::clone::Clone for WSADATA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpVendorInfo: windows_sys::core::PSTR,
 }
 pub type WSAEVENT = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSAMSG {
     pub name: *mut SOCKADDR,
     pub namelen: i32,
@@ -5961,169 +4297,100 @@ pub struct WSAMSG {
     pub Control: WSABUF,
     pub dwFlags: u32,
 }
-impl ::core::marker::Copy for WSAMSG {}
-impl ::core::clone::Clone for WSAMSG {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WSANAMESPACE_INFOA {
-    pub NSProviderId: ::windows_sys::core::GUID,
+    pub NSProviderId: windows_sys::core::GUID,
     pub dwNameSpace: u32,
     pub fActive: super::super::Foundation::BOOL,
     pub dwVersion: u32,
-    pub lpszIdentifier: ::windows_sys::core::PSTR,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WSANAMESPACE_INFOA {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WSANAMESPACE_INFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpszIdentifier: windows_sys::core::PSTR,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
+#[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct WSANAMESPACE_INFOEXA {
-    pub NSProviderId: ::windows_sys::core::GUID,
+    pub NSProviderId: windows_sys::core::GUID,
     pub dwNameSpace: u32,
     pub fActive: super::super::Foundation::BOOL,
     pub dwVersion: u32,
-    pub lpszIdentifier: ::windows_sys::core::PSTR,
+    pub lpszIdentifier: windows_sys::core::PSTR,
     pub ProviderSpecific: super::super::System::Com::BLOB,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-impl ::core::marker::Copy for WSANAMESPACE_INFOEXA {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-impl ::core::clone::Clone for WSANAMESPACE_INFOEXA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
+#[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct WSANAMESPACE_INFOEXW {
-    pub NSProviderId: ::windows_sys::core::GUID,
+    pub NSProviderId: windows_sys::core::GUID,
     pub dwNameSpace: u32,
     pub fActive: super::super::Foundation::BOOL,
     pub dwVersion: u32,
-    pub lpszIdentifier: ::windows_sys::core::PWSTR,
+    pub lpszIdentifier: windows_sys::core::PWSTR,
     pub ProviderSpecific: super::super::System::Com::BLOB,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-impl ::core::marker::Copy for WSANAMESPACE_INFOEXW {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-impl ::core::clone::Clone for WSANAMESPACE_INFOEXW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WSANAMESPACE_INFOW {
-    pub NSProviderId: ::windows_sys::core::GUID,
+    pub NSProviderId: windows_sys::core::GUID,
     pub dwNameSpace: u32,
     pub fActive: super::super::Foundation::BOOL,
     pub dwVersion: u32,
-    pub lpszIdentifier: ::windows_sys::core::PWSTR,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WSANAMESPACE_INFOW {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WSANAMESPACE_INFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpszIdentifier: windows_sys::core::PWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSANETWORKEVENTS {
     pub lNetworkEvents: i32,
     pub iErrorCode: [i32; 10],
 }
-impl ::core::marker::Copy for WSANETWORKEVENTS {}
-impl ::core::clone::Clone for WSANETWORKEVENTS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSANSCLASSINFOA {
-    pub lpszName: ::windows_sys::core::PSTR,
+    pub lpszName: windows_sys::core::PSTR,
     pub dwNameSpace: u32,
     pub dwValueType: u32,
     pub dwValueSize: u32,
-    pub lpValue: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WSANSCLASSINFOA {}
-impl ::core::clone::Clone for WSANSCLASSINFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpValue: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSANSCLASSINFOW {
-    pub lpszName: ::windows_sys::core::PWSTR,
+    pub lpszName: windows_sys::core::PWSTR,
     pub dwNameSpace: u32,
     pub dwValueType: u32,
     pub dwValueSize: u32,
-    pub lpValue: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WSANSCLASSINFOW {}
-impl ::core::clone::Clone for WSANSCLASSINFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub lpValue: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSAPOLLDATA {
     pub result: i32,
     pub fds: u32,
     pub timeout: i32,
     pub fdArray: [WSAPOLLFD; 1],
 }
-impl ::core::marker::Copy for WSAPOLLDATA {}
-impl ::core::clone::Clone for WSAPOLLDATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSAPOLLFD {
     pub fd: SOCKET,
     pub events: WSAPOLL_EVENT_FLAGS,
     pub revents: WSAPOLL_EVENT_FLAGS,
 }
-impl ::core::marker::Copy for WSAPOLLFD {}
-impl ::core::clone::Clone for WSAPOLLFD {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSAPROTOCOLCHAIN {
     pub ChainLen: i32,
     pub ChainEntries: [u32; 7],
 }
-impl ::core::marker::Copy for WSAPROTOCOLCHAIN {}
-impl ::core::clone::Clone for WSAPROTOCOLCHAIN {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSAPROTOCOL_INFOA {
     pub dwServiceFlags1: u32,
     pub dwServiceFlags2: u32,
     pub dwServiceFlags3: u32,
     pub dwServiceFlags4: u32,
     pub dwProviderFlags: u32,
-    pub ProviderId: ::windows_sys::core::GUID,
+    pub ProviderId: windows_sys::core::GUID,
     pub dwCatalogEntryId: u32,
     pub ProtocolChain: WSAPROTOCOLCHAIN,
     pub iVersion: i32,
@@ -6137,22 +4404,17 @@ pub struct WSAPROTOCOL_INFOA {
     pub iSecurityScheme: i32,
     pub dwMessageSize: u32,
     pub dwProviderReserved: u32,
-    pub szProtocol: [u8; 256],
-}
-impl ::core::marker::Copy for WSAPROTOCOL_INFOA {}
-impl ::core::clone::Clone for WSAPROTOCOL_INFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub szProtocol: [i8; 256],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSAPROTOCOL_INFOW {
     pub dwServiceFlags1: u32,
     pub dwServiceFlags2: u32,
     pub dwServiceFlags3: u32,
     pub dwServiceFlags4: u32,
     pub dwProviderFlags: u32,
-    pub ProviderId: ::windows_sys::core::GUID,
+    pub ProviderId: windows_sys::core::GUID,
     pub dwCatalogEntryId: u32,
     pub ProtocolChain: WSAPROTOCOLCHAIN,
     pub iVersion: i32,
@@ -6168,125 +4430,87 @@ pub struct WSAPROTOCOL_INFOW {
     pub dwProviderReserved: u32,
     pub szProtocol: [u16; 256],
 }
-impl ::core::marker::Copy for WSAPROTOCOL_INFOW {}
-impl ::core::clone::Clone for WSAPROTOCOL_INFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct WSAQUERYSET2A {
     pub dwSize: u32,
-    pub lpszServiceInstanceName: ::windows_sys::core::PSTR,
+    pub lpszServiceInstanceName: windows_sys::core::PSTR,
     pub lpVersion: *mut WSAVERSION,
-    pub lpszComment: ::windows_sys::core::PSTR,
+    pub lpszComment: windows_sys::core::PSTR,
     pub dwNameSpace: u32,
-    pub lpNSProviderId: *mut ::windows_sys::core::GUID,
-    pub lpszContext: ::windows_sys::core::PSTR,
+    pub lpNSProviderId: *mut windows_sys::core::GUID,
+    pub lpszContext: windows_sys::core::PSTR,
     pub dwNumberOfProtocols: u32,
     pub lpafpProtocols: *mut AFPROTOCOLS,
-    pub lpszQueryString: ::windows_sys::core::PSTR,
+    pub lpszQueryString: windows_sys::core::PSTR,
     pub dwNumberOfCsAddrs: u32,
     pub lpcsaBuffer: *mut CSADDR_INFO,
     pub dwOutputFlags: u32,
     pub lpBlob: *mut super::super::System::Com::BLOB,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for WSAQUERYSET2A {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for WSAQUERYSET2A {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct WSAQUERYSET2W {
     pub dwSize: u32,
-    pub lpszServiceInstanceName: ::windows_sys::core::PWSTR,
+    pub lpszServiceInstanceName: windows_sys::core::PWSTR,
     pub lpVersion: *mut WSAVERSION,
-    pub lpszComment: ::windows_sys::core::PWSTR,
+    pub lpszComment: windows_sys::core::PWSTR,
     pub dwNameSpace: u32,
-    pub lpNSProviderId: *mut ::windows_sys::core::GUID,
-    pub lpszContext: ::windows_sys::core::PWSTR,
+    pub lpNSProviderId: *mut windows_sys::core::GUID,
+    pub lpszContext: windows_sys::core::PWSTR,
     pub dwNumberOfProtocols: u32,
     pub lpafpProtocols: *mut AFPROTOCOLS,
-    pub lpszQueryString: ::windows_sys::core::PWSTR,
+    pub lpszQueryString: windows_sys::core::PWSTR,
     pub dwNumberOfCsAddrs: u32,
     pub lpcsaBuffer: *mut CSADDR_INFO,
     pub dwOutputFlags: u32,
     pub lpBlob: *mut super::super::System::Com::BLOB,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for WSAQUERYSET2W {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for WSAQUERYSET2W {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct WSAQUERYSETA {
     pub dwSize: u32,
-    pub lpszServiceInstanceName: ::windows_sys::core::PSTR,
-    pub lpServiceClassId: *mut ::windows_sys::core::GUID,
+    pub lpszServiceInstanceName: windows_sys::core::PSTR,
+    pub lpServiceClassId: *mut windows_sys::core::GUID,
     pub lpVersion: *mut WSAVERSION,
-    pub lpszComment: ::windows_sys::core::PSTR,
+    pub lpszComment: windows_sys::core::PSTR,
     pub dwNameSpace: u32,
-    pub lpNSProviderId: *mut ::windows_sys::core::GUID,
-    pub lpszContext: ::windows_sys::core::PSTR,
+    pub lpNSProviderId: *mut windows_sys::core::GUID,
+    pub lpszContext: windows_sys::core::PSTR,
     pub dwNumberOfProtocols: u32,
     pub lpafpProtocols: *mut AFPROTOCOLS,
-    pub lpszQueryString: ::windows_sys::core::PSTR,
+    pub lpszQueryString: windows_sys::core::PSTR,
     pub dwNumberOfCsAddrs: u32,
     pub lpcsaBuffer: *mut CSADDR_INFO,
     pub dwOutputFlags: u32,
     pub lpBlob: *mut super::super::System::Com::BLOB,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for WSAQUERYSETA {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for WSAQUERYSETA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
+#[derive(Clone, Copy)]
 pub struct WSAQUERYSETW {
     pub dwSize: u32,
-    pub lpszServiceInstanceName: ::windows_sys::core::PWSTR,
-    pub lpServiceClassId: *mut ::windows_sys::core::GUID,
+    pub lpszServiceInstanceName: windows_sys::core::PWSTR,
+    pub lpServiceClassId: *mut windows_sys::core::GUID,
     pub lpVersion: *mut WSAVERSION,
-    pub lpszComment: ::windows_sys::core::PWSTR,
+    pub lpszComment: windows_sys::core::PWSTR,
     pub dwNameSpace: u32,
-    pub lpNSProviderId: *mut ::windows_sys::core::GUID,
-    pub lpszContext: ::windows_sys::core::PWSTR,
+    pub lpNSProviderId: *mut windows_sys::core::GUID,
+    pub lpszContext: windows_sys::core::PWSTR,
     pub dwNumberOfProtocols: u32,
     pub lpafpProtocols: *mut AFPROTOCOLS,
-    pub lpszQueryString: ::windows_sys::core::PWSTR,
+    pub lpszQueryString: windows_sys::core::PWSTR,
     pub dwNumberOfCsAddrs: u32,
     pub lpcsaBuffer: *mut CSADDR_INFO,
     pub dwOutputFlags: u32,
     pub lpBlob: *mut super::super::System::Com::BLOB,
 }
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::marker::Copy for WSAQUERYSETW {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for WSAQUERYSETW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub struct WSASENDMSG {
     pub lpMsg: *mut WSAMSG,
     pub dwFlags: u32,
@@ -6294,103 +4518,56 @@ pub struct WSASENDMSG {
     pub lpOverlapped: *mut super::super::System::IO::OVERLAPPED,
     pub lpCompletionRoutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSASENDMSG {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSASENDMSG {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSASERVICECLASSINFOA {
-    pub lpServiceClassId: *mut ::windows_sys::core::GUID,
-    pub lpszServiceClassName: ::windows_sys::core::PSTR,
+    pub lpServiceClassId: *mut windows_sys::core::GUID,
+    pub lpszServiceClassName: windows_sys::core::PSTR,
     pub dwCount: u32,
     pub lpClassInfos: *mut WSANSCLASSINFOA,
 }
-impl ::core::marker::Copy for WSASERVICECLASSINFOA {}
-impl ::core::clone::Clone for WSASERVICECLASSINFOA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSASERVICECLASSINFOW {
-    pub lpServiceClassId: *mut ::windows_sys::core::GUID,
-    pub lpszServiceClassName: ::windows_sys::core::PWSTR,
+    pub lpServiceClassId: *mut windows_sys::core::GUID,
+    pub lpszServiceClassName: windows_sys::core::PWSTR,
     pub dwCount: u32,
     pub lpClassInfos: *mut WSANSCLASSINFOW,
 }
-impl ::core::marker::Copy for WSASERVICECLASSINFOW {}
-impl ::core::clone::Clone for WSASERVICECLASSINFOW {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WSATHREADID {
     pub ThreadHandle: super::super::Foundation::HANDLE,
     pub Reserved: usize,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WSATHREADID {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WSATHREADID {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSAVERSION {
     pub dwVersion: u32,
     pub ecHow: WSAECOMPARATOR,
 }
-impl ::core::marker::Copy for WSAVERSION {}
-impl ::core::clone::Clone for WSAVERSION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSA_COMPATIBILITY_MODE {
     pub BehaviorId: WSA_COMPATIBILITY_BEHAVIOR_ID,
     pub TargetOsVersion: u32,
 }
-impl ::core::marker::Copy for WSA_COMPATIBILITY_MODE {}
-impl ::core::clone::Clone for WSA_COMPATIBILITY_MODE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSC_PROVIDER_AUDIT_INFO {
     pub RecordSize: u32,
-    pub Reserved: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WSC_PROVIDER_AUDIT_INFO {}
-impl ::core::clone::Clone for WSC_PROVIDER_AUDIT_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub Reserved: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WSPDATA {
     pub wVersion: u16,
     pub wHighVersion: u16,
     pub szDescription: [u16; 256],
 }
-impl ::core::marker::Copy for WSPDATA {}
-impl ::core::clone::Clone for WSPDATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
+#[cfg(feature = "Win32_System_IO")]
+#[derive(Clone, Copy)]
 pub struct WSPPROC_TABLE {
     pub lpWSPAccept: LPWSPACCEPT,
     pub lpWSPAddressToString: LPWSPADDRESSTOSTRING,
@@ -6423,17 +4600,8 @@ pub struct WSPPROC_TABLE {
     pub lpWSPSocket: LPWSPSOCKET,
     pub lpWSPStringToAddress: LPWSPSTRINGTOADDRESS,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::marker::Copy for WSPPROC_TABLE {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-impl ::core::clone::Clone for WSPPROC_TABLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WSPUPCALLTABLE {
     pub lpWPUCloseEvent: LPWPUCLOSEEVENT,
     pub lpWPUCloseSocketHandle: LPWPUCLOSESOCKETHANDLE,
@@ -6451,274 +4619,168 @@ pub struct WSPUPCALLTABLE {
     pub lpWPUOpenCurrentThread: LPWPUOPENCURRENTTHREAD,
     pub lpWPUCloseThread: LPWPUCLOSETHREAD,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WSPUPCALLTABLE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WSPUPCALLTABLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct netent {
-    pub n_name: ::windows_sys::core::PSTR,
+    pub n_name: windows_sys::core::PSTR,
     pub n_aliases: *mut *mut i8,
     pub n_addrtype: i16,
     pub n_net: u32,
 }
-impl ::core::marker::Copy for netent {}
-impl ::core::clone::Clone for netent {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union sockaddr_gen {
     pub Address: SOCKADDR,
     pub AddressIn: SOCKADDR_IN,
     pub AddressIn6: sockaddr_in6_old,
 }
-impl ::core::marker::Copy for sockaddr_gen {}
-impl ::core::clone::Clone for sockaddr_gen {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct sockaddr_in6_old {
     pub sin6_family: i16,
     pub sin6_port: u16,
     pub sin6_flowinfo: u32,
     pub sin6_addr: IN6_ADDR,
 }
-impl ::core::marker::Copy for sockaddr_in6_old {}
-impl ::core::clone::Clone for sockaddr_in6_old {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type socklen_t = i32;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct sockproto {
     pub sp_family: u16,
     pub sp_protocol: u16,
 }
-impl ::core::marker::Copy for sockproto {}
-impl ::core::clone::Clone for sockproto {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct tcp_keepalive {
     pub onoff: u32,
     pub keepalivetime: u32,
     pub keepaliveinterval: u32,
 }
-impl ::core::marker::Copy for tcp_keepalive {}
-impl ::core::clone::Clone for tcp_keepalive {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPBLOCKINGCALLBACK = ::core::option::Option<unsafe extern "system" fn(dwcontext: usize) -> super::super::Foundation::BOOL>;
-pub type LPCONDITIONPROC = ::core::option::Option<unsafe extern "system" fn(lpcallerid: *mut WSABUF, lpcallerdata: *mut WSABUF, lpsqos: *mut QOS, lpgqos: *mut QOS, lpcalleeid: *mut WSABUF, lpcalleedata: *mut WSABUF, g: *mut u32, dwcallbackdata: usize) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPFN_ACCEPTEX = ::core::option::Option<unsafe extern "system" fn(slistensocket: SOCKET, sacceptsocket: SOCKET, lpoutputbuffer: *mut ::core::ffi::c_void, dwreceivedatalength: u32, dwlocaladdresslength: u32, dwremoteaddresslength: u32, lpdwbytesreceived: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPFN_CONNECTEX = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lpsendbuffer: *const ::core::ffi::c_void, dwsenddatalength: u32, lpdwbytessent: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPFN_DISCONNECTEX = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwflags: u32, dwreserved: u32) -> super::super::Foundation::BOOL>;
-pub type LPFN_GETACCEPTEXSOCKADDRS = ::core::option::Option<unsafe extern "system" fn(lpoutputbuffer: *const ::core::ffi::c_void, dwreceivedatalength: u32, dwlocaladdresslength: u32, dwremoteaddresslength: u32, localsockaddr: *mut *mut SOCKADDR, localsockaddrlength: *mut i32, remotesockaddr: *mut *mut SOCKADDR, remotesockaddrlength: *mut i32) -> ()>;
-pub type LPFN_NSPAPI = ::core::option::Option<unsafe extern "system" fn() -> u32>;
-pub type LPFN_RIOCLOSECOMPLETIONQUEUE = ::core::option::Option<unsafe extern "system" fn(cq: RIO_CQ) -> ()>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPFN_RIOCREATECOMPLETIONQUEUE = ::core::option::Option<unsafe extern "system" fn(queuesize: u32, notificationcompletion: *const RIO_NOTIFICATION_COMPLETION) -> RIO_CQ>;
-pub type LPFN_RIOCREATEREQUESTQUEUE = ::core::option::Option<unsafe extern "system" fn(socket: SOCKET, maxoutstandingreceive: u32, maxreceivedatabuffers: u32, maxoutstandingsend: u32, maxsenddatabuffers: u32, receivecq: RIO_CQ, sendcq: RIO_CQ, socketcontext: *const ::core::ffi::c_void) -> RIO_RQ>;
-pub type LPFN_RIODEQUEUECOMPLETION = ::core::option::Option<unsafe extern "system" fn(cq: RIO_CQ, array: *mut RIORESULT, arraysize: u32) -> u32>;
-pub type LPFN_RIODEREGISTERBUFFER = ::core::option::Option<unsafe extern "system" fn(bufferid: RIO_BUFFERID) -> ()>;
-pub type LPFN_RIONOTIFY = ::core::option::Option<unsafe extern "system" fn(cq: RIO_CQ) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPFN_RIORECEIVE = ::core::option::Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, flags: u32, requestcontext: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
-pub type LPFN_RIORECEIVEEX = ::core::option::Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, plocaladdress: *const RIO_BUF, premoteaddress: *const RIO_BUF, pcontrolcontext: *const RIO_BUF, pflags: *const RIO_BUF, flags: u32, requestcontext: *const ::core::ffi::c_void) -> i32>;
-pub type LPFN_RIOREGISTERBUFFER = ::core::option::Option<unsafe extern "system" fn(databuffer: ::windows_sys::core::PCSTR, datalength: u32) -> RIO_BUFFERID>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPFN_RIORESIZECOMPLETIONQUEUE = ::core::option::Option<unsafe extern "system" fn(cq: RIO_CQ, queuesize: u32) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPFN_RIORESIZEREQUESTQUEUE = ::core::option::Option<unsafe extern "system" fn(rq: RIO_RQ, maxoutstandingreceive: u32, maxoutstandingsend: u32) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPFN_RIOSEND = ::core::option::Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, flags: u32, requestcontext: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPFN_RIOSENDEX = ::core::option::Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, plocaladdress: *const RIO_BUF, premoteaddress: *const RIO_BUF, pcontrolcontext: *const RIO_BUF, pflags: *const RIO_BUF, flags: u32, requestcontext: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPFN_TRANSMITFILE = ::core::option::Option<unsafe extern "system" fn(hsocket: SOCKET, hfile: super::super::Foundation::HANDLE, nnumberofbytestowrite: u32, nnumberofbytespersend: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lptransmitbuffers: *const TRANSMIT_FILE_BUFFERS, dwreserved: u32) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPFN_TRANSMITPACKETS = ::core::option::Option<unsafe extern "system" fn(hsocket: SOCKET, lppacketarray: *const TRANSMIT_PACKETS_ELEMENT, nelementcount: u32, nsendsize: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwflags: u32) -> super::super::Foundation::BOOL>;
-pub type LPFN_WSAPOLL = ::core::option::Option<unsafe extern "system" fn(fdarray: *mut WSAPOLLFD, nfds: u32, timeout: i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPFN_WSARECVMSG = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpmsg: *mut WSAMSG, lpdwnumberofbytesrecvd: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPFN_WSASENDMSG = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpmsg: *const WSAMSG, dwflags: u32, lpnumberofbytessent: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPLOOKUPSERVICE_COMPLETION_ROUTINE = ::core::option::Option<unsafe extern "system" fn(dwerror: u32, dwbytes: u32, lpoverlapped: *const super::super::System::IO::OVERLAPPED) -> ()>;
-pub type LPNSPCLEANUP = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID) -> i32>;
-pub type LPNSPGETSERVICECLASSINFO = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpdwbufsize: *const u32, lpserviceclassinfo: *const WSASERVICECLASSINFOW) -> i32>;
-pub type LPNSPINSTALLSERVICECLASS = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpserviceclassinfo: *const WSASERVICECLASSINFOW) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPNSPIOCTL = ::core::option::Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE, dwcontrolcode: u32, lpvinbuffer: *const ::core::ffi::c_void, cbinbuffer: u32, lpvoutbuffer: *mut ::core::ffi::c_void, cboutbuffer: u32, lpcbbytesreturned: *mut u32, lpcompletion: *const WSACOMPLETION, lpthreadid: *const WSATHREADID) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-pub type LPNSPLOOKUPSERVICEBEGIN = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpqsrestrictions: *const WSAQUERYSETW, lpserviceclassinfo: *const WSASERVICECLASSINFOW, dwcontrolflags: u32, lphlookup: *mut super::super::Foundation::HANDLE) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPNSPLOOKUPSERVICEEND = ::core::option::Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-pub type LPNSPLOOKUPSERVICENEXT = ::core::option::Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE, dwcontrolflags: u32, lpdwbufferlength: *mut u32, lpqsresults: *mut WSAQUERYSETW) -> i32>;
-pub type LPNSPREMOVESERVICECLASS = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpserviceclassid: *const ::windows_sys::core::GUID) -> i32>;
-#[doc = "Required features: `\"Win32_System_Com\"`"]
+pub type LPBLOCKINGCALLBACK = Option<unsafe extern "system" fn(dwcontext: usize) -> super::super::Foundation::BOOL>;
+pub type LPCONDITIONPROC = Option<unsafe extern "system" fn(lpcallerid: *mut WSABUF, lpcallerdata: *mut WSABUF, lpsqos: *mut QOS, lpgqos: *mut QOS, lpcalleeid: *mut WSABUF, lpcalleedata: *mut WSABUF, g: *mut u32, dwcallbackdata: usize) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPFN_ACCEPTEX = Option<unsafe extern "system" fn(slistensocket: SOCKET, sacceptsocket: SOCKET, lpoutputbuffer: *mut core::ffi::c_void, dwreceivedatalength: u32, dwlocaladdresslength: u32, dwremoteaddresslength: u32, lpdwbytesreceived: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPFN_CONNECTEX = Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lpsendbuffer: *const core::ffi::c_void, dwsenddatalength: u32, lpdwbytessent: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED) -> super::super::Foundation::BOOL>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPFN_DISCONNECTEX = Option<unsafe extern "system" fn(s: SOCKET, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwflags: u32, dwreserved: u32) -> super::super::Foundation::BOOL>;
+pub type LPFN_GETACCEPTEXSOCKADDRS = Option<unsafe extern "system" fn(lpoutputbuffer: *const core::ffi::c_void, dwreceivedatalength: u32, dwlocaladdresslength: u32, dwremoteaddresslength: u32, localsockaddr: *mut *mut SOCKADDR, localsockaddrlength: *mut i32, remotesockaddr: *mut *mut SOCKADDR, remotesockaddrlength: *mut i32)>;
+pub type LPFN_NSPAPI = Option<unsafe extern "system" fn() -> u32>;
+pub type LPFN_RIOCLOSECOMPLETIONQUEUE = Option<unsafe extern "system" fn(cq: RIO_CQ)>;
+pub type LPFN_RIOCREATECOMPLETIONQUEUE = Option<unsafe extern "system" fn(queuesize: u32, notificationcompletion: *const RIO_NOTIFICATION_COMPLETION) -> RIO_CQ>;
+pub type LPFN_RIOCREATEREQUESTQUEUE = Option<unsafe extern "system" fn(socket: SOCKET, maxoutstandingreceive: u32, maxreceivedatabuffers: u32, maxoutstandingsend: u32, maxsenddatabuffers: u32, receivecq: RIO_CQ, sendcq: RIO_CQ, socketcontext: *const core::ffi::c_void) -> RIO_RQ>;
+pub type LPFN_RIODEQUEUECOMPLETION = Option<unsafe extern "system" fn(cq: RIO_CQ, array: *mut RIORESULT, arraysize: u32) -> u32>;
+pub type LPFN_RIODEREGISTERBUFFER = Option<unsafe extern "system" fn(bufferid: RIO_BUFFERID)>;
+pub type LPFN_RIONOTIFY = Option<unsafe extern "system" fn(cq: RIO_CQ) -> i32>;
+pub type LPFN_RIORECEIVE = Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, flags: u32, requestcontext: *const core::ffi::c_void) -> super::super::Foundation::BOOL>;
+pub type LPFN_RIORECEIVEEX = Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, plocaladdress: *const RIO_BUF, premoteaddress: *const RIO_BUF, pcontrolcontext: *const RIO_BUF, pflags: *const RIO_BUF, flags: u32, requestcontext: *const core::ffi::c_void) -> i32>;
+pub type LPFN_RIOREGISTERBUFFER = Option<unsafe extern "system" fn(databuffer: windows_sys::core::PCSTR, datalength: u32) -> RIO_BUFFERID>;
+pub type LPFN_RIORESIZECOMPLETIONQUEUE = Option<unsafe extern "system" fn(cq: RIO_CQ, queuesize: u32) -> super::super::Foundation::BOOL>;
+pub type LPFN_RIORESIZEREQUESTQUEUE = Option<unsafe extern "system" fn(rq: RIO_RQ, maxoutstandingreceive: u32, maxoutstandingsend: u32) -> super::super::Foundation::BOOL>;
+pub type LPFN_RIOSEND = Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, flags: u32, requestcontext: *const core::ffi::c_void) -> super::super::Foundation::BOOL>;
+pub type LPFN_RIOSENDEX = Option<unsafe extern "system" fn(socketqueue: RIO_RQ, pdata: *const RIO_BUF, databuffercount: u32, plocaladdress: *const RIO_BUF, premoteaddress: *const RIO_BUF, pcontrolcontext: *const RIO_BUF, pflags: *const RIO_BUF, flags: u32, requestcontext: *const core::ffi::c_void) -> super::super::Foundation::BOOL>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPFN_TRANSMITFILE = Option<unsafe extern "system" fn(hsocket: SOCKET, hfile: super::super::Foundation::HANDLE, nnumberofbytestowrite: u32, nnumberofbytespersend: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lptransmitbuffers: *const TRANSMIT_FILE_BUFFERS, dwreserved: u32) -> super::super::Foundation::BOOL>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPFN_TRANSMITPACKETS = Option<unsafe extern "system" fn(hsocket: SOCKET, lppacketarray: *const TRANSMIT_PACKETS_ELEMENT, nelementcount: u32, nsendsize: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwflags: u32) -> super::super::Foundation::BOOL>;
+pub type LPFN_WSAPOLL = Option<unsafe extern "system" fn(fdarray: *mut WSAPOLLFD, nfds: u32, timeout: i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPFN_WSARECVMSG = Option<unsafe extern "system" fn(s: SOCKET, lpmsg: *mut WSAMSG, lpdwnumberofbytesrecvd: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPFN_WSASENDMSG = Option<unsafe extern "system" fn(s: SOCKET, lpmsg: *const WSAMSG, dwflags: u32, lpnumberofbytessent: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPLOOKUPSERVICE_COMPLETION_ROUTINE = Option<unsafe extern "system" fn(dwerror: u32, dwbytes: u32, lpoverlapped: *const super::super::System::IO::OVERLAPPED)>;
+pub type LPNSPCLEANUP = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID) -> i32>;
+pub type LPNSPGETSERVICECLASSINFO = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpdwbufsize: *const u32, lpserviceclassinfo: *const WSASERVICECLASSINFOW) -> i32>;
+pub type LPNSPINSTALLSERVICECLASS = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpserviceclassinfo: *const WSASERVICECLASSINFOW) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPNSPIOCTL = Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE, dwcontrolcode: u32, lpvinbuffer: *const core::ffi::c_void, cbinbuffer: u32, lpvoutbuffer: *mut core::ffi::c_void, cboutbuffer: u32, lpcbbytesreturned: *mut u32, lpcompletion: *const WSACOMPLETION, lpthreadid: *const WSATHREADID) -> i32>;
 #[cfg(feature = "Win32_System_Com")]
-pub type LPNSPSETSERVICE = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpserviceclassinfo: *const WSASERVICECLASSINFOW, lpqsreginfo: *const WSAQUERYSETW, essoperation: WSAESETSERVICEOP, dwcontrolflags: u32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_IO"))]
-pub type LPNSPSTARTUP = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpnsproutines: *mut NSP_ROUTINE) -> i32>;
-pub type LPNSPV2CLEANUP = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, pvclientsessionarg: *const ::core::ffi::c_void) -> i32>;
-pub type LPNSPV2CLIENTSESSIONRUNDOWN = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, pvclientsessionarg: *const ::core::ffi::c_void) -> ()>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-pub type LPNSPV2LOOKUPSERVICEBEGIN = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpqsrestrictions: *const WSAQUERYSET2W, dwcontrolflags: u32, lpvclientsessionarg: *const ::core::ffi::c_void, lphlookup: *mut super::super::Foundation::HANDLE) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPNSPV2LOOKUPSERVICEEND = ::core::option::Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-pub type LPNSPV2LOOKUPSERVICENEXTEX = ::core::option::Option<unsafe extern "system" fn(hasynccall: super::super::Foundation::HANDLE, hlookup: super::super::Foundation::HANDLE, dwcontrolflags: u32, lpdwbufferlength: *const u32, lpqsresults: *mut WSAQUERYSET2W) -> ()>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
-pub type LPNSPV2SETSERVICEEX = ::core::option::Option<unsafe extern "system" fn(hasynccall: super::super::Foundation::HANDLE, lpproviderid: *const ::windows_sys::core::GUID, lpqsreginfo: *const WSAQUERYSET2W, essoperation: WSAESETSERVICEOP, dwcontrolflags: u32, lpvclientsessionarg: *const ::core::ffi::c_void) -> ()>;
-pub type LPNSPV2STARTUP = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, ppvclientsessionarg: *mut *mut ::core::ffi::c_void) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPSERVICE_CALLBACK_PROC = ::core::option::Option<unsafe extern "system" fn(lparam: super::super::Foundation::LPARAM, hasynctaskhandle: super::super::Foundation::HANDLE) -> ()>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUCLOSEEVENT = ::core::option::Option<unsafe extern "system" fn(hevent: super::super::Foundation::HANDLE, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
-pub type LPWPUCLOSESOCKETHANDLE = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUCLOSETHREAD = ::core::option::Option<unsafe extern "system" fn(lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWPUCOMPLETEOVERLAPPEDREQUEST = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwerror: u32, cbtransferred: u32, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUCREATEEVENT = ::core::option::Option<unsafe extern "system" fn(lperrno: *mut i32) -> super::super::Foundation::HANDLE>;
-pub type LPWPUCREATESOCKETHANDLE = ::core::option::Option<unsafe extern "system" fn(dwcatalogentryid: u32, dwcontext: usize, lperrno: *mut i32) -> SOCKET>;
-pub type LPWPUFDISSET = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, fdset: *const FD_SET) -> i32>;
-pub type LPWPUGETPROVIDERPATH = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpszproviderdllpath: ::windows_sys::core::PWSTR, lpproviderdllpathlen: *mut i32, lperrno: *mut i32) -> i32>;
-pub type LPWPUMODIFYIFSHANDLE = ::core::option::Option<unsafe extern "system" fn(dwcatalogentryid: u32, proposedhandle: SOCKET, lperrno: *mut i32) -> SOCKET>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUOPENCURRENTTHREAD = ::core::option::Option<unsafe extern "system" fn(lpthreadid: *mut WSATHREADID, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUPOSTMESSAGE = ::core::option::Option<unsafe extern "system" fn(hwnd: super::super::Foundation::HWND, msg: u32, wparam: super::super::Foundation::WPARAM, lparam: super::super::Foundation::LPARAM) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUQUERYBLOCKINGCALLBACK = ::core::option::Option<unsafe extern "system" fn(dwcatalogentryid: u32, lplpfncallback: *mut LPBLOCKINGCALLBACK, lpdwcontext: *mut usize, lperrno: *mut i32) -> i32>;
-pub type LPWPUQUERYSOCKETHANDLECONTEXT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpcontext: *mut usize, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUQUEUEAPC = ::core::option::Option<unsafe extern "system" fn(lpthreadid: *const WSATHREADID, lpfnuserapc: LPWSAUSERAPC, dwcontext: usize, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPURESETEVENT = ::core::option::Option<unsafe extern "system" fn(hevent: super::super::Foundation::HANDLE, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWPUSETEVENT = ::core::option::Option<unsafe extern "system" fn(hevent: super::super::Foundation::HANDLE, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSAOVERLAPPED_COMPLETION_ROUTINE = ::core::option::Option<unsafe extern "system" fn(dwerror: u32, cbtransferred: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwflags: u32) -> ()>;
-pub type LPWSAUSERAPC = ::core::option::Option<unsafe extern "system" fn(dwcontext: usize) -> ()>;
-pub type LPWSCDEINSTALLPROVIDER = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWSCENABLENSPROVIDER = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, fenable: super::super::Foundation::BOOL) -> i32>;
-pub type LPWSCENUMPROTOCOLS = ::core::option::Option<unsafe extern "system" fn(lpiprotocols: *const i32, lpprotocolbuffer: *mut WSAPROTOCOL_INFOW, lpdwbufferlength: *mut u32, lperrno: *mut i32) -> i32>;
-pub type LPWSCGETPROVIDERPATH = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpszproviderdllpath: ::windows_sys::core::PWSTR, lpproviderdllpathlen: *mut i32, lperrno: *mut i32) -> i32>;
-pub type LPWSCINSTALLNAMESPACE = ::core::option::Option<unsafe extern "system" fn(lpszidentifier: ::windows_sys::core::PCWSTR, lpszpathname: ::windows_sys::core::PCWSTR, dwnamespace: u32, dwversion: u32, lpproviderid: *const ::windows_sys::core::GUID) -> i32>;
-pub type LPWSCINSTALLPROVIDER = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpszproviderdllpath: ::windows_sys::core::PCWSTR, lpprotocolinfolist: *const WSAPROTOCOL_INFOW, dwnumberofentries: u32, lperrno: *mut i32) -> i32>;
-pub type LPWSCUNINSTALLNAMESPACE = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID) -> i32>;
-pub type LPWSCUPDATEPROVIDER = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *const ::windows_sys::core::GUID, lpszproviderdllpath: ::windows_sys::core::PCWSTR, lpprotocolinfolist: *const WSAPROTOCOL_INFOW, dwnumberofentries: u32, lperrno: *mut i32) -> i32>;
-pub type LPWSCWRITENAMESPACEORDER = ::core::option::Option<unsafe extern "system" fn(lpproviderid: *mut ::windows_sys::core::GUID, dwnumberofentries: u32) -> i32>;
-pub type LPWSCWRITEPROVIDERORDER = ::core::option::Option<unsafe extern "system" fn(lpwdcatalogentryid: *mut u32, dwnumberofentries: u32) -> i32>;
-pub type LPWSPACCEPT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, addr: *mut SOCKADDR, addrlen: *mut i32, lpfncondition: LPCONDITIONPROC, dwcallbackdata: usize, lperrno: *mut i32) -> SOCKET>;
-pub type LPWSPADDRESSTOSTRING = ::core::option::Option<unsafe extern "system" fn(lpsaaddress: *const SOCKADDR, dwaddresslength: u32, lpprotocolinfo: *const WSAPROTOCOL_INFOW, lpszaddressstring: ::windows_sys::core::PWSTR, lpdwaddressstringlength: *mut u32, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWSPASYNCSELECT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, hwnd: super::super::Foundation::HWND, wmsg: u32, levent: i32, lperrno: *mut i32) -> i32>;
-pub type LPWSPBIND = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lperrno: *mut i32) -> i32>;
-pub type LPWSPCANCELBLOCKINGCALL = ::core::option::Option<unsafe extern "system" fn(lperrno: *mut i32) -> i32>;
-pub type LPWSPCLEANUP = ::core::option::Option<unsafe extern "system" fn(lperrno: *mut i32) -> i32>;
-pub type LPWSPCLOSESOCKET = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lperrno: *mut i32) -> i32>;
-pub type LPWSPCONNECT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lpcallerdata: *const WSABUF, lpcalleedata: *mut WSABUF, lpsqos: *const QOS, lpgqos: *const QOS, lperrno: *mut i32) -> i32>;
-pub type LPWSPDUPLICATESOCKET = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, dwprocessid: u32, lpprotocolinfo: *mut WSAPROTOCOL_INFOW, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWSPENUMNETWORKEVENTS = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, heventobject: super::super::Foundation::HANDLE, lpnetworkevents: *mut WSANETWORKEVENTS, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWSPEVENTSELECT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, heventobject: super::super::Foundation::HANDLE, lnetworkevents: i32, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSPGETOVERLAPPEDRESULT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpoverlapped: *const super::super::System::IO::OVERLAPPED, lpcbtransfer: *mut u32, fwait: super::super::Foundation::BOOL, lpdwflags: *mut u32, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
-pub type LPWSPGETPEERNAME = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, name: *mut SOCKADDR, namelen: *mut i32, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type LPWSPGETQOSBYNAME = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpqosname: *const WSABUF, lpqos: *mut QOS, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
-pub type LPWSPGETSOCKNAME = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, name: *mut SOCKADDR, namelen: *mut i32, lperrno: *mut i32) -> i32>;
-pub type LPWSPGETSOCKOPT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, level: i32, optname: i32, optval: ::windows_sys::core::PSTR, optlen: *mut i32, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSPIOCTL = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, dwiocontrolcode: u32, lpvinbuffer: *const ::core::ffi::c_void, cbinbuffer: u32, lpvoutbuffer: *mut ::core::ffi::c_void, cboutbuffer: u32, lpcbbytesreturned: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
-pub type LPWSPJOINLEAF = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lpcallerdata: *const WSABUF, lpcalleedata: *mut WSABUF, lpsqos: *const QOS, lpgqos: *const QOS, dwflags: u32, lperrno: *mut i32) -> SOCKET>;
-pub type LPWSPLISTEN = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, backlog: i32, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSPRECV = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytesrecvd: *mut u32, lpflags: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *const i32) -> i32>;
-pub type LPWSPRECVDISCONNECT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpinbounddisconnectdata: *const WSABUF, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSPRECVFROM = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytesrecvd: *mut u32, lpflags: *mut u32, lpfrom: *mut SOCKADDR, lpfromlen: *mut i32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
-pub type LPWSPSELECT = ::core::option::Option<unsafe extern "system" fn(nfds: i32, readfds: *mut FD_SET, writefds: *mut FD_SET, exceptfds: *mut FD_SET, timeout: *const TIMEVAL, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSPSEND = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytessent: *mut u32, dwflags: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
-pub type LPWSPSENDDISCONNECT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpoutbounddisconnectdata: *const WSABUF, lperrno: *mut i32) -> i32>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSPSENDTO = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytessent: *mut u32, dwflags: u32, lpto: *const SOCKADDR, itolen: i32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
-pub type LPWSPSETSOCKOPT = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, level: i32, optname: i32, optval: ::windows_sys::core::PCSTR, optlen: i32, lperrno: *mut i32) -> i32>;
-pub type LPWSPSHUTDOWN = ::core::option::Option<unsafe extern "system" fn(s: SOCKET, how: i32, lperrno: *mut i32) -> i32>;
-pub type LPWSPSOCKET = ::core::option::Option<unsafe extern "system" fn(af: i32, r#type: i32, protocol: i32, lpprotocolinfo: *const WSAPROTOCOL_INFOW, g: u32, dwflags: u32, lperrno: *mut i32) -> SOCKET>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO"))]
-pub type LPWSPSTARTUP = ::core::option::Option<unsafe extern "system" fn(wversionrequested: u16, lpwspdata: *const WSPDATA, lpprotocolinfo: *const WSAPROTOCOL_INFOW, upcalltable: WSPUPCALLTABLE, lpproctable: *mut WSPPROC_TABLE) -> i32>;
-pub type LPWSPSTRINGTOADDRESS = ::core::option::Option<unsafe extern "system" fn(addressstring: ::windows_sys::core::PCWSTR, addressfamily: i32, lpprotocolinfo: *const WSAPROTOCOL_INFOW, lpaddress: *mut SOCKADDR, lpaddresslength: *mut i32, lperrno: *mut i32) -> i32>;
+pub type LPNSPLOOKUPSERVICEBEGIN = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpqsrestrictions: *const WSAQUERYSETW, lpserviceclassinfo: *const WSASERVICECLASSINFOW, dwcontrolflags: u32, lphlookup: *mut super::super::Foundation::HANDLE) -> i32>;
+pub type LPNSPLOOKUPSERVICEEND = Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE) -> i32>;
+#[cfg(feature = "Win32_System_Com")]
+pub type LPNSPLOOKUPSERVICENEXT = Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE, dwcontrolflags: u32, lpdwbufferlength: *mut u32, lpqsresults: *mut WSAQUERYSETW) -> i32>;
+pub type LPNSPREMOVESERVICECLASS = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpserviceclassid: *const windows_sys::core::GUID) -> i32>;
+#[cfg(feature = "Win32_System_Com")]
+pub type LPNSPSETSERVICE = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpserviceclassinfo: *const WSASERVICECLASSINFOW, lpqsreginfo: *const WSAQUERYSETW, essoperation: WSAESETSERVICEOP, dwcontrolflags: u32) -> i32>;
+#[cfg(all(feature = "Win32_System_Com", feature = "Win32_System_IO"))]
+pub type LPNSPSTARTUP = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpnsproutines: *mut NSP_ROUTINE) -> i32>;
+pub type LPNSPV2CLEANUP = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, pvclientsessionarg: *const core::ffi::c_void) -> i32>;
+pub type LPNSPV2CLIENTSESSIONRUNDOWN = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, pvclientsessionarg: *const core::ffi::c_void)>;
+#[cfg(feature = "Win32_System_Com")]
+pub type LPNSPV2LOOKUPSERVICEBEGIN = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpqsrestrictions: *const WSAQUERYSET2W, dwcontrolflags: u32, lpvclientsessionarg: *const core::ffi::c_void, lphlookup: *mut super::super::Foundation::HANDLE) -> i32>;
+pub type LPNSPV2LOOKUPSERVICEEND = Option<unsafe extern "system" fn(hlookup: super::super::Foundation::HANDLE) -> i32>;
+#[cfg(feature = "Win32_System_Com")]
+pub type LPNSPV2LOOKUPSERVICENEXTEX = Option<unsafe extern "system" fn(hasynccall: super::super::Foundation::HANDLE, hlookup: super::super::Foundation::HANDLE, dwcontrolflags: u32, lpdwbufferlength: *const u32, lpqsresults: *mut WSAQUERYSET2W)>;
+#[cfg(feature = "Win32_System_Com")]
+pub type LPNSPV2SETSERVICEEX = Option<unsafe extern "system" fn(hasynccall: super::super::Foundation::HANDLE, lpproviderid: *const windows_sys::core::GUID, lpqsreginfo: *const WSAQUERYSET2W, essoperation: WSAESETSERVICEOP, dwcontrolflags: u32, lpvclientsessionarg: *const core::ffi::c_void)>;
+pub type LPNSPV2STARTUP = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, ppvclientsessionarg: *mut *mut core::ffi::c_void) -> i32>;
+pub type LPSERVICE_CALLBACK_PROC = Option<unsafe extern "system" fn(lparam: super::super::Foundation::LPARAM, hasynctaskhandle: super::super::Foundation::HANDLE)>;
+pub type LPWPUCLOSEEVENT = Option<unsafe extern "system" fn(hevent: WSAEVENT, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
+pub type LPWPUCLOSESOCKETHANDLE = Option<unsafe extern "system" fn(s: SOCKET, lperrno: *mut i32) -> i32>;
+pub type LPWPUCLOSETHREAD = Option<unsafe extern "system" fn(lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWPUCOMPLETEOVERLAPPEDREQUEST = Option<unsafe extern "system" fn(s: SOCKET, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwerror: u32, cbtransferred: u32, lperrno: *mut i32) -> i32>;
+pub type LPWPUCREATEEVENT = Option<unsafe extern "system" fn(lperrno: *mut i32) -> WSAEVENT>;
+pub type LPWPUCREATESOCKETHANDLE = Option<unsafe extern "system" fn(dwcatalogentryid: u32, dwcontext: usize, lperrno: *mut i32) -> SOCKET>;
+pub type LPWPUFDISSET = Option<unsafe extern "system" fn(s: SOCKET, fdset: *const FD_SET) -> i32>;
+pub type LPWPUGETPROVIDERPATH = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpszproviderdllpath: windows_sys::core::PWSTR, lpproviderdllpathlen: *mut i32, lperrno: *mut i32) -> i32>;
+pub type LPWPUMODIFYIFSHANDLE = Option<unsafe extern "system" fn(dwcatalogentryid: u32, proposedhandle: SOCKET, lperrno: *mut i32) -> SOCKET>;
+pub type LPWPUOPENCURRENTTHREAD = Option<unsafe extern "system" fn(lpthreadid: *mut WSATHREADID, lperrno: *mut i32) -> i32>;
+pub type LPWPUPOSTMESSAGE = Option<unsafe extern "system" fn(hwnd: super::super::Foundation::HWND, msg: u32, wparam: super::super::Foundation::WPARAM, lparam: super::super::Foundation::LPARAM) -> super::super::Foundation::BOOL>;
+pub type LPWPUQUERYBLOCKINGCALLBACK = Option<unsafe extern "system" fn(dwcatalogentryid: u32, lplpfncallback: *mut LPBLOCKINGCALLBACK, lpdwcontext: *mut usize, lperrno: *mut i32) -> i32>;
+pub type LPWPUQUERYSOCKETHANDLECONTEXT = Option<unsafe extern "system" fn(s: SOCKET, lpcontext: *mut usize, lperrno: *mut i32) -> i32>;
+pub type LPWPUQUEUEAPC = Option<unsafe extern "system" fn(lpthreadid: *const WSATHREADID, lpfnuserapc: LPWSAUSERAPC, dwcontext: usize, lperrno: *mut i32) -> i32>;
+pub type LPWPURESETEVENT = Option<unsafe extern "system" fn(hevent: WSAEVENT, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
+pub type LPWPUSETEVENT = Option<unsafe extern "system" fn(hevent: WSAEVENT, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSAOVERLAPPED_COMPLETION_ROUTINE = Option<unsafe extern "system" fn(dwerror: u32, cbtransferred: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, dwflags: u32)>;
+pub type LPWSAUSERAPC = Option<unsafe extern "system" fn(dwcontext: usize)>;
+pub type LPWSCDEINSTALLPROVIDER = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lperrno: *mut i32) -> i32>;
+pub type LPWSCENABLENSPROVIDER = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, fenable: super::super::Foundation::BOOL) -> i32>;
+pub type LPWSCENUMPROTOCOLS = Option<unsafe extern "system" fn(lpiprotocols: *const i32, lpprotocolbuffer: *mut WSAPROTOCOL_INFOW, lpdwbufferlength: *mut u32, lperrno: *mut i32) -> i32>;
+pub type LPWSCGETPROVIDERPATH = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpszproviderdllpath: windows_sys::core::PWSTR, lpproviderdllpathlen: *mut i32, lperrno: *mut i32) -> i32>;
+pub type LPWSCINSTALLNAMESPACE = Option<unsafe extern "system" fn(lpszidentifier: windows_sys::core::PCWSTR, lpszpathname: windows_sys::core::PCWSTR, dwnamespace: u32, dwversion: u32, lpproviderid: *const windows_sys::core::GUID) -> i32>;
+pub type LPWSCINSTALLPROVIDER = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpszproviderdllpath: windows_sys::core::PCWSTR, lpprotocolinfolist: *const WSAPROTOCOL_INFOW, dwnumberofentries: u32, lperrno: *mut i32) -> i32>;
+pub type LPWSCUNINSTALLNAMESPACE = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID) -> i32>;
+pub type LPWSCUPDATEPROVIDER = Option<unsafe extern "system" fn(lpproviderid: *const windows_sys::core::GUID, lpszproviderdllpath: windows_sys::core::PCWSTR, lpprotocolinfolist: *const WSAPROTOCOL_INFOW, dwnumberofentries: u32, lperrno: *mut i32) -> i32>;
+pub type LPWSCWRITENAMESPACEORDER = Option<unsafe extern "system" fn(lpproviderid: *mut windows_sys::core::GUID, dwnumberofentries: u32) -> i32>;
+pub type LPWSCWRITEPROVIDERORDER = Option<unsafe extern "system" fn(lpwdcatalogentryid: *mut u32, dwnumberofentries: u32) -> i32>;
+pub type LPWSPACCEPT = Option<unsafe extern "system" fn(s: SOCKET, addr: *mut SOCKADDR, addrlen: *mut i32, lpfncondition: LPCONDITIONPROC, dwcallbackdata: usize, lperrno: *mut i32) -> SOCKET>;
+pub type LPWSPADDRESSTOSTRING = Option<unsafe extern "system" fn(lpsaaddress: *const SOCKADDR, dwaddresslength: u32, lpprotocolinfo: *const WSAPROTOCOL_INFOW, lpszaddressstring: windows_sys::core::PWSTR, lpdwaddressstringlength: *mut u32, lperrno: *mut i32) -> i32>;
+pub type LPWSPASYNCSELECT = Option<unsafe extern "system" fn(s: SOCKET, hwnd: super::super::Foundation::HWND, wmsg: u32, levent: i32, lperrno: *mut i32) -> i32>;
+pub type LPWSPBIND = Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lperrno: *mut i32) -> i32>;
+pub type LPWSPCANCELBLOCKINGCALL = Option<unsafe extern "system" fn(lperrno: *mut i32) -> i32>;
+pub type LPWSPCLEANUP = Option<unsafe extern "system" fn(lperrno: *mut i32) -> i32>;
+pub type LPWSPCLOSESOCKET = Option<unsafe extern "system" fn(s: SOCKET, lperrno: *mut i32) -> i32>;
+pub type LPWSPCONNECT = Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lpcallerdata: *const WSABUF, lpcalleedata: *mut WSABUF, lpsqos: *const QOS, lpgqos: *const QOS, lperrno: *mut i32) -> i32>;
+pub type LPWSPDUPLICATESOCKET = Option<unsafe extern "system" fn(s: SOCKET, dwprocessid: u32, lpprotocolinfo: *mut WSAPROTOCOL_INFOW, lperrno: *mut i32) -> i32>;
+pub type LPWSPENUMNETWORKEVENTS = Option<unsafe extern "system" fn(s: SOCKET, heventobject: super::super::Foundation::HANDLE, lpnetworkevents: *mut WSANETWORKEVENTS, lperrno: *mut i32) -> i32>;
+pub type LPWSPEVENTSELECT = Option<unsafe extern "system" fn(s: SOCKET, heventobject: WSAEVENT, lnetworkevents: i32, lperrno: *mut i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSPGETOVERLAPPEDRESULT = Option<unsafe extern "system" fn(s: SOCKET, lpoverlapped: *const super::super::System::IO::OVERLAPPED, lpcbtransfer: *mut u32, fwait: super::super::Foundation::BOOL, lpdwflags: *mut u32, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
+pub type LPWSPGETPEERNAME = Option<unsafe extern "system" fn(s: SOCKET, name: *mut SOCKADDR, namelen: *mut i32, lperrno: *mut i32) -> i32>;
+pub type LPWSPGETQOSBYNAME = Option<unsafe extern "system" fn(s: SOCKET, lpqosname: *const WSABUF, lpqos: *mut QOS, lperrno: *mut i32) -> super::super::Foundation::BOOL>;
+pub type LPWSPGETSOCKNAME = Option<unsafe extern "system" fn(s: SOCKET, name: *mut SOCKADDR, namelen: *mut i32, lperrno: *mut i32) -> i32>;
+pub type LPWSPGETSOCKOPT = Option<unsafe extern "system" fn(s: SOCKET, level: i32, optname: i32, optval: windows_sys::core::PSTR, optlen: *mut i32, lperrno: *mut i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSPIOCTL = Option<unsafe extern "system" fn(s: SOCKET, dwiocontrolcode: u32, lpvinbuffer: *const core::ffi::c_void, cbinbuffer: u32, lpvoutbuffer: *mut core::ffi::c_void, cboutbuffer: u32, lpcbbytesreturned: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
+pub type LPWSPJOINLEAF = Option<unsafe extern "system" fn(s: SOCKET, name: *const SOCKADDR, namelen: i32, lpcallerdata: *const WSABUF, lpcalleedata: *mut WSABUF, lpsqos: *const QOS, lpgqos: *const QOS, dwflags: u32, lperrno: *mut i32) -> SOCKET>;
+pub type LPWSPLISTEN = Option<unsafe extern "system" fn(s: SOCKET, backlog: i32, lperrno: *mut i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSPRECV = Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytesrecvd: *mut u32, lpflags: *mut u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *const i32) -> i32>;
+pub type LPWSPRECVDISCONNECT = Option<unsafe extern "system" fn(s: SOCKET, lpinbounddisconnectdata: *const WSABUF, lperrno: *mut i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSPRECVFROM = Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytesrecvd: *mut u32, lpflags: *mut u32, lpfrom: *mut SOCKADDR, lpfromlen: *mut i32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
+pub type LPWSPSELECT = Option<unsafe extern "system" fn(nfds: i32, readfds: *mut FD_SET, writefds: *mut FD_SET, exceptfds: *mut FD_SET, timeout: *const TIMEVAL, lperrno: *mut i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSPSEND = Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytessent: *mut u32, dwflags: u32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
+pub type LPWSPSENDDISCONNECT = Option<unsafe extern "system" fn(s: SOCKET, lpoutbounddisconnectdata: *const WSABUF, lperrno: *mut i32) -> i32>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSPSENDTO = Option<unsafe extern "system" fn(s: SOCKET, lpbuffers: *const WSABUF, dwbuffercount: u32, lpnumberofbytessent: *mut u32, dwflags: u32, lpto: *const SOCKADDR, itolen: i32, lpoverlapped: *mut super::super::System::IO::OVERLAPPED, lpcompletionroutine: LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpthreadid: *const WSATHREADID, lperrno: *mut i32) -> i32>;
+pub type LPWSPSETSOCKOPT = Option<unsafe extern "system" fn(s: SOCKET, level: i32, optname: i32, optval: windows_sys::core::PCSTR, optlen: i32, lperrno: *mut i32) -> i32>;
+pub type LPWSPSHUTDOWN = Option<unsafe extern "system" fn(s: SOCKET, how: i32, lperrno: *mut i32) -> i32>;
+pub type LPWSPSOCKET = Option<unsafe extern "system" fn(af: i32, r#type: i32, protocol: i32, lpprotocolinfo: *const WSAPROTOCOL_INFOW, g: u32, dwflags: u32, lperrno: *mut i32) -> SOCKET>;
+#[cfg(feature = "Win32_System_IO")]
+pub type LPWSPSTARTUP = Option<unsafe extern "system" fn(wversionrequested: u16, lpwspdata: *const WSPDATA, lpprotocolinfo: *const WSAPROTOCOL_INFOW, upcalltable: WSPUPCALLTABLE, lpproctable: *mut WSPPROC_TABLE) -> i32>;
+pub type LPWSPSTRINGTOADDRESS = Option<unsafe extern "system" fn(addressstring: windows_sys::core::PCWSTR, addressfamily: i32, lpprotocolinfo: *const WSAPROTOCOL_INFOW, lpaddress: *mut SOCKADDR, lpaddresslength: *mut i32, lperrno: *mut i32) -> i32>;

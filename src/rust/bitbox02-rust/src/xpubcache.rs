@@ -127,24 +127,22 @@ mod tests {
         #[derive(Clone)]
         struct MockXpub(Vec<u32>);
 
-        static mut CHILD_DERIVATIONS: u32 = 0;
-        static mut ROOT_DERIVATIONS: u32 = 0;
+        static CHILD_DERIVATIONS: bitbox02::testing::UnsafeSyncRefCell<u32> =
+            bitbox02::testing::UnsafeSyncRefCell::new(0);
+        static ROOT_DERIVATIONS: bitbox02::testing::UnsafeSyncRefCell<u32> =
+            bitbox02::testing::UnsafeSyncRefCell::new(0);
 
         impl Xpub for MockXpub {
             fn derive(&self, keypath: &[u32]) -> Result<Self, ()> {
                 let mut kp = Vec::new();
                 kp.extend_from_slice(&self.0);
                 kp.extend_from_slice(keypath);
-                unsafe {
-                    CHILD_DERIVATIONS += keypath.len() as u32;
-                }
+                *CHILD_DERIVATIONS.borrow_mut() += keypath.len() as u32;
                 Ok(MockXpub(kp))
             }
 
             fn from_keypath(keypath: &[u32]) -> Result<Self, ()> {
-                unsafe {
-                    ROOT_DERIVATIONS += 1;
-                }
+                *ROOT_DERIVATIONS.borrow_mut() += 1;
                 Ok(MockXpub(keypath.to_vec()))
             }
         }
@@ -154,18 +152,14 @@ mod tests {
         let mut cache = MockCache::new();
 
         assert_eq!(cache.get_xpub(&[]).unwrap().0.as_slice(), &[]);
-        unsafe {
-            assert_eq!(CHILD_DERIVATIONS, 0u32);
-            assert_eq!(ROOT_DERIVATIONS, 1u32);
-            ROOT_DERIVATIONS = 0;
-        }
+        assert_eq!(*CHILD_DERIVATIONS.borrow(), 0u32);
+        assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
+        *ROOT_DERIVATIONS.borrow_mut() = 0;
 
         assert_eq!(cache.get_xpub(&[1, 2, 3]).unwrap().0.as_slice(), &[1, 2, 3]);
-        unsafe {
-            assert_eq!(CHILD_DERIVATIONS, 0u32);
-            assert_eq!(ROOT_DERIVATIONS, 1u32);
-            ROOT_DERIVATIONS = 0;
-        }
+        assert_eq!(*CHILD_DERIVATIONS.borrow(), 0u32);
+        assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
+        *ROOT_DERIVATIONS.borrow_mut() = 0;
 
         // Cache some keypaths.
         cache.add_keypath(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED]);
@@ -179,15 +173,13 @@ mod tests {
                 .as_slice(),
             &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
         );
-        unsafe {
-            // Two child derivations:
-            // 1: m/84'/0'/0' -> m/84'/0'/0'/1
-            // 2: m/84'/0'/0'/1 -> m/84'/0'/0'/1/2
-            assert_eq!(CHILD_DERIVATIONS, 2u32);
-            assert_eq!(ROOT_DERIVATIONS, 1u32);
-            CHILD_DERIVATIONS = 0;
-            ROOT_DERIVATIONS = 0;
-        }
+        // Two child derivations:
+        // 1: m/84'/0'/0' -> m/84'/0'/0'/1
+        // 2: m/84'/0'/0'/1 -> m/84'/0'/0'/1/2
+        assert_eq!(*CHILD_DERIVATIONS.borrow(), 2u32);
+        *CHILD_DERIVATIONS.borrow_mut() = 0;
+        assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
+        *ROOT_DERIVATIONS.borrow_mut() = 0;
 
         // Same keypath again is a cache hit at m/84'/0'/0'/1 with one child derivation.
         assert_eq!(
@@ -198,11 +190,9 @@ mod tests {
                 .as_slice(),
             &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
         );
-        unsafe {
-            assert_eq!(CHILD_DERIVATIONS, 1u32);
-            assert_eq!(ROOT_DERIVATIONS, 0u32);
-            CHILD_DERIVATIONS = 0;
-        }
+        assert_eq!(*CHILD_DERIVATIONS.borrow(), 1u32);
+        *CHILD_DERIVATIONS.borrow_mut() = 0;
+        assert_eq!(*ROOT_DERIVATIONS.borrow(), 0u32);
 
         // m/84'/0'/0'/0/0 is a cache hit at m/84'/0'/0', which was cached because of the above we
         // call using m/84'/0'/0'/1/2.
@@ -214,10 +204,8 @@ mod tests {
                 .as_slice(),
             &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
         );
-        unsafe {
-            assert_eq!(CHILD_DERIVATIONS, 2u32);
-            assert_eq!(ROOT_DERIVATIONS, 0u32);
-        }
+        assert_eq!(*CHILD_DERIVATIONS.borrow(), 2u32);
+        assert_eq!(*ROOT_DERIVATIONS.borrow(), 0u32);
     }
 
     #[test]

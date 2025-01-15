@@ -99,3 +99,22 @@ pub fn mock_memory() {
         bitbox02_sys::bitbox02_smarteeprom_init();
     }
 }
+
+/// A wrapper that adds the Sync trait to RefCell. We can use this in testing as our unit tests run
+/// single-threaded.
+pub struct UnsafeSyncRefCell<T>(core::cell::RefCell<T>);
+impl<T> UnsafeSyncRefCell<T> {
+    pub const fn new(value: T) -> Self {
+        Self(core::cell::RefCell::new(value))
+    }
+}
+
+unsafe impl<T> Sync for UnsafeSyncRefCell<T> {}
+
+impl<T> core::ops::Deref for UnsafeSyncRefCell<T> {
+    type Target = core::cell::RefCell<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}

@@ -41,7 +41,7 @@ pub struct Survive<'a, T: 'a> {
     phantom: core::marker::PhantomData<&'a T>,
 }
 
-impl<'a, T> Survive<'a, T> {
+impl<T> Survive<'_, T> {
     pub fn new(data: T) -> Self {
         Survive {
             data,

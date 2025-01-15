@@ -1,30 +1,21 @@
-::windows_targets::link!("ndfapi.dll" "system" fn NdfCancelIncident(handle : *const ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfCloseIncident(handle : *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfCreateConnectivityIncident(handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfCreateDNSIncident(hostname : ::windows_sys::core::PCWSTR, querytype : u16, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCancelIncident(handle : *const core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCloseIncident(handle : *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateConnectivityIncident(handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateDNSIncident(hostname : windows_sys::core::PCWSTR, querytype : u16, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
 #[cfg(feature = "Win32_Networking_WinSock")]
-::windows_targets::link!("ndfapi.dll" "system" #[doc = "Required features: `\"Win32_Networking_WinSock\"`"] fn NdfCreateGroupingIncident(cloudname : ::windows_sys::core::PCWSTR, groupname : ::windows_sys::core::PCWSTR, identity : ::windows_sys::core::PCWSTR, invitation : ::windows_sys::core::PCWSTR, addresses : *const super::super::Networking::WinSock:: SOCKET_ADDRESS_LIST, appid : ::windows_sys::core::PCWSTR, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ndfapi.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn NdfCreateIncident(helperclassname : ::windows_sys::core::PCWSTR, celt : u32, attributes : *const HELPER_ATTRIBUTE, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfCreateNetConnectionIncident(handle : *mut *mut ::core::ffi::c_void, id : ::windows_sys::core::GUID) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ndfapi.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn NdfCreatePnrpIncident(cloudname : ::windows_sys::core::PCWSTR, peername : ::windows_sys::core::PCWSTR, diagnosepublish : super::super::Foundation:: BOOL, appid : ::windows_sys::core::PCWSTR, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfCreateSharingIncident(uncpath : ::windows_sys::core::PCWSTR, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfCreateWebIncident(url : ::windows_sys::core::PCWSTR, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ndfapi.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn NdfCreateWebIncidentEx(url : ::windows_sys::core::PCWSTR, usewinhttp : super::super::Foundation:: BOOL, modulename : ::windows_sys::core::PCWSTR, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateGroupingIncident(cloudname : windows_sys::core::PCWSTR, groupname : windows_sys::core::PCWSTR, identity : windows_sys::core::PCWSTR, invitation : windows_sys::core::PCWSTR, addresses : *const super::super::Networking::WinSock:: SOCKET_ADDRESS_LIST, appid : windows_sys::core::PCWSTR, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateIncident(helperclassname : windows_sys::core::PCWSTR, celt : u32, attributes : *const HELPER_ATTRIBUTE, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateNetConnectionIncident(handle : *mut *mut core::ffi::c_void, id : windows_sys::core::GUID) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreatePnrpIncident(cloudname : windows_sys::core::PCWSTR, peername : windows_sys::core::PCWSTR, diagnosepublish : super::super::Foundation:: BOOL, appid : windows_sys::core::PCWSTR, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateSharingIncident(uncpath : windows_sys::core::PCWSTR, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateWebIncident(url : windows_sys::core::PCWSTR, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateWebIncidentEx(url : windows_sys::core::PCWSTR, usewinhttp : super::super::Foundation:: BOOL, modulename : windows_sys::core::PCWSTR, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
 #[cfg(all(feature = "Win32_Networking_WinSock", feature = "Win32_Security"))]
-::windows_targets::link!("ndfapi.dll" "system" #[doc = "Required features: `\"Win32_Networking_WinSock\"`, `\"Win32_Security\"`"] fn NdfCreateWinSockIncident(sock : super::super::Networking::WinSock:: SOCKET, host : ::windows_sys::core::PCWSTR, port : u16, appid : ::windows_sys::core::PCWSTR, userid : *const super::super::Security:: SID, handle : *mut *mut ::core::ffi::c_void) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfDiagnoseIncident(handle : *const ::core::ffi::c_void, rootcausecount : *mut u32, rootcauses : *mut *mut RootCauseInfo, dwwait : u32, dwflags : u32) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("ndfapi.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn NdfExecuteDiagnosis(handle : *const ::core::ffi::c_void, hwnd : super::super::Foundation:: HWND) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfGetTraceFile(handle : *const ::core::ffi::c_void, tracefilelocation : *mut ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("ndfapi.dll" "system" fn NdfRepairIncident(handle : *const ::core::ffi::c_void, repairex : *const RepairInfoEx, dwwait : u32) -> ::windows_sys::core::HRESULT);
-pub type INetDiagExtensibleHelper = *mut ::core::ffi::c_void;
-pub type INetDiagHelper = *mut ::core::ffi::c_void;
-pub type INetDiagHelperEx = *mut ::core::ffi::c_void;
-pub type INetDiagHelperInfo = *mut ::core::ffi::c_void;
-pub type INetDiagHelperUtilFactory = *mut ::core::ffi::c_void;
+windows_targets::link!("ndfapi.dll" "system" fn NdfCreateWinSockIncident(sock : super::super::Networking::WinSock:: SOCKET, host : windows_sys::core::PCWSTR, port : u16, appid : windows_sys::core::PCWSTR, userid : *const super::super::Security:: SID, handle : *mut *mut core::ffi::c_void) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfDiagnoseIncident(handle : *const core::ffi::c_void, rootcausecount : *mut u32, rootcauses : *mut *mut RootCauseInfo, dwwait : u32, dwflags : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfExecuteDiagnosis(handle : *const core::ffi::c_void, hwnd : super::super::Foundation:: HWND) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfGetTraceFile(handle : *const core::ffi::c_void, tracefilelocation : *mut windows_sys::core::PCWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("ndfapi.dll" "system" fn NdfRepairIncident(handle : *const core::ffi::c_void, repairex : *const RepairInfoEx, dwwait : u32) -> windows_sys::core::HRESULT);
 pub const AT_BOOLEAN: ATTRIBUTE_TYPE = 1i32;
 pub const AT_GUID: ATTRIBUTE_TYPE = 11i32;
 pub const AT_INT16: ATTRIBUTE_TYPE = 4i32;
@@ -51,14 +42,14 @@ pub const DS_REJECTED: DIAGNOSIS_STATUS = 2i32;
 pub const NDF_ADD_CAPTURE_TRACE: u32 = 1u32;
 pub const NDF_APPLY_INCLUSION_LIST_FILTER: u32 = 2u32;
 pub const NDF_ERROR_START: u32 = 63744u32;
-pub const NDF_E_BAD_PARAM: ::windows_sys::core::HRESULT = -2146895611i32;
-pub const NDF_E_CANCELLED: ::windows_sys::core::HRESULT = -2146895614i32;
-pub const NDF_E_DISABLED: ::windows_sys::core::HRESULT = -2146895612i32;
-pub const NDF_E_LENGTH_EXCEEDED: ::windows_sys::core::HRESULT = -2146895616i32;
-pub const NDF_E_NOHELPERCLASS: ::windows_sys::core::HRESULT = -2146895615i32;
-pub const NDF_E_PROBLEM_PRESENT: ::windows_sys::core::HRESULT = -2146895608i32;
-pub const NDF_E_UNKNOWN: ::windows_sys::core::HRESULT = -2146895609i32;
-pub const NDF_E_VALIDATION: ::windows_sys::core::HRESULT = -2146895610i32;
+pub const NDF_E_BAD_PARAM: windows_sys::core::HRESULT = 0x8008F905_u32 as _;
+pub const NDF_E_CANCELLED: windows_sys::core::HRESULT = 0x8008F902_u32 as _;
+pub const NDF_E_DISABLED: windows_sys::core::HRESULT = 0x8008F904_u32 as _;
+pub const NDF_E_LENGTH_EXCEEDED: windows_sys::core::HRESULT = 0x8008F900_u32 as _;
+pub const NDF_E_NOHELPERCLASS: windows_sys::core::HRESULT = 0x8008F901_u32 as _;
+pub const NDF_E_PROBLEM_PRESENT: windows_sys::core::HRESULT = 0x8008F908_u32 as _;
+pub const NDF_E_UNKNOWN: windows_sys::core::HRESULT = 0x8008F907_u32 as _;
+pub const NDF_E_VALIDATION: windows_sys::core::HRESULT = 0x8008F906_u32 as _;
 pub const NDF_INBOUND_FLAG_EDGETRAVERSAL: u32 = 1u32;
 pub const NDF_INBOUND_FLAG_HEALTHCHECK: u32 = 2u32;
 pub const PT_DOWN_STREAM_HEALTH: PROBLEM_TYPE = 4i32;
@@ -108,46 +99,26 @@ pub type REPAIR_SCOPE = i32;
 pub type REPAIR_STATUS = i32;
 pub type UI_INFO_TYPE = i32;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DIAG_SOCKADDR {
     pub family: u16,
-    pub data: [u8; 126],
-}
-impl ::core::marker::Copy for DIAG_SOCKADDR {}
-impl ::core::clone::Clone for DIAG_SOCKADDR {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub data: [i8; 126],
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DiagnosticsInfo {
     pub cost: i32,
     pub flags: u32,
 }
-impl ::core::marker::Copy for DiagnosticsInfo {}
-impl ::core::clone::Clone for DiagnosticsInfo {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct HELPER_ATTRIBUTE {
-    pub pwszName: ::windows_sys::core::PWSTR,
+    pub pwszName: windows_sys::core::PWSTR,
     pub r#type: ATTRIBUTE_TYPE,
     pub Anonymous: HELPER_ATTRIBUTE_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for HELPER_ATTRIBUTE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for HELPER_ATTRIBUTE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub union HELPER_ATTRIBUTE_0 {
     pub Boolean: super::super::Foundation::BOOL,
     pub Char: u8,
@@ -158,94 +129,50 @@ pub union HELPER_ATTRIBUTE_0 {
     pub DWord: u32,
     pub Int64: i64,
     pub UInt64: u64,
-    pub PWStr: ::windows_sys::core::PWSTR,
-    pub Guid: ::windows_sys::core::GUID,
+    pub PWStr: windows_sys::core::PWSTR,
+    pub Guid: windows_sys::core::GUID,
     pub LifeTime: LIFE_TIME,
     pub Address: DIAG_SOCKADDR,
     pub OctetString: OCTET_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for HELPER_ATTRIBUTE_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for HELPER_ATTRIBUTE_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct HYPOTHESIS {
-    pub pwszClassName: ::windows_sys::core::PWSTR,
-    pub pwszDescription: ::windows_sys::core::PWSTR,
+    pub pwszClassName: windows_sys::core::PWSTR,
+    pub pwszDescription: windows_sys::core::PWSTR,
     pub celt: u32,
     pub rgAttributes: *mut HELPER_ATTRIBUTE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for HYPOTHESIS {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for HYPOTHESIS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct HelperAttributeInfo {
-    pub pwszName: ::windows_sys::core::PWSTR,
+    pub pwszName: windows_sys::core::PWSTR,
     pub r#type: ATTRIBUTE_TYPE,
 }
-impl ::core::marker::Copy for HelperAttributeInfo {}
-impl ::core::clone::Clone for HelperAttributeInfo {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct HypothesisResult {
     pub hypothesis: HYPOTHESIS,
     pub pathStatus: DIAGNOSIS_STATUS,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for HypothesisResult {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for HypothesisResult {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct LIFE_TIME {
     pub startTime: super::super::Foundation::FILETIME,
     pub endTime: super::super::Foundation::FILETIME,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for LIFE_TIME {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for LIFE_TIME {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct OCTET_STRING {
     pub dwLength: u32,
     pub lpValue: *mut u8,
 }
-impl ::core::marker::Copy for OCTET_STRING {}
-impl ::core::clone::Clone for OCTET_STRING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RepairInfo {
-    pub guid: ::windows_sys::core::GUID,
-    pub pwszClassName: ::windows_sys::core::PWSTR,
-    pub pwszDescription: ::windows_sys::core::PWSTR,
+    pub guid: windows_sys::core::GUID,
+    pub pwszClassName: windows_sys::core::PWSTR,
+    pub pwszDescription: windows_sys::core::PWSTR,
     pub sidType: u32,
     pub cost: i32,
     pub flags: u32,
@@ -254,73 +181,42 @@ pub struct RepairInfo {
     pub UiInfo: UiInfo,
     pub rootCauseIndex: i32,
 }
-impl ::core::marker::Copy for RepairInfo {}
-impl ::core::clone::Clone for RepairInfo {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RepairInfoEx {
     pub repair: RepairInfo,
     pub repairRank: u16,
 }
-impl ::core::marker::Copy for RepairInfoEx {}
-impl ::core::clone::Clone for RepairInfoEx {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RootCauseInfo {
-    pub pwszDescription: ::windows_sys::core::PWSTR,
-    pub rootCauseID: ::windows_sys::core::GUID,
+    pub pwszDescription: windows_sys::core::PWSTR,
+    pub rootCauseID: windows_sys::core::GUID,
     pub rootCauseFlags: u32,
-    pub networkInterfaceID: ::windows_sys::core::GUID,
+    pub networkInterfaceID: windows_sys::core::GUID,
     pub pRepairs: *mut RepairInfoEx,
     pub repairCount: u16,
 }
-impl ::core::marker::Copy for RootCauseInfo {}
-impl ::core::clone::Clone for RootCauseInfo {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ShellCommandInfo {
-    pub pwszOperation: ::windows_sys::core::PWSTR,
-    pub pwszFile: ::windows_sys::core::PWSTR,
-    pub pwszParameters: ::windows_sys::core::PWSTR,
-    pub pwszDirectory: ::windows_sys::core::PWSTR,
+    pub pwszOperation: windows_sys::core::PWSTR,
+    pub pwszFile: windows_sys::core::PWSTR,
+    pub pwszParameters: windows_sys::core::PWSTR,
+    pub pwszDirectory: windows_sys::core::PWSTR,
     pub nShowCmd: u32,
 }
-impl ::core::marker::Copy for ShellCommandInfo {}
-impl ::core::clone::Clone for ShellCommandInfo {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct UiInfo {
     pub r#type: UI_INFO_TYPE,
     pub Anonymous: UiInfo_0,
 }
-impl ::core::marker::Copy for UiInfo {}
-impl ::core::clone::Clone for UiInfo {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union UiInfo_0 {
-    pub pwzNull: ::windows_sys::core::PWSTR,
+    pub pwzNull: windows_sys::core::PWSTR,
     pub ShellInfo: ShellCommandInfo,
-    pub pwzHelpUrl: ::windows_sys::core::PWSTR,
-    pub pwzDui: ::windows_sys::core::PWSTR,
-}
-impl ::core::marker::Copy for UiInfo_0 {}
-impl ::core::clone::Clone for UiInfo_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pwzHelpUrl: windows_sys::core::PWSTR,
+    pub pwzDui: windows_sys::core::PWSTR,
 }

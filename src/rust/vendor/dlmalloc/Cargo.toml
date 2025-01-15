@@ -12,8 +12,13 @@
 [package]
 edition = "2021"
 name = "dlmalloc"
-version = "0.2.6"
+version = "0.2.7"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 A Rust port of the dlmalloc allocator
 """
@@ -30,7 +35,17 @@ features = ["global"]
 debug-assertions = true
 
 [lib]
+name = "dlmalloc"
+path = "src/lib.rs"
 doctest = false
+
+[[test]]
+name = "global"
+path = "tests/global.rs"
+
+[[test]]
+name = "smoke"
+path = "tests/smoke.rs"
 
 [dependencies.cfg-if]
 version = "1.0"
@@ -59,12 +74,12 @@ rustc-dep-of-std = [
     "compiler_builtins/rustc-dep-of-std",
 ]
 
-[target."cfg(all(unix, not(target_arch = \"wasm32\")))".dependencies.libc]
+[target.'cfg(all(unix, not(target_arch = "wasm32")))'.dependencies.libc]
 version = "0.2"
 default-features = false
 
-[target."cfg(target_os = \"windows\")".dependencies.windows-sys]
-version = "0.52.0"
+[target.'cfg(target_os = "windows")'.dependencies.windows-sys]
+version = ">=0.52.0, <=0.59.*"
 features = [
     "Win32_Foundation",
     "Win32_System_Memory",

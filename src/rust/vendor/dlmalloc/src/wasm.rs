@@ -68,6 +68,7 @@ pub fn release_global_lock() {
     assert!(!cfg!(target_feature = "atomics"));
 }
 
+#[allow(missing_docs)]
 #[cfg(feature = "global")]
 pub unsafe fn enable_alloc_after_fork() {
     // single threaded, no need!

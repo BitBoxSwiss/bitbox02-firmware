@@ -1,89 +1,55 @@
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn ActivateKeyboardLayout(hkl : super::super::TextServices:: HKL, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> super::super::TextServices:: HKL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn BlockInput(fblockit : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn DragDetect(hwnd : super::super::super::Foundation:: HWND, pt : super::super::super::Foundation:: POINT) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn EnableWindow(hwnd : super::super::super::Foundation:: HWND, benable : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetActiveWindow() -> super::super::super::Foundation:: HWND);
-::windows_targets::link!("user32.dll" "system" fn GetAsyncKeyState(vkey : i32) -> i16);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetCapture() -> super::super::super::Foundation:: HWND);
-::windows_targets::link!("user32.dll" "system" fn GetDoubleClickTime() -> u32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetFocus() -> super::super::super::Foundation:: HWND);
-::windows_targets::link!("user32.dll" "system" fn GetKBCodePage() -> u32);
-::windows_targets::link!("user32.dll" "system" fn GetKeyNameTextA(lparam : i32, lpstring : ::windows_sys::core::PSTR, cchsize : i32) -> i32);
-::windows_targets::link!("user32.dll" "system" fn GetKeyNameTextW(lparam : i32, lpstring : ::windows_sys::core::PWSTR, cchsize : i32) -> i32);
-::windows_targets::link!("user32.dll" "system" fn GetKeyState(nvirtkey : i32) -> i16);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn GetKeyboardLayout(idthread : u32) -> super::super::TextServices:: HKL);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn GetKeyboardLayoutList(nbuff : i32, lplist : *mut super::super::TextServices:: HKL) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetKeyboardLayoutNameA(pwszklid : ::windows_sys::core::PSTR) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetKeyboardLayoutNameW(pwszklid : ::windows_sys::core::PWSTR) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetKeyboardState(lpkeystate : *mut u8) -> super::super::super::Foundation:: BOOL);
-::windows_targets::link!("user32.dll" "system" fn GetKeyboardType(ntypeflag : i32) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn GetLastInputInfo(plii : *mut LASTINPUTINFO) -> super::super::super::Foundation:: BOOL);
-::windows_targets::link!("user32.dll" "system" fn GetMouseMovePointsEx(cbsize : u32, lppt : *const MOUSEMOVEPOINT, lpptbuf : *mut MOUSEMOVEPOINT, nbufpoints : i32, resolution : GET_MOUSE_MOVE_POINTS_EX_RESOLUTION) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn IsWindowEnabled(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn LoadKeyboardLayoutA(pwszklid : ::windows_sys::core::PCSTR, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> super::super::TextServices:: HKL);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn LoadKeyboardLayoutW(pwszklid : ::windows_sys::core::PCWSTR, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> super::super::TextServices:: HKL);
-::windows_targets::link!("user32.dll" "system" fn MapVirtualKeyA(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE) -> u32);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn MapVirtualKeyExA(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE, dwhkl : super::super::TextServices:: HKL) -> u32);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn MapVirtualKeyExW(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE, dwhkl : super::super::TextServices:: HKL) -> u32);
-::windows_targets::link!("user32.dll" "system" fn MapVirtualKeyW(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE) -> u32);
-::windows_targets::link!("user32.dll" "system" fn OemKeyScan(woemchar : u16) -> u32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn RegisterHotKey(hwnd : super::super::super::Foundation:: HWND, id : i32, fsmodifiers : HOT_KEY_MODIFIERS, vk : u32) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn ReleaseCapture() -> super::super::super::Foundation:: BOOL);
-::windows_targets::link!("user32.dll" "system" fn SendInput(cinputs : u32, pinputs : *const INPUT, cbsize : i32) -> u32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn SetActiveWindow(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn SetCapture(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn SetDoubleClickTime(param0 : u32) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn SetFocus(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn SetKeyboardState(lpkeystate : *const u8) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn SwapMouseButton(fswap : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
-::windows_targets::link!("user32.dll" "system" fn ToAscii(uvirtkey : u32, uscancode : u32, lpkeystate : *const u8, lpchar : *mut u16, uflags : u32) -> i32);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn ToAsciiEx(uvirtkey : u32, uscancode : u32, lpkeystate : *const u8, lpchar : *mut u16, uflags : u32, dwhkl : super::super::TextServices:: HKL) -> i32);
-::windows_targets::link!("user32.dll" "system" fn ToUnicode(wvirtkey : u32, wscancode : u32, lpkeystate : *const u8, pwszbuff : ::windows_sys::core::PWSTR, cchbuff : i32, wflags : u32) -> i32);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn ToUnicodeEx(wvirtkey : u32, wscancode : u32, lpkeystate : *const u8, pwszbuff : ::windows_sys::core::PWSTR, cchbuff : i32, wflags : u32, dwhkl : super::super::TextServices:: HKL) -> i32);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn TrackMouseEvent(lpeventtrack : *mut TRACKMOUSEEVENT) -> super::super::super::Foundation:: BOOL);
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_TextServices"))]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_TextServices\"`"] fn UnloadKeyboardLayout(hkl : super::super::TextServices:: HKL) -> super::super::super::Foundation:: BOOL);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn UnregisterHotKey(hwnd : super::super::super::Foundation:: HWND, id : i32) -> super::super::super::Foundation:: BOOL);
-::windows_targets::link!("user32.dll" "system" fn VkKeyScanA(ch : u8) -> i16);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn VkKeyScanExA(ch : u8, dwhkl : super::super::TextServices:: HKL) -> i16);
-#[cfg(feature = "Win32_UI_TextServices")]
-::windows_targets::link!("user32.dll" "system" #[doc = "Required features: `\"Win32_UI_TextServices\"`"] fn VkKeyScanExW(ch : u16, dwhkl : super::super::TextServices:: HKL) -> i16);
-::windows_targets::link!("user32.dll" "system" fn VkKeyScanW(ch : u16) -> i16);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("comctl32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn _TrackMouseEvent(lpeventtrack : *mut TRACKMOUSEEVENT) -> super::super::super::Foundation:: BOOL);
-::windows_targets::link!("user32.dll" "system" fn keybd_event(bvk : u8, bscan : u8, dwflags : KEYBD_EVENT_FLAGS, dwextrainfo : usize) -> ());
-::windows_targets::link!("user32.dll" "system" fn mouse_event(dwflags : MOUSE_EVENT_FLAGS, dx : i32, dy : i32, dwdata : i32, dwextrainfo : usize) -> ());
+windows_targets::link!("user32.dll" "system" fn ActivateKeyboardLayout(hkl : HKL, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> HKL);
+windows_targets::link!("user32.dll" "system" fn BlockInput(fblockit : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn DragDetect(hwnd : super::super::super::Foundation:: HWND, pt : super::super::super::Foundation:: POINT) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn EnableWindow(hwnd : super::super::super::Foundation:: HWND, benable : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn GetActiveWindow() -> super::super::super::Foundation:: HWND);
+windows_targets::link!("user32.dll" "system" fn GetAsyncKeyState(vkey : i32) -> i16);
+windows_targets::link!("user32.dll" "system" fn GetCapture() -> super::super::super::Foundation:: HWND);
+windows_targets::link!("user32.dll" "system" fn GetDoubleClickTime() -> u32);
+windows_targets::link!("user32.dll" "system" fn GetFocus() -> super::super::super::Foundation:: HWND);
+windows_targets::link!("user32.dll" "system" fn GetKBCodePage() -> u32);
+windows_targets::link!("user32.dll" "system" fn GetKeyNameTextA(lparam : i32, lpstring : windows_sys::core::PSTR, cchsize : i32) -> i32);
+windows_targets::link!("user32.dll" "system" fn GetKeyNameTextW(lparam : i32, lpstring : windows_sys::core::PWSTR, cchsize : i32) -> i32);
+windows_targets::link!("user32.dll" "system" fn GetKeyState(nvirtkey : i32) -> i16);
+windows_targets::link!("user32.dll" "system" fn GetKeyboardLayout(idthread : u32) -> HKL);
+windows_targets::link!("user32.dll" "system" fn GetKeyboardLayoutList(nbuff : i32, lplist : *mut HKL) -> i32);
+windows_targets::link!("user32.dll" "system" fn GetKeyboardLayoutNameA(pwszklid : windows_sys::core::PSTR) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn GetKeyboardLayoutNameW(pwszklid : windows_sys::core::PWSTR) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn GetKeyboardState(lpkeystate : *mut u8) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn GetKeyboardType(ntypeflag : i32) -> i32);
+windows_targets::link!("user32.dll" "system" fn GetLastInputInfo(plii : *mut LASTINPUTINFO) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn GetMouseMovePointsEx(cbsize : u32, lppt : *const MOUSEMOVEPOINT, lpptbuf : *mut MOUSEMOVEPOINT, nbufpoints : i32, resolution : GET_MOUSE_MOVE_POINTS_EX_RESOLUTION) -> i32);
+windows_targets::link!("user32.dll" "system" fn IsWindowEnabled(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn LoadKeyboardLayoutA(pwszklid : windows_sys::core::PCSTR, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> HKL);
+windows_targets::link!("user32.dll" "system" fn LoadKeyboardLayoutW(pwszklid : windows_sys::core::PCWSTR, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> HKL);
+windows_targets::link!("user32.dll" "system" fn MapVirtualKeyA(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE) -> u32);
+windows_targets::link!("user32.dll" "system" fn MapVirtualKeyExA(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE, dwhkl : HKL) -> u32);
+windows_targets::link!("user32.dll" "system" fn MapVirtualKeyExW(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE, dwhkl : HKL) -> u32);
+windows_targets::link!("user32.dll" "system" fn MapVirtualKeyW(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE) -> u32);
+windows_targets::link!("user32.dll" "system" fn OemKeyScan(woemchar : u16) -> u32);
+windows_targets::link!("user32.dll" "system" fn RegisterHotKey(hwnd : super::super::super::Foundation:: HWND, id : i32, fsmodifiers : HOT_KEY_MODIFIERS, vk : u32) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn ReleaseCapture() -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn SendInput(cinputs : u32, pinputs : *const INPUT, cbsize : i32) -> u32);
+windows_targets::link!("user32.dll" "system" fn SetActiveWindow(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
+windows_targets::link!("user32.dll" "system" fn SetCapture(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
+windows_targets::link!("user32.dll" "system" fn SetDoubleClickTime(param0 : u32) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn SetFocus(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
+windows_targets::link!("user32.dll" "system" fn SetKeyboardState(lpkeystate : *const u8) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn SwapMouseButton(fswap : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn ToAscii(uvirtkey : u32, uscancode : u32, lpkeystate : *const u8, lpchar : *mut u16, uflags : u32) -> i32);
+windows_targets::link!("user32.dll" "system" fn ToAsciiEx(uvirtkey : u32, uscancode : u32, lpkeystate : *const u8, lpchar : *mut u16, uflags : u32, dwhkl : HKL) -> i32);
+windows_targets::link!("user32.dll" "system" fn ToUnicode(wvirtkey : u32, wscancode : u32, lpkeystate : *const u8, pwszbuff : windows_sys::core::PWSTR, cchbuff : i32, wflags : u32) -> i32);
+windows_targets::link!("user32.dll" "system" fn ToUnicodeEx(wvirtkey : u32, wscancode : u32, lpkeystate : *const u8, pwszbuff : windows_sys::core::PWSTR, cchbuff : i32, wflags : u32, dwhkl : HKL) -> i32);
+windows_targets::link!("user32.dll" "system" fn TrackMouseEvent(lpeventtrack : *mut TRACKMOUSEEVENT) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn UnloadKeyboardLayout(hkl : HKL) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn UnregisterHotKey(hwnd : super::super::super::Foundation:: HWND, id : i32) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn VkKeyScanA(ch : i8) -> i16);
+windows_targets::link!("user32.dll" "system" fn VkKeyScanExA(ch : i8, dwhkl : HKL) -> i16);
+windows_targets::link!("user32.dll" "system" fn VkKeyScanExW(ch : u16, dwhkl : HKL) -> i16);
+windows_targets::link!("user32.dll" "system" fn VkKeyScanW(ch : u16) -> i16);
+windows_targets::link!("comctl32.dll" "system" fn _TrackMouseEvent(lpeventtrack : *mut TRACKMOUSEEVENT) -> super::super::super::Foundation:: BOOL);
+windows_targets::link!("user32.dll" "system" fn keybd_event(bvk : u8, bscan : u8, dwflags : KEYBD_EVENT_FLAGS, dwextrainfo : usize));
+windows_targets::link!("user32.dll" "system" fn mouse_event(dwflags : MOUSE_EVENT_FLAGS, dx : i32, dy : i32, dwdata : i32, dwextrainfo : usize));
 pub const ACUTE: u32 = 769u32;
 pub const AX_KBD_DESKTOP_TYPE: u32 = 1u32;
 pub const BREVE: u32 = 774u32;
@@ -493,23 +459,23 @@ pub const VK__none_: VIRTUAL_KEY = 255u16;
 pub const WCH_DEAD: u32 = 61441u32;
 pub const WCH_LGTR: u32 = 61442u32;
 pub const WCH_NONE: u32 = 61440u32;
-pub const wszACUTE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{301}");
-pub const wszBREVE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{306}");
-pub const wszCEDILLA: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{327}");
-pub const wszCIRCUMFLEX: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{302}");
-pub const wszDIARESIS_TONOS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{385}");
-pub const wszDOT_ABOVE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{307}");
-pub const wszDOUBLE_ACUTE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{30b}");
-pub const wszGRAVE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{300}");
-pub const wszHACEK: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{30c}");
-pub const wszHOOK_ABOVE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{309}");
-pub const wszMACRON: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{304}");
-pub const wszOGONEK: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{328}");
-pub const wszOVERSCORE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{305}");
-pub const wszRING: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{30a}");
-pub const wszTILDE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{303}");
-pub const wszTONOS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{384}");
-pub const wszUMLAUT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("\u{308}");
+pub const wszACUTE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{301}");
+pub const wszBREVE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{306}");
+pub const wszCEDILLA: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{327}");
+pub const wszCIRCUMFLEX: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{302}");
+pub const wszDIARESIS_TONOS: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{385}");
+pub const wszDOT_ABOVE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{307}");
+pub const wszDOUBLE_ACUTE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{30b}");
+pub const wszGRAVE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{300}");
+pub const wszHACEK: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{30c}");
+pub const wszHOOK_ABOVE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{309}");
+pub const wszMACRON: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{304}");
+pub const wszOGONEK: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{328}");
+pub const wszOVERSCORE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{305}");
+pub const wszRING: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{30a}");
+pub const wszTILDE: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{303}");
+pub const wszTONOS: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{384}");
+pub const wszUMLAUT: windows_sys::core::PCWSTR = windows_sys::core::w!("\u{308}");
 pub type ACTIVATE_KEYBOARD_LAYOUT_FLAGS = u32;
 pub type GET_MOUSE_MOVE_POINTS_EX_RESOLUTION = u32;
 pub type HOT_KEY_MODIFIERS = u32;
@@ -520,53 +486,35 @@ pub type MOUSE_EVENT_FLAGS = u32;
 pub type TRACKMOUSEEVENT_FLAGS = u32;
 pub type VIRTUAL_KEY = u16;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DEADKEY {
     pub dwBoth: u32,
     pub wchComposed: u16,
     pub uFlags: u16,
 }
-impl ::core::marker::Copy for DEADKEY {}
-impl ::core::clone::Clone for DEADKEY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct HARDWAREINPUT {
     pub uMsg: u32,
     pub wParamL: u16,
     pub wParamH: u16,
 }
-impl ::core::marker::Copy for HARDWAREINPUT {}
-impl ::core::clone::Clone for HARDWAREINPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub type HKL = *mut core::ffi::c_void;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct INPUT {
     pub r#type: INPUT_TYPE,
     pub Anonymous: INPUT_0,
 }
-impl ::core::marker::Copy for INPUT {}
-impl ::core::clone::Clone for INPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union INPUT_0 {
     pub mi: MOUSEINPUT,
     pub ki: KEYBDINPUT,
     pub hi: HARDWAREINPUT,
 }
-impl ::core::marker::Copy for INPUT_0 {}
-impl ::core::clone::Clone for INPUT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct KBDNLSTABLES {
     pub OEMIdentifier: u16,
     pub LayoutInformation: u16,
@@ -575,13 +523,8 @@ pub struct KBDNLSTABLES {
     pub NumOfMouseVKey: i32,
     pub pusMouseVKey: *mut u16,
 }
-impl ::core::marker::Copy for KBDNLSTABLES {}
-impl ::core::clone::Clone for KBDNLSTABLES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct KBDTABLES {
     pub pCharModifiers: *mut MODIFIERS,
     pub pVkToWcharTable: *mut VK_TO_WCHAR_TABLE,
@@ -600,48 +543,28 @@ pub struct KBDTABLES {
     pub dwType: u32,
     pub dwSubType: u32,
 }
-impl ::core::marker::Copy for KBDTABLES {}
-impl ::core::clone::Clone for KBDTABLES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct KBDTABLE_DESC {
     pub wszDllName: [u16; 32],
     pub dwType: u32,
     pub dwSubType: u32,
 }
-impl ::core::marker::Copy for KBDTABLE_DESC {}
-impl ::core::clone::Clone for KBDTABLE_DESC {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct KBDTABLE_MULTI {
     pub nTables: u32,
     pub aKbdTables: [KBDTABLE_DESC; 8],
 }
-impl ::core::marker::Copy for KBDTABLE_MULTI {}
-impl ::core::clone::Clone for KBDTABLE_MULTI {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct KBD_TYPE_INFO {
     pub dwVersion: u32,
     pub dwType: u32,
     pub dwSubType: u32,
 }
-impl ::core::marker::Copy for KBD_TYPE_INFO {}
-impl ::core::clone::Clone for KBD_TYPE_INFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct KEYBDINPUT {
     pub wVk: VIRTUAL_KEY,
     pub wScan: u16,
@@ -649,96 +572,56 @@ pub struct KEYBDINPUT {
     pub time: u32,
     pub dwExtraInfo: usize,
 }
-impl ::core::marker::Copy for KEYBDINPUT {}
-impl ::core::clone::Clone for KEYBDINPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LASTINPUTINFO {
     pub cbSize: u32,
     pub dwTime: u32,
 }
-impl ::core::marker::Copy for LASTINPUTINFO {}
-impl ::core::clone::Clone for LASTINPUTINFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LIGATURE1 {
     pub VirtualKey: u8,
     pub ModificationNumber: u16,
     pub wch: [u16; 1],
 }
-impl ::core::marker::Copy for LIGATURE1 {}
-impl ::core::clone::Clone for LIGATURE1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LIGATURE2 {
     pub VirtualKey: u8,
     pub ModificationNumber: u16,
     pub wch: [u16; 2],
 }
-impl ::core::marker::Copy for LIGATURE2 {}
-impl ::core::clone::Clone for LIGATURE2 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LIGATURE3 {
     pub VirtualKey: u8,
     pub ModificationNumber: u16,
     pub wch: [u16; 3],
 }
-impl ::core::marker::Copy for LIGATURE3 {}
-impl ::core::clone::Clone for LIGATURE3 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LIGATURE4 {
     pub VirtualKey: u8,
     pub ModificationNumber: u16,
     pub wch: [u16; 4],
 }
-impl ::core::marker::Copy for LIGATURE4 {}
-impl ::core::clone::Clone for LIGATURE4 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LIGATURE5 {
     pub VirtualKey: u8,
     pub ModificationNumber: u16,
     pub wch: [u16; 5],
 }
-impl ::core::marker::Copy for LIGATURE5 {}
-impl ::core::clone::Clone for LIGATURE5 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MODIFIERS {
     pub pVkToBit: *mut VK_TO_BIT,
     pub wMaxModBits: u16,
     pub ModNumber: [u8; 1],
 }
-impl ::core::marker::Copy for MODIFIERS {}
-impl ::core::clone::Clone for MODIFIERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MOUSEINPUT {
     pub dx: i32,
     pub dy: i32,
@@ -747,43 +630,24 @@ pub struct MOUSEINPUT {
     pub time: u32,
     pub dwExtraInfo: usize,
 }
-impl ::core::marker::Copy for MOUSEINPUT {}
-impl ::core::clone::Clone for MOUSEINPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct MOUSEMOVEPOINT {
     pub x: i32,
     pub y: i32,
     pub time: u32,
     pub dwExtraInfo: usize,
 }
-impl ::core::marker::Copy for MOUSEMOVEPOINT {}
-impl ::core::clone::Clone for MOUSEMOVEPOINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct TRACKMOUSEEVENT {
     pub cbSize: u32,
     pub dwFlags: TRACKMOUSEEVENT_FLAGS,
     pub hwndTrack: super::super::super::Foundation::HWND,
     pub dwHoverTime: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for TRACKMOUSEEVENT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for TRACKMOUSEEVENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_F {
     pub Vk: u8,
     pub NLSFEProcType: u8,
@@ -792,196 +656,110 @@ pub struct VK_F {
     pub NLSFEProc: [VK_FPARAM; 8],
     pub NLSFEProcAlt: [VK_FPARAM; 8],
 }
-impl ::core::marker::Copy for VK_F {}
-impl ::core::clone::Clone for VK_F {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_FPARAM {
     pub NLSFEProcIndex: u8,
     pub NLSFEProcParam: u32,
 }
-impl ::core::marker::Copy for VK_FPARAM {}
-impl ::core::clone::Clone for VK_FPARAM {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_BIT {
     pub Vk: u8,
     pub ModBits: u8,
 }
-impl ::core::marker::Copy for VK_TO_BIT {}
-impl ::core::clone::Clone for VK_TO_BIT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS1 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 1],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS1 {}
-impl ::core::clone::Clone for VK_TO_WCHARS1 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS10 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 10],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS10 {}
-impl ::core::clone::Clone for VK_TO_WCHARS10 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS2 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 2],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS2 {}
-impl ::core::clone::Clone for VK_TO_WCHARS2 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS3 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 3],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS3 {}
-impl ::core::clone::Clone for VK_TO_WCHARS3 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS4 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 4],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS4 {}
-impl ::core::clone::Clone for VK_TO_WCHARS4 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS5 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 5],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS5 {}
-impl ::core::clone::Clone for VK_TO_WCHARS5 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS6 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 6],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS6 {}
-impl ::core::clone::Clone for VK_TO_WCHARS6 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS7 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 7],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS7 {}
-impl ::core::clone::Clone for VK_TO_WCHARS7 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS8 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 8],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS8 {}
-impl ::core::clone::Clone for VK_TO_WCHARS8 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHARS9 {
     pub VirtualKey: u8,
     pub Attributes: u8,
     pub wch: [u16; 9],
 }
-impl ::core::marker::Copy for VK_TO_WCHARS9 {}
-impl ::core::clone::Clone for VK_TO_WCHARS9 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_TO_WCHAR_TABLE {
     pub pVkToWchars: *mut VK_TO_WCHARS1,
     pub nModifications: u8,
     pub cbSize: u8,
 }
-impl ::core::marker::Copy for VK_TO_WCHAR_TABLE {}
-impl ::core::clone::Clone for VK_TO_WCHAR_TABLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VK_VSC {
     pub Vk: u8,
     pub Vsc: u8,
 }
-impl ::core::marker::Copy for VK_VSC {}
-impl ::core::clone::Clone for VK_VSC {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VSC_LPWSTR {
     pub vsc: u8,
-    pub pwsz: ::windows_sys::core::PWSTR,
-}
-impl ::core::marker::Copy for VSC_LPWSTR {}
-impl ::core::clone::Clone for VSC_LPWSTR {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pwsz: windows_sys::core::PWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct VSC_VK {
     pub Vsc: u8,
     pub Vk: u16,
-}
-impl ::core::marker::Copy for VSC_VK {}
-impl ::core::clone::Clone for VSC_VK {
-    fn clone(&self) -> Self {
-        *self
-    }
 }

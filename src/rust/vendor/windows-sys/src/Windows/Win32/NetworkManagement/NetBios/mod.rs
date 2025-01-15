@@ -1,6 +1,5 @@
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("netapi32.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn Netbios(pncb : *mut NCB) -> u8);
-pub const ALL_TRANSPORTS: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("M\u{0}\u{0}\u{0}");
+windows_targets::link!("netapi32.dll" "system" fn Netbios(pncb : *mut NCB) -> u8);
+pub const ALL_TRANSPORTS: windows_sys::core::PCSTR = windows_sys::core::s!("M\u{0}\u{0}\u{0}");
 pub const ASYNCH: u32 = 128u32;
 pub const CALL_PENDING: u32 = 2u32;
 pub const DEREGISTERED: u32 = 5u32;
@@ -11,7 +10,7 @@ pub const HANGUP_COMPLETE: u32 = 5u32;
 pub const HANGUP_PENDING: u32 = 4u32;
 pub const LISTEN_OUTSTANDING: u32 = 1u32;
 pub const MAX_LANA: u32 = 254u32;
-pub const MS_NBF: ::windows_sys::core::PCSTR = ::windows_sys::core::s!("MNBF");
+pub const MS_NBF: windows_sys::core::PCSTR = windows_sys::core::s!("MNBF");
 pub const NAME_FLAGS_MASK: u32 = 135u32;
 pub const NCBACTION: u32 = 119u32;
 pub const NCBADDGRNAME: u32 = 54u32;
@@ -85,18 +84,14 @@ pub const SESSION_ABORTED: u32 = 6u32;
 pub const SESSION_ESTABLISHED: u32 = 3u32;
 pub const UNIQUE_NAME: u32 = 0u32;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ACTION_HEADER {
     pub transport_id: u32,
     pub action_code: u16,
     pub reserved: u16,
 }
-impl ::core::marker::Copy for ACTION_HEADER {}
-impl ::core::clone::Clone for ACTION_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ADAPTER_STATUS {
     pub adapter_address: [u8; 6],
     pub rev_major: u8,
@@ -126,13 +121,8 @@ pub struct ADAPTER_STATUS {
     pub max_sess_pkt_size: u16,
     pub name_count: u16,
 }
-impl ::core::marker::Copy for ADAPTER_STATUS {}
-impl ::core::clone::Clone for ADAPTER_STATUS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct FIND_NAME_BUFFER {
     pub length: u8,
     pub access_control: u8,
@@ -141,51 +131,29 @@ pub struct FIND_NAME_BUFFER {
     pub source_addr: [u8; 6],
     pub routing_info: [u8; 18],
 }
-impl ::core::marker::Copy for FIND_NAME_BUFFER {}
-impl ::core::clone::Clone for FIND_NAME_BUFFER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct FIND_NAME_HEADER {
     pub node_count: u16,
     pub reserved: u8,
     pub unique_group: u8,
 }
-impl ::core::marker::Copy for FIND_NAME_HEADER {}
-impl ::core::clone::Clone for FIND_NAME_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct LANA_ENUM {
     pub length: u8,
     pub lana: [u8; 255],
 }
-impl ::core::marker::Copy for LANA_ENUM {}
-impl ::core::clone::Clone for LANA_ENUM {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct NAME_BUFFER {
     pub name: [u8; 16],
     pub name_num: u8,
     pub name_flags: u8,
 }
-impl ::core::marker::Copy for NAME_BUFFER {}
-impl ::core::clone::Clone for NAME_BUFFER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-#[cfg(feature = "Win32_Foundation")]
+#[cfg(any(target_arch = "aarch64", target_arch = "arm64ec", target_arch = "x86_64"))]
+#[derive(Clone, Copy)]
 pub struct NCB {
     pub ncb_command: u8,
     pub ncb_retcode: u8,
@@ -203,20 +171,9 @@ pub struct NCB {
     pub ncb_reserve: [u8; 18],
     pub ncb_event: super::super::Foundation::HANDLE,
 }
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for NCB {}
-#[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for NCB {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(target_arch = "x86")]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct NCB {
     pub ncb_command: u8,
     pub ncb_retcode: u8,
@@ -234,17 +191,8 @@ pub struct NCB {
     pub ncb_reserve: [u8; 10],
     pub ncb_event: super::super::Foundation::HANDLE,
 }
-#[cfg(target_arch = "x86")]
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for NCB {}
-#[cfg(target_arch = "x86")]
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for NCB {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SESSION_BUFFER {
     pub lsn: u8,
     pub state: u8,
@@ -253,22 +201,11 @@ pub struct SESSION_BUFFER {
     pub rcvs_outstanding: u8,
     pub sends_outstanding: u8,
 }
-impl ::core::marker::Copy for SESSION_BUFFER {}
-impl ::core::clone::Clone for SESSION_BUFFER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SESSION_HEADER {
     pub sess_name: u8,
     pub num_sess: u8,
     pub rcv_dg_outstanding: u8,
     pub rcv_any_outstanding: u8,
-}
-impl ::core::marker::Copy for SESSION_HEADER {}
-impl ::core::clone::Clone for SESSION_HEADER {
-    fn clone(&self) -> Self {
-        *self
-    }
 }

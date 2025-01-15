@@ -22,7 +22,7 @@ pub struct Amount<'a> {
     pub value: BigUint,
 }
 
-impl<'a> Amount<'a> {
+impl Amount<'_> {
     /// Formats the amount with the right number of decimal places, suffixed with the unit. If the
     /// value (without the unit suffix) is too long to fit on the screen, it will be truncated and
     /// ellipsis ('...')  are appended.

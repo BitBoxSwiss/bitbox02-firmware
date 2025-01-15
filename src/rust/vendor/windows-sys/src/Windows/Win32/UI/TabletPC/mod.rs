@@ -1,102 +1,31 @@
 #[cfg(feature = "Win32_Graphics_Gdi")]
-::windows_targets::link!("inkobjcore.dll" "system" #[doc = "Required features: `\"Win32_Graphics_Gdi\"`"] fn AddStroke(hrc : HRECOCONTEXT, ppacketdesc : *const PACKET_DESCRIPTION, cbpacket : u32, ppacket : *const u8, pxform : *const super::super::Graphics::Gdi:: XFORM) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn AddWordsToWordList(hwl : HRECOWORDLIST, pwcwords : ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("inkobjcore.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn AdviseInkChange(hrc : HRECOCONTEXT, bnewstroke : super::super::Foundation:: BOOL) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn CreateContext(hrec : HRECOGNIZER, phrc : *mut HRECOCONTEXT) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn CreateRecognizer(pclsid : *mut ::windows_sys::core::GUID, phrec : *mut HRECOGNIZER) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn DestroyContext(hrc : HRECOCONTEXT) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn DestroyRecognizer(hrec : HRECOGNIZER) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn DestroyWordList(hwl : HRECOWORDLIST) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn EndInkInput(hrc : HRECOCONTEXT) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetAllRecognizers(recognizerclsids : *mut *mut ::windows_sys::core::GUID, count : *mut u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetBestResultString(hrc : HRECOCONTEXT, pcsize : *mut u32, pwcbestresult : ::windows_sys::core::PWSTR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetLatticePtr(hrc : HRECOCONTEXT, pplattice : *mut *mut RECO_LATTICE) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetLeftSeparator(hrc : HRECOCONTEXT, pcsize : *mut u32, pwcleftseparator : ::windows_sys::core::PWSTR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetRecoAttributes(hrec : HRECOGNIZER, precoattrs : *mut RECO_ATTRS) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetResultPropertyList(hrec : HRECOGNIZER, ppropertycount : *mut u32, ppropertyguid : *mut ::windows_sys::core::GUID) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetRightSeparator(hrc : HRECOCONTEXT, pcsize : *mut u32, pwcrightseparator : ::windows_sys::core::PWSTR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn GetUnicodeRanges(hrec : HRECOGNIZER, pcranges : *mut u32, pcr : *mut CHARACTER_RANGE) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn IsStringSupported(hrc : HRECOCONTEXT, wcstring : u32, pwcstring : ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn LoadCachedAttributes(clsid : ::windows_sys::core::GUID, precoattributes : *mut RECO_ATTRS) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn MakeWordList(hrec : HRECOGNIZER, pbuffer : ::windows_sys::core::PCWSTR, phwl : *mut HRECOWORDLIST) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("inkobjcore.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn Process(hrc : HRECOCONTEXT, pbpartialprocessing : *mut super::super::Foundation:: BOOL) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn SetEnabledUnicodeRanges(hrc : HRECOCONTEXT, cranges : u32, pcr : *mut CHARACTER_RANGE) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn SetFactoid(hrc : HRECOCONTEXT, cwcfactoid : u32, pwcfactoid : ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn SetFlags(hrc : HRECOCONTEXT, dwflags : u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn SetGuide(hrc : HRECOCONTEXT, pguide : *const RECO_GUIDE, iindex : u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn SetTextContext(hrc : HRECOCONTEXT, cwcbefore : u32, pwcbefore : ::windows_sys::core::PCWSTR, cwcafter : u32, pwcafter : ::windows_sys::core::PCWSTR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("inkobjcore.dll" "system" fn SetWordList(hrc : HRECOCONTEXT, hwl : HRECOWORDLIST) -> ::windows_sys::core::HRESULT);
-pub type IDynamicRenderer = *mut ::core::ffi::c_void;
-pub type IGestureRecognizer = *mut ::core::ffi::c_void;
-pub type IHandwrittenTextInsertion = *mut ::core::ffi::c_void;
-pub type IInk = *mut ::core::ffi::c_void;
-pub type IInkCollector = *mut ::core::ffi::c_void;
-pub type IInkCursor = *mut ::core::ffi::c_void;
-pub type IInkCursorButton = *mut ::core::ffi::c_void;
-pub type IInkCursorButtons = *mut ::core::ffi::c_void;
-pub type IInkCursors = *mut ::core::ffi::c_void;
-pub type IInkCustomStrokes = *mut ::core::ffi::c_void;
-pub type IInkDisp = *mut ::core::ffi::c_void;
-pub type IInkDivider = *mut ::core::ffi::c_void;
-pub type IInkDivisionResult = *mut ::core::ffi::c_void;
-pub type IInkDivisionUnit = *mut ::core::ffi::c_void;
-pub type IInkDivisionUnits = *mut ::core::ffi::c_void;
-pub type IInkDrawingAttributes = *mut ::core::ffi::c_void;
-pub type IInkEdit = *mut ::core::ffi::c_void;
-pub type IInkExtendedProperties = *mut ::core::ffi::c_void;
-pub type IInkExtendedProperty = *mut ::core::ffi::c_void;
-pub type IInkGesture = *mut ::core::ffi::c_void;
-pub type IInkLineInfo = *mut ::core::ffi::c_void;
-pub type IInkOverlay = *mut ::core::ffi::c_void;
-pub type IInkPicture = *mut ::core::ffi::c_void;
-pub type IInkRecognitionAlternate = *mut ::core::ffi::c_void;
-pub type IInkRecognitionAlternates = *mut ::core::ffi::c_void;
-pub type IInkRecognitionResult = *mut ::core::ffi::c_void;
-pub type IInkRecognizer = *mut ::core::ffi::c_void;
-pub type IInkRecognizer2 = *mut ::core::ffi::c_void;
-pub type IInkRecognizerContext = *mut ::core::ffi::c_void;
-pub type IInkRecognizerContext2 = *mut ::core::ffi::c_void;
-pub type IInkRecognizerGuide = *mut ::core::ffi::c_void;
-pub type IInkRecognizers = *mut ::core::ffi::c_void;
-pub type IInkRectangle = *mut ::core::ffi::c_void;
-pub type IInkRenderer = *mut ::core::ffi::c_void;
-pub type IInkStrokeDisp = *mut ::core::ffi::c_void;
-pub type IInkStrokes = *mut ::core::ffi::c_void;
-pub type IInkTablet = *mut ::core::ffi::c_void;
-pub type IInkTablet2 = *mut ::core::ffi::c_void;
-pub type IInkTablet3 = *mut ::core::ffi::c_void;
-pub type IInkTablets = *mut ::core::ffi::c_void;
-pub type IInkTransform = *mut ::core::ffi::c_void;
-pub type IInkWordList = *mut ::core::ffi::c_void;
-pub type IInkWordList2 = *mut ::core::ffi::c_void;
-pub type IInputPanelWindowHandle = *mut ::core::ffi::c_void;
-pub type IMathInputControl = *mut ::core::ffi::c_void;
-pub type IPenInputPanel = *mut ::core::ffi::c_void;
-pub type IRealTimeStylus = *mut ::core::ffi::c_void;
-pub type IRealTimeStylus2 = *mut ::core::ffi::c_void;
-pub type IRealTimeStylus3 = *mut ::core::ffi::c_void;
-pub type IRealTimeStylusSynchronization = *mut ::core::ffi::c_void;
-pub type ISketchInk = *mut ::core::ffi::c_void;
-pub type IStrokeBuilder = *mut ::core::ffi::c_void;
-pub type IStylusAsyncPlugin = *mut ::core::ffi::c_void;
-pub type IStylusPlugin = *mut ::core::ffi::c_void;
-pub type IStylusSyncPlugin = *mut ::core::ffi::c_void;
-pub type ITextInputPanel = *mut ::core::ffi::c_void;
-pub type ITextInputPanelEventSink = *mut ::core::ffi::c_void;
-pub type ITextInputPanelRunInfo = *mut ::core::ffi::c_void;
-pub type ITipAutoCompleteClient = *mut ::core::ffi::c_void;
-pub type ITipAutoCompleteProvider = *mut ::core::ffi::c_void;
-pub type _IInkCollectorEvents = *mut ::core::ffi::c_void;
-pub type _IInkEditEvents = *mut ::core::ffi::c_void;
-pub type _IInkEvents = *mut ::core::ffi::c_void;
-pub type _IInkOverlayEvents = *mut ::core::ffi::c_void;
-pub type _IInkPictureEvents = *mut ::core::ffi::c_void;
-pub type _IInkRecognitionEvents = *mut ::core::ffi::c_void;
-pub type _IInkStrokesEvents = *mut ::core::ffi::c_void;
-pub type _IMathInputControlEvents = *mut ::core::ffi::c_void;
-pub type _IPenInputPanelEvents = *mut ::core::ffi::c_void;
+windows_targets::link!("inkobjcore.dll" "system" fn AddStroke(hrc : HRECOCONTEXT, ppacketdesc : *const PACKET_DESCRIPTION, cbpacket : u32, ppacket : *const u8, pxform : *const super::super::Graphics::Gdi:: XFORM) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn AddWordsToWordList(hwl : HRECOWORDLIST, pwcwords : windows_sys::core::PCWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn AdviseInkChange(hrc : HRECOCONTEXT, bnewstroke : super::super::Foundation:: BOOL) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn CreateContext(hrec : HRECOGNIZER, phrc : *mut HRECOCONTEXT) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn CreateRecognizer(pclsid : *mut windows_sys::core::GUID, phrec : *mut HRECOGNIZER) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn DestroyContext(hrc : HRECOCONTEXT) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn DestroyRecognizer(hrec : HRECOGNIZER) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn DestroyWordList(hwl : HRECOWORDLIST) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn EndInkInput(hrc : HRECOCONTEXT) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetAllRecognizers(recognizerclsids : *mut *mut windows_sys::core::GUID, count : *mut u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetBestResultString(hrc : HRECOCONTEXT, pcsize : *mut u32, pwcbestresult : windows_sys::core::PWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetLatticePtr(hrc : HRECOCONTEXT, pplattice : *mut *mut RECO_LATTICE) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetLeftSeparator(hrc : HRECOCONTEXT, pcsize : *mut u32, pwcleftseparator : windows_sys::core::PWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetRecoAttributes(hrec : HRECOGNIZER, precoattrs : *mut RECO_ATTRS) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetResultPropertyList(hrec : HRECOGNIZER, ppropertycount : *mut u32, ppropertyguid : *mut windows_sys::core::GUID) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetRightSeparator(hrc : HRECOCONTEXT, pcsize : *mut u32, pwcrightseparator : windows_sys::core::PWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn GetUnicodeRanges(hrec : HRECOGNIZER, pcranges : *mut u32, pcr : *mut CHARACTER_RANGE) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn IsStringSupported(hrc : HRECOCONTEXT, wcstring : u32, pwcstring : windows_sys::core::PCWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn LoadCachedAttributes(clsid : windows_sys::core::GUID, precoattributes : *mut RECO_ATTRS) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn MakeWordList(hrec : HRECOGNIZER, pbuffer : windows_sys::core::PCWSTR, phwl : *mut HRECOWORDLIST) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn Process(hrc : HRECOCONTEXT, pbpartialprocessing : *mut super::super::Foundation:: BOOL) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn SetEnabledUnicodeRanges(hrc : HRECOCONTEXT, cranges : u32, pcr : *mut CHARACTER_RANGE) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn SetFactoid(hrc : HRECOCONTEXT, cwcfactoid : u32, pwcfactoid : windows_sys::core::PCWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn SetFlags(hrc : HRECOCONTEXT, dwflags : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn SetGuide(hrc : HRECOCONTEXT, pguide : *const RECO_GUIDE, iindex : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn SetTextContext(hrc : HRECOCONTEXT, cwcbefore : u32, pwcbefore : windows_sys::core::PCWSTR, cwcafter : u32, pwcafter : windows_sys::core::PCWSTR) -> windows_sys::core::HRESULT);
+windows_targets::link!("inkobjcore.dll" "system" fn SetWordList(hrc : HRECOCONTEXT, hwl : HRECOWORDLIST) -> windows_sys::core::HRESULT);
 pub const ALT_BREAKS_FULL: ALT_BREAKS = 2i32;
 pub const ALT_BREAKS_SAME: ALT_BREAKS = 0i32;
 pub const ALT_BREAKS_UNIQUE: ALT_BREAKS = 1i32;
@@ -545,7 +474,6 @@ pub const DISPID_TextRTF: DISPID_InkEdit = 1i32;
 pub const DISPID_UseMouseForInput: DISPID_InkEdit = 23i32;
 pub const DockedBottom: VisualState = 3i32;
 pub const DockedTop: VisualState = 2i32;
-pub const DynamicRenderer: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xecd32aea_746f_4dcb_bf68_082757faff18);
 pub const EM_GETDRAWATTR: u32 = 1541u32;
 pub const EM_GETFACTOID: u32 = 1549u32;
 pub const EM_GETGESTURESTATUS: u32 = 1545u32;
@@ -586,38 +514,38 @@ pub const EventMask_InputAreaChanging: EventMask = 16i32;
 pub const EventMask_TextInserted: EventMask = 2048i32;
 pub const EventMask_TextInserting: EventMask = 1024i32;
 pub const FACILITY_INK: u32 = 40u32;
-pub const FACTOID_BOPOMOFO: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("BOPOMOFO");
-pub const FACTOID_CHINESESIMPLECOMMON: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("CHS_COMMON");
-pub const FACTOID_CHINESETRADITIONALCOMMON: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("CHT_COMMON");
-pub const FACTOID_CURRENCY: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("CURRENCY");
-pub const FACTOID_DATE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("DATE");
-pub const FACTOID_DEFAULT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("DEFAULT");
-pub const FACTOID_DIGIT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("DIGIT");
-pub const FACTOID_EMAIL: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("EMAIL");
-pub const FACTOID_FILENAME: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("FILENAME");
-pub const FACTOID_HANGULCOMMON: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("HANGUL_COMMON");
-pub const FACTOID_HANGULRARE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("HANGUL_RARE");
-pub const FACTOID_HIRAGANA: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("HIRAGANA");
-pub const FACTOID_JAMO: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("JAMO");
-pub const FACTOID_JAPANESECOMMON: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("JPN_COMMON");
-pub const FACTOID_KANJICOMMON: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("KANJI_COMMON");
-pub const FACTOID_KANJIRARE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("KANJI_RARE");
-pub const FACTOID_KATAKANA: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("KATAKANA");
-pub const FACTOID_KOREANCOMMON: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("KOR_COMMON");
-pub const FACTOID_LOWERCHAR: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("LOWERCHAR");
-pub const FACTOID_NONE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("NONE");
-pub const FACTOID_NUMBER: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("NUMBER");
-pub const FACTOID_NUMBERSIMPLE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("NUMSIMPLE");
-pub const FACTOID_ONECHAR: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("ONECHAR");
-pub const FACTOID_PERCENT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("PERCENT");
-pub const FACTOID_POSTALCODE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("POSTALCODE");
-pub const FACTOID_PUNCCHAR: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("PUNCCHAR");
-pub const FACTOID_SYSTEMDICTIONARY: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("SYSDICT");
-pub const FACTOID_TELEPHONE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("TELEPHONE");
-pub const FACTOID_TIME: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("TIME");
-pub const FACTOID_UPPERCHAR: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("UPPERCHAR");
-pub const FACTOID_WEB: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("WEB");
-pub const FACTOID_WORDLIST: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("WORDLIST");
+pub const FACTOID_BOPOMOFO: windows_sys::core::PCWSTR = windows_sys::core::w!("BOPOMOFO");
+pub const FACTOID_CHINESESIMPLECOMMON: windows_sys::core::PCWSTR = windows_sys::core::w!("CHS_COMMON");
+pub const FACTOID_CHINESETRADITIONALCOMMON: windows_sys::core::PCWSTR = windows_sys::core::w!("CHT_COMMON");
+pub const FACTOID_CURRENCY: windows_sys::core::PCWSTR = windows_sys::core::w!("CURRENCY");
+pub const FACTOID_DATE: windows_sys::core::PCWSTR = windows_sys::core::w!("DATE");
+pub const FACTOID_DEFAULT: windows_sys::core::PCWSTR = windows_sys::core::w!("DEFAULT");
+pub const FACTOID_DIGIT: windows_sys::core::PCWSTR = windows_sys::core::w!("DIGIT");
+pub const FACTOID_EMAIL: windows_sys::core::PCWSTR = windows_sys::core::w!("EMAIL");
+pub const FACTOID_FILENAME: windows_sys::core::PCWSTR = windows_sys::core::w!("FILENAME");
+pub const FACTOID_HANGULCOMMON: windows_sys::core::PCWSTR = windows_sys::core::w!("HANGUL_COMMON");
+pub const FACTOID_HANGULRARE: windows_sys::core::PCWSTR = windows_sys::core::w!("HANGUL_RARE");
+pub const FACTOID_HIRAGANA: windows_sys::core::PCWSTR = windows_sys::core::w!("HIRAGANA");
+pub const FACTOID_JAMO: windows_sys::core::PCWSTR = windows_sys::core::w!("JAMO");
+pub const FACTOID_JAPANESECOMMON: windows_sys::core::PCWSTR = windows_sys::core::w!("JPN_COMMON");
+pub const FACTOID_KANJICOMMON: windows_sys::core::PCWSTR = windows_sys::core::w!("KANJI_COMMON");
+pub const FACTOID_KANJIRARE: windows_sys::core::PCWSTR = windows_sys::core::w!("KANJI_RARE");
+pub const FACTOID_KATAKANA: windows_sys::core::PCWSTR = windows_sys::core::w!("KATAKANA");
+pub const FACTOID_KOREANCOMMON: windows_sys::core::PCWSTR = windows_sys::core::w!("KOR_COMMON");
+pub const FACTOID_LOWERCHAR: windows_sys::core::PCWSTR = windows_sys::core::w!("LOWERCHAR");
+pub const FACTOID_NONE: windows_sys::core::PCWSTR = windows_sys::core::w!("NONE");
+pub const FACTOID_NUMBER: windows_sys::core::PCWSTR = windows_sys::core::w!("NUMBER");
+pub const FACTOID_NUMBERSIMPLE: windows_sys::core::PCWSTR = windows_sys::core::w!("NUMSIMPLE");
+pub const FACTOID_ONECHAR: windows_sys::core::PCWSTR = windows_sys::core::w!("ONECHAR");
+pub const FACTOID_PERCENT: windows_sys::core::PCWSTR = windows_sys::core::w!("PERCENT");
+pub const FACTOID_POSTALCODE: windows_sys::core::PCWSTR = windows_sys::core::w!("POSTALCODE");
+pub const FACTOID_PUNCCHAR: windows_sys::core::PCWSTR = windows_sys::core::w!("PUNCCHAR");
+pub const FACTOID_SYSTEMDICTIONARY: windows_sys::core::PCWSTR = windows_sys::core::w!("SYSDICT");
+pub const FACTOID_TELEPHONE: windows_sys::core::PCWSTR = windows_sys::core::w!("TELEPHONE");
+pub const FACTOID_TIME: windows_sys::core::PCWSTR = windows_sys::core::w!("TIME");
+pub const FACTOID_UPPERCHAR: windows_sys::core::PCWSTR = windows_sys::core::w!("UPPERCHAR");
+pub const FACTOID_WEB: windows_sys::core::PCWSTR = windows_sys::core::w!("WEB");
+pub const FACTOID_WORDLIST: windows_sys::core::PCWSTR = windows_sys::core::w!("WORDLIST");
 pub const FLICKACTION_COMMANDCODE_APPCOMMAND: FLICKACTION_COMMANDCODE = 2i32;
 pub const FLICKACTION_COMMANDCODE_CUSTOMKEY: FLICKACTION_COMMANDCODE = 3i32;
 pub const FLICKACTION_COMMANDCODE_KEYMODIFIER: FLICKACTION_COMMANDCODE = 4i32;
@@ -775,31 +703,29 @@ pub const GESTURE_UP_LEFT: u32 = 61544u32;
 pub const GESTURE_UP_LEFT_LONG: u32 = 61540u32;
 pub const GESTURE_UP_RIGHT: u32 = 61545u32;
 pub const GESTURE_UP_RIGHT_LONG: u32 = 61541u32;
-pub const GUID_DYNAMIC_RENDERER_CACHED_DATA: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbf531b92_25bf_4a95_89ad_0e476b34b4f5);
-pub const GUID_GESTURE_DATA: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x41e4ec0f_26aa_455a_9aa5_2cd36cf63fb9);
-pub const GUID_PACKETPROPERTY_GUID_ALTITUDE_ORIENTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x82dec5c7_f6ba_4906_894f_66d68dfc456c);
-pub const GUID_PACKETPROPERTY_GUID_AZIMUTH_ORIENTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x029123b4_8828_410b_b250_a0536595e5dc);
-pub const GUID_PACKETPROPERTY_GUID_BUTTON_PRESSURE: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8b7fefc4_96aa_4bfe_ac26_8a5f0be07bf5);
-pub const GUID_PACKETPROPERTY_GUID_DEVICE_CONTACT_ID: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x02585b91_049b_4750_9615_df8948ab3c9c);
-pub const GUID_PACKETPROPERTY_GUID_FINGERCONTACTCONFIDENCE: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe706c804_57f0_4f00_8a0c_853d57789be9);
-pub const GUID_PACKETPROPERTY_GUID_HEIGHT: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe61858d2_e447_4218_9d3f_18865c203df4);
-pub const GUID_PACKETPROPERTY_GUID_NORMAL_PRESSURE: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7307502d_f9f4_4e18_b3f2_2ce1b1a3610c);
-pub const GUID_PACKETPROPERTY_GUID_PACKET_STATUS: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6e0e07bf_afe7_4cf7_87d1_af6446208418);
-pub const GUID_PACKETPROPERTY_GUID_PITCH_ROTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x7f7e57b7_be37_4be1_a356_7a84160e1893);
-pub const GUID_PACKETPROPERTY_GUID_ROLL_ROTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x5d5d5e56_6ba9_4c5b_9fb0_851c91714e56);
-pub const GUID_PACKETPROPERTY_GUID_SERIAL_NUMBER: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x78a81b56_0935_4493_baae_00541a8a16c4);
-pub const GUID_PACKETPROPERTY_GUID_TANGENT_PRESSURE: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6da4488b_5244_41ec_905b_32d89ab80809);
-pub const GUID_PACKETPROPERTY_GUID_TIMER_TICK: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x436510c5_fed3_45d1_8b76_71d3ea7a829d);
-pub const GUID_PACKETPROPERTY_GUID_TWIST_ORIENTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x0d324960_13b2_41e4_ace6_7ae9d43d2d3b);
-pub const GUID_PACKETPROPERTY_GUID_WIDTH: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xbaabe94d_2712_48f5_be9d_8f8b5ea0711a);
-pub const GUID_PACKETPROPERTY_GUID_X: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x598a6a8f_52c0_4ba0_93af_af357411a561);
-pub const GUID_PACKETPROPERTY_GUID_X_TILT_ORIENTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xa8d07b3a_8bf0_40b0_95a9_b80a6bb787bf);
-pub const GUID_PACKETPROPERTY_GUID_Y: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xb53f9f75_04e0_4498_a7ee_c30dbb5a9011);
-pub const GUID_PACKETPROPERTY_GUID_YAW_ROTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6a849980_7c3a_45b7_aa82_90a262950e89);
-pub const GUID_PACKETPROPERTY_GUID_Y_TILT_ORIENTATION: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x0e932389_1d77_43af_ac00_5b950d6d4b2d);
-pub const GUID_PACKETPROPERTY_GUID_Z: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x735adb30_0ebb_4788_a0e4_0f316490055d);
-pub const GestureRecognizer: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xea30c654_c62c_441f_ac00_95f9a196782c);
-pub const HandwrittenTextInsertion: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9f074ee2_e6e9_4d8a_a047_eb5b5c3c55da);
+pub const GUID_DYNAMIC_RENDERER_CACHED_DATA: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xbf531b92_25bf_4a95_89ad_0e476b34b4f5);
+pub const GUID_GESTURE_DATA: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x41e4ec0f_26aa_455a_9aa5_2cd36cf63fb9);
+pub const GUID_PACKETPROPERTY_GUID_ALTITUDE_ORIENTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x82dec5c7_f6ba_4906_894f_66d68dfc456c);
+pub const GUID_PACKETPROPERTY_GUID_AZIMUTH_ORIENTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x029123b4_8828_410b_b250_a0536595e5dc);
+pub const GUID_PACKETPROPERTY_GUID_BUTTON_PRESSURE: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x8b7fefc4_96aa_4bfe_ac26_8a5f0be07bf5);
+pub const GUID_PACKETPROPERTY_GUID_DEVICE_CONTACT_ID: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x02585b91_049b_4750_9615_df8948ab3c9c);
+pub const GUID_PACKETPROPERTY_GUID_FINGERCONTACTCONFIDENCE: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xe706c804_57f0_4f00_8a0c_853d57789be9);
+pub const GUID_PACKETPROPERTY_GUID_HEIGHT: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xe61858d2_e447_4218_9d3f_18865c203df4);
+pub const GUID_PACKETPROPERTY_GUID_NORMAL_PRESSURE: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x7307502d_f9f4_4e18_b3f2_2ce1b1a3610c);
+pub const GUID_PACKETPROPERTY_GUID_PACKET_STATUS: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6e0e07bf_afe7_4cf7_87d1_af6446208418);
+pub const GUID_PACKETPROPERTY_GUID_PITCH_ROTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x7f7e57b7_be37_4be1_a356_7a84160e1893);
+pub const GUID_PACKETPROPERTY_GUID_ROLL_ROTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x5d5d5e56_6ba9_4c5b_9fb0_851c91714e56);
+pub const GUID_PACKETPROPERTY_GUID_SERIAL_NUMBER: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x78a81b56_0935_4493_baae_00541a8a16c4);
+pub const GUID_PACKETPROPERTY_GUID_TANGENT_PRESSURE: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6da4488b_5244_41ec_905b_32d89ab80809);
+pub const GUID_PACKETPROPERTY_GUID_TIMER_TICK: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x436510c5_fed3_45d1_8b76_71d3ea7a829d);
+pub const GUID_PACKETPROPERTY_GUID_TWIST_ORIENTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x0d324960_13b2_41e4_ace6_7ae9d43d2d3b);
+pub const GUID_PACKETPROPERTY_GUID_WIDTH: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xbaabe94d_2712_48f5_be9d_8f8b5ea0711a);
+pub const GUID_PACKETPROPERTY_GUID_X: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x598a6a8f_52c0_4ba0_93af_af357411a561);
+pub const GUID_PACKETPROPERTY_GUID_X_TILT_ORIENTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xa8d07b3a_8bf0_40b0_95a9_b80a6bb787bf);
+pub const GUID_PACKETPROPERTY_GUID_Y: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xb53f9f75_04e0_4498_a7ee_c30dbb5a9011);
+pub const GUID_PACKETPROPERTY_GUID_YAW_ROTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6a849980_7c3a_45b7_aa82_90a262950e89);
+pub const GUID_PACKETPROPERTY_GUID_Y_TILT_ORIENTATION: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x0e932389_1d77_43af_ac00_5b950d6d4b2d);
+pub const GUID_PACKETPROPERTY_GUID_Z: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x735adb30_0ebb_4788_a0e4_0f316490055d);
 pub const IAG_AllGestures: InkApplicationGesture = 0i32;
 pub const IAG_ArrowDown: InkApplicationGesture = 61497i32;
 pub const IAG_ArrowLeft: InkApplicationGesture = 61498i32;
@@ -935,17 +861,17 @@ pub const IMP_SizeNS: InkMousePointer = 5i32;
 pub const IMP_SizeNWSE: InkMousePointer = 6i32;
 pub const IMP_SizeWE: InkMousePointer = 7i32;
 pub const IMP_UpArrow: InkMousePointer = 8i32;
-pub const INKEDIT_CLASS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("INKEDIT");
-pub const INKEDIT_CLASSW: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("INKEDIT");
-pub const INKRECOGNITIONPROPERTY_BOXNUMBER: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{2C243E3A-F733-4EB6-B1F8-B5DC5C2C4CDA}");
-pub const INKRECOGNITIONPROPERTY_CONFIDENCELEVEL: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{7DFE11A7-FB5D-4958-8765-154ADF0D833F}");
-pub const INKRECOGNITIONPROPERTY_HOTPOINT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{CA6F40DC-5292-452a-91FB-2181C0BEC0DE}");
-pub const INKRECOGNITIONPROPERTY_LINEMETRICS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{8CC24B27-30A9-4b96-9056-2D3A90DA0727}");
-pub const INKRECOGNITIONPROPERTY_LINENUMBER: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{DBF29F2C-5289-4BE8-B3D8-6EF63246253E}");
-pub const INKRECOGNITIONPROPERTY_MAXIMUMSTROKECOUNT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{BF0EEC4E-4B7D-47a9-8CFA-234DD24BD22A}");
-pub const INKRECOGNITIONPROPERTY_POINTSPERINCH: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{7ED16B76-889C-468e-8276-0021B770187E}");
-pub const INKRECOGNITIONPROPERTY_SEGMENTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{B3C0FE6C-FB51-4164-BA2F-844AF8F983DA}");
-pub const INK_SERIALIZED_FORMAT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("Ink Serialized Format");
+pub const INKEDIT_CLASS: windows_sys::core::PCWSTR = windows_sys::core::w!("INKEDIT");
+pub const INKEDIT_CLASSW: windows_sys::core::PCWSTR = windows_sys::core::w!("INKEDIT");
+pub const INKRECOGNITIONPROPERTY_BOXNUMBER: windows_sys::core::PCWSTR = windows_sys::core::w!("{2C243E3A-F733-4EB6-B1F8-B5DC5C2C4CDA}");
+pub const INKRECOGNITIONPROPERTY_CONFIDENCELEVEL: windows_sys::core::PCWSTR = windows_sys::core::w!("{7DFE11A7-FB5D-4958-8765-154ADF0D833F}");
+pub const INKRECOGNITIONPROPERTY_HOTPOINT: windows_sys::core::PCWSTR = windows_sys::core::w!("{CA6F40DC-5292-452a-91FB-2181C0BEC0DE}");
+pub const INKRECOGNITIONPROPERTY_LINEMETRICS: windows_sys::core::PCWSTR = windows_sys::core::w!("{8CC24B27-30A9-4b96-9056-2D3A90DA0727}");
+pub const INKRECOGNITIONPROPERTY_LINENUMBER: windows_sys::core::PCWSTR = windows_sys::core::w!("{DBF29F2C-5289-4BE8-B3D8-6EF63246253E}");
+pub const INKRECOGNITIONPROPERTY_MAXIMUMSTROKECOUNT: windows_sys::core::PCWSTR = windows_sys::core::w!("{BF0EEC4E-4B7D-47a9-8CFA-234DD24BD22A}");
+pub const INKRECOGNITIONPROPERTY_POINTSPERINCH: windows_sys::core::PCWSTR = windows_sys::core::w!("{7ED16B76-889C-468e-8276-0021B770187E}");
+pub const INKRECOGNITIONPROPERTY_SEGMENTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{B3C0FE6C-FB51-4164-BA2F-844AF8F983DA}");
+pub const INK_SERIALIZED_FORMAT: windows_sys::core::PCWSTR = windows_sys::core::w!("Ink Serialized Format");
 pub const IOAM_Behind: InkOverlayAttachMode = 0i32;
 pub const IOAM_InFront: InkOverlayAttachMode = 1i32;
 pub const IOEM_Delete: InkOverlayEditingMode = 1i32;
@@ -1055,27 +981,10 @@ pub const InPlaceDirection_Top: InPlaceDirection = 2i32;
 pub const InPlaceState_Auto: InPlaceState = 0i32;
 pub const InPlaceState_Expanded: InPlaceState = 2i32;
 pub const InPlaceState_HoverTarget: InPlaceState = 1i32;
-pub const Ink: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x13de4a42_8d21_4c8e_bf9c_8f69cb068fca);
-pub const InkCollector: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x43fb1553_ad74_4ee8_88e4_3e6daac915db);
 pub const InkCollectorClipInkToMargin: i32 = 0i32;
 pub const InkCollectorDefaultMargin: i32 = -2147483648i32;
-pub const InkDisp: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x937c1a34_151d_4610_9ca6_a8cc9bdb5d83);
-pub const InkDivider: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8854f6a0_4683_4ae7_9191_752fe64612c3);
-pub const InkDrawingAttributes: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xd8bf32a2_05a5_44c3_b3aa_5e80ac7d2576);
-pub const InkEdit: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe5ca59f5_57c4_4dd8_9bd6_1deeedd27af4);
 pub const InkMaxTransparencyValue: i32 = 255i32;
 pub const InkMinTransparencyValue: i32 = 0i32;
-pub const InkOverlay: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x65d00646_cde3_4a88_9163_6769f0f1a97d);
-pub const InkPicture: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x04a1e553_fe36_4fde_865e_344194e69424);
-pub const InkRecognizerContext: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xaac46a37_9229_4fc0_8cce_4497569bf4d1);
-pub const InkRecognizerGuide: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x8770d941_a63a_4671_a375_2855a18eba73);
-pub const InkRecognizers: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9fd4e808_f6e6_4e65_98d3_aa39054c1255);
-pub const InkRectangle: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x43b07326_aae0_4b62_a83d_5fd768b7353c);
-pub const InkRenderer: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9c1cc6e4_d7eb_4eeb_9091_15a7c8791ed9);
-pub const InkStrokes: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x48f491bc_240e_4860_b079_a1e94d3d2c86);
-pub const InkTablets: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x6e4fcb12_510a_4d40_9304_1da10ae9147c);
-pub const InkTransform: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe3d5d93c_1663_4a78_a1a7_22375dfebaee);
-pub const InkWordList: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x9de85094_f71f_44f1_8471_15a2fa76fcf3);
 pub const InteractionMode_DockedBottom: InteractionMode = 3i32;
 pub const InteractionMode_DockedTop: InteractionMode = 2i32;
 pub const InteractionMode_Floating: InteractionMode = 1i32;
@@ -1096,11 +1005,11 @@ pub const MAX_LANGUAGES: u32 = 64u32;
 pub const MAX_PACKET_BUTTON_COUNT: u32 = 32u32;
 pub const MAX_PACKET_PROPERTY_COUNT: u32 = 32u32;
 pub const MAX_VENDORNAME: u32 = 32u32;
-pub const MICROSOFT_PENINPUT_PANEL_PROPERTY_T: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("Microsoft PenInputPanel 1.5");
-pub const MICROSOFT_TIP_COMBOBOXLIST_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("Microsoft TIP ComboBox List Window Identifier");
-pub const MICROSOFT_TIP_NO_INSERT_BUTTON_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("Microsoft TIP No Insert Option");
-pub const MICROSOFT_TIP_OPENING_MSG: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("TabletInputPanelOpening");
-pub const MICROSOFT_URL_EXPERIENCE_PROPERTY: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("Microsoft TIP URL Experience");
+pub const MICROSOFT_PENINPUT_PANEL_PROPERTY_T: windows_sys::core::PCWSTR = windows_sys::core::w!("Microsoft PenInputPanel 1.5");
+pub const MICROSOFT_TIP_COMBOBOXLIST_PROPERTY: windows_sys::core::PCWSTR = windows_sys::core::w!("Microsoft TIP ComboBox List Window Identifier");
+pub const MICROSOFT_TIP_NO_INSERT_BUTTON_PROPERTY: windows_sys::core::PCWSTR = windows_sys::core::w!("Microsoft TIP No Insert Option");
+pub const MICROSOFT_TIP_OPENING_MSG: windows_sys::core::PCWSTR = windows_sys::core::w!("TabletInputPanelOpening");
+pub const MICROSOFT_URL_EXPERIENCE_PROPERTY: windows_sys::core::PCWSTR = windows_sys::core::w!("Microsoft TIP URL Experience");
 pub const MICUIELEMENTSTATE_DISABLED: MICUIELEMENTSTATE = 4i32;
 pub const MICUIELEMENTSTATE_HOT: MICUIELEMENTSTATE = 2i32;
 pub const MICUIELEMENTSTATE_NORMAL: MICUIELEMENTSTATE = 1i32;
@@ -1116,7 +1025,6 @@ pub const MICUIELEMENT_BUTTON_WRITE: MICUIELEMENT = 1i32;
 pub const MICUIELEMENT_INKPANEL_BACKGROUND: MICUIELEMENT = 256i32;
 pub const MICUIELEMENT_RESULTPANEL_BACKGROUND: MICUIELEMENT = 512i32;
 pub const MIDDLE_BUTTON: MouseButton = 4i32;
-pub const MathInputControl: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xc561816c_14d8_4090_830c_98d994b21c7b);
 pub const NO_BUTTON: MouseButton = 0i32;
 pub const NUM_FLICK_DIRECTIONS: u32 = 8u32;
 pub const PROPERTY_UNITS_AMPERE: PROPERTY_UNITS = 15i32;
@@ -1144,8 +1052,6 @@ pub const PanelInputArea_Auto: PanelInputArea = 0i32;
 pub const PanelInputArea_CharacterPad: PanelInputArea = 3i32;
 pub const PanelInputArea_Keyboard: PanelInputArea = 1i32;
 pub const PanelInputArea_WritingPad: PanelInputArea = 2i32;
-pub const PenInputPanel: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf744e496_1b5a_489e_81dc_fbd7ac6298a8);
-pub const PenInputPanel_Internal: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x802b1fb9_056b_4720_b0cc_80d23b71171e);
 pub const RECOCONF_HIGHCONFIDENCE: u32 = 1u32;
 pub const RECOCONF_LOWCONFIDENCE: i32 = -1i32;
 pub const RECOCONF_MEDIUMCONFIDENCE: u32 = 0u32;
@@ -1203,7 +1109,6 @@ pub const RTSLT_ExcludeCallback: RealTimeStylusLockType = 8i32;
 pub const RTSLT_ObjLock: RealTimeStylusLockType = 1i32;
 pub const RTSLT_SyncEventLock: RealTimeStylusLockType = 2i32;
 pub const RTSLT_SyncObjLock: RealTimeStylusLockType = 11i32;
-pub const RealTimeStylus: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe26b366d_f998_43ce_836f_cb6d904432b0);
 pub const SAFE_PARTIAL: u32 = 1u32;
 pub const SCROLLDIRECTION_DOWN: SCROLLDIRECTION = 1i32;
 pub const SCROLLDIRECTION_UP: SCROLLDIRECTION = 0i32;
@@ -1217,29 +1122,27 @@ pub const SHR_SE: SelectionHitResult = 2i32;
 pub const SHR_SW: SelectionHitResult = 4i32;
 pub const SHR_Selection: SelectionHitResult = 9i32;
 pub const SHR_W: SelectionHitResult = 6i32;
-pub const STR_GUID_ALTITUDEORIENTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{82DEC5C7-F6BA-4906-894F-66D68DFC456C}");
-pub const STR_GUID_AZIMUTHORIENTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{029123B4-8828-410B-B250-A0536595E5DC}");
-pub const STR_GUID_BUTTONPRESSURE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{8B7FEFC4-96AA-4BFE-AC26-8A5F0BE07BF5}");
-pub const STR_GUID_DEVICE_CONTACT_ID: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{02585B91-049B-4750-9615-DF8948AB3C9C}");
-pub const STR_GUID_FINGERCONTACTCONFIDENCE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{E706C804-57F0-4F00-8A0C-853D57789BE9}");
-pub const STR_GUID_HEIGHT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{E61858D2-E447-4218-9D3F-18865C203DF4}");
-pub const STR_GUID_NORMALPRESSURE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{7307502D-F9F4-4E18-B3F2-2CE1B1A3610C}");
-pub const STR_GUID_PAKETSTATUS: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{6E0E07BF-AFE7-4CF7-87D1-AF6446208418}");
-pub const STR_GUID_PITCHROTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{7F7E57B7-BE37-4BE1-A356-7A84160E1893}");
-pub const STR_GUID_ROLLROTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{5D5D5E56-6BA9-4C5B-9FB0-851C91714E56}");
-pub const STR_GUID_SERIALNUMBER: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{78A81B56-0935-4493-BAAE-00541A8A16C4}");
-pub const STR_GUID_TANGENTPRESSURE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{6DA4488B-5244-41EC-905B-32D89AB80809}");
-pub const STR_GUID_TIMERTICK: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{436510C5-FED3-45D1-8B76-71D3EA7A829D}");
-pub const STR_GUID_TWISTORIENTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{0D324960-13B2-41E4-ACE6-7AE9D43D2D3B}");
-pub const STR_GUID_WIDTH: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{BAABE94D-2712-48F5-BE9D-8F8B5EA0711A}");
-pub const STR_GUID_X: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{598A6A8F-52C0-4BA0-93AF-AF357411A561}");
-pub const STR_GUID_XTILTORIENTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{A8D07B3A-8BF0-40B0-95A9-B80A6BB787BF}");
-pub const STR_GUID_Y: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{B53F9F75-04E0-4498-A7EE-C30DBB5A9011}");
-pub const STR_GUID_YAWROTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{6A849980-7C3A-45B7-AA82-90A262950E89}");
-pub const STR_GUID_YTILTORIENTATION: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{0E932389-1D77-43AF-AC00-5B950D6D4B2D}");
-pub const STR_GUID_Z: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("{735ADB30-0EBB-4788-A0E4-0F316490055D}");
-pub const SketchInk: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf0291081_e87c_4e07_97da_a0a03761e586);
-pub const StrokeBuilder: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xe810cee7_6e51_4cb0_aa3a_0b985b70daf7);
+pub const STR_GUID_ALTITUDEORIENTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{82DEC5C7-F6BA-4906-894F-66D68DFC456C}");
+pub const STR_GUID_AZIMUTHORIENTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{029123B4-8828-410B-B250-A0536595E5DC}");
+pub const STR_GUID_BUTTONPRESSURE: windows_sys::core::PCWSTR = windows_sys::core::w!("{8B7FEFC4-96AA-4BFE-AC26-8A5F0BE07BF5}");
+pub const STR_GUID_DEVICE_CONTACT_ID: windows_sys::core::PCWSTR = windows_sys::core::w!("{02585B91-049B-4750-9615-DF8948AB3C9C}");
+pub const STR_GUID_FINGERCONTACTCONFIDENCE: windows_sys::core::PCWSTR = windows_sys::core::w!("{E706C804-57F0-4F00-8A0C-853D57789BE9}");
+pub const STR_GUID_HEIGHT: windows_sys::core::PCWSTR = windows_sys::core::w!("{E61858D2-E447-4218-9D3F-18865C203DF4}");
+pub const STR_GUID_NORMALPRESSURE: windows_sys::core::PCWSTR = windows_sys::core::w!("{7307502D-F9F4-4E18-B3F2-2CE1B1A3610C}");
+pub const STR_GUID_PAKETSTATUS: windows_sys::core::PCWSTR = windows_sys::core::w!("{6E0E07BF-AFE7-4CF7-87D1-AF6446208418}");
+pub const STR_GUID_PITCHROTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{7F7E57B7-BE37-4BE1-A356-7A84160E1893}");
+pub const STR_GUID_ROLLROTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{5D5D5E56-6BA9-4C5B-9FB0-851C91714E56}");
+pub const STR_GUID_SERIALNUMBER: windows_sys::core::PCWSTR = windows_sys::core::w!("{78A81B56-0935-4493-BAAE-00541A8A16C4}");
+pub const STR_GUID_TANGENTPRESSURE: windows_sys::core::PCWSTR = windows_sys::core::w!("{6DA4488B-5244-41EC-905B-32D89AB80809}");
+pub const STR_GUID_TIMERTICK: windows_sys::core::PCWSTR = windows_sys::core::w!("{436510C5-FED3-45D1-8B76-71D3EA7A829D}");
+pub const STR_GUID_TWISTORIENTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{0D324960-13B2-41E4-ACE6-7AE9D43D2D3B}");
+pub const STR_GUID_WIDTH: windows_sys::core::PCWSTR = windows_sys::core::w!("{BAABE94D-2712-48F5-BE9D-8F8B5EA0711A}");
+pub const STR_GUID_X: windows_sys::core::PCWSTR = windows_sys::core::w!("{598A6A8F-52C0-4BA0-93AF-AF357411A561}");
+pub const STR_GUID_XTILTORIENTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{A8D07B3A-8BF0-40B0-95A9-B80A6BB787BF}");
+pub const STR_GUID_Y: windows_sys::core::PCWSTR = windows_sys::core::w!("{B53F9F75-04E0-4498-A7EE-C30DBB5A9011}");
+pub const STR_GUID_YAWROTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{6A849980-7C3A-45B7-AA82-90A262950E89}");
+pub const STR_GUID_YTILTORIENTATION: windows_sys::core::PCWSTR = windows_sys::core::w!("{0E932389-1D77-43AF-AC00-5B950D6D4B2D}");
+pub const STR_GUID_Z: windows_sys::core::PCWSTR = windows_sys::core::w!("{735ADB30-0EBB-4788-A0E4-0F316490055D}");
 pub const SyncStylusQueue: StylusQueue = 1i32;
 pub const TABLET_DISABLE_FLICKFALLBACKKEYS: u32 = 1048576u32;
 pub const TABLET_DISABLE_FLICKS: u32 = 65536u32;
@@ -1270,8 +1173,6 @@ pub const TPMU_Inches: TabletPropertyMetricUnit = 1i32;
 pub const TPMU_Pounds: TabletPropertyMetricUnit = 6i32;
 pub const TPMU_Radians: TabletPropertyMetricUnit = 4i32;
 pub const TPMU_Seconds: TabletPropertyMetricUnit = 5i32;
-pub const TextInputPanel: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0xf9b189d7_228b_4f2b_8650_b97f59e02c8c);
-pub const TipAutoCompleteClient: ::windows_sys::core::GUID = ::windows_sys::core::GUID::from_u128(0x807c1e6c_1d00_453f_b920_b61bb7cdd997);
 pub const WM_TABLET_ADDED: u32 = 712u32;
 pub const WM_TABLET_DEFBASE: u32 = 704u32;
 pub const WM_TABLET_DELETED: u32 = 713u32;
@@ -1401,115 +1302,68 @@ pub type TabletHardwareCapabilities = i32;
 pub type TabletPropertyMetricUnit = i32;
 pub type VisualState = i32;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct CHARACTER_RANGE {
     pub wcLow: u16,
     pub cChars: u16,
 }
-impl ::core::marker::Copy for CHARACTER_RANGE {}
-impl ::core::clone::Clone for CHARACTER_RANGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DYNAMIC_RENDERER_CACHED_DATA {
     pub strokeId: i32,
-    pub dynamicRenderer: IDynamicRenderer,
+    pub dynamicRenderer: *mut core::ffi::c_void,
 }
-impl ::core::marker::Copy for DYNAMIC_RENDERER_CACHED_DATA {}
-impl ::core::clone::Clone for DYNAMIC_RENDERER_CACHED_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const DynamicRenderer: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xecd32aea_746f_4dcb_bf68_082757faff18);
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct FLICK_DATA {
     pub _bitfield: i32,
 }
-impl ::core::marker::Copy for FLICK_DATA {}
-impl ::core::clone::Clone for FLICK_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct FLICK_POINT {
     pub _bitfield: i32,
 }
-impl ::core::marker::Copy for FLICK_POINT {}
-impl ::core::clone::Clone for FLICK_POINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct GESTURE_DATA {
     pub gestureId: i32,
     pub recoConfidence: i32,
     pub strokeCount: i32,
 }
-impl ::core::marker::Copy for GESTURE_DATA {}
-impl ::core::clone::Clone for GESTURE_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-pub type HRECOALT = isize;
-pub type HRECOCONTEXT = isize;
-pub type HRECOGNIZER = isize;
-pub type HRECOLATTICE = isize;
-pub type HRECOWORDLIST = isize;
+pub const GestureRecognizer: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xea30c654_c62c_441f_ac00_95f9a196782c);
+pub type HRECOALT = *mut core::ffi::c_void;
+pub type HRECOCONTEXT = *mut core::ffi::c_void;
+pub type HRECOGNIZER = *mut core::ffi::c_void;
+pub type HRECOLATTICE = *mut core::ffi::c_void;
+pub type HRECOWORDLIST = *mut core::ffi::c_void;
+pub const HandwrittenTextInsertion: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x9f074ee2_e6e9_4d8a_a047_eb5b5c3c55da);
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"Win32_UI_Controls\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant", feature = "Win32_UI_Controls"))]
+#[cfg(all(feature = "Win32_System_Com", feature = "Win32_System_Variant", feature = "Win32_UI_Controls"))]
+#[derive(Clone, Copy)]
 pub struct IEC_GESTUREINFO {
     pub nmhdr: super::Controls::NMHDR,
-    pub Cursor: IInkCursor,
-    pub Strokes: IInkStrokes,
+    pub Cursor: *mut core::ffi::c_void,
+    pub Strokes: *mut core::ffi::c_void,
     pub Gestures: super::super::System::Variant::VARIANT,
 }
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant", feature = "Win32_UI_Controls"))]
-impl ::core::marker::Copy for IEC_GESTUREINFO {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant", feature = "Win32_UI_Controls"))]
-impl ::core::clone::Clone for IEC_GESTUREINFO {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_UI_Controls\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_UI_Controls"))]
+#[cfg(feature = "Win32_UI_Controls")]
+#[derive(Clone, Copy)]
 pub struct IEC_RECOGNITIONRESULTINFO {
     pub nmhdr: super::Controls::NMHDR,
-    pub RecognitionResult: IInkRecognitionResult,
-}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_UI_Controls"))]
-impl ::core::marker::Copy for IEC_RECOGNITIONRESULTINFO {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_UI_Controls"))]
-impl ::core::clone::Clone for IEC_RECOGNITIONRESULTINFO {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub RecognitionResult: *mut core::ffi::c_void,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_UI_Controls\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_UI_Controls"))]
+#[cfg(feature = "Win32_UI_Controls")]
+#[derive(Clone, Copy)]
 pub struct IEC_STROKEINFO {
     pub nmhdr: super::Controls::NMHDR,
-    pub Cursor: IInkCursor,
-    pub Stroke: IInkStrokeDisp,
-}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_UI_Controls"))]
-impl ::core::marker::Copy for IEC_STROKEINFO {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_UI_Controls"))]
-impl ::core::clone::Clone for IEC_STROKEINFO {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub Cursor: *mut core::ffi::c_void,
+    pub Stroke: *mut core::ffi::c_void,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct INKMETRIC {
     pub iHeight: i32,
     pub iFontAscent: i32,
@@ -1517,17 +1371,16 @@ pub struct INKMETRIC {
     pub dwFlags: u32,
     pub color: super::super::Foundation::COLORREF,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for INKMETRIC {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for INKMETRIC {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const Ink: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x13de4a42_8d21_4c8e_bf9c_8f69cb068fca);
+pub const InkCollector: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x43fb1553_ad74_4ee8_88e4_3e6daac915db);
+pub const InkDisp: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x937c1a34_151d_4610_9ca6_a8cc9bdb5d83);
+pub const InkDivider: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x8854f6a0_4683_4ae7_9191_752fe64612c3);
+pub const InkDrawingAttributes: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xd8bf32a2_05a5_44c3_b3aa_5e80ac7d2576);
+pub const InkEdit: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xe5ca59f5_57c4_4dd8_9bd6_1deeedd27af4);
+pub const InkOverlay: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x65d00646_cde3_4a88_9163_6769f0f1a97d);
+pub const InkPicture: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x04a1e553_fe36_4fde_865e_344194e69424);
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct InkRecoGuide {
     pub rectWritingBox: super::super::Foundation::RECT,
     pub rectDrawnBox: super::super::Foundation::RECT,
@@ -1535,96 +1388,63 @@ pub struct InkRecoGuide {
     pub cColumns: i32,
     pub midline: i32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for InkRecoGuide {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for InkRecoGuide {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const InkRecognizerContext: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xaac46a37_9229_4fc0_8cce_4497569bf4d1);
+pub const InkRecognizerGuide: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x8770d941_a63a_4671_a375_2855a18eba73);
+pub const InkRecognizers: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x9fd4e808_f6e6_4e65_98d3_aa39054c1255);
+pub const InkRectangle: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x43b07326_aae0_4b62_a83d_5fd768b7353c);
+pub const InkRenderer: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x9c1cc6e4_d7eb_4eeb_9091_15a7c8791ed9);
+pub const InkStrokes: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x48f491bc_240e_4860_b079_a1e94d3d2c86);
+pub const InkTablets: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x6e4fcb12_510a_4d40_9304_1da10ae9147c);
+pub const InkTransform: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xe3d5d93c_1663_4a78_a1a7_22375dfebaee);
+pub const InkWordList: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x9de85094_f71f_44f1_8471_15a2fa76fcf3);
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct LATTICE_METRICS {
     pub lsBaseline: LINE_SEGMENT,
     pub iMidlineOffset: i16,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for LATTICE_METRICS {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for LATTICE_METRICS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct LINE_SEGMENT {
     pub PtA: super::super::Foundation::POINT,
     pub PtB: super::super::Foundation::POINT,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for LINE_SEGMENT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for LINE_SEGMENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const MathInputControl: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xc561816c_14d8_4090_830c_98d994b21c7b);
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PACKET_DESCRIPTION {
     pub cbPacketSize: u32,
     pub cPacketProperties: u32,
     pub pPacketProperties: *mut PACKET_PROPERTY,
     pub cButtons: u32,
-    pub pguidButtons: *mut ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for PACKET_DESCRIPTION {}
-impl ::core::clone::Clone for PACKET_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pguidButtons: *mut windows_sys::core::GUID,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PACKET_PROPERTY {
-    pub guid: ::windows_sys::core::GUID,
+    pub guid: windows_sys::core::GUID,
     pub PropertyMetrics: PROPERTY_METRICS,
 }
-impl ::core::marker::Copy for PACKET_PROPERTY {}
-impl ::core::clone::Clone for PACKET_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PROPERTY_METRICS {
     pub nLogicalMin: i32,
     pub nLogicalMax: i32,
     pub Units: PROPERTY_UNITS,
     pub fResolution: f32,
 }
-impl ::core::marker::Copy for PROPERTY_METRICS {}
-impl ::core::clone::Clone for PROPERTY_METRICS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const PenInputPanel: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xf744e496_1b5a_489e_81dc_fbd7ac6298a8);
+pub const PenInputPanel_Internal: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x802b1fb9_056b_4720_b0cc_80d23b71171e);
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_ATTRS {
     pub dwRecoCapabilityFlags: u32,
     pub awcVendorName: [u16; 32],
     pub awcFriendlyName: [u16; 64],
     pub awLanguageId: [u16; 64],
 }
-impl ::core::marker::Copy for RECO_ATTRS {}
-impl ::core::clone::Clone for RECO_ATTRS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_GUIDE {
     pub xOrigin: i32,
     pub yOrigin: i32,
@@ -1636,29 +1456,19 @@ pub struct RECO_GUIDE {
     pub cVertBox: i32,
     pub cyMid: i32,
 }
-impl ::core::marker::Copy for RECO_GUIDE {}
-impl ::core::clone::Clone for RECO_GUIDE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_LATTICE {
     pub ulColumnCount: u32,
     pub pLatticeColumns: *mut RECO_LATTICE_COLUMN,
     pub ulPropertyCount: u32,
-    pub pGuidProperties: *mut ::windows_sys::core::GUID,
+    pub pGuidProperties: *mut windows_sys::core::GUID,
     pub ulBestResultColumnCount: u32,
     pub pulBestResultColumns: *mut u32,
     pub pulBestResultIndexes: *mut u32,
 }
-impl ::core::marker::Copy for RECO_LATTICE {}
-impl ::core::clone::Clone for RECO_LATTICE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_LATTICE_COLUMN {
     pub key: u32,
     pub cpProp: RECO_LATTICE_PROPERTIES,
@@ -1667,13 +1477,8 @@ pub struct RECO_LATTICE_COLUMN {
     pub cLatticeElements: u32,
     pub pLatticeElements: *mut RECO_LATTICE_ELEMENT,
 }
-impl ::core::marker::Copy for RECO_LATTICE_COLUMN {}
-impl ::core::clone::Clone for RECO_LATTICE_COLUMN {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_LATTICE_ELEMENT {
     pub score: i32,
     pub r#type: u16,
@@ -1682,58 +1487,34 @@ pub struct RECO_LATTICE_ELEMENT {
     pub ulStrokeNumber: u32,
     pub epProp: RECO_LATTICE_PROPERTIES,
 }
-impl ::core::marker::Copy for RECO_LATTICE_ELEMENT {}
-impl ::core::clone::Clone for RECO_LATTICE_ELEMENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_LATTICE_PROPERTIES {
     pub cProperties: u32,
     pub apProps: *mut *mut RECO_LATTICE_PROPERTY,
 }
-impl ::core::marker::Copy for RECO_LATTICE_PROPERTIES {}
-impl ::core::clone::Clone for RECO_LATTICE_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_LATTICE_PROPERTY {
-    pub guidProperty: ::windows_sys::core::GUID,
+    pub guidProperty: windows_sys::core::GUID,
     pub cbPropertyValue: u16,
     pub pPropertyValue: *mut u8,
 }
-impl ::core::marker::Copy for RECO_LATTICE_PROPERTY {}
-impl ::core::clone::Clone for RECO_LATTICE_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct RECO_RANGE {
     pub iwcBegin: u32,
     pub cCount: u32,
 }
-impl ::core::marker::Copy for RECO_RANGE {}
-impl ::core::clone::Clone for RECO_RANGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const RealTimeStylus: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xe26b366d_f998_43ce_836f_cb6d904432b0);
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct STROKE_RANGE {
     pub iStrokeBegin: u32,
     pub iStrokeEnd: u32,
 }
-impl ::core::marker::Copy for STROKE_RANGE {}
-impl ::core::clone::Clone for STROKE_RANGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SYSTEM_EVENT_DATA {
     pub bModifier: u8,
     pub wKey: u16,
@@ -1742,26 +1523,15 @@ pub struct SYSTEM_EVENT_DATA {
     pub bCursorMode: u8,
     pub dwButtonState: u32,
 }
-impl ::core::marker::Copy for SYSTEM_EVENT_DATA {}
-impl ::core::clone::Clone for SYSTEM_EVENT_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
+pub const SketchInk: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xf0291081_e87c_4e07_97da_a0a03761e586);
+pub const StrokeBuilder: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xe810cee7_6e51_4cb0_aa3a_0b985b70daf7);
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct StylusInfo {
     pub tcid: u32,
     pub cid: u32,
     pub bIsInvertedCursor: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for StylusInfo {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for StylusInfo {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-pub type PfnRecoCallback = ::core::option::Option<unsafe extern "system" fn(param0: u32, param1: *mut u8, param2: HRECOCONTEXT) -> ::windows_sys::core::HRESULT>;
+pub const TextInputPanel: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0xf9b189d7_228b_4f2b_8650_b97f59e02c8c);
+pub const TipAutoCompleteClient: windows_sys::core::GUID = windows_sys::core::GUID::from_u128(0x807c1e6c_1d00_453f_b920_b61bb7cdd997);
+pub type PfnRecoCallback = Option<unsafe extern "system" fn(param0: u32, param1: *mut u8, param2: HRECOCONTEXT) -> windows_sys::core::HRESULT>;

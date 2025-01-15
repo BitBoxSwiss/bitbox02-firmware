@@ -9,16 +9,13 @@
 # will likely look very different (and much more reasonable).
 # See Cargo.toml.orig for the original contents.
 
-bin = []
-example = []
-bench = []
-
 [package]
 edition = "2021"
 name = "bip32-ed25519"
 version = "0.2.0"
 authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

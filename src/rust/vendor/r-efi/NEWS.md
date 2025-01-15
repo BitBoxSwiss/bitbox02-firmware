@@ -1,5 +1,19 @@
 # r-efi - UEFI Reference Specification Protocol Constants and Definitions
 
+## CHANGES WITH 4.5.0:
+
+        * Implement or derive more standard traits for UEFI base types. In
+          particular, implement `[Partial]Eq`, `Hash`, `[Partial]Ord` for
+          `Boolean`, `Status`, `Guid`, and network address types.
+
+        * Fix the signature of `BootUninstallMultipleProtocolInterfaces` to
+          match the UEFI specification. Note that it uses var-args and is thus
+          not fully usable from stable Rust.
+
+        Contributions from: Ayush Singh, David Rheinsberg, John Schock
+
+        - Dußlingen, 2024-05-23
+
 ## CHANGES WITH 4.4.0:
 
         * Add definitions for `UNACCEPTED_MEMORY_TYPE`, media device subtypes

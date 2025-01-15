@@ -27,11 +27,11 @@ pub fn sqrtf(x: f32) -> f32 {
             }
         }
     }
-    #[cfg(target_feature = "sse")]
+    #[cfg(all(target_feature = "sse", not(feature = "force-soft-floats")))]
     {
         // Note: This path is unlikely since LLVM will usually have already
         // optimized sqrt calls into hardware instructions if sse is available,
-        // but if someone does end up here they'll apprected the speed increase.
+        // but if someone does end up here they'll appreciate the speed increase.
         #[cfg(target_arch = "x86")]
         use core::arch::x86::*;
         #[cfg(target_arch = "x86_64")]
@@ -42,7 +42,7 @@ pub fn sqrtf(x: f32) -> f32 {
             _mm_cvtss_f32(m_sqrt)
         }
     }
-    #[cfg(not(target_feature = "sse"))]
+    #[cfg(any(not(target_feature = "sse"), feature = "force-soft-floats"))]
     {
         const TINY: f32 = 1.0e-30;
 

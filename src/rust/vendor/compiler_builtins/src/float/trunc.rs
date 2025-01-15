@@ -1,5 +1,5 @@
 use crate::float::Float;
-use crate::int::{CastInto, Int};
+use crate::int::{CastInto, Int, MinInt};
 
 fn trunc<F: Float, R: Float>(a: F) -> R
 where
@@ -7,7 +7,6 @@ where
     F::Int: CastInto<u32>,
     u64: CastInto<F::Int>,
     u32: CastInto<F::Int>,
-
     R::Int: CastInto<u32>,
     u32: CastInto<R::Int>,
     F::Int: CastInto<R::Int>,
@@ -43,8 +42,8 @@ where
 
     let sign_bits_delta = F::SIGNIFICAND_BITS - R::SIGNIFICAND_BITS;
     // Break a into a sign and representation of the absolute value.
-    let a_abs = a.repr() & src_abs_mask;
-    let sign = a.repr() & src_sign_mask;
+    let a_abs = a.to_bits() & src_abs_mask;
+    let sign = a.to_bits() & src_sign_mask;
     let mut abs_result: R::Int;
 
     if a_abs.wrapping_sub(underflow) < a_abs.wrapping_sub(overflow) {
@@ -52,8 +51,10 @@ where
         // destination format.  We can convert by simply right-shifting with
         // rounding and adjusting the exponent.
         abs_result = (a_abs >> sign_bits_delta).cast();
-        let tmp = src_exp_bias.wrapping_sub(dst_exp_bias) << R::SIGNIFICAND_BITS;
-        abs_result = abs_result.wrapping_sub(tmp.cast());
+        // Cast before shifting to prevent overflow.
+        let bias_diff: R::Int = src_exp_bias.wrapping_sub(dst_exp_bias).cast();
+        let tmp = bias_diff << R::SIGNIFICAND_BITS;
+        abs_result = abs_result.wrapping_sub(tmp);
 
         let round_bits = a_abs & round_mask;
         if round_bits > halfway {
@@ -67,13 +68,17 @@ where
         // a is NaN.
         // Conjure the result by beginning with infinity, setting the qNaN
         // bit and inserting the (truncated) trailing NaN field.
-        abs_result = (dst_inf_exp << R::SIGNIFICAND_BITS).cast();
+        // Cast before shifting to prevent overflow.
+        let dst_inf_exp: R::Int = dst_inf_exp.cast();
+        abs_result = dst_inf_exp << R::SIGNIFICAND_BITS;
         abs_result |= dst_qnan;
         abs_result |= dst_nan_code
             & ((a_abs & src_nan_code) >> (F::SIGNIFICAND_BITS - R::SIGNIFICAND_BITS)).cast();
     } else if a_abs >= overflow {
         // a overflows to infinity.
-        abs_result = (dst_inf_exp << R::SIGNIFICAND_BITS).cast();
+        // Cast before shifting to prevent overflow.
+        let dst_inf_exp: R::Int = dst_inf_exp.cast();
+        abs_result = dst_inf_exp << R::SIGNIFICAND_BITS;
     } else {
         // a underflows on conversion to the destination type or is an exact
         // zero.  The result may be a denormal or zero.  Extract the exponent
@@ -81,7 +86,7 @@ where
         let a_exp: u32 = (a_abs >> F::SIGNIFICAND_BITS).cast();
         let shift = src_exp_bias - dst_exp_bias - a_exp + 1;
 
-        let significand = (a.repr() & src_significand_mask) | src_min_normal;
+        let significand = (a.to_bits() & src_significand_mask) | src_min_normal;
 
         // Right shift by the denormalization amount with sticky.
         if shift > F::SIGNIFICAND_BITS {
@@ -108,7 +113,7 @@ where
     }
 
     // Apply the signbit to the absolute value.
-    R::from_repr(abs_result | sign.wrapping_shr(src_bits - dst_bits).cast())
+    R::from_bits(abs_result | sign.wrapping_shr(src_bits - dst_bits).cast())
 }
 
 intrinsics! {
@@ -118,9 +123,56 @@ intrinsics! {
     pub extern "C" fn __truncdfsf2(a: f64) -> f32 {
         trunc(a)
     }
+}
 
-    #[cfg(target_arch = "arm")]
-    pub extern "C" fn __truncdfsf2vfp(a: f64) -> f32 {
-        a as f32
+intrinsics! {
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[apple_f16_ret_abi]
+    #[arm_aeabi_alias = __aeabi_f2h]
+    #[cfg(f16_enabled)]
+    pub extern "C" fn __truncsfhf2(a: f32) -> f16 {
+        trunc(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[apple_f16_ret_abi]
+    #[cfg(f16_enabled)]
+    pub extern "C" fn __gnu_f2h_ieee(a: f32) -> f16 {
+        trunc(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[apple_f16_ret_abi]
+    #[arm_aeabi_alias = __aeabi_d2h]
+    #[cfg(f16_enabled)]
+    pub extern "C" fn __truncdfhf2(a: f64) -> f16 {
+        trunc(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[ppc_alias = __trunckfhf2]
+    #[cfg(all(f16_enabled, f128_enabled))]
+    pub extern "C" fn __trunctfhf2(a: f128) -> f16 {
+        trunc(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[ppc_alias = __trunckfsf2]
+    #[cfg(f128_enabled)]
+    pub extern "C" fn __trunctfsf2(a: f128) -> f32 {
+        trunc(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[ppc_alias = __trunckfdf2]
+    #[cfg(f128_enabled)]
+    pub extern "C" fn __trunctfdf2(a: f128) -> f64 {
+        trunc(a)
     }
 }

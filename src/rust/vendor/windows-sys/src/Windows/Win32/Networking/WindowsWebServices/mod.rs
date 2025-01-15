@@ -1,296 +1,257 @@
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webauthn.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WebAuthNAuthenticatorGetAssertion(hwnd : super::super::Foundation:: HWND, pwszrpid : ::windows_sys::core::PCWSTR, pwebauthnclientdata : *const WEBAUTHN_CLIENT_DATA, pwebauthngetassertionoptions : *const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS, ppwebauthnassertion : *mut *mut WEBAUTHN_ASSERTION) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webauthn.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WebAuthNAuthenticatorMakeCredential(hwnd : super::super::Foundation:: HWND, prpinformation : *const WEBAUTHN_RP_ENTITY_INFORMATION, puserinformation : *const WEBAUTHN_USER_ENTITY_INFORMATION, ppubkeycredparams : *const WEBAUTHN_COSE_CREDENTIAL_PARAMETERS, pwebauthnclientdata : *const WEBAUTHN_CLIENT_DATA, pwebauthnmakecredentialoptions : *const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS, ppwebauthncredentialattestation : *mut *mut WEBAUTHN_CREDENTIAL_ATTESTATION) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webauthn.dll" "system" fn WebAuthNCancelCurrentOperation(pcancellationid : *const ::windows_sys::core::GUID) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webauthn.dll" "system" fn WebAuthNDeletePlatformCredential(cbcredentialid : u32, pbcredentialid : *const u8) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webauthn.dll" "system" fn WebAuthNFreeAssertion(pwebauthnassertion : *const WEBAUTHN_ASSERTION) -> ());
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webauthn.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WebAuthNFreeCredentialAttestation(pwebauthncredentialattestation : *const WEBAUTHN_CREDENTIAL_ATTESTATION) -> ());
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webauthn.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WebAuthNFreePlatformCredentialList(pcredentialdetailslist : *const WEBAUTHN_CREDENTIAL_DETAILS_LIST) -> ());
-::windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetApiVersionNumber() -> u32);
-::windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetCancellationId(pcancellationid : *mut ::windows_sys::core::GUID) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetErrorName(hr : ::windows_sys::core::HRESULT) -> ::windows_sys::core::PCWSTR);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webauthn.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WebAuthNGetPlatformCredentialList(pgetcredentialsoptions : *const WEBAUTHN_GET_CREDENTIALS_OPTIONS, ppcredentialdetailslist : *mut *mut WEBAUTHN_CREDENTIAL_DETAILS_LIST) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetW3CExceptionDOMError(hr : ::windows_sys::core::HRESULT) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webauthn.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable(pbisuserverifyingplatformauthenticatoravailable : *mut super::super::Foundation:: BOOL) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAbandonCall(serviceproxy : *const WS_SERVICE_PROXY, callid : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAbandonMessage(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAbortChannel(channel : *const WS_CHANNEL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAbortListener(listener : *const WS_LISTENER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAbortServiceHost(servicehost : *const WS_SERVICE_HOST, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAbortServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAcceptChannel(listener : *const WS_LISTENER, channel : *const WS_CHANNEL, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsAddCustomHeader(message : *const WS_MESSAGE, headerdescription : *const WS_ELEMENT_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32, headerattributes : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAddErrorString(error : *const WS_ERROR, string : *const WS_STRING) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsAddMappedHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, valuetype : WS_TYPE, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAddressMessage(message : *const WS_MESSAGE, address : *const WS_ENDPOINT_ADDRESS, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAlloc(heap : *const WS_HEAP, size : usize, ptr : *mut *mut ::core::ffi::c_void, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsAsyncExecute(asyncstate : *const WS_ASYNC_STATE, operation : WS_ASYNC_FUNCTION, callbackmodel : WS_CALLBACK_MODEL, callbackstate : *const ::core::ffi::c_void, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsCall(serviceproxy : *const WS_SERVICE_PROXY, operation : *const WS_OPERATION_DESCRIPTION, arguments : *const *const ::core::ffi::c_void, heap : *const WS_HEAP, callproperties : *const WS_CALL_PROPERTY, callpropertycount : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCheckMustUnderstandHeaders(message : *const WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCloseChannel(channel : *const WS_CHANNEL, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCloseListener(listener : *const WS_LISTENER, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCloseServiceHost(servicehost : *const WS_SERVICE_HOST, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCloseServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCombineUrl(baseurl : *const WS_STRING, referenceurl : *const WS_STRING, flags : u32, heap : *const WS_HEAP, resulturl : *mut WS_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCopyError(source : *const WS_ERROR, destination : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCopyNode(writer : *const WS_XML_WRITER, reader : *const WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateChannel(channeltype : WS_CHANNEL_TYPE, channelbinding : WS_CHANNEL_BINDING, properties : *const WS_CHANNEL_PROPERTY, propertycount : u32, securitydescription : *const WS_SECURITY_DESCRIPTION, channel : *mut *mut WS_CHANNEL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateChannelForListener(listener : *const WS_LISTENER, properties : *const WS_CHANNEL_PROPERTY, propertycount : u32, channel : *mut *mut WS_CHANNEL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateError(properties : *const WS_ERROR_PROPERTY, propertycount : u32, error : *mut *mut WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsCreateFaultFromError(error : *const WS_ERROR, faulterrorcode : ::windows_sys::core::HRESULT, faultdisclosure : WS_FAULT_DISCLOSURE, heap : *const WS_HEAP, fault : *mut WS_FAULT) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateHeap(maxsize : usize, trimsize : usize, properties : *const WS_HEAP_PROPERTY, propertycount : u32, heap : *mut *mut WS_HEAP, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateListener(channeltype : WS_CHANNEL_TYPE, channelbinding : WS_CHANNEL_BINDING, properties : *const WS_LISTENER_PROPERTY, propertycount : u32, securitydescription : *const WS_SECURITY_DESCRIPTION, listener : *mut *mut WS_LISTENER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateMessage(envelopeversion : WS_ENVELOPE_VERSION, addressingversion : WS_ADDRESSING_VERSION, properties : *const WS_MESSAGE_PROPERTY, propertycount : u32, message : *mut *mut WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateMessageForChannel(channel : *const WS_CHANNEL, properties : *const WS_MESSAGE_PROPERTY, propertycount : u32, message : *mut *mut WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateMetadata(properties : *const WS_METADATA_PROPERTY, propertycount : u32, metadata : *mut *mut WS_METADATA, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateReader(properties : *const WS_XML_READER_PROPERTY, propertycount : u32, reader : *mut *mut WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsCreateServiceEndpointFromTemplate(channeltype : WS_CHANNEL_TYPE, properties : *const WS_SERVICE_ENDPOINT_PROPERTY, propertycount : u32, addressurl : *const WS_STRING, contract : *const WS_SERVICE_CONTRACT, authorizationcallback : WS_SERVICE_SECURITY_CALLBACK, heap : *const WS_HEAP, templatetype : WS_BINDING_TEMPLATE_TYPE, templatevalue : *const ::core::ffi::c_void, templatesize : u32, templatedescription : *const ::core::ffi::c_void, templatedescriptionsize : u32, serviceendpoint : *mut *mut WS_SERVICE_ENDPOINT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsCreateServiceHost(endpoints : *const *const WS_SERVICE_ENDPOINT, endpointcount : u16, serviceproperties : *const WS_SERVICE_PROPERTY, servicepropertycount : u32, servicehost : *mut *mut WS_SERVICE_HOST, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateServiceProxy(channeltype : WS_CHANNEL_TYPE, channelbinding : WS_CHANNEL_BINDING, securitydescription : *const WS_SECURITY_DESCRIPTION, properties : *const WS_PROXY_PROPERTY, propertycount : u32, channelproperties : *const WS_CHANNEL_PROPERTY, channelpropertycount : u32, serviceproxy : *mut *mut WS_SERVICE_PROXY, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateServiceProxyFromTemplate(channeltype : WS_CHANNEL_TYPE, properties : *const WS_PROXY_PROPERTY, propertycount : u32, templatetype : WS_BINDING_TEMPLATE_TYPE, templatevalue : *const ::core::ffi::c_void, templatesize : u32, templatedescription : *const ::core::ffi::c_void, templatedescriptionsize : u32, serviceproxy : *mut *mut WS_SERVICE_PROXY, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateWriter(properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, writer : *mut *mut WS_XML_WRITER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateXmlBuffer(heap : *const WS_HEAP, properties : *const WS_XML_BUFFER_PROPERTY, propertycount : u32, buffer : *mut *mut WS_XML_BUFFER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsCreateXmlSecurityToken(tokenxml : *const WS_XML_BUFFER, tokenkey : *const WS_SECURITY_KEY_HANDLE, properties : *const WS_XML_SECURITY_TOKEN_PROPERTY, propertycount : u32, token : *mut *mut WS_SECURITY_TOKEN, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsDateTimeToFileTime(datetime : *const WS_DATETIME, filetime : *mut super::super::Foundation:: FILETIME, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsDecodeUrl(url : *const WS_STRING, flags : u32, heap : *const WS_HEAP, outurl : *mut *mut WS_URL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsEncodeUrl(url : *const WS_URL, flags : u32, heap : *const WS_HEAP, outurl : *mut WS_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsEndReaderCanonicalization(reader : *const WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsEndWriterCanonicalization(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsFileTimeToDateTime(filetime : *const super::super::Foundation:: FILETIME, datetime : *mut WS_DATETIME, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsFillBody(message : *const WS_MESSAGE, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsFillReader(reader : *const WS_XML_READER, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsFindAttribute(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, required : super::super::Foundation:: BOOL, attributeindex : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsFlushBody(message : *const WS_MESSAGE, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsFlushWriter(writer : *const WS_XML_WRITER, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsFreeChannel(channel : *const WS_CHANNEL) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeError(error : *const WS_ERROR) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeHeap(heap : *const WS_HEAP) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeListener(listener : *const WS_LISTENER) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeMessage(message : *const WS_MESSAGE) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeMetadata(metadata : *const WS_METADATA) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeReader(reader : *const WS_XML_READER) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeSecurityToken(token : *const WS_SECURITY_TOKEN) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeServiceHost(servicehost : *const WS_SERVICE_HOST) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeServiceProxy(serviceproxy : *const WS_SERVICE_PROXY) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsFreeWriter(writer : *const WS_XML_WRITER) -> ());
-::windows_targets::link!("webservices.dll" "system" fn WsGetChannelProperty(channel : *const WS_CHANNEL, id : WS_CHANNEL_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetCustomHeader(message : *const WS_MESSAGE, customheaderdescription : *const WS_ELEMENT_DESCRIPTION, repeatingoption : WS_REPEATING_HEADER_OPTION, headerindex : u32, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, headerattributes : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetDictionary(encoding : WS_ENCODING, dictionary : *mut *mut WS_XML_DICTIONARY, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetErrorProperty(error : *const WS_ERROR, id : WS_ERROR_PROPERTY_ID, buffer : *mut ::core::ffi::c_void, buffersize : u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetErrorString(error : *const WS_ERROR, index : u32, string : *mut WS_STRING) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetFaultErrorDetail(error : *const WS_ERROR, faultdetaildescription : *const WS_FAULT_DETAIL_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetFaultErrorProperty(error : *const WS_ERROR, id : WS_FAULT_ERROR_PROPERTY_ID, buffer : *mut ::core::ffi::c_void, buffersize : u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetHeader(message : *const WS_MESSAGE, headertype : WS_HEADER_TYPE, valuetype : WS_TYPE, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetHeaderAttributes(message : *const WS_MESSAGE, reader : *const WS_XML_READER, headerattributes : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetHeapProperty(heap : *const WS_HEAP, id : WS_HEAP_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetListenerProperty(listener : *const WS_LISTENER, id : WS_LISTENER_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetMappedHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, repeatingoption : WS_REPEATING_HEADER_OPTION, headerindex : u32, valuetype : WS_TYPE, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetMessageProperty(message : *const WS_MESSAGE, id : WS_MESSAGE_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetMetadataEndpoints(metadata : *const WS_METADATA, endpoints : *mut WS_METADATA_ENDPOINTS, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetMetadataProperty(metadata : *const WS_METADATA, id : WS_METADATA_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetMissingMetadataDocumentAddress(metadata : *const WS_METADATA, address : *mut *mut WS_ENDPOINT_ADDRESS, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetNamespaceFromPrefix(reader : *const WS_XML_READER, prefix : *const WS_XML_STRING, required : super::super::Foundation:: BOOL, ns : *mut *mut WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetOperationContextProperty(context : *const WS_OPERATION_CONTEXT, id : WS_OPERATION_CONTEXT_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetPolicyAlternativeCount(policy : *const WS_POLICY, count : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetPolicyProperty(policy : *const WS_POLICY, id : WS_POLICY_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetPrefixFromNamespace(writer : *const WS_XML_WRITER, ns : *const WS_XML_STRING, required : super::super::Foundation:: BOOL, prefix : *mut *mut WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetReaderNode(xmlreader : *const WS_XML_READER, node : *mut *mut WS_XML_NODE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetReaderPosition(reader : *const WS_XML_READER, nodeposition : *mut WS_XML_NODE_POSITION, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetReaderProperty(reader : *const WS_XML_READER, id : WS_XML_READER_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetSecurityContextProperty(securitycontext : *const WS_SECURITY_CONTEXT, id : WS_SECURITY_CONTEXT_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetSecurityTokenProperty(securitytoken : *const WS_SECURITY_TOKEN, id : WS_SECURITY_TOKEN_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, heap : *const WS_HEAP, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetServiceHostProperty(servicehost : *const WS_SERVICE_HOST, id : WS_SERVICE_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetServiceProxyProperty(serviceproxy : *const WS_SERVICE_PROXY, id : WS_PROXY_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetWriterPosition(writer : *const WS_XML_WRITER, nodeposition : *mut WS_XML_NODE_POSITION, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsGetWriterProperty(writer : *const WS_XML_WRITER, id : WS_XML_WRITER_PROPERTY_ID, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsGetXmlAttribute(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, heap : *const WS_HEAP, valuechars : *mut *mut u16, valuecharcount : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsInitializeMessage(message : *const WS_MESSAGE, initialization : WS_MESSAGE_INITIALIZATION, sourcemessage : *const WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsMarkHeaderAsUnderstood(message : *const WS_MESSAGE, headerposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsMatchPolicyAlternative(policy : *const WS_POLICY, alternativeindex : u32, policyconstraints : *const WS_POLICY_CONSTRAINTS, matchrequired : super::super::Foundation:: BOOL, heap : *const WS_HEAP, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsMoveReader(reader : *const WS_XML_READER, moveto : WS_MOVE_TO, found : *mut super::super::Foundation:: BOOL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsMoveWriter(writer : *const WS_XML_WRITER, moveto : WS_MOVE_TO, found : *mut super::super::Foundation:: BOOL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsOpenChannel(channel : *const WS_CHANNEL, endpointaddress : *const WS_ENDPOINT_ADDRESS, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsOpenListener(listener : *const WS_LISTENER, url : *const WS_STRING, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsOpenServiceHost(servicehost : *const WS_SERVICE_HOST, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsOpenServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, address : *const WS_ENDPOINT_ADDRESS, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsPullBytes(writer : *const WS_XML_WRITER, callback : WS_PULL_BYTES_CALLBACK, callbackstate : *const ::core::ffi::c_void, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsPushBytes(writer : *const WS_XML_WRITER, callback : WS_PUSH_BYTES_CALLBACK, callbackstate : *const ::core::ffi::c_void, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsReadArray(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, valuetype : WS_VALUE_TYPE, array : *mut ::core::ffi::c_void, arraysize : u32, itemoffset : u32, itemcount : u32, actualitemcount : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsReadAttribute(reader : *const WS_XML_READER, attributedescription : *const WS_ATTRIBUTE_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsReadBody(message : *const WS_MESSAGE, bodydescription : *const WS_ELEMENT_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadBytes(reader : *const WS_XML_READER, bytes : *mut ::core::ffi::c_void, maxbytecount : u32, actualbytecount : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadChars(reader : *const WS_XML_READER, chars : ::windows_sys::core::PWSTR, maxcharcount : u32, actualcharcount : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadCharsUtf8(reader : *const WS_XML_READER, bytes : *mut u8, maxbytecount : u32, actualbytecount : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsReadElement(reader : *const WS_XML_READER, elementdescription : *const WS_ELEMENT_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadEndAttribute(reader : *const WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadEndElement(reader : *const WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadEndpointAddressExtension(reader : *const WS_XML_READER, endpointaddress : *const WS_ENDPOINT_ADDRESS, extensiontype : WS_ENDPOINT_ADDRESS_EXTENSION_TYPE, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadEnvelopeEnd(message : *const WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadEnvelopeStart(message : *const WS_MESSAGE, reader : *const WS_XML_READER, donecallback : WS_MESSAGE_DONE_CALLBACK, donecallbackstate : *const ::core::ffi::c_void, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadMessageEnd(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadMessageStart(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadMetadata(metadata : *const WS_METADATA, reader : *const WS_XML_READER, url : *const WS_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadNode(reader : *const WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsReadQualifiedName(reader : *const WS_XML_READER, heap : *const WS_HEAP, prefix : *mut WS_XML_STRING, localname : *mut WS_XML_STRING, ns : *mut WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadStartAttribute(reader : *const WS_XML_READER, attributeindex : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadStartElement(reader : *const WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsReadToStartElement(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, found : *mut super::super::Foundation:: BOOL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadType(reader : *const WS_XML_READER, typemapping : WS_TYPE_MAPPING, r#type : WS_TYPE, typedescription : *const ::core::ffi::c_void, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadValue(reader : *const WS_XML_READER, valuetype : WS_VALUE_TYPE, value : *mut ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadXmlBuffer(reader : *const WS_XML_READER, heap : *const WS_HEAP, xmlbuffer : *mut *mut WS_XML_BUFFER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsReadXmlBufferFromBytes(reader : *const WS_XML_READER, encoding : *const WS_XML_READER_ENCODING, properties : *const WS_XML_READER_PROPERTY, propertycount : u32, bytes : *const ::core::ffi::c_void, bytecount : u32, heap : *const WS_HEAP, xmlbuffer : *mut *mut WS_XML_BUFFER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsReceiveMessage(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, messagedescriptions : *const *const WS_MESSAGE_DESCRIPTION, messagedescriptioncount : u32, receiveoption : WS_RECEIVE_OPTION, readbodyoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, index : *mut u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsRegisterOperationForCancel(context : *const WS_OPERATION_CONTEXT, cancelcallback : WS_OPERATION_CANCEL_CALLBACK, freestatecallback : WS_OPERATION_FREE_STATE_CALLBACK, userstate : *const ::core::ffi::c_void, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsRemoveCustomHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, headerns : *const WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsRemoveHeader(message : *const WS_MESSAGE, headertype : WS_HEADER_TYPE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsRemoveMappedHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsRemoveNode(nodeposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsRequestReply(channel : *const WS_CHANNEL, requestmessage : *const WS_MESSAGE, requestmessagedescription : *const WS_MESSAGE_DESCRIPTION, writeoption : WS_WRITE_OPTION, requestbodyvalue : *const ::core::ffi::c_void, requestbodyvaluesize : u32, replymessage : *const WS_MESSAGE, replymessagedescription : *const WS_MESSAGE_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut ::core::ffi::c_void, valuesize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsRequestSecurityToken(channel : *const WS_CHANNEL, properties : *const WS_REQUEST_SECURITY_TOKEN_PROPERTY, propertycount : u32, token : *mut *mut WS_SECURITY_TOKEN, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetChannel(channel : *const WS_CHANNEL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetError(error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetHeap(heap : *const WS_HEAP, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetListener(listener : *const WS_LISTENER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetMessage(message : *const WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetMetadata(metadata : *const WS_METADATA, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetServiceHost(servicehost : *const WS_SERVICE_HOST, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsResetServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsRevokeSecurityContext(securitycontext : *const WS_SECURITY_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSendFaultMessageForError(channel : *const WS_CHANNEL, replymessage : *const WS_MESSAGE, faulterror : *const WS_ERROR, faulterrorcode : ::windows_sys::core::HRESULT, faultdisclosure : WS_FAULT_DISCLOSURE, requestmessage : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsSendMessage(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, messagedescription : *const WS_MESSAGE_DESCRIPTION, writeoption : WS_WRITE_OPTION, bodyvalue : *const ::core::ffi::c_void, bodyvaluesize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsSendReplyMessage(channel : *const WS_CHANNEL, replymessage : *const WS_MESSAGE, replymessagedescription : *const WS_MESSAGE_DESCRIPTION, writeoption : WS_WRITE_OPTION, replybodyvalue : *const ::core::ffi::c_void, replybodyvaluesize : u32, requestmessage : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetChannelProperty(channel : *const WS_CHANNEL, id : WS_CHANNEL_PROPERTY_ID, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetErrorProperty(error : *const WS_ERROR, id : WS_ERROR_PROPERTY_ID, value : *const ::core::ffi::c_void, valuesize : u32) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsSetFaultErrorDetail(error : *const WS_ERROR, faultdetaildescription : *const WS_FAULT_DETAIL_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetFaultErrorProperty(error : *const WS_ERROR, id : WS_FAULT_ERROR_PROPERTY_ID, value : *const ::core::ffi::c_void, valuesize : u32) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetHeader(message : *const WS_MESSAGE, headertype : WS_HEADER_TYPE, valuetype : WS_TYPE, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetInput(reader : *const WS_XML_READER, encoding : *const WS_XML_READER_ENCODING, input : *const WS_XML_READER_INPUT, properties : *const WS_XML_READER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetInputToBuffer(reader : *const WS_XML_READER, buffer : *const WS_XML_BUFFER, properties : *const WS_XML_READER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetListenerProperty(listener : *const WS_LISTENER, id : WS_LISTENER_PROPERTY_ID, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetMessageProperty(message : *const WS_MESSAGE, id : WS_MESSAGE_PROPERTY_ID, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetOutput(writer : *const WS_XML_WRITER, encoding : *const WS_XML_WRITER_ENCODING, output : *const WS_XML_WRITER_OUTPUT, properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetOutputToBuffer(writer : *const WS_XML_WRITER, buffer : *const WS_XML_BUFFER, properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetReaderPosition(reader : *const WS_XML_READER, nodeposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSetWriterPosition(writer : *const WS_XML_WRITER, nodeposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsShutdownSessionChannel(channel : *const WS_CHANNEL, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsSkipNode(reader : *const WS_XML_READER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsStartReaderCanonicalization(reader : *const WS_XML_READER, writecallback : WS_WRITE_CALLBACK, writecallbackstate : *const ::core::ffi::c_void, properties : *const WS_XML_CANONICALIZATION_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsStartWriterCanonicalization(writer : *const WS_XML_WRITER, writecallback : WS_WRITE_CALLBACK, writecallbackstate : *const ::core::ffi::c_void, properties : *const WS_XML_CANONICALIZATION_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsTrimXmlWhitespace(chars : ::windows_sys::core::PCWSTR, charcount : u32, trimmedchars : *mut *mut u16, trimmedcount : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsVerifyXmlNCName(ncnamechars : ::windows_sys::core::PCWSTR, ncnamecharcount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteArray(writer : *const WS_XML_WRITER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, valuetype : WS_VALUE_TYPE, array : *const ::core::ffi::c_void, arraysize : u32, itemoffset : u32, itemcount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteAttribute(writer : *const WS_XML_WRITER, attributedescription : *const WS_ATTRIBUTE_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteBody(message : *const WS_MESSAGE, bodydescription : *const WS_ELEMENT_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteBytes(writer : *const WS_XML_WRITER, bytes : *const ::core::ffi::c_void, bytecount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteChars(writer : *const WS_XML_WRITER, chars : ::windows_sys::core::PCWSTR, charcount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteCharsUtf8(writer : *const WS_XML_WRITER, bytes : *const u8, bytecount : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteElement(writer : *const WS_XML_WRITER, elementdescription : *const WS_ELEMENT_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteEndAttribute(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteEndCData(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteEndElement(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteEndStartElement(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteEnvelopeEnd(message : *const WS_MESSAGE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteEnvelopeStart(message : *const WS_MESSAGE, writer : *const WS_XML_WRITER, donecallback : WS_MESSAGE_DONE_CALLBACK, donecallbackstate : *const ::core::ffi::c_void, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteMessageEnd(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteMessageStart(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteNode(writer : *const WS_XML_WRITER, node : *const WS_XML_NODE, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteQualifiedName(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteStartAttribute(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, singlequote : super::super::Foundation:: BOOL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteStartCData(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteStartElement(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteText(writer : *const WS_XML_WRITER, text : *const WS_XML_TEXT, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteType(writer : *const WS_XML_WRITER, typemapping : WS_TYPE_MAPPING, r#type : WS_TYPE, typedescription : *const ::core::ffi::c_void, writeoption : WS_WRITE_OPTION, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteValue(writer : *const WS_XML_WRITER, valuetype : WS_VALUE_TYPE, value : *const ::core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteXmlBuffer(writer : *const WS_XML_WRITER, xmlbuffer : *const WS_XML_BUFFER, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-::windows_targets::link!("webservices.dll" "system" fn WsWriteXmlBufferToBytes(writer : *const WS_XML_WRITER, xmlbuffer : *const WS_XML_BUFFER, encoding : *const WS_XML_WRITER_ENCODING, properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, heap : *const WS_HEAP, bytes : *mut *mut ::core::ffi::c_void, bytecount : *mut u32, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsWriteXmlnsAttribute(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, ns : *const WS_XML_STRING, singlequote : super::super::Foundation:: BOOL, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-#[cfg(feature = "Win32_Foundation")]
-::windows_targets::link!("webservices.dll" "system" #[doc = "Required features: `\"Win32_Foundation\"`"] fn WsXmlStringEquals(string1 : *const WS_XML_STRING, string2 : *const WS_XML_STRING, error : *const WS_ERROR) -> ::windows_sys::core::HRESULT);
-pub type IContentPrefetcherTaskTrigger = *mut ::core::ffi::c_void;
-pub const WEBAUTHN_API_CURRENT_VERSION: u32 = 4u32;
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNAuthenticatorGetAssertion(hwnd : super::super::Foundation:: HWND, pwszrpid : windows_sys::core::PCWSTR, pwebauthnclientdata : *const WEBAUTHN_CLIENT_DATA, pwebauthngetassertionoptions : *const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS, ppwebauthnassertion : *mut *mut WEBAUTHN_ASSERTION) -> windows_sys::core::HRESULT);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNAuthenticatorMakeCredential(hwnd : super::super::Foundation:: HWND, prpinformation : *const WEBAUTHN_RP_ENTITY_INFORMATION, puserinformation : *const WEBAUTHN_USER_ENTITY_INFORMATION, ppubkeycredparams : *const WEBAUTHN_COSE_CREDENTIAL_PARAMETERS, pwebauthnclientdata : *const WEBAUTHN_CLIENT_DATA, pwebauthnmakecredentialoptions : *const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS, ppwebauthncredentialattestation : *mut *mut WEBAUTHN_CREDENTIAL_ATTESTATION) -> windows_sys::core::HRESULT);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNCancelCurrentOperation(pcancellationid : *const windows_sys::core::GUID) -> windows_sys::core::HRESULT);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNDeletePlatformCredential(cbcredentialid : u32, pbcredentialid : *const u8) -> windows_sys::core::HRESULT);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNFreeAssertion(pwebauthnassertion : *const WEBAUTHN_ASSERTION));
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNFreeCredentialAttestation(pwebauthncredentialattestation : *const WEBAUTHN_CREDENTIAL_ATTESTATION));
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNFreePlatformCredentialList(pcredentialdetailslist : *const WEBAUTHN_CREDENTIAL_DETAILS_LIST));
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetApiVersionNumber() -> u32);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetCancellationId(pcancellationid : *mut windows_sys::core::GUID) -> windows_sys::core::HRESULT);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetErrorName(hr : windows_sys::core::HRESULT) -> windows_sys::core::PCWSTR);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetPlatformCredentialList(pgetcredentialsoptions : *const WEBAUTHN_GET_CREDENTIALS_OPTIONS, ppcredentialdetailslist : *mut *mut WEBAUTHN_CREDENTIAL_DETAILS_LIST) -> windows_sys::core::HRESULT);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNGetW3CExceptionDOMError(hr : windows_sys::core::HRESULT) -> windows_sys::core::HRESULT);
+windows_targets::link!("webauthn.dll" "system" fn WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable(pbisuserverifyingplatformauthenticatoravailable : *mut super::super::Foundation:: BOOL) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAbandonCall(serviceproxy : *const WS_SERVICE_PROXY, callid : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAbandonMessage(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAbortChannel(channel : *const WS_CHANNEL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAbortListener(listener : *const WS_LISTENER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAbortServiceHost(servicehost : *const WS_SERVICE_HOST, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAbortServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAcceptChannel(listener : *const WS_LISTENER, channel : *const WS_CHANNEL, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAddCustomHeader(message : *const WS_MESSAGE, headerdescription : *const WS_ELEMENT_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32, headerattributes : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAddErrorString(error : *const WS_ERROR, string : *const WS_STRING) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAddMappedHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, valuetype : WS_TYPE, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAddressMessage(message : *const WS_MESSAGE, address : *const WS_ENDPOINT_ADDRESS, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAlloc(heap : *const WS_HEAP, size : usize, ptr : *mut *mut core::ffi::c_void, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsAsyncExecute(asyncstate : *const WS_ASYNC_STATE, operation : WS_ASYNC_FUNCTION, callbackmodel : WS_CALLBACK_MODEL, callbackstate : *const core::ffi::c_void, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCall(serviceproxy : *const WS_SERVICE_PROXY, operation : *const WS_OPERATION_DESCRIPTION, arguments : *const *const core::ffi::c_void, heap : *const WS_HEAP, callproperties : *const WS_CALL_PROPERTY, callpropertycount : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCheckMustUnderstandHeaders(message : *const WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCloseChannel(channel : *const WS_CHANNEL, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCloseListener(listener : *const WS_LISTENER, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCloseServiceHost(servicehost : *const WS_SERVICE_HOST, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCloseServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCombineUrl(baseurl : *const WS_STRING, referenceurl : *const WS_STRING, flags : u32, heap : *const WS_HEAP, resulturl : *mut WS_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCopyError(source : *const WS_ERROR, destination : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCopyNode(writer : *const WS_XML_WRITER, reader : *const WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateChannel(channeltype : WS_CHANNEL_TYPE, channelbinding : WS_CHANNEL_BINDING, properties : *const WS_CHANNEL_PROPERTY, propertycount : u32, securitydescription : *const WS_SECURITY_DESCRIPTION, channel : *mut *mut WS_CHANNEL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateChannelForListener(listener : *const WS_LISTENER, properties : *const WS_CHANNEL_PROPERTY, propertycount : u32, channel : *mut *mut WS_CHANNEL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateError(properties : *const WS_ERROR_PROPERTY, propertycount : u32, error : *mut *mut WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateFaultFromError(error : *const WS_ERROR, faulterrorcode : windows_sys::core::HRESULT, faultdisclosure : WS_FAULT_DISCLOSURE, heap : *const WS_HEAP, fault : *mut WS_FAULT) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateHeap(maxsize : usize, trimsize : usize, properties : *const WS_HEAP_PROPERTY, propertycount : u32, heap : *mut *mut WS_HEAP, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateListener(channeltype : WS_CHANNEL_TYPE, channelbinding : WS_CHANNEL_BINDING, properties : *const WS_LISTENER_PROPERTY, propertycount : u32, securitydescription : *const WS_SECURITY_DESCRIPTION, listener : *mut *mut WS_LISTENER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateMessage(envelopeversion : WS_ENVELOPE_VERSION, addressingversion : WS_ADDRESSING_VERSION, properties : *const WS_MESSAGE_PROPERTY, propertycount : u32, message : *mut *mut WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateMessageForChannel(channel : *const WS_CHANNEL, properties : *const WS_MESSAGE_PROPERTY, propertycount : u32, message : *mut *mut WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateMetadata(properties : *const WS_METADATA_PROPERTY, propertycount : u32, metadata : *mut *mut WS_METADATA, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateReader(properties : *const WS_XML_READER_PROPERTY, propertycount : u32, reader : *mut *mut WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateServiceEndpointFromTemplate(channeltype : WS_CHANNEL_TYPE, properties : *const WS_SERVICE_ENDPOINT_PROPERTY, propertycount : u32, addressurl : *const WS_STRING, contract : *const WS_SERVICE_CONTRACT, authorizationcallback : WS_SERVICE_SECURITY_CALLBACK, heap : *const WS_HEAP, templatetype : WS_BINDING_TEMPLATE_TYPE, templatevalue : *const core::ffi::c_void, templatesize : u32, templatedescription : *const core::ffi::c_void, templatedescriptionsize : u32, serviceendpoint : *mut *mut WS_SERVICE_ENDPOINT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateServiceHost(endpoints : *const *const WS_SERVICE_ENDPOINT, endpointcount : u16, serviceproperties : *const WS_SERVICE_PROPERTY, servicepropertycount : u32, servicehost : *mut *mut WS_SERVICE_HOST, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateServiceProxy(channeltype : WS_CHANNEL_TYPE, channelbinding : WS_CHANNEL_BINDING, securitydescription : *const WS_SECURITY_DESCRIPTION, properties : *const WS_PROXY_PROPERTY, propertycount : u32, channelproperties : *const WS_CHANNEL_PROPERTY, channelpropertycount : u32, serviceproxy : *mut *mut WS_SERVICE_PROXY, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateServiceProxyFromTemplate(channeltype : WS_CHANNEL_TYPE, properties : *const WS_PROXY_PROPERTY, propertycount : u32, templatetype : WS_BINDING_TEMPLATE_TYPE, templatevalue : *const core::ffi::c_void, templatesize : u32, templatedescription : *const core::ffi::c_void, templatedescriptionsize : u32, serviceproxy : *mut *mut WS_SERVICE_PROXY, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateWriter(properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, writer : *mut *mut WS_XML_WRITER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateXmlBuffer(heap : *const WS_HEAP, properties : *const WS_XML_BUFFER_PROPERTY, propertycount : u32, buffer : *mut *mut WS_XML_BUFFER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsCreateXmlSecurityToken(tokenxml : *const WS_XML_BUFFER, tokenkey : *const WS_SECURITY_KEY_HANDLE, properties : *const WS_XML_SECURITY_TOKEN_PROPERTY, propertycount : u32, token : *mut *mut WS_SECURITY_TOKEN, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsDateTimeToFileTime(datetime : *const WS_DATETIME, filetime : *mut super::super::Foundation:: FILETIME, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsDecodeUrl(url : *const WS_STRING, flags : u32, heap : *const WS_HEAP, outurl : *mut *mut WS_URL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsEncodeUrl(url : *const WS_URL, flags : u32, heap : *const WS_HEAP, outurl : *mut WS_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsEndReaderCanonicalization(reader : *const WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsEndWriterCanonicalization(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsFileTimeToDateTime(filetime : *const super::super::Foundation:: FILETIME, datetime : *mut WS_DATETIME, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsFillBody(message : *const WS_MESSAGE, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsFillReader(reader : *const WS_XML_READER, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsFindAttribute(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, required : super::super::Foundation:: BOOL, attributeindex : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsFlushBody(message : *const WS_MESSAGE, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsFlushWriter(writer : *const WS_XML_WRITER, minsize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsFreeChannel(channel : *const WS_CHANNEL));
+windows_targets::link!("webservices.dll" "system" fn WsFreeError(error : *const WS_ERROR));
+windows_targets::link!("webservices.dll" "system" fn WsFreeHeap(heap : *const WS_HEAP));
+windows_targets::link!("webservices.dll" "system" fn WsFreeListener(listener : *const WS_LISTENER));
+windows_targets::link!("webservices.dll" "system" fn WsFreeMessage(message : *const WS_MESSAGE));
+windows_targets::link!("webservices.dll" "system" fn WsFreeMetadata(metadata : *const WS_METADATA));
+windows_targets::link!("webservices.dll" "system" fn WsFreeReader(reader : *const WS_XML_READER));
+windows_targets::link!("webservices.dll" "system" fn WsFreeSecurityToken(token : *const WS_SECURITY_TOKEN));
+windows_targets::link!("webservices.dll" "system" fn WsFreeServiceHost(servicehost : *const WS_SERVICE_HOST));
+windows_targets::link!("webservices.dll" "system" fn WsFreeServiceProxy(serviceproxy : *const WS_SERVICE_PROXY));
+windows_targets::link!("webservices.dll" "system" fn WsFreeWriter(writer : *const WS_XML_WRITER));
+windows_targets::link!("webservices.dll" "system" fn WsGetChannelProperty(channel : *const WS_CHANNEL, id : WS_CHANNEL_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetCustomHeader(message : *const WS_MESSAGE, customheaderdescription : *const WS_ELEMENT_DESCRIPTION, repeatingoption : WS_REPEATING_HEADER_OPTION, headerindex : u32, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, headerattributes : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetDictionary(encoding : WS_ENCODING, dictionary : *mut *mut WS_XML_DICTIONARY, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetErrorProperty(error : *const WS_ERROR, id : WS_ERROR_PROPERTY_ID, buffer : *mut core::ffi::c_void, buffersize : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetErrorString(error : *const WS_ERROR, index : u32, string : *mut WS_STRING) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetFaultErrorDetail(error : *const WS_ERROR, faultdetaildescription : *const WS_FAULT_DETAIL_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetFaultErrorProperty(error : *const WS_ERROR, id : WS_FAULT_ERROR_PROPERTY_ID, buffer : *mut core::ffi::c_void, buffersize : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetHeader(message : *const WS_MESSAGE, headertype : WS_HEADER_TYPE, valuetype : WS_TYPE, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetHeaderAttributes(message : *const WS_MESSAGE, reader : *const WS_XML_READER, headerattributes : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetHeapProperty(heap : *const WS_HEAP, id : WS_HEAP_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetListenerProperty(listener : *const WS_LISTENER, id : WS_LISTENER_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetMappedHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, repeatingoption : WS_REPEATING_HEADER_OPTION, headerindex : u32, valuetype : WS_TYPE, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetMessageProperty(message : *const WS_MESSAGE, id : WS_MESSAGE_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetMetadataEndpoints(metadata : *const WS_METADATA, endpoints : *mut WS_METADATA_ENDPOINTS, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetMetadataProperty(metadata : *const WS_METADATA, id : WS_METADATA_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetMissingMetadataDocumentAddress(metadata : *const WS_METADATA, address : *mut *mut WS_ENDPOINT_ADDRESS, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetNamespaceFromPrefix(reader : *const WS_XML_READER, prefix : *const WS_XML_STRING, required : super::super::Foundation:: BOOL, ns : *mut *mut WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetOperationContextProperty(context : *const WS_OPERATION_CONTEXT, id : WS_OPERATION_CONTEXT_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetPolicyAlternativeCount(policy : *const WS_POLICY, count : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetPolicyProperty(policy : *const WS_POLICY, id : WS_POLICY_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetPrefixFromNamespace(writer : *const WS_XML_WRITER, ns : *const WS_XML_STRING, required : super::super::Foundation:: BOOL, prefix : *mut *mut WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetReaderNode(xmlreader : *const WS_XML_READER, node : *mut *mut WS_XML_NODE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetReaderPosition(reader : *const WS_XML_READER, nodeposition : *mut WS_XML_NODE_POSITION, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetReaderProperty(reader : *const WS_XML_READER, id : WS_XML_READER_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetSecurityContextProperty(securitycontext : *const WS_SECURITY_CONTEXT, id : WS_SECURITY_CONTEXT_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetSecurityTokenProperty(securitytoken : *const WS_SECURITY_TOKEN, id : WS_SECURITY_TOKEN_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, heap : *const WS_HEAP, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetServiceHostProperty(servicehost : *const WS_SERVICE_HOST, id : WS_SERVICE_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetServiceProxyProperty(serviceproxy : *const WS_SERVICE_PROXY, id : WS_PROXY_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetWriterPosition(writer : *const WS_XML_WRITER, nodeposition : *mut WS_XML_NODE_POSITION, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetWriterProperty(writer : *const WS_XML_WRITER, id : WS_XML_WRITER_PROPERTY_ID, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsGetXmlAttribute(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, heap : *const WS_HEAP, valuechars : *mut *mut u16, valuecharcount : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsInitializeMessage(message : *const WS_MESSAGE, initialization : WS_MESSAGE_INITIALIZATION, sourcemessage : *const WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsMarkHeaderAsUnderstood(message : *const WS_MESSAGE, headerposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsMatchPolicyAlternative(policy : *const WS_POLICY, alternativeindex : u32, policyconstraints : *const WS_POLICY_CONSTRAINTS, matchrequired : super::super::Foundation:: BOOL, heap : *const WS_HEAP, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsMoveReader(reader : *const WS_XML_READER, moveto : WS_MOVE_TO, found : *mut super::super::Foundation:: BOOL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsMoveWriter(writer : *const WS_XML_WRITER, moveto : WS_MOVE_TO, found : *mut super::super::Foundation:: BOOL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsOpenChannel(channel : *const WS_CHANNEL, endpointaddress : *const WS_ENDPOINT_ADDRESS, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsOpenListener(listener : *const WS_LISTENER, url : *const WS_STRING, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsOpenServiceHost(servicehost : *const WS_SERVICE_HOST, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsOpenServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, address : *const WS_ENDPOINT_ADDRESS, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsPullBytes(writer : *const WS_XML_WRITER, callback : WS_PULL_BYTES_CALLBACK, callbackstate : *const core::ffi::c_void, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsPushBytes(writer : *const WS_XML_WRITER, callback : WS_PUSH_BYTES_CALLBACK, callbackstate : *const core::ffi::c_void, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadArray(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, valuetype : WS_VALUE_TYPE, array : *mut core::ffi::c_void, arraysize : u32, itemoffset : u32, itemcount : u32, actualitemcount : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadAttribute(reader : *const WS_XML_READER, attributedescription : *const WS_ATTRIBUTE_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadBody(message : *const WS_MESSAGE, bodydescription : *const WS_ELEMENT_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadBytes(reader : *const WS_XML_READER, bytes : *mut core::ffi::c_void, maxbytecount : u32, actualbytecount : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadChars(reader : *const WS_XML_READER, chars : windows_sys::core::PWSTR, maxcharcount : u32, actualcharcount : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadCharsUtf8(reader : *const WS_XML_READER, bytes : *mut u8, maxbytecount : u32, actualbytecount : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadElement(reader : *const WS_XML_READER, elementdescription : *const WS_ELEMENT_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadEndAttribute(reader : *const WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadEndElement(reader : *const WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadEndpointAddressExtension(reader : *const WS_XML_READER, endpointaddress : *const WS_ENDPOINT_ADDRESS, extensiontype : WS_ENDPOINT_ADDRESS_EXTENSION_TYPE, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadEnvelopeEnd(message : *const WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadEnvelopeStart(message : *const WS_MESSAGE, reader : *const WS_XML_READER, donecallback : WS_MESSAGE_DONE_CALLBACK, donecallbackstate : *const core::ffi::c_void, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadMessageEnd(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadMessageStart(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadMetadata(metadata : *const WS_METADATA, reader : *const WS_XML_READER, url : *const WS_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadNode(reader : *const WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadQualifiedName(reader : *const WS_XML_READER, heap : *const WS_HEAP, prefix : *mut WS_XML_STRING, localname : *mut WS_XML_STRING, ns : *mut WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadStartAttribute(reader : *const WS_XML_READER, attributeindex : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadStartElement(reader : *const WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadToStartElement(reader : *const WS_XML_READER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, found : *mut super::super::Foundation:: BOOL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadType(reader : *const WS_XML_READER, typemapping : WS_TYPE_MAPPING, r#type : WS_TYPE, typedescription : *const core::ffi::c_void, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadValue(reader : *const WS_XML_READER, valuetype : WS_VALUE_TYPE, value : *mut core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadXmlBuffer(reader : *const WS_XML_READER, heap : *const WS_HEAP, xmlbuffer : *mut *mut WS_XML_BUFFER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReadXmlBufferFromBytes(reader : *const WS_XML_READER, encoding : *const WS_XML_READER_ENCODING, properties : *const WS_XML_READER_PROPERTY, propertycount : u32, bytes : *const core::ffi::c_void, bytecount : u32, heap : *const WS_HEAP, xmlbuffer : *mut *mut WS_XML_BUFFER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsReceiveMessage(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, messagedescriptions : *const *const WS_MESSAGE_DESCRIPTION, messagedescriptioncount : u32, receiveoption : WS_RECEIVE_OPTION, readbodyoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, index : *mut u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRegisterOperationForCancel(context : *const WS_OPERATION_CONTEXT, cancelcallback : WS_OPERATION_CANCEL_CALLBACK, freestatecallback : WS_OPERATION_FREE_STATE_CALLBACK, userstate : *const core::ffi::c_void, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRemoveCustomHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, headerns : *const WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRemoveHeader(message : *const WS_MESSAGE, headertype : WS_HEADER_TYPE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRemoveMappedHeader(message : *const WS_MESSAGE, headername : *const WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRemoveNode(nodeposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRequestReply(channel : *const WS_CHANNEL, requestmessage : *const WS_MESSAGE, requestmessagedescription : *const WS_MESSAGE_DESCRIPTION, writeoption : WS_WRITE_OPTION, requestbodyvalue : *const core::ffi::c_void, requestbodyvaluesize : u32, replymessage : *const WS_MESSAGE, replymessagedescription : *const WS_MESSAGE_DESCRIPTION, readoption : WS_READ_OPTION, heap : *const WS_HEAP, value : *mut core::ffi::c_void, valuesize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRequestSecurityToken(channel : *const WS_CHANNEL, properties : *const WS_REQUEST_SECURITY_TOKEN_PROPERTY, propertycount : u32, token : *mut *mut WS_SECURITY_TOKEN, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetChannel(channel : *const WS_CHANNEL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetError(error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetHeap(heap : *const WS_HEAP, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetListener(listener : *const WS_LISTENER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetMessage(message : *const WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetMetadata(metadata : *const WS_METADATA, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetServiceHost(servicehost : *const WS_SERVICE_HOST, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsResetServiceProxy(serviceproxy : *const WS_SERVICE_PROXY, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsRevokeSecurityContext(securitycontext : *const WS_SECURITY_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSendFaultMessageForError(channel : *const WS_CHANNEL, replymessage : *const WS_MESSAGE, faulterror : *const WS_ERROR, faulterrorcode : windows_sys::core::HRESULT, faultdisclosure : WS_FAULT_DISCLOSURE, requestmessage : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSendMessage(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, messagedescription : *const WS_MESSAGE_DESCRIPTION, writeoption : WS_WRITE_OPTION, bodyvalue : *const core::ffi::c_void, bodyvaluesize : u32, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSendReplyMessage(channel : *const WS_CHANNEL, replymessage : *const WS_MESSAGE, replymessagedescription : *const WS_MESSAGE_DESCRIPTION, writeoption : WS_WRITE_OPTION, replybodyvalue : *const core::ffi::c_void, replybodyvaluesize : u32, requestmessage : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetChannelProperty(channel : *const WS_CHANNEL, id : WS_CHANNEL_PROPERTY_ID, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetErrorProperty(error : *const WS_ERROR, id : WS_ERROR_PROPERTY_ID, value : *const core::ffi::c_void, valuesize : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetFaultErrorDetail(error : *const WS_ERROR, faultdetaildescription : *const WS_FAULT_DETAIL_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetFaultErrorProperty(error : *const WS_ERROR, id : WS_FAULT_ERROR_PROPERTY_ID, value : *const core::ffi::c_void, valuesize : u32) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetHeader(message : *const WS_MESSAGE, headertype : WS_HEADER_TYPE, valuetype : WS_TYPE, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetInput(reader : *const WS_XML_READER, encoding : *const WS_XML_READER_ENCODING, input : *const WS_XML_READER_INPUT, properties : *const WS_XML_READER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetInputToBuffer(reader : *const WS_XML_READER, buffer : *const WS_XML_BUFFER, properties : *const WS_XML_READER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetListenerProperty(listener : *const WS_LISTENER, id : WS_LISTENER_PROPERTY_ID, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetMessageProperty(message : *const WS_MESSAGE, id : WS_MESSAGE_PROPERTY_ID, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetOutput(writer : *const WS_XML_WRITER, encoding : *const WS_XML_WRITER_ENCODING, output : *const WS_XML_WRITER_OUTPUT, properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetOutputToBuffer(writer : *const WS_XML_WRITER, buffer : *const WS_XML_BUFFER, properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetReaderPosition(reader : *const WS_XML_READER, nodeposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSetWriterPosition(writer : *const WS_XML_WRITER, nodeposition : *const WS_XML_NODE_POSITION, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsShutdownSessionChannel(channel : *const WS_CHANNEL, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsSkipNode(reader : *const WS_XML_READER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsStartReaderCanonicalization(reader : *const WS_XML_READER, writecallback : WS_WRITE_CALLBACK, writecallbackstate : *const core::ffi::c_void, properties : *const WS_XML_CANONICALIZATION_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsStartWriterCanonicalization(writer : *const WS_XML_WRITER, writecallback : WS_WRITE_CALLBACK, writecallbackstate : *const core::ffi::c_void, properties : *const WS_XML_CANONICALIZATION_PROPERTY, propertycount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsTrimXmlWhitespace(chars : windows_sys::core::PCWSTR, charcount : u32, trimmedchars : *mut *mut u16, trimmedcount : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsVerifyXmlNCName(ncnamechars : windows_sys::core::PCWSTR, ncnamecharcount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteArray(writer : *const WS_XML_WRITER, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, valuetype : WS_VALUE_TYPE, array : *const core::ffi::c_void, arraysize : u32, itemoffset : u32, itemcount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteAttribute(writer : *const WS_XML_WRITER, attributedescription : *const WS_ATTRIBUTE_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteBody(message : *const WS_MESSAGE, bodydescription : *const WS_ELEMENT_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteBytes(writer : *const WS_XML_WRITER, bytes : *const core::ffi::c_void, bytecount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteChars(writer : *const WS_XML_WRITER, chars : windows_sys::core::PCWSTR, charcount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteCharsUtf8(writer : *const WS_XML_WRITER, bytes : *const u8, bytecount : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteElement(writer : *const WS_XML_WRITER, elementdescription : *const WS_ELEMENT_DESCRIPTION, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteEndAttribute(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteEndCData(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteEndElement(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteEndStartElement(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteEnvelopeEnd(message : *const WS_MESSAGE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteEnvelopeStart(message : *const WS_MESSAGE, writer : *const WS_XML_WRITER, donecallback : WS_MESSAGE_DONE_CALLBACK, donecallbackstate : *const core::ffi::c_void, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteMessageEnd(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteMessageStart(channel : *const WS_CHANNEL, message : *const WS_MESSAGE, asynccontext : *const WS_ASYNC_CONTEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteNode(writer : *const WS_XML_WRITER, node : *const WS_XML_NODE, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteQualifiedName(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteStartAttribute(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, singlequote : super::super::Foundation:: BOOL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteStartCData(writer : *const WS_XML_WRITER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteStartElement(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, localname : *const WS_XML_STRING, ns : *const WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteText(writer : *const WS_XML_WRITER, text : *const WS_XML_TEXT, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteType(writer : *const WS_XML_WRITER, typemapping : WS_TYPE_MAPPING, r#type : WS_TYPE, typedescription : *const core::ffi::c_void, writeoption : WS_WRITE_OPTION, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteValue(writer : *const WS_XML_WRITER, valuetype : WS_VALUE_TYPE, value : *const core::ffi::c_void, valuesize : u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteXmlBuffer(writer : *const WS_XML_WRITER, xmlbuffer : *const WS_XML_BUFFER, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteXmlBufferToBytes(writer : *const WS_XML_WRITER, xmlbuffer : *const WS_XML_BUFFER, encoding : *const WS_XML_WRITER_ENCODING, properties : *const WS_XML_WRITER_PROPERTY, propertycount : u32, heap : *const WS_HEAP, bytes : *mut *mut core::ffi::c_void, bytecount : *mut u32, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsWriteXmlnsAttribute(writer : *const WS_XML_WRITER, prefix : *const WS_XML_STRING, ns : *const WS_XML_STRING, singlequote : super::super::Foundation:: BOOL, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+windows_targets::link!("webservices.dll" "system" fn WsXmlStringEquals(string1 : *const WS_XML_STRING, string2 : *const WS_XML_STRING, error : *const WS_ERROR) -> windows_sys::core::HRESULT);
+pub const CTAPCBOR_HYBRID_STORAGE_LINKED_DATA_CURRENT_VERSION: u32 = 1u32;
+pub const CTAPCBOR_HYBRID_STORAGE_LINKED_DATA_VERSION_1: u32 = 1u32;
+pub const WEBAUTHN_API_CURRENT_VERSION: u32 = 7u32;
 pub const WEBAUTHN_API_VERSION_1: u32 = 1u32;
 pub const WEBAUTHN_API_VERSION_2: u32 = 2u32;
 pub const WEBAUTHN_API_VERSION_3: u32 = 3u32;
 pub const WEBAUTHN_API_VERSION_4: u32 = 4u32;
-pub const WEBAUTHN_ASSERTION_CURRENT_VERSION: u32 = 3u32;
+pub const WEBAUTHN_API_VERSION_5: u32 = 5u32;
+pub const WEBAUTHN_API_VERSION_6: u32 = 6u32;
+pub const WEBAUTHN_API_VERSION_7: u32 = 7u32;
+pub const WEBAUTHN_ASSERTION_CURRENT_VERSION: u32 = 5u32;
 pub const WEBAUTHN_ASSERTION_VERSION_1: u32 = 1u32;
 pub const WEBAUTHN_ASSERTION_VERSION_2: u32 = 2u32;
 pub const WEBAUTHN_ASSERTION_VERSION_3: u32 = 3u32;
+pub const WEBAUTHN_ASSERTION_VERSION_4: u32 = 4u32;
+pub const WEBAUTHN_ASSERTION_VERSION_5: u32 = 5u32;
 pub const WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_ANY: u32 = 0u32;
 pub const WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_DIRECT: u32 = 3u32;
 pub const WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_INDIRECT: u32 = 2u32;
 pub const WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_NONE: u32 = 1u32;
 pub const WEBAUTHN_ATTESTATION_DECODE_COMMON: u32 = 1u32;
 pub const WEBAUTHN_ATTESTATION_DECODE_NONE: u32 = 0u32;
-pub const WEBAUTHN_ATTESTATION_TYPE_NONE: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("none");
-pub const WEBAUTHN_ATTESTATION_TYPE_PACKED: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("packed");
-pub const WEBAUTHN_ATTESTATION_TYPE_TPM: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("tpm");
-pub const WEBAUTHN_ATTESTATION_TYPE_U2F: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("fido-u2f");
-pub const WEBAUTHN_ATTESTATION_VER_TPM_2_0: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("2.0");
+pub const WEBAUTHN_ATTESTATION_TYPE_NONE: windows_sys::core::PCWSTR = windows_sys::core::w!("none");
+pub const WEBAUTHN_ATTESTATION_TYPE_PACKED: windows_sys::core::PCWSTR = windows_sys::core::w!("packed");
+pub const WEBAUTHN_ATTESTATION_TYPE_TPM: windows_sys::core::PCWSTR = windows_sys::core::w!("tpm");
+pub const WEBAUTHN_ATTESTATION_TYPE_U2F: windows_sys::core::PCWSTR = windows_sys::core::w!("fido-u2f");
+pub const WEBAUTHN_ATTESTATION_VER_TPM_2_0: windows_sys::core::PCWSTR = windows_sys::core::w!("2.0");
 pub const WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY: u32 = 0u32;
 pub const WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM: u32 = 2u32;
 pub const WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM_U2F_V2: u32 = 3u32;
 pub const WEBAUTHN_AUTHENTICATOR_ATTACHMENT_PLATFORM: u32 = 1u32;
-pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_CURRENT_VERSION: u32 = 6u32;
+pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_CURRENT_VERSION: u32 = 7u32;
 pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_1: u32 = 1u32;
 pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_2: u32 = 2u32;
 pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_3: u32 = 3u32;
 pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_4: u32 = 4u32;
 pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_5: u32 = 5u32;
 pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_6: u32 = 6u32;
+pub const WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_7: u32 = 7u32;
 pub const WEBAUTHN_AUTHENTICATOR_HMAC_SECRET_VALUES_FLAG: u32 = 1048576u32;
-pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_CURRENT_VERSION: u32 = 5u32;
+pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_CURRENT_VERSION: u32 = 7u32;
 pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_1: u32 = 1u32;
 pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_2: u32 = 2u32;
 pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_3: u32 = 3u32;
 pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_4: u32 = 4u32;
 pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_5: u32 = 5u32;
+pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_6: u32 = 6u32;
+pub const WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_7: u32 = 7u32;
 pub const WEBAUTHN_CLIENT_DATA_CURRENT_VERSION: u32 = 1u32;
 pub const WEBAUTHN_COMMON_ATTESTATION_CURRENT_VERSION: u32 = 1u32;
 pub const WEBAUTHN_COSE_ALGORITHM_ECDSA_P256_WITH_SHA256: i32 = -7i32;
@@ -303,16 +264,19 @@ pub const WEBAUTHN_COSE_ALGORITHM_RSA_PSS_WITH_SHA256: i32 = -37i32;
 pub const WEBAUTHN_COSE_ALGORITHM_RSA_PSS_WITH_SHA384: i32 = -38i32;
 pub const WEBAUTHN_COSE_ALGORITHM_RSA_PSS_WITH_SHA512: i32 = -39i32;
 pub const WEBAUTHN_COSE_CREDENTIAL_PARAMETER_CURRENT_VERSION: u32 = 1u32;
-pub const WEBAUTHN_CREDENTIAL_ATTESTATION_CURRENT_VERSION: u32 = 4u32;
+pub const WEBAUTHN_CREDENTIAL_ATTESTATION_CURRENT_VERSION: u32 = 6u32;
 pub const WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_1: u32 = 1u32;
 pub const WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_2: u32 = 2u32;
 pub const WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_3: u32 = 3u32;
 pub const WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_4: u32 = 4u32;
+pub const WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_5: u32 = 5u32;
+pub const WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_6: u32 = 6u32;
 pub const WEBAUTHN_CREDENTIAL_CURRENT_VERSION: u32 = 1u32;
-pub const WEBAUTHN_CREDENTIAL_DETAILS_CURRENT_VERSION: u32 = 1u32;
+pub const WEBAUTHN_CREDENTIAL_DETAILS_CURRENT_VERSION: u32 = 2u32;
 pub const WEBAUTHN_CREDENTIAL_DETAILS_VERSION_1: u32 = 1u32;
+pub const WEBAUTHN_CREDENTIAL_DETAILS_VERSION_2: u32 = 2u32;
 pub const WEBAUTHN_CREDENTIAL_EX_CURRENT_VERSION: u32 = 1u32;
-pub const WEBAUTHN_CREDENTIAL_TYPE_PUBLIC_KEY: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("public-key");
+pub const WEBAUTHN_CREDENTIAL_TYPE_PUBLIC_KEY: windows_sys::core::PCWSTR = windows_sys::core::w!("public-key");
 pub const WEBAUTHN_CRED_LARGE_BLOB_OPERATION_DELETE: u32 = 3u32;
 pub const WEBAUTHN_CRED_LARGE_BLOB_OPERATION_GET: u32 = 1u32;
 pub const WEBAUTHN_CRED_LARGE_BLOB_OPERATION_NONE: u32 = 0u32;
@@ -329,7 +293,8 @@ pub const WEBAUTHN_CRED_LARGE_BLOB_STATUS_PLATFORM_ERROR: u32 = 8u32;
 pub const WEBAUTHN_CRED_LARGE_BLOB_STATUS_SUCCESS: u32 = 1u32;
 pub const WEBAUTHN_CTAP_ONE_HMAC_SECRET_LENGTH: u32 = 32u32;
 pub const WEBAUTHN_CTAP_TRANSPORT_BLE: u32 = 4u32;
-pub const WEBAUTHN_CTAP_TRANSPORT_FLAGS_MASK: u32 = 31u32;
+pub const WEBAUTHN_CTAP_TRANSPORT_FLAGS_MASK: u32 = 63u32;
+pub const WEBAUTHN_CTAP_TRANSPORT_HYBRID: u32 = 32u32;
 pub const WEBAUTHN_CTAP_TRANSPORT_INTERNAL: u32 = 16u32;
 pub const WEBAUTHN_CTAP_TRANSPORT_NFC: u32 = 2u32;
 pub const WEBAUTHN_CTAP_TRANSPORT_TEST: u32 = 8u32;
@@ -337,15 +302,15 @@ pub const WEBAUTHN_CTAP_TRANSPORT_USB: u32 = 1u32;
 pub const WEBAUTHN_ENTERPRISE_ATTESTATION_NONE: u32 = 0u32;
 pub const WEBAUTHN_ENTERPRISE_ATTESTATION_PLATFORM_MANAGED: u32 = 2u32;
 pub const WEBAUTHN_ENTERPRISE_ATTESTATION_VENDOR_FACILITATED: u32 = 1u32;
-pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_CRED_BLOB: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("credBlob");
-pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_CRED_PROTECT: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("credProtect");
-pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_HMAC_SECRET: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("hmac-secret");
-pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_MIN_PIN_LENGTH: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("minPinLength");
+pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_CRED_BLOB: windows_sys::core::PCWSTR = windows_sys::core::w!("credBlob");
+pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_CRED_PROTECT: windows_sys::core::PCWSTR = windows_sys::core::w!("credProtect");
+pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_HMAC_SECRET: windows_sys::core::PCWSTR = windows_sys::core::w!("hmac-secret");
+pub const WEBAUTHN_EXTENSIONS_IDENTIFIER_MIN_PIN_LENGTH: windows_sys::core::PCWSTR = windows_sys::core::w!("minPinLength");
 pub const WEBAUTHN_GET_CREDENTIALS_OPTIONS_CURRENT_VERSION: u32 = 1u32;
 pub const WEBAUTHN_GET_CREDENTIALS_OPTIONS_VERSION_1: u32 = 1u32;
-pub const WEBAUTHN_HASH_ALGORITHM_SHA_256: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("SHA-256");
-pub const WEBAUTHN_HASH_ALGORITHM_SHA_384: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("SHA-384");
-pub const WEBAUTHN_HASH_ALGORITHM_SHA_512: ::windows_sys::core::PCWSTR = ::windows_sys::core::w!("SHA-512");
+pub const WEBAUTHN_HASH_ALGORITHM_SHA_256: windows_sys::core::PCWSTR = windows_sys::core::w!("SHA-256");
+pub const WEBAUTHN_HASH_ALGORITHM_SHA_384: windows_sys::core::PCWSTR = windows_sys::core::w!("SHA-384");
+pub const WEBAUTHN_HASH_ALGORITHM_SHA_512: windows_sys::core::PCWSTR = windows_sys::core::w!("SHA-512");
 pub const WEBAUTHN_LARGE_BLOB_SUPPORT_NONE: u32 = 0u32;
 pub const WEBAUTHN_LARGE_BLOB_SUPPORT_PREFERRED: u32 = 2u32;
 pub const WEBAUTHN_LARGE_BLOB_SUPPORT_REQUIRED: u32 = 1u32;
@@ -1329,6 +1294,22 @@ pub type WS_XML_WRITER_ENCODING_TYPE = i32;
 pub type WS_XML_WRITER_OUTPUT_TYPE = i32;
 pub type WS_XML_WRITER_PROPERTY_ID = i32;
 #[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CTAPCBOR_HYBRID_STORAGE_LINKED_DATA {
+    pub dwVersion: u32,
+    pub cbContactId: u32,
+    pub pbContactId: *mut u8,
+    pub cbLinkId: u32,
+    pub pbLinkId: *mut u8,
+    pub cbLinkSecret: u32,
+    pub pbLinkSecret: *mut u8,
+    pub cbPublicKey: u32,
+    pub pbPublicKey: *mut u8,
+    pub pwszAuthenticatorName: windows_sys::core::PCWSTR,
+    pub wEncodedTunnelServerDomain: u16,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_ASSERTION {
     pub dwVersion: u32,
     pub cbAuthenticatorData: u32,
@@ -1343,16 +1324,12 @@ pub struct WEBAUTHN_ASSERTION {
     pub pbCredLargeBlob: *mut u8,
     pub dwCredLargeBlobStatus: u32,
     pub pHmacSecret: *mut WEBAUTHN_HMAC_SECRET_SALT,
-}
-impl ::core::marker::Copy for WEBAUTHN_ASSERTION {}
-impl ::core::clone::Clone for WEBAUTHN_ASSERTION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub dwUsedTransport: u32,
+    pub cbUnsignedExtensionOutputs: u32,
+    pub pbUnsignedExtensionOutputs: *mut u8,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS {
     pub dwVersion: u32,
     pub dwTimeoutMilliseconds: u32,
@@ -1361,27 +1338,22 @@ pub struct WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS {
     pub dwAuthenticatorAttachment: u32,
     pub dwUserVerificationRequirement: u32,
     pub dwFlags: u32,
-    pub pwszU2fAppId: ::windows_sys::core::PCWSTR,
+    pub pwszU2fAppId: windows_sys::core::PCWSTR,
     pub pbU2fAppId: *mut super::super::Foundation::BOOL,
-    pub pCancellationId: *mut ::windows_sys::core::GUID,
+    pub pCancellationId: *mut windows_sys::core::GUID,
     pub pAllowCredentialList: *mut WEBAUTHN_CREDENTIAL_LIST,
     pub dwCredLargeBlobOperation: u32,
     pub cbCredLargeBlob: u32,
     pub pbCredLargeBlob: *mut u8,
     pub pHmacSecretSaltValues: *mut WEBAUTHN_HMAC_SECRET_SALT_VALUES,
     pub bBrowserInPrivateMode: super::super::Foundation::BOOL,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pLinkedDevice: *mut CTAPCBOR_HYBRID_STORAGE_LINKED_DATA,
+    pub bAutoFill: super::super::Foundation::BOOL,
+    pub cbJsonExt: u32,
+    pub pbJsonExt: *mut u8,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS {
     pub dwVersion: u32,
     pub dwTimeoutMilliseconds: u32,
@@ -1392,114 +1364,79 @@ pub struct WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS {
     pub dwUserVerificationRequirement: u32,
     pub dwAttestationConveyancePreference: u32,
     pub dwFlags: u32,
-    pub pCancellationId: *mut ::windows_sys::core::GUID,
+    pub pCancellationId: *mut windows_sys::core::GUID,
     pub pExcludeCredentialList: *mut WEBAUTHN_CREDENTIAL_LIST,
     pub dwEnterpriseAttestation: u32,
     pub dwLargeBlobSupport: u32,
     pub bPreferResidentKey: super::super::Foundation::BOOL,
     pub bBrowserInPrivateMode: super::super::Foundation::BOOL,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub bEnablePrf: super::super::Foundation::BOOL,
+    pub pLinkedDevice: *mut CTAPCBOR_HYBRID_STORAGE_LINKED_DATA,
+    pub cbJsonExt: u32,
+    pub pbJsonExt: *mut u8,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CLIENT_DATA {
     pub dwVersion: u32,
     pub cbClientDataJSON: u32,
     pub pbClientDataJSON: *mut u8,
-    pub pwszHashAlgId: ::windows_sys::core::PCWSTR,
-}
-impl ::core::marker::Copy for WEBAUTHN_CLIENT_DATA {}
-impl ::core::clone::Clone for WEBAUTHN_CLIENT_DATA {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pwszHashAlgId: windows_sys::core::PCWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_COMMON_ATTESTATION {
     pub dwVersion: u32,
-    pub pwszAlg: ::windows_sys::core::PCWSTR,
+    pub pwszAlg: windows_sys::core::PCWSTR,
     pub lAlg: i32,
     pub cbSignature: u32,
     pub pbSignature: *mut u8,
     pub cX5c: u32,
     pub pX5c: *mut WEBAUTHN_X5C,
-    pub pwszVer: ::windows_sys::core::PCWSTR,
+    pub pwszVer: windows_sys::core::PCWSTR,
     pub cbCertInfo: u32,
     pub pbCertInfo: *mut u8,
     pub cbPubArea: u32,
     pub pbPubArea: *mut u8,
 }
-impl ::core::marker::Copy for WEBAUTHN_COMMON_ATTESTATION {}
-impl ::core::clone::Clone for WEBAUTHN_COMMON_ATTESTATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_COSE_CREDENTIAL_PARAMETER {
     pub dwVersion: u32,
-    pub pwszCredentialType: ::windows_sys::core::PCWSTR,
+    pub pwszCredentialType: windows_sys::core::PCWSTR,
     pub lAlg: i32,
 }
-impl ::core::marker::Copy for WEBAUTHN_COSE_CREDENTIAL_PARAMETER {}
-impl ::core::clone::Clone for WEBAUTHN_COSE_CREDENTIAL_PARAMETER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_COSE_CREDENTIAL_PARAMETERS {
     pub cCredentialParameters: u32,
     pub pCredentialParameters: *mut WEBAUTHN_COSE_CREDENTIAL_PARAMETER,
 }
-impl ::core::marker::Copy for WEBAUTHN_COSE_CREDENTIAL_PARAMETERS {}
-impl ::core::clone::Clone for WEBAUTHN_COSE_CREDENTIAL_PARAMETERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CREDENTIAL {
     pub dwVersion: u32,
     pub cbId: u32,
     pub pbId: *mut u8,
-    pub pwszCredentialType: ::windows_sys::core::PCWSTR,
-}
-impl ::core::marker::Copy for WEBAUTHN_CREDENTIAL {}
-impl ::core::clone::Clone for WEBAUTHN_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pwszCredentialType: windows_sys::core::PCWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CREDENTIALS {
     pub cCredentials: u32,
     pub pCredentials: *mut WEBAUTHN_CREDENTIAL,
 }
-impl ::core::marker::Copy for WEBAUTHN_CREDENTIALS {}
-impl ::core::clone::Clone for WEBAUTHN_CREDENTIALS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CREDENTIAL_ATTESTATION {
     pub dwVersion: u32,
-    pub pwszFormatType: ::windows_sys::core::PCWSTR,
+    pub pwszFormatType: windows_sys::core::PCWSTR,
     pub cbAuthenticatorData: u32,
     pub pbAuthenticatorData: *mut u8,
     pub cbAttestation: u32,
     pub pbAttestation: *mut u8,
     pub dwAttestationDecodeType: u32,
-    pub pvAttestationDecode: *mut ::core::ffi::c_void,
+    pub pvAttestationDecode: *mut core::ffi::c_void,
     pub cbAttestationObject: u32,
     pub pbAttestationObject: *mut u8,
     pub cbCredentialId: u32,
@@ -1509,18 +1446,12 @@ pub struct WEBAUTHN_CREDENTIAL_ATTESTATION {
     pub bEpAtt: super::super::Foundation::BOOL,
     pub bLargeBlobSupported: super::super::Foundation::BOOL,
     pub bResidentKey: super::super::Foundation::BOOL,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WEBAUTHN_CREDENTIAL_ATTESTATION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WEBAUTHN_CREDENTIAL_ATTESTATION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub bPrfEnabled: super::super::Foundation::BOOL,
+    pub cbUnsignedExtensionOutputs: u32,
+    pub pbUnsignedExtensionOutputs: *mut u8,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CREDENTIAL_DETAILS {
     pub dwVersion: u32,
     pub cbCredentialID: u32,
@@ -1528,431 +1459,231 @@ pub struct WEBAUTHN_CREDENTIAL_DETAILS {
     pub pRpInformation: *mut WEBAUTHN_RP_ENTITY_INFORMATION,
     pub pUserInformation: *mut WEBAUTHN_USER_ENTITY_INFORMATION,
     pub bRemovable: super::super::Foundation::BOOL,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WEBAUTHN_CREDENTIAL_DETAILS {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WEBAUTHN_CREDENTIAL_DETAILS {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub bBackedUp: super::super::Foundation::BOOL,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CREDENTIAL_DETAILS_LIST {
     pub cCredentialDetails: u32,
     pub ppCredentialDetails: *mut *mut WEBAUTHN_CREDENTIAL_DETAILS,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WEBAUTHN_CREDENTIAL_DETAILS_LIST {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WEBAUTHN_CREDENTIAL_DETAILS_LIST {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CREDENTIAL_EX {
     pub dwVersion: u32,
     pub cbId: u32,
     pub pbId: *mut u8,
-    pub pwszCredentialType: ::windows_sys::core::PCWSTR,
+    pub pwszCredentialType: windows_sys::core::PCWSTR,
     pub dwTransports: u32,
 }
-impl ::core::marker::Copy for WEBAUTHN_CREDENTIAL_EX {}
-impl ::core::clone::Clone for WEBAUTHN_CREDENTIAL_EX {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CREDENTIAL_LIST {
     pub cCredentials: u32,
     pub ppCredentials: *mut *mut WEBAUTHN_CREDENTIAL_EX,
 }
-impl ::core::marker::Copy for WEBAUTHN_CREDENTIAL_LIST {}
-impl ::core::clone::Clone for WEBAUTHN_CREDENTIAL_LIST {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CRED_BLOB_EXTENSION {
     pub cbCredBlob: u32,
     pub pbCredBlob: *mut u8,
 }
-impl ::core::marker::Copy for WEBAUTHN_CRED_BLOB_EXTENSION {}
-impl ::core::clone::Clone for WEBAUTHN_CRED_BLOB_EXTENSION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CRED_PROTECT_EXTENSION_IN {
     pub dwCredProtect: u32,
     pub bRequireCredProtect: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WEBAUTHN_CRED_PROTECT_EXTENSION_IN {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WEBAUTHN_CRED_PROTECT_EXTENSION_IN {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_CRED_WITH_HMAC_SECRET_SALT {
     pub cbCredID: u32,
     pub pbCredID: *mut u8,
     pub pHmacSecretSalt: *mut WEBAUTHN_HMAC_SECRET_SALT,
 }
-impl ::core::marker::Copy for WEBAUTHN_CRED_WITH_HMAC_SECRET_SALT {}
-impl ::core::clone::Clone for WEBAUTHN_CRED_WITH_HMAC_SECRET_SALT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_EXTENSION {
-    pub pwszExtensionIdentifier: ::windows_sys::core::PCWSTR,
+    pub pwszExtensionIdentifier: windows_sys::core::PCWSTR,
     pub cbExtension: u32,
-    pub pvExtension: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WEBAUTHN_EXTENSION {}
-impl ::core::clone::Clone for WEBAUTHN_EXTENSION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pvExtension: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_EXTENSIONS {
     pub cExtensions: u32,
     pub pExtensions: *mut WEBAUTHN_EXTENSION,
 }
-impl ::core::marker::Copy for WEBAUTHN_EXTENSIONS {}
-impl ::core::clone::Clone for WEBAUTHN_EXTENSIONS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_GET_CREDENTIALS_OPTIONS {
     pub dwVersion: u32,
-    pub pwszRpId: ::windows_sys::core::PCWSTR,
+    pub pwszRpId: windows_sys::core::PCWSTR,
     pub bBrowserInPrivateMode: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WEBAUTHN_GET_CREDENTIALS_OPTIONS {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WEBAUTHN_GET_CREDENTIALS_OPTIONS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_HMAC_SECRET_SALT {
     pub cbFirst: u32,
     pub pbFirst: *mut u8,
     pub cbSecond: u32,
     pub pbSecond: *mut u8,
 }
-impl ::core::marker::Copy for WEBAUTHN_HMAC_SECRET_SALT {}
-impl ::core::clone::Clone for WEBAUTHN_HMAC_SECRET_SALT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_HMAC_SECRET_SALT_VALUES {
     pub pGlobalHmacSalt: *mut WEBAUTHN_HMAC_SECRET_SALT,
     pub cCredWithHmacSecretSaltList: u32,
     pub pCredWithHmacSecretSaltList: *mut WEBAUTHN_CRED_WITH_HMAC_SECRET_SALT,
 }
-impl ::core::marker::Copy for WEBAUTHN_HMAC_SECRET_SALT_VALUES {}
-impl ::core::clone::Clone for WEBAUTHN_HMAC_SECRET_SALT_VALUES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_RP_ENTITY_INFORMATION {
     pub dwVersion: u32,
-    pub pwszId: ::windows_sys::core::PCWSTR,
-    pub pwszName: ::windows_sys::core::PCWSTR,
-    pub pwszIcon: ::windows_sys::core::PCWSTR,
-}
-impl ::core::marker::Copy for WEBAUTHN_RP_ENTITY_INFORMATION {}
-impl ::core::clone::Clone for WEBAUTHN_RP_ENTITY_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pwszId: windows_sys::core::PCWSTR,
+    pub pwszName: windows_sys::core::PCWSTR,
+    pub pwszIcon: windows_sys::core::PCWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_USER_ENTITY_INFORMATION {
     pub dwVersion: u32,
     pub cbId: u32,
     pub pbId: *mut u8,
-    pub pwszName: ::windows_sys::core::PCWSTR,
-    pub pwszIcon: ::windows_sys::core::PCWSTR,
-    pub pwszDisplayName: ::windows_sys::core::PCWSTR,
-}
-impl ::core::marker::Copy for WEBAUTHN_USER_ENTITY_INFORMATION {}
-impl ::core::clone::Clone for WEBAUTHN_USER_ENTITY_INFORMATION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub pwszName: windows_sys::core::PCWSTR,
+    pub pwszIcon: windows_sys::core::PCWSTR,
+    pub pwszDisplayName: windows_sys::core::PCWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WEBAUTHN_X5C {
     pub cbData: u32,
     pub pbData: *mut u8,
 }
-impl ::core::marker::Copy for WEBAUTHN_X5C {}
-impl ::core::clone::Clone for WEBAUTHN_X5C {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ANY_ATTRIBUTE {
     pub localName: WS_XML_STRING,
     pub ns: WS_XML_STRING,
     pub value: *mut WS_XML_TEXT,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ANY_ATTRIBUTE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ANY_ATTRIBUTE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ANY_ATTRIBUTES {
     pub attributes: *mut WS_ANY_ATTRIBUTE,
     pub attributeCount: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ANY_ATTRIBUTES {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ANY_ATTRIBUTES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ASYNC_CONTEXT {
     pub callback: WS_ASYNC_CALLBACK,
-    pub callbackState: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_ASYNC_CONTEXT {}
-impl ::core::clone::Clone for WS_ASYNC_CONTEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub callbackState: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ASYNC_OPERATION {
     pub function: WS_ASYNC_FUNCTION,
 }
-impl ::core::marker::Copy for WS_ASYNC_OPERATION {}
-impl ::core::clone::Clone for WS_ASYNC_OPERATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ASYNC_STATE {
-    pub internal0: *mut ::core::ffi::c_void,
-    pub internal1: *mut ::core::ffi::c_void,
-    pub internal2: *mut ::core::ffi::c_void,
-    pub internal3: *mut ::core::ffi::c_void,
-    pub internal4: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_ASYNC_STATE {}
-impl ::core::clone::Clone for WS_ASYNC_STATE {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub internal0: *mut core::ffi::c_void,
+    pub internal1: *mut core::ffi::c_void,
+    pub internal2: *mut core::ffi::c_void,
+    pub internal3: *mut core::ffi::c_void,
+    pub internal4: *mut core::ffi::c_void,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ATTRIBUTE_DESCRIPTION {
     pub attributeLocalName: *mut WS_XML_STRING,
     pub attributeNs: *mut WS_XML_STRING,
     pub r#type: WS_TYPE,
-    pub typeDescription: *mut ::core::ffi::c_void,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ATTRIBUTE_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ATTRIBUTE_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub typeDescription: *mut core::ffi::c_void,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_BOOL_DESCRIPTION {
     pub value: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_BOOL_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_BOOL_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_BUFFERS {
     pub bufferCount: u32,
     pub buffers: *mut WS_BYTES,
 }
-impl ::core::marker::Copy for WS_BUFFERS {}
-impl ::core::clone::Clone for WS_BUFFERS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_BYTES {
     pub length: u32,
     pub bytes: *mut u8,
 }
-impl ::core::marker::Copy for WS_BYTES {}
-impl ::core::clone::Clone for WS_BYTES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_BYTES_DESCRIPTION {
     pub minByteCount: u32,
     pub maxByteCount: u32,
 }
-impl ::core::marker::Copy for WS_BYTES_DESCRIPTION {}
-impl ::core::clone::Clone for WS_BYTES_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_BYTE_ARRAY_DESCRIPTION {
     pub minByteCount: u32,
     pub maxByteCount: u32,
 }
-impl ::core::marker::Copy for WS_BYTE_ARRAY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_BYTE_ARRAY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CALL_PROPERTY {
     pub id: WS_CALL_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_CALL_PROPERTY {}
-impl ::core::clone::Clone for WS_CALL_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CAPI_ASYMMETRIC_SECURITY_KEY_HANDLE {
     pub keyHandle: WS_SECURITY_KEY_HANDLE,
     pub provider: usize,
     pub keySpec: u32,
 }
-impl ::core::marker::Copy for WS_CAPI_ASYMMETRIC_SECURITY_KEY_HANDLE {}
-impl ::core::clone::Clone for WS_CAPI_ASYMMETRIC_SECURITY_KEY_HANDLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
+#[cfg(feature = "Win32_Security_Cryptography")]
+#[derive(Clone, Copy)]
 pub struct WS_CERTIFICATE_VALIDATION_CALLBACK_CONTEXT {
     pub callback: WS_CERTIFICATE_VALIDATION_CALLBACK,
-    pub state: *mut ::core::ffi::c_void,
-}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-impl ::core::marker::Copy for WS_CERTIFICATE_VALIDATION_CALLBACK_CONTEXT {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-impl ::core::clone::Clone for WS_CERTIFICATE_VALIDATION_CALLBACK_CONTEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub state: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CERT_CREDENTIAL {
     pub credentialType: WS_CERT_CREDENTIAL_TYPE,
 }
-impl ::core::marker::Copy for WS_CERT_CREDENTIAL {}
-impl ::core::clone::Clone for WS_CERT_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CERT_ENDPOINT_IDENTITY {
     pub identity: WS_ENDPOINT_IDENTITY,
     pub rawCertificateData: WS_BYTES,
 }
-impl ::core::marker::Copy for WS_CERT_ENDPOINT_IDENTITY {}
-impl ::core::clone::Clone for WS_CERT_ENDPOINT_IDENTITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CERT_MESSAGE_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
 }
-impl ::core::marker::Copy for WS_CERT_MESSAGE_SECURITY_BINDING_CONSTRAINT {}
-impl ::core::clone::Clone for WS_CERT_MESSAGE_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
+#[cfg(feature = "Win32_Security_Cryptography")]
+#[derive(Clone, Copy)]
 pub struct WS_CERT_SIGNED_SAML_AUTHENTICATOR {
     pub authenticator: WS_SAML_AUTHENTICATOR,
     pub trustedIssuerCerts: *const *const super::super::Security::Cryptography::CERT_CONTEXT,
     pub trustedIssuerCertCount: u32,
     pub decryptionCert: *const super::super::Security::Cryptography::CERT_CONTEXT,
     pub samlValidator: WS_VALIDATE_SAML_CALLBACK,
-    pub samlValidatorCallbackState: *mut ::core::ffi::c_void,
-}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-impl ::core::marker::Copy for WS_CERT_SIGNED_SAML_AUTHENTICATOR {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-impl ::core::clone::Clone for WS_CERT_SIGNED_SAML_AUTHENTICATOR {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub samlValidatorCallbackState: *mut core::ffi::c_void,
 }
 pub type WS_CHANNEL = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CHANNEL_DECODER {
-    pub createContext: *mut ::core::ffi::c_void,
+    pub createContext: *mut core::ffi::c_void,
     pub createDecoderCallback: WS_CREATE_DECODER_CALLBACK,
     pub decoderGetContentTypeCallback: WS_DECODER_GET_CONTENT_TYPE_CALLBACK,
     pub decoderStartCallback: WS_DECODER_START_CALLBACK,
@@ -1960,15 +1691,10 @@ pub struct WS_CHANNEL_DECODER {
     pub decoderEndCallback: WS_DECODER_END_CALLBACK,
     pub freeDecoderCallback: WS_FREE_DECODER_CALLBACK,
 }
-impl ::core::marker::Copy for WS_CHANNEL_DECODER {}
-impl ::core::clone::Clone for WS_CHANNEL_DECODER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CHANNEL_ENCODER {
-    pub createContext: *mut ::core::ffi::c_void,
+    pub createContext: *mut core::ffi::c_void,
     pub createEncoderCallback: WS_CREATE_ENCODER_CALLBACK,
     pub encoderGetContentTypeCallback: WS_ENCODER_GET_CONTENT_TYPE_CALLBACK,
     pub encoderStartCallback: WS_ENCODER_START_CALLBACK,
@@ -1976,103 +1702,56 @@ pub struct WS_CHANNEL_ENCODER {
     pub encoderEndCallback: WS_ENCODER_END_CALLBACK,
     pub freeEncoderCallback: WS_FREE_ENCODER_CALLBACK,
 }
-impl ::core::marker::Copy for WS_CHANNEL_ENCODER {}
-impl ::core::clone::Clone for WS_CHANNEL_ENCODER {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CHANNEL_PROPERTIES {
     pub properties: *mut WS_CHANNEL_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_CHANNEL_PROPERTIES {}
-impl ::core::clone::Clone for WS_CHANNEL_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CHANNEL_PROPERTY {
     pub id: WS_CHANNEL_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_CHANNEL_PROPERTY {}
-impl ::core::clone::Clone for WS_CHANNEL_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CHANNEL_PROPERTY_CONSTRAINT {
     pub id: WS_CHANNEL_PROPERTY_ID,
-    pub allowedValues: *mut ::core::ffi::c_void,
+    pub allowedValues: *mut core::ffi::c_void,
     pub allowedValuesSize: u32,
     pub out: WS_CHANNEL_PROPERTY_CONSTRAINT_0,
 }
-impl ::core::marker::Copy for WS_CHANNEL_PROPERTY_CONSTRAINT {}
-impl ::core::clone::Clone for WS_CHANNEL_PROPERTY_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CHANNEL_PROPERTY_CONSTRAINT_0 {
     pub channelProperty: WS_CHANNEL_PROPERTY,
 }
-impl ::core::marker::Copy for WS_CHANNEL_PROPERTY_CONSTRAINT_0 {}
-impl ::core::clone::Clone for WS_CHANNEL_PROPERTY_CONSTRAINT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CHAR_ARRAY_DESCRIPTION {
     pub minCharCount: u32,
     pub maxCharCount: u32,
 }
-impl ::core::marker::Copy for WS_CHAR_ARRAY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_CHAR_ARRAY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_CONTRACT_DESCRIPTION {
     pub operationCount: u32,
     pub operations: *mut *mut WS_OPERATION_DESCRIPTION,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_CONTRACT_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_CONTRACT_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Security_Authentication_Identity\"`, `\"Win32_Security_Cryptography\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Authentication_Identity", feature = "Win32_Security_Cryptography"))]
+#[cfg(all(feature = "Win32_Security_Authentication_Identity", feature = "Win32_Security_Cryptography"))]
+#[derive(Clone, Copy)]
 pub struct WS_CUSTOM_CERT_CREDENTIAL {
     pub credential: WS_CERT_CREDENTIAL,
     pub getCertCallback: WS_GET_CERT_CALLBACK,
-    pub getCertCallbackState: *mut ::core::ffi::c_void,
+    pub getCertCallbackState: *mut core::ffi::c_void,
     pub certIssuerListNotificationCallback: WS_CERT_ISSUER_LIST_NOTIFICATION_CALLBACK,
-    pub certIssuerListNotificationCallbackState: *mut ::core::ffi::c_void,
-}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Authentication_Identity", feature = "Win32_Security_Cryptography"))]
-impl ::core::marker::Copy for WS_CUSTOM_CERT_CREDENTIAL {}
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Authentication_Identity", feature = "Win32_Security_Cryptography"))]
-impl ::core::clone::Clone for WS_CUSTOM_CERT_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub certIssuerListNotificationCallbackState: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CUSTOM_CHANNEL_CALLBACKS {
     pub createChannelCallback: WS_CREATE_CHANNEL_CALLBACK,
     pub freeChannelCallback: WS_FREE_CHANNEL_CALLBACK,
@@ -2089,24 +1768,14 @@ pub struct WS_CUSTOM_CHANNEL_CALLBACKS {
     pub abandonMessageCallback: WS_ABANDON_MESSAGE_CALLBACK,
     pub shutdownSessionChannelCallback: WS_SHUTDOWN_SESSION_CHANNEL_CALLBACK,
 }
-impl ::core::marker::Copy for WS_CUSTOM_CHANNEL_CALLBACKS {}
-impl ::core::clone::Clone for WS_CUSTOM_CHANNEL_CALLBACKS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CUSTOM_HTTP_PROXY {
     pub servers: WS_STRING,
     pub bypass: WS_STRING,
 }
-impl ::core::marker::Copy for WS_CUSTOM_HTTP_PROXY {}
-impl ::core::clone::Clone for WS_CUSTOM_HTTP_PROXY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_CUSTOM_LISTENER_CALLBACKS {
     pub createListenerCallback: WS_CREATE_LISTENER_CALLBACK,
     pub freeListenerCallback: WS_FREE_LISTENER_CALLBACK,
@@ -2119,125 +1788,65 @@ pub struct WS_CUSTOM_LISTENER_CALLBACKS {
     pub createChannelForListenerCallback: WS_CREATE_CHANNEL_FOR_LISTENER_CALLBACK,
     pub acceptChannelCallback: WS_ACCEPT_CHANNEL_CALLBACK,
 }
-impl ::core::marker::Copy for WS_CUSTOM_LISTENER_CALLBACKS {}
-impl ::core::clone::Clone for WS_CUSTOM_LISTENER_CALLBACKS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_CUSTOM_TYPE_DESCRIPTION {
     pub size: u32,
     pub alignment: u32,
     pub readCallback: WS_READ_TYPE_CALLBACK,
     pub writeCallback: WS_WRITE_TYPE_CALLBACK,
-    pub descriptionData: *mut ::core::ffi::c_void,
+    pub descriptionData: *mut core::ffi::c_void,
     pub isDefaultValueCallback: WS_IS_DEFAULT_VALUE_CALLBACK,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_CUSTOM_TYPE_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_CUSTOM_TYPE_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_DATETIME {
     pub ticks: u64,
     pub format: WS_DATETIME_FORMAT,
 }
-impl ::core::marker::Copy for WS_DATETIME {}
-impl ::core::clone::Clone for WS_DATETIME {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_DATETIME_DESCRIPTION {
     pub minValue: WS_DATETIME,
     pub maxValue: WS_DATETIME,
 }
-impl ::core::marker::Copy for WS_DATETIME_DESCRIPTION {}
-impl ::core::clone::Clone for WS_DATETIME_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_DECIMAL_DESCRIPTION {
     pub minValue: super::super::Foundation::DECIMAL,
     pub maxValue: super::super::Foundation::DECIMAL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_DECIMAL_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_DECIMAL_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_DEFAULT_VALUE {
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_DEFAULT_VALUE {}
-impl ::core::clone::Clone for WS_DEFAULT_VALUE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_DEFAULT_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
     pub credential: WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_DEFAULT_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {}
-impl ::core::clone::Clone for WS_DEFAULT_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_DISALLOWED_USER_AGENT_SUBSTRINGS {
     pub subStringCount: u32,
     pub subStrings: *mut *mut WS_STRING,
 }
-impl ::core::marker::Copy for WS_DISALLOWED_USER_AGENT_SUBSTRINGS {}
-impl ::core::clone::Clone for WS_DISALLOWED_USER_AGENT_SUBSTRINGS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_DNS_ENDPOINT_IDENTITY {
     pub identity: WS_ENDPOINT_IDENTITY,
     pub dns: WS_STRING,
 }
-impl ::core::marker::Copy for WS_DNS_ENDPOINT_IDENTITY {}
-impl ::core::clone::Clone for WS_DNS_ENDPOINT_IDENTITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_DOUBLE_DESCRIPTION {
     pub minValue: f64,
     pub maxValue: f64,
 }
-impl ::core::marker::Copy for WS_DOUBLE_DESCRIPTION {}
-impl ::core::clone::Clone for WS_DOUBLE_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_DURATION {
     pub negative: super::super::Foundation::BOOL,
     pub years: u32,
@@ -2249,159 +1858,76 @@ pub struct WS_DURATION {
     pub milliseconds: u32,
     pub ticks: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_DURATION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_DURATION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_DURATION_DESCRIPTION {
     pub minValue: WS_DURATION,
     pub maxValue: WS_DURATION,
     pub comparer: WS_DURATION_COMPARISON_CALLBACK,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_DURATION_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_DURATION_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ELEMENT_DESCRIPTION {
     pub elementLocalName: *mut WS_XML_STRING,
     pub elementNs: *mut WS_XML_STRING,
     pub r#type: WS_TYPE,
-    pub typeDescription: *mut ::core::ffi::c_void,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ELEMENT_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ELEMENT_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub typeDescription: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ENDPOINT_ADDRESS {
     pub url: WS_STRING,
     pub headers: *mut WS_XML_BUFFER,
     pub extensions: *mut WS_XML_BUFFER,
     pub identity: *mut WS_ENDPOINT_IDENTITY,
 }
-impl ::core::marker::Copy for WS_ENDPOINT_ADDRESS {}
-impl ::core::clone::Clone for WS_ENDPOINT_ADDRESS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ENDPOINT_ADDRESS_DESCRIPTION {
     pub addressingVersion: WS_ADDRESSING_VERSION,
 }
-impl ::core::marker::Copy for WS_ENDPOINT_ADDRESS_DESCRIPTION {}
-impl ::core::clone::Clone for WS_ENDPOINT_ADDRESS_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ENDPOINT_IDENTITY {
     pub identityType: WS_ENDPOINT_IDENTITY_TYPE,
 }
-impl ::core::marker::Copy for WS_ENDPOINT_IDENTITY {}
-impl ::core::clone::Clone for WS_ENDPOINT_IDENTITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ENDPOINT_POLICY_EXTENSION {
     pub policyExtension: WS_POLICY_EXTENSION,
     pub assertionName: *mut WS_XML_STRING,
     pub assertionNs: *mut WS_XML_STRING,
     pub out: WS_ENDPOINT_POLICY_EXTENSION_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ENDPOINT_POLICY_EXTENSION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ENDPOINT_POLICY_EXTENSION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ENDPOINT_POLICY_EXTENSION_0 {
     pub assertionValue: *mut WS_XML_BUFFER,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ENDPOINT_POLICY_EXTENSION_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ENDPOINT_POLICY_EXTENSION_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ENUM_DESCRIPTION {
     pub values: *mut WS_ENUM_VALUE,
     pub valueCount: u32,
     pub maxByteCount: u32,
     pub nameIndices: *mut u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ENUM_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ENUM_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ENUM_VALUE {
     pub value: i32,
     pub name: *mut WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ENUM_VALUE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ENUM_VALUE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_ERROR = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ERROR_PROPERTY {
     pub id: WS_ERROR_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_ERROR_PROPERTY {}
-impl ::core::clone::Clone for WS_ERROR_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_FAULT {
     pub code: *mut WS_FAULT_CODE,
     pub reasons: *mut WS_FAULT_REASON,
@@ -2410,74 +1936,37 @@ pub struct WS_FAULT {
     pub node: WS_STRING,
     pub detail: *mut WS_XML_BUFFER,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_FAULT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_FAULT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_FAULT_CODE {
     pub value: WS_XML_QNAME,
     pub subCode: *mut WS_FAULT_CODE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_FAULT_CODE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_FAULT_CODE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_FAULT_DESCRIPTION {
     pub envelopeVersion: WS_ENVELOPE_VERSION,
 }
-impl ::core::marker::Copy for WS_FAULT_DESCRIPTION {}
-impl ::core::clone::Clone for WS_FAULT_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_FAULT_DETAIL_DESCRIPTION {
     pub action: *mut WS_XML_STRING,
     pub detailElementDescription: *mut WS_ELEMENT_DESCRIPTION,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_FAULT_DETAIL_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_FAULT_DETAIL_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_FAULT_REASON {
     pub text: WS_STRING,
     pub lang: WS_STRING,
 }
-impl ::core::marker::Copy for WS_FAULT_REASON {}
-impl ::core::clone::Clone for WS_FAULT_REASON {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_FIELD_DESCRIPTION {
     pub mapping: WS_FIELD_MAPPING,
     pub localName: *mut WS_XML_STRING,
     pub ns: *mut WS_XML_STRING,
     pub r#type: WS_TYPE,
-    pub typeDescription: *mut ::core::ffi::c_void,
+    pub typeDescription: *mut core::ffi::c_void,
     pub offset: u32,
     pub options: u32,
     pub defaultValue: *mut WS_DEFAULT_VALUE,
@@ -2486,71 +1975,39 @@ pub struct WS_FIELD_DESCRIPTION {
     pub itemNs: *mut WS_XML_STRING,
     pub itemRange: *mut WS_ITEM_RANGE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_FIELD_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_FIELD_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_FLOAT_DESCRIPTION {
     pub minValue: f32,
     pub maxValue: f32,
 }
-impl ::core::marker::Copy for WS_FLOAT_DESCRIPTION {}
-impl ::core::clone::Clone for WS_FLOAT_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_GUID_DESCRIPTION {
-    pub value: ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for WS_GUID_DESCRIPTION {}
-impl ::core::clone::Clone for WS_GUID_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub value: windows_sys::core::GUID,
 }
 pub type WS_HEAP = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HEAP_PROPERTIES {
     pub properties: *mut WS_HEAP_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_HEAP_PROPERTIES {}
-impl ::core::clone::Clone for WS_HEAP_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HEAP_PROPERTY {
     pub id: WS_HEAP_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_HEAP_PROPERTY {}
-impl ::core::clone::Clone for WS_HEAP_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HOST_NAMES {
     pub hostNames: *mut WS_STRING,
     pub hostNameCount: u32,
 }
-impl ::core::marker::Copy for WS_HOST_NAMES {}
-impl ::core::clone::Clone for WS_HOST_NAMES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTPS_URL {
     pub url: WS_URL,
     pub host: WS_STRING,
@@ -2560,106 +2017,55 @@ pub struct WS_HTTPS_URL {
     pub query: WS_STRING,
     pub fragment: WS_STRING,
 }
-impl ::core::marker::Copy for WS_HTTPS_URL {}
-impl ::core::clone::Clone for WS_HTTPS_URL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_HTTP_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_HEADER_AUTH_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub httpHeaderAuthSecurityBinding: WS_HTTP_HEADER_AUTH_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_HTTP_HEADER_AUTH_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_HEADER_AUTH_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_HEADER_AUTH_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub httpHeaderAuthSecurityBinding: WS_HTTP_HEADER_AUTH_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_HTTP_HEADER_AUTH_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_HEADER_AUTH_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_HEADER_AUTH_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub clientCredential: *mut WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_HTTP_HEADER_AUTH_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_HTTP_HEADER_AUTH_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_HEADER_AUTH_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
 }
-impl ::core::marker::Copy for WS_HTTP_HEADER_AUTH_SECURITY_BINDING_CONSTRAINT {}
-impl ::core::clone::Clone for WS_HTTP_HEADER_AUTH_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_HEADER_AUTH_SECURITY_BINDING_POLICY_DESCRIPTION {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_HTTP_HEADER_AUTH_SECURITY_BINDING_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_HEADER_AUTH_SECURITY_BINDING_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_HEADER_AUTH_SECURITY_BINDING_TEMPLATE {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub clientCredential: *mut WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_HTTP_HEADER_AUTH_SECURITY_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_HEADER_AUTH_SECURITY_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_HEADER_MAPPING {
     pub headerName: WS_XML_STRING,
     pub headerMappingOptions: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_HTTP_HEADER_MAPPING {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_HTTP_HEADER_MAPPING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_MESSAGE_MAPPING {
     pub requestMappingOptions: u32,
     pub responseMappingOptions: u32,
@@ -2668,100 +2074,58 @@ pub struct WS_HTTP_MESSAGE_MAPPING {
     pub responseHeaderMappings: *mut *mut WS_HTTP_HEADER_MAPPING,
     pub responseHeaderMappingCount: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_HTTP_MESSAGE_MAPPING {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_HTTP_MESSAGE_MAPPING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_HTTP_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_REDIRECT_CALLBACK_CONTEXT {
     pub callback: WS_HTTP_REDIRECT_CALLBACK,
-    pub state: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_HTTP_REDIRECT_CALLBACK_CONTEXT {}
-impl ::core::clone::Clone for WS_HTTP_REDIRECT_CALLBACK_CONTEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub state: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_SSL_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_HEADER_AUTH_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_TEMPLATE,
     pub httpHeaderAuthSecurityBinding: WS_HTTP_HEADER_AUTH_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_HEADER_AUTH_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_SSL_HEADER_AUTH_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_HEADER_AUTH_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub httpHeaderAuthSecurityBinding: WS_HTTP_HEADER_AUTH_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_HEADER_AUTH_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_SSL_HEADER_AUTH_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_KERBEROS_APREQ_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_TEMPLATE,
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_KERBEROS_APREQ_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_SSL_KERBEROS_APREQ_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_KERBEROS_APREQ_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_KERBEROS_APREQ_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_SSL_KERBEROS_APREQ_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -2769,13 +2133,8 @@ pub struct WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_TEMPLATE,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -2783,51 +2142,31 @@ pub struct WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_SSL_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_SSL_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_USERNAME_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_TEMPLATE,
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_USERNAME_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_SSL_USERNAME_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_USERNAME_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sslTransportSecurityBinding: WS_SSL_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_USERNAME_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_SSL_USERNAME_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -2835,13 +2174,8 @@ pub struct WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_TEMPLATE,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -2849,13 +2183,8 @@ pub struct WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_HTTP_SSL_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_HTTP_URL {
     pub url: WS_URL,
     pub host: WS_STRING,
@@ -2865,59 +2194,32 @@ pub struct WS_HTTP_URL {
     pub query: WS_STRING,
     pub fragment: WS_STRING,
 }
-impl ::core::marker::Copy for WS_HTTP_URL {}
-impl ::core::clone::Clone for WS_HTTP_URL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_INT16_DESCRIPTION {
     pub minValue: i16,
     pub maxValue: i16,
 }
-impl ::core::marker::Copy for WS_INT16_DESCRIPTION {}
-impl ::core::clone::Clone for WS_INT16_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_INT32_DESCRIPTION {
     pub minValue: i32,
     pub maxValue: i32,
 }
-impl ::core::marker::Copy for WS_INT32_DESCRIPTION {}
-impl ::core::clone::Clone for WS_INT32_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_INT64_DESCRIPTION {
     pub minValue: i64,
     pub maxValue: i64,
 }
-impl ::core::marker::Copy for WS_INT64_DESCRIPTION {}
-impl ::core::clone::Clone for WS_INT64_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_INT8_DESCRIPTION {
-    pub minValue: u8,
-    pub maxValue: u8,
-}
-impl ::core::marker::Copy for WS_INT8_DESCRIPTION {}
-impl ::core::clone::Clone for WS_INT8_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub minValue: i8,
+    pub maxValue: i8,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
@@ -2927,152 +2229,80 @@ pub struct WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT {
     pub requestSecurityTokenPropertyConstraintCount: u32,
     pub out: WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT_0 {
     pub issuerAddress: *mut WS_ENDPOINT_ADDRESS,
     pub requestSecurityTokenTemplate: *mut WS_XML_BUFFER,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_ISSUED_TOKEN_MESSAGE_SECURITY_BINDING_CONSTRAINT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_ITEM_RANGE {
     pub minItemCount: u32,
     pub maxItemCount: u32,
 }
-impl ::core::marker::Copy for WS_ITEM_RANGE {}
-impl ::core::clone::Clone for WS_ITEM_RANGE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
     pub clientCredential: *mut WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
 }
-impl ::core::marker::Copy for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_CONSTRAINT {}
-impl ::core::clone::Clone for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
 }
-impl ::core::marker::Copy for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_TEMPLATE {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub clientCredential: *mut WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_LISTENER = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_LISTENER_PROPERTIES {
     pub properties: *mut WS_LISTENER_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_LISTENER_PROPERTIES {}
-impl ::core::clone::Clone for WS_LISTENER_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_LISTENER_PROPERTY {
     pub id: WS_LISTENER_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
-}
-impl ::core::marker::Copy for WS_LISTENER_PROPERTY {}
-impl ::core::clone::Clone for WS_LISTENER_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 pub type WS_MESSAGE = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_MESSAGE_DESCRIPTION {
     pub action: *mut WS_XML_STRING,
     pub bodyElementDescription: *mut WS_ELEMENT_DESCRIPTION,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_MESSAGE_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_MESSAGE_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_MESSAGE_PROPERTIES {
     pub properties: *mut WS_MESSAGE_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_MESSAGE_PROPERTIES {}
-impl ::core::clone::Clone for WS_MESSAGE_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_MESSAGE_PROPERTY {
     pub id: WS_MESSAGE_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
-}
-impl ::core::marker::Copy for WS_MESSAGE_PROPERTY {}
-impl ::core::clone::Clone for WS_MESSAGE_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 pub type WS_METADATA = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_METADATA_ENDPOINT {
     pub endpointAddress: WS_ENDPOINT_ADDRESS,
     pub endpointPolicy: *mut WS_POLICY,
@@ -3084,68 +2314,34 @@ pub struct WS_METADATA_ENDPOINT {
     pub portTypeName: *mut WS_XML_STRING,
     pub portTypeNs: *mut WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_METADATA_ENDPOINT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_METADATA_ENDPOINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_METADATA_ENDPOINTS {
     pub endpoints: *mut WS_METADATA_ENDPOINT,
     pub endpointCount: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_METADATA_ENDPOINTS {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_METADATA_ENDPOINTS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_METADATA_PROPERTY {
     pub id: WS_METADATA_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_METADATA_PROPERTY {}
-impl ::core::clone::Clone for WS_METADATA_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_NAMEDPIPE_SSPI_TRANSPORT_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub clientCredential: *mut WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_NAMEDPIPE_SSPI_TRANSPORT_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_NAMEDPIPE_SSPI_TRANSPORT_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Security_Cryptography\"`"]
 #[cfg(feature = "Win32_Security_Cryptography")]
+#[derive(Clone, Copy)]
 pub struct WS_NCRYPT_ASYMMETRIC_SECURITY_KEY_HANDLE {
     pub keyHandle: WS_SECURITY_KEY_HANDLE,
     pub asymmetricKey: super::super::Security::Cryptography::NCRYPT_KEY_HANDLE,
 }
-#[cfg(feature = "Win32_Security_Cryptography")]
-impl ::core::marker::Copy for WS_NCRYPT_ASYMMETRIC_SECURITY_KEY_HANDLE {}
-#[cfg(feature = "Win32_Security_Cryptography")]
-impl ::core::clone::Clone for WS_NCRYPT_ASYMMETRIC_SECURITY_KEY_HANDLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_NETPIPE_URL {
     pub url: WS_URL,
     pub host: WS_STRING,
@@ -3155,13 +2351,8 @@ pub struct WS_NETPIPE_URL {
     pub query: WS_STRING,
     pub fragment: WS_STRING,
 }
-impl ::core::marker::Copy for WS_NETPIPE_URL {}
-impl ::core::clone::Clone for WS_NETPIPE_URL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_NETTCP_URL {
     pub url: WS_URL,
     pub host: WS_STRING,
@@ -3171,27 +2362,15 @@ pub struct WS_NETTCP_URL {
     pub query: WS_STRING,
     pub fragment: WS_STRING,
 }
-impl ::core::marker::Copy for WS_NETTCP_URL {}
-impl ::core::clone::Clone for WS_NETTCP_URL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_OPAQUE_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
     pub credential: WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
-    pub opaqueAuthIdentity: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_OPAQUE_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {}
-impl ::core::clone::Clone for WS_OPAQUE_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub opaqueAuthIdentity: *mut core::ffi::c_void,
 }
 pub type WS_OPERATION_CONTEXT = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_OPERATION_DESCRIPTION {
     pub versionInfo: u32,
     pub inputMessageDescription: *mut WS_MESSAGE_DESCRIPTION,
@@ -3203,28 +2382,16 @@ pub struct WS_OPERATION_DESCRIPTION {
     pub stubCallback: WS_SERVICE_STUB_CALLBACK,
     pub style: WS_OPERATION_STYLE,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_OPERATION_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_OPERATION_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_PARAMETER_DESCRIPTION {
     pub parameterType: WS_PARAMETER_TYPE,
     pub inputMessageIndex: u16,
     pub outputMessageIndex: u16,
 }
-impl ::core::marker::Copy for WS_PARAMETER_DESCRIPTION {}
-impl ::core::clone::Clone for WS_PARAMETER_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_POLICY = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_POLICY_CONSTRAINTS {
     pub channelBinding: WS_CHANNEL_BINDING,
     pub channelPropertyConstraints: *mut WS_CHANNEL_PROPERTY_CONSTRAINT,
@@ -3233,161 +2400,91 @@ pub struct WS_POLICY_CONSTRAINTS {
     pub policyExtensions: *mut *mut WS_POLICY_EXTENSION,
     pub policyExtensionCount: u32,
 }
-impl ::core::marker::Copy for WS_POLICY_CONSTRAINTS {}
-impl ::core::clone::Clone for WS_POLICY_CONSTRAINTS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_POLICY_EXTENSION {
     pub r#type: WS_POLICY_EXTENSION_TYPE,
 }
-impl ::core::marker::Copy for WS_POLICY_EXTENSION {}
-impl ::core::clone::Clone for WS_POLICY_EXTENSION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_POLICY_PROPERTIES {
     pub properties: *mut WS_POLICY_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_POLICY_PROPERTIES {}
-impl ::core::clone::Clone for WS_POLICY_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_POLICY_PROPERTY {
     pub id: WS_POLICY_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_POLICY_PROPERTY {}
-impl ::core::clone::Clone for WS_POLICY_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_PROXY_MESSAGE_CALLBACK_CONTEXT {
     pub callback: WS_PROXY_MESSAGE_CALLBACK,
-    pub state: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_PROXY_MESSAGE_CALLBACK_CONTEXT {}
-impl ::core::clone::Clone for WS_PROXY_MESSAGE_CALLBACK_CONTEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub state: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_PROXY_PROPERTY {
     pub id: WS_PROXY_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_PROXY_PROPERTY {}
-impl ::core::clone::Clone for WS_PROXY_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_RAW_SYMMETRIC_SECURITY_KEY_HANDLE {
     pub keyHandle: WS_SECURITY_KEY_HANDLE,
     pub rawKeyBytes: WS_BYTES,
 }
-impl ::core::marker::Copy for WS_RAW_SYMMETRIC_SECURITY_KEY_HANDLE {}
-impl ::core::clone::Clone for WS_RAW_SYMMETRIC_SECURITY_KEY_HANDLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_REQUEST_SECURITY_TOKEN_PROPERTY {
     pub id: WS_REQUEST_SECURITY_TOKEN_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_REQUEST_SECURITY_TOKEN_PROPERTY {}
-impl ::core::clone::Clone for WS_REQUEST_SECURITY_TOKEN_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_REQUEST_SECURITY_TOKEN_PROPERTY_CONSTRAINT {
     pub id: WS_REQUEST_SECURITY_TOKEN_PROPERTY_ID,
-    pub allowedValues: *mut ::core::ffi::c_void,
+    pub allowedValues: *mut core::ffi::c_void,
     pub allowedValuesSize: u32,
     pub out: WS_REQUEST_SECURITY_TOKEN_PROPERTY_CONSTRAINT_0,
 }
-impl ::core::marker::Copy for WS_REQUEST_SECURITY_TOKEN_PROPERTY_CONSTRAINT {}
-impl ::core::clone::Clone for WS_REQUEST_SECURITY_TOKEN_PROPERTY_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_REQUEST_SECURITY_TOKEN_PROPERTY_CONSTRAINT_0 {
     pub requestSecurityTokenProperty: WS_REQUEST_SECURITY_TOKEN_PROPERTY,
 }
-impl ::core::marker::Copy for WS_REQUEST_SECURITY_TOKEN_PROPERTY_CONSTRAINT_0 {}
-impl ::core::clone::Clone for WS_REQUEST_SECURITY_TOKEN_PROPERTY_CONSTRAINT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_RSA_ENDPOINT_IDENTITY {
     pub identity: WS_ENDPOINT_IDENTITY,
     pub modulus: WS_BYTES,
     pub exponent: WS_BYTES,
 }
-impl ::core::marker::Copy for WS_RSA_ENDPOINT_IDENTITY {}
-impl ::core::clone::Clone for WS_RSA_ENDPOINT_IDENTITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SAML_AUTHENTICATOR {
     pub authenticatorType: WS_SAML_AUTHENTICATOR_TYPE,
 }
-impl ::core::marker::Copy for WS_SAML_AUTHENTICATOR {}
-impl ::core::clone::Clone for WS_SAML_AUTHENTICATOR {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SAML_MESSAGE_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
     pub authenticator: *mut WS_SAML_AUTHENTICATOR,
 }
-impl ::core::marker::Copy for WS_SAML_MESSAGE_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_SAML_MESSAGE_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_ALGORITHM_PROPERTY {
     pub id: WS_SECURITY_ALGORITHM_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_ALGORITHM_PROPERTY {}
-impl ::core::clone::Clone for WS_SECURITY_ALGORITHM_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_ALGORITHM_SUITE {
     pub canonicalizationAlgorithm: WS_SECURITY_ALGORITHM_ID,
     pub digestAlgorithm: WS_SECURITY_ALGORITHM_ID,
@@ -3404,264 +2501,148 @@ pub struct WS_SECURITY_ALGORITHM_SUITE {
     pub properties: *mut WS_SECURITY_ALGORITHM_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_ALGORITHM_SUITE {}
-impl ::core::clone::Clone for WS_SECURITY_ALGORITHM_SUITE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_BINDING {
     pub bindingType: WS_SECURITY_BINDING_TYPE,
     pub properties: *mut WS_SECURITY_BINDING_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_BINDING_CONSTRAINT {
     pub r#type: WS_SECURITY_BINDING_CONSTRAINT_TYPE,
     pub propertyConstraints: *mut WS_SECURITY_BINDING_PROPERTY_CONSTRAINT,
     pub propertyConstraintCount: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_BINDING_CONSTRAINT {}
-impl ::core::clone::Clone for WS_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_BINDING_PROPERTIES {
     pub properties: *mut WS_SECURITY_BINDING_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_BINDING_PROPERTIES {}
-impl ::core::clone::Clone for WS_SECURITY_BINDING_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_BINDING_PROPERTY {
     pub id: WS_SECURITY_BINDING_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_BINDING_PROPERTY {}
-impl ::core::clone::Clone for WS_SECURITY_BINDING_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_BINDING_PROPERTY_CONSTRAINT {
     pub id: WS_SECURITY_BINDING_PROPERTY_ID,
-    pub allowedValues: *mut ::core::ffi::c_void,
+    pub allowedValues: *mut core::ffi::c_void,
     pub allowedValuesSize: u32,
     pub out: WS_SECURITY_BINDING_PROPERTY_CONSTRAINT_0,
 }
-impl ::core::marker::Copy for WS_SECURITY_BINDING_PROPERTY_CONSTRAINT {}
-impl ::core::clone::Clone for WS_SECURITY_BINDING_PROPERTY_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_BINDING_PROPERTY_CONSTRAINT_0 {
     pub securityBindingProperty: WS_SECURITY_BINDING_PROPERTY,
 }
-impl ::core::marker::Copy for WS_SECURITY_BINDING_PROPERTY_CONSTRAINT_0 {}
-impl ::core::clone::Clone for WS_SECURITY_BINDING_PROPERTY_CONSTRAINT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONSTRAINTS {
     pub securityPropertyConstraints: *mut WS_SECURITY_PROPERTY_CONSTRAINT,
     pub securityPropertyConstraintCount: u32,
     pub securityBindingConstraints: *mut *mut WS_SECURITY_BINDING_CONSTRAINT,
     pub securityBindingConstraintCount: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONSTRAINTS {}
-impl ::core::clone::Clone for WS_SECURITY_CONSTRAINTS {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_SECURITY_CONTEXT = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
     pub bootstrapSecurityDescription: *mut WS_SECURITY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
     pub bootstrapSecurityConstraint: *mut WS_SECURITY_CONSTRAINTS,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_CONSTRAINT {}
-impl ::core::clone::Clone for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_TEMPLATE {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONTEXT_PROPERTY {
     pub id: WS_SECURITY_CONTEXT_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONTEXT_PROPERTY {}
-impl ::core::clone::Clone for WS_SECURITY_CONTEXT_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONTEXT_SECURITY_BINDING_POLICY_DESCRIPTION {
     pub securityContextMessageSecurityBinding: WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub securityProperties: WS_SECURITY_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONTEXT_SECURITY_BINDING_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_SECURITY_CONTEXT_SECURITY_BINDING_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_CONTEXT_SECURITY_BINDING_TEMPLATE {
     pub securityContextMessageSecurityBinding: WS_SECURITY_CONTEXT_MESSAGE_SECURITY_BINDING_TEMPLATE,
     pub securityProperties: WS_SECURITY_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_SECURITY_CONTEXT_SECURITY_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_SECURITY_CONTEXT_SECURITY_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_DESCRIPTION {
     pub securityBindings: *mut *mut WS_SECURITY_BINDING,
     pub securityBindingCount: u32,
     pub properties: *mut WS_SECURITY_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_SECURITY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_KEY_HANDLE {
     pub keyHandleType: WS_SECURITY_KEY_HANDLE_TYPE,
 }
-impl ::core::marker::Copy for WS_SECURITY_KEY_HANDLE {}
-impl ::core::clone::Clone for WS_SECURITY_KEY_HANDLE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_PROPERTIES {
     pub properties: *mut WS_SECURITY_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_PROPERTIES {}
-impl ::core::clone::Clone for WS_SECURITY_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_PROPERTY {
     pub id: WS_SECURITY_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_SECURITY_PROPERTY {}
-impl ::core::clone::Clone for WS_SECURITY_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_PROPERTY_CONSTRAINT {
     pub id: WS_SECURITY_PROPERTY_ID,
-    pub allowedValues: *mut ::core::ffi::c_void,
+    pub allowedValues: *mut core::ffi::c_void,
     pub allowedValuesSize: u32,
     pub out: WS_SECURITY_PROPERTY_CONSTRAINT_0,
 }
-impl ::core::marker::Copy for WS_SECURITY_PROPERTY_CONSTRAINT {}
-impl ::core::clone::Clone for WS_SECURITY_PROPERTY_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SECURITY_PROPERTY_CONSTRAINT_0 {
     pub securityProperty: WS_SECURITY_PROPERTY,
 }
-impl ::core::marker::Copy for WS_SECURITY_PROPERTY_CONSTRAINT_0 {}
-impl ::core::clone::Clone for WS_SECURITY_PROPERTY_CONSTRAINT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_SECURITY_TOKEN = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_CONTRACT {
     pub contractDescription: *const WS_CONTRACT_DESCRIPTION,
     pub defaultMessageHandlerCallback: WS_SERVICE_MESSAGE_RECEIVE_CALLBACK,
-    pub methodTable: *const ::core::ffi::c_void,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_SERVICE_CONTRACT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_SERVICE_CONTRACT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub methodTable: *const core::ffi::c_void,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_ENDPOINT {
     pub address: WS_ENDPOINT_ADDRESS,
     pub channelBinding: WS_CHANNEL_BINDING,
@@ -3673,120 +2654,61 @@ pub struct WS_SERVICE_ENDPOINT {
     pub propertyCount: u32,
     pub channelProperties: WS_CHANNEL_PROPERTIES,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_SERVICE_ENDPOINT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_SERVICE_ENDPOINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_ENDPOINT_METADATA {
     pub portName: *mut WS_XML_STRING,
     pub bindingName: *mut WS_XML_STRING,
     pub bindingNs: *mut WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_SERVICE_ENDPOINT_METADATA {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_SERVICE_ENDPOINT_METADATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_ENDPOINT_PROPERTY {
     pub id: WS_SERVICE_ENDPOINT_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
-}
-impl ::core::marker::Copy for WS_SERVICE_ENDPOINT_PROPERTY {}
-impl ::core::clone::Clone for WS_SERVICE_ENDPOINT_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 pub type WS_SERVICE_HOST = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_METADATA {
     pub documentCount: u32,
     pub documents: *mut *mut WS_SERVICE_METADATA_DOCUMENT,
     pub serviceName: *mut WS_XML_STRING,
     pub serviceNs: *mut WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_SERVICE_METADATA {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_SERVICE_METADATA {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_METADATA_DOCUMENT {
     pub content: *mut WS_XML_STRING,
     pub name: *mut WS_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_SERVICE_METADATA_DOCUMENT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_SERVICE_METADATA_DOCUMENT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_PROPERTY {
     pub id: WS_SERVICE_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_SERVICE_PROPERTY {}
-impl ::core::clone::Clone for WS_SERVICE_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_PROPERTY_ACCEPT_CALLBACK {
     pub callback: WS_SERVICE_ACCEPT_CHANNEL_CALLBACK,
 }
-impl ::core::marker::Copy for WS_SERVICE_PROPERTY_ACCEPT_CALLBACK {}
-impl ::core::clone::Clone for WS_SERVICE_PROPERTY_ACCEPT_CALLBACK {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_PROPERTY_CLOSE_CALLBACK {
     pub callback: WS_SERVICE_CLOSE_CHANNEL_CALLBACK,
 }
-impl ::core::marker::Copy for WS_SERVICE_PROPERTY_CLOSE_CALLBACK {}
-impl ::core::clone::Clone for WS_SERVICE_PROPERTY_CLOSE_CALLBACK {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_SERVICE_PROXY = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SERVICE_SECURITY_IDENTITIES {
     pub serviceIdentities: *mut WS_STRING,
     pub serviceIdentityCount: u32,
 }
-impl ::core::marker::Copy for WS_SERVICE_SECURITY_IDENTITIES {}
-impl ::core::clone::Clone for WS_SERVICE_SECURITY_IDENTITIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SOAPUDP_URL {
     pub url: WS_URL,
     pub host: WS_STRING,
@@ -3796,144 +2718,74 @@ pub struct WS_SOAPUDP_URL {
     pub query: WS_STRING,
     pub fragment: WS_STRING,
 }
-impl ::core::marker::Copy for WS_SOAPUDP_URL {}
-impl ::core::clone::Clone for WS_SOAPUDP_URL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SPN_ENDPOINT_IDENTITY {
     pub identity: WS_ENDPOINT_IDENTITY,
     pub spn: WS_STRING,
 }
-impl ::core::marker::Copy for WS_SPN_ENDPOINT_IDENTITY {}
-impl ::core::clone::Clone for WS_SPN_ENDPOINT_IDENTITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SSL_TRANSPORT_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub localCertCredential: *mut WS_CERT_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_SSL_TRANSPORT_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_SSL_TRANSPORT_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_SSL_TRANSPORT_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
     pub out: WS_SSL_TRANSPORT_SECURITY_BINDING_CONSTRAINT_0,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_SSL_TRANSPORT_SECURITY_BINDING_CONSTRAINT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_SSL_TRANSPORT_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_SSL_TRANSPORT_SECURITY_BINDING_CONSTRAINT_0 {
     pub clientCertCredentialRequired: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_SSL_TRANSPORT_SECURITY_BINDING_CONSTRAINT_0 {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_SSL_TRANSPORT_SECURITY_BINDING_CONSTRAINT_0 {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SSL_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_SSL_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_SSL_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SSL_TRANSPORT_SECURITY_BINDING_TEMPLATE {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub localCertCredential: *mut WS_CERT_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_SSL_TRANSPORT_SECURITY_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_SSL_TRANSPORT_SECURITY_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SSPI_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_SSPI_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_SSPI_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_STRING {
     pub length: u32,
-    pub chars: ::windows_sys::core::PWSTR,
-}
-impl ::core::marker::Copy for WS_STRING {}
-impl ::core::clone::Clone for WS_STRING {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub chars: windows_sys::core::PWSTR,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_STRING_DESCRIPTION {
     pub minCharCount: u32,
     pub maxCharCount: u32,
 }
-impl ::core::marker::Copy for WS_STRING_DESCRIPTION {}
-impl ::core::clone::Clone for WS_STRING_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_STRING_USERNAME_CREDENTIAL {
     pub credential: WS_USERNAME_CREDENTIAL,
     pub username: WS_STRING,
     pub password: WS_STRING,
 }
-impl ::core::marker::Copy for WS_STRING_USERNAME_CREDENTIAL {}
-impl ::core::clone::Clone for WS_STRING_USERNAME_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_STRING_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
     pub credential: WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
     pub username: WS_STRING,
     pub password: WS_STRING,
     pub domain: WS_STRING,
 }
-impl ::core::marker::Copy for WS_STRING_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {}
-impl ::core::clone::Clone for WS_STRING_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_STRUCT_DESCRIPTION {
     pub size: u32,
     pub alignment: u32,
@@ -3946,86 +2798,49 @@ pub struct WS_STRUCT_DESCRIPTION {
     pub subTypeCount: u32,
     pub structOptions: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_STRUCT_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_STRUCT_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_SUBJECT_NAME_CERT_CREDENTIAL {
     pub credential: WS_CERT_CREDENTIAL,
     pub storeLocation: u32,
     pub storeName: WS_STRING,
     pub subjectName: WS_STRING,
 }
-impl ::core::marker::Copy for WS_SUBJECT_NAME_CERT_CREDENTIAL {}
-impl ::core::clone::Clone for WS_SUBJECT_NAME_CERT_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_TCP_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_TCP_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
 }
-impl ::core::marker::Copy for WS_TCP_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_TCP_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sspiTransportSecurityBinding: WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_TCP_SSPI_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_KERBEROS_APREQ_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sspiTransportSecurityBinding: WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_TEMPLATE,
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_KERBEROS_APREQ_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_TCP_SSPI_KERBEROS_APREQ_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_KERBEROS_APREQ_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sspiTransportSecurityBinding: WS_SSPI_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_KERBEROS_APREQ_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_TCP_SSPI_KERBEROS_APREQ_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -4033,13 +2848,8 @@ pub struct WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_TEMPLATE,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -4047,83 +2857,48 @@ pub struct WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub kerberosApreqMessageSecurityBinding: WS_KERBEROS_APREQ_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_TCP_SSPI_KERBEROS_APREQ_SECURITY_CONTEXT_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sspiTransportSecurityBinding: WS_SSPI_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_TCP_SSPI_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub clientCredential: *mut WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_CONSTRAINT {}
-impl ::core::clone::Clone for WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_TEMPLATE {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub clientCredential: *mut WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_USERNAME_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sspiTransportSecurityBinding: WS_TCP_SSPI_TRANSPORT_SECURITY_BINDING_TEMPLATE,
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_USERNAME_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_TCP_SSPI_USERNAME_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_USERNAME_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
     pub sspiTransportSecurityBinding: WS_SSPI_TRANSPORT_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_USERNAME_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_TCP_SSPI_USERNAME_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -4131,13 +2906,8 @@ pub struct WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_TEMPLATE,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_TEMPLATE,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub channelProperties: WS_CHANNEL_PROPERTIES,
     pub securityProperties: WS_SECURITY_PROPERTIES,
@@ -4145,93 +2915,51 @@ pub struct WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {
     pub usernameMessageSecurityBinding: WS_USERNAME_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION,
     pub securityContextSecurityBinding: WS_SECURITY_CONTEXT_SECURITY_BINDING_POLICY_DESCRIPTION,
 }
-impl ::core::marker::Copy for WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_TCP_SSPI_USERNAME_SECURITY_CONTEXT_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_THUMBPRINT_CERT_CREDENTIAL {
     pub credential: WS_CERT_CREDENTIAL,
     pub storeLocation: u32,
     pub storeName: WS_STRING,
     pub thumbprint: WS_STRING,
 }
-impl ::core::marker::Copy for WS_THUMBPRINT_CERT_CREDENTIAL {}
-impl ::core::clone::Clone for WS_THUMBPRINT_CERT_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TIMESPAN {
     pub ticks: i64,
 }
-impl ::core::marker::Copy for WS_TIMESPAN {}
-impl ::core::clone::Clone for WS_TIMESPAN {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_TIMESPAN_DESCRIPTION {
     pub minValue: WS_TIMESPAN,
     pub maxValue: WS_TIMESPAN,
 }
-impl ::core::marker::Copy for WS_TIMESPAN_DESCRIPTION {}
-impl ::core::clone::Clone for WS_TIMESPAN_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UINT16_DESCRIPTION {
     pub minValue: u16,
     pub maxValue: u16,
 }
-impl ::core::marker::Copy for WS_UINT16_DESCRIPTION {}
-impl ::core::clone::Clone for WS_UINT16_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UINT32_DESCRIPTION {
     pub minValue: u32,
     pub maxValue: u32,
 }
-impl ::core::marker::Copy for WS_UINT32_DESCRIPTION {}
-impl ::core::clone::Clone for WS_UINT32_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UINT64_DESCRIPTION {
     pub minValue: u64,
     pub maxValue: u64,
 }
-impl ::core::marker::Copy for WS_UINT64_DESCRIPTION {}
-impl ::core::clone::Clone for WS_UINT64_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UINT8_DESCRIPTION {
     pub minValue: u8,
     pub maxValue: u8,
 }
-impl ::core::marker::Copy for WS_UINT8_DESCRIPTION {}
-impl ::core::clone::Clone for WS_UINT8_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_UNION_DESCRIPTION {
     pub size: u32,
     pub alignment: u32,
@@ -4241,187 +2969,99 @@ pub struct WS_UNION_DESCRIPTION {
     pub noneEnumValue: i32,
     pub valueIndices: *mut u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_UNION_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_UNION_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_UNION_FIELD_DESCRIPTION {
     pub value: i32,
     pub field: WS_FIELD_DESCRIPTION,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_UNION_FIELD_DESCRIPTION {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_UNION_FIELD_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UNIQUE_ID {
     pub uri: WS_STRING,
-    pub guid: ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for WS_UNIQUE_ID {}
-impl ::core::clone::Clone for WS_UNIQUE_ID {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub guid: windows_sys::core::GUID,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UNIQUE_ID_DESCRIPTION {
     pub minCharCount: u32,
     pub maxCharCount: u32,
 }
-impl ::core::marker::Copy for WS_UNIQUE_ID_DESCRIPTION {}
-impl ::core::clone::Clone for WS_UNIQUE_ID_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UNKNOWN_ENDPOINT_IDENTITY {
     pub identity: WS_ENDPOINT_IDENTITY,
     pub element: *mut WS_XML_BUFFER,
 }
-impl ::core::marker::Copy for WS_UNKNOWN_ENDPOINT_IDENTITY {}
-impl ::core::clone::Clone for WS_UNKNOWN_ENDPOINT_IDENTITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UPN_ENDPOINT_IDENTITY {
     pub identity: WS_ENDPOINT_IDENTITY,
     pub upn: WS_STRING,
 }
-impl ::core::marker::Copy for WS_UPN_ENDPOINT_IDENTITY {}
-impl ::core::clone::Clone for WS_UPN_ENDPOINT_IDENTITY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_URL {
     pub scheme: WS_URL_SCHEME_TYPE,
 }
-impl ::core::marker::Copy for WS_URL {}
-impl ::core::clone::Clone for WS_URL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_USERNAME_CREDENTIAL {
     pub credentialType: WS_USERNAME_CREDENTIAL_TYPE,
 }
-impl ::core::marker::Copy for WS_USERNAME_CREDENTIAL {}
-impl ::core::clone::Clone for WS_USERNAME_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_USERNAME_MESSAGE_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
     pub clientCredential: *mut WS_USERNAME_CREDENTIAL,
     pub passwordValidator: WS_VALIDATE_PASSWORD_CALLBACK,
-    pub passwordValidatorCallbackState: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_USERNAME_MESSAGE_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_USERNAME_MESSAGE_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub passwordValidatorCallbackState: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_USERNAME_MESSAGE_SECURITY_BINDING_CONSTRAINT {
     pub bindingConstraint: WS_SECURITY_BINDING_CONSTRAINT,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
 }
-impl ::core::marker::Copy for WS_USERNAME_MESSAGE_SECURITY_BINDING_CONSTRAINT {}
-impl ::core::clone::Clone for WS_USERNAME_MESSAGE_SECURITY_BINDING_CONSTRAINT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_USERNAME_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
 }
-impl ::core::marker::Copy for WS_USERNAME_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_USERNAME_MESSAGE_SECURITY_BINDING_POLICY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_USERNAME_MESSAGE_SECURITY_BINDING_TEMPLATE {
     pub securityBindingProperties: WS_SECURITY_BINDING_PROPERTIES,
     pub clientCredential: *mut WS_USERNAME_CREDENTIAL,
     pub passwordValidator: WS_VALIDATE_PASSWORD_CALLBACK,
-    pub passwordValidatorCallbackState: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_USERNAME_MESSAGE_SECURITY_BINDING_TEMPLATE {}
-impl ::core::clone::Clone for WS_USERNAME_MESSAGE_SECURITY_BINDING_TEMPLATE {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub passwordValidatorCallbackState: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_UTF8_ARRAY_DESCRIPTION {
     pub minByteCount: u32,
     pub maxByteCount: u32,
 }
-impl ::core::marker::Copy for WS_UTF8_ARRAY_DESCRIPTION {}
-impl ::core::clone::Clone for WS_UTF8_ARRAY_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_VOID_DESCRIPTION {
     pub size: u32,
 }
-impl ::core::marker::Copy for WS_VOID_DESCRIPTION {}
-impl ::core::clone::Clone for WS_VOID_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
     pub credentialType: WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL_TYPE,
 }
-impl ::core::marker::Copy for WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {}
-impl ::core::clone::Clone for WS_WINDOWS_INTEGRATED_AUTH_CREDENTIAL {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_WSZ_DESCRIPTION {
     pub minCharCount: u32,
     pub maxCharCount: u32,
 }
-impl ::core::marker::Copy for WS_WSZ_DESCRIPTION {}
-impl ::core::clone::Clone for WS_WSZ_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_ATTRIBUTE {
     pub singleQuote: u8,
     pub isXmlNs: u8,
@@ -4430,153 +3070,74 @@ pub struct WS_XML_ATTRIBUTE {
     pub ns: *mut WS_XML_STRING,
     pub value: *mut WS_XML_TEXT,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_ATTRIBUTE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_ATTRIBUTE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_BASE64_TEXT {
     pub text: WS_XML_TEXT,
     pub bytes: *mut u8,
     pub length: u32,
 }
-impl ::core::marker::Copy for WS_XML_BASE64_TEXT {}
-impl ::core::clone::Clone for WS_XML_BASE64_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_BOOL_TEXT {
     pub text: WS_XML_TEXT,
     pub value: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_BOOL_TEXT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_BOOL_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_XML_BUFFER = isize;
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_BUFFER_PROPERTY {
     pub id: WS_XML_BUFFER_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_XML_BUFFER_PROPERTY {}
-impl ::core::clone::Clone for WS_XML_BUFFER_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_CANONICALIZATION_INCLUSIVE_PREFIXES {
     pub prefixCount: u32,
     pub prefixes: *mut WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_CANONICALIZATION_INCLUSIVE_PREFIXES {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_CANONICALIZATION_INCLUSIVE_PREFIXES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_CANONICALIZATION_PROPERTY {
     pub id: WS_XML_CANONICALIZATION_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_XML_CANONICALIZATION_PROPERTY {}
-impl ::core::clone::Clone for WS_XML_CANONICALIZATION_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_COMMENT_NODE {
     pub node: WS_XML_NODE,
     pub value: WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_COMMENT_NODE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_COMMENT_NODE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_DATETIME_TEXT {
     pub text: WS_XML_TEXT,
     pub value: WS_DATETIME,
 }
-impl ::core::marker::Copy for WS_XML_DATETIME_TEXT {}
-impl ::core::clone::Clone for WS_XML_DATETIME_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_DECIMAL_TEXT {
     pub text: WS_XML_TEXT,
     pub value: super::super::Foundation::DECIMAL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_DECIMAL_TEXT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_DECIMAL_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_DICTIONARY {
-    pub guid: ::windows_sys::core::GUID,
+    pub guid: windows_sys::core::GUID,
     pub strings: *mut WS_XML_STRING,
     pub stringCount: u32,
     pub isConst: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_DICTIONARY {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_DICTIONARY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_DOUBLE_TEXT {
     pub text: WS_XML_TEXT,
     pub value: f64,
 }
-impl ::core::marker::Copy for WS_XML_DOUBLE_TEXT {}
-impl ::core::clone::Clone for WS_XML_DOUBLE_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_ELEMENT_NODE {
     pub node: WS_XML_NODE,
     pub prefix: *mut WS_XML_STRING,
@@ -4586,188 +3147,97 @@ pub struct WS_XML_ELEMENT_NODE {
     pub attributes: *mut *mut WS_XML_ATTRIBUTE,
     pub isEmpty: super::super::Foundation::BOOL,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_ELEMENT_NODE {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_ELEMENT_NODE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_FLOAT_TEXT {
     pub text: WS_XML_TEXT,
     pub value: f32,
 }
-impl ::core::marker::Copy for WS_XML_FLOAT_TEXT {}
-impl ::core::clone::Clone for WS_XML_FLOAT_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_GUID_TEXT {
     pub text: WS_XML_TEXT,
-    pub value: ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for WS_XML_GUID_TEXT {}
-impl ::core::clone::Clone for WS_XML_GUID_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub value: windows_sys::core::GUID,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_INT32_TEXT {
     pub text: WS_XML_TEXT,
     pub value: i32,
 }
-impl ::core::marker::Copy for WS_XML_INT32_TEXT {}
-impl ::core::clone::Clone for WS_XML_INT32_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_INT64_TEXT {
     pub text: WS_XML_TEXT,
     pub value: i64,
 }
-impl ::core::marker::Copy for WS_XML_INT64_TEXT {}
-impl ::core::clone::Clone for WS_XML_INT64_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_LIST_TEXT {
     pub text: WS_XML_TEXT,
     pub itemCount: u32,
     pub items: *mut *mut WS_XML_TEXT,
 }
-impl ::core::marker::Copy for WS_XML_LIST_TEXT {}
-impl ::core::clone::Clone for WS_XML_LIST_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_NODE {
     pub nodeType: WS_XML_NODE_TYPE,
 }
-impl ::core::marker::Copy for WS_XML_NODE {}
-impl ::core::clone::Clone for WS_XML_NODE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_NODE_POSITION {
     pub buffer: *mut WS_XML_BUFFER,
-    pub node: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_XML_NODE_POSITION {}
-impl ::core::clone::Clone for WS_XML_NODE_POSITION {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub node: *mut core::ffi::c_void,
 }
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_QNAME {
     pub localName: WS_XML_STRING,
     pub ns: WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_QNAME {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_QNAME {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_QNAME_DESCRIPTION {
     pub minLocalNameByteCount: u32,
     pub maxLocalNameByteCount: u32,
     pub minNsByteCount: u32,
     pub maxNsByteCount: u32,
 }
-impl ::core::marker::Copy for WS_XML_QNAME_DESCRIPTION {}
-impl ::core::clone::Clone for WS_XML_QNAME_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_QNAME_TEXT {
     pub text: WS_XML_TEXT,
     pub prefix: *mut WS_XML_STRING,
     pub localName: *mut WS_XML_STRING,
     pub ns: *mut WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_QNAME_TEXT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_QNAME_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_XML_READER = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_BINARY_ENCODING {
     pub encoding: WS_XML_READER_ENCODING,
     pub staticDictionary: *mut WS_XML_DICTIONARY,
     pub dynamicDictionary: *mut WS_XML_DICTIONARY,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_READER_BINARY_ENCODING {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_READER_BINARY_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_BUFFER_INPUT {
     pub input: WS_XML_READER_INPUT,
-    pub encodedData: *mut ::core::ffi::c_void,
+    pub encodedData: *mut core::ffi::c_void,
     pub encodedDataSize: u32,
 }
-impl ::core::marker::Copy for WS_XML_READER_BUFFER_INPUT {}
-impl ::core::clone::Clone for WS_XML_READER_BUFFER_INPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_ENCODING {
     pub encodingType: WS_XML_READER_ENCODING_TYPE,
 }
-impl ::core::marker::Copy for WS_XML_READER_ENCODING {}
-impl ::core::clone::Clone for WS_XML_READER_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_INPUT {
     pub inputType: WS_XML_READER_INPUT_TYPE,
 }
-impl ::core::marker::Copy for WS_XML_READER_INPUT {}
-impl ::core::clone::Clone for WS_XML_READER_INPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_MTOM_ENCODING {
     pub encoding: WS_XML_READER_ENCODING,
     pub textEncoding: *mut WS_XML_READER_ENCODING,
@@ -4776,244 +3246,128 @@ pub struct WS_XML_READER_MTOM_ENCODING {
     pub boundary: WS_STRING,
     pub startUri: WS_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_READER_MTOM_ENCODING {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_READER_MTOM_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_PROPERTIES {
     pub properties: *mut WS_XML_READER_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_XML_READER_PROPERTIES {}
-impl ::core::clone::Clone for WS_XML_READER_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_PROPERTY {
     pub id: WS_XML_READER_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_XML_READER_PROPERTY {}
-impl ::core::clone::Clone for WS_XML_READER_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_RAW_ENCODING {
     pub encoding: WS_XML_READER_ENCODING,
 }
-impl ::core::marker::Copy for WS_XML_READER_RAW_ENCODING {}
-impl ::core::clone::Clone for WS_XML_READER_RAW_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_STREAM_INPUT {
     pub input: WS_XML_READER_INPUT,
     pub readCallback: WS_READ_CALLBACK,
-    pub readCallbackState: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_XML_READER_STREAM_INPUT {}
-impl ::core::clone::Clone for WS_XML_READER_STREAM_INPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub readCallbackState: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_READER_TEXT_ENCODING {
     pub encoding: WS_XML_READER_ENCODING,
     pub charSet: WS_CHARSET,
 }
-impl ::core::marker::Copy for WS_XML_READER_TEXT_ENCODING {}
-impl ::core::clone::Clone for WS_XML_READER_TEXT_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_SECURITY_TOKEN_PROPERTY {
     pub id: WS_XML_SECURITY_TOKEN_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_XML_SECURITY_TOKEN_PROPERTY {}
-impl ::core::clone::Clone for WS_XML_SECURITY_TOKEN_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_STRING {
     pub length: u32,
     pub bytes: *mut u8,
     pub dictionary: *mut WS_XML_DICTIONARY,
     pub id: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_STRING {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_STRING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_STRING_DESCRIPTION {
     pub minByteCount: u32,
     pub maxByteCount: u32,
 }
-impl ::core::marker::Copy for WS_XML_STRING_DESCRIPTION {}
-impl ::core::clone::Clone for WS_XML_STRING_DESCRIPTION {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_TEXT {
     pub textType: WS_XML_TEXT_TYPE,
 }
-impl ::core::marker::Copy for WS_XML_TEXT {}
-impl ::core::clone::Clone for WS_XML_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_TEXT_NODE {
     pub node: WS_XML_NODE,
     pub text: *mut WS_XML_TEXT,
 }
-impl ::core::marker::Copy for WS_XML_TEXT_NODE {}
-impl ::core::clone::Clone for WS_XML_TEXT_NODE {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_TIMESPAN_TEXT {
     pub text: WS_XML_TEXT,
     pub value: WS_TIMESPAN,
 }
-impl ::core::marker::Copy for WS_XML_TIMESPAN_TEXT {}
-impl ::core::clone::Clone for WS_XML_TIMESPAN_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_TOKEN_MESSAGE_SECURITY_BINDING {
     pub binding: WS_SECURITY_BINDING,
     pub bindingUsage: WS_MESSAGE_SECURITY_USAGE,
     pub xmlToken: *mut WS_SECURITY_TOKEN,
 }
-impl ::core::marker::Copy for WS_XML_TOKEN_MESSAGE_SECURITY_BINDING {}
-impl ::core::clone::Clone for WS_XML_TOKEN_MESSAGE_SECURITY_BINDING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_UINT64_TEXT {
     pub text: WS_XML_TEXT,
     pub value: u64,
 }
-impl ::core::marker::Copy for WS_XML_UINT64_TEXT {}
-impl ::core::clone::Clone for WS_XML_UINT64_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_UNIQUE_ID_TEXT {
     pub text: WS_XML_TEXT,
-    pub value: ::windows_sys::core::GUID,
-}
-impl ::core::marker::Copy for WS_XML_UNIQUE_ID_TEXT {}
-impl ::core::clone::Clone for WS_XML_UNIQUE_ID_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub value: windows_sys::core::GUID,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_UTF16_TEXT {
     pub text: WS_XML_TEXT,
     pub bytes: *mut u8,
     pub byteCount: u32,
 }
-impl ::core::marker::Copy for WS_XML_UTF16_TEXT {}
-impl ::core::clone::Clone for WS_XML_UTF16_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_UTF8_TEXT {
     pub text: WS_XML_TEXT,
     pub value: WS_XML_STRING,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_UTF8_TEXT {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_UTF8_TEXT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 pub type WS_XML_WRITER = isize;
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_BINARY_ENCODING {
     pub encoding: WS_XML_WRITER_ENCODING,
     pub staticDictionary: *mut WS_XML_DICTIONARY,
     pub dynamicStringCallback: WS_DYNAMIC_STRING_CALLBACK,
-    pub dynamicStringCallbackState: *mut ::core::ffi::c_void,
-}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_WRITER_BINARY_ENCODING {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_WRITER_BINARY_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub dynamicStringCallbackState: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_BUFFER_OUTPUT {
     pub output: WS_XML_WRITER_OUTPUT,
 }
-impl ::core::marker::Copy for WS_XML_WRITER_BUFFER_OUTPUT {}
-impl ::core::clone::Clone for WS_XML_WRITER_BUFFER_OUTPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_ENCODING {
     pub encodingType: WS_XML_WRITER_ENCODING_TYPE,
 }
-impl ::core::marker::Copy for WS_XML_WRITER_ENCODING {}
-impl ::core::clone::Clone for WS_XML_WRITER_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_MTOM_ENCODING {
     pub encoding: WS_XML_WRITER_ENCODING,
     pub textEncoding: *mut WS_XML_WRITER_ENCODING,
@@ -5023,153 +3377,104 @@ pub struct WS_XML_WRITER_MTOM_ENCODING {
     pub startUri: WS_STRING,
     pub maxInlineByteCount: u32,
 }
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::marker::Copy for WS_XML_WRITER_MTOM_ENCODING {}
-#[cfg(feature = "Win32_Foundation")]
-impl ::core::clone::Clone for WS_XML_WRITER_MTOM_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_OUTPUT {
     pub outputType: WS_XML_WRITER_OUTPUT_TYPE,
 }
-impl ::core::marker::Copy for WS_XML_WRITER_OUTPUT {}
-impl ::core::clone::Clone for WS_XML_WRITER_OUTPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_PROPERTIES {
     pub properties: *mut WS_XML_WRITER_PROPERTY,
     pub propertyCount: u32,
 }
-impl ::core::marker::Copy for WS_XML_WRITER_PROPERTIES {}
-impl ::core::clone::Clone for WS_XML_WRITER_PROPERTIES {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_PROPERTY {
     pub id: WS_XML_WRITER_PROPERTY_ID,
-    pub value: *mut ::core::ffi::c_void,
+    pub value: *mut core::ffi::c_void,
     pub valueSize: u32,
 }
-impl ::core::marker::Copy for WS_XML_WRITER_PROPERTY {}
-impl ::core::clone::Clone for WS_XML_WRITER_PROPERTY {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_RAW_ENCODING {
     pub encoding: WS_XML_WRITER_ENCODING,
 }
-impl ::core::marker::Copy for WS_XML_WRITER_RAW_ENCODING {}
-impl ::core::clone::Clone for WS_XML_WRITER_RAW_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_STREAM_OUTPUT {
     pub output: WS_XML_WRITER_OUTPUT,
     pub writeCallback: WS_WRITE_CALLBACK,
-    pub writeCallbackState: *mut ::core::ffi::c_void,
-}
-impl ::core::marker::Copy for WS_XML_WRITER_STREAM_OUTPUT {}
-impl ::core::clone::Clone for WS_XML_WRITER_STREAM_OUTPUT {
-    fn clone(&self) -> Self {
-        *self
-    }
+    pub writeCallbackState: *mut core::ffi::c_void,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct WS_XML_WRITER_TEXT_ENCODING {
     pub encoding: WS_XML_WRITER_ENCODING,
     pub charSet: WS_CHARSET,
 }
-impl ::core::marker::Copy for WS_XML_WRITER_TEXT_ENCODING {}
-impl ::core::clone::Clone for WS_XML_WRITER_TEXT_ENCODING {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-pub type WS_ABANDON_MESSAGE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, message: *const WS_MESSAGE, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ABORT_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ABORT_LISTENER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ACCEPT_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, channelinstance: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ASYNC_CALLBACK = ::core::option::Option<unsafe extern "system" fn(errorcode: ::windows_sys::core::HRESULT, callbackmodel: WS_CALLBACK_MODEL, callbackstate: *const ::core::ffi::c_void) -> ()>;
-pub type WS_ASYNC_FUNCTION = ::core::option::Option<unsafe extern "system" fn(hr: ::windows_sys::core::HRESULT, callbackmodel: WS_CALLBACK_MODEL, callbackstate: *const ::core::ffi::c_void, next: *mut WS_ASYNC_OPERATION, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-pub type WS_CERTIFICATE_VALIDATION_CALLBACK = ::core::option::Option<unsafe extern "system" fn(certcontext: *const super::super::Security::Cryptography::CERT_CONTEXT, state: *const ::core::ffi::c_void) -> ::windows_sys::core::HRESULT>;
-#[doc = "Required features: `\"Win32_Security_Authentication_Identity\"`, `\"Win32_Security_Cryptography\"`"]
+pub type WS_ABANDON_MESSAGE_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, message: *const WS_MESSAGE, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ABORT_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ABORT_LISTENER_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ACCEPT_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, channelinstance: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ASYNC_CALLBACK = Option<unsafe extern "system" fn(errorcode: windows_sys::core::HRESULT, callbackmodel: WS_CALLBACK_MODEL, callbackstate: *const core::ffi::c_void)>;
+pub type WS_ASYNC_FUNCTION = Option<unsafe extern "system" fn(hr: windows_sys::core::HRESULT, callbackmodel: WS_CALLBACK_MODEL, callbackstate: *const core::ffi::c_void, next: *mut WS_ASYNC_OPERATION, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+#[cfg(feature = "Win32_Security_Cryptography")]
+pub type WS_CERTIFICATE_VALIDATION_CALLBACK = Option<unsafe extern "system" fn(certcontext: *const super::super::Security::Cryptography::CERT_CONTEXT, state: *const core::ffi::c_void) -> windows_sys::core::HRESULT>;
 #[cfg(all(feature = "Win32_Security_Authentication_Identity", feature = "Win32_Security_Cryptography"))]
-pub type WS_CERT_ISSUER_LIST_NOTIFICATION_CALLBACK = ::core::option::Option<unsafe extern "system" fn(certissuerlistnotificationcallbackstate: *const ::core::ffi::c_void, issuerlist: *const super::super::Security::Authentication::Identity::SecPkgContext_IssuerListInfoEx, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_CLOSE_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_CLOSE_LISTENER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_CREATE_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channeltype: WS_CHANNEL_TYPE, channelparameters: *const ::core::ffi::c_void, channelparameterssize: u32, channelinstance: *mut *mut ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_CREATE_CHANNEL_FOR_LISTENER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, channelparameters: *const ::core::ffi::c_void, channelparameterssize: u32, channelinstance: *mut *mut ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_CREATE_DECODER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(createcontext: *const ::core::ffi::c_void, readcallback: WS_READ_CALLBACK, readcontext: *const ::core::ffi::c_void, decodercontext: *mut *mut ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_CREATE_ENCODER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(createcontext: *const ::core::ffi::c_void, writecallback: WS_WRITE_CALLBACK, writecontext: *const ::core::ffi::c_void, encodercontext: *mut *mut ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_CREATE_LISTENER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channeltype: WS_CHANNEL_TYPE, listenerparameters: *const ::core::ffi::c_void, listenerparameterssize: u32, listenerinstance: *mut *mut ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_DECODER_DECODE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void, buffer: *mut ::core::ffi::c_void, maxlength: u32, length: *mut u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_DECODER_END_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_DECODER_GET_CONTENT_TYPE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(decodercontext: *const ::core::ffi::c_void, contenttype: *const WS_STRING, contentencoding: *const WS_STRING, newcontenttype: *mut WS_STRING, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_DECODER_START_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type WS_DURATION_COMPARISON_CALLBACK = ::core::option::Option<unsafe extern "system" fn(duration1: *const WS_DURATION, duration2: *const WS_DURATION, result: *mut i32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type WS_DYNAMIC_STRING_CALLBACK = ::core::option::Option<unsafe extern "system" fn(callbackstate: *const ::core::ffi::c_void, string: *const WS_XML_STRING, found: *mut super::super::Foundation::BOOL, id: *mut u32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ENCODER_ENCODE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void, buffers: *const WS_BYTES, count: u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ENCODER_END_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ENCODER_GET_CONTENT_TYPE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void, contenttype: *const WS_STRING, newcontenttype: *mut WS_STRING, contentencoding: *mut WS_STRING, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_ENCODER_START_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_FREE_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void) -> ()>;
-pub type WS_FREE_DECODER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(decodercontext: *const ::core::ffi::c_void) -> ()>;
-pub type WS_FREE_ENCODER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(encodercontext: *const ::core::ffi::c_void) -> ()>;
-pub type WS_FREE_LISTENER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void) -> ()>;
-#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Security_Cryptography\"`"]
-#[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security_Cryptography"))]
-pub type WS_GET_CERT_CALLBACK = ::core::option::Option<unsafe extern "system" fn(getcertcallbackstate: *const ::core::ffi::c_void, targetaddress: *const WS_ENDPOINT_ADDRESS, viauri: *const WS_STRING, cert: *mut *mut super::super::Security::Cryptography::CERT_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_GET_CHANNEL_PROPERTY_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, id: WS_CHANNEL_PROPERTY_ID, value: *mut ::core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_GET_LISTENER_PROPERTY_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, id: WS_LISTENER_PROPERTY_ID, value: *mut ::core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_HTTP_REDIRECT_CALLBACK = ::core::option::Option<unsafe extern "system" fn(state: *const ::core::ffi::c_void, originalurl: *const WS_STRING, newurl: *const WS_STRING) -> ::windows_sys::core::HRESULT>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type WS_IS_DEFAULT_VALUE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(descriptiondata: *const ::core::ffi::c_void, value: *const ::core::ffi::c_void, defaultvalue: *const ::core::ffi::c_void, valuesize: u32, isdefault: *mut super::super::Foundation::BOOL, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_MESSAGE_DONE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(donecallbackstate: *const ::core::ffi::c_void) -> ()>;
-pub type WS_OPEN_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, endpointaddress: *const WS_ENDPOINT_ADDRESS, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_OPEN_LISTENER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, url: *const WS_STRING, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_OPERATION_CANCEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(reason: WS_SERVICE_CANCEL_REASON, state: *const ::core::ffi::c_void) -> ()>;
-pub type WS_OPERATION_FREE_STATE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(state: *const ::core::ffi::c_void) -> ()>;
-pub type WS_PROXY_MESSAGE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(message: *const WS_MESSAGE, heap: *const WS_HEAP, state: *const ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_PULL_BYTES_CALLBACK = ::core::option::Option<unsafe extern "system" fn(callbackstate: *const ::core::ffi::c_void, bytes: *mut ::core::ffi::c_void, maxsize: u32, actualsize: *mut u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_PUSH_BYTES_CALLBACK = ::core::option::Option<unsafe extern "system" fn(callbackstate: *const ::core::ffi::c_void, writecallback: WS_WRITE_CALLBACK, writecallbackstate: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_READ_CALLBACK = ::core::option::Option<unsafe extern "system" fn(callbackstate: *const ::core::ffi::c_void, bytes: *mut ::core::ffi::c_void, maxsize: u32, actualsize: *mut u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_READ_MESSAGE_END_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_READ_MESSAGE_START_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_READ_TYPE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(reader: *const WS_XML_READER, typemapping: WS_TYPE_MAPPING, descriptiondata: *const ::core::ffi::c_void, heap: *const WS_HEAP, value: *mut ::core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_RESET_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_RESET_LISTENER_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_SERVICE_ACCEPT_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, channelstate: *mut *mut ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_SERVICE_CLOSE_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, asynccontext: *const WS_ASYNC_CONTEXT) -> ::windows_sys::core::HRESULT>;
-pub type WS_SERVICE_MESSAGE_RECEIVE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-#[doc = "Required features: `\"Win32_Foundation\"`"]
-#[cfg(feature = "Win32_Foundation")]
-pub type WS_SERVICE_SECURITY_CALLBACK = ::core::option::Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, authorized: *mut super::super::Foundation::BOOL, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_SERVICE_STUB_CALLBACK = ::core::option::Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, frame: *const ::core::ffi::c_void, callback: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_SET_CHANNEL_PROPERTY_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, id: WS_CHANNEL_PROPERTY_ID, value: *const ::core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_SET_LISTENER_PROPERTY_CALLBACK = ::core::option::Option<unsafe extern "system" fn(listenerinstance: *const ::core::ffi::c_void, id: WS_LISTENER_PROPERTY_ID, value: *const ::core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_SHUTDOWN_SESSION_CHANNEL_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_VALIDATE_PASSWORD_CALLBACK = ::core::option::Option<unsafe extern "system" fn(passwordvalidatorcallbackstate: *const ::core::ffi::c_void, username: *const WS_STRING, password: *const WS_STRING, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_VALIDATE_SAML_CALLBACK = ::core::option::Option<unsafe extern "system" fn(samlvalidatorcallbackstate: *const ::core::ffi::c_void, samlassertion: *const WS_XML_BUFFER, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_WRITE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(callbackstate: *const ::core::ffi::c_void, buffers: *const WS_BYTES, count: u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_WRITE_MESSAGE_END_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_WRITE_MESSAGE_START_CALLBACK = ::core::option::Option<unsafe extern "system" fn(channelinstance: *const ::core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
-pub type WS_WRITE_TYPE_CALLBACK = ::core::option::Option<unsafe extern "system" fn(writer: *const WS_XML_WRITER, typemapping: WS_TYPE_MAPPING, descriptiondata: *const ::core::ffi::c_void, value: *const ::core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> ::windows_sys::core::HRESULT>;
+pub type WS_CERT_ISSUER_LIST_NOTIFICATION_CALLBACK = Option<unsafe extern "system" fn(certissuerlistnotificationcallbackstate: *const core::ffi::c_void, issuerlist: *const super::super::Security::Authentication::Identity::SecPkgContext_IssuerListInfoEx, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_CLOSE_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_CLOSE_LISTENER_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_CREATE_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(channeltype: WS_CHANNEL_TYPE, channelparameters: *const core::ffi::c_void, channelparameterssize: u32, channelinstance: *mut *mut core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_CREATE_CHANNEL_FOR_LISTENER_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, channelparameters: *const core::ffi::c_void, channelparameterssize: u32, channelinstance: *mut *mut core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_CREATE_DECODER_CALLBACK = Option<unsafe extern "system" fn(createcontext: *const core::ffi::c_void, readcallback: WS_READ_CALLBACK, readcontext: *const core::ffi::c_void, decodercontext: *mut *mut core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_CREATE_ENCODER_CALLBACK = Option<unsafe extern "system" fn(createcontext: *const core::ffi::c_void, writecallback: WS_WRITE_CALLBACK, writecontext: *const core::ffi::c_void, encodercontext: *mut *mut core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_CREATE_LISTENER_CALLBACK = Option<unsafe extern "system" fn(channeltype: WS_CHANNEL_TYPE, listenerparameters: *const core::ffi::c_void, listenerparameterssize: u32, listenerinstance: *mut *mut core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_DECODER_DECODE_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void, buffer: *mut core::ffi::c_void, maxlength: u32, length: *mut u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_DECODER_END_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_DECODER_GET_CONTENT_TYPE_CALLBACK = Option<unsafe extern "system" fn(decodercontext: *const core::ffi::c_void, contenttype: *const WS_STRING, contentencoding: *const WS_STRING, newcontenttype: *mut WS_STRING, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_DECODER_START_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_DURATION_COMPARISON_CALLBACK = Option<unsafe extern "system" fn(duration1: *const WS_DURATION, duration2: *const WS_DURATION, result: *mut i32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_DYNAMIC_STRING_CALLBACK = Option<unsafe extern "system" fn(callbackstate: *const core::ffi::c_void, string: *const WS_XML_STRING, found: *mut super::super::Foundation::BOOL, id: *mut u32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ENCODER_ENCODE_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void, buffers: *const WS_BYTES, count: u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ENCODER_END_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ENCODER_GET_CONTENT_TYPE_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void, contenttype: *const WS_STRING, newcontenttype: *mut WS_STRING, contentencoding: *mut WS_STRING, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_ENCODER_START_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_FREE_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void)>;
+pub type WS_FREE_DECODER_CALLBACK = Option<unsafe extern "system" fn(decodercontext: *const core::ffi::c_void)>;
+pub type WS_FREE_ENCODER_CALLBACK = Option<unsafe extern "system" fn(encodercontext: *const core::ffi::c_void)>;
+pub type WS_FREE_LISTENER_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void)>;
+#[cfg(feature = "Win32_Security_Cryptography")]
+pub type WS_GET_CERT_CALLBACK = Option<unsafe extern "system" fn(getcertcallbackstate: *const core::ffi::c_void, targetaddress: *const WS_ENDPOINT_ADDRESS, viauri: *const WS_STRING, cert: *mut *mut super::super::Security::Cryptography::CERT_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_GET_CHANNEL_PROPERTY_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, id: WS_CHANNEL_PROPERTY_ID, value: *mut core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_GET_LISTENER_PROPERTY_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, id: WS_LISTENER_PROPERTY_ID, value: *mut core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_HTTP_REDIRECT_CALLBACK = Option<unsafe extern "system" fn(state: *const core::ffi::c_void, originalurl: *const WS_STRING, newurl: *const WS_STRING) -> windows_sys::core::HRESULT>;
+pub type WS_IS_DEFAULT_VALUE_CALLBACK = Option<unsafe extern "system" fn(descriptiondata: *const core::ffi::c_void, value: *const core::ffi::c_void, defaultvalue: *const core::ffi::c_void, valuesize: u32, isdefault: *mut super::super::Foundation::BOOL, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_MESSAGE_DONE_CALLBACK = Option<unsafe extern "system" fn(donecallbackstate: *const core::ffi::c_void)>;
+pub type WS_OPEN_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, endpointaddress: *const WS_ENDPOINT_ADDRESS, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_OPEN_LISTENER_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, url: *const WS_STRING, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_OPERATION_CANCEL_CALLBACK = Option<unsafe extern "system" fn(reason: WS_SERVICE_CANCEL_REASON, state: *const core::ffi::c_void)>;
+pub type WS_OPERATION_FREE_STATE_CALLBACK = Option<unsafe extern "system" fn(state: *const core::ffi::c_void)>;
+pub type WS_PROXY_MESSAGE_CALLBACK = Option<unsafe extern "system" fn(message: *const WS_MESSAGE, heap: *const WS_HEAP, state: *const core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_PULL_BYTES_CALLBACK = Option<unsafe extern "system" fn(callbackstate: *const core::ffi::c_void, bytes: *mut core::ffi::c_void, maxsize: u32, actualsize: *mut u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_PUSH_BYTES_CALLBACK = Option<unsafe extern "system" fn(callbackstate: *const core::ffi::c_void, writecallback: WS_WRITE_CALLBACK, writecallbackstate: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_READ_CALLBACK = Option<unsafe extern "system" fn(callbackstate: *const core::ffi::c_void, bytes: *mut core::ffi::c_void, maxsize: u32, actualsize: *mut u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_READ_MESSAGE_END_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_READ_MESSAGE_START_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_READ_TYPE_CALLBACK = Option<unsafe extern "system" fn(reader: *const WS_XML_READER, typemapping: WS_TYPE_MAPPING, descriptiondata: *const core::ffi::c_void, heap: *const WS_HEAP, value: *mut core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_RESET_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_RESET_LISTENER_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_SERVICE_ACCEPT_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, channelstate: *mut *mut core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_SERVICE_CLOSE_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, asynccontext: *const WS_ASYNC_CONTEXT) -> windows_sys::core::HRESULT>;
+pub type WS_SERVICE_MESSAGE_RECEIVE_CALLBACK = Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_SERVICE_SECURITY_CALLBACK = Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, authorized: *mut super::super::Foundation::BOOL, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_SERVICE_STUB_CALLBACK = Option<unsafe extern "system" fn(context: *const WS_OPERATION_CONTEXT, frame: *const core::ffi::c_void, callback: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_SET_CHANNEL_PROPERTY_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, id: WS_CHANNEL_PROPERTY_ID, value: *const core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_SET_LISTENER_PROPERTY_CALLBACK = Option<unsafe extern "system" fn(listenerinstance: *const core::ffi::c_void, id: WS_LISTENER_PROPERTY_ID, value: *const core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_SHUTDOWN_SESSION_CHANNEL_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_VALIDATE_PASSWORD_CALLBACK = Option<unsafe extern "system" fn(passwordvalidatorcallbackstate: *const core::ffi::c_void, username: *const WS_STRING, password: *const WS_STRING, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_VALIDATE_SAML_CALLBACK = Option<unsafe extern "system" fn(samlvalidatorcallbackstate: *const core::ffi::c_void, samlassertion: *const WS_XML_BUFFER, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_WRITE_CALLBACK = Option<unsafe extern "system" fn(callbackstate: *const core::ffi::c_void, buffers: *const WS_BYTES, count: u32, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_WRITE_MESSAGE_END_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_WRITE_MESSAGE_START_CALLBACK = Option<unsafe extern "system" fn(channelinstance: *const core::ffi::c_void, message: *const WS_MESSAGE, asynccontext: *const WS_ASYNC_CONTEXT, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;
+pub type WS_WRITE_TYPE_CALLBACK = Option<unsafe extern "system" fn(writer: *const WS_XML_WRITER, typemapping: WS_TYPE_MAPPING, descriptiondata: *const core::ffi::c_void, value: *const core::ffi::c_void, valuesize: u32, error: *const WS_ERROR) -> windows_sys::core::HRESULT>;

@@ -639,7 +639,7 @@ mod tests {
         Struct(Vec<Object<'a>>),
     }
 
-    impl<'a> Object<'a> {
+    impl Object<'_> {
         fn encode(&self) -> Vec<u8> {
             match self {
                 Object::String(s) => s.as_bytes().to_vec(),
@@ -680,7 +680,7 @@ mod tests {
         message: Object<'a>,
     }
 
-    impl<'a> TypedMessage<'a> {
+    impl TypedMessage<'_> {
         /// The host is asked for a value at a member of an object. This handles this request and
         /// responds with value.
         fn handle_host_response(

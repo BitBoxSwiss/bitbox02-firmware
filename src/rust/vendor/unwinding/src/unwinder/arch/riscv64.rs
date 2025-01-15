@@ -1,4 +1,3 @@
-use core::arch::asm;
 use core::fmt;
 use core::ops;
 use gimli::{Register, RiscV};
@@ -173,11 +172,13 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
     // No need to save caller-saved registers here.
     #[cfg(target_feature = "d")]
     unsafe {
-        asm!(
+        core::arch::naked_asm!(
             "
             mv t0, sp
             add sp, sp, -0x210
+            .cfi_def_cfa_offset 0x210
             sd ra, 0x200(sp)
+            .cfi_offset ra, -16
             ",
             code!(save_gp),
             code!(save_fp),
@@ -187,18 +188,21 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
             jalr t0
             ld ra, 0x200(sp)
             add sp, sp, 0x210
+            .cfi_def_cfa_offset 0
+            .cfi_restore ra
             ret
             ",
-            options(noreturn)
         );
     }
     #[cfg(not(target_feature = "d"))]
     unsafe {
-        asm!(
+        core::arch::naked_asm!(
             "
             mv t0, sp
             add sp, sp, -0x110
+            .cfi_def_cfa_offset 0x110
             sd ra, 0x100(sp)
+            .cfi_offset ra, -16
             ",
             code!(save_gp),
             "
@@ -207,35 +211,37 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
             jalr t0
             ld ra, 0x100(sp)
             add sp, sp, 0x110
+            .cfi_def_cfa_offset 0
+            .cfi_restore ra
             ret
             ",
-            options(noreturn)
         );
     }
 }
 
-#[naked]
-pub unsafe extern "C" fn restore_context(ctx: &Context) -> ! {
+pub unsafe fn restore_context(ctx: &Context) -> ! {
     #[cfg(target_feature = "d")]
     unsafe {
-        asm!(
+        core::arch::asm!(
             code!(restore_fp),
             code!(restore_gp),
             "
             ld a0, 0x50(a0)
             ret
             ",
+            in("a0") ctx,
             options(noreturn)
         );
     }
     #[cfg(not(target_feature = "d"))]
     unsafe {
-        asm!(
+        core::arch::asm!(
             code!(restore_gp),
             "
             ld a0, 0x50(a0)
             ret
             ",
+            in("a0") ctx,
             options(noreturn)
         );
     }

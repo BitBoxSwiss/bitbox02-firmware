@@ -35,7 +35,7 @@ impl<'a, U: Update> HashedWriter<'a, U> {
     }
 }
 
-impl<'a, U: Update> Write for HashedWriter<'a, U> {
+impl<U: Update> Write for HashedWriter<'_, U> {
     type Error = ();
     fn write_all(&mut self, buf: &[u8]) -> Result<(), Self::Error> {
         self.0.update(buf);

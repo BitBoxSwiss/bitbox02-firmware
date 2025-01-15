@@ -1,5 +1,5 @@
 use crate::float::Float;
-use crate::int::{CastInto, Int};
+use crate::int::{CastInto, Int, MinInt};
 
 /// Generic conversion from a narrower to a wider IEEE-754 floating-point type
 fn extend<F: Float, R: Float>(a: F) -> R
@@ -32,7 +32,7 @@ where
 
     let sign_bits_delta = dst_sign_bits - src_sign_bits;
     let exp_bias_delta = dst_exp_bias - src_exp_bias;
-    let a_abs = a.repr() & src_abs_mask;
+    let a_abs = a.to_bits() & src_abs_mask;
     let mut abs_result = R::Int::ZERO;
 
     if a_abs.wrapping_sub(src_min_normal) < src_infinity.wrapping_sub(src_min_normal) {
@@ -65,8 +65,8 @@ where
         abs_result = (abs_result ^ dst_min_normal) | (bias_dst.wrapping_shl(dst_sign_bits));
     }
 
-    let sign_result: R::Int = (a.repr() & src_sign_mask).cast();
-    R::from_repr(abs_result | (sign_result.wrapping_shl(dst_bits - src_bits)))
+    let sign_result: R::Int = (a.to_bits() & src_sign_mask).cast();
+    R::from_bits(abs_result | (sign_result.wrapping_shl(dst_bits - src_bits)))
 }
 
 intrinsics! {
@@ -76,9 +76,47 @@ intrinsics! {
     pub extern "C" fn  __extendsfdf2(a: f32) -> f64 {
         extend(a)
     }
+}
 
-    #[cfg(target_arch = "arm")]
-    pub extern "C" fn  __extendsfdf2vfp(a: f32) -> f64 {
-        a as f64 // LLVM generate 'fcvtds'
+intrinsics! {
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[apple_f16_arg_abi]
+    #[arm_aeabi_alias = __aeabi_h2f]
+    #[cfg(f16_enabled)]
+    pub extern "C" fn __extendhfsf2(a: f16) -> f32 {
+        extend(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[apple_f16_arg_abi]
+    #[cfg(f16_enabled)]
+    pub extern "C" fn __gnu_h2f_ieee(a: f16) -> f32 {
+        extend(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[ppc_alias = __extendhfkf2]
+    #[cfg(all(f16_enabled, f128_enabled))]
+    pub extern "C" fn __extendhftf2(a: f16) -> f128 {
+        extend(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[ppc_alias = __extendsfkf2]
+    #[cfg(f128_enabled)]
+    pub extern "C" fn __extendsftf2(a: f32) -> f128 {
+        extend(a)
+    }
+
+    #[avr_skip]
+    #[aapcs_on_arm]
+    #[ppc_alias = __extenddfkf2]
+    #[cfg(f128_enabled)]
+    pub extern "C" fn __extenddftf2(a: f64) -> f128 {
+        extend(a)
     }
 }

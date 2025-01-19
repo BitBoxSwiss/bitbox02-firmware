@@ -113,6 +113,8 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hal/src/hal_io.c
     asf4-drivers/hal/src/hal_sha_sync.c
     asf4-drivers/hpl/systick/hpl_systick.c
+    asf4-drivers/hal/src/hal_usart_async.c
+    asf4-drivers/hal/utils/src/utils_ringbuffer.c
     asf4-drivers/hpl/gclk/hpl_gclk.c
     asf4-drivers/hpl/oscctrl/hpl_oscctrl.c
     asf4-drivers/hpl/mclk/hpl_mclk.c
@@ -135,6 +137,8 @@ if(CMAKE_CROSSCOMPILING)
 
   target_link_libraries(asf4-drivers-min samd51a-ds)
   set_property(TARGET asf4-drivers-min PROPERTY INTERFACE_LINK_LIBRARIES "")
+  target_compile_options(asf4-drivers-min PRIVATE -Wno-cast-qual
+      -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations)
 
   target_include_directories(asf4-drivers-min SYSTEM
     PUBLIC
@@ -233,6 +237,22 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
     -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable -Wno-cast-qual
     -Wno-switch-default -Wno-format-nonliteral -Wno-missing-prototypes -Wno-missing-declarations
   )
+  add_library(embedded-swd
+    embedded-swd/dap.c
+    embedded-swd/dap_target.c
+  )
+  target_include_directories(embedded-swd SYSTEM PUBLIC
+    embedded-swd
+  )
+  target_link_libraries(embedded-swd
+    PRIVATE
+      CMSIS
+  )
+  target_link_libraries(embedded-swd
+    PUBLIC
+      samd51a-ds
+  )
+
 endif() # CMAKE_CROSSCOMPILING
 
 # fatfs must to be linked together with a diskio middleware:
@@ -250,17 +270,6 @@ add_library(ctaes
   ctaes/ctaes.c
 )
 target_include_directories(ctaes SYSTEM PUBLIC ctaes)
-
-add_library(rtt
-  SEGGER_RTT_V796b/RTT/SEGGER_RTT.c
-)
-target_compile_options(rtt PRIVATE "-Wno-cast-qual")
-# Define RTT config vars. The default DOWN buffer size (buffer for reading from host) is 64, which
-# is too small for our need.  The default UP buffer size (buffer for writing to host) is 1024, but
-# we define it anyway here in case the default changes.
-target_compile_definitions(rtt PUBLIC "BUFFER_SIZE_DOWN=(1024)" "BUFFER_SIZE_UP=(1024)")
-target_include_directories(rtt SYSTEM PUBLIC SEGGER_RTT_V796b/RTT SEGGER_RTT_V796b/Config)
-
 
 # optiga-trust-m
 # The below build instructions are loosely based on optiga-trust-m/tests/linux_i2c.cmake

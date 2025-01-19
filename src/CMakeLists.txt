@@ -21,6 +21,8 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
+  ${CMAKE_SOURCE_DIR}/src/uart.c
+  ${CMAKE_SOURCE_DIR}/src/da14531_flasher.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/system.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
@@ -102,6 +104,7 @@ set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 
 set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/util.c
+  ${CMAKE_SOURCE_DIR}/src/uart.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
@@ -392,7 +395,7 @@ foreach(type ${RUST_LIBS})
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
-      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type}$<$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>:,rtt> --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
+      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt> --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool
@@ -479,6 +482,7 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf}
       PRIVATE
         optiga
+        embedded-swd
         cryptoauthlib
         fatfs
         ctaes
@@ -524,7 +528,7 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
-  target_link_libraries(factory-setup.elf PRIVATE rtt)
+  target_link_libraries(factory-setup.elf PRIVATE ${CMAKE_SOURCE_DIR}/bitbox-da14531-factory-setup.o)
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(

@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "bt-factory-setup.h"
 #include "common_main.h"
+#include "da14531_flasher.h"
 #include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
 #include "memory/memory.h"
 #include "platform_init.h"
+#include "rust/rust.h"
 #include "screen.h"
 #include "securechip/securechip.h"
+#include "uart.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
@@ -27,11 +31,8 @@
 
 #include <wally_crypto.h>
 
-#include <SEGGER_RTT.h>
-
-#if BUFFER_SIZE_DOWN != 1024 || BUFFER_SIZE_UP != 1024
-#error "Misconfigured buffer sizes"
-#endif
+#define BUFFER_SIZE_DOWN 1024
+#define BUFFER_SIZE_UP 1024
 
 // Size of length prefix (2 bytes).
 #define LENSIZE (2)
@@ -135,39 +136,36 @@ static void _rtt_send(const uint8_t* msg, size_t len)
     if (len + 2 >= BUFFER_SIZE_UP) {
         Abort("Buffer to send to host too large");
     }
-    uint16_t len16 = len;
-    SEGGER_RTT_Write(0, &len16, LENSIZE);
-    SEGGER_RTT_Write(0, msg, len);
+    uint8_t len16[2];
+    len16[0] = (len >> 8) & 0xff;
+    len16[1] = len & 0xff;
+    rust_rtt_ch1_write(&len16[0], LENSIZE);
+    rust_rtt_ch1_write(msg, len);
 }
 
 static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
 {
     uint8_t buffer[BUFFER_SIZE_DOWN]; // Adjust size as needed
     while (1) {
-        if (SEGGER_RTT_HASDATA(0)) {
-            int read = SEGGER_RTT_Read(0, buffer, sizeof(buffer));
-            if (read == 0) {
-                continue;
-            }
-            if (read < LENSIZE) {
-                screen_sprintf_debug(2000, "Error: read less than 2 bytes: %d bytes.", read);
-                // TODO: send error.
-                return false;
-            }
-            uint16_t len = *((uint16_t*)buffer);
-            if (len >= BUFFER_SIZE_DOWN - LENSIZE) {
-                screen_sprintf_debug(
-                    2000,
-                    "Error: read more than buffer size: %d bytes (total read: %d)",
-                    len,
-                    read);
-                screen_print_debug_hex(buffer, read, 5000);
-                return false;
-            }
-            *len_out = (size_t)len;
-            memcpy(msg_out, buffer + LENSIZE, (size_t)len);
-            return true;
+        int read = rust_rtt_ch0_read(buffer, sizeof(buffer));
+        if (read == 0) {
+            continue;
         }
+        if (read < LENSIZE) {
+            screen_sprintf_debug(2000, "Error: read less than 2 bytes: %d bytes.", read);
+            // TODO: send error.
+            return false;
+        }
+        uint16_t len = *((uint16_t*)buffer);
+        if (len >= BUFFER_SIZE_DOWN - LENSIZE) {
+            screen_sprintf_debug(
+                2000, "Error: read more than buffer size: %d bytes (total read: %d)", len, read);
+            screen_print_debug_hex(buffer, read, 5000);
+            return false;
+        }
+        *len_out = (size_t)len;
+        memcpy(msg_out, buffer + LENSIZE, (size_t)len);
+        return true;
     }
 }
 
@@ -310,7 +308,9 @@ int main(void)
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
     screen_splash();
-    common_main();
+    while (0) {
+        common_main();
+    }
 
     {
         // Set to re-enter bootloader again, otherwise we are stuck with this
@@ -326,22 +326,66 @@ int main(void)
         }
     }
 
-    SEGGER_RTT_Init();
+    util_log("READY");
+    screen_print_debug("READY", 1);
 
-    screen_print_debug("READY", 0);
+    da14531_rst();
 
     uint8_t msg_read[BUFFER_SIZE_DOWN] = {0};
     size_t len_read;
     uint8_t out[BUFFER_SIZE_UP];
     size_t out_len;
 
+    uint8_t uart_read_buf[16] = {0};
+    uint16_t uart_read_buf_len = 0;
+
+    const uint8_t* uart_write_buf = NULL;
+    uint16_t uart_write_buf_len = 0;
+
+    struct Flasher flasher;
+    flasher_init(&flasher, ble_factory_setup_start, ble_factory_setup_size);
+
+    uint8_t da14531_msg[80] = {0};
+    uint16_t da14531_msg_len = 0;
+
     while (1) {
-        if (_rtt_receive(msg_read, &len_read)) {
-            _api_msg(msg_read, len_read, out, &out_len);
-            // screen_print_debug_hex(msg_read, len_read, 5000);
-            _rtt_send(out, out_len);
+        while (0) {
+            if (_rtt_receive(msg_read, &len_read)) {
+                _api_msg(msg_read, len_read, out, &out_len);
+                // screen_print_debug_hex(msg_read, len_read, 5000);
+                _rtt_send(out, out_len);
+            }
+        }
+
+        if (uart_read_buf_len == 0) {
+            uart_read_buf_len = uart_0_read(uart_read_buf, sizeof(uart_read_buf));
+        }
+
+        if (uart_write_buf_len > 0) {
+            if (uart_0_write(uart_write_buf, uart_write_buf_len)) {
+                uart_write_buf_len = 0;
+            }
+        }
+
+        if (flasher.state != FLASHING_STATE_DONE_DONE) {
+            flasher_poll(
+                &flasher, uart_read_buf, &uart_read_buf_len, &uart_write_buf, &uart_write_buf_len);
+        } else {
+            if (uart_read_buf_len > 0) {
+                // Read out any bytes from uart_read_buf
+                for (int i = 0; i < uart_read_buf_len; i++) {
+                    da14531_msg[da14531_msg_len++] = uart_read_buf[i];
+                }
+                // Check if we have a newline and print the message
+                for (int i = 0; i < da14531_msg_len; i++) {
+                    if (da14531_msg[i] == '\n') {
+                        util_log("DA14531: %.*s", i, (char*)&da14531_msg[0]);
+                        da14531_msg_len = 0;
+                        break;
+                    }
+                }
+                uart_read_buf_len = 0;
+            }
         }
     }
-
-    while (1);
 }

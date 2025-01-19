@@ -79,6 +79,8 @@ bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
+factory-setup-debug: | build-debug
+	$(MAKE) -C build-debug factory-setup.elf
 docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build
@@ -131,6 +133,8 @@ jlink-flash-reset-version:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/reset-version.jlink
 jlink-flash-set-securechip-optiga:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-securechip-optiga.jlink
+jlink-erase-firmware-quick:
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/erase-firmware-quick.jlink
 jlink-gdb-server:
 	JLinkGDBServer -nogui -if SWD -device ATSAMD51J20 -speed 4000
 rtt-client:

@@ -14,19 +14,170 @@
 
 #include "firmware_main_loop.h"
 
+#include "da14531/da14531_serial_link.h"
 #include "hardfault.h"
 #include "hww.h"
 #include "touch/gestures.h"
 #include "u2f.h"
+#include "uart.h"
 #include "ui/screen_process.h"
 #include "ui/screen_stack.h"
 #include "usb/usb.h"
 #include "usb/usb_processing.h"
 #include <rust/rust.h>
 
+static uint8_t uart_out_buf[100];
+
+static void _ctrl_handler(
+    struct serial_link_frame* frame,
+    const uint8_t** buf_out,
+    uint16_t* buf_out_len)
+{
+    switch (frame->payload[0]) {
+    case 1: {
+        util_log("da14531: get device name");
+        // 1 byte cmd
+        // rest device name
+#define dn "My BitBox"
+
+        uint8_t payload[1 + sizeof(dn) - 1];
+        payload[0] = 1;
+        memcpy(&payload[1], dn, sizeof(dn) - 1);
+        uint16_t len = serial_link_out_format(
+            &uart_out_buf[0],
+            sizeof(uart_out_buf),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            sizeof(payload));
+        *buf_out = &uart_out_buf[0];
+        *buf_out_len = len;
+    } break;
+    case 2: {
+        util_log("da14531: get bond db");
+        uint8_t payload = 2;
+        uint16_t len = serial_link_out_format(
+            &uart_out_buf[0], sizeof(uart_out_buf), SERIAL_LINK_TYPE_CTRL_DATA, &payload, 1);
+        *buf_out = &uart_out_buf[0];
+        *buf_out_len = len;
+    } break;
+    case 3:
+        util_log("da14531: set bond db");
+        break;
+    case 4:
+        util_log("da14531: show pairing code");
+        break;
+    case 5:
+        util_log("da14531: BLE status update");
+        switch (frame->payload[1]) {
+        case 0:
+            util_log("da14531: adveritising");
+            break;
+        case 1:
+            util_log("da14531: connected");
+            break;
+        case 2:
+            util_log("da14531: connected secure");
+            break;
+        default:
+            break;
+        }
+        break;
+    case 6: {
+        util_log("da14531: get irk");
+        // 1 byte cmd
+        // 16 bytes irk
+        uint8_t payload[17] = {6, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+        uint16_t len = serial_link_out_format(
+            &uart_out_buf[0],
+            sizeof(uart_out_buf),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            sizeof(payload));
+        *buf_out = &uart_out_buf[0];
+        *buf_out_len = len;
+    } break;
+    case 7:
+        // Not used
+        break;
+    case 8:
+        // Not used
+        break;
+    case 9:
+        util_log("da14531: get addr");
+        // 1 byte cmd
+        // 6 bytes addr
+        uint8_t payload[7] = {9, 0, 1, 2, 3, 4, 5};
+        uint16_t len = serial_link_out_format(
+            &uart_out_buf[0],
+            sizeof(uart_out_buf),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            sizeof(payload));
+        *buf_out = &uart_out_buf[0];
+        *buf_out_len = len;
+        break;
+    case 10:
+        util_log("da14531: pairing successful");
+        break;
+    case 11:
+        util_log("da14531: confirm pairing code");
+        break;
+    default:
+        break;
+    }
+}
+
+static void _in_handler(
+    struct serial_link_frame* frame,
+    const uint8_t** buf_out,
+    uint16_t* buf_out_len)
+{
+    switch (frame->type) {
+    case SERIAL_LINK_TYPE_CTRL_DATA:
+        _ctrl_handler(frame, buf_out, buf_out_len);
+        break;
+    default:
+        break;
+    }
+}
+
 void firmware_main_loop(void)
 {
+    uint8_t uart_read_buf[16] = {0};
+    uint16_t uart_read_buf_len = 0;
+
+    const uint8_t* uart_write_buf = NULL;
+    uint16_t uart_write_buf_len = 0;
+
+    struct SerialLinkIn serial_link;
+    serial_link_in_init(&serial_link);
+
+    struct serial_link_frame* frame = NULL;
     while (1) {
+        // UART IO
+        if (uart_read_buf_len == 0) {
+            uart_read_buf_len = uart_0_read(uart_read_buf, sizeof(uart_read_buf));
+        }
+
+        if (uart_write_buf_len > 0) {
+            util_log("debug: %s", util_dbg_hex(uart_write_buf, uart_write_buf_len));
+            if (uart_0_write(uart_write_buf, uart_write_buf_len)) {
+                uart_write_buf_len = 0;
+            }
+        }
+
+        // Process any IO from UART
+        // Only poll serial_link if there is no pending frame, nor pending uart output
+        if (!frame && !uart_write_buf_len) {
+            frame = serial_link_in_poll(&serial_link, uart_read_buf, &uart_read_buf_len);
+
+            if (frame) {
+                _in_handler(frame, &uart_write_buf, &uart_write_buf_len);
+                free(frame);
+                frame = NULL;
+            }
+        }
+
         screen_process();
         /* And finally, run the high-level event processing. */
 

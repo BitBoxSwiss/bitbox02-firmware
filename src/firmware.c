@@ -29,6 +29,10 @@
 #include "workflow/idle_workflow.h"
 #include "workflow/orientation_screen.h"
 
+#if !defined(NDEBUG)
+#include "da14531/da14531_serial_link.h"
+#endif
+
 uint32_t __stack_chk_guard = 0;
 
 static void _load_da14531_firmware(void)
@@ -63,6 +67,17 @@ static void _load_da14531_firmware(void)
                 // done)
                 flasher_reset(&flasher);
                 flasher_set_done(&flasher);
+                // Try to reset a running BLE chip using the reset uart command
+#if !defined(NDEBUG)
+                util_log("da14531: attempting reset over uart");
+                uint8_t buf[15];
+                uint8_t payload = 8;
+                uint16_t len = serial_link_out_format(
+                    &buf[0], sizeof(buf), SERIAL_LINK_TYPE_CTRL_DATA, &payload, 1);
+                uart_0_write(buf, len);
+                // Set flasher to initial state again to be ready to flash
+                flasher_reset(&flasher);
+#endif
             }
         }
 
@@ -96,9 +111,8 @@ int main(void)
 
     // The MCU needs to respond when the da14531 starts up
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
-        screen_print_debug("BLE (da14531 will only request firmware on power reset)", 0);
         _load_da14531_firmware();
-        util_log("Factory setup BLE chip done");
+        util_log("BLE chip is running");
         screen_print_debug("BLE DONE", 0);
     }
 

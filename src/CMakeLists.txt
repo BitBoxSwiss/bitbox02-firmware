@@ -22,7 +22,9 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
   ${CMAKE_SOURCE_DIR}/src/uart.c
+  ${CMAKE_SOURCE_DIR}/src/da14531/crc.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531_flasher.c
+  ${CMAKE_SOURCE_DIR}/src/da14531/da14531_serial_link.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/system.c
   ${CMAKE_SOURCE_DIR}/src/hww.c

@@ -16,7 +16,7 @@
 #include "dap.h"
 #include "util.h"
 
-#define TIMEOUT 10000
+#define TIMEOUT 100000
 
 const char* flashing_state_str(enum flashing_state state)
 {

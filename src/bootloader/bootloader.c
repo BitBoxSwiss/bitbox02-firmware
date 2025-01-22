@@ -67,6 +67,8 @@
 #define OP_SCREEN_ROTATE ((uint8_t)'f') /* 0x66 */
 // OP_SET_SHOW_FIRMWARE_HASH - Enable or disable the flag to automatically show the firmware hash.
 #define OP_SET_SHOW_FIRMWARE_HASH ((uint8_t)'H') /* 0x4A */
+// OP_HARDWARE - Return the secure chip variant.
+#define OP_HARDWARE ((uint8_t)'W') /* 0x57 */
 
 // API return codes
 #define OP_STATUS_OK ((uint8_t)0)
@@ -731,7 +733,7 @@ static size_t _api_set_show_firmware_hash(const uint8_t* input, uint8_t* output)
 }
 
 /*
- * output filled with bootloader version | firmware version | signing pubkeys version
+ * output filled with firmware version | signing pubkeys version
  */
 static size_t _api_versions(uint8_t* output)
 {
@@ -742,7 +744,7 @@ static size_t _api_versions(uint8_t* output)
         (const uint8_t*)&data->fields.signing_pubkeys_version,
         sizeof(version_t));
     _report_status(OP_STATUS_OK, output);
-    return BOOT_OP_LEN + sizeof(version_t) * 3;
+    return BOOT_OP_LEN + sizeof(version_t) * 2;
 }
 
 static void _api_reboot(void)
@@ -764,6 +766,16 @@ static size_t _api_screen_rotate(uint8_t* output)
     screen_rotate();
     _render_default_screen();
     return _report_status(OP_STATUS_OK, output);
+}
+
+static size_t _api_hardware(uint8_t* output)
+{
+    uint8_t type = 0;
+    if (memory_get_securechip_type() == MEMORY_SECURECHIP_TYPE_OPTIGA) {
+        type = 1;
+    }
+    output[BOOT_OP_LEN] = type;
+    return _report_status(OP_STATUS_OK, output) + 1;
 }
 
 static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t max_out_len)
@@ -808,6 +820,9 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         break;
     case OP_SCREEN_ROTATE:
         len = _api_screen_rotate(output);
+        break;
+    case OP_HARDWARE:
+        len = _api_hardware(output);
         break;
     default:
         len = _report_status(OP_STATUS_ERR_INVALID_CMD, output);

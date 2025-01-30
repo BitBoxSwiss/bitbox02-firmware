@@ -526,7 +526,7 @@ class SendMessage:
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
 
-    def _sign_btc_send_to_self(
+    def _sign_btc_send_to_self_same_account(
         self,
         format_unit: "bitbox02.btc.BTCSignInitRequest.FormatUnit.V" = bitbox02.btc.BTCSignInitRequest.FormatUnit.DEFAULT,
     ) -> None:
@@ -557,6 +557,50 @@ class SendMessage:
             inputs=inputs,
             outputs=outputs,
             format_unit=format_unit,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
+
+    def _sign_btc_send_to_self_different_account(
+        self,
+        format_unit: "bitbox02.btc.BTCSignInitRequest.FormatUnit.V" = bitbox02.btc.BTCSignInitRequest.FormatUnit.DEFAULT,
+    ) -> None:
+        # pylint: disable=no-member
+        bip44_account: int = 0 + HARDENED
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        outputs[1] = bitbox02.BTCOutputInternal(
+            keypath=[84 + HARDENED, 0 + HARDENED, 1 + HARDENED, 0, 0],
+            value=int(1e8 * 0.2),
+            script_config_index=0,
+            output_script_config_index=0,
+        )
+        sigs = self._device.btc_sign(
+            bitbox02.btc.BTC,
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+            ],
+            inputs=inputs,
+            outputs=outputs,
+            format_unit=format_unit,
+            output_script_configs=[
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 0 + HARDENED, 1 + HARDENED],
+                ),
+            ],
         )
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
@@ -832,7 +876,8 @@ class SendMessage:
                     format_unit=bitbox02.btc.BTCSignInitRequest.FormatUnit.SAT
                 ),
             ),
-            ("Send to self", self._sign_btc_send_to_self),
+            ("Send to self (same account)", self._sign_btc_send_to_self_same_account),
+            ("Send to self (different account)", self._sign_btc_send_to_self_different_account),
             ("High fee warning", self._sign_btc_high_fee),
             ("Multiple change outputs", self._sign_btc_multiple_changes),
             ("Locktime/RBF", self._sign_btc_locktime_rbf),

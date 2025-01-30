@@ -115,6 +115,9 @@ message BTCSignInitRequest {
   }
   FormatUnit format_unit = 8;
   bool contains_silent_payment_outputs = 9;
+  // used script configs for outputs that send to an address of the same keystore, but not
+  // necessarily the same account (as defined by `script_configs` above).
+  repeated BTCScriptConfigWithKeypath output_script_configs = 10;
 }
 
 message BTCSignNextResponse {
@@ -174,12 +177,19 @@ message BTCSignOutputRequest {
   uint64 value = 3;
   bytes payload = 4; // if ours is false. Renamed from `hash`.
   repeated uint32 keypath = 5; // if ours is true
-  // If ours is true. References a script config from BTCSignInitRequest
+  // If ours is true and `output_script_config_index` is absent. References a script config from
+  // BTCSignInitRequest. This allows change output identification and allows us to identify
+  // non-change outputs to the same account, so we can display this info to the user.
   uint32 script_config_index = 6;
   optional uint32 payment_request_index = 7;
   // If provided, `type` and `payload` is ignored. The generated output pkScript is returned in
   // BTCSignNextResponse. `contains_silent_payment_outputs` in the init request must be true.
   SilentPayment silent_payment = 8;
+  // If ours is true. If set, `script_config_index` is ignored. References an output script config
+  // from BTCSignInitRequest. This enables verification that an output belongs to the same keystore,
+  // even if it is from a different account than we spend from, allowing us to display this info to
+  // the user.
+  optional uint32 output_script_config_index = 9;
 }
 
 message BTCScriptConfigRegistration {

@@ -299,6 +299,10 @@ class CardanoSignTransactionRequest(google.protobuf.message.Message):
     """include ttl even if it is zero"""
 
     tag_cbor_sets: builtins.bool
+    """Tag arrays in the transaction serialization with the 258 tag.
+    See https://github.com/IntersectMBO/cardano-ledger/blob/6e2d37cc0f47bd02e89b4ce9f78b59c35c958e96/eras/conway/impl/cddl-files/extra.cddl#L5
+    """
+
     def __init__(self,
         *,
         network: global___CardanoNetwork.ValueType = ...,

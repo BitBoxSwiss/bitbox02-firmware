@@ -293,6 +293,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     LOCKTIME_FIELD_NUMBER: builtins.int
     FORMAT_UNIT_FIELD_NUMBER: builtins.int
     CONTAINS_SILENT_PAYMENT_OUTPUTS_FIELD_NUMBER: builtins.int
+    OUTPUT_SCRIPT_CONFIGS_FIELD_NUMBER: builtins.int
     coin: global___BTCCoin.ValueType
     @property
     def script_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BTCScriptConfigWithKeypath]:
@@ -308,6 +309,12 @@ class BTCSignInitRequest(google.protobuf.message.Message):
 
     format_unit: global___BTCSignInitRequest.FormatUnit.ValueType
     contains_silent_payment_outputs: builtins.bool
+    @property
+    def output_script_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BTCScriptConfigWithKeypath]:
+        """used script configs for outputs that send to an address of the same keystore, but not
+        necessarily the same account (as defined by `script_configs` above).
+        """
+        pass
     def __init__(self,
         *,
         coin: global___BTCCoin.ValueType = ...,
@@ -318,8 +325,9 @@ class BTCSignInitRequest(google.protobuf.message.Message):
         locktime: builtins.int = ...,
         format_unit: global___BTCSignInitRequest.FormatUnit.ValueType = ...,
         contains_silent_payment_outputs: builtins.bool = ...,
+        output_script_configs: typing.Optional[typing.Iterable[global___BTCScriptConfigWithKeypath]] = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","contains_silent_payment_outputs",b"contains_silent_payment_outputs","format_unit",b"format_unit","locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","script_configs",b"script_configs","version",b"version"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["coin",b"coin","contains_silent_payment_outputs",b"contains_silent_payment_outputs","format_unit",b"format_unit","locktime",b"locktime","num_inputs",b"num_inputs","num_outputs",b"num_outputs","output_script_configs",b"output_script_configs","script_configs",b"script_configs","version",b"version"]) -> None: ...
 global___BTCSignInitRequest = BTCSignInitRequest
 
 class BTCSignNextResponse(google.protobuf.message.Message):
@@ -454,6 +462,7 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
     SCRIPT_CONFIG_INDEX_FIELD_NUMBER: builtins.int
     PAYMENT_REQUEST_INDEX_FIELD_NUMBER: builtins.int
     SILENT_PAYMENT_FIELD_NUMBER: builtins.int
+    OUTPUT_SCRIPT_CONFIG_INDEX_FIELD_NUMBER: builtins.int
     ours: builtins.bool
     type: global___BTCOutputType.ValueType
     """if ours is false"""
@@ -469,7 +478,10 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
         """if ours is true"""
         pass
     script_config_index: builtins.int
-    """If ours is true. References a script config from BTCSignInitRequest"""
+    """If ours is true and `output_script_config_index` is absent. References a script config from
+    BTCSignInitRequest. This allows change output identification and allows us to identify
+    non-change outputs to the same account, so we can display this info to the user.
+    """
 
     payment_request_index: builtins.int
     @property
@@ -478,6 +490,13 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
         BTCSignNextResponse. `contains_silent_payment_outputs` in the init request must be true.
         """
         pass
+    output_script_config_index: builtins.int
+    """If ours is true. If set, `script_config_index` is ignored. References an output script config
+    from BTCSignInitRequest. This enables verification that an output belongs to the same keystore,
+    even if it is from a different account than we spend from, allowing us to display this info to
+    the user.
+    """
+
     def __init__(self,
         *,
         ours: builtins.bool = ...,
@@ -488,9 +507,13 @@ class BTCSignOutputRequest(google.protobuf.message.Message):
         script_config_index: builtins.int = ...,
         payment_request_index: typing.Optional[builtins.int] = ...,
         silent_payment: typing.Optional[global___BTCSignOutputRequest.SilentPayment] = ...,
+        output_script_config_index: typing.Optional[builtins.int] = ...,
         ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_payment_request_index",b"_payment_request_index","payment_request_index",b"payment_request_index","silent_payment",b"silent_payment"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_payment_request_index",b"_payment_request_index","keypath",b"keypath","ours",b"ours","payload",b"payload","payment_request_index",b"payment_request_index","script_config_index",b"script_config_index","silent_payment",b"silent_payment","type",b"type","value",b"value"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_output_script_config_index",b"_output_script_config_index","_payment_request_index",b"_payment_request_index","output_script_config_index",b"output_script_config_index","payment_request_index",b"payment_request_index","silent_payment",b"silent_payment"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_output_script_config_index",b"_output_script_config_index","_payment_request_index",b"_payment_request_index","keypath",b"keypath","ours",b"ours","output_script_config_index",b"output_script_config_index","payload",b"payload","payment_request_index",b"payment_request_index","script_config_index",b"script_config_index","silent_payment",b"silent_payment","type",b"type","value",b"value"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_output_script_config_index",b"_output_script_config_index"]) -> typing.Optional[typing_extensions.Literal["output_script_config_index"]]: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_payment_request_index",b"_payment_request_index"]) -> typing.Optional[typing_extensions.Literal["payment_request_index"]]: ...
 global___BTCSignOutputRequest = BTCSignOutputRequest
 

@@ -272,6 +272,13 @@ pub struct ParsedPolicy<'a> {
 }
 
 impl ParsedPolicy<'_> {
+    /// Get the name of a registered policy account.
+    ///
+    /// Returns the name of the registered policy account if it exists or None otherwise.
+    pub fn name(&self, params: &Params) -> Result<Option<String>, ()> {
+        get_name(params.coin, self.policy)
+    }
+
     /// Iterates over the placeholder keys in this descriptor. For tr() descriptors, this covers the
     /// internal key and every key in every leaf script.
     /// This iterates the keys "left-to-right" in the descriptor.
@@ -739,7 +746,7 @@ pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
     Ok(hasher.finalize().as_slice().into())
 }
 
-/// Get the name of a registered policy account. The poliy is not validated, it must be
+/// Get the name of a registered policy account. The policy is not validated, it must be
 /// pre-validated!
 ///
 /// Returns the name of the registered policy account if it exists or None otherwise.

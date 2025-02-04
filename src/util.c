@@ -72,9 +72,9 @@ void util_cleanup_64(uint8_t** buf)
 // Max message size is MAX_LOG_LENGTH-1, becuase vsnprintf will always print a null character
 #define MAX_LOG_LENGTH 200
 
+#if !defined(NDEBUG)
 void util_log(const char* fmt, ...)
 {
-#if !defined(NDEBUG)
     char buf[MAX_LOG_LENGTH] = "";
 
     va_list va;
@@ -86,7 +86,16 @@ void util_log(const char* fmt, ...)
     if (res > MAX_LOG_LENGTH - 1) {
         rust_log("The complete log line didn't fit\n");
     }
-#else
-    (void)fmt;
-#endif
 }
+
+// We use these wrapper functions so that we can ifdef them out in release builds
+void util_log_flush(void)
+{
+    rust_rtt_flush();
+}
+
+void util_log_init(void)
+{
+    rust_rtt_init();
+}
+#endif

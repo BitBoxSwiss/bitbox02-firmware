@@ -59,6 +59,11 @@ pub extern "C" fn rust_rtt_init() {
     ::util::log::rtt_init();
 }
 
+#[no_mangle]
+pub extern "C" fn rust_rtt_flush() {
+    ::util::log::rtt_flush();
+}
+
 /// # Safety
 ///
 /// The pointer `ptr` must point to a null terminated string

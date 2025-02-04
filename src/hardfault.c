@@ -35,6 +35,7 @@ void MemManage_Handler(void)
 
 void Abort(const char* msg)
 {
+    util_log("%s", msg);
     screen_print_debug(msg, 0);
     usb_stop();
 #if !defined(TESTING)

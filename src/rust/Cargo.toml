@@ -36,6 +36,9 @@ sha2 = { version = "0.10.8", default-features = false }
 sha3 = { version = "0.10.8", default-features = false }
 zeroize = "1.7.0"
 
+[patch.crates-io]
+rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }
+
 [profile.release]
 # This only affects the .elf output. Debug info is stripped from the final .bin.
 # Paths to source code can still appear in the final bin, as they are part of the panic!() output.

@@ -117,13 +117,20 @@ class BTCInputType(TypedDict):
 class BTCOutputInternal:
     # TODO: Use NamedTuple, but not playing well with protobuf types.
 
-    def __init__(self, keypath: Sequence[int], value: int, script_config_index: int):
+    def __init__(
+        self,
+        keypath: Sequence[int],
+        value: int,
+        script_config_index: int,
+        output_script_config_index: Optional[int] = None,
+    ):
         """
         keypath: keypath to the change output.
         """
         self.keypath = keypath
         self.value = value
         self.script_config_index = script_config_index
+        self.output_script_config_index = output_script_config_index
 
 
 class BTCOutputExternal:
@@ -390,13 +397,14 @@ class BitBox02(BitBoxCommonAPI):
         version: int = 1,
         locktime: int = 0,
         format_unit: "btc.BTCSignInitRequest.FormatUnit.V" = btc.BTCSignInitRequest.FormatUnit.DEFAULT,
+        output_script_configs: Optional[Sequence[btc.BTCScriptConfigWithKeypath]] = None,
     ) -> Sequence[Tuple[int, bytes]]:
         """
         coin: the first element of all provided keypaths must match the coin:
         - BTC: 0 + HARDENED
         - Testnets: 1 + HARDENED
         - LTC: 2 + HARDENED
-        script_configs: types of all inputs and change outputs. The first element of all provided
+        script_configs: types of all inputs and outputs belonging to the same account (change or non-change). The first element of all provided
         keypaths must match this type:
         - SCRIPT_P2PKH: 44 + HARDENED
         - SCRIPT_P2WPKH_P2SH: 49 + HARDENED
@@ -407,6 +415,8 @@ class BitBox02(BitBoxCommonAPI):
         outputs: transaction outputs. Can be an external output
         (BTCOutputExternal) or an internal output for change (BTCOutputInternal).
         version, locktime: reserved for future use.
+        format_unit: defines in which unit amounts will be displayed
+        output_script_configs: script types for outputs belonging to the same keystore
         Returns: list of (input index, signature) tuples.
         Raises Bitbox02Exception with ERR_USER_ABORT on user abort.
         """
@@ -417,6 +427,10 @@ class BitBox02(BitBoxCommonAPI):
 
         if any(map(is_taproot, script_configs)):
             self._require_atleast(semver.VersionInfo(9, 10, 0))
+
+        if output_script_configs:
+            # Attaching output info supported since v9.22.0.
+            self._require_atleast(semver.VersionInfo(9, 22, 0))
 
         supports_antiklepto = self.version >= semver.VersionInfo(9, 4, 0)
 
@@ -433,6 +447,7 @@ class BitBox02(BitBoxCommonAPI):
                 num_outputs=len(outputs),
                 locktime=locktime,
                 format_unit=format_unit,
+                output_script_configs=output_script_configs,
             )
         )
         next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next
@@ -552,12 +567,16 @@ class BitBox02(BitBoxCommonAPI):
 
                 request = hww.Request()
                 if isinstance(tx_output, BTCOutputInternal):
+                    if tx_output.output_script_config_index is not None:
+                        # Attaching output info supported since v9.22.0.
+                        self._require_atleast(semver.VersionInfo(9, 22, 0))
                     request.btc_sign_output.CopyFrom(
                         btc.BTCSignOutputRequest(
                             ours=True,
                             value=tx_output.value,
                             keypath=tx_output.keypath,
                             script_config_index=tx_output.script_config_index,
+                            output_script_config_index=tx_output.output_script_config_index,
                         )
                     )
                 elif isinstance(tx_output, BTCOutputExternal):

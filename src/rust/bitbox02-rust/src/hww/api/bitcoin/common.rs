@@ -191,13 +191,15 @@ impl Payload {
             ValidatedScriptConfig::SimpleType(simple_type) => {
                 Self::from_simple(xpub_cache, params, *simple_type, keypath)
             }
-            ValidatedScriptConfig::Multisig(multisig) => Self::from_multisig(
+            ValidatedScriptConfig::Multisig { multisig, .. } => Self::from_multisig(
                 params,
                 multisig,
                 keypath[keypath.len() - 2],
                 keypath[keypath.len() - 1],
             ),
-            ValidatedScriptConfig::Policy(policy) => Self::from_policy(params, policy, keypath),
+            ValidatedScriptConfig::Policy { parsed_policy, .. } => {
+                Self::from_policy(params, parsed_policy, keypath)
+            }
         }
     }
 

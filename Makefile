@@ -28,7 +28,7 @@ build/Makefile:
 
 build-debug/Makefile:
 	mkdir -p build-debug
-	cd build-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG ..
+	cd build-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG -DBOOTLOADER_NO_MENU=1 ..
 	$(MAKE) -C py/bitbox02
 
 build-build/Makefile:
@@ -77,6 +77,9 @@ bootloader-btc-development: | build
 	$(MAKE) -C build bootloader-btc-development.elf
 bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
+# The debug bootloader doesn't have a menu, and always boots. Use gdb/RTT
+bootloader-debug: | build-debug
+	$(MAKE) -C build-debug bootloader.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
 docs: | build
@@ -115,6 +118,8 @@ jlink-flash-bootloader-btc-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-btc-development.jlink
 jlink-flash-bootloader-btc: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-btc.jlink
+jlink-flash-bootloader-debug: | build-debug
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-debug/scripts/bootloader.jlink
 jlink-flash-firmware: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
 jlink-flash-firmware-btc: | build

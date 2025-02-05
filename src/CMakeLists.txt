@@ -445,6 +445,10 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
     target_compile_options(${elf} PRIVATE --specs=nosys.specs)
     target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+
+    if(BOOTLOADER_NO_MENU)
+        target_compile_definitions(${elf} PRIVATE BOOTLOADER_NO_MENU)
+    endif()
   endforeach(bootloader)
 
   foreach(bootloader ${DEVDEVICE-BOOTLOADERS})

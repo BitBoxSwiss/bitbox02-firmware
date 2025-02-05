@@ -85,6 +85,8 @@ if(CMAKE_CROSSCOMPILING)
   message(STATUS "size: ${CMAKE_SIZE} ${TOOLCHAIN_PREFIX}size")
 endif()
 
+option(BOOTLOADER_NO_MENU "Build a bootloader that always boots" OFF)
+
 
 #-----------------------------------------------------------------------------
 # Create version header file

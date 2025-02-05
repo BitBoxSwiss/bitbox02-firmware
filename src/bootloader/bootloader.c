@@ -962,6 +962,12 @@ void bootloader_jump(void)
 
     _check_init(&bootdata);
 
+#if defined(BOOTLOADER_NO_MENU)
+    if (((uint32_t*)FLASH_APP_START)[1] != 0xffffffff) {
+        _binary_exec(); /* no return */
+    }
+#endif
+
 #if PLATFORM_BITBOX02 == 1
     if (shared_data.fields.upside_down) {
         screen_rotate();

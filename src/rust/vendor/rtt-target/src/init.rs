@@ -20,6 +20,7 @@ macro_rules! rtt_init_channels {
             size: $size:expr
             $(, mode: $mode:path )?
             $(, name: $name:literal )?
+            $(, section: $section:literal )?
             $(,)?
         }
         $($tail:tt)*
@@ -31,6 +32,7 @@ macro_rules! rtt_init_channels {
         $( mode = $mode; )?
 
         $field[$number].init(name, mode, {
+            $( #[link_section = $section] )?
             static mut _RTT_CHANNEL_BUFFER: MaybeUninit<[u8; $size]> = MaybeUninit::uninit();
             _RTT_CHANNEL_BUFFER.as_mut_ptr()
         });
@@ -71,6 +73,7 @@ macro_rules! rtt_init_wrappers {
 ///             size: 1024, // buffer size in bytes
 ///             mode: NoBlockSkip, // mode (optional, default: NoBlockSkip, see enum ChannelMode)
 ///             name: "Terminal" // name (optional, default: no name)
+///             section: ".segger_term_buf" // Buffer linker section (optional, default: no section)
 ///         }
 ///         1: {
 ///             size: 32
@@ -82,6 +85,7 @@ macro_rules! rtt_init_wrappers {
 ///             name: "Terminal"
 ///         }
 ///     }
+///     section_cb: ".segger_rtt" // Control block linker section (optional, default: no section)
 /// };
 /// ```
 ///
@@ -118,9 +122,11 @@ macro_rules! rtt_init {
     {
         $(up: { $($up:tt)* } )?
         $(down: { $($down:tt)* } )?
+        $(section_cb: $section_cb:literal )?
     } => {{
         use core::mem::MaybeUninit;
         use core::ptr;
+        use core::cell::Cell;
         use $crate::UpChannel;
         use $crate::DownChannel;
         use $crate::rtt::*;
@@ -135,7 +141,22 @@ macro_rules! rtt_init {
         #[used]
         #[no_mangle]
         #[export_name = "_SEGGER_RTT"]
+        $( #[link_section = $section_cb] )?
         pub static mut CONTROL_BLOCK: MaybeUninit<RttControlBlock> = MaybeUninit::uninit();
+
+        #[allow(unused)]
+        #[export_name = "rtt_init_must_not_be_called_multiple_times"]
+        fn rtt_init_must_not_be_called_multiple_times() { }
+
+        use ::rtt_target::export::critical_section;
+
+        static INITIALIZED: critical_section::Mutex<Cell<bool>> = critical_section::Mutex::new(Cell::new(false));
+        critical_section::with(|cs| {
+            if INITIALIZED.borrow(cs).get() {
+                panic!("rtt_init! must not be called multiple times");
+            }
+            INITIALIZED.borrow(cs).set(true);
+        });
 
         unsafe {
             ptr::write_bytes(CONTROL_BLOCK.as_mut_ptr(), 0, 1);

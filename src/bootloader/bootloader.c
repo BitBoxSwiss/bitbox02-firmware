@@ -26,6 +26,7 @@
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/arial_fonts.h>
@@ -206,6 +207,8 @@ void _binExec(void* l_code_addr)
 
 static void _binary_exec(void)
 {
+    util_log("Jumping to firmware");
+    rust_rtt_flush();
     _render_bootloader_finished_marker();
 
     int i;
@@ -981,6 +984,7 @@ void bootloader_jump(void)
     }
 
     // App not entered. Start USB API to receive boot commands
+    util_log("Not jumping to firmware");
     _compute_is_app_flash_empty();
     _render_default_screen();
     if (usb_start(_api_setup) != ERR_NONE) {

@@ -1451,6 +1451,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (platform_binding): %i", res);
             return res;
         }
     }
@@ -1463,6 +1464,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (aes_symkey): %i", res);
             return res;
         }
     }
@@ -1471,6 +1473,7 @@ static int _verify_config(void)
         res = _verify_metadata(
             OID_HMAC, _hmac_metadata, sizeof(_hmac_metadata), check_tags, sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (hmac): %i", res);
             return res;
         }
     }
@@ -1483,6 +1486,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (arbitrary_data): %i", res);
             return res;
         }
     }
@@ -1495,6 +1499,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (attestation): %i", res);
             return res;
         }
     }
@@ -1507,6 +1512,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (counter): %i", res);
             return res;
         }
     }
@@ -1519,6 +1525,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (password_secret): %i", res);
             return res;
         }
     }
@@ -1531,6 +1538,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (password): %i", res);
             return res;
         }
     }
@@ -1543,6 +1551,7 @@ static int _verify_config(void)
             check_tags,
             sizeof(check_tags));
         if (res) {
+            util_log("verify config failed (counter_password): %i", res);
             return res;
         }
     }

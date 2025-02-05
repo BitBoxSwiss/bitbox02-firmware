@@ -106,6 +106,18 @@ pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) ->
     }
 }
 
+pub fn change_password(
+    old_password: &SafeInputString,
+    new_password: &SafeInputString,
+) -> Result<(), Error> {
+    match unsafe {
+        bitbox02_sys::keystore_change_password(old_password.as_cstr(), new_password.as_cstr())
+    } {
+        keystore_error_t::KEYSTORE_OK => Ok(()),
+        err => Err(err.into()),
+    }
+}
+
 pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
     let mut seed_len: usize = 0;

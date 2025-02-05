@@ -12,10 +12,16 @@
 [package]
 edition = "2018"
 name = "rtt-target"
-version = "0.5.0"
+version = "0.6.1"
 authors = ["Matti Virkkunen <mvirkkunen@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Target side implementation of the RTT (Real-Time Transfer) I/O protocol"
-readme = "README.md"
+readme = "../README.md"
 keywords = [
     "no-std",
     "embedded",
@@ -23,11 +29,45 @@ keywords = [
     "rtt",
 ]
 license = "MIT"
-license-file = "LICENSE"
 repository = "https://github.com/probe-rs/rtt-target"
 
-[dependencies.critical-section]
-version = "1.0.0"
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
 
-[dependencies.ufmt-write]
-version = "0.1.0"
+[lib]
+name = "rtt_target"
+path = "src/lib.rs"
+
+[dependencies]
+critical-section = "1.0.0"
+ufmt-write = "0.1.0"
+
+[dependencies.defmt]
+version = "0.3.0"
+optional = true
+
+[dependencies.log]
+version = "0.4.22"
+optional = true
+
+[dependencies.once_cell]
+version = "1.20.2"
+features = ["critical-section"]
+optional = true
+default-features = false
+
+[dependencies.portable-atomic]
+version = "1.6.0"
+default-features = false
+
+[features]
+default = []
+log = [
+    "dep:log",
+    "dep:once_cell",
+]
+log_racy_init = []

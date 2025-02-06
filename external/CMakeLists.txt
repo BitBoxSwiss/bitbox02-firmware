@@ -55,7 +55,6 @@ ExternalProject_Add(libwally-core
                   ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/configure
                   ${CONFIGURE_FLAGS}
                   ${LIBWALLY_CONFIGURE_FLAGS}
-  BUILD_COMMAND   ${CMAKE_MAKE_PROGRAM}
   INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
   COMMAND         ${CMAKE_COMMAND} -E copy
                   ${CMAKE_CURRENT_BINARY_DIR}/libwally-core/src/libwally-core-build/src/.libs/libwallycore.a

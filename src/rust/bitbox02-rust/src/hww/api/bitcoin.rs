@@ -241,10 +241,7 @@ async fn address_policy(
 
     let parsed = policies::parse(policy, coin)?;
 
-    let name = match policies::get_name(coin, policy)? {
-        Some(name) => name,
-        None => return Err(Error::InvalidInput),
-    };
+    let name = parsed.name(coin_params)?.ok_or(Error::InvalidInput)?;
 
     let title = "Receive to";
 

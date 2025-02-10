@@ -456,6 +456,10 @@ pub struct BtcSignInitRequest {
     pub format_unit: i32,
     #[prost(bool, tag = "9")]
     pub contains_silent_payment_outputs: bool,
+    /// used script configs for outputs that send to an address of the same keystore, but not
+    /// necessarily the same account (as defined by `script_configs` above).
+    #[prost(message, repeated, tag = "10")]
+    pub output_script_configs: ::prost::alloc::vec::Vec<BtcScriptConfigWithKeypath>,
 }
 /// Nested message and enum types in `BTCSignInitRequest`.
 pub mod btc_sign_init_request {
@@ -621,7 +625,9 @@ pub struct BtcSignOutputRequest {
     /// if ours is true
     #[prost(uint32, repeated, tag = "5")]
     pub keypath: ::prost::alloc::vec::Vec<u32>,
-    /// If ours is true. References a script config from BTCSignInitRequest
+    /// If ours is true and `output_script_config_index` is absent. References a script config from
+    /// BTCSignInitRequest. This allows change output identification and allows us to identify
+    /// non-change outputs to the same account, so we can display this info to the user.
     #[prost(uint32, tag = "6")]
     pub script_config_index: u32,
     #[prost(uint32, optional, tag = "7")]
@@ -630,6 +636,12 @@ pub struct BtcSignOutputRequest {
     /// BTCSignNextResponse. `contains_silent_payment_outputs` in the init request must be true.
     #[prost(message, optional, tag = "8")]
     pub silent_payment: ::core::option::Option<btc_sign_output_request::SilentPayment>,
+    /// If ours is true. If set, `script_config_index` is ignored. References an output script config
+    /// from BTCSignInitRequest. This enables verification that an output belongs to the same keystore,
+    /// even if it is from a different account than we spend from, allowing us to display this info to
+    /// the user.
+    #[prost(uint32, optional, tag = "9")]
+    pub output_script_config_index: ::core::option::Option<u32>,
 }
 /// Nested message and enum types in `BTCSignOutputRequest`.
 pub mod btc_sign_output_request {

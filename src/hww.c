@@ -17,6 +17,7 @@
 #include <hardfault.h>
 #include <keystore.h>
 #include <memory/memory.h>
+#include <version.h>
 
 #include <platform_config.h>
 #include <rust/rust.h>

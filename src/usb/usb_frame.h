@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 #include "queue.h"
-#include <usb/class/usb_desc.h>
+#include <usb/class/usb_size.h>
 
 #define FRAME_TYPE_MASK 0x80 // Frame type mask
 #define FRAME_TYPE_INIT 0x80 // Initial frame identifier

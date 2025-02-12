@@ -80,6 +80,8 @@ typedef union {
         uint8_t io_protection_key_split[32];
         uint8_t authorization_key_split[32];
         uint8_t encryption_key_split[32];
+        uint8_t platform;
+        uint8_t reserved[3]; // align to 4 bytes
     } fields;
     uint8_t bytes[FLASH_SHARED_DATA_LEN];
 } chunk_shared_t;
@@ -105,5 +107,9 @@ USE_RESULT uint8_t memory_get_screen_type(void);
 #define MEMORY_SECURECHIP_TYPE_ATECC 0xFF
 #define MEMORY_SECURECHIP_TYPE_OPTIGA 0x01
 USE_RESULT uint8_t memory_get_securechip_type(void);
+
+#define MEMORY_PLATFORM_BITBOX02 0xFF
+#define MEMORY_PLATFORM_BITBOX02_PLUS 0x01
+USE_RESULT uint8_t memory_get_platform(void);
 
 #endif

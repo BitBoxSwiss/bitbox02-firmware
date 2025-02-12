@@ -8,6 +8,7 @@
 - SD card: Remove API to prompt removal of the microSD card from the device
 - Add support for regtest (supported from firmware version v9.21.0)
 - btc_sign: allow identifying outputs belonging to different accounts of the same keystore
+- Detect BitBox02 Plus
 
 # 6.3.0
 - Allow infering product and version via API call instead of via USB descriptor

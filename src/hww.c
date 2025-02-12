@@ -19,6 +19,7 @@
 #include <memory/memory.h>
 #include <version.h>
 
+#include <memory/memory_shared.h>
 #include <platform_config.h>
 #include <rust/rust.h>
 #include <usb/usb_packet.h>
@@ -60,8 +61,9 @@ typedef struct {
  * 1 byte: platform code:
  * - 0x00 - BitBox02
  * - 0x01 - BitBoxBase (deprecated)
+ * - 0x02 - BitBox02Plus
  * 1 byte: edition code:
- * - For the BitBox02 edition:
+ * - For the BitBox02 and BitBox02Plus edition:
  * - - 0x00 - Multi
  * - - 0x01 - Bitcoin-only
  * - For the BitBoxBase platform (deprecated):
@@ -84,14 +86,21 @@ static size_t _api_info(uint8_t* buf)
     memcpy((char*)current, DIGITAL_BITBOX_VERSION_SHORT, version_string_len);
     current += version_string_len;
 
-    // 1 byte platform code and 1 byte edition code
+    // 1 byte platform code
+    switch (memory_get_platform()) {
+    case MEMORY_PLATFORM_BITBOX02_PLUS:
+        *current = 0x02;
+        break;
+    default:
+        *current = 0x00;
+        break;
+    }
+    current++;
+
+    // 1 byte edition code
 #if PRODUCT_BITBOX_MULTI == 1 || PRODUCT_BITBOX02_FACTORYSETUP == 1
     *current = 0x00;
-    current++;
-    *current = 0x00;
 #elif PRODUCT_BITBOX_BTCONLY == 1
-    *current = 0x00;
-    current++;
     *current = 0x01;
 #endif
     current++;

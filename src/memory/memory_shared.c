@@ -65,3 +65,17 @@ uint8_t memory_get_securechip_type(void)
         return MEMORY_SECURECHIP_TYPE_ATECC;
     }
 }
+
+uint8_t memory_get_platform(void)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+    uint8_t platform = chunk.fields.platform;
+    util_zero(&chunk, sizeof(chunk));
+    switch (platform) {
+    case MEMORY_PLATFORM_BITBOX02_PLUS:
+        return platform;
+    default:
+        return MEMORY_PLATFORM_BITBOX02;
+    }
+}

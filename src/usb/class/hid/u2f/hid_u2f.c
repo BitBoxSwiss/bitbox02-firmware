@@ -14,7 +14,8 @@
 
 #include "hid_u2f.h"
 #include "usb/usb_processing.h"
-#include "usb_desc.h"
+#include "usb_size.h"
+#include "usb_u2f_desc.h"
 #include <queue.h>
 #include <string.h>
 #include <u2f/u2f_packet.h>

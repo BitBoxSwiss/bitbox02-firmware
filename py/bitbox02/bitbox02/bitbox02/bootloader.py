@@ -23,7 +23,14 @@ from typing import TypedDict
 
 from bitbox02.communication import TransportLayer
 
-from bitbox02.communication.devices import DeviceInfo, parse_device_version
+from bitbox02.communication.devices import (
+    DeviceInfo,
+    parse_device_version,
+    BB02MULTI_BOOTLOADER,
+    BB02BTC_BOOTLOADER,
+    BITBOX02PLUS_MULTI_BOOTLOADER,
+    BITBOX02PLUS_BTC_BOOTLOADER,
+)
 
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
 NUM_ROOT_KEYS = 3
@@ -35,9 +42,10 @@ CHUNK_SIZE = 4096
 assert MAX_FIRMWARE_SIZE % CHUNK_SIZE == 0
 FIRMWARE_CHUNKS = MAX_FIRMWARE_SIZE // CHUNK_SIZE
 
-SIGDATA_MAGIC_STANDARD = struct.pack(">I", 0x653F362B)
-SIGDATA_MAGIC_BTCONLY = struct.pack(">I", 0x11233B0B)
-SIGDATA_MAGIC_BITBOXBASE_STANDARD = struct.pack(">I", 0xAB6BD345)
+SIGDATA_MAGIC_BITBOX02_MULTI = struct.pack(">I", 0x653F362B)
+SIGDATA_MAGIC_BITBOX02_BTCONLY = struct.pack(">I", 0x11233B0B)
+SIGDATA_MAGIC_BITBOX02PLUS_MULTI = struct.pack(">I", 0x5B648CEB)
+SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY = struct.pack(">I", 0x48714774)
 
 MAGIC_LEN = 4
 
@@ -69,9 +77,10 @@ def parse_signed_firmware(firmware: bytes) -> typing.Tuple[bytes, bytes, bytes]:
         raise ValueError("firmware too small")
     magic, firmware = firmware[:MAGIC_LEN], firmware[MAGIC_LEN:]
     if magic not in (
-        SIGDATA_MAGIC_STANDARD,
-        SIGDATA_MAGIC_BTCONLY,
-        SIGDATA_MAGIC_BITBOXBASE_STANDARD,
+        SIGDATA_MAGIC_BITBOX02_MULTI,
+        SIGDATA_MAGIC_BITBOX02_BTCONLY,
+        SIGDATA_MAGIC_BITBOX02PLUS_MULTI,
+        SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY,
     ):
         raise ValueError("invalid magic")
 
@@ -87,9 +96,10 @@ class Bootloader:
     def __init__(self, transport: TransportLayer, device_info: DeviceInfo):
         self._transport = transport
         self.expected_magic = {
-            "bb02-bootloader": SIGDATA_MAGIC_STANDARD,
-            "bb02btc-bootloader": SIGDATA_MAGIC_BTCONLY,
-            "bitboxbase-bootloader": SIGDATA_MAGIC_BITBOXBASE_STANDARD,
+            BB02MULTI_BOOTLOADER: SIGDATA_MAGIC_BITBOX02_MULTI,
+            BB02BTC_BOOTLOADER: SIGDATA_MAGIC_BITBOX02_BTCONLY,
+            BITBOX02PLUS_MULTI_BOOTLOADER: SIGDATA_MAGIC_BITBOX02PLUS_MULTI,
+            BITBOX02PLUS_BTC_BOOTLOADER: SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY,
         }.get(device_info["product_string"])
         self.version = parse_device_version(device_info["serial_number"])
         # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is

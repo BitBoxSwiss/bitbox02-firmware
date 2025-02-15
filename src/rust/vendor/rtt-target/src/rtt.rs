@@ -6,7 +6,7 @@ use crate::ChannelMode;
 use core::cmp::min;
 use core::fmt;
 use core::ptr;
-use core::sync::atomic::{fence, AtomicUsize, Ordering::SeqCst};
+use portable_atomic::{AtomicUsize, Ordering::SeqCst};
 
 // Note: this is zero-initialized in the initialization macro so all zeros must be a valid value
 #[repr(C)]
@@ -29,18 +29,14 @@ impl RttHeader {
         ptr::write_volatile(&mut self.max_up_channels, max_up_channels);
         ptr::write_volatile(&mut self.max_down_channels, max_down_channels);
 
-        // Copy the ID in two parts to avoid having the ID string in memory in full. The ID is
-        // copied last to make it less likely an unfinished control block is detected by the host.
+        // Copy the ID backward to avoid storing the magic string in the binary. The ID is
+        // written backwards to make it less likely an unfinished control block is detected by the host.
 
-        ptr::copy_nonoverlapping(b"SEGG_" as *const u8, self.id.as_mut_ptr(), 5);
+        const MAGIC_STR_BACKWARDS: &[u8; 16] = b"\0\0\0\0\0\0TTR REGGES";
 
-        fence(SeqCst);
-
-        ptr::copy_nonoverlapping(
-            b"ER RTT\0\0\0\0\0\0" as *const u8,
-            self.id.as_mut_ptr().offset(4),
-            12,
-        );
+        for (idx, byte) in MAGIC_STR_BACKWARDS.into_iter().enumerate() {
+            ptr::write_volatile(&mut self.id[15 - idx], *byte);
+        }
     }
 
     pub fn max_up_channels(&self) -> usize {
@@ -74,7 +70,7 @@ impl RttChannel {
         ptr::write_volatile(&mut self.buffer, buffer as *mut u8);
     }
 
-    /// Returns true on a non-null value of the (raw) buffer pointerh
+    /// Returns true on a non-null value of the (raw) buffer pointer
     pub fn is_initialized(&self) -> bool {
         !self.buffer.is_null()
     }
@@ -82,10 +78,11 @@ impl RttChannel {
     pub(crate) fn mode(&self) -> ChannelMode {
         let mode = self.flags.load(SeqCst) & 3;
 
-        if mode <= 2 {
-            unsafe { core::mem::transmute(mode) }
-        } else {
-            ChannelMode::NoBlockSkip
+        match mode {
+            0 => ChannelMode::NoBlockSkip,
+            1 => ChannelMode::NoBlockTrim,
+            2 => ChannelMode::BlockIfFull,
+            _ => ChannelMode::NoBlockSkip,
         }
     }
 
@@ -146,7 +143,7 @@ impl RttChannel {
         }
     }
 
-    fn read_pointers(&self) -> (usize, usize) {
+    pub(crate) fn read_pointers(&self) -> (usize, usize) {
         let write = self.write.load(SeqCst);
         let read = self.read.load(SeqCst);
 

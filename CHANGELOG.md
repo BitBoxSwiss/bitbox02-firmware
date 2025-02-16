@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.22.0
 - Update manufacturer HID descriptor to bitbox.swiss
 - Ethereum: remove deprecated Goerli network
 - SD card: solve backup bug when sd card is re-inserted

@@ -49,6 +49,7 @@ pal_status_t pal_os_datastore_write(uint16_t datastore_id, const uint8_t* p_buff
 {
     (void)p_buffer;
     (void)length;
+    (void)datastore_id;
     util_log("pal_datastore_write, id=%d", datastore_id);
     return PAL_STATUS_FAILURE;
 }

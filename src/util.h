@@ -125,6 +125,14 @@ typedef struct {
  */
 typedef enum { ASYNC_OP_TRUE, ASYNC_OP_FALSE, ASYNC_OP_NOT_READY } async_op_result_t;
 
+#if defined(NDEBUG)
+#define util_log_init(...)
+#define util_log(...)
+#define util_log_flush(...)
+#else
 void util_log(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+void util_log_flush(void);
+void util_log_init(void);
+#endif
 
 #endif

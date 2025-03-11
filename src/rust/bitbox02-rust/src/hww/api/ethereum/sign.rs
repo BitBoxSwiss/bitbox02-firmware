@@ -299,6 +299,17 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
     }
     super::keypath::warn_unusual_keypath(&params, params.name, request.keypath()).await?;
 
+    // Show chain confirmation only for known non-mainnet networks
+    if super::params::is_known_non_mainnet(params.chain_id) {
+        confirm::confirm(&confirm::Params {
+            title: "Confirm Chain",
+            body: &format!("Sign transaction on\n{}", params.name),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+
     // Size limits.
     if request.nonce().len() > 16
         || request.gas_limit().len() > 16
@@ -647,6 +658,11 @@ mod tests {
                         assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
                         true
                     }
+                    2 => {
+                        assert_eq!(params.title, "Confirm Chain");
+                        assert_eq!(params.body, "Sign transaction on\nSepolia");
+                        true
+                    }
                     _ => panic!("too many user confirmations"),
                 }
             })),
@@ -681,7 +697,7 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .unwrap();
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
     }
 
     /// Standard ETH transaction with an unknown data field.
@@ -1174,5 +1190,172 @@ mod tests {
             }))
         );
         assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
+    }
+
+    /// Test that the chain confirmation screen appears for known non-mainnet networks.
+    #[test]
+    pub fn test_chain_confirmation_for_l2_networks() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        static mut CONFIRM_COUNTER: u32 = 0;
+        // Test with Arbitrum (chain_id 42161)
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                unsafe {
+                    if CONFIRM_COUNTER == 0 {
+                        assert_eq!(params.title, "Confirm Chain");
+                        assert_eq!(params.body, "Sign transaction on\nArbitrum One");
+                        CONFIRM_COUNTER += 1;
+                    }
+                }
+                true
+            })),
+            // Skip checking these details
+            ui_transaction_address_create: Some(Box::new(|_, _| true)),
+            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            coin: pb::EthCoin::Eth as _,
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
+            gas_limit: b"\x52\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 42161,
+            address_case: pb::EthAddressCase::Mixed as _,
+        })))
+        .unwrap();
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+    }
+
+    /// Test that EIP-1559 transactions also get the chain confirmation screen for L2 networks
+    #[test]
+    pub fn test_chain_confirmation_for_eip1559() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        // Test with Polygon network (chain_id 137)
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                unsafe {
+                    if CONFIRM_COUNTER == 0 {
+                        assert_eq!(params.title, "Confirm Chain");
+                        assert_eq!(params.body, "Sign transaction on\nPolygon");
+                        CONFIRM_COUNTER += 1;
+                    }
+                }
+                true
+            })),
+            ui_transaction_address_create: Some(Box::new(|_, _| true)),
+            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
+            max_fee_per_gas: b"\x01\x65\xa0\xbc\x00".to_vec(),
+            gas_limit: b"\x52\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 137,
+            address_case: pb::EthAddressCase::Mixed as _,
+        })))
+        .unwrap();
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+    }
+
+    /// Test that unknown networks and mainnet do NOT get the chain confirmation screen
+    #[test]
+    pub fn test_no_chain_confirmation_for_unknown_networks() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        // Test with an unknown network (chain_id 999999)
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                unsafe {
+                    // Only the warning confirmations should appear, not chain confirmation
+                    if params.title == "Confirm Chain" {
+                        CONFIRM_COUNTER += 1;
+                    }
+                }
+                true
+            })),
+            ui_transaction_address_create: Some(Box::new(|_, _| true)),
+            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            coin: pb::EthCoin::Eth as _,
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
+            gas_limit: b"\x52\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 999999,
+            address_case: pb::EthAddressCase::Mixed as _,
+        })))
+        .unwrap();
+
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 0);
+
+        // Reset counter for mainnet test
+        unsafe { CONFIRM_COUNTER = 0 };
+
+        // Test with Ethereum mainnet (chain_id 1)
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                unsafe {
+                    if params.title == "Confirm Chain" {
+                        CONFIRM_COUNTER += 1;
+                    }
+                }
+                true
+            })),
+            ui_transaction_address_create: Some(Box::new(|_, _| true)),
+            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            coin: pb::EthCoin::Eth as _,
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
+            gas_limit: b"\x52\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 1,
+            address_case: pb::EthAddressCase::Mixed as _,
+        })))
+        .unwrap();
+
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 0);
     }
 }

@@ -613,6 +613,8 @@ class BitBox02(BitBoxCommonAPI):
         # pylint: disable=no-member
 
         self._require_atleast(semver.VersionInfo(9, 2, 0))
+        if coin in (btc.TBTC, btc.RBTC):
+            self._require_atleast(semver.VersionInfo(9, 23, 0))
 
         request = btc.BTCRequest()
         request.sign_message.CopyFrom(

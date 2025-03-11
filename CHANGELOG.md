@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Bitcoin: enable message signing on testnet and regtest
 
 ### 9.22.0
 - Update manufacturer HID descriptor to bitbox.swiss

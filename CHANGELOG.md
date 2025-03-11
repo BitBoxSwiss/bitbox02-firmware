@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Ethereum: add confirmation screen for known L2 networks and sidechains and change their unit to ETH
+- Ethereum: add Base to known networks
 
 ### 9.22.0
 - Update manufacturer HID descriptor to bitbox.swiss

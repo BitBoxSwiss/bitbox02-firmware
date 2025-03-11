@@ -84,6 +84,13 @@ const PARAMS: &[Params] = &[
         name: "Arbitrum One",
         unit: "ETH",
     },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 8453,
+        name: "Base",
+        unit: "ETH",
+    },
 ];
 
 /// Check if the chain_id corresponds to a known network (to show an additional confirmations for).

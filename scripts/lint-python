@@ -39,26 +39,26 @@ ${PYLINT} --persistent=no "${ARGS[@]}" || {
 	# 32    usage error
 	pylint_status=$?
 	exitcode=0
-	if (( ${pylint_status} \& 1 )); then
-		echo fatal messsage >&2
+	if (( ${pylint_status} & 1 )); then
+		echo fatal message >&2
 		exitcode=2
 	fi
-	if (( ${pylint_status} \& 2 )); then
-		echo error messsage >&2
+	if (( ${pylint_status} & 2 )); then
+		echo error message >&2
 		exitcode=2
 	fi
-	if (( ${pylint_status} \& 4 )); then
-		echo warning messsage >&2
+	if (( ${pylint_status} & 4 )); then
+		echo warning message >&2
 		exitcode=2
 	fi
-	if (( ${pylint_status} \& 8 )); then
-		echo refactor messsage >&2
+	if (( ${pylint_status} & 8 )); then
+		echo refactor message >&2
 	fi
-	if (( ${pylint_status} \& 16 )); then
-		echo convention messsage >&2
+	if (( ${pylint_status} & 16 )); then
+		echo convention message >&2
 	fi
 	# This should not happen!
-	if (( ${pylint_status} \& 32 )); then
+	if (( ${pylint_status} & 32 )); then
 		echo usage error >&2
 		exitcode=2
 	fi

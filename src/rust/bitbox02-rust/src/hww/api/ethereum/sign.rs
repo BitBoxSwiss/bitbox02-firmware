@@ -299,6 +299,16 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
     }
     super::keypath::warn_unusual_keypath(&params, params.name, request.keypath()).await?;
 
+    // Show chain confirmation only for known networks
+    if super::params::is_known_network(request.coin()?, request.chain_id()) {
+        confirm::confirm(&confirm::Params {
+            body: &format!("Sign transaction on\n\n{}", params.name),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+    }
+
     // Size limits.
     if request.nonce().len() > 16
         || request.gas_limit().len() > 16
@@ -472,6 +482,11 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                assert!(params.accept_is_nextarrow);
+                true
+            })),
             ui_transaction_address_create: Some(Box::new(|amount, address| {
                 assert_eq!(amount, "0.530564 ETH");
                 assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
@@ -546,6 +561,11 @@ mod tests {
                     UI_COUNTER
                 } {
                     1 => {
+                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                        assert!(params.accept_is_nextarrow);
+                        true
+                    }
+                    2 => {
                         assert_eq!(params.title, "High fee");
                         assert_eq!(params.body, "The fee is 12.0%\nthe send amount.\nProceed?");
                         assert!(params.longtouch);
@@ -575,7 +595,7 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .is_ok());
-        assert_eq!(unsafe { UI_COUNTER }, 1);
+        assert_eq!(unsafe { UI_COUNTER }, 2);
     }
 
     /// Test an EIP-1559 transaction with an unusually high fee.
@@ -598,6 +618,11 @@ mod tests {
                     UI_COUNTER
                 } {
                     1 => {
+                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                        assert!(params.accept_is_nextarrow);
+                        true
+                    }
+                    2 => {
                         assert_eq!(params.title, "High fee");
                         assert_eq!(params.body, "The fee is 12.0%\nthe send amount.\nProceed?");
                         assert!(params.longtouch);
@@ -627,7 +652,7 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .is_ok());
-        assert_eq!(unsafe { UI_COUNTER }, 1);
+        assert_eq!(unsafe { UI_COUNTER }, 2);
     }
 
     /// Standard ETH transaction on an unusual keypath (Sepolia on mainnet keypath)
@@ -645,6 +670,10 @@ mod tests {
                     1 => {
                         assert_eq!(params.title, "Sepolia");
                         assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.body, "Sign transaction on\n\nSepolia");
                         true
                     }
                     _ => panic!("too many user confirmations"),
@@ -681,7 +710,7 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .unwrap();
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
     }
 
     /// Standard ETH transaction with an unknown data field.
@@ -692,8 +721,12 @@ mod tests {
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe { CONFIRM_COUNTER } {
-                    0 | 1 => assert_eq!(params.title, "Unknown\ncontract"),
-                    2 => {
+                    0 => {
+                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                        assert!(params.accept_is_nextarrow);
+                    }
+                    1 | 2 => assert_eq!(params.title, "Unknown\ncontract"),
+                    3 => {
                         assert_eq!(params.title, "Transaction\ndata");
                         assert_eq!(params.body, "666f6f20626172"); // "foo bar" in hex.
                         assert!(params.scrollable);
@@ -748,8 +781,12 @@ mod tests {
         mock(Data {
             ui_confirm_create: Some(Box::new(|params| {
                 match unsafe { CONFIRM_COUNTER } {
-                    0 | 1 => assert_eq!(params.title, "Unknown\ncontract"),
-                    2 => {
+                    0 => {
+                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                        assert!(params.accept_is_nextarrow);
+                    }
+                    1 | 2 => assert_eq!(params.title, "Unknown\ncontract"),
+                    3 => {
                         assert_eq!(params.title, "Transaction\ndata");
                         assert_eq!(params.body, "666f6f20626172"); // "foo bar" in hex.
                         assert!(params.scrollable);
@@ -803,6 +840,11 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                assert!(params.accept_is_nextarrow);
+                true
+            })),
             ui_transaction_address_create: Some(Box::new(|amount, address| {
                 assert_eq!(amount, "57 USDT");
                 assert_eq!(address, "0xE6CE0a092A99700CD4ccCcBb1fEDc39Cf53E6330");
@@ -863,6 +905,11 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                assert!(params.accept_is_nextarrow);
+                true
+            })),
             ui_transaction_address_create: Some(Box::new(|amount, address| {
                 assert_eq!(amount, "Unknown token");
                 assert_eq!(address, "0x857B3D969eAcB775a9f79cabc62Ec4bB1D1cd60e");
@@ -938,6 +985,7 @@ mod tests {
         {
             // Check that the above is valid before making invalid variants.
             mock(Data {
+                ui_confirm_create: Some(Box::new(|_| true)),
                 ui_transaction_address_create: Some(Box::new(|_, _| true)),
                 ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
                 ..Default::default()
@@ -1007,8 +1055,29 @@ mod tests {
         }
 
         {
+            // User rejects chain confirmation
+            mock(Data {
+                ui_confirm_create: Some(Box::new(|params| {
+                    assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                    assert!(params.accept_is_nextarrow);
+                    false
+                })),
+                ..Default::default()
+            });
+            assert_eq!(
+                block_on(process(&Transaction::Legacy(&valid_request))),
+                Err(Error::UserAbort)
+            );
+        }
+
+        {
             // User rejects recipient/value.
             mock(Data {
+                ui_confirm_create: Some(Box::new(|params| {
+                    assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                    assert!(params.accept_is_nextarrow);
+                    true
+                })),
                 ui_transaction_address_create: Some(Box::new(|amount, address| {
                     assert_eq!(amount, "0.530564 ETH");
                     assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
@@ -1024,6 +1093,11 @@ mod tests {
         {
             // User rejects total/fee.
             mock(Data {
+                ui_confirm_create: Some(Box::new(|params| {
+                    assert_eq!(params.body, "Sign transaction on\n\nEthereum");
+                    assert!(params.accept_is_nextarrow);
+                    true
+                })),
                 ui_transaction_address_create: Some(Box::new(|amount, address| {
                     assert_eq!(amount, "0.530564 ETH");
                     assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
@@ -1045,6 +1119,7 @@ mod tests {
         {
             // Keystore locked.
             mock(Data {
+                ui_confirm_create: Some(Box::new(|_| true)),
                 ui_transaction_address_create: Some(Box::new(|_, _| true)),
                 ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
                 ..Default::default()
@@ -1077,6 +1152,7 @@ mod tests {
         {
             // Check that the above is valid before making invalid variants.
             mock(Data {
+                ui_confirm_create: Some(Box::new(|_| true)),
                 ui_transaction_address_create: Some(Box::new(|_, _| true)),
                 ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
                 ..Default::default()
@@ -1174,5 +1250,89 @@ mod tests {
             }))
         );
         assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
+    }
+
+    /// Test that the chain confirmation screen appears for known non-mainnet networks.
+    #[test]
+    pub fn test_chain_confirmation() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        static mut CONFIRM_COUNTER: u32 = 0;
+        // Test with Arbitrum (chain_id 42161)
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                unsafe {
+                    if CONFIRM_COUNTER == 0 {
+                        assert_eq!(params.body, "Sign transaction on\n\nArbitrum One");
+                        CONFIRM_COUNTER += 1;
+                    }
+                }
+                true
+            })),
+            // Skip checking these details
+            ui_transaction_address_create: Some(Box::new(|_, _| true)),
+            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            coin: pb::EthCoin::Eth as _,
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
+            gas_limit: b"\x52\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 42161,
+            address_case: pb::EthAddressCase::Mixed as _,
+        })))
+        .unwrap();
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+    }
+
+    /// Test that EIP-1559 transactions also get the chain confirmation screen
+    #[test]
+    pub fn test_chain_confirmation_for_eip1559() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        // Test with Polygon network (chain_id 137)
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                unsafe {
+                    if CONFIRM_COUNTER == 0 {
+                        assert_eq!(params.body, "Sign transaction on\n\nPolygon");
+                        CONFIRM_COUNTER += 1;
+                    }
+                }
+                true
+            })),
+            ui_transaction_address_create: Some(Box::new(|_, _| true)),
+            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
+            ..Default::default()
+        });
+        mock_unlocked();
+
+        block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+            keypath: KEYPATH.to_vec(),
+            nonce: b"\x1f\xdc".to_vec(),
+            max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
+            max_fee_per_gas: b"\x01\x65\xa0\xbc\x00".to_vec(),
+            gas_limit: b"\x52\x08".to_vec(),
+            recipient:
+                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
+                    .to_vec(),
+            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            data: b"".to_vec(),
+            host_nonce_commitment: None,
+            chain_id: 137,
+            address_case: pb::EthAddressCase::Mixed as _,
+        })))
+        .unwrap();
+        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
     }
 }

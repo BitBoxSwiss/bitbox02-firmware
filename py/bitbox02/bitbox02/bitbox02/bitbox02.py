@@ -45,7 +45,7 @@ try:
     from bitbox02.communication.generated import antiklepto_pb2 as antiklepto
     import google.protobuf.empty_pb2
 
-    # pylint: disable=unused-import
+    # pylint: disable=unused-import,ungrouped-imports
     # We export it in __init__.py
     from bitbox02.communication.generated import system_pb2 as system
 except ModuleNotFoundError:
@@ -116,6 +116,9 @@ class BTCInputType(TypedDict):
 
 class BTCOutputInternal:
     # TODO: Use NamedTuple, but not playing well with protobuf types.
+    """
+    Internal transaction output (output belongs to BitBox).
+    """
 
     def __init__(
         self,
@@ -135,6 +138,9 @@ class BTCOutputInternal:
 
 class BTCOutputExternal:
     # TODO: Use NamedTuple, but not playing well with protobuf types.
+    """
+    External transaction output.
+    """
 
     def __init__(self, output_type: "btc.BTCOutputType.V", output_payload: bytes, value: int):
         self.type = output_type
@@ -807,6 +813,8 @@ class BitBox02(BitBoxCommonAPI):
         """
         transaction should be given as a full rlp encoded eth transaction.
         """
+        # pylint: disable=no-member
+
         is_eip1559 = transaction.startswith(b"\x02")
 
         def handle_antiklepto(request: eth.ETHRequest) -> bytes:

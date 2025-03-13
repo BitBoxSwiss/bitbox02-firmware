@@ -86,13 +86,8 @@ const PARAMS: &[Params] = &[
     },
 ];
 
-/// Check if the chain_id corresponds to a known non-mainnet network.
-/// Returns true for specific L2s and sidechains we want to show confirmations for,
-/// false for mainnet (chain_id=1) and unknown networks.
-pub fn is_known_non_mainnet(chain_id: u64) -> bool {
-    if chain_id == 1 {
-        return false;
-    }
+/// Check if the chain_id corresponds to a known network (to show an additional confirmations for).
+pub fn is_known_network(chain_id: u64) -> bool {
     PARAMS.iter().any(|p| p.chain_id == chain_id)
 }
 

@@ -84,6 +84,20 @@ const PARAMS: &[Params] = &[
         name: "Arbitrum One",
         unit: "ETH",
     },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 8453,
+        name: "Base",
+        unit: "ETH",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 100,
+        name: "Gnosis Chain",
+        unit: "xDAI",
+    },
 ];
 
 /// Get the chain parameters by `coin` or `chain_id`. If `chain_id` is non-zero, `coin` is ignored.

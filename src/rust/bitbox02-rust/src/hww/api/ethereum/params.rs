@@ -61,7 +61,7 @@ const PARAMS: &[Params] = &[
         bip44_coin: 60 + HARDENED,
         chain_id: 10,
         name: "Optimism",
-        unit: "OETH",
+        unit: "ETH",
     },
     Params {
         coin: None,
@@ -82,7 +82,21 @@ const PARAMS: &[Params] = &[
         bip44_coin: 60 + HARDENED,
         chain_id: 42161,
         name: "Arbitrum One",
-        unit: "AETH",
+        unit: "ETH",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 8453,
+        name: "Base",
+        unit: "ETH",
+    },
+    Params {
+        coin: None,
+        bip44_coin: 60 + HARDENED,
+        chain_id: 100,
+        name: "Gnosis Chain",
+        unit: "xDAI",
     },
 ];
 
@@ -97,6 +111,11 @@ fn get(coin: Option<EthCoin>, chain_id: u64) -> Option<&'static Params> {
             false
         }
     })
+}
+
+/// Check if the chain_id corresponds to a known network (to show an additional confirmations for).
+pub fn is_known_network(coin: Option<EthCoin>, chain_id: u64) -> bool {
+    get(coin, chain_id).is_some()
 }
 
 /// Get the chain parameters by `coin` or `chain_id`. If `chain_id` is non-zero, `coin` is

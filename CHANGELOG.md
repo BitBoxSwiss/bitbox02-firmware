@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Ethereum: add confirmation screen for known networks, change base unit to ETH for Arbitrum and Optimism
+- Ethereum: add Base and Gnosis Chain to known networks
 
 ### 9.22.0
 - Update manufacturer HID descriptor to bitbox.swiss

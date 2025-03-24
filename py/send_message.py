@@ -197,7 +197,7 @@ class SendMessage:
         else:
             try:
                 entropy_size = int(entropy_size_inp)
-            except:
+            except ValueError:
                 eprint("Failed")
                 return
 
@@ -1531,7 +1531,7 @@ class SendMessageBootloader:
 
     def _get_hardware(self) -> None:
         secure_chip = self._device.hardware()["secure_chip_model"]
-        print(f"Hardware variant:")
+        print("Hardware variant:")
         print(f"- Secure Chip: {secure_chip.value}")
 
     def _erase(self) -> None:

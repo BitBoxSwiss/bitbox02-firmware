@@ -14,7 +14,6 @@
 """BitBox python package"""
 import os.path
 import re
-from distutils.core import setup
 import setuptools
 
 
@@ -33,7 +32,7 @@ def find_version() -> str:
     raise RuntimeError("Version string not found")
 
 
-setup(
+setuptools.setup(
     name="bitbox02",
     version=find_version(),
     author="Shift Crypto",

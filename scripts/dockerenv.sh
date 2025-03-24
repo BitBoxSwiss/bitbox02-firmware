@@ -80,7 +80,6 @@ dockerdev () {
            --name="$CONTAINER_NAME" \
            -v "$repo_path":"$MOUNT_DIR" \
            --cap-add SYS_PTRACE \
-           -p 15423:15423 \
            ${CONTAINER_IMAGE}:${CONTAINER_VERSION} bash
 
     if [ "$RUNTIME" = "docker" ] ; then

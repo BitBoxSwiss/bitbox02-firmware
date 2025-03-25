@@ -3,39 +3,29 @@
  *
  * \brief SHA Secure Hash Algorithm(Sync) functionality declaration.
  *
- * Copyright (C) 2016 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2016-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -140,20 +130,12 @@ int32_t _sha_sync_sha1_start(struct _sha_sync_device *const dev)
 	hri_icm_write_HASH_reg(hw, (uint32_t)ctx->digest);
 
 	/* SHA-1 initial value */
-    //((uint32_t *)ctx->digest)[0]      = 0x01234567;
-	//((uint32_t *)ctx->digest)[1]      = 0x89ABCDEF;
-	//((uint32_t *)ctx->digest)[2]      = 0xFEDCBA98;
-	//((uint32_t *)ctx->digest)[3]      = 0x76543210;
-	//((uint32_t *)ctx->digest)[4]      = 0xF0E1D2C3;
-    uint8_t init[] = {
-        0x67, 0x45, 0x23, 0x01,
-        0xEF, 0xCD, 0xAB, 0x89,
-        0x98, 0xBA, 0xDC, 0xFE, 
-        0x10, 0x32, 0x54, 0x76, 
-        0xC3, 0xD2, 0xE1, 0xF0, 
-    };
-    memcpy(ctx->digest, init, sizeof(init));
-    icm_descriptor.cfg.reg            = 0x0;
+	((uint32_t *)ctx->digest)[0]      = 0x01234567;
+	((uint32_t *)ctx->digest)[1]      = 0x89ABCDEF;
+	((uint32_t *)ctx->digest)[2]      = 0xFEDCBA98;
+	((uint32_t *)ctx->digest)[3]      = 0x76543210;
+	((uint32_t *)ctx->digest)[4]      = 0xF0E1D2C3;
+	icm_descriptor.cfg.reg            = 0x0;
 	icm_descriptor.cfg.bit.is_end_mon = true;
 
 	return ERR_NONE;
@@ -173,29 +155,17 @@ int32_t _sha_sync_sha256_start(struct _sha_sync_device *const dev)
 	icm_descriptor.cfg.bit.is_end_mon = true;
 	if (dev->ctx->is_variant) {
 		/* SHA-224 initial value */
-		//((uint32_t *)ctx->digest)[0] = 0xD89E05C1;
-		//((uint32_t *)ctx->digest)[1] = 0x07D57C36;
-		//((uint32_t *)ctx->digest)[2] = 0x17DD7030;
-		//((uint32_t *)ctx->digest)[3] = 0x39590EF7;
-		//((uint32_t *)ctx->digest)[4] = 0x310BC0FF;
-		//((uint32_t *)ctx->digest)[5] = 0x11155868;
-		//((uint32_t *)ctx->digest)[6] = 0xA78FF964;
-		//((uint32_t *)ctx->digest)[7] = 0xA44FFABE;
-        uint8_t init[] = {
-            0xC1, 0x05, 0x9E, 0xD8,
-            0x36, 0x7C, 0xD5, 0x07,
-            0x30, 0x70, 0xDD, 0x17, 
-            0xF7, 0x0E, 0x59, 0x39, 
-            0xFF, 0xC0, 0x0B, 0x31, 
-            0x68, 0x58, 0x15, 0x11, 
-            0x64, 0xF9, 0x8F, 0xA7, 
-            0xBE, 0xFA, 0x4F, 0xA4, 
-        };
-	    memcpy(ctx->digest, init, sizeof(init));
+		((uint32_t *)ctx->digest)[0] = 0xD89E05C1;
+		((uint32_t *)ctx->digest)[1] = 0x07D57C36;
+		((uint32_t *)ctx->digest)[2] = 0x17DD7030;
+		((uint32_t *)ctx->digest)[3] = 0x39590EF7;
+		((uint32_t *)ctx->digest)[4] = 0x310BC0FF;
+		((uint32_t *)ctx->digest)[5] = 0x11155868;
+		((uint32_t *)ctx->digest)[6] = 0xA78FF964;
+		((uint32_t *)ctx->digest)[7] = 0xA44FFABE;
 	} else {
 		/* SHA-256 initial value */
-	    /*
-        ((uint32_t *)ctx->digest)[0] = 0x67E6096A;
+		((uint32_t *)ctx->digest)[0] = 0x67E6096A;
 		((uint32_t *)ctx->digest)[1] = 0x85AE67BB;
 		((uint32_t *)ctx->digest)[2] = 0x72F36E3C;
 		((uint32_t *)ctx->digest)[3] = 0x3AF54FA5;
@@ -203,19 +173,7 @@ int32_t _sha_sync_sha256_start(struct _sha_sync_device *const dev)
 		((uint32_t *)ctx->digest)[5] = 0x8C68059B;
 		((uint32_t *)ctx->digest)[6] = 0xABD9831F;
 		((uint32_t *)ctx->digest)[7] = 0x19CDE05B;
-        */
-        uint8_t init[] = {
-            0x6A, 0x09, 0xE6, 0x67,
-            0xBB, 0x67, 0xAE, 0x85,
-            0x3C, 0x6E, 0xF3, 0x72,
-            0xA5, 0x4F, 0xF5, 0x3A,
-            0x51, 0x0E, 0x52, 0x7F,
-            0x9B, 0x05, 0x68, 0x8C,
-            0x1F, 0x83, 0xD9, 0xAB,
-            0x5B, 0xE0, 0xCD, 0x19,
-        };
-	    memcpy(ctx->digest, init, sizeof(init));
-    }
+	}
 
 	return ERR_NONE;
 }

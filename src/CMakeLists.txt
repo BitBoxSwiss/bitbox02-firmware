@@ -137,6 +137,7 @@ set(QTOUCH-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
 set(PLATFORM-BITBOX02-SOURCES
   ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
+  ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_ext.c
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hid.c
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww/hid_hww.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/sh1107.c

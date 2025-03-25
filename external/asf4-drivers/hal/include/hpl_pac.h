@@ -51,17 +51,6 @@ extern "C" {
 int32_t _periph_lock(const void *const module);
 
 /**
- * \brief Enable write protect for the given hardware module
- * Can only be cleared by a hardware reset
- *
- * This function enables write protect for the given hardware module.
- * For an overview of available PAC and hardware modules see datasheet.
- *
- * \param[in] module A hardware module to enable write protect for
- */
-int32_t _periph_lock_hard(const void *const module);
-
-/**
  * \brief Disable write protect for the given hardware module
  *
  * This function disables write protect for the given hardware module.
@@ -81,6 +70,8 @@ int32_t _periph_unlock(const void *const module);
  * \param[out] state The pointer to write protect state for specified module
  */
 int32_t _periph_get_lock_state(const void *const module, bool *const state);
+
+uint32_t _pac_get_peripheral_id(const void *const module);
 
 #ifdef __cplusplus
 }

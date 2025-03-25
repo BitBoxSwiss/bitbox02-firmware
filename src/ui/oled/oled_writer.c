@@ -33,7 +33,7 @@ static inline void _write(enum _interface_t interface, const uint8_t* buf, size_
     // It is safe to cast from const here because "write_block" only reads from buf
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    SPI_0_write_block((void*)buf, buf_len);
+    SPI_OLED_write_block((void*)buf, buf_len);
 #pragma GCC diagnostic pop
     gpio_set_pin_level(PIN_OLED_CS, 1);
 }

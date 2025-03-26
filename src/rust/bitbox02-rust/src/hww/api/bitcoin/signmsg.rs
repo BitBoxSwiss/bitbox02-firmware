@@ -36,7 +36,7 @@ const MAX_MESSAGE_SIZE: usize = 1024;
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
 pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Error> {
     let coin = BtcCoin::try_from(request.coin)?;
-    if coin != BtcCoin::Btc {
+    if !matches!(coin, BtcCoin::Btc | BtcCoin::Tbtc | BtcCoin::Rbtc) {
         return Err(Error::InvalidInput);
     }
     let (keypath, simple_type) = match &request.script_config {
@@ -180,6 +180,52 @@ mod tests {
                 signature: b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00".to_vec(),
             }))
         );
+    }
+
+    #[test]
+    pub fn test_p2wpkh_testnet() {
+        let request = pb::BtcSignMessageRequest {
+            coin: BtcCoin::Tbtc as _,
+            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
+                }),
+                keypath: vec![84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
+            }),
+            msg: MESSAGE.to_vec(),
+            host_nonce_commitment: None,
+        };
+
+        static mut CONFIRM_COUNTER: u32 = 0;
+
+        mock(Data {
+            ui_confirm_create: Some(Box::new(|params| {
+                match unsafe {
+                    CONFIRM_COUNTER += 1;
+                    CONFIRM_COUNTER
+                } {
+                    1 => {
+                        assert_eq!(params.title, "Sign message");
+                        assert_eq!(params.body, "Coin: BTC Testnet");
+                        true
+                    }
+                    2 => {
+                        assert_eq!(params.title, "Address");
+                        assert_eq!(params.body, "tb1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvketqwdg");
+                        true
+                    }
+                    3 => {
+                        assert_eq!(params.title, "Sign message");
+                        assert_eq!(params.body.as_bytes(), MESSAGE);
+                        true
+                    }
+                    _ => panic!("too many user confirmations"),
+                }
+            })),
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert!(block_on(process(&request)).is_ok());
     }
 
     #[test]
@@ -413,6 +459,25 @@ mod tests {
                         config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
                     }),
                     keypath: [0].to_vec(),
+                }),
+                msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
+            })),
+            Err(Error::InvalidInput)
+        );
+        // Invalid keypath (mainnet keypath on testnet)
+        mock(Data {
+            ..Default::default()
+        });
+        mock_unlocked();
+        assert_eq!(
+            block_on(process(&pb::BtcSignMessageRequest {
+                coin: BtcCoin::Tbtc as _,
+                script_config: Some(pb::BtcScriptConfigWithKeypath {
+                    script_config: Some(pb::BtcScriptConfig {
+                        config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+                    }),
+                    keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 }),
                 msg: MESSAGE.to_vec(),
                 host_nonce_commitment: None,

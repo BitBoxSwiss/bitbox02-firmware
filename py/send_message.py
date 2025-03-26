@@ -896,33 +896,59 @@ class SendMessage:
     def _sign_btc_message(self) -> None:
         # pylint: disable=no-member
 
-        keypath = [49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
-        script_config = bitbox02.btc.BTCScriptConfig(
-            simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
-        )
-        address = self._device.btc_address(
-            keypath=keypath, script_config=script_config, display=False
-        )
-
-        print("Address:", address)
-
-        msg = input(r"Message to sign (\n = newline): ")
-        if msg.startswith("0x"):
-            msg_bytes = binascii.unhexlify(msg[2:])
-        else:
-            msg_bytes = msg.replace(r"\n", "\n").encode("utf-8")
-
-        try:
-            _, _, sig65 = self._device.btc_sign_msg(
-                bitbox02.btc.BTC,
-                bitbox02.btc.BTCScriptConfigWithKeypath(
-                    script_config=script_config, keypath=keypath
-                ),
-                msg_bytes,
+        def sign(
+            coin: "bitbox02.btc.BTCCoin.V",
+            keypath: Sequence[int],
+            script_config: bitbox02.btc.BTCScriptConfig,
+        ) -> None:
+            address = self._device.btc_address(
+                coin=coin, keypath=keypath, script_config=script_config, display=False
             )
-            print("Signature:", base64.b64encode(sig65).decode("ascii"))
-        except UserAbortException:
-            print("Aborted by user")
+
+            print("Address:", address)
+
+            msg = input(r"Message to sign (\n = newline): ")
+            if msg.startswith("0x"):
+                msg_bytes = binascii.unhexlify(msg[2:])
+            else:
+                msg_bytes = msg.replace(r"\n", "\n").encode("utf-8")
+
+            try:
+                _, _, sig65 = self._device.btc_sign_msg(
+                    coin,
+                    bitbox02.btc.BTCScriptConfigWithKeypath(
+                        script_config=script_config, keypath=keypath
+                    ),
+                    msg_bytes,
+                )
+                print("Signature:", base64.b64encode(sig65).decode("ascii"))
+            except UserAbortException:
+                print("Aborted by user")
+
+        def sign_mainnet() -> None:
+            keypath = [49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            script_config = bitbox02.btc.BTCScriptConfig(
+                simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+            )
+            sign(bitbox02.btc.BTC, keypath, script_config)
+
+        def sign_testnet() -> None:
+            keypath = [49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0]
+            script_config = bitbox02.btc.BTCScriptConfig(
+                simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+            )
+            sign(bitbox02.btc.TBTC, keypath, script_config)
+
+        choices = (
+            ("Mainnet", sign_mainnet),
+            ("Testnet", sign_testnet),
+        )
+        choice = ask_user(choices)
+        if callable(choice):
+            try:
+                choice()
+            except UserAbortException:
+                eprint("Aborted by user")
 
     def _check_backup(self) -> None:
         print("Your BitBox02 will now perform a backup check")

@@ -40,7 +40,7 @@ pub async fn process(
     if keystore::unlock(&password).is_err() {
         panic!("Unexpected error during restore: unlock failed.");
     }
-    unlock::unlock_bip39().await;
+    unlock::unlock_bip39(unlock::enter_mnemonic_passphrase).await?;
     Ok(Response::Success(pb::Success {}))
 }
 

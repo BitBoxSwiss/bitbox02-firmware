@@ -74,7 +74,11 @@ pub async fn next_request(
 
 /// Process OP_UNLOCK.
 async fn api_unlock() -> Vec<u8> {
-    match crate::workflow::unlock::unlock().await {
+    if !bitbox02::memory::is_initialized() {
+        return [OP_STATUS_FAILURE_UNINITIALIZED].to_vec();
+    }
+    match crate::workflow::unlock::unlock(crate::workflow::unlock::enter_mnemonic_passphrase).await
+    {
         Ok(()) => [OP_STATUS_SUCCESS].to_vec(),
         Err(()) => [OP_STATUS_FAILURE_UNINITIALIZED].to_vec(),
     }

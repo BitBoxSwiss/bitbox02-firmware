@@ -1681,6 +1681,15 @@ class U2FApp:
         self._device.close()
         return 0
 
+def enter_mnemonic_passphrase() -> Optional[str]:
+    try:
+        return input("Enter passphrase: ")
+    except EOFError:
+        # Aborted via Ctrl-D.
+        print("<aborted>")
+        return None
+
+bitbox_config = bitbox_api_protocol.BitBoxConfig(enter_mnemonic_passphrase=enter_mnemonic_passphrase)
 
 def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
     """
@@ -1716,11 +1725,12 @@ def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
             self.client_socket.close()
 
     simulator = Simulator()
-    noise_config = bitbox_api_protocol.BitBoxNoiseConfig()
+    noise_config = xbitbox_api_protocol.BitBoxNoiseConfig()
     bitbox_connection = bitbox02.BitBox02(
         transport=u2fhid.U2FHid(simulator),
         device_info=None,
         noise_config=noise_config,
+        config=bitbox_config,
     )
     try:
         bitbox_connection.check_min_version()
@@ -1799,7 +1809,8 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         hid_device = hid.device()
         hid_device.open_path(bitbox["path"])
         bitbox_connection = bitbox02.BitBox02(
-            transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config
+            transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config,
+            config=bitbox_config,
         )
         try:
             bitbox_connection.check_min_version()

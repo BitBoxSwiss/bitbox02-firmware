@@ -20,34 +20,41 @@ use bitbox02::keystore;
 
 pub use password::CanCancel;
 
+use alloc::string::String;
+
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
 /// false if the user rejected it.
-async fn confirm_mnemonic_passphrase(passphrase: &str) -> Result<(), confirm::UserAbort> {
+pub async fn confirm_mnemonic_passphrase(passphrase: &str) -> Result<(), confirm::UserAbort> {
     // Accept empty passphrase without confirmation.
     if passphrase.is_empty() {
+        confirm::confirm(&confirm::Params {
+            title: "",
+            body: "Proceed with\nempty passphrase?",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
         return Ok(());
     }
 
-    let params = confirm::Params {
+    confirm::confirm(&confirm::Params {
         title: "",
         body: "You will be asked to\nvisually confirm your\npassphrase now.",
         accept_only: true,
         accept_is_nextarrow: true,
         ..Default::default()
-    };
+    })
+    .await?;
 
-    confirm::confirm(&params).await?;
-
-    let params = confirm::Params {
+    confirm::confirm(&confirm::Params {
         title: "Confirm",
         body: passphrase,
         font: bitbox02::ui::Font::Password11X12,
         scrollable: true,
         longtouch: true,
         ..Default::default()
-    };
-
-    confirm::confirm(&params).await
+    })
+    .await
 }
 
 pub enum UnlockError {
@@ -93,9 +100,21 @@ pub async fn unlock_keystore(
     }
 }
 
+/// Prompts the user to enter the optional passphrase on the device and returns the entered
+/// passphrase.
+pub async fn enter_mnemonic_passphrase() -> Result<Option<zeroize::Zeroizing<String>>, ()> {
+    Ok(Some(
+        password::enter("Optional passphrase", true, password::CanCancel::No)
+            .await
+            .expect("not cancelable"),
+    ))
+}
+
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
-pub async fn unlock_bip39() {
+pub async fn unlock_bip39<E>(
+    get_mnemonic_passphrase: impl AsyncFn() -> Result<Option<zeroize::Zeroizing<String>>, E>,
+) -> Result<(), E> {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = zeroize::Zeroizing::new("".into());
 
@@ -103,13 +122,12 @@ pub async fn unlock_bip39() {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            mnemonic_passphrase =
-                password::enter("Optional passphrase", true, password::CanCancel::No)
-                    .await
-                    .expect("not cancelable");
+            if let Some(passphrase) = get_mnemonic_passphrase().await? {
+                mnemonic_passphrase = passphrase;
 
-            if let Ok(()) = confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
-                break;
+                if let Ok(()) = confirm_mnemonic_passphrase(mnemonic_passphrase.as_str()).await {
+                    break;
+                }
             }
 
             status("Please try again", false).await;
@@ -120,19 +138,19 @@ pub async fn unlock_bip39() {
     if result.is_err() {
         abort("bip39 unlock failed");
     }
+    Ok(())
 }
 
 /// Invokes the unlock workflow. This function does not finish until the keystore is unlocked, or
 /// the device is reset due to too many failed unlock attempts.
 ///
-/// If the optional passphrase feature is enabled, the passphrase will also be entered by the
-/// user. Otherwise, the empty "" passphrase is used by default.
+/// If the optional passphrase feature is enabled, the passphrase will be fetched using the
+/// callback. Otherwise, the empty "" passphrase is used by default.
 ///
 /// Returns Ok on success, Err if the device cannot be unlocked because it was not initialized.
-pub async fn unlock() -> Result<(), ()> {
-    if !bitbox02::memory::is_initialized() {
-        return Err(());
-    }
+pub async fn unlock<E>(
+    get_mnemonic_passphrase: impl AsyncFn() -> Result<Option<zeroize::Zeroizing<String>>, E>,
+) -> Result<(), E> {
     if !bitbox02::keystore::is_locked() {
         return Ok(());
     }
@@ -143,6 +161,5 @@ pub async fn unlock() -> Result<(), ()> {
         .is_err()
     {}
 
-    unlock_bip39().await;
-    Ok(())
+    unlock_bip39(get_mnemonic_passphrase).await
 }

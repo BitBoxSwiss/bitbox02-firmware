@@ -16,7 +16,7 @@
 
 pub use super::types::{
     AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
-    TrinaryChoiceCb, TrinaryInputStringParams,
+    TrinaryChoiceCb, TrinaryInputStringParams, INPUT_STRING_MAX_SIZE,
 };
 
 use core::marker::PhantomData;

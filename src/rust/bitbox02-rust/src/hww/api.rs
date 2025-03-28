@@ -29,6 +29,7 @@ mod backup;
 mod bip85;
 mod device_info;
 mod electrum;
+mod keystore;
 mod reset;
 mod restore;
 mod rootfingerprint;
@@ -162,6 +163,12 @@ fn can_call(request: &Request) -> bool {
         Request::Reset(_) => matches!(state, State::InitializedAndUnlocked),
         Request::Cardano(_) => matches!(state, State::InitializedAndUnlocked),
         Request::Bip85(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::Unlock(_) => matches!(
+            state,
+            State::InitializedAndLocked | State::InitializedAndUnlocked
+        ),
+        // Streamed asynchronously using the `next_request()` primitive.
+        Request::UnlockHostInfo(_) => false,
     }
 }
 
@@ -211,6 +218,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
         Request::Bip85(ref request) => bip85::process(request).await,
+        Request::Unlock(ref request) => keystore::process_unlock(request).await,
         _ => Err(Error::InvalidInput),
     }
 }

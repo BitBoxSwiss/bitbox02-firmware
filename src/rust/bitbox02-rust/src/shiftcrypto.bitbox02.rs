@@ -1730,6 +1730,68 @@ pub mod bip85_response {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnlockRequest {
+    /// If true, the device will be allowed to ask the user to enter the passphrase on the host.  If
+    /// the user accepts, the host will receive a `UnlockRequestHostInfoResponse` with type
+    /// `PASSPHRASE`.
+    #[prost(bool, tag = "1")]
+    pub supports_host_passphrase: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnlockRequestHostInfoResponse {
+    #[prost(enumeration = "unlock_request_host_info_response::InfoType", tag = "1")]
+    pub r#type: i32,
+}
+/// Nested message and enum types in `UnlockRequestHostInfoResponse`.
+pub mod unlock_request_host_info_response {
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum InfoType {
+        Unknown = 0,
+        /// Respond with `UnlockHostInfoRequest` containing the passphrase.
+        Passphrase = 1,
+    }
+    impl InfoType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                InfoType::Unknown => "UNKNOWN",
+                InfoType::Passphrase => "PASSPHRASE",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNKNOWN" => Some(Self::Unknown),
+                "PASSPHRASE" => Some(Self::Passphrase),
+                _ => None,
+            }
+        }
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnlockHostInfoRequest {
+    /// Omit if type==PASSPHRASE and entering the passhrase is cancelled on the host.
+    #[prost(string, optional, tag = "1")]
+    pub passphrase: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ShowMnemonicRequest {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -1829,7 +1891,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -1892,6 +1954,10 @@ pub mod request {
         Cardano(super::CardanoRequest),
         #[prost(message, tag = "28")]
         Bip85(super::Bip85Request),
+        #[prost(message, tag = "29")]
+        Unlock(super::UnlockRequest),
+        #[prost(message, tag = "30")]
+        UnlockHostInfo(super::UnlockHostInfoRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -1899,7 +1965,7 @@ pub mod request {
 pub struct Response {
     #[prost(
         oneof = "response::Response",
-        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17"
     )]
     pub response: ::core::option::Option<response::Response>,
 }
@@ -1939,5 +2005,7 @@ pub mod response {
         Cardano(super::CardanoResponse),
         #[prost(message, tag = "16")]
         Bip85(super::Bip85Response),
+        #[prost(message, tag = "17")]
+        UnlockHostInfo(super::UnlockRequestHostInfoResponse),
     }
 }

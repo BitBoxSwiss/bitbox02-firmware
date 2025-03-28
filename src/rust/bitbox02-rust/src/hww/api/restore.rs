@@ -83,7 +83,7 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
 
-    unlock::unlock_bip39().await;
+    unlock::unlock_bip39(unlock::enter_mnemonic_passphrase_on_device).await?;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -152,6 +152,6 @@ pub async fn from_mnemonic(
         abort("restore_from_mnemonic: unlock failed");
     };
 
-    unlock::unlock_bip39().await;
+    unlock::unlock_bip39(unlock::enter_mnemonic_passphrase_on_device).await?;
     Ok(Response::Success(pb::Success {}))
 }

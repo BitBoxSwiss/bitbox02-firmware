@@ -110,9 +110,9 @@ static void _spi_init(void)
     hri_gclk_write_PCHCTRL_reg(
         GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBBMASK_SERCOM3_bit(MCLK);
-    SPI_0_init();
+    SPI_OLED_init();
     _spi_set_pins();
-    SPI_0_enable();
+    SPI_OLED_enable();
 }
 
 /**
@@ -198,6 +198,7 @@ static void _mci_init(void)
         GCLK, SDHC0_GCLK_ID, CONF_GCLK_SDHC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(
         GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    mci_sync_init(&MCI_0, SDHC0);
     _mci_set_pins();
 }
 
@@ -338,7 +339,7 @@ void system_close_interfaces(void)
     i2c_m_sync_deinit(&I2C_0);
     // OLED interface bus
     // Display remains on last screen
-    SPI_0_disable();
+    SPI_OLED_disable();
     // Flash
     flash_deinit(&FLASH_0);
     // USB
@@ -355,7 +356,7 @@ void bootloader_close_interfaces(void)
     }
     // OLED interface bus
     // Display remains on last screen
-    SPI_0_disable();
+    SPI_OLED_disable();
     // Flash
     flash_deinit(&FLASH_0);
     // USB

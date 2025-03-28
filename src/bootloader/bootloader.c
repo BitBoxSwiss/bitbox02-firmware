@@ -15,6 +15,7 @@
 #include "bootloader.h"
 #include "bootloader_version.h"
 #include "mpu_regions.h"
+#include "pac_ext.h"
 
 #include <driver_init.h>
 #include <stdint.h>
@@ -409,11 +410,14 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
     }
 
     // Erase is handled inside of flash_write
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
     if (flash_write(
             &FLASH_0, FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN), buf, FIRMWARE_CHUNK_LEN) !=
         ERR_NONE) {
         return _report_status(OP_STATUS_ERR_WRITE, output);
     }
+#pragma GCC diagnostic pop
 
     if (!MEMEQ(
             (const void*)(FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN)),
@@ -604,9 +608,12 @@ static uint8_t _write_chunk(uint32_t address, const uint8_t* data)
         return OP_STATUS_ERR_UNLOCK;
     }
     // Erase is handled inside of flash_write
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
     if (flash_write(&FLASH_0, address, data, FLASH_BOOTDATA_LEN) != ERR_NONE) {
         return OP_STATUS_ERR_WRITE;
     }
+#pragma GCC diagnostic pop
     if (flash_lock(&FLASH_0, address & ~(lock_size - 1), FLASH_REGION_PAGE_NUM) !=
         FLASH_REGION_PAGE_NUM) {
         return OP_STATUS_ERR_LOCK;

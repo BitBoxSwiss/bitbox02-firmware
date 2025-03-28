@@ -36,17 +36,17 @@
 #include <utils_assert.h>
 #include <hpl_pac.h>
 
-static uint32_t _pac_get_peripheral_id(const void *const module)
+uint32_t _pac_get_peripheral_id(const void *const module)
 {
-    uint32_t peripheral = 10;
+	uint32_t peripheral = 10;
 
-    if (((uint32_t)module & (uint32_t)HPB1_ADDR) == (uint32_t)HPB1_ADDR) {
-        peripheral = 13;
-    }
+	if (((uint32_t)module & (uint32_t)HPB1_ADDR) == (uint32_t)HPB1_ADDR) {
+		peripheral = 13;
+	}
 
-    peripheral = (((uint32_t)module & 0x0F000000) >> 24) * 32 + (((uint32_t)module & 0x000fff00) >> peripheral);
+	peripheral = (((uint32_t)module & 0x0F000000) >> 24) * 32 + (((uint32_t)module & 0x000fff00) >> peripheral);
 
-    return peripheral;
+	return peripheral;
 }
 
 /**
@@ -54,25 +54,25 @@ static uint32_t _pac_get_peripheral_id(const void *const module)
  */
 int32_t _periph_lock(const void *const module)
 {
-    ASSERT((((uint32_t)module) > (uint32_t)HPB0_ADDR));
+	ASSERT((((uint32_t)module) > (uint32_t)HPB0_ADDR));
 
-    uint32_t peripheral;
-    int32_t  timeout = 1000;
-    bool     stat;
+	uint32_t peripheral;
+	int32_t  timeout = 1000;
+	bool     stat;
 
-    peripheral = _pac_get_peripheral_id(module);
+	peripheral = _pac_get_peripheral_id(module);
 
-    hri_pac_write_WRCTRL_reg(PAC, PAC_WRCTRL_PERID(peripheral) | PAC_WRCTRL_KEY_SET);
+	hri_pac_write_WRCTRL_reg(PAC, PAC_WRCTRL_PERID(peripheral) | PAC_WRCTRL_KEY_SET);
 
-    do {
-        _periph_get_lock_state(module, &stat);
-    } while (!stat && timeout--);
+	do {
+		_periph_get_lock_state(module, &stat);
+	} while (!stat && timeout--);
 
-    if (timeout < 0) {
-        return ERR_TIMEOUT;
-    }
+	if (timeout < 0) {
+		return ERR_TIMEOUT;
+	}
 
-    return ERR_NONE;
+	return ERR_NONE;
 }
 
 /**
@@ -80,52 +80,25 @@ int32_t _periph_lock(const void *const module)
  */
 int32_t _periph_unlock(const void *const module)
 {
-    ASSERT((((uint32_t)module) > (uint32_t)HPB0_ADDR));
+	ASSERT((((uint32_t)module) > (uint32_t)HPB0_ADDR));
 
-    uint32_t peripheral;
-    int32_t  timeout = 1000;
-    bool     stat;
+	uint32_t peripheral;
+	int32_t  timeout = 1000;
+	bool     stat;
 
-    peripheral = _pac_get_peripheral_id(module);
+	peripheral = _pac_get_peripheral_id(module);
 
-    hri_pac_write_WRCTRL_reg(PAC, PAC_WRCTRL_PERID(peripheral) | PAC_WRCTRL_KEY_CLR);
+	hri_pac_write_WRCTRL_reg(PAC, PAC_WRCTRL_PERID(peripheral) | PAC_WRCTRL_KEY_CLR);
 
-    do {
-        _periph_get_lock_state(module, &stat);
-    } while (stat && timeout--);
+	do {
+		_periph_get_lock_state(module, &stat);
+	} while (stat && timeout--);
 
-    if (timeout < 0) {
-        return ERR_TIMEOUT;
-    }
+	if (timeout < 0) {
+		return ERR_TIMEOUT;
+	}
 
-    return ERR_NONE;
-}
-
-/**
- * \brief Enable write protect for the given hardware module
- * Can only be cleared by a hardware reset
- */
-int32_t _periph_lock_hard(const void *const module)
-{
-    ASSERT((((uint32_t)module) > (uint32_t)HPB0_ADDR));
-
-    uint32_t peripheral;
-    int32_t  timeout = 1000;
-    bool     stat;
-
-    peripheral = _pac_get_peripheral_id(module);
-
-    hri_pac_write_WRCTRL_reg(PAC, PAC_WRCTRL_PERID(peripheral) | PAC_WRCTRL_KEY_SETLCK);
-
-    do {
-        _periph_get_lock_state(module, &stat);
-    } while (!stat && timeout--);
-
-    if (timeout < 0) {
-        return ERR_TIMEOUT;
-    }
-
-    return ERR_NONE;
+	return ERR_NONE;
 }
 
 /**
@@ -133,21 +106,21 @@ int32_t _periph_lock_hard(const void *const module)
  */
 int32_t _periph_get_lock_state(const void *const module, bool *const state)
 {
-    ASSERT((((uint32_t)module) > (uint32_t)HPB0_ADDR));
+	ASSERT((((uint32_t)module) > (uint32_t)HPB0_ADDR));
 
-    uint32_t peripheral;
+	uint32_t peripheral;
 
-    peripheral = _pac_get_peripheral_id(module) & 0x1F;
+	peripheral = _pac_get_peripheral_id(module) & 0x1F;
 
-    if (((uint32_t)module) < (uint32_t)HPB1_ADDR) {
-        *state = hri_pac_get_STATUSA_reg(PAC, 1 << peripheral);
-    } else if (((uint32_t)module) < (uint32_t)HPB2_ADDR) {
-        *state = hri_pac_get_STATUSB_reg(PAC, 1 << peripheral);
-    } else if (((uint32_t)module) < (uint32_t)HPB3_ADDR) {
-        *state = hri_pac_get_STATUSC_reg(PAC, 1 << peripheral);
-    } else {
-        *state = hri_pac_get_STATUSD_reg(PAC, 1 << peripheral);
-    }
+	if (((uint32_t)module) < (uint32_t)HPB1_ADDR) {
+		*state = hri_pac_get_STATUSA_reg(PAC, 1 << peripheral);
+	} else if (((uint32_t)module) < (uint32_t)HPB2_ADDR) {
+		*state = hri_pac_get_STATUSB_reg(PAC, 1 << peripheral);
+	} else if (((uint32_t)module) < (uint32_t)HPB3_ADDR) {
+		*state = hri_pac_get_STATUSC_reg(PAC, 1 << peripheral);
+	} else {
+		*state = hri_pac_get_STATUSD_reg(PAC, 1 << peripheral);
+	}
 
-    return ERR_NONE;
+	return ERR_NONE;
 }

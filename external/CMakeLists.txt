@@ -113,8 +113,6 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hal/src/hal_io.c
     asf4-drivers/hal/src/hal_sha_sync.c
     asf4-drivers/hpl/systick/hpl_systick.c
-    asf4-drivers/hal/src/hal_usart_async.c
-    asf4-drivers/hal/utils/src/utils_ringbuffer.c
     asf4-drivers/hpl/gclk/hpl_gclk.c
     asf4-drivers/hpl/oscctrl/hpl_oscctrl.c
     asf4-drivers/hpl/mclk/hpl_mclk.c
@@ -132,6 +130,8 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/usb/usb_protocol.c
     asf4-drivers/usb/device/usbdc.c
     )
+
+    target_compile_options(asf4-drivers-min PRIVATE -Wno-cast-qual -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-bad-function-cast -Wno-strict-prototypes -Wno-old-style-definition)
 
   target_link_libraries(asf4-drivers-min samd51a-ds)
   set_property(TARGET asf4-drivers-min PROPERTY INTERFACE_LINK_LIBRARIES "")
@@ -170,6 +170,9 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/sd_mmc/sd_mmc.c
     asf4-drivers/diskio/sdmmc_diskio.c
   )
+
+  target_compile_options(asf4-drivers PRIVATE -Wno-cast-qual -Wno-unused-parameter -Wno-switch-default -Wno-bad-function-cast -Wno-implicit-fallthrough)
+
   target_link_libraries(asf4-drivers
     PRIVATE
       samd51a-ds

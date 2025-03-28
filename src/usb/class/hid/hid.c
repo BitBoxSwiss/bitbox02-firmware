@@ -156,7 +156,7 @@ static int32_t _ctrl(struct usbdf_driver* drv, enum usbdf_control ctrl, void* pa
 static int32_t _get_descriptor(struct usbdf_driver* drv, uint8_t ep, struct usb_req* req)
 {
     struct hid_func_data* func_data = (struct hid_func_data*)(drv->func_data);
-    switch (req->V.wValue >> 8) {
+    switch (req->wValue >> 8) {
     case USB_DT_HID:
         return usbdc_xfer(ep, func_data->hid_desc, func_data->hid_desc[0], false);
     case USB_DT_HID_REPORT:
@@ -181,16 +181,16 @@ int32_t hid_req(
 {
     struct hid_func_data* func_data = (struct hid_func_data*)(drv->func_data);
     uint8_t* ctrl_buf = usbdc_get_ctrl_buffer();
-    uint16_t len = req->L.wLength;
+    uint16_t len = req->wLength;
 
     if ((0x81 == req->bmRequestType) && (0x06 == req->bRequest) &&
-        (req->I.wIndex == func_data->func_iface)) {
+        (req->wIndex == func_data->func_iface)) {
         return _get_descriptor(drv, ep, req);
     }
     if (0x01 != ((req->bmRequestType >> 5) & 0x03)) { // class request
         return ERR_NOT_FOUND;
     }
-    if (req->I.wIndex == func_data->func_iface) {
+    if (req->wIndex == func_data->func_iface) {
         if (req->bmRequestType & USB_EP_DIR_IN) {
             return ERR_INVALID_ARG;
         }
@@ -198,7 +198,7 @@ int32_t hid_req(
         case 0x03: /* Get Protocol */
             return usbdc_xfer(ep, &func_data->protocol, 1, 0);
         case 0x0B: /* Set Protocol */
-            func_data->protocol = req->V.wValue;
+            func_data->protocol = req->wValue;
             return usbdc_xfer(ep, NULL, 0, 0);
         case USB_REQ_HID_SET_REPORT:
             if (USB_SETUP_STAGE == stage) {
@@ -338,10 +338,10 @@ int32_t hid_register_callback(
     int32_t err = ERR_NONE;
     switch (trans_type) {
     case HID_CB_READ:
-        err = usb_d_ep_register_callback(func_data->func_ep_out, USB_D_EP_CB_XFER, func);
+        usb_d_ep_register_callback(func_data->func_ep_out, USB_D_EP_CB_XFER, func);
         break;
     case HID_CB_WRITE:
-        err = usb_d_ep_register_callback(func_data->func_ep_in, USB_D_EP_CB_XFER, func);
+        usb_d_ep_register_callback(func_data->func_ep_in, USB_D_EP_CB_XFER, func);
         break;
     case HID_CB_SET_REPORT:
         func_data->hid_set_report = (hid_set_report_t)func;

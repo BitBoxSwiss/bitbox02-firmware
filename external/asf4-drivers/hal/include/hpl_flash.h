@@ -3,39 +3,29 @@
  *
  * \brief FLASH related functionality declaration.
  *
- * Copyright (C) 2015 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2015-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -125,7 +115,7 @@ void _flash_read(struct _flash_device *const device, const uint32_t src_addr, ui
  *                           write is stored
  * \param[in]  length        Number of bytes to write
  */
-void _flash_write(struct _flash_device *const device, const uint32_t dst_addr, const uint8_t *buffer, uint32_t length);
+void _flash_write(struct _flash_device *const device, const uint32_t dst_addr, uint8_t *buffer, uint32_t length);
 
 /**
  * \brief Appends a number of bytes in the internal Flash.
@@ -219,6 +209,53 @@ void _flash_set_wait_state(struct _flash_device *const device, uint8_t state);
  */
 void _flash_set_irq_state(struct _flash_device *const device, const enum _flash_cb_type type, const bool state);
 
+/*
+ * Below RWW flash APIs are only available for device which has RWWEE
+ * flash array, such as SAM C20/C21/D21/L21/L22/R30/DA1/HA1 etc.
+ */
+/**
+ * \brief Get the RWWEE flash page size.
+ *
+ * \param[in] device         The pointer to FLASH device instance
+ *
+ * \return The flash page size
+ */
+uint32_t _rww_flash_get_page_size(struct _flash_device *const device);
+
+/**
+ * \brief Get the total page numbers of RWWEE flash.
+ *
+ * \param[in] device         The pointer to FLASH device instance
+ *
+ * \return The flash total page numbers
+ */
+uint32_t _rww_flash_get_total_pages(struct _flash_device *const device);
+
+/**
+ * \brief Reads a number of bytes in the internal RWWEE Flash.
+ *
+ * \param[in] device         The pointer to FLASH device instance
+ * \param[in]  src_addr      Source bytes address to read from flash
+ * \param[out] buffer        Pointer to a buffer where the content
+ *                           of the read page will be stored
+ * \param[in]  length        Number of bytes to read
+ *
+ * \return Read status, ERR_NONE for successful read.
+ */
+int32_t _rww_flash_read(struct _flash_device *const device, const uint32_t src_addr, uint8_t *buffer, uint32_t length);
+
+/**
+ * \brief Writes a number of bytes in the internal RWWEE Flash.
+ *
+ * \param[in] device         The pointer to FLASH device instance
+ * \param[in]  dst_addr      Destination bytes address to write into flash
+ * \param[in]  buffer        Pointer to buffer where the data to
+ *                           write is stored
+ * \param[in]  length        Number of bytes to write
+ *
+ * \return Write status, ERR_NONE for successful write.
+ */
+int32_t _rww_flash_write(struct _flash_device *const device, const uint32_t dst_addr, uint8_t *buffer, uint32_t length);
 #ifdef __cplusplus
 }
 #endif

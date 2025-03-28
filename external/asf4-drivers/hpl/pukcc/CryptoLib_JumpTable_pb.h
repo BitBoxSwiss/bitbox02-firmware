@@ -37,8 +37,9 @@
 #ifndef _CRYPTOLIB_JUMPTABLE_PB_INCLUDED_
 #define _CRYPTOLIB_JUMPTABLE_PB_INCLUDED_
 
+typedef struct _PUKCL_param *PPUKCL_PARAM;
 typedef void (*PPUKCL_FUNC)(PPUKCL_PARAM);
-// JumpTable address + 1 as it is thumb code
+/* JumpTable address + 1 as it is thumb code */
 #define __vCPKCLCsJumpTableStart 0x02000001
 #define __vPUKCLCsGF2NEcRandomiseCoordinate ((PPUKCL_FUNC)(__vCPKCLCsJumpTableStart + 0x4))
 #define __vPUKCLCsRedMod ((PPUKCL_FUNC)(__vCPKCLCsJumpTableStart + 0x8))

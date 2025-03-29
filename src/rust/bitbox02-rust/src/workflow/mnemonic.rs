@@ -272,8 +272,7 @@ async fn get_12th_18th_word(
             trinary_input_string::CanCancel::Yes,
             "",
         )
-        .await
-        .map(|s| s.as_string())?;
+        .await?;
 
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
@@ -344,7 +343,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
                     preset,
                 )
                 .await
-                .map(|s| s.as_string())
+                .into()
             };
 
         match user_entry {

@@ -16,10 +16,10 @@ pub use super::cancel::{cancel, set_result, Error};
 pub use bitbox02::ui::TrinaryInputStringParams as Params;
 
 use crate::bb02_async::option;
-use bitbox02::input::SafeInputString;
 use core::cell::RefCell;
 
 use alloc::boxed::Box;
+use alloc::string::String;
 
 #[derive(Copy, Clone)]
 pub enum CanCancel {
@@ -35,7 +35,7 @@ pub async fn enter(
     params: &Params<'_>,
     can_cancel: CanCancel,
     preset: &str,
-) -> Result<SafeInputString, Error> {
+) -> Result<zeroize::Zeroizing<String>, Error> {
     let result = RefCell::new(None);
     let mut component = bitbox02::ui::trinary_input_string_create(
         params,

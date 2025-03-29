@@ -19,7 +19,6 @@ use alloc::vec::Vec;
 
 use core::convert::TryInto;
 
-use crate::input::SafeInputString;
 use bitbox02_sys::keystore_error_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
@@ -62,12 +61,12 @@ impl core::convert::From<keystore_error_t> for Error {
     }
 }
 
-pub fn unlock(password: &SafeInputString) -> Result<(), Error> {
+pub fn unlock(password: &str) -> Result<(), Error> {
     let mut remaining_attempts: u8 = 0;
     let mut securechip_result: i32 = 0;
     match unsafe {
         bitbox02_sys::keystore_unlock(
-            password.as_cstr(),
+            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
             &mut remaining_attempts,
             &mut securechip_result,
         )
@@ -85,18 +84,24 @@ pub fn lock() {
     unsafe { bitbox02_sys::keystore_lock() }
 }
 
-pub fn unlock_bip39(mnemonic_passphrase: &SafeInputString) -> Result<(), Error> {
-    if unsafe { bitbox02_sys::keystore_unlock_bip39(mnemonic_passphrase.as_cstr()) } {
+pub fn unlock_bip39(mnemonic_passphrase: &str) -> Result<(), Error> {
+    if unsafe {
+        bitbox02_sys::keystore_unlock_bip39(
+            crate::util::str_to_cstr_vec(mnemonic_passphrase)
+                .unwrap()
+                .as_ptr(),
+        )
+    } {
         Ok(())
     } else {
         Err(Error::CannotUnlockBIP39)
     }
 }
 
-pub fn create_and_store_seed(password: &SafeInputString, host_entropy: &[u8]) -> Result<(), Error> {
+pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::keystore_create_and_store_seed(
-            password.as_cstr(),
+            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
             host_entropy.as_ptr(),
             host_entropy.len() as _,
         )
@@ -304,9 +309,13 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
     }
 }
 
-pub fn encrypt_and_store_seed(seed: &[u8], password: &SafeInputString) -> Result<(), Error> {
+pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
     match unsafe {
-        bitbox02_sys::keystore_encrypt_and_store_seed(seed.as_ptr(), seed.len(), password.as_cstr())
+        bitbox02_sys::keystore_encrypt_and_store_seed(
+            seed.as_ptr(),
+            seed.len(),
+            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
+        )
     } {
         keystore_error_t::KEYSTORE_OK => Ok(()),
         err => Err(err.into()),

@@ -2,6 +2,8 @@ use core::fmt;
 use core::ops;
 use gimli::{AArch64, Register};
 
+use super::maybe_cfi;
+
 // Match DWARF_FRAME_REGISTERS in libgcc
 pub const MAX_REG_RULES: usize = 97;
 
@@ -61,13 +63,16 @@ macro_rules! save {
     (gp$(, $fp:ident)?) => {
         // No need to save caller-saved registers here.
         core::arch::naked_asm!(
-            "
-            stp x29, x30, [sp, -16]!
+            maybe_cfi!(".cfi_startproc"),
+            "stp x29, x30, [sp, -16]!",
+            maybe_cfi!("
             .cfi_def_cfa_offset 16
             .cfi_offset x29, -16
             .cfi_offset x30, -8
-            sub sp, sp, 512
-            .cfi_def_cfa_offset 528
+            "),
+            "sub sp, sp, 512",
+            maybe_cfi!(".cfi_def_cfa_offset 528"),
+            "
             mov x8, x0
             mov x0, sp
             ",
@@ -85,13 +90,16 @@ macro_rules! save {
             blr x8
 
             add sp, sp, 512
-            .cfi_def_cfa_offset 16
-            ldp x29, x30, [sp], 16
+            ",
+            maybe_cfi!(".cfi_def_cfa_offset 16"),
+            "ldp x29, x30, [sp], 16",
+            maybe_cfi!("
             .cfi_def_cfa_offset 0
             .cfi_restore x29
             .cfi_restore x30
-            ret
-            ",
+            "),
+            "ret",
+            maybe_cfi!(".cfi_endproc"),
         );
     };
     (maybesavefp(fp)) => {

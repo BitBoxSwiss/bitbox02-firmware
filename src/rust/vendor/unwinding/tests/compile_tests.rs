@@ -8,6 +8,7 @@ fn main() {
         "throw_and_catch",
         "catch_std_exception",
         "std_catch_exception",
+        "panic_abort_no_debuginfo",
     ];
 
     for test in tests {

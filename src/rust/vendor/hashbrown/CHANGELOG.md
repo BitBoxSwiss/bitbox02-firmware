@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [v0.15.0] - 2024-10-01
+## [v0.15.2] - 2024-11-14
+
+### Added
+
+- Marked `const fn` constructors as `rustc_const_stable_indirect` when built as
+  part of the standard library. (#586)
+
+## [v0.15.1] - 2024-11-03
+
+This release removes the `borsh` feature introduced in 0.15.0 because it was
+found to be incorrectly implemented. Users should use the `hashbrown` feature of
+the `borsh` crate instead which provides the same trait implementations.
+
+## ~~[v0.15.0] - 2024-10-01~~
+
+This release was _yanked_ due to a broken implementation of the `borsh` feature.
 
 This update contains breaking changes that remove the `raw` API with the hope of
 centralising on the `HashTable` API in the future. You can follow the discussion
@@ -523,7 +538,9 @@ This release was _yanked_ due to a breaking change for users of `no-default-feat
 
 - Initial release
 
-[Unreleased]: https://github.com/rust-lang/hashbrown/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/rust-lang/hashbrown/compare/v0.15.2...HEAD
+[v0.15.2]: https://github.com/rust-lang/hashbrown/compare/v0.15.1...v0.15.2
+[v0.15.1]: https://github.com/rust-lang/hashbrown/compare/v0.15.0...v0.15.1
 [v0.15.0]: https://github.com/rust-lang/hashbrown/compare/v0.14.5...v0.15.0
 [v0.14.5]: https://github.com/rust-lang/hashbrown/compare/v0.14.4...v0.14.5
 [v0.14.4]: https://github.com/rust-lang/hashbrown/compare/v0.14.3...v0.14.4

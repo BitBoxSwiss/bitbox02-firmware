@@ -99,20 +99,15 @@ pub type PersonalityRoutine = unsafe extern "C" fn(
 macro_rules! binding {
     () => {};
     (unsafe extern $abi: literal fn $name: ident ($($arg: ident : $arg_ty: ty),*$(,)?) $(-> $ret: ty)?; $($rest: tt)*) => {
-        extern $abi {
-            pub fn $name($($arg: $arg_ty),*) $(-> $ret)?;
+        unsafe extern $abi {
+            pub unsafe fn $name($($arg: $arg_ty),*) $(-> $ret)?;
         }
         binding!($($rest)*);
     };
 
     (extern $abi: literal fn $name: ident ($($arg: ident : $arg_ty: ty),*$(,)?) $(-> $ret: ty)?; $($rest: tt)*) => {
-        #[allow(non_snake_case)]
-        #[inline]
-        pub fn $name($($arg: $arg_ty),*) $(-> $ret)? {
-            extern $abi {
-                fn $name($($arg: $arg_ty),*) $(-> $ret)?;
-            }
-            unsafe { $name($($arg),*) }
+        unsafe extern $abi {
+            pub safe fn $name($($arg: $arg_ty),*) $(-> $ret)?;
         }
         binding!($($rest)*);
     };

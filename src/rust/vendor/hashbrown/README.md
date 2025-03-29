@@ -40,7 +40,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-hashbrown = "0.14"
+hashbrown = "0.15"
 ```
 
 Then:
@@ -56,7 +56,6 @@ This crate has the following Cargo features:
 
 - `nightly`: Enables nightly-only features including: `#[may_dangle]`.
 - `serde`: Enables serde serialization support.
-- `borsh`: Enables borsh serialization support.
 - `rayon`: Enables rayon parallel iterator support.
 - `equivalent`: Allows comparisons to be customized with the `Equivalent` trait. (enabled by default)
 - `raw-entry`: Enables access to the deprecated `RawEntry` API.

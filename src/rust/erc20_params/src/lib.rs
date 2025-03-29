@@ -14,7 +14,7 @@
 
 #![no_std]
 
-#[repr(packed)]
+#[repr(Rust, packed)]
 struct P {
     // Null-terminated strings, saving a few bytes of binary space per token stored versus using
     // `&str`, which also stores the size of the string. We could further optimize for space by

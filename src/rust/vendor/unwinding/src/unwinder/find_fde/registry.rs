@@ -131,7 +131,7 @@ impl super::FDEFinder for Registry {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __register_frame_info_bases(
     begin: *const c_void,
     ob: *mut Object,
@@ -156,12 +156,12 @@ unsafe extern "C" fn __register_frame_info_bases(
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __register_frame_info(begin: *const c_void, ob: *mut Object) {
     unsafe { __register_frame_info_bases(begin, ob, core::ptr::null_mut(), core::ptr::null_mut()) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __register_frame(begin: *const c_void) {
     if begin.is_null() {
         return;
@@ -171,7 +171,7 @@ unsafe extern "C" fn __register_frame(begin: *const c_void) {
     unsafe { __register_frame_info(begin, storage) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __register_frame_info_table_bases(
     begin: *const c_void,
     ob: *mut Object,
@@ -192,14 +192,14 @@ unsafe extern "C" fn __register_frame_info_table_bases(
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __register_frame_info_table(begin: *const c_void, ob: *mut Object) {
     unsafe {
         __register_frame_info_table_bases(begin, ob, core::ptr::null_mut(), core::ptr::null_mut())
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __register_frame_table(begin: *const c_void) {
     if begin.is_null() {
         return;
@@ -209,7 +209,7 @@ unsafe extern "C" fn __register_frame_table(begin: *const c_void) {
     unsafe { __register_frame_info_table(begin, storage) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn __deregister_frame_info_bases(begin: *const c_void) -> *mut Object {
     if begin.is_null() {
         return core::ptr::null_mut();
@@ -237,12 +237,12 @@ extern "C" fn __deregister_frame_info_bases(begin: *const c_void) -> *mut Object
     core::ptr::null_mut()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn __deregister_frame_info(begin: *const c_void) -> *mut Object {
     __deregister_frame_info_bases(begin)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 unsafe extern "C" fn __deregister_frame(begin: *const c_void) {
     if begin.is_null() {
         return;

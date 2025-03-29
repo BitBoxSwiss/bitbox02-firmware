@@ -11,15 +11,16 @@
 
 [package]
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.65.0"
 name = "hashbrown"
-version = "0.15.0"
+version = "0.15.2"
 authors = ["Amanieu d'Antras <amanieu@gmail.com>"]
 build = false
 exclude = [
     ".github",
     "/ci/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -95,12 +96,6 @@ features = ["alloc"]
 optional = true
 default-features = false
 
-[dependencies.borsh]
-version = "1.5.0"
-features = ["derive"]
-optional = true
-default-features = false
-
 [dependencies.compiler_builtins]
 version = "0.1.2"
 optional = true
@@ -121,7 +116,7 @@ optional = true
 default-features = false
 
 [dependencies.rayon]
-version = "1.0"
+version = "1.2"
 optional = true
 
 [dependencies.serde]
@@ -147,7 +142,7 @@ version = "0.8.3"
 features = ["small_rng"]
 
 [dev-dependencies.rayon]
-version = "1.0"
+version = "1.2"
 
 [dev-dependencies.serde_test]
 version = "1.0"

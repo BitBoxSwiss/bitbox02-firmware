@@ -1,12 +1,7 @@
 //! Hermit C type definitions
 
-cfg_if! {
-    if #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))] {
-        pub type c_char = u8;
-    } else {
-        pub type c_char = i8;
-    }
-}
+pub use crate::arch::c_char_def as c_char;
+use crate::prelude::*;
 
 pub type c_schar = i8;
 pub type c_uchar = u8;
@@ -576,5 +571,3 @@ extern "C" {
     #[link_name = "sys_poll"]
     pub fn poll(fds: *mut pollfd, nfds: nfds_t, timeout: i32) -> i32;
 }
-
-pub use ffi::c_void;

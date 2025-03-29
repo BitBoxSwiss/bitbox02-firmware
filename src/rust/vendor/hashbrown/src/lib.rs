@@ -21,9 +21,10 @@
         allocator_api,
         slice_ptr_get,
         maybe_uninit_array_assume_init,
-        strict_provenance
+        strict_provenance_lints
     )
 )]
+#![cfg_attr(feature = "rustc-dep-of-std", feature(rustc_attrs))]
 #![allow(
     clippy::doc_markdown,
     clippy::module_name_repetitions,
@@ -52,6 +53,7 @@ pub enum DefaultHashBuilder {}
 extern crate std;
 
 #[cfg_attr(test, macro_use)]
+#[cfg_attr(feature = "rustc-dep-of-std", allow(unused_extern_crates))]
 extern crate alloc;
 
 #[cfg(feature = "nightly")]
@@ -61,7 +63,9 @@ doc_comment::doctest!("../README.md");
 #[macro_use]
 mod macros;
 
+mod control;
 mod raw;
+mod util;
 
 mod external_trait_impls;
 mod map;

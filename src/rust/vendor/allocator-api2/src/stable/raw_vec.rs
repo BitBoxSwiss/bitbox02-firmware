@@ -242,7 +242,7 @@ impl<T, A: Allocator> RawVec<T, A> {
         let me = ManuallyDrop::new(self);
         unsafe {
             let slice = slice::from_raw_parts_mut(me.ptr() as *mut MaybeUninit<T>, len);
-            Box::from_raw_in(slice, ptr::read(&me.alloc))
+            Box::<[MaybeUninit<T>], A>::from_raw_in(slice, ptr::read(&me.alloc))
         }
     }
 

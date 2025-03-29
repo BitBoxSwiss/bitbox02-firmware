@@ -710,8 +710,12 @@ pub const SHT_PREINIT_ARRAY: u32 = 16;
 pub const SHT_GROUP: u32 = 17;
 /// Extended section indices for a symbol table.
 pub const SHT_SYMTAB_SHNDX: u32 = 18;
+/// Relocation entries; only offsets.
+pub const SHT_RELR: u32 = 19;
 /// Start of OS-specific section types.
 pub const SHT_LOOS: u32 = 0x6000_0000;
+/// LLVM-style dependent libraries.
+pub const SHT_LLVM_DEPENDENT_LIBRARIES: u32 = 0x6fff4c04;
 /// Object attributes.
 pub const SHT_GNU_ATTRIBUTES: u32 = 0x6fff_fff5;
 /// GNU-style hash table.
@@ -1214,6 +1218,16 @@ impl<E: Endian> Rela64<E> {
         self.r_info = Self::r_info(endian, is_mips64el, r_sym, r_type);
     }
 }
+
+/// 32-bit relative relocation table entry.
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct Relr32<E: Endian>(pub U32<E>);
+
+/// 64-bit relative relocation table entry.
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct Relr64<E: Endian>(pub U64<E>);
 
 /// Program segment header.
 #[derive(Debug, Clone, Copy)]
@@ -6458,6 +6472,8 @@ unsafe_impl_endian_pod!(
     Rel64,
     Rela32,
     Rela64,
+    Relr32,
+    Relr64,
     ProgramHeader32,
     ProgramHeader64,
     Dyn32,

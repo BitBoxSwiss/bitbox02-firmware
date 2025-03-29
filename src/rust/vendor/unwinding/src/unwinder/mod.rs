@@ -58,27 +58,27 @@ pub struct UnwindContext<'a> {
     signal: bool,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetGR(unwind_ctx: &UnwindContext<'_>, index: c_int) -> usize {
     unwind_ctx.ctx[Register(index as u16)]
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetCFA(unwind_ctx: &UnwindContext<'_>) -> usize {
     unwind_ctx.ctx[Arch::SP]
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_SetGR(unwind_ctx: &mut UnwindContext<'_>, index: c_int, value: usize) {
     unwind_ctx.ctx[Register(index as u16)] = value;
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetIP(unwind_ctx: &UnwindContext<'_>) -> usize {
     unwind_ctx.ctx[Arch::RA]
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetIPInfo(
     unwind_ctx: &UnwindContext<'_>,
     ip_before_insn: &mut c_int,
@@ -87,12 +87,12 @@ pub extern "C" fn _Unwind_GetIPInfo(
     unwind_ctx.ctx[Arch::RA]
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_SetIP(unwind_ctx: &mut UnwindContext<'_>, value: usize) {
     unwind_ctx.ctx[Arch::RA] = value;
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetLanguageSpecificData(unwind_ctx: &UnwindContext<'_>) -> *mut c_void {
     unwind_ctx
         .frame
@@ -100,12 +100,12 @@ pub extern "C" fn _Unwind_GetLanguageSpecificData(unwind_ctx: &UnwindContext<'_>
         .unwrap_or(ptr::null_mut())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetRegionStart(unwind_ctx: &UnwindContext<'_>) -> usize {
     unwind_ctx.frame.map(|f| f.initial_address()).unwrap_or(0)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetTextRelBase(unwind_ctx: &UnwindContext<'_>) -> usize {
     unwind_ctx
         .frame
@@ -113,7 +113,7 @@ pub extern "C" fn _Unwind_GetTextRelBase(unwind_ctx: &UnwindContext<'_>) -> usiz
         .unwrap_or(0)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_GetDataRelBase(unwind_ctx: &UnwindContext<'_>) -> usize {
     unwind_ctx
         .frame
@@ -121,7 +121,7 @@ pub extern "C" fn _Unwind_GetDataRelBase(unwind_ctx: &UnwindContext<'_>) -> usiz
         .unwrap_or(0)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _Unwind_FindEnclosingFunction(pc: *mut c_void) -> *mut c_void {
     find_fde::get_finder()
         .find_fde(pc as usize - 1)
@@ -148,7 +148,7 @@ macro_rules! try2 {
 }
 
 #[inline(never)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn _Unwind_RaiseException(
     exception: *mut UnwindException,
 ) -> UnwindReasonCode {
@@ -252,7 +252,7 @@ fn raise_exception_phase2(
 }
 
 #[inline(never)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn _Unwind_ForcedUnwind(
     exception: *mut UnwindException,
     stop: UnwindStopFn,
@@ -342,7 +342,7 @@ fn force_unwind_phase2(
 }
 
 #[inline(never)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn _Unwind_Resume(exception: *mut UnwindException) -> ! {
     with_context(|ctx| {
         let code = match unsafe { (*exception).private_1 } {
@@ -362,7 +362,7 @@ pub unsafe extern "C-unwind" fn _Unwind_Resume(exception: *mut UnwindException) 
 }
 
 #[inline(never)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn _Unwind_Resume_or_Rethrow(
     exception: *mut UnwindException,
 ) -> UnwindReasonCode {
@@ -380,7 +380,7 @@ pub unsafe extern "C-unwind" fn _Unwind_Resume_or_Rethrow(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn _Unwind_DeleteException(exception: *mut UnwindException) {
     if let Some(cleanup) = unsafe { (*exception).exception_cleanup } {
         unsafe { cleanup(UnwindReasonCode::FOREIGN_EXCEPTION_CAUGHT, exception) };
@@ -388,7 +388,7 @@ pub unsafe extern "C" fn _Unwind_DeleteException(exception: *mut UnwindException
 }
 
 #[inline(never)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C-unwind" fn _Unwind_Backtrace(
     trace: UnwindTraceFn,
     trace_argument: *mut c_void,

@@ -11,15 +11,25 @@
 
 [package]
 edition = "2018"
+rust-version = "1.63"
 name = "allocator-api2"
-version = "0.2.18"
+version = "0.2.21"
 authors = ["Zakarum <zaq.dev@icloud.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Mirror of Rust's allocator API"
 homepage = "https://github.com/zakarumych/allocator-api2"
 documentation = "https://docs.rs/allocator-api2"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/zakarumych/allocator-api2"
+
+[lib]
+name = "allocator_api2"
+path = "src/lib.rs"
 
 [dependencies.serde]
 version = "1.0"
@@ -28,5 +38,11 @@ optional = true
 [features]
 alloc = []
 default = ["std"]
+fresh-rust = []
 nightly = []
 std = ["alloc"]
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = ["cfg(no_global_oom_handling)"]

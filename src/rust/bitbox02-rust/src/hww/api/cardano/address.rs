@@ -326,7 +326,7 @@ fn address_header(params: &params::Params, script_config: &Config) -> u8 {
         Config::PkhSkh(_) => 0,
     };
 
-    address_tag << 4 | params.network_id
+    (address_tag << 4) | params.network_id
 }
 
 /// Encode the given address using bech32, validating that the keypaths are valid. If

@@ -21,8 +21,8 @@ pub use super::types::{
 use util::c_types::{c_char, c_void};
 
 extern crate alloc;
-use crate::input::SafeInputString;
 use alloc::boxed::Box;
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use core::marker::PhantomData;
@@ -71,21 +71,21 @@ pub fn trinary_input_string_create<'a, F>(
 ) -> Component<'a>
 where
     // Callback must outlive component.
-    F: FnMut(SafeInputString) + 'a,
+    F: FnMut(zeroize::Zeroizing<String>) + 'a,
 {
     unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, param: *mut c_void)
     where
-        F2: FnMut(SafeInputString),
+        F2: FnMut(zeroize::Zeroizing<String>),
     {
-        let mut password_out = SafeInputString::new();
-        let cap = password_out.cap();
-        password_out
-            .as_mut()
-            .copy_from_slice(core::slice::from_raw_parts(password, cap));
+        let pw: zeroize::Zeroizing<String> = zeroize::Zeroizing::new(
+            crate::util::str_from_null_terminated_ptr(password)
+                .unwrap()
+                .into(),
+        );
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
         let mut callback = Box::from_raw(param as *mut F2);
-        callback(password_out);
+        callback(pw);
     }
 
     unsafe extern "C" fn c_cancel_callback(param: *mut c_void) {

@@ -34,7 +34,6 @@ use alloc::string::String;
 pub mod testing;
 
 pub mod bip32;
-pub mod input;
 pub mod keystore;
 pub mod memory;
 pub mod random;

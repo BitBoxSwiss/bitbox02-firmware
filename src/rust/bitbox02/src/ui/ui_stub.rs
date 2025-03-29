@@ -19,11 +19,11 @@ pub use super::types::{
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
-use crate::input::SafeInputString;
-
 use core::marker::PhantomData;
 
 extern crate alloc;
+
+use alloc::string::String;
 
 pub struct Component<'a> {
     is_pushed: bool,
@@ -53,14 +53,11 @@ pub fn trinary_input_string_create<'a, F>(
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
-    F: FnMut(SafeInputString) + 'a,
+    F: FnMut(zeroize::Zeroizing<String>) + 'a,
 {
     let data = crate::testing::DATA.0.borrow();
     let input_string = data.ui_trinary_input_string_create.as_ref().unwrap()(params);
-    let input_buf = input_string.as_bytes();
-    let mut input = SafeInputString::new();
-    input.as_mut()[..input_buf.len()].copy_from_slice(input_buf);
-    confirm_callback(input);
+    confirm_callback(zeroize::Zeroizing::new(input_string));
     Component {
         is_pushed: false,
         _p: PhantomData,

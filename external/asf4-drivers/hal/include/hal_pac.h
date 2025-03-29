@@ -52,17 +52,7 @@ extern "C" {
  */
 static inline int32_t periph_lock(void *const module)
 {
-    return _periph_lock(module);
-}
-
-/** \brief Disable write protect for the given hardware module
- * Can only be cleared by a hardware reset
- *
- *  \param[in] module Pointer to the hardware module
- */
-static inline int32_t periph_lock_hard(void *const module)
-{
-    return _periph_lock_hard(module);
+	return _periph_lock(module);
 }
 
 /** \brief Disable write protect for the given hardware module
@@ -71,7 +61,7 @@ static inline int32_t periph_lock_hard(void *const module)
  */
 static inline int32_t periph_unlock(void *const module)
 {
-    return _periph_unlock(module);
+	return _periph_unlock(module);
 }
 
 /** \brief Get write protect state for the given hardware module
@@ -81,7 +71,7 @@ static inline int32_t periph_unlock(void *const module)
  */
 static inline int32_t periph_get_lock_state(void *const module, bool *const state)
 {
-    return _periph_get_lock_state(module, state);
+	return _periph_get_lock_state(module, state);
 }
 
 /**

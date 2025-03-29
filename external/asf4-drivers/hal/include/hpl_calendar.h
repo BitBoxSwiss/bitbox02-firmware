@@ -3,39 +3,29 @@
  *
  * \brief Generic CALENDAR functionality declaration.
  *
- * Copyright (C) 2014-2016 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2014-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -90,6 +80,11 @@ enum calendar_alarm_mode { ONESHOT = 1, REPEAT };
 typedef void (*calendar_drv_cb_alarm_t)(struct calendar_dev *const dev);
 
 /**
+ * \brief Prototype of callback on tamper detect
+ */
+typedef void (*tamper_drv_cb_t)(struct calendar_dev *const dev);
+
+/**
  * \brief Structure of Calendar instance
  */
 struct calendar_dev {
@@ -97,10 +92,11 @@ struct calendar_dev {
 	void *hw;
 	/** Alarm match callback */
 	calendar_drv_cb_alarm_t callback;
+	/** Tamper callback */
+	tamper_drv_cb_t callback_tamper;
 	/** IRQ struct */
 	struct _irq_descriptor irq;
 };
-
 /**
  * \brief Time struct for calendar
  */
@@ -152,6 +148,13 @@ struct _calendar_alarm {
 	enum calendar_alarm_mode   mode;
 };
 
+/** \enum for tamper detection mode
+ */
+enum tamper_detection_mode { TAMPER_MODE_OFF = 0U, TAMPER_MODE_WAKE, TAMPER_MODE_CAPTURE, TAMPER_MODE_ACTL };
+
+/** \enum for tamper detection mode
+ */
+enum tamper_id { TAMPID0 = 0U, TAMPID1, TAMPID2, TAMPID3, TAMPID4 };
 /**
  * \brief Initialize Calendar instance
  *
@@ -244,6 +247,72 @@ int32_t _calendar_register_callback(struct calendar_dev *const dev, calendar_drv
  * \param[in] dev The pointer to calendar device struct
  */
 void _calendar_set_irq(struct calendar_dev *const dev);
+
+/**
+ * \brief Register callback for tamper detection
+ *
+ * \param[in] dev The pointer to calendar device struct
+ * \param[in] callback The pointer to callback function
+ *
+ * \return ERR_NONE on success, or an error code on failure.
+ */
+int32_t _tamper_register_callback(struct calendar_dev *const dev, tamper_drv_cb_t callback_tamper);
+
+/**
+ * \brief Find tamper is detected on specified pin
+ *
+ * \param[in] dev The pointer to calendar device struct
+ * \param[in] enum Tamper ID number
+ *
+ * \return true on detection success and false on failure.
+ */
+bool _is_tamper_detected(struct calendar_dev *const dev, enum tamper_id tamper_id_pin);
+
+/**
+ * \brief brief Clear the Tamper ID flag
+ *
+ * \param[in] dev The pointer to calendar device struct
+ * \param[in] enum Tamper ID number
+ *
+ * \return ERR_NONE
+ */
+int32_t _tamper_clear_tampid_flag(struct calendar_dev *const dev, enum tamper_id tamper_id_pin);
+
+/**
+ * \brief Enable Debounce Asynchronous Feature
+ *
+ * \param[in] dev The pointer to calendar device struct
+ *
+ * \return ERR_NONE on success, or an error code on failure.
+ */
+int32_t _tamper_enable_debounce_asynchronous(struct calendar_dev *const dev);
+
+/**
+ * \brief Disable Tamper Debounce Asynchronous Feature
+ *
+ * \param[in] dev The pointer to calendar device struct
+ *
+ * \return ERR_NONE on success, or an error code on failure.
+ */
+int32_t _tamper_disable_debounce_asynchronous(struct calendar_dev *const dev);
+
+/**
+ * \brief Enable Tamper Debounce Majority Feature
+ *
+ * \param[in] dev The pointer to calendar device struct
+ *
+ * \return ERR_NONE on success, or an error code on failure.
+ */
+int32_t _tamper_enable_debounce_majority(struct calendar_dev *const dev);
+
+/**
+ * \brief Enable Tamper Debounce Majority Feature
+ *
+ * \param[in] dev The pointer to calendar device struct
+ *
+ * \return ERR_NONE on success, or an error code on failure.
+ */
+int32_t _tamper_disable_debounce_majority(struct calendar_dev *const dev);
 
 #ifdef __cplusplus
 }

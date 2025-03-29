@@ -28,6 +28,7 @@ struct mci_sync_desc MCI_0;
 struct rand_sync_desc RAND_0;
 PPUKCL_PARAM pvPUKCLParam;
 PUKCL_PARAM PUKCLParam;
+struct usart_async_descriptor USART_0;
 
 bool _is_initialized = false;
 
@@ -110,9 +111,9 @@ static void _spi_init(void)
     hri_gclk_write_PCHCTRL_reg(
         GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBBMASK_SERCOM3_bit(MCLK);
-    SPI_0_init();
+    SPI_OLED_init();
     _spi_set_pins();
-    SPI_0_enable();
+    SPI_OLED_enable();
 }
 
 /**
@@ -198,6 +199,7 @@ static void _mci_init(void)
         GCLK, SDHC0_GCLK_ID, CONF_GCLK_SDHC0_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(
         GCLK, SDHC0_GCLK_ID_SLOW, CONF_GCLK_SDHC0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    mci_sync_init(&MCI_0, SDHC0);
     _mci_set_pins();
 }
 
@@ -276,8 +278,32 @@ static void _oled_set_pins(void)
     gpio_set_pin_function(PIN_OLED_CMD, GPIO_PIN_FUNCTION_OFF);
 }
 
+#define USART_0_BUFFER_SIZE 16
+
+static uint8_t USART_0_buffer[USART_0_BUFFER_SIZE];
+
+static void _uart_init(void)
+{
+    // Clock init
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM0_GCLK_ID_CORE, CONF_GCLK_SERCOM0_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM0_GCLK_ID_SLOW, CONF_GCLK_SERCOM0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
+    hri_mclk_set_APBAMASK_SERCOM0_bit(MCLK);
+
+    usart_async_init(&USART_0, SERCOM0, USART_0_buffer, USART_0_BUFFER_SIZE, (void*)NULL);
+
+    // Port init
+    gpio_set_pin_function(PIN_UART_TX, PINMUX_PA04D_SERCOM0_PAD0);
+    gpio_set_pin_function(PIN_UART_RX, PINMUX_PA05D_SERCOM0_PAD1);
+    gpio_set_pin_function(PIN_UART_RTS, PINMUX_PA06D_SERCOM0_PAD2);
+    gpio_set_pin_function(PIN_UART_CTS, PINMUX_PA07D_SERCOM0_PAD3);
+}
+
 void system_init(void)
 {
+    _uart_init();
     _oled_set_pins();
     _ptc_clock_init();
 
@@ -338,7 +364,7 @@ void system_close_interfaces(void)
     i2c_m_sync_deinit(&I2C_0);
     // OLED interface bus
     // Display remains on last screen
-    SPI_0_disable();
+    SPI_OLED_disable();
     // Flash
     flash_deinit(&FLASH_0);
     // USB
@@ -355,7 +381,7 @@ void bootloader_close_interfaces(void)
     }
     // OLED interface bus
     // Display remains on last screen
-    SPI_0_disable();
+    SPI_OLED_disable();
     // Flash
     flash_deinit(&FLASH_0);
     // USB

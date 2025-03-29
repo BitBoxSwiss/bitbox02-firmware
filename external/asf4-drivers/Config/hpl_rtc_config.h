@@ -49,6 +49,201 @@
 
 #endif
 
+// <e> RTC Tamper Input 0 settings
+// <id> tamper_input_0_settings
+#ifndef CONF_TAMPER_INPUT_0_SETTINGS
+#define CONF_TAMPER_INPUT_0_SETTINGS 0
+#endif
+
+// <q> Tamper Level Settings
+// <i> Indicates Tamper input 0 level
+// <id> tamper_level_0
+#ifndef CONF_RTC_TAMP_LVL_0
+#define CONF_RTC_TAMP_LVL_0 0
+#endif
+
+// <o> RTC Tamper Input Action
+// <0x0=>OFF(Disabled)
+// <0x1=>Wake and Set Tamper Flag
+// <0x2=>Capture Timestamp and Set Tamper Flag
+// <0x3=>Active Layer Mode.IN and OUT pin is used.Timestamp is also captured.
+// <i> These bits define the RTC Tamper Input Action to be performed
+// <id> rtc_tamper_input_action_0
+#ifndef CONF_RTC_TAMPER_INACT_0
+#define CONF_RTC_TAMPER_INACT_0 0
+#endif
+
+// <q> Debounce Enable for Tamper Input
+// <i> Indicates Debounce should be enabled for Tamper input 0
+// <id> tamper_debounce_enable_0
+#ifndef CONF_RTC_TAMP_DEBNC_0
+#define CONF_RTC_TAMP_DEBNC_0 0
+#endif
+
+// </e>
+
+// <e> RTC Tamper Input 1 settings
+// <id> tamper_input_1_settings
+#ifndef CONF_TAMPER_INPUT_1_SETTINGS
+#define CONF_TAMPER_INPUT_1_SETTINGS 0
+#endif
+
+// <q> Tamper Level Settings
+// <i> Indicates Tamper input 1 level
+// <id> tamper_level_1
+#ifndef CONF_RTC_TAMP_LVL_1
+#define CONF_RTC_TAMP_LVL_1 0
+#endif
+
+// <o> RTC Tamper Input Action
+// <0x0=>OFF(Disabled)
+// <0x1=>Wake and Set Tamper Flag
+// <0x2=>Capture Timestamp and Set Tamper Flag
+// <0x3=>Active Layer Mode.IN and OUT pin is used.Timestamp is also captured.
+// <i> These bits define the RTC Tamper Input Action to be performed
+// <id> rtc_tamper_input_action_1
+#ifndef CONF_RTC_TAMPER_INACT_1
+#define CONF_RTC_TAMPER_INACT_1 0
+#endif
+
+// <q> Debounce Enable for Tamper Input
+// <i> Indicates Debounce should be enabled for Tamper input 1
+// <id> tamper_debounce_enable_1
+#ifndef CONF_RTC_TAMP_DEBNC_1
+#define CONF_RTC_TAMP_DEBNC_1 0
+#endif
+
+// </e>
+
+// <e> RTC Tamper Input 2 settings
+// <id> tamper_input_2_settings
+#ifndef CONF_TAMPER_INPUT_2_SETTINGS
+#define CONF_TAMPER_INPUT_2_SETTINGS 0
+#endif
+
+// <q> Tamper Level Settings
+// <i> Indicates Tamper input 2 level
+// <id> tamper_level_2
+#ifndef CONF_RTC_TAMP_LVL_2
+#define CONF_RTC_TAMP_LVL_2 0
+#endif
+
+// <o> RTC Tamper Input Action
+// <0x0=>OFF(Disabled)
+// <0x1=>Wake and Set Tamper Flag
+// <0x2=>Capture Timestamp and Set Tamper Flag
+// <0x3=>Active Layer Mode.IN and OUT pin is used.Timestamp is also captured.
+// <i> These bits define the RTC Tamper Input Action to be performed
+// <id> rtc_tamper_input_action_2
+#ifndef CONF_RTC_TAMPER_INACT_2
+#define CONF_RTC_TAMPER_INACT_2 0
+#endif
+
+// <q> Debounce Enable for Tamper Input
+// <i> Indicates Debounce should be enabled for Tamper input 2
+// <id> tamper_debounce_enable_2
+#ifndef CONF_RTC_TAMP_DEBNC_2
+#define CONF_RTC_TAMP_DEBNC_2 0
+#endif
+
+// </e>
+
+// <e> RTC Tamper Input 3 settings
+// <id> tamper_input_3_settings
+#ifndef CONF_TAMPER_INPUT_3_SETTINGS
+#define CONF_TAMPER_INPUT_3_SETTINGS 0
+#endif
+
+// <q> Tamper Level Settings
+// <i> Indicates Tamper input 3 level
+// <id> tamper_level_3
+#ifndef CONF_RTC_TAMP_LVL_3
+#define CONF_RTC_TAMP_LVL_3 0
+#endif
+
+// <o> RTC Tamper Input Action
+// <0x0=>OFF(Disabled)
+// <0x1=>Wake and Set Tamper Flag
+// <0x2=>Capture Timestamp and Set Tamper Flag
+// <0x3=>Active Layer Mode.IN and OUT pin is used.Timestamp is also captured.
+// <i> These bits define the RTC Tamper Input Action to be performed
+// <id> rtc_tamper_input_action_3
+#ifndef CONF_RTC_TAMPER_INACT_3
+#define CONF_RTC_TAMPER_INACT_3 0
+#endif
+
+// <q> Debounce Enable for Tamper Input
+// <i> Indicates Debounce should be enabled for Tamper input 3
+// <id> tamper_debounce_enable_3
+#ifndef CONF_RTC_TAMP_DEBNC_3
+#define CONF_RTC_TAMP_DEBNC_3 0
+#endif
+
+// </e>
+
+// <e> RTC Tamper Input 4 settings
+// <id> tamper_input_4_settings
+#ifndef CONF_TAMPER_INPUT_4_SETTINGS
+#define CONF_TAMPER_INPUT_4_SETTINGS 0
+#endif
+
+// <q> Tamper Level Settings
+// <i> Indicates Tamper input 4 level
+// <id> tamper_level_4
+#ifndef CONF_RTC_TAMP_LVL_4
+#define CONF_RTC_TAMP_LVL_4 0
+#endif
+
+// <o> RTC Tamper Input Action
+// <0x0=>OFF(Disabled)
+// <0x1=>Wake and Set Tamper Flag
+// <0x2=>Capture Timestamp and Set Tamper Flag
+// <0x3=>Active Layer Mode.IN and OUT pin is used.Timestamp is also captured.
+// <i> These bits define the RTC Tamper Input Action to be performed
+// <id> rtc_tamper_input_action_4
+#ifndef CONF_RTC_TAMPER_INACT_4
+#define CONF_RTC_TAMPER_INACT_4 0
+#endif
+
+// <q> Debounce Enable for Tamper Input
+// <i> Indicates Debounce should be enabled for Tamper input 4
+// <id> tamper_debounce_enable_4
+#ifndef CONF_RTC_TAMP_DEBNC_4
+#define CONF_RTC_TAMP_DEBNC_4 0
+#endif
+
+// </e>
+
+// <o> RTC Tamper Active Layer Frequency Prescalar
+// <0x0=>DIV2 CLK_RTC_OUT is CLK_RTC /2
+// <0x1=>DIV4 CLK_RTC_OUT is CLK_RTC /4
+// <0x2=>DIV8 CLK_RTC_OUT is CLK_RTC /8
+// <0x3=>DIV16 CLK_RTC_OUT is CLK_RTC /16
+// <0x4=>DIV32 CLK_RTC_OUT is CLK_RTC /32
+// <0x5=>DIV64 CLK_RTC_OUT is CLK_RTC /64
+// <0x6=>DIV128 CLK_RTC_OUT is CLK_RTC /128
+// <0x7=>DIV256 CLK_RTC_OUT is CLK_RTC /256
+// <i> These bits define the RTC Tamper Active Layer Frequecny Prescalar
+// <id> rtc_tamper_active_layer_frequency_prescalar
+#ifndef CONF_RTC_TAMP_ACT_LAYER_FREQ_PRES
+#define CONF_RTC_TAMP_ACT_LAYER_FREQ_PRES 0
+#endif
+
+// <o> RTC Tamper Debounce Frequency Prescalar
+// <0x0=>DIV2 CLK_RTC_DEB is CLK_RTC /2
+// <0x1=>DIV4 CLK_RTC_DEB is CLK_RTC /4
+// <0x2=>DIV8 CLK_RTC_DEB is CLK_RTC /8
+// <0x3=>DIV16 CLK_RTC_DEB is CLK_RTC /16
+// <0x4=>DIV32 CLK_RTC_DEB is CLK_RTC /32
+// <0x5=>DIV64 CLK_RTC_DEB is CLK_RTC /64
+// <0x6=>DIV128 CLK_RTC_DEB is CLK_RTC /128
+// <0x7=>DIV256 CLK_RTC_DEB is CLK_RTC /256
+// <i> These bits define the RTC Debounce Frequency Prescalar
+// <id> rtc_tamper_debounce_frequency_prescalar
+#ifndef CONF_RTC_TAMP_DEBF_PRES
+#define CONF_RTC_TAMP_DEBF_PRES 0
+#endif
+
 // <e> Event control
 // <id> rtc_event_control
 #ifndef CONF_RTC_EVENT_CONTROL_ENABLE

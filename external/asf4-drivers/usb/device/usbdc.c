@@ -3,39 +3,29 @@
  *
  * \brief USB Device Stack Core Layer Implementation.
  *
- * Copyright (C) 2015-2017 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2015-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel micro controller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -118,7 +108,7 @@ static struct usbdc_driver usbdc;
 static bool usbdc_get_dev_desc(const uint8_t ep, struct usb_req *req)
 {
 	uint8_t *dev_desc = NULL;
-	uint16_t length   = req->L.wLength;
+	uint16_t length   = req->wLength;
 	if (length > 0x12) {
 		length = 0x12;
 	}
@@ -153,8 +143,8 @@ static bool usbdc_get_cfg_desc(const uint8_t ep, struct usb_req *req)
 {
 	uint8_t *cfg_desc = NULL;
 	uint16_t total_len;
-	uint16_t length   = req->L.wLength;
-	uint8_t  index    = req->V.wValue & 0x00FF;
+	uint16_t length   = req->wLength;
+	uint8_t  index    = req->wValue & 0x00FF;
 	bool     need_zlp = !(length & (usbdc.ctrl_size - 1));
 
 #if CONF_USBD_HS_SP
@@ -193,8 +183,8 @@ static bool usbdc_get_cfg_desc(const uint8_t ep, struct usb_req *req)
 static bool usbdc_get_str_desc(const uint8_t ep, struct usb_req *req)
 {
 	uint8_t *str_desc;
-	uint16_t length   = req->L.wLength;
-	uint8_t  index    = req->V.wValue & 0x00FF;
+	uint16_t length   = req->wLength;
+	uint8_t  index    = req->wValue & 0x00FF;
 	bool     need_zlp = !(length & (usbdc.ctrl_size - 1));
 	/* All string are in default descriptors block: FS/LS */
 	str_desc = usb_find_str_desc(usbdc.desces.ls_fs->sod, usbdc.desces.ls_fs->eod, index);
@@ -224,7 +214,7 @@ static bool usbdc_get_str_desc(const uint8_t ep, struct usb_req *req)
 static bool usbdc_get_devqual_desc(const uint8_t ep, struct usb_req *req)
 {
 	uint8_t *dev_desc = NULL;
-	uint16_t length   = req->L.wLength;
+	uint16_t length   = req->wLength;
 	if (length > 0x12) {
 		length = 0x12;
 	}
@@ -255,8 +245,8 @@ static bool usbdc_get_othspdcfg_desc(const uint8_t ep, struct usb_req *req)
 {
 	uint8_t *cfg_desc = NULL;
 	uint16_t total_len;
-	uint16_t length   = req->L.wLength;
-	uint8_t  index    = req->V.wValue & 0x00FF;
+	uint16_t length   = req->wLength;
+	uint8_t  index    = req->wValue & 0x00FF;
 	bool     need_zlp = !(length & (usbdc.ctrl_size - 1));
 
 	if (usb_d_get_speed() == USB_SPEED_HS && usbdc.desces.hs) {
@@ -293,7 +283,7 @@ static bool usbdc_get_othspdcfg_desc(const uint8_t ep, struct usb_req *req)
  */
 static bool usbdc_get_desc_req(const uint8_t ep, struct usb_req *req)
 {
-	uint8_t type = (uint8_t)(req->V.wValue >> 8);
+	uint8_t type = (uint8_t)(req->wValue >> 8);
 	switch (type) {
 	case USB_DT_DEVICE:
 		return usbdc_get_dev_desc(ep, req);
@@ -332,7 +322,7 @@ static bool usbdc_get_status_req(const uint8_t ep, const struct usb_req *req)
 		st = 0;
 		break;
 	case USB_REQT_RECIP_ENDPOINT:
-		st = usb_d_ep_halt(req->I.wIndex & 0xFF, USB_EP_HALT_GET);
+		st = usb_d_ep_halt(req->wIndex & 0xFF, USB_EP_HALT_GET);
 		if (st < 0) {
 			return false;
 		}
@@ -358,7 +348,7 @@ static bool usbdc_get_interface(struct usb_req *req)
 	struct usbdf_driver *func = (struct usbdf_driver *)usbdc.func_list.head;
 	int32_t              rc;
 
-	if (!(usbdc.ifc_alt_map & (1 << req->I.wIndex))) {
+	if (!(usbdc.ifc_alt_map & (1 << req->wIndex))) {
 		/* Return 0 if alternate is not used */
 		usbdc.ctrl_buf[0] = 0;
 		usbdc_xfer(0, usbdc.ctrl_buf, 1, false);
@@ -416,10 +406,10 @@ static bool usbdc_clear_ftr_req(const uint8_t ep, const struct usb_req *req)
 	(void)ep;
 	switch (req->bmRequestType & USB_REQT_RECIP_MASK) {
 	case USB_REQT_RECIP_ENDPOINT:
-		if (req->L.wLength != 0) {
+		if (req->wLength != 0) {
 			return false;
 		}
-		usb_d_ep_halt(req->I.wIndex & 0xFF, USB_EP_HALT_CLR);
+		usb_d_ep_halt(req->wIndex & 0xFF, USB_EP_HALT_CLR);
 		usbdc_xfer(ep, NULL, 0, true);
 		return true;
 	default:
@@ -440,10 +430,10 @@ static bool usbdc_set_ftr_req(const uint8_t ep, const struct usb_req *req)
 	(void)ep;
 	switch (req->bmRequestType & USB_REQT_RECIP_MASK) {
 	case USB_REQT_RECIP_ENDPOINT:
-		if (req->L.wLength != 0) {
+		if (req->wLength != 0) {
 			return false;
 		}
-		usb_d_ep_halt(req->I.wIndex & 0xFF, USB_EP_HALT_SET);
+		usb_d_ep_halt(req->wIndex & 0xFF, USB_EP_HALT_SET);
 		usbdc_xfer(ep, NULL, 0, true);
 		return true;
 	default:
@@ -509,43 +499,6 @@ static bool usbdc_set_config(uint8_t cfg_value)
 				if (func->ctrl(func, USBDF_ENABLE, &desc)) {
 					func = func->next;
 				} else {
-                    // TODO: refactor, because...
-                    // In our hid_hww/u2f.c files, we register the control
-                    // function (hid_generic_ctrl()), which propagates to the
-                    // enable and disable functions that register and
-                    // un-register the endpoints for a specific hardware.  The
-                    // control functions are pushed to the usbdc func_list.
-                    //
-                    // So if hid_hww_init() is called first and hid_u2f_init()
-                    // is called afterwards, the func_list will look like
-                    // this: hid_generic_ctrl (static in hid_hww.c) and
-                    // hid_generic_ctrl (static in hid_u2f.c).
-                    //
-                    // Then, when we enter the above loop, we get the first
-                    // descriptor (hww), retrieve the head of the func_list,
-                    // which is hid_generic_ctrl (static in hid_hww.c) and
-                    // call it with the descriptor. If this fails, we get the
-                    // next function out of func_list, which is
-                    // hid_generic_ctrl (static in hid_u2f.c) and pass the
-                    // descriptor (we're still at the HWW descriptor).
-                    // Otherwise we move on to the next descriptor (U2F
-                    // descriptor), but the func_list is not changed, as far
-                    // as I can tell.  So basically, at that point we're
-                    // trying to call hid_generic_ctrl (static in hid_hww.c)
-                    // with the U2F descriptor. Since the hww interface was
-                    // already enabled, we receive an ERR_ALREADY_INITIALIZED
-                    // from hww.c, which means that we move to the next
-                    // function in func_list, which is hid_generic_ctrl
-                    // (static in hid_u2f.c) and call that with the same
-                    // descriptor (U2F).
-                    //
-                    // It works at the moment, but as you can see it's quite
-                    // shaky, especially because we have to call
-                    // hid_hww_init() and hid_u2f_init() in the right order.
-                    // Moving on to the next function in the inner while loop
-                    // wouldn't help, because in the outer while loop, the
-                    // variable func get's overriden anyway. But yeah, ideally
-                    // we should rewrite this part, in my opinion.
 					break;
 				}
 			}
@@ -642,7 +595,7 @@ static bool usbdc_set_req(const uint8_t ep, struct usb_req *req)
 	case USB_REQ_SET_ADDRESS:
 		return (ERR_NONE == usbdc_xfer(ep, NULL, 0, true));
 	case USB_REQ_SET_CONFIG:
-		if (!usbdc_set_config(req->V.wValue)) {
+		if (!usbdc_set_config(req->wValue)) {
 			return false;
 		}
 		return (ERR_NONE == usbdc_xfer(ep, NULL, 0, true));
@@ -651,7 +604,7 @@ static bool usbdc_set_req(const uint8_t ep, struct usb_req *req)
 	case USB_REQ_SET_FTR:
 		return usbdc_set_ftr_req(ep, req);
 	case USB_REQ_SET_INTERFACE:
-		return usbdc_set_interface(req->V.wValue, req->I.wIndex);
+		return usbdc_set_interface(req->wValue, req->wIndex);
 	default:
 		return false;
 	}
@@ -752,13 +705,13 @@ static void usbdc_ctrl_status_end(const struct usb_req *req)
 	}
 	switch (req->bRequest) {
 	case USB_REQ_SET_CONFIG:
-		usbdc.cfg_value = req->V.wValue;
-		usbdc.state     = req->V.wValue ? USBD_S_CONFIG : USBD_S_ADDRESS;
+		usbdc.cfg_value = req->wValue;
+		usbdc.state     = req->wValue ? USBD_S_CONFIG : USBD_S_ADDRESS;
 		usbdc_change_notify(USBDC_C_STATE, usbdc.state);
 		break;
 	case USB_REQ_SET_ADDRESS:
-		usbdc_set_address(req->V.wValue);
-		usbdc.state = req->V.wValue ? USBD_S_ADDRESS : USBD_S_DEFAULT;
+		usbdc_set_address(req->wValue);
+		usbdc.state = req->wValue ? USBD_S_ADDRESS : USBD_S_DEFAULT;
 		usbdc_change_notify(USBDC_C_STATE, usbdc.state);
 		break;
 	default:
@@ -804,7 +757,7 @@ static bool usbdc_cb_ctl_done(const uint8_t ep, const enum usb_xfer_code code, s
 /**
  * \brief USB Device Core Reset
  */
-static void usbdc_reset(void)
+void usbdc_reset(void)
 {
 	usbdc_unconfig();
 
@@ -859,13 +812,13 @@ void usbdc_register_handler(enum usbdc_handler_type type, const struct usbdc_han
 {
 	switch (type) {
 	case USBDC_HDL_SOF:
-		list_insert_at_end(&usbdc.handlers.sof_list, (void *)(uintptr_t)h);
+		list_insert_at_end(&usbdc.handlers.sof_list, (void *)h);
 		break;
 	case USBDC_HDL_REQ:
-		list_insert_at_end(&usbdc.handlers.req_list, (void *)(uintptr_t)h);
+		list_insert_at_end(&usbdc.handlers.req_list, (void *)h);
 		break;
 	case USBDC_HDL_CHANGE:
-		list_insert_at_end(&usbdc.handlers.change_list, (void *)(uintptr_t)h);
+		list_insert_at_end(&usbdc.handlers.change_list, (void *)h);
 		break;
 	default:
 		break;
@@ -879,13 +832,13 @@ void usbdc_unregister_handler(enum usbdc_handler_type type, const struct usbdc_h
 {
 	switch (type) {
 	case USBDC_HDL_SOF:
-		list_delete_element(&usbdc.handlers.sof_list, (void *)(uintptr_t)h);
+		list_delete_element(&usbdc.handlers.sof_list, (void *)h);
 		break;
 	case USBDC_HDL_REQ:
-		list_delete_element(&usbdc.handlers.req_list, (void *)(uintptr_t)h);
+		list_delete_element(&usbdc.handlers.req_list, (void *)h);
 		break;
 	case USBDC_HDL_CHANGE:
-		list_delete_element(&usbdc.handlers.change_list, (void *)(uintptr_t)h);
+		list_delete_element(&usbdc.handlers.change_list, (void *)h);
 		break;
 	default:
 		break;
@@ -926,7 +879,7 @@ int32_t usbdc_deinit(void)
 /**
  * \brief Register/unregister function support of a USB device function
  *
- * Must be invoked when USB device is started.
+ * Must be invoked when USB device is stopped.
  */
 void usbdc_register_function(struct usbdf_driver *func)
 {
@@ -970,8 +923,7 @@ int32_t usbdc_validate_desces(struct usbd_descriptors *desces)
 /**
  * \brief Validate the descriptor
  */
-/*
-static int32_t usbdc_check_desces(struct usbdc_descriptors *desces)
+int32_t usbdc_check_desces(struct usbdc_descriptors *desces)
 {
 #if CONF_USBD_HS_SP
 	int32_t rc;
@@ -987,7 +939,6 @@ static int32_t usbdc_check_desces(struct usbdc_descriptors *desces)
 #endif
 	return usbdc_validate_desces(desces->ls_fs);
 }
-*/
 
 /**
  * \brief Start the USB device driver with specific descriptors set

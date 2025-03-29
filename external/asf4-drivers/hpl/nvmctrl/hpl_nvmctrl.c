@@ -4,39 +4,29 @@
  *
  * \brief Non-Volatile Memory Controller
  *
- * Copyright (C) 2016 -2017 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2016-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMIT ED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -54,8 +44,7 @@
 #define NVMCTRL_REGIONS_NUM 32
 #define NVMCTRL_INTFLAG_ERR                                                                                            \
 	(NVMCTRL_INTFLAG_ADDRE | NVMCTRL_INTFLAG_PROGE | NVMCTRL_INTFLAG_LOCKE | NVMCTRL_INTFLAG_ECCSE                     \
-	 | NVMCTRL_INTFLAG_NVME                                                                                            \
-	 | NVMCTRL_INTFLAG_SEESOVF)
+	 | NVMCTRL_INTFLAG_NVME | NVMCTRL_INTFLAG_SEESOVF)
 /**
  * \brief NVM configuration type
  */
@@ -151,7 +140,7 @@ void _flash_set_wait_state(struct _flash_device *const device, uint8_t state)
  */
 void _flash_read(struct _flash_device *const device, const uint32_t src_addr, uint8_t *buffer, uint32_t length)
 {
-	volatile uint8_t *nvm_addr = (volatile uint8_t *)NVM_MEMORY;
+	uint8_t *nvm_addr = (uint8_t *)NVM_MEMORY;
 	uint32_t i;
 
 	/* Check if the module is busy */
@@ -167,7 +156,7 @@ void _flash_read(struct _flash_device *const device, const uint32_t src_addr, ui
 /**
  * \brief Writes a number of bytes to a page in the internal Flash.
  */
-void _flash_write(struct _flash_device *const device, const uint32_t dst_addr, const uint8_t *buffer, uint32_t length)
+void _flash_write(struct _flash_device *const device, const uint32_t dst_addr, uint8_t *buffer, uint32_t length)
 {
 	uint8_t  tmp_buffer[NVMCTRL_BLOCK_PAGES][NVMCTRL_PAGE_SIZE];
 	uint32_t block_start_addr, block_end_addr;
@@ -186,9 +175,8 @@ void _flash_write(struct _flash_device *const device, const uint32_t dst_addr, c
 		/* temp buffer update */
 		j = (wr_start_addr - block_start_addr) / NVMCTRL_PAGE_SIZE;
 		k = wr_start_addr - block_start_addr - j * NVMCTRL_PAGE_SIZE;
-		uint8_t *buffer_p = (uint8_t *)(uintptr_t)buffer;
-        while ((wr_start_addr <= block_end_addr) && (length > 0)) {
-			tmp_buffer[j][k] = *buffer_p;
+		while ((wr_start_addr <= block_end_addr) && (length > 0)) {
+			tmp_buffer[j][k] = *buffer;
 			k                = (k + 1) % NVMCTRL_PAGE_SIZE;
 
 			if (0 == k) {
@@ -196,7 +184,7 @@ void _flash_write(struct _flash_device *const device, const uint32_t dst_addr, c
 			}
 
 			wr_start_addr++;
-			buffer_p++;
+			buffer++;
 			length--;
 		}
 
@@ -268,7 +256,7 @@ void _flash_erase(struct _flash_device *const device, uint32_t dst_addr, uint32_
 
 	while (page_nums >= NVMCTRL_BLOCK_PAGES) {
 		_flash_erase_block(device->hw, block_start_addr);
-		block_start_addr += NVMCTRL_PAGE_SIZE;
+		block_start_addr += NVMCTRL_BLOCK_SIZE;
 		page_nums -= NVMCTRL_BLOCK_PAGES;
 	}
 
@@ -387,7 +375,7 @@ static void _flash_erase_block(void *const hw, const uint32_t dst_addr)
  */
 static void _flash_program(void *const hw, const uint32_t dst_addr, const uint8_t *buffer, const uint16_t size)
 {
-	uint32_t *ptr_read    = (uint32_t *)(uintptr_t)buffer;
+	uint32_t *ptr_read    = (uint32_t *)buffer;
 	uint32_t  nvm_address = dst_addr / 4;
 	uint16_t  i;
 
@@ -460,16 +448,20 @@ void NVMCTRL_1_Handler(void)
    The NVM User Row contains calibration data that are automatically read at device
    power on.
    The NVM User Row can be read at address 0x804000.
+
+   The first eight 32-bit words (32 Bytes) of the Non Volatile Memory (NVM) User
+   Page contain calibration data that are automatically read at device power-on.
+   The remaining 480 Bytes can be used for storing custom parameters.
  */
 #ifndef _NVM_USER_ROW_BASE
 #define _NVM_USER_ROW_BASE 0x804000
 #endif
-#define _NVM_USER_ROW_N_BITS 96
+#define _NVM_USER_ROW_N_BITS 4096
 #define _NVM_USER_ROW_N_BYTES (_NVM_USER_ROW_N_BITS / 8)
 #define _NVM_USER_ROW_END (((uint8_t *)_NVM_USER_ROW_BASE) + _NVM_USER_ROW_N_BYTES - 1)
 #define _IS_NVM_USER_ROW(b)                                                                                            \
-	(((const uint8_t *)(b) >= (uint8_t *)(_NVM_USER_ROW_BASE)) && ((const uint8_t *)(b) <= (uint8_t *)(_NVM_USER_ROW_END)))
-#define _IN_NVM_USER_ROW(b, o) (((const uint8_t *)(b) + (o)) <= (uint8_t *)(_NVM_USER_ROW_END))
+	(((uint8_t *)(b) >= (uint8_t *)(_NVM_USER_ROW_BASE)) && ((uint8_t *)(b) <= (uint8_t *)(_NVM_USER_ROW_END)))
+#define _IN_NVM_USER_ROW(b, o) (((uint8_t *)(b) + (o)) <= (uint8_t *)(_NVM_USER_ROW_END))
 
 /*
    The NVM Software Calibration Area can be read at address 0x00800080.
@@ -482,8 +474,8 @@ void NVMCTRL_1_Handler(void)
 #define _NVM_SW_CALIB_AREA_N_BYTES (_NVM_SW_CALIB_AREA_N_BITS / 8)
 #define _NVM_SW_CALIB_AREA_END (((uint8_t *)_NVM_SW_CALIB_AREA_BASE) + _NVM_SW_CALIB_AREA_N_BYTES - 1)
 #define _IS_NVM_SW_CALIB_AREA(b)                                                                                       \
-	(((const uint8_t *)(b) >= (uint8_t *)_NVM_SW_CALIB_AREA_BASE) && ((const uint8_t *)(b) <= (uint8_t *)_NVM_SW_CALIB_AREA_END))
-#define _IN_NVM_SW_CALIB_AREA(b, o) (((const uint8_t *)(b) + (o)) <= (uint8_t *)(_NVM_SW_CALIB_AREA_END))
+	(((uint8_t *)(b) >= (uint8_t *)_NVM_SW_CALIB_AREA_BASE) && ((uint8_t *)(b) <= (uint8_t *)_NVM_SW_CALIB_AREA_END))
+#define _IN_NVM_SW_CALIB_AREA(b, o) (((uint8_t *)(b) + (o)) <= (uint8_t *)(_NVM_SW_CALIB_AREA_END))
 
 /**
  * \internal Read left aligned data bits
@@ -537,13 +529,13 @@ int32_t _user_area_read(const void *base, const uint32_t offset, uint8_t *buf, u
 	}
 
 	/* Copy data */
-	memcpy(buf, ((const uint8_t *)base) + offset, size);
+	memcpy(buf, ((uint8_t *)base) + offset, size);
 	return ERR_NONE;
 }
 
 uint32_t _user_area_read_bits(const void *base, const uint32_t bit_offset, const uint8_t n_bits)
 {
-	volatile uint32_t *mem_base = (volatile uint32_t *)(uintptr_t)base;
+	volatile uint32_t *mem_base = (volatile uint32_t *)base;
 	uint32_t           l_off, l_bits;
 	uint32_t           r_off, r_bits;
 
@@ -575,13 +567,14 @@ uint32_t _user_area_read_bits(const void *base, const uint32_t bit_offset, const
 	       + (_user_area_read_l32_bits(mem_base, r_off, r_bits) << l_bits);
 }
 
-/** \internal Write 96-bit user row
- *  \param[in] _row Pointer to 96-bit user row data.
+/** \internal Write 4096-bit user row
+ *  \param[in] _row Pointer to 4096-bit user row data.
  */
 static int32_t _user_row_write_exec(const uint32_t *_row)
 {
 	Nvmctrl *hw    = NVMCTRL;
 	uint32_t ctrla = hri_nvmctrl_read_CTRLA_reg(NVMCTRL);
+	uint32_t i;
 
 	/* Denied if Security Bit is set */
 	if (DSU->STATUSB.bit.PROT) {
@@ -603,21 +596,23 @@ static int32_t _user_row_write_exec(const uint32_t *_row)
 		/* Wait until this module isn't busy */
 	}
 
-	/* - Page buffer clear & write. */
-	hri_nvmctrl_write_CTRLB_reg(hw, NVMCTRL_CTRLB_CMD_PBC | NVMCTRL_CTRLB_CMDEX_KEY);
-	while (!hri_nvmctrl_get_STATUS_READY_bit(hw)) {
-		/* Wait until this module isn't busy */
-	}
-	*((uint32_t *)NVMCTRL_USER)       = _row[0];
-	*(((uint32_t *)NVMCTRL_USER) + 1) = _row[1];
-	*(((uint32_t *)NVMCTRL_USER) + 2) = _row[2];
-	*(((uint32_t *)NVMCTRL_USER) + 3) = 0xFFFFFFFF;
+	for (i = 0; i < 32; i++) { /* 32 Quad words for User row: 32 * (4 bytes * 4) = 512 bytes */
+		/* - Page buffer clear & write. */
+		hri_nvmctrl_write_CTRLB_reg(hw, NVMCTRL_CTRLB_CMD_PBC | NVMCTRL_CTRLB_CMDEX_KEY);
+		while (!hri_nvmctrl_get_STATUS_READY_bit(hw)) {
+			/* Wait until this module isn't busy */
+		}
+		*(((uint32_t *)NVMCTRL_USER) + i * 4)     = _row[i * 4];
+		*(((uint32_t *)NVMCTRL_USER) + i * 4 + 1) = _row[i * 4 + 1];
+		*(((uint32_t *)NVMCTRL_USER) + i * 4 + 2) = _row[i * 4 + 2];
+		*(((uint32_t *)NVMCTRL_USER) + i * 4 + 3) = _row[i * 4 + 3];
 
-	/* - Write AUX row. */
-	hri_nvmctrl_write_ADDR_reg(hw, (hri_nvmctrl_addr_reg_t)_NVM_USER_ROW_BASE);
-	hri_nvmctrl_write_CTRLB_reg(hw, NVMCTRL_CTRLB_CMD_WQW | NVMCTRL_CTRLB_CMDEX_KEY);
-	while (!hri_nvmctrl_get_STATUS_READY_bit(hw)) {
-		/* Wait until this module isn't busy */
+		/* - Write AUX row. */
+		hri_nvmctrl_write_ADDR_reg(hw, (hri_nvmctrl_addr_reg_t)(_NVM_USER_ROW_BASE + i * 16));
+		hri_nvmctrl_write_CTRLB_reg(hw, NVMCTRL_CTRLB_CMD_WQW | NVMCTRL_CTRLB_CMDEX_KEY);
+		while (!hri_nvmctrl_get_STATUS_READY_bit(hw)) {
+			/* Wait until this module isn't busy */
+		}
 	}
 
 	/* Restore CTRLA */
@@ -628,7 +623,7 @@ static int32_t _user_row_write_exec(const uint32_t *_row)
 
 int32_t _user_area_write(void *base, const uint32_t offset, const uint8_t *buf, const uint32_t size)
 {
-	uint32_t _row[3]; /* Copy of user row. */
+	uint32_t _row[NVMCTRL_PAGE_SIZE / 4]; /* Copy of user row. */
 
 	/** Parameter check. */
 	if (_IS_NVM_USER_ROW(base)) {
@@ -643,7 +638,7 @@ int32_t _user_area_write(void *base, const uint32_t offset, const uint8_t *buf, 
 		return ERR_UNSUPPORTED_OP;
 	}
 
-	memcpy(_row, base, 12);                      /* Store previous data. */
+	memcpy(_row, base, NVMCTRL_PAGE_SIZE);       /* Store previous data. */
 	memcpy((uint8_t *)_row + offset, buf, size); /* Modify with buf data. */
 
 	return _user_row_write_exec(_row);
@@ -651,7 +646,7 @@ int32_t _user_area_write(void *base, const uint32_t offset, const uint8_t *buf, 
 
 int32_t _user_area_write_bits(void *base, const uint32_t bit_offset, const uint32_t bits, const uint8_t n_bits)
 {
-	uint32_t _row[3]; /* Copy of user row. */
+	uint32_t _row[NVMCTRL_PAGE_SIZE / 4]; /* Copy of user row. */
 	uint32_t l_off, l_bits;
 	uint32_t r_off, r_bits;
 
@@ -682,7 +677,7 @@ int32_t _user_area_write_bits(void *base, const uint32_t bit_offset, const uint3
 		r_bits = 0;
 	}
 
-	memcpy(_row, base, 12); /* Store previous data. */
+	memcpy(_row, base, NVMCTRL_PAGE_SIZE); /* Store previous data. */
 
 	if (l_bits) {
 		uint32_t l_mask = ((1 << l_bits) - 1) << (bit_offset & (32 - 1));

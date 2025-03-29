@@ -29,15 +29,7 @@ void util_zero(volatile void* dst, size_t len)
 // the data type.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-// ifdef here so that we don't have to use -Wno-unknown-pragmas on GCC
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
-#endif
     rust_util_zero(rust_util_bytes_mut(dst, len));
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 #pragma GCC diagnostic pop
 }
 

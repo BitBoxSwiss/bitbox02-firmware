@@ -2,6 +2,8 @@ use core::fmt;
 use core::ops;
 use gimli::{Register, RiscV};
 
+use super::maybe_cfi;
+
 // Match DWARF_FRAME_REGISTERS in libgcc
 pub const MAX_REG_RULES: usize = 65;
 
@@ -80,7 +82,10 @@ macro_rules! code {
         "
     };
     (save_fp) => {
+        // arch option manipulation needed due to LLVM/Rust bug, see rust-lang/rust#80608
         "
+        .option push
+        .option arch, +d
         fsd fs0, 0x140(sp)
         fsd fs1, 0x148(sp)
         fsd fs2, 0x190(sp)
@@ -93,6 +98,7 @@ macro_rules! code {
         fsd fs9, 0x1C8(sp)
         fsd fs10, 0x1D0(sp)
         fsd fs11, 0x1D8(sp)
+        .option pop
         "
     };
     (restore_gp) => {
@@ -173,13 +179,14 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
     #[cfg(target_feature = "d")]
     unsafe {
         core::arch::naked_asm!(
+            maybe_cfi!(".cfi_startproc"),
             "
             mv t0, sp
             add sp, sp, -0x210
-            .cfi_def_cfa_offset 0x210
-            sd ra, 0x200(sp)
-            .cfi_offset ra, -16
             ",
+            maybe_cfi!(".cfi_def_cfa_offset 0x210"),
+            "sd ra, 0x200(sp)",
+            maybe_cfi!(".cfi_offset ra, -16"),
             code!(save_gp),
             code!(save_fp),
             "
@@ -188,22 +195,24 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
             jalr t0
             ld ra, 0x200(sp)
             add sp, sp, 0x210
-            .cfi_def_cfa_offset 0
-            .cfi_restore ra
-            ret
             ",
+            maybe_cfi!(".cfi_def_cfa_offset 0"),
+            maybe_cfi!(".cfi_restore ra"),
+            "ret",
+            maybe_cfi!(".cfi_endproc"),
         );
     }
     #[cfg(not(target_feature = "d"))]
     unsafe {
         core::arch::naked_asm!(
+            maybe_cfi!(".cfi_startproc"),
             "
             mv t0, sp
             add sp, sp, -0x110
-            .cfi_def_cfa_offset 0x110
-            sd ra, 0x100(sp)
-            .cfi_offset ra, -16
             ",
+            maybe_cfi!(".cfi_def_cfa_offset 0x110"),
+            "sd ra, 0x100(sp)",
+            maybe_cfi!(".cfi_offset ra, -16"),
             code!(save_gp),
             "
             mv t0, a0
@@ -211,10 +220,11 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
             jalr t0
             ld ra, 0x100(sp)
             add sp, sp, 0x110
-            .cfi_def_cfa_offset 0
-            .cfi_restore ra
-            ret
             ",
+            maybe_cfi!(".cfi_def_cfa_offset 0"),
+            maybe_cfi!(".cfi_restore ra"),
+            "ret",
+            maybe_cfi!(".cfi_endproc"),
         );
     }
 }

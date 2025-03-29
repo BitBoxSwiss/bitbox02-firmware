@@ -217,12 +217,19 @@ impl<'data> Builder<'data> {
                 builder.gnu_hash_bloom_count = hash.bloom_count.get(endian);
                 builder.gnu_hash_bucket_count = hash.bucket_count.get(endian);
             }
+            let name = sections.section_name(endian, section)?;
             let data = match section.sh_type(endian) {
                 elf::SHT_NOBITS => SectionData::UninitializedData(section.sh_size(endian).into()),
+                // Section types that we treat as opaque data. In future, some of these could be
+                // changed to a parsed variant if we need to modify their contents.
                 elf::SHT_PROGBITS
                 | elf::SHT_INIT_ARRAY
                 | elf::SHT_FINI_ARRAY
-                | elf::SHT_PREINIT_ARRAY => SectionData::Data(section.data(endian, data)?.into()),
+                | elf::SHT_PREINIT_ARRAY
+                | elf::SHT_RELR
+                | elf::SHT_LLVM_DEPENDENT_LIBRARIES => {
+                    SectionData::Data(section.data(endian, data)?.into())
+                }
                 elf::SHT_REL | elf::SHT_RELA => relocations,
                 elf::SHT_SYMTAB => {
                     if index == symbols.section() {
@@ -261,6 +268,10 @@ impl<'data> Builder<'data> {
                         SectionData::DynamicString
                     } else if index == section_strings_index {
                         SectionData::SectionString
+                    } else if name == b".annobin.notes" {
+                        // Not actually a string table because nothing references the strings.
+                        // We simply need to preserve the data (similar to a .comment section).
+                        SectionData::Data(section.data(endian, data)?.into())
                     } else {
                         return Err(Error(format!(
                             "Unsupported SHT_STRTAB section at index {}",
@@ -341,7 +352,7 @@ impl<'data> Builder<'data> {
             builder.sections.push(Section {
                 id,
                 delete: false,
-                name: sections.section_name(endian, section)?.into(),
+                name: name.into(),
                 sh_type: section.sh_type(endian),
                 sh_flags,
                 sh_addr,
@@ -1862,6 +1873,12 @@ impl<'data> Builder<'data> {
         }
         let mut version_file_used = vec![false; self.version_files.len()];
         for version in &mut self.versions {
+            if let VersionData::Need(need) = &version.data {
+                // This is a dummy version that is required if DT_RELR is used.
+                if need.name.as_slice() == b"GLIBC_ABI_DT_RELR" {
+                    version_used[version.id.0] = true;
+                }
+            }
             if !version_used[version.id.0] {
                 version.delete = true;
                 continue;

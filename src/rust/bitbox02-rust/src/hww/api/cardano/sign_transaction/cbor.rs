@@ -63,7 +63,7 @@ pub fn encode_withdrawal_address(
     let pubkey_hash = pubkey_hash_at_keypath(keypath)?;
     let mut encoded: Vec<u8> = Vec::with_capacity(1 + ADDRESS_HASH_SIZE);
     let address_tag = 0b1110; // reward address using a stake keyhash.
-    let header = address_tag << 4 | params.network_id;
+    let header = (address_tag << 4) | params.network_id;
     encoded.push(header);
     encoded.extend_from_slice(&pubkey_hash);
     Ok(encoded)

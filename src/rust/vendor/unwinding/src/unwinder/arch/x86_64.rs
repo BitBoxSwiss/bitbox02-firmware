@@ -2,6 +2,8 @@ use core::fmt;
 use core::ops;
 use gimli::{Register, X86_64};
 
+use super::maybe_cfi;
+
 // Match DWARF_FRAME_REGISTERS in libgcc
 pub const MAX_REG_RULES: usize = 17;
 
@@ -61,9 +63,10 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
     // No need to save caller-saved registers here.
     unsafe {
         core::arch::naked_asm!(
+            maybe_cfi!(".cfi_startproc"),
+            "sub rsp, 0x98",
+            maybe_cfi!(".cfi_def_cfa_offset 0xA0"),
             "
-            sub rsp, 0x98
-            .cfi_def_cfa_offset 0xA0
             mov [rsp + 0x18], rbx
             mov [rsp + 0x30], rbp
 
@@ -87,9 +90,10 @@ pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), p
             mov rdi, rsp
             call rax
             add rsp, 0x98
-            .cfi_def_cfa_offset 8
-            ret
-            "
+            ",
+            maybe_cfi!(".cfi_def_cfa_offset 8"),
+            "ret",
+            maybe_cfi!(".cfi_endproc"),
         );
     }
 }

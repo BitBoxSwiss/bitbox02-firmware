@@ -113,8 +113,10 @@ impl<'a> Object<'a> {
 
     pub(crate) fn elf_subsection_name(&self, section: &[u8], value: &[u8]) -> Vec<u8> {
         let mut name = section.to_vec();
-        name.push(b'.');
-        name.extend_from_slice(value);
+        if !value.is_empty() {
+            name.push(b'.');
+            name.extend_from_slice(value);
+        }
         name
     }
 
@@ -133,8 +135,10 @@ impl<'a> Object<'a> {
             Architecture::X86_64_X32 => true,
             Architecture::Hexagon => true,
             Architecture::LoongArch64 => true,
+            Architecture::M68k => true,
             Architecture::Mips => false,
             Architecture::Mips64 => true,
+            Architecture::Mips64_N32 => true,
             Architecture::Msp430 => true,
             Architecture::PowerPc => true,
             Architecture::PowerPc64 => true,
@@ -260,12 +264,32 @@ impl<'a> Object<'a> {
                 (K::PltRelative, E::LoongArchBranch, 26) => elf::R_LARCH_B26,
                 _ => return unsupported_reloc(),
             },
-            Architecture::Mips | Architecture::Mips64 => match (kind, encoding, size) {
-                (K::Absolute, _, 16) => elf::R_MIPS_16,
-                (K::Absolute, _, 32) => elf::R_MIPS_32,
-                (K::Absolute, _, 64) => elf::R_MIPS_64,
+            Architecture::M68k => match (kind, encoding, size) {
+                (K::Absolute, _, 8) => elf::R_68K_8,
+                (K::Absolute, _, 16) => elf::R_68K_16,
+                (K::Absolute, _, 32) => elf::R_68K_32,
+                (K::Relative, _, 8) => elf::R_68K_PC8,
+                (K::Relative, _, 16) => elf::R_68K_PC16,
+                (K::Relative, _, 32) => elf::R_68K_PC32,
+                (K::GotRelative, _, 8) => elf::R_68K_GOT8,
+                (K::GotRelative, _, 16) => elf::R_68K_GOT16,
+                (K::GotRelative, _, 32) => elf::R_68K_GOT32,
+                (K::Got, _, 8) => elf::R_68K_GOT8O,
+                (K::Got, _, 16) => elf::R_68K_GOT16O,
+                (K::Got, _, 32) => elf::R_68K_GOT32O,
+                (K::PltRelative, _, 8) => elf::R_68K_PLT8,
+                (K::PltRelative, _, 16) => elf::R_68K_PLT16,
+                (K::PltRelative, _, 32) => elf::R_68K_PLT32,
                 _ => return unsupported_reloc(),
             },
+            Architecture::Mips | Architecture::Mips64 | Architecture::Mips64_N32 => {
+                match (kind, encoding, size) {
+                    (K::Absolute, _, 16) => elf::R_MIPS_16,
+                    (K::Absolute, _, 32) => elf::R_MIPS_32,
+                    (K::Absolute, _, 64) => elf::R_MIPS_64,
+                    _ => return unsupported_reloc(),
+                }
+            }
             Architecture::Msp430 => match (kind, encoding, size) {
                 (K::Absolute, _, 32) => elf::R_MSP430_32,
                 (K::Absolute, _, 16) => elf::R_MSP430_16_BYTE,
@@ -543,8 +567,10 @@ impl<'a> Object<'a> {
             (Architecture::X86_64_X32, None) => elf::EM_X86_64,
             (Architecture::Hexagon, None) => elf::EM_HEXAGON,
             (Architecture::LoongArch64, None) => elf::EM_LOONGARCH,
+            (Architecture::M68k, None) => elf::EM_68K,
             (Architecture::Mips, None) => elf::EM_MIPS,
             (Architecture::Mips64, None) => elf::EM_MIPS,
+            (Architecture::Mips64_N32, None) => elf::EM_MIPS,
             (Architecture::Msp430, None) => elf::EM_MSP430,
             (Architecture::PowerPc, None) => elf::EM_PPC,
             (Architecture::PowerPc64, None) => elf::EM_PPC64,
@@ -564,7 +590,7 @@ impl<'a> Object<'a> {
                 )));
             }
         };
-        let (os_abi, abi_version, e_flags) = if let FileFlags::Elf {
+        let (os_abi, abi_version, mut e_flags) = if let FileFlags::Elf {
             os_abi,
             abi_version,
             e_flags,
@@ -574,6 +600,11 @@ impl<'a> Object<'a> {
         } else {
             (elf::ELFOSABI_NONE, 0, 0)
         };
+
+        if self.architecture == Architecture::Mips64_N32 {
+            e_flags |= elf::EF_MIPS_ABI2;
+        }
+
         writer.write_file_header(&FileHeader {
             os_abi,
             abi_version,

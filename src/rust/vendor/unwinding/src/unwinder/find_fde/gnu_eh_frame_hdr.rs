@@ -9,7 +9,7 @@ pub fn get_finder() -> &'static StaticFinder {
     &StaticFinder(())
 }
 
-extern "C" {
+unsafe extern "C" {
     static __executable_start: u8;
     static __etext: u8;
     static __GNU_EH_FRAME_HDR: u8;

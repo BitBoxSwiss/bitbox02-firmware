@@ -62,7 +62,7 @@ pub fn validate_address_shelley_payment(
     bip44_account: Option<u32>,
 ) -> Result<(), Error> {
     if let &[BIP44_PURPOSE_SHELLEY, BIP44_COIN, account, role, address] = keypath {
-        if !bip44_account.map_or(true, |a| a == account) {
+        if bip44_account.is_some_and(|a| a != account) {
             return Err(Error);
         }
         check_account(account)?;
@@ -88,7 +88,7 @@ pub fn validate_address_shelley_stake(
     if let &[BIP44_PURPOSE_SHELLEY, BIP44_COIN, account, BIP44_STAKE_ROLE, BIP44_STAKE_ADDRESS] =
         keypath
     {
-        if !bip44_account.map_or(true, |a| a == account) {
+        if bip44_account.is_some_and(|a| a != account) {
             return Err(Error);
         }
         check_account(account)?;

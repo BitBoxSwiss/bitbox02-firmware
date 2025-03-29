@@ -11,7 +11,7 @@ use core::sync::atomic::{AtomicI32, Ordering};
 static PANIC_COUNT: Cell<usize> = Cell::new(0);
 
 #[link(name = "c")]
-extern "C" {}
+unsafe extern "C" {}
 
 pub(crate) fn drop_panic() {
     eprintln!("Rust panics must be rethrown");

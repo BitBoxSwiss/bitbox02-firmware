@@ -150,7 +150,7 @@ RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
 RUN rustup component add rust-src
-RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.27.0 --locked
+RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.28.0 --locked
 RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.71.1 --locked
 
 # Until cargo vendor supports vendoring dependencies of the rust std libs we

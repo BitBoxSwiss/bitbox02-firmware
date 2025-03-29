@@ -4,16 +4,16 @@ version = 4
 
 [[package]]
 name = "cc"
-version = "1.1.31"
+version = "1.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2e7962b54006dcfcc61cb72735f4d89bb97061dd6a7ed882ec6b8ee53714c6f"
+checksum = "c31a0499c1dc64f458ad13872de75c0eb7e3fdb0e67964610c914b034fc5956e"
 dependencies = [
  "shlex",
 ]
 
 [[package]]
 name = "compiler_builtins"
-version = "0.1.138"
+version = "0.1.140"
 dependencies = [
  "cc",
  "rustc-std-workspace-core",
@@ -21,9 +21,9 @@ dependencies = [
 
 [[package]]
 name = "rustc-std-workspace-core"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1956f5517128a2b6f23ab2dadf1a976f4f5b27962e7724c2bf3d45e539ec098c"
+checksum = "aa9c45b374136f52f2d6311062c7146bff20fec063c3f5d46a410bd937746955"
 
 [[package]]
 name = "shlex"

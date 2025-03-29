@@ -31,3 +31,21 @@ pub use aarch64::*;
     target_arch = "aarch64"
 )))]
 compile_error!("Current architecture is not supported");
+
+// CFI directives cannot be used if neither debuginfo nor panic=unwind is enabled.
+// We don't have an easy way to check the former, so just check based on panic strategy.
+#[cfg(panic = "abort")]
+macro_rules! maybe_cfi {
+    ($x: literal) => {
+        ""
+    };
+}
+
+#[cfg(panic = "unwind")]
+macro_rules! maybe_cfi {
+    ($x: literal) => {
+        $x
+    };
+}
+
+pub(crate) use maybe_cfi;

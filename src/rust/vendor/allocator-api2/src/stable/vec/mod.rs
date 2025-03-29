@@ -63,7 +63,7 @@ use core::iter;
 use core::iter::FromIterator;
 use core::marker::PhantomData;
 use core::mem::{self, size_of, ManuallyDrop, MaybeUninit};
-use core::ops::{self, Bound, Index, IndexMut, Range, RangeBounds};
+use core::ops::{self, Bound, Index, IndexMut, RangeBounds};
 use core::ptr::{self, NonNull};
 use core::slice::{self, SliceIndex};
 
@@ -900,7 +900,7 @@ impl<T, A: Allocator> Vec<T, A> {
     /// # Examples
     ///
     /// ```
-    /// use std::collections::TryReserveError;
+    /// use allocator_api2::collections::TryReserveError;
     ///
     /// fn process_data(data: &[u32]) -> Result<Vec<u32>, TryReserveError> {
     ///     let mut output = Vec::new();
@@ -943,7 +943,7 @@ impl<T, A: Allocator> Vec<T, A> {
     /// # Examples
     ///
     /// ```
-    /// use std::collections::TryReserveError;
+    /// use allocator_api2::collections::TryReserveError;
     ///
     /// fn process_data(data: &[u32]) -> Result<Vec<u32>, TryReserveError> {
     ///     let mut output = Vec::new();
@@ -1049,7 +1049,7 @@ impl<T, A: Allocator> Vec<T, A> {
             let me = ManuallyDrop::new(self);
             let buf = ptr::read(&me.buf);
             let len = me.len();
-            buf.into_box(len).assume_init()
+            Box::<[mem::MaybeUninit<T>], A>::assume_init(buf.into_box(len))
         }
     }
 
@@ -2542,62 +2542,6 @@ impl<T: PartialEq, A: Allocator> Vec<T, A> {
     #[inline(always)]
     pub fn dedup(&mut self) {
         self.dedup_by(|a, b| a == b)
-    }
-}
-
-trait ExtendFromWithinSpec {
-    /// # Safety
-    ///
-    /// - `src` needs to be valid index
-    /// - `self.capacity() - self.len()` must be `>= src.len()`
-    unsafe fn spec_extend_from_within(&mut self, src: Range<usize>);
-}
-
-// impl<T: Clone, A: Allocator> ExtendFromWithinSpec for Vec<T, A> {
-//     default unsafe fn spec_extend_from_within(&mut self, src: Range<usize>) {
-//         // SAFETY:
-//         // - len is increased only after initializing elements
-//         let (this, spare, len) = unsafe { self.split_at_spare_mut_with_len() };
-
-//         // SAFETY:
-//         // - caller guarantees that src is a valid index
-//         let to_clone = unsafe { this.get_unchecked(src) };
-
-//         iter::zip(to_clone, spare)
-//             .map(|(src, dst)| dst.write(src.clone()))
-//             // Note:
-//             // - Element was just initialized with `MaybeUninit::write`, so it's ok to increase len
-//             // - len is increased after each element to prevent leaks (see issue #82533)
-//             .for_each(|_| *len += 1);
-//     }
-// }
-
-impl<T: Copy, A: Allocator> ExtendFromWithinSpec for Vec<T, A> {
-    #[inline(always)]
-    unsafe fn spec_extend_from_within(&mut self, src: Range<usize>) {
-        let count = src.len();
-        {
-            let (init, spare) = self.split_at_spare_mut();
-
-            // SAFETY:
-            // - caller guarantees that `src` is a valid index
-            let source = unsafe { init.get_unchecked(src) };
-
-            // SAFETY:
-            // - Both pointers are created from unique slice references (`&mut [_]`)
-            //   so they are valid and do not overlap.
-            // - Elements are :Copy so it's OK to copy them, without doing
-            //   anything with the original values
-            // - `count` is equal to the len of `source`, so source is valid for
-            //   `count` reads
-            // - `.reserve(count)` guarantees that `spare.len() >= count` so spare
-            //   is valid for `count` writes
-            unsafe { ptr::copy_nonoverlapping(source.as_ptr(), spare.as_mut_ptr() as _, count) };
-        }
-
-        // SAFETY:
-        // - The elements were just initialized by `copy_nonoverlapping`
-        self.len += count;
     }
 }
 

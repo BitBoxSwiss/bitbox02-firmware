@@ -14,7 +14,7 @@ use crate::read::{
 use super::{
     CompressionHeader, Dyn, ElfComdat, ElfComdatIterator, ElfDynamicRelocationIterator, ElfSection,
     ElfSectionIterator, ElfSegment, ElfSegmentIterator, ElfSymbol, ElfSymbolIterator,
-    ElfSymbolTable, NoteHeader, ProgramHeader, Rel, Rela, RelocationSections, SectionHeader,
+    ElfSymbolTable, NoteHeader, ProgramHeader, Rel, Rela, RelocationSections, Relr, SectionHeader,
     SectionTable, Sym, SymbolTable,
 };
 
@@ -187,16 +187,56 @@ where
     Elf: FileHeader,
     R: ReadRef<'data>,
 {
-    type Segment<'file> = ElfSegment<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type SegmentIterator<'file> = ElfSegmentIterator<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type Section<'file> = ElfSection<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type SectionIterator<'file> = ElfSectionIterator<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type Comdat<'file> = ElfComdat<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type ComdatIterator<'file> = ElfComdatIterator<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type Symbol<'file> = ElfSymbol<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type SymbolIterator<'file> = ElfSymbolIterator<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type SymbolTable<'file> = ElfSymbolTable<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
-    type DynamicRelocationIterator<'file> = ElfDynamicRelocationIterator<'data, 'file, Elf, R> where Self: 'file, 'data: 'file;
+    type Segment<'file>
+        = ElfSegment<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type SegmentIterator<'file>
+        = ElfSegmentIterator<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type Section<'file>
+        = ElfSection<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type SectionIterator<'file>
+        = ElfSectionIterator<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type Comdat<'file>
+        = ElfComdat<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type ComdatIterator<'file>
+        = ElfComdatIterator<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type Symbol<'file>
+        = ElfSymbol<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type SymbolIterator<'file>
+        = ElfSymbolIterator<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type SymbolTable<'file>
+        = ElfSymbolTable<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
+    type DynamicRelocationIterator<'file>
+        = ElfDynamicRelocationIterator<'data, 'file, Elf, R>
+    where
+        Self: 'file,
+        'data: 'file;
 
     fn architecture(&self) -> Architecture {
         match (
@@ -216,7 +256,14 @@ where
             (elf::EM_X86_64, true) => Architecture::X86_64,
             (elf::EM_HEXAGON, _) => Architecture::Hexagon,
             (elf::EM_LOONGARCH, true) => Architecture::LoongArch64,
-            (elf::EM_MIPS, false) => Architecture::Mips,
+            (elf::EM_68K, false) => Architecture::M68k,
+            (elf::EM_MIPS, false) => {
+                if (self.header.e_flags(self.endian) & elf::EF_MIPS_ABI2) != 0 {
+                    Architecture::Mips64_N32
+                } else {
+                    Architecture::Mips
+                }
+            }
             (elf::EM_MIPS, true) => Architecture::Mips64,
             (elf::EM_MSP430, _) => Architecture::Msp430,
             (elf::EM_PPC, _) => Architecture::PowerPc,
@@ -478,7 +525,7 @@ where
 #[allow(missing_docs)]
 pub trait FileHeader: Debug + Pod {
     // Ideally this would be a `u64: From<Word>`, but can't express that.
-    type Word: Into<u64>;
+    type Word: Into<u64> + Default + Copy;
     type Sword: Into<i64>;
     type Endian: endian::Endian;
     type ProgramHeader: ProgramHeader<Elf = Self, Endian = Self::Endian, Word = Self::Word>;
@@ -489,6 +536,7 @@ pub trait FileHeader: Debug + Pod {
     type Sym: Sym<Endian = Self::Endian, Word = Self::Word>;
     type Rel: Rel<Endian = Self::Endian, Word = Self::Word>;
     type Rela: Rela<Endian = Self::Endian, Word = Self::Word> + From<Self::Rel>;
+    type Relr: Relr<Endian = Self::Endian, Word = Self::Word>;
 
     /// Return true if this type is a 64-bit header.
     ///
@@ -778,6 +826,7 @@ impl<Endian: endian::Endian> FileHeader for elf::FileHeader32<Endian> {
     type Sym = elf::Sym32<Endian>;
     type Rel = elf::Rel32<Endian>;
     type Rela = elf::Rela32<Endian>;
+    type Relr = elf::Relr32<Endian>;
 
     #[inline]
     fn is_type_64(&self) -> bool {
@@ -875,6 +924,7 @@ impl<Endian: endian::Endian> FileHeader for elf::FileHeader64<Endian> {
     type Sym = elf::Sym64<Endian>;
     type Rel = elf::Rel64<Endian>;
     type Rela = elf::Rela64<Endian>;
+    type Relr = elf::Relr64<Endian>;
 
     #[inline]
     fn is_type_64(&self) -> bool {

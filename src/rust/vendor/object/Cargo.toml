@@ -13,9 +13,10 @@
 edition = "2018"
 rust-version = "1.65"
 name = "object"
-version = "0.36.5"
-build = false
+version = "0.36.7"
+build = "build.rs"
 include = [
+    "/build.rs",
     "/Cargo.toml",
     "/CHANGELOG.md",
     "/README.md",
@@ -24,6 +25,7 @@ include = [
     "/src",
     "/tests",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -99,7 +101,7 @@ version = "0.7.0"
 optional = true
 
 [dependencies.wasmparser]
-version = "0.218.0"
+version = "0.222.0"
 optional = true
 default-features = false
 

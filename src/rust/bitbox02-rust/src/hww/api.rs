@@ -85,20 +85,27 @@ async fn process_api_btc(_request: &Request) -> Result<Response, Error> {
 
 /// Checks if the device is ready to accept/handle an api endpoint.
 fn can_call(request: &Request) -> bool {
-    // We have three main states:
-    // Creating a wallet on an uninitialized device goes through those states in order.
-    // Restoring a backup skips the seeded state and goes straight to `initialized`.
+    // We have four main states:
+    // Creating a wallet on an uninitialized device goes from Uninitialized to Seeded, and when the
+    // backup is created to `Initialized*`.
+    // Restoring a backup skips the seeded state and goes straight to `Initialized*`.
     // Each state has a set of valid api calls associated.
     enum State {
         // Uninitialized (reset).
         Uninitialized,
         // Seeded (password defined, seed created/loaded).
         Seeded,
-        // Initialized (seed backuped up on SD card).
-        Initialized,
+        // InitializedAndLocked (seed backuped up on SD card, keystore locked).
+        InitializedAndLocked,
+        // InitializedAndUnlocked (seed backuped up on SD card, keystore unlocked).
+        InitializedAndUnlocked,
     }
     let state: State = if bitbox02::memory::is_initialized() {
-        State::Initialized
+        if bitbox02::keystore::is_locked() {
+            State::InitializedAndLocked
+        } else {
+            State::InitializedAndUnlocked
+        }
     } else if bitbox02::memory::is_seeded() {
         State::Seeded
     } else {
@@ -108,33 +115,38 @@ fn can_call(request: &Request) -> bool {
     match request {
         // Deprecated call, last used in v1.0.0.
         Request::PerformAttestation(_) => false,
-        Request::DeviceInfo(_) => true,
-        Request::Reboot(_) => true,
-        Request::DeviceName(_) => true,
-        Request::DeviceLanguage(_) => true,
-        Request::CheckSdcard(_) => true,
-        Request::InsertRemoveSdcard(_) => true,
-        Request::ListBackups(_) => true,
-        Request::SetPassword(_) => matches!(state, State::Uninitialized | State::Seeded),
-        Request::RestoreBackup(_) => matches!(state, State::Uninitialized | State::Seeded),
-        Request::RestoreFromMnemonic(_) => matches!(state, State::Uninitialized | State::Seeded),
-        Request::CreateBackup(_) => matches!(state, State::Seeded | State::Initialized),
-        Request::ShowMnemonic(_) => matches!(state, State::Seeded | State::Initialized),
-        Request::Fingerprint(_) => matches!(state, State::Initialized),
-        Request::ElectrumEncryptionKey(_) => matches!(state, State::Initialized),
-        Request::BtcPub(_) | Request::Btc(_) | Request::BtcSignInit(_) => {
-            matches!(state, State::Initialized)
+        Request::DeviceInfo(_)
+        | Request::Reboot(_)
+        | Request::DeviceName(_)
+        | Request::DeviceLanguage(_)
+        | Request::CheckSdcard(_)
+        | Request::InsertRemoveSdcard(_)
+        | Request::ListBackups(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
+        Request::SetPassword(_) | Request::RestoreBackup(_) | Request::RestoreFromMnemonic(_) => {
+            matches!(state, State::Uninitialized | State::Seeded)
+        }
+        Request::CreateBackup(_) | Request::ShowMnemonic(_) => {
+            matches!(state, State::Seeded | State::InitializedAndUnlocked)
+        }
+        Request::Fingerprint(_)
+        | Request::ElectrumEncryptionKey(_)
+        | Request::BtcPub(_)
+        | Request::Btc(_)
+        | Request::BtcSignInit(_)
+        | Request::CheckBackup(_)
+        | Request::SetMnemonicPassphraseEnabled(_)
+        | Request::Eth(_)
+        | Request::Reset(_)
+        | Request::Cardano(_)
+        | Request::Bip85(_) => {
+            matches!(state, State::InitializedAndUnlocked)
         }
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
         Request::BtcSignInput(_) | Request::BtcSignOutput(_) => false,
-
-        Request::CheckBackup(_) => matches!(state, State::Initialized),
-        Request::SetMnemonicPassphraseEnabled(_) => matches!(state, State::Initialized),
-        Request::Eth(_) => matches!(state, State::Initialized),
-        Request::Reset(_) => matches!(state, State::Initialized),
-        Request::Cardano(_) => matches!(state, State::Initialized),
-        Request::Bip85(_) => matches!(state, State::Initialized),
     }
 }
 

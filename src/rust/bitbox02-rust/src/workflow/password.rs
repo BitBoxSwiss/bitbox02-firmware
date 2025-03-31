@@ -13,9 +13,10 @@
 // limitations under the License.
 
 use super::{confirm, status, trinary_input_string};
-use bitbox02::input::SafeInputString;
 
 pub use trinary_input_string::{CanCancel, Error};
+
+use alloc::string::String;
 
 async fn prompt_cancel() -> Result<(), confirm::UserAbort> {
     confirm::confirm(&confirm::Params {
@@ -37,7 +38,7 @@ pub async fn enter(
     title: &str,
     special_chars: bool,
     can_cancel: CanCancel,
-) -> Result<SafeInputString, Error> {
+) -> Result<zeroize::Zeroizing<String>, Error> {
     let params = trinary_input_string::Params {
         title,
         hide: true,
@@ -78,7 +79,7 @@ impl core::convert::From<Error> for EnterTwiceError {
 /// ```no_run
 /// let pw = enter_twice().await.unwrap();
 /// // use pw.
-pub async fn enter_twice() -> Result<SafeInputString, EnterTwiceError> {
+pub async fn enter_twice() -> Result<zeroize::Zeroizing<String>, EnterTwiceError> {
     let password = enter("Set password", false, CanCancel::Yes).await?;
     let password_repeat = enter("Repeat password", false, CanCancel::Yes).await?;
     if password.as_str() != password_repeat.as_str() {

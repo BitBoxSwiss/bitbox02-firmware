@@ -19,11 +19,11 @@ pub use super::types::{
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
-use crate::input::SafeInputString;
-
 use core::marker::PhantomData;
 
 extern crate alloc;
+
+use alloc::string::String;
 
 pub struct Component<'a> {
     is_pushed: bool,
@@ -53,14 +53,14 @@ pub fn trinary_input_string_create<'a, F>(
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
-    F: FnMut(SafeInputString) + 'a,
+    F: FnMut(zeroize::Zeroizing<String>) + 'a,
 {
     crate::print_stdout(&format!(
         "ENTER SCREEN START\nTITLE: {}\nENTER SCREEN END\n",
         params.title
     ));
 
-    confirm_callback(SafeInputString::new());
+    confirm_callback(zeroize::Zeroizing::new("".into()));
     Component {
         is_pushed: false,
         _p: PhantomData,

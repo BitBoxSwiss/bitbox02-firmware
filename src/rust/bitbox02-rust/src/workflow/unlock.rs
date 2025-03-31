@@ -16,7 +16,6 @@ use crate::general::abort;
 use crate::workflow::confirm;
 use crate::workflow::password;
 use crate::workflow::status::status;
-use bitbox02::input::SafeInputString;
 use bitbox02::keystore;
 
 pub use password::CanCancel;
@@ -98,7 +97,7 @@ pub async fn unlock_keystore(
 /// feature is enabled, the user will be asked for the passphrase.
 pub async fn unlock_bip39() {
     // Empty passphrase by default.
-    let mut mnemonic_passphrase = SafeInputString::new();
+    let mut mnemonic_passphrase = zeroize::Zeroizing::new("".into());
 
     // If setting activated, get the passphrase from the user.
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {

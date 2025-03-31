@@ -59,7 +59,7 @@ async fn process_bip39() -> Result<(), Error> {
     })
     .await?;
 
-    let num_words: u32 = match choose("How many words?", "12", "18", "24").await {
+    let num_words: u32 = match choose("How many words?", Some("12"), Some("18"), Some("24")).await {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
         TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,

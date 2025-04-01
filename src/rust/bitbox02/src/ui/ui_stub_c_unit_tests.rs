@@ -183,3 +183,10 @@ pub fn empty_create<'a>() -> Component<'a> {
         _p: PhantomData,
     }
 }
+
+pub fn info_centered_create<'a>(_text: &str) -> Component<'a> {
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}

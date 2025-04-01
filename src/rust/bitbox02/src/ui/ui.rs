@@ -475,3 +475,17 @@ pub fn empty_create<'a>() -> Component<'a> {
         _p: PhantomData,
     }
 }
+
+pub fn info_centered_create<'a>(text: &str) -> Component<'a> {
+    Component {
+        component: unsafe {
+            bitbox02_sys::info_centered_create(
+                crate::util::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
+                None,
+            )
+        },
+        is_pushed: false,
+        on_drop: None,
+        _p: PhantomData,
+    }
+}

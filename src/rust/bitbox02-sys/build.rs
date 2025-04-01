@@ -82,6 +82,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_unlock",
     "keystore_unlock_bip39",
     "label_create",
+    "info_centered_create",
     "localtime",
     "lock_animation_start",
     "lock_animation_stop",

@@ -76,9 +76,8 @@ async fn get_mnemonic_passphrase(
         .await;
 
         if choice == TrinaryChoice::TRINARY_CHOICE_RIGHT {
-            // TODO: show label 'Waiting for host...' or similar.
-            // let mut empty_component = bitbox02::ui::empty_create();
-            // empty_component.screen_stack_push();
+            let mut waiting_component = bitbox02::ui::info_centered_create("Waiting on host...");
+            waiting_component.screen_stack_push();
             return get_mnemonic_passphrase_from_host().await;
         }
     }

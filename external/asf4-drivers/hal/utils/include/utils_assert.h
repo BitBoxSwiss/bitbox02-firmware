@@ -44,6 +44,9 @@ extern "C" {
 //# define USE_SIMPLE_ASSERT
 #endif
 
+// Bitbox modification. `utils_assert.h` is not compatible with std `assert.h`
+#undef assert
+
 /**
  * \brief Assert macro
  *

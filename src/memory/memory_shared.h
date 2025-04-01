@@ -65,7 +65,11 @@ typedef union {
 // ** DO NOT CHANGE MEMBER ORDER OR MEMORY LOCATION **
 //
 // Because the bootloader is fixed, changes may break the bootloader!
-//
+
+#define MEMORY_BLE_BOND_DB_LEN 1024
+#define MEMORY_BLE_IRK_LEN 16
+#define MEMORY_BLE_ADDR_LEN 6
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpacked"
 #pragma GCC diagnostic ignored "-Wattributes"
@@ -81,7 +85,12 @@ typedef union {
         uint8_t authorization_key_split[32];
         uint8_t encryption_key_split[32];
         uint8_t platform;
-        uint8_t reserved[3]; // align to 4 bytes
+        uint8_t reserved[1]; // align to uint16_t
+        int16_t ble_bond_db_len;
+        uint8_t ble_bond_db[MEMORY_BLE_BOND_DB_LEN];
+        uint8_t ble_identity_resolving_key[MEMORY_BLE_IRK_LEN];
+        uint8_t ble_identity_address[MEMORY_BLE_ADDR_LEN];
+        uint8_t padding[2]; // align to 4 bytes
     } fields;
     uint8_t bytes[FLASH_SHARED_DATA_LEN];
 } chunk_shared_t;
@@ -111,5 +120,18 @@ USE_RESULT uint8_t memory_get_securechip_type(void);
 #define MEMORY_PLATFORM_BITBOX02 0xFF
 #define MEMORY_PLATFORM_BITBOX02_PLUS 0x01
 USE_RESULT uint8_t memory_get_platform(void);
+
+// data must be at least MEMORY_BLE_BOND_DB_LEN long
+// returns -1 if no db was found otherwise length of db
+USE_RESULT int16_t memory_get_ble_bond_db(uint8_t* data);
+
+// data must be at least MEMORY_BLE_IRK_LEN long
+void memory_get_ble_irk(uint8_t* data);
+
+// data must be at least MEMORY_BLE_ADDR_LEN long
+void memory_get_ble_identity_address(uint8_t* data);
+
+// data_len can be at most MEMORY_BLE_BOND_DB_LEN
+bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len);
 
 #endif

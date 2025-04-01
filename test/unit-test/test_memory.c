@@ -178,6 +178,7 @@ static void _test_memory_setup(void** state)
 
     EMPTYCHUNK(empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_mock, empty_shared_chunk);
+    will_return(__wrap_memory_read_shared_bootdata_mock, empty_shared_chunk);
 
     EMPTYCHUNK(setup_chunk);
     EMPTYCHUNK(shared_chunk);
@@ -222,6 +223,7 @@ static void _test_memory_setup_failpersist(void** state)
     _expect_keys();
 
     EMPTYCHUNK(empty_shared_chunk);
+    will_return(__wrap_memory_read_shared_bootdata_mock, empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_mock, empty_shared_chunk);
 
     EMPTYCHUNK(setup_chunk);
@@ -371,6 +373,8 @@ static void _test_memory_set_mnemonic_passphrase_enabled(void** state)
 
 static void _test_memory_reset_hww(void** state)
 {
+    EMPTYCHUNK(empty_shared_chunk);
+    will_return(__wrap_memory_read_shared_bootdata_mock, empty_shared_chunk);
     EXPECT_RESET;
     assert_true(memory_reset_hww());
 

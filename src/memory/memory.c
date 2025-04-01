@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
 #include "memory.h"
@@ -26,7 +27,6 @@
 #include <rust/rust.h>
 
 #ifndef TESTING
-#include "driver_init.h"
 #include <hal_delay.h>
 #else
 #include <mock_memory.h>
@@ -240,8 +240,8 @@ static const memory_interface_functions_t* _interface_functions = NULL;
 
 bool memory_set_device_name(const char* name)
 {
-    if (name[0] == (char)0xFF) {
-        // utf8 string can't start with 0xFF.
+    if (name[0] == (char)0xFF || name[0] == 0x0) {
+        // utf8 string can't start with 0xFF or be an empty string.
         return false;
     }
 
@@ -410,7 +410,33 @@ bool memory_reset_hww(void)
     // Set a new noise static private key.
     rust_noise_generate_static_private_key(rust_util_bytes_mut(
         chunk.fields.noise_static_private_key, sizeof(chunk.fields.noise_static_private_key)));
-    return _write_chunk(CHUNK_1, chunk.bytes);
+    bool res = _write_chunk(CHUNK_1, chunk.bytes);
+
+    // Reset bond-db and reinitialize IRK and identity address
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        uint8_t random_bytes[32];
+        _interface_functions->random_32_bytes(&random_bytes[0]);
+        chunk_shared_t chunk_shared = {0};
+        memory_read_shared_bootdata(&chunk_shared);
+        memcpy(
+            &chunk_shared.fields.ble_identity_resolving_key[0],
+            &random_bytes[0],
+            sizeof(chunk_shared.fields.ble_identity_resolving_key));
+        memcpy(
+            &chunk_shared.fields.ble_identity_address[0],
+            &random_bytes[sizeof(chunk_shared.fields.ble_identity_address)],
+            sizeof(chunk_shared.fields.ble_identity_address));
+
+        // Two most significant bits must be set to indicate "public static address". See ch. 1.3.2
+        // in "Part B: Link Layer Specification" of bluetooth standard.
+        // ble_addr is stored in little endianness, so MSB is in the first byte.
+        chunk_shared.fields.ble_identity_address[0] |= 0xc;
+
+        memset(&chunk_shared.fields.ble_bond_db, 0xff, sizeof(chunk_shared.fields.ble_bond_db));
+        res |= _write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes);
+    }
+
+    return res;
 }
 
 static bool _is_bitmask_flag_set(uint8_t flag)
@@ -725,6 +751,24 @@ bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_d
 #endif
     }
     return false;
+}
+
+bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len)
+{
+    ASSERT(data_len <= MEMORY_BLE_BOND_DB_LEN);
+    chunk_shared_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    memory_read_shared_bootdata(&chunk);
+    chunk.fields.ble_bond_db_len = data_len;
+    memcpy(&chunk.fields.ble_bond_db[0], data, data_len);
+    if (memcmp(
+            (uint8_t*)(FLASH_SHARED_DATA_START),
+            chunk.bytes,
+            (unsigned int)FLASH_SHARED_DATA_LEN) != 0) {
+        util_log("Updated bond db");
+        return _write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes);
+    }
+    return true;
 }
 
 bool memory_get_salt_root(uint8_t* salt_root_out)

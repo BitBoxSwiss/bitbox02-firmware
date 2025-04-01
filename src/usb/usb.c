@@ -25,7 +25,6 @@
 #include <usb/class/hid/u2f/hid_u2f.h>
 #endif
 #endif
-#include "usb_processing.h"
 
 #ifndef TESTING
 #include <hal_timer.h>
@@ -129,7 +128,6 @@ int32_t usb_start(void (*on_hww_init)(void))
 #else
     (void)on_hww_init;
 #endif
-    usb_processing_init();
     _usb_enabled = true;
     return 0;
 }

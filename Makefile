@@ -131,6 +131,8 @@ jlink-flash-reset-version:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/reset-version.jlink
 jlink-flash-set-securechip-optiga:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-securechip-optiga.jlink
+jlink-erase-firmware-quick:
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/erase-firmware-quick.jlink
 jlink-gdb-server:
 	JLinkGDBServer -nogui -if SWD -device ATSAMD51J20 -speed 4000
 rtt-client:

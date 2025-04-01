@@ -123,6 +123,7 @@ typedef enum {
     OP_SET_CERTIFICATE = 'c',
     OP_SC_ROLLKEYS = 'k',
     OP_REBOOT = 'r',
+    OP_BLE_CONFIGURATION_STATUS = 'b',
 } op_code_t;
 
 typedef enum {
@@ -131,6 +132,8 @@ typedef enum {
     ERR_FAILED,
     ERR_UNKNOWN_COMMAND,
 } error_code_t;
+
+static error_code_t ble_configuration_status = ERR_INVALID_INPUT;
 
 static void _rtt_send(const uint8_t* msg, size_t len)
 {
@@ -276,6 +279,7 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         screen_print_debug("DONE", 0);
         break;
     case OP_SC_ROLLKEYS:
+        screen_print_debug("rollkeys", 0);
         if (!securechip_update_keys()) {
             screen_print_debug("rollkeys: failed", 0);
             result = ERR_FAILED;
@@ -287,10 +291,14 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
             result = ERR_FAILED;
             break;
         }
-        screen_print_debug("reset u2f counter: success", 0);
+        screen_print_debug("reset u2f counter: success", 100);
         break;
     case OP_REBOOT:
         _reset_mcu();
+        break;
+
+    case OP_BLE_CONFIGURATION_STATUS:
+        result = ble_configuration_status;
         break;
     default:
         screen_sprintf_debug(1000, "unknown command: 0x%x", input[0]);
@@ -315,6 +323,7 @@ static bool _factory_setup_ble_chip(void)
     uint8_t da14531_msg[80] = {0};
     uint16_t da14531_msg_len = 0;
 
+    util_log("BLE RST");
     da14531_rst();
     while (1) {
         if (uart_read_buf_len == 0) {
@@ -341,9 +350,11 @@ static bool _factory_setup_ble_chip(void)
                     if (da14531_msg[i] == '\n') {
                         util_log("DA14531: %.*s", i, (char*)&da14531_msg[0]);
                         if (memcmp(&da14531_msg[0], "ERROR", sizeof("ERROR") - 1) == 0) {
+                            ble_configuration_status = ERR_FAILED;
                             return false;
                         }
                         if (memcmp(&da14531_msg[0], "DONE", sizeof("DONE") - 1) == 0) {
+                            ble_configuration_status = ERR_OK;
                             return true;
                         }
                         da14531_msg_len = 0;
@@ -354,7 +365,6 @@ static bool _factory_setup_ble_chip(void)
             }
         }
     }
-    return true;
 }
 
 int main(void)
@@ -381,21 +391,23 @@ int main(void)
         }
     }
 
-    util_log("READY");
-    screen_print_debug("READY", 1);
-
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        screen_print_debug("BLE", 0);
         if (_factory_setup_ble_chip()) {
             util_log("Factory setup BLE chip done");
         } else {
             util_log("Factory setup BLE chip failed");
         }
+        screen_print_debug("BLE DONE", 0);
     }
 
     uint8_t msg_read[BUFFER_SIZE_DOWN] = {0};
     size_t len_read;
     uint8_t out[BUFFER_SIZE_UP];
     size_t out_len;
+
+    util_log("READY");
+    screen_print_debug("READY", 0);
 
     while (1) {
         if (_rtt_receive(msg_read, &len_read)) {

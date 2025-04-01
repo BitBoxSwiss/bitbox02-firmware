@@ -145,7 +145,12 @@ void da14531_rst(void)
     dap_init();
     dap_connect();
     dap_reset_link();
-    dap_target_prepare();
+    if (!dap_target_prepare(1000)) {
+        // SWD not available
+        // This likely means that the chip will try to boot repeatedly via UART
+        // and a reset is unnecessary
+        return;
+    }
     dap_target_select();
     uint32_t id = dap_read_idcode();
     util_log("%08x", (unsigned int)id);

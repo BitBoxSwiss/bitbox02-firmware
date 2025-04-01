@@ -13,10 +13,12 @@
 // limitations under the License.
 
 #include "common_main.h"
+#include "da14531/da14531_protocol.h"
 #include "driver_init.h"
 #include "firmware_main_loop.h"
 #include "hardfault.h"
 #include "memory/bitbox02_smarteeprom.h"
+#include "memory/memory_shared.h"
 #include "platform/platform_config.h"
 #include "platform_init.h"
 #include "qtouch.h"
@@ -36,6 +38,9 @@ int main(void)
     qtouch_init();
     common_main();
     bitbox02_smarteeprom_init();
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        da14531_protocol_init();
+    }
     firmware_main_loop();
     return 0;
 }

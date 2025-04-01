@@ -38,7 +38,7 @@ extern struct timer_descriptor TIMER_0;
  * Amount of time to wait before an outstanding operation times out
  * (if the client is closed).
  */
-#define USB_OUTSTANDING_OP_TIMEOUT_MS (500)
+#define USB_OUTSTANDING_OP_TIMEOUT_MS (30000)
 #define USB_TIMER_TICK_PERIOD_MS (100)
 #define USB_OUTSTANDING_OP_TIMEOUT_TICKS (USB_OUTSTANDING_OP_TIMEOUT_MS / USB_TIMER_TICK_PERIOD_MS)
 
@@ -210,11 +210,6 @@ bool usb_processing_enqueue(
     return true;
 }
 
-void usb_processing_set_send(struct usb_processing* ctx, void (*send)(void))
-{
-    ctx->send = send;
-}
-
 /**
  * Marks any buffered RX packet as fully processed.
  * This frees the RX buffer so that it's possible to
@@ -332,6 +327,7 @@ static void _check_lock_timeout(struct usb_processing* ctx)
         return;
     }
     if (_usb_state.timeout_counter > USB_OUTSTANDING_OP_TIMEOUT_TICKS) {
+        util_log("TIMED OUT, unlocking usb processing");
         if (!ctx->abort_outstanding_op) {
             Abort("abort_outstanding_op is NULL.");
         }
@@ -353,13 +349,6 @@ void usb_processing_process(struct usb_processing* ctx)
 
 #endif
     _usb_consume_incoming_packets(ctx);
-    /*
-     * If USB sends are not enabled (yet), send will be NULL.
-     * Otherwise, we can call it now to flush outstanding writes.
-     */
-    if (ctx->send != NULL) {
-        ctx->send();
-    }
 #if !defined(BOOTLOADER)
     /*
      * If we've been locked for too much time, it's time

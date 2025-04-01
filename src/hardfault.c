@@ -14,12 +14,12 @@
 
 #include "hardfault.h"
 #include "util.h"
+#include <driver_init.h>
 #include <memory/memory.h>
 #include <platform_config.h>
 #include <screen.h>
 #include <usb/usb.h>
 #ifndef TESTING
-#include <driver_init.h>
 
 void HardFault_Handler(void)
 {
@@ -43,6 +43,8 @@ void Abort(const char* msg)
     system_close_interfaces();
 #endif
 #endif
+    // Break the program if we are debugging
+    ASSERT(false);
     while (1) {
     }
 }

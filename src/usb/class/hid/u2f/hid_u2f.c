@@ -141,8 +141,6 @@ void hid_u2f_setup(void)
     // usb_report_sent is called when the outgoing usb frame is fully transmitted.
     hid_u2f_register_callback(HID_CB_WRITE, (FUNC_PTR)_sent_done);
 
-    usb_processing_set_send(usb_processing_u2f(), _send_next);
-
     // Wait for data
     _read();
 }

@@ -3,39 +3,29 @@
  *
  * \brief SAM USB HPL
  *
- * Copyright (C) 2015-2017 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2015-2018 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip
+ * software and any derivatives exclusively with Microchip products.
+ * It is your responsibility to comply with third party license terms applicable
+ * to your use of third party software (including open source software) that
+ * may accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES,
+ * WHETHER EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE,
+ * INCLUDING ANY IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY,
+ * AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE
+ * LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL
+ * LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND WHATSOEVER RELATED TO THE
+ * SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS BEEN ADVISED OF THE
+ * POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE FULLEST EXTENT
+ * ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN ANY WAY
+ * RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+ * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  *
  * \asf_license_stop
  *
@@ -164,7 +154,7 @@ static inline void _usb_d_dev_wait_clk_rdy(const uint8_t clk_src)
  *  \param[in] s Buffer size, in number of bytes.
  *  \return \c true If the buffer is in RAM.
  */
-#define _IN_RAM(a, s) ((0x20000000 <= (uint32_t)(a)) && (((uint32_t)(a) + (s)) < (0x20000000 + 0x00040000)))
+#define _IN_RAM(a, s) ((0x20000000 <= (uint32_t)(a)) && (((uint32_t)(a) + (s)) < (0x20000000 + 0x00042000)))
 
 /** Check if the address should be placed in RAM. */
 #define _usb_is_addr4dma(addr, size) _IN_RAM((addr), (size))
@@ -1461,11 +1451,13 @@ int32_t _usb_d_dev_init(void)
 	    0 /* Reserved */
 	};
 
-	hri_usbdevice_wait_for_sync(hw, USB_SYNCBUSY_SWRST);
-	if (hri_usbdevice_get_CTRLA_ENABLE_bit(hw)) {
-		return ERR_DENIED;
+	if (!hri_usbdevice_is_syncing(hw, USB_SYNCBUSY_SWRST)) {
+		if (hri_usbdevice_get_CTRLA_reg(hw, USB_CTRLA_ENABLE)) {
+			hri_usbdevice_clear_CTRLA_ENABLE_bit(hw);
+			hri_usbdevice_wait_for_sync(hw, USB_SYNCBUSY_ENABLE);
+		}
+		hri_usbdevice_write_CTRLA_reg(hw, USB_CTRLA_SWRST);
 	}
-	hri_usbdevice_set_CTRLA_SWRST_bit(hw);
 	hri_usbdevice_wait_for_sync(hw, USB_SYNCBUSY_SWRST);
 
 	dev_inst.callbacks.sof   = (_usb_d_dev_sof_cb_t)_dummy_func_no_return;
@@ -1551,8 +1543,7 @@ int32_t _usb_d_dev_disable(void)
 
 	hri_usbdevice_clear_INTEN_reg(hw,
 	                              USB_DEVICE_INTENSET_SOF | USB_DEVICE_INTENSET_EORST | USB_DEVICE_INTENSET_RAMACER
-	                                  | USB_D_SUSPEND_INT_FLAGS
-	                                  | USB_D_WAKEUP_INT_FLAGS);
+	                                  | USB_D_SUSPEND_INT_FLAGS | USB_D_WAKEUP_INT_FLAGS);
 
 	return ERR_NONE;
 }
@@ -1577,6 +1568,14 @@ void _usb_d_dev_send_remotewakeup(void)
 	while ((USB_FSMSTATUS_FSMSTATE_ON != hri_usbdevice_read_FSMSTATUS_FSMSTATE_bf(USB)) && (retry--)) {
 		USB->DEVICE.CTRLB.bit.UPRSM = 1;
 	}
+}
+
+enum usb_speed _usb_d_dev_get_speed(void)
+{
+	uint8_t              sp       = (enum usb_speed)hri_usbdevice_read_STATUS_SPEED_bf(USB);
+	const enum usb_speed speed[2] = {USB_SPEED_FS, USB_SPEED_LS};
+
+	return speed[sp];
 }
 
 void _usb_d_dev_set_address(uint8_t addr)
@@ -2046,32 +2045,32 @@ void _usb_d_dev_register_ep_callback(const enum usb_d_dev_ep_cb_type type, const
 }
 
 /**
-* \brief USB interrupt handler
-*/
+ * \brief USB interrupt handler
+ */
 void USB_0_Handler(void)
 {
 
 	_usb_d_dev_handler();
 }
 /**
-* \brief USB interrupt handler
-*/
+ * \brief USB interrupt handler
+ */
 void USB_1_Handler(void)
 {
 
 	_usb_d_dev_handler();
 }
 /**
-* \brief USB interrupt handler
-*/
+ * \brief USB interrupt handler
+ */
 void USB_2_Handler(void)
 {
 
 	_usb_d_dev_handler();
 }
 /**
-* \brief USB interrupt handler
-*/
+ * \brief USB interrupt handler
+ */
 void USB_3_Handler(void)
 {
 

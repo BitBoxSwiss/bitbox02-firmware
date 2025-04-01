@@ -16,7 +16,8 @@ Checks: >-
   -performance-no-int-to-ptr,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -readability-avoid-unconditional-preprocessor-if,
-  -readability-suspicious-call-argument
+  -readability-suspicious-call-argument,
+  -clang-diagnostic-incompatible-pointer-types-discards-qualifiers
 HeaderFilterRegex: '.*'
 ExtraArgs:
   - -Wno-unknown-warning-option

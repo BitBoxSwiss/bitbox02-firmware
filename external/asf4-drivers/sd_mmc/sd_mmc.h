@@ -132,16 +132,6 @@ typedef struct sd_mmc_detect {
  */
 void sd_mmc_init(void *hal, sd_mmc_detect_t *card_detects, sd_mmc_detect_t *wp_detects);
 
-/**
- * \brief Turn off the bus clock.
- */
-void sd_mmc_pause_clock(void);
-
-/**
- * \brief Turn on the bus clock.
- */
-void sd_mmc_resume_clock(void);
-
 /** \brief Return the number of slot available
  *
  * \return Number of card slot available

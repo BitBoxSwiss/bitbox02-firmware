@@ -43,6 +43,6 @@
  */
 uint32_t pac_get_version(void)
 {
-    return DRIVER_VERSION;
+	return DRIVER_VERSION;
 }
 //@}

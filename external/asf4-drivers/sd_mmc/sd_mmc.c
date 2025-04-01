@@ -81,8 +81,6 @@
 #define driver_get_bus_width ATPASTE2(driver, _sync_get_bus_width)
 #define driver_is_high_speed_capable ATPASTE2(driver, _sync_is_high_speed_capable)
 #define driver_send_clock ATPASTE2(driver, _sync_send_clock)
-#define driver_pause_clock ATPASTE2(driver, _sync_pause_clock)
-#define driver_resume_clock ATPASTE2(driver, _sync_resume_clock)
 #define driver_send_cmd ATPASTE2(driver, _sync_send_cmd)
 #define driver_get_response ATPASTE2(driver, _sync_get_response)
 #define driver_get_response_128 ATPASTE2(driver, _sync_get_response_128)
@@ -926,18 +924,6 @@ void sd_mmc_init(void *hal, sd_mmc_detect_t *card_detects, sd_mmc_detect_t *wp_d
     sd_mmc_hal      = hal;
     _cd             = card_detects;
     _wp             = wp_detects;
-
-    mci_sync_init(hal, SDHC0);
-}
-
-void sd_mmc_pause_clock(void)
-{
-    driver_pause_clock(sd_mmc_hal);
-}
-
-void sd_mmc_resume_clock(void)
-{
-    driver_resume_clock(sd_mmc_hal);
 }
 
 uint8_t sd_mmc_nb_slot(void)

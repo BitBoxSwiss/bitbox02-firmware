@@ -13,19 +13,71 @@
 // limitations under the License.
 
 #include "common_main.h"
+#include "da14531/da14531_binary.h"
+#include "da14531/da14531_flasher.h"
 #include "driver_init.h"
 #include "firmware_main_loop.h"
 #include "hardfault.h"
 #include "memory/bitbox02_smarteeprom.h"
+#include "memory/memory_shared.h"
 #include "platform/platform_config.h"
 #include "platform_init.h"
 #include "qtouch.h"
 #include "screen.h"
+#include "uart.h"
 #include "ui/screen_stack.h"
 #include "workflow/idle_workflow.h"
 #include "workflow/orientation_screen.h"
 
 uint32_t __stack_chk_guard = 0;
+
+static void _load_da14531_firmware(void)
+{
+    uint8_t uart_read_buf[16] = {0};
+    uint16_t uart_read_buf_len = 0;
+
+    const uint8_t* uart_write_buf = NULL;
+    uint16_t uart_write_buf_len = 0;
+
+    struct Flasher flasher;
+    flasher_init(&flasher, da14531_firmware_start, da14531_firmware_size);
+
+    while (1) {
+        if (uart_read_buf_len == 0) {
+            uart_read_buf_len = uart_0_read(uart_read_buf, sizeof(uart_read_buf));
+        }
+
+        if (uart_write_buf_len > 0) {
+            if (uart_0_write(uart_write_buf, uart_write_buf_len)) {
+                uart_write_buf_len = 0;
+            }
+        }
+
+        if (flasher_timed_out(&flasher)) {
+            // Assume the da14531 has not been configured. Attempt reset
+            util_log("da14531: attempting reset");
+            if (!da14531_swd_reset()) {
+                util_log("da14531: reset failed");
+                // If it failed to reset and it never requested a firmware, it is probably already
+                // booted and running. Reset flasher (so it doesn't look like timeout, and set it to
+                // done)
+                flasher_reset(&flasher);
+                flasher_set_done(&flasher);
+            }
+        }
+
+        if (!flasher_done(&flasher)) {
+            flasher_poll(
+                &flasher, uart_read_buf, &uart_read_buf_len, &uart_write_buf, &uart_write_buf_len);
+        } else if (flasher_timed_out(&flasher)) {
+            // If the flashing is done BUT the flasher first had to reset the da14531. The da14531
+            // will turn off the debug interface, reset and ask for the firmware again.
+            flasher_reset(&flasher);
+        } else {
+            return;
+        }
+    }
+}
 
 int main(void)
 {
@@ -34,12 +86,22 @@ int main(void)
     platform_init();
     __stack_chk_guard = common_stack_chk_guard();
     screen_init();
+
     screen_splash();
     qtouch_init();
     common_main();
     bitbox02_smarteeprom_init();
     orientation_screen_blocking();
     idle_workflow_blocking();
+
+    // The MCU needs to respond when the da14531 starts up
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        screen_print_debug("BLE (da14531 will only request firmware on power reset)", 0);
+        _load_da14531_firmware();
+        util_log("Factory setup BLE chip done");
+        screen_print_debug("BLE DONE", 0);
+    }
+
     firmware_main_loop();
     return 0;
 }

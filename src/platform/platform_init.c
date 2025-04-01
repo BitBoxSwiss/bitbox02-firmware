@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "platform_init.h"
+#include "memory/memory_shared.h"
+#include "uart.h"
 #include <driver_init.h>
 #include <ui/oled/oled.h>
 #if !defined(BOOTLOADER)
@@ -23,13 +25,13 @@
 void platform_init(void)
 {
     oled_init();
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        uart_init();
+    }
 #if !defined(BOOTLOADER)
-// The factory setup image already has a c implementation of RTT.
-#if FACTORYSETUP != 1
     // these two functions are noops if "rtt" feature isn't enabled in rust
     rust_rtt_init();
     util_log("platform_init");
-#endif
     sd_mmc_start();
 #endif
 }

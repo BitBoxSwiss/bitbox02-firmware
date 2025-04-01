@@ -21,6 +21,8 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
+  ${CMAKE_SOURCE_DIR}/src/uart.c
+  ${CMAKE_SOURCE_DIR}/src/da14531/da14531_flasher.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/system.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
@@ -102,6 +104,7 @@ set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 
 set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/util.c
+  ${CMAKE_SOURCE_DIR}/src/uart.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
@@ -479,6 +482,7 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf}
       PRIVATE
         optiga
+        embedded-swd
         cryptoauthlib
         fatfs
         ctaes
@@ -505,6 +509,7 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
 
     target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
+    target_link_libraries(${elf} PRIVATE ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.o)
 
     # Optiga config must be defined both when compiling the optiga lib, and also when compiling our
     # sources. We can verify this include is indeed used by our sources - when you point it to a

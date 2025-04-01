@@ -23,6 +23,7 @@
 #include "memory/memory_spi.h"
 #include "memory/spi_mem.h"
 #include "platform_init.h"
+#include "rust/rust.h"
 #include "screen.h"
 #include "securechip/securechip.h"
 #include "uart.h"
@@ -34,11 +35,8 @@
 
 #include <wally_crypto.h>
 
-#include <SEGGER_RTT.h>
-
-#if BUFFER_SIZE_DOWN != 1024 || BUFFER_SIZE_UP != 1024
-#error "Misconfigured buffer sizes"
-#endif
+#define BUFFER_SIZE_DOWN 1024
+#define BUFFER_SIZE_UP 1024
 
 // Size of length prefix (2 bytes).
 #define LENSIZE (2)
@@ -267,39 +265,37 @@ static void _rtt_send(const uint8_t* msg, size_t len)
     if (len + 2 >= BUFFER_SIZE_UP) {
         Abort("Buffer to send to host too large");
     }
-    uint16_t len16 = len;
-    SEGGER_RTT_Write(0, &len16, LENSIZE);
-    SEGGER_RTT_Write(0, msg, len);
+    uint8_t len16[2];
+    len16[0] = (len >> 8) & 0xff;
+    len16[1] = len & 0xff;
+    rust_rtt_ch1_write(&len16[0], LENSIZE);
+    rust_rtt_ch1_write(msg, len);
 }
 
 static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
 {
     uint8_t buffer[BUFFER_SIZE_DOWN]; // Adjust size as needed
     while (1) {
-        if (SEGGER_RTT_HASDATA(0)) {
-            int read = SEGGER_RTT_Read(0, buffer, sizeof(buffer));
-            if (read == 0) {
-                continue;
-            }
-            if (read < LENSIZE) {
-                screen_sprintf_debug(2000, "Error: read less than 2 bytes: %d bytes.", read);
-                // TODO: send error.
-                return false;
-            }
-            uint16_t len = *((uint16_t*)buffer);
-            if (len >= BUFFER_SIZE_DOWN - LENSIZE) {
-                screen_sprintf_debug(
-                    2000,
-                    "Error: read more than buffer size: %d bytes (total read: %d)",
-                    len,
-                    read);
-                screen_print_debug_hex(buffer, read, 5000);
-                return false;
-            }
-            *len_out = (size_t)len;
-            memcpy(msg_out, buffer + LENSIZE, (size_t)len);
-            return true;
+        int read = rust_rtt_ch0_read(buffer, sizeof(buffer));
+        if (read == 0) {
+            continue;
         }
+        if (read < LENSIZE) {
+            screen_sprintf_debug(2000, "Error: read less than 2 bytes: %d bytes.", read);
+            // TODO: send error.
+            return false;
+        }
+        // util_log("read %s", util_dbg_hex(buffer, read));
+        uint16_t len = *((uint16_t*)buffer);
+        if (len >= BUFFER_SIZE_DOWN - LENSIZE) {
+            screen_sprintf_debug(
+                2000, "Error: read more than buffer size: %d bytes (total read: %d)", len, read);
+            screen_print_debug_hex(buffer, read, 5000);
+            return false;
+        }
+        *len_out = (size_t)len;
+        memcpy(msg_out, buffer + LENSIZE, (size_t)len);
+        return true;
     }
 }
 
@@ -601,8 +597,6 @@ int main(void)
             // Not much we can do here.
         }
     }
-
-    SEGGER_RTT_Init();
 
     screen_print_debug("READY", 0);
 

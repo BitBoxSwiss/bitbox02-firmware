@@ -57,7 +57,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[no_mangle]
 pub extern "C" fn rust_rtt_init() {
-    ::util::log::rtt_init();
+    ::util::log::rtt_init()
 }
 
 #[no_mangle]
@@ -114,4 +114,39 @@ pub extern "C" fn rust_cipher_decrypt(
         }
         Err(_) => false,
     }
+}
+
+/// # Safety
+///
+/// The pointer `data` must point to a buffer of length `len`.
+#[no_mangle]
+#[allow(static_mut_refs)]
+#[cfg_attr(not(feature = "rtt"), allow(unused))]
+pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
+    #[cfg(feature = "rtt")]
+    {
+        let buf = unsafe { core::slice::from_raw_parts(data, len) };
+        let channel = unsafe { ::util::log::CH1_UP.as_mut().unwrap() };
+        let mut written = 0;
+        while written < len {
+            written += channel.write(buf);
+        }
+    }
+}
+
+/// # Safety
+///
+/// The pointer `data` must point to a buffer of length `len`.
+#[no_mangle]
+#[allow(static_mut_refs)]
+#[cfg_attr(not(feature = "rtt"), allow(unused))]
+pub unsafe extern "C" fn rust_rtt_ch0_read(data: *mut u8, len: usize) -> usize {
+    #[cfg(feature = "rtt")]
+    {
+        let buf = unsafe { core::slice::from_raw_parts_mut(data, len) };
+        let channel = unsafe { ::util::log::CH0_DOWN.as_mut().unwrap() };
+        channel.read(buf)
+    }
+    #[cfg(not(feature = "rtt"))]
+    0
 }

@@ -423,7 +423,7 @@ foreach(type ${RUST_LIBS})
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
-      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type}$<$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>:,rtt> --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
+      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt> --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool
@@ -576,7 +576,6 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
-  target_link_libraries(factory-setup.elf PRIVATE rtt)
 
   # Copy the binary file to the output directory because the symbol names in
   # the object file depend on the path to the binary file

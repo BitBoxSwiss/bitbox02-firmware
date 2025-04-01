@@ -93,6 +93,8 @@ bootloader-btc-plus-production: | build
 	$(MAKE) -C build bb02p-bl-btconly-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
+factory-setup-debug: | build-debug
+	$(MAKE) -C build-debug factory-setup.elf
 docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build
@@ -161,6 +163,8 @@ run-debug:
 	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/firmware.elf
 run-bootloader:
 	arm-none-eabi-gdb -x scripts/jlink-bootloader.gdb build/bin/bb02p-bl-multi-development.elf
+run-factory-setup-debug:
+	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/factory-setup.elf
 dockerinit:
 	./scripts/container.sh build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:

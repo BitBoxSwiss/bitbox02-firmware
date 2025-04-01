@@ -40,12 +40,9 @@ void platform_init(void)
         uart_init();
     }
 #endif
-// The factory setup image already has a c implementation of RTT.
-#if FACTORYSETUP != 1
     // these two functions are noops if "rtt" feature isn't enabled in rust
     util_log_init();
     util_log(PREFIX ": platform_init");
-#endif
 #if !defined(BOOTLOADER)
     sd_mmc_start();
 #endif

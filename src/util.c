@@ -88,12 +88,16 @@ void util_log(const char* fmt, ...)
     }
 }
 
-// We use these wrapper functions so that we can ifdef them out in release builds
+// The rust function is wrapped so it can be ifdeffed out
 void util_log_flush(void)
 {
     rust_rtt_flush();
 }
 
+#endif
+
+#if !defined(NDEBUG) || FACTORYSETUP == 1
+// The rust function is wrapped so it can be ifdeffed out
 void util_log_init(void)
 {
     rust_rtt_init();

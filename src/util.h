@@ -15,6 +15,7 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#include <platform_config.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -125,14 +126,18 @@ typedef struct {
  */
 typedef enum { ASYNC_OP_TRUE, ASYNC_OP_FALSE, ASYNC_OP_NOT_READY } async_op_result_t;
 
-#if defined(NDEBUG)
-#define util_log_init(...)
-#define util_log(...)
-#define util_log_flush(...)
-#else
+#if !defined(NDEBUG)
 void util_log(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 void util_log_flush(void);
+#else
+#define util_log(...)
+#define util_log_flush(...)
+#endif
+
+#if !defined(NDEBUG) || FACTORYSETUP == 1
 void util_log_init(void);
+#else
+#define util_log_init(...)
 #endif
 
 #endif

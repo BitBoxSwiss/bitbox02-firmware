@@ -79,6 +79,8 @@ bootloader-btc-production: | build
 	$(MAKE) -C build bootloader-btc-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
+factory-setup-debug: | build-debug
+	$(MAKE) -C build-debug factory-setup.elf
 docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build
@@ -139,6 +141,8 @@ rtt-client:
 	telnet localhost 19021
 run-debug:
 	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/firmware.elf
+run-factory-setup-debug:
+	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/factory-setup.elf
 dockerinit:
 	./scripts/container.sh build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:

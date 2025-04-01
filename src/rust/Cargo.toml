@@ -31,7 +31,7 @@ resolver = "2"
 bech32 = { version = "0.11.0", default-features = false }
 bitcoin = { version = "0.32.2", default-features = false }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
-num-bigint = { version = "0.4.3", default-features = false }
+num-bigint = { version = "0.4.6", default-features = false }
 sha2 = { version = "0.10.8", default-features = false }
 sha3 = { version = "0.10.8", default-features = false }
 zeroize = "1.7.0"

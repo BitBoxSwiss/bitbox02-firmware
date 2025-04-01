@@ -1,3 +1,45 @@
+# Release 0.4.6 (2024-06-27)
+
+- [Fixed compilation on `x86_64-unknown-linux-gnux32`.][312]
+
+**Contributors**: @cuviper, @ralphtandetzky, @yhx-12243
+
+[312]: https://github.com/rust-num/num-bigint/pull/312
+
+# Release 0.4.5 (2024-05-06)
+
+- [Upgrade to 2021 edition, **MSRV 1.60**][292]
+- [Add `const ZERO` and implement `num_traits::ConstZero`][298]
+- [Add `modinv` methods for the modular inverse][288]
+- [Optimize multiplication with imbalanced operands][295]
+- [Optimize scalar division on x86 and x86-64][236]
+
+**Contributors**: @cuviper, @joelonsql, @waywardmonkeys
+
+[236]: https://github.com/rust-num/num-bigint/pull/236
+[288]: https://github.com/rust-num/num-bigint/pull/288
+[292]: https://github.com/rust-num/num-bigint/pull/292
+[295]: https://github.com/rust-num/num-bigint/pull/295
+[298]: https://github.com/rust-num/num-bigint/pull/298
+
+# Release 0.4.4 (2023-08-22)
+
+- [Implemented `From<bool>` for `BigInt` and `BigUint`.][239]
+- [Implemented `num_traits::Euclid` and `CheckedEuclid` for `BigInt` and `BigUint`.][245]
+- [Implemented ties-to-even for `BigInt` and `BigUint::to_f32` and `to_f64`.][271]
+- [Implemented `num_traits::FromBytes` and `ToBytes` for `BigInt` and `BigUint`.][276]
+- Limited pre-allocation from serde size hints against potential OOM.
+- Miscellaneous other code cleanups and maintenance tasks.
+
+**Contributors**: @AaronKutch, @archseer, @cuviper, @dramforever, @icecream17,
+@icedrocket, @janmarthedal, @jaybosamiya, @OliveIsAWord, @PatrickNorton,
+@smoelius, @waywardmonkeys
+
+[239]: https://github.com/rust-num/num-bigint/pull/239
+[245]: https://github.com/rust-num/num-bigint/pull/245
+[271]: https://github.com/rust-num/num-bigint/pull/271
+[276]: https://github.com/rust-num/num-bigint/pull/276
+
 # Release 0.4.3 (2021-11-02)
 
 - [GHSA-v935-pqmr-g8v9]: [Fix unexpected panics in multiplication.][228]

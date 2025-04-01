@@ -1,10 +1,13 @@
-use super::{BigInt, Sign};
+#![cfg(any(feature = "quickcheck", feature = "arbitrary"))]
 
-#[cfg(feature = "quickcheck")]
-use crate::std_alloc::Box;
+use super::{BigInt, Sign};
 use crate::BigUint;
 
 #[cfg(feature = "quickcheck")]
+use alloc::boxed::Box;
+
+#[cfg(feature = "quickcheck")]
+#[cfg_attr(docsrs, doc(cfg(feature = "quickcheck")))]
 impl quickcheck::Arbitrary for BigInt {
     fn arbitrary(g: &mut quickcheck::Gen) -> Self {
         let positive = bool::arbitrary(g);
@@ -20,6 +23,7 @@ impl quickcheck::Arbitrary for BigInt {
 }
 
 #[cfg(feature = "arbitrary")]
+#[cfg_attr(docsrs, doc(cfg(feature = "arbitrary")))]
 impl arbitrary::Arbitrary<'_> for BigInt {
     fn arbitrary(u: &mut arbitrary::Unstructured<'_>) -> arbitrary::Result<Self> {
         let positive = bool::arbitrary(u)?;

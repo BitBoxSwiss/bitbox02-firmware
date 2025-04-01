@@ -2,8 +2,6 @@
 
 #![feature(test)]
 
-extern crate num_integer;
-extern crate num_traits;
 extern crate test;
 
 use num_integer::Integer;
@@ -53,28 +51,28 @@ macro_rules! naive_average {
         impl super::NaiveAverage for $T {
             fn naive_average_floor(&self, other: &$T) -> $T {
                 match self.checked_add(*other) {
-                    Some(z) => z.div_floor(&2),
+                    Some(z) => Integer::div_floor(&z, &2),
                     None => {
                         if self > other {
                             let diff = self - other;
-                            other + diff.div_floor(&2)
+                            other + Integer::div_floor(&diff, &2)
                         } else {
                             let diff = other - self;
-                            self + diff.div_floor(&2)
+                            self + Integer::div_floor(&diff, &2)
                         }
                     }
                 }
             }
             fn naive_average_ceil(&self, other: &$T) -> $T {
                 match self.checked_add(*other) {
-                    Some(z) => z.div_ceil(&2),
+                    Some(z) => Integer::div_ceil(&z, &2),
                     None => {
                         if self > other {
                             let diff = self - other;
-                            self - diff.div_floor(&2)
+                            self - Integer::div_floor(&diff, &2)
                         } else {
                             let diff = other - self;
-                            other - diff.div_floor(&2)
+                            other - Integer::div_floor(&diff, &2)
                         }
                     }
                 }
@@ -143,12 +141,10 @@ where
                 assert_eq!(rt - a, b - rt + T::one());
             }
         // if both number have a different sign,
+        } else if (a + b).is_even() {
+            assert_eq!(rt, (a + b) / (T::one() + T::one()))
         } else {
-            if (a + b).is_even() {
-                assert_eq!(rt, (a + b) / (T::one() + T::one()))
-            } else {
-                assert_eq!(rt, (a + b + T::one()) / (T::one() + T::one()))
-            }
+            assert_eq!(rt, (a + b + T::one()) / (T::one() + T::one()))
         }
     }
     bench_unchecked(b, v, f);
@@ -170,12 +166,10 @@ where
                 assert_eq!(rt - a + T::one(), b - rt);
             }
         // if both number have a different sign,
+        } else if (a + b).is_even() {
+            assert_eq!(rt, (a + b) / (T::one() + T::one()))
         } else {
-            if (a + b).is_even() {
-                assert_eq!(rt, (a + b) / (T::one() + T::one()))
-            } else {
-                assert_eq!(rt, (a + b - T::one()) / (T::one() + T::one()))
-            }
+            assert_eq!(rt, (a + b - T::one()) / (T::one() + T::one()))
         }
     }
     bench_unchecked(b, v, f);

@@ -1,7 +1,5 @@
 use super::addition::{__add2, add2};
 use super::subtraction::sub2;
-#[cfg(not(u64_digit))]
-use super::u32_from_u128;
 use super::{biguint_from_vec, cmp_slice, BigUint, IntDigits};
 
 use crate::big_digit::{self, BigDigit, DoubleBigDigit};
@@ -88,9 +86,10 @@ fn mac3(mut acc: &mut [BigDigit], mut b: &[BigDigit], mut c: &[BigDigit]) {
     let acc = acc;
     let (x, y) = if b.len() < c.len() { (b, c) } else { (c, b) };
 
-    // We use three algorithms for different input sizes.
+    // We use four algorithms for different input sizes.
     //
     // - For small inputs, long multiplication is fastest.
+    // - If y is at least least twice as long as x, split using Half-Karatsuba.
     // - Next we use Karatsuba multiplication (Toom-2), which we have optimized
     //   to avoid unnecessary allocations for intermediate values.
     // - For the largest inputs we use Toom-3, which better optimizes the
@@ -104,6 +103,65 @@ fn mac3(mut acc: &mut [BigDigit], mut b: &[BigDigit], mut c: &[BigDigit]) {
         for (i, xi) in x.iter().enumerate() {
             mac_digit(&mut acc[i..], y, *xi);
         }
+    } else if x.len() * 2 <= y.len() {
+        // Karatsuba Multiplication for factors with significant length disparity.
+        //
+        // The Half-Karatsuba Multiplication Algorithm is a specialized case of
+        // the normal Karatsuba multiplication algorithm, designed for the scenario
+        // where y has at least twice as many base digits as x.
+        //
+        // In this case y (the longer input) is split into high2 and low2,
+        // at m2 (half the length of y) and x (the shorter input),
+        // is used directly without splitting.
+        //
+        // The algorithm then proceeds as follows:
+        //
+        // 1. Compute the product z0 = x * low2.
+        // 2. Compute the product temp = x * high2.
+        // 3. Adjust the weight of temp by adding m2 (* NBASE ^ m2)
+        // 4. Add temp and z0 to obtain the final result.
+        //
+        // Proof:
+        //
+        // The algorithm can be derived from the original Karatsuba algorithm by
+        // simplifying the formula when the shorter factor x is not split into
+        // high and low parts, as shown below.
+        //
+        // Original Karatsuba formula:
+        //
+        //     result = (z2 * NBASE ^ (m2 × 2)) + ((z1 - z2 - z0) * NBASE ^ m2) + z0
+        //
+        // Substitutions:
+        //
+        //     low1 = x
+        //     high1 = 0
+        //
+        // Applying substitutions:
+        //
+        //     z0 = (low1 * low2)
+        //        = (x * low2)
+        //
+        //     z1 = ((low1 + high1) * (low2 + high2))
+        //        = ((x + 0) * (low2 + high2))
+        //        = (x * low2) + (x * high2)
+        //
+        //     z2 = (high1 * high2)
+        //        = (0 * high2)
+        //        = 0
+        //
+        // Simplified using the above substitutions:
+        //
+        //     result = (z2 * NBASE ^ (m2 × 2)) + ((z1 - z2 - z0) * NBASE ^ m2) + z0
+        //            = (0 * NBASE ^ (m2 × 2)) + ((z1 - 0 - z0) * NBASE ^ m2) + z0
+        //            = ((z1 - z0) * NBASE ^ m2) + z0
+        //            = ((z1 - z0) * NBASE ^ m2) + z0
+        //            = (x * high2) * NBASE ^ m2 + z0
+        let m2 = y.len() / 2;
+        let (low2, high2) = y.split_at(m2);
+
+        // (x * high2) * NBASE ^ m2 + z0
+        mac3(acc, x, low2);
+        mac3(&mut acc[m2..], x, high2);
     } else if x.len() <= 256 {
         // Karatsuba multiplication:
         //
@@ -311,9 +369,9 @@ fn mac3(mut acc: &mut [BigDigit], mut b: &[BigDigit], mut c: &[BigDigit]) {
         // in terms of its coefficients:
         //
         // w0 = w(0)
-        // w1 = w(0)/2 + w(1)/3 - w(-1) + w(2)/6 - 2*w(inf)
+        // w1 = w(0)/2 + w(1)/3 - w(-1) + w(-2)/6 - 2*w(inf)
         // w2 = -w(0) + w(1)/2 + w(-1)/2 - w(inf)
-        // w3 = -w(0)/2 + w(1)/6 + w(-1)/2 - w(1)/6
+        // w3 = -w(0)/2 + w(1)/6 + w(-1)/2 - w(-2)/6 + 2*w(inf)
         // w4 = w(inf)
         //
         // This particular sequence is given by Bodrato and is an interpolation
@@ -397,20 +455,20 @@ fn sub_sign(mut a: &[BigDigit], mut b: &[BigDigit]) -> (Sign, BigUint) {
             sub2(&mut b, a);
             (Minus, biguint_from_vec(b))
         }
-        Ordering::Equal => (NoSign, Zero::zero()),
+        Ordering::Equal => (NoSign, BigUint::ZERO),
     }
 }
 
 macro_rules! impl_mul {
-    ($(impl<$($a:lifetime),*> Mul<$Other:ty> for $Self:ty;)*) => {$(
-        impl<$($a),*> Mul<$Other> for $Self {
+    ($(impl Mul<$Other:ty> for $Self:ty;)*) => {$(
+        impl Mul<$Other> for $Self {
             type Output = BigUint;
 
             #[inline]
             fn mul(self, other: $Other) -> BigUint {
                 match (&*self.data, &*other.data) {
                     // multiply by zero
-                    (&[], _) | (_, &[]) => BigUint::zero(),
+                    (&[], _) | (_, &[]) => BigUint::ZERO,
                     // multiply by a scalar
                     (_, &[digit]) => self * digit,
                     (&[digit], _) => other * digit,
@@ -422,15 +480,15 @@ macro_rules! impl_mul {
     )*}
 }
 impl_mul! {
-    impl<> Mul<BigUint> for BigUint;
-    impl<'b> Mul<&'b BigUint> for BigUint;
-    impl<'a> Mul<BigUint> for &'a BigUint;
-    impl<'a, 'b> Mul<&'b BigUint> for &'a BigUint;
+    impl Mul<BigUint> for BigUint;
+    impl Mul<BigUint> for &BigUint;
+    impl Mul<&BigUint> for BigUint;
+    impl Mul<&BigUint> for &BigUint;
 }
 
 macro_rules! impl_mul_assign {
-    ($(impl<$($a:lifetime),*> MulAssign<$Other:ty> for BigUint;)*) => {$(
-        impl<$($a),*> MulAssign<$Other> for BigUint {
+    ($(impl MulAssign<$Other:ty> for BigUint;)*) => {$(
+        impl MulAssign<$Other> for BigUint {
             #[inline]
             fn mul_assign(&mut self, other: $Other) {
                 match (&*self.data, &*other.data) {
@@ -448,8 +506,8 @@ macro_rules! impl_mul_assign {
     )*}
 }
 impl_mul_assign! {
-    impl<> MulAssign<BigUint> for BigUint;
-    impl<'a> MulAssign<&'a BigUint> for BigUint;
+    impl MulAssign<BigUint> for BigUint;
+    impl MulAssign<&BigUint> for BigUint;
 }
 
 promote_unsigned_scalars!(impl Mul for BigUint, mul);
@@ -484,22 +542,22 @@ impl Mul<u64> for BigUint {
     }
 }
 impl MulAssign<u64> for BigUint {
-    #[cfg(not(u64_digit))]
-    #[inline]
-    fn mul_assign(&mut self, other: u64) {
-        if let Some(other) = BigDigit::from_u64(other) {
-            scalar_mul(self, other);
-        } else {
-            let (hi, lo) = big_digit::from_doublebigdigit(other);
-            *self = mul3(&self.data, &[lo, hi]);
+    cfg_digit!(
+        #[inline]
+        fn mul_assign(&mut self, other: u64) {
+            if let Some(other) = BigDigit::from_u64(other) {
+                scalar_mul(self, other);
+            } else {
+                let (hi, lo) = big_digit::from_doublebigdigit(other);
+                *self = mul3(&self.data, &[lo, hi]);
+            }
         }
-    }
 
-    #[cfg(u64_digit)]
-    #[inline]
-    fn mul_assign(&mut self, other: u64) {
-        scalar_mul(self, other);
-    }
+        #[inline]
+        fn mul_assign(&mut self, other: u64) {
+            scalar_mul(self, other);
+        }
+    );
 }
 
 impl Mul<u128> for BigUint {
@@ -513,30 +571,30 @@ impl Mul<u128> for BigUint {
 }
 
 impl MulAssign<u128> for BigUint {
-    #[cfg(not(u64_digit))]
-    #[inline]
-    fn mul_assign(&mut self, other: u128) {
-        if let Some(other) = BigDigit::from_u128(other) {
-            scalar_mul(self, other);
-        } else {
-            *self = match u32_from_u128(other) {
-                (0, 0, c, d) => mul3(&self.data, &[d, c]),
-                (0, b, c, d) => mul3(&self.data, &[d, c, b]),
-                (a, b, c, d) => mul3(&self.data, &[d, c, b, a]),
-            };
+    cfg_digit!(
+        #[inline]
+        fn mul_assign(&mut self, other: u128) {
+            if let Some(other) = BigDigit::from_u128(other) {
+                scalar_mul(self, other);
+            } else {
+                *self = match super::u32_from_u128(other) {
+                    (0, 0, c, d) => mul3(&self.data, &[d, c]),
+                    (0, b, c, d) => mul3(&self.data, &[d, c, b]),
+                    (a, b, c, d) => mul3(&self.data, &[d, c, b, a]),
+                };
+            }
         }
-    }
 
-    #[cfg(u64_digit)]
-    #[inline]
-    fn mul_assign(&mut self, other: u128) {
-        if let Some(other) = BigDigit::from_u128(other) {
-            scalar_mul(self, other);
-        } else {
-            let (hi, lo) = big_digit::from_doublebigdigit(other);
-            *self = mul3(&self.data, &[lo, hi]);
+        #[inline]
+        fn mul_assign(&mut self, other: u128) {
+            if let Some(other) = BigDigit::from_u128(other) {
+                scalar_mul(self, other);
+            } else {
+                let (hi, lo) = big_digit::from_doublebigdigit(other);
+                *self = mul3(&self.data, &[lo, hi]);
+            }
         }
-    }
+    );
 }
 
 impl CheckedMul for BigUint {

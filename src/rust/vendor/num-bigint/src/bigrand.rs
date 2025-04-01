@@ -1,4 +1,6 @@
 //! Randomization of big integers
+#![cfg(feature = "rand")]
+#![cfg_attr(docsrs, doc(cfg(feature = "rand")))]
 
 use rand::distributions::uniform::{SampleBorrow, SampleUniform, UniformSampler};
 use rand::prelude::*;
@@ -16,22 +18,22 @@ use num_traits::{ToPrimitive, Zero};
 ///
 /// The `rand` feature must be enabled to use this. See crate-level documentation for details.
 pub trait RandBigInt {
-    /// Generate a random `BigUint` of the given bit size.
+    /// Generate a random [`BigUint`] of the given bit size.
     fn gen_biguint(&mut self, bit_size: u64) -> BigUint;
 
-    /// Generate a random BigInt of the given bit size.
+    /// Generate a random [ BigInt`] of the given bit size.
     fn gen_bigint(&mut self, bit_size: u64) -> BigInt;
 
-    /// Generate a random `BigUint` less than the given bound. Fails
+    /// Generate a random [`BigUint`] less than the given bound. Fails
     /// when the bound is zero.
     fn gen_biguint_below(&mut self, bound: &BigUint) -> BigUint;
 
-    /// Generate a random `BigUint` within the given range. The lower
+    /// Generate a random [`BigUint`] within the given range. The lower
     /// bound is inclusive; the upper bound is exclusive. Fails when
     /// the upper bound is not greater than the lower bound.
     fn gen_biguint_range(&mut self, lbound: &BigUint, ubound: &BigUint) -> BigUint;
 
-    /// Generate a random `BigInt` within the given range. The lower
+    /// Generate a random [`BigInt`] within the given range. The lower
     /// bound is inclusive; the upper bound is exclusive. Fails when
     /// the upper bound is not greater than the lower bound.
     fn gen_bigint_range(&mut self, lbound: &BigInt, ubound: &BigInt) -> BigInt;
@@ -47,42 +49,42 @@ fn gen_bits<R: Rng + ?Sized>(rng: &mut R, data: &mut [u32], rem: u64) {
 }
 
 impl<R: Rng + ?Sized> RandBigInt for R {
-    #[cfg(not(u64_digit))]
-    fn gen_biguint(&mut self, bit_size: u64) -> BigUint {
-        let (digits, rem) = bit_size.div_rem(&32);
-        let len = (digits + (rem > 0) as u64)
-            .to_usize()
-            .expect("capacity overflow");
-        let mut data = vec![0u32; len];
-        gen_bits(self, &mut data, rem);
-        biguint_from_vec(data)
-    }
-
-    #[cfg(u64_digit)]
-    fn gen_biguint(&mut self, bit_size: u64) -> BigUint {
-        use core::slice;
-
-        let (digits, rem) = bit_size.div_rem(&32);
-        let len = (digits + (rem > 0) as u64)
-            .to_usize()
-            .expect("capacity overflow");
-        let native_digits = Integer::div_ceil(&bit_size, &64);
-        let native_len = native_digits.to_usize().expect("capacity overflow");
-        let mut data = vec![0u64; native_len];
-        unsafe {
-            // Generate bits in a `&mut [u32]` slice for value stability
-            let ptr = data.as_mut_ptr() as *mut u32;
-            debug_assert!(native_len * 2 >= len);
-            let data = slice::from_raw_parts_mut(ptr, len);
-            gen_bits(self, data, rem);
+    cfg_digit!(
+        fn gen_biguint(&mut self, bit_size: u64) -> BigUint {
+            let (digits, rem) = bit_size.div_rem(&32);
+            let len = (digits + (rem > 0) as u64)
+                .to_usize()
+                .expect("capacity overflow");
+            let mut data = vec![0u32; len];
+            gen_bits(self, &mut data, rem);
+            biguint_from_vec(data)
         }
-        #[cfg(target_endian = "big")]
-        for digit in &mut data {
-            // swap u32 digits into u64 endianness
-            *digit = (*digit << 32) | (*digit >> 32);
+
+        fn gen_biguint(&mut self, bit_size: u64) -> BigUint {
+            use core::slice;
+
+            let (digits, rem) = bit_size.div_rem(&32);
+            let len = (digits + (rem > 0) as u64)
+                .to_usize()
+                .expect("capacity overflow");
+            let native_digits = Integer::div_ceil(&bit_size, &64);
+            let native_len = native_digits.to_usize().expect("capacity overflow");
+            let mut data = vec![0u64; native_len];
+            unsafe {
+                // Generate bits in a `&mut [u32]` slice for value stability
+                let ptr = data.as_mut_ptr() as *mut u32;
+                debug_assert!(native_len * 2 >= len);
+                let data = slice::from_raw_parts_mut(ptr, len);
+                gen_bits(self, data, rem);
+            }
+            #[cfg(target_endian = "big")]
+            for digit in &mut data {
+                // swap u32 digits into u64 endianness
+                *digit = (*digit << 32) | (*digit >> 32);
+            }
+            biguint_from_vec(data)
         }
-        biguint_from_vec(data)
-    }
+    );
 
     fn gen_bigint(&mut self, bit_size: u64) -> BigInt {
         loop {
@@ -141,7 +143,7 @@ impl<R: Rng + ?Sized> RandBigInt for R {
     }
 }
 
-/// The back-end implementing rand's `UniformSampler` for `BigUint`.
+/// The back-end implementing rand's [`UniformSampler`] for [`BigUint`].
 #[derive(Clone, Debug)]
 pub struct UniformBigUint {
     base: BigUint,
@@ -197,7 +199,7 @@ impl SampleUniform for BigUint {
     type Sampler = UniformBigUint;
 }
 
-/// The back-end implementing rand's `UniformSampler` for `BigInt`.
+/// The back-end implementing rand's [`UniformSampler`] for [`BigInt`].
 #[derive(Clone, Debug)]
 pub struct UniformBigInt {
     base: BigInt,
@@ -253,7 +255,7 @@ impl SampleUniform for BigInt {
     type Sampler = UniformBigInt;
 }
 
-/// A random distribution for `BigUint` and `BigInt` values of a particular bit size.
+/// A random distribution for [`BigUint`] and [`BigInt`] values of a particular bit size.
 ///
 /// The `rand` feature must be enabled to use this. See crate-level documentation for details.
 #[derive(Clone, Copy, Debug)]

@@ -2,8 +2,6 @@
 
 #![feature(test)]
 
-extern crate num_integer;
-extern crate num_traits;
 extern crate test;
 
 use num_integer::Integer;

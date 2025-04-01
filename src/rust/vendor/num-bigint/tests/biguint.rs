@@ -6,16 +6,13 @@ use num_integer::Integer;
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hash, Hasher};
-use std::i64;
 use std::iter::repeat;
 use std::str::FromStr;
 use std::{f32, f64};
-use std::{i128, u128};
-use std::{u16, u32, u64, u8, usize};
 
 use num_traits::{
-    pow, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, FromPrimitive, Num, One, Pow, ToPrimitive,
-    Zero,
+    pow, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Euclid, FromBytes, FromPrimitive, Num,
+    One, Pow, ToBytes, ToPrimitive, Zero,
 };
 
 mod consts;
@@ -27,10 +24,9 @@ mod macros;
 #[test]
 fn test_from_bytes_be() {
     fn check(s: &str, result: &str) {
-        assert_eq!(
-            BigUint::from_bytes_be(s.as_bytes()),
-            BigUint::parse_bytes(result.as_bytes(), 10).unwrap()
-        );
+        let b = BigUint::parse_bytes(result.as_bytes(), 10).unwrap();
+        assert_eq!(BigUint::from_bytes_be(s.as_bytes()), b);
+        assert_eq!(<BigUint as FromBytes>::from_be_bytes(s.as_bytes()), b);
     }
     check("A", "65");
     check("AA", "16705");
@@ -44,6 +40,7 @@ fn test_to_bytes_be() {
     fn check(s: &str, result: &str) {
         let b = BigUint::parse_bytes(result.as_bytes(), 10).unwrap();
         assert_eq!(b.to_bytes_be(), s.as_bytes());
+        assert_eq!(<BigUint as ToBytes>::to_be_bytes(&b), s.as_bytes());
     }
     check("A", "65");
     check("AA", "16705");
@@ -60,10 +57,9 @@ fn test_to_bytes_be() {
 #[test]
 fn test_from_bytes_le() {
     fn check(s: &str, result: &str) {
-        assert_eq!(
-            BigUint::from_bytes_le(s.as_bytes()),
-            BigUint::parse_bytes(result.as_bytes(), 10).unwrap()
-        );
+        let b = BigUint::parse_bytes(result.as_bytes(), 10).unwrap();
+        assert_eq!(BigUint::from_bytes_le(s.as_bytes()), b);
+        assert_eq!(<BigUint as FromBytes>::from_le_bytes(s.as_bytes()), b);
     }
     check("A", "65");
     check("AA", "16705");
@@ -77,6 +73,7 @@ fn test_to_bytes_le() {
     fn check(s: &str, result: &str) {
         let b = BigUint::parse_bytes(result.as_bytes(), 10).unwrap();
         assert_eq!(b.to_bytes_le(), s.as_bytes());
+        assert_eq!(<BigUint as ToBytes>::to_le_bytes(&b), s.as_bytes());
     }
     check("A", "65");
     check("AA", "16705");
@@ -646,6 +643,13 @@ fn test_convert_f32() {
         b <<= 1;
     }
 
+    // test correct ties-to-even rounding
+    let weird: i128 = (1i128 << 100) + (1i128 << (100 - f32::MANTISSA_DIGITS));
+    assert_ne!(weird as f32, (weird + 1) as f32);
+
+    assert_eq!(BigInt::from(weird).to_f32(), Some(weird as f32));
+    assert_eq!(BigInt::from(weird + 1).to_f32(), Some((weird + 1) as f32));
+
     // rounding
     assert_eq!(BigUint::from_f32(-1.0), None);
     assert_eq!(BigUint::from_f32(-0.99999), Some(BigUint::zero()));
@@ -721,6 +725,13 @@ fn test_convert_f64() {
         f *= 2.0;
         b <<= 1;
     }
+
+    // test correct ties-to-even rounding
+    let weird: i128 = (1i128 << 100) + (1i128 << (100 - f64::MANTISSA_DIGITS));
+    assert_ne!(weird as f64, (weird + 1) as f64);
+
+    assert_eq!(BigInt::from(weird).to_f64(), Some(weird as f64));
+    assert_eq!(BigInt::from(weird + 1).to_f64(), Some((weird + 1) as f64));
 
     // rounding
     assert_eq!(BigUint::from_f64(-1.0), None);
@@ -949,6 +960,40 @@ fn test_div_ceil() {
 }
 
 #[test]
+fn test_div_rem_euclid() {
+    fn check(a: &BigUint, b: &BigUint, d: &BigUint, m: &BigUint) {
+        assert_eq!(a.div_euclid(b), *d);
+        assert_eq!(a.rem_euclid(b), *m);
+    }
+
+    for elm in MUL_TRIPLES.iter() {
+        let (a_vec, b_vec, c_vec) = *elm;
+        let a = BigUint::from_slice(a_vec);
+        let b = BigUint::from_slice(b_vec);
+        let c = BigUint::from_slice(c_vec);
+
+        if !a.is_zero() {
+            check(&c, &a, &b, &Zero::zero());
+        }
+        if !b.is_zero() {
+            check(&c, &b, &a, &Zero::zero());
+        }
+    }
+
+    for elm in DIV_REM_QUADRUPLES.iter() {
+        let (a_vec, b_vec, c_vec, d_vec) = *elm;
+        let a = BigUint::from_slice(a_vec);
+        let b = BigUint::from_slice(b_vec);
+        let c = BigUint::from_slice(c_vec);
+        let d = BigUint::from_slice(d_vec);
+
+        if !b.is_zero() {
+            check(&a, &b, &c, &d);
+        }
+    }
+}
+
+#[test]
 fn test_checked_add() {
     for elm in SUM_TRIPLES.iter() {
         let (a_vec, b_vec, c_vec) = *elm;
@@ -1083,6 +1128,18 @@ fn test_lcm() {
     check(8, 9, 72);
     check(11, 5, 55);
     check(99, 17, 1683);
+}
+
+#[test]
+fn test_is_multiple_of() {
+    assert!(BigUint::from(0u32).is_multiple_of(&BigUint::from(0u32)));
+    assert!(BigUint::from(6u32).is_multiple_of(&BigUint::from(6u32)));
+    assert!(BigUint::from(6u32).is_multiple_of(&BigUint::from(3u32)));
+    assert!(BigUint::from(6u32).is_multiple_of(&BigUint::from(1u32)));
+
+    assert!(!BigUint::from(42u32).is_multiple_of(&BigUint::from(5u32)));
+    assert!(!BigUint::from(5u32).is_multiple_of(&BigUint::from(3u32)));
+    assert!(!BigUint::from(42u32).is_multiple_of(&BigUint::from(0u32)));
 }
 
 #[test]

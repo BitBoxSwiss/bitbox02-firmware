@@ -8,12 +8,11 @@ use std::hash::{BuildHasher, Hash, Hasher};
 use std::iter::repeat;
 use std::ops::Neg;
 use std::{f32, f64};
-use std::{i128, u128};
-use std::{i16, i32, i64, i8, isize};
-use std::{u16, u32, u64, u8, usize};
 
 use num_integer::Integer;
-use num_traits::{pow, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use num_traits::{
+    pow, Euclid, FromBytes, FromPrimitive, Num, One, Pow, Signed, ToBytes, ToPrimitive, Zero,
+};
 
 mod consts;
 use crate::consts::*;
@@ -94,12 +93,9 @@ fn test_to_bytes_le() {
 #[test]
 fn test_to_signed_bytes_le() {
     fn check(s: &str, result: Vec<u8>) {
-        assert_eq!(
-            BigInt::parse_bytes(s.as_bytes(), 10)
-                .unwrap()
-                .to_signed_bytes_le(),
-            result
-        );
+        let b = BigInt::parse_bytes(s.as_bytes(), 10).unwrap();
+        assert_eq!(b.to_signed_bytes_le(), result);
+        assert_eq!(<BigInt as ToBytes>::to_le_bytes(&b), result);
     }
 
     check("0", vec![0]);
@@ -115,10 +111,9 @@ fn test_to_signed_bytes_le() {
 #[test]
 fn test_from_signed_bytes_le() {
     fn check(s: &[u8], result: &str) {
-        assert_eq!(
-            BigInt::from_signed_bytes_le(s),
-            BigInt::parse_bytes(result.as_bytes(), 10).unwrap()
-        );
+        let b = BigInt::parse_bytes(result.as_bytes(), 10).unwrap();
+        assert_eq!(BigInt::from_signed_bytes_le(s), b);
+        assert_eq!(<BigInt as FromBytes>::from_le_bytes(s), b);
     }
 
     check(&[], "0");
@@ -136,12 +131,9 @@ fn test_from_signed_bytes_le() {
 #[test]
 fn test_to_signed_bytes_be() {
     fn check(s: &str, result: Vec<u8>) {
-        assert_eq!(
-            BigInt::parse_bytes(s.as_bytes(), 10)
-                .unwrap()
-                .to_signed_bytes_be(),
-            result
-        );
+        let b = BigInt::parse_bytes(s.as_bytes(), 10).unwrap();
+        assert_eq!(b.to_signed_bytes_be(), result);
+        assert_eq!(<BigInt as ToBytes>::to_be_bytes(&b), result);
     }
 
     check("0", vec![0]);
@@ -157,10 +149,9 @@ fn test_to_signed_bytes_be() {
 #[test]
 fn test_from_signed_bytes_be() {
     fn check(s: &[u8], result: &str) {
-        assert_eq!(
-            BigInt::from_signed_bytes_be(s),
-            BigInt::parse_bytes(result.as_bytes(), 10).unwrap()
-        );
+        let b = BigInt::parse_bytes(result.as_bytes(), 10).unwrap();
+        assert_eq!(BigInt::from_signed_bytes_be(s), b);
+        assert_eq!(<BigInt as FromBytes>::from_be_bytes(s), b);
     }
 
     check(&[], "0");
@@ -193,7 +184,7 @@ fn test_signed_bytes_le_round_trip() {
 
 #[test]
 fn test_cmp() {
-    let vs: [&[u32]; 4] = [&[2 as u32], &[1, 1], &[2, 1], &[1, 1, 1]];
+    let vs: [&[u32]; 4] = [&[2_u32], &[1, 1], &[2, 1], &[1, 1, 1]];
     let mut nums = Vec::new();
     for s in vs.iter().rev() {
         nums.push(BigInt::from_slice(Minus, *s));
@@ -421,6 +412,13 @@ fn test_convert_f32() {
         b <<= 1;
     }
 
+    // test correct ties-to-even rounding
+    let weird: i128 = (1i128 << 100) + (1i128 << (100 - f32::MANTISSA_DIGITS));
+    assert_ne!(weird as f32, (weird + 1) as f32);
+
+    assert_eq!(BigInt::from(weird).to_f32(), Some(weird as f32));
+    assert_eq!(BigInt::from(weird + 1).to_f32(), Some((weird + 1) as f32));
+
     // rounding
     assert_eq!(
         BigInt::from_f32(-f32::consts::PI),
@@ -510,6 +508,13 @@ fn test_convert_f64() {
         f *= 2.0;
         b <<= 1;
     }
+
+    // test correct ties-to-even rounding
+    let weird: i128 = (1i128 << 100) + (1i128 << (100 - f64::MANTISSA_DIGITS));
+    assert_ne!(weird as f64, (weird + 1) as f64);
+
+    assert_eq!(BigInt::from(weird).to_f64(), Some(weird as f64));
+    assert_eq!(BigInt::from(weird + 1).to_f64(), Some((weird + 1) as f64));
 
     // rounding
     assert_eq!(
@@ -903,6 +908,58 @@ fn test_div_ceil() {
 }
 
 #[test]
+fn test_div_rem_euclid() {
+    fn check_sub(a: &BigInt, b: &BigInt, ans_d: &BigInt, ans_m: &BigInt) {
+        eprintln!("{} {} {} {}", a, b, ans_d, ans_m);
+        assert_eq!(a.div_euclid(b), *ans_d);
+        assert_eq!(a.rem_euclid(b), *ans_m);
+        assert!(*ans_m >= BigInt::zero());
+        assert!(*ans_m < b.abs());
+    }
+
+    fn check(a: &BigInt, b: &BigInt, d: &BigInt, m: &BigInt) {
+        if m.is_zero() {
+            check_sub(a, b, d, m);
+            check_sub(a, &b.neg(), &d.neg(), m);
+            check_sub(&a.neg(), b, &d.neg(), m);
+            check_sub(&a.neg(), &b.neg(), d, m);
+        } else {
+            let one: BigInt = One::one();
+            check_sub(a, b, d, m);
+            check_sub(a, &b.neg(), &d.neg(), m);
+            check_sub(&a.neg(), b, &(d + &one).neg(), &(b - m));
+            check_sub(&a.neg(), &b.neg(), &(d + &one), &(b.abs() - m));
+        }
+    }
+
+    for elm in MUL_TRIPLES.iter() {
+        let (a_vec, b_vec, c_vec) = *elm;
+        let a = BigInt::from_slice(Plus, a_vec);
+        let b = BigInt::from_slice(Plus, b_vec);
+        let c = BigInt::from_slice(Plus, c_vec);
+
+        if !a.is_zero() {
+            check(&c, &a, &b, &Zero::zero());
+        }
+        if !b.is_zero() {
+            check(&c, &b, &a, &Zero::zero());
+        }
+    }
+
+    for elm in DIV_REM_QUADRUPLES.iter() {
+        let (a_vec, b_vec, c_vec, d_vec) = *elm;
+        let a = BigInt::from_slice(Plus, a_vec);
+        let b = BigInt::from_slice(Plus, b_vec);
+        let c = BigInt::from_slice(Plus, c_vec);
+        let d = BigInt::from_slice(Plus, d_vec);
+
+        if !b.is_zero() {
+            check(&a, &b, &c, &d);
+        }
+    }
+}
+
+#[test]
 fn test_checked_add() {
     for elm in SUM_TRIPLES.iter() {
         let (a_vec, b_vec, c_vec) = *elm;
@@ -1034,6 +1091,18 @@ fn test_lcm() {
     check(-1, -1, 1);
     check(8, 9, 72);
     check(11, 5, 55);
+}
+
+#[test]
+fn test_is_multiple_of() {
+    assert!(BigInt::from(0).is_multiple_of(&BigInt::from(0)));
+    assert!(BigInt::from(6).is_multiple_of(&BigInt::from(6)));
+    assert!(BigInt::from(6).is_multiple_of(&BigInt::from(3)));
+    assert!(BigInt::from(6).is_multiple_of(&BigInt::from(1)));
+
+    assert!(!BigInt::from(42).is_multiple_of(&BigInt::from(5)));
+    assert!(!BigInt::from(5).is_multiple_of(&BigInt::from(3)));
+    assert!(!BigInt::from(42).is_multiple_of(&BigInt::from(0)));
 }
 
 #[test]

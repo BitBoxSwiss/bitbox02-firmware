@@ -1,6 +1,11 @@
 [source.crates-io]
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"]
+git = "https://github.com/probe-rs/rtt-target.git"
+rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
+replace-with = "vendored-sources"
+
 [source."git+https://github.com/digitalbitbox/rust-bip32-ed25519?tag=v0.1.2"]
 git = "https://github.com/BitBoxSwiss/rust-bip32-ed25519"
 tag = "v0.2.0"

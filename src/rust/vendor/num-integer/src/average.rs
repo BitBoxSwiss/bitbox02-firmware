@@ -1,5 +1,5 @@
+use crate::Integer;
 use core::ops::{BitAnd, BitOr, BitXor, Shr};
-use Integer;
 
 /// Provides methods to compute the average of two integers, without overflows.
 pub trait Average: Integer {

@@ -2,8 +2,6 @@
 
 #![feature(test)]
 
-extern crate num_integer;
-extern crate num_traits;
 extern crate test;
 
 use num_integer::Integer;
@@ -125,42 +123,42 @@ macro_rules! bench_roots {
 
             #[bench]
             fn sqrt_rand(b: &mut Bencher) {
-                ::bench_rand_pos(b, $T::sqrt, 2);
+                crate::bench_rand_pos(b, $T::sqrt, 2);
             }
 
             #[bench]
             fn sqrt_small(b: &mut Bencher) {
-                ::bench_small_pos(b, $T::sqrt, 2);
+                crate::bench_small_pos(b, $T::sqrt, 2);
             }
 
             #[bench]
             fn cbrt_rand(b: &mut Bencher) {
-                ::bench_rand(b, $T::cbrt, 3);
+                crate::bench_rand(b, $T::cbrt, 3);
             }
 
             #[bench]
             fn cbrt_small(b: &mut Bencher) {
-                ::bench_small(b, $T::cbrt, 3);
+                crate::bench_small(b, $T::cbrt, 3);
             }
 
             #[bench]
             fn fourth_root_rand(b: &mut Bencher) {
-                ::bench_rand_pos(b, |x: &$T| x.nth_root(4), 4);
+                crate::bench_rand_pos(b, |x: &$T| x.nth_root(4), 4);
             }
 
             #[bench]
             fn fourth_root_small(b: &mut Bencher) {
-                ::bench_small_pos(b, |x: &$T| x.nth_root(4), 4);
+                crate::bench_small_pos(b, |x: &$T| x.nth_root(4), 4);
             }
 
             #[bench]
             fn fifth_root_rand(b: &mut Bencher) {
-                ::bench_rand(b, |x: &$T| x.nth_root(5), 5);
+                crate::bench_rand(b, |x: &$T| x.nth_root(5), 5);
             }
 
             #[bench]
             fn fifth_root_small(b: &mut Bencher) {
-                ::bench_small(b, |x: &$T| x.nth_root(5), 5);
+                crate::bench_small(b, |x: &$T| x.nth_root(5), 5);
             }
         }
     )*}

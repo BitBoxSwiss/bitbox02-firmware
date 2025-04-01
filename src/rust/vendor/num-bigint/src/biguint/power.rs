@@ -6,7 +6,7 @@ use crate::big_digit::{self, BigDigit};
 use num_integer::Integer;
 use num_traits::{One, Pow, ToPrimitive, Zero};
 
-impl<'b> Pow<&'b BigUint> for BigUint {
+impl Pow<&BigUint> for BigUint {
     type Output = BigUint;
 
     #[inline]
@@ -14,7 +14,7 @@ impl<'b> Pow<&'b BigUint> for BigUint {
         if self.is_one() || exp.is_zero() {
             BigUint::one()
         } else if self.is_zero() {
-            BigUint::zero()
+            Self::ZERO
         } else if let Some(exp) = exp.to_u64() {
             self.pow(exp)
         } else if let Some(exp) = exp.to_u128() {
@@ -36,7 +36,7 @@ impl Pow<BigUint> for BigUint {
     }
 }
 
-impl<'a, 'b> Pow<&'b BigUint> for &'a BigUint {
+impl Pow<&BigUint> for &BigUint {
     type Output = BigUint;
 
     #[inline]
@@ -44,14 +44,14 @@ impl<'a, 'b> Pow<&'b BigUint> for &'a BigUint {
         if self.is_one() || exp.is_zero() {
             BigUint::one()
         } else if self.is_zero() {
-            BigUint::zero()
+            BigUint::ZERO
         } else {
             self.clone().pow(exp)
         }
     }
 }
 
-impl<'a> Pow<BigUint> for &'a BigUint {
+impl Pow<BigUint> for &BigUint {
     type Output = BigUint;
 
     #[inline]
@@ -92,7 +92,7 @@ macro_rules! pow_impl {
             }
         }
 
-        impl<'b> Pow<&'b $T> for BigUint {
+        impl Pow<&$T> for BigUint {
             type Output = BigUint;
 
             #[inline]
@@ -101,7 +101,7 @@ macro_rules! pow_impl {
             }
         }
 
-        impl<'a> Pow<$T> for &'a BigUint {
+        impl Pow<$T> for &BigUint {
             type Output = BigUint;
 
             #[inline]
@@ -113,7 +113,7 @@ macro_rules! pow_impl {
             }
         }
 
-        impl<'a, 'b> Pow<&'b $T> for &'a BigUint {
+        impl Pow<&$T> for &BigUint {
             type Output = BigUint;
 
             #[inline]
@@ -225,27 +225,27 @@ fn test_plain_modpow() {
     let exp = vec![0, 0b1];
     assert_eq!(
         two.pow(0b1_00000000_u32) % &modulus,
-        plain_modpow(&two, &exp, &modulus)
+        plain_modpow(two, &exp, &modulus)
     );
     let exp = vec![0, 0b10];
     assert_eq!(
         two.pow(0b10_00000000_u32) % &modulus,
-        plain_modpow(&two, &exp, &modulus)
+        plain_modpow(two, &exp, &modulus)
     );
     let exp = vec![0, 0b110010];
     assert_eq!(
         two.pow(0b110010_00000000_u32) % &modulus,
-        plain_modpow(&two, &exp, &modulus)
+        plain_modpow(two, &exp, &modulus)
     );
     let exp = vec![0b1, 0b1];
     assert_eq!(
         two.pow(0b1_00000001_u32) % &modulus,
-        plain_modpow(&two, &exp, &modulus)
+        plain_modpow(two, &exp, &modulus)
     );
     let exp = vec![0b1100, 0, 0b1];
     assert_eq!(
         two.pow(0b1_00000000_00001100_u32) % &modulus,
-        plain_modpow(&two, &exp, &modulus)
+        plain_modpow(two, &exp, &modulus)
     );
 }
 

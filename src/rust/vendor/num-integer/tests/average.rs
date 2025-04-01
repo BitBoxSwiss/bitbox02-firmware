@@ -1,6 +1,3 @@
-extern crate num_integer;
-extern crate num_traits;
-
 macro_rules! test_average {
     ($I:ident, $U:ident) => {
         mod $I {
@@ -12,7 +9,7 @@ macro_rules! test_average {
                     assert_eq!((14 as $I).average_ceil(&16), 15 as $I);
                     assert_eq!((14 as $I).average_ceil(&17), 16 as $I);
 
-                    let max = $crate::std::$I::MAX;
+                    let max = std::$I::MAX;
                     assert_eq!((max - 3).average_ceil(&(max - 1)), max - 2);
                     assert_eq!((max - 3).average_ceil(&(max - 2)), max - 2);
                 }
@@ -22,8 +19,8 @@ macro_rules! test_average {
                     assert_eq!((14 as $I).average_ceil(&-4), 5 as $I);
                     assert_eq!((14 as $I).average_ceil(&-5), 5 as $I);
 
-                    let min = $crate::std::$I::MIN;
-                    let max = $crate::std::$I::MAX;
+                    let min = std::$I::MIN;
+                    let max = std::$I::MAX;
                     assert_eq!(min.average_ceil(&max), 0 as $I);
                 }
             }
@@ -36,7 +33,7 @@ macro_rules! test_average {
                     assert_eq!((14 as $I).average_floor(&16), 15 as $I);
                     assert_eq!((14 as $I).average_floor(&17), 15 as $I);
 
-                    let max = $crate::std::$I::MAX;
+                    let max = std::$I::MAX;
                     assert_eq!((max - 3).average_floor(&(max - 1)), max - 2);
                     assert_eq!((max - 3).average_floor(&(max - 2)), max - 3);
                 }
@@ -46,8 +43,8 @@ macro_rules! test_average {
                     assert_eq!((14 as $I).average_floor(&-4), 5 as $I);
                     assert_eq!((14 as $I).average_floor(&-5), 4 as $I);
 
-                    let min = $crate::std::$I::MIN;
-                    let max = $crate::std::$I::MAX;
+                    let min = std::$I::MIN;
+                    let max = std::$I::MAX;
                     assert_eq!(min.average_floor(&max), -1 as $I);
                 }
             }
@@ -65,7 +62,7 @@ macro_rules! test_average {
 
                 #[test]
                 fn overflow() {
-                    let max = $crate::std::$U::MAX;
+                    let max = std::$U::MAX;
                     assert_eq!((max - 3).average_ceil(&(max - 1)), max - 2);
                     assert_eq!((max - 3).average_ceil(&(max - 2)), max - 2);
                 }
@@ -82,7 +79,7 @@ macro_rules! test_average {
 
                 #[test]
                 fn overflow() {
-                    let max = $crate::std::$U::MAX;
+                    let max = std::$U::MAX;
                     assert_eq!((max - 3).average_floor(&(max - 1)), max - 2);
                     assert_eq!((max - 3).average_floor(&(max - 2)), max - 3);
                 }
@@ -95,6 +92,5 @@ test_average!(i8, u8);
 test_average!(i16, u16);
 test_average!(i32, u32);
 test_average!(i64, u64);
-#[cfg(has_i128)]
 test_average!(i128, u128);
 test_average!(isize, usize);

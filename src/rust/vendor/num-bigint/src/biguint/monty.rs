@@ -1,9 +1,9 @@
-use crate::std_alloc::Vec;
+use alloc::vec::Vec;
 use core::mem;
 use core::ops::Shl;
-use num_traits::{One, Zero};
+use num_traits::One;
 
-use crate::big_digit::{self, BigDigit, DoubleBigDigit, SignedDoubleBigDigit};
+use crate::big_digit::{self, BigDigit, DoubleBigDigit};
 use crate::biguint::BigUint;
 
 struct MontyReducer {
@@ -15,8 +15,8 @@ struct MontyReducer {
 fn inv_mod_alt(b: BigDigit) -> BigDigit {
     assert_ne!(b & 1, 0);
 
-    let mut k0 = 2 - b as SignedDoubleBigDigit;
-    let mut t = (b - 1) as SignedDoubleBigDigit;
+    let mut k0 = BigDigit::wrapping_sub(2, b);
+    let mut t = b - 1;
     let mut i = 1;
     while i < big_digit::BITS {
         t = t.wrapping_mul(t);
@@ -24,7 +24,8 @@ fn inv_mod_alt(b: BigDigit) -> BigDigit {
 
         i <<= 1;
     }
-    -k0 as BigDigit
+    debug_assert_eq!(k0.wrapping_mul(b), 1);
+    k0.wrapping_neg()
 }
 
 impl MontyReducer {
@@ -37,7 +38,7 @@ impl MontyReducer {
 /// Computes z mod m = x * y * 2 ** (-n*_W) mod m
 /// assuming k = -1/m mod 2**_W
 /// See Gueron, "Efficient Software Implementations of Modular Exponentiation".
-/// https://eprint.iacr.org/2011/239.pdf
+/// <https://eprint.iacr.org/2011/239.pdf>
 /// In the terminology of that paper, this is an "Almost Montgomery Multiplication":
 /// x and y are required to satisfy 0 <= z < 2**(n*_W) and then the result
 /// z is guaranteed to satisfy 0 <= z < 2**(n*_W), but it may not be < m.
@@ -56,7 +57,7 @@ fn montgomery(x: &BigUint, y: &BigUint, m: &BigUint, k: BigDigit, n: usize) -> B
         n
     );
 
-    let mut z = BigUint::zero();
+    let mut z = BigUint::ZERO;
     z.data.resize(n * 2, 0);
 
     let mut c: BigDigit = 0;
@@ -78,8 +79,8 @@ fn montgomery(x: &BigUint, y: &BigUint, m: &BigUint, k: BigDigit, n: usize) -> B
         z.data = z.data[n..].to_vec();
     } else {
         {
-            let (mut first, second) = z.data.split_at_mut(n);
-            sub_vv(&mut first, &second, &m.data);
+            let (first, second) = z.data.split_at_mut(n);
+            sub_vv(first, second, &m.data);
         }
         z.data = z.data[..n].to_vec();
     }
@@ -173,7 +174,7 @@ pub(super) fn monty_modpow(x: &BigUint, y: &BigUint, m: &BigUint) -> BigUint {
     // initialize z = 1 (Montgomery 1)
     let mut z = powers[0].clone();
     z.data.resize(num_words, 0);
-    let mut zz = BigUint::zero();
+    let mut zz = BigUint::ZERO;
     zz.data.resize(num_words, 0);
 
     // same windowed exponent, but with Montgomery multiplications

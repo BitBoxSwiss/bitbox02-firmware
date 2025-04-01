@@ -31,7 +31,7 @@ macro_rules! pow_impl {
             }
         }
 
-        impl<'b> Pow<&'b $T> for BigInt {
+        impl Pow<&$T> for BigInt {
             type Output = BigInt;
 
             #[inline]
@@ -40,7 +40,7 @@ macro_rules! pow_impl {
             }
         }
 
-        impl<'a> Pow<$T> for &'a BigInt {
+        impl Pow<$T> for &BigInt {
             type Output = BigInt;
 
             #[inline]
@@ -49,7 +49,7 @@ macro_rules! pow_impl {
             }
         }
 
-        impl<'a, 'b> Pow<&'b $T> for &'a BigInt {
+        impl Pow<&$T> for &BigInt {
             type Output = BigInt;
 
             #[inline]
@@ -80,7 +80,7 @@ pub(super) fn modpow(x: &BigInt, exponent: &BigInt, modulus: &BigInt) -> BigInt 
 
     let result = x.data.modpow(&exponent.data, &modulus.data);
     if result.is_zero() {
-        return BigInt::zero();
+        return BigInt::ZERO;
     }
 
     // The sign of the result follows the modulus, like `mod_floor`.

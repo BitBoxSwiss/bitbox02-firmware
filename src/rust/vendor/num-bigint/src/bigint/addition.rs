@@ -8,7 +8,7 @@ use core::cmp::Ordering::{Equal, Greater, Less};
 use core::iter::Sum;
 use core::mem;
 use core::ops::{Add, AddAssign};
-use num_traits::{CheckedAdd, Zero};
+use num_traits::CheckedAdd;
 
 // We want to forward to BigUint::add, but it's not clear how that will go until
 // we compare both sign and magnitude.  So we duplicate this body for every
@@ -24,13 +24,13 @@ macro_rules! bigint_add {
             (Plus, Minus) | (Minus, Plus) => match $a.data.cmp(&$b.data) {
                 Less => BigInt::from_biguint($b.sign, $b_data - $a_data),
                 Greater => BigInt::from_biguint($a.sign, $a_data - $b_data),
-                Equal => Zero::zero(),
+                Equal => BigInt::ZERO,
             },
         }
     };
 }
 
-impl<'a, 'b> Add<&'b BigInt> for &'a BigInt {
+impl Add<&BigInt> for &BigInt {
     type Output = BigInt;
 
     #[inline]
@@ -46,7 +46,7 @@ impl<'a, 'b> Add<&'b BigInt> for &'a BigInt {
     }
 }
 
-impl<'a> Add<BigInt> for &'a BigInt {
+impl Add<BigInt> for &BigInt {
     type Output = BigInt;
 
     #[inline]
@@ -55,7 +55,7 @@ impl<'a> Add<BigInt> for &'a BigInt {
     }
 }
 
-impl<'a> Add<&'a BigInt> for BigInt {
+impl Add<&BigInt> for BigInt {
     type Output = BigInt;
 
     #[inline]
@@ -73,10 +73,10 @@ impl Add<BigInt> for BigInt {
     }
 }
 
-impl<'a> AddAssign<&'a BigInt> for BigInt {
+impl AddAssign<&BigInt> for BigInt {
     #[inline]
     fn add_assign(&mut self, other: &BigInt) {
-        let n = mem::replace(self, BigInt::zero());
+        let n = mem::replace(self, Self::ZERO);
         *self = n + other;
     }
 }
@@ -97,7 +97,7 @@ impl Add<u32> for BigInt {
             NoSign => From::from(other),
             Plus => BigInt::from(self.data + other),
             Minus => match self.data.cmp(&From::from(other)) {
-                Equal => Zero::zero(),
+                Equal => Self::ZERO,
                 Less => BigInt::from(other - self.data),
                 Greater => -BigInt::from(self.data - other),
             },
@@ -108,7 +108,7 @@ impl Add<u32> for BigInt {
 impl AddAssign<u32> for BigInt {
     #[inline]
     fn add_assign(&mut self, other: u32) {
-        let n = mem::replace(self, BigInt::zero());
+        let n = mem::replace(self, Self::ZERO);
         *self = n + other;
     }
 }
@@ -122,7 +122,7 @@ impl Add<u64> for BigInt {
             NoSign => From::from(other),
             Plus => BigInt::from(self.data + other),
             Minus => match self.data.cmp(&From::from(other)) {
-                Equal => Zero::zero(),
+                Equal => Self::ZERO,
                 Less => BigInt::from(other - self.data),
                 Greater => -BigInt::from(self.data - other),
             },
@@ -133,7 +133,7 @@ impl Add<u64> for BigInt {
 impl AddAssign<u64> for BigInt {
     #[inline]
     fn add_assign(&mut self, other: u64) {
-        let n = mem::replace(self, BigInt::zero());
+        let n = mem::replace(self, Self::ZERO);
         *self = n + other;
     }
 }
@@ -147,7 +147,7 @@ impl Add<u128> for BigInt {
             NoSign => BigInt::from(other),
             Plus => BigInt::from(self.data + other),
             Minus => match self.data.cmp(&From::from(other)) {
-                Equal => BigInt::zero(),
+                Equal => Self::ZERO,
                 Less => BigInt::from(other - self.data),
                 Greater => -BigInt::from(self.data - other),
             },
@@ -157,7 +157,7 @@ impl Add<u128> for BigInt {
 impl AddAssign<u128> for BigInt {
     #[inline]
     fn add_assign(&mut self, other: u128) {
-        let n = mem::replace(self, BigInt::zero());
+        let n = mem::replace(self, Self::ZERO);
         *self = n + other;
     }
 }

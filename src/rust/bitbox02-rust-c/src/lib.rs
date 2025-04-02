@@ -56,7 +56,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[no_mangle]
 pub extern "C" fn rust_rtt_init() {
-    ::util::log::rtt_init();
+    ::util::log::rtt_init()
 }
 
 /// # Safety
@@ -74,4 +74,30 @@ pub unsafe extern "C" fn rust_log(ptr: *const ::util::c_types::c_char) {
         let s = unsafe { core::str::from_utf8_unchecked(s.to_bytes()) };
         ::util::log::rtt_target::rprintln!("{}", s);
     }
+}
+
+#[no_mangle]
+#[allow(static_mut_refs)]
+#[cfg_attr(not(feature = "rtt"), allow(unused))]
+pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
+    #[cfg(feature = "rtt")]
+    {
+        let buf = core::slice::from_raw_parts(data, len);
+        let channel = unsafe { ::util::log::CH1_UP.as_mut().unwrap() };
+        channel.write(buf);
+    }
+}
+
+#[no_mangle]
+#[allow(static_mut_refs)]
+#[cfg_attr(not(feature = "rtt"), allow(unused))]
+pub unsafe extern "C" fn rust_rtt_ch0_read(data: *mut u8, len: usize) -> usize {
+    #[cfg(feature = "rtt")]
+    {
+        let buf = core::slice::from_raw_parts_mut(data, len);
+        let channel = unsafe { ::util::log::CH0_DOWN.as_mut().unwrap() };
+        channel.read(buf)
+    }
+    #[cfg(not(feature = "rtt"))]
+    0
 }

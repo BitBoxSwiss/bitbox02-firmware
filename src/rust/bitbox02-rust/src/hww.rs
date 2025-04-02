@@ -119,12 +119,6 @@ pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
         _ => (),
     }
 
-    // No other message than the attestation and unlock calls shall pass until the device is
-    // unlocked or ready to be initialized.
-    if bitbox02::memory::is_initialized() && bitbox02::keystore::is_locked() {
-        return Vec::new();
-    }
-
     let mut out = [OP_STATUS_SUCCESS].to_vec();
     match noise::process(usb_in, &mut out).await {
         Ok(()) => out,
@@ -417,7 +411,14 @@ mod tests {
 
         // Can't reboot when initialized but locked.
         bitbox02::keystore::lock();
-        assert!(make_request(reboot_request.encode_to_vec().as_ref()).is_err());
+        let response_encoded = make_request(&reboot_request.encode_to_vec()).unwrap();
+        let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
+        assert_eq!(
+            response,
+            crate::pb::Response {
+                response: Some(api::error::make_error(api::error::Error::InvalidState))
+            },
+        );
 
         // Unlock.
         assert_eq!(

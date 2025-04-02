@@ -52,8 +52,58 @@ extern "C" {
 #endif
 
 // Calculate baud register value from requested baudrate value
+#ifndef SERCOM4_BAUD_RATE
+#define SERCOM4_BAUD_RATE ((float)CONF_GCLK_SERCOM4_CORE_FREQUENCY / (float)(2 * 8000000)) - 1
+#endif
+
+#ifndef SERCOM4_RXPO
+#define SERCOM4_RXPO 0
+#endif
+
+#ifndef SERCOM4_TXPO
+#define SERCOM4_TXPO 2
+#endif
+
+/**
+ * \brief Initialize usart interface
+ *
+ * \return Initialization status.
+ */
+int8_t SPI_MEM_init(void);
+
+/**
+ * \brief Enable SPI module
+ */
+void SPI_MEM_enable(void);
+
+/**
+ * \brief Disable SPI module
+ */
+void SPI_MEM_disable(void);
+
+/**
+ * \brief Exchange byte in SPI module
+ */
+uint32_t SPI_MEM_exchange_data(uint32_t data);
+
+/**
+ * \brief Exchange block in SPI module
+ */
+void SPI_MEM_exchange_block(void *block, uint8_t size);
+
+/**
+ * \brief Write block in SPI module
+ */
+void SPI_MEM_write_block(void *block, uint8_t size);
+
+/**
+ * \brief Read block in SPI module
+ */
+void SPI_MEM_read_block(void *block, uint8_t size);
+
+// Calculate baud register value from requested baudrate value
 #ifndef SERCOM3_BAUD_RATE
-#define SERCOM3_BAUD_RATE ((float)CONF_GCLK_SERCOM3_CORE_FREQUENCY / (float)(2 * 3000000)) - 1
+#define SERCOM3_BAUD_RATE (((float)CONF_GCLK_SERCOM3_CORE_FREQUENCY / (float)(2 * 3000000)) - 1)
 #endif
 
 #ifndef SERCOM3_RXPO

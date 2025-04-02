@@ -37,10 +37,13 @@
 
 #include "pal_os_event.h"
 #include "hal_timer.h"
-#include "util.h"
+
 extern struct timer_descriptor TIMER_0;
 
 static pal_os_event_t pal_os_event_0 = {0};
+
+static struct timer_task scheduler;
+static volatile bool scheduler_was_triggered;
 
 void pal_os_event_start(
     pal_os_event_t* p_pal_os_event,
@@ -56,6 +59,9 @@ void pal_os_event_start(
 void pal_os_event_stop(pal_os_event_t* p_pal_os_event)
 {
     p_pal_os_event->is_event_triggered = 0;
+    if (!scheduler_was_triggered) {
+        timer_remove_task(&TIMER_0, &scheduler);
+    }
 }
 
 pal_os_event_t* pal_os_event_create(register_callback callback, void* callback_args)
@@ -66,11 +72,8 @@ pal_os_event_t* pal_os_event_create(register_callback callback, void* callback_a
     return (&pal_os_event_0);
 }
 
-static struct timer_task scheduler;
-
 void pal_os_event_trigger_registered_callback(void)
 {
-    // traceln("%s: called", __func__);
     register_callback callback;
 
     if (pal_os_event_0.callback_registered) {
@@ -82,6 +85,7 @@ void pal_os_event_trigger_registered_callback(void)
 static void _timer_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
+    scheduler_was_triggered = true;
     pal_os_event_trigger_registered_callback();
 }
 
@@ -97,6 +101,7 @@ void pal_os_event_register_callback_oneshot(
     scheduler.interval = (time_us + 99) / 100;
     scheduler.cb = _timer_cb;
     scheduler.mode = TIMER_TASK_ONE_SHOT;
+    scheduler_was_triggered = false;
     timer_add_task(&TIMER_0, &scheduler);
 }
 

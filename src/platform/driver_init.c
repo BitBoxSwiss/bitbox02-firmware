@@ -279,8 +279,6 @@ static void _oled_set_pins(void)
     gpio_set_pin_function(PIN_OLED_CMD, GPIO_PIN_FUNCTION_OFF);
 }
 
-#define USART_0_BUFFER_SIZE 16
-
 static uint8_t USART_0_buffer[USART_0_BUFFER_SIZE];
 
 static void _uart_init(void)

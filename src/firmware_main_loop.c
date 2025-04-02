@@ -160,7 +160,7 @@ void firmware_main_loop(void)
         }
 
         if (uart_write_buf_len > 0) {
-            util_log("debug: %s", util_dbg_hex(uart_write_buf, uart_write_buf_len));
+            // util_log("debug: %s", util_dbg_hex(uart_write_buf, uart_write_buf_len));
             if (uart_0_write(uart_write_buf, uart_write_buf_len)) {
                 uart_write_buf_len = 0;
             }

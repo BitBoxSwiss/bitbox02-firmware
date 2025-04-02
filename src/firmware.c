@@ -46,6 +46,12 @@ static void _load_da14531_firmware(void)
     struct Flasher flasher;
     flasher_init(&flasher, da14531_firmware_start, da14531_firmware_size);
 
+#if !defined(NDEBUG) && 0
+    uint8_t small_buf[20];
+#endif
+
+    usart_async_enable(&USART_0);
+
     while (1) {
         if (uart_read_buf_len == 0) {
             uart_read_buf_len = uart_0_read(uart_read_buf, sizeof(uart_read_buf));
@@ -54,42 +60,48 @@ static void _load_da14531_firmware(void)
         if (uart_write_buf_len > 0) {
             if (uart_0_write(uart_write_buf, uart_write_buf_len)) {
                 uart_write_buf_len = 0;
+            } else {
+                delay_ms(100);
+                util_log("failed to write");
             }
         }
 
+        // The flasher times out in case it never sees a request of the firmware from the da14531
         if (flasher_timed_out(&flasher)) {
-            // Assume the da14531 has not been configured. Attempt reset
-            util_log("da14531: attempting reset");
+            // Reset timeout
+            flasher_reset(&flasher);
+
+            util_log("da14531: attempting reset over SWD");
+            // Assume the da14531 has not been configured.
             if (!da14531_swd_reset()) {
-                util_log("da14531: reset failed");
-                // If it failed to reset and it never requested a firmware, it is probably already
-                // booted and running. Reset flasher (so it doesn't look like timeout, and set it to
-                // done)
-                flasher_reset(&flasher);
-                flasher_set_done(&flasher);
-                // Try to reset a running BLE chip using the reset uart command
-#if !defined(NDEBUG)
+                util_log("da14531: reset over SWD failed");
+                // The da14531 failed to reset over SWD and it never requested a firmware, it is
+                // probably already booted and running. Set flasher to done. Can only happen if the
+                // MCU was reset and board was not power cycled.
+#if !defined(NDEBUG) && 0
+                // For debug builds try to reset anyway to emulate a normal startup seuqence.
                 util_log("da14531: attempting reset over uart");
-                uint8_t buf[15];
                 uint8_t payload = 8;
-                uint16_t len = serial_link_out_format(
-                    &buf[0], sizeof(buf), SERIAL_LINK_TYPE_CTRL_DATA, &payload, 1);
-                uart_0_write(buf, len);
-                // Set flasher to initial state again to be ready to flash
-                flasher_reset(&flasher);
+                uart_write_buf_len = serial_link_out_format(
+                    &small_buf[0], sizeof(small_buf), SERIAL_LINK_TYPE_CTRL_DATA, &payload, 1);
+                uart_write_buf = &small_buf[0];
+#else
+                flasher_set_done(&flasher);
 #endif
             }
         }
 
-        if (!flasher_done(&flasher)) {
-            flasher_poll(
-                &flasher, uart_read_buf, &uart_read_buf_len, &uart_write_buf, &uart_write_buf_len);
-        } else if (flasher_timed_out(&flasher)) {
-            // If the flashing is done BUT the flasher first had to reset the da14531. The da14531
-            // will turn off the debug interface, reset and ask for the firmware again.
-            flasher_reset(&flasher);
-        } else {
-            return;
+        if (!uart_write_buf_len) {
+            if (!flasher_done(&flasher)) {
+                flasher_poll(
+                    &flasher,
+                    uart_read_buf,
+                    &uart_read_buf_len,
+                    &uart_write_buf,
+                    &uart_write_buf_len);
+            } else {
+                return;
+            }
         }
     }
 }
@@ -112,7 +124,7 @@ int main(void)
     // The MCU needs to respond when the da14531 starts up
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         _load_da14531_firmware();
-        util_log("BLE chip is running");
+        util_log("BLE chip should be running");
         screen_print_debug("BLE DONE", 0);
     }
 

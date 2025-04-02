@@ -16,7 +16,7 @@
 #include "dap.h"
 #include "util.h"
 
-#define TIMEOUT 100000
+#define TIMEOUT 1000000
 
 const char* flashing_state_str(enum flashing_state state)
 {
@@ -80,11 +80,12 @@ void flasher_poll(
 
     switch (self->state) {
     case FLASHING_STATE_IDLE:
-        for (uint16_t i = 0; i < self->buf_in_len; i++) {
-            if (self->buf_in[i] == STX) {
+        for (uint16_t i = self->buf_in_len; i > 1; i--) {
+            if (self->buf_in[i - 1] == STX) {
                 util_log("da14531: requested firmware");
                 // delay_ms(500); // 20ms is OK, 30 is NOT
                 self->state = FLASHING_STATE_SEEN_STX;
+                break;
             }
         }
         self->buf_in_len = 0;
@@ -153,7 +154,7 @@ void flasher_set_done(struct Flasher* self)
 
 bool flasher_timed_out(struct Flasher* self)
 {
-    return self->timeout < 0;
+    return self->state == FLASHING_STATE_IDLE && self->timeout < 0;
 }
 bool flasher_done(struct Flasher* self)
 {
@@ -173,15 +174,18 @@ bool da14531_swd_reset(void)
     }
     dap_target_select();
     uint32_t id = dap_read_idcode();
-    util_log("%08x", (unsigned int)id);
     if (id != 0xbc11477) {
-        util_log("da14531: Read invalid idcode: %x", (unsigned int)id);
+        util_log("da14531: ERROR: Invalid idcode: %x", (unsigned int)id);
     } else {
         util_log("da14531: Connected to BT chip");
     }
 
     // remap address space to ROM
     uint16_t w = dap_read_hword(0x50000012);
+    if (w != 0x01a2) {
+        util_log("da14531: ERROR: SYS_CTRL_REG: %04x, expected 0x01a2", (unsigned int)w);
+        return false;
+    }
     w &= ~3;
     dap_write_hword(0x50000012, w);
     // Issue reset (deselect resets chip)

@@ -1,6 +1,7 @@
 #include "uart.h"
 #include "driver_init.h"
 #include "util.h"
+#include "utils_assert.h"
 
 #define EVENT_READ 0x01 // Available to read
 #define EVENT_WRITE 0x02 // Available to write
@@ -24,12 +25,29 @@ static void tx_cb(const struct usart_async_descriptor* const descr)
     }
 }
 
-static void err_cb(const struct usart_async_descriptor* const descr)
-{
-    if (descr == &USART_0) {
-        usart_0_status = descr->stat;
-    }
-}
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+// static void err_cb(const struct usart_async_descriptor* const descr)
+//{
+//     if (descr == &USART_0) {
+//         uint32_t status_reg = _usart_async_get_status(&descr->device);
+//         // uint32_t status_reg = hri_sercomusart_read_RXERRCNT_reg(&descr->device);
+//         util_log("usart status: %08x", (unsigned int)status_reg);
+//         // usart_async_disable(descr);
+//         //  struct usart_async_status stat;
+//         //  usart_async_get_status(descr, &stat);
+//         //  util_log(
+//         //      "uart error flags: %08x, rx:%08x, tx:%08x",
+//         //      (unsigned int)stat.flags,
+//         //      (unsigned int)stat.rxcnt,
+//         //      (unsigned int)stat.txcnt);
+//         //  usart_0_status = descr->stat;
+//         //   if (stat.rxcnt == USART_0_BUFFER_SIZE) {
+//         //       usart_async_flush_rx_buffer(descr);
+//         //   }
+//     }
+// }
+// #pragma GCC diagnostic pop
 
 // static uint8_t filter_ascii(uint8_t c)
 //{
@@ -88,7 +106,7 @@ void uart_init(void)
     usart_async_get_io_descriptor(&USART_0, &io);
     usart_async_register_callback(&USART_0, USART_ASYNC_RXC_CB, rx_cb);
     usart_async_register_callback(&USART_0, USART_ASYNC_TXC_CB, tx_cb);
-    usart_async_register_callback(&USART_0, USART_ASYNC_ERROR_CB, err_cb);
+    // usart_async_register_callback(&USART_0, USART_ASYNC_ERROR_CB, err_cb);
     usart_async_enable(&USART_0);
 
     usart_0_readyness |= EVENT_WRITE;

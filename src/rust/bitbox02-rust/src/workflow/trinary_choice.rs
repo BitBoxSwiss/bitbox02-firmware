@@ -22,9 +22,9 @@ pub use bitbox02::ui::TrinaryChoice;
 
 pub async fn choose(
     message: &str,
-    label_left: &str,
-    label_middle: &str,
-    label_right: &str,
+    label_left: Option<&str>,
+    label_middle: Option<&str>,
+    label_right: Option<&str>,
 ) -> TrinaryChoice {
     let result = RefCell::new(None as Option<TrinaryChoice>);
 

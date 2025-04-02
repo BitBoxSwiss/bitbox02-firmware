@@ -95,24 +95,31 @@ component_t* trinary_choice_create(
         ui_util_add_sub_component(component, label_create(message, NULL, CENTER, component));
     }
 
-    data->button_left = button_create(label_left, bottom_slider, 0, _left_selected, component);
-    ui_util_add_sub_component(component, data->button_left);
+    if (label_left != NULL) {
+        data->button_left = button_create(label_left, bottom_slider, 0, _left_selected, component);
+        ui_util_add_sub_component(component, data->button_left);
+        ui_util_position_left_bottom_offset(component, data->button_left, 0, 0);
+    }
 
-    data->button_middle =
-        button_create(label_middle, bottom_slider, 0, _middle_selected, component);
-    ui_util_add_sub_component(component, data->button_middle);
+    if (label_middle != NULL) {
+        data->button_middle =
+            button_create(label_middle, bottom_slider, 0, _middle_selected, component);
+        ui_util_add_sub_component(component, data->button_middle);
+        ui_util_position_left_bottom_offset(
+            component,
+            data->button_middle,
+            SCREEN_WIDTH / 2 - data->button_middle->dimension.width / 2,
+            0);
+    }
 
-    data->button_right = button_create(label_right, bottom_slider, 0, _right_selected, component);
-    ui_util_add_sub_component(component, data->button_right);
+    if (label_right != NULL) {
+        data->button_right =
+            button_create(label_right, bottom_slider, 0, _right_selected, component);
+        ui_util_add_sub_component(component, data->button_right);
 
-    ui_util_position_left_bottom_offset(component, data->button_left, 0, 0);
-    ui_util_position_left_bottom_offset(
-        component,
-        data->button_middle,
-        SCREEN_WIDTH / 2 - data->button_middle->dimension.width / 2,
-        0);
-    ui_util_position_left_bottom_offset(
-        component, data->button_right, SCREEN_WIDTH - data->button_right->dimension.width, 0);
+        ui_util_position_left_bottom_offset(
+            component, data->button_right, SCREEN_WIDTH - data->button_right->dimension.width, 0);
+    }
 
     return component;
 }

@@ -67,6 +67,8 @@ message Request {
         ElectrumEncryptionKeyRequest electrum_encryption_key = 26;
         CardanoRequest cardano = 27;
         BIP85Request bip85 = 28;
+        UnlockRequest unlock = 29;
+        UnlockHostInfoRequest unlock_host_info = 30;
     }
 }
 
@@ -89,5 +91,6 @@ message Response {
         ElectrumEncryptionKeyResponse electrum_encryption_key = 14;
         CardanoResponse cardano = 15;
         BIP85Response bip85 = 16;
+        UnlockRequestHostInfoResponse unlock_host_info = 17;
     }
 }

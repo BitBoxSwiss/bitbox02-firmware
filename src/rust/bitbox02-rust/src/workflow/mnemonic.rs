@@ -290,7 +290,8 @@ async fn get_12th_18th_word(
 
 /// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
 pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
-    let num_words: usize = match choose("How many words?", "12", "18", "24").await {
+    let num_words: usize = match choose("How many words?", Some("12"), Some("18"), Some("24")).await
+    {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
         TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,

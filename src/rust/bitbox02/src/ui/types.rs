@@ -24,6 +24,10 @@ pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
 #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
 
+// Deduct one, as the C const includes the null terminator.
+#[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
+pub const INPUT_STRING_MAX_SIZE: usize = bitbox02_sys::INPUT_STRING_MAX_SIZE as usize - 1;
+
 #[derive(Default)]
 pub enum Font {
     #[default]

@@ -43,6 +43,8 @@ void Abort(const char* msg)
     system_close_interfaces();
 #endif
 #endif
+    // Break the program if we are debugging
+    ASSERT(false);
     while (1) {
     }
 }

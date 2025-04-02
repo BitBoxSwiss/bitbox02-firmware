@@ -13,7 +13,9 @@ void serial_link_in_init(struct SerialLinkIn* self)
 {
     self->state = SERIAL_LINK_STATE_READING;
     self->escape_state = ESCAPE_STATE_WAIT;
+    memset(self->buf_in, 0x55, sizeof(self->buf_in));
     self->buf_in_len = 0;
+    memset(self->frame, 0x55, sizeof(self->frame));
     self->frame_len = 0;
     self->buf_out_len = 0;
     // self->counter = 0;
@@ -30,33 +32,32 @@ struct serial_link_frame* serial_link_in_poll(
     uint16_t* buf_in_len)
 {
     // copy over new bytes
-    for (uint16_t i = 0; i < *buf_in_len; i++) {
-        self->buf_in[i] = buf_in[i];
+    for (uint16_t i = 0; i < *buf_in_len && self->buf_in_len < sizeof(self->buf_in); i++) {
+        self->buf_in[self->buf_in_len++] = buf_in[i];
     }
-    self->buf_in_len = *buf_in_len;
+    if (*buf_in_len > 0) {
+        util_log("got bytes %s", util_dbg_hex(self->buf_in, *buf_in_len));
+    }
     *buf_in_len = 0;
 
     switch (self->state) {
     case SERIAL_LINK_STATE_READING:
         if (self->buf_in_len > 0) {
             for (int i = 0; i < self->buf_in_len; i++) {
+                // Always reset on SOF
+                if (self->buf_in[i] == SL_SOF) {
+                    if (self->frame_len >= 1) {
+                        self->state = SERIAL_LINK_STATE_CHECK;
+                    }
+                    self->escape_state = ESCAPE_STATE_ACCEPT;
+                    continue;
+                }
+
                 switch (self->escape_state) {
                 case ESCAPE_STATE_WAIT:
-                    // Always reset on SOF
-                    if (self->buf_in[i] == SL_SOF) {
-                        if (self->frame_len >= 1) {
-                            self->state = SERIAL_LINK_STATE_CHECK;
-                        }
-                        self->escape_state = ESCAPE_STATE_ACCEPT;
-                    }
                     break;
                 case ESCAPE_STATE_ACCEPT:
-                    // Always reset on SOF
-                    if (self->buf_in[i] == SL_SOF) {
-                        if (self->frame_len >= 1) {
-                            self->state = SERIAL_LINK_STATE_CHECK;
-                        }
-                    } else if (self->buf_in[i] == SL_ESCAPE) {
+                    if (self->buf_in[i] == SL_ESCAPE) {
                         self->escape_state = ESCAPE_STATE_ESCAPE;
                     } else {
                         self->frame[self->frame_len++] = self->buf_in[i];
@@ -71,8 +72,8 @@ struct serial_link_frame* serial_link_in_poll(
                     break;
                 }
             }
+            self->buf_in_len = 0;
         }
-        self->buf_in_len = 0;
         break;
     case SERIAL_LINK_STATE_CHECK: {
         uint8_t type = self->frame[0];
@@ -81,7 +82,10 @@ struct serial_link_frame* serial_link_in_poll(
 
         if (len != self->frame_len - 5) {
             util_log("da14531: ERROR, invalid len %d, dropped frame", len);
-            util_log("da14531: frame: %s", util_dbg_hex(self->frame, self->frame_len));
+            util_log(
+                "da14531: frame_len: %d, frame: %s",
+                self->frame_len,
+                util_dbg_hex(self->frame, self->frame_len));
             self->state = SERIAL_LINK_STATE_READING;
             self->frame_len = 0;
             return NULL;

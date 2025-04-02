@@ -107,7 +107,7 @@ void uart_init(void)
     usart_async_register_callback(&USART_0, USART_ASYNC_RXC_CB, rx_cb);
     usart_async_register_callback(&USART_0, USART_ASYNC_TXC_CB, tx_cb);
     // usart_async_register_callback(&USART_0, USART_ASYNC_ERROR_CB, err_cb);
-    usart_async_enable(&USART_0);
+    // usart_async_enable(&USART_0);
 
     usart_0_readyness |= EVENT_WRITE;
 }

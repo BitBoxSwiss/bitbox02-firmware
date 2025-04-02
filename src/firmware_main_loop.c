@@ -28,6 +28,8 @@
 
 static uint8_t uart_out_buf[100];
 
+#define DN "My BitBox"
+
 static void _ctrl_handler(
     struct serial_link_frame* frame,
     const uint8_t** buf_out,
@@ -38,11 +40,10 @@ static void _ctrl_handler(
         util_log("da14531: get device name");
         // 1 byte cmd
         // rest device name
-#define dn "My BitBox"
 
-        uint8_t payload[1 + sizeof(dn) - 1];
+        uint8_t payload[1 + sizeof(DN) - 1];
         payload[0] = 1;
-        memcpy(&payload[1], dn, sizeof(dn) - 1);
+        memcpy(&payload[1], DN, sizeof(DN) - 1);
         uint16_t len = serial_link_out_format(
             &uart_out_buf[0],
             sizeof(uart_out_buf),
@@ -143,7 +144,7 @@ static void _in_handler(
 
 void firmware_main_loop(void)
 {
-    uint8_t uart_read_buf[16] = {0};
+    uint8_t uart_read_buf[64] = {0};
     uint16_t uart_read_buf_len = 0;
 
     const uint8_t* uart_write_buf = NULL;

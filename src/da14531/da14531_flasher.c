@@ -75,13 +75,19 @@ void flasher_poll(
     for (uint16_t i = 0; i < *buf_in_len; i++) {
         self->buf_in[i] = buf_in[i];
     }
+    if (*buf_in_len > 0) {
+        util_log(
+            "%s, got bytes %s",
+            flashing_state_str(self->state),
+            util_dbg_hex(self->buf_in, *buf_in_len));
+    }
     self->buf_in_len = *buf_in_len;
     *buf_in_len = 0;
 
     switch (self->state) {
     case FLASHING_STATE_IDLE:
-        for (uint16_t i = self->buf_in_len; i > 1; i--) {
-            if (self->buf_in[i - 1] == STX) {
+        for (uint16_t i = 0; i < self->buf_in_len; i++) {
+            if (self->buf_in[i] == STX) {
                 util_log("da14531: requested firmware");
                 // delay_ms(500); // 20ms is OK, 30 is NOT
                 self->state = FLASHING_STATE_SEEN_STX;
@@ -92,6 +98,7 @@ void flasher_poll(
         self->timeout -= 1;
         break;
     case FLASHING_STATE_SEEN_STX:
+        util_log("da14531: sending start of header");
         self->buf_out_small[0] = SOH;
         self->buf_out_small[1] = self->firmware_size & 0xff;
         self->buf_out_small[2] = (self->firmware_size >> 8) & 0xff;
@@ -102,6 +109,7 @@ void flasher_poll(
     case FLASHING_STATE_SENT_SOH:
         if (self->buf_in_len == 1) {
             if (self->buf_in[0] == ACK) {
+                util_log("da14531: length acked");
                 self->state = FLASHING_STATE_SEEN_SOH_ACK;
             } else {
                 self->state = FLASHING_STATE_IDLE;

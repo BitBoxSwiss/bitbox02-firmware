@@ -37,7 +37,7 @@
 
 #include "pal_os_event.h"
 #include "hal_timer.h"
-#include "util.h"
+
 extern struct timer_descriptor TIMER_0;
 
 static pal_os_event_t pal_os_event_0 = {0};
@@ -70,7 +70,6 @@ static struct timer_task scheduler;
 
 void pal_os_event_trigger_registered_callback(void)
 {
-    // traceln("%s: called", __func__);
     register_callback callback;
 
     if (pal_os_event_0.callback_registered) {
@@ -102,7 +101,10 @@ void pal_os_event_register_callback_oneshot(
 
 void pal_os_event_destroy(pal_os_event_t* pal_os_event)
 {
-    (void)pal_os_event;
+    if (pal_os_event != NULL) {
+        pal_os_event_stop(pal_os_event);
+    }
+    timer_remove_task(&TIMER_0, &scheduler);
 }
 
 /**

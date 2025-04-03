@@ -64,9 +64,21 @@ static void _ctrl_handler(
     case 3:
         util_log("da14531: set bond db");
         break;
-    case 4:
-        util_log("da14531: show pairing code");
-        break;
+    case 4: {
+        util_log("da14531: show/confirm pairing code");
+        uint8_t payload[18] = {0};
+        payload[0] = 11; /* code for confirm pairind code message */
+        memcpy(&payload[1], &frame->payload[1], frame->payload_length - 1);
+        payload[17] = 1; /* 1 yes, 0 no */
+        uint16_t len = serial_link_out_format(
+            &uart_out_buf[0],
+            sizeof(uart_out_buf),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            sizeof(payload));
+        *buf_out = &uart_out_buf[0];
+        *buf_out_len = len;
+    } break;
     case 5:
         util_log("da14531: BLE status update");
         switch (frame->payload[1]) {
@@ -103,7 +115,7 @@ static void _ctrl_handler(
     case 8:
         // Not used
         break;
-    case 9:
+    case 9: {
         util_log("da14531: get addr");
         // 1 byte cmd
         // 6 bytes addr
@@ -116,12 +128,9 @@ static void _ctrl_handler(
             sizeof(payload));
         *buf_out = &uart_out_buf[0];
         *buf_out_len = len;
-        break;
+    } break;
     case 10:
         util_log("da14531: pairing successful");
-        break;
-    case 11:
-        util_log("da14531: confirm pairing code");
         break;
     case SL_CTRL_CMD_DEBUG:
         util_log("da14531-debug: %.*s", frame->payload_length - 1, &frame->payload[1]);

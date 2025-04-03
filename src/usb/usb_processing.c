@@ -365,7 +365,7 @@ void usb_processing_process(struct usb_processing* ctx)
      * If we've been locked for too much time, it's time
      * to forcefully close the offending operation.
      */
-    _check_lock_timeout(ctx);
+    while (0) _check_lock_timeout(ctx);
 #endif
 }
 

@@ -199,6 +199,7 @@ static bool _usb_packet_packet_complete(State* state)
 
 static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
 {
+    util_log(" in: %s...", util_dbg_hex(frame->payload, 32));
     (void)queue;
     static State state = {0};
     ASSERT(frame->payload_length == 64);
@@ -206,7 +207,7 @@ static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* que
     if (_usb_packet_packet_complete(&state)) {
         usb_processing_set_send(usb_processing_hww(), NULL);
         usb_processing_enqueue(usb_processing_hww(), state.data, state.len, state.cmd, state.cid);
-        util_log("got complete packet %d", (int)state.len);
+        util_log("u2fhid packet len %d", (int)state.len);
         memset(&state, 0, sizeof(state));
     }
 }
@@ -242,6 +243,7 @@ void firmware_main_loop(void)
     serial_link_in_init(&serial_link);
 
     struct serial_link_frame* frame = NULL;
+    const uint8_t* data = NULL;
 
     while (1) {
         // UART IO
@@ -266,15 +268,22 @@ void firmware_main_loop(void)
             }
         }
 
-        const uint8_t* data = queue_pull(queue_hww_queue());
+        if (!data) data = queue_pull(queue_hww_queue());
         if (data) {
-            util_log("%s", util_dbg_hex(data, 32));
+            util_log("out: %s...", util_dbg_hex(data, 32));
             uint8_t tmp[128];
             int len =
                 serial_link_out_format(&tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_BLE_DATA, data, 64);
             ASSERT(len < (int)sizeof(tmp));
-            for (int i = 0; i < len; i++) {
-                ringbuffer_put(&uart_out_queue, tmp[i]);
+            int32_t places;
+            CRITICAL_SECTION_ENTER()
+            places = uart_out_queue.size - ringbuffer_num(&uart_out_queue);
+            CRITICAL_SECTION_LEAVE()
+            if (places >= len) {
+                for (int i = 0; i < len; i++) {
+                    ringbuffer_put(&uart_out_queue, tmp[i]);
+                }
+                data = NULL;
             }
         }
 

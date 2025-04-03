@@ -83,17 +83,17 @@ struct serial_link_frame* serial_link_in_poll(
         // util_log("frame len so far: %d", self->frame_len);
     } break;
     case SERIAL_LINK_STATE_CHECK: {
-        util_log("frame len %u", self->frame_len);
+        // util_log("frame len %u", self->frame_len);
         uint8_t type = self->frame[0];
         uint16_t len = self->frame[1] | (self->frame[2] << 8);
-        util_log("da14531: type: %x payload_len %d %c", type, len, self->frame[3]);
+        // util_log("da14531: type: %x payload_len %d %c", type, len, self->frame[3]);
 
         if (len != self->frame_len - 5) {
             util_log("da14531: ERROR, invalid len %d, dropped frame", len);
             util_log(
                 "da14531: frame_len: %u, frame: %s",
                 self->frame_len,
-                util_dbg_hex(self->frame, self->frame_len));
+                util_dbg_hex(self->frame, (int)self->frame_len));
             self->state = SERIAL_LINK_STATE_READING;
             self->frame_len = 0;
             return NULL;
@@ -115,7 +115,8 @@ struct serial_link_frame* serial_link_in_poll(
             frame->type = type;
             frame->payload_length = len;
             memcpy(&frame->payload[0], &self->frame[3], len);
-            util_log("da14531: payload: %s", util_dbg_hex(frame->payload, frame->payload_length));
+            // util_log("da14531: payload: %s", util_dbg_hex(frame->payload,
+            // frame->payload_length));
             return frame;
         }
         util_log("da14531: ERROR, invalid crc, dropped frame");

@@ -23,6 +23,7 @@
 #include "ui/screen_process.h"
 #include "ui/screen_stack.h"
 #include "usb/usb.h"
+#include "usb/usb_frame.h"
 #include "usb/usb_processing.h"
 #include <rust/rust.h>
 #include <ui/components/confirm.h>
@@ -148,9 +149,23 @@ static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* qu
             ringbuffer_put(queue, tmp[i]);
         }
     } break;
-    case 7:
-        // Not used
-        break;
+    case 7: {
+        util_log("da14531: get device mode");
+#define DEVICE_MODE "{\"p\":\"bb02p-multi\",\"v\":\"9.22.0\"}"
+        uint8_t payload[64] = {0};
+        payload[0] = 7;
+        memcpy(&payload[1], DEVICE_MODE, sizeof(DEVICE_MODE) - 1);
+        uint16_t len = serial_link_out_format(
+            &tmp[0],
+            sizeof(tmp),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            1 + sizeof(DEVICE_MODE) - 1);
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
+    } break;
     case 8:
         // Not used
         break;
@@ -177,10 +192,23 @@ static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* qu
     }
 }
 
+static bool _usb_packet_packet_complete(State* state)
+{
+    return (state->buf_ptr - state->data) == (signed)state->len;
+}
+
 static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
 {
-    (void)frame;
     (void)queue;
+    static State state = {0};
+    ASSERT(frame->payload_length == 64);
+    usb_frame_process((USB_FRAME*)&frame->payload[0], &state);
+    if (_usb_packet_packet_complete(&state)) {
+        usb_processing_set_send(usb_processing_hww(), NULL);
+        usb_processing_enqueue(usb_processing_hww(), state.data, state.len, state.cmd, state.cid);
+        util_log("got complete packet %d", (int)state.len);
+        memset(&state, 0, sizeof(state));
+    }
 }
 
 static void _in_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
@@ -204,7 +232,7 @@ void firmware_main_loop(void)
 
 // Might need to increase to fit bonddb later.
 // Must be power of 2
-#define UART_OUT_BUF_LEN 256
+#define UART_OUT_BUF_LEN 512
 
     struct ringbuffer uart_out_queue;
     uint8_t uart_out_buf[UART_OUT_BUF_LEN];
@@ -238,14 +266,25 @@ void firmware_main_loop(void)
             }
         }
 
+        const uint8_t* data = queue_pull(queue_hww_queue());
+        if (data) {
+            util_log("%s", util_dbg_hex(data, 32));
+            uint8_t tmp[128];
+            int len =
+                serial_link_out_format(&tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_BLE_DATA, data, 64);
+            ASSERT(len < (int)sizeof(tmp));
+            for (int i = 0; i < len; i++) {
+                ringbuffer_put(&uart_out_queue, tmp[i]);
+            }
+        }
+
         screen_process();
         /* And finally, run the high-level event processing. */
 
         rust_workflow_spin();
+        rust_async_usb_spin();
 
         if (usb_is_enabled()) {
-            rust_async_usb_spin();
-
             /* First, process all the incoming USB traffic. */
             usb_processing_process(usb_processing_hww());
 #if APP_U2F == 1

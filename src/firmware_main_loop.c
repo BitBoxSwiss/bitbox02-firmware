@@ -123,6 +123,9 @@ static void _ctrl_handler(
     case 11:
         util_log("da14531: confirm pairing code");
         break;
+    case SL_CTRL_CMD_DEBUG:
+        util_log("da14531-debug: %.*s", frame->payload_length - 1, &frame->payload[1]);
+        break;
     default:
         break;
     }

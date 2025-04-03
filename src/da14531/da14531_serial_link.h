@@ -1,5 +1,6 @@
 #ifndef DA14531_SERIAL_LINK_H
 #define DA14531_SERIAL_LINK_H
+#include <stddef.h>
 #include <stdint.h>
 
 enum serial_link_type {
@@ -9,6 +10,20 @@ enum serial_link_type {
     SERIAL_LINK_TYPE_CTRL_DATA = 0xb4, /*0b10110100*/
     SERIAL_LINK_TYPE_PING = 0x4b, /*0b01001011*/
 };
+
+// Control commands
+#define SL_CTRL_CMD_DEVICE_NAME 1
+#define SL_CTRL_CMD_BOND_DB_GET 2
+#define SL_CTRL_CMD_BOND_DB_SET 3
+#define SL_CTRL_CMD_PAIRING_CODE 4
+#define SL_CTRL_CMD_BLE_STATUS 5
+#define SL_CTRL_CMD_IRK 6
+#define SL_CTRL_CMD_PRODUCT_STRING 7
+#define SL_CTRL_CMD_BLE_CHIP_RESET 8
+#define SL_CTRL_CMD_IDENTITY_ADDRESS 9
+#define SL_CTRL_CMD_PAIRING_SUCCESSFUL 10
+#define SL_CTRL_CMD_TK_CONFIRM 11
+#define SL_CTRL_CMD_DEBUG 254
 
 struct serial_link_frame {
     enum serial_link_type type;
@@ -31,11 +46,11 @@ struct SerialLinkIn {
     enum serial_link_in_state state;
     enum escape_state escape_state;
     uint8_t buf_in[64];
-    uint8_t buf_in_len;
+    size_t buf_in_len;
     uint8_t frame[700];
-    uint8_t frame_len;
+    size_t frame_len;
     uint8_t buf_out[64];
-    uint16_t buf_out_len;
+    size_t buf_out_len;
     // uint16_t counter;
 };
 

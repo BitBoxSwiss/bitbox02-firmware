@@ -42,7 +42,7 @@
 #include <bitbox02_pins.h>
 
 #define SHA256_DIGEST_LENGTH 32
-#define USART_0_BUFFER_SIZE 16
+#define USART_0_BUFFER_SIZE 128
 
 extern struct timer_descriptor TIMER_0;
 extern struct i2c_m_sync_desc I2C_0;

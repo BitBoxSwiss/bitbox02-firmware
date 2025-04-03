@@ -61,8 +61,7 @@ static void _load_da14531_firmware(void)
             if (uart_0_write(uart_write_buf, uart_write_buf_len)) {
                 uart_write_buf_len = 0;
             } else {
-                delay_ms(100);
-                util_log("failed to write");
+                util_log("da14531L ERROR!! failed to write");
             }
         }
 

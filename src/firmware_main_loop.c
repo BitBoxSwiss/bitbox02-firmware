@@ -25,16 +25,13 @@
 #include "usb/usb.h"
 #include "usb/usb_processing.h"
 #include <rust/rust.h>
-
-static uint8_t uart_out_buf[100];
+#include <utils_ringbuffer.h>
 
 #define DN "My BitBox"
 
-static void _ctrl_handler(
-    struct serial_link_frame* frame,
-    const uint8_t** buf_out,
-    uint16_t* buf_out_len)
+static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
 {
+    uint8_t tmp[128];
     switch (frame->payload[0]) {
     case 1: {
         util_log("da14531: get device name");
@@ -45,21 +42,21 @@ static void _ctrl_handler(
         payload[0] = 1;
         memcpy(&payload[1], DN, sizeof(DN) - 1);
         uint16_t len = serial_link_out_format(
-            &uart_out_buf[0],
-            sizeof(uart_out_buf),
-            SERIAL_LINK_TYPE_CTRL_DATA,
-            &payload[0],
-            sizeof(payload));
-        *buf_out = &uart_out_buf[0];
-        *buf_out_len = len;
+            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
     } break;
     case 2: {
         util_log("da14531: get bond db");
         uint8_t payload = 2;
-        uint16_t len = serial_link_out_format(
-            &uart_out_buf[0], sizeof(uart_out_buf), SERIAL_LINK_TYPE_CTRL_DATA, &payload, 1);
-        *buf_out = &uart_out_buf[0];
-        *buf_out_len = len;
+        uint16_t len =
+            serial_link_out_format(&tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload, 1);
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
     } break;
     case 3:
         util_log("da14531: set bond db");
@@ -71,13 +68,11 @@ static void _ctrl_handler(
         memcpy(&payload[1], &frame->payload[1], frame->payload_length - 1);
         payload[17] = 1; /* 1 yes, 0 no */
         uint16_t len = serial_link_out_format(
-            &uart_out_buf[0],
-            sizeof(uart_out_buf),
-            SERIAL_LINK_TYPE_CTRL_DATA,
-            &payload[0],
-            sizeof(payload));
-        *buf_out = &uart_out_buf[0];
-        *buf_out_len = len;
+            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
     } break;
     case 5:
         util_log("da14531: BLE status update");
@@ -101,13 +96,11 @@ static void _ctrl_handler(
         // 16 bytes irk
         uint8_t payload[17] = {6, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
         uint16_t len = serial_link_out_format(
-            &uart_out_buf[0],
-            sizeof(uart_out_buf),
-            SERIAL_LINK_TYPE_CTRL_DATA,
-            &payload[0],
-            sizeof(payload));
-        *buf_out = &uart_out_buf[0];
-        *buf_out_len = len;
+            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
     } break;
     case 7:
         // Not used
@@ -121,13 +114,11 @@ static void _ctrl_handler(
         // 6 bytes addr
         uint8_t payload[7] = {9, 0, 1, 2, 3, 4, 5};
         uint16_t len = serial_link_out_format(
-            &uart_out_buf[0],
-            sizeof(uart_out_buf),
-            SERIAL_LINK_TYPE_CTRL_DATA,
-            &payload[0],
-            sizeof(payload));
-        *buf_out = &uart_out_buf[0];
-        *buf_out_len = len;
+            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
     } break;
     case 10:
         util_log("da14531: pairing successful");
@@ -140,14 +131,20 @@ static void _ctrl_handler(
     }
 }
 
-static void _in_handler(
-    struct serial_link_frame* frame,
-    const uint8_t** buf_out,
-    uint16_t* buf_out_len)
+static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
+{
+    (void)frame;
+    (void)queue;
+}
+
+static void _in_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
 {
     switch (frame->type) {
     case SERIAL_LINK_TYPE_CTRL_DATA:
-        _ctrl_handler(frame, buf_out, buf_out_len);
+        _ctrl_handler(frame, queue);
+        break;
+    case SERIAL_LINK_TYPE_BLE_DATA:
+        _hww_handler(frame, queue);
         break;
     default:
         break;
@@ -159,8 +156,13 @@ void firmware_main_loop(void)
     uint8_t uart_read_buf[64] = {0};
     uint16_t uart_read_buf_len = 0;
 
-    const uint8_t* uart_write_buf = NULL;
-    uint16_t uart_write_buf_len = 0;
+// Might need to increase to fit bonddb later.
+// Must be power of 2
+#define UART_OUT_BUF_LEN 256
+
+    struct ringbuffer uart_out_queue;
+    uint8_t uart_out_buf[UART_OUT_BUF_LEN];
+    ringbuffer_init(&uart_out_queue, &uart_out_buf, UART_OUT_BUF_LEN);
 
     struct SerialLinkIn serial_link;
     serial_link_in_init(&serial_link);
@@ -172,20 +174,18 @@ void firmware_main_loop(void)
             uart_read_buf_len = uart_0_read(uart_read_buf, sizeof(uart_read_buf));
         }
 
-        if (uart_write_buf_len > 0) {
+        if (ringbuffer_num(&uart_out_queue) > 0) {
             // util_log("debug: %s", util_dbg_hex(uart_write_buf, uart_write_buf_len));
-            if (uart_0_write(uart_write_buf, uart_write_buf_len)) {
-                uart_write_buf_len = 0;
-            }
+            uart_0_write_from_queue(&uart_out_queue);
         }
 
         // Process any IO from UART
-        // Only poll serial_link if there is no pending frame, nor pending uart output
-        if (!frame && !uart_write_buf_len) {
+        // Only poll serial_link if there is no pending frame
+        if (!frame) {
             frame = serial_link_in_poll(&serial_link, uart_read_buf, &uart_read_buf_len);
 
             if (frame) {
-                _in_handler(frame, &uart_write_buf, &uart_write_buf_len);
+                _in_handler(frame, &uart_out_queue);
                 free(frame);
                 frame = NULL;
             }

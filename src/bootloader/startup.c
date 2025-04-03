@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "bootloader.h"
+#include "memory/spi_mem.h"
 #include "mpu_regions.h"
 #include "platform_config.h"
 #include "platform_init.h"
@@ -54,6 +55,7 @@ int main(void)
 #ifdef BOOTLOADER_DEVDEVICE
     qtouch_init();
 #endif
+    spi_mem_test();
     bootloader_jump();
 
     // If did not jump to firmware code, begin USB processing

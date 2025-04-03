@@ -190,8 +190,8 @@ bool da14531_swd_reset(void)
 
     // remap address space to ROM
     uint16_t w = dap_read_hword(0x50000012);
-    if (w != 0x01a2) {
-        util_log("da14531: ERROR: SYS_CTRL_REG: %04x, expected 0x01a2", (unsigned int)w);
+    if ((w & 0x01a0) != 0x01a0) {
+        util_log("da14531: ERROR: SYS_CTRL_REG: %04x, expected 0x01a2/0x01a0", (unsigned int)w);
         return false;
     }
     w &= ~3;

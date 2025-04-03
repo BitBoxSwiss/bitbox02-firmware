@@ -25,7 +25,39 @@
 #include "usb/usb.h"
 #include "usb/usb_processing.h"
 #include <rust/rust.h>
+#include <ui/components/confirm.h>
+#include <ui/fonts/monogram_5X9.h>
 #include <utils_ringbuffer.h>
+
+static component_t* _ble_pairing_component = NULL;
+
+struct pairing_callback {
+    uint8_t key[4];
+    struct ringbuffer* queue;
+};
+
+static struct pairing_callback _ble_pairing_callback_data;
+
+static void _ble_pairing_callback(bool ok, void* param)
+{
+    struct pairing_callback* data = (struct pairing_callback*)param;
+
+    uint8_t payload[18] = {0};
+    payload[0] = 11; /* code for confirm pairind code message */
+    memcpy(&payload[1], &data->key[0], sizeof(data->key));
+    payload[17] = ok ? 1 : 0; /* 1 yes, 0 no */
+
+    uint8_t tmp[100];
+    uint16_t len = serial_link_out_format(
+        &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, payload, sizeof(payload));
+    ASSERT(len <= sizeof(tmp));
+    for (int i = 0; i < len; i++) {
+        ringbuffer_put(data->queue, tmp[i]);
+    }
+
+    ui_screen_stack_pop();
+    _ble_pairing_component = NULL;
+}
 
 #define DN "My BitBox"
 
@@ -62,23 +94,37 @@ static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* qu
         util_log("da14531: set bond db");
         break;
     case 4: {
-        util_log("da14531: show/confirm pairing code");
-        uint8_t payload[18] = {0};
-        payload[0] = 11; /* code for confirm pairind code message */
-        memcpy(&payload[1], &frame->payload[1], frame->payload_length - 1);
-        payload[17] = 1; /* 1 yes, 0 no */
-        uint16_t len = serial_link_out_format(
-            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
-        ASSERT(len <= sizeof(tmp));
-        for (int i = 0; i < len; i++) {
-            ringbuffer_put(queue, tmp[i]);
+        if (frame->payload_length < 5) {
+            // TODO handle error.
+            Abort("Invalid payload length for BLE pairing code");
         }
+        memcpy(
+            &(_ble_pairing_callback_data.key)[0],
+            &frame->payload[1],
+            sizeof(_ble_pairing_callback_data.key));
+        _ble_pairing_callback_data.queue = queue;
+        uint32_t pairing_code_int = (*(uint32_t*)&frame->payload[1]) % 1000000;
+        char pairing_code[7] = {0};
+        snprintf(pairing_code, sizeof(pairing_code), "%06lu", (long unsigned int)pairing_code_int);
+        util_log("da14531: show/confirm pairing code: %s", pairing_code);
+        const confirm_params_t confirm_params = {
+            .title = "Pairing code",
+            .body = pairing_code,
+            .font = &font_monogram_5X9,
+        };
+        _ble_pairing_component = confirm_create(
+            &confirm_params, _ble_pairing_callback, (void*)&_ble_pairing_callback_data);
+        ui_screen_stack_push(_ble_pairing_component);
     } break;
     case 5:
         util_log("da14531: BLE status update");
         switch (frame->payload[1]) {
         case 0:
             util_log("da14531: adveritising");
+            if (_ble_pairing_component != NULL && ui_screen_stack_top() == _ble_pairing_component) {
+                ui_screen_stack_pop();
+                _ble_pairing_component = NULL;
+            }
             break;
         case 1:
             util_log("da14531: connected");
@@ -168,6 +214,7 @@ void firmware_main_loop(void)
     serial_link_in_init(&serial_link);
 
     struct serial_link_frame* frame = NULL;
+
     while (1) {
         // UART IO
         if (uart_read_buf_len == 0) {

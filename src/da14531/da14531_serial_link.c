@@ -115,6 +115,7 @@ struct serial_link_frame* serial_link_in_poll(
             frame->type = type;
             frame->payload_length = len;
             memcpy(&frame->payload[0], &self->frame[3], len);
+            util_log("da14531: payload: %s", util_dbg_hex(frame->payload, frame->payload_length));
             return frame;
         }
         util_log("da14531: ERROR, invalid crc, dropped frame");
@@ -128,6 +129,7 @@ struct serial_link_frame* serial_link_in_poll(
 static void _serial_link_format_byte(uint8_t data, uint8_t* buf, uint16_t buf_len, uint16_t* idx)
 {
     ASSERT(*idx + 2 < buf_len);
+    (void)buf_len;
     switch (data) {
     case SL_SOF:
     case SL_ESCAPE:

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This script only works if the work tree is in $HOME.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
@@ -25,10 +26,10 @@ else
 fi
 
 if [ "$1" = "release" ] ; then
-    MOUNT_DIR=/bb02
+    WORKDIR=/bb02
     CONTAINER_NAME_SUFFIX=rel
 else
-    MOUNT_DIR="$DIR/.."
+    WORKDIR="$DIR/.."
     CONTAINER_NAME_SUFFIX=dev
 fi
 
@@ -63,7 +64,7 @@ dockerdev () {
             echo "Current version $(${RUNTIME} inspect ${CONTAINER_NAME} | jq -r '.[0].Config.Image') ($id_running)"
             exit 1
         else
-            $RUNTIME exec $USERFLAG --workdir="$MOUNT_DIR" -it "$CONTAINER_NAME" bash
+            $RUNTIME exec $USERFLAG --workdir="$WORKDIR" -it "$CONTAINER_NAME" bash
             return
         fi
     fi
@@ -73,12 +74,11 @@ dockerdev () {
     fi
 
     # * `SYS_PTRACE` is needed to run address sanitizer
-    # * `-p 15423` publishes the default port the simulator listens on
     $RUNTIME run \
            --detach \
            --interactive --tty \
            --name="$CONTAINER_NAME" \
-           -v "$repo_path":"$MOUNT_DIR" \
+           -v "$HOME":"$HOME" \
            --cap-add SYS_PTRACE \
            ${CONTAINER_IMAGE}:${CONTAINER_VERSION} bash
 

@@ -371,7 +371,25 @@ bool memory_reset_hww(void)
     // Set a new noise static private key.
     rust_noise_generate_static_private_key(rust_util_bytes_mut(
         chunk.fields.noise_static_private_key, sizeof(chunk.fields.noise_static_private_key)));
-    return _write_chunk(CHUNK_1, chunk.bytes);
+    bool res = _write_chunk(CHUNK_1, chunk.bytes);
+
+    // Reset bond-db and reinitialize IRK and identity address
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        uint8_t random_bytes[32];
+        _interface_functions->random_32_bytes(&random_bytes[0]);
+        chunk_shared_t chunk_shared = {0};
+        memory_read_shared_bootdata(&chunk_shared);
+        memcpy(
+            &chunk_shared.fields.ble_irk[0], &random_bytes[0], sizeof(chunk_shared.fields.ble_irk));
+        memcpy(
+            &chunk_shared.fields.ble_addr[0],
+            &random_bytes[sizeof(chunk_shared.fields.ble_irk)],
+            sizeof(chunk_shared.fields.ble_addr));
+        memset(&chunk_shared.fields.ble_bond_db, 0xff, sizeof(chunk_shared.fields.ble_bond_db));
+        res |= _write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes);
+    }
+
+    return res;
 }
 
 static bool _is_bitmask_flag_set(uint8_t flag)

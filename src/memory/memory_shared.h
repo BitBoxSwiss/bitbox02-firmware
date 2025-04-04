@@ -85,13 +85,13 @@ typedef union {
         uint8_t ble_bond_db[1024]; // 2 bytes len, then data
         uint8_t ble_irk[16];
         uint8_t ble_addr[6];
+        uint8_t padding[2]; // align to 4 bytes
     } fields;
     uint8_t bytes[FLASH_SHARED_DATA_LEN];
 } chunk_shared_t;
 #pragma GCC diagnostic pop
 
 void memory_read_shared_bootdata(chunk_shared_t* chunk_out);
-void memory_write_shared_bootdata(chunk_shared_t* chunk_out);
 
 // 0xFF is the default memory value if not set otherwise. We use this value for the original screen
 // for backwards compatibility.

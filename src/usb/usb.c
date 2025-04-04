@@ -62,7 +62,7 @@ static void _hww_endpoint_available(void)
     if (_on_hww_init != NULL) {
         _on_hww_init();
     }
-    hid_hww_setup();
+    // hid_hww_setup();
 }
 
 #if APP_U2F == 1

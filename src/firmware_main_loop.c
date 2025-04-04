@@ -14,27 +14,298 @@
 
 #include "firmware_main_loop.h"
 
+#include "da14531/da14531_serial_link.h"
+#include "driver_init.h"
 #include "hardfault.h"
 #include "hww.h"
+#include "memory/memory.h"
+#include "memory/memory_shared.h"
 #include "touch/gestures.h"
 #include "u2f.h"
+#include "uart.h"
 #include "ui/screen_process.h"
 #include "ui/screen_stack.h"
 #include "usb/usb.h"
+#include "usb/usb_frame.h"
 #include "usb/usb_processing.h"
 #include <rust/rust.h>
+#include <ui/components/confirm.h>
+#include <ui/fonts/monogram_5X9.h>
+#include <utils_ringbuffer.h>
+
+static component_t* _ble_pairing_component = NULL;
+
+struct pairing_callback {
+    uint8_t key[4];
+    struct ringbuffer* queue;
+};
+
+static struct pairing_callback _ble_pairing_callback_data;
+
+static void _ble_pairing_callback(bool ok, void* param)
+{
+    struct pairing_callback* data = (struct pairing_callback*)param;
+
+    uint8_t payload[18] = {0};
+    payload[0] = 11; /* code for confirm pairind code message */
+    memcpy(&payload[1], &data->key[0], sizeof(data->key));
+    payload[17] = ok ? 1 : 0; /* 1 yes, 0 no */
+
+    uint8_t tmp[100];
+    uint16_t len = serial_link_out_format(
+        &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, payload, sizeof(payload));
+    ASSERT(len <= sizeof(tmp));
+    for (int i = 0; i < len; i++) {
+        ringbuffer_put(data->queue, tmp[i]);
+    }
+
+    ui_screen_stack_pop();
+    _ble_pairing_component = NULL;
+}
+
+static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
+{
+    uint8_t tmp[1152]; // 1024 + some margin (128)
+    switch (frame->payload[0]) {
+    case 1: {
+        util_log("da14531: get device name");
+        // 1 byte cmd
+        // rest device name
+
+        uint8_t payload[1 + MEMORY_DEVICE_NAME_MAX_LEN];
+        payload[0] = 1;
+        memory_get_device_name((char*)&payload[1]);
+        uint16_t len = serial_link_out_format(
+            &tmp[0],
+            sizeof(tmp),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            1 + strlen((char*)&payload[1]));
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
+    } break;
+    case 2: {
+        util_log("da14531: get bond db");
+        uint8_t payload[1023]; // MAX BOND DB + 1 for cmd
+        payload[0] = 2;
+        int16_t len = memory_get_ble_bond_db(&payload[1]);
+        util_log("da14531: bond db len %d", len);
+        uint16_t tmp_len;
+        if (len != -1) {
+            tmp_len = serial_link_out_format(
+                &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], 1 + len);
+        } else {
+            tmp_len = serial_link_out_format(
+                &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], 1);
+        }
+        ASSERT(tmp_len <= sizeof(tmp));
+        for (int i = 0; i < tmp_len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
+    } break;
+    case 3:
+        util_log("da14531: set bond db");
+        util_log("da14531: bond db len %d", frame->payload_length - 1);
+        memory_set_ble_bond_db(&frame->payload[1], frame->payload_length - 1);
+        break;
+    case 4: {
+        if (frame->payload_length < 5) {
+            // TODO handle error.
+            Abort("Invalid payload length for BLE pairing code");
+        }
+        memcpy(
+            &(_ble_pairing_callback_data.key)[0],
+            &frame->payload[1],
+            sizeof(_ble_pairing_callback_data.key));
+        _ble_pairing_callback_data.queue = queue;
+        uint32_t pairing_code_int = (*(uint32_t*)&frame->payload[1]) % 1000000;
+        char pairing_code[7] = {0};
+        snprintf(pairing_code, sizeof(pairing_code), "%06lu", (long unsigned int)pairing_code_int);
+        util_log("da14531: show/confirm pairing code: %s", pairing_code);
+        const confirm_params_t confirm_params = {
+            .title = "Pairing code",
+            .body = pairing_code,
+            .font = &font_monogram_5X9,
+        };
+        _ble_pairing_component = confirm_create(
+            &confirm_params, _ble_pairing_callback, (void*)&_ble_pairing_callback_data);
+        ui_screen_stack_push(_ble_pairing_component);
+    } break;
+    case 5:
+        util_log("da14531: BLE status update");
+        switch (frame->payload[1]) {
+        case 0:
+            util_log("da14531: adveritising");
+            if (_ble_pairing_component != NULL && ui_screen_stack_top() == _ble_pairing_component) {
+                ui_screen_stack_pop();
+                _ble_pairing_component = NULL;
+            }
+            break;
+        case 1:
+            util_log("da14531: connected");
+            break;
+        case 2:
+            util_log("da14531: connected secure");
+            break;
+        default:
+            break;
+        }
+        break;
+    case 6: {
+        util_log("da14531: get irk");
+        // 1 byte cmd
+        // 16 bytes irk
+        uint8_t payload[17] = {6, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+        uint16_t len = serial_link_out_format(
+            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
+    } break;
+    case 7: {
+        util_log("da14531: get device mode");
+#define DEVICE_MODE "{\"p\":\"bb02p-multi\",\"v\":\"9.22.0\"}"
+        uint8_t payload[64] = {0};
+        payload[0] = 7;
+        memcpy(&payload[1], DEVICE_MODE, sizeof(DEVICE_MODE) - 1);
+        uint16_t len = serial_link_out_format(
+            &tmp[0],
+            sizeof(tmp),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            1 + sizeof(DEVICE_MODE) - 1);
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
+    } break;
+    case 8:
+        // Not used
+        break;
+    case 9: {
+        util_log("da14531: get addr");
+        // 1 byte cmd
+        // 6 bytes addr
+        uint8_t payload[7] = {9, 0, 1, 2, 3, 4, 5};
+        uint16_t len = serial_link_out_format(
+            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
+        ASSERT(len <= sizeof(tmp));
+        for (int i = 0; i < len; i++) {
+            ringbuffer_put(queue, tmp[i]);
+        }
+    } break;
+    case 10:
+        util_log("da14531: pairing successful");
+        break;
+    case SL_CTRL_CMD_DEBUG:
+        util_log(
+            "da14531-debug: %.*s (%d bytes)",
+            frame->payload_length - 1,
+            &frame->payload[1],
+            frame->payload_length - 1);
+        break;
+    default:
+        break;
+    }
+}
+
+static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
+{
+    util_log(" in: %s", util_dbg_hex(frame->payload, 64));
+    (void)queue;
+    ASSERT(frame->payload_length == 64);
+    usb_packet_process((USB_FRAME*)&frame->payload[0]);
+}
+
+static void _in_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
+{
+    switch (frame->type) {
+    case SERIAL_LINK_TYPE_CTRL_DATA:
+        _ctrl_handler(frame, queue);
+        break;
+    case SERIAL_LINK_TYPE_BLE_DATA:
+        _hww_handler(frame, queue);
+        break;
+    default:
+        break;
+    }
+}
 
 void firmware_main_loop(void)
 {
+    // Set it to this size so we can read out all bytes
+    uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
+    uint16_t uart_read_buf_len = 0;
+
+// Might need to increase to fit bonddb later.
+// Must be power of 2
+#define UART_OUT_BUF_LEN 1024
+
+    struct ringbuffer uart_out_queue;
+    uint8_t uart_out_buf[UART_OUT_BUF_LEN];
+    ringbuffer_init(&uart_out_queue, &uart_out_buf, UART_OUT_BUF_LEN);
+
+    struct SerialLinkIn serial_link;
+    serial_link_in_init(&serial_link);
+
+    struct serial_link_frame* frame = NULL;
+    const uint8_t* data = NULL;
+
     while (1) {
+        // UART IO
+        if (uart_read_buf_len == 0) {
+            uart_read_buf_len = uart_0_read(uart_read_buf, sizeof(uart_read_buf));
+            if (uart_read_buf_len == USART_0_BUFFER_SIZE) {
+                util_log("da14531: We probably missed bytes...");
+            }
+        }
+
+        if (ringbuffer_num(&uart_out_queue) > 0) {
+            // util_log("debug: %s", util_dbg_hex(uart_write_buf, uart_write_buf_len));
+            uart_0_write_from_queue(&uart_out_queue);
+        }
+
+        // Process any IO from UART
+        // Only poll serial_link if there is no pending frame
+        if (!frame) {
+            frame = serial_link_in_poll(&serial_link, uart_read_buf, &uart_read_buf_len);
+
+            if (frame) {
+                _in_handler(frame, &uart_out_queue);
+                free(frame);
+                frame = NULL;
+            }
+        }
+
+        if (!data) data = queue_pull(queue_hww_queue());
+        if (data) {
+            util_log("out: %s", util_dbg_hex(data, 64));
+            uint8_t tmp[128];
+            int len =
+                serial_link_out_format(&tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_BLE_DATA, data, 64);
+            ASSERT(len < (int)sizeof(tmp));
+            int32_t places;
+            CRITICAL_SECTION_ENTER()
+            places = uart_out_queue.size - ringbuffer_num(&uart_out_queue);
+            CRITICAL_SECTION_LEAVE()
+            if (places >= len) {
+                for (int i = 0; i < len; i++) {
+                    ringbuffer_put(&uart_out_queue, tmp[i]);
+                }
+                data = NULL;
+            }
+        }
+
         screen_process();
         /* And finally, run the high-level event processing. */
 
         rust_workflow_spin();
+        rust_async_usb_spin();
 
         if (usb_is_enabled()) {
-            rust_async_usb_spin();
-
             /* First, process all the incoming USB traffic. */
             usb_processing_process(usb_processing_hww());
 #if APP_U2F == 1

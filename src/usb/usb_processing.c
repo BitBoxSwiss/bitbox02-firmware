@@ -38,7 +38,7 @@ extern struct timer_descriptor TIMER_0;
  * Amount of time to wait before an outstanding operation times out
  * (if the client is closed).
  */
-#define USB_OUTSTANDING_OP_TIMEOUT_MS (500)
+#define USB_OUTSTANDING_OP_TIMEOUT_MS (30000)
 #define USB_TIMER_TICK_PERIOD_MS (100)
 #define USB_OUTSTANDING_OP_TIMEOUT_TICKS (USB_OUTSTANDING_OP_TIMEOUT_MS / USB_TIMER_TICK_PERIOD_MS)
 
@@ -332,6 +332,7 @@ static void _check_lock_timeout(struct usb_processing* ctx)
         return;
     }
     if (_usb_state.timeout_counter > USB_OUTSTANDING_OP_TIMEOUT_TICKS) {
+        util_log("TIMED OUT, unlocking usb processing");
         if (!ctx->abort_outstanding_op) {
             Abort("abort_outstanding_op is NULL.");
         }

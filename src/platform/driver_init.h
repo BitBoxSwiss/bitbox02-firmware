@@ -30,6 +30,7 @@
 #include <hal_sha_sync.h>
 #include <hal_sleep.h>
 #include <hal_timer.h>
+#include <hal_usart_async.h>
 #include <hal_usb_device.h>
 #include <hpl_rtc_base.h>
 #include <sd_mmc.h>
@@ -41,6 +42,7 @@
 #include <bitbox02_pins.h>
 
 #define SHA256_DIGEST_LENGTH 32
+#define USART_0_BUFFER_SIZE 128
 
 extern struct timer_descriptor TIMER_0;
 extern struct i2c_m_sync_desc I2C_0;
@@ -51,6 +53,7 @@ extern struct flash_descriptor FLASH_0;
 extern struct rand_sync_desc RAND_0;
 extern PPUKCL_PARAM pvPUKCLParam;
 extern PUKCL_PARAM PUKCLParam;
+extern struct usart_async_descriptor USART_0;
 
 /**
  * Close peripheral interfaces

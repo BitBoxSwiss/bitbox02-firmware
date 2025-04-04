@@ -212,24 +212,12 @@ static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* qu
     }
 }
 
-static bool _usb_packet_packet_complete(State* state)
-{
-    return (state->buf_ptr - state->data) == (signed)state->len;
-}
-
 static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
 {
     util_log(" in: %s", util_dbg_hex(frame->payload, 64));
     (void)queue;
-    static State state = {0};
     ASSERT(frame->payload_length == 64);
-    usb_frame_process((USB_FRAME*)&frame->payload[0], &state);
-    if (_usb_packet_packet_complete(&state)) {
-        usb_processing_set_send(usb_processing_hww(), NULL);
-        usb_processing_enqueue(usb_processing_hww(), state.data, state.len, state.cmd, state.cid);
-        // util_log("u2fhid packet len %d", (int)state.len);
-        memset(&state, 0, sizeof(state));
-    }
+    usb_packet_process((USB_FRAME*)&frame->payload[0]);
 }
 
 static void _in_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
@@ -248,7 +236,6 @@ static void _in_handler(struct serial_link_frame* frame, struct ringbuffer* queu
 
 void firmware_main_loop(void)
 {
-    static int counter = 0;
     // Set it to this size so we can read out all bytes
     uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
     uint16_t uart_read_buf_len = 0;
@@ -295,9 +282,6 @@ void firmware_main_loop(void)
 
         if (!data) data = queue_pull(queue_hww_queue());
         if (data) {
-            if (data[63] == 0) {
-                ((uint8_t*)data)[63] = counter++ % 255;
-            }
             util_log("out: %s", util_dbg_hex(data, 64));
             uint8_t tmp[128];
             int len =

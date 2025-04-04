@@ -15,6 +15,7 @@
 #include "firmware_main_loop.h"
 
 #include "da14531/da14531_serial_link.h"
+#include "driver_init.h"
 #include "hardfault.h"
 #include "hww.h"
 #include "memory/memory.h"
@@ -218,7 +219,7 @@ static bool _usb_packet_packet_complete(State* state)
 
 static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
 {
-    util_log(" in: %s...", util_dbg_hex(frame->payload, 32));
+    util_log(" in: %s", util_dbg_hex(frame->payload, 64));
     (void)queue;
     static State state = {0};
     ASSERT(frame->payload_length == 64);
@@ -226,7 +227,7 @@ static void _hww_handler(struct serial_link_frame* frame, struct ringbuffer* que
     if (_usb_packet_packet_complete(&state)) {
         usb_processing_set_send(usb_processing_hww(), NULL);
         usb_processing_enqueue(usb_processing_hww(), state.data, state.len, state.cmd, state.cid);
-        util_log("u2fhid packet len %d", (int)state.len);
+        // util_log("u2fhid packet len %d", (int)state.len);
         memset(&state, 0, sizeof(state));
     }
 }
@@ -247,7 +248,9 @@ static void _in_handler(struct serial_link_frame* frame, struct ringbuffer* queu
 
 void firmware_main_loop(void)
 {
-    uint8_t uart_read_buf[64] = {0};
+    static int counter = 0;
+    // Set it to this size so we can read out all bytes
+    uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
     uint16_t uart_read_buf_len = 0;
 
 // Might need to increase to fit bonddb later.
@@ -268,6 +271,9 @@ void firmware_main_loop(void)
         // UART IO
         if (uart_read_buf_len == 0) {
             uart_read_buf_len = uart_0_read(uart_read_buf, sizeof(uart_read_buf));
+            if (uart_read_buf_len == USART_0_BUFFER_SIZE) {
+                util_log("da14531: We probably missed bytes...");
+            }
         }
 
         if (ringbuffer_num(&uart_out_queue) > 0) {
@@ -289,7 +295,10 @@ void firmware_main_loop(void)
 
         if (!data) data = queue_pull(queue_hww_queue());
         if (data) {
-            util_log("out: %s...", util_dbg_hex(data, 32));
+            if (data[63] == 0) {
+                ((uint8_t*)data)[63] = counter++ % 255;
+            }
+            util_log("out: %s", util_dbg_hex(data, 64));
             uint8_t tmp[128];
             int len =
                 serial_link_out_format(&tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_BLE_DATA, data, 64);

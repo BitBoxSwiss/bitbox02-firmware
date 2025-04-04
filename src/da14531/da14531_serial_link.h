@@ -45,7 +45,7 @@ enum escape_state {
 struct SerialLinkIn {
     enum serial_link_in_state state;
     enum escape_state escape_state;
-    uint8_t buf_in[64];
+    uint8_t buf_in[128];
     size_t buf_in_len;
     uint8_t frame[700];
     size_t frame_len;

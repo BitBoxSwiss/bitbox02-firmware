@@ -70,7 +70,7 @@ void util_cleanup_64(uint8_t** buf)
 }
 
 // Max message size is MAX_LOG_LENGTH-1, becuase vsnprintf will always print a null character
-#define MAX_LOG_LENGTH 101
+#define MAX_LOG_LENGTH 200
 
 void util_log(const char* fmt, ...)
 {

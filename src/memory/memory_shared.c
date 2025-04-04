@@ -19,6 +19,7 @@
 
 #include <flags.h>
 #include <util.h>
+#include <utils_assert.h>
 
 #include "memory_shared.h"
 
@@ -78,4 +79,17 @@ uint8_t memory_get_platform(void)
     default:
         return MEMORY_PLATFORM_BITBOX02;
     }
+}
+
+int16_t memory_get_ble_bond_db(uint8_t* data)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+    int16_t len = *(int16_t*)chunk.fields.ble_bond_db;
+    if (len != -1) {
+        memcpy(data, &chunk.fields.ble_bond_db[2], len);
+    }
+
+    util_zero(&chunk, sizeof(chunk));
+    return len;
 }

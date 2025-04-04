@@ -128,7 +128,7 @@ bool uart_0_write(const uint8_t* buf, uint16_t buf_len)
     }
     int32_t wrote = _write(buf, buf_len);
     ASSERT(wrote == buf_len);
-    return true;
+    return wrote == buf_len;
 }
 
 static uint8_t out_buf[256];
@@ -143,9 +143,13 @@ bool uart_0_write_from_queue(struct ringbuffer* queue)
     len = MIN(ringbuffer_num(queue), sizeof(out_buf));
     CRITICAL_SECTION_LEAVE()
     for (int32_t i = 0; i < len; i++) {
-        ASSERT(ringbuffer_get(queue, &out_buf[i]) == ERR_NONE)
+        int32_t res = ringbuffer_get(queue, &out_buf[i]);
+        ASSERT(res == ERR_NONE);
+        if (res != ERR_NONE) {
+            break;
+        }
     }
     int32_t wrote = _write(out_buf, len);
     ASSERT(wrote == len);
-    return true;
+    return wrote == len;
 }

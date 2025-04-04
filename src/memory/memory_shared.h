@@ -82,12 +82,16 @@ typedef union {
         uint8_t encryption_key_split[32];
         uint8_t platform;
         uint8_t reserved[3]; // align to 4 bytes
+        uint8_t ble_bond_db[1024]; // 2 bytes len, then data
+        uint8_t ble_irk[16];
+        uint8_t ble_addr[6];
     } fields;
     uint8_t bytes[FLASH_SHARED_DATA_LEN];
 } chunk_shared_t;
 #pragma GCC diagnostic pop
 
 void memory_read_shared_bootdata(chunk_shared_t* chunk_out);
+void memory_write_shared_bootdata(chunk_shared_t* chunk_out);
 
 // 0xFF is the default memory value if not set otherwise. We use this value for the original screen
 // for backwards compatibility.
@@ -111,5 +115,11 @@ USE_RESULT uint8_t memory_get_securechip_type(void);
 #define MEMORY_PLATFORM_BITBOX02 0xFF
 #define MEMORY_PLATFORM_BITBOX02_PLUS 0x01
 USE_RESULT uint8_t memory_get_platform(void);
+
+// data must be at least 1022 long
+// returns -1 if no db was found otherwise length of db
+USE_RESULT int16_t memory_get_ble_bond_db(uint8_t* data);
+
+void memory_set_ble_bond_db(uint8_t* data, int16_t data_len);
 
 #endif

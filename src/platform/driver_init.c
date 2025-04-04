@@ -331,6 +331,9 @@ void system_init(void)
 
 void bootloader_init(void)
 {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        _uart_init();
+    }
     _oled_set_pins();
     _ptc_clock_init();
 

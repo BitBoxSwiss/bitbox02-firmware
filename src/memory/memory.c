@@ -688,6 +688,20 @@ bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_d
     return false;
 }
 
+void memory_set_ble_bond_db(uint8_t* data, int16_t data_len)
+{
+    ASSERT(data_len <= 1022);
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+    ((int16_t*)chunk.fields.ble_bond_db)[0] = data_len;
+    memcpy(&chunk.fields.ble_bond_db[2], data, data_len);
+    if (memcmp((uint8_t*)(FLASH_SHARED_DATA_START), chunk.bytes, FLASH_SHARED_DATA_LEN) != 0) {
+        util_log("Updated bond db");
+        _write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes);
+    }
+    util_zero(&chunk, sizeof(chunk));
+}
+
 bool memory_get_salt_root(uint8_t* salt_root_out)
 {
     chunk_1_t chunk = {0};

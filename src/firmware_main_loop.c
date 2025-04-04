@@ -17,6 +17,8 @@
 #include "da14531/da14531_serial_link.h"
 #include "hardfault.h"
 #include "hww.h"
+#include "memory/memory.h"
+#include "memory/memory_shared.h"
 #include "touch/gestures.h"
 #include "u2f.h"
 #include "uart.h"
@@ -60,22 +62,24 @@ static void _ble_pairing_callback(bool ok, void* param)
     _ble_pairing_component = NULL;
 }
 
-#define DN "My BitBox"
-
 static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* queue)
 {
-    uint8_t tmp[128];
+    uint8_t tmp[1152]; // 1024 + some margin (128)
     switch (frame->payload[0]) {
     case 1: {
         util_log("da14531: get device name");
         // 1 byte cmd
         // rest device name
 
-        uint8_t payload[1 + sizeof(DN) - 1];
+        uint8_t payload[1 + MEMORY_DEVICE_NAME_MAX_LEN];
         payload[0] = 1;
-        memcpy(&payload[1], DN, sizeof(DN) - 1);
+        memory_get_device_name((char*)&payload[1]);
         uint16_t len = serial_link_out_format(
-            &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
+            &tmp[0],
+            sizeof(tmp),
+            SERIAL_LINK_TYPE_CTRL_DATA,
+            &payload[0],
+            1 + strlen((char*)&payload[1]));
         ASSERT(len <= sizeof(tmp));
         for (int i = 0; i < len; i++) {
             ringbuffer_put(queue, tmp[i]);
@@ -83,16 +87,27 @@ static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* qu
     } break;
     case 2: {
         util_log("da14531: get bond db");
-        uint8_t payload = 2;
-        uint16_t len =
-            serial_link_out_format(&tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload, 1);
-        ASSERT(len <= sizeof(tmp));
-        for (int i = 0; i < len; i++) {
+        uint8_t payload[1023]; // MAX BOND DB + 1 for cmd
+        payload[0] = 2;
+        int16_t len = memory_get_ble_bond_db(&payload[1]);
+        util_log("da14531: bond db len %d", len);
+        uint16_t tmp_len;
+        if (len != -1) {
+            tmp_len = serial_link_out_format(
+                &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], 1 + len);
+        } else {
+            tmp_len = serial_link_out_format(
+                &tmp[0], sizeof(tmp), SERIAL_LINK_TYPE_CTRL_DATA, &payload[0], 1);
+        }
+        ASSERT(tmp_len <= sizeof(tmp));
+        for (int i = 0; i < tmp_len; i++) {
             ringbuffer_put(queue, tmp[i]);
         }
     } break;
     case 3:
         util_log("da14531: set bond db");
+        util_log("da14531: bond db len %d", frame->payload_length - 1);
+        memory_set_ble_bond_db(&frame->payload[1], frame->payload_length - 1);
         break;
     case 4: {
         if (frame->payload_length < 5) {
@@ -185,7 +200,11 @@ static void _ctrl_handler(struct serial_link_frame* frame, struct ringbuffer* qu
         util_log("da14531: pairing successful");
         break;
     case SL_CTRL_CMD_DEBUG:
-        util_log("da14531-debug: %.*s", frame->payload_length - 1, &frame->payload[1]);
+        util_log(
+            "da14531-debug: %.*s (%d bytes)",
+            frame->payload_length - 1,
+            &frame->payload[1],
+            frame->payload_length - 1);
         break;
     default:
         break;
@@ -233,7 +252,7 @@ void firmware_main_loop(void)
 
 // Might need to increase to fit bonddb later.
 // Must be power of 2
-#define UART_OUT_BUF_LEN 512
+#define UART_OUT_BUF_LEN 1024
 
     struct ringbuffer uart_out_queue;
     uint8_t uart_out_buf[UART_OUT_BUF_LEN];

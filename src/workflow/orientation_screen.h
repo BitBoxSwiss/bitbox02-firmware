@@ -15,6 +15,6 @@
 #ifndef __ORIENTATION_SCREEN_H
 #define __ORIENTATION_SCREEN_H
 
-void orientation_screen_blocking(void);
+void orientation_screen(void);
 
 #endif // __ORIENTATION_SCREEN_H

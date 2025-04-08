@@ -15,6 +15,12 @@
 // THIS IS A GENERATED FILE, MODIFY AS LITTLE AS POSSIBLE
 
 #include "driver_init.h"
+#include "bitbox02_pins.h"
+#include "memory/memory_shared.h"
+#include "util.h"
+#include <compiler.h>
+#include <hal_sleep.h>
+#include <stdint.h>
 #include <utils.h>
 
 #define PIN_HIGH 1
@@ -113,6 +119,57 @@ static void _spi_init(void)
     SPI_OLED_init();
     _spi_set_pins();
     SPI_OLED_enable();
+}
+
+static void _spi_mem_clock_init(void)
+{
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM4_GCLK_ID_CORE, CONF_GCLK_SERCOM4_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+    hri_gclk_write_PCHCTRL_reg(
+        GCLK, SERCOM4_GCLK_ID_SLOW, CONF_GCLK_SERCOM4_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
+    hri_mclk_set_APBDMASK_SERCOM4_bit(MCLK);
+}
+
+static void _spi_mem_port_init(void)
+{
+    // CS
+    gpio_set_pin_level(PIN_MEM_CS, PIN_LOW);
+    gpio_set_pin_direction(PIN_MEM_CS, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_MEM_CS, GPIO_PIN_FUNCTION_OFF);
+
+    // MISO
+    gpio_set_pin_direction(PIN_MEM_MISO, GPIO_DIRECTION_IN);
+    gpio_set_pin_pull_mode(PIN_MEM_MISO, GPIO_PULL_OFF);
+    gpio_set_pin_function(PIN_MEM_MISO, PINMUX_PA13D_SERCOM4_PAD0);
+
+    // CLK
+    gpio_set_pin_level(PIN_MEM_CLK, PIN_LOW);
+    gpio_set_pin_direction(PIN_MEM_CLK, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_MEM_CLK, PINMUX_PA12D_SERCOM4_PAD1);
+
+    // MOSI
+    gpio_set_pin_level(PIN_MEM_MOSI, PIN_LOW);
+    gpio_set_pin_direction(PIN_MEM_MOSI, GPIO_DIRECTION_OUT);
+    gpio_set_pin_function(PIN_MEM_MOSI, PINMUX_PA15D_SERCOM4_PAD3);
+
+    // HOLD
+    gpio_set_pin_level(PIN_MEM_HOLD, PIN_HIGH);
+    gpio_set_pin_direction(PIN_MEM_HOLD, GPIO_DIRECTION_OUT);
+
+    // WP
+    gpio_set_pin_level(PIN_MEM_WP, PIN_HIGH);
+    gpio_set_pin_direction(PIN_MEM_WP, GPIO_DIRECTION_OUT);
+}
+
+/**
+ * Initialize SPI 1 peripheral
+ */
+static void _spi_mem_init(void)
+{
+    _spi_mem_clock_init();
+    SPI_MEM_init();
+    _spi_mem_port_init();
 }
 
 /**
@@ -300,6 +357,12 @@ void system_init(void)
     _flash_memory_init();
     // USB
     _usb_init();
+
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        // External MX25 flash memory
+        _spi_mem_init();
+    }
+
     _is_initialized = true;
 }
 
@@ -325,6 +388,12 @@ void bootloader_init(void)
     _flash_memory_init();
     // USB
     _usb_init();
+
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        // External MX25 flash memory
+        _spi_mem_init();
+    }
+
     _is_initialized = true;
 }
 

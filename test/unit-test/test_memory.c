@@ -423,12 +423,29 @@ static void _test_memory_get_device_name_default_bluetooth(void** state)
     assert_string_equal("BitBox AZUV", name_out);
 }
 
-static void _test_memory_get_device_name(void** state)
+static void _test_memory_get_device_name_invalid(void** state)
 {
     char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
     EMPTYCHUNK(chunk);
     memset(chunk + _addr_device_name, 0, MEMORY_DEVICE_NAME_MAX_LEN);
     const char* device_name = "Äxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxx 漢字xxxxxxxxxxxxxxxxx";
+    snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", device_name);
+
+    EMPTYCHUNK(empty_shared_chunk);
+    will_return(__wrap_memory_read_shared_bootdata_mock, empty_shared_chunk);
+
+    expect_value(__wrap_memory_read_chunk_mock, chunk_num, 1);
+    will_return(__wrap_memory_read_chunk_mock, chunk);
+    memory_get_device_name(name_out);
+    assert_string_equal(MEMORY_DEFAULT_DEVICE_NAME, name_out);
+}
+
+static void _test_memory_get_device_name(void** state)
+{
+    char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    EMPTYCHUNK(chunk);
+    memset(chunk + _addr_device_name, 0, MEMORY_DEVICE_NAME_MAX_LEN);
+    const char* device_name = "foo bar";
     snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", device_name);
 
     expect_value(__wrap_memory_read_chunk_mock, chunk_num, 1);
@@ -561,6 +578,7 @@ int main(void)
         cmocka_unit_test(_test_memory_reset_hww),
         cmocka_unit_test(_test_memory_get_device_name_default),
         cmocka_unit_test(_test_memory_get_device_name_default_bluetooth),
+        cmocka_unit_test(_test_memory_get_device_name_invalid),
         cmocka_unit_test(_test_memory_get_device_name),
         cmocka_unit_test(_test_memory_device_name),
         cmocka_unit_test(_test_memory_set_seed_birthdate),

@@ -250,6 +250,10 @@ bool memory_set_device_name(const char* name)
     _read_chunk(CHUNK_1, chunk_bytes);
     util_zero(chunk.fields.device_name, sizeof(chunk.fields.device_name));
     snprintf((char*)&chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", name);
+
+    if (!rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN)) {
+        return false;
+    }
     return _write_chunk(CHUNK_1, chunk.bytes);
 }
 
@@ -286,7 +290,8 @@ void memory_get_device_name(char* name_out)
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
-    if (chunk.fields.device_name[0] == 0xFF) {
+    if (chunk.fields.device_name[0] == 0xFF ||
+        !rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN)) {
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
             // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
             // identified if multiple BitBoxes are advertising at the same time.

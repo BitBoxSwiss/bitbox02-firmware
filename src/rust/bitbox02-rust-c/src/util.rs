@@ -25,6 +25,24 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
     util::zero(dst.as_mut())
 }
 
+/// Calls `util::name::validate()` on the provided C string.
+/// SAFETY:
+/// `buf` must point to a valid buffer of size `max_len`.
+#[no_mangle]
+pub unsafe extern "C" fn rust_util_is_name_valid(buf: *const u8, max_len: usize) -> bool {
+    if max_len == 0 {
+        return false;
+    }
+    let slice = core::slice::from_raw_parts(buf, max_len);
+    match core::ffi::CStr::from_bytes_until_nul(slice) {
+        Ok(cstr) => match cstr.to_str() {
+            Ok(s) => util::name::validate(s, max_len - 1),
+            Err(_) => false,
+        },
+        Err(_) => false,
+    }
+}
+
 /// Convert bytes to hex representation
 ///
 /// * `buf` - bytes to convert to hex.
@@ -201,5 +219,23 @@ mod tests {
         ));
         let expected = b"LUC1eAJa5jW\0";
         assert_eq!(&result_buf[..expected.len()], expected);
+    }
+
+    #[test]
+    // For clarity we want explicit null terminators in the strings below, not CStr literals
+    // `c"..."`.
+    #[allow(clippy::manual_c_str_literals)]
+    fn test_rust_util_is_name_valid() {
+        unsafe {
+            // Valid
+            assert!(rust_util_is_name_valid("foo\0".as_ptr(), 4));
+            assert!(rust_util_is_name_valid("foo\0........".as_ptr(), 12));
+
+            // Invalid
+            assert!(!rust_util_is_name_valid("fo\no\0".as_ptr(), 5));
+            assert!(!rust_util_is_name_valid("".as_ptr(), 0));
+            assert!(!rust_util_is_name_valid("foo\0".as_ptr(), 3));
+            assert!(!rust_util_is_name_valid("foo".as_ptr(), 3));
+        }
     }
 }

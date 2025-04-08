@@ -66,11 +66,14 @@ extern const char* MEMORY_DEFAULT_DEVICE_NAME;
 // memory.c)
 #define MEMORY_DEVICE_NAME_MAX_LEN (64)
 
-// set device name. name is an utf8-encoded string, and null terminated. The max
-// size (including the null terminator) is MEMORY_DEVICE_NAME_MAX_LEN bytes.
+// set device name. name is null terminated. The name must be smaller or equal to
+// MEMORY_DEVICE_NAME_MAX_LEN (including the null terminator) and larger than 0 in size, consist of
+// printable ASCII characters only (and space), not start or end with whitespace, and contain no
+// whitespace other than space.
 USE_RESULT bool memory_set_device_name(const char* name);
 
-// name_out must have MEMORY_DEVICE_NAME_MAX_LEN bytes in size. If no device name is set, we return:
+// name_out must have MEMORY_DEVICE_NAME_MAX_LEN bytes in size. If no device name is set, or if it
+// is invalid, we return:
 // - `MEMORY_DEFAULT_DEVICE_NAME` for non-bluetooth enabled BitBoxes
 // - "BitBox ABCD" for Bluetooth-enabled BitBoxes, where ABCD are four random uppercase letters.
 //    The name is cached in RAM, so the same random name is returned until reboot.

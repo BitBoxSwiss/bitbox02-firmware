@@ -18,15 +18,13 @@
 #include <cmocka.h>
 
 #include <memory/memory.h>
+#include <memory/memory_shared.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#define CHUNK_SIZE (16 * 512) // 8kB.
-
 #define FLASH_APP_DATA_LEN (0x000010000)
-#define FLASH_SHARED_DATA_START (0xe000)
 
 // chunk 0
 static const int _addr_factory_setup_done = 0;
@@ -386,8 +384,43 @@ static void _test_memory_get_device_name_default(void** state)
     EMPTYCHUNK(empty_chunk);
     expect_value(__wrap_memory_read_chunk_mock, chunk_num, 1);
     will_return(__wrap_memory_read_chunk_mock, empty_chunk);
+
+    EMPTYCHUNK(empty_shared_chunk);
+    will_return(__wrap_memory_read_shared_bootdata_mock, empty_shared_chunk);
+
     memory_get_device_name(name_out);
     assert_string_equal(MEMORY_DEFAULT_DEVICE_NAME, name_out);
+}
+
+// For Bluetooth devices (BitBox02+), the default name is "BitBox ABCD" where ABCD are four random
+// uppercase letters.
+static void _test_memory_get_device_name_default_bluetooth(void** state)
+{
+    uint8_t entropy[32] = {0};
+    memcpy(entropy, "\x00\x19\xFE\xFF", 4);
+
+    char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    EMPTYCHUNK(empty_chunk);
+    expect_value(__wrap_memory_read_chunk_mock, chunk_num, 1);
+    will_return(__wrap_memory_read_chunk_mock, empty_chunk);
+
+    EMPTYCHUNK(empty_shared_chunk);
+    chunk_shared_t shared_chunk = {0};
+    memcpy(shared_chunk.bytes, empty_shared_chunk, CHUNK_SIZE);
+    shared_chunk.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    will_return(__wrap_memory_read_shared_bootdata_mock, shared_chunk.bytes);
+
+    will_return(_mock_random_32_bytes, entropy);
+
+    memory_get_device_name(name_out);
+    assert_string_equal("BitBox AZUV", name_out);
+
+    // Calling it again does not re-generate a new random name but reuses the already generated one.
+    expect_value(__wrap_memory_read_chunk_mock, chunk_num, 1);
+    will_return(__wrap_memory_read_chunk_mock, empty_chunk);
+    will_return(__wrap_memory_read_shared_bootdata_mock, shared_chunk.bytes);
+    memory_get_device_name(name_out);
+    assert_string_equal("BitBox AZUV", name_out);
 }
 
 static void _test_memory_get_device_name(void** state)
@@ -527,6 +560,7 @@ int main(void)
         cmocka_unit_test(_test_memory_set_mnemonic_passphrase_enabled),
         cmocka_unit_test(_test_memory_reset_hww),
         cmocka_unit_test(_test_memory_get_device_name_default),
+        cmocka_unit_test(_test_memory_get_device_name_default_bluetooth),
         cmocka_unit_test(_test_memory_get_device_name),
         cmocka_unit_test(_test_memory_device_name),
         cmocka_unit_test(_test_memory_set_seed_birthdate),

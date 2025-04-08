@@ -43,7 +43,9 @@ static mut CONFIRM_STATE: TaskState<'static, Result<(), confirm::UserAbort>> = T
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
-    UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock()));
+    UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock(
+        bitbox02_rust::workflow::unlock::enter_mnemonic_passphrase_on_device,
+    )));
 }
 
 #[no_mangle]

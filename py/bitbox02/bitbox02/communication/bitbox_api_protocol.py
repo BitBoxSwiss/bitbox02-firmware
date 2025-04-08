@@ -14,6 +14,7 @@
 """BitBox02"""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 import os
 import enum
 import sys
@@ -36,6 +37,7 @@ from .devices import BITBOX02MULTI, BITBOX02BTC, BITBOX02PLUS_MULTI, BITBOX02PLU
 try:
     from .generated import hww_pb2 as hww
     from .generated import system_pb2 as system
+    from .generated import keystore_pb2 as keystore
 except ModuleNotFoundError:
     print("Run `make py` to generate the protobuf messages")
     sys.exit()
@@ -263,6 +265,15 @@ class BitBoxNoiseConfig:
 
     def set_app_static_privkey(self, privkey: bytes) -> None:
         pass
+
+
+@dataclass
+class BitBoxConfig:
+    """Configuration options"""
+
+    # If defined, this is called to enter the mnemonic passphrase on the host.
+    # It should return the passphrase, or None if the operation was cancelled.
+    enter_mnemonic_passphrase: Optional[Callable[[], Optional[str]]] = None
 
 
 class BitBoxProtocol(ABC):
@@ -525,12 +536,13 @@ class BitBoxProtocolV7(BitBoxProtocolV4):
 class BitBoxCommonAPI:
     """Class to communicate with a BitBox device"""
 
-    # pylint: disable=too-many-public-methods,too-many-arguments
+    # pylint: disable=too-many-public-methods,too-many-arguments,too-many-branches
     def __init__(
         self,
         transport: TransportLayer,
         device_info: Optional[DeviceInfo],
         noise_config: BitBoxNoiseConfig,
+        config: BitBoxConfig = BitBoxConfig(),
     ):
         """
         Can raise LibraryVersionOutdatedException. check_min_version() should be called following
@@ -577,9 +589,13 @@ class BitBoxCommonAPI:
 
         if self.version >= semver.VersionInfo(2, 0, 0):
             noise_config.attestation_check(self._perform_attestation())
-            self._bitbox_protocol.unlock_query()
+            # Starting with v9.23, we can use the unlock function below after noise pairing.
+            if self.version < semver.VersionInfo(9, 23, 0):
+                self._bitbox_protocol.unlock_query()
 
         self._bitbox_protocol.noise_connect(noise_config)
+        if self.version >= semver.VersionInfo(9, 23, 0):
+            self.unlock(config)
 
     # pylint: disable=too-many-return-statements
     def _perform_attestation(self) -> bool:
@@ -657,6 +673,47 @@ class BitBoxCommonAPI:
         if self.debug:
             print(response)
         return response
+
+    def unlock(
+        self,
+        config: BitBoxConfig,
+    ) -> None:
+        """
+        Prompt to unlock the device. If already unlocked, nothing happens. If
+        `config.enter_mnemonic_passphrase` is defined and the user chooses to enter the passphrase
+        on the host, this callback will be called to retrieve the passphrase.
+        """
+        # pylint: disable=no-member
+        try:
+            request = hww.Request()
+            request.unlock.CopyFrom(
+                keystore.UnlockRequest(
+                    supports_host_passphrase=config.enter_mnemonic_passphrase is not None,
+                )
+            )
+
+            while True:
+                response = self._msg_query(request)
+                response_type = response.WhichOneof("response")
+
+                if (
+                    response_type == "unlock_host_info"
+                    and response.unlock_host_info.type
+                    == keystore.UnlockRequestHostInfoResponse.InfoType.PASSPHRASE
+                ):
+                    assert config.enter_mnemonic_passphrase is not None
+                    request = hww.Request()
+                    request.unlock_host_info.CopyFrom(
+                        keystore.UnlockHostInfoRequest(
+                            passphrase=config.enter_mnemonic_passphrase(),
+                        )
+                    )
+                elif response_type == "success":
+                    break
+                else:
+                    raise Exception("Unexpected response")
+        except OSError:
+            pass
 
     def reboot(
         self, purpose: "system.RebootRequest.Purpose.V" = system.RebootRequest.Purpose.UPGRADE

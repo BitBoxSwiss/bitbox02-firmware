@@ -29,6 +29,7 @@ mod backup;
 mod bip85;
 mod device_info;
 mod electrum;
+mod keystore;
 mod reset;
 mod restore;
 mod rootfingerprint;
@@ -94,11 +95,17 @@ fn can_call(request: &Request) -> bool {
         Uninitialized,
         // Seeded (password defined, seed created/loaded).
         Seeded,
-        // Initialized (seed backuped up on SD card).
-        Initialized,
+        // InitializedAndLocked (seed backuped up on SD card, keystore locked).
+        InitializedAndLocked,
+        // InitializedAndUnlocked (seed backuped up on SD card, keystore unlocked).
+        InitializedAndUnlocked,
     }
     let state: State = if bitbox02::memory::is_initialized() {
-        State::Initialized
+        if bitbox02::keystore::is_locked() {
+            State::InitializedAndLocked
+        } else {
+            State::InitializedAndUnlocked
+        }
     } else if bitbox02::memory::is_seeded() {
         State::Seeded
     } else {
@@ -108,33 +115,60 @@ fn can_call(request: &Request) -> bool {
     match request {
         // Deprecated call, last used in v1.0.0.
         Request::PerformAttestation(_) => false,
-        Request::DeviceInfo(_) => true,
-        Request::Reboot(_) => true,
-        Request::DeviceName(_) => true,
-        Request::DeviceLanguage(_) => true,
-        Request::CheckSdcard(_) => true,
-        Request::InsertRemoveSdcard(_) => true,
-        Request::ListBackups(_) => true,
+        Request::DeviceInfo(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
+        Request::Reboot(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
+        Request::DeviceName(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
+        Request::DeviceLanguage(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
+        Request::CheckSdcard(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
+        Request::InsertRemoveSdcard(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
+        Request::ListBackups(_) => matches!(
+            state,
+            State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
+        ),
         Request::SetPassword(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::RestoreBackup(_) => matches!(state, State::Uninitialized | State::Seeded),
         Request::RestoreFromMnemonic(_) => matches!(state, State::Uninitialized | State::Seeded),
-        Request::CreateBackup(_) => matches!(state, State::Seeded | State::Initialized),
-        Request::ShowMnemonic(_) => matches!(state, State::Seeded | State::Initialized),
-        Request::Fingerprint(_) => matches!(state, State::Initialized),
-        Request::ElectrumEncryptionKey(_) => matches!(state, State::Initialized),
+        Request::CreateBackup(_) => matches!(state, State::Seeded | State::InitializedAndUnlocked),
+        Request::ShowMnemonic(_) => matches!(state, State::Seeded | State::InitializedAndUnlocked),
+        Request::Fingerprint(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::ElectrumEncryptionKey(_) => matches!(state, State::InitializedAndUnlocked),
         Request::BtcPub(_) | Request::Btc(_) | Request::BtcSignInit(_) => {
-            matches!(state, State::Initialized)
+            matches!(state, State::InitializedAndUnlocked)
         }
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
         Request::BtcSignInput(_) | Request::BtcSignOutput(_) => false,
 
-        Request::CheckBackup(_) => matches!(state, State::Initialized),
-        Request::SetMnemonicPassphraseEnabled(_) => matches!(state, State::Initialized),
-        Request::Eth(_) => matches!(state, State::Initialized),
-        Request::Reset(_) => matches!(state, State::Initialized),
-        Request::Cardano(_) => matches!(state, State::Initialized),
-        Request::Bip85(_) => matches!(state, State::Initialized),
+        Request::CheckBackup(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::SetMnemonicPassphraseEnabled(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::Eth(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::Reset(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::Cardano(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::Bip85(_) => matches!(state, State::InitializedAndUnlocked),
+        Request::Unlock(_) => matches!(
+            state,
+            State::InitializedAndLocked | State::InitializedAndUnlocked
+        ),
+        // Streamed asynchronously using the `next_request()` primitive.
+        Request::UnlockHostInfo(_) => false,
     }
 }
 
@@ -184,6 +218,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
         Request::Bip85(ref request) => bip85::process(request).await,
+        Request::Unlock(ref request) => keystore::process_unlock(request).await,
         _ => Err(Error::InvalidInput),
     }
 }

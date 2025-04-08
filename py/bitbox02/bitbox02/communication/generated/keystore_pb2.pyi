@@ -6,6 +6,7 @@ import builtins
 import google.protobuf.descriptor
 import google.protobuf.empty_pb2
 import google.protobuf.internal.containers
+import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import typing
 import typing_extensions
@@ -79,3 +80,51 @@ class BIP85Response(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["app",b"app","bip39",b"bip39","ln",b"ln"]) -> None: ...
     def WhichOneof(self, oneof_group: typing_extensions.Literal["app",b"app"]) -> typing.Optional[typing_extensions.Literal["bip39","ln"]]: ...
 global___BIP85Response = BIP85Response
+
+class UnlockRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    SUPPORTS_HOST_PASSPHRASE_FIELD_NUMBER: builtins.int
+    supports_host_passphrase: builtins.bool
+    def __init__(self,
+        *,
+        supports_host_passphrase: builtins.bool = ...,
+        ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["supports_host_passphrase",b"supports_host_passphrase"]) -> None: ...
+global___UnlockRequest = UnlockRequest
+
+class UnlockRequestHostInfoResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    class _InfoType:
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _InfoTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[UnlockRequestHostInfoResponse._InfoType.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        UNKNOWN: UnlockRequestHostInfoResponse._InfoType.ValueType  # 0
+        PASSPHRASE: UnlockRequestHostInfoResponse._InfoType.ValueType  # 1
+    class InfoType(_InfoType, metaclass=_InfoTypeEnumTypeWrapper):
+        pass
+
+    UNKNOWN: UnlockRequestHostInfoResponse.InfoType.ValueType  # 0
+    PASSPHRASE: UnlockRequestHostInfoResponse.InfoType.ValueType  # 1
+
+    TYPE_FIELD_NUMBER: builtins.int
+    type: global___UnlockRequestHostInfoResponse.InfoType.ValueType
+    def __init__(self,
+        *,
+        type: global___UnlockRequestHostInfoResponse.InfoType.ValueType = ...,
+        ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["type",b"type"]) -> None: ...
+global___UnlockRequestHostInfoResponse = UnlockRequestHostInfoResponse
+
+class UnlockHostInfoRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    PASSPHRASE_FIELD_NUMBER: builtins.int
+    passphrase: typing.Text
+    def __init__(self,
+        *,
+        passphrase: typing.Optional[typing.Text] = ...,
+        ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_passphrase",b"_passphrase","passphrase",b"passphrase"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_passphrase",b"_passphrase","passphrase",b"passphrase"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_passphrase",b"_passphrase"]) -> typing.Optional[typing_extensions.Literal["passphrase"]]: ...
+global___UnlockHostInfoRequest = UnlockHostInfoRequest

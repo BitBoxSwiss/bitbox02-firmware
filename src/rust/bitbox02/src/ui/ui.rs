@@ -15,7 +15,7 @@
 
 pub use super::types::{
     AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
-    TrinaryChoiceCb, TrinaryInputStringParams,
+    TrinaryChoiceCb, TrinaryInputStringParams, INPUT_STRING_MAX_SIZE,
 };
 
 use util::c_types::{c_char, c_void};
@@ -318,9 +318,9 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
 
 pub fn trinary_choice_create<'a>(
     message: &'a str,
-    label_left: &'a str,
-    label_middle: &'a str,
-    label_right: &'a str,
+    label_left: Option<&'a str>,
+    label_middle: Option<&'a str>,
+    label_right: Option<&'a str>,
     chosen_callback: TrinaryChoiceCb,
 ) -> Component<'a> {
     unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, param: *mut c_void) {
@@ -329,12 +329,25 @@ pub fn trinary_choice_create<'a>(
     }
 
     let chosen_cb_param = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
+    let label_left = label_left.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
+    let label_middle = label_middle.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
+    let label_right = label_right.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
     let component = unsafe {
         bitbox02_sys::trinary_choice_create(
-            crate::util::str_to_cstr_vec(message).unwrap().as_ptr(), // copied in C
-            crate::util::str_to_cstr_vec(label_left).unwrap().as_ptr(), // copied in C
-            crate::util::str_to_cstr_vec(label_middle).unwrap().as_ptr(), // copied in C
-            crate::util::str_to_cstr_vec(label_right).unwrap().as_ptr(), // copied in C
+            // copied in C
+            crate::util::str_to_cstr_vec(message).unwrap().as_ptr(),
+            // copied in C
+            label_left
+                .as_ref()
+                .map_or_else(|| core::ptr::null(), |label| label.as_ptr()),
+            // copied in C
+            label_middle
+                .as_ref()
+                .map_or_else(|| core::ptr::null(), |label| label.as_ptr()),
+            // copied in C
+            label_right
+                .as_ref()
+                .map_or_else(|| core::ptr::null(), |label| label.as_ptr()),
             Some(c_chosen_cb as _),
             chosen_cb_param,
             core::ptr::null_mut(), // parent component, there is no parent.

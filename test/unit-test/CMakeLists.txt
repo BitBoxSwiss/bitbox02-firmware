@@ -59,7 +59,6 @@ add_library(bitbox_objects
   ${DBB-FILTERED-SOURCES}
   ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
-  framework/mock_blocking.c
   framework/mock_cipher.c
   framework/mock_screen.c
   framework/mock_screen_stack.c
@@ -232,8 +231,6 @@ set(TEST_LIST
    "-Wl,--wrap=cipher_mock_iv"
    util
    ""
-   workflow_blocking
-   "-Wl,--wrap=screen_process"
    ugui
    ""
 )

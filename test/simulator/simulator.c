@@ -17,7 +17,6 @@
 #include "usb/usb_packet.c"
 #include "usb/usb_processing.c"
 #include "usb/usb_processing.h"
-#include "workflow/idle_workflow.h"
 #include <fcntl.h>
 #include <memory/memory.h>
 #include <mock_memory.h>
@@ -133,7 +132,6 @@ int main(int argc, char* argv[])
 
     smarteeprom_bb02_config();
     bitbox02_smarteeprom_init();
-    idle_workflow_blocking();
 
     // Establish socket connection with client
     sockfd = socket(AF_INET, SOCK_STREAM, 0);

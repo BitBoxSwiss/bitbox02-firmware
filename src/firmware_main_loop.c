@@ -22,10 +22,14 @@
 #include "ui/screen_stack.h"
 #include "usb/usb.h"
 #include "usb/usb_processing.h"
+#include "workflow/orientation_screen.h"
 #include <rust/rust.h>
 
 void firmware_main_loop(void)
 {
+    // This starts the async orientation screen workflow, which is processed by the loop below.
+    orientation_screen();
+
     while (1) {
         screen_process();
         /* And finally, run the high-level event processing. */

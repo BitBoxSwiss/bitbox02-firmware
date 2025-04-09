@@ -250,7 +250,39 @@ bool memory_set_device_name(const char* name)
     _read_chunk(CHUNK_1, chunk_bytes);
     util_zero(chunk.fields.device_name, sizeof(chunk.fields.device_name));
     snprintf((char*)&chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", name);
+
+    if (!rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN)) {
+        return false;
+    }
     return _write_chunk(CHUNK_1, chunk.bytes);
+}
+
+static void _random_name(char* name_out)
+{
+    static char cached_name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+
+    if (cached_name[0] == 0x00) {
+        // Generate 4 random uppercase letters
+        uint8_t random[32] = {0};
+        _interface_functions->random_32_bytes(random);
+        uint8_t letters[4];
+        for (size_t i = 0; i < sizeof(letters); i++) {
+            letters[i] = 'A' + (random[i] % 26);
+        }
+
+        // Format into cached name
+        snprintf(
+            cached_name,
+            MEMORY_DEVICE_NAME_MAX_LEN,
+            "BitBox %c%c%c%c",
+            letters[0],
+            letters[1],
+            letters[2],
+            letters[3]);
+    }
+
+    // Copy cached result to output
+    snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", cached_name);
 }
 
 void memory_get_device_name(char* name_out)
@@ -258,8 +290,15 @@ void memory_get_device_name(char* name_out)
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
-    if (chunk.fields.device_name[0] == 0xFF) {
-        snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", MEMORY_DEFAULT_DEVICE_NAME);
+    if (chunk.fields.device_name[0] == 0xFF ||
+        !rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN)) {
+        if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+            // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
+            // identified if multiple BitBoxes are advertising at the same time.
+            _random_name(name_out);
+        } else {
+            snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", MEMORY_DEFAULT_DEVICE_NAME);
+        }
     } else {
         snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", chunk.fields.device_name);
     }

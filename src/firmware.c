@@ -17,6 +17,7 @@
 #include "firmware_main_loop.h"
 #include "hardfault.h"
 #include "memory/bitbox02_smarteeprom.h"
+#include "memory/spi_mem.h"
 #include "platform/platform_config.h"
 #include "platform_init.h"
 #include "qtouch.h"
@@ -36,6 +37,7 @@ int main(void)
     qtouch_init();
     common_main();
     bitbox02_smarteeprom_init();
+    spi_mem_test();
     firmware_main_loop();
     return 0;
 }

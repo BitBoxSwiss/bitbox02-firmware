@@ -19,6 +19,7 @@
 
 #include <flags.h>
 #include <util.h>
+#include <utils_assert.h>
 
 #include "memory_shared.h"
 
@@ -78,4 +79,48 @@ uint8_t memory_get_platform(void)
     default:
         return MEMORY_PLATFORM_BITBOX02;
     }
+}
+
+int16_t memory_get_ble_bond_db(uint8_t* data)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+    int16_t len = chunk.fields.ble_bond_db_len;
+    if (len != -1) {
+        memcpy(data, &chunk.fields.ble_bond_db[0], len);
+    }
+
+    util_zero(&chunk, sizeof(chunk));
+    return len;
+}
+
+void memory_get_ble_irk(uint8_t* data)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+
+    memcpy(
+        data,
+        &chunk.fields.ble_identity_resolving_key,
+        sizeof(chunk.fields.ble_identity_resolving_key));
+
+    util_zero(&chunk, sizeof(chunk));
+}
+
+void memory_get_ble_identity_address(uint8_t* data)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+#if defined(DEBUG)
+    uint8_t ones[MEMORY_BLE_ADDR_LEN] = {-1, -1, -1, -1, -1, -1};
+    uint8_t zeros[MEMORY_BLE_ADDR_LEN] = {0};
+#endif
+    // In case address isn't valid, factory setup / hww reset needs to be run
+    ASSERT(
+        memcmp(&ones[0], &chunk.fields.ble_identity_address[0], sizeof(ones)) != 0 &&
+        memcmp(&zeros[0], &chunk.fields.ble_identity_address[0], sizeof(zeros)) != 0);
+
+    memcpy(data, &chunk.fields.ble_identity_address, sizeof(chunk.fields.ble_identity_address));
+
+    util_zero(&chunk, sizeof(chunk));
 }

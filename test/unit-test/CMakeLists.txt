@@ -29,7 +29,7 @@ set(IGNORE_SOURCES
     "src/screen.c"
     "src/memory/nvmctrl.c"
     "src/memory/smarteeprom.c"
-    "src/memory.mpu.c"
+    "src/memory/mpu.c"
     )
 
 # Exclude some files which depends on the hardware.

@@ -25,7 +25,7 @@ use pb::BtcCoin;
 
 use super::multisig::SortXpubs;
 
-use crate::workflow::{confirm, status, trinary_input_string};
+use crate::workflow::{confirm, trinary_input_string, Workflows};
 
 pub fn process_is_script_config_registered(
     request: &pb::BtcIsScriptConfigRegisteredRequest,
@@ -99,7 +99,8 @@ async fn get_name(request: &pb::BtcRegisterScriptConfigRequest) -> Result<String
     Ok(name)
 }
 
-pub async fn process_register_script_config(
+pub async fn process_register_script_config<W: Workflows>(
+    workflows: &mut W,
     request: &pb::BtcRegisterScriptConfigRequest,
 ) -> Result<Response, Error> {
     let title = "Register";
@@ -118,6 +119,7 @@ pub async fn process_register_script_config(
             super::multisig::validate(multisig, keypath)?;
             let xpub_type = XPubType::try_from(request.xpub_type)?;
             super::multisig::confirm_extended(
+                workflows,
                 title,
                 coin_params,
                 &name,
@@ -129,7 +131,7 @@ pub async fn process_register_script_config(
             let hash = super::multisig::get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
             match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
-                    status::status("Multisig account\nregistered", true).await;
+                    workflows.status("Multisig account\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
                 }
                 Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {
@@ -151,12 +153,18 @@ pub async fn process_register_script_config(
             let name = get_name(request).await?;
             let parsed = super::policies::parse(policy, coin)?;
             parsed
-                .confirm(title, coin_params, &name, super::policies::Mode::Advanced)
+                .confirm(
+                    workflows,
+                    title,
+                    coin_params,
+                    &name,
+                    super::policies::Mode::Advanced,
+                )
                 .await?;
             let hash = super::policies::get_hash(coin, policy)?;
             match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
-                    status::status("Policy\nregistered", true).await;
+                    workflows.status("Policy\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
                 }
                 Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {

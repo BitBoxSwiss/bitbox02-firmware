@@ -46,6 +46,8 @@ use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
 
+use crate::workflow::{RealWorkflows, Workflows};
+
 /// Encodes a protobuf Response message.
 pub fn encode(response: Response) -> Vec<u8> {
     let response = pb::Response {
@@ -65,13 +67,16 @@ pub fn decode(input: &[u8]) -> Result<Request, Error> {
 }
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-async fn process_api_btc(request: &Request) -> Result<Response, Error> {
+async fn process_api_btc<W: Workflows>(
+    workflows: &mut W,
+    request: &Request,
+) -> Result<Response, Error> {
     match request {
-        Request::BtcPub(ref request) => bitcoin::process_pub(request).await,
-        Request::BtcSignInit(ref request) => bitcoin::signtx::process(request).await,
+        Request::BtcPub(ref request) => bitcoin::process_pub(workflows, request).await,
+        Request::BtcSignInit(ref request) => bitcoin::signtx::process(workflows, request).await,
         Request::Btc(pb::BtcRequest {
             request: Some(request),
-        }) => bitcoin::process_api(request)
+        }) => bitcoin::process_api(workflows, request)
             .await
             .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) })),
         _ => Err(Error::Generic),
@@ -79,7 +84,10 @@ async fn process_api_btc(request: &Request) -> Result<Response, Error> {
 }
 
 #[cfg(not(any(feature = "app-bitcoin", feature = "app-litecoin")))]
-async fn process_api_btc(_request: &Request) -> Result<Response, Error> {
+async fn process_api_btc<W: Workflows>(
+    _workflows: &mut W,
+    _request: &Request,
+) -> Result<Response, Error> {
     Err(Error::Disabled)
 }
 
@@ -152,6 +160,7 @@ fn can_call(request: &Request) -> bool {
 
 /// Handle a protobuf api call.
 async fn process_api(request: &Request) -> Result<Response, Error> {
+    let workflows = &mut RealWorkflows;
     match request {
         Request::Reboot(ref request) => system::reboot(request).await,
         Request::DeviceInfo(_) => device_info::process(),
@@ -176,7 +185,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {
             request: Some(ref request),
-        }) => ethereum::process_api(request)
+        }) => ethereum::process_api(workflows, request)
             .await
             .map(|r| Response::Eth(pb::EthResponse { response: Some(r) })),
         #[cfg(not(feature = "app-ethereum"))]
@@ -185,12 +194,12 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
         Request::Fingerprint(pb::RootFingerprintRequest {}) => rootfingerprint::process(),
         request @ Request::BtcPub(_)
         | request @ Request::Btc(_)
-        | request @ Request::BtcSignInit(_) => process_api_btc(request).await,
+        | request @ Request::BtcSignInit(_) => process_api_btc(workflows, request).await,
 
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {
             request: Some(ref request),
-        }) => cardano::process_api(request)
+        }) => cardano::process_api(workflows, request)
             .await
             .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         #[cfg(not(feature = "app-cardano"))]

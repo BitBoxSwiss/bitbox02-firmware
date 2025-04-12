@@ -24,14 +24,21 @@ mod xpubs;
 use super::pb;
 use super::Error;
 
+use crate::workflow::Workflows;
+
 use pb::cardano_request::Request;
 use pb::cardano_response::Response;
 
 /// Handle a Cardano protobuf api call.
-pub async fn process_api(request: &Request) -> Result<Response, Error> {
+pub async fn process_api<W: Workflows>(
+    workflows: &mut W,
+    request: &Request,
+) -> Result<Response, Error> {
     match request {
         Request::Xpubs(ref request) => xpubs::process(request),
         Request::Address(ref request) => address::process(request).await,
-        Request::SignTransaction(ref request) => sign_transaction::process(request).await,
+        Request::SignTransaction(ref request) => {
+            sign_transaction::process(workflows, request).await
+        }
     }
 }

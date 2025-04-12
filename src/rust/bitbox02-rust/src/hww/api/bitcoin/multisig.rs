@@ -22,7 +22,7 @@ use pb::BtcCoin;
 
 use crate::bip32;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -131,32 +131,35 @@ pub fn get_name(coin: BtcCoin, multisig: &Multisig, keypath: &[u32]) -> Result<O
 /// - coin
 /// - multisig type (m-of-n)
 /// - name given by the user
-pub async fn confirm(
+pub async fn confirm<W: Workflows>(
+    workflows: &mut W,
     title: &str,
     params: &Params,
     name: &str,
     multisig: &Multisig,
 ) -> Result<(), Error> {
-    confirm::confirm(&confirm::Params {
-        title,
-        body: &format!(
-            "{}-of-{}\n{} multisig",
-            multisig.threshold,
-            multisig.xpubs.len(),
-            params.name
-        ),
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
-    confirm::confirm(&confirm::Params {
-        title,
-        body: name,
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title,
+            body: &format!(
+                "{}-of-{}\n{} multisig",
+                multisig.threshold,
+                multisig.xpubs.len(),
+                params.name
+            ),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title,
+            body: name,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
     Ok(())
 }
 
@@ -172,7 +175,8 @@ pub async fn confirm(
 /// xpub_type: if AUTO_ELECTRUM, will automatically format xpubs as `Zpub/Vpub`,
 /// `Ypub/UPub` depending on the script type, to match Electrum's formatting. If AUTO_XPUB_TPUB,
 /// format as xpub (mainnets) or tpub (testnets).
-pub async fn confirm_extended(
+pub async fn confirm_extended<W: Workflows>(
+    workflows: &mut W,
     title: &str,
     params: &Params,
     name: &str,
@@ -182,21 +186,22 @@ pub async fn confirm_extended(
 ) -> Result<(), Error> {
     let script_type = ScriptType::try_from(multisig.script_type)?;
 
-    confirm(title, params, name, multisig).await?;
-    confirm::confirm(&confirm::Params {
-        title,
-        body: &format!(
-            "{}\nat\n{}",
-            match ScriptType::try_from(multisig.script_type)? {
-                ScriptType::P2wsh => "p2wsh",
-                ScriptType::P2wshP2sh => "p2wsh-p2sh",
-            },
-            util::bip32::to_string(keypath)
-        ),
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    confirm(workflows, title, params, name, multisig).await?;
+    workflows
+        .confirm(&confirm::Params {
+            title,
+            body: &format!(
+                "{}\nat\n{}",
+                match ScriptType::try_from(multisig.script_type)? {
+                    ScriptType::P2wsh => "p2wsh",
+                    ScriptType::P2wshP2sh => "p2wsh-p2sh",
+                },
+                util::bip32::to_string(keypath)
+            ),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
     // Confirm cosigners.
     let output_xpub_type: bip32::XPubType = match xpub_type {
@@ -220,25 +225,26 @@ pub async fn confirm_extended(
         let xpub_str = bip32::Xpub::from(xpub)
             .serialize_str(output_xpub_type)
             .or(Err(Error::InvalidInput))?;
-        confirm::confirm(&confirm::Params {
-            title,
-            body: (if i == multisig.our_xpub_index as usize {
-                format!(
-                    "Cosigner {}/{} (this device): {}",
-                    i + 1,
-                    num_cosigners,
-                    xpub_str
-                )
-            } else {
-                format!("Cosigner {}/{}: {}", i + 1, num_cosigners, xpub_str)
+        workflows
+            .confirm(&confirm::Params {
+                title,
+                body: (if i == multisig.our_xpub_index as usize {
+                    format!(
+                        "Cosigner {}/{} (this device): {}",
+                        i + 1,
+                        num_cosigners,
+                        xpub_str
+                    )
+                } else {
+                    format!("Cosigner {}/{}: {}", i + 1, num_cosigners, xpub_str)
+                })
+                .as_str(),
+                scrollable: true,
+                longtouch: i == num_cosigners - 1,
+                accept_is_nextarrow: true,
+                ..Default::default()
             })
-            .as_str(),
-            scrollable: true,
-            longtouch: i == num_cosigners - 1,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+            .await?;
     }
     // TODO rest
     Ok(())

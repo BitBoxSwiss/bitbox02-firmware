@@ -32,7 +32,7 @@ pub mod signtx;
 use super::pb;
 use super::Error;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
 use util::bip32::HARDENED;
 
@@ -189,7 +189,8 @@ async fn address_simple(
 }
 
 /// Processes a multisig address api call.
-pub async fn address_multisig(
+pub async fn address_multisig<W: Workflows>(
+    workflows: &mut W,
     coin: BtcCoin,
     multisig: &Multisig,
     keypath: &[u32],
@@ -206,7 +207,7 @@ pub async fn address_multisig(
     };
     let title = "Receive to";
     if display {
-        multisig::confirm(title, coin_params, &name, multisig).await?;
+        multisig::confirm(workflows, title, coin_params, &name, multisig).await?;
     }
     let address = common::Payload::from_multisig(
         coin_params,
@@ -216,19 +217,21 @@ pub async fn address_multisig(
     )?
     .address(coin_params)?;
     if display {
-        confirm::confirm(&confirm::Params {
-            title,
-            body: &address,
-            scrollable: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title,
+                body: &address,
+                scrollable: true,
+                ..Default::default()
+            })
+            .await?;
     }
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
 /// Processes a policy address api call.
-async fn address_policy(
+async fn address_policy<W: Workflows>(
+    workflows: &mut W,
     coin: BtcCoin,
     policy: &Policy,
     keypath: &[u32],
@@ -247,26 +250,30 @@ async fn address_policy(
 
     if display {
         parsed
-            .confirm(title, coin_params, &name, policies::Mode::Basic)
+            .confirm(workflows, title, coin_params, &name, policies::Mode::Basic)
             .await?;
     }
 
     let address =
         common::Payload::from_policy(coin_params, &parsed, keypath)?.address(coin_params)?;
     if display {
-        confirm::confirm(&confirm::Params {
-            title,
-            body: &address,
-            scrollable: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title,
+                body: &address,
+                scrollable: true,
+                ..Default::default()
+            })
+            .await?;
     }
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
 /// Handle a Bitcoin xpub/address protobuf api call.
-pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error> {
+pub async fn process_pub<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::BtcPubRequest,
+) -> Result<Response, Error> {
     let coin = BtcCoin::try_from(request.coin)?;
     coin_enabled(coin)?;
     match request.output {
@@ -283,24 +290,27 @@ pub async fn process_pub(request: &pb::BtcPubRequest) -> Result<Response, Error>
         }
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::Multisig(ref multisig)),
-        })) => address_multisig(coin, multisig, &request.keypath, request.display).await,
+        })) => address_multisig(workflows, coin, multisig, &request.keypath, request.display).await,
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::Policy(ref policy)),
-        })) => address_policy(coin, policy, &request.keypath, request.display).await,
+        })) => address_policy(workflows, coin, policy, &request.keypath, request.display).await,
         _ => Err(Error::InvalidInput),
     }
 }
 
 /// Handle a nexted Bitcoin protobuf api call.
-pub async fn process_api(request: &Request) -> Result<pb::btc_response::Response, Error> {
+pub async fn process_api<W: Workflows>(
+    workflows: &mut W,
+    request: &Request,
+) -> Result<pb::btc_response::Response, Error> {
     match request {
         Request::IsScriptConfigRegistered(ref request) => {
             registration::process_is_script_config_registered(request)
         }
         Request::RegisterScriptConfig(ref request) => {
-            registration::process_register_script_config(request).await
+            registration::process_register_script_config(workflows, request).await
         }
-        Request::SignMessage(ref request) => signmsg::process(request).await,
+        Request::SignMessage(ref request) => signmsg::process(workflows, request).await,
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
         Request::PrevtxInit(_)
@@ -317,6 +327,7 @@ mod tests {
 
     use crate::bb02_async::block_on;
     use crate::bip32::parse_xpub;
+    use crate::workflow::RealWorkflows; // instead of TestingWorkflows until the tests are migrated
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     use bitbox02::testing::{
@@ -471,7 +482,7 @@ mod tests {
             };
 
             assert_eq!(
-                block_on(process_pub(&req)),
+                block_on(process_pub(&mut RealWorkflows, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
                 })),
@@ -492,7 +503,7 @@ mod tests {
             });
             mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
-                block_on(process_pub(&req)),
+                block_on(process_pub(&mut RealWorkflows,&req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
                 })),
@@ -513,7 +524,7 @@ mod tests {
             });
             mock_unlocked();
             assert_eq!(
-                block_on(process_pub(&pb::BtcPubRequest {
+                block_on(process_pub(&mut RealWorkflows, &pb::BtcPubRequest {
                     coin: BtcCoin::Btc as _,
                     keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
                     display: false,
@@ -553,7 +564,7 @@ mod tests {
             });
             mock_unlocked();
             assert_eq!(
-                block_on(process_pub(&pb::BtcPubRequest {
+                block_on(process_pub(&mut RealWorkflows, &pb::BtcPubRequest {
                     coin: BtcCoin::Btc as _,
                     keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
                     display: true,
@@ -575,11 +586,11 @@ mod tests {
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Rbtc as i32 + 1;
-        assert!(block_on(process_pub(&req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
     }
 
     #[test]
@@ -778,7 +789,7 @@ mod tests {
             // Without display.
             mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
-                block_on(process_pub(&req)),
+                block_on(process_pub(&mut RealWorkflows, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),
@@ -799,7 +810,7 @@ mod tests {
             });
             mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
-                block_on(process_pub(&req)),
+                block_on(process_pub(&mut RealWorkflows, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into()
                 })),
@@ -817,28 +828,31 @@ mod tests {
                 config: Some(Config::SimpleType(SimpleType::P2wpkhP2sh as _)),
             })),
         };
-        assert!(block_on(process_pub(&req)).is_ok());
+        assert!(block_on(process_pub(&mut RealWorkflows, &req)).is_ok());
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
-        assert!(block_on(process_pub(&req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
         // -- Wrong keypath
         let mut req_invalid = req.clone();
         req_invalid.keypath = [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 10000].to_vec();
-        assert!(block_on(process_pub(&req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
         // -- No taproot in Litecoin
-        assert!(block_on(process_pub(&pb::BtcPubRequest {
-            coin: BtcCoin::Ltc as _,
-            keypath: [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-            display: false,
-            output: Some(Output::ScriptConfig(BtcScriptConfig {
-                config: Some(Config::SimpleType(SimpleType::P2tr as _)),
-            })),
-        }))
+        assert!(block_on(process_pub(
+            &mut RealWorkflows,
+            &pb::BtcPubRequest {
+                coin: BtcCoin::Ltc as _,
+                keypath: [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                display: false,
+                output: Some(Output::ScriptConfig(BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2tr as _)),
+                })),
+            }
+        ))
         .is_err());
     }
 
@@ -1053,7 +1067,7 @@ mod tests {
                 })),
             };
             assert_eq!(
-                block_on(process_pub(&req)),
+                block_on(process_pub(&mut RealWorkflows, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),
@@ -1202,7 +1216,7 @@ mod tests {
                 })),
             };
             assert_eq!(
-                block_on(process_pub(&req)),
+                block_on(process_pub(&mut RealWorkflows, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),

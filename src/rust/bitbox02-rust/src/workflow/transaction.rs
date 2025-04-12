@@ -54,7 +54,8 @@ pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result
     option_no_screensaver(&result).await
 }
 
-pub async fn verify_total_fee_maybe_warn(
+pub async fn verify_total_fee_maybe_warn<W: super::Workflows>(
+    workflows: &mut W,
     total: &str,
     fee: &str,
     fee_percentage: Option<f64>,
@@ -62,19 +63,20 @@ pub async fn verify_total_fee_maybe_warn(
     const FEE_WARNING_THRESHOLD: f64 = 10.;
     let fee_percentage = fee_percentage.filter(|&f| f >= FEE_WARNING_THRESHOLD);
     let longtouch = fee_percentage.is_none();
-    verify_total_fee(total, fee, longtouch).await?;
+    workflows.verify_total_fee(total, fee, longtouch).await?;
 
     if let Some(fee_percentage) = fee_percentage {
-        match super::confirm::confirm(&super::confirm::Params {
-            title: "High fee",
-            body: &format!(
-                "The fee is {}%\nthe send amount.\nProceed?",
-                format_percentage(fee_percentage)
-            ),
-            longtouch: true,
-            ..Default::default()
-        })
-        .await
+        match workflows
+            .confirm(&super::confirm::Params {
+                title: "High fee",
+                body: &format!(
+                    "The fee is {}%\nthe send amount.\nProceed?",
+                    format_percentage(fee_percentage)
+                ),
+                longtouch: true,
+                ..Default::default()
+            })
+            .await
         {
             Ok(()) => (),
             Err(super::confirm::UserAbort) => return Err(UserAbort),

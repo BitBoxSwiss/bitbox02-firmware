@@ -19,7 +19,7 @@ use super::Error;
 
 use bitbox02::keystore;
 
-use crate::workflow::{confirm, status, transaction};
+use crate::workflow::{confirm, status, transaction, Workflows};
 
 use alloc::vec::Vec;
 use pb::eth_response::Response;
@@ -203,7 +203,8 @@ fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], Error> 
 /// If the ERC20 token is unknown, only the recipient and fee can be shown. The token name and
 /// amount are displayed as "unknown". The amount is not known because we don't know the number of
 /// decimal places (specified in the ERC20 contract).
-async fn verify_erc20_transaction(
+async fn verify_erc20_transaction<W: Workflows>(
+    workflows: &mut W,
     request: &Transaction<'_>,
     params: &Params,
     erc20_recipient: [u8; 20],
@@ -226,8 +227,11 @@ async fn verify_erc20_transaction(
         }
         None => ("Unknown token".into(), "Unknown amount".into()),
     };
-    transaction::verify_recipient(&recipient_address, &formatted_value).await?;
-    transaction::verify_total_fee_maybe_warn(&formatted_total, &formatted_fee, None).await?;
+    workflows
+        .verify_recipient(&recipient_address, &formatted_value)
+        .await?;
+    transaction::verify_total_fee_maybe_warn(workflows, &formatted_total, &formatted_fee, None)
+        .await?;
     Ok(())
 }
 
@@ -286,12 +290,21 @@ async fn verify_standard_transaction(
         value: (&amount.value).add(&fee.value),
     };
     let percentage = calculate_percentage(&fee.value, &amount.value);
-    transaction::verify_total_fee_maybe_warn(&total.format(), &fee.format(), percentage).await?;
+    transaction::verify_total_fee_maybe_warn(
+        &mut crate::workflow::RealWorkflows, // TODO feed via fn arg
+        &total.format(),
+        &fee.format(),
+        percentage,
+    )
+    .await?;
     Ok(())
 }
 
 /// Verify and sign an Ethereum transaction.
-pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &Transaction<'_>,
+) -> Result<Response, Error> {
     let params = super::params::get_and_warn_unknown(request.coin()?, request.chain_id()).await?;
 
     if !super::keypath::is_valid_keypath_address(request.keypath()) {
@@ -359,7 +372,7 @@ pub async fn process(request: &Transaction<'_>) -> Result<Response, Error> {
     }
 
     let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(request, &params, erc20_recipient, erc20_value).await
+        verify_erc20_transaction(workflows, request, &params, erc20_recipient, erc20_value).await
     } else {
         verify_standard_transaction(request, &params).await
     };
@@ -410,9 +423,10 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::RealWorkflows;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
-    use util::bip32::HARDENED;
+    use util::bip32::HARDENED; // instead of TestingWorkflows until the tests are migrated
 
     #[test]
     pub fn test_parse_recipient() {
@@ -502,7 +516,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -521,7 +535,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -577,7 +591,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert!(block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+        assert!(block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -634,7 +648,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert!(block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+        assert!(block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             // fee=max_fee_per_gas*gas_limit=63713280000000000
@@ -694,7 +708,7 @@ mod tests {
         });
         mock_unlocked();
 
-        block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+        block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -753,7 +767,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -813,7 +827,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
                 max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -860,7 +874,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::RopstenEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
@@ -879,7 +893,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
                 max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -925,7 +939,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\xb9".to_vec(),
@@ -944,7 +958,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\xb9".to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -991,7 +1005,11 @@ mod tests {
                 ..Default::default()
             });
             mock_unlocked();
-            assert!(block_on(process(&Transaction::Legacy(&valid_request))).is_ok());
+            assert!(block_on(process(
+                &mut RealWorkflows,
+                &Transaction::Legacy(&valid_request)
+            ))
+            .is_ok());
         }
 
         {
@@ -999,7 +1017,10 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.coin = 100;
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&invalid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&invalid_request)
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1009,7 +1030,10 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&invalid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&invalid_request)
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1019,7 +1043,10 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100];
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&invalid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&invalid_request)
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1029,7 +1056,10 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.data = vec![0; 6145];
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&invalid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&invalid_request)
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1039,7 +1069,10 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![b'a'; 21];
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&invalid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&invalid_request)
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1049,7 +1082,10 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![0; 20];
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&invalid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&invalid_request)
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1065,7 +1101,10 @@ mod tests {
                 ..Default::default()
             });
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&valid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&valid_request)
+                )),
                 Err(Error::UserAbort)
             );
         }
@@ -1086,7 +1125,10 @@ mod tests {
                 ..Default::default()
             });
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&valid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&valid_request)
+                )),
                 Err(Error::UserAbort)
             );
         }
@@ -1112,7 +1154,10 @@ mod tests {
                 ..Default::default()
             });
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&valid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&valid_request)
+                )),
                 Err(Error::UserAbort)
             );
         }
@@ -1125,7 +1170,10 @@ mod tests {
                 ..Default::default()
             });
             assert_eq!(
-                block_on(process(&Transaction::Legacy(&valid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Legacy(&valid_request)
+                )),
                 Err(Error::Generic)
             );
         }
@@ -1158,7 +1206,11 @@ mod tests {
                 ..Default::default()
             });
             mock_unlocked();
-            assert!(block_on(process(&Transaction::Eip1559(&valid_request))).is_ok());
+            assert!(block_on(process(
+                &mut RealWorkflows,
+                &Transaction::Eip1559(&valid_request)
+            ))
+            .is_ok());
         }
 
         {
@@ -1166,7 +1218,10 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.chain_id = 0;
             assert_eq!(
-                block_on(process(&Transaction::Eip1559(&invalid_request))),
+                block_on(process(
+                    &mut RealWorkflows,
+                    &Transaction::Eip1559(&invalid_request)
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1232,7 +1287,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -1275,7 +1330,7 @@ mod tests {
         });
         mock_unlocked();
 
-        block_on(process(&Transaction::Legacy(&pb::EthSignRequest {
+        block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -1317,7 +1372,7 @@ mod tests {
         });
         mock_unlocked();
 
-        block_on(process(&Transaction::Eip1559(&pb::EthSignEip1559Request {
+        block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),

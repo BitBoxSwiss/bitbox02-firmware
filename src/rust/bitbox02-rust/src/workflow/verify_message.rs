@@ -14,7 +14,7 @@
 
 use alloc::vec::Vec;
 
-use super::confirm;
+use super::{confirm, Workflows};
 
 use util::ascii;
 
@@ -40,7 +40,8 @@ impl core::convert::From<confirm::UserAbort> for Error {
 /// line screens, suffixed with the progress label (e.g. 1/3).
 ///
 /// is_final if this is the final step in a workflow. In this case,
-pub async fn verify(
+pub async fn verify<W: Workflows>(
+    workflows: &mut W,
     title_long: &str,
     title_short: &str,
     msg: &[u8],
@@ -69,7 +70,7 @@ pub async fn verify(
                 longtouch: is_last && is_final,
                 ..Default::default()
             };
-            confirm::confirm(&params).await?;
+            workflows.confirm(&params).await?;
         }
         Ok(())
     } else {
@@ -82,7 +83,7 @@ pub async fn verify(
             longtouch: is_final,
             ..Default::default()
         };
-        confirm::confirm(&params).await?;
+        workflows.confirm(&params).await?;
         Ok(())
     }
 }

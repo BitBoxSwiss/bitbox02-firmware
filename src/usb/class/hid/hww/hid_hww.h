@@ -60,4 +60,18 @@ int32_t hid_hww_register_callback(enum hid_trans_type trans_type, FUNC_PTR func)
  */
 void hid_hww_setup(void);
 
+/**
+ * Send out data
+ * returns true if data sent out, false if busy (need retry)
+ */
+bool hid_hww_poll(const uint8_t* data);
+
+/**
+ * Read data
+ *
+ * data must fit 64 bytes data.
+ * Returns true if there is valid data in the buffer. data is invalidated when this is called again
+ */
+bool hid_hww_read(uint8_t* data);
+
 #endif

@@ -257,7 +257,7 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
         .await?;
     } else {
         let fee_percentage: f64 = 100. * (request.fee as f64) / (total as f64);
-        transaction::verify_total_fee(
+        transaction::verify_total_fee_maybe_warn(
             &format_value(params, total + request.fee),
             &format_value(params, request.fee),
             Some(fee_percentage),

@@ -227,7 +227,7 @@ async fn verify_erc20_transaction(
         None => ("Unknown token".into(), "Unknown amount".into()),
     };
     transaction::verify_recipient(&recipient_address, &formatted_value).await?;
-    transaction::verify_total_fee(&formatted_total, &formatted_fee, None).await?;
+    transaction::verify_total_fee_maybe_warn(&formatted_total, &formatted_fee, None).await?;
     Ok(())
 }
 
@@ -286,7 +286,7 @@ async fn verify_standard_transaction(
         value: (&amount.value).add(&fee.value),
     };
     let percentage = calculate_percentage(&fee.value, &amount.value);
-    transaction::verify_total_fee(&total.format(), &fee.format(), percentage).await?;
+    transaction::verify_total_fee_maybe_warn(&total.format(), &fee.format(), percentage).await?;
     Ok(())
 }
 

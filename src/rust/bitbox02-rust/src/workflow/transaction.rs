@@ -39,16 +39,9 @@ fn format_percentage(p: f64) -> String {
     util::decimal::format_no_trim(int, 1)
 }
 
-pub async fn verify_total_fee(
-    total: &str,
-    fee: &str,
-    fee_percentage: Option<f64>,
-) -> Result<(), UserAbort> {
+pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result<(), UserAbort> {
     let result = RefCell::new(None as Option<Result<(), UserAbort>>);
 
-    const FEE_WARNING_THRESHOLD: f64 = 10.;
-    let fee_percentage = fee_percentage.filter(|&f| f >= FEE_WARNING_THRESHOLD);
-    let longtouch = fee_percentage.is_none();
     let mut component = bitbox02::ui::confirm_transaction_fee_create(
         total,
         fee,
@@ -58,7 +51,18 @@ pub async fn verify_total_fee(
         }),
     );
     component.screen_stack_push();
-    option_no_screensaver(&result).await?;
+    option_no_screensaver(&result).await
+}
+
+pub async fn verify_total_fee_maybe_warn(
+    total: &str,
+    fee: &str,
+    fee_percentage: Option<f64>,
+) -> Result<(), UserAbort> {
+    const FEE_WARNING_THRESHOLD: f64 = 10.;
+    let fee_percentage = fee_percentage.filter(|&f| f >= FEE_WARNING_THRESHOLD);
+    let longtouch = fee_percentage.is_none();
+    verify_total_fee(total, fee, longtouch).await?;
 
     if let Some(fee_percentage) = fee_percentage {
         match super::confirm::confirm(&super::confirm::Params {

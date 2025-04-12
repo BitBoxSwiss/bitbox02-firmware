@@ -1073,7 +1073,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     } else {
         Some(100. * (fee as f64) / (outputs_sum_out as f64))
     };
-    transaction::verify_total_fee(
+    transaction::verify_total_fee_maybe_warn(
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
         fee_percentage,

@@ -14,6 +14,7 @@
 
 #include "hardfault.h"
 #include "util.h"
+#include "utils_assert.h"
 #include <memory/memory.h>
 #include <platform_config.h>
 #include <screen.h>
@@ -43,6 +44,8 @@ void Abort(const char* msg)
     system_close_interfaces();
 #endif
 #endif
+    // Break the program if we are debugging
+    ASSERT(false);
     while (1) {
     }
 }

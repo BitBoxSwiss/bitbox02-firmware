@@ -18,18 +18,24 @@
 #if !defined(BOOTLOADER)
 #include "sd_mmc/sd_mmc_start.h"
 #endif
-#include "rust/rust.h"
+#include "util.h"
+
+#if defined(BOOTLOADER)
+#define PREFIX "boot"
+#else
+#define PREFIX "fw"
+#endif
 
 void platform_init(void)
 {
     oled_init();
-#if !defined(BOOTLOADER)
 // The factory setup image already has a c implementation of RTT.
 #if FACTORYSETUP != 1
     // these two functions are noops if "rtt" feature isn't enabled in rust
-    rust_rtt_init();
-    util_log("platform_init");
+    util_log_init();
+    util_log(PREFIX ": platform_init");
 #endif
+#if !defined(BOOTLOADER)
     sd_mmc_start();
 #endif
 }

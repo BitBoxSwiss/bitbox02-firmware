@@ -109,6 +109,17 @@ SECTIONS
     . = ALIGN(4);
     _etext = .;
 
+    /* Place RTT allocations first in RAM in debug builds, so that they are
+     * aligned between bootloader and firmware */
+    .rtt (NOLOAD) :
+    {
+        . = ALIGN(4);
+        _srtt = .;
+        *(.segger_rtt);
+        *(.segger_rtt_buf);
+        _ertt = .;
+    } > ram
+
     .relocate :
     {
         . = ALIGN(4);

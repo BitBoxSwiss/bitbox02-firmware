@@ -82,7 +82,7 @@ pub async fn process_api<W: Workflows>(
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::Pub(ref request) => pubrequest::process(request).await,
+        Request::Pub(ref request) => pubrequest::process(workflows, request).await,
         Request::SignMsg(ref request) => signmsg::process(workflows, request).await,
         Request::Sign(ref request) => {
             sign::process(workflows, &sign::Transaction::Legacy(request)).await
@@ -91,7 +91,7 @@ pub async fn process_api<W: Workflows>(
             sign::process(workflows, &sign::Transaction::Eip1559(request)).await
         }
         Request::AntikleptoSignature(_) => Err(Error::InvalidInput),
-        Request::SignTypedMsg(ref request) => sign_typed_msg::process(request).await,
+        Request::SignTypedMsg(ref request) => sign_typed_msg::process(workflows, request).await,
         Request::TypedMsgValue(_) => Err(Error::InvalidInput),
     }
 }

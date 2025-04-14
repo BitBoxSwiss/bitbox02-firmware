@@ -22,7 +22,7 @@
 use super::pb;
 use super::Error;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 use bitbox02::keystore;
 
 use pb::eth_request::Request;
@@ -275,7 +275,9 @@ fn confirm_title(root_object: RootObject) -> &'static str {
     }
 }
 
-async fn encode_member<U: sha3::digest::Update>(
+#[allow(clippy::too_many_arguments)]
+async fn encode_member<W: Workflows, U: sha3::digest::Update>(
+    workflows: &mut W,
     hasher: &mut U,
     types: &[StructType],
     member_type: &MemberType,
@@ -286,6 +288,7 @@ async fn encode_member<U: sha3::digest::Update>(
 ) -> Result<(), Error> {
     if member_type.r#type == DataType::Struct as _ {
         let value_encoded = Box::pin(hash_struct(
+            workflows,
             types,
             root_object,
             &member_type.struct_name,
@@ -297,6 +300,7 @@ async fn encode_member<U: sha3::digest::Update>(
         hasher.update(&value_encoded);
     } else if member_type.r#type == DataType::Array as _ {
         let encoded_value = Box::pin(hash_array(
+            workflows,
             types,
             member_type,
             root_object,
@@ -311,34 +315,36 @@ async fn encode_member<U: sha3::digest::Update>(
         let (value_encoded, value_formatted) = encode_value(member_type, value)?;
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
-            confirm::confirm(&confirm::Params {
-                title: &format!(
-                    "{}{}",
-                    confirm_title(root_object),
-                    title_suffix.as_deref().unwrap_or("")
-                ),
-                body: &format!(
-                    "{}{}: {}",
-                    formatted_path.join("."),
-                    if lines.len() > 1 {
-                        format!(", line {}/{}", i + 1, lines.len())
-                    } else {
-                        "".into()
-                    },
-                    line
-                ),
-                scrollable: true,
-                accept_is_nextarrow: true,
-                ..Default::default()
-            })
-            .await?;
+            workflows
+                .confirm(&confirm::Params {
+                    title: &format!(
+                        "{}{}",
+                        confirm_title(root_object),
+                        title_suffix.as_deref().unwrap_or("")
+                    ),
+                    body: &format!(
+                        "{}{}: {}",
+                        formatted_path.join("."),
+                        if lines.len() > 1 {
+                            format!(", line {}/{}", i + 1, lines.len())
+                        } else {
+                            "".into()
+                        },
+                        line
+                    ),
+                    scrollable: true,
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
         }
         hasher.update(&value_encoded);
     }
     Ok(())
 }
 
-async fn hash_array(
+async fn hash_array<W: Workflows>(
+    workflows: &mut W,
     types: &[StructType],
     member_type: &MemberType,
     root_object: RootObject,
@@ -355,26 +361,27 @@ async fn hash_array(
 
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
-    confirm::confirm(&confirm::Params {
-        title: &format!(
-            "{}{}",
-            confirm_title(root_object),
-            title_suffix.as_deref().unwrap_or("")
-        ),
-        body: &format!(
-            "{}: {}",
-            formatted_path.join("."),
-            if array_size == 0 {
-                "(empty list)".into()
-            } else {
-                format!("list with {} elements", array_size)
-            }
-        ),
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: &format!(
+                "{}{}",
+                confirm_title(root_object),
+                title_suffix.as_deref().unwrap_or("")
+            ),
+            body: &format!(
+                "{}: {}",
+                formatted_path.join("."),
+                if array_size == 0 {
+                    "(empty list)".into()
+                } else {
+                    format!("list with {} elements", array_size)
+                }
+            ),
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
     let mut hasher = sha3::Keccak256::new();
     let mut child_path = path.to_vec();
@@ -387,6 +394,7 @@ async fn hash_array(
             format!("{}[{}/{}]", member_name, index + 1, array_size);
 
         encode_member(
+            workflows,
             &mut hasher,
             types,
             array_type,
@@ -400,7 +408,8 @@ async fn hash_array(
     Ok(hasher.finalize().to_vec())
 }
 
-async fn hash_struct(
+async fn hash_struct<W: Workflows>(
+    workflows: &mut W,
     types: &[StructType],
     root_object: RootObject,
     struct_name: &str,
@@ -424,6 +433,7 @@ async fn hash_struct(
             .clone_from(&member.name);
         let member_type = member.r#type.as_ref().ok_or(Error::InvalidInput)?;
         encode_member(
+            workflows,
             &mut hasher,
             types,
             member_type,
@@ -469,18 +479,38 @@ async fn validate_chain_id(request: &pb::EthSignTypedMessageRequest) -> Result<(
     Ok(())
 }
 
-async fn eip712_sighash(types: &[StructType], primary_type: &str) -> Result<[u8; 32], Error> {
+async fn eip712_sighash<W: Workflows>(
+    workflows: &mut W,
+    types: &[StructType],
+    primary_type: &str,
+) -> Result<[u8; 32], Error> {
     let mut hasher = sha3::Keccak256::new();
     hasher.update([0x19u8, 0x01]);
-    let domain_separator =
-        hash_struct(types, RootObject::Domain, DOMAIN_TYPE_NAME, &[], &[], None).await?;
+    let domain_separator = hash_struct(
+        workflows,
+        types,
+        RootObject::Domain,
+        DOMAIN_TYPE_NAME,
+        &[],
+        &[],
+        None,
+    )
+    .await?;
     hasher.update(&domain_separator);
     // If primaryType is the domain type, skip the message hashing. This does not seem to conform to
     // the spec, but eth-sig-util implements it like that:
     // https://github.com/MetaMask/eth-sig-util/pull/51#issuecomment-1135089739
     if primary_type != DOMAIN_TYPE_NAME {
-        let message_struct_hash =
-            hash_struct(types, RootObject::Message, primary_type, &[], &[], None).await?;
+        let message_struct_hash = hash_struct(
+            workflows,
+            types,
+            RootObject::Message,
+            primary_type,
+            &[],
+            &[],
+            None,
+        )
+        .await?;
         hasher.update(&message_struct_hash);
     }
     Ok(hasher.finalize().into())
@@ -492,7 +522,10 @@ async fn eip712_sighash(types: &[StructType], primary_type: &str) -> Result<[u8;
 ///
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
-pub async fn process(request: &pb::EthSignTypedMessageRequest) -> Result<Response, Error> {
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::EthSignTypedMessageRequest,
+) -> Result<Response, Error> {
     validate_chain_id(request).await?;
 
     // Base component on the screen stack during signing, which is shown while the device is waiting
@@ -503,24 +536,29 @@ pub async fn process(request: &pb::EthSignTypedMessageRequest) -> Result<Respons
 
     // Verify address. We don't need the actual result, but we have to propagate validation or user
     // abort errors.
-    super::pubrequest::process(&pb::EthPubRequest {
-        output_type: pb::eth_pub_request::OutputType::Address as _,
-        keypath: request.keypath.clone(),
-        coin: 0,
-        display: true,
-        contract_address: Vec::new(),
-        chain_id: request.chain_id,
-    })
+    super::pubrequest::process(
+        workflows,
+        &pb::EthPubRequest {
+            output_type: pb::eth_pub_request::OutputType::Address as _,
+            keypath: request.keypath.clone(),
+            coin: 0,
+            display: true,
+            contract_address: Vec::new(),
+            chain_id: request.chain_id,
+        },
+    )
     .await?;
 
-    let sighash: [u8; 32] = eip712_sighash(&request.types, &request.primary_type).await?;
+    let sighash: [u8; 32] =
+        eip712_sighash(workflows, &request.types, &request.primary_type).await?;
 
-    confirm::confirm(&confirm::Params {
-        body: "Sign data?",
-        longtouch: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            body: "Sign data?",
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?;
 
     let host_nonce = match request.host_nonce_commitment {
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
@@ -553,6 +591,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
 
@@ -938,38 +977,10 @@ mod tests {
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| unsafe {
-                UI_COUNTER += 1;
-                match UI_COUNTER {
-                    1 => {
-                        assert_eq!(params.title, "Domain (1/4)");
-                        assert_eq!(params.body, "name: Ether Mail");
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Domain (2/4)");
-                        assert_eq!(params.body, "version: 1");
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Domain (3/4)");
-                        assert_eq!(params.body, "chainId: 1");
-                    }
-                    4 => {
-                        assert_eq!(params.title, "Domain (4/4)");
-                        assert_eq!(
-                            params.body,
-                            "verifyingContract: 0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
-                        );
-                    }
-                    _ => panic!("unexpected"),
-                }
-                true
-            })),
-            ..Default::default()
-        });
         let typed_msg = typed_msg.borrow();
+        let mut mock_workflows = TestingWorkflows::new();
         let domain_separator = block_on(hash_struct(
+            &mut mock_workflows,
             &typed_msg.types,
             RootObject::Domain,
             "EIP712Domain",
@@ -981,7 +992,31 @@ mod tests {
         assert_eq!(
             domain_separator,
             b"\xf2\xce\xe3\x75\xfa\x42\xb4\x21\x43\x80\x40\x25\xfc\x44\x9d\xea\xfd\x50\xcc\x03\x1c\xa2\x57\xe0\xb1\x94\xa6\x50\xa9\x12\x09\x0f".to_vec());
-        assert_eq!(unsafe { UI_COUNTER }, 4);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Domain (1/4)".into(),
+                    body: "name: Ether Mail".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Domain (2/4)".into(),
+                    body: "version: 1".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Domain (3/4)".into(),
+                    body: "chainId: 1".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Domain (4/4)".into(),
+                    body: "verifyingContract: 0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC".into(),
+                    longtouch: false,
+                },
+            ]
+        );
     }
 
     /// A typed data object which contains almost every type possible.
@@ -1404,23 +1439,29 @@ mod tests {
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        static mut UI_COUNTER: usize = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| unsafe {
-                let expected = EXPECTED_DIALOGS[UI_COUNTER];
-                assert_eq!((params.title, params.body), expected);
-                UI_COUNTER += 1;
-                true
-            })),
-            ..Default::default()
-        });
         let typed_msg = typed_msg.borrow();
-        let sighash = block_on(eip712_sighash(&typed_msg.types, typed_msg.primary_type)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let sighash = block_on(eip712_sighash(
+            &mut mock_workflows,
+            &typed_msg.types,
+            typed_msg.primary_type,
+        ))
+        .unwrap();
         assert_eq!(
             sighash,
             *b"\x0e\xfe\x31\xa8\x81\x9b\x6c\x38\x1c\x9e\x97\xcf\xd2\x99\x5a\xa6\xf2\x1e\x4a\x72\x87\x9a\xc1\x31\xb2\xf6\x48\xd0\x83\x28\x1c\x83",
         );
-        assert_eq!(unsafe { UI_COUNTER }, EXPECTED_DIALOGS.len());
+        assert_eq!(
+            mock_workflows.screens,
+            EXPECTED_DIALOGS
+                .iter()
+                .map(|&(title, body)| Screen::Confirm {
+                    title: title.into(),
+                    body: body.into(),
+                    longtouch: false
+                })
+                .collect::<Vec<_>>()
+        );
     }
 
     /// Test case whree primaryType=='EIP712Domain'.
@@ -1486,12 +1527,13 @@ mod tests {
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|_params| true)),
-            ..Default::default()
-        });
         let typed_msg = typed_msg.borrow();
-        let sighash = block_on(eip712_sighash(&typed_msg.types, typed_msg.primary_type)).unwrap();
+        let sighash = block_on(eip712_sighash(
+            &mut TestingWorkflows::new(),
+            &typed_msg.types,
+            typed_msg.primary_type,
+        ))
+        .unwrap();
         assert_eq!(
             sighash,
             *b"\xaa\x83\xc7\x03\x05\xec\x6c\x13\x1e\x7a\x88\xf2\x58\xc4\x08\x13\x44\x7b\xec\x8b\x9b\xce\xf9\x4e\x54\x79\x60\x3d\x99\x59\xda\x07",

@@ -128,14 +128,12 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::{
-        RealWorkflows, // needed for tests that haven't migrated to TestingWorkflows yet
-    };
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
 
-    const MESSAGE: &[u8] = b"message";
+    const MESSAGE: &str = "message";
 
     #[test]
     pub fn test_p2wpkh() {
@@ -147,44 +145,37 @@ mod tests {
                 }),
                 keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
             }),
-            msg: MESSAGE.to_vec(),
+            msg: MESSAGE.as_bytes().to_vec(),
             host_nonce_commitment: None,
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body, "Coin: Bitcoin");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Address");
-                        assert_eq!(params.body, "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt");
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body.as_bytes(), MESSAGE);
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &request)),
+            block_on(process(&mut mock_workflows, &request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00".to_vec(),
             }))
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: "Coin: Bitcoin".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Address".into(),
+                    body: "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
         );
     }
 
@@ -198,40 +189,33 @@ mod tests {
                 }),
                 keypath: vec![84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
             }),
-            msg: MESSAGE.to_vec(),
+            msg: MESSAGE.as_bytes().to_vec(),
             host_nonce_commitment: None,
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body, "Coin: BTC Testnet");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Address");
-                        assert_eq!(params.body, "tb1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvketqwdg");
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body.as_bytes(), MESSAGE);
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
-        assert!(block_on(process(&mut RealWorkflows, &request)).is_ok());
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &request)).is_ok());
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: "Coin: BTC Testnet".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Address".into(),
+                    body: "tb1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvketqwdg".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
     }
 
     #[test]
@@ -244,44 +228,37 @@ mod tests {
                 }),
                 keypath: vec![49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
             }),
-            msg: MESSAGE.to_vec(),
+            msg: MESSAGE.as_bytes().to_vec(),
             host_nonce_commitment: None,
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body, "Coin: Bitcoin");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Address");
-                        assert_eq!(params.body, "3BaL6XecvLAidPToUDhXo1zxD99ZUrErpd");
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body.as_bytes(), MESSAGE);
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &request)),
+            block_on(process(&mut mock_workflows, &request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x87\x19\x05\x3c\x29\xff\xcf\x54\x31\x40\x69\x86\x75\x8a\xc8\xed\x80\x1c\xff\x3d\x61\x46\xe4\x8c\x46\x25\x75\xb6\x47\x34\x46\xf8\x44\xf1\x38\x7d\x48\xe1\x36\x88\x42\x09\x43\xfa\x8e\x4f\x0a\x23\xaa\x2e\x49\xa8\x3a\xf8\x88\x52\x2c\xec\xa9\x05\x0b\xe6\xc3\x47\x00".to_vec(),
             }))
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: "Coin: Bitcoin".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Address".into(),
+                    body: "3BaL6XecvLAidPToUDhXo1zxD99ZUrErpd".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
         );
     }
 
@@ -295,85 +272,46 @@ mod tests {
                 }),
                 keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
             }),
-            msg: MESSAGE.to_vec(),
+            msg: MESSAGE.as_bytes().to_vec(),
             host_nonce_commitment: None,
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
+        mock_unlocked();
+
+        let mut mock_workflows = TestingWorkflows::new();
+        // Basic info dialog aborted.
+        mock_workflows.abort_nth(0);
+        assert_eq!(
+            block_on(process(&mut mock_workflows, &request)),
+            Err(Error::UserAbort)
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Sign message".into(),
+                body: "Coin: Bitcoin".into(),
+                longtouch: false,
+            },],
+        );
 
         // Basic info dialog aborted.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body, "Coin: Bitcoin");
-                        false
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.abort_nth(1);
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &request)),
+            block_on(process(&mut mock_workflows, &request)),
             Err(Error::UserAbort)
         );
-
-        // Address verification aborted.
-        unsafe {
-            CONFIRM_COUNTER = 0;
-        }
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|_params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => true,
-                    2 => false,
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
-        mock_unlocked();
-        assert_eq!(
-            block_on(process(&mut RealWorkflows, &request)),
-            Err(Error::UserAbort)
-        );
+        assert_eq!(mock_workflows.screens.len(), 2);
 
         // Message verification aborted.
-        unsafe {
-            CONFIRM_COUNTER = 0;
-        }
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 | 2 => true,
-                    3 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body.as_bytes(), MESSAGE);
-                        assert!(params.longtouch);
-                        false
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
-        mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.abort_nth(2);
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &request)),
+            block_on(process(&mut mock_workflows, &request)),
             Err(Error::UserAbort)
         );
+        assert_eq!(mock_workflows.screens.len(), 3);
     }
 
     #[test]
@@ -382,7 +320,7 @@ mod tests {
         // Invalid coin
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::BtcSignMessageRequest {
                     coin: -1,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -391,7 +329,7 @@ mod tests {
                         }),
                         keypath: KEYPATH.to_vec(),
                     }),
-                    msg: MESSAGE.to_vec(),
+                    msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
             )),
@@ -401,7 +339,7 @@ mod tests {
         // Invalid script type (invalid simple type)
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -410,7 +348,7 @@ mod tests {
                         }),
                         keypath: KEYPATH.to_vec(),
                     }),
-                    msg: MESSAGE.to_vec(),
+                    msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
             )),
@@ -420,7 +358,7 @@ mod tests {
         // Invalid script type (taproot not supported)
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -429,7 +367,7 @@ mod tests {
                         }),
                         keypath: vec![86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                     }),
-                    msg: MESSAGE.to_vec(),
+                    msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
             )),
@@ -439,7 +377,7 @@ mod tests {
         // Invalid script type (multisig not supported)
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -450,7 +388,7 @@ mod tests {
                         }),
                         keypath: KEYPATH.to_vec(),
                     }),
-                    msg: MESSAGE.to_vec(),
+                    msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
             )),
@@ -460,7 +398,7 @@ mod tests {
         // Message too long
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -483,7 +421,7 @@ mod tests {
         mock_unlocked();
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -492,7 +430,7 @@ mod tests {
                         }),
                         keypath: [0].to_vec(),
                     }),
-                    msg: MESSAGE.to_vec(),
+                    msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
             )),
@@ -505,7 +443,7 @@ mod tests {
         mock_unlocked();
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Tbtc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -514,7 +452,7 @@ mod tests {
                         }),
                         keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                     }),
-                    msg: MESSAGE.to_vec(),
+                    msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
             )),

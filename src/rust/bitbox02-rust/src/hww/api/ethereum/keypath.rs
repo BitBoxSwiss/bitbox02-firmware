@@ -14,7 +14,7 @@
 
 use super::params::Params;
 use super::Error;
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
 use util::bip32::HARDENED;
 
@@ -29,7 +29,8 @@ const ACCOUNT_MAX: u32 = 99; // 100 accounts
 /// A warning suffices so the user does not accidentally send e.g. mainnet coins to a testnet path
 /// (m/44'/1'/...). It is safe to make a transaction on the 'wrong' keypath as the chain id is
 /// unique and part of the transaction sighash.
-pub async fn warn_unusual_keypath(
+pub async fn warn_unusual_keypath<W: Workflows>(
+    workflows: &mut W,
     params: &Params,
     title: &str,
     keypath: &[u32],
@@ -42,15 +43,16 @@ pub async fn warn_unusual_keypath(
             "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
             util::bip32::to_string(keypath)
         );
-        return Ok(confirm::confirm(&confirm::Params {
-            title,
-            body: &body,
-            title_autowrap: true,
-            scrollable: true,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?);
+        return Ok(workflows
+            .confirm(&confirm::Params {
+                title,
+                body: &body,
+                title_autowrap: true,
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?);
     }
     Ok(())
 }

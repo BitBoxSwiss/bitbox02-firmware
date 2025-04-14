@@ -63,7 +63,7 @@ static int32_t _read(void)
 }
 
 /** Set when the send channel is busy sending data. */
-static bool _send_busy = false;
+static volatile bool _send_busy = false;
 
 /**
  * Sends the next frame, if the USB interface is ready.

@@ -44,14 +44,14 @@ int get_usb_message_socket(uint8_t* input)
 
 void send_usb_message_socket(void)
 {
-    struct queue* q = queue_hww_queue();
-    const uint8_t* data = queue_pull(q);
-    if (data != NULL) {
+    const uint8_t* data = queue_pull(queue_hww_queue());
+    while (data) {
         data_len = 256 * (int)data[5] + (int)data[6];
         if (!write(sockfd, data, USB_HID_REPORT_OUT_SIZE)) {
             perror("ERROR, could not write to socket");
             exit(1);
         }
+        data = queue_pull(queue_hww_queue());
     }
 }
 
@@ -89,7 +89,6 @@ int main(void)
 
     // BitBox02 simulation initializaition
     usb_processing_init();
-    usb_processing_set_send(usb_processing_hww(), send_usb_message_socket);
     printf("USB setup success\n");
 
     hww_setup();
@@ -136,6 +135,7 @@ int main(void)
             usb_processing_process(usb_processing_hww());
             temp_len -= (USB_HID_REPORT_OUT_SIZE - 5);
         }
+        send_usb_message_socket();
     }
     close(sockfd);
     return 0;

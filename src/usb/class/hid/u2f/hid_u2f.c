@@ -39,6 +39,13 @@ static struct usbdf_driver _func_driver;
  */
 static uint8_t _report_descriptor[] = {USB_DESC_U2F_REPORT};
 
+/*
+ * Flags for communication between main loop and ISR
+ */
+static volatile bool _send_busy = false;
+static volatile bool _has_data = false;
+static volatile bool _request_in_flight = false;
+
 /**
  * The USB device core request handler callback for the U2F interface.
  */
@@ -52,37 +59,39 @@ static int32_t _request(uint8_t ep, struct usb_req* req, enum usb_ctrl_stage sta
  */
 static struct usbdc_handler _request_handler = {NULL, (FUNC_PTR)_request};
 
-// Stores the reports for the U2F interface.
-static uint8_t _out_report[USB_HID_REPORT_OUT_SIZE];
-
 /**
  * Sets the buffer address for the incoming endpoint to `hid_hww_out_report`.
  */
-static int32_t _read(void)
+bool hid_u2f_read(uint8_t* data)
 {
-    return hid_read(&_func_data, _out_report, USB_HID_REPORT_OUT_SIZE);
+    if (_request_in_flight && _has_data) {
+        _request_in_flight = false;
+        return true;
+    }
+    if (_request_in_flight) {
+        return false;
+    }
+    if (hid_read(&_func_data, data, USB_HID_REPORT_OUT_SIZE) == ERR_NONE) {
+        _has_data = false;
+        _request_in_flight = true;
+    }
+    return false;
 }
-
-/** Set when the send channel is busy sending data. */
-static bool _send_busy = false;
 
 /**
  * Sends the next data, if the USB interface is ready.
  */
-static void _send_next(void)
+bool hid_u2f_write_poll(const uint8_t* data)
 {
+    ASSERT(data);
     if (_send_busy) {
-        /*
-         * We can't send yet. Whenever the current sender finished, it will
-         * flush anything that's still queued.
-         */
-        return;
+        return false;
     }
-    const uint8_t* data = queue_pull(queue_u2f_queue());
-    if (data != NULL) {
+    if (hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE) == ERR_NONE) {
         _send_busy = true;
-        hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE);
+        return true;
     }
+    return false;
 }
 
 /**
@@ -90,15 +99,13 @@ static void _send_next(void)
  * This is a result of calling _read().
  * The received data is stored in '_out_report'.
  */
-static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count)
+static uint8_t _rx_cb(const uint8_t ep, const enum usb_xfer_code rc, const uint32_t count)
 {
     (void)ep;
     (void)rc;
     (void)count;
+    _has_data = true;
 
-    u2f_packet_process((const USB_FRAME*)_out_report);
-    /* Incoming data has been processed completely. Start a new read. */
-    _read();
     return ERR_NONE;
 }
 
@@ -106,15 +113,9 @@ static uint8_t _out(const uint8_t ep, const enum usb_xfer_code rc, const uint32_
  * Called when a usb frame has been replied to the host via the U2F interface
  * and the device is ready to send the next frame.
  */
-static void _sent_done(void)
+static void _tx_cb(void)
 {
     _send_busy = false;
-    /*
-     * If there is more data queued, push it immediately to save some time.
-     * Otherwise, sending will stop until somebody explicitely queues
-     * a frame again.
-     */
-    _send_next();
 }
 
 /**
@@ -137,14 +138,8 @@ int32_t hid_u2f_init(void (*callback)(void))
  */
 void hid_u2f_setup(void)
 {
-    hid_u2f_register_callback(HID_CB_READ, (FUNC_PTR)_out);
-    // usb_report_sent is called when the outgoing usb frame is fully transmitted.
-    hid_u2f_register_callback(HID_CB_WRITE, (FUNC_PTR)_sent_done);
-
-    usb_processing_set_send(usb_processing_u2f(), _send_next);
-
-    // Wait for data
-    _read();
+    hid_u2f_register_callback(HID_CB_READ, (FUNC_PTR)_rx_cb);
+    hid_u2f_register_callback(HID_CB_WRITE, (FUNC_PTR)_tx_cb);
 }
 
 /**

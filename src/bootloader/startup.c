@@ -16,6 +16,7 @@
 #include "mpu_regions.h"
 #include "platform_config.h"
 #include "platform_init.h"
+#include "usb/class/hid/hww/hid_hww.h"
 
 #include <driver_init.h>
 #include <hardfault.h>
@@ -56,8 +57,22 @@ int main(void)
 #endif
     bootloader_jump();
 
+    const uint8_t* hww_data = NULL;
+    uint8_t hww_frame[USB_REPORT_SIZE] = {0};
+
     // If did not jump to firmware code, begin USB processing
     while (1) {
+        if (hid_hww_read(&hww_frame[0])) {
+            usb_packet_process((const USB_FRAME*)hww_frame);
+        }
+        if (!hww_data) {
+            hww_data = queue_pull(queue_hww_queue());
+        }
+        if (hww_data) {
+            if (hid_hww_write_poll(hww_data)) {
+                hww_data = NULL;
+            }
+        }
         usb_processing_process(usb_processing_hww());
     }
     return 0;

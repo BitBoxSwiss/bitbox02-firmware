@@ -24,7 +24,7 @@ use super::script::serialize_varint;
 use pb::btc_payment_request_request::{memo, Memo};
 use pb::btc_sign_init_request::FormatUnit;
 
-use crate::workflow::{confirm, transaction, verify_message};
+use crate::workflow::{confirm, verify_message, Workflows};
 
 use sha2::{Digest, Sha256};
 
@@ -56,7 +56,8 @@ fn find_identity(name: &str) -> Option<&Identity> {
 }
 
 /// Prompt user to verify the payment request.
-pub async fn user_verify(
+pub async fn user_verify<W: Workflows>(
+    workflows: &mut W,
     coin_params: &params::Params,
     payment_request: &pb::BtcPaymentRequestRequest,
     format_unit: FormatUnit,
@@ -64,11 +65,12 @@ pub async fn user_verify(
     if find_identity(&payment_request.recipient_name).is_none() {
         return Err(Error::InvalidInput);
     }
-    transaction::verify_recipient(
-        &payment_request.recipient_name,
-        &format_amount(coin_params, format_unit, payment_request.total_amount)?,
-    )
-    .await?;
+    workflows
+        .verify_recipient(
+            &payment_request.recipient_name,
+            &format_amount(coin_params, format_unit, payment_request.total_amount)?,
+        )
+        .await?;
     for memo in payment_request.memos.iter() {
         match memo {
             Memo {
@@ -80,14 +82,16 @@ pub async fn user_verify(
                 ) {
                     return Err(Error::InvalidInput);
                 }
-                confirm::confirm(&confirm::Params {
-                    title: "",
-                    body: &format!("Memo from\n\n{}", payment_request.recipient_name),
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
-                verify_message::verify("Memo", "Memo", text_memo.note.as_bytes(), false).await?;
+                workflows
+                    .confirm(&confirm::Params {
+                        title: "",
+                        body: &format!("Memo from\n\n{}", payment_request.recipient_name),
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
+                verify_message::verify(workflows, "Memo", "Memo", text_memo.note.as_bytes(), false)
+                    .await?;
             }
             _ => return Err(Error::InvalidInput),
         }

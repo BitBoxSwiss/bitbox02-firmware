@@ -26,7 +26,7 @@ use blake2::{
     Blake2bVar,
 };
 
-use crate::workflow::{confirm, status, transaction};
+use crate::workflow::{confirm, transaction, Workflows};
 
 use pb::cardano_response::Response;
 use pb::cardano_sign_transaction_response::ShelleyWitness;
@@ -120,7 +120,10 @@ fn validate_asset_groups(
     Ok(())
 }
 
-async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Response, Error> {
+async fn _process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::CardanoSignTransactionRequest,
+) -> Result<Response, Error> {
     let network = CardanoNetwork::try_from(request.network)?;
     let params = params::get(network);
     if request.inputs.is_empty() {
@@ -153,13 +156,14 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
             && (request.validity_interval_start > request.ttl))
             || (ttl_present && request.ttl < SHELLEY_START_SLOT);
         if cannot_be_mined {
-            confirm::confirm(&confirm::Params {
-                title: params.name,
-                body: "Transaction\ncannot be\nmined",
-                accept_is_nextarrow: true,
-                ..Default::default()
-            })
-            .await?;
+            workflows
+                .confirm(&confirm::Params {
+                    title: params.name,
+                    body: "Transaction\ncannot be\nmined",
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
         } else {
             if validity_interval_start_present {
                 verify_slot(params, "Can be mined from", request.validity_interval_start).await?;
@@ -183,18 +187,19 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
             return Err(Error::InvalidInput);
         }
 
-        confirm::confirm(&confirm::Params {
-            title: params.name,
-            body: &format!(
-                "Withdraw {} in staking rewards for account #{}?",
-                format_value(params, withdrawal.value),
-                withdrawal.keypath[2] + 1 - HARDENED,
-            ),
-            scrollable: true,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: params.name,
+                body: &format!(
+                    "Withdraw {} in staking rewards for account #{}?",
+                    format_value(params, withdrawal.value),
+                    withdrawal.keypath[2] + 1 - HARDENED,
+                ),
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
 
         signing_keypaths.push(&withdrawal.keypath);
     }
@@ -224,23 +229,26 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
             },
             None => {
                 let formatted_value = format_value(params, output.value);
-                transaction::verify_recipient(&output.encoded_address, &formatted_value).await?;
+                workflows
+                    .verify_recipient(&output.encoded_address, &formatted_value)
+                    .await?;
                 total += output.value;
 
                 for asset_group in output.asset_groups.iter() {
                     for token in asset_group.tokens.iter() {
-                        confirm::confirm(&confirm::Params {
-                            title: "Send token",
-                            body: &format!(
-                                "Amount: {}. Asset: {}",
-                                util::decimal::format(token.value, 0),
-                                format_asset(&asset_group.policy_id, &token.asset_name),
-                            ),
-                            accept_is_nextarrow: true,
-                            scrollable: true,
-                            ..Default::default()
-                        })
-                        .await?;
+                        workflows
+                            .confirm(&confirm::Params {
+                                title: "Send token",
+                                body: &format!(
+                                    "Amount: {}. Asset: {}",
+                                    util::decimal::format(token.value, 0),
+                                    format_asset(&asset_group.policy_id, &token.asset_name),
+                                ),
+                                accept_is_nextarrow: true,
+                                scrollable: true,
+                                ..Default::default()
+                            })
+                            .await?;
                     }
                 }
             }
@@ -248,16 +256,18 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
     }
 
     if total == 0 {
-        confirm::confirm(&confirm::Params {
-            title: params.name,
-            body: &format!("Fee\n{}", format_value(params, request.fee)),
-            longtouch: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: params.name,
+                body: &format!("Fee\n{}", format_value(params, request.fee)),
+                longtouch: true,
+                ..Default::default()
+            })
+            .await?;
     } else {
         let fee_percentage: f64 = 100. * (request.fee as f64) / (total as f64);
-        transaction::verify_total_fee(
+        transaction::verify_total_fee_maybe_warn(
+            workflows,
             &format_value(params, total + request.fee),
             &format_value(params, request.fee),
             Some(fee_percentage),
@@ -265,7 +275,7 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
         .await?;
     }
 
-    status::status("Transaction\nconfirmed", true).await;
+    workflows.status("Transaction\nconfirmed", true).await;
 
     let tx_body_hash: [u8; 32] = {
         let mut hasher = Blake2bVar::new(32).unwrap();
@@ -290,10 +300,13 @@ async fn _process(request: &pb::CardanoSignTransactionRequest) -> Result<Respons
 }
 
 /// Verify and sign a Cardano transaction.
-pub async fn process(request: &pb::CardanoSignTransactionRequest) -> Result<Response, Error> {
-    let result = _process(request).await;
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::CardanoSignTransactionRequest,
+) -> Result<Response, Error> {
+    let result = _process(workflows, request).await;
     if let Err(Error::UserAbort) = result {
-        status::status("Transaction\ncanceled", false).await;
+        workflows.status("Transaction\ncanceled", false).await;
     }
     result
 }
@@ -302,9 +315,10 @@ pub async fn process(request: &pb::CardanoSignTransactionRequest) -> Result<Resp
 mod tests {
     use super::*;
     use crate::bb02_async::block_on;
+    use crate::workflow::RealWorkflows;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
-    use util::bip32::HARDENED;
+    use util::bip32::HARDENED; // instead of TestingWorkflows until the tests are migrated
 
     use pb::cardano_sign_transaction_request::{certificate, certificate::Cert, Certificate};
 
@@ -462,7 +476,7 @@ mod tests {
         });
         mock_unlocked();
 
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -572,7 +586,7 @@ mod tests {
         });
         mock_unlocked();
 
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -671,7 +685,7 @@ mod tests {
         });
         mock_unlocked();
 
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -771,7 +785,7 @@ mod tests {
         });
         mock_unlocked();
 
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -859,7 +873,7 @@ mod tests {
         });
         mock_unlocked();
 
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -919,7 +933,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -996,7 +1010,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -1067,7 +1081,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert!(block_on(process(&tx)).is_ok());
+        assert!(block_on(process(&mut RealWorkflows, &tx)).is_ok());
     }
 
     #[test]
@@ -1131,7 +1145,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert!(block_on(process(&tx)).is_ok());
+        assert!(block_on(process(&mut RealWorkflows, &tx)).is_ok());
     }
 
     #[test]
@@ -1258,7 +1272,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -1332,7 +1346,7 @@ mod tests {
         });
         mock_unlocked();
 
-        assert!(block_on(process(&tx)).is_ok());
+        assert!(block_on(process(&mut RealWorkflows, &tx)).is_ok());
         assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
     }
 
@@ -1377,7 +1391,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        let result = block_on(process(&tx)).unwrap();
+        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {

@@ -26,7 +26,7 @@ use pb::btc_response::Response;
 
 use bitbox02::keystore;
 
-use crate::workflow::{confirm, verify_message};
+use crate::workflow::{confirm, verify_message, Workflows};
 
 const MAX_MESSAGE_SIZE: usize = 1024;
 
@@ -34,7 +34,10 @@ const MAX_MESSAGE_SIZE: usize = 1024;
 ///
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
-pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Error> {
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::BtcSignMessageRequest,
+) -> Result<Response, Error> {
     let coin = BtcCoin::try_from(request.coin)?;
     if !matches!(coin, BtcCoin::Btc | BtcCoin::Tbtc | BtcCoin::Rbtc) {
         return Err(Error::InvalidInput);
@@ -66,7 +69,7 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         accept_is_nextarrow: true,
         ..Default::default()
     };
-    confirm::confirm(&confirm_params).await?;
+    workflows.confirm(&confirm_params).await?;
 
     let confirm_params = confirm::Params {
         title: "Address",
@@ -75,9 +78,9 @@ pub async fn process(request: &pb::BtcSignMessageRequest) -> Result<Response, Er
         accept_is_nextarrow: true,
         ..Default::default()
     };
-    confirm::confirm(&confirm_params).await?;
+    workflows.confirm(&confirm_params).await?;
 
-    verify_message::verify("Sign message", "Sign", &request.msg, true).await?;
+    verify_message::verify(workflows, "Sign message", "Sign", &request.msg, true).await?;
 
     // See
     // https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L355-L358.
@@ -125,6 +128,9 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::{
+        RealWorkflows, // needed for tests that haven't migrated to TestingWorkflows yet
+    };
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
@@ -175,7 +181,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&request)),
+            block_on(process(&mut RealWorkflows, &request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00".to_vec(),
             }))
@@ -225,7 +231,7 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert!(block_on(process(&request)).is_ok());
+        assert!(block_on(process(&mut RealWorkflows, &request)).is_ok());
     }
 
     #[test]
@@ -272,7 +278,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&request)),
+            block_on(process(&mut RealWorkflows, &request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x87\x19\x05\x3c\x29\xff\xcf\x54\x31\x40\x69\x86\x75\x8a\xc8\xed\x80\x1c\xff\x3d\x61\x46\xe4\x8c\x46\x25\x75\xb6\x47\x34\x46\xf8\x44\xf1\x38\x7d\x48\xe1\x36\x88\x42\x09\x43\xfa\x8e\x4f\x0a\x23\xaa\x2e\x49\xa8\x3a\xf8\x88\x52\x2c\xec\xa9\x05\x0b\xe6\xc3\x47\x00".to_vec(),
             }))
@@ -313,7 +319,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&mut RealWorkflows, &request)),
+            Err(Error::UserAbort)
+        );
 
         // Address verification aborted.
         unsafe {
@@ -333,7 +342,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&mut RealWorkflows, &request)),
+            Err(Error::UserAbort)
+        );
 
         // Message verification aborted.
         unsafe {
@@ -358,7 +370,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&mut RealWorkflows, &request)),
+            Err(Error::UserAbort)
+        );
     }
 
     #[test]
@@ -366,83 +381,98 @@ mod tests {
         const KEYPATH: &[u32] = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
         // Invalid coin
         assert_eq!(
-            block_on(process(&pb::BtcSignMessageRequest {
-                coin: -1,
-                script_config: Some(pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::BtcSignMessageRequest {
+                    coin: -1,
+                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+                        }),
+                        keypath: KEYPATH.to_vec(),
                     }),
-                    keypath: KEYPATH.to_vec(),
-                }),
-                msg: MESSAGE.to_vec(),
-                host_nonce_commitment: None,
-            })),
+                    msg: MESSAGE.to_vec(),
+                    host_nonce_commitment: None,
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
         // Invalid script type (invalid simple type)
         assert_eq!(
-            block_on(process(&pb::BtcSignMessageRequest {
-                coin: BtcCoin::Btc as _,
-                script_config: Some(pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::SimpleType(-1))
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::BtcSignMessageRequest {
+                    coin: BtcCoin::Btc as _,
+                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::SimpleType(-1))
+                        }),
+                        keypath: KEYPATH.to_vec(),
                     }),
-                    keypath: KEYPATH.to_vec(),
-                }),
-                msg: MESSAGE.to_vec(),
-                host_nonce_commitment: None,
-            })),
+                    msg: MESSAGE.to_vec(),
+                    host_nonce_commitment: None,
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
         // Invalid script type (taproot not supported)
         assert_eq!(
-            block_on(process(&pb::BtcSignMessageRequest {
-                coin: BtcCoin::Btc as _,
-                script_config: Some(pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::SimpleType(SimpleType::P2tr as _)),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::BtcSignMessageRequest {
+                    coin: BtcCoin::Btc as _,
+                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::SimpleType(SimpleType::P2tr as _)),
+                        }),
+                        keypath: vec![86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                     }),
-                    keypath: vec![86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
-                }),
-                msg: MESSAGE.to_vec(),
-                host_nonce_commitment: None,
-            })),
+                    msg: MESSAGE.to_vec(),
+                    host_nonce_commitment: None,
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
         // Invalid script type (multisig not supported)
         assert_eq!(
-            block_on(process(&pb::BtcSignMessageRequest {
-                coin: BtcCoin::Btc as _,
-                script_config: Some(pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::Multisig(pb::btc_script_config::Multisig {
-                            ..Default::default()
-                        }))
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::BtcSignMessageRequest {
+                    coin: BtcCoin::Btc as _,
+                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::Multisig(pb::btc_script_config::Multisig {
+                                ..Default::default()
+                            }))
+                        }),
+                        keypath: KEYPATH.to_vec(),
                     }),
-                    keypath: KEYPATH.to_vec(),
-                }),
-                msg: MESSAGE.to_vec(),
-                host_nonce_commitment: None,
-            })),
+                    msg: MESSAGE.to_vec(),
+                    host_nonce_commitment: None,
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
         // Message too long
         assert_eq!(
-            block_on(process(&pb::BtcSignMessageRequest {
-                coin: BtcCoin::Btc as _,
-                script_config: Some(pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::BtcSignMessageRequest {
+                    coin: BtcCoin::Btc as _,
+                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+                        }),
+                        keypath: KEYPATH.to_vec(),
                     }),
-                    keypath: KEYPATH.to_vec(),
-                }),
-                msg: [0; 1025].to_vec(),
-                host_nonce_commitment: None,
-            })),
+                    msg: [0; 1025].to_vec(),
+                    host_nonce_commitment: None,
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
@@ -452,17 +482,20 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::BtcSignMessageRequest {
-                coin: BtcCoin::Btc as _,
-                script_config: Some(pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::BtcSignMessageRequest {
+                    coin: BtcCoin::Btc as _,
+                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+                        }),
+                        keypath: [0].to_vec(),
                     }),
-                    keypath: [0].to_vec(),
-                }),
-                msg: MESSAGE.to_vec(),
-                host_nonce_commitment: None,
-            })),
+                    msg: MESSAGE.to_vec(),
+                    host_nonce_commitment: None,
+                }
+            )),
             Err(Error::InvalidInput)
         );
         // Invalid keypath (mainnet keypath on testnet)
@@ -471,17 +504,20 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::BtcSignMessageRequest {
-                coin: BtcCoin::Tbtc as _,
-                script_config: Some(pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::BtcSignMessageRequest {
+                    coin: BtcCoin::Tbtc as _,
+                    script_config: Some(pb::BtcScriptConfigWithKeypath {
+                        script_config: Some(pb::BtcScriptConfig {
+                            config: Some(Config::SimpleType(SimpleType::P2wpkh as _))
+                        }),
+                        keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                     }),
-                    keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
-                }),
-                msg: MESSAGE.to_vec(),
-                host_nonce_commitment: None,
-            })),
+                    msg: MESSAGE.to_vec(),
+                    host_nonce_commitment: None,
+                }
+            )),
             Err(Error::InvalidInput)
         );
     }

@@ -22,7 +22,7 @@ use super::script::serialize_varint;
 use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
 use super::{bip143, bip341, common, keypath};
 
-use crate::workflow::{confirm, status, transaction};
+use crate::workflow::{confirm, transaction, Workflows};
 use crate::xpubcache::Bip32XpubCache;
 
 use alloc::string::String;
@@ -452,7 +452,8 @@ fn validate_script_configs<'a>(
     Ok(validated)
 }
 
-async fn validate_input_script_configs<'a>(
+async fn validate_input_script_configs<'a, W: Workflows>(
+    workflows: &mut W,
     coin_params: &super::params::Params,
     script_configs: &'a [pb::BtcScriptConfigWithKeypath],
 ) -> Result<Vec<ValidatedScriptConfigWithKeypath<'a>>, Error> {
@@ -473,7 +474,7 @@ async fn validate_input_script_configs<'a>(
         ..
     }] = script_configs.as_slice()
     {
-        super::multisig::confirm("Spend from", coin_params, name, multisig).await?;
+        super::multisig::confirm(workflows, "Spend from", coin_params, name, multisig).await?;
         return Ok(script_configs);
     }
 
@@ -496,6 +497,7 @@ async fn validate_input_script_configs<'a>(
 
         parsed_policy
             .confirm(
+                workflows,
                 "Spend from",
                 coin_params,
                 name,
@@ -649,7 +651,10 @@ impl<'a> TryFrom<&'a ValidatedScriptConfigWithKeypath<'a>>
 ///
 /// - Only SIGHASH_ALL (SIGHASH_DEFAULT in taproot inputs). Other sighash types must be carefully
 ///   studied and might not be secure with the above flow or the above assumption.
-async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
+async fn _process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::BtcSignInitRequest,
+) -> Result<Response, Error> {
     if bitbox02::keystore::is_locked() {
         return Err(Error::InvalidState);
     }
@@ -671,7 +676,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
         return Err(Error::InvalidInput);
     }
     let validated_script_configs =
-        validate_input_script_configs(coin_params, &request.script_configs).await?;
+        validate_input_script_configs(workflows, coin_params, &request.script_configs).await?;
     let validated_output_script_configs =
         validate_script_configs(coin_params, &request.output_script_configs)?;
 
@@ -956,7 +961,8 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 }
                 let payment_request: pb::BtcPaymentRequestRequest =
                     get_payment_request(output_payment_request_index, &mut next_response).await?;
-                payment_request::user_verify(coin_params, &payment_request, format_unit).await?;
+                payment_request::user_verify(workflows, coin_params, &payment_request, format_unit)
+                    .await?;
                 if payment_request::validate(
                     coin_params,
                     &payment_request,
@@ -965,7 +971,7 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                 )
                 .is_err()
                 {
-                    status::status("Invalid\npayment request", true).await;
+                    workflows.status("Invalid\npayment request", true).await;
                     return Err(Error::InvalidInput);
                 }
 
@@ -989,15 +995,16 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
                     None
                 };
 
-                transaction::verify_recipient(
-                    &(if let Some(prefix) = prefix {
-                        format!("{}: {}", prefix, address)
-                    } else {
-                        address
-                    }),
-                    &format_amount(coin_params, format_unit, tx_output.value)?,
-                )
-                .await?;
+                workflows
+                    .verify_recipient(
+                        &(if let Some(prefix) = prefix {
+                            format!("{}: {}", prefix, address)
+                        } else {
+                            address
+                        }),
+                        &format_amount(coin_params, format_unit, tx_output.value)?,
+                    )
+                    .await?;
             }
         }
 
@@ -1022,13 +1029,14 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     }
 
     if num_changes > 1 {
-        confirm::confirm(&confirm::Params {
-            title: "Warning",
-            body: &format!("There are {}\nchange outputs.\nProceed?", num_changes),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Warning",
+                body: &format!("There are {}\nchange outputs.\nProceed?", num_changes),
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     // Verify locktime/rbf.
@@ -1040,25 +1048,26 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     if request.locktime > 0 && locktime_applies {
         // The RBF nsequence bytes are often set in conjunction with a locktime,
         // so verify both simultaneously.
-        confirm::confirm(&confirm::Params {
-            body: &format!(
-                "Locktime on block:\n{}\n{}",
-                request.locktime,
-                if coin_params.rbf_support {
-                    if rbf {
-                        "Transaction is RBF"
+        workflows
+            .confirm(&confirm::Params {
+                body: &format!(
+                    "Locktime on block:\n{}\n{}",
+                    request.locktime,
+                    if coin_params.rbf_support {
+                        if rbf {
+                            "Transaction is RBF"
+                        } else {
+                            "Transaction is not RBF"
+                        }
                     } else {
-                        "Transaction is not RBF"
+                        // There is no RBF in Litecoin.
+                        ""
                     }
-                } else {
-                    // There is no RBF in Litecoin.
-                    ""
-                }
-            ),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+                ),
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     // Total out, including fee.
@@ -1073,13 +1082,14 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     } else {
         Some(100. * (fee as f64) / (outputs_sum_out as f64))
     };
-    transaction::verify_total_fee(
+    transaction::verify_total_fee_maybe_warn(
+        workflows,
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
         fee_percentage,
     )
     .await?;
-    status::status("Transaction\nconfirmed", true).await;
+    workflows.status("Transaction\nconfirmed", true).await;
 
     let hash_outputs = hasher_outputs.finalize();
 
@@ -1239,10 +1249,13 @@ async fn _process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
     Ok(next_response.to_protobuf())
 }
 
-pub async fn process(request: &pb::BtcSignInitRequest) -> Result<Response, Error> {
-    let result = _process(request).await;
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::BtcSignInitRequest,
+) -> Result<Response, Error> {
+    let result = _process(workflows, request).await;
     if let Err(Error::UserAbort) = result {
-        status::status("Transaction\ncanceled", false).await;
+        workflows.status("Transaction\ncanceled", false).await;
     }
     result
 }
@@ -1252,6 +1265,7 @@ mod tests {
     use super::*;
     use crate::bb02_async::block_on;
     use crate::bip32::parse_xpub;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data};
     use pb::btc_payment_request_request::{memo, Memo};
@@ -1633,16 +1647,6 @@ mod tests {
             }));
     }
 
-    /// Pass/accept all user confirmations.
-    fn mock_default_ui() {
-        mock(Data {
-            ui_confirm_create: Some(Box::new(move |_params| true)),
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
-    }
-
     #[test]
     pub fn test_sign_init_fail() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
@@ -1669,7 +1673,10 @@ mod tests {
         {
             // test keystore locked
             bitbox02::keystore::lock();
-            assert_eq!(block_on(process(&init_req_valid)), Err(Error::InvalidState));
+            assert_eq!(
+                block_on(process(&mut TestingWorkflows::new(), &init_req_valid,)),
+                Err(Error::InvalidState)
+            );
         }
 
         mock_unlocked();
@@ -1679,7 +1686,7 @@ mod tests {
             init_req_invalid.coin = pb::BtcCoin::Ltc as _;
             init_req_invalid.format_unit = FormatUnit::Sat as _;
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1689,7 +1696,7 @@ mod tests {
             for version in 3..10 {
                 init_req_invalid.version = version;
                 assert_eq!(
-                    block_on(process(&init_req_invalid)),
+                    block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                     Err(Error::InvalidInput)
                 );
             }
@@ -1699,7 +1706,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.locktime = 500000000;
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1708,7 +1715,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.num_inputs = 0;
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1717,7 +1724,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.num_outputs = 0;
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1726,7 +1733,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.coin = 4; // BtcCoin is defined from 0 to 3.
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1735,7 +1742,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs[0].keypath[2] = HARDENED + 100;
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1744,7 +1751,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs = vec![];
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1771,7 +1778,7 @@ mod tests {
                 },
             ];
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1827,31 +1834,34 @@ mod tests {
                 },
             ];
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
         {
             // no taproot in Litecoin
             assert_eq!(
-                block_on(process(&pb::BtcSignInitRequest {
-                    coin: pb::BtcCoin::Ltc as _,
-                    script_configs: vec![pb::BtcScriptConfigWithKeypath {
-                        script_config: Some(pb::BtcScriptConfig {
-                            config: Some(pb::btc_script_config::Config::SimpleType(
-                                SimpleType::P2tr as _,
-                            )),
-                        }),
-                        keypath: vec![84 + HARDENED, 2 + HARDENED, 10 + HARDENED],
-                    }],
-                    output_script_configs: vec![],
-                    version: 1,
-                    num_inputs: 1,
-                    num_outputs: 1,
-                    locktime: 0,
-                    format_unit: FormatUnit::Default as _,
-                    contains_silent_payment_outputs: false,
-                })),
+                block_on(process(
+                    &mut TestingWorkflows::new(),
+                    &pb::BtcSignInitRequest {
+                        coin: pb::BtcCoin::Ltc as _,
+                        script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                            script_config: Some(pb::BtcScriptConfig {
+                                config: Some(pb::btc_script_config::Config::SimpleType(
+                                    SimpleType::P2tr as _,
+                                )),
+                            }),
+                            keypath: vec![84 + HARDENED, 2 + HARDENED, 10 + HARDENED],
+                        }],
+                        output_script_configs: vec![],
+                        version: 1,
+                        num_inputs: 1,
+                        num_outputs: 1,
+                        locktime: 0,
+                        format_unit: FormatUnit::Default as _,
+                        contains_silent_payment_outputs: false,
+                    }
+                )),
                 Err(Error::InvalidInput)
             );
         }
@@ -1867,7 +1877,7 @@ mod tests {
                 keypath: vec![],
             }];
             assert_eq!(
-                block_on(process(&init_req_invalid)),
+                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1884,7 +1894,6 @@ mod tests {
             (pb::BtcCoin::Ltc, FormatUnit::Default),
         ] {
             unsafe {
-                UI_COUNTER = 0;
                 PREVTX_REQUESTED = 0;
             }
 
@@ -1900,150 +1909,108 @@ mod tests {
                     Ok(tx.borrow().make_host_request(response))
                 }));
 
-            mock(Data {
-                ui_transaction_address_create: Some(Box::new(move |amount, address| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        1 => {
-                            match coin {
-                                pb::BtcCoin::Btc => {
-                                    assert_eq!(address, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
-                                    match format_unit {
-                                        FormatUnit::Default => assert_eq!(amount, "1.00000000 BTC"),
-                                        FormatUnit::Sat => assert_eq!(amount, "100000000 sat"),
-                                    }
-                                }
-                                pb::BtcCoin::Ltc => {
-                                    assert_eq!(address, "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1");
-                                    assert_eq!(amount, "1.00000000 LTC");
-                                }
-                                _ => panic!("unexpected coin"),
-                            }
-                            true
-                        }
-                        2 => {
-                            match coin {
-                                pb::BtcCoin::Btc => {
-                                    assert_eq!(address, "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ");
-                                    match format_unit {
-                                        FormatUnit::Default => {
-                                            assert_eq!(amount, "12.34567890 BTC")
-                                        }
-                                        FormatUnit::Sat => assert_eq!(amount, "1234567890 sat"),
-                                    }
-                                }
-                                pb::BtcCoin::Ltc => {
-                                    assert_eq!(address, "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco");
-                                    assert_eq!(amount, "12.34567890 LTC");
-                                }
-                                _ => panic!("unexpected coin"),
-                            }
-                            true
-                        }
-                        3 => {
-                            match coin {
-                                pb::BtcCoin::Btc => {
-                                    assert_eq!(
-                                        address,
-                                        "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8"
-                                    );
-                                    match format_unit {
-                                        FormatUnit::Default => {
-                                            assert_eq!(amount, "0.00006000 BTC")
-                                        }
-                                        FormatUnit::Sat => assert_eq!(amount, "6000 sat"),
-                                    }
-                                }
-                                pb::BtcCoin::Ltc => {
-                                    assert_eq!(
-                                        address,
-                                        "ltc1qxvenxvenxvenxvenxvenxvenxvenxvenwcpknh"
-                                    );
-                                    assert_eq!(amount, "0.00006000 LTC");
-                                }
-                                _ => panic!("unexpected coin"),
-                            }
-                            true
-                        }
-                        4 => {
-                            match coin {
-                                pb::BtcCoin::Btc => {
-                                    assert_eq!(
-                                        address,
-                                        "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
-                                    );
-                                    match format_unit {
-                                        FormatUnit::Default => {
-                                            assert_eq!(amount, "0.00007000 BTC")
-                                        }
-                                        FormatUnit::Sat => assert_eq!(amount, "7000 sat"),
-                                    }
-                                }
-                                pb::BtcCoin::Ltc => {
-                                    assert_eq!(
-                                        address,
-                                        "ltc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqwr7k5s"
-                                    );
-                                    assert_eq!(amount, "0.00007000 LTC");
-                                }
-                                _ => panic!("unexpected coin"),
-                            }
-                            true
-                        }
-                        _ => panic!("unexpected UI dialog"),
-                    }
-                })),
-                ui_transaction_fee_create: Some(Box::new(move |total, fee, longtouch| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        6 => {
-                            match coin {
-                                pb::BtcCoin::Btc => match format_unit {
-                                    FormatUnit::Default => {
-                                        assert_eq!(total, "13.39999900 BTC");
-                                        assert_eq!(fee, "0.05419010 BTC");
-                                    }
-                                    FormatUnit::Sat => {
-                                        assert_eq!(total, "1339999900 sat");
-                                        assert_eq!(fee, "5419010 sat");
-                                    }
-                                },
-                                pb::BtcCoin::Ltc => {
-                                    assert_eq!(total, "13.39999900 LTC");
-                                    assert_eq!(fee, "0.05419010 LTC");
-                                }
-                                _ => panic!("unexpected coin"),
-                            }
-                            assert!(longtouch);
-                            true
-                        }
-                        _ => panic!("unexpected UI dialog"),
-                    }
-                })),
-                ui_confirm_create: Some(Box::new(|params| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        5 => {
-                            assert_eq!(params.title, "Warning");
-                            assert_eq!(params.body, "There are 2\nchange outputs.\nProceed?");
-                            true
-                        }
-                        _ => panic!("unexpected UI dialog"),
-                    }
-                })),
-                ..Default::default()
-            });
             mock_unlocked();
             let tx = transaction.borrow();
             let mut init_request = tx.init_request();
             init_request.format_unit = format_unit as _;
-            let result = block_on(process(&init_request));
+
+            let mut mock_workflows = TestingWorkflows::new();
+            let result = block_on(process(&mut mock_workflows, &init_request));
+
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    match coin {
+                        pb::BtcCoin::Btc => Screen::Recipient {
+                            recipient: "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH".into(),
+                            amount: match format_unit {
+                                FormatUnit::Default => "1.00000000 BTC".into(),
+                                FormatUnit::Sat => "100000000 sat".into(),
+                            },
+                        },
+                        pb::BtcCoin::Ltc => Screen::Recipient {
+                            recipient: "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1".into(),
+                            amount: "1.00000000 LTC".into(),
+                        },
+                        _ => panic!("unexpected coin"),
+                    },
+                    match coin {
+                        pb::BtcCoin::Btc => Screen::Recipient {
+                            recipient: "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ".into(),
+                            amount: match format_unit {
+                                FormatUnit::Default => "12.34567890 BTC".into(),
+                                FormatUnit::Sat => "1234567890 sat".into(),
+                            },
+                        },
+                        pb::BtcCoin::Ltc => Screen::Recipient {
+                            recipient: "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco".into(),
+                            amount: "12.34567890 LTC".into(),
+                        },
+                        _ => panic!("unexpected coin"),
+                    },
+                    match coin {
+                        pb::BtcCoin::Btc => Screen::Recipient {
+                            recipient: "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8".into(),
+                            amount: match format_unit {
+                                FormatUnit::Default => "0.00006000 BTC".into(),
+                                FormatUnit::Sat => "6000 sat".into(),
+                            },
+                        },
+                        pb::BtcCoin::Ltc => Screen::Recipient {
+                            recipient: "ltc1qxvenxvenxvenxvenxvenxvenxvenxvenwcpknh".into(),
+                            amount: "0.00006000 LTC".into(),
+                        },
+                        _ => panic!("unexpected coin"),
+                    },
+                    match coin {
+                        pb::BtcCoin::Btc => Screen::Recipient {
+                            recipient:
+                                "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
+                                    .into(),
+                            amount: match format_unit {
+                                FormatUnit::Default => "0.00007000 BTC".into(),
+                                FormatUnit::Sat => "7000 sat".into(),
+                            },
+                        },
+                        pb::BtcCoin::Ltc => Screen::Recipient {
+                            recipient:
+                                "ltc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqwr7k5s"
+                                    .into(),
+                            amount: "0.00007000 LTC".into(),
+                        },
+                        _ => panic!("unexpected coin"),
+                    },
+                    Screen::Confirm {
+                        title: "Warning".into(),
+                        body: "There are 2\nchange outputs.\nProceed?".into(),
+                        longtouch: false,
+                    },
+                    match coin {
+                        pb::BtcCoin::Btc => match format_unit {
+                            FormatUnit::Default => Screen::TotalFee {
+                                total: "13.39999900 BTC".into(),
+                                fee: "0.05419010 BTC".into(),
+                                longtouch: true,
+                            },
+                            FormatUnit::Sat => Screen::TotalFee {
+                                total: "1339999900 sat".into(),
+                                fee: "5419010 sat".into(),
+                                longtouch: true,
+                            },
+                        },
+                        pb::BtcCoin::Ltc => Screen::TotalFee {
+                            total: "13.39999900 LTC".into(),
+                            fee: "0.05419010 LTC".into(),
+                            longtouch: true,
+                        },
+                        _ => panic!("unexpected coin"),
+                    },
+                    Screen::Status {
+                        title: "Transaction\nconfirmed".into(),
+                        success: true,
+                    },
+                ],
+            );
             match result {
                 Ok(Response::BtcSignNext(next)) => {
                     assert!(next.has_signature);
@@ -2058,7 +2025,6 @@ mod tests {
                 }
                 _ => panic!("wrong result"),
             }
-            assert_eq!(unsafe { UI_COUNTER }, tx.total_confirmations);
             assert_eq!(unsafe { PREVTX_REQUESTED }, tx.inputs.len() as _);
         }
     }
@@ -2079,7 +2045,10 @@ mod tests {
                 Ok(Request::BtcSignInput(tx.borrow().inputs[0].input.clone()))
             }));
 
-        let result = block_on(process(&transaction.borrow().init_request()));
+        let result = block_on(process(
+            &mut TestingWorkflows::new(),
+            &transaction.borrow().init_request(),
+        ));
         assert_eq!(result, Err(Error::InvalidState));
         assert_eq!(unsafe { COUNTER }, 2);
     }
@@ -2099,7 +2068,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_default_ui();
         mock_unlocked();
         let mut init_request = transaction.borrow().init_request();
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
@@ -2110,7 +2078,7 @@ mod tests {
             }),
             keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
         };
-        let result = block_on(process(&init_request));
+        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2146,7 +2114,6 @@ mod tests {
                 Ok(tx.borrow().make_host_request(response))
             }));
 
-        mock_default_ui();
         mock_unlocked();
         bitbox02::random::mock_reset();
         let mut init_request = transaction.borrow().init_request();
@@ -2158,7 +2125,7 @@ mod tests {
             }),
             keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
         };
-        let result = block_on(process(&init_request));
+        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2190,7 +2157,6 @@ mod tests {
                 Ok(tx.borrow().make_host_request(response))
             }));
 
-        mock_default_ui();
         mock_unlocked();
         let mut init_request = transaction.borrow().init_request();
         init_request
@@ -2203,7 +2169,7 @@ mod tests {
                 }),
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
-        assert!(block_on(process(&init_request)).is_ok());
+        assert!(block_on(process(&mut TestingWorkflows::new(), &init_request)).is_ok());
         assert_eq!(
             unsafe { PREVTX_REQUESTED },
             transaction.borrow().inputs.len() as _
@@ -2220,10 +2186,12 @@ mod tests {
         transaction.borrow_mut().inputs[0].input.keypath[4] = 100000;
 
         mock_host_responder(transaction.clone());
-        mock_default_ui();
         mock_unlocked();
         bitbox02::random::mock_reset();
-        let result = block_on(process(&transaction.borrow().init_request()));
+        let result = block_on(process(
+            &mut TestingWorkflows::new(),
+            &transaction.borrow().init_request(),
+        ));
         assert!(result.is_ok());
     }
 
@@ -2329,9 +2297,11 @@ mod tests {
                 }
             }
             mock_host_responder(transaction.clone());
-            mock_default_ui();
             mock_unlocked();
-            let result = block_on(process(&transaction.borrow().init_request()));
+            let result = block_on(process(
+                &mut TestingWorkflows::new(),
+                &transaction.borrow().init_request(),
+            ));
             assert_eq!(result, Err(Error::InvalidInput));
         }
     }
@@ -2344,7 +2314,6 @@ mod tests {
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
         transaction.borrow_mut().inputs[0].input.keypath[0] = 49 + HARDENED;
         mock_host_responder(transaction.clone());
-        mock_default_ui();
         mock_unlocked();
         let mut init_request = transaction.borrow().init_request();
         init_request
@@ -2357,7 +2326,7 @@ mod tests {
                 }),
                 keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
-        assert!(block_on(process(&init_request)).is_ok());
+        assert!(block_on(process(&mut TestingWorkflows::new(), &init_request)).is_ok());
     }
 
     #[test]
@@ -2365,32 +2334,16 @@ mod tests {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        static mut CURRENT_COUNTER: u32 = 0;
         // We go through all possible user confirmations and abort one of them at a time.
-        for counter in 1..=transaction.borrow().total_confirmations {
-            unsafe {
-                UI_COUNTER = 0;
-                CURRENT_COUNTER = counter
-            }
-            mock(Data {
-                ui_transaction_address_create: Some(Box::new(|_amount, _address| unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER != CURRENT_COUNTER
-                })),
-                ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER != CURRENT_COUNTER
-                })),
-                ui_confirm_create: Some(Box::new(move |_params| unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER != CURRENT_COUNTER
-                })),
-                ..Default::default()
-            });
+        for counter in 0..transaction.borrow().total_confirmations {
+            let mut mock_workflows = TestingWorkflows::new();
+            mock_workflows.abort_nth(counter as usize);
             mock_unlocked();
             assert_eq!(
-                block_on(process(&transaction.borrow().init_request())),
+                block_on(process(
+                    &mut mock_workflows,
+                    &transaction.borrow().init_request()
+                )),
                 Err(Error::UserAbort)
             );
         }
@@ -2404,10 +2357,9 @@ mod tests {
             locktime: u32,
             sequence: u32,
             // If None: no user confirmation expected.
-            // If Some: confirmation body and user response.
-            confirm: Option<(&'static str, bool)>,
+            // If Some: confirmation body.
+            confirm: Option<&'static str>,
         }
-        static mut LOCKTIME_CONFIRMED: bool = false;
         for test_case in &[
             Test {
                 coin: pb::BtcCoin::Btc,
@@ -2431,73 +2383,60 @@ mod tests {
                 coin: pb::BtcCoin::Btc,
                 locktime: 1,
                 sequence: 0xffffffff - 1,
-                confirm: Some(("Locktime on block:\n1\nTransaction is not RBF", true)),
-            },
-            Test {
-                coin: pb::BtcCoin::Btc,
-                locktime: 1,
-                sequence: 0xffffffff - 1,
-                confirm: Some(("Locktime on block:\n1\nTransaction is not RBF", false)),
+                confirm: Some("Locktime on block:\n1\nTransaction is not RBF"),
             },
             Test {
                 coin: pb::BtcCoin::Btc,
                 locktime: 10,
                 sequence: 0xffffffff - 1,
-                confirm: Some(("Locktime on block:\n10\nTransaction is not RBF", true)),
+                confirm: Some("Locktime on block:\n10\nTransaction is not RBF"),
             },
             Test {
                 coin: pb::BtcCoin::Btc,
                 locktime: 10,
                 sequence: 0xffffffff - 2,
-                confirm: Some(("Locktime on block:\n10\nTransaction is RBF", true)),
+                confirm: Some("Locktime on block:\n10\nTransaction is RBF"),
             },
             Test {
                 coin: pb::BtcCoin::Ltc,
                 locktime: 10,
                 sequence: 0xffffffff - 1,
-                confirm: Some(("Locktime on block:\n10\n", true)),
+                confirm: Some("Locktime on block:\n10\n"),
             },
             Test {
                 coin: pb::BtcCoin::Ltc,
                 locktime: 10,
                 sequence: 0xffffffff - 2,
-                confirm: Some(("Locktime on block:\n10\n", true)),
+                confirm: Some("Locktime on block:\n10\n"),
             },
         ] {
             let transaction =
                 alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(test_case.coin)));
             transaction.borrow_mut().inputs[0].input.sequence = test_case.sequence;
             mock_host_responder(transaction.clone());
-            unsafe { LOCKTIME_CONFIRMED = false }
-            mock_default_ui();
-            mock(Data {
-                ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-                ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-                ui_confirm_create: Some(Box::new(move |params| {
-                    if params.body.contains("Locktime") {
-                        if let Some((confirm_str, user_response)) = test_case.confirm {
-                            assert_eq!(params.title, "");
-                            assert_eq!(params.body, confirm_str);
-                            unsafe { LOCKTIME_CONFIRMED = true }
-                            return user_response;
-                        }
-                        panic!("Unexpected RBF confirmation");
-                    }
-                    true
-                })),
-                ..Default::default()
-            });
+
             mock_unlocked();
 
             let mut init_request = transaction.borrow().init_request();
             init_request.locktime = test_case.locktime;
-            let result = block_on(process(&init_request));
-            if let Some((_, false)) = test_case.confirm {
-                assert_eq!(result, Err(Error::UserAbort));
-            } else {
-                assert!(result.is_ok());
+
+            let mut mock_workflows = TestingWorkflows::new();
+            let result = block_on(process(&mut mock_workflows, &init_request));
+            let mut found_locktime = false;
+            for screen in mock_workflows.screens.iter() {
+                match screen {
+                    Screen::Confirm { title, body, .. } if body.contains("Locktime") => {
+                        found_locktime = true;
+                        if let Some(confirm_str) = test_case.confirm {
+                            assert_eq!(title.as_str(), "");
+                            assert_eq!(body.as_str(), confirm_str);
+                        }
+                    }
+                    _ => {}
+                }
             }
-            assert_eq!(unsafe { LOCKTIME_CONFIRMED }, test_case.confirm.is_some());
+            assert_eq!(found_locktime, test_case.confirm.is_some());
+            assert!(result.is_ok());
         }
     }
 
@@ -2510,40 +2449,23 @@ mod tests {
         // One more confirmation for the high fee warning.
         transaction.borrow_mut().total_confirmations += 1;
         mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        static mut FEE_CHECKED: bool = false;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| unsafe {
-                UI_COUNTER += 1;
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| unsafe {
-                UI_COUNTER += 1;
-                assert_eq!(total, "13.39999900 BTC");
-                assert_eq!(fee, "2.05419010 BTC");
-                assert!(!longtouch);
-                true
-            })),
-            ui_confirm_create: Some(Box::new(move |params| unsafe {
-                UI_COUNTER += 1;
-                match UI_COUNTER {
-                    7 => {
-                        assert_eq!(params.title, "High fee");
-                        assert_eq!(params.body, "The fee is 18.1%\nthe send amount.\nProceed?");
-                        assert!(params.longtouch);
-                        FEE_CHECKED = true;
-                        true
-                    }
-                    _ => true,
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
         let tx = transaction.borrow();
-        assert!(block_on(process(&tx.init_request())).is_ok());
-        assert_eq!(unsafe { UI_COUNTER }, tx.total_confirmations);
-        assert!(unsafe { FEE_CHECKED });
+
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &tx.init_request())).is_ok());
+
+        assert!(mock_workflows.screens.contains(&Screen::TotalFee {
+            total: "13.39999900 BTC".into(),
+            fee: "2.05419010 BTC".into(),
+            longtouch: false
+        }));
+        assert!(mock_workflows
+            .contains_confirm("High fee", "The fee is 18.1%\nthe send amount.\nProceed?"));
+        assert_eq!(
+            mock_workflows.screens.len() as u32,
+            tx.total_confirmations + 1 // plus status screen
+        );
     }
 
     // Test a P2TR output. It is not part of the default test transaction because Taproot is not
@@ -2555,26 +2477,21 @@ mod tests {
         transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::P2tr as _;
         transaction.borrow_mut().outputs[0].payload = b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c".to_vec();
         mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(|amount, address| unsafe {
-                UI_COUNTER += 1;
-                if UI_COUNTER == 1 {
-                    assert_eq!(
-                        address,
-                        "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr"
-                    );
-                    assert_eq!(amount, "1.00000000 BTC");
-                }
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ui_confirm_create: Some(Box::new(move |_params| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        let result = block_on(process(&transaction.borrow().init_request()));
-        assert!(unsafe { UI_COUNTER >= 1 });
+
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(
+            &mut mock_workflows,
+            &transaction.borrow().init_request(),
+        ));
+        assert_eq!(
+            mock_workflows.screens[0],
+            Screen::Recipient {
+                recipient: "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr".into(),
+                amount: "1.00000000 BTC".into(),
+            }
+        );
+
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2613,24 +2530,6 @@ mod tests {
                 Ok(tx.borrow().make_host_request(response))
             },
         ));
-
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(|amount, address| unsafe {
-                UI_COUNTER += 1;
-                if UI_COUNTER == 1 {
-                    assert_eq!(
-                        address,
-                        "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv"
-                    );
-                    assert_eq!(amount, "1.00000000 BTC");
-                }
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ui_confirm_create: Some(Box::new(move |_params| true)),
-            ..Default::default()
-        });
         mock_unlocked();
 
         let mut init_request = transaction.borrow().init_request();
@@ -2644,8 +2543,17 @@ mod tests {
                 }),
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
-        assert!(block_on(process(&init_request)).is_ok());
-        assert!(unsafe { UI_COUNTER >= 1 });
+
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &init_request)).is_ok());
+
+        assert_eq!(
+            mock_workflows.screens[0],
+            Screen::Recipient {
+                recipient: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
+                amount: "1.00000000 BTC".into(),
+            }
+        );
     }
 
     // Test an output that is sending to the same account, but is not a change output by keypath.
@@ -2655,35 +2563,28 @@ mod tests {
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().outputs[5].keypath[3] = 0;
         mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        static mut TOTAL_AND_FEE_CHECKED: bool = false;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(|amount, address| unsafe {
-                UI_COUNTER += 1;
-                if UI_COUNTER == 5 {
-                    assert_eq!(
-                        address,
-                        "This BitBox (same account): bc1qnu4x8dlrx6dety47gehf4uhk5tj3q7yhywgry6"
-                    );
-                    assert_eq!(amount, "0.00000100 BTC");
-                }
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, _longtouch| unsafe {
-                // The total is the same as if the output was an external output. It includes the
-                // amount sent to the internal non-change address.
-                assert_eq!(total, "13.40000000 BTC");
-                assert_eq!(fee, "0.05419010 BTC");
-                TOTAL_AND_FEE_CHECKED = true;
-                true
-            })),
-            ui_confirm_create: Some(Box::new(move |_params| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        let result = block_on(process(&transaction.borrow().init_request()));
-        assert!(unsafe { UI_COUNTER >= 5 });
-        assert!(unsafe { TOTAL_AND_FEE_CHECKED });
+
+        let mut mock_workflows = TestingWorkflows::new();
+
+        let result = block_on(process(
+            &mut mock_workflows,
+            &transaction.borrow().init_request(),
+        ));
+        assert_eq!(
+            mock_workflows.screens[4],
+            Screen::Recipient {
+                recipient: "This BitBox (same account): bc1qnu4x8dlrx6dety47gehf4uhk5tj3q7yhywgry6"
+                    .into(),
+                amount: "0.00000100 BTC".into(),
+            }
+        );
+        assert!(mock_workflows.screens.contains(&Screen::TotalFee {
+            total: "13.40000000 BTC".into(),
+            fee: "0.05419010 BTC".into(),
+            longtouch: true,
+        }));
+
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2703,23 +2604,6 @@ mod tests {
         transaction.borrow_mut().outputs[5].keypath[3] = 0;
         transaction.borrow_mut().outputs[5].output_script_config_index = Some(0);
         mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(|amount, address| unsafe {
-                UI_COUNTER += 1;
-                if UI_COUNTER == 5 {
-                    assert_eq!(
-                        address,
-                        "This BitBox (account #21): bc1qr9t2u35gzrtznzv6n99f2dj37j9msfffv78cv2"
-                    );
-                    assert_eq!(amount, "0.00000100 BTC");
-                }
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ui_confirm_create: Some(Box::new(move |_params| true)),
-            ..Default::default()
-        });
         mock_unlocked();
         let tx = transaction.borrow();
         let mut init_request = tx.init_request();
@@ -2735,8 +2619,18 @@ mod tests {
                 DIFFERENT_ACCOUNT,
             ],
         }];
-        assert!(block_on(process(&init_request)).is_ok());
-        assert!(unsafe { UI_COUNTER >= 5 });
+
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &init_request)).is_ok());
+
+        assert_eq!(
+            mock_workflows.screens[4],
+            Screen::Recipient {
+                recipient: "This BitBox (account #21): bc1qr9t2u35gzrtznzv6n99f2dj37j9msfffv78cv2"
+                    .into(),
+                amount: "0.00000100 BTC".into(),
+            }
+        );
     }
 
     /// Exercise the antiklepto protocol
@@ -2757,9 +2651,11 @@ mod tests {
             .input
             .host_nonce_commitment = Some(host_nonce_commitment);
         mock_host_responder(transaction.clone());
-        mock_default_ui();
         mock_unlocked();
-        let result = block_on(process(&transaction.borrow().init_request()));
+        let result = block_on(process(
+            &mut TestingWorkflows::new(),
+            &transaction.borrow().init_request(),
+        ));
         match result {
             Ok(Response::Btc(pb::BtcResponse {
                 response: Some(pb::btc_response::Response::SignNext(next)),
@@ -2807,9 +2703,11 @@ mod tests {
                 Ok(tx.make_host_request(response))
             }))
         };
-        mock_default_ui();
         mock_unlocked();
-        let result = block_on(process(&transaction.borrow().init_request()));
+        let result = block_on(process(
+            &mut TestingWorkflows::new(),
+            &transaction.borrow().init_request(),
+        ));
         assert_eq!(result, Err(Error::InvalidInput));
         // Only one input in the 2nd pass was requested, meaning the process failed after validating
         // the amount in the first input.
@@ -2847,9 +2745,11 @@ mod tests {
                 Ok(tx.make_host_request(response))
             }))
         };
-        mock_default_ui();
         mock_unlocked();
-        let result = block_on(process(&transaction.borrow().init_request()));
+        let result = block_on(process(
+            &mut TestingWorkflows::new(),
+            &transaction.borrow().init_request(),
+        ));
         assert_eq!(result, Err(Error::InvalidInput));
         // All inputs were requested, the failure happens when comparing the sums of the two passes
         // at the end.
@@ -2882,9 +2782,11 @@ mod tests {
                 }
             }))
         };
-        mock_default_ui();
         mock_unlocked();
-        let result = block_on(process(&transaction.borrow().init_request()));
+        let result = block_on(process(
+            &mut TestingWorkflows::new(),
+            &transaction.borrow().init_request(),
+        ));
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
@@ -2911,9 +2813,11 @@ mod tests {
                 }
             }))
         };
-        mock_default_ui();
         mock_unlocked();
-        let result = block_on(process(&transaction.borrow().init_request()));
+        let result = block_on(process(
+            &mut TestingWorkflows::new(),
+            &transaction.borrow().init_request(),
+        ));
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
@@ -2921,64 +2825,7 @@ mod tests {
     fn test_multisig_p2wsh() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
         mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(move |params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Spend from");
-                        assert_eq!(params.body, "1-of-2\nBTC Testnet multisig");
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Spend from");
-                        assert_eq!(params.body, "test multisig account name");
-                    }
-                    4 => {
-                        assert_eq!(params.title, "");
-                        assert_eq!(
-                            params.body,
-                            "Locktime on block:\n1663289\nTransaction is not RBF"
-                        );
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(move |amount, address| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    3 => {
-                        assert_eq!(
-                            address,
-                            "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
-                        );
-                        assert_eq!(amount, "0.00090000 TBTC");
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    5 => {
-                        assert_eq!(total, "0.00090175 TBTC");
-                        assert_eq!(fee, "0.00000175 TBTC");
-                        assert!(longtouch);
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            })),
-            ..Default::default()
-        });
+
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -3030,7 +2877,10 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&init_request));
+
+        let mut mock_workflows = TestingWorkflows::new();
+
+        let result = block_on(process(&mut mock_workflows, &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3039,8 +2889,38 @@ mod tests {
             _ => panic!("wrong result"),
         }
         assert_eq!(
-            unsafe { UI_COUNTER },
-            transaction.borrow().total_confirmations
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Spend from".into(),
+                    body: "1-of-2\nBTC Testnet multisig".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Spend from".into(),
+                    body: "test multisig account name".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
+                        .into(),
+                    amount: "0.00090000 TBTC".into(),
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Locktime on block:\n1663289\nTransaction is not RBF".into(),
+                    longtouch: false,
+                },
+                Screen::TotalFee {
+                    total: "0.00090175 TBTC".into(),
+                    fee: "0.00000175 TBTC".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                },
+            ]
         );
     }
 
@@ -3049,7 +2929,6 @@ mod tests {
     fn test_multisig_not_registered() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
         mock_host_responder(transaction.clone());
-        mock_default_ui();
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -3093,7 +2972,10 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        assert_eq!(block_on(process(&init_request)), Err(Error::InvalidInput));
+        assert_eq!(
+            block_on(process(&mut TestingWorkflows::new(), &init_request)),
+            Err(Error::InvalidInput)
+        );
     }
 
     #[test]
@@ -3109,7 +2991,7 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_default_ui();
+
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -3161,7 +3043,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&init_request));
+        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3176,7 +3058,6 @@ mod tests {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
 
         mock_host_responder(transaction.clone());
-        mock_default_ui();
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -3239,7 +3120,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&init_request));
+        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3263,84 +3144,6 @@ mod tests {
                 }
                 Ok(tx.borrow().make_host_request(response))
             }));
-
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(move |params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Spend from");
-                        assert_eq!(params.body, "BTC Testnet\npolicy with\n2 keys");
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Name");
-                        assert_eq!(params.body, "test policy account name");
-                    }
-                    3 => {
-                        assert_eq!(params.title, "");
-                        assert_eq!(params.body, "Show policy\ndetails?");
-                    }
-                    4 => {
-                        assert_eq!(params.title, "Policy");
-                        assert_eq!(params.body, "wsh(multi(2,@0/**,@1/**))");
-                        assert!(params.scrollable);
-                    }
-                    5 => {
-                        assert_eq!(params.title, "Key 1/2");
-                        assert_eq!(params.body, "This device: [93531fa9/48'/1'/0'/3']tpubDEjJGD6BCCuA7VHrbk3gMeQ5HocbZ4eSQ121DcvCkC8xaeRFjyoJC9iVrSz1bWfNwAY5K2Vfz5bnHR3y4RrqVpkc5ikz4trfhSyosZPrcnk");
-                        assert!(params.scrollable);
-                    }
-                    6 => {
-                        assert_eq!(params.title, "Key 2/2");
-                        assert_eq!(params.body, "tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8");
-                        assert!(params.scrollable);
-                    }
-                    8 => {
-                        assert_eq!(params.title, "");
-                        assert_eq!(
-                            params.body,
-                            "Locktime on block:\n1663289\nTransaction is not RBF"
-                        );
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(move |amount, address| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    7 => {
-                        assert_eq!(
-                            address,
-                            "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
-                        );
-                        assert_eq!(amount, "0.00090000 TBTC");
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    9 => {
-                        assert_eq!(total, "0.00090175 TBTC");
-                        assert_eq!(fee, "0.00000175 TBTC");
-                        assert!(longtouch);
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-                true
-            })),
-            ..Default::default()
-        });
 
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
@@ -3372,7 +3175,10 @@ mod tests {
         let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
+        let mut mock_workflows = TestingWorkflows::new();
+
         let result = block_on(process(
+            &mut mock_workflows,
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3385,8 +3191,58 @@ mod tests {
             _ => panic!("wrong result"),
         }
         assert_eq!(
-            unsafe { UI_COUNTER },
-            transaction.borrow().total_confirmations
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Spend from".into(),
+                    body: "BTC Testnet\npolicy with\n2 keys".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Name".into(),
+                    body: "test policy account name".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Show policy\ndetails?".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Policy".into(),
+                    body: "wsh(multi(2,@0/**,@1/**))".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Key 1/2".into(),
+                    body: "This device: [93531fa9/48'/1'/0'/3']tpubDEjJGD6BCCuA7VHrbk3gMeQ5HocbZ4eSQ121DcvCkC8xaeRFjyoJC9iVrSz1bWfNwAY5K2Vfz5bnHR3y4RrqVpkc5ikz4trfhSyosZPrcnk".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Key 2/2".into(),
+                    body: "tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
+                        .into(),
+                    amount: "0.00090000 TBTC".into(),
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Locktime on block:\n1663289\nTransaction is not RBF".into(),
+                    longtouch: false,
+                },
+                Screen::TotalFee {
+                    total: "0.00090175 TBTC".into(),
+                    fee: "0.00000175 TBTC".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                },
+            ]
         );
         assert!(unsafe { PREVTX_REQUESTED });
     }
@@ -3408,8 +3264,6 @@ mod tests {
                 }
                 Ok(tx.borrow().make_host_request(response))
             }));
-
-        mock_default_ui();
 
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
@@ -3442,6 +3296,7 @@ mod tests {
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
         let result = block_on(process(
+            &mut TestingWorkflows::new(),
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3464,50 +3319,6 @@ mod tests {
         mock_host_responder(transaction.clone());
 
         let policy_str = "tr(@0/<0;1>/*,{and_v(v:multi_a(1,@1/<2;3>/*,@2/<2;3>/*),older(2)),multi_a(2,@1/<0;1>/*,@2/<0;1>/*)})";
-
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(move |params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Spend from");
-                        assert_eq!(params.body, "BTC Testnet\npolicy with\n3 keys");
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Name");
-                        assert_eq!(params.body, "test policy account name");
-                    }
-                    3 => {
-                        assert_eq!(params.title, "");
-                        assert_eq!(params.body, "Show policy\ndetails?");
-                    }
-                    4 => {
-                        assert_eq!(params.title, "Policy");
-                        assert_eq!(params.body, policy_str);
-                    }
-                    5 => {
-                        assert_eq!(params.title, "Key 1/3");
-                        assert_eq!(params.body, "Provably unspendable: tpubD6NzVbkrYhZ4WNrreqKvZr3qeJR7meg2BgaGP9upLkt7bp5SY6AAhY8vaN8ThfCjVcK6ZzE6kZbinszppNoGKvypeTmhyQ6uvUptXEXqknv");
-                    }
-                    6 => {
-                        assert_eq!(params.title, "Key 2/3");
-                        assert_eq!(params.body, "[ffd63c8d/48'/1'/0'/2']tpubDExA3EC3iAsPxPhFn4j6gMiVup6V2eH3qKyk69RcTc9TTNRfFYVPad8bJD5FCHVQxyBT4izKsvr7Btd2R4xmQ1hZkvsqGBaeE82J71uTK4N");
-                    }
-                    7 => {
-                        assert_eq!(params.title, "Key 3/3");
-                        assert_eq!(params.body, "This device: [93531fa9/48'/1'/0'/3']tpubDEjJGD6BCCuA7VHrbk3gMeQ5HocbZ4eSQ121DcvCkC8xaeRFjyoJC9iVrSz1bWfNwAY5K2Vfz5bnHR3y4RrqVpkc5ikz4trfhSyosZPrcnk");
-                    }
-                    _ => {}
-                }
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(move |_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
 
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
@@ -3544,13 +3355,74 @@ mod tests {
         let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
+        let mut mock_workflows = TestingWorkflows::new();
         assert!(block_on(process(
+            &mut mock_workflows,
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
         ))
         .is_ok());
-        assert!(unsafe { UI_COUNTER >= 7 });
+
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Spend from".into(),
+                    body: "BTC Testnet\npolicy with\n3 keys".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Name".into(),
+                    body: "test policy account name".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Show policy\ndetails?".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Policy".into(),
+                    body: policy_str.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Key 1/3".into(),
+                    body: "Provably unspendable: tpubD6NzVbkrYhZ4WNrreqKvZr3qeJR7meg2BgaGP9upLkt7bp5SY6AAhY8vaN8ThfCjVcK6ZzE6kZbinszppNoGKvypeTmhyQ6uvUptXEXqknv".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Key 2/3".into(),
+                    body: "[ffd63c8d/48'/1'/0'/2']tpubDExA3EC3iAsPxPhFn4j6gMiVup6V2eH3qKyk69RcTc9TTNRfFYVPad8bJD5FCHVQxyBT4izKsvr7Btd2R4xmQ1hZkvsqGBaeE82J71uTK4N".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Key 3/3".into(),
+                    body: "This device: [93531fa9/48'/1'/0'/3']tpubDEjJGD6BCCuA7VHrbk3gMeQ5HocbZ4eSQ121DcvCkC8xaeRFjyoJC9iVrSz1bWfNwAY5K2Vfz5bnHR3y4RrqVpkc5ikz4trfhSyosZPrcnk".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
+                        .into(),
+                    amount: "0.00090000 TBTC".into(),
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Locktime on block:\n1663289\nTransaction is not RBF".into(),
+                    longtouch: false,
+                },
+                Screen::TotalFee {
+                    total: "0.00090175 TBTC".into(),
+                    fee: "0.00000175 TBTC".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                },
+            ]
+        );
     }
 
     /// Test that a policy with derivations other than `/**` work.
@@ -3565,7 +3437,6 @@ mod tests {
         mock_host_responder(transaction.clone());
 
         static mut UI_COUNTER: u32 = 0;
-        mock_default_ui();
 
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
@@ -3597,6 +3468,7 @@ mod tests {
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
         let result = block_on(process(
+            &mut TestingWorkflows::new(),
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3616,7 +3488,6 @@ mod tests {
         mock_host_responder(transaction.clone());
 
         static mut UI_COUNTER: u32 = 0;
-        mock_default_ui();
 
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
@@ -3650,6 +3521,7 @@ mod tests {
 
         assert_eq!(
             block_on(process(
+                &mut TestingWorkflows::new(),
                 &transaction
                     .borrow()
                     .init_request_policy(policy, wrong_keypath_account)
@@ -3666,7 +3538,6 @@ mod tests {
         mock_host_responder(transaction.clone());
 
         static mut UI_COUNTER: u32 = 0;
-        mock_default_ui();
 
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
@@ -3699,6 +3570,7 @@ mod tests {
 
         assert_eq!(
             block_on(process(
+                &mut TestingWorkflows::new(),
                 &transaction
                     .borrow()
                     .init_request_policy(policy, keypath_account)
@@ -3742,96 +3614,65 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(move |amount, address| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(address, "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH");
-                        assert_eq!(amount, "1.00000000 BTC");
-                        true
-                    }
-                    2 => {
-                        // Payment request
-                        assert_eq!(address, "Test Merchant");
-                        assert_eq!(amount, "12.34567890 BTC");
-                        true
-                    }
-                    6 => {
-                        assert_eq!(address, "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8");
-                        assert_eq!(amount, "0.00006000 BTC");
-                        true
-                    }
-                    7 => {
-                        assert_eq!(
-                            address,
-                            "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
-                        );
-                        assert_eq!(amount, "0.00007000 BTC");
-                        true
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-            })),
-            ui_transaction_fee_create: Some(Box::new(move |total, fee, _longtouch| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    9 => {
-                        assert_eq!(total, "13.39999900 BTC");
-                        assert_eq!(fee, "0.05419010 BTC");
-                        true
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-            })),
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    3 => {
-                        assert_eq!(params.body, "Memo from\n\nTest Merchant");
-                        assert!(params.accept_is_nextarrow);
-                        assert!(!params.longtouch);
-                        true
-                    }
-                    4 => {
-                        assert_eq!(params.title, "Memo 1/2");
-                        assert_eq!(params.body, "Test memo line1");
-                        assert!(params.accept_is_nextarrow);
-                        assert!(!params.longtouch);
-                        true
-                    }
-                    5 => {
-                        assert_eq!(params.title, "Memo 2/2");
-                        assert_eq!(params.body, "Test memo line2");
-                        assert!(params.accept_is_nextarrow);
-                        assert!(!params.longtouch);
-                        true
-                    }
-                    8 => {
-                        assert_eq!(params.title, "Warning");
-                        assert_eq!(params.body, "There are 2\nchange outputs.\nProceed?");
-                        true
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
         bitbox02::random::mock_reset();
         let init_request = transaction.borrow().init_request();
-        let result = block_on(process(&init_request));
+
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &init_request));
         assert!(result.is_ok());
+
         assert_eq!(
-            unsafe { UI_COUNTER },
-            transaction.borrow().total_confirmations
+            mock_workflows.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH".into(),
+                    amount: "1.00000000 BTC".into(),
+                },
+                // Payment request
+                Screen::Recipient {
+                    recipient: "Test Merchant".into(),
+                    amount: "12.34567890 BTC".into(),
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Memo from\n\nTest Merchant".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Memo 1/2".into(),
+                    body: "Test memo line1".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Memo 2/2".into(),
+                    body: "Test memo line2".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8".into(),
+                    amount: "0.00006000 BTC".into(),
+                },
+                Screen::Recipient {
+                    recipient: "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
+                        .into(),
+                    amount: "0.00007000 BTC".into(),
+                },
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "There are 2\nchange outputs.\nProceed?".into(),
+                    longtouch: false,
+                },
+                Screen::TotalFee {
+                    total: "13.39999900 BTC".into(),
+                    fee: "0.05419010 BTC".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                },
+            ]
         );
     }
 }

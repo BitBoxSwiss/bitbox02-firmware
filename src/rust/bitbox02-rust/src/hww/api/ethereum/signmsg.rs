@@ -17,7 +17,7 @@ use super::Error;
 
 use bitbox02::keystore;
 
-use crate::workflow::verify_message;
+use crate::workflow::{verify_message, Workflows};
 
 use pb::eth_response::Response;
 
@@ -30,7 +30,10 @@ use sha3::digest::Digest;
 ///
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
-pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Error> {
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::EthSignMessageRequest,
+) -> Result<Response, Error> {
     if request.msg.len() > 9999 {
         return Err(Error::InvalidInput);
     }
@@ -48,7 +51,7 @@ pub async fn process(request: &pb::EthSignMessageRequest) -> Result<Response, Er
     // abort errors.
     super::pubrequest::process(&pub_request).await?;
 
-    verify_message::verify("Sign message", "Sign", &request.msg, true).await?;
+    verify_message::verify(workflows, "Sign message", "Sign", &request.msg, true).await?;
 
     // Construct message to be signed. There is no standard for this. We match what MyEtherWallet,
     // Trezor, etc. do, e.g.:
@@ -93,6 +96,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::RealWorkflows; // instead of TestingWorkflows until the tests are migrated
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
@@ -131,7 +135,7 @@ mod tests {
         });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&pb::EthSignMessageRequest {
+            block_on(process(&mut RealWorkflows, &pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: MESSAGE.to_vec(),
@@ -178,13 +182,16 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        block_on(process(&pb::EthSignMessageRequest {
-            coin: pb::EthCoin::Eth as _,
-            keypath: KEYPATH.to_vec(),
-            msg: MESSAGE.to_vec(),
-            host_nonce_commitment: None,
-            chain_id: 11155111,
-        }))
+        block_on(process(
+            &mut RealWorkflows,
+            &pb::EthSignMessageRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                msg: MESSAGE.to_vec(),
+                host_nonce_commitment: None,
+                chain_id: 11155111,
+            },
+        ))
         .unwrap();
         assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
     }
@@ -219,7 +226,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&mut RealWorkflows, &request)),
+            Err(Error::UserAbort)
+        );
 
         // User abort message verification.
         unsafe {
@@ -243,7 +253,10 @@ mod tests {
             ..Default::default()
         });
         mock_unlocked();
-        assert_eq!(block_on(process(&request)), Err(Error::UserAbort));
+        assert_eq!(
+            block_on(process(&mut RealWorkflows, &request)),
+            Err(Error::UserAbort)
+        );
     }
 
     #[test]
@@ -252,13 +265,16 @@ mod tests {
 
         // Message too long
         assert_eq!(
-            block_on(process(&pb::EthSignMessageRequest {
-                coin: pb::EthCoin::Eth as _,
-                keypath: KEYPATH.to_vec(),
-                msg: [0; 10000].to_vec(),
-                host_nonce_commitment: None,
-                chain_id: 0,
-            })),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::EthSignMessageRequest {
+                    coin: pb::EthCoin::Eth as _,
+                    keypath: KEYPATH.to_vec(),
+                    msg: [0; 10000].to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 0,
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
@@ -267,13 +283,16 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(
-            block_on(process(&pb::EthSignMessageRequest {
-                coin: pb::EthCoin::Eth as _,
-                keypath: KEYPATH.to_vec(),
-                msg: b"message".to_vec(),
-                host_nonce_commitment: None,
-                chain_id: 0,
-            })),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::EthSignMessageRequest {
+                    coin: pb::EthCoin::Eth as _,
+                    keypath: KEYPATH.to_vec(),
+                    msg: b"message".to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 0,
+                }
+            )),
             Err(Error::InvalidInput)
         );
     }

@@ -21,8 +21,63 @@ pub mod pairing;
 pub mod password;
 pub mod sdcard;
 pub mod status;
+#[cfg(feature = "testing")]
+pub mod testing;
 pub mod transaction;
 pub mod trinary_choice;
 pub mod trinary_input_string;
 pub mod unlock;
 pub mod verify_message;
+
+#[allow(async_fn_in_trait)]
+pub trait Workflows {
+    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort>;
+
+    async fn verify_recipient(
+        &mut self,
+        recipient: &str,
+        amount: &str,
+    ) -> Result<(), transaction::UserAbort>;
+
+    async fn verify_total_fee(
+        &mut self,
+        total: &str,
+        fee: &str,
+        longtouch: bool,
+    ) -> Result<(), transaction::UserAbort>;
+
+    async fn status(&mut self, title: &str, status_success: bool);
+}
+
+pub struct RealWorkflows;
+
+impl Workflows for RealWorkflows {
+    #[inline(always)]
+    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
+        confirm::confirm(params).await
+    }
+
+    #[inline(always)]
+    async fn verify_recipient(
+        &mut self,
+        recipient: &str,
+        amount: &str,
+    ) -> Result<(), transaction::UserAbort> {
+        transaction::verify_recipient(recipient, amount).await
+    }
+
+    #[inline(always)]
+    async fn verify_total_fee(
+        &mut self,
+        total: &str,
+        fee: &str,
+        longtouch: bool,
+    ) -> Result<(), transaction::UserAbort> {
+        transaction::verify_total_fee(total, fee, longtouch).await
+    }
+
+    #[inline(always)]
+    async fn status(&mut self, title: &str, status_success: bool) {
+        status::status(title, status_success).await
+    }
+}

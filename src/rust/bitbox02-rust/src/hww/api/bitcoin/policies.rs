@@ -29,7 +29,7 @@ use util::bip32::HARDENED;
 use miniscript::TranslatePk;
 
 use crate::bip32;
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 use crate::xpubcache::Bip32XpubCache;
 
 use bitcoin::taproot::{LeafVersion, TapLeafHash, TapTweakHash};
@@ -370,51 +370,56 @@ impl ParsedPolicy<'_> {
     /// Confirm the policy. In advanced mode, all details are shown. In basic mode, the advanced
     /// details are optional. Used to verify the policy during account registration (advanced mode),
     /// creating a receive address (basic mode) and signing a transaction (basic mode).
-    pub async fn confirm(
+    pub async fn confirm<W: Workflows>(
         &self,
+        workflows: &mut W,
         title: &str,
         params: &Params,
         name: &str,
         mode: Mode,
     ) -> Result<(), Error> {
         let policy = self.policy;
-        confirm::confirm(&confirm::Params {
-            title,
-            body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
-
-        confirm::confirm(&confirm::Params {
-            title: "Name",
-            body: name,
-            scrollable: true,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
-
-        if matches!(mode, Mode::Basic) {
-            if let Err(confirm::UserAbort) = confirm::confirm(&confirm::Params {
-                body: "Show policy\ndetails?",
+        workflows
+            .confirm(&confirm::Params {
+                title,
+                body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
-            .await
+            .await?;
+
+        workflows
+            .confirm(&confirm::Params {
+                title: "Name",
+                body: name,
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+
+        if matches!(mode, Mode::Basic) {
+            if let Err(confirm::UserAbort) = workflows
+                .confirm(&confirm::Params {
+                    body: "Show policy\ndetails?",
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await
             {
                 return Ok(());
             }
         }
 
-        confirm::confirm(&confirm::Params {
-            title: "Policy",
-            body: &policy.policy,
-            scrollable: true,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Policy",
+                body: &policy.policy,
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
 
         let output_xpub_type = match params.coin {
             BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,
@@ -454,15 +459,16 @@ impl ParsedPolicy<'_> {
             } else if Some(i) == taproot_unspendable_internal_key_index {
                 key_str = format!("Provably unspendable: {}", key_str)
             }
-            confirm::confirm(&confirm::Params {
-                title: &format!("Key {}/{}", i + 1, num_keys),
-                body: key_str.as_str(),
-                scrollable: true,
-                longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
-                accept_is_nextarrow: true,
-                ..Default::default()
-            })
-            .await?;
+            workflows
+                .confirm(&confirm::Params {
+                    title: &format!("Key {}/{}", i + 1, num_keys),
+                    body: key_str.as_str(),
+                    scrollable: true,
+                    longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
         }
         Ok(())
     }

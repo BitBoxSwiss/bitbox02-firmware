@@ -532,7 +532,9 @@ if(CMAKE_CROSSCOMPILING)
       WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
       COMMENT "\nGenerating binary ${name}.bin"
     )
-    # Fail on warnings for our builds
-    target_compile_options(${name}.elf PRIVATE "-Werror")
+    # Fail on warnings for our release builds
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+      target_compile_options(${name}.elf PRIVATE "-Werror")
+    endif()
   endforeach()
 endif()

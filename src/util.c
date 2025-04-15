@@ -42,10 +42,10 @@ void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 const char* util_dbg_hex(const uint8_t* bin, const size_t len)
 {
     if (len > UTIL_DBG_HEX_MAX_LEN) {
-        util_log("len too large, %zu > %d", len, UTIL_DBG_HEX_MAX_LEN);
+        util_log("len too large, %u > %d", (unsigned int)len, UTIL_DBG_HEX_MAX_LEN);
     }
     static char buf[UTIL_DBG_HEX_MAX_LEN * 2 + 1] = {0};
-    util_uint8_to_hex(bin, len, buf);
+    util_uint8_to_hex(bin, MIN(len, (unsigned int)UTIL_DBG_HEX_MAX_LEN), buf);
     return buf;
 }
 
@@ -70,7 +70,7 @@ void util_cleanup_64(uint8_t** buf)
 }
 
 // Max message size is MAX_LOG_LENGTH-1, becuase vsnprintf will always print a null character
-#define MAX_LOG_LENGTH 101
+#define MAX_LOG_LENGTH 200
 
 void util_log(const char* fmt, ...)
 {

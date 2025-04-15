@@ -99,6 +99,7 @@ target_include_directories(
   bitbox_objects
   SYSTEM PUBLIC
   ${CMAKE_SOURCE_DIR}/external
+  ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
@@ -118,6 +119,7 @@ target_include_directories(
   bitbox
   SYSTEM PUBLIC
   ${CMAKE_SOURCE_DIR}/external
+  ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
   ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
@@ -145,13 +147,13 @@ add_dependencies(bitbox_objects
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
 target_compile_definitions(bitbox_objects PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
-target_compile_definitions(bitbox_objects PUBLIC TESTING)
+target_compile_definitions(bitbox_objects PUBLIC TESTING _UNIT_TEST_)
 
 # Since wallycore is an external projects we need to specify the dependency
 add_dependencies(bitbox_objects libwally-core)
 
 target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
-target_compile_definitions(bitbox PUBLIC TESTING)
+target_compile_definitions(bitbox PUBLIC TESTING _UNIT_TEST_)
 
 target_link_libraries(bitbox
   PUBLIC
@@ -195,7 +197,7 @@ target_include_directories(
   ${INCLUDES}
   ${CMAKE_BINARY_DIR}/src
 )
-target_compile_definitions(u2f-util PUBLIC "TESTING" PRODUCT_BITBOX_MULTI "APP_U2F=1" "APP_BTC=1" "APP_LTC=1" "APP_ETH=1")
+target_compile_definitions(u2f-util PUBLIC "TESTING" _UNIT_TEST_ PRODUCT_BITBOX_MULTI "APP_U2F=1" "APP_BTC=1" "APP_LTC=1" "APP_ETH=1")
 target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")
 
 

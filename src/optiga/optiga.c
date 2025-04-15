@@ -776,9 +776,8 @@ static int _write_arbitrary_data(const arbitrary_data_t* data)
         sizeof(data->bytes));
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("could not write arbitrary %x", res);
-        return res;
     }
-    return 0;
+    return res;
 }
 #endif
 
@@ -981,7 +980,7 @@ static int _configure_object_arbitrary_data(void)
     }
     if (lcso >= LCSO_STATE_OPERATIONAL) {
         util_log("_configure_object_arbitrary_data: already setup");
-        return 0;
+        return OPTIGA_LIB_SUCCESS;
     }
     util_log("_configure_object_arbitrary_data: setting up");
 
@@ -994,11 +993,11 @@ static int _configure_object_arbitrary_data(void)
     // Initialize arbitrary data, all zeroes.
     const arbitrary_data_t arbitrary_data = {0};
     int write_res = _write_arbitrary_data(&arbitrary_data);
-    if (write_res) {
+    if (write_res != OPTIGA_LIB_SUCCESS) {
         util_log("could not initialize arbitrary data");
         return write_res;
     }
-    return 0;
+    return OPTIGA_LIB_SUCCESS;
 }
 
 static int _configure_object_counter(void)
@@ -1799,7 +1798,7 @@ bool optiga_u2f_counter_set(uint32_t counter)
         return false;
     }
     data.fields.u2f_counter = counter;
-    return _write_arbitrary_data(&data) == 0;
+    return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
 }
 #endif
 
@@ -1812,7 +1811,8 @@ bool optiga_u2f_counter_inc(uint32_t* counter)
     }
     data.fields.u2f_counter += 1;
     *counter = data.fields.u2f_counter;
-    return _write_arbitrary_data(&data);
+
+    return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
 }
 #endif
 

@@ -16,7 +16,7 @@ use super::pb;
 use super::Error;
 use pb::EthCoin;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
 use util::bip32::HARDENED;
 
@@ -124,27 +124,33 @@ pub fn is_known_network(coin: Option<EthCoin>, chain_id: u64) -> bool {
 /// If no params could be found and `chain_id` is non-zero, the user is asked to confirm the chain
 /// ID, and params with this chain ID and "UNKNOWN" name is returned. The main reason for this is
 /// that users can rescue funds sent on an unsupported network.
-pub async fn get_and_warn_unknown(coin: Option<EthCoin>, chain_id: u64) -> Result<Params, Error> {
+pub async fn get_and_warn_unknown<W: Workflows>(
+    workflows: &mut W,
+    coin: Option<EthCoin>,
+    chain_id: u64,
+) -> Result<Params, Error> {
     match get(coin, chain_id) {
         Some(params) => Ok(*params),
         None => {
             if chain_id == 0 {
                 Err(Error::InvalidInput)
             } else {
-                confirm::confirm(&confirm::Params {
-                    title: "Warning",
-                    body: &format!("Unknown network\nwith chain ID:\n{}", chain_id),
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
-                confirm::confirm(&confirm::Params {
-                    title: "Warning",
-                    body: "Only proceed if\nyou recognize\nthis chain ID.",
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
+                workflows
+                    .confirm(&confirm::Params {
+                        title: "Warning",
+                        body: &format!("Unknown network\nwith chain ID:\n{}", chain_id),
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
+                workflows
+                    .confirm(&confirm::Params {
+                        title: "Warning",
+                        body: "Only proceed if\nyou recognize\nthis chain ID.",
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
                 Ok(Params {
                     coin: None,
                     bip44_coin: 60 + HARDENED,

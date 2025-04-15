@@ -19,7 +19,7 @@ use super::Error;
 
 use bitbox02::keystore;
 
-use crate::workflow::{confirm, status, transaction, Workflows};
+use crate::workflow::{confirm, transaction, Workflows};
 
 use alloc::vec::Vec;
 use pb::eth_response::Response;
@@ -242,37 +242,41 @@ async fn verify_erc20_transaction<W: Workflows>(
 /// experts that know the expected encoding of a smart contract invocation.
 ///
 /// The transacted value, recipient address, total and fee are confirmed.
-async fn verify_standard_transaction(
+async fn verify_standard_transaction<W: Workflows>(
+    workflows: &mut W,
     request: &Transaction<'_>,
     params: &Params,
 ) -> Result<(), Error> {
     let recipient = parse_recipient(request.recipient())?;
 
     if !request.data().is_empty() {
-        confirm::confirm(&confirm::Params {
-            title: "Unknown\ncontract",
-            body: "You will be shown\nthe raw\ntransaction data.",
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
-        confirm::confirm(&confirm::Params {
-            title: "Unknown\ncontract",
-            body: "Only proceed if you\nunderstand exactly\nwhat the data means.",
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Unknown\ncontract",
+                body: "You will be shown\nthe raw\ntransaction data.",
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Unknown\ncontract",
+                body: "Only proceed if you\nunderstand exactly\nwhat the data means.",
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
 
-        confirm::confirm(&confirm::Params {
-            title: "Transaction\ndata",
-            body: &hex::encode(request.data()),
-            scrollable: true,
-            display_size: request.data().len(),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Transaction\ndata",
+                body: &hex::encode(request.data()),
+                scrollable: true,
+                display_size: request.data().len(),
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
@@ -281,7 +285,9 @@ async fn verify_standard_transaction(
         decimals: WEI_DECIMALS,
         value: BigUint::from_bytes_be(request.value()),
     };
-    transaction::verify_recipient(&address, &amount.format()).await?;
+    workflows
+        .verify_recipient(&address, &amount.format())
+        .await?;
 
     let fee = parse_fee(request, params);
     let total = Amount {
@@ -305,21 +311,24 @@ pub async fn process<W: Workflows>(
     workflows: &mut W,
     request: &Transaction<'_>,
 ) -> Result<Response, Error> {
-    let params = super::params::get_and_warn_unknown(request.coin()?, request.chain_id()).await?;
+    let params =
+        super::params::get_and_warn_unknown(workflows, request.coin()?, request.chain_id()).await?;
 
     if !super::keypath::is_valid_keypath_address(request.keypath()) {
         return Err(Error::InvalidInput);
     }
-    super::keypath::warn_unusual_keypath(&params, params.name, request.keypath()).await?;
+    super::keypath::warn_unusual_keypath(workflows, &params, params.name, request.keypath())
+        .await?;
 
     // Show chain confirmation only for known networks
     if super::params::is_known_network(request.coin()?, request.chain_id()) {
-        confirm::confirm(&confirm::Params {
-            body: &format!("Sign transaction on\n\n{}", params.name),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                body: &format!("Sign transaction on\n\n{}", params.name),
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     // Size limits.
@@ -374,13 +383,13 @@ pub async fn process<W: Workflows>(
     let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
         verify_erc20_transaction(workflows, request, &params, erc20_recipient, erc20_value).await
     } else {
-        verify_standard_transaction(request, &params).await
+        verify_standard_transaction(workflows, request, &params).await
     };
     match verification_result {
-        Ok(()) => status::status("Transaction\nconfirmed", true).await,
+        Ok(()) => workflows.status("Transaction\nconfirmed", true).await,
         Err(err) => {
             if err == Error::UserAbort {
-                status::status("Transaction\ncanceled", false).await;
+                workflows.status("Transaction\ncanceled", false).await;
             }
             return Err(err);
         }

@@ -20,12 +20,16 @@ use pb::eth_response::Response;
 
 use crate::bip32;
 use crate::keystore;
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
-async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error> {
+async fn process_address<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::EthPubRequest,
+) -> Result<Response, Error> {
     let coin = pb::EthCoin::try_from(request.coin)?;
 
-    let params = super::params::get_and_warn_unknown(Some(coin), request.chain_id).await?;
+    let params =
+        super::params::get_and_warn_unknown(workflows, Some(coin), request.chain_id).await?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<erc20_params::Params> = if request.contract_address.is_empty() {
         None
@@ -51,15 +55,16 @@ async fn process_address(request: &pb::EthPubRequest) -> Result<Response, Error>
             Some(erc20_params) => format!("{}\n{}", params.name, erc20_params.unit),
             None => params.name.into(),
         };
-        super::keypath::warn_unusual_keypath(&params, &title, &request.keypath).await?;
-        confirm::confirm(&confirm::Params {
-            title: &title,
-            title_autowrap: true,
-            body: &address,
-            scrollable: true,
-            ..Default::default()
-        })
-        .await?;
+        super::keypath::warn_unusual_keypath(workflows, &params, &title, &request.keypath).await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: &title,
+                title_autowrap: true,
+                body: &address,
+                scrollable: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
@@ -81,10 +86,13 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
 
-pub async fn process(request: &pb::EthPubRequest) -> Result<Response, Error> {
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::EthPubRequest,
+) -> Result<Response, Error> {
     let output_type = OutputType::try_from(request.output_type)?;
     match output_type {
-        OutputType::Address => process_address(request).await,
+        OutputType::Address => process_address(workflows, request).await,
         OutputType::Xpub => process_xpub(request),
     }
 }
@@ -94,6 +102,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
@@ -113,39 +122,26 @@ mod tests {
         // All good.
         mock_unlocked();
         assert_eq!(
-            block_on(process(&request)),
+            block_on(process(&mut TestingWorkflows::new(), &request)),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: EXPECTED_XPUB.into()
             }))
         );
 
-        // Params not found.
-        let mut invalid_request = request.clone();
-        invalid_request.coin = 100;
-        mock(Data {
-            ..Default::default()
-        });
-        assert_eq!(
-            block_on(process(&invalid_request)),
-            Err(Error::InvalidInput)
-        );
-
         // Wrong keypath (wrong expected coin)
         let mut invalid_request = request.clone();
         invalid_request.keypath[1] = 61 + HARDENED;
-        mock(Data {
-            ..Default::default()
-        });
         assert_eq!(
-            block_on(process(&invalid_request)),
+            block_on(process(&mut TestingWorkflows::new(), &invalid_request)),
             Err(Error::InvalidInput)
         );
 
         // xpub fetching/encoding failed.
-        mock(Data {
-            ..Default::default()
-        });
-        assert_eq!(block_on(process(&request)), Err(Error::InvalidInput));
+        bitbox02::keystore::lock();
+        assert_eq!(
+            block_on(process(&mut TestingWorkflows::new(), &request)),
+            Err(Error::InvalidInput)
+        );
     }
 
     #[test]
@@ -162,132 +158,123 @@ mod tests {
         };
 
         // All good.
-        mock(Data {
-            ..Default::default()
-        });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&request)),
+            block_on(process(&mut TestingWorkflows::new(), &request)),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
         );
 
         // All good, with display.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, "Ethereum");
-                assert_eq!(params.body, ADDRESS);
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&pb::EthPubRequest {
-                output_type: OutputType::Address as _,
-                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                coin: pb::EthCoin::Eth as _,
-                display: true,
-                contract_address: b"".to_vec(),
-                chain_id: 0,
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::EthPubRequest {
+                    output_type: OutputType::Address as _,
+                    keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                    coin: pb::EthCoin::Eth as _,
+                    display: true,
+                    contract_address: b"".to_vec(),
+                    chain_id: 0,
+                }
+            )),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
         );
-
-        static mut CONFIRM_COUNTER: u32 = 0;
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Ethereum".into(),
+                body: ADDRESS.into(),
+                longtouch: false,
+            }]
+        );
 
         // All good, with display, unusual keypath.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Sepolia");
-                        assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Sepolia");
-                        assert_eq!(params.body, ADDRESS);
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&pb::EthPubRequest {
-                output_type: OutputType::Address as _,
-                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                coin: pb::EthCoin::Eth as _,
-                display: true,
-                contract_address: b"".to_vec(),
-                chain_id: 11155111,
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::EthPubRequest {
+                    output_type: OutputType::Address as _,
+                    keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                    coin: pb::EthCoin::Eth as _,
+                    display: true,
+                    contract_address: b"".to_vec(),
+                    chain_id: 11155111,
+                }
+            )),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sepolia".into(),
+                    body: "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sepolia".into(),
+                    body: ADDRESS.into(),
+                    longtouch: false,
+                },
+            ]
+        );
 
         // Keystore locked.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|_| true)),
-            ..Default::default()
-        });
+        bitbox02::keystore::lock();
         assert_eq!(
-            block_on(process(&pb::EthPubRequest {
-                output_type: OutputType::Address as _,
-                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                coin: pb::EthCoin::Eth as _,
-                display: true,
-                contract_address: b"".to_vec(),
-                chain_id: 0,
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::EthPubRequest {
+                    output_type: OutputType::Address as _,
+                    keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                    coin: pb::EthCoin::Eth as _,
+                    display: true,
+                    contract_address: b"".to_vec(),
+                    chain_id: 0,
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
         // Params not found.
         let mut invalid_request = request.clone();
         invalid_request.coin = 100;
-        mock(Data {
-            ..Default::default()
-        });
         assert_eq!(
-            block_on(process(&invalid_request)),
+            block_on(process(&mut TestingWorkflows::new(), &invalid_request)),
             Err(Error::InvalidInput)
         );
 
         // Wrong keypath (wrong expected coin)
         let mut invalid_request = request.clone();
         invalid_request.keypath[1] = 61 + HARDENED;
-        mock(Data {
-            ..Default::default()
-        });
         assert_eq!(
-            block_on(process(&invalid_request)),
+            block_on(process(&mut TestingWorkflows::new(), &invalid_request)),
             Err(Error::InvalidInput)
         );
 
         // Wrong keypath (account too high)
-        mock(Data {
-            ..Default::default()
-        });
         assert_eq!(
-            block_on(process(&pb::EthPubRequest {
-                output_type: OutputType::Address as _,
-                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100].to_vec(),
-                coin: pb::EthCoin::Eth as _,
-                display: false,
-                contract_address: b"".to_vec(),
-                chain_id: 0,
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::EthPubRequest {
+                    output_type: OutputType::Address as _,
+                    keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100].to_vec(),
+                    coin: pb::EthCoin::Eth as _,
+                    display: false,
+                    contract_address: b"".to_vec(),
+                    chain_id: 0,
+                }
+            )),
             Err(Error::InvalidInput)
         );
     }
@@ -308,54 +295,55 @@ mod tests {
         };
 
         // All good.
-        mock(Data {
-            ..Default::default()
-        });
         mock_unlocked();
         assert_eq!(
-            block_on(process(&request)),
+            block_on(process(&mut TestingWorkflows::new(), &request)),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
         );
 
         // All good, with display.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, "Ethereum\nUSDT");
-                assert_eq!(params.body, ADDRESS);
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&pb::EthPubRequest {
-                output_type: OutputType::Address as _,
-                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                coin: pb::EthCoin::Eth as _,
-                display: true,
-                contract_address: CONTRACT_ADDRESS.to_vec(),
-                chain_id: 0,
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::EthPubRequest {
+                    output_type: OutputType::Address as _,
+                    keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                    coin: pb::EthCoin::Eth as _,
+                    display: true,
+                    contract_address: CONTRACT_ADDRESS.to_vec(),
+                    chain_id: 0,
+                }
+            )),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
         );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Ethereum\nUSDT".into(),
+                body: ADDRESS.into(),
+                longtouch: false,
+            }]
+        );
 
         // ERC20 params not found / invalid contract address.
-        mock(Data {
-            ..Default::default()
-        });
         assert_eq!(
-            block_on(process(&pb::EthPubRequest {
-                output_type: OutputType::Address as _,
-                keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                coin: pb::EthCoin::Eth as _,
-                display: false,
-                contract_address: b"aaaaaaaaaaaaaaaaaaaa".to_vec(),
-                chain_id: 0,
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::EthPubRequest {
+                    output_type: OutputType::Address as _,
+                    keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                    coin: pb::EthCoin::Eth as _,
+                    display: false,
+                    contract_address: b"aaaaaaaaaaaaaaaaaaaa".to_vec(),
+                    chain_id: 0,
+                }
+            )),
             Err(Error::InvalidInput)
         );
     }

@@ -66,15 +66,19 @@ pub fn process_is_script_config_registered(
     }
 }
 
-async fn get_name(request: &pb::BtcRegisterScriptConfigRequest) -> Result<String, Error> {
+async fn get_name<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::BtcRegisterScriptConfigRequest,
+) -> Result<String, Error> {
     let name = if request.name.is_empty() {
-        confirm::confirm(&confirm::Params {
-            title: "Register",
-            body: "Please name this\naccount",
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Register",
+                body: "Please name this\naccount",
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
 
         let name = trinary_input_string::enter(
             &trinary_input_string::Params {
@@ -115,7 +119,7 @@ pub async fn process_register_script_config<W: Workflows>(
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
-            let name = get_name(request).await?;
+            let name = get_name(workflows, request).await?;
             super::multisig::validate(multisig, keypath)?;
             let xpub_type = XPubType::try_from(request.xpub_type)?;
             super::multisig::confirm_extended(
@@ -150,7 +154,7 @@ pub async fn process_register_script_config<W: Workflows>(
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
-            let name = get_name(request).await?;
+            let name = get_name(workflows, request).await?;
             let parsed = super::policies::parse(policy, coin)?;
             parsed
                 .confirm(

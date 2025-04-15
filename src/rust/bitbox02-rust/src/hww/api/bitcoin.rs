@@ -99,7 +99,8 @@ fn coin_enabled(coin: pb::BtcCoin) -> Result<(), Error> {
 }
 
 /// Processes an xpub api call.
-async fn xpub(
+async fn xpub<W: Workflows>(
+    workflows: &mut W,
     coin: BtcCoin,
     xpub_type: XPubType,
     keypath: &[u32],
@@ -110,17 +111,18 @@ async fn xpub(
         keypath::validate_xpub(keypath, params.bip44_coin, params.taproot_support).is_err();
     if is_unusual {
         // For unusual keypaths, we allow export after a confirmation.
-        confirm::confirm(&confirm::Params {
-            title: if display { "xpub" } else { "Export xpub" },
-            body: &format!(
-                "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
-                util::bip32::to_string(keypath)
-            ),
-            scrollable: true,
-            longtouch: true,
-            ..Default::default()
-        })
-        .await?
+        workflows
+            .confirm(&confirm::Params {
+                title: if display { "xpub" } else { "Export xpub" },
+                body: &format!(
+                    "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
+                    util::bip32::to_string(keypath)
+                ),
+                scrollable: true,
+                longtouch: true,
+                ..Default::default()
+            })
+            .await?
     }
     let xpub = keystore::get_xpub(keypath)
         .or(Err(Error::InvalidInput))?
@@ -140,7 +142,7 @@ async fn xpub(
             scrollable: true,
             ..Default::default()
         };
-        confirm::confirm(&confirm_params).await?;
+        workflows.confirm(&confirm_params).await?;
     }
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
@@ -169,7 +171,8 @@ pub fn derive_address_simple(
 }
 
 /// Processes a SimpleType (single-sig) address api call.
-async fn address_simple(
+async fn address_simple<W: Workflows>(
+    workflows: &mut W,
     coin: BtcCoin,
     simple_type: SimpleType,
     keypath: &[u32],
@@ -183,7 +186,7 @@ async fn address_simple(
             scrollable: true,
             ..Default::default()
         };
-        confirm::confirm(&confirm_params).await?;
+        workflows.confirm(&confirm_params).await?;
     }
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
@@ -280,13 +283,27 @@ pub async fn process_pub<W: Workflows>(
         None => Err(Error::InvalidInput),
         Some(Output::XpubType(xpub_type)) => {
             let xpub_type = XPubType::try_from(xpub_type)?;
-            xpub(coin, xpub_type, &request.keypath, request.display).await
+            xpub(
+                workflows,
+                coin,
+                xpub_type,
+                &request.keypath,
+                request.display,
+            )
+            .await
         }
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::SimpleType(simple_type)),
         })) => {
             let simple_type = SimpleType::try_from(simple_type)?;
-            address_simple(coin, simple_type, &request.keypath, request.display).await
+            address_simple(
+                workflows,
+                coin,
+                simple_type,
+                &request.keypath,
+                request.display,
+            )
+            .await
         }
         Some(Output::ScriptConfig(BtcScriptConfig {
             config: Some(Config::Multisig(ref multisig)),
@@ -327,7 +344,7 @@ mod tests {
 
     use crate::bb02_async::block_on;
     use crate::bip32::parse_xpub;
-    use crate::workflow::RealWorkflows; // instead of TestingWorkflows until the tests are migrated
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     use bitbox02::testing::{
@@ -482,7 +499,7 @@ mod tests {
             };
 
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows, &req)),
+                block_on(process_pub(&mut TestingWorkflows::new(), &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
                 })),
@@ -490,41 +507,33 @@ mod tests {
 
             // With display.
             req.display = true;
-            let expected_display_title = test.expected_display_title;
-            let expected_xpub = test.expected_xpub;
-            mock(Data {
-                ui_confirm_create: Some(Box::new(move |params| {
-                    assert_eq!(params.title, expected_display_title);
-                    assert_eq!(params.body, expected_xpub);
-                    assert!(params.scrollable);
-                    true
-                })),
-                ..Default::default()
-            });
             mock_unlocked_using_mnemonic(test.mnemonic, "");
+
+            let mut mock_workflows = TestingWorkflows::new();
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows,&req)),
+                block_on(process_pub(&mut mock_workflows ,&req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
                 })),
             );
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    Screen::Confirm {
+                        title: test.expected_display_title.into(),
+                        body: test.expected_xpub.into(),
+                        longtouch: false,
+                    },
+                ]);
         }
 
         {
             // --- Unusual keypath, no display (still forces confirmation of unusual keypath)
-            mock(Data {
-                ui_confirm_create: Some(Box::new(move |params| {
-                    assert_eq!(params.title, "Export xpub");
-                    assert_eq!(params.body, "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.");
-                    assert!(params.scrollable);
-                    assert!(params.longtouch);
-                    true
-                })),
-                ..Default::default()
-            });
             mock_unlocked();
+
+            let mut mock_workflows = TestingWorkflows::new();
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows, &pb::BtcPubRequest {
+                block_on(process_pub(&mut mock_workflows, &pb::BtcPubRequest {
                     coin: BtcCoin::Btc as _,
                     keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
                     display: false,
@@ -534,37 +543,25 @@ mod tests {
                     r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
                 }))
             );
+
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    Screen::Confirm {
+                        title: "Export xpub".into(),
+                        body: "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.".into(),
+                        longtouch: true,
+                    },
+                ]);
         }
 
         {
             // --- Unusual keypath, with display
-            static mut UI_COUNTER: u32 = 0;
-            mock(Data {
-                ui_confirm_create: Some(Box::new(move |params| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        1 => {
-                            assert_eq!(params.title, "xpub");
-                            assert_eq!(params.body, "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.");
-                            assert!(params.scrollable);
-                            assert!(params.longtouch);
-                        }
-                        2 => {
-                            assert_eq!(params.title, "");
-                            assert_eq!(params.body, "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E");
-                            assert!(params.scrollable);
-                        }
-                        _ => panic!("too many dialogs"),
-                    }
-                    true
-                })),
-                ..Default::default()
-            });
             mock_unlocked();
+
+            let mut mock_workflows = TestingWorkflows::new();
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows, &pb::BtcPubRequest {
+                block_on(process_pub(&mut mock_workflows, &pb::BtcPubRequest {
                     coin: BtcCoin::Btc as _,
                     keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
                     display: true,
@@ -574,6 +571,20 @@ mod tests {
                     r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
                 }))
             );
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    Screen::Confirm {
+                        title: "xpub".into(),
+                        body: "Warning: unusual keypath m/1'/2'/3'/4. Proceed only if you know what you are doing.".into(),
+                        longtouch: true,
+                    },
+                    Screen::Confirm {
+                        title: "".into(),
+                        body: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
+                        longtouch: false,
+                    },
+                ]);
         }
 
         let req = pb::BtcPubRequest {
@@ -586,11 +597,11 @@ mod tests {
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut TestingWorkflows::new(), &req_invalid)).is_err());
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Rbtc as i32 + 1;
-        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut TestingWorkflows::new(), &req_invalid)).is_err());
     }
 
     #[test]
@@ -789,7 +800,7 @@ mod tests {
             // Without display.
             mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows, &req)),
+                block_on(process_pub(&mut TestingWorkflows::new(), &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),
@@ -797,24 +808,23 @@ mod tests {
 
             // With display.
             req.display = true;
-            let expected_display_title = test.expected_display_title;
-            let expected_address = test.expected_address;
-            mock(Data {
-                ui_confirm_create: Some(Box::new(move |params| {
-                    assert_eq!(params.title, expected_display_title);
-                    assert_eq!(params.body, expected_address);
-                    assert!(params.scrollable);
-                    true
-                })),
-                ..Default::default()
-            });
             mock_unlocked_using_mnemonic(test.mnemonic, "");
+            let mut mock_workflows = TestingWorkflows::new();
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows, &req)),
+                block_on(process_pub(&mut mock_workflows, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into()
                 })),
             );
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    Screen::Confirm {
+                        title: test.expected_display_title.into(),
+                        body: test.expected_address.into(),
+                        longtouch: false,
+                    },
+                ]);
         }
 
         // --- Negative tests
@@ -828,22 +838,22 @@ mod tests {
                 config: Some(Config::SimpleType(SimpleType::P2wpkhP2sh as _)),
             })),
         };
-        assert!(block_on(process_pub(&mut RealWorkflows, &req)).is_ok());
+        assert!(block_on(process_pub(&mut TestingWorkflows::new(), &req)).is_ok());
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut TestingWorkflows::new(), &req_invalid)).is_err());
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
-        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut TestingWorkflows::new(), &req_invalid)).is_err());
         // -- Wrong keypath
         let mut req_invalid = req.clone();
         req_invalid.keypath = [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 10000].to_vec();
-        assert!(block_on(process_pub(&mut RealWorkflows, &req_invalid)).is_err());
+        assert!(block_on(process_pub(&mut TestingWorkflows::new(), &req_invalid)).is_err());
         // -- No taproot in Litecoin
         assert!(block_on(process_pub(
-            &mut RealWorkflows,
+            &mut TestingWorkflows::new(),
             &pb::BtcPubRequest {
                 coin: BtcCoin::Ltc as _,
                 keypath: [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
@@ -1006,36 +1016,7 @@ mod tests {
         ];
         for test in tests.iter() {
             mock_memory();
-            unsafe { UI_COUNTER = 0 };
             let name = "some name";
-            let expected_info = test.expected_info;
-            let expected_address = test.expected_address;
-            mock(Data {
-                ui_confirm_create: Some(Box::new(move |params| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        1 => {
-                            assert_eq!(params.title, "Receive to");
-                            assert_eq!(params.body, expected_info);
-                            true
-                        }
-                        2 => {
-                            assert_eq!(params.title, "Receive to");
-                            assert_eq!(params.body, name);
-                            true
-                        }
-                        3 => {
-                            assert_eq!(params.title, "Receive to");
-                            assert_eq!(params.body, expected_address);
-                            true
-                        }
-                        _ => panic!("too many dialogs"),
-                    }
-                })),
-                ..Default::default()
-            });
             mock_unlocked_using_mnemonic(
                 "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
                 "",
@@ -1066,13 +1047,34 @@ mod tests {
                     config: Some(Config::Multisig(multisig)),
                 })),
             };
+
+            let mut mock_workflows = TestingWorkflows::new();
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows, &req)),
+                block_on(process_pub(&mut mock_workflows, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),
             );
-            assert_eq!(unsafe { UI_COUNTER }, 3);
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    Screen::Confirm {
+                        title: "Receive to".into(),
+                        body: test.expected_info.into(),
+                        longtouch: false,
+                    },
+                    Screen::Confirm {
+                        title: "Receive to".into(),
+                        body: name.into(),
+                        longtouch: false,
+                    },
+                    Screen::Confirm {
+                        title: "Receive to".into(),
+                        body: test.expected_address.into(),
+                        longtouch: false,
+                    },
+                ]
+            );
         }
     }
 
@@ -1216,7 +1218,7 @@ mod tests {
                 })),
             };
             assert_eq!(
-                block_on(process_pub(&mut RealWorkflows, &req)),
+                block_on(process_pub(&mut TestingWorkflows::new(), &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),

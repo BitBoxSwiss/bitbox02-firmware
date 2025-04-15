@@ -49,7 +49,7 @@ pub async fn process<W: Workflows>(
 
     // Verify address. We don't need the actual result, but we have to propagate validation or user
     // abort errors.
-    super::pubrequest::process(&pub_request).await?;
+    super::pubrequest::process(workflows, &pub_request).await?;
 
     verify_message::verify(workflows, "Sign message", "Sign", &request.msg, true).await?;
 
@@ -96,49 +96,26 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::RealWorkflows; // instead of TestingWorkflows until the tests are migrated
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
 
     const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-    const MESSAGE: &[u8] = b"message";
+    const MESSAGE: &str = "message";
     const EXPECTED_ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
 
     #[test]
     pub fn test_process() {
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Ethereum");
-                        assert_eq!(params.body, EXPECTED_ADDRESS);
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body.as_bytes(), MESSAGE);
-                        assert!(params.longtouch);
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &pb::EthSignMessageRequest {
+            block_on(process(&mut mock_workflows, &pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                msg: MESSAGE.to_vec(),
+                msg: MESSAGE.as_bytes().to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
             })),
@@ -147,53 +124,60 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Ethereum".into(),
+                    body: EXPECTED_ADDRESS.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
     }
 
     #[test]
     pub fn test_process_warn_unusual_keypath() {
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Sepolia");
-                        assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Sepolia");
-                        assert_eq!(params.body, EXPECTED_ADDRESS);
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body.as_bytes(), MESSAGE);
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         block_on(process(
-            &mut RealWorkflows,
+            &mut mock_workflows,
             &pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                msg: MESSAGE.to_vec(),
+                msg: MESSAGE.as_bytes().to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 11155111,
             },
         ))
         .unwrap();
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sepolia".into(),
+                    body: "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sepolia".into(),
+                    body: EXPECTED_ADDRESS.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
     }
 
     #[test]
@@ -201,61 +185,52 @@ mod tests {
         let request = pb::EthSignMessageRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
-            msg: MESSAGE.to_vec(),
+            msg: MESSAGE.as_bytes().to_vec(),
             host_nonce_commitment: None,
             chain_id: 0,
         };
 
         static mut CONFIRM_COUNTER: u32 = 0;
 
-        // User abort address verification.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Ethereum");
-                        assert_eq!(params.body, EXPECTED_ADDRESS);
-                        false
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
+        // User abort address verification.
+        mock_workflows.abort_nth(0);
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &request)),
+            block_on(process(&mut mock_workflows, &request)),
             Err(Error::UserAbort)
         );
-
-        // User abort message verification.
-        unsafe {
-            CONFIRM_COUNTER = 0;
-        }
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => true,
-                    2 => {
-                        assert_eq!(params.title, "Sign message");
-                        assert_eq!(params.body.as_bytes(), MESSAGE);
-                        false
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
-        mock_unlocked();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &request)),
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Ethereum".into(),
+                body: EXPECTED_ADDRESS.into(),
+                longtouch: false,
+            }],
+        );
+
+        mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
+        // User abort message verification.
+        mock_workflows.abort_nth(1);
+        assert_eq!(
+            block_on(process(&mut mock_workflows, &request)),
             Err(Error::UserAbort)
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Ethereum".into(),
+                    body: EXPECTED_ADDRESS.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ],
         );
     }
 
@@ -266,7 +241,7 @@ mod tests {
         // Message too long
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::EthSignMessageRequest {
                     coin: pb::EthCoin::Eth as _,
                     keypath: KEYPATH.to_vec(),
@@ -279,12 +254,10 @@ mod tests {
         );
 
         // Keystore locked.
-        mock(Data {
-            ..Default::default()
-        });
+        keystore::lock();
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &pb::EthSignMessageRequest {
                     coin: pb::EthCoin::Eth as _,
                     keypath: KEYPATH.to_vec(),

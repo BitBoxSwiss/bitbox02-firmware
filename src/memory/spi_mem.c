@@ -14,6 +14,8 @@
 
 #include "spi_mem.h"
 #include "bitbox02_pins.h"
+#include "random.h"
+#include "screen.h"
 #include "util.h"
 #include <hal_delay.h>
 #include <spi_lite.h>
@@ -24,23 +26,33 @@
 #define SECTOR_MASK 0xFFFFF000
 #define MEMORY_LIMIT (SPI_MEM_MEMORY_SIZE - 1)
 #define SR_WIP 0x01
+#define SR_PROTECT_BITS_MASK 0x3C
+#define SR_PROTECT_BITS_SHIFT 2
+#define SR_PROTECT_BITS (SPI_MEM_PROTECTED_BLOCKS << SR_PROTECT_BITS_SHIFT)
+#define CR1_TB_BIT_BOTTOM 0x8
+#define CR1_TB_BIT_MASK 0x8
 #define CMD_READ 0x03
 #define CMD_WREN 0x06
+#define CMD_WRSR 0x01
 #define CMD_SE 0x20
 #define CMD_PP 0x02
 #define CMD_RDSR 0x05
+#define CMD_RDCR 0x15
 #define CMD_CE 0x60
 
+// Drives the chip select pin low
 static void _spi_mem_cs_low(void)
 {
     gpio_set_pin_level(PIN_MEM_CS, 0);
 }
 
+// Drives the chip select pin high
 static void _spi_mem_cs_high(void)
 {
     gpio_set_pin_level(PIN_MEM_CS, 1);
 }
 
+// Reads the status register
 static uint8_t _spi_mem_read_sr(void)
 {
     uint8_t buffer[2] = {0};
@@ -51,6 +63,60 @@ static uint8_t _spi_mem_read_sr(void)
     return buffer[1];
 }
 
+// Reads the configuration register
+static void _spi_mem_read_cr(uint8_t* data_out)
+{
+    uint8_t buffer[3] = {0};
+    buffer[0] = CMD_RDCR;
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(buffer, 3);
+    _spi_mem_cs_high();
+
+    memcpy(data_out, &buffer[1], 2);
+}
+
+// Waits until the WIP bits goes low
+static void _spi_mem_wait(void)
+{
+    uint8_t status;
+    do {
+        status = _spi_mem_read_sr();
+    } while (status & SR_WIP);
+}
+
+// Set write enable bit
+static void _spi_mem_write_enable(void)
+{
+    uint8_t cmd = CMD_WREN;
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(&cmd, 1);
+    _spi_mem_cs_high();
+}
+
+// Verify if the given address is protected
+static bool _spi_mem_verify_address_protected(uint32_t address)
+{
+    uint8_t protected_blocks = (_spi_mem_read_sr() & SR_PROTECT_BITS_MASK) >> SR_PROTECT_BITS_SHIFT;
+    if (address < (protected_blocks * SPI_MEM_BLOCK_SIZE)) {
+        return true;
+    }
+    return false;
+}
+
+// Write the status and configuration registers
+static void _spi_mem_write_sr(uint8_t* data_in)
+{
+    _spi_mem_write_enable();
+    uint8_t buffer[4] = {0};
+    buffer[0] = CMD_WRSR;
+    memcpy(&buffer[1], data_in, 3);
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(buffer, 4);
+    _spi_mem_cs_high();
+    _spi_mem_wait();
+}
+
+// Reads `size` bytes starting from `address` and writes the data into `buffer`
 static void _spi_mem_read(uint32_t address, size_t size, uint8_t* buffer)
 {
     buffer[0] = CMD_READ;
@@ -64,31 +130,21 @@ static void _spi_mem_read(uint32_t address, size_t size, uint8_t* buffer)
     _spi_mem_cs_high();
 }
 
-static void _spi_mem_wait(void)
+bool spi_mem_full_erase(void)
 {
-    uint8_t status;
-    do {
-        status = _spi_mem_read_sr();
-    } while (status & SR_WIP);
-}
+    if (_spi_mem_read_sr() & SR_PROTECT_BITS_MASK) {
+        util_log("Cannot erase with protected area locked.");
+        return false;
+    }
+    _spi_mem_write_enable();
 
-void spi_mem_full_erase(void)
-{
-    uint8_t buffer[2];
-
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
+    uint8_t cmd = CMD_CE;
     _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
-
-    // --- Chip Erase ---
-    buffer[0] = CMD_CE;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
+    SPI_MEM_exchange_block(&cmd, 1);
     _spi_mem_cs_high();
 
     _spi_mem_wait();
+    return true;
 }
 
 bool spi_mem_sector_erase(uint32_t sector_addr)
@@ -97,15 +153,15 @@ bool spi_mem_sector_erase(uint32_t sector_addr)
         util_log("Invalid sector address %p", (void*)(uintptr_t)sector_addr);
         return false;
     }
+    if (_spi_mem_verify_address_protected(sector_addr)) {
+        util_log("Sector address %p protected", (void*)(uintptr_t)sector_addr);
+        return false;
+    }
 
-    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
+    _spi_mem_write_enable();
 
     // --- Sector Erase (write 4 bytes) ---
+    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
     buffer[0] = CMD_SE;
     buffer[1] = (sector_addr >> 16) & 0xFF;
     buffer[2] = (sector_addr >> 8) & 0xFF;
@@ -156,6 +212,7 @@ uint8_t* spi_mem_read(uint32_t address, size_t size)
     return buffer;
 }
 
+// Writes SPI_MEM_PAGE_SIZE bytes from `input` at `page_addr`
 static bool _spi_mem_page_write(uint32_t page_addr, const uint8_t* input)
 {
     if (page_addr % SPI_MEM_PAGE_SIZE != 0) {
@@ -163,14 +220,15 @@ static bool _spi_mem_page_write(uint32_t page_addr, const uint8_t* input)
         return false;
     }
 
-    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
+    if (_spi_mem_verify_address_protected(page_addr)) {
+        util_log("Page address %p protected", (void*)(uintptr_t)page_addr);
+        return false;
+    }
+
+    _spi_mem_write_enable();
 
     // --- Page Program (write 4 bytes) ---
+    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
     buffer[0] = CMD_PP;
     buffer[1] = (page_addr >> 16) & 0xFF;
     buffer[2] = (page_addr >> 8) & 0xFF;
@@ -191,6 +249,11 @@ bool spi_mem_write(uint32_t address, const uint8_t* input, size_t size)
 {
     if (address + size - 1 > MEMORY_LIMIT || size < 1) {
         util_log("Invalid write address %p or size %i", (void*)(uintptr_t)address, (int)size);
+        return false;
+    }
+
+    if (_spi_mem_verify_address_protected(address)) {
+        util_log("Address %p protected", (void*)(uintptr_t)address);
         return false;
     }
 
@@ -249,4 +312,570 @@ int32_t spi_mem_smart_erase(void)
     }
 
     return erased_sectors;
+}
+
+// Writes the `protection` bits into the status register and sets the
+// Top/Bottom bit to bottom in the configuration register.
+static void _spi_mem_set_protection(uint8_t protection)
+{
+    uint8_t reg[3];
+    reg[0] = _spi_mem_read_sr();
+    _spi_mem_read_cr(&reg[1]);
+
+    // clean and update status register with protection bits
+    reg[0] &= ~SR_PROTECT_BITS_MASK;
+    reg[0] |= protection & SR_PROTECT_BITS_MASK;
+
+    // set the top/bottom protection bit.
+    // This is an OTP bit,so the write will have an effect
+    // only the first time.
+    reg[1] = reg[1] | CR1_TB_BIT_BOTTOM;
+
+    _spi_mem_write_sr(reg);
+}
+
+void spi_mem_protected_area_lock(void)
+{
+    _spi_mem_set_protection(SR_PROTECT_BITS);
+}
+
+void spi_mem_protected_area_unlock(void)
+{
+    _spi_mem_set_protection(0x0);
+}
+
+bool spi_mem_protected_area_write(uint32_t address, const uint8_t* input, size_t size)
+{
+    bool result;
+    uint8_t protection = _spi_mem_read_sr() & SR_PROTECT_BITS_MASK;
+    _spi_mem_set_protection(0x0);
+    result = spi_mem_write(address, input, size);
+    _spi_mem_set_protection(protection);
+
+    return result;
+}
+
+// Utility functions, useful to test the code, but not to be merged.
+
+static void _random_page(uint8_t* page)
+{
+    for (size_t i = 0; i < SPI_MEM_PAGE_SIZE; i++) {
+        page[i] = random_byte_mcu();
+    }
+}
+
+void spi_mem_test(void)
+{
+    util_log("==== Starting spi_mem_test ====");
+
+    bool success = true;
+
+    // --- Setup test buffers ---
+    uint8_t write_data[SPI_MEM_PAGE_SIZE];
+    uint8_t read_data[SPI_MEM_PAGE_SIZE], read_data2[SPI_MEM_PAGE_SIZE];
+    uint32_t sector_addr = 0x00010000; // block 01
+    uint32_t unprotected_sector = 0x001D0000; // block 29
+
+    // === Test 0: Lock/Unlock Protection Behavior ===
+    util_log("Test 0: Lock/Unlock Protection Verification");
+
+    // Backup original SR and CR
+    uint8_t sr_before = _spi_mem_read_sr();
+    uint8_t cr_before[2];
+    _spi_mem_read_cr(cr_before);
+
+    // unlock memory if it was already locked
+    if ((sr_before & SR_PROTECT_BITS_MASK) != 0) {
+        _spi_mem_set_protection(0);
+        sr_before = _spi_mem_read_sr();
+    }
+
+    // 0.1 - Lock memory
+    spi_mem_protected_area_lock();
+    uint8_t sr_locked = _spi_mem_read_sr();
+    uint8_t cr_locked[2];
+    _spi_mem_read_cr(cr_locked);
+
+    // Verify that the protection bits were set
+    if ((sr_locked & SR_PROTECT_BITS_MASK) != SR_PROTECT_BITS) {
+        util_log("Test 0.1: Lock bits not set correctly");
+        success = false;
+    }
+
+    // Verify that the remaining part of the SR register didn't change
+    if ((sr_locked & ~SR_PROTECT_BITS_MASK) != (sr_before & ~SR_PROTECT_BITS_MASK)) {
+        util_log("Test 0.1: Status register corrupted");
+        success = false;
+    }
+
+    // Verify that the TB bit was set
+    if ((cr_locked[0] & CR1_TB_BIT_MASK) != CR1_TB_BIT_BOTTOM) {
+        util_log("Test 0.1: Lock bits not set correctly");
+        success = false;
+    }
+
+    // Verify that the remaining part of the CR register didn't change
+    bool cr1_corrupted = (cr_before[0] & ~CR1_TB_BIT_MASK) != (cr_locked[0] & ~CR1_TB_BIT_MASK);
+    if (cr1_corrupted || (cr_locked[1] != cr_before[1])) {
+        util_log("Test 0.1: CR register changed unexpectedly during lock");
+        success = false;
+    }
+
+    // 0.2 - Verify that writing locked memory fails
+    _random_page(write_data);
+    if (spi_mem_write(sector_addr, write_data, SPI_MEM_PAGE_SIZE)) {
+        util_log("Test 0.2: Write to protected area incorrectly allowed");
+        success = false;
+    }
+
+    // 0.3 - Verify that we can still write unprotected sectors
+    if (!spi_mem_page_read(unprotected_sector, read_data)) {
+        success = false;
+    }
+    _random_page(write_data);
+    if (!spi_mem_write(unprotected_sector, write_data, SPI_MEM_PAGE_SIZE)) {
+        util_log("Test 0.3: Write to unprotected area failed");
+        success = false;
+    }
+    if (!spi_mem_page_read(unprotected_sector, read_data2)) {
+        success = false;
+    }
+    if (memcmp(read_data, read_data2, SPI_MEM_PAGE_SIZE) == 0) {
+        util_log("Test 0.3: Write to unprotected area failed");
+        success = false;
+    }
+
+    // 0.4 - Verify that writing locked memory with write_locked changes the data
+    if (!spi_mem_page_read(sector_addr, read_data)) {
+        success = false;
+    }
+    _random_page(write_data);
+    if (!spi_mem_protected_area_write(sector_addr, write_data, SPI_MEM_PAGE_SIZE)) {
+        success = false;
+    }
+    if (!spi_mem_page_read(sector_addr, read_data2)) {
+        success = false;
+    }
+    if (memcmp(read_data, read_data2, SPI_MEM_PAGE_SIZE) == 0) {
+        util_log("Test 0.4: Write to protected area failed");
+        success = false;
+    }
+
+    // 0.5 - Verify that protected area is still locked after write
+    sr_locked = _spi_mem_read_sr();
+    if ((sr_locked & SR_PROTECT_BITS_MASK) != SR_PROTECT_BITS) {
+        util_log("Test 0.5: Lock bits not set correctly");
+        success = false;
+    }
+
+    // 0.6 - Try to full erase while the memory is locked
+    if (spi_mem_full_erase()) {
+        util_log("Test 0.6: Full erase expected to fail while memory locked");
+        success = false;
+    }
+
+    // 0.7 - Unlock the memory and write back the initial data, with normal write
+    spi_mem_protected_area_unlock();
+
+    if (!spi_mem_page_read(sector_addr, read_data)) {
+        success = false;
+    }
+    _random_page(write_data);
+    if (!spi_mem_protected_area_write(sector_addr, write_data, SPI_MEM_PAGE_SIZE)) {
+        success = false;
+    }
+    if (!spi_mem_page_read(sector_addr, read_data2)) {
+        success = false;
+    }
+    if (memcmp(read_data, read_data2, SPI_MEM_PAGE_SIZE) == 0) {
+        util_log("Test 0.7: Write to unprotected area failed");
+        success = false;
+    }
+
+    // 0.8 - Verify SR are restored or unchanged in unexpected ways
+    uint8_t sr_final = _spi_mem_read_sr();
+    uint8_t cr_final[2];
+    _spi_mem_read_cr(cr_final);
+
+    if (sr_final != sr_before) {
+        util_log("Test 0.8: Status register corrupted during unlock");
+        success = false;
+    }
+
+    // Verify that the remaining part of the CR register didn't change
+    cr1_corrupted = (cr_before[0] & ~CR1_TB_BIT_MASK) != (cr_final[0] & ~CR1_TB_BIT_MASK);
+    if (cr1_corrupted || (cr_locked[1] != cr_before[1])) {
+        util_log("Test 0.8: CR register changed unexpectedly during unlock");
+        success = false;
+    }
+
+    // === Test 1: Valid page write/read at address 0 ===
+    uint32_t addr_start = 0x00000000;
+    if (!spi_mem_sector_erase(addr_start)) {
+        util_log("Test 1: Sector erase failed");
+        success = false;
+    }
+
+    if (!_spi_mem_page_write(addr_start, write_data)) {
+        util_log("Test 1: Page write at 0 failed");
+        success = false;
+    }
+
+    memset(read_data, 0x00, SPI_MEM_PAGE_SIZE);
+    if (!spi_mem_page_read(addr_start, read_data)) {
+        util_log("Test 1: Page read at 0 failed");
+        success = false;
+    }
+
+    if (memcmp(write_data, read_data, SPI_MEM_PAGE_SIZE) != 0) {
+        util_log("Test 1: Data mismatch at address 0");
+        success = false;
+    } else {
+        util_log("Test 1: Valid page write/read at address 0 OK");
+    }
+
+    // === Test 2: Write and read near memory boundary ===
+    uint32_t addr_end = MEMORY_LIMIT - SPI_MEM_PAGE_SIZE + 1;
+    if (!spi_mem_sector_erase(addr_end & SECTOR_MASK)) {
+        util_log("Test 2: Sector erase failed");
+        success = false;
+    }
+
+    if (!_spi_mem_page_write(addr_end, write_data)) {
+        util_log("Test 2: Page write at end boundary failed");
+        success = false;
+    }
+
+    memset(read_data, 0x00, SPI_MEM_PAGE_SIZE);
+    if (!spi_mem_page_read(addr_end, read_data)) {
+        util_log("Test 2: Page read at end boundary failed");
+        success = false;
+    }
+
+    if (memcmp(write_data, read_data, SPI_MEM_PAGE_SIZE) != 0) {
+        util_log("Test 2: Boundary data mismatch");
+        success = false;
+    } else {
+        util_log("Test 2: Write and read near memory boundary OK");
+    }
+
+    // === Test 3: Full sector write and read ===
+    uint8_t sector_write_data[SPI_MEM_SECTOR_SIZE];
+    uint8_t* sector_read_data;
+
+    for (size_t i = 0; i < SPI_MEM_SECTOR_SIZE; i++) {
+        sector_write_data[i] = (uint8_t)(i ^ 0xA5);
+    }
+
+    if (!spi_mem_sector_erase(sector_addr)) {
+        util_log("Test 3: Sector erase failed");
+        success = false;
+    }
+    if (!spi_mem_write(sector_addr, sector_write_data, SPI_MEM_SECTOR_SIZE)) {
+        util_log("Test 3: Full sector write failed");
+        success = false;
+    }
+
+    sector_read_data = spi_mem_read(sector_addr, SPI_MEM_SECTOR_SIZE);
+    if (!sector_read_data) {
+        util_log("Test 3: Full sector read failed");
+        success = false;
+    }
+
+    if (memcmp(sector_write_data, sector_read_data, SPI_MEM_SECTOR_SIZE) != 0) {
+        util_log("Test 3: Full sector data mismatch");
+        success = false;
+    } else {
+        util_log("Test 3: Full sector write and read OK");
+    }
+
+    free(sector_read_data);
+
+    // === Test 4: Erase verification ===
+    if (!spi_mem_sector_erase(sector_addr)) {
+        util_log("Test 4: Erase failed");
+        success = false;
+    }
+    sector_read_data = spi_mem_read(sector_addr, SPI_MEM_SECTOR_SIZE);
+    if (!sector_read_data) {
+        util_log("Test 4: Erase read failed");
+        success = false;
+    }
+
+    bool erased = true;
+    for (size_t i = 0; i < SPI_MEM_SECTOR_SIZE; i++) {
+        if (sector_read_data[i] != 0xFF) {
+            erased = false;
+            break;
+        }
+    }
+
+    if (!erased) {
+        util_log("Test 4: Sector not properly erased");
+        success = false;
+    } else {
+        util_log("Test 4: Sector erase verified OK");
+        free(sector_read_data);
+    }
+
+    // === Test 5: Invalid read/write addresses ===
+    uint32_t invalid_addr = MEMORY_LIMIT + 1;
+
+    uint8_t* tmp = spi_mem_read(invalid_addr, 10);
+    if (tmp != NULL) {
+        util_log("Test 5: Invalid read not rejected");
+        success = false;
+        free(tmp);
+    }
+
+    if (spi_mem_write(invalid_addr, write_data, 10)) {
+        util_log("Test 5: Invalid write not rejected");
+        success = false;
+    }
+
+    if (spi_mem_sector_erase(invalid_addr)) {
+        util_log("Test 5: Invalid sector erase not rejected");
+        success = false;
+    }
+    if (success) {
+        util_log("Test 5: Invalid read/write addresses OK");
+    }
+
+    // === Test 6: Unaligned page and sector accesses ===
+    if (_spi_mem_page_write(sector_addr + 1, write_data)) {
+        util_log("Test 6: Unaligned page write not rejected");
+        success = false;
+    }
+
+    if (spi_mem_page_read(sector_addr + 1, read_data)) {
+        util_log("Test 6: Unaligned page read not rejected");
+        success = false;
+    }
+
+    if (spi_mem_sector_erase(sector_addr + 1)) {
+        util_log("Test 6: Unaligned sector erase not rejected");
+        success = false;
+    }
+
+    if (success) {
+        util_log("Test 6: Unaligned page and sector accesses OK");
+    }
+
+    // === Test 7: Partial write within a sector ===
+    uint32_t partial_addr = sector_addr + 100;
+    uint8_t partial_input[32];
+    uint8_t* partial_output;
+
+    for (size_t i = 0; i < 32; i++) {
+        partial_input[i] = 0x42 + i;
+    }
+
+    if (!spi_mem_sector_erase(sector_addr)) {
+        util_log("Test 7: Sector erase failed");
+        success = false;
+    }
+    if (!spi_mem_write(partial_addr, partial_input, 32)) {
+        util_log("Test 7: Partial write failed");
+        success = false;
+    }
+
+    partial_output = spi_mem_read(partial_addr, 32);
+    if (!partial_output) {
+        util_log("Test 7: Partial read failed");
+        success = false;
+    }
+
+    if (memcmp(partial_input, partial_output, 32) != 0) {
+        util_log("Test 7: Partial data mismatch");
+        success = false;
+    } else {
+        util_log("Test 7: Partial write/read OK");
+    }
+    free(partial_output);
+
+    // === Test 8: Cross-sector write and read ===
+    const uint32_t cross_start = 0x00030000 + 129; // Start 128 bytes into a sector
+    const size_t cross_size = SPI_MEM_SECTOR_SIZE + 267; // Cross into next sector
+    uint8_t cross_input[cross_size];
+    uint8_t* cross_output;
+
+    for (size_t i = 0; i < (int)cross_size; i++) {
+        cross_input[i] = (uint8_t)(0x77 + (i % 39));
+    }
+
+    // Erase both sectors before writing
+    if (!spi_mem_sector_erase(cross_start & SECTOR_MASK)) {
+        util_log("Test 8: first sector erase failed");
+        success = false;
+    }
+    if (!spi_mem_sector_erase((cross_start + cross_size - 1) & SECTOR_MASK)) {
+        util_log("Test 8: second sector erase failed");
+        success = false;
+    }
+
+    if (!spi_mem_write(cross_start, cross_input, cross_size)) {
+        util_log("Test 8: Cross-sector write failed");
+        success = false;
+    }
+
+    cross_output = spi_mem_read(cross_start, cross_size);
+    if (!cross_output) {
+        util_log("Test 8: Cross-sector read failed");
+        success = false;
+    } else {
+        free(cross_output);
+    }
+
+    if (memcmp(cross_input, cross_output, cross_size) != 0) {
+        util_log("Test 8: Cross-sector data mismatch");
+        success = false;
+    } else {
+        util_log("Test 8: Cross-sector write/read OK");
+    }
+
+    // === Test 9: Chip erase test ===
+    util_log("Test 9: Chip erase in progress...");
+    spi_mem_full_erase();
+    util_log("Test 9: Chip erased.");
+    util_log("Test 9: Chip verification in progress..");
+    int erase_result = spi_mem_smart_erase();
+    if (erase_result < 0) {
+        util_log("Test 9: Chip erase verification failed");
+        success = false;
+    } else {
+        if (erase_result != 0) {
+            util_log("Test 9: Chip erase failed");
+            success = false;
+        } else {
+            util_log("Test 9: Chip erase verification completed");
+        }
+    }
+
+    // simulating wiriting BLE fw
+    uint8_t ble_data[32 * 1024] = {0xAA};
+    if (!spi_mem_write(0, ble_data, (size_t)(32 * 1024))) {
+        util_log("Test 9: Write failed");
+        success = false;
+    }
+
+    if (spi_mem_smart_erase() != 8) {
+        util_log("Test 9: Chip erase verification should have erased exactly 8 sector");
+        success = false;
+    }
+
+    if (success) {
+        util_log("Test 9: Chip erase verification OK");
+    }
+
+    // === Test 10: Off-by-one address/size edge cases with data verification ===
+    util_log("Test 10: Off-by-one address/size checks");
+
+    uint8_t tmp_write = 0xAA;
+    uint8_t* tmp_read;
+    uint8_t* buffer;
+
+    // 10.1: Last valid byte read/write (should pass)
+    if (!spi_mem_write(MEMORY_LIMIT, &tmp_write, 1)) {
+        util_log("Test 10.1: Write to last valid byte FAILED");
+        success = false;
+    } else {
+        tmp_read = spi_mem_read(MEMORY_LIMIT, 1);
+        if (!tmp_read) {
+            util_log("Test 10.1: Read from last valid byte FAILED");
+            success = false;
+        } else {
+            if (*tmp_read != tmp_write) {
+                util_log("Test 10.1: Data mismatch at last valid byte");
+                success = false;
+            } else {
+                util_log("Test 10.1: Write/read last valid byte OK");
+                free(tmp_read);
+            }
+        }
+    }
+
+    // 10.2: Read 2 bytes from last byte (should fail)
+
+    buffer = spi_mem_read(MEMORY_LIMIT, 2);
+    if (buffer) {
+        util_log("Test 10.2: Read past memory limit NOT rejected");
+        success = false;
+        free(buffer);
+    } else {
+        util_log("Test 10.2: Read past memory limit correctly rejected");
+    }
+
+    // 10.3: Read from second-to-last with size 2 (should pass and match data)
+    tmp_write = 0x55;
+    uint32_t addr10_3 = MEMORY_LIMIT - 1;
+    if (!spi_mem_write(addr10_3, &tmp_write, 1)) {
+        util_log("Test 10.3: Write before last byte FAILED");
+        success = false;
+    } else {
+        buffer = spi_mem_read(addr10_3, 2);
+        if (!buffer) {
+            util_log("Test 10.3: Read into last byte FAILED");
+            success = false;
+        } else {
+            if (buffer[0] != tmp_write || buffer[1] != 0xAA) {
+                util_log("Test 10.3: Data mismatch at edge read");
+                success = false;
+            } else {
+                util_log("Test 10.3: Read into last byte OK");
+            }
+        }
+        if (buffer) {
+            free(buffer);
+        }
+    }
+
+    // 10.4: Write to last byte, confirm change again
+    tmp_write = 0x66;
+    if (!spi_mem_write(MEMORY_LIMIT, &tmp_write, 1)) {
+        util_log("Test 10.4: Write last byte again FAILED");
+        success = false;
+    } else {
+        tmp_read = spi_mem_read(MEMORY_LIMIT, 1);
+        if (!tmp_read) {
+            util_log("Test 10.4: Read last byte again FAILED");
+            success = false;
+        } else {
+            if (*tmp_read != tmp_write) {
+                util_log("Test 10.4: Last byte not updated correctly");
+                success = false;
+            } else {
+                util_log("Test 10.4: Last byte write/read confirmed OK");
+            }
+        }
+        if (tmp_read) {
+            free(tmp_read);
+        }
+    }
+
+    // 10.5: Zero-size write (should fail)
+    if (spi_mem_write(0x00000000, &tmp_write, 0)) {
+        util_log("Test 10.5: Zero-size write NOT rejected");
+        success = false;
+    } else {
+        util_log("Test 10.5: Zero-size write correctly rejected");
+    }
+
+    // 10.6: Zero-size read (should fail)
+    tmp_read = spi_mem_read(0x00000000, 0);
+    if (tmp_read) {
+        util_log("Test 10.6: Zero-size read NOT rejected");
+        success = false;
+        free(tmp_read);
+    } else {
+        util_log("Test 10.6: Zero-size read correctly rejected");
+    }
+
+    // Finally clean up the memory
+    if (!spi_mem_smart_erase()) {
+        util_log("Final smart erased failed");
+        success = false;
+    }
+
+    util_log("==== spi_mem_test %s ====", success ? "PASSED ✅" : "FAILED ❌");
+    screen_sprintf_debug(10000, "Test result: %s", success ? "OK" : "FAILED");
 }

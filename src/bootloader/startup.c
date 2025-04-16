@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "bootloader.h"
+#include "memory/spi_mem.h"
 #include "mpu_regions.h"
 #include "platform_config.h"
 #include "platform_init.h"
@@ -55,6 +56,7 @@ int main(void)
 #ifdef BOOTLOADER_DEVDEVICE
     qtouch_init();
 #endif
+    spi_mem_protected_area_lock();
     bootloader_jump();
 
     const uint8_t* hww_data = NULL;

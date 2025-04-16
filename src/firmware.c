@@ -38,6 +38,7 @@ int main(void)
     common_main();
     bitbox02_smarteeprom_init();
     spi_mem_test();
+    spi_mem_protected_area_lock();
     firmware_main_loop();
     return 0;
 }

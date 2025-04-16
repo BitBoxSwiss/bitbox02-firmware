@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "spi_mem.h"
+#include "random.h"
 #include "screen.h"
 #include "util.h"
 #include <stdbool.h>
@@ -27,13 +28,21 @@
 #define SECTOR_MASK 0xFFFFF000
 #define MEMORY_LIMIT (SPI_MEM_MEMORY_SIZE - 1)
 #define SR_WIP 0x01
+#define SR_PROTECT_BITS_MASK 0x3C
+#define SR_PROTECT_BITS_SHIFT 2
+#define SR_PROTECT_BITS (SPI_MEM_PROTECTED_BLOCKS << SR_PROTECT_BITS_SHIFT)
+#define CR1_TB_BIT_BOTTOM 0x8
+#define CR1_TB_BIT_MASK 0x8
 #define CMD_READ 0x03
 #define CMD_WREN 0x06
+#define CMD_WRSR 0x01
 #define CMD_SE 0x20
 #define CMD_PP 0x02
 #define CMD_RDSR 0x05
+#define CMD_RDCR 0x15
 #define CMD_CE 0x60
 
+// Drives the chip select pin low
 static void _spi_mem_cs_low(void)
 {
 #ifndef TESTING
@@ -41,6 +50,7 @@ static void _spi_mem_cs_low(void)
 #endif
 }
 
+// Drives the chip select pin high
 static void _spi_mem_cs_high(void)
 {
 #ifndef TESTING
@@ -48,6 +58,7 @@ static void _spi_mem_cs_high(void)
 #endif
 }
 
+// Reads the status register
 static uint8_t _spi_mem_read_sr(void)
 {
     uint8_t buffer[2] = {0};
@@ -58,6 +69,60 @@ static uint8_t _spi_mem_read_sr(void)
     return buffer[1];
 }
 
+// Reads the configuration register
+static void _spi_mem_read_cr(uint8_t* data_out)
+{
+    uint8_t buffer[3] = {0};
+    buffer[0] = CMD_RDCR;
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(buffer, 3);
+    _spi_mem_cs_high();
+
+    memcpy(data_out, &buffer[1], 2);
+}
+
+// Waits until the WIP bits goes low
+static void _spi_mem_wait(void)
+{
+    uint8_t status;
+    do {
+        status = _spi_mem_read_sr();
+    } while (status & SR_WIP);
+}
+
+// Set write enable bit
+static void _spi_mem_write_enable(void)
+{
+    uint8_t cmd = CMD_WREN;
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(&cmd, 1);
+    _spi_mem_cs_high();
+}
+
+// Verify if the given address is protected
+static bool _spi_mem_verify_address_protected(uint32_t address)
+{
+    uint8_t protected_blocks = (_spi_mem_read_sr() & SR_PROTECT_BITS_MASK) >> SR_PROTECT_BITS_SHIFT;
+    if (address < (protected_blocks * SPI_MEM_BLOCK_SIZE)) {
+        return true;
+    }
+    return false;
+}
+
+// Write the status and configuration registers
+static void _spi_mem_write_sr(uint8_t* data_in)
+{
+    _spi_mem_write_enable();
+    uint8_t buffer[4] = {0};
+    buffer[0] = CMD_WRSR;
+    memcpy(&buffer[1], data_in, 3);
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(buffer, 4);
+    _spi_mem_cs_high();
+    _spi_mem_wait();
+}
+
+// Reads `size` bytes starting from `address` and writes the data into `buffer`
 static void _spi_mem_read(uint32_t address, size_t size, uint8_t* buffer)
 {
     buffer[0] = CMD_READ;
@@ -71,31 +136,21 @@ static void _spi_mem_read(uint32_t address, size_t size, uint8_t* buffer)
     _spi_mem_cs_high();
 }
 
-static void _spi_mem_wait(void)
+bool spi_mem_full_erase(void)
 {
-    uint8_t status;
-    do {
-        status = _spi_mem_read_sr();
-    } while (status & SR_WIP);
-}
+    if (_spi_mem_read_sr() & SR_PROTECT_BITS_MASK) {
+        util_log("Cannot erase with protected area locked.");
+        return false;
+    }
+    _spi_mem_write_enable();
 
-void spi_mem_full_erase(void)
-{
-    uint8_t buffer[2];
-
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
+    uint8_t cmd = CMD_CE;
     _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
-
-    // --- Chip Erase ---
-    buffer[0] = CMD_CE;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
+    SPI_MEM_exchange_block(&cmd, 1);
     _spi_mem_cs_high();
 
     _spi_mem_wait();
+    return true;
 }
 
 bool spi_mem_sector_erase(uint32_t sector_addr)
@@ -104,15 +159,15 @@ bool spi_mem_sector_erase(uint32_t sector_addr)
         util_log("Invalid sector address %p", (void*)(uintptr_t)sector_addr);
         return false;
     }
+    if (_spi_mem_verify_address_protected(sector_addr)) {
+        util_log("Sector address %p protected", (void*)(uintptr_t)sector_addr);
+        return false;
+    }
 
-    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
+    _spi_mem_write_enable();
 
     // --- Sector Erase (write 4 bytes) ---
+    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
     buffer[0] = CMD_SE;
     buffer[1] = (sector_addr >> 16) & 0xFF;
     buffer[2] = (sector_addr >> 8) & 0xFF;
@@ -163,6 +218,7 @@ uint8_t* spi_mem_read(uint32_t address, size_t size)
     return buffer;
 }
 
+// Writes SPI_MEM_PAGE_SIZE bytes from `input` at `page_addr`
 static bool _spi_mem_page_write(uint32_t page_addr, const uint8_t* input)
 {
     if (page_addr % SPI_MEM_PAGE_SIZE != 0) {
@@ -170,14 +226,15 @@ static bool _spi_mem_page_write(uint32_t page_addr, const uint8_t* input)
         return false;
     }
 
-    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
+    if (_spi_mem_verify_address_protected(page_addr)) {
+        util_log("Page address %p protected", (void*)(uintptr_t)page_addr);
+        return false;
+    }
+
+    _spi_mem_write_enable();
 
     // --- Page Program (write 4 bytes) ---
+    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
     buffer[0] = CMD_PP;
     buffer[1] = (page_addr >> 16) & 0xFF;
     buffer[2] = (page_addr >> 8) & 0xFF;
@@ -198,6 +255,11 @@ bool spi_mem_write(uint32_t address, const uint8_t* input, size_t size)
 {
     if (address + size - 1 > MEMORY_LIMIT || size < 1) {
         util_log("Invalid write address %p or size %i", (void*)(uintptr_t)address, (int)size);
+        return false;
+    }
+
+    if (_spi_mem_verify_address_protected(address)) {
+        util_log("Address %p protected", (void*)(uintptr_t)address);
         return false;
     }
 
@@ -258,7 +320,56 @@ int32_t spi_mem_smart_erase(void)
     return erased_sectors;
 }
 
-// This is an utility function, useful to test the code, but not to be merged.
+// Writes the `protection` bits into the status register and sets the
+// Top/Bottom bit to bottom in the configuration register.
+static void _spi_mem_set_protection(uint8_t protection)
+{
+    uint8_t reg[3];
+    reg[0] = _spi_mem_read_sr();
+    _spi_mem_read_cr(&reg[1]);
+
+    // clean and update status register with protection bits
+    reg[0] &= ~SR_PROTECT_BITS_MASK;
+    reg[0] |= protection & SR_PROTECT_BITS_MASK;
+
+    // set the top/bottom protection bit.
+    // This is an OTP bit,so the write will have an effect
+    // only the first time.
+    reg[1] = reg[1] | CR1_TB_BIT_BOTTOM;
+
+    _spi_mem_write_sr(reg);
+}
+
+void spi_mem_protected_area_lock(void)
+{
+    _spi_mem_set_protection(SR_PROTECT_BITS);
+}
+
+void spi_mem_protected_area_unlock(void)
+{
+    _spi_mem_set_protection(0x0);
+}
+
+bool spi_mem_protected_area_write(uint32_t address, const uint8_t* input, size_t size)
+{
+    bool result;
+    uint8_t protection = _spi_mem_read_sr() & SR_PROTECT_BITS_MASK;
+    _spi_mem_set_protection(0x0);
+    result = spi_mem_write(address, input, size);
+    _spi_mem_set_protection(protection);
+
+    return result;
+}
+
+// Utility functions, useful to test the code, but not to be merged.
+
+static void _random_page(uint8_t* page)
+{
+    for (size_t i = 0; i < SPI_MEM_PAGE_SIZE; i++) {
+        page[i] = random_byte_mcu();
+    }
+}
+
 void spi_mem_test(void)
 {
     util_log("==== Starting spi_mem_test ====");
@@ -267,10 +378,141 @@ void spi_mem_test(void)
 
     // --- Setup test buffers ---
     uint8_t write_data[SPI_MEM_PAGE_SIZE];
-    uint8_t read_data[SPI_MEM_PAGE_SIZE];
+    uint8_t read_data[SPI_MEM_PAGE_SIZE], read_data2[SPI_MEM_PAGE_SIZE];
+    uint32_t sector_addr = 0x00010000; // block 01
+    uint32_t unprotected_sector = 0x001D0000; // block 29
 
-    for (size_t i = 0; i < SPI_MEM_PAGE_SIZE; i++) {
-        write_data[i] = (uint8_t)i;
+    // === Test 0: Lock/Unlock Protection Behavior ===
+    util_log("Test 0: Lock/Unlock Protection Verification");
+
+    // Backup original SR and CR
+    uint8_t sr_before = _spi_mem_read_sr();
+    uint8_t cr_before[2];
+    _spi_mem_read_cr(cr_before);
+
+    // unlock memory if it was already locked
+    if ((sr_before & SR_PROTECT_BITS_MASK) != 0) {
+        _spi_mem_set_protection(0);
+        sr_before = _spi_mem_read_sr();
+    }
+
+    // 0.1 - Lock memory
+    spi_mem_protected_area_lock();
+    uint8_t sr_locked = _spi_mem_read_sr();
+    uint8_t cr_locked[2];
+    _spi_mem_read_cr(cr_locked);
+
+    // Verify that the protection bits were set
+    if ((sr_locked & SR_PROTECT_BITS_MASK) != SR_PROTECT_BITS) {
+        util_log("Test 0.1: Lock bits not set correctly");
+        success = false;
+    }
+
+    // Verify that the remaining part of the SR register didn't change
+    if ((sr_locked & ~SR_PROTECT_BITS_MASK) != (sr_before & ~SR_PROTECT_BITS_MASK)) {
+        util_log("Test 0.1: Status register corrupted");
+        success = false;
+    }
+
+    // Verify that the TB bit was set
+    if ((cr_locked[0] & CR1_TB_BIT_MASK) != CR1_TB_BIT_BOTTOM) {
+        util_log("Test 0.1: Lock bits not set correctly");
+        success = false;
+    }
+
+    // Verify that the remaining part of the CR register didn't change
+    bool cr1_corrupted = (cr_before[0] & ~CR1_TB_BIT_MASK) != (cr_locked[0] & ~CR1_TB_BIT_MASK);
+    if (cr1_corrupted || (cr_locked[1] != cr_before[1])) {
+        util_log("Test 0.1: CR register changed unexpectedly during lock");
+        success = false;
+    }
+
+    // 0.2 - Verify that writing locked memory fails
+    _random_page(write_data);
+    if (spi_mem_write(sector_addr, write_data, SPI_MEM_PAGE_SIZE)) {
+        util_log("Test 0.2: Write to protected area incorrectly allowed");
+        success = false;
+    }
+
+    // 0.3 - Verify that we can still write unprotected sectors
+    if (!spi_mem_page_read(unprotected_sector, read_data)) {
+        success = false;
+    }
+    _random_page(write_data);
+    if (!spi_mem_write(unprotected_sector, write_data, SPI_MEM_PAGE_SIZE)) {
+        util_log("Test 0.3: Write to unprotected area failed");
+        success = false;
+    }
+    if (!spi_mem_page_read(unprotected_sector, read_data2)) {
+        success = false;
+    }
+    if (memcmp(read_data, read_data2, SPI_MEM_PAGE_SIZE) == 0) {
+        util_log("Test 0.3: Write to unprotected area failed");
+        success = false;
+    }
+
+    // 0.4 - Verify that writing locked memory with write_locked changes the data
+    if (!spi_mem_page_read(sector_addr, read_data)) {
+        success = false;
+    }
+    _random_page(write_data);
+    if (!spi_mem_protected_area_write(sector_addr, write_data, SPI_MEM_PAGE_SIZE)) {
+        success = false;
+    }
+    if (!spi_mem_page_read(sector_addr, read_data2)) {
+        success = false;
+    }
+    if (memcmp(read_data, read_data2, SPI_MEM_PAGE_SIZE) == 0) {
+        util_log("Test 0.4: Write to protected area failed");
+        success = false;
+    }
+
+    // 0.5 - Verify that protected area is still locked after write
+    sr_locked = _spi_mem_read_sr();
+    if ((sr_locked & SR_PROTECT_BITS_MASK) != SR_PROTECT_BITS) {
+        util_log("Test 0.5: Lock bits not set correctly");
+        success = false;
+    }
+
+    // 0.6 - Try to full erase while the memory is locked
+    if (spi_mem_full_erase()) {
+        util_log("Test 0.6: Full erase expected to fail while memory locked");
+        success = false;
+    }
+
+    // 0.7 - Unlock the memory and write back the initial data, with normal write
+    spi_mem_protected_area_unlock();
+
+    if (!spi_mem_page_read(sector_addr, read_data)) {
+        success = false;
+    }
+    _random_page(write_data);
+    if (!spi_mem_protected_area_write(sector_addr, write_data, SPI_MEM_PAGE_SIZE)) {
+        success = false;
+    }
+    if (!spi_mem_page_read(sector_addr, read_data2)) {
+        success = false;
+    }
+    if (memcmp(read_data, read_data2, SPI_MEM_PAGE_SIZE) == 0) {
+        util_log("Test 0.7: Write to unprotected area failed");
+        success = false;
+    }
+
+    // 0.8 - Verify SR are restored or unchanged in unexpected ways
+    uint8_t sr_final = _spi_mem_read_sr();
+    uint8_t cr_final[2];
+    _spi_mem_read_cr(cr_final);
+
+    if (sr_final != sr_before) {
+        util_log("Test 0.8: Status register corrupted during unlock");
+        success = false;
+    }
+
+    // Verify that the remaining part of the CR register didn't change
+    cr1_corrupted = (cr_before[0] & ~CR1_TB_BIT_MASK) != (cr_final[0] & ~CR1_TB_BIT_MASK);
+    if (cr1_corrupted || (cr_locked[1] != cr_before[1])) {
+        util_log("Test 0.8: CR register changed unexpectedly during unlock");
+        success = false;
     }
 
     // === Test 1: Valid page write/read at address 0 ===
@@ -324,7 +566,6 @@ void spi_mem_test(void)
     }
 
     // === Test 3: Full sector write and read ===
-    uint32_t sector_addr = 0x00020000;
     uint8_t sector_write_data[SPI_MEM_SECTOR_SIZE];
     uint8_t* sector_read_data;
 
@@ -448,8 +689,6 @@ void spi_mem_test(void)
     if (!partial_output) {
         util_log("Test 7: Partial read failed");
         success = false;
-    } else {
-        free(partial_output);
     }
 
     if (memcmp(partial_input, partial_output, 32) != 0) {
@@ -458,6 +697,7 @@ void spi_mem_test(void)
     } else {
         util_log("Test 7: Partial write/read OK");
     }
+    free(partial_output);
 
     // === Test 8: Cross-sector write and read ===
     const uint32_t cross_start = 0x00030000 + 129; // Start 128 bytes into a sector
@@ -626,6 +866,12 @@ void spi_mem_test(void)
         free(tmp_read);
     } else {
         util_log("Test 10.6: Zero-size read correctly rejected");
+    }
+
+    // Finally clean up the memory
+    if (!spi_mem_smart_erase()) {
+        util_log("Final smart erased failed");
+        success = false;
     }
 
     util_log("==== spi_mem_test %s ====", success ? "PASSED ✅" : "FAILED ❌");

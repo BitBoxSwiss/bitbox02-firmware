@@ -55,7 +55,7 @@ int main(void)
 #ifdef BOOTLOADER_DEVDEVICE
     qtouch_init();
 #endif
-    spi_mem_test();
+    spi_mem_protected_area_lock();
     bootloader_jump();
 
     // If did not jump to firmware code, begin USB processing

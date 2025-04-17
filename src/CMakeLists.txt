@@ -29,6 +29,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/memory_shared.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
   ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
+  ${CMAKE_SOURCE_DIR}/src/memory/spi_mem.c
   ${CMAKE_SOURCE_DIR}/src/memory/smarteeprom.c
   ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
@@ -108,6 +109,7 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/memory_shared.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
   ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
+  ${CMAKE_SOURCE_DIR}/src/memory/spi_mem.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c

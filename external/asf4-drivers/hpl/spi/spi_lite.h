@@ -89,17 +89,17 @@ uint32_t SPI_MEM_exchange_data(uint32_t data);
 /**
  * \brief Exchange block in SPI module
  */
-void SPI_MEM_exchange_block(void *block, uint8_t size);
+void SPI_MEM_exchange_block(void *block, size_t size);
 
 /**
  * \brief Write block in SPI module
  */
-void SPI_MEM_write_block(void *block, uint8_t size);
+void SPI_MEM_write_block(void *block, size_t size);
 
 /**
  * \brief Read block in SPI module
  */
-void SPI_MEM_read_block(void *block, uint8_t size);
+void SPI_MEM_read_block(void *block, size_t size);
 
 // Calculate baud register value from requested baudrate value
 #ifndef SERCOM3_BAUD_RATE

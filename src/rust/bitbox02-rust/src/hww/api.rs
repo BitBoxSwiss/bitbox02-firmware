@@ -46,7 +46,7 @@ use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
 
-use crate::workflow::{RealWorkflows, Workflows};
+use crate::workflow::Workflows;
 
 /// Encodes a protobuf Response message.
 pub fn encode(response: Response) -> Vec<u8> {
@@ -159,8 +159,10 @@ fn can_call(request: &Request) -> bool {
 }
 
 /// Handle a protobuf api call.
-async fn process_api(request: &Request) -> Result<Response, Error> {
-    let workflows = &mut RealWorkflows;
+async fn process_api<W: Workflows>(
+    workflows: &mut W,
+    request: &Request,
+) -> Result<Response, Error> {
     match request {
         Request::Reboot(ref request) => system::reboot(request).await,
         Request::DeviceInfo(_) => device_info::process(),
@@ -213,7 +215,7 @@ async fn process_api(request: &Request) -> Result<Response, Error> {
 ///
 /// `input` is a hww.proto Request message, protobuf encoded.
 /// Returns a protobuf encoded hww.proto Response message.
-pub async fn process(input: Vec<u8>) -> Vec<u8> {
+pub async fn process<W: Workflows>(workflows: &mut W, input: Vec<u8>) -> Vec<u8> {
     let request = match decode(&input[..]) {
         Ok(request) => request,
         Err(err) => return encode(make_error(err)),
@@ -222,7 +224,7 @@ pub async fn process(input: Vec<u8>) -> Vec<u8> {
         return encode(make_error(Error::InvalidState));
     }
 
-    match process_api(&request).await {
+    match process_api(workflows, &request).await {
         Ok(response) => encode(response),
         Err(error) => encode(make_error(error)),
     }

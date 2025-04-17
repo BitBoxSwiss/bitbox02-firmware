@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 pub use confirm::UserAbort;
 
 use alloc::string::String;
@@ -32,7 +32,7 @@ pub fn format_hash(hash: &[u8; 32]) -> String {
     )
 }
 
-pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
+pub async fn confirm<W: Workflows>(workflows: &mut W, hash: &[u8; 32]) -> Result<(), UserAbort> {
     let params = confirm::Params {
         title: "Pairing code",
         body: &format_hash(hash),
@@ -40,7 +40,7 @@ pub async fn confirm(hash: &[u8; 32]) -> Result<(), UserAbort> {
         ..Default::default()
     };
 
-    confirm::confirm(&params).await
+    workflows.confirm(&params).await
 }
 
 #[cfg(test)]
@@ -48,27 +48,26 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use bitbox02::testing::{mock, Data};
 
     use alloc::boxed::Box;
 
     #[test]
     fn test_confirm() {
-        static mut CONFIRMED: bool = false;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, "Pairing code");
-                assert_eq!(params.body, "LEUJX W53W2\n3I5DY SP5E2");
-                unsafe {
-                    CONFIRMED = true;
-                }
-                true
-            })),
+        let mut mock_workflows = TestingWorkflows::new();
 
-            ..Default::default()
-        });
         assert!(block_on(confirm(
+            &mut mock_workflows,
             b"\x59\x28\x9b\xdb\xbb\xb6\xb6\x8e\x8f\x12\x7f\x49\xa5\x25\xb0\x30\x13\x50\x0b\x3c\x1a\xf2\x62\x6f\x40\x07\xeb\xe4\x4f\x09\xc8\x6b")).is_ok());
-        assert!(unsafe { CONFIRMED });
+
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Pairing code".into(),
+                body: "LEUJX W53W2\n3I5DY SP5E2".into(),
+                longtouch: false,
+            },]
+        );
     }
 }

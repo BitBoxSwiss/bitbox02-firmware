@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::workflow::pairing;
+use crate::workflow::{pairing, Workflows};
 use alloc::vec::Vec;
 use bitbox02::memory;
 use core::cell::RefCell;
@@ -75,7 +75,11 @@ pub fn decrypt(msg: &[u8]) -> Result<Vec<u8>, Error> {
 /// Returns Err if anything goes wrong:
 /// - Invalid OP-code
 /// - Noise message in the wrong state (e.g. handshake before init, etc.).
-pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<(), Error> {
+pub(crate) async fn process<W: Workflows>(
+    workflows: &mut W,
+    usb_in: Vec<u8>,
+    usb_out: &mut Vec<u8>,
+) -> Result<(), Error> {
     match usb_in.split_first() {
         Some((&OP_I_CAN_HAS_HANDSHAEK, b"")) => {
             // The previous screen was "See the BitBoxApp".
@@ -117,7 +121,7 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
                 let state = NOISE_STATE.0.borrow();
                 state.get_handshake_hash()?
             };
-            match pairing::confirm(&hash).await {
+            match pairing::confirm(workflows, &hash).await {
                 Ok(()) => {
                     let mut state = NOISE_STATE.0.borrow_mut();
                     state.set_pairing_verified()?;
@@ -138,7 +142,7 @@ pub(crate) async fn process(usb_in: Vec<u8>, usb_out: &mut Vec<u8>) -> Result<()
         }
         Some((&OP_NOISE_MSG, encrypted_msg)) => {
             let decrypted_msg = decrypt(encrypted_msg)?;
-            let response = super::api::process(decrypted_msg).await;
+            let response = super::api::process(workflows, decrypted_msg).await;
             encrypt(&response, usb_out)?;
             Ok(())
         }

@@ -33,6 +33,7 @@
  */
 
 #include "spi_lite.h"
+#include <stdint.h>
 #include <utils_assert.h>
 
 /**
@@ -119,7 +120,7 @@ uint32_t SPI_MEM_exchange_data(uint32_t data)
 	return hri_sercomspi_read_DATA_reg(SERCOM4);
 }
 
-void SPI_MEM_exchange_block(void *block, uint8_t size)
+void SPI_MEM_exchange_block(void *block, size_t size)
 {
 
 	uint8_t *b = (uint8_t *)block;
@@ -133,7 +134,7 @@ void SPI_MEM_exchange_block(void *block, uint8_t size)
 	}
 }
 
-void SPI_MEM_write_block(void *block, uint8_t size)
+void SPI_MEM_write_block(void *block, size_t size)
 {
 
 	uint8_t *b = (uint8_t *)block;
@@ -145,7 +146,7 @@ void SPI_MEM_write_block(void *block, uint8_t size)
 	}
 }
 
-void SPI_MEM_read_block(void *block, uint8_t size)
+void SPI_MEM_read_block(void *block, size_t size)
 {
 
 	uint8_t *b = (uint8_t *)block;

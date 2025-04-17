@@ -105,6 +105,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_setup",
     "menu_create",
     "mock_memory_factoryreset",
+    "spi_mem_full_erase",
     "printf",
     "progress_create",
     "progress_set",

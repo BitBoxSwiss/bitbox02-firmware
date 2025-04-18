@@ -15,7 +15,7 @@
 use super::Error;
 use crate::pb;
 
-use crate::workflow::{password, status, unlock};
+use crate::workflow::{password, unlock, Workflows};
 use bitbox02::keystore;
 use pb::response::Response;
 
@@ -26,21 +26,22 @@ use pb::response::Response;
 /// seed. If 16 bytes are provided, the seed will also be 16 bytes long, corresponding to 12 BIP39
 /// recovery words. If 32 bytes are provided, the seed will also be 32 bytes long, corresponding to
 /// 24 BIP39 recovery words.
-pub async fn process(
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
     pb::SetPasswordRequest { entropy }: &pb::SetPasswordRequest,
 ) -> Result<Response, Error> {
     if entropy.len() != 16 && entropy.len() != 32 {
         return Err(Error::InvalidInput);
     }
-    let password = password::enter_twice().await?;
+    let password = password::enter_twice(workflows).await?;
     if let Err(err) = keystore::create_and_store_seed(&password, entropy) {
-        status::status(&format!("Error\n{:?}", err), false).await;
+        workflows.status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
     if keystore::unlock(&password).is_err() {
         panic!("Unexpected error during restore: unlock failed.");
     }
-    unlock::unlock_bip39().await;
+    unlock::unlock_bip39(workflows).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -49,6 +50,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::RealWorkflows;
     use bitbox02::testing::{mock, mock_memory, Data};
 
     use alloc::boxed::Box;
@@ -62,9 +64,12 @@ mod tests {
         });
         assert!(keystore::is_locked());
         assert_eq!(
-            block_on(process(&pb::SetPasswordRequest {
-                entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
-            })),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::SetPasswordRequest {
+                    entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
         assert!(!keystore::is_locked());
@@ -81,9 +86,12 @@ mod tests {
         });
         assert!(keystore::is_locked());
         assert_eq!(
-            block_on(process(&pb::SetPasswordRequest {
-                entropy: b"aaaaaaaaaaaaaaaa".to_vec(),
-            })),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::SetPasswordRequest {
+                    entropy: b"aaaaaaaaaaaaaaaa".to_vec(),
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
         assert!(!keystore::is_locked());
@@ -100,9 +108,12 @@ mod tests {
         });
         assert!(keystore::is_locked());
         assert_eq!(
-            block_on(process(&pb::SetPasswordRequest {
-                entropy: b"aaaaaaaaaaaaaaaaa".to_vec(),
-            })),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::SetPasswordRequest {
+                    entropy: b"aaaaaaaaaaaaaaaaa".to_vec(),
+                }
+            )),
             Err(Error::InvalidInput),
         );
         assert!(keystore::is_locked());
@@ -127,9 +138,12 @@ mod tests {
         });
         assert!(keystore::is_locked());
         assert_eq!(
-            block_on(process(&pb::SetPasswordRequest {
-                entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
-            })),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::SetPasswordRequest {
+                    entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
+                }
+            )),
             Err(Error::Generic),
         );
         assert!(keystore::is_locked());

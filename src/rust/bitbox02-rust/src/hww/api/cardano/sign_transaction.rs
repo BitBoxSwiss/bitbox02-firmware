@@ -66,19 +66,25 @@ fn make_shelley_witness(keypath: &[u32], tx_body_hash: &[u8; 32]) -> Result<Shel
 // For Cardano mainnet, this formats a slot number in terms of epoch
 // and relative slot number to the epoch and lets the user verify it.
 // This should only be called for mainnet.
-async fn verify_slot(params: &params::Params, title: &str, slot: u64) -> Result<(), Error> {
+async fn verify_slot<W: Workflows>(
+    workflows: &mut W,
+    params: &params::Params,
+    title: &str,
+    slot: u64,
+) -> Result<(), Error> {
     if slot < SHELLEY_START_SLOT {
         return Err(Error::InvalidInput);
     }
     let epoch = SHELLEY_START_EPOCH + (slot - SHELLEY_START_SLOT) / SHELLEY_SLOTS_IN_EPOCH;
     let slot_in_epoch = (slot - SHELLEY_START_SLOT) % SHELLEY_SLOTS_IN_EPOCH;
-    confirm::confirm(&confirm::Params {
-        title: params.name,
-        body: &format!("{}\nslot {} in\nepoch {}", title, slot_in_epoch, epoch),
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: params.name,
+            body: &format!("{}\nslot {} in\nepoch {}", title, slot_in_epoch, epoch),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
     Ok(())
 }
 
@@ -166,14 +172,21 @@ async fn _process<W: Workflows>(
                 .await?;
         } else {
             if validity_interval_start_present {
-                verify_slot(params, "Can be mined from", request.validity_interval_start).await?;
+                verify_slot(
+                    workflows,
+                    params,
+                    "Can be mined from",
+                    request.validity_interval_start,
+                )
+                .await?;
             }
             if ttl_present {
-                verify_slot(params, "Can be mined until", request.ttl).await?;
+                verify_slot(workflows, params, "Can be mined until", request.ttl).await?;
             }
         }
     }
     certificates::verify(
+        workflows,
         params,
         &request.certificates,
         bip44_account,

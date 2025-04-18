@@ -36,7 +36,7 @@ pub async fn process_api<W: Workflows>(
 ) -> Result<Response, Error> {
     match request {
         Request::Xpubs(ref request) => xpubs::process(request),
-        Request::Address(ref request) => address::process(request).await,
+        Request::Address(ref request) => address::process(workflows, request).await,
         Request::SignTransaction(ref request) => {
             sign_transaction::process(workflows, request).await
         }

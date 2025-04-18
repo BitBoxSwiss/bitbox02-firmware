@@ -1267,7 +1267,7 @@ mod tests {
     use crate::bip32::parse_xpub;
     use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, Data};
+    use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
     use pb::btc_payment_request_request::{memo, Memo};
     use util::bip32::HARDENED;
 

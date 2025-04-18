@@ -17,9 +17,10 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
-pub async fn process(
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
     &pb::SetMnemonicPassphraseEnabledRequest { enabled }: &pb::SetMnemonicPassphraseEnabledRequest,
 ) -> Result<Response, Error> {
     let params = confirm::Params {
@@ -29,7 +30,7 @@ pub async fn process(
         ..Default::default()
     };
 
-    confirm::confirm(&params).await?;
+    workflows.confirm(&params).await?;
 
     if bitbox02::memory::set_mnemonic_passphrase_enabled(enabled).is_err() {
         return Err(Error::Memory);
@@ -43,49 +44,60 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_memory, Data};
+    use bitbox02::testing::mock_memory;
 
     #[test]
     pub fn test_mnemonic_passphrase_enabled() {
         // All good.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Optional\npassphrase");
-                true
-            })),
-            ..Default::default()
-        });
         mock_memory();
         // Enable:
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&pb::SetMnemonicPassphraseEnabledRequest {
-                enabled: true
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::SetMnemonicPassphraseEnabledRequest { enabled: true }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Enable".into(),
+                body: "Optional\npassphrase".into(),
+                longtouch: true,
+            }],
+        );
+
         assert!(bitbox02::memory::is_mnemonic_passphrase_enabled());
         // Disable:
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&pb::SetMnemonicPassphraseEnabledRequest {
-                enabled: false
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::SetMnemonicPassphraseEnabledRequest { enabled: false }
+            )),
             Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Disable".into(),
+                body: "Optional\npassphrase".into(),
+                longtouch: true,
+            }],
         );
         assert!(!bitbox02::memory::is_mnemonic_passphrase_enabled());
 
         // User aborted confirmation.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Optional\npassphrase");
-                false
-            })),
-            ..Default::default()
-        });
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.abort_nth(0);
         assert_eq!(
-            block_on(process(&pb::SetMnemonicPassphraseEnabledRequest {
-                enabled: true
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::SetMnemonicPassphraseEnabledRequest { enabled: true }
+            )),
             Err(Error::UserAbort)
         );
     }

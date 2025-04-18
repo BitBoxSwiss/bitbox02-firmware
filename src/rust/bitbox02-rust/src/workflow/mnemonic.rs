@@ -16,9 +16,9 @@ pub use super::cancel::Error as CancelError;
 use super::cancel::{cancel, set_result, with_cancel};
 use super::confirm;
 use super::menu;
-use super::status::status;
 use super::trinary_choice::{choose, TrinaryChoice};
 use super::trinary_input_string;
+use super::Workflows;
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -107,19 +107,23 @@ async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> 
     with_cancel("Recovery\nwords", &mut component, &result).await
 }
 
-pub async fn show_and_confirm_mnemonic(words: &[&str]) -> Result<(), CancelError> {
+pub async fn show_and_confirm_mnemonic<W: Workflows>(
+    workflows: &mut W,
+    words: &[&str],
+) -> Result<(), CancelError> {
     // Part 1) Scroll through words
     show_mnemonic(words).await?;
 
     // Can only succeed due to `accept_only`.
-    let _ = confirm::confirm(&confirm::Params {
-        title: "",
-        body: "Please confirm\neach word",
-        accept_only: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await;
+    let _ = workflows
+        .confirm(&confirm::Params {
+            title: "",
+            body: "Please confirm\neach word",
+            accept_only: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await;
 
     // Part 2) Confirm words
     for (word_idx, word) in words.iter().enumerate() {
@@ -132,7 +136,7 @@ pub async fn show_and_confirm_mnemonic(words: &[&str]) -> Result<(), CancelError
             match confirm_word(&choices, &title).await? {
                 selected_idx if selected_idx == correct_idx => break,
                 selected_idx if selected_idx == back_idx => show_mnemonic(words).await?,
-                _ => status("Incorrect word\nTry again", false).await,
+                _ => workflows.status("Incorrect word\nTry again", false).await,
             }
         }
     }
@@ -208,7 +212,8 @@ fn lastword_choices_strings(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<St
 /// Returns `Ok(None)` if the user chooses "None of them".
 /// Returns `Ok(Some(word))` if the user chooses a word.
 /// Returns `Err(CancelError::Cancelled)` if the user cancels.
-async fn get_24th_word(
+async fn get_24th_word<W: Workflows>(
+    workflows: &mut W,
     title: &str,
     entered_words: &[&str],
 ) -> Result<Option<zeroize::Zeroizing<String>>, CancelError> {
@@ -227,7 +232,7 @@ async fn get_24th_word(
                     body: "Invalid. Check\nrecovery words.\nRestart?",
                     ..Default::default()
                 };
-                if let Ok(()) = confirm::confirm(&params).await {
+                if let Ok(()) = workflows.confirm(&params).await {
                     return Ok(None);
                 }
             }
@@ -235,12 +240,13 @@ async fn get_24th_word(
                 // Confirm word picked from menu again, as a typo here would be extremely annoying.
                 // Double checking is also safer, as the user might not even realize they made a typo.
                 let word = choices[choice_idx as usize].clone();
-                if let Ok(()) = confirm::confirm(&confirm::Params {
-                    title,
-                    body: &word,
-                    ..Default::default()
-                })
-                .await
+                if let Ok(()) = workflows
+                    .confirm(&confirm::Params {
+                        title,
+                        body: &word,
+                        ..Default::default()
+                    })
+                    .await
                 {
                     return Ok(Some(word));
                 }
@@ -254,7 +260,8 @@ async fn get_24th_word(
 ///
 /// Returns `Ok(word)` if the user chooses a word.
 /// Returns `Err(CancelError::Cancelled)` if the user cancels.
-async fn get_12th_18th_word(
+async fn get_12th_18th_word<W: Workflows>(
+    workflows: &mut W,
     title: &str,
     entered_words: &[&str],
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
@@ -276,12 +283,13 @@ async fn get_12th_18th_word(
 
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
-        if let Ok(()) = confirm::confirm(&confirm::Params {
-            title,
-            body: &word,
-            ..Default::default()
-        })
-        .await
+        if let Ok(()) = workflows
+            .confirm(&confirm::Params {
+                title,
+                body: &word,
+                ..Default::default()
+            })
+            .await
         {
             return Ok(word);
         }
@@ -289,14 +297,18 @@ async fn get_12th_18th_word(
 }
 
 /// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
-pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
+pub async fn get<W: Workflows>(
+    workflows: &mut W,
+) -> Result<zeroize::Zeroizing<String>, CancelError> {
     let num_words: usize = match choose("How many words?", "12", "18", "24").await {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
         TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
     };
 
-    status(&format!("Enter {} words", num_words), true).await;
+    workflows
+        .status(&format!("Enter {} words", num_words), true)
+        .await;
 
     // Provide all bip39 words to restrict the keyboard entry.
     let bip39_wordlist = bitbox02::keystore::get_bip39_wordlist(None);
@@ -316,35 +328,38 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
         // goes forward again.
         let preset = entered_words[word_idx].as_str();
 
-        let user_entry: Result<zeroize::Zeroizing<String>, CancelError> =
-            if word_idx == num_words - 1 {
-                // For the last word, we can restrict to a subset of bip39 words that fulfil the
-                // checksum requirement. This special case exists so that users can generate a seed
-                // using only the device and no external software, allowing seed generation via dice
-                // throws, for example.
-                if num_words == 24 {
-                    // With 24 words there are only 8 valid candidates. We presnet them as a menu.
-                    match get_24th_word(&title, &as_str_vec(&entered_words[..word_idx])).await {
-                        Ok(None) => return Err(CancelError::Cancelled),
-                        Ok(Some(r)) => Ok(r),
-                        Err(e) => Err(e),
-                    }
-                } else {
-                    get_12th_18th_word(&title, &as_str_vec(&entered_words[..word_idx])).await
+        let user_entry: Result<zeroize::Zeroizing<String>, CancelError> = if word_idx
+            == num_words - 1
+        {
+            // For the last word, we can restrict to a subset of bip39 words that fulfil the
+            // checksum requirement. This special case exists so that users can generate a seed
+            // using only the device and no external software, allowing seed generation via dice
+            // throws, for example.
+            if num_words == 24 {
+                // With 24 words there are only 8 valid candidates. We presnet them as a menu.
+                match get_24th_word(workflows, &title, &as_str_vec(&entered_words[..word_idx]))
+                    .await
+                {
+                    Ok(None) => return Err(CancelError::Cancelled),
+                    Ok(Some(r)) => Ok(r),
+                    Err(e) => Err(e),
                 }
             } else {
-                trinary_input_string::enter(
-                    &trinary_input_string::Params {
-                        title: &title,
-                        wordlist: Some(&bip39_wordlist),
-                        ..Default::default()
-                    },
-                    trinary_input_string::CanCancel::Yes,
-                    preset,
-                )
-                .await
-                .into()
-            };
+                get_12th_18th_word(workflows, &title, &as_str_vec(&entered_words[..word_idx])).await
+            }
+        } else {
+            trinary_input_string::enter(
+                &trinary_input_string::Params {
+                    title: &title,
+                    wordlist: Some(&bip39_wordlist),
+                    ..Default::default()
+                },
+                trinary_input_string::CanCancel::Yes,
+                preset,
+            )
+            .await
+            .into()
+        };
 
         match user_entry {
             Err(CancelError::Cancelled) => {
@@ -383,7 +398,7 @@ pub async fn get() -> Result<zeroize::Zeroizing<String>, CancelError> {
                             ..Default::default()
                         };
 
-                        if let Err(confirm::UserAbort) = confirm::confirm(&params).await {
+                        if let Err(confirm::UserAbort) = workflows.confirm(&params).await {
                             // Cancel cancelled.
                             continue;
                         }

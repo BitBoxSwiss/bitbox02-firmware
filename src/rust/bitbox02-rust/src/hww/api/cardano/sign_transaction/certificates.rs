@@ -25,10 +25,11 @@ use pb::cardano_sign_transaction_request::{
     Certificate,
 };
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 use util::bip32::HARDENED;
 
-pub async fn verify<'a>(
+pub async fn verify<'a, W: Workflows>(
+    workflows: &mut W,
     params: &params::Params,
     certificates: &'a [Certificate],
     bip44_account: u32,
@@ -41,33 +42,35 @@ pub async fn verify<'a>(
                 validate_address_shelley_stake(keypath, Some(bip44_account))?;
                 signing_keypaths.push(keypath);
                 // 2 ADA will be deposited and refunded once delegation stops, independent of the staking rewards.
-                confirm::confirm(&confirm::Params {
-                    title: params.name,
-                    body: &format!(
-                        "Register staking key for account #{}?",
-                        keypath[2] + 1 - HARDENED
-                    ),
-                    scrollable: true,
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
+                workflows
+                    .confirm(&confirm::Params {
+                        title: params.name,
+                        body: &format!(
+                            "Register staking key for account #{}?",
+                            keypath[2] + 1 - HARDENED
+                        ),
+                        scrollable: true,
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
             }
             StakeDeregistration(pb::Keypath { keypath }) => {
                 validate_address_shelley_stake(keypath, Some(bip44_account))?;
                 signing_keypaths.push(keypath);
                 // 2 ADA will be refunded back, independent of the staking rewards.
-                confirm::confirm(&confirm::Params {
-                    title: params.name,
-                    body: &format!(
-                        "Stop stake delegation for account #{}?",
-                        keypath[2] + 1 - HARDENED
-                    ),
-                    scrollable: true,
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
+                workflows
+                    .confirm(&confirm::Params {
+                        title: params.name,
+                        body: &format!(
+                            "Stop stake delegation for account #{}?",
+                            keypath[2] + 1 - HARDENED
+                        ),
+                        scrollable: true,
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
             }
             StakeDelegation(certificate::StakeDelegation {
                 keypath,
@@ -75,18 +78,19 @@ pub async fn verify<'a>(
             }) => {
                 validate_address_shelley_stake(keypath, Some(bip44_account))?;
                 signing_keypaths.push(keypath);
-                confirm::confirm(&confirm::Params {
-                    title: params.name,
-                    body: &format!(
-                        "Delegate staking for account #{} to pool {}?",
-                        keypath[2] + 1 - HARDENED,
-                        hex::encode(pool_keyhash),
-                    ),
-                    scrollable: true,
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
+                workflows
+                    .confirm(&confirm::Params {
+                        title: params.name,
+                        body: &format!(
+                            "Delegate staking for account #{} to pool {}?",
+                            keypath[2] + 1 - HARDENED,
+                            hex::encode(pool_keyhash),
+                        ),
+                        scrollable: true,
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
             }
             VoteDelegation(certificate::VoteDelegation {
                 keypath,
@@ -108,33 +112,35 @@ pub async fn verify<'a>(
                     };
                 match drep_credhash {
                     Some(hash) => {
-                        confirm::confirm(&confirm::Params {
-                            title: params.name,
-                            body: &format!(
-                                "Delegate voting for account #{} to type {} and drep {}?",
-                                keypath[2] + 1 - HARDENED,
-                                drep_type_name,
-                                hex::encode(hash),
-                            ),
-                            scrollable: true,
-                            accept_is_nextarrow: true,
-                            ..Default::default()
-                        })
-                        .await?;
+                        workflows
+                            .confirm(&confirm::Params {
+                                title: params.name,
+                                body: &format!(
+                                    "Delegate voting for account #{} to type {} and drep {}?",
+                                    keypath[2] + 1 - HARDENED,
+                                    drep_type_name,
+                                    hex::encode(hash),
+                                ),
+                                scrollable: true,
+                                accept_is_nextarrow: true,
+                                ..Default::default()
+                            })
+                            .await?;
                     }
                     None => {
-                        confirm::confirm(&confirm::Params {
-                            title: params.name,
-                            body: &format!(
-                                "Delegate voting for account #{} to type {}?",
-                                keypath[2] + 1 - HARDENED,
-                                drep_type_name,
-                            ),
-                            scrollable: true,
-                            accept_is_nextarrow: true,
-                            ..Default::default()
-                        })
-                        .await?;
+                        workflows
+                            .confirm(&confirm::Params {
+                                title: params.name,
+                                body: &format!(
+                                    "Delegate voting for account #{} to type {}?",
+                                    keypath[2] + 1 - HARDENED,
+                                    drep_type_name,
+                                ),
+                                scrollable: true,
+                                accept_is_nextarrow: true,
+                                ..Default::default()
+                            })
+                            .await?;
                     }
                 }
             }

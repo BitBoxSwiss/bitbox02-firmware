@@ -30,6 +30,7 @@ set(IGNORE_SOURCES
     "src/memory/nvmctrl.c"
     "src/memory/smarteeprom.c"
     "src/memory/mpu.c"
+    "src/memory/spi_mem.c"
     )
 
 # Exclude some files which depends on the hardware.
@@ -61,6 +62,7 @@ add_library(bitbox_objects-simulator
   ${ETHEREUM-SOURCES}
   framework/mock_cipher.c
   framework/mock_memory.c
+  framework/mock_spi_mem.c
   framework/mock_screen.c
   framework/mock_smarteeprom.c
   framework/mock_securechip.c

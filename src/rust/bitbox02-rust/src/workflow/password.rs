@@ -50,7 +50,7 @@ pub async fn enter<W: Workflows>(
     };
 
     loop {
-        match trinary_input_string::enter(&params, can_cancel, "").await {
+        match workflows.enter_string(&params, can_cancel, "").await {
             o @ Ok(_) => return o,
             Err(Error::Cancelled) => match prompt_cancel(workflows).await {
                 Ok(()) => return Err(Error::Cancelled),

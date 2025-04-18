@@ -270,16 +270,17 @@ async fn get_12th_18th_word<W: Workflows>(
     loop {
         let choices = lastword_choices(entered_words);
         let candidates = bitbox02::keystore::get_bip39_wordlist(Some(&choices));
-        let word = trinary_input_string::enter(
-            &trinary_input_string::Params {
-                title,
-                wordlist: Some(&candidates),
-                ..Default::default()
-            },
-            trinary_input_string::CanCancel::Yes,
-            "",
-        )
-        .await?;
+        let word = workflows
+            .enter_string(
+                &trinary_input_string::Params {
+                    title,
+                    wordlist: Some(&candidates),
+                    ..Default::default()
+                },
+                trinary_input_string::CanCancel::Yes,
+                "",
+            )
+            .await?;
 
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
@@ -348,17 +349,18 @@ pub async fn get<W: Workflows>(
                 get_12th_18th_word(workflows, &title, &as_str_vec(&entered_words[..word_idx])).await
             }
         } else {
-            trinary_input_string::enter(
-                &trinary_input_string::Params {
-                    title: &title,
-                    wordlist: Some(&bip39_wordlist),
-                    ..Default::default()
-                },
-                trinary_input_string::CanCancel::Yes,
-                preset,
-            )
-            .await
-            .into()
+            workflows
+                .enter_string(
+                    &trinary_input_string::Params {
+                        title: &title,
+                        wordlist: Some(&bip39_wordlist),
+                        ..Default::default()
+                    },
+                    trinary_input_string::CanCancel::Yes,
+                    preset,
+                )
+                .await
+                .into()
         };
 
         match user_entry {

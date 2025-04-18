@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{confirm, transaction, Workflows};
+use super::{confirm, transaction, trinary_input_string, Workflows};
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -40,14 +41,20 @@ pub enum Screen {
     More,
 }
 
+type EnterStringCb<'a> = Box<
+    dyn FnMut(&trinary_input_string::Params<'_>) -> Result<String, trinary_input_string::Error>
+        + 'a,
+>;
+
 /// An Workflows implementation for unit tests. Collects all screens and provides helper functions
 /// to verify them.
-pub struct TestingWorkflows {
+pub struct TestingWorkflows<'a> {
     _abort_nth: Option<usize>,
     pub screens: Vec<Screen>,
+    _enter_string: Option<EnterStringCb<'a>>,
 }
 
-impl Workflows for TestingWorkflows {
+impl Workflows for TestingWorkflows<'_> {
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
         self.screens.push(Screen::Confirm {
             title: params.title.into(),
@@ -117,13 +124,23 @@ impl Workflows for TestingWorkflows {
             panic!("canot abort status screen");
         }
     }
+
+    async fn enter_string(
+        &mut self,
+        params: &trinary_input_string::Params<'_>,
+        _can_cancel: trinary_input_string::CanCancel,
+        _preset: &str,
+    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
+        self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)
+    }
 }
 
-impl TestingWorkflows {
+impl<'a> TestingWorkflows<'a> {
     pub fn new() -> Self {
         Self {
             screens: vec![],
             _abort_nth: None,
+            _enter_string: None,
         }
     }
 
@@ -138,5 +155,9 @@ impl TestingWorkflows {
             Screen::Confirm { title, body, .. } => title == confirm_title && body == confirm_body,
             _ => false,
         })
+    }
+
+    pub fn set_enter_string(&mut self, cb: EnterStringCb<'a>) {
+        self._enter_string = Some(cb);
     }
 }

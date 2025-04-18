@@ -29,6 +29,8 @@ pub mod trinary_input_string;
 pub mod unlock;
 pub mod verify_message;
 
+use alloc::string::String;
+
 #[allow(async_fn_in_trait)]
 pub trait Workflows {
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort>;
@@ -47,6 +49,13 @@ pub trait Workflows {
     ) -> Result<(), transaction::UserAbort>;
 
     async fn status(&mut self, title: &str, status_success: bool);
+
+    async fn enter_string(
+        &mut self,
+        params: &trinary_input_string::Params<'_>,
+        can_cancel: trinary_input_string::CanCancel,
+        preset: &str,
+    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error>;
 }
 
 pub struct RealWorkflows;
@@ -79,5 +88,15 @@ impl Workflows for RealWorkflows {
     #[inline(always)]
     async fn status(&mut self, title: &str, status_success: bool) {
         status::status(title, status_success).await
+    }
+
+    #[inline(always)]
+    async fn enter_string(
+        &mut self,
+        params: &trinary_input_string::Params<'_>,
+        can_cancel: trinary_input_string::CanCancel,
+        preset: &str,
+    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
+        trinary_input_string::enter(params, can_cancel, preset).await
     }
 }

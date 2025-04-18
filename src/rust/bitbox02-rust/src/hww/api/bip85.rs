@@ -83,17 +83,18 @@ async fn process_bip39<W: Workflows>(workflows: &mut W) -> Result<(), Error> {
         match menu::pick(&["0", "1", "2", "3", "4", "More"], Some("Select index")).await? {
             i @ 0..=4 => i.into(),
             5 => {
-                let number_string = trinary_input_string::enter(
-                    &trinary_input_string::Params {
-                        title: "Enter index",
-                        number_input: true,
-                        longtouch: true,
-                        ..Default::default()
-                    },
-                    trinary_input_string::CanCancel::Yes,
-                    "",
-                )
-                .await?;
+                let number_string = workflows
+                    .enter_string(
+                        &trinary_input_string::Params {
+                            title: "Enter index",
+                            number_input: true,
+                            longtouch: true,
+                            ..Default::default()
+                        },
+                        trinary_input_string::CanCancel::Yes,
+                        "",
+                    )
+                    .await?;
                 match number_string.as_str().parse::<u32>() {
                     Ok(i) if i < util::bip32::HARDENED => i,
                     _ => {

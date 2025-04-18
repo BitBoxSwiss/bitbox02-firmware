@@ -50,7 +50,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::RealWorkflows;
+    use crate::workflow::testing::TestingWorkflows;
     use bitbox02::testing::{mock, mock_memory, Data};
 
     use alloc::boxed::Box;
@@ -58,20 +58,29 @@ mod tests {
     #[test]
     fn test_process() {
         mock_memory();
-        mock(Data {
-            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
-            ..Default::default()
-        });
-        assert!(keystore::is_locked());
+        keystore::lock();
+        let mut counter = 0u32;
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.set_enter_string(Box::new(|params| {
+            counter += 1;
+            match counter {
+                1 => assert_eq!(params.title, "Set password"),
+                2 => assert_eq!(params.title, "Repeat password"),
+                _ => panic!("too many user inputs"),
+            }
+            Ok("password".into())
+        }));
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut mock_workflows,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
                 }
             )),
             Ok(Response::Success(pb::Success {}))
         );
+        drop(mock_workflows); // to remove mutable borrow of counter
+        assert_eq!(counter, 2);
         assert!(!keystore::is_locked());
         assert!(keystore::copy_seed().unwrap().len() == 32);
     }
@@ -80,14 +89,12 @@ mod tests {
     #[test]
     fn test_process_16_bytes() {
         mock_memory();
-        mock(Data {
-            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
-            ..Default::default()
-        });
-        assert!(keystore::is_locked());
+        keystore::lock();
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut mock_workflows,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaa".to_vec(),
                 }
@@ -102,14 +109,13 @@ mod tests {
     #[test]
     fn test_process_invalid_host_entropy() {
         mock_memory();
-        mock(Data {
-            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
-            ..Default::default()
-        });
+        keystore::lock();
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
         assert!(keystore::is_locked());
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut mock_workflows,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaaa".to_vec(),
                 }
@@ -122,24 +128,20 @@ mod tests {
     #[test]
     fn test_process_2nd_password_doesnt_match() {
         mock_memory();
-        static mut COUNTER: u32 = 0;
-        mock(Data {
-            ui_trinary_input_string_create: Some(Box::new(|_params| {
-                match unsafe {
-                    COUNTER += 1;
-                    COUNTER
-                } {
-                    1 => "password".into(),
-                    2 => "wrong".into(),
-                    _ => panic!("too many user inputs"),
-                }
-            })),
-            ..Default::default()
-        });
-        assert!(keystore::is_locked());
+        keystore::lock();
+        let mut counter = 0u32;
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.set_enter_string(Box::new(|_params| {
+            counter += 1;
+            Ok(match counter {
+                1 => "password".into(),
+                2 => "wrong".into(),
+                _ => panic!("too many user inputs"),
+            })
+        }));
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut mock_workflows,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
                 }

@@ -296,18 +296,12 @@ async fn verify_standard_transaction<W: Workflows>(
         value: (&amount.value).add(&fee.value),
     };
     let percentage = calculate_percentage(&fee.value, &amount.value);
-    transaction::verify_total_fee_maybe_warn(
-        &mut crate::workflow::RealWorkflows, // TODO feed via fn arg
-        &total.format(),
-        &fee.format(),
-        percentage,
-    )
-    .await?;
+    transaction::verify_total_fee_maybe_warn(workflows, &total.format(), &fee.format(), percentage)
+        .await?;
     Ok(())
 }
 
-/// Verify and sign an Ethereum transaction.
-pub async fn process<W: Workflows>(
+pub async fn _process<W: Workflows>(
     workflows: &mut W,
     request: &Transaction<'_>,
 ) -> Result<Response, Error> {
@@ -380,20 +374,12 @@ pub async fn process<W: Workflows>(
         return Err(Error::InvalidInput);
     }
 
-    let verification_result = if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(workflows, request, &params, erc20_recipient, erc20_value).await
+    if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
+        verify_erc20_transaction(workflows, request, &params, erc20_recipient, erc20_value).await?;
     } else {
-        verify_standard_transaction(workflows, request, &params).await
-    };
-    match verification_result {
-        Ok(()) => workflows.status("Transaction\nconfirmed", true).await,
-        Err(err) => {
-            if err == Error::UserAbort {
-                workflows.status("Transaction\ncanceled", false).await;
-            }
-            return Err(err);
-        }
+        verify_standard_transaction(workflows, request, &params).await?;
     }
+    workflows.status("Transaction\nconfirmed", true).await;
 
     let hash: [u8; 32] = match request {
         Transaction::Legacy(legacy) => hash_legacy(params.chain_id, legacy)?,
@@ -427,14 +413,26 @@ pub async fn process<W: Workflows>(
     Ok(Response::Sign(pb::EthSignResponse { signature }))
 }
 
+/// Verify and sign an Ethereum transaction.
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &Transaction<'_>,
+) -> Result<Response, Error> {
+    let result = _process(workflows, request).await;
+    if let Err(Error::UserAbort) = result {
+        workflows.status("Transaction\ncanceled", false).await;
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::RealWorkflows;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED; // instead of TestingWorkflows until the tests are migrated
 
     #[test]
@@ -504,28 +502,31 @@ mod tests {
     pub fn test_process_standard_transaction() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                assert!(params.accept_is_nextarrow);
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "0.530564 ETH");
-                assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.53069 ETH");
-                assert_eq!(fee, "0.000126 ETH");
-                assert!(longtouch);
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let expected_screens = vec![
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Recipient {
+                recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                amount: "0.530564 ETH".into(),
+            },
+            Screen::TotalFee {
+                total: "0.53069 ETH".into(),
+                fee: "0.000126 ETH".into(),
+                longtouch: true,
+            },
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            },
+        ];
+
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -543,8 +544,11 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(mock_workflows.screens, expected_screens);
+
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -562,6 +566,7 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(mock_workflows.screens, expected_screens);
     }
 
     /// Test a transaction with an unusually high fee.
@@ -569,38 +574,11 @@ mod tests {
     fn test_high_fee_warning() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.59427728 ETH");
-                assert_eq!(fee, "0.06371328 ETH");
-                assert!(!longtouch);
-                true
-            })),
-            ui_confirm_create: Some(Box::new(move |params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                        assert!(params.accept_is_nextarrow);
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "High fee");
-                        assert_eq!(params.body, "The fee is 12.0%\nthe send amount.\nProceed?");
-                        assert!(params.longtouch);
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
-        assert!(block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(
+            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -618,7 +596,35 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .is_ok());
-        assert_eq!(unsafe { UI_COUNTER }, 2);
+
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Sign transaction on\n\nEthereum".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    amount: "0.530564 ETH".into(),
+                },
+                Screen::TotalFee {
+                    total: "0.59427728 ETH".into(),
+                    fee: "0.06371328 ETH".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "High fee".into(),
+                    body: "The fee is 12.0%\nthe send amount.\nProceed?".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true,
+                },
+            ]
+        );
     }
 
     /// Test an EIP-1559 transaction with an unusually high fee.
@@ -626,38 +632,9 @@ mod tests {
     fn test_high_fee_warning_eip1559() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.59427728 ETH");
-                assert_eq!(fee, "0.06371328 ETH");
-                assert!(!longtouch);
-                true
-            })),
-            ui_confirm_create: Some(Box::new(move |params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                        assert!(params.accept_is_nextarrow);
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "High fee");
-                        assert_eq!(params.body, "The fee is 12.0%\nthe send amount.\nProceed?");
-                        assert!(params.longtouch);
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
-        assert!(block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             // fee=max_fee_per_gas*gas_limit=63713280000000000
@@ -675,7 +652,35 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .is_ok());
-        assert_eq!(unsafe { UI_COUNTER }, 2);
+
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Sign transaction on\n\nEthereum".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    amount: "0.530564 ETH".into(),
+                },
+                Screen::TotalFee {
+                    total: "0.59427728 ETH".into(),
+                    fee: "0.06371328 ETH".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "High fee".into(),
+                    body: "The fee is 12.0%\nthe send amount.\nProceed?".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true,
+                },
+            ]
+        );
     }
 
     /// Standard ETH transaction on an unusual keypath (Sepolia on mainnet keypath)
@@ -683,41 +688,9 @@ mod tests {
     pub fn test_process_warn_unusual_keypath() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Sepolia");
-                        assert_eq!(params.body, "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.body, "Sign transaction on\n\nSepolia");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "0.530564 SEPETH");
-                assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.53069 SEPETH");
-                assert_eq!(fee, "0.000126 SEPETH");
-                assert!(longtouch);
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
-
-        block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+        let mut mock_workflows = TestingWorkflows::new();
+        block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -733,50 +706,46 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .unwrap();
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 2);
+
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sepolia".into(),
+                    body: "Warning: unusual keypath m/44'/60'/0'/0/0. Proceed only if you know what you are doing.".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Sign transaction on\n\nSepolia".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    amount: "0.530564 SEPETH".into(),
+                },
+                Screen::TotalFee {
+                    total: "0.53069 SEPETH".into(),
+                    fee: "0.000126 SEPETH".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true,
+                },
+            ],
+        );
     }
 
     /// Standard ETH transaction with an unknown data field.
     #[test]
     pub fn test_process_standard_transaction_with_data() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        static mut CONFIRM_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe { CONFIRM_COUNTER } {
-                    0 => {
-                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                        assert!(params.accept_is_nextarrow);
-                    }
-                    1 | 2 => assert_eq!(params.title, "Unknown\ncontract"),
-                    3 => {
-                        assert_eq!(params.title, "Transaction\ndata");
-                        assert_eq!(params.body, "666f6f20626172"); // "foo bar" in hex.
-                        assert!(params.scrollable);
-                        assert_eq!(params.display_size, 7); // length of "foo bar"
-                        assert!(params.accept_is_nextarrow);
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-                unsafe { CONFIRM_COUNTER += 1 }
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "0.530564 ETH");
-                assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.53069 ETH");
-                assert_eq!(fee, "0.000126 ETH");
-                assert!(longtouch);
-                true
-            })),
-            ..Default::default()
-        });
+
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -794,49 +763,55 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Sign transaction on\n\nEthereum".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "You will be shown\nthe raw\ntransaction data.".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "Only proceed if you\nunderstand exactly\nwhat the data means.".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Transaction\ndata".into(),
+                    body: "666f6f20626172".into(),
+                    longtouch: false
+                },
+                Screen::Recipient {
+                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    amount: "0.530564 ETH".into()
+                },
+                Screen::TotalFee {
+                    total: "0.53069 ETH".into(),
+                    fee: "0.000126 ETH".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
     }
 
     /// EIP-1559 ETH transaction with an unknown data field.
     #[test]
     pub fn test_process_eip1559_transaction_with_data() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        static mut CONFIRM_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe { CONFIRM_COUNTER } {
-                    0 => {
-                        assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                        assert!(params.accept_is_nextarrow);
-                    }
-                    1 | 2 => assert_eq!(params.title, "Unknown\ncontract"),
-                    3 => {
-                        assert_eq!(params.title, "Transaction\ndata");
-                        assert_eq!(params.body, "666f6f20626172"); // "foo bar" in hex.
-                        assert!(params.scrollable);
-                        assert_eq!(params.display_size, 7); // length of "foo bar"
-                        assert!(params.accept_is_nextarrow);
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-                unsafe { CONFIRM_COUNTER += 1 }
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "0.530564 ETH");
-                assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "0.53069 ETH");
-                assert_eq!(fee, "0.000126 ETH");
-                assert!(longtouch);
-                true
-            })),
-            ..Default::default()
-        });
+
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
                 max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -854,6 +829,44 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Sign transaction on\n\nEthereum".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "You will be shown\nthe raw\ntransaction data.".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "Only proceed if you\nunderstand exactly\nwhat the data means.".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Transaction\ndata".into(),
+                    body: "666f6f20626172".into(),
+                    longtouch: false
+                },
+                Screen::Recipient {
+                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    amount: "0.530564 ETH".into()
+                },
+                Screen::TotalFee {
+                    total: "0.53069 ETH".into(),
+                    fee: "0.000126 ETH".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
     }
 
     /// ERC20 transaction: recipient is an ERC20 contract address, and
@@ -862,28 +875,31 @@ mod tests {
     pub fn test_process_standard_erc20_transaction() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                assert!(params.accept_is_nextarrow);
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "57 USDT");
-                assert_eq!(address, "0xE6CE0a092A99700CD4ccCcBb1fEDc39Cf53E6330");
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "57 USDT");
-                assert_eq!(fee, "0.0012658164 ETH");
-                assert!(longtouch);
-                true
-            })),
-            ..Default::default()
-        });
+        let expected_screens = vec![
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Recipient {
+                recipient: "0xE6CE0a092A99700CD4ccCcBb1fEDc39Cf53E6330".into(),
+                amount: "57 USDT".into(),
+            },
+            Screen::TotalFee {
+                total: "57 USDT".into(),
+                fee: "0.0012658164 ETH".into(),
+                longtouch: true,
+            },
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            },
+        ];
+
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::RopstenEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
@@ -901,8 +917,11 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(mock_workflows.screens, expected_screens);
+
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
                 max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -920,6 +939,7 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(mock_workflows.screens, expected_screens);
     }
 
     /// An ERC20 transaction which is not in our list of supported ERC20 tokens.
@@ -927,28 +947,30 @@ mod tests {
     pub fn test_process_standard_unknown_erc20_transaction() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                assert!(params.accept_is_nextarrow);
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                assert_eq!(amount, "Unknown token");
-                assert_eq!(address, "0x857B3D969eAcB775a9f79cabc62Ec4bB1D1cd60e");
-                true
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "Unknown amount");
-                assert_eq!(fee, "0.000067973 ETH");
-                assert!(longtouch);
-                true
-            })),
-            ..Default::default()
-        });
+        let expected_screens = vec![
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Recipient {
+                recipient: "0x857B3D969eAcB775a9f79cabc62Ec4bB1D1cd60e".into(),
+                amount: "Unknown token".into(),
+            },
+            Screen::TotalFee {
+                total: "Unknown amount".into(),
+                fee: "0.000067973 ETH".into(),
+                longtouch: true,
+            },
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            },
+        ];
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\xb9".to_vec(),
@@ -966,8 +988,11 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(mock_workflows.screens, expected_screens);
+
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\xb9".to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -985,6 +1010,7 @@ mod tests {
                     .to_vec()
             }))
         );
+        assert_eq!(mock_workflows.screens, expected_screens);
     }
 
     #[test]
@@ -1007,15 +1033,9 @@ mod tests {
 
         {
             // Check that the above is valid before making invalid variants.
-            mock(Data {
-                ui_confirm_create: Some(Box::new(|_| true)),
-                ui_transaction_address_create: Some(Box::new(|_, _| true)),
-                ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
-                ..Default::default()
-            });
             mock_unlocked();
             assert!(block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &Transaction::Legacy(&valid_request)
             ))
             .is_ok());
@@ -1027,7 +1047,7 @@ mod tests {
             invalid_request.coin = 100;
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1040,7 +1060,7 @@ mod tests {
             invalid_request.keypath = vec![44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1053,7 +1073,7 @@ mod tests {
             invalid_request.keypath = vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100];
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1066,7 +1086,7 @@ mod tests {
             invalid_request.data = vec![0; 6145];
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1079,7 +1099,7 @@ mod tests {
             invalid_request.recipient = vec![b'a'; 21];
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1092,7 +1112,7 @@ mod tests {
             invalid_request.recipient = vec![0; 20];
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1100,87 +1120,48 @@ mod tests {
         }
 
         {
-            // User rejects chain confirmation
-            mock(Data {
-                ui_confirm_create: Some(Box::new(|params| {
-                    assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                    assert!(params.accept_is_nextarrow);
-                    false
-                })),
-                ..Default::default()
-            });
-            assert_eq!(
-                block_on(process(
-                    &mut RealWorkflows,
-                    &Transaction::Legacy(&valid_request)
-                )),
-                Err(Error::UserAbort)
-            );
+            // User rejects first, second or third screen.
+            for i in 0..3 {
+                let mut mock_workflows = TestingWorkflows::new();
+                mock_workflows.abort_nth(i);
+                assert_eq!(
+                    block_on(process(
+                        &mut mock_workflows,
+                        &Transaction::Legacy(&valid_request)
+                    )),
+                    Err(Error::UserAbort)
+                );
+                let mut expected_screens = [
+                    Screen::Confirm {
+                        title: "".into(),
+                        body: "Sign transaction on\n\nEthereum".into(),
+                        longtouch: false,
+                    },
+                    Screen::Recipient {
+                        recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                        amount: "0.530564 ETH".into(),
+                    },
+                    Screen::TotalFee {
+                        total: "0.53069 ETH".into(),
+                        fee: "0.000126 ETH".into(),
+                        longtouch: true,
+                    },
+                ][..i + 1]
+                    .to_vec();
+                expected_screens.push(Screen::Status {
+                    title: "Transaction\ncanceled".into(),
+                    success: false,
+                });
+                assert_eq!(mock_workflows.screens, expected_screens);
+            }
         }
 
         {
-            // User rejects recipient/value.
-            mock(Data {
-                ui_confirm_create: Some(Box::new(|params| {
-                    assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                    assert!(params.accept_is_nextarrow);
-                    true
-                })),
-                ui_transaction_address_create: Some(Box::new(|amount, address| {
-                    assert_eq!(amount, "0.530564 ETH");
-                    assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
-                    false
-                })),
-                ..Default::default()
-            });
-            assert_eq!(
-                block_on(process(
-                    &mut RealWorkflows,
-                    &Transaction::Legacy(&valid_request)
-                )),
-                Err(Error::UserAbort)
-            );
-        }
-        {
-            // User rejects total/fee.
-            mock(Data {
-                ui_confirm_create: Some(Box::new(|params| {
-                    assert_eq!(params.body, "Sign transaction on\n\nEthereum");
-                    assert!(params.accept_is_nextarrow);
-                    true
-                })),
-                ui_transaction_address_create: Some(Box::new(|amount, address| {
-                    assert_eq!(amount, "0.530564 ETH");
-                    assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
-                    true
-                })),
-                ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                    assert_eq!(total, "0.53069 ETH");
-                    assert_eq!(fee, "0.000126 ETH");
-                    assert!(longtouch);
-                    false
-                })),
-                ..Default::default()
-            });
-            assert_eq!(
-                block_on(process(
-                    &mut RealWorkflows,
-                    &Transaction::Legacy(&valid_request)
-                )),
-                Err(Error::UserAbort)
-            );
-        }
-        {
             // Keystore locked.
-            mock(Data {
-                ui_confirm_create: Some(Box::new(|_| true)),
-                ui_transaction_address_create: Some(Box::new(|_, _| true)),
-                ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
-                ..Default::default()
-            });
+            keystore::lock();
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Legacy(&valid_request)
                 )),
                 Err(Error::Generic)
@@ -1208,15 +1189,9 @@ mod tests {
 
         {
             // Check that the above is valid before making invalid variants.
-            mock(Data {
-                ui_confirm_create: Some(Box::new(|_| true)),
-                ui_transaction_address_create: Some(Box::new(|_, _| true)),
-                ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
-                ..Default::default()
-            });
             mock_unlocked();
             assert!(block_on(process(
-                &mut RealWorkflows,
+                &mut TestingWorkflows::new(),
                 &Transaction::Eip1559(&valid_request)
             ))
             .is_ok());
@@ -1228,7 +1203,7 @@ mod tests {
             invalid_request.chain_id = 0;
             assert_eq!(
                 block_on(process(
-                    &mut RealWorkflows,
+                    &mut TestingWorkflows::new(),
                     &Transaction::Eip1559(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1241,62 +1216,10 @@ mod tests {
     pub fn test_process_unknown_network() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Warning");
-                        assert_eq!(params.body, "Unknown network\nwith chain ID:\n12345");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Warning");
-                        assert_eq!(
-                            params.body,
-                            "Only proceed if\nyou recognize\nthis chain ID."
-                        );
-                        true
-                    }
-                    _ => panic!("unexpected user confirmation"),
-                }
-            })),
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    3 => {
-                        assert_eq!(amount, "0.530564 ");
-                        assert_eq!(address, "0x04F264Cf34440313B4A0192A352814FBe927b885");
-                        true
-                    }
-                    _ => panic!("unexpected user confirmation"),
-                }
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    4 => {
-                        assert_eq!(total, "0.53069 ");
-                        assert_eq!(fee, "0.000126 ");
-                        assert!(longtouch);
-                        true
-                    }
-                    _ => panic!("unexpected user confirmation"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -1313,33 +1236,45 @@ mod tests {
                 signature: b"\xb1\xb6\xb3\x4e\x15\xa0\x30\x9d\xdc\x26\x03\xdf\x4c\x40\x38\xea\x86\x65\xed\x85\xd3\xf2\xc8\x1e\x7f\x1a\xa0\x25\x4b\x21\x38\x72\x0d\x60\x1f\x42\x19\xfb\x29\xab\x3d\x5f\xf7\x76\xea\xe1\xbe\x15\x26\xb4\x67\xe2\xb0\xe6\x30\xe8\xe6\x34\xa4\xda\x4a\x82\x2e\x39\x00".to_vec()
             }))
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "Unknown network\nwith chain ID:\n12345".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "Only proceed if\nyou recognize\nthis chain ID.".into(),
+                    longtouch: false
+                },
+                Screen::Recipient {
+                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    amount: "0.530564 ".into(),
+                },
+                Screen::TotalFee {
+                    total: "0.53069 ".into(),
+                    fee: "0.000126 ".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
     }
 
     /// Test that the chain confirmation screen appears for known non-mainnet networks.
     #[test]
     pub fn test_chain_confirmation() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        static mut CONFIRM_COUNTER: u32 = 0;
-        // Test with Arbitrum (chain_id 42161)
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                unsafe {
-                    if CONFIRM_COUNTER == 0 {
-                        assert_eq!(params.body, "Sign transaction on\n\nArbitrum One");
-                        CONFIRM_COUNTER += 1;
-                    }
-                }
-                true
-            })),
-            // Skip checking these details
-            ui_transaction_address_create: Some(Box::new(|_, _| true)),
-            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
-            ..Default::default()
-        });
-        mock_unlocked();
 
-        block_on(process(&mut RealWorkflows, &Transaction::Legacy(&pb::EthSignRequest {
+        // Test with Arbitrum (chain_id 42161)
+        mock_unlocked();
+        let mut mock_workflows = TestingWorkflows::new();
+        block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -1355,33 +1290,26 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .unwrap();
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+
+        assert_eq!(
+            mock_workflows.screens[0],
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nArbitrum One".into(),
+                longtouch: false,
+            }
+        );
     }
 
     /// Test that EIP-1559 transactions also get the chain confirmation screen
     #[test]
     pub fn test_chain_confirmation_for_eip1559() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        static mut CONFIRM_COUNTER: u32 = 0;
 
         // Test with Polygon network (chain_id 137)
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                unsafe {
-                    if CONFIRM_COUNTER == 0 {
-                        assert_eq!(params.body, "Sign transaction on\n\nPolygon");
-                        CONFIRM_COUNTER += 1;
-                    }
-                }
-                true
-            })),
-            ui_transaction_address_create: Some(Box::new(|_, _| true)),
-            ui_transaction_fee_create: Some(Box::new(|_, _, _| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-
-        block_on(process(&mut RealWorkflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+        let mut mock_workflows = TestingWorkflows::new();
+        block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -1397,6 +1325,13 @@ mod tests {
             address_case: pb::EthAddressCase::Mixed as _,
         })))
         .unwrap();
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+        assert_eq!(
+            mock_workflows.screens[0],
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nPolygon".into(),
+                longtouch: false,
+            }
+        );
     }
 }

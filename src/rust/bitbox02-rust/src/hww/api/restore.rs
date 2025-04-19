@@ -18,32 +18,37 @@ use crate::pb;
 use pb::response::Response;
 
 use crate::general::abort;
-use crate::workflow::{confirm, mnemonic, password, status, unlock};
+use crate::workflow::{confirm, mnemonic, password, unlock, Workflows};
 
-pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, Error> {
+pub async fn from_file<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::RestoreBackupRequest,
+) -> Result<Response, Error> {
     // This is a separate screen because 'Restore backup?' does not fit in the title field.
-    confirm::confirm(&confirm::Params {
-        body: "Restore backup?",
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            body: "Restore backup?",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
     let (data, metadata) = match crate::backup::load(&request.id) {
         Ok(d) => d,
         Err(_) => {
-            status::status("Could not\nrestore backup", false).await;
+            workflows.status("Could not\nrestore backup", false).await;
             return Err(Error::Generic);
         }
     };
 
-    confirm::confirm(&confirm::Params {
-        body: &format!("Name: {}. ID: {}", &metadata.name, &request.id),
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            body: &format!("Name: {}. ID: {}", &metadata.name, &request.id),
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
     #[cfg(feature = "app-u2f")]
     {
@@ -56,12 +61,14 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
             accept_is_nextarrow: true,
             ..Default::default()
         };
-        confirm::confirm(&params).await?;
+        workflows.confirm(&params).await?;
     }
 
-    let password = password::enter_twice().await?;
+    let password = password::enter_twice(workflows).await?;
     if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(data.get_seed(), &password) {
-        status::status(&format!("Could not\nrestore backup\n{:?}", err), false).await;
+        workflows
+            .status(&format!("Could not\nrestore backup\n{:?}", err), false)
+            .await;
         return Err(Error::Generic);
     }
 
@@ -83,11 +90,12 @@ pub async fn from_file(request: &pb::RestoreBackupRequest) -> Result<Response, E
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
 
-    unlock::unlock_bip39().await;
+    unlock::unlock_bip39(workflows).await;
     Ok(Response::Success(pb::Success {}))
 }
 
-pub async fn from_mnemonic(
+pub async fn from_mnemonic<W: Workflows>(
+    workflows: &mut W,
     #[cfg_attr(not(feature = "app-u2f"), allow(unused_variables))]
     &pb::RestoreFromMnemonicRequest {
         timestamp,
@@ -98,36 +106,38 @@ pub async fn from_mnemonic(
     {
         let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false)
             .map_err(|_| Error::InvalidInput)?;
-        confirm::confirm(&confirm::Params {
-            title: "Is now?",
-            body: &datetime_string,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Is now?",
+                body: &datetime_string,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
-    let mnemonic = mnemonic::get().await?;
+    let mnemonic = mnemonic::get(workflows).await?;
     let seed = match bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
         Err(()) => {
-            status::status("Recovery words\ninvalid", false).await;
+            workflows.status("Recovery words\ninvalid", false).await;
             return Err(Error::Generic);
         }
     };
-    status::status("Recovery words\nvalid", true).await;
+    workflows.status("Recovery words\nvalid", true).await;
 
     // If entering password fails (repeat password does not match the first), we don't want to abort
     // the process immediately. We break out only if the user confirms.
     let password = loop {
-        match password::enter_twice().await {
+        match password::enter_twice(workflows).await {
             Err(password::EnterTwiceError::DoNotMatch) => {
-                confirm::confirm(&confirm::Params {
-                    title: "",
-                    body: "Passwords\ndo not match.\nTry again?",
-                    ..Default::default()
-                })
-                .await?;
+                workflows
+                    .confirm(&confirm::Params {
+                        title: "",
+                        body: "Passwords\ndo not match.\nTry again?",
+                        ..Default::default()
+                    })
+                    .await?;
             }
             Err(password::EnterTwiceError::Cancelled) => return Err(Error::UserAbort),
             Ok(password) => break password,
@@ -135,7 +145,9 @@ pub async fn from_mnemonic(
     };
 
     if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(&seed, &password) {
-        status::status(&format!("Could not\nrestore backup\n{:?}", err), false).await;
+        workflows
+            .status(&format!("Could not\nrestore backup\n{:?}", err), false)
+            .await;
         return Err(Error::Generic);
     };
 
@@ -152,6 +164,6 @@ pub async fn from_mnemonic(
         abort("restore_from_mnemonic: unlock failed");
     };
 
-    unlock::unlock_bip39().await;
+    unlock::unlock_bip39(workflows).await;
     Ok(Response::Success(pb::Success {}))
 }

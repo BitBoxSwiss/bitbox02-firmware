@@ -130,7 +130,7 @@ mod tests {
     use crate::bb02_async::block_on;
     use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
     const MESSAGE: &str = "message";
@@ -415,9 +415,6 @@ mod tests {
         );
 
         // Invalid keypath
-        mock(Data {
-            ..Default::default()
-        });
         mock_unlocked();
         assert_eq!(
             block_on(process(
@@ -437,9 +434,6 @@ mod tests {
             Err(Error::InvalidInput)
         );
         // Invalid keypath (mainnet keypath on testnet)
-        mock(Data {
-            ..Default::default()
-        });
         mock_unlocked();
         assert_eq!(
             block_on(process(

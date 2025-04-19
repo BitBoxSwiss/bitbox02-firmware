@@ -80,16 +80,17 @@ async fn get_name<W: Workflows>(
             })
             .await?;
 
-        let name = trinary_input_string::enter(
-            &trinary_input_string::Params {
-                title: "Enter account name",
-                longtouch: true,
-                ..Default::default()
-            },
-            trinary_input_string::CanCancel::Yes,
-            "",
-        )
-        .await?;
+        let name = workflows
+            .enter_string(
+                &trinary_input_string::Params {
+                    title: "Enter account name",
+                    longtouch: true,
+                    ..Default::default()
+                },
+                trinary_input_string::CanCancel::Yes,
+                "",
+            )
+            .await?;
         // We truncate the user input string to fit into the maximum allowed multisig
         // account name length. This is not very nice, but it has to do until we have some
         // sort of indication in the input component.

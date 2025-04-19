@@ -17,9 +17,9 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
-pub async fn process() -> Result<Response, Error> {
+pub async fn process<W: Workflows>(workflows: &mut W) -> Result<Response, Error> {
     let params = confirm::Params {
         title: "RESET",
         body: "Proceed to\nfactory reset?",
@@ -27,7 +27,7 @@ pub async fn process() -> Result<Response, Error> {
         ..Default::default()
     };
 
-    confirm::confirm(&params).await.or(Err(Error::Generic))?;
+    workflows.confirm(&params).await.or(Err(Error::Generic))?;
 
     bitbox02::reset(true);
 
@@ -39,8 +39,9 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_memory, Data};
+    use bitbox02::testing::mock_memory;
 
     #[test]
     pub fn test_reset() {
@@ -48,29 +49,36 @@ mod tests {
         bitbox02::memory::set_device_name("test device name").unwrap();
 
         // User aborted confirmation.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Proceed to\nfactory reset?");
-                false
-            })),
-            ..Default::default()
-        });
-        assert_eq!(block_on(process()), Err(Error::Generic));
-
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.abort_nth(0);
+        assert_eq!(block_on(process(&mut mock_workflows)), Err(Error::Generic));
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "RESET".into(),
+                body: "Proceed to\nfactory reset?".into(),
+                longtouch: true,
+            }],
+        );
         assert_eq!(
             bitbox02::memory::get_device_name().as_str(),
             "test device name",
         );
 
         // All good.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Proceed to\nfactory reset?");
-                true
-            })),
-            ..Default::default()
-        });
-        assert_eq!(block_on(process()), Ok(Response::Success(pb::Success {})));
+        let mut mock_workflows = TestingWorkflows::new();
+        assert_eq!(
+            block_on(process(&mut mock_workflows)),
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "RESET".into(),
+                body: "Proceed to\nfactory reset?".into(),
+                longtouch: true,
+            }],
+        );
         assert_eq!(bitbox02::memory::get_device_name().as_str(), "My BitBox");
     }
 }

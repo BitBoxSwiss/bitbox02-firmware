@@ -17,47 +17,56 @@ use super::Error;
 
 use pb::response::Response;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
 use bitbox02::keystore;
 
 use alloc::vec::Vec;
 
 /// Processes a BIP-85 API call.
-pub async fn process(request: &pb::Bip85Request) -> Result<Response, Error> {
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::Bip85Request,
+) -> Result<Response, Error> {
     match &request.app {
         None => Err(Error::InvalidInput),
         Some(pb::bip85_request::App::Bip39(())) => Ok(Response::Bip85(pb::Bip85Response {
-            app: Some(pb::bip85_response::App::Bip39(process_bip39().await?)),
+            app: Some(pb::bip85_response::App::Bip39(
+                process_bip39(workflows).await?,
+            )),
         })),
         Some(pb::bip85_request::App::Ln(request)) => Ok(Response::Bip85(pb::Bip85Response {
-            app: Some(pb::bip85_response::App::Ln(process_ln(request).await?)),
+            app: Some(pb::bip85_response::App::Ln(
+                process_ln(workflows, request).await?,
+            )),
         })),
     }
 }
 
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
-async fn process_bip39() -> Result<(), Error> {
+async fn process_bip39<W: Workflows>(workflows: &mut W) -> Result<(), Error> {
     use crate::workflow::trinary_choice::{choose, TrinaryChoice};
-    use crate::workflow::{menu, mnemonic, status, trinary_input_string};
+    use crate::workflow::{menu, mnemonic, trinary_input_string};
 
-    confirm::confirm(&confirm::Params {
-        title: "BIP-85",
-        body: "Derive BIP-39\nmnemonic?",
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "BIP-85",
+            body: "Derive BIP-39\nmnemonic?",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
-    confirm::confirm(&confirm::Params {
-        title: "BIP-85",
-        body: "This is an advanced feature. Proceed only if you know what you are doing.",
-        scrollable: true,
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "BIP-85",
+            body: "This is an advanced feature. Proceed only if you know what you are doing.",
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
     let num_words: u32 = match choose("How many words?", "12", "18", "24").await {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
@@ -65,28 +74,31 @@ async fn process_bip39() -> Result<(), Error> {
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
     };
 
-    status::status(&format!("{} words", num_words), true).await;
+    workflows
+        .status(&format!("{} words", num_words), true)
+        .await;
 
     // Pick index. The first few are quick-access. "More" leads to a full number input keyboard.
     let index: u32 =
         match menu::pick(&["0", "1", "2", "3", "4", "More"], Some("Select index")).await? {
             i @ 0..=4 => i.into(),
             5 => {
-                let number_string = trinary_input_string::enter(
-                    &trinary_input_string::Params {
-                        title: "Enter index",
-                        number_input: true,
-                        longtouch: true,
-                        ..Default::default()
-                    },
-                    trinary_input_string::CanCancel::Yes,
-                    "",
-                )
-                .await?;
+                let number_string = workflows
+                    .enter_string(
+                        &trinary_input_string::Params {
+                            title: "Enter index",
+                            number_input: true,
+                            longtouch: true,
+                            ..Default::default()
+                        },
+                        trinary_input_string::CanCancel::Yes,
+                        "",
+                    )
+                    .await?;
                 match number_string.as_str().parse::<u32>() {
                     Ok(i) if i < util::bip32::HARDENED => i,
                     _ => {
-                        status::status("Invalid index", false).await;
+                        workflows.status("Invalid index", false).await;
                         return Err(Error::InvalidInput);
                     }
                 }
@@ -94,30 +106,32 @@ async fn process_bip39() -> Result<(), Error> {
             6.. => panic!("bip85 error"),
         };
 
-    status::status(&format!("Index: {}", index), true).await;
+    workflows.status(&format!("Index: {}", index), true).await;
 
-    confirm::confirm(&confirm::Params {
-        title: "Keypath",
-        body: &format!("m/83696968'/39'/0'/{}'/{}'", num_words, index),
-        scrollable: true,
-        longtouch: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "Keypath",
+            body: &format!("m/83696968'/39'/0'/{}'/{}'", num_words, index),
+            scrollable: true,
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?;
 
-    confirm::confirm(&confirm::Params {
-        title: "",
-        body: &format!("{} word mnemonic\nfollows", num_words),
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "",
+            body: &format!("{} word mnemonic\nfollows", num_words),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
     let mnemonic = keystore::bip85_bip39(num_words, index)?;
     let words: Vec<&str> = mnemonic.split(' ').collect();
-    mnemonic::show_and_confirm_mnemonic(&words).await?;
+    mnemonic::show_and_confirm_mnemonic(workflows, &words).await?;
 
-    status::status("Finished", true).await;
+    workflows.status("Finished", true).await;
 
     Ok(())
 }
@@ -126,20 +140,22 @@ async fn process_bip39() -> Result<(), Error> {
 /// It is the same as BIP-85 with app number 39', but instead using app number 19534' (= 0x4c4e = 'LN'),
 /// and restricted to 12 word mnemonics.
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
-async fn process_ln(
+async fn process_ln<W: Workflows>(
+    workflows: &mut W,
     &pb::bip85_request::AppLn { account_number }: &pb::bip85_request::AppLn,
 ) -> Result<Vec<u8>, Error> {
     // We allow only one LN account until we see a reason to have more.
     if account_number != 0 {
         return Err(Error::InvalidInput);
     }
-    confirm::confirm(&confirm::Params {
-        title: "",
-        body: "Create\nLightning wallet\non host device?",
-        longtouch: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "",
+            body: "Create\nLightning wallet\non host device?",
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?;
 
     keystore::bip85_ln(account_number).map_err(|_| Error::Generic)
 }

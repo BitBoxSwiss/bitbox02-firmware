@@ -164,24 +164,26 @@ async fn process_api<W: Workflows>(
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::Reboot(ref request) => system::reboot(request).await,
+        Request::Reboot(ref request) => system::reboot(workflows, request).await,
         Request::DeviceInfo(_) => device_info::process(),
-        Request::DeviceName(ref request) => set_device_name::process(request).await,
-        Request::SetPassword(ref request) => set_password::process(request).await,
-        Request::Reset(_) => reset::process().await,
+        Request::DeviceName(ref request) => set_device_name::process(workflows, request).await,
+        Request::SetPassword(ref request) => set_password::process(workflows, request).await,
+        Request::Reset(_) => reset::process(workflows).await,
         Request::SetMnemonicPassphraseEnabled(ref request) => {
-            set_mnemonic_passphrase_enabled::process(request).await
+            set_mnemonic_passphrase_enabled::process(workflows, request).await
         }
         Request::InsertRemoveSdcard(ref request) => sdcard::process(request).await,
         Request::ListBackups(_) => backup::list(),
         Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
             inserted: bitbox02::sd::sdcard_inserted(),
         })),
-        Request::CheckBackup(ref request) => backup::check(request).await,
-        Request::CreateBackup(ref request) => backup::create(request).await,
-        Request::RestoreBackup(ref request) => restore::from_file(request).await,
-        Request::ShowMnemonic(_) => show_mnemonic::process().await,
-        Request::RestoreFromMnemonic(ref request) => restore::from_mnemonic(request).await,
+        Request::CheckBackup(ref request) => backup::check(workflows, request).await,
+        Request::CreateBackup(ref request) => backup::create(workflows, request).await,
+        Request::RestoreBackup(ref request) => restore::from_file(workflows, request).await,
+        Request::ShowMnemonic(_) => show_mnemonic::process(workflows).await,
+        Request::RestoreFromMnemonic(ref request) => {
+            restore::from_mnemonic(workflows, request).await
+        }
         Request::ElectrumEncryptionKey(ref request) => electrum::process(request).await,
 
         #[cfg(feature = "app-ethereum")]
@@ -206,7 +208,7 @@ async fn process_api<W: Workflows>(
             .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
-        Request::Bip85(ref request) => bip85::process(request).await,
+        Request::Bip85(ref request) => bip85::process(workflows, request).await,
         _ => Err(Error::InvalidInput),
     }
 }

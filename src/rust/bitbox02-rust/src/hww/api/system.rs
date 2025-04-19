@@ -18,21 +18,25 @@ use crate::pb;
 use pb::reboot_request::Purpose;
 use pb::response::Response;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
-pub async fn reboot(&pb::RebootRequest { purpose }: &pb::RebootRequest) -> Result<Response, Error> {
-    confirm::confirm(&confirm::Params {
-        title: "",
-        body: match Purpose::try_from(purpose) {
-            Ok(Purpose::Upgrade) => "Proceed to upgrade?",
-            Ok(Purpose::Settings) => "Go to\nstartup settings?",
-            // No error, if new client library sends a purpose that we don't understand,
-            // we reboot anyway.
-            Err(_) => "Reboot?",
-        },
-        ..Default::default()
-    })
-    .await?;
+pub async fn reboot<W: Workflows>(
+    workflows: &mut W,
+    &pb::RebootRequest { purpose }: &pb::RebootRequest,
+) -> Result<Response, Error> {
+    workflows
+        .confirm(&confirm::Params {
+            title: "",
+            body: match Purpose::try_from(purpose) {
+                Ok(Purpose::Upgrade) => "Proceed to upgrade?",
+                Ok(Purpose::Settings) => "Go to\nstartup settings?",
+                // No error, if new client library sends a purpose that we don't understand,
+                // we reboot anyway.
+                Err(_) => "Reboot?",
+            },
+            ..Default::default()
+        })
+        .await?;
     bitbox02::reboot()
 }
 
@@ -42,19 +46,18 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, Data};
 
     #[test]
     pub fn test_reboot() {
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|_| true)),
-            ..Default::default()
-        });
         let reboot_called = std::panic::catch_unwind(|| {
-            block_on(reboot(&pb::RebootRequest {
-                purpose: Purpose::Upgrade as _,
-            }))
+            block_on(reboot(
+                &mut TestingWorkflows::new(),
+                &pb::RebootRequest {
+                    purpose: Purpose::Upgrade as _,
+                },
+            ))
             .unwrap();
         });
         match reboot_called {
@@ -65,14 +68,15 @@ mod tests {
 
     #[test]
     pub fn test_reboot_aborted() {
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|_| false)),
-            ..Default::default()
-        });
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.abort_nth(0);
         assert_eq!(
-            block_on(reboot(&pb::RebootRequest {
-                purpose: Purpose::Upgrade as _
-            })),
+            block_on(reboot(
+                &mut mock_workflows,
+                &pb::RebootRequest {
+                    purpose: Purpose::Upgrade as _
+                }
+            )),
             Err(Error::UserAbort),
         );
     }

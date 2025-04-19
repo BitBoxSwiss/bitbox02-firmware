@@ -17,7 +17,7 @@ pub mod noise;
 
 use alloc::vec::Vec;
 
-use crate::workflow::RealWorkflows;
+use crate::workflow::{RealWorkflows, Workflows};
 
 const OP_UNLOCK: u8 = b'u';
 const OP_ATTESTATION: u8 = b'a';
@@ -75,8 +75,8 @@ pub async fn next_request(
 }
 
 /// Process OP_UNLOCK.
-async fn api_unlock() -> Vec<u8> {
-    match crate::workflow::unlock::unlock().await {
+async fn api_unlock<W: Workflows>(workflows: &mut W) -> Vec<u8> {
+    match crate::workflow::unlock::unlock(workflows).await {
         Ok(()) => [OP_STATUS_SUCCESS].to_vec(),
         Err(()) => [OP_STATUS_FAILURE_UNINITIALIZED].to_vec(),
     }
@@ -118,7 +118,7 @@ pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
     let workflows = &mut RealWorkflows;
 
     match usb_in.split_first() {
-        Some((&OP_UNLOCK, b"")) => return api_unlock().await,
+        Some((&OP_UNLOCK, b"")) => return api_unlock(workflows).await,
         Some((&OP_ATTESTATION, rest)) => return api_attestation(rest),
         _ => (),
     }

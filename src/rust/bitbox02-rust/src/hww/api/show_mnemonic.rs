@@ -16,46 +16,47 @@ use alloc::vec::Vec;
 
 use super::Error;
 use crate::pb;
-use crate::workflow::confirm;
 
 use pb::response::Response;
 
-use crate::workflow::{mnemonic, status, unlock};
+use crate::workflow::{confirm, mnemonic, unlock, Workflows};
 use bitbox02::keystore;
 
 /// Handle the ShowMnemonic API call. This shows the seed encoded as
 /// 12/18/24 BIP39 English words. Afterwards, for each word, the user
 /// is asked to pick the right word among 5 words, to check if they
 /// wrote it down correctly.
-pub async fn process() -> Result<Response, Error> {
+pub async fn process<W: Workflows>(workflows: &mut W) -> Result<Response, Error> {
     if bitbox02::memory::is_initialized() {
-        unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
+        unlock::unlock_keystore(workflows, "Unlock device", unlock::CanCancel::Yes).await?;
     }
 
     let mnemonic_sentence = keystore::get_bip39_mnemonic()?;
 
-    confirm::confirm(&confirm::Params {
-        title: "Warning",
-        body: "DO NOT share your\nrecovery words with\nanyone!",
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "Warning",
+            body: "DO NOT share your\nrecovery words with\nanyone!",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
-    confirm::confirm(&confirm::Params {
-        title: "Recovery\nwords",
-        body: "Please write down\nthe following words",
-        accept_is_nextarrow: true,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "Recovery\nwords",
+            body: "Please write down\nthe following words",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 
-    mnemonic::show_and_confirm_mnemonic(&words).await?;
+    mnemonic::show_and_confirm_mnemonic(workflows, &words).await?;
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
 
-    status::status("Backup created", true).await;
+    workflows.status("Backup created", true).await;
     Ok(Response::Success(pb::Success {}))
 }

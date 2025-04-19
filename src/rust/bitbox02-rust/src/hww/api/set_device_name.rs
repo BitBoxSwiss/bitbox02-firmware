@@ -17,9 +17,10 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
-pub async fn process(
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
     if !util::name::validate(name, bitbox02::memory::DEVICE_NAME_MAX_LEN) {
@@ -33,7 +34,7 @@ pub async fn process(
         ..Default::default()
     };
 
-    confirm::confirm(&params).await?;
+    workflows.confirm(&params).await?;
 
     bitbox02::memory::set_device_name(name)?;
 
@@ -45,66 +46,88 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::workflow::RealWorkflows;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_memory, Data};
+    use bitbox02::testing::mock_memory;
 
     #[test]
     pub fn test_set_device_name() {
-        static SOME_NAME: &str = "foo";
+        const SOME_NAME: &str = "foo";
 
         // All good.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, SOME_NAME);
-                true
-            })),
-            ..Default::default()
-        });
         mock_memory();
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(process(&pb::SetDeviceNameRequest {
-                name: SOME_NAME.into()
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::SetDeviceNameRequest {
+                    name: SOME_NAME.into()
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Name".into(),
+                body: SOME_NAME.into(),
+                longtouch: false,
+            }]
         );
         assert_eq!(SOME_NAME, &bitbox02::memory::get_device_name());
 
         // User aborted confirmation.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, SOME_NAME);
-                false
-            })),
-            ..Default::default()
-        });
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.abort_nth(0);
         assert_eq!(
-            block_on(process(&pb::SetDeviceNameRequest {
-                name: SOME_NAME.into()
-            })),
+            block_on(process(
+                &mut mock_workflows,
+                &pb::SetDeviceNameRequest {
+                    name: SOME_NAME.into()
+                }
+            )),
             Err(Error::UserAbort)
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Name".into(),
+                body: SOME_NAME.into(),
+                longtouch: false,
+            }]
         );
 
         // Non-ascii character.
         assert_eq!(
-            block_on(process(&pb::SetDeviceNameRequest {
-                name: "emoji are 😃, 😭, and 😈".into()
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::SetDeviceNameRequest {
+                    name: "emoji are 😃, 😭, and 😈".into()
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
         // Non-printable character.
         assert_eq!(
-            block_on(process(&pb::SetDeviceNameRequest {
-                name: "foo\nbar".into()
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::SetDeviceNameRequest {
+                    name: "foo\nbar".into()
+                }
+            )),
             Err(Error::InvalidInput)
         );
 
         // Too long.
         assert_eq!(
-            block_on(process(&pb::SetDeviceNameRequest {
-                name: core::str::from_utf8(&[b'a'; 500]).unwrap().into()
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::SetDeviceNameRequest {
+                    name: core::str::from_utf8(&[b'a'; 500]).unwrap().into()
+                }
+            )),
             Err(Error::InvalidInput)
         );
     }

@@ -20,9 +20,10 @@ use alloc::vec::Vec;
 use pb::response::Response;
 
 use crate::backup;
-use crate::workflow::{confirm, status, unlock};
+use crate::workflow::{confirm, unlock, Workflows};
 
-pub async fn check(
+pub async fn check<W: Workflows>(
+    workflows: &mut W,
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
 ) -> Result<Response, Error> {
     if !bitbox02::sd::sdcard_inserted() {
@@ -34,29 +35,31 @@ pub async fn check(
     let (backup_data, metadata) = backup::load(&id)?;
     if seed.as_slice() != backup_data.get_seed() {
         if !silent {
-            status::status("Backup missing\nor invalid", false).await;
+            workflows.status("Backup missing\nor invalid", false).await;
         }
         return Err(Error::Generic);
     }
     if !silent {
-        confirm::confirm(&confirm::Params {
-            title: "Name?",
-            body: &metadata.name,
-            scrollable: true,
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "Name?",
+                body: &metadata.name,
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
 
-        confirm::confirm(&confirm::Params {
-            title: "ID?",
-            body: &id,
-            scrollable: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: "ID?",
+                body: &id,
+                scrollable: true,
+                ..Default::default()
+            })
+            .await?;
 
-        status::status("Backup valid", true).await;
+        workflows.status("Backup valid", true).await;
     }
     Ok(Response::CheckBackup(pb::CheckBackupResponse { id }))
 }
@@ -69,19 +72,21 @@ pub async fn check(
 /// If the device is initialized, an existing backup is overwritten, but the seed birthdate is
 /// retained from the previous backup. If no backup existed, the seed birthdate is set to 0, meaning
 /// it is unknown.
-pub async fn create(
+pub async fn create<W: Workflows>(
+    workflows: &mut W,
     &pb::CreateBackupRequest {
         timestamp,
         timezone_offset,
     }: &pb::CreateBackupRequest,
 ) -> Result<Response, Error> {
-    confirm::confirm(&confirm::Params {
-        title: "Is today?",
-        body: &bitbox02::format_datetime(timestamp, timezone_offset, true)
-            .map_err(|_| Error::InvalidInput)?,
-        ..Default::default()
-    })
-    .await?;
+    workflows
+        .confirm(&confirm::Params {
+            title: "Is today?",
+            body: &bitbox02::format_datetime(timestamp, timezone_offset, true)
+                .map_err(|_| Error::InvalidInput)?,
+            ..Default::default()
+        })
+        .await?;
 
     // Wait for sd card
     super::sdcard::process(&pb::InsertRemoveSdCardRequest {
@@ -92,7 +97,7 @@ pub async fn create(
     let is_initialized = bitbox02::memory::is_initialized();
 
     if is_initialized {
-        unlock::unlock_keystore("Unlock device", unlock::CanCancel::Yes).await?;
+        unlock::unlock_keystore(workflows, "Unlock device", unlock::CanCancel::Yes).await?;
     }
 
     let seed = bitbox02::keystore::copy_seed()?;
@@ -122,12 +127,12 @@ pub async fn create(
             // process again.
             let _ = bitbox02::memory::set_initialized();
 
-            status::status("Backup created", true).await;
+            workflows.status("Backup created", true).await;
             Ok(Response::Success(pb::Success {}))
         }
         Err(err) => {
             let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err);
-            status::status(&msg, false).await;
+            workflows.status(&msg, false).await;
             Err(Error::Generic)
         }
     }
@@ -154,6 +159,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
     use bitbox02::testing::{
         mock, mock_memory, mock_sd, mock_unlocked, mock_unlocked_using_mnemonic, Data,
@@ -167,26 +173,44 @@ mod tests {
         // All good.
         mock(Data {
             sdcard_inserted: Some(true),
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.body, "Mon 2020-09-28");
-                true
-            })),
             ..Default::default()
         });
         mock_sd();
         mock_memory();
         mock_unlocked();
+
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(create(&pb::CreateBackupRequest {
-                timestamp: EXPECTED_TIMESTMAP,
-                timezone_offset: 18000,
-            })),
+            block_on(create(
+                &mut mock_workflows,
+                &pb::CreateBackupRequest {
+                    timestamp: EXPECTED_TIMESTMAP,
+                    timezone_offset: 18000,
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Is today?".into(),
+                    body: "Mon 2020-09-28".into(),
+                    longtouch: false
+                },
+                Screen::Status {
+                    title: "Backup created".into(),
+                    success: true
+                }
+            ]
+        );
 
         assert_eq!(
-            block_on(check(&pb::CheckBackupRequest { silent: true })),
+            block_on(check(
+                &mut TestingWorkflows::new(),
+                &pb::CheckBackupRequest { silent: true }
+            )),
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
                 id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into()
             }))
@@ -197,29 +221,10 @@ mod tests {
     /// should catch regressions when changing backup loading/verification in the firmware code.
     #[test]
     fn test_fixture() {
-        static mut UI_COUNTER: u32 = 0;
-        static EXPECTED_ID: &str =
+        const EXPECTED_ID: &str =
             "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
         mock(Data {
             sdcard_inserted: Some(true),
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Name?");
-                        assert_eq!(params.body, "My BitBox");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "ID?");
-                        assert_eq!(params.body, EXPECTED_ID);
-                        true
-                    }
-                    _ => panic!("unexpected UI dialog"),
-                }
-            })),
             ..Default::default()
         });
         mock_sd();
@@ -241,13 +246,35 @@ mod tests {
             .unwrap();
         }
         // Check that the loaded seed matches the backup.
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
-            block_on(check(&pb::CheckBackupRequest { silent: false })),
+            block_on(check(
+                &mut mock_workflows,
+                &pb::CheckBackupRequest { silent: false }
+            )),
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
                 id: EXPECTED_ID.into()
             }))
         );
-        assert_eq!(unsafe { UI_COUNTER }, 2);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Name?".into(),
+                    body: "My BitBox".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "ID?".into(),
+                    body: EXPECTED_ID.into(),
+                    longtouch: false
+                },
+                Screen::Status {
+                    title: "Backup valid".into(),
+                    success: true
+                },
+            ]
+        );
     }
 
     #[test]
@@ -270,17 +297,19 @@ mod tests {
         // Create one backup.
         mock(Data {
             sdcard_inserted: Some(true),
-            ui_confirm_create: Some(Box::new(|_params| true)),
             ..Default::default()
         });
         mock_memory();
         mock_unlocked_using_mnemonic("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay", "");
 
         bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
-        assert!(block_on(create(&pb::CreateBackupRequest {
-            timestamp: EXPECTED_TIMESTAMP,
-            timezone_offset: 18000,
-        }))
+        assert!(block_on(create(
+            &mut TestingWorkflows::new(),
+            &pb::CreateBackupRequest {
+                timestamp: EXPECTED_TIMESTAMP,
+                timezone_offset: 18000,
+            }
+        ))
         .is_ok());
 
         assert_eq!(
@@ -297,16 +326,18 @@ mod tests {
         // Create another backup.
         mock(Data {
             sdcard_inserted: Some(true),
-            ui_confirm_create: Some(Box::new(|_params| true)),
             ..Default::default()
         });
         mock_memory();
         mock_unlocked_using_mnemonic("goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven", "");
         bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
-        assert!(block_on(create(&pb::CreateBackupRequest {
-            timestamp: EXPECTED_TIMESTAMP,
-            timezone_offset: 18000,
-        }))
+        assert!(block_on(create(
+            &mut TestingWorkflows::new(),
+            &pb::CreateBackupRequest {
+                timestamp: EXPECTED_TIMESTAMP,
+                timezone_offset: 18000,
+            }
+        ))
         .is_ok());
 
         assert_eq!(

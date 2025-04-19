@@ -18,7 +18,7 @@ use super::Error;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::workflow::confirm;
+use crate::workflow::{confirm, Workflows};
 
 use pb::cardano_response::Response;
 use pb::cardano_script_config::Config;
@@ -364,7 +364,10 @@ pub fn validate_and_encode_payment_address(
     }
 }
 
-pub async fn process(request: &pb::CardanoAddressRequest) -> Result<Response, Error> {
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
+    request: &pb::CardanoAddressRequest,
+) -> Result<Response, Error> {
     let network = CardanoNetwork::try_from(request.network)?;
     let params = params::get(network);
     let script_config: &Config = request
@@ -378,13 +381,14 @@ pub async fn process(request: &pb::CardanoAddressRequest) -> Result<Response, Er
     let encoded_address = validate_and_encode_payment_address(params, script_config, None)?;
 
     if request.display {
-        confirm::confirm(&confirm::Params {
-            title: params.name,
-            body: &encoded_address,
-            scrollable: true,
-            ..Default::default()
-        })
-        .await?;
+        workflows
+            .confirm(&confirm::Params {
+                title: params.name,
+                body: &encoded_address,
+                scrollable: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     Ok(Response::Pub(pb::PubResponse {
@@ -396,6 +400,7 @@ pub async fn process(request: &pb::CardanoAddressRequest) -> Result<Response, Er
 mod tests {
     use super::*;
     use crate::bb02_async::block_on;
+    use crate::workflow::RealWorkflows;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
@@ -470,11 +475,14 @@ mod tests {
     }
 
     fn do_pkh_skh(keypath_payment: &[u32], keypath_stake: &[u32]) -> Result<Response, Error> {
-        block_on(process(&pb::CardanoAddressRequest {
-            network: CardanoNetwork::CardanoMainnet as _,
-            display: false,
-            script_config: Some(make_pkh_skh(keypath_payment, keypath_stake)),
-        }))
+        block_on(process(
+            &mut RealWorkflows,
+            &pb::CardanoAddressRequest {
+                network: CardanoNetwork::CardanoMainnet as _,
+                display: false,
+                script_config: Some(make_pkh_skh(keypath_payment, keypath_stake)),
+            },
+        ))
     }
 
     #[test]
@@ -568,14 +576,17 @@ mod tests {
         mock_unlocked();
 
         assert_eq!(
-            block_on(process(&pb::CardanoAddressRequest {
-                network: CardanoNetwork::CardanoMainnet as _,
-                display: true,
-                script_config: Some(make_pkh_skh(
-                    &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
-                    &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0]
-                )),
-            })),
+            block_on(process(
+                &mut RealWorkflows,
+                &pb::CardanoAddressRequest {
+                    network: CardanoNetwork::CardanoMainnet as _,
+                    display: true,
+                    script_config: Some(make_pkh_skh(
+                        &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                        &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0]
+                    )),
+                }
+            )),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: EXPECTED.into()
             }))

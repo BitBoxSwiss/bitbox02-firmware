@@ -17,6 +17,7 @@
 #include "u2f/u2f_packet.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
+#include "utils_assert.h"
 
 #include <hardfault.h>
 
@@ -48,7 +49,6 @@ struct usb_processing {
     /* Whether the content of in_packet is a new, complete incoming packet. */
     bool has_packet;
     struct queue* (*out_queue)(void);
-    void (*send)(void);
     usb_frame_formatter_t format_frame;
     /**
      * Function to call when a message has been received,
@@ -210,11 +210,6 @@ bool usb_processing_enqueue(
     return true;
 }
 
-void usb_processing_set_send(struct usb_processing* ctx, void (*send)(void))
-{
-    ctx->send = send;
-}
-
 /**
  * Marks any buffered RX packet as fully processed.
  * This frees the RX buffer so that it's possible to
@@ -332,6 +327,8 @@ static void _check_lock_timeout(struct usb_processing* ctx)
         return;
     }
     if (_usb_state.timeout_counter > USB_OUTSTANDING_OP_TIMEOUT_TICKS) {
+        util_log("usb_processing: timed out!");
+        // ASSERT(false);
         if (!ctx->abort_outstanding_op) {
             Abort("abort_outstanding_op is NULL.");
         }
@@ -343,23 +340,7 @@ static void _check_lock_timeout(struct usb_processing* ctx)
 
 void usb_processing_process(struct usb_processing* ctx)
 {
-#if APP_U2F == 1
-    uint32_t timeout_cid;
-    // If there are any timeouts, send them first
-    while (u2f_packet_timeout_get(&timeout_cid)) {
-        u2f_packet_timeout(timeout_cid);
-        usb_processing_u2f()->send();
-    }
-
-#endif
     _usb_consume_incoming_packets(ctx);
-    /*
-     * If USB sends are not enabled (yet), send will be NULL.
-     * Otherwise, we can call it now to flush outstanding writes.
-     */
-    if (ctx->send != NULL) {
-        ctx->send();
-    }
 #if !defined(BOOTLOADER)
     /*
      * If we've been locked for too much time, it's time

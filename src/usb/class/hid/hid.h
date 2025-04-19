@@ -26,6 +26,8 @@
 struct usbdc_handler;
 struct usbdf_handler;
 struct usbdf_driver;
+struct usb_req;
+enum usb_ctrl_stage { USB_SETUP_STAGE = 0, USB_DATA_STAGE = 1, USB_STATUS_STAGE = 2 };
 typedef void (*FUNC_PTR)(void);
 #endif
 

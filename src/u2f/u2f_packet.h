@@ -54,4 +54,6 @@ void u2f_packet_timeout_enable(uint32_t cid);
  */
 void u2f_invalid_endpoint(struct queue* queue, uint32_t cid);
 
+void u2f_packet_init(void);
+
 #endif

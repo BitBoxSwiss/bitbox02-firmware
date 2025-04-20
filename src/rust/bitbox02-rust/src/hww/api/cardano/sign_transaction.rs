@@ -328,9 +328,10 @@ pub async fn process<W: Workflows>(
 mod tests {
     use super::*;
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use crate::workflow::RealWorkflows;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED; // instead of TestingWorkflows until the tests are migrated
 
     use pb::cardano_sign_transaction_request::{certificate, certificate::Cert, Certificate};
@@ -430,66 +431,10 @@ mod tests {
             ..Default::default()
         };
 
-        static mut TOTAL_CONFIRMED: bool = false;
-        static mut CONFIRM_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Can be mined until\nslot 335011 in\nepoch 292");
-                        true
-                    }
-                    _ => panic!("unexpected user confirmations"),
-                }
-            })),
-
-            ui_transaction_address_create: Some(Box::new(|amount, address| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    2 => {
-                        assert_eq!(amount, "1 ADA");
-                        assert_eq!(address, "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt");
-                        true
-                    }
-                    3 => {
-                        assert_eq!(amount, "2 ADA");
-                        assert_eq!(
-                            address,
-                            "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi"
-                        );
-                        true
-                    }
-                    4 => {
-                        assert_eq!(amount, "3 ADA");
-                        assert_eq!(
-                            address,
-                            "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy"
-                        );
-                        true
-                    }
-                    _ => panic!("unexpected user confirmations"),
-                }
-            })),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "6.170499 ADA");
-                assert_eq!(fee, "0.170499 ADA");
-                assert!(longtouch);
-                unsafe {
-                    TOTAL_CONFIRMED = true;
-                }
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
 
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -499,8 +444,40 @@ mod tests {
                 }]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
-        assert!(unsafe { TOTAL_CONFIRMED });
+        const RECIPIENT1: &str = "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt";
+        const RECIPIENT2: &str = "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi";
+        const RECIPIENT3: &str = "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy";
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Can be mined until\nslot 335011 in\nepoch 292".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: RECIPIENT1.into(),
+                    amount: "1 ADA".into(),
+                },
+                Screen::Recipient {
+                    recipient: RECIPIENT2.into(),
+                    amount: "2 ADA".into(),
+                },
+                Screen::Recipient {
+                    recipient: RECIPIENT3.into(),
+                    amount: "3 ADA".into(),
+                },
+                Screen::TotalFee {
+                    total: "6.170499 ADA".into(),
+                    fee: "0.170499 ADA".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true,
+                }
+            ]
+        );
     }
 
     #[test]
@@ -555,51 +532,10 @@ mod tests {
             ..Default::default()
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Can be mined until\nslot 326325 in\nepoch 293");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert!(params
-                            .body
-                            .starts_with("Register staking key for account #1?"));
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert!(params.body.starts_with(
-                            "Delegate staking for account #1 to pool \
-                             abababababababababababababababababababababababababababab?"
-                        ));
-                        true
-                    }
-                    4 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Fee\n0.191681 ADA");
-                        true
-                    }
-                    5 => {
-                        assert_eq!(params.title, "High fee");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
 
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -619,7 +555,35 @@ mod tests {
                 ]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 4);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Can be mined until\nslot 326325 in\nepoch 293".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Register staking key for account #1?".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Delegate staking for account #1 to pool abababababababababababababababababababababababababababab?".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Fee\n0.191681 ADA".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
     }
 
     #[test]
@@ -666,39 +630,9 @@ mod tests {
             ..Default::default()
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Can be mined until\nslot 326325 in\nepoch 293");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert!(params
-                            .body
-                            .starts_with("Stop stake delegation for account #1?"));
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Fee\n0.191681 ADA");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
-
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -718,7 +652,30 @@ mod tests {
                 ]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Can be mined until\nslot 326325 in\nepoch 293".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Stop stake delegation for account #1?".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Fee\n0.191681 ADA".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
     }
 
     #[test]
@@ -762,43 +719,10 @@ mod tests {
             ..Default::default()
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Can be mined until\nslot 326325 in\nepoch 293");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert!(params
-                            .body
-                            .starts_with("Delegate voting for account #1 to type Always Abstain?"));
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Fee\n0.191681 ADA");
-                        true
-                    }
-                    4 => {
-                        assert_eq!(params.title, "High fee");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
 
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -814,7 +738,30 @@ mod tests {
                 ]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Can be mined until\nslot 326325 in\nepoch 293".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Delegate voting for account #1 to type Always Abstain?".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Fee\n0.191681 ADA".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
     }
 
     #[test]
@@ -853,40 +800,10 @@ mod tests {
             ..Default::default()
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Can be mined until\nslot 143908 in\nepoch 294");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(
-                            params.body,
-                            "Withdraw 1.234567 ADA in staking rewards for account #1?"
-                        );
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Fee\n0.175157 ADA");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
 
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -902,7 +819,30 @@ mod tests {
                 ]
             })
         );
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 3);
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Can be mined until\nslot 143908 in\nepoch 294".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Withdraw 1.234567 ADA in staking rewards for account #1?".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Fee\n0.175157 ADA".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
     }
 
     /// Test that ttl=0 is not included in the transaction if allow_ttl_zero is false. Up to v9.8.0, ttl was not included if it was zero.
@@ -939,14 +879,8 @@ mod tests {
             ..Default::default()
         };
 
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|_params| true)),
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let result = block_on(process(&mut TestingWorkflows::new(), &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -996,34 +930,10 @@ mod tests {
             ..Default::default()
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
         // Second, test with allow_zero_ttl=true, meaning that a zero ttl will be included as 0.
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Transaction\ncannot be\nmined");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "High fee");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -1032,6 +942,34 @@ mod tests {
                     signature: b"\x5b\xa3\xc8\x1f\x57\xac\x0c\xb2\x49\x36\xc3\xc6\x7c\xb5\x1e\x86\x7f\xda\x7d\x95\xb4\x57\x22\x59\xbe\x9a\x06\xd0\xb1\x0c\xd4\x3b\x2e\x90\xd5\x32\xd0\x6b\x46\xd0\x5b\x23\x85\xe9\x03\x50\xaf\x2d\x9d\xb1\xc3\x9f\x39\xbf\xe3\x6b\x79\x25\x4e\xcb\xd3\x59\x1b\x0e".to_vec(),
                 }]
             })
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Transaction\ncannot be\nmined".into(),
+                    longtouch: false
+                },
+                Screen::Recipient {
+                    recipient: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    amount: "1 ADA".into()
+                },
+                Screen::TotalFee {
+                    total: "1.170499 ADA".into(),
+                    fee: "0.170499 ADA".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "High fee".into(),
+                    body: "The fee is 17.0%\nthe send amount.\nProceed?".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
         );
     }
 
@@ -1069,32 +1007,17 @@ mod tests {
             ..Default::default()
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Can be mined from\nslot 335011 in\nepoch 292");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "High fee");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        assert!(block_on(process(&mut RealWorkflows, &tx)).is_ok());
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &tx)).is_ok());
+        assert_eq!(
+            mock_workflows.screens[0],
+            Screen::Confirm {
+                title: "Cardano".into(),
+                body: "Can be mined from\nslot 335011 in\nepoch 292".into(),
+                longtouch: false
+            }
+        );
     }
 
     #[test]
@@ -1133,32 +1056,17 @@ mod tests {
 
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "Cardano");
-                        assert_eq!(params.body, "Transaction\ncannot be\nmined");
-                        true
-                    }
-                    2 => {
-                        assert_eq!(params.title, "High fee");
-                        true
-                    }
-                    _ => panic!("too many user confirmations"),
-                }
-            })),
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        assert!(block_on(process(&mut RealWorkflows, &tx)).is_ok());
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &tx)).is_ok());
+        assert_eq!(
+            mock_workflows.screens[0],
+            Screen::Confirm {
+                title: "Cardano".into(),
+                body: "Transaction\ncannot be\nmined".into(),
+                longtouch: false
+            }
+        );
     }
 
     #[test]
@@ -1228,64 +1136,9 @@ mod tests {
 
         };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    2 => {
-                        assert_eq!(params.title, "Send token");
-                        assert_eq!(
-                            params.body,
-                            "Amount: 3. Asset: asset17jd78wukhtrnmjh3fngzasxm8rck0l2r4hhyyt"
-                        );
-                        true
-                    }
-                    3 => {
-                        assert_eq!(params.title, "Send token");
-                        assert_eq!(
-                            params.body,
-                            "Amount: 1. Asset: asset13n25uv0yaf5kus35fm2k86cqy60z58d9xmde92"
-                        );
-                        true
-                    }
-                    4 => {
-                        assert_eq!(params.title, "Send token");
-                        assert_eq!(
-                            params.body,
-                            "Amount: 5. Asset: asset1aqrdypg669jgazruv5ah07nuyqe0wxjhe2el6f"
-                        );
-                        true
-                    }
-                    5 => {
-                        assert_eq!(params.title, "High fee");
-                        true
-                    }
-                    _ => panic!("unexpected user confirmation"),
-                }
-            })),
-            ui_transaction_address_create: Some(Box::new(|_amount, address| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(
-                            address,
-                            "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt");
-                        true
-                    }
-                    _ => panic!("unexpected user confirmation"),
-                }
-            })),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -1294,6 +1147,44 @@ mod tests {
                     signature: b"\xfe\xdd\x2d\xdf\x9d\x00\x69\xe9\xb4\xb6\x11\x83\xae\xdd\xb3\xbb\xe7\x02\x19\x0e\xa5\x8d\x4a\x23\x25\xef\xa2\x2b\xf0\xd6\x32\x5a\x82\x89\x10\x53\xa7\x6b\x6a\x2e\xce\x2d\xf2\xd2\x2a\x6b\x65\x78\x07\x42\xa1\x9f\x27\x61\x18\xee\x68\x34\xa0\x05\x2e\xf9\xa4\x08".to_vec(),
                 }]
             })
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    amount: "1 ADA".into()
+                },
+                Screen::Confirm {
+                    title: "Send token".into(),
+                    body: "Amount: 3. Asset: asset17jd78wukhtrnmjh3fngzasxm8rck0l2r4hhyyt".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Send token".into(),
+                    body: "Amount: 1. Asset: asset13n25uv0yaf5kus35fm2k86cqy60z58d9xmde92".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Send token".into(),
+                    body: "Amount: 5. Asset: asset1aqrdypg669jgazruv5ah07nuyqe0wxjhe2el6f".into(),
+                    longtouch: false
+                },
+                Screen::TotalFee {
+                    total: "1.170499 ADA".into(),
+                    fee: "0.170499 ADA".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "High fee".into(),
+                    body: "The fee is 17.0%\nthe send amount.\nProceed?".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
         );
     }
 
@@ -1331,36 +1222,12 @@ mod tests {
             ..Default::default()
             };
 
-        static mut CONFIRM_COUNTER: u32 = 0;
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    CONFIRM_COUNTER += 1;
-                    CONFIRM_COUNTER
-                } {
-                    1 => {
-                        assert_eq!(params.title, "High fee");
-                        assert_eq!(params.body, "The fee is 17.0%\nthe send amount.\nProceed?");
-                        assert!(params.longtouch);
-                        true
-                    }
-                    _ => panic!("unexpected user confirmations"),
-                }
-            })),
-
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|total, fee, longtouch| {
-                assert_eq!(total, "1.170499 ADA");
-                assert_eq!(fee, "0.170499 ADA");
-                assert!(!longtouch);
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
 
-        assert!(block_on(process(&mut RealWorkflows, &tx)).is_ok());
-        assert_eq!(unsafe { CONFIRM_COUNTER }, 1);
+        let mut mock_workflows = TestingWorkflows::new();
+        assert!(block_on(process(&mut mock_workflows, &tx)).is_ok());
+        assert!(mock_workflows
+            .contains_confirm("High fee", "The fee is 17.0%\nthe send amount.\nProceed?"));
     }
 
     #[test]
@@ -1396,15 +1263,8 @@ mod tests {
             tag_cbor_sets: true,
             ..Default::default()
         };
-
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|_params| true)),
-            ui_transaction_address_create: Some(Box::new(|_amount, _address| true)),
-            ui_transaction_fee_create: Some(Box::new(|_total, _fee, _longtouch| true)),
-            ..Default::default()
-        });
         mock_unlocked();
-        let result = block_on(process(&mut RealWorkflows, &tx)).unwrap();
+        let result = block_on(process(&mut TestingWorkflows::new(), &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {

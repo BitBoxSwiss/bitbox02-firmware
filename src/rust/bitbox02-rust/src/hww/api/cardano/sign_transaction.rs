@@ -329,7 +329,6 @@ mod tests {
     use super::*;
     use crate::bb02_async::block_on;
     use crate::workflow::testing::{Screen, TestingWorkflows};
-    use crate::workflow::RealWorkflows;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED; // instead of TestingWorkflows until the tests are migrated

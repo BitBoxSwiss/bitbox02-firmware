@@ -24,7 +24,8 @@ use super::script::serialize_varint;
 use pb::btc_payment_request_request::{memo, Memo};
 use pb::btc_sign_init_request::FormatUnit;
 
-use crate::workflow::{confirm, verify_message, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, verify_message};
 
 use sha2::{Digest, Sha256};
 
@@ -56,8 +57,8 @@ fn find_identity(name: &str) -> Option<&Identity> {
 }
 
 /// Prompt user to verify the payment request.
-pub async fn user_verify<W: Workflows>(
-    workflows: &mut W,
+pub async fn user_verify(
+    hal: &mut impl crate::hal::Hal,
     coin_params: &params::Params,
     payment_request: &pb::BtcPaymentRequestRequest,
     format_unit: FormatUnit,
@@ -65,7 +66,7 @@ pub async fn user_verify<W: Workflows>(
     if find_identity(&payment_request.recipient_name).is_none() {
         return Err(Error::InvalidInput);
     }
-    workflows
+    hal.ui()
         .verify_recipient(
             &payment_request.recipient_name,
             &format_amount(coin_params, format_unit, payment_request.total_amount)?,
@@ -82,7 +83,7 @@ pub async fn user_verify<W: Workflows>(
                 ) {
                     return Err(Error::InvalidInput);
                 }
-                workflows
+                hal.ui()
                     .confirm(&confirm::Params {
                         title: "",
                         body: &format!("Memo from\n\n{}", payment_request.recipient_name),
@@ -90,7 +91,7 @@ pub async fn user_verify<W: Workflows>(
                         ..Default::default()
                     })
                     .await?;
-                verify_message::verify(workflows, "Memo", "Memo", text_memo.note.as_bytes(), false)
+                verify_message::verify(hal, "Memo", "Memo", text_memo.note.as_bytes(), false)
                     .await?;
             }
             _ => return Err(Error::InvalidInput),

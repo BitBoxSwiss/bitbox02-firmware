@@ -19,17 +19,17 @@ use pb::eth_pub_request::OutputType;
 use pb::eth_response::Response;
 
 use crate::bip32;
+use crate::hal::Ui;
 use crate::keystore;
-use crate::workflow::{confirm, Workflows};
+use crate::workflow::confirm;
 
-async fn process_address<W: Workflows>(
-    workflows: &mut W,
+async fn process_address(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::EthPubRequest,
 ) -> Result<Response, Error> {
     let coin = pb::EthCoin::try_from(request.coin)?;
 
-    let params =
-        super::params::get_and_warn_unknown(workflows, Some(coin), request.chain_id).await?;
+    let params = super::params::get_and_warn_unknown(hal, Some(coin), request.chain_id).await?;
     // If a contract_address is provided, it has to be a supported ERC20-token.
     let erc20_params: Option<erc20_params::Params> = if request.contract_address.is_empty() {
         None
@@ -55,8 +55,8 @@ async fn process_address<W: Workflows>(
             Some(erc20_params) => format!("{}\n{}", params.name, erc20_params.unit),
             None => params.name.into(),
         };
-        super::keypath::warn_unusual_keypath(workflows, &params, &title, &request.keypath).await?;
-        workflows
+        super::keypath::warn_unusual_keypath(hal, &params, &title, &request.keypath).await?;
+        hal.ui()
             .confirm(&confirm::Params {
                 title: &title,
                 title_autowrap: true,
@@ -86,13 +86,13 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
 
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::EthPubRequest,
 ) -> Result<Response, Error> {
     let output_type = OutputType::try_from(request.output_type)?;
     match output_type {
-        OutputType::Address => process_address(workflows, request).await,
+        OutputType::Address => process_address(hal, request).await,
         OutputType::Xpub => process_xpub(request),
     }
 }
@@ -102,9 +102,10 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
     #[test]
@@ -122,7 +123,7 @@ mod tests {
         // All good.
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &request)),
+            block_on(process(&mut TestingHal::new(), &request)),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: EXPECTED_XPUB.into()
             }))
@@ -132,14 +133,14 @@ mod tests {
         let mut invalid_request = request.clone();
         invalid_request.keypath[1] = 61 + HARDENED;
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &invalid_request)),
+            block_on(process(&mut TestingHal::new(), &invalid_request)),
             Err(Error::InvalidInput)
         );
 
         // xpub fetching/encoding failed.
         bitbox02::keystore::lock();
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &request)),
+            block_on(process(&mut TestingHal::new(), &request)),
             Err(Error::InvalidInput)
         );
     }
@@ -160,7 +161,7 @@ mod tests {
         // All good.
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &request)),
+            block_on(process(&mut TestingHal::new(), &request)),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
@@ -168,10 +169,10 @@ mod tests {
 
         // All good, with display.
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
             block_on(process(
-                &mut mock_workflows,
+                &mut mock_hal,
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
                     keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
@@ -186,7 +187,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Ethereum".into(),
                 body: ADDRESS.into(),
@@ -196,10 +197,10 @@ mod tests {
 
         // All good, with display, unusual keypath.
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
             block_on(process(
-                &mut mock_workflows,
+                &mut mock_hal,
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
                     keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
@@ -214,7 +215,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Sepolia".into(),
@@ -233,7 +234,7 @@ mod tests {
         bitbox02::keystore::lock();
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
                     keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
@@ -250,7 +251,7 @@ mod tests {
         let mut invalid_request = request.clone();
         invalid_request.coin = 100;
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &invalid_request)),
+            block_on(process(&mut TestingHal::new(), &invalid_request)),
             Err(Error::InvalidInput)
         );
 
@@ -258,14 +259,14 @@ mod tests {
         let mut invalid_request = request.clone();
         invalid_request.keypath[1] = 61 + HARDENED;
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &invalid_request)),
+            block_on(process(&mut TestingHal::new(), &invalid_request)),
             Err(Error::InvalidInput)
         );
 
         // Wrong keypath (account too high)
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
                     keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100].to_vec(),
@@ -297,7 +298,7 @@ mod tests {
         // All good.
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &request)),
+            block_on(process(&mut TestingHal::new(), &request)),
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
@@ -305,10 +306,10 @@ mod tests {
 
         // All good, with display.
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
             block_on(process(
-                &mut mock_workflows,
+                &mut mock_hal,
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
                     keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
@@ -323,7 +324,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Ethereum\nUSDT".into(),
                 body: ADDRESS.into(),
@@ -334,7 +335,7 @@ mod tests {
         // ERC20 params not found / invalid contract address.
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
                     keypath: [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),

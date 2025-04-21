@@ -19,21 +19,23 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::workflow::{confirm, mnemonic, unlock, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, mnemonic, unlock};
+
 use bitbox02::keystore;
 
 /// Handle the ShowMnemonic API call. This shows the seed encoded as
 /// 12/18/24 BIP39 English words. Afterwards, for each word, the user
 /// is asked to pick the right word among 5 words, to check if they
 /// wrote it down correctly.
-pub async fn process<W: Workflows>(workflows: &mut W) -> Result<Response, Error> {
+pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     if bitbox02::memory::is_initialized() {
-        unlock::unlock_keystore(workflows, "Unlock device", unlock::CanCancel::Yes).await?;
+        unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?;
     }
 
     let mnemonic_sentence = keystore::get_bip39_mnemonic()?;
 
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             title: "Warning",
             body: "DO NOT share your\nrecovery words with\nanyone!",
@@ -42,7 +44,7 @@ pub async fn process<W: Workflows>(workflows: &mut W) -> Result<Response, Error>
         })
         .await?;
 
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             title: "Recovery\nwords",
             body: "Please write down\nthe following words",
@@ -53,10 +55,10 @@ pub async fn process<W: Workflows>(workflows: &mut W) -> Result<Response, Error>
 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 
-    mnemonic::show_and_confirm_mnemonic(workflows, &words).await?;
+    mnemonic::show_and_confirm_mnemonic(hal, &words).await?;
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
 
-    workflows.status("Backup created", true).await;
+    hal.ui().status("Backup created", true).await;
     Ok(Response::Success(pb::Success {}))
 }

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::hal::Ui;
+
 use crate::bb02_async::option_no_screensaver;
 use core::cell::RefCell;
 
@@ -54,8 +56,8 @@ pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result
     option_no_screensaver(&result).await
 }
 
-pub async fn verify_total_fee_maybe_warn<W: super::Workflows>(
-    workflows: &mut W,
+pub async fn verify_total_fee_maybe_warn(
+    hal: &mut impl crate::hal::Hal,
     total: &str,
     fee: &str,
     fee_percentage: Option<f64>,
@@ -63,10 +65,11 @@ pub async fn verify_total_fee_maybe_warn<W: super::Workflows>(
     const FEE_WARNING_THRESHOLD: f64 = 10.;
     let fee_percentage = fee_percentage.filter(|&f| f >= FEE_WARNING_THRESHOLD);
     let longtouch = fee_percentage.is_none();
-    workflows.verify_total_fee(total, fee, longtouch).await?;
+    hal.ui().verify_total_fee(total, fee, longtouch).await?;
 
     if let Some(fee_percentage) = fee_percentage {
-        match workflows
+        match hal
+            .ui()
             .confirm(&super::confirm::Params {
                 title: "High fee",
                 body: &format!(

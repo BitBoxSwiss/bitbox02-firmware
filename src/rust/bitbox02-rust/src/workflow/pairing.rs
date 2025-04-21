@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 pub use confirm::UserAbort;
 
 use alloc::string::String;
@@ -32,7 +33,7 @@ pub fn format_hash(hash: &[u8; 32]) -> String {
     )
 }
 
-pub async fn confirm<W: Workflows>(workflows: &mut W, hash: &[u8; 32]) -> Result<(), UserAbort> {
+pub async fn confirm(hal: &mut impl crate::hal::Hal, hash: &[u8; 32]) -> Result<(), UserAbort> {
     let params = confirm::Params {
         title: "Pairing code",
         body: &format_hash(hash),
@@ -40,7 +41,7 @@ pub async fn confirm<W: Workflows>(workflows: &mut W, hash: &[u8; 32]) -> Result
         ..Default::default()
     };
 
-    workflows.confirm(&params).await
+    hal.ui().confirm(&params).await
 }
 
 #[cfg(test)]
@@ -48,21 +49,21 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
-    use bitbox02::testing::{mock, Data};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
 
     use alloc::boxed::Box;
 
     #[test]
     fn test_confirm() {
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
 
         assert!(block_on(confirm(
-            &mut mock_workflows,
+            &mut mock_hal,
             b"\x59\x28\x9b\xdb\xbb\xb6\xb6\x8e\x8f\x12\x7f\x49\xa5\x25\xb0\x30\x13\x50\x0b\x3c\x1a\xf2\x62\x6f\x40\x07\xeb\xe4\x4f\x09\xc8\x6b")).is_ok());
 
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Pairing code".into(),
                 body: "LEUJX W53W2\n3I5DY SP5E2".into(),

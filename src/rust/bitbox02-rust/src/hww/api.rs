@@ -46,8 +46,6 @@ use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
 
-use crate::workflow::Workflows;
-
 /// Encodes a protobuf Response message.
 pub fn encode(response: Response) -> Vec<u8> {
     let response = pb::Response {
@@ -67,16 +65,16 @@ pub fn decode(input: &[u8]) -> Result<Request, Error> {
 }
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-async fn process_api_btc<W: Workflows>(
-    workflows: &mut W,
+async fn process_api_btc(
+    hal: &mut impl crate::hal::Hal,
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::BtcPub(ref request) => bitcoin::process_pub(workflows, request).await,
-        Request::BtcSignInit(ref request) => bitcoin::signtx::process(workflows, request).await,
+        Request::BtcPub(ref request) => bitcoin::process_pub(hal, request).await,
+        Request::BtcSignInit(ref request) => bitcoin::signtx::process(hal, request).await,
         Request::Btc(pb::BtcRequest {
             request: Some(request),
-        }) => bitcoin::process_api(workflows, request)
+        }) => bitcoin::process_api(hal, request)
             .await
             .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) })),
         _ => Err(Error::Generic),
@@ -84,8 +82,8 @@ async fn process_api_btc<W: Workflows>(
 }
 
 #[cfg(not(any(feature = "app-bitcoin", feature = "app-litecoin")))]
-async fn process_api_btc<W: Workflows>(
-    _workflows: &mut W,
+async fn process_api_btc(
+    _hal: &mut impl crate::hal::Hal,
     _request: &Request,
 ) -> Result<Response, Error> {
     Err(Error::Disabled)
@@ -159,37 +157,32 @@ fn can_call(request: &Request) -> bool {
 }
 
 /// Handle a protobuf api call.
-async fn process_api<W: Workflows>(
-    workflows: &mut W,
-    request: &Request,
-) -> Result<Response, Error> {
+async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Result<Response, Error> {
     match request {
-        Request::Reboot(ref request) => system::reboot(workflows, request).await,
+        Request::Reboot(ref request) => system::reboot(hal, request).await,
         Request::DeviceInfo(_) => device_info::process(),
-        Request::DeviceName(ref request) => set_device_name::process(workflows, request).await,
-        Request::SetPassword(ref request) => set_password::process(workflows, request).await,
-        Request::Reset(_) => reset::process(workflows).await,
+        Request::DeviceName(ref request) => set_device_name::process(hal, request).await,
+        Request::SetPassword(ref request) => set_password::process(hal, request).await,
+        Request::Reset(_) => reset::process(hal).await,
         Request::SetMnemonicPassphraseEnabled(ref request) => {
-            set_mnemonic_passphrase_enabled::process(workflows, request).await
+            set_mnemonic_passphrase_enabled::process(hal, request).await
         }
-        Request::InsertRemoveSdcard(ref request) => sdcard::process(workflows, request).await,
+        Request::InsertRemoveSdcard(ref request) => sdcard::process(hal, request).await,
         Request::ListBackups(_) => backup::list(),
         Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
             inserted: bitbox02::sd::sdcard_inserted(),
         })),
-        Request::CheckBackup(ref request) => backup::check(workflows, request).await,
-        Request::CreateBackup(ref request) => backup::create(workflows, request).await,
-        Request::RestoreBackup(ref request) => restore::from_file(workflows, request).await,
-        Request::ShowMnemonic(_) => show_mnemonic::process(workflows).await,
-        Request::RestoreFromMnemonic(ref request) => {
-            restore::from_mnemonic(workflows, request).await
-        }
+        Request::CheckBackup(ref request) => backup::check(hal, request).await,
+        Request::CreateBackup(ref request) => backup::create(hal, request).await,
+        Request::RestoreBackup(ref request) => restore::from_file(hal, request).await,
+        Request::ShowMnemonic(_) => show_mnemonic::process(hal).await,
+        Request::RestoreFromMnemonic(ref request) => restore::from_mnemonic(hal, request).await,
         Request::ElectrumEncryptionKey(ref request) => electrum::process(request).await,
 
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {
             request: Some(ref request),
-        }) => ethereum::process_api(workflows, request)
+        }) => ethereum::process_api(hal, request)
             .await
             .map(|r| Response::Eth(pb::EthResponse { response: Some(r) })),
         #[cfg(not(feature = "app-ethereum"))]
@@ -198,17 +191,17 @@ async fn process_api<W: Workflows>(
         Request::Fingerprint(pb::RootFingerprintRequest {}) => rootfingerprint::process(),
         request @ Request::BtcPub(_)
         | request @ Request::Btc(_)
-        | request @ Request::BtcSignInit(_) => process_api_btc(workflows, request).await,
+        | request @ Request::BtcSignInit(_) => process_api_btc(hal, request).await,
 
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {
             request: Some(ref request),
-        }) => cardano::process_api(workflows, request)
+        }) => cardano::process_api(hal, request)
             .await
             .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
-        Request::Bip85(ref request) => bip85::process(workflows, request).await,
+        Request::Bip85(ref request) => bip85::process(hal, request).await,
         _ => Err(Error::InvalidInput),
     }
 }
@@ -217,7 +210,7 @@ async fn process_api<W: Workflows>(
 ///
 /// `input` is a hww.proto Request message, protobuf encoded.
 /// Returns a protobuf encoded hww.proto Response message.
-pub async fn process<W: Workflows>(workflows: &mut W, input: Vec<u8>) -> Vec<u8> {
+pub async fn process(hal: &mut impl crate::hal::Hal, input: Vec<u8>) -> Vec<u8> {
     let request = match decode(&input[..]) {
         Ok(request) => request,
         Err(err) => return encode(make_error(err)),
@@ -226,7 +219,7 @@ pub async fn process<W: Workflows>(workflows: &mut W, input: Vec<u8>) -> Vec<u8>
         return encode(make_error(Error::InvalidState));
     }
 
-    match process_api(workflows, &request).await {
+    match process_api(hal, &request).await {
         Ok(response) => encode(response),
         Err(error) => encode(make_error(error)),
     }

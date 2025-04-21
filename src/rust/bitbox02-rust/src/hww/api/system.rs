@@ -18,13 +18,14 @@ use crate::pb;
 use pb::reboot_request::Purpose;
 use pb::response::Response;
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 
-pub async fn reboot<W: Workflows>(
-    workflows: &mut W,
+pub async fn reboot(
+    hal: &mut impl crate::hal::Hal,
     &pb::RebootRequest { purpose }: &pb::RebootRequest,
 ) -> Result<Response, Error> {
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             title: "",
             body: match Purpose::try_from(purpose) {
@@ -46,14 +47,15 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
 
     #[test]
     pub fn test_reboot() {
         let reboot_called = std::panic::catch_unwind(|| {
             block_on(reboot(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::RebootRequest {
                     purpose: Purpose::Upgrade as _,
                 },
@@ -68,11 +70,11 @@ mod tests {
 
     #[test]
     pub fn test_reboot_aborted() {
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.abort_nth(0);
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.abort_nth(0);
         assert_eq!(
             block_on(reboot(
-                &mut mock_workflows,
+                &mut mock_hal,
                 &pb::RebootRequest {
                     purpose: Purpose::Upgrade as _
                 }

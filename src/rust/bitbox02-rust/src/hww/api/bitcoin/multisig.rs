@@ -22,7 +22,8 @@ use pb::BtcCoin;
 
 use crate::bip32;
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -131,14 +132,14 @@ pub fn get_name(coin: BtcCoin, multisig: &Multisig, keypath: &[u32]) -> Result<O
 /// - coin
 /// - multisig type (m-of-n)
 /// - name given by the user
-pub async fn confirm<W: Workflows>(
-    workflows: &mut W,
+pub async fn confirm(
+    hal: &mut impl crate::hal::Hal,
     title: &str,
     params: &Params,
     name: &str,
     multisig: &Multisig,
 ) -> Result<(), Error> {
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             title,
             body: &format!(
@@ -151,7 +152,7 @@ pub async fn confirm<W: Workflows>(
             ..Default::default()
         })
         .await?;
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             title,
             body: name,
@@ -175,8 +176,8 @@ pub async fn confirm<W: Workflows>(
 /// xpub_type: if AUTO_ELECTRUM, will automatically format xpubs as `Zpub/Vpub`,
 /// `Ypub/UPub` depending on the script type, to match Electrum's formatting. If AUTO_XPUB_TPUB,
 /// format as xpub (mainnets) or tpub (testnets).
-pub async fn confirm_extended<W: Workflows>(
-    workflows: &mut W,
+pub async fn confirm_extended(
+    hal: &mut impl crate::hal::Hal,
     title: &str,
     params: &Params,
     name: &str,
@@ -186,8 +187,8 @@ pub async fn confirm_extended<W: Workflows>(
 ) -> Result<(), Error> {
     let script_type = ScriptType::try_from(multisig.script_type)?;
 
-    confirm(workflows, title, params, name, multisig).await?;
-    workflows
+    confirm(hal, title, params, name, multisig).await?;
+    hal.ui()
         .confirm(&confirm::Params {
             title,
             body: &format!(
@@ -225,7 +226,7 @@ pub async fn confirm_extended<W: Workflows>(
         let xpub_str = bip32::Xpub::from(xpub)
             .serialize_str(output_xpub_type)
             .or(Err(Error::InvalidInput))?;
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title,
                 body: (if i == multisig.our_xpub_index as usize {

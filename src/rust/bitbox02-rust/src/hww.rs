@@ -17,8 +17,6 @@ pub mod noise;
 
 use alloc::vec::Vec;
 
-use crate::workflow::{RealWorkflows, Workflows};
-
 const OP_UNLOCK: u8 = b'u';
 const OP_ATTESTATION: u8 = b'a';
 
@@ -75,8 +73,8 @@ pub async fn next_request(
 }
 
 /// Process OP_UNLOCK.
-async fn api_unlock<W: Workflows>(workflows: &mut W) -> Vec<u8> {
-    match crate::workflow::unlock::unlock(workflows).await {
+async fn api_unlock(hal: &mut impl crate::hal::Hal) -> Vec<u8> {
+    match crate::workflow::unlock::unlock(hal).await {
         Ok(()) => [OP_STATUS_SUCCESS].to_vec(),
         Err(()) => [OP_STATUS_FAILURE_UNINITIALIZED].to_vec(),
     }
@@ -111,15 +109,15 @@ fn api_attestation(usb_in: &[u8]) -> Vec<u8> {
     out
 }
 
-async fn _process_packet<W: Workflows>(workflows: &mut W, usb_in: Vec<u8>) -> Vec<u8> {
+async fn _process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> Vec<u8> {
     match usb_in.split_first() {
-        Some((&OP_UNLOCK, b"")) => return api_unlock(workflows).await,
+        Some((&OP_UNLOCK, b"")) => return api_unlock(hal).await,
         Some((&OP_ATTESTATION, rest)) => return api_attestation(rest),
         _ => (),
     }
 
     let mut out = [OP_STATUS_SUCCESS].to_vec();
-    match noise::process(workflows, usb_in, &mut out).await {
+    match noise::process(hal, usb_in, &mut out).await {
         Ok(()) => out,
         Err(noise::Error) => [OP_STATUS_FAILURE].to_vec(),
     }
@@ -129,8 +127,8 @@ async fn _process_packet<W: Workflows>(workflows: &mut W, usb_in: Vec<u8>) -> Ve
 /// `usb_in` - api request bytes.
 /// Returns the usb response bytes.
 pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
-    let workflows = &mut RealWorkflows;
-    _process_packet(workflows, usb_in).await
+    let hal = &mut crate::hal::BitBox02Hal::new();
+    _process_packet(hal, usb_in).await
 }
 
 #[cfg(test)]
@@ -139,8 +137,9 @@ mod tests {
     extern crate std;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
-    use bitbox02::testing::{mock, mock_memory, mock_sd, Data};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
+    use bitbox02::testing::{mock_memory, mock_sd};
 
     use prost::Message;
 
@@ -150,15 +149,15 @@ mod tests {
 
     /// Make a new noise channel by invoking the noise handshake. Returns a request function which
     /// encrypts the message going in and decrypts the message coming out.
-    fn init_noise<W: Workflows>() -> Box<dyn FnMut(&mut W, &[u8]) -> Result<Vec<u8>, ()>> {
+    fn init_noise<H: crate::hal::Hal>() -> Box<dyn FnMut(&mut H, &[u8]) -> Result<Vec<u8>, ()>> {
         assert_eq!(
-            block_on(_process_packet(&mut TestingWorkflows::new(), b"h".to_vec())),
+            block_on(_process_packet(&mut TestingHal::new(), b"h".to_vec())),
             [OP_STATUS_SUCCESS].to_vec()
         );
         let mut host_noise = bitbox02_noise::testing::make_host();
         let host_handshake_1 = host_noise.write_message_vec(b"").unwrap();
         let bb02_handshake_1 = {
-            let result = block_on(_process_packet(&mut TestingWorkflows::new(), {
+            let result = block_on(_process_packet(&mut TestingHal::new(), {
                 let mut m = b"H".to_vec(); // handshake opcode
                 m.extend_from_slice(&host_handshake_1);
                 m
@@ -174,7 +173,7 @@ mod tests {
             host_noise.write_message_vec(&payload).unwrap()
         };
 
-        let response = block_on(_process_packet(&mut TestingWorkflows::new(), {
+        let response = block_on(_process_packet(&mut TestingHal::new(), {
             let mut m = b"H".to_vec(); // handshake opcode
             m.extend_from_slice(&host_handshake_2);
             m
@@ -193,13 +192,13 @@ mod tests {
             let handshake_hash: bitbox02_noise::HandshakeHash =
                 host_noise.get_hash().try_into().unwrap();
 
-            let mut mock_workflows = TestingWorkflows::new();
+            let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(_process_packet(&mut mock_workflows, b"v".to_vec())),
+                block_on(_process_packet(&mut mock_hal, b"v".to_vec())),
                 [OP_STATUS_SUCCESS].to_vec()
             );
             assert_eq!(
-                mock_workflows.screens,
+                mock_hal.ui.screens,
                 vec![Screen::Confirm {
                     title: "Pairing code".into(),
                     body: crate::workflow::pairing::format_hash(&handshake_hash),
@@ -209,9 +208,9 @@ mod tests {
         }
 
         let (mut host_send, mut host_recv) = host_noise.get_ciphers();
-        Box::new(move |workflows, msg| -> Result<Vec<u8>, ()> {
+        Box::new(move |hal, msg| -> Result<Vec<u8>, ()> {
             let msg_encrypted = host_send.encrypt_vec(msg);
-            let response_encrypted = block_on(_process_packet(workflows, {
+            let response_encrypted = block_on(_process_packet(hal, {
                 let mut m = b"n".to_vec(); // message opcode
                 m.extend_from_slice(&msg_encrypted);
                 m
@@ -228,10 +227,7 @@ mod tests {
     fn test_cant_unlock() {
         mock_memory();
         assert_eq!(
-            block_on(_process_packet(
-                &mut TestingWorkflows::new(),
-                vec![OP_UNLOCK]
-            )),
+            block_on(_process_packet(&mut TestingHal::new(), vec![OP_UNLOCK])),
             [OP_STATUS_FAILURE_UNINITIALIZED].to_vec()
         );
     }
@@ -248,7 +244,7 @@ mod tests {
             )),
         };
         let response_encoded =
-            make_request(&mut TestingWorkflows::new(), &request.encode_to_vec()).unwrap();
+            make_request(&mut TestingHal::new(), &request.encode_to_vec()).unwrap();
         let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
         assert_eq!(
             response,
@@ -274,16 +270,16 @@ mod tests {
             )),
         };
         let request_encoded = request.encode_to_vec();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            make_request(&mut mock_workflows, &request_encoded).unwrap();
+            make_request(&mut mock_hal, &request_encoded).unwrap();
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
             Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
         }
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "".into(),
                 body: "Proceed to upgrade?".into(),
@@ -299,10 +295,12 @@ mod tests {
 
         let mut make_request = init_noise();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .ui
+            .set_enter_string(Box::new(|_params| Ok("password".into())));
         make_request(
-            &mut mock_workflows,
+            &mut mock_hal,
             (crate::pb::Request {
                 request: Some(crate::pb::request::Request::SetPassword(
                     crate::pb::SetPasswordRequest {
@@ -315,7 +313,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Status {
                 title: "Success".into(),
                 success: true,
@@ -337,16 +335,16 @@ mod tests {
         // Can reboot when seeded and locked. This happens when the user sets a password and then
         // reconnects the device.
         bitbox02::keystore::lock();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            make_request(&mut mock_workflows, reboot_request.encode_to_vec().as_ref()).unwrap();
+            make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
             Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
         }
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "".into(),
                 body: "Proceed to upgrade?".into(),
@@ -362,13 +360,14 @@ mod tests {
 
         let mut make_request = init_noise();
 
-        mock(Data {
-            sdcard_inserted: Some(true),
-        });
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
+        bitbox02::keystore::lock();
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(true);
+        mock_hal
+            .ui
+            .set_enter_string(Box::new(|_params| Ok("password".into())));
         make_request(
-            &mut mock_workflows,
+            &mut mock_hal,
             (crate::pb::Request {
                 request: Some(crate::pb::request::Request::SetPassword(
                     crate::pb::SetPasswordRequest {
@@ -382,9 +381,10 @@ mod tests {
         .unwrap();
         assert!(!bitbox02::keystore::is_locked());
         assert!(!bitbox02::memory::is_initialized());
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(true);
         make_request(
-            &mut mock_workflows,
+            &mut mock_hal,
             (crate::pb::Request {
                 request: Some(crate::pb::request::Request::CreateBackup(
                     crate::pb::CreateBackupRequest {
@@ -398,7 +398,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Is today?".into(),
@@ -423,11 +423,11 @@ mod tests {
 
         // Can't reboot when initialized but locked.
         bitbox02::keystore::lock();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         let response_encoded =
-            make_request(&mut mock_workflows, &reboot_request.encode_to_vec()).unwrap();
+            make_request(&mut mock_hal, &reboot_request.encode_to_vec()).unwrap();
         let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
-        assert_eq!(mock_workflows.screens, vec![]);
+        assert_eq!(mock_hal.ui.screens, vec![]);
         assert_eq!(
             response,
             crate::pb::Response {
@@ -436,10 +436,12 @@ mod tests {
         );
 
         // Unlock.
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .ui
+            .set_enter_string(Box::new(|_params| Ok("password".into())));
         assert_eq!(
-            block_on(_process_packet(&mut mock_workflows, vec![OP_UNLOCK])),
+            block_on(_process_packet(&mut mock_hal, vec![OP_UNLOCK])),
             [OP_STATUS_SUCCESS].to_vec()
         );
         assert!(!bitbox02::keystore::is_locked());
@@ -447,16 +449,16 @@ mod tests {
         // Since in the previous request the msg was encrypted but not decrypted (query was
         // rejected), the noise states are out of sync and we need to make a new channel.
         let mut make_request = init_noise();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            make_request(&mut mock_workflows, reboot_request.encode_to_vec().as_ref()).unwrap();
+            make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
             Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
         }
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "".into(),
                 body: "Proceed to upgrade?".into(),
@@ -480,14 +482,13 @@ mod tests {
             bitbox02::memory::set_device_name("test device name").unwrap();
 
             let mut make_request = init_noise();
-            mock(Data {
-                sdcard_inserted: Some(true),
-            });
-
-            let mut mock_workflows = TestingWorkflows::new();
-            mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
+            let mut mock_hal = TestingHal::new();
+            mock_hal.sd.inserted = Some(true);
+            mock_hal
+                .ui
+                .set_enter_string(Box::new(|_params| Ok("password".into())));
             make_request(
-                &mut mock_workflows,
+                &mut mock_hal,
                 (crate::pb::Request {
                     request: Some(crate::pb::request::Request::SetPassword(
                         crate::pb::SetPasswordRequest {
@@ -500,16 +501,17 @@ mod tests {
             )
             .unwrap();
             assert_eq!(
-                mock_workflows.screens,
+                mock_hal.ui.screens,
                 vec![Screen::Status {
                     title: "Success".into(),
                     success: true,
                 }]
             );
 
-            let mut mock_workflows = TestingWorkflows::new();
+            let mut mock_hal = TestingHal::new();
+            mock_hal.sd.inserted = Some(true);
             make_request(
-                &mut mock_workflows,
+                &mut mock_hal,
                 (crate::pb::Request {
                     request: Some(crate::pb::request::Request::CreateBackup(
                         crate::pb::CreateBackupRequest {
@@ -523,7 +525,7 @@ mod tests {
             )
             .unwrap();
             assert_eq!(
-                mock_workflows.screens,
+                mock_hal.ui.screens,
                 vec![
                     Screen::Confirm {
                         title: "Is today?".into(),
@@ -539,11 +541,11 @@ mod tests {
 
             let seed = bitbox02::keystore::copy_seed().unwrap();
             assert_eq!(seed.len(), host_entropy.len());
-            let mut mock_workflows = TestingWorkflows::new();
+            let mut mock_hal = TestingHal::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
-                        &mut mock_workflows,
+                        &mut mock_hal,
                         (crate::pb::Request {
                             request: Some(crate::pb::request::Request::CheckBackup(
                                 crate::pb::CheckBackupRequest { silent: true },
@@ -562,11 +564,11 @@ mod tests {
                     )),
                 }
             ));
-            assert_eq!(mock_workflows.screens, vec![]);
+            assert_eq!(mock_hal.ui.screens, vec![]);
 
-            let mut mock_workflows = TestingWorkflows::new();
+            let mut mock_hal = TestingHal::new();
             make_request(
-                &mut mock_workflows,
+                &mut mock_hal,
                 (crate::pb::Request {
                     request: Some(crate::pb::request::Request::Reset(
                         crate::pb::ResetRequest {},
@@ -577,7 +579,7 @@ mod tests {
             )
             .unwrap();
             assert_eq!(
-                mock_workflows.screens,
+                mock_hal.ui.screens,
                 vec![Screen::Confirm {
                     title: "RESET".into(),
                     body: "Proceed to\nfactory reset?".into(),
@@ -585,11 +587,11 @@ mod tests {
                 }]
             );
 
-            let mut mock_workflows = TestingWorkflows::new();
+            let mut mock_hal = TestingHal::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
-                        &mut mock_workflows,
+                        &mut mock_hal,
                         (crate::pb::Request {
                             request: Some(crate::pb::request::Request::CheckBackup(
                                 crate::pb::CheckBackupRequest { silent: true },
@@ -608,12 +610,12 @@ mod tests {
                     )),
                 }
             ));
-            assert_eq!(mock_workflows.screens, vec![]);
+            assert_eq!(mock_hal.ui.screens, vec![]);
 
-            let mut mock_workflows = TestingWorkflows::new();
+            let mut mock_hal = TestingHal::new();
             let backup_id = match crate::pb::Response::decode(
                 make_request(
-                    &mut mock_workflows,
+                    &mut mock_hal,
                     (crate::pb::Request {
                         request: Some(crate::pb::request::Request::ListBackups(
                             crate::pb::ListBackupsRequest {},
@@ -643,14 +645,16 @@ mod tests {
                 },
                 _ => panic!("unexpected response"),
             };
-            assert_eq!(mock_workflows.screens, vec![]);
+            assert_eq!(mock_hal.ui.screens, vec![]);
 
-            let mut mock_workflows = TestingWorkflows::new();
-            mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
+            let mut mock_hal = TestingHal::new();
+            mock_hal
+                .ui
+                .set_enter_string(Box::new(|_params| Ok("password".into())));
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
-                        &mut mock_workflows,
+                        &mut mock_hal,
                         (crate::pb::Request {
                             request: Some(crate::pb::request::Request::RestoreBackup(
                                 crate::pb::RestoreBackupRequest {
@@ -674,7 +678,7 @@ mod tests {
                 }
             ));
             assert_eq!(
-                mock_workflows.screens,
+                mock_hal.ui.screens,
                 vec![
                     Screen::Confirm {
                         title: "".into(),

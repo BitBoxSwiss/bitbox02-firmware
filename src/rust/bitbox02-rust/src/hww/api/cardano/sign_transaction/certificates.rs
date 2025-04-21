@@ -25,11 +25,12 @@ use pb::cardano_sign_transaction_request::{
     Certificate,
 };
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 use util::bip32::HARDENED;
 
-pub async fn verify<'a, W: Workflows>(
-    workflows: &mut W,
+pub async fn verify<'a>(
+    hal: &mut impl crate::hal::Hal,
     params: &params::Params,
     certificates: &'a [Certificate],
     bip44_account: u32,
@@ -42,7 +43,7 @@ pub async fn verify<'a, W: Workflows>(
                 validate_address_shelley_stake(keypath, Some(bip44_account))?;
                 signing_keypaths.push(keypath);
                 // 2 ADA will be deposited and refunded once delegation stops, independent of the staking rewards.
-                workflows
+                hal.ui()
                     .confirm(&confirm::Params {
                         title: params.name,
                         body: &format!(
@@ -59,7 +60,7 @@ pub async fn verify<'a, W: Workflows>(
                 validate_address_shelley_stake(keypath, Some(bip44_account))?;
                 signing_keypaths.push(keypath);
                 // 2 ADA will be refunded back, independent of the staking rewards.
-                workflows
+                hal.ui()
                     .confirm(&confirm::Params {
                         title: params.name,
                         body: &format!(
@@ -78,7 +79,7 @@ pub async fn verify<'a, W: Workflows>(
             }) => {
                 validate_address_shelley_stake(keypath, Some(bip44_account))?;
                 signing_keypaths.push(keypath);
-                workflows
+                hal.ui()
                     .confirm(&confirm::Params {
                         title: params.name,
                         body: &format!(
@@ -112,7 +113,7 @@ pub async fn verify<'a, W: Workflows>(
                     };
                 match drep_credhash {
                     Some(hash) => {
-                        workflows
+                        hal.ui()
                             .confirm(&confirm::Params {
                                 title: params.name,
                                 body: &format!(
@@ -128,7 +129,7 @@ pub async fn verify<'a, W: Workflows>(
                             .await?;
                     }
                     None => {
-                        workflows
+                        hal.ui()
                             .confirm(&confirm::Params {
                                 title: params.name,
                                 body: &format!(

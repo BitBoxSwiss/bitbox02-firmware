@@ -19,15 +19,8 @@ use alloc::vec::Vec;
 use crate::util::str_to_cstr_vec;
 use bitbox02_sys::SD_MAX_FILE_SIZE;
 
-#[cfg(not(feature = "testing"))]
 pub fn sdcard_inserted() -> bool {
     unsafe { bitbox02_sys::sd_card_inserted() }
-}
-
-#[cfg(feature = "testing")]
-pub fn sdcard_inserted() -> bool {
-    let data = crate::testing::DATA.0.borrow();
-    data.sdcard_inserted.unwrap()
 }
 
 struct SdList(bitbox02_sys::sd_list_t);

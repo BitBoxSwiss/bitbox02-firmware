@@ -26,7 +26,8 @@ use blake2::{
     Blake2bVar,
 };
 
-use crate::workflow::{confirm, transaction, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, transaction};
 
 use pb::cardano_response::Response;
 use pb::cardano_sign_transaction_response::ShelleyWitness;
@@ -66,8 +67,8 @@ fn make_shelley_witness(keypath: &[u32], tx_body_hash: &[u8; 32]) -> Result<Shel
 // For Cardano mainnet, this formats a slot number in terms of epoch
 // and relative slot number to the epoch and lets the user verify it.
 // This should only be called for mainnet.
-async fn verify_slot<W: Workflows>(
-    workflows: &mut W,
+async fn verify_slot(
+    hal: &mut impl crate::hal::Hal,
     params: &params::Params,
     title: &str,
     slot: u64,
@@ -77,7 +78,7 @@ async fn verify_slot<W: Workflows>(
     }
     let epoch = SHELLEY_START_EPOCH + (slot - SHELLEY_START_SLOT) / SHELLEY_SLOTS_IN_EPOCH;
     let slot_in_epoch = (slot - SHELLEY_START_SLOT) % SHELLEY_SLOTS_IN_EPOCH;
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             title: params.name,
             body: &format!("{}\nslot {} in\nepoch {}", title, slot_in_epoch, epoch),
@@ -126,8 +127,8 @@ fn validate_asset_groups(
     Ok(())
 }
 
-async fn _process<W: Workflows>(
-    workflows: &mut W,
+async fn _process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::CardanoSignTransactionRequest,
 ) -> Result<Response, Error> {
     let network = CardanoNetwork::try_from(request.network)?;
@@ -162,7 +163,7 @@ async fn _process<W: Workflows>(
             && (request.validity_interval_start > request.ttl))
             || (ttl_present && request.ttl < SHELLEY_START_SLOT);
         if cannot_be_mined {
-            workflows
+            hal.ui()
                 .confirm(&confirm::Params {
                     title: params.name,
                     body: "Transaction\ncannot be\nmined",
@@ -173,7 +174,7 @@ async fn _process<W: Workflows>(
         } else {
             if validity_interval_start_present {
                 verify_slot(
-                    workflows,
+                    hal,
                     params,
                     "Can be mined from",
                     request.validity_interval_start,
@@ -181,12 +182,12 @@ async fn _process<W: Workflows>(
                 .await?;
             }
             if ttl_present {
-                verify_slot(workflows, params, "Can be mined until", request.ttl).await?;
+                verify_slot(hal, params, "Can be mined until", request.ttl).await?;
             }
         }
     }
     certificates::verify(
-        workflows,
+        hal,
         params,
         &request.certificates,
         bip44_account,
@@ -200,7 +201,7 @@ async fn _process<W: Workflows>(
             return Err(Error::InvalidInput);
         }
 
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: params.name,
                 body: &format!(
@@ -242,14 +243,14 @@ async fn _process<W: Workflows>(
             },
             None => {
                 let formatted_value = format_value(params, output.value);
-                workflows
+                hal.ui()
                     .verify_recipient(&output.encoded_address, &formatted_value)
                     .await?;
                 total += output.value;
 
                 for asset_group in output.asset_groups.iter() {
                     for token in asset_group.tokens.iter() {
-                        workflows
+                        hal.ui()
                             .confirm(&confirm::Params {
                                 title: "Send token",
                                 body: &format!(
@@ -269,7 +270,7 @@ async fn _process<W: Workflows>(
     }
 
     if total == 0 {
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: params.name,
                 body: &format!("Fee\n{}", format_value(params, request.fee)),
@@ -280,7 +281,7 @@ async fn _process<W: Workflows>(
     } else {
         let fee_percentage: f64 = 100. * (request.fee as f64) / (total as f64);
         transaction::verify_total_fee_maybe_warn(
-            workflows,
+            hal,
             &format_value(params, total + request.fee),
             &format_value(params, request.fee),
             Some(fee_percentage),
@@ -288,7 +289,7 @@ async fn _process<W: Workflows>(
         .await?;
     }
 
-    workflows.status("Transaction\nconfirmed", true).await;
+    hal.ui().status("Transaction\nconfirmed", true).await;
 
     let tx_body_hash: [u8; 32] = {
         let mut hasher = Blake2bVar::new(32).unwrap();
@@ -313,13 +314,13 @@ async fn _process<W: Workflows>(
 }
 
 /// Verify and sign a Cardano transaction.
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::CardanoSignTransactionRequest,
 ) -> Result<Response, Error> {
-    let result = _process(workflows, request).await;
+    let result = _process(hal, request).await;
     if let Err(Error::UserAbort) = result {
-        workflows.status("Transaction\ncanceled", false).await;
+        hal.ui().status("Transaction\ncanceled", false).await;
     }
     result
 }
@@ -328,10 +329,11 @@ pub async fn process<W: Workflows>(
 mod tests {
     use super::*;
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_unlocked;
-    use util::bip32::HARDENED; // instead of TestingWorkflows until the tests are migrated
+    use util::bip32::HARDENED;
 
     use pb::cardano_sign_transaction_request::{certificate, certificate::Cert, Certificate};
 
@@ -432,8 +434,8 @@ mod tests {
 
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -447,7 +449,7 @@ mod tests {
         const RECIPIENT2: &str = "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi";
         const RECIPIENT3: &str = "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy";
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Cardano".into(),
@@ -533,8 +535,8 @@ mod tests {
 
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -555,7 +557,7 @@ mod tests {
             })
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Cardano".into(),
@@ -630,8 +632,8 @@ mod tests {
         };
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -652,7 +654,7 @@ mod tests {
             })
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Cardano".into(),
@@ -720,8 +722,8 @@ mod tests {
 
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -738,7 +740,7 @@ mod tests {
             })
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Cardano".into(),
@@ -801,8 +803,8 @@ mod tests {
 
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -819,7 +821,7 @@ mod tests {
             })
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Cardano".into(),
@@ -879,7 +881,7 @@ mod tests {
         };
 
         mock_unlocked();
-        let result = block_on(process(&mut TestingWorkflows::new(), &tx)).unwrap();
+        let result = block_on(process(&mut TestingHal::new(), &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -931,8 +933,8 @@ mod tests {
 
         // Second, test with allow_zero_ttl=true, meaning that a zero ttl will be included as 0.
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -943,7 +945,7 @@ mod tests {
             })
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Cardano".into(),
@@ -1007,10 +1009,10 @@ mod tests {
         };
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &tx)).is_ok());
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &tx)).is_ok());
         assert_eq!(
-            mock_workflows.screens[0],
+            mock_hal.ui.screens[0],
             Screen::Confirm {
                 title: "Cardano".into(),
                 body: "Can be mined from\nslot 335011 in\nepoch 292".into(),
@@ -1056,10 +1058,10 @@ mod tests {
         };
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &tx)).is_ok());
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &tx)).is_ok());
         assert_eq!(
-            mock_workflows.screens[0],
+            mock_hal.ui.screens[0],
             Screen::Confirm {
                 title: "Cardano".into(),
                 body: "Transaction\ncannot be\nmined".into(),
@@ -1136,8 +1138,8 @@ mod tests {
         };
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &tx)).unwrap();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -1148,7 +1150,7 @@ mod tests {
             })
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Recipient {
                     recipient: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
@@ -1223,9 +1225,10 @@ mod tests {
 
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &tx)).is_ok());
-        assert!(mock_workflows
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &tx)).is_ok());
+        assert!(mock_hal
+            .ui
             .contains_confirm("High fee", "The fee is 17.0%\nthe send amount.\nProceed?"));
     }
 
@@ -1263,7 +1266,7 @@ mod tests {
             ..Default::default()
         };
         mock_unlocked();
-        let result = block_on(process(&mut TestingWorkflows::new(), &tx)).unwrap();
+        let result = block_on(process(&mut TestingHal::new(), &tx)).unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {

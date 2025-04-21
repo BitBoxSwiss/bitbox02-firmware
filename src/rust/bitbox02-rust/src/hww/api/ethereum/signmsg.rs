@@ -17,7 +17,7 @@ use super::Error;
 
 use bitbox02::keystore;
 
-use crate::workflow::{verify_message, Workflows};
+use crate::workflow::verify_message;
 
 use pb::eth_response::Response;
 
@@ -30,8 +30,8 @@ use sha3::digest::Digest;
 ///
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::EthSignMessageRequest,
 ) -> Result<Response, Error> {
     if request.msg.len() > 9999 {
@@ -49,9 +49,9 @@ pub async fn process<W: Workflows>(
 
     // Verify address. We don't need the actual result, but we have to propagate validation or user
     // abort errors.
-    super::pubrequest::process(workflows, &pub_request).await?;
+    super::pubrequest::process(hal, &pub_request).await?;
 
-    verify_message::verify(workflows, "Sign message", "Sign", &request.msg, true).await?;
+    verify_message::verify(hal, "Sign message", "Sign", &request.msg, true).await?;
 
     // Construct message to be signed. There is no standard for this. We match what MyEtherWallet,
     // Trezor, etc. do, e.g.:
@@ -96,9 +96,10 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
     const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
@@ -110,9 +111,9 @@ mod tests {
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &pb::EthSignMessageRequest {
+            block_on(process(&mut mock_hal, &pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: MESSAGE.as_bytes().to_vec(),
@@ -125,7 +126,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Ethereum".into(),
@@ -146,9 +147,9 @@ mod tests {
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         block_on(process(
-            &mut mock_workflows,
+            &mut mock_hal,
             &pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
@@ -159,7 +160,7 @@ mod tests {
         ))
         .unwrap();
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Sepolia".into(),
@@ -193,15 +194,15 @@ mod tests {
         static mut CONFIRM_COUNTER: u32 = 0;
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         // User abort address verification.
-        mock_workflows.abort_nth(0);
+        mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(process(&mut mock_workflows, &request)),
+            block_on(process(&mut mock_hal, &request)),
             Err(Error::UserAbort)
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Ethereum".into(),
                 body: EXPECTED_ADDRESS.into(),
@@ -210,15 +211,15 @@ mod tests {
         );
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         // User abort message verification.
-        mock_workflows.abort_nth(1);
+        mock_hal.ui.abort_nth(1);
         assert_eq!(
-            block_on(process(&mut mock_workflows, &request)),
+            block_on(process(&mut mock_hal, &request)),
             Err(Error::UserAbort)
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Ethereum".into(),
@@ -241,7 +242,7 @@ mod tests {
         // Message too long
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::EthSignMessageRequest {
                     coin: pb::EthCoin::Eth as _,
                     keypath: KEYPATH.to_vec(),
@@ -257,7 +258,7 @@ mod tests {
         keystore::lock();
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::EthSignMessageRequest {
                     coin: pb::EthCoin::Eth as _,
                     keypath: KEYPATH.to_vec(),

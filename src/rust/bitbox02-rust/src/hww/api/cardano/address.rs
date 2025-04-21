@@ -18,7 +18,8 @@ use super::Error;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 
 use pb::cardano_response::Response;
 use pb::cardano_script_config::Config;
@@ -364,8 +365,8 @@ pub fn validate_and_encode_payment_address(
     }
 }
 
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::CardanoAddressRequest,
 ) -> Result<Response, Error> {
     let network = CardanoNetwork::try_from(request.network)?;
@@ -381,7 +382,7 @@ pub async fn process<W: Workflows>(
     let encoded_address = validate_and_encode_payment_address(params, script_config, None)?;
 
     if request.display {
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: params.name,
                 body: &encoded_address,
@@ -400,9 +401,10 @@ pub async fn process<W: Workflows>(
 mod tests {
     use super::*;
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
     #[test]
@@ -476,7 +478,7 @@ mod tests {
 
     fn do_pkh_skh(keypath_payment: &[u32], keypath_stake: &[u32]) -> Result<Response, Error> {
         block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &pb::CardanoAddressRequest {
                 network: CardanoNetwork::CardanoMainnet as _,
                 display: false,
@@ -566,10 +568,10 @@ mod tests {
         const EXPECTED: &str = "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs";
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
             block_on(process(
-                &mut mock_workflows,
+                &mut mock_hal,
                 &pb::CardanoAddressRequest {
                     network: CardanoNetwork::CardanoMainnet as _,
                     display: true,
@@ -584,7 +586,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Cardano".into(),
                 body: EXPECTED.into(),

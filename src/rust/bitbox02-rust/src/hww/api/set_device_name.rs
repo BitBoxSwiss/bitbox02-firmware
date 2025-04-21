@@ -17,10 +17,11 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
     if !util::name::validate(name, bitbox02::memory::DEVICE_NAME_MAX_LEN) {
@@ -34,7 +35,7 @@ pub async fn process<W: Workflows>(
         ..Default::default()
     };
 
-    workflows.confirm(&params).await?;
+    hal.ui().confirm(&params).await?;
 
     bitbox02::memory::set_device_name(name)?;
 
@@ -46,7 +47,8 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
 
@@ -56,10 +58,10 @@ mod tests {
 
         // All good.
         mock_memory();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
             block_on(process(
-                &mut mock_workflows,
+                &mut mock_hal,
                 &pb::SetDeviceNameRequest {
                     name: SOME_NAME.into()
                 }
@@ -67,7 +69,7 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Name".into(),
                 body: SOME_NAME.into(),
@@ -77,11 +79,11 @@ mod tests {
         assert_eq!(SOME_NAME, &bitbox02::memory::get_device_name());
 
         // User aborted confirmation.
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.abort_nth(0);
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.abort_nth(0);
         assert_eq!(
             block_on(process(
-                &mut mock_workflows,
+                &mut mock_hal,
                 &pb::SetDeviceNameRequest {
                     name: SOME_NAME.into()
                 }
@@ -89,7 +91,7 @@ mod tests {
             Err(Error::UserAbort)
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Name".into(),
                 body: SOME_NAME.into(),
@@ -100,7 +102,7 @@ mod tests {
         // Non-ascii character.
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::SetDeviceNameRequest {
                     name: "emoji are 😃, 😭, and 😈".into()
                 }
@@ -111,7 +113,7 @@ mod tests {
         // Non-printable character.
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::SetDeviceNameRequest {
                     name: "foo\nbar".into()
                 }
@@ -122,7 +124,7 @@ mod tests {
         // Too long.
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::SetDeviceNameRequest {
                     name: core::str::from_utf8(&[b'a'; 500]).unwrap().into()
                 }

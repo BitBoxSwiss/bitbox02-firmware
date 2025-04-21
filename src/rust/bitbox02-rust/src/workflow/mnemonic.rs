@@ -107,15 +107,16 @@ async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> 
     with_cancel("Recovery\nwords", &mut component, &result).await
 }
 
-pub async fn show_and_confirm_mnemonic<W: Workflows>(
-    workflows: &mut W,
+pub async fn show_and_confirm_mnemonic(
+    hal: &mut impl crate::hal::Hal,
     words: &[&str],
 ) -> Result<(), CancelError> {
     // Part 1) Scroll through words
     show_mnemonic(words).await?;
 
     // Can only succeed due to `accept_only`.
-    let _ = workflows
+    let _ = hal
+        .ui()
         .confirm(&confirm::Params {
             title: "",
             body: "Please confirm\neach word",
@@ -136,7 +137,7 @@ pub async fn show_and_confirm_mnemonic<W: Workflows>(
             match confirm_word(&choices, &title).await? {
                 selected_idx if selected_idx == correct_idx => break,
                 selected_idx if selected_idx == back_idx => show_mnemonic(words).await?,
-                _ => workflows.status("Incorrect word\nTry again", false).await,
+                _ => hal.ui().status("Incorrect word\nTry again", false).await,
             }
         }
     }
@@ -212,8 +213,8 @@ fn lastword_choices_strings(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<St
 /// Returns `Ok(None)` if the user chooses "None of them".
 /// Returns `Ok(Some(word))` if the user chooses a word.
 /// Returns `Err(CancelError::Cancelled)` if the user cancels.
-async fn get_24th_word<W: Workflows>(
-    workflows: &mut W,
+async fn get_24th_word(
+    hal: &mut impl crate::hal::Hal,
     title: &str,
     entered_words: &[&str],
 ) -> Result<Option<zeroize::Zeroizing<String>>, CancelError> {
@@ -224,7 +225,7 @@ async fn get_24th_word<W: Workflows>(
         choices.len() - 1
     };
     loop {
-        match workflows.menu(&as_str_vec(&choices), Some(title)).await {
+        match hal.ui().menu(&as_str_vec(&choices), Some(title)).await {
             Err(menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
                 let params = confirm::Params {
@@ -232,7 +233,7 @@ async fn get_24th_word<W: Workflows>(
                     body: "Invalid. Check\nrecovery words.\nRestart?",
                     ..Default::default()
                 };
-                if let Ok(()) = workflows.confirm(&params).await {
+                if let Ok(()) = hal.ui().confirm(&params).await {
                     return Ok(None);
                 }
             }
@@ -240,7 +241,8 @@ async fn get_24th_word<W: Workflows>(
                 // Confirm word picked from menu again, as a typo here would be extremely annoying.
                 // Double checking is also safer, as the user might not even realize they made a typo.
                 let word = choices[choice_idx as usize].clone();
-                if let Ok(()) = workflows
+                if let Ok(()) = hal
+                    .ui()
                     .confirm(&confirm::Params {
                         title,
                         body: &word,
@@ -260,8 +262,8 @@ async fn get_24th_word<W: Workflows>(
 ///
 /// Returns `Ok(word)` if the user chooses a word.
 /// Returns `Err(CancelError::Cancelled)` if the user cancels.
-async fn get_12th_18th_word<W: Workflows>(
-    workflows: &mut W,
+async fn get_12th_18th_word(
+    hal: &mut impl crate::hal::Hal,
     title: &str,
     entered_words: &[&str],
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
@@ -270,7 +272,8 @@ async fn get_12th_18th_word<W: Workflows>(
     loop {
         let choices = lastword_choices(entered_words);
         let candidates = bitbox02::keystore::get_bip39_wordlist(Some(&choices));
-        let word = workflows
+        let word = hal
+            .ui()
             .enter_string(
                 &trinary_input_string::Params {
                     title,
@@ -284,7 +287,8 @@ async fn get_12th_18th_word<W: Workflows>(
 
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
-        if let Ok(()) = workflows
+        if let Ok(()) = hal
+            .ui()
             .confirm(&confirm::Params {
                 title,
                 body: &word,
@@ -298,10 +302,11 @@ async fn get_12th_18th_word<W: Workflows>(
 }
 
 /// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
-pub async fn get<W: Workflows>(
-    workflows: &mut W,
+pub async fn get(
+    hal: &mut impl crate::hal::Hal,
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
-    let num_words: usize = match workflows
+    let num_words: usize = match hal
+        .ui()
         .trinary_choice("How many words?", "12", "18", "24")
         .await
     {
@@ -310,7 +315,7 @@ pub async fn get<W: Workflows>(
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
     };
 
-    workflows
+    hal.ui()
         .status(&format!("Enter {} words", num_words), true)
         .await;
 
@@ -341,18 +346,16 @@ pub async fn get<W: Workflows>(
             // throws, for example.
             if num_words == 24 {
                 // With 24 words there are only 8 valid candidates. We presnet them as a menu.
-                match get_24th_word(workflows, &title, &as_str_vec(&entered_words[..word_idx]))
-                    .await
-                {
+                match get_24th_word(hal, &title, &as_str_vec(&entered_words[..word_idx])).await {
                     Ok(None) => return Err(CancelError::Cancelled),
                     Ok(Some(r)) => Ok(r),
                     Err(e) => Err(e),
                 }
             } else {
-                get_12th_18th_word(workflows, &title, &as_str_vec(&entered_words[..word_idx])).await
+                get_12th_18th_word(hal, &title, &as_str_vec(&entered_words[..word_idx])).await
             }
         } else {
-            workflows
+            hal.ui()
                 .enter_string(
                     &trinary_input_string::Params {
                         title: &title,
@@ -381,7 +384,8 @@ pub async fn get<W: Workflows>(
                 } else {
                     // In all other words, we give the choice between editing the previous word and
                     // cancelling.
-                    match workflows
+                    match hal
+                        .ui()
                         .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
                         .await
                     {
@@ -404,7 +408,7 @@ pub async fn get<W: Workflows>(
                             ..Default::default()
                         };
 
-                        if let Err(confirm::UserAbort) = workflows.confirm(&params).await {
+                        if let Err(confirm::UserAbort) = hal.ui().confirm(&params).await {
                             // Cancel cancelled.
                             continue;
                         }

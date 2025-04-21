@@ -13,15 +13,16 @@
 // limitations under the License.
 
 use crate::general::abort;
-use crate::workflow::{confirm, password, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, password};
 use bitbox02::keystore;
 
 pub use password::CanCancel;
 
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
 /// false if the user rejected it.
-async fn confirm_mnemonic_passphrase<W: Workflows>(
-    workflows: &mut W,
+async fn confirm_mnemonic_passphrase(
+    hal: &mut impl crate::hal::Hal,
     passphrase: &str,
 ) -> Result<(), confirm::UserAbort> {
     // Accept empty passphrase without confirmation.
@@ -37,7 +38,7 @@ async fn confirm_mnemonic_passphrase<W: Workflows>(
         ..Default::default()
     };
 
-    workflows.confirm(&params).await?;
+    hal.ui().confirm(&params).await?;
 
     let params = confirm::Params {
         title: "Confirm",
@@ -48,7 +49,7 @@ async fn confirm_mnemonic_passphrase<W: Workflows>(
         ..Default::default()
     };
 
-    workflows.confirm(&params).await
+    hal.ui().confirm(&params).await
 }
 
 pub enum UnlockError {
@@ -70,12 +71,12 @@ impl core::convert::From<super::cancel::Error> for UnlockError {
 ///
 /// If they keystore is already unlocked, this function does not
 /// change the state and just checks the password.
-pub async fn unlock_keystore<W: Workflows>(
-    workflows: &mut W,
+pub async fn unlock_keystore(
+    hal: &mut impl crate::hal::Hal,
     title: &str,
     can_cancel: password::CanCancel,
 ) -> Result<(), UnlockError> {
-    let password = password::enter(workflows, title, false, can_cancel).await?;
+    let password = password::enter(hal, title, false, can_cancel).await?;
 
     match keystore::unlock(&password) {
         Ok(()) => Ok(()),
@@ -84,12 +85,12 @@ pub async fn unlock_keystore<W: Workflows>(
                 1 => "Wrong password\n1 try remains".into(),
                 n => format!("Wrong password\n{} tries remain", n),
             };
-            workflows.status(&msg, false).await;
+            hal.ui().status(&msg, false).await;
             Err(UnlockError::IncorrectPassword)
         }
         Err(err) => {
             let msg = format!("keystore unlock failed\n{:?}", err);
-            workflows.status(&msg, false).await;
+            hal.ui().status(&msg, false).await;
             Err(UnlockError::Generic)
         }
     }
@@ -97,7 +98,7 @@ pub async fn unlock_keystore<W: Workflows>(
 
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
-pub async fn unlock_bip39<W: Workflows>(workflows: &mut W) {
+pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal) {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = zeroize::Zeroizing::new("".into());
 
@@ -105,22 +106,16 @@ pub async fn unlock_bip39<W: Workflows>(workflows: &mut W) {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            mnemonic_passphrase = password::enter(
-                workflows,
-                "Optional passphrase",
-                true,
-                password::CanCancel::No,
-            )
-            .await
-            .expect("not cancelable");
+            mnemonic_passphrase =
+                password::enter(hal, "Optional passphrase", true, password::CanCancel::No)
+                    .await
+                    .expect("not cancelable");
 
-            if let Ok(()) =
-                confirm_mnemonic_passphrase(workflows, mnemonic_passphrase.as_str()).await
-            {
+            if let Ok(()) = confirm_mnemonic_passphrase(hal, mnemonic_passphrase.as_str()).await {
                 break;
             }
 
-            workflows.status("Please try again", false).await;
+            hal.ui().status("Please try again", false).await;
         }
     }
 
@@ -137,7 +132,7 @@ pub async fn unlock_bip39<W: Workflows>(workflows: &mut W) {
 /// user. Otherwise, the empty "" passphrase is used by default.
 ///
 /// Returns Ok on success, Err if the device cannot be unlocked because it was not initialized.
-pub async fn unlock<W: Workflows>(workflows: &mut W) -> Result<(), ()> {
+pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
     if !bitbox02::memory::is_initialized() {
         return Err(());
     }
@@ -146,11 +141,11 @@ pub async fn unlock<W: Workflows>(workflows: &mut W) -> Result<(), ()> {
     }
 
     // Loop unlock until the password is correct or the device resets.
-    while unlock_keystore(workflows, "Enter password", password::CanCancel::No)
+    while unlock_keystore(hal, "Enter password", password::CanCancel::No)
         .await
         .is_err()
     {}
 
-    unlock_bip39(workflows).await;
+    unlock_bip39(hal).await;
     Ok(())
 }

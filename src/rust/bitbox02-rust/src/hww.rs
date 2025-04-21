@@ -364,7 +364,6 @@ mod tests {
 
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         let mut mock_workflows = TestingWorkflows::new();
         mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
@@ -483,7 +482,6 @@ mod tests {
             let mut make_request = init_noise();
             mock(Data {
                 sdcard_inserted: Some(true),
-                ..Default::default()
             });
 
             let mut mock_workflows = TestingWorkflows::new();

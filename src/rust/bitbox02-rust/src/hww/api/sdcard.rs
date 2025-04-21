@@ -50,7 +50,6 @@ mod tests {
         // already inserted.
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         assert_eq!(
             block_on(process(
@@ -65,7 +64,6 @@ mod tests {
         // already removed.
         mock(Data {
             sdcard_inserted: Some(false),
-            ..Default::default()
         });
         assert_eq!(
             block_on(process(
@@ -80,7 +78,6 @@ mod tests {
         // insert
         mock(Data {
             sdcard_inserted: Some(false),
-            ..Default::default()
         });
         assert_eq!(
             block_on(process(
@@ -95,7 +92,6 @@ mod tests {
         // remove
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         assert_eq!(
             block_on(process(

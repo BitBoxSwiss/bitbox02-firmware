@@ -13,6 +13,9 @@
 // limitations under the License.
 
 //! Stubs for testing.
+//!
+//! NOTE: This is on the way out - we use the Workflows trait and TestingWorkflow to unit test
+//! workflows now.
 
 pub use super::types::{
     AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
@@ -48,61 +51,41 @@ impl Drop for Component<'_> {
 }
 
 pub fn trinary_input_string_create<'a, F>(
-    params: &TrinaryInputStringParams,
-    mut confirm_callback: F,
+    _params: &TrinaryInputStringParams,
+    _confirm_callback: F,
     _cancel_callback: Option<ContinueCancelCb<'a>>,
 ) -> Component<'a>
 where
     F: FnMut(zeroize::Zeroizing<String>) + 'a,
 {
-    let data = crate::testing::DATA.0.borrow();
-    let input_string = data.ui_trinary_input_string_create.as_ref().unwrap()(params);
-    confirm_callback(zeroize::Zeroizing::new(input_string));
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    panic!("not used");
 }
 
-pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>
+pub fn confirm_create<'a, F>(_params: &ConfirmParams, _result_callback: F) -> Component<'a>
 where
     F: FnMut(bool) + 'a,
 {
-    let data = crate::testing::DATA.0.borrow();
-    let result = data.ui_confirm_create.as_ref().unwrap()(params);
-    result_callback(result);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    panic!("not used");
 }
 
 pub fn screen_process() {}
 
-pub fn status_create<'a, F>(_text: &str, _status_success: bool, mut callback: F) -> Component<'a>
+pub fn status_create<'a, F>(_text: &str, _status_success: bool, _callback: F) -> Component<'a>
 where
     F: FnMut() + 'a,
 {
-    callback();
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    panic!("not used");
 }
 
-pub fn sdcard_create<'a, F>(mut callback: F) -> Component<'a>
+pub fn sdcard_create<'a, F>(_callback: F) -> Component<'a>
 where
     F: FnMut(bool) + 'a,
 {
-    callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    panic!("not used");
 }
 
 pub fn menu_create(_params: MenuParams<'_>) -> Component<'_> {
-    panic!("not implemented");
+    panic!("not used");
 }
 
 pub fn trinary_choice_create<'a>(
@@ -112,40 +95,28 @@ pub fn trinary_choice_create<'a>(
     _label_right: &'a str,
     _chosen_callback: TrinaryChoiceCb,
 ) -> Component<'a> {
-    panic!("not implemented")
+    panic!("not used")
 }
 
 pub fn confirm_transaction_address_create<'a, 'b>(
-    amount: &'a str,
-    address: &'a str,
-    mut callback: AcceptRejectCb<'b>,
+    _amount: &'a str,
+    _address: &'a str,
+    _callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
-    let data = crate::testing::DATA.0.borrow();
-    let result = data.ui_transaction_address_create.as_ref().unwrap()(amount, address);
-    callback(result);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    panic!("not used");
 }
 
 pub fn confirm_transaction_fee_create<'a, 'b>(
-    amount: &'a str,
-    fee: &'a str,
-    longtouch: bool,
-    mut callback: AcceptRejectCb<'b>,
+    _amount: &'a str,
+    _fee: &'a str,
+    _longtouch: bool,
+    _callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
-    let data = crate::testing::DATA.0.borrow();
-    let result = data.ui_transaction_fee_create.as_ref().unwrap()(amount, fee, longtouch);
-    callback(result);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    panic!("not used");
 }
 
 pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {
-    panic!("not implemented")
+    panic!("not used")
 }
 
 pub fn with_lock_animation<F: Fn() -> R, R>(f: F) -> R {

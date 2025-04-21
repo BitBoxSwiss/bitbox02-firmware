@@ -16,7 +16,7 @@ pub use super::cancel::Error as CancelError;
 use super::cancel::{cancel, set_result, with_cancel};
 use super::confirm;
 use super::menu;
-use super::trinary_choice::{choose, TrinaryChoice};
+use super::trinary_choice::TrinaryChoice;
 use super::trinary_input_string;
 use super::Workflows;
 
@@ -224,8 +224,8 @@ async fn get_24th_word<W: Workflows>(
         choices.len() - 1
     };
     loop {
-        match super::menu::pick(&as_str_vec(&choices), Some(title)).await {
-            Err(super::menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
+        match workflows.menu(&as_str_vec(&choices), Some(title)).await {
+            Err(menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
                 let params = confirm::Params {
                     title: "",
@@ -301,7 +301,10 @@ async fn get_12th_18th_word<W: Workflows>(
 pub async fn get<W: Workflows>(
     workflows: &mut W,
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
-    let num_words: usize = match choose("How many words?", "12", "18", "24").await {
+    let num_words: usize = match workflows
+        .trinary_choice("How many words?", "12", "18", "24")
+        .await
+    {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
         TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
@@ -378,7 +381,8 @@ pub async fn get<W: Workflows>(
                 } else {
                     // In all other words, we give the choice between editing the previous word and
                     // cancelling.
-                    match menu::pick(&["Edit previous word", "Cancel restore"], Some("Choose"))
+                    match workflows
+                        .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
                         .await
                     {
                         Err(menu::CancelError::Cancelled) => {

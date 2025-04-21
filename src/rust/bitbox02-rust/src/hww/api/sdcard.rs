@@ -18,9 +18,10 @@ use crate::pb::insert_remove_sd_card_request::SdCardAction;
 
 use pb::response::Response;
 
-use crate::workflow::sdcard;
+use crate::workflow::Workflows;
 
-pub async fn process(
+pub async fn process<W: Workflows>(
+    workflows: &mut W,
     &pb::InsertRemoveSdCardRequest { action }: &pb::InsertRemoveSdCardRequest,
 ) -> Result<Response, Error> {
     let inserted = bitbox02::sd::sdcard_inserted();
@@ -31,7 +32,7 @@ pub async fn process(
     if inserted {
         return Ok(Response::Success(pb::Success {}));
     }
-    sdcard::sdcard().await?;
+    workflows.insert_sdcard().await?;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -40,6 +41,7 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::TestingWorkflows;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, Data};
 
@@ -48,48 +50,56 @@ mod tests {
         // already inserted.
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         assert_eq!(
-            block_on(process(&pb::InsertRemoveSdCardRequest {
-                action: SdCardAction::InsertCard as _,
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::InsertRemoveSdCardRequest {
+                    action: SdCardAction::InsertCard as _,
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
 
         // already removed.
         mock(Data {
             sdcard_inserted: Some(false),
-            ..Default::default()
         });
         assert_eq!(
-            block_on(process(&pb::InsertRemoveSdCardRequest {
-                action: SdCardAction::RemoveCard as _,
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::InsertRemoveSdCardRequest {
+                    action: SdCardAction::RemoveCard as _,
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
 
         // insert
         mock(Data {
             sdcard_inserted: Some(false),
-            ..Default::default()
         });
         assert_eq!(
-            block_on(process(&pb::InsertRemoveSdCardRequest {
-                action: SdCardAction::InsertCard as _,
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::InsertRemoveSdCardRequest {
+                    action: SdCardAction::InsertCard as _,
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
 
         // remove
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         assert_eq!(
-            block_on(process(&pb::InsertRemoveSdCardRequest {
-                action: SdCardAction::RemoveCard as _,
-            })),
+            block_on(process(
+                &mut TestingWorkflows::new(),
+                &pb::InsertRemoveSdCardRequest {
+                    action: SdCardAction::RemoveCard as _,
+                }
+            )),
             Ok(Response::Success(pb::Success {}))
         );
     }

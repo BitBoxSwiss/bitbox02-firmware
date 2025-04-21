@@ -400,7 +400,7 @@ pub async fn process<W: Workflows>(
 mod tests {
     use super::*;
     use crate::bb02_async::block_on;
-    use crate::workflow::RealWorkflows;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use alloc::boxed::Box;
     use bitbox02::testing::{mock, mock_unlocked, Data};
     use util::bip32::HARDENED;
@@ -476,7 +476,7 @@ mod tests {
 
     fn do_pkh_skh(keypath_payment: &[u32], keypath_stake: &[u32]) -> Result<Response, Error> {
         block_on(process(
-            &mut RealWorkflows,
+            &mut TestingWorkflows::new(),
             &pb::CardanoAddressRequest {
                 network: CardanoNetwork::CardanoMainnet as _,
                 display: false,
@@ -565,19 +565,11 @@ mod tests {
     fn test_process_confirm() {
         const EXPECTED: &str = "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs";
 
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, "Cardano");
-                assert_eq!(params.body, EXPECTED);
-                true
-            })),
-            ..Default::default()
-        });
         mock_unlocked();
-
+        let mut mock_workflows = TestingWorkflows::new();
         assert_eq!(
             block_on(process(
-                &mut RealWorkflows,
+                &mut mock_workflows,
                 &pb::CardanoAddressRequest {
                     network: CardanoNetwork::CardanoMainnet as _,
                     display: true,
@@ -590,6 +582,14 @@ mod tests {
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: EXPECTED.into()
             }))
+        );
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "Cardano".into(),
+                body: EXPECTED.into(),
+                longtouch: false,
+            },]
         );
     }
 

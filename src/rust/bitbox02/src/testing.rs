@@ -15,20 +15,13 @@
 //! Small mocking infrastructure for testing.
 
 extern crate alloc;
-use alloc::boxed::Box;
-use alloc::string::String;
 use core::cell::RefCell;
 
 use crate::keystore;
 
 #[derive(Default)]
 pub struct Data {
-    pub ui_confirm_create: Option<Box<dyn Fn(&super::ui::ConfirmParams) -> bool>>,
     pub sdcard_inserted: Option<bool>,
-    pub ui_transaction_address_create: Option<Box<dyn Fn(&str, &str) -> bool>>,
-    pub ui_transaction_fee_create: Option<Box<dyn Fn(&str, &str, bool) -> bool>>,
-    pub ui_trinary_input_string_create:
-        Option<Box<dyn Fn(&super::ui::TrinaryInputStringParams) -> String>>,
 }
 
 pub struct SafeData(pub RefCell<Data>);
@@ -37,11 +30,7 @@ pub struct SafeData(pub RefCell<Data>);
 unsafe impl Sync for SafeData {}
 
 pub static DATA: SafeData = SafeData(RefCell::new(Data {
-    ui_confirm_create: None,
     sdcard_inserted: None,
-    ui_transaction_address_create: None,
-    ui_transaction_fee_create: None,
-    ui_trinary_input_string_create: None,
 }));
 
 /// Provide mock implementations and data. This also locks the keystore - use `mock_unlocked()` to mock a seeded and unlocked keystore.

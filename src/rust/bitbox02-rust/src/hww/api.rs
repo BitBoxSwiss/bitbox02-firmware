@@ -172,7 +172,7 @@ async fn process_api<W: Workflows>(
         Request::SetMnemonicPassphraseEnabled(ref request) => {
             set_mnemonic_passphrase_enabled::process(workflows, request).await
         }
-        Request::InsertRemoveSdcard(ref request) => sdcard::process(request).await,
+        Request::InsertRemoveSdcard(ref request) => sdcard::process(workflows, request).await,
         Request::ListBackups(_) => backup::list(),
         Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
             inserted: bitbox02::sd::sdcard_inserted(),

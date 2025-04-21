@@ -89,9 +89,12 @@ pub async fn create<W: Workflows>(
         .await?;
 
     // Wait for sd card
-    super::sdcard::process(&pb::InsertRemoveSdCardRequest {
-        action: pb::insert_remove_sd_card_request::SdCardAction::InsertCard as _,
-    })
+    super::sdcard::process(
+        workflows,
+        &pb::InsertRemoveSdCardRequest {
+            action: pb::insert_remove_sd_card_request::SdCardAction::InsertCard as _,
+        },
+    )
     .await?;
 
     let is_initialized = bitbox02::memory::is_initialized();
@@ -173,7 +176,6 @@ mod tests {
         // All good.
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         mock_sd();
         mock_memory();
@@ -225,7 +227,6 @@ mod tests {
             "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         mock_sd();
         mock_memory();
@@ -297,7 +298,6 @@ mod tests {
         // Create one backup.
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         mock_memory();
         mock_unlocked_using_mnemonic("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay", "");
@@ -326,7 +326,6 @@ mod tests {
         // Create another backup.
         mock(Data {
             sdcard_inserted: Some(true),
-            ..Default::default()
         });
         mock_memory();
         mock_unlocked_using_mnemonic("goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven", "");

@@ -111,12 +111,7 @@ fn api_attestation(usb_in: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Async HWW api processing main entry point.
-/// `usb_in` - api request bytes.
-/// Returns the usb response bytes.
-pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
-    let workflows = &mut RealWorkflows;
-
+async fn _process_packet<W: Workflows>(workflows: &mut W, usb_in: Vec<u8>) -> Vec<u8> {
     match usb_in.split_first() {
         Some((&OP_UNLOCK, b"")) => return api_unlock(workflows).await,
         Some((&OP_ATTESTATION, rest)) => return api_attestation(rest),
@@ -130,12 +125,21 @@ pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
     }
 }
 
+/// Async HWW api processing main entry point.
+/// `usb_in` - api request bytes.
+/// Returns the usb response bytes.
+pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
+    let workflows = &mut RealWorkflows;
+    _process_packet(workflows, usb_in).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     extern crate std;
 
     use crate::bb02_async::block_on;
+    use crate::workflow::testing::{Screen, TestingWorkflows};
     use bitbox02::testing::{mock, mock_memory, mock_sd, Data};
 
     use prost::Message;
@@ -146,15 +150,15 @@ mod tests {
 
     /// Make a new noise channel by invoking the noise handshake. Returns a request function which
     /// encrypts the message going in and decrypts the message coming out.
-    fn init_noise() -> Box<dyn FnMut(&[u8]) -> Result<Vec<u8>, ()>> {
+    fn init_noise<W: Workflows>() -> Box<dyn FnMut(&mut W, &[u8]) -> Result<Vec<u8>, ()>> {
         assert_eq!(
-            block_on(process_packet(b"h".to_vec())),
+            block_on(_process_packet(&mut TestingWorkflows::new(), b"h".to_vec())),
             [OP_STATUS_SUCCESS].to_vec()
         );
         let mut host_noise = bitbox02_noise::testing::make_host();
         let host_handshake_1 = host_noise.write_message_vec(b"").unwrap();
         let bb02_handshake_1 = {
-            let result = block_on(process_packet({
+            let result = block_on(_process_packet(&mut TestingWorkflows::new(), {
                 let mut m = b"H".to_vec(); // handshake opcode
                 m.extend_from_slice(&host_handshake_1);
                 m
@@ -170,7 +174,7 @@ mod tests {
             host_noise.write_message_vec(&payload).unwrap()
         };
 
-        let response = block_on(process_packet({
+        let response = block_on(_process_packet(&mut TestingWorkflows::new(), {
             let mut m = b"H".to_vec(); // handshake opcode
             m.extend_from_slice(&host_handshake_2);
             m
@@ -183,41 +187,31 @@ mod tests {
         };
         if verification_required {
             // Verify pairing code.
-            static EXPECTED_PAIRING_CODE: bitbox02::testing::UnsafeSyncRefCell<Option<String>> =
-                bitbox02::testing::UnsafeSyncRefCell::new(None);
 
-            // Handshake hash as computed by the host. Should be the same as computed on the device. The
-            // pairing code is derived from that.
+            // Handshake hash as computed by the host. Should be the same as computed on the
+            // device. The pairing code is derived from that.
             let handshake_hash: bitbox02_noise::HandshakeHash =
                 host_noise.get_hash().try_into().unwrap();
-            *EXPECTED_PAIRING_CODE.borrow_mut() =
-                Some(crate::workflow::pairing::format_hash(&handshake_hash));
-            static mut PAIRING_CONFIRMED: bool = false;
-            mock(Data {
-                ui_confirm_create: Some(Box::new(|params| {
-                    assert_eq!(params.title, "Pairing code");
-                    assert_eq!(
-                        params.body,
-                        EXPECTED_PAIRING_CODE.borrow().as_ref().unwrap().as_str()
-                    );
-                    unsafe {
-                        PAIRING_CONFIRMED = true;
-                    }
-                    true
-                })),
-                ..Default::default()
-            });
+
+            let mut mock_workflows = TestingWorkflows::new();
             assert_eq!(
-                block_on(process_packet(b"v".to_vec())),
+                block_on(_process_packet(&mut mock_workflows, b"v".to_vec())),
                 [OP_STATUS_SUCCESS].to_vec()
             );
-            assert!(unsafe { PAIRING_CONFIRMED });
+            assert_eq!(
+                mock_workflows.screens,
+                vec![Screen::Confirm {
+                    title: "Pairing code".into(),
+                    body: crate::workflow::pairing::format_hash(&handshake_hash),
+                    longtouch: false,
+                }]
+            );
         }
 
         let (mut host_send, mut host_recv) = host_noise.get_ciphers();
-        Box::new(move |msg| -> Result<Vec<u8>, ()> {
+        Box::new(move |workflows, msg| -> Result<Vec<u8>, ()> {
             let msg_encrypted = host_send.encrypt_vec(msg);
-            let response_encrypted = block_on(process_packet({
+            let response_encrypted = block_on(_process_packet(workflows, {
                 let mut m = b"n".to_vec(); // message opcode
                 m.extend_from_slice(&msg_encrypted);
                 m
@@ -234,7 +228,10 @@ mod tests {
     fn test_cant_unlock() {
         mock_memory();
         assert_eq!(
-            block_on(process_packet(vec![OP_UNLOCK])),
+            block_on(_process_packet(
+                &mut TestingWorkflows::new(),
+                vec![OP_UNLOCK]
+            )),
             [OP_STATUS_FAILURE_UNINITIALIZED].to_vec()
         );
     }
@@ -250,7 +247,8 @@ mod tests {
                 crate::pb::ListBackupsRequest {},
             )),
         };
-        let response_encoded = make_request(&request.encode_to_vec()).unwrap();
+        let response_encoded =
+            make_request(&mut TestingWorkflows::new(), &request.encode_to_vec()).unwrap();
         let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
         assert_eq!(
             response,
@@ -276,21 +274,22 @@ mod tests {
             )),
         };
         let request_encoded = request.encode_to_vec();
-        mock(Data {
-            ui_confirm_create: Some(Box::new(|params| {
-                assert_eq!(params.title, "");
-                assert_eq!(params.body, "Proceed to upgrade?");
-                true
-            })),
-            ..Default::default()
-        });
+        let mut mock_workflows = TestingWorkflows::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            make_request(&request_encoded).unwrap();
+            make_request(&mut mock_workflows, &request_encoded).unwrap();
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
             Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
         }
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "".into(),
+                body: "Proceed to upgrade?".into(),
+                longtouch: false,
+            }]
+        );
     }
 
     /// Can initiate noise and send the Reboot protobuf request when the device is seeded.
@@ -300,23 +299,10 @@ mod tests {
 
         let mut make_request = init_noise();
 
-        static mut UI_COUNTER: u32 = 0;
-        mock(Data {
-            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
-            sdcard_inserted: Some(true),
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => assert_eq!(params.body, "Proceed to upgrade?"),
-                    _ => panic!("too many dialogs"),
-                }
-                true
-            })),
-            ..Default::default()
-        });
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
         make_request(
+            &mut mock_workflows,
             (crate::pb::Request {
                 request: Some(crate::pb::request::Request::SetPassword(
                     crate::pb::SetPasswordRequest {
@@ -328,6 +314,14 @@ mod tests {
             .as_ref(),
         )
         .unwrap();
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Status {
+                title: "Success".into(),
+                success: true,
+            }]
+        );
+
         assert!(!bitbox02::keystore::is_locked());
         assert!(bitbox02::memory::is_seeded());
         assert!(!bitbox02::memory::is_initialized());
@@ -343,13 +337,22 @@ mod tests {
         // Can reboot when seeded and locked. This happens when the user sets a password and then
         // reconnects the device.
         bitbox02::keystore::lock();
+        let mut mock_workflows = TestingWorkflows::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            make_request(reboot_request.encode_to_vec().as_ref()).unwrap();
+            make_request(&mut mock_workflows, reboot_request.encode_to_vec().as_ref()).unwrap();
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
             Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
         }
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "".into(),
+                body: "Proceed to upgrade?".into(),
+                longtouch: false,
+            }]
+        );
     }
 
     /// Can initiate noise and send the Reboot protobuf request when the device is initialized.
@@ -359,24 +362,13 @@ mod tests {
 
         let mut make_request = init_noise();
 
-        static mut UI_COUNTER: u32 = 0;
         mock(Data {
-            ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
             sdcard_inserted: Some(true),
-            ui_confirm_create: Some(Box::new(|params| {
-                match unsafe {
-                    UI_COUNTER += 1;
-                    UI_COUNTER
-                } {
-                    1 => assert_eq!(params.body, "Mon 2020-09-28"),
-                    2 => assert_eq!(params.body, "Proceed to upgrade?"),
-                    _ => panic!("too many dialogs"),
-                }
-                true
-            })),
-            ..Default::default()
         });
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
         make_request(
+            &mut mock_workflows,
             (crate::pb::Request {
                 request: Some(crate::pb::request::Request::SetPassword(
                     crate::pb::SetPasswordRequest {
@@ -390,7 +382,9 @@ mod tests {
         .unwrap();
         assert!(!bitbox02::keystore::is_locked());
         assert!(!bitbox02::memory::is_initialized());
+        let mut mock_workflows = TestingWorkflows::new();
         make_request(
+            &mut mock_workflows,
             (crate::pb::Request {
                 request: Some(crate::pb::request::Request::CreateBackup(
                     crate::pb::CreateBackupRequest {
@@ -403,6 +397,20 @@ mod tests {
             .as_ref(),
         )
         .unwrap();
+        assert_eq!(
+            mock_workflows.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Is today?".into(),
+                    body: "Mon 2020-09-28".into(),
+                    longtouch: false,
+                },
+                Screen::Status {
+                    title: "Backup created".into(),
+                    success: true,
+                }
+            ]
+        );
         assert!(bitbox02::memory::is_initialized());
 
         let reboot_request = crate::pb::Request {
@@ -415,8 +423,11 @@ mod tests {
 
         // Can't reboot when initialized but locked.
         bitbox02::keystore::lock();
-        let response_encoded = make_request(&reboot_request.encode_to_vec()).unwrap();
+        let mut mock_workflows = TestingWorkflows::new();
+        let response_encoded =
+            make_request(&mut mock_workflows, &reboot_request.encode_to_vec()).unwrap();
         let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
+        assert_eq!(mock_workflows.screens, vec![]);
         assert_eq!(
             response,
             crate::pb::Response {
@@ -425,8 +436,10 @@ mod tests {
         );
 
         // Unlock.
+        let mut mock_workflows = TestingWorkflows::new();
+        mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
         assert_eq!(
-            block_on(process_packet(vec![OP_UNLOCK])),
+            block_on(_process_packet(&mut mock_workflows, vec![OP_UNLOCK])),
             [OP_STATUS_SUCCESS].to_vec()
         );
         assert!(!bitbox02::keystore::is_locked());
@@ -434,20 +447,27 @@ mod tests {
         // Since in the previous request the msg was encrypted but not decrypted (query was
         // rejected), the noise states are out of sync and we need to make a new channel.
         let mut make_request = init_noise();
+        let mut mock_workflows = TestingWorkflows::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            make_request(reboot_request.encode_to_vec().as_ref()).unwrap();
+            make_request(&mut mock_workflows, reboot_request.encode_to_vec().as_ref()).unwrap();
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
             Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
         }
+        assert_eq!(
+            mock_workflows.screens,
+            vec![Screen::Confirm {
+                title: "".into(),
+                body: "Proceed to upgrade?".into(),
+                longtouch: false,
+            }]
+        );
     }
 
     /// Test creating a seed, backing it up on SD, checking the backup, and restoring from the that backup.
     #[test]
     fn test_backup_create_check_list_restore() {
-        static mut UI_COUNTER: u32 = 0;
-
         // Test everything with a 32 and 16 byte seed (determined by the host entropy when creating the seed).
         for host_entropy in &[
             &b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"[..],
@@ -460,28 +480,14 @@ mod tests {
             bitbox02::memory::set_device_name("test device name").unwrap();
 
             let mut make_request = init_noise();
-            unsafe { UI_COUNTER = 0 };
             mock(Data {
-                ui_trinary_input_string_create: Some(Box::new(|_params| "password".into())),
                 sdcard_inserted: Some(true),
-                ui_confirm_create: Some(Box::new(|params| {
-                    match unsafe {
-                        UI_COUNTER += 1;
-                        UI_COUNTER
-                    } {
-                        1 => assert_eq!(params.body, "Mon 2020-09-28"),
-                        2 => assert_eq!(params.title, "RESET"),
-                        3 => assert_eq!(params.body, "Restore backup?"),
-                        4 => assert!(params.body.starts_with("Name: test device name.")),
-                        5 => assert_eq!(params.title, "Is now?"),
-                        _ => panic!("too many dialogs"),
-                    }
-                    true
-                })),
-                ..Default::default()
             });
 
+            let mut mock_workflows = TestingWorkflows::new();
+            mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
             make_request(
+                &mut mock_workflows,
                 (crate::pb::Request {
                     request: Some(crate::pb::request::Request::SetPassword(
                         crate::pb::SetPasswordRequest {
@@ -493,7 +499,17 @@ mod tests {
                 .as_ref(),
             )
             .unwrap();
+            assert_eq!(
+                mock_workflows.screens,
+                vec![Screen::Status {
+                    title: "Success".into(),
+                    success: true,
+                }]
+            );
+
+            let mut mock_workflows = TestingWorkflows::new();
             make_request(
+                &mut mock_workflows,
                 (crate::pb::Request {
                     request: Some(crate::pb::request::Request::CreateBackup(
                         crate::pb::CreateBackupRequest {
@@ -506,12 +522,28 @@ mod tests {
                 .as_ref(),
             )
             .unwrap();
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    Screen::Confirm {
+                        title: "Is today?".into(),
+                        body: "Mon 2020-09-28".into(),
+                        longtouch: false,
+                    },
+                    Screen::Status {
+                        title: "Backup created".into(),
+                        success: true,
+                    }
+                ]
+            );
 
             let seed = bitbox02::keystore::copy_seed().unwrap();
             assert_eq!(seed.len(), host_entropy.len());
+            let mut mock_workflows = TestingWorkflows::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
+                        &mut mock_workflows,
                         (crate::pb::Request {
                             request: Some(crate::pb::request::Request::CheckBackup(
                                 crate::pb::CheckBackupRequest { silent: true },
@@ -530,8 +562,11 @@ mod tests {
                     )),
                 }
             ));
+            assert_eq!(mock_workflows.screens, vec![]);
 
+            let mut mock_workflows = TestingWorkflows::new();
             make_request(
+                &mut mock_workflows,
                 (crate::pb::Request {
                     request: Some(crate::pb::request::Request::Reset(
                         crate::pb::ResetRequest {},
@@ -541,10 +576,20 @@ mod tests {
                 .as_ref(),
             )
             .unwrap();
+            assert_eq!(
+                mock_workflows.screens,
+                vec![Screen::Confirm {
+                    title: "RESET".into(),
+                    body: "Proceed to\nfactory reset?".into(),
+                    longtouch: true,
+                }]
+            );
 
+            let mut mock_workflows = TestingWorkflows::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
+                        &mut mock_workflows,
                         (crate::pb::Request {
                             request: Some(crate::pb::request::Request::CheckBackup(
                                 crate::pb::CheckBackupRequest { silent: true },
@@ -563,9 +608,12 @@ mod tests {
                     )),
                 }
             ));
+            assert_eq!(mock_workflows.screens, vec![]);
 
+            let mut mock_workflows = TestingWorkflows::new();
             let backup_id = match crate::pb::Response::decode(
                 make_request(
+                    &mut mock_workflows,
                     (crate::pb::Request {
                         request: Some(crate::pb::request::Request::ListBackups(
                             crate::pb::ListBackupsRequest {},
@@ -595,13 +643,18 @@ mod tests {
                 },
                 _ => panic!("unexpected response"),
             };
+            assert_eq!(mock_workflows.screens, vec![]);
+
+            let mut mock_workflows = TestingWorkflows::new();
+            mock_workflows.set_enter_string(Box::new(|_params| Ok("password".into())));
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
+                        &mut mock_workflows,
                         (crate::pb::Request {
                             request: Some(crate::pb::request::Request::RestoreBackup(
                                 crate::pb::RestoreBackupRequest {
-                                    id: backup_id,
+                                    id: backup_id.clone(),
                                     timestamp: 1601281809,
                                     timezone_offset: 18000,
                                 },
@@ -620,6 +673,30 @@ mod tests {
                     )),
                 }
             ));
+            assert_eq!(
+                mock_workflows.screens,
+                vec![
+                    Screen::Confirm {
+                        title: "".into(),
+                        body: "Restore backup?".into(),
+                        longtouch: false,
+                    },
+                    Screen::Confirm {
+                        title: "".into(),
+                        body: format!("Name: test device name. ID: {}", backup_id.as_str()),
+                        longtouch: false,
+                    },
+                    Screen::Confirm {
+                        title: "Is now?".into(),
+                        body: "Mon 2020-09-28\n13:30".into(),
+                        longtouch: false,
+                    },
+                    Screen::Status {
+                        title: "Success".into(),
+                        success: true,
+                    }
+                ]
+            );
 
             // Restored seed is the same as the seed that was backed up.
             assert_eq!(seed, bitbox02::keystore::copy_seed().unwrap());

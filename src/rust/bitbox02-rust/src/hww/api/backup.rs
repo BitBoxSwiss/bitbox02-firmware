@@ -89,9 +89,12 @@ pub async fn create<W: Workflows>(
         .await?;
 
     // Wait for sd card
-    super::sdcard::process(&pb::InsertRemoveSdCardRequest {
-        action: pb::insert_remove_sd_card_request::SdCardAction::InsertCard as _,
-    })
+    super::sdcard::process(
+        workflows,
+        &pb::InsertRemoveSdCardRequest {
+            action: pb::insert_remove_sd_card_request::SdCardAction::InsertCard as _,
+        },
+    )
     .await?;
 
     let is_initialized = bitbox02::memory::is_initialized();

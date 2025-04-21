@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{confirm, transaction, trinary_input_string, Workflows};
+use super::{confirm, sdcard, transaction, trinary_input_string, Workflows};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -132,6 +132,10 @@ impl Workflows for TestingWorkflows<'_> {
         _preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
         self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)
+    }
+
+    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
+        Ok(())
     }
 }
 

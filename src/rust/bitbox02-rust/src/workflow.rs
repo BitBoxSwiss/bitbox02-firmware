@@ -56,6 +56,8 @@ pub trait Workflows {
         can_cancel: trinary_input_string::CanCancel,
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error>;
+
+    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort>;
 }
 
 pub struct RealWorkflows;
@@ -98,5 +100,10 @@ impl Workflows for RealWorkflows {
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
         trinary_input_string::enter(params, can_cancel, preset).await
+    }
+
+    #[inline(always)]
+    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
+        sdcard::sdcard().await
     }
 }

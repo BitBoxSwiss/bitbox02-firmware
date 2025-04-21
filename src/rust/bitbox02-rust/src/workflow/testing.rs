@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{confirm, sdcard, transaction, trinary_input_string, Workflows};
+use super::{confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string, Workflows};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -136,6 +136,24 @@ impl Workflows for TestingWorkflows<'_> {
 
     async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
         Ok(())
+    }
+
+    async fn menu(
+        &mut self,
+        _words: &[&str],
+        _title: Option<&str>,
+    ) -> Result<u8, menu::CancelError> {
+        todo!("not used in unit tests yet");
+    }
+
+    async fn trinary_choice(
+        &mut self,
+        _message: &str,
+        _label_left: &str,
+        _label_middle: &str,
+        _label_right: &str,
+    ) -> trinary_choice::TrinaryChoice {
+        todo!("not used in unit tests yet");
     }
 }
 

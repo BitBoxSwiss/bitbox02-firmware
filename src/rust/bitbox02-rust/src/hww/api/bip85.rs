@@ -46,8 +46,8 @@ pub async fn process<W: Workflows>(
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
 async fn process_bip39<W: Workflows>(workflows: &mut W) -> Result<(), Error> {
-    use crate::workflow::trinary_choice::{choose, TrinaryChoice};
-    use crate::workflow::{menu, mnemonic, trinary_input_string};
+    use crate::workflow::trinary_choice::TrinaryChoice;
+    use crate::workflow::{mnemonic, trinary_input_string};
 
     workflows
         .confirm(&confirm::Params {
@@ -68,7 +68,10 @@ async fn process_bip39<W: Workflows>(workflows: &mut W) -> Result<(), Error> {
         })
         .await?;
 
-    let num_words: u32 = match choose("How many words?", "12", "18", "24").await {
+    let num_words: u32 = match workflows
+        .trinary_choice("How many words?", "12", "18", "24")
+        .await
+    {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
         TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
@@ -79,32 +82,34 @@ async fn process_bip39<W: Workflows>(workflows: &mut W) -> Result<(), Error> {
         .await;
 
     // Pick index. The first few are quick-access. "More" leads to a full number input keyboard.
-    let index: u32 =
-        match menu::pick(&["0", "1", "2", "3", "4", "More"], Some("Select index")).await? {
-            i @ 0..=4 => i.into(),
-            5 => {
-                let number_string = workflows
-                    .enter_string(
-                        &trinary_input_string::Params {
-                            title: "Enter index",
-                            number_input: true,
-                            longtouch: true,
-                            ..Default::default()
-                        },
-                        trinary_input_string::CanCancel::Yes,
-                        "",
-                    )
-                    .await?;
-                match number_string.as_str().parse::<u32>() {
-                    Ok(i) if i < util::bip32::HARDENED => i,
-                    _ => {
-                        workflows.status("Invalid index", false).await;
-                        return Err(Error::InvalidInput);
-                    }
+    let index: u32 = match workflows
+        .menu(&["0", "1", "2", "3", "4", "More"], Some("Select index"))
+        .await?
+    {
+        i @ 0..=4 => i.into(),
+        5 => {
+            let number_string = workflows
+                .enter_string(
+                    &trinary_input_string::Params {
+                        title: "Enter index",
+                        number_input: true,
+                        longtouch: true,
+                        ..Default::default()
+                    },
+                    trinary_input_string::CanCancel::Yes,
+                    "",
+                )
+                .await?;
+            match number_string.as_str().parse::<u32>() {
+                Ok(i) if i < util::bip32::HARDENED => i,
+                _ => {
+                    workflows.status("Invalid index", false).await;
+                    return Err(Error::InvalidInput);
                 }
             }
-            6.. => panic!("bip85 error"),
-        };
+        }
+        6.. => panic!("bip85 error"),
+    };
 
     workflows.status(&format!("Index: {}", index), true).await;
 

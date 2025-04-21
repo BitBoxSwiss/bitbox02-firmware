@@ -58,6 +58,16 @@ pub trait Workflows {
     ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error>;
 
     async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort>;
+
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, menu::CancelError>;
+
+    async fn trinary_choice(
+        &mut self,
+        message: &str,
+        label_left: &str,
+        label_middle: &str,
+        label_right: &str,
+    ) -> trinary_choice::TrinaryChoice;
 }
 
 pub struct RealWorkflows;
@@ -105,5 +115,21 @@ impl Workflows for RealWorkflows {
     #[inline(always)]
     async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
         sdcard::sdcard().await
+    }
+
+    #[inline(always)]
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, menu::CancelError> {
+        menu::pick(words, title).await
+    }
+
+    #[inline(always)]
+    async fn trinary_choice(
+        &mut self,
+        message: &str,
+        label_left: &str,
+        label_middle: &str,
+        label_right: &str,
+    ) -> trinary_choice::TrinaryChoice {
+        trinary_choice::choose(message, label_left, label_middle, label_right).await
     }
 }

@@ -702,6 +702,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "portable-atomic"
+version = "1.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
+
+[[package]]
 name = "primeorder"
 version = "0.13.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -769,11 +775,11 @@ dependencies = [
 
 [[package]]
 name = "rtt-target"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10b34c9e6832388e45f3c01f1bb60a016384a0a4ad80cdd7d34913bed25037f0"
+version = "0.6.1"
+source = "git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5#117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
 dependencies = [
  "critical-section",
+ "portable-atomic",
  "ufmt-write",
 ]
 

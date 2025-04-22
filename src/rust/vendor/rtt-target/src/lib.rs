@@ -9,8 +9,7 @@
 //!
 //! This crate is platform agnostic and can be used on any chip that supports background memory
 //! access via its debug interface. The printing macros require a critical section which is
-//! platform-dependent. Built-in ARM Cortex-M support can be enabled with the "cortex-m" feature,
-//! and RISC-V support can be enabled with the "riscv" feature.
+//! platform-dependent.
 //!
 //! To interface with RTT from the host computer, a debug probe such as an ST-Link or J-Link is
 //! required. The normal debug protocol (e.g. SWD) is used to access RTT, so no extra connections
@@ -61,13 +60,42 @@
 //! needed when debugging. That way you will never end up with an application that freezes without a
 //! debugger connected.
 //!
-//! # Printing
+//! # Defmt integration
+//!
+//! The `defmt` crate can be used to format messages in a way that is more efficient and more
+//! informative than the standard `format!` macros. To use `defmt` with RTT, the `defmt` feature
+//! must be enabled, and the channel must be set up with [`set_defmt_channel`] or you can use the
+//! [`rtt_init_defmt`] macro to initialize rtt and defmt at once.
+//!
+//! ```toml
+//! [dependencies]
+//! defmt = { version = "0.3" }
+//! rtt-target = { version = "0.6", features = ["defmt"] }
+//! ```
+//!
+//! # Log integration
+//!
+//! Rtt-target also supports integration with the `log` crate. The `log` feature must be enabled to
+//! configure a logger that forwards log messages to RTT.
+//! The logger can be initialized with `rtt_init_log!`.
+//!
+//! ```
+//! use rtt_target::rtt_init_log;
+//!
+//! fn main() -> ! {
+//!    rtt_init_log!(); // Pass a log::LevelFilter as an argument to set the min log level different from Trace
+//!    loop {
+//!        log::info!("Hello, world!");
+//!    }
+//! }
+//! ```
+//!
+//! # Plain Printing
 //!
 //! For no-hassle output the [`rprint`] and [`rprintln`] macros are provided. They use a single down
 //! channel defined at initialization time, and a critical section for synchronization, and they
 //! therefore work exactly like the standard `println` style macros. They can be used from any
 //! context. The [`rtt_init_print`] convenience macro initializes printing on channel 0.
-//!
 //!
 //! ```
 //! use rtt_target::{rtt_init_print, rprintln};
@@ -79,14 +107,13 @@
 //!     }
 //! }
 //! ```
-//! # Debug
 //!
 //! To use rtt functionality only in debug builds use macros prefixed with `debug_*`. They have
 //! exactly the same functionality as without debug - the only difference is that they are removed
-//! when built with `--release`. It's save to use [`debug_rprintln`] and [`debug_rprint`] even if
+//! when built with `--release`. It's safe to use [`debug_rprintln`] and [`debug_rprint`] even if
 //! rtt was initialized with [`rtt_init`] instead of [`debug_rtt_init`].
 //!
-//! Under the hood this uses the [`debug-assertions`] flag. Set this flag to true to include all debug
+//! Under the hood this uses the [debug-assertions] flag. Set this flag to true to include all debug
 //! macros also in release mode.
 //!
 //! [debug-assertions]: https://doc.rust-lang.org/cargo/reference/profiles.html#debug-assertions
@@ -130,26 +157,33 @@
 //! ```
 
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg), feature(doc_auto_cfg))]
 
 use core::convert::Infallible;
 use core::fmt;
-use core::mem::MaybeUninit;
 use ufmt_write::uWrite;
-
-#[macro_use]
-mod init;
 
 #[doc(hidden)]
 /// Public due to access from macro
 pub mod debug;
+#[cfg(feature = "defmt")]
+mod defmt;
+#[cfg(feature = "log")]
+mod log;
 /// Public due to access from macro
 #[doc(hidden)]
 pub mod rtt;
 
-#[macro_use]
+mod init;
 mod print;
 
 pub use print::*;
+
+#[cfg(feature = "defmt")]
+pub use defmt::set_defmt_channel;
+
+#[cfg(feature = "log")]
+pub use log::*;
 
 /// RTT up (target to host) channel
 ///
@@ -218,28 +252,52 @@ impl UpChannel {
     ///
     /// # Safety
     ///
+    /// This function must only be called after `rtt_init` has been called.
+    ///
     /// It's undefined behavior for something else to access the channel through anything else
     /// besides the returned object during or after calling this function. Essentially this function
     /// is only safe to use in panic handlers and the like that permanently disable interrupts.
     pub unsafe fn conjure(number: usize) -> Option<UpChannel> {
         extern "C" {
             #[link_name = "_SEGGER_RTT"]
-            static mut CONTROL_BLOCK: MaybeUninit<rtt::RttHeader>;
+            static mut CONTROL_BLOCK: rtt::RttHeader;
         }
 
-        if number >= (*CONTROL_BLOCK.as_ptr()).max_up_channels() {
+        let control_block = core::ptr::addr_of_mut!(CONTROL_BLOCK);
+        if number >= (*control_block).max_up_channels() {
             return None;
         }
 
+        let channels = control_block.add(1).cast::<rtt::RttChannel>();
+
         // First addition moves to the start of the up channel array, second addition moves to the
         // correct channel.
-        let ptr = (CONTROL_BLOCK.as_ptr().add(1) as *mut rtt::RttChannel).add(number);
+        let ptr = channels.add(number);
 
         if !(*ptr).is_initialized() {
             return None;
         }
 
         Some(UpChannel(ptr))
+    }
+
+    /// Returns true if the channel is empty.
+    pub fn is_empty(&self) -> bool {
+        let (write, read) = self.channel().read_pointers();
+        write == read
+    }
+
+    /// Wait until all data has been read by the debugger.
+    ///
+    /// *Note: This means that if no debugger is connected or if it isn't reading the rtt data,*
+    /// *this function will wait indefinitely.*
+    pub fn flush(&self) {
+        loop {
+            if self.is_empty() {
+                break;
+            }
+            core::hint::spin_loop();
+        }
     }
 }
 
@@ -333,7 +391,9 @@ impl TerminalChannel {
     /// The correct way to use this method is to call it once for each write operation. This is so
     /// that non blocking modes will work correctly.
     ///
-    /// The writer supports formatted writing with the standard `write` and ufmt's `uwrite`.
+    /// The writer supports formatted writing with the standard [`Write`] and [`ufmt_write::uWrite`].
+    ///
+    /// [`Write`]: fmt::Write
     pub fn write(&mut self, number: u8) -> TerminalWriter {
         const TERMINAL_ID: [u8; 16] = *b"0123456789ABCDEF";
 
@@ -369,6 +429,19 @@ impl TerminalChannel {
     pub fn set_mode(&mut self, mode: ChannelMode) {
         self.channel.set_mode(mode)
     }
+
+    /// Returns true if the channel is empty.
+    pub fn is_empty(&self) -> bool {
+        self.channel.is_empty()
+    }
+
+    /// Wait until all data has been read by the debugger.
+    ///
+    /// *Note: This means that if no debugger is connected or if it isn't reading the rtt data,*
+    /// *this function will wait indefinitely.*
+    pub fn flush(&self) {
+        self.channel.flush();
+    }
 }
 
 /// Formatted writing operation. Don't store an instance of this, but rather create a new one for
@@ -401,4 +474,11 @@ impl Drop for TerminalWriter<'_> {
             *self.current = self.number;
         }
     }
+}
+
+/// Used to reexport items for use in macros. Do not use directly.
+/// Not covered by semver guarantees.
+#[doc(hidden)]
+pub mod export {
+    pub use critical_section;
 }

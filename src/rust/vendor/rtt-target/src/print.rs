@@ -6,10 +6,24 @@ use crate::{TerminalChannel, TerminalWriter, UpChannel};
 
 static PRINT_TERMINAL: Mutex<RefCell<Option<TerminalChannel>>> = Mutex::new(RefCell::new(None));
 
-/// Sets the channel to use for [`rprint`], [`rprintln`], [`debug_rptint`] and [`debug_rprintln`].
+/// Sets the channel to use for [`rprint`], [`rprintln`], [`debug_rprint`] and [`debug_rprintln`].
+///
+/// [`rprint`]: crate::rprint
+/// [`rprintln`]: crate::rprintln
+/// [`debug_rprint`]: crate::debug_rprint
+/// [`debug_rprintln`]: crate::debug_rprintln
 pub fn set_print_channel(channel: UpChannel) {
     critical_section::with(|cs| {
         *PRINT_TERMINAL.borrow_ref_mut(cs) = Some(TerminalChannel::new(UpChannel(channel.0)))
+    });
+}
+
+/// Allows accessing the currently set print channel.
+pub fn with_terminal_channel<F: Fn(&mut TerminalChannel)>(f: F) {
+    critical_section::with(|cs| {
+        if let Some(term) = &mut *PRINT_TERMINAL.borrow_ref_mut(cs) {
+            f(term)
+        }
     });
 }
 
@@ -19,11 +33,7 @@ pub mod print_impl {
     use super::*;
 
     fn with_writer<F: Fn(TerminalWriter)>(number: u8, f: F) {
-        critical_section::with(|cs| {
-            if let Some(term) = &mut *PRINT_TERMINAL.borrow_ref_mut(cs) {
-                f(term.write(number))
-            }
-        });
+        with_terminal_channel(|term| f(term.write(number)));
     }
 
     /// Public due to access from macro.
@@ -49,8 +59,10 @@ pub mod print_impl {
 /// the channel isn't set, the message is silently discarded.
 ///
 /// The macro also supports output to multiple virtual terminals on the channel. Use the syntax
-/// ```rprint!(=> 1, "Hello!");``` to write to terminal number 1, for example. Terminal numbers
+/// `rprint!(=> 1, "Hello!");` to write to terminal number 1, for example. Terminal numbers
 /// range from 0 to 15.
+///
+/// [`rtt_init_print`]: crate::rtt_init_print
 #[macro_export]
 macro_rules! rprint {
     (=> $terminal:expr, $s:expr) => {
@@ -73,8 +85,10 @@ macro_rules! rprint {
 /// the channel isn't set, the message is silently discarded.
 ///
 /// The macro also supports output to multiple virtual terminals on the channel. Use the syntax
-/// ```rprintln!(=> 1, "Hello!");``` to write to terminal number 1, for example. Terminal numbers
+/// `rprintln!(=> 1, "Hello!");` to write to terminal number 1, for example. Terminal numbers
 /// range from 0 to 15.
+///
+/// [`rtt_init_print`]: crate::rtt_init_print
 #[macro_export]
 macro_rules! rprintln {
     (=> $terminal:expr) => {
@@ -142,9 +156,11 @@ macro_rules! rdbg {
 ///
 /// The optional arguments specify the blocking mode (default: `NoBlockSkip`) and size of the buffer
 /// in bytes (default: 1024). See [`rtt_init`] for more details.
+///
+/// [`rtt_init`]: crate::rtt_init
 #[macro_export]
 macro_rules! rtt_init_print {
-    ($mode:path, $size:expr) => {
+    ($mode:path, $size:expr) => {{
         let channels = $crate::rtt_init! {
             up: {
                 0: {
@@ -156,14 +172,14 @@ macro_rules! rtt_init_print {
         };
 
         $crate::set_print_channel(channels.up.0);
-    };
+    }};
 
     ($mode:path) => {
         $crate::rtt_init_print!($mode, 1024);
     };
 
-    () => {
+    () => {{
         use $crate::ChannelMode::NoBlockSkip;
         $crate::rtt_init_print!(NoBlockSkip, 1024);
-    };
+    }};
 }

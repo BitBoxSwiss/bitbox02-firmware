@@ -18,13 +18,14 @@ use crate::pb::insert_remove_sd_card_request::SdCardAction;
 
 use pb::response::Response;
 
-use crate::workflow::Workflows;
+use crate::hal::Sd;
+use crate::hal::Ui;
 
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     &pb::InsertRemoveSdCardRequest { action }: &pb::InsertRemoveSdCardRequest,
 ) -> Result<Response, Error> {
-    let inserted = bitbox02::sd::sdcard_inserted();
+    let inserted = hal.sd().sdcard_inserted();
     match SdCardAction::try_from(action) {
         Ok(SdCardAction::InsertCard) => {}
         _ => return Ok(Response::Success(pb::Success {})),
@@ -32,7 +33,7 @@ pub async fn process<W: Workflows>(
     if inserted {
         return Ok(Response::Success(pb::Success {}));
     }
-    workflows.insert_sdcard().await?;
+    hal.ui().insert_sdcard().await?;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -41,19 +42,17 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::TestingWorkflows;
+    use crate::hal::testing::TestingHal;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, Data};
 
     #[test]
     pub fn test_reset() {
         // already inserted.
-        mock(Data {
-            sdcard_inserted: Some(true),
-        });
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(true);
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::InsertCard as _,
                 }
@@ -62,12 +61,11 @@ mod tests {
         );
 
         // already removed.
-        mock(Data {
-            sdcard_inserted: Some(false),
-        });
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(false);
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::RemoveCard as _,
                 }
@@ -76,12 +74,11 @@ mod tests {
         );
 
         // insert
-        mock(Data {
-            sdcard_inserted: Some(false),
-        });
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(false);
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::InsertCard as _,
                 }
@@ -90,12 +87,11 @@ mod tests {
         );
 
         // remove
-        mock(Data {
-            sdcard_inserted: Some(true),
-        });
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(true);
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::RemoveCard as _,
                 }

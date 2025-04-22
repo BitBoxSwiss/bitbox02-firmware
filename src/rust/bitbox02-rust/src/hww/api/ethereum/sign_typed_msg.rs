@@ -22,7 +22,8 @@
 use super::pb;
 use super::Error;
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 use bitbox02::keystore;
 
 use pb::eth_request::Request;
@@ -276,8 +277,8 @@ fn confirm_title(root_object: RootObject) -> &'static str {
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn encode_member<W: Workflows, U: sha3::digest::Update>(
-    workflows: &mut W,
+async fn encode_member<U: sha3::digest::Update>(
+    hal: &mut impl crate::hal::Hal,
     hasher: &mut U,
     types: &[StructType],
     member_type: &MemberType,
@@ -288,7 +289,7 @@ async fn encode_member<W: Workflows, U: sha3::digest::Update>(
 ) -> Result<(), Error> {
     if member_type.r#type == DataType::Struct as _ {
         let value_encoded = Box::pin(hash_struct(
-            workflows,
+            hal,
             types,
             root_object,
             &member_type.struct_name,
@@ -300,7 +301,7 @@ async fn encode_member<W: Workflows, U: sha3::digest::Update>(
         hasher.update(&value_encoded);
     } else if member_type.r#type == DataType::Array as _ {
         let encoded_value = Box::pin(hash_array(
-            workflows,
+            hal,
             types,
             member_type,
             root_object,
@@ -315,7 +316,7 @@ async fn encode_member<W: Workflows, U: sha3::digest::Update>(
         let (value_encoded, value_formatted) = encode_value(member_type, value)?;
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
-            workflows
+            hal.ui()
                 .confirm(&confirm::Params {
                     title: &format!(
                         "{}{}",
@@ -343,8 +344,8 @@ async fn encode_member<W: Workflows, U: sha3::digest::Update>(
     Ok(())
 }
 
-async fn hash_array<W: Workflows>(
-    workflows: &mut W,
+async fn hash_array(
+    hal: &mut impl crate::hal::Hal,
     types: &[StructType],
     member_type: &MemberType,
     root_object: RootObject,
@@ -361,7 +362,7 @@ async fn hash_array<W: Workflows>(
 
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             title: &format!(
                 "{}{}",
@@ -394,7 +395,7 @@ async fn hash_array<W: Workflows>(
             format!("{}[{}/{}]", member_name, index + 1, array_size);
 
         encode_member(
-            workflows,
+            hal,
             &mut hasher,
             types,
             array_type,
@@ -408,8 +409,8 @@ async fn hash_array<W: Workflows>(
     Ok(hasher.finalize().to_vec())
 }
 
-async fn hash_struct<W: Workflows>(
-    workflows: &mut W,
+async fn hash_struct(
+    hal: &mut impl crate::hal::Hal,
     types: &[StructType],
     root_object: RootObject,
     struct_name: &str,
@@ -433,7 +434,7 @@ async fn hash_struct<W: Workflows>(
             .clone_from(&member.name);
         let member_type = member.r#type.as_ref().ok_or(Error::InvalidInput)?;
         encode_member(
-            workflows,
+            hal,
             &mut hasher,
             types,
             member_type,
@@ -479,15 +480,15 @@ async fn validate_chain_id(request: &pb::EthSignTypedMessageRequest) -> Result<(
     Ok(())
 }
 
-async fn eip712_sighash<W: Workflows>(
-    workflows: &mut W,
+async fn eip712_sighash(
+    hal: &mut impl crate::hal::Hal,
     types: &[StructType],
     primary_type: &str,
 ) -> Result<[u8; 32], Error> {
     let mut hasher = sha3::Keccak256::new();
     hasher.update([0x19u8, 0x01]);
     let domain_separator = hash_struct(
-        workflows,
+        hal,
         types,
         RootObject::Domain,
         DOMAIN_TYPE_NAME,
@@ -502,7 +503,7 @@ async fn eip712_sighash<W: Workflows>(
     // https://github.com/MetaMask/eth-sig-util/pull/51#issuecomment-1135089739
     if primary_type != DOMAIN_TYPE_NAME {
         let message_struct_hash = hash_struct(
-            workflows,
+            hal,
             types,
             RootObject::Message,
             primary_type,
@@ -522,8 +523,8 @@ async fn eip712_sighash<W: Workflows>(
 ///
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::EthSignTypedMessageRequest,
 ) -> Result<Response, Error> {
     validate_chain_id(request).await?;
@@ -537,7 +538,7 @@ pub async fn process<W: Workflows>(
     // Verify address. We don't need the actual result, but we have to propagate validation or user
     // abort errors.
     super::pubrequest::process(
-        workflows,
+        hal,
         &pb::EthPubRequest {
             output_type: pb::eth_pub_request::OutputType::Address as _,
             keypath: request.keypath.clone(),
@@ -549,10 +550,9 @@ pub async fn process<W: Workflows>(
     )
     .await?;
 
-    let sighash: [u8; 32] =
-        eip712_sighash(workflows, &request.types, &request.primary_type).await?;
+    let sighash: [u8; 32] = eip712_sighash(hal, &request.types, &request.primary_type).await?;
 
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             body: "Sign data?",
             longtouch: true,
@@ -591,8 +591,9 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
-    use bitbox02::testing::{mock, mock_unlocked, Data};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
+    use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
     use alloc::boxed::Box;
@@ -978,9 +979,9 @@ mod tests {
             }));
         }
         let typed_msg = typed_msg.borrow();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         let domain_separator = block_on(hash_struct(
-            &mut mock_workflows,
+            &mut mock_hal,
             &typed_msg.types,
             RootObject::Domain,
             "EIP712Domain",
@@ -993,7 +994,7 @@ mod tests {
             domain_separator,
             b"\xf2\xce\xe3\x75\xfa\x42\xb4\x21\x43\x80\x40\x25\xfc\x44\x9d\xea\xfd\x50\xcc\x03\x1c\xa2\x57\xe0\xb1\x94\xa6\x50\xa9\x12\x09\x0f".to_vec());
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Domain (1/4)".into(),
@@ -1440,9 +1441,9 @@ mod tests {
             }));
         }
         let typed_msg = typed_msg.borrow();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         let sighash = block_on(eip712_sighash(
-            &mut mock_workflows,
+            &mut mock_hal,
             &typed_msg.types,
             typed_msg.primary_type,
         ))
@@ -1452,7 +1453,7 @@ mod tests {
             *b"\x0e\xfe\x31\xa8\x81\x9b\x6c\x38\x1c\x9e\x97\xcf\xd2\x99\x5a\xa6\xf2\x1e\x4a\x72\x87\x9a\xc1\x31\xb2\xf6\x48\xd0\x83\x28\x1c\x83",
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             EXPECTED_DIALOGS
                 .iter()
                 .map(|&(title, body)| Screen::Confirm {
@@ -1529,7 +1530,7 @@ mod tests {
         }
         let typed_msg = typed_msg.borrow();
         let sighash = block_on(eip712_sighash(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &typed_msg.types,
             typed_msg.primary_type,
         ))

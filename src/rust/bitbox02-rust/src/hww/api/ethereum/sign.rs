@@ -19,7 +19,8 @@ use super::Error;
 
 use bitbox02::keystore;
 
-use crate::workflow::{confirm, transaction, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, transaction};
 
 use alloc::vec::Vec;
 use pb::eth_response::Response;
@@ -203,8 +204,8 @@ fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], Error> 
 /// If the ERC20 token is unknown, only the recipient and fee can be shown. The token name and
 /// amount are displayed as "unknown". The amount is not known because we don't know the number of
 /// decimal places (specified in the ERC20 contract).
-async fn verify_erc20_transaction<W: Workflows>(
-    workflows: &mut W,
+async fn verify_erc20_transaction(
+    hal: &mut impl crate::hal::Hal,
     request: &Transaction<'_>,
     params: &Params,
     erc20_recipient: [u8; 20],
@@ -227,11 +228,10 @@ async fn verify_erc20_transaction<W: Workflows>(
         }
         None => ("Unknown token".into(), "Unknown amount".into()),
     };
-    workflows
+    hal.ui()
         .verify_recipient(&recipient_address, &formatted_value)
         .await?;
-    transaction::verify_total_fee_maybe_warn(workflows, &formatted_total, &formatted_fee, None)
-        .await?;
+    transaction::verify_total_fee_maybe_warn(hal, &formatted_total, &formatted_fee, None).await?;
     Ok(())
 }
 
@@ -242,15 +242,15 @@ async fn verify_erc20_transaction<W: Workflows>(
 /// experts that know the expected encoding of a smart contract invocation.
 ///
 /// The transacted value, recipient address, total and fee are confirmed.
-async fn verify_standard_transaction<W: Workflows>(
-    workflows: &mut W,
+async fn verify_standard_transaction(
+    hal: &mut impl crate::hal::Hal,
     request: &Transaction<'_>,
     params: &Params,
 ) -> Result<(), Error> {
     let recipient = parse_recipient(request.recipient())?;
 
     if !request.data().is_empty() {
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Unknown\ncontract",
                 body: "You will be shown\nthe raw\ntransaction data.",
@@ -258,7 +258,7 @@ async fn verify_standard_transaction<W: Workflows>(
                 ..Default::default()
             })
             .await?;
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Unknown\ncontract",
                 body: "Only proceed if you\nunderstand exactly\nwhat the data means.",
@@ -267,7 +267,7 @@ async fn verify_standard_transaction<W: Workflows>(
             })
             .await?;
 
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Transaction\ndata",
                 body: &hex::encode(request.data()),
@@ -285,7 +285,7 @@ async fn verify_standard_transaction<W: Workflows>(
         decimals: WEI_DECIMALS,
         value: BigUint::from_bytes_be(request.value()),
     };
-    workflows
+    hal.ui()
         .verify_recipient(&address, &amount.format())
         .await?;
 
@@ -296,27 +296,26 @@ async fn verify_standard_transaction<W: Workflows>(
         value: (&amount.value).add(&fee.value),
     };
     let percentage = calculate_percentage(&fee.value, &amount.value);
-    transaction::verify_total_fee_maybe_warn(workflows, &total.format(), &fee.format(), percentage)
+    transaction::verify_total_fee_maybe_warn(hal, &total.format(), &fee.format(), percentage)
         .await?;
     Ok(())
 }
 
-pub async fn _process<W: Workflows>(
-    workflows: &mut W,
+pub async fn _process(
+    hal: &mut impl crate::hal::Hal,
     request: &Transaction<'_>,
 ) -> Result<Response, Error> {
     let params =
-        super::params::get_and_warn_unknown(workflows, request.coin()?, request.chain_id()).await?;
+        super::params::get_and_warn_unknown(hal, request.coin()?, request.chain_id()).await?;
 
     if !super::keypath::is_valid_keypath_address(request.keypath()) {
         return Err(Error::InvalidInput);
     }
-    super::keypath::warn_unusual_keypath(workflows, &params, params.name, request.keypath())
-        .await?;
+    super::keypath::warn_unusual_keypath(hal, &params, params.name, request.keypath()).await?;
 
     // Show chain confirmation only for known networks
     if super::params::is_known_network(request.coin()?, request.chain_id()) {
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 body: &format!("Sign transaction on\n\n{}", params.name),
                 accept_is_nextarrow: true,
@@ -375,11 +374,11 @@ pub async fn _process<W: Workflows>(
     }
 
     if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(workflows, request, &params, erc20_recipient, erc20_value).await?;
+        verify_erc20_transaction(hal, request, &params, erc20_recipient, erc20_value).await?;
     } else {
-        verify_standard_transaction(workflows, request, &params).await?;
+        verify_standard_transaction(hal, request, &params).await?;
     }
-    workflows.status("Transaction\nconfirmed", true).await;
+    hal.ui().status("Transaction\nconfirmed", true).await;
 
     let hash: [u8; 32] = match request {
         Transaction::Legacy(legacy) => hash_legacy(params.chain_id, legacy)?,
@@ -414,13 +413,13 @@ pub async fn _process<W: Workflows>(
 }
 
 /// Verify and sign an Ethereum transaction.
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &Transaction<'_>,
 ) -> Result<Response, Error> {
-    let result = _process(workflows, request).await;
+    let result = _process(hal, request).await;
     if let Err(Error::UserAbort) = result {
-        workflows.status("Transaction\ncanceled", false).await;
+        hal.ui().status("Transaction\ncanceled", false).await;
     }
     result
 }
@@ -430,10 +429,11 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_unlocked;
-    use util::bip32::HARDENED; // instead of TestingWorkflows until the tests are migrated
+    use util::bip32::HARDENED;
 
     #[test]
     pub fn test_parse_recipient() {
@@ -524,9 +524,9 @@ mod tests {
             },
         ];
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -544,11 +544,11 @@ mod tests {
                     .to_vec()
             }))
         );
-        assert_eq!(mock_workflows.screens, expected_screens);
+        assert_eq!(mock_hal.ui.screens, expected_screens);
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -566,7 +566,7 @@ mod tests {
                     .to_vec()
             }))
         );
-        assert_eq!(mock_workflows.screens, expected_screens);
+        assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
     /// Test a transaction with an unusually high fee.
@@ -576,9 +576,9 @@ mod tests {
 
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert!(
-            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -598,7 +598,7 @@ mod tests {
         .is_ok());
 
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "".into(),
@@ -633,8 +633,8 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             // fee=max_fee_per_gas*gas_limit=63713280000000000
@@ -654,7 +654,7 @@ mod tests {
         .is_ok());
 
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "".into(),
@@ -689,8 +689,8 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+        let mut mock_hal = TestingHal::new();
+        block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -708,7 +708,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Sepolia".into(),
@@ -743,9 +743,9 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -764,7 +764,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "".into(),
@@ -809,9 +809,9 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
                 max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -830,7 +830,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "".into(),
@@ -897,9 +897,9 @@ mod tests {
         ];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::RopstenEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
@@ -917,11 +917,11 @@ mod tests {
                     .to_vec()
             }))
         );
-        assert_eq!(mock_workflows.screens, expected_screens);
+        assert_eq!(mock_hal.ui.screens, expected_screens);
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x23\x67".to_vec(),
                 max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -939,7 +939,7 @@ mod tests {
                     .to_vec()
             }))
         );
-        assert_eq!(mock_workflows.screens, expected_screens);
+        assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
     /// An ERC20 transaction which is not in our list of supported ERC20 tokens.
@@ -968,9 +968,9 @@ mod tests {
             },
         ];
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\xb9".to_vec(),
@@ -988,11 +988,11 @@ mod tests {
                     .to_vec()
             }))
         );
-        assert_eq!(mock_workflows.screens, expected_screens);
+        assert_eq!(mock_hal.ui.screens, expected_screens);
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\xb9".to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -1010,7 +1010,7 @@ mod tests {
                     .to_vec()
             }))
         );
-        assert_eq!(mock_workflows.screens, expected_screens);
+        assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
     #[test]
@@ -1035,7 +1035,7 @@ mod tests {
             // Check that the above is valid before making invalid variants.
             mock_unlocked();
             assert!(block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &Transaction::Legacy(&valid_request)
             ))
             .is_ok());
@@ -1047,7 +1047,7 @@ mod tests {
             invalid_request.coin = 100;
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1060,7 +1060,7 @@ mod tests {
             invalid_request.keypath = vec![44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1073,7 +1073,7 @@ mod tests {
             invalid_request.keypath = vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100];
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1086,7 +1086,7 @@ mod tests {
             invalid_request.data = vec![0; 6145];
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1099,7 +1099,7 @@ mod tests {
             invalid_request.recipient = vec![b'a'; 21];
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1112,7 +1112,7 @@ mod tests {
             invalid_request.recipient = vec![0; 20];
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1122,13 +1122,10 @@ mod tests {
         {
             // User rejects first, second or third screen.
             for i in 0..3 {
-                let mut mock_workflows = TestingWorkflows::new();
-                mock_workflows.abort_nth(i);
+                let mut mock_hal = TestingHal::new();
+                mock_hal.ui.abort_nth(i);
                 assert_eq!(
-                    block_on(process(
-                        &mut mock_workflows,
-                        &Transaction::Legacy(&valid_request)
-                    )),
+                    block_on(process(&mut mock_hal, &Transaction::Legacy(&valid_request))),
                     Err(Error::UserAbort)
                 );
                 let mut expected_screens = [
@@ -1152,7 +1149,7 @@ mod tests {
                     title: "Transaction\ncanceled".into(),
                     success: false,
                 });
-                assert_eq!(mock_workflows.screens, expected_screens);
+                assert_eq!(mock_hal.ui.screens, expected_screens);
             }
         }
 
@@ -1161,7 +1158,7 @@ mod tests {
             keystore::lock();
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Legacy(&valid_request)
                 )),
                 Err(Error::Generic)
@@ -1191,7 +1188,7 @@ mod tests {
             // Check that the above is valid before making invalid variants.
             mock_unlocked();
             assert!(block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &Transaction::Eip1559(&valid_request)
             ))
             .is_ok());
@@ -1203,7 +1200,7 @@ mod tests {
             invalid_request.chain_id = 0;
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &Transaction::Eip1559(&invalid_request)
                 )),
                 Err(Error::InvalidInput)
@@ -1217,9 +1214,9 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: b"\x1f\xdc".to_vec(),
@@ -1237,7 +1234,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Warning".into(),
@@ -1273,8 +1270,8 @@ mod tests {
 
         // Test with Arbitrum (chain_id 42161)
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        block_on(process(&mut mock_workflows, &Transaction::Legacy(&pb::EthSignRequest {
+        let mut mock_hal = TestingHal::new();
+        block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
@@ -1292,7 +1289,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            mock_workflows.screens[0],
+            mock_hal.ui.screens[0],
             Screen::Confirm {
                 title: "".into(),
                 body: "Sign transaction on\n\nArbitrum One".into(),
@@ -1308,8 +1305,8 @@ mod tests {
 
         // Test with Polygon network (chain_id 137)
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        block_on(process(&mut mock_workflows, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+        let mut mock_hal = TestingHal::new();
+        block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
             keypath: KEYPATH.to_vec(),
             nonce: b"\x1f\xdc".to_vec(),
             max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
@@ -1326,7 +1323,7 @@ mod tests {
         })))
         .unwrap();
         assert_eq!(
-            mock_workflows.screens[0],
+            mock_hal.ui.screens[0],
             Screen::Confirm {
                 title: "".into(),
                 body: "Sign transaction on\n\nPolygon".into(),

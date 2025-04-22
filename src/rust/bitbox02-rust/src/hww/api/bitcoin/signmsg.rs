@@ -26,7 +26,8 @@ use pb::btc_response::Response;
 
 use bitbox02::keystore;
 
-use crate::workflow::{confirm, verify_message, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, verify_message};
 
 const MAX_MESSAGE_SIZE: usize = 1024;
 
@@ -34,8 +35,8 @@ const MAX_MESSAGE_SIZE: usize = 1024;
 ///
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
 /// compact format (R and S values), and the last byte is the recoverable id (recid).
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::BtcSignMessageRequest,
 ) -> Result<Response, Error> {
     let coin = BtcCoin::try_from(request.coin)?;
@@ -69,7 +70,7 @@ pub async fn process<W: Workflows>(
         accept_is_nextarrow: true,
         ..Default::default()
     };
-    workflows.confirm(&confirm_params).await?;
+    hal.ui().confirm(&confirm_params).await?;
 
     let confirm_params = confirm::Params {
         title: "Address",
@@ -78,9 +79,9 @@ pub async fn process<W: Workflows>(
         accept_is_nextarrow: true,
         ..Default::default()
     };
-    workflows.confirm(&confirm_params).await?;
+    hal.ui().confirm(&confirm_params).await?;
 
-    verify_message::verify(workflows, "Sign message", "Sign", &request.msg, true).await?;
+    verify_message::verify(hal, "Sign message", "Sign", &request.msg, true).await?;
 
     // See
     // https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L355-L358.
@@ -128,7 +129,8 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED;
@@ -150,15 +152,15 @@ mod tests {
         };
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &request)),
+            block_on(process(&mut mock_hal, &request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00".to_vec(),
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Sign message".into(),
@@ -194,10 +196,10 @@ mod tests {
         };
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &request)).is_ok());
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &request)).is_ok());
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Sign message".into(),
@@ -233,15 +235,15 @@ mod tests {
         };
 
         mock_unlocked();
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &request)),
+            block_on(process(&mut mock_hal, &request)),
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x87\x19\x05\x3c\x29\xff\xcf\x54\x31\x40\x69\x86\x75\x8a\xc8\xed\x80\x1c\xff\x3d\x61\x46\xe4\x8c\x46\x25\x75\xb6\x47\x34\x46\xf8\x44\xf1\x38\x7d\x48\xe1\x36\x88\x42\x09\x43\xfa\x8e\x4f\x0a\x23\xaa\x2e\x49\xa8\x3a\xf8\x88\x52\x2c\xec\xa9\x05\x0b\xe6\xc3\x47\x00".to_vec(),
             }))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Sign message".into(),
@@ -278,15 +280,15 @@ mod tests {
 
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         // Basic info dialog aborted.
-        mock_workflows.abort_nth(0);
+        mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(process(&mut mock_workflows, &request)),
+            block_on(process(&mut mock_hal, &request)),
             Err(Error::UserAbort)
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Sign message".into(),
                 body: "Coin: Bitcoin".into(),
@@ -295,23 +297,23 @@ mod tests {
         );
 
         // Basic info dialog aborted.
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.abort_nth(1);
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.abort_nth(1);
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut mock_workflows, &request)),
+            block_on(process(&mut mock_hal, &request)),
             Err(Error::UserAbort)
         );
-        assert_eq!(mock_workflows.screens.len(), 2);
+        assert_eq!(mock_hal.ui.screens.len(), 2);
 
         // Message verification aborted.
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.abort_nth(2);
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.abort_nth(2);
         assert_eq!(
-            block_on(process(&mut mock_workflows, &request)),
+            block_on(process(&mut mock_hal, &request)),
             Err(Error::UserAbort)
         );
-        assert_eq!(mock_workflows.screens.len(), 3);
+        assert_eq!(mock_hal.ui.screens.len(), 3);
     }
 
     #[test]
@@ -320,7 +322,7 @@ mod tests {
         // Invalid coin
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: -1,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -339,7 +341,7 @@ mod tests {
         // Invalid script type (invalid simple type)
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -358,7 +360,7 @@ mod tests {
         // Invalid script type (taproot not supported)
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -377,7 +379,7 @@ mod tests {
         // Invalid script type (multisig not supported)
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -398,7 +400,7 @@ mod tests {
         // Message too long
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -418,7 +420,7 @@ mod tests {
         mock_unlocked();
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -437,7 +439,7 @@ mod tests {
         mock_unlocked();
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Tbtc as _,
                     script_config: Some(pb::BtcScriptConfigWithKeypath {

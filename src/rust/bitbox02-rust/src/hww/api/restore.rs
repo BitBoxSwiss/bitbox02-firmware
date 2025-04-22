@@ -18,14 +18,15 @@ use crate::pb;
 use pb::response::Response;
 
 use crate::general::abort;
-use crate::workflow::{confirm, mnemonic, password, unlock, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, mnemonic, password, unlock};
 
-pub async fn from_file<W: Workflows>(
-    workflows: &mut W,
+pub async fn from_file(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::RestoreBackupRequest,
 ) -> Result<Response, Error> {
     // This is a separate screen because 'Restore backup?' does not fit in the title field.
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             body: "Restore backup?",
             accept_is_nextarrow: true,
@@ -36,12 +37,12 @@ pub async fn from_file<W: Workflows>(
     let (data, metadata) = match crate::backup::load(&request.id) {
         Ok(d) => d,
         Err(_) => {
-            workflows.status("Could not\nrestore backup", false).await;
+            hal.ui().status("Could not\nrestore backup", false).await;
             return Err(Error::Generic);
         }
     };
 
-    workflows
+    hal.ui()
         .confirm(&confirm::Params {
             body: &format!("Name: {}. ID: {}", &metadata.name, &request.id),
             scrollable: true,
@@ -61,12 +62,12 @@ pub async fn from_file<W: Workflows>(
             accept_is_nextarrow: true,
             ..Default::default()
         };
-        workflows.confirm(&params).await?;
+        hal.ui().confirm(&params).await?;
     }
 
-    let password = password::enter_twice(workflows).await?;
+    let password = password::enter_twice(hal).await?;
     if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(data.get_seed(), &password) {
-        workflows
+        hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;
         return Err(Error::Generic);
@@ -90,12 +91,12 @@ pub async fn from_file<W: Workflows>(
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
 
-    unlock::unlock_bip39(workflows).await;
+    unlock::unlock_bip39(hal).await;
     Ok(Response::Success(pb::Success {}))
 }
 
-pub async fn from_mnemonic<W: Workflows>(
-    workflows: &mut W,
+pub async fn from_mnemonic(
+    hal: &mut impl crate::hal::Hal,
     #[cfg_attr(not(feature = "app-u2f"), allow(unused_variables))]
     &pb::RestoreFromMnemonicRequest {
         timestamp,
@@ -106,7 +107,7 @@ pub async fn from_mnemonic<W: Workflows>(
     {
         let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false)
             .map_err(|_| Error::InvalidInput)?;
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Is now?",
                 body: &datetime_string,
@@ -116,22 +117,22 @@ pub async fn from_mnemonic<W: Workflows>(
             .await?;
     }
 
-    let mnemonic = mnemonic::get(workflows).await?;
+    let mnemonic = mnemonic::get(hal).await?;
     let seed = match bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
         Err(()) => {
-            workflows.status("Recovery words\ninvalid", false).await;
+            hal.ui().status("Recovery words\ninvalid", false).await;
             return Err(Error::Generic);
         }
     };
-    workflows.status("Recovery words\nvalid", true).await;
+    hal.ui().status("Recovery words\nvalid", true).await;
 
     // If entering password fails (repeat password does not match the first), we don't want to abort
     // the process immediately. We break out only if the user confirms.
     let password = loop {
-        match password::enter_twice(workflows).await {
+        match password::enter_twice(hal).await {
             Err(password::EnterTwiceError::DoNotMatch) => {
-                workflows
+                hal.ui()
                     .confirm(&confirm::Params {
                         title: "",
                         body: "Passwords\ndo not match.\nTry again?",
@@ -145,7 +146,7 @@ pub async fn from_mnemonic<W: Workflows>(
     };
 
     if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(&seed, &password) {
-        workflows
+        hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;
         return Err(Error::Generic);
@@ -164,6 +165,6 @@ pub async fn from_mnemonic<W: Workflows>(
         abort("restore_from_mnemonic: unlock failed");
     };
 
-    unlock::unlock_bip39(workflows).await;
+    unlock::unlock_bip39(hal).await;
     Ok(Response::Success(pb::Success {}))
 }

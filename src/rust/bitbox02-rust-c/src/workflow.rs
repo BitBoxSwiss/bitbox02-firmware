@@ -40,13 +40,12 @@ static mut CONFIRM_TITLE: Option<String> = None;
 static mut CONFIRM_BODY: Option<String> = None;
 static mut CONFIRM_PARAMS: Option<confirm::Params> = None;
 static mut CONFIRM_STATE: TaskState<'static, Result<(), confirm::UserAbort>> = TaskState::Nothing;
-static mut REAL_WORKFLOWS: bitbox02_rust::workflow::RealWorkflows =
-    bitbox02_rust::workflow::RealWorkflows;
+static mut BITBOX02_HAL: bitbox02_rust::hal::BitBox02Hal = bitbox02_rust::hal::BitBox02Hal::new();
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
     UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock(
-        &mut REAL_WORKFLOWS,
+        &mut BITBOX02_HAL,
     )));
 }
 

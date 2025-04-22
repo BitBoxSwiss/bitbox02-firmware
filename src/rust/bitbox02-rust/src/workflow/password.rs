@@ -18,8 +18,8 @@ pub use trinary_input_string::{CanCancel, Error};
 
 use alloc::string::String;
 
-async fn prompt_cancel<W: Workflows>(workflows: &mut W) -> Result<(), confirm::UserAbort> {
-    workflows
+async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), confirm::UserAbort> {
+    hal.ui()
         .confirm(&confirm::Params {
             body: "Do you really\nwant to cancel?",
             ..Default::default()
@@ -35,8 +35,8 @@ async fn prompt_cancel<W: Workflows>(workflows: &mut W) -> Result<(), confirm::U
 /// let pw = enter("Enter password", true, CanCancel::No).await.unwrap();
 /// // use pw.
 /// ```
-pub async fn enter<W: Workflows>(
-    workflows: &mut W,
+pub async fn enter(
+    hal: &mut impl crate::hal::Hal,
     title: &str,
     special_chars: bool,
     can_cancel: CanCancel,
@@ -50,9 +50,9 @@ pub async fn enter<W: Workflows>(
     };
 
     loop {
-        match workflows.enter_string(&params, can_cancel, "").await {
+        match hal.ui().enter_string(&params, can_cancel, "").await {
             o @ Ok(_) => return o,
-            Err(Error::Cancelled) => match prompt_cancel(workflows).await {
+            Err(Error::Cancelled) => match prompt_cancel(hal).await {
                 Ok(()) => return Err(Error::Cancelled),
                 Err(confirm::UserAbort) => {}
             },
@@ -81,18 +81,19 @@ impl core::convert::From<Error> for EnterTwiceError {
 /// ```no_run
 /// let pw = enter_twice().await.unwrap();
 /// // use pw.
-pub async fn enter_twice<W: Workflows>(
-    workflows: &mut W,
+pub async fn enter_twice(
+    hal: &mut impl crate::hal::Hal,
 ) -> Result<zeroize::Zeroizing<String>, EnterTwiceError> {
-    let password = enter(workflows, "Set password", false, CanCancel::Yes).await?;
-    let password_repeat = enter(workflows, "Repeat password", false, CanCancel::Yes).await?;
+    let password = enter(hal, "Set password", false, CanCancel::Yes).await?;
+    let password_repeat = enter(hal, "Repeat password", false, CanCancel::Yes).await?;
     if password.as_str() != password_repeat.as_str() {
-        workflows.status("Passwords\ndo not match", false).await;
+        hal.ui().status("Passwords\ndo not match", false).await;
         return Err(EnterTwiceError::DoNotMatch);
     }
     if password.as_str().len() < 4 {
         loop {
-            match workflows
+            match hal
+                .ui()
                 .confirm(&confirm::Params {
                     title: "WARNING",
                     body: "Your password\n has fewer than\n 4 characters.\nContinue?",
@@ -102,13 +103,13 @@ pub async fn enter_twice<W: Workflows>(
                 .await
             {
                 Ok(()) => break,
-                Err(confirm::UserAbort) => match prompt_cancel(workflows).await {
+                Err(confirm::UserAbort) => match prompt_cancel(hal).await {
                     Ok(()) => return Err(EnterTwiceError::Cancelled),
                     Err(confirm::UserAbort) => {}
                 },
             }
         }
     }
-    workflows.status("Success", true).await;
+    hal.ui().status("Success", true).await;
     Ok(password)
 }

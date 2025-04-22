@@ -29,7 +29,8 @@ use util::bip32::HARDENED;
 use miniscript::TranslatePk;
 
 use crate::bip32;
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 use crate::xpubcache::Bip32XpubCache;
 
 use bitcoin::taproot::{LeafVersion, TapLeafHash, TapTweakHash};
@@ -370,16 +371,16 @@ impl ParsedPolicy<'_> {
     /// Confirm the policy. In advanced mode, all details are shown. In basic mode, the advanced
     /// details are optional. Used to verify the policy during account registration (advanced mode),
     /// creating a receive address (basic mode) and signing a transaction (basic mode).
-    pub async fn confirm<W: Workflows>(
+    pub async fn confirm(
         &self,
-        workflows: &mut W,
+        hal: &mut impl crate::hal::Hal,
         title: &str,
         params: &Params,
         name: &str,
         mode: Mode,
     ) -> Result<(), Error> {
         let policy = self.policy;
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title,
                 body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
@@ -388,7 +389,7 @@ impl ParsedPolicy<'_> {
             })
             .await?;
 
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Name",
                 body: name,
@@ -399,7 +400,8 @@ impl ParsedPolicy<'_> {
             .await?;
 
         if matches!(mode, Mode::Basic) {
-            if let Err(confirm::UserAbort) = workflows
+            if let Err(confirm::UserAbort) = hal
+                .ui()
                 .confirm(&confirm::Params {
                     body: "Show policy\ndetails?",
                     accept_is_nextarrow: true,
@@ -411,7 +413,7 @@ impl ParsedPolicy<'_> {
             }
         }
 
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Policy",
                 body: &policy.policy,
@@ -459,7 +461,7 @@ impl ParsedPolicy<'_> {
             } else if Some(i) == taproot_unspendable_internal_key_index {
                 key_str = format!("Provably unspendable: {}", key_str)
             }
-            workflows
+            hal.ui()
                 .confirm(&confirm::Params {
                     title: &format!("Key {}/{}", i + 1, num_keys),
                     body: key_str.as_str(),

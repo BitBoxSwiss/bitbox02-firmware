@@ -14,12 +14,11 @@
 
 pub use super::cancel::Error as CancelError;
 
-use crate::workflow::Workflows;
 use alloc::string::String;
 use alloc::string::ToString;
 
-pub async fn show_and_confirm_mnemonic<W: Workflows>(
-    _workflows: &mut W,
+pub async fn show_and_confirm_mnemonic(
+    _hal: &mut impl crate::hal::Hal,
     words: &[&str],
 ) -> Result<(), CancelError> {
     for word in words.iter() {
@@ -30,8 +29,8 @@ pub async fn show_and_confirm_mnemonic<W: Workflows>(
     Ok(())
 }
 
-pub async fn get<W: Workflows>(
-    _workflows: &mut W,
+pub async fn get(
+    _hal: &mut impl crate::hal::Hal,
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
     let words = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
     bitbox02::println_stdout("Restored from recovery words below:");

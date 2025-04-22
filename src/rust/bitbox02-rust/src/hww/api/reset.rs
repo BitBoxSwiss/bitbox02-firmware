@@ -17,9 +17,10 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::workflow::{confirm, Workflows};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 
-pub async fn process<W: Workflows>(workflows: &mut W) -> Result<Response, Error> {
+pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let params = confirm::Params {
         title: "RESET",
         body: "Proceed to\nfactory reset?",
@@ -27,7 +28,7 @@ pub async fn process<W: Workflows>(workflows: &mut W) -> Result<Response, Error>
         ..Default::default()
     };
 
-    workflows.confirm(&params).await.or(Err(Error::Generic))?;
+    hal.ui().confirm(&params).await.or(Err(Error::Generic))?;
 
     bitbox02::reset(true);
 
@@ -39,7 +40,8 @@ mod tests {
     use super::*;
 
     use crate::bb02_async::block_on;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
 
@@ -49,11 +51,11 @@ mod tests {
         bitbox02::memory::set_device_name("test device name").unwrap();
 
         // User aborted confirmation.
-        let mut mock_workflows = TestingWorkflows::new();
-        mock_workflows.abort_nth(0);
-        assert_eq!(block_on(process(&mut mock_workflows)), Err(Error::Generic));
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.abort_nth(0);
+        assert_eq!(block_on(process(&mut mock_hal)), Err(Error::Generic));
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "RESET".into(),
                 body: "Proceed to\nfactory reset?".into(),
@@ -66,13 +68,13 @@ mod tests {
         );
 
         // All good.
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_workflows)),
+            block_on(process(&mut mock_hal)),
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "RESET".into(),
                 body: "Proceed to\nfactory reset?".into(),

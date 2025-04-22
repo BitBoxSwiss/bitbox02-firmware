@@ -22,7 +22,8 @@ use super::script::serialize_varint;
 use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
 use super::{bip143, bip341, common, keypath};
 
-use crate::workflow::{confirm, transaction, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, transaction};
 use crate::xpubcache::Bip32XpubCache;
 
 use alloc::string::String;
@@ -452,8 +453,8 @@ fn validate_script_configs<'a>(
     Ok(validated)
 }
 
-async fn validate_input_script_configs<'a, W: Workflows>(
-    workflows: &mut W,
+async fn validate_input_script_configs<'a>(
+    hal: &mut impl crate::hal::Hal,
     coin_params: &super::params::Params,
     script_configs: &'a [pb::BtcScriptConfigWithKeypath],
 ) -> Result<Vec<ValidatedScriptConfigWithKeypath<'a>>, Error> {
@@ -474,7 +475,7 @@ async fn validate_input_script_configs<'a, W: Workflows>(
         ..
     }] = script_configs.as_slice()
     {
-        super::multisig::confirm(workflows, "Spend from", coin_params, name, multisig).await?;
+        super::multisig::confirm(hal, "Spend from", coin_params, name, multisig).await?;
         return Ok(script_configs);
     }
 
@@ -497,7 +498,7 @@ async fn validate_input_script_configs<'a, W: Workflows>(
 
         parsed_policy
             .confirm(
-                workflows,
+                hal,
                 "Spend from",
                 coin_params,
                 name,
@@ -651,8 +652,8 @@ impl<'a> TryFrom<&'a ValidatedScriptConfigWithKeypath<'a>>
 ///
 /// - Only SIGHASH_ALL (SIGHASH_DEFAULT in taproot inputs). Other sighash types must be carefully
 ///   studied and might not be secure with the above flow or the above assumption.
-async fn _process<W: Workflows>(
-    workflows: &mut W,
+async fn _process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::BtcSignInitRequest,
 ) -> Result<Response, Error> {
     if bitbox02::keystore::is_locked() {
@@ -676,7 +677,7 @@ async fn _process<W: Workflows>(
         return Err(Error::InvalidInput);
     }
     let validated_script_configs =
-        validate_input_script_configs(workflows, coin_params, &request.script_configs).await?;
+        validate_input_script_configs(hal, coin_params, &request.script_configs).await?;
     let validated_output_script_configs =
         validate_script_configs(coin_params, &request.output_script_configs)?;
 
@@ -961,7 +962,7 @@ async fn _process<W: Workflows>(
                 }
                 let payment_request: pb::BtcPaymentRequestRequest =
                     get_payment_request(output_payment_request_index, &mut next_response).await?;
-                payment_request::user_verify(workflows, coin_params, &payment_request, format_unit)
+                payment_request::user_verify(hal, coin_params, &payment_request, format_unit)
                     .await?;
                 if payment_request::validate(
                     coin_params,
@@ -971,7 +972,7 @@ async fn _process<W: Workflows>(
                 )
                 .is_err()
                 {
-                    workflows.status("Invalid\npayment request", true).await;
+                    hal.ui().status("Invalid\npayment request", true).await;
                     return Err(Error::InvalidInput);
                 }
 
@@ -995,7 +996,7 @@ async fn _process<W: Workflows>(
                     None
                 };
 
-                workflows
+                hal.ui()
                     .verify_recipient(
                         &(if let Some(prefix) = prefix {
                             format!("{}: {}", prefix, address)
@@ -1029,7 +1030,7 @@ async fn _process<W: Workflows>(
     }
 
     if num_changes > 1 {
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Warning",
                 body: &format!("There are {}\nchange outputs.\nProceed?", num_changes),
@@ -1048,7 +1049,7 @@ async fn _process<W: Workflows>(
     if request.locktime > 0 && locktime_applies {
         // The RBF nsequence bytes are often set in conjunction with a locktime,
         // so verify both simultaneously.
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 body: &format!(
                     "Locktime on block:\n{}\n{}",
@@ -1083,13 +1084,13 @@ async fn _process<W: Workflows>(
         Some(100. * (fee as f64) / (outputs_sum_out as f64))
     };
     transaction::verify_total_fee_maybe_warn(
-        workflows,
+        hal,
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
         fee_percentage,
     )
     .await?;
-    workflows.status("Transaction\nconfirmed", true).await;
+    hal.ui().status("Transaction\nconfirmed", true).await;
 
     let hash_outputs = hasher_outputs.finalize();
 
@@ -1249,13 +1250,13 @@ async fn _process<W: Workflows>(
     Ok(next_response.to_protobuf())
 }
 
-pub async fn process<W: Workflows>(
-    workflows: &mut W,
+pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::BtcSignInitRequest,
 ) -> Result<Response, Error> {
-    let result = _process(workflows, request).await;
+    let result = _process(hal, request).await;
     if let Err(Error::UserAbort) = result {
-        workflows.status("Transaction\ncanceled", false).await;
+        hal.ui().status("Transaction\ncanceled", false).await;
     }
     result
 }
@@ -1265,7 +1266,8 @@ mod tests {
     use super::*;
     use crate::bb02_async::block_on;
     use crate::bip32::parse_xpub;
-    use crate::workflow::testing::{Screen, TestingWorkflows};
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
     use pb::btc_payment_request_request::{memo, Memo};
@@ -1674,7 +1676,7 @@ mod tests {
             // test keystore locked
             bitbox02::keystore::lock();
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_valid,)),
+                block_on(process(&mut TestingHal::new(), &init_req_valid,)),
                 Err(Error::InvalidState)
             );
         }
@@ -1686,7 +1688,7 @@ mod tests {
             init_req_invalid.coin = pb::BtcCoin::Ltc as _;
             init_req_invalid.format_unit = FormatUnit::Sat as _;
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1696,7 +1698,7 @@ mod tests {
             for version in 3..10 {
                 init_req_invalid.version = version;
                 assert_eq!(
-                    block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                    block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                     Err(Error::InvalidInput)
                 );
             }
@@ -1706,7 +1708,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.locktime = 500000000;
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1715,7 +1717,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.num_inputs = 0;
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1724,7 +1726,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.num_outputs = 0;
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1733,7 +1735,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.coin = 4; // BtcCoin is defined from 0 to 3.
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1742,7 +1744,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs[0].keypath[2] = HARDENED + 100;
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1751,7 +1753,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs = vec![];
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1778,7 +1780,7 @@ mod tests {
                 },
             ];
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1834,7 +1836,7 @@ mod tests {
                 },
             ];
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1842,7 +1844,7 @@ mod tests {
             // no taproot in Litecoin
             assert_eq!(
                 block_on(process(
-                    &mut TestingWorkflows::new(),
+                    &mut TestingHal::new(),
                     &pb::BtcSignInitRequest {
                         coin: pb::BtcCoin::Ltc as _,
                         script_configs: vec![pb::BtcScriptConfigWithKeypath {
@@ -1877,7 +1879,7 @@ mod tests {
                 keypath: vec![],
             }];
             assert_eq!(
-                block_on(process(&mut TestingWorkflows::new(), &init_req_invalid)),
+                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
                 Err(Error::InvalidInput)
             );
         }
@@ -1914,11 +1916,11 @@ mod tests {
             let mut init_request = tx.init_request();
             init_request.format_unit = format_unit as _;
 
-            let mut mock_workflows = TestingWorkflows::new();
-            let result = block_on(process(&mut mock_workflows, &init_request));
+            let mut mock_hal = TestingHal::new();
+            let result = block_on(process(&mut mock_hal, &init_request));
 
             assert_eq!(
-                mock_workflows.screens,
+                mock_hal.ui.screens,
                 vec![
                     match coin {
                         pb::BtcCoin::Btc => Screen::Recipient {
@@ -2046,7 +2048,7 @@ mod tests {
             }));
 
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction.borrow().init_request(),
         ));
         assert_eq!(result, Err(Error::InvalidState));
@@ -2078,7 +2080,7 @@ mod tests {
             }),
             keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
         };
-        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
+        let result = block_on(process(&mut TestingHal::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2125,7 +2127,7 @@ mod tests {
             }),
             keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
         };
-        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
+        let result = block_on(process(&mut TestingHal::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2169,7 +2171,7 @@ mod tests {
                 }),
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
-        assert!(block_on(process(&mut TestingWorkflows::new(), &init_request)).is_ok());
+        assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
         assert_eq!(
             unsafe { PREVTX_REQUESTED },
             transaction.borrow().inputs.len() as _
@@ -2189,7 +2191,7 @@ mod tests {
         mock_unlocked();
         bitbox02::random::mock_reset();
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction.borrow().init_request(),
         ));
         assert!(result.is_ok());
@@ -2299,7 +2301,7 @@ mod tests {
             mock_host_responder(transaction.clone());
             mock_unlocked();
             let result = block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &transaction.borrow().init_request(),
             ));
             assert_eq!(result, Err(Error::InvalidInput));
@@ -2326,7 +2328,7 @@ mod tests {
                 }),
                 keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
-        assert!(block_on(process(&mut TestingWorkflows::new(), &init_request)).is_ok());
+        assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
     }
 
     #[test]
@@ -2336,14 +2338,11 @@ mod tests {
         mock_host_responder(transaction.clone());
         // We go through all possible user confirmations and abort one of them at a time.
         for counter in 0..transaction.borrow().total_confirmations {
-            let mut mock_workflows = TestingWorkflows::new();
-            mock_workflows.abort_nth(counter as usize);
+            let mut mock_hal = TestingHal::new();
+            mock_hal.ui.abort_nth(counter as usize);
             mock_unlocked();
             assert_eq!(
-                block_on(process(
-                    &mut mock_workflows,
-                    &transaction.borrow().init_request()
-                )),
+                block_on(process(&mut mock_hal, &transaction.borrow().init_request())),
                 Err(Error::UserAbort)
             );
         }
@@ -2420,10 +2419,10 @@ mod tests {
             let mut init_request = transaction.borrow().init_request();
             init_request.locktime = test_case.locktime;
 
-            let mut mock_workflows = TestingWorkflows::new();
-            let result = block_on(process(&mut mock_workflows, &init_request));
+            let mut mock_hal = TestingHal::new();
+            let result = block_on(process(&mut mock_hal, &init_request));
             let mut found_locktime = false;
-            for screen in mock_workflows.screens.iter() {
+            for screen in mock_hal.ui.screens.iter() {
                 match screen {
                     Screen::Confirm { title, body, .. } if body.contains("Locktime") => {
                         found_locktime = true;
@@ -2452,18 +2451,19 @@ mod tests {
         mock_unlocked();
         let tx = transaction.borrow();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &tx.init_request())).is_ok());
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &tx.init_request())).is_ok());
 
-        assert!(mock_workflows.screens.contains(&Screen::TotalFee {
+        assert!(mock_hal.ui.screens.contains(&Screen::TotalFee {
             total: "13.39999900 BTC".into(),
             fee: "2.05419010 BTC".into(),
             longtouch: false
         }));
-        assert!(mock_workflows
+        assert!(mock_hal
+            .ui
             .contains_confirm("High fee", "The fee is 18.1%\nthe send amount.\nProceed?"));
         assert_eq!(
-            mock_workflows.screens.len() as u32,
+            mock_hal.ui.screens.len() as u32,
             tx.total_confirmations + 1 // plus status screen
         );
     }
@@ -2479,13 +2479,10 @@ mod tests {
         mock_host_responder(transaction.clone());
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(
-            &mut mock_workflows,
-            &transaction.borrow().init_request(),
-        ));
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &transaction.borrow().init_request()));
         assert_eq!(
-            mock_workflows.screens[0],
+            mock_hal.ui.screens[0],
             Screen::Recipient {
                 recipient: "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr".into(),
                 amount: "1.00000000 BTC".into(),
@@ -2544,11 +2541,11 @@ mod tests {
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
 
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &init_request)).is_ok());
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &init_request)).is_ok());
 
         assert_eq!(
-            mock_workflows.screens[0],
+            mock_hal.ui.screens[0],
             Screen::Recipient {
                 recipient: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
                 amount: "1.00000000 BTC".into(),
@@ -2565,21 +2562,18 @@ mod tests {
         mock_host_responder(transaction.clone());
         mock_unlocked();
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
 
-        let result = block_on(process(
-            &mut mock_workflows,
-            &transaction.borrow().init_request(),
-        ));
+        let result = block_on(process(&mut mock_hal, &transaction.borrow().init_request()));
         assert_eq!(
-            mock_workflows.screens[4],
+            mock_hal.ui.screens[4],
             Screen::Recipient {
                 recipient: "This BitBox (same account): bc1qnu4x8dlrx6dety47gehf4uhk5tj3q7yhywgry6"
                     .into(),
                 amount: "0.00000100 BTC".into(),
             }
         );
-        assert!(mock_workflows.screens.contains(&Screen::TotalFee {
+        assert!(mock_hal.ui.screens.contains(&Screen::TotalFee {
             total: "13.40000000 BTC".into(),
             fee: "0.05419010 BTC".into(),
             longtouch: true,
@@ -2620,11 +2614,11 @@ mod tests {
             ],
         }];
 
-        let mut mock_workflows = TestingWorkflows::new();
-        assert!(block_on(process(&mut mock_workflows, &init_request)).is_ok());
+        let mut mock_hal = TestingHal::new();
+        assert!(block_on(process(&mut mock_hal, &init_request)).is_ok());
 
         assert_eq!(
-            mock_workflows.screens[4],
+            mock_hal.ui.screens[4],
             Screen::Recipient {
                 recipient: "This BitBox (account #21): bc1qr9t2u35gzrtznzv6n99f2dj37j9msfffv78cv2"
                     .into(),
@@ -2653,7 +2647,7 @@ mod tests {
         mock_host_responder(transaction.clone());
         mock_unlocked();
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction.borrow().init_request(),
         ));
         match result {
@@ -2705,7 +2699,7 @@ mod tests {
         };
         mock_unlocked();
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction.borrow().init_request(),
         ));
         assert_eq!(result, Err(Error::InvalidInput));
@@ -2747,7 +2741,7 @@ mod tests {
         };
         mock_unlocked();
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction.borrow().init_request(),
         ));
         assert_eq!(result, Err(Error::InvalidInput));
@@ -2784,7 +2778,7 @@ mod tests {
         };
         mock_unlocked();
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction.borrow().init_request(),
         ));
         assert_eq!(result, Err(Error::InvalidInput));
@@ -2815,7 +2809,7 @@ mod tests {
         };
         mock_unlocked();
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction.borrow().init_request(),
         ));
         assert_eq!(result, Err(Error::InvalidInput));
@@ -2878,9 +2872,9 @@ mod tests {
             }
         };
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
 
-        let result = block_on(process(&mut mock_workflows, &init_request));
+        let result = block_on(process(&mut mock_hal, &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2889,7 +2883,7 @@ mod tests {
             _ => panic!("wrong result"),
         }
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Spend from".into(),
@@ -2973,7 +2967,7 @@ mod tests {
             }
         };
         assert_eq!(
-            block_on(process(&mut TestingWorkflows::new(), &init_request)),
+            block_on(process(&mut TestingHal::new(), &init_request)),
             Err(Error::InvalidInput)
         );
     }
@@ -3043,7 +3037,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
+        let result = block_on(process(&mut TestingHal::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3120,7 +3114,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&mut TestingWorkflows::new(), &init_request));
+        let result = block_on(process(&mut TestingHal::new(), &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3175,10 +3169,10 @@ mod tests {
         let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
 
         let result = block_on(process(
-            &mut mock_workflows,
+            &mut mock_hal,
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3191,7 +3185,7 @@ mod tests {
             _ => panic!("wrong result"),
         }
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Spend from".into(),
@@ -3296,7 +3290,7 @@ mod tests {
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3355,9 +3349,9 @@ mod tests {
         let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
-        let mut mock_workflows = TestingWorkflows::new();
+        let mut mock_hal = TestingHal::new();
         assert!(block_on(process(
-            &mut mock_workflows,
+            &mut mock_hal,
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3365,7 +3359,7 @@ mod tests {
         .is_ok());
 
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Confirm {
                     title: "Spend from".into(),
@@ -3468,7 +3462,7 @@ mod tests {
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
         let result = block_on(process(
-            &mut TestingWorkflows::new(),
+            &mut TestingHal::new(),
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3521,7 +3515,7 @@ mod tests {
 
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &transaction
                     .borrow()
                     .init_request_policy(policy, wrong_keypath_account)
@@ -3570,7 +3564,7 @@ mod tests {
 
         assert_eq!(
             block_on(process(
-                &mut TestingWorkflows::new(),
+                &mut TestingHal::new(),
                 &transaction
                     .borrow()
                     .init_request_policy(policy, keypath_account)
@@ -3618,12 +3612,12 @@ mod tests {
         bitbox02::random::mock_reset();
         let init_request = transaction.borrow().init_request();
 
-        let mut mock_workflows = TestingWorkflows::new();
-        let result = block_on(process(&mut mock_workflows, &init_request));
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &init_request));
         assert!(result.is_ok());
 
         assert_eq!(
-            mock_workflows.screens,
+            mock_hal.ui.screens,
             vec![
                 Screen::Recipient {
                     recipient: "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH".into(),

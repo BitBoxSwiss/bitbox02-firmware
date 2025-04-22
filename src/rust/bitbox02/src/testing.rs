@@ -14,30 +14,7 @@
 
 //! Small mocking infrastructure for testing.
 
-extern crate alloc;
-use core::cell::RefCell;
-
 use crate::keystore;
-
-#[derive(Default)]
-pub struct Data {
-    pub sdcard_inserted: Option<bool>,
-}
-
-pub struct SafeData(pub RefCell<Data>);
-
-// Safety: must not be accessed concurrently.
-unsafe impl Sync for SafeData {}
-
-pub static DATA: SafeData = SafeData(RefCell::new(Data {
-    sdcard_inserted: None,
-}));
-
-/// Provide mock implementations and data. This also locks the keystore - use `mock_unlocked()` to mock a seeded and unlocked keystore.
-pub fn mock(data: Data) {
-    *DATA.0.borrow_mut() = data;
-    keystore::lock();
-}
 
 /// This mocks an unlocked keystore with the given bip39 recovery words and bip39 passphrase.
 pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {

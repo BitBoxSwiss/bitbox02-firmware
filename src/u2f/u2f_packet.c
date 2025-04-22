@@ -65,6 +65,7 @@ static void _reset_state(void)
     queue_clear(queue_u2f_queue());
     _timeout_disable(_in_state.cid);
     memset(&_in_state, 0, sizeof(_in_state));
+    _in_state.buf_ptr = _in_state.data;
 }
 
 /**
@@ -179,4 +180,9 @@ bool u2f_packet_process(const USB_FRAME* frame)
         break;
     }
     return false;
+}
+
+void u2f_packet_init(void)
+{
+    _reset_state();
 }

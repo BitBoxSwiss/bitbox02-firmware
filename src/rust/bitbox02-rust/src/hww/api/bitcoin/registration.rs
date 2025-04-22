@@ -25,7 +25,8 @@ use pb::BtcCoin;
 
 use super::multisig::SortXpubs;
 
-use crate::workflow::{confirm, trinary_input_string, Workflows};
+use crate::hal::Ui;
+use crate::workflow::{confirm, trinary_input_string};
 
 pub fn process_is_script_config_registered(
     request: &pb::BtcIsScriptConfigRegisteredRequest,
@@ -66,12 +67,12 @@ pub fn process_is_script_config_registered(
     }
 }
 
-async fn get_name<W: Workflows>(
-    workflows: &mut W,
+async fn get_name(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::BtcRegisterScriptConfigRequest,
 ) -> Result<String, Error> {
     let name = if request.name.is_empty() {
-        workflows
+        hal.ui()
             .confirm(&confirm::Params {
                 title: "Register",
                 body: "Please name this\naccount",
@@ -80,7 +81,8 @@ async fn get_name<W: Workflows>(
             })
             .await?;
 
-        let name = workflows
+        let name = hal
+            .ui()
             .enter_string(
                 &trinary_input_string::Params {
                     title: "Enter account name",
@@ -104,8 +106,8 @@ async fn get_name<W: Workflows>(
     Ok(name)
 }
 
-pub async fn process_register_script_config<W: Workflows>(
-    workflows: &mut W,
+pub async fn process_register_script_config(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::BtcRegisterScriptConfigRequest,
 ) -> Result<Response, Error> {
     let title = "Register";
@@ -120,11 +122,11 @@ pub async fn process_register_script_config<W: Workflows>(
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
-            let name = get_name(workflows, request).await?;
+            let name = get_name(hal, request).await?;
             super::multisig::validate(multisig, keypath)?;
             let xpub_type = XPubType::try_from(request.xpub_type)?;
             super::multisig::confirm_extended(
-                workflows,
+                hal,
                 title,
                 coin_params,
                 &name,
@@ -136,7 +138,7 @@ pub async fn process_register_script_config<W: Workflows>(
             let hash = super::multisig::get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
             match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
-                    workflows.status("Multisig account\nregistered", true).await;
+                    hal.ui().status("Multisig account\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
                 }
                 Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {
@@ -155,11 +157,11 @@ pub async fn process_register_script_config<W: Workflows>(
         }) => {
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
-            let name = get_name(workflows, request).await?;
+            let name = get_name(hal, request).await?;
             let parsed = super::policies::parse(policy, coin)?;
             parsed
                 .confirm(
-                    workflows,
+                    hal,
                     title,
                     coin_params,
                     &name,
@@ -169,7 +171,7 @@ pub async fn process_register_script_config<W: Workflows>(
             let hash = super::policies::get_hash(coin, policy)?;
             match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
-                    workflows.status("Policy\nregistered", true).await;
+                    hal.ui().status("Policy\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
                 }
                 Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {

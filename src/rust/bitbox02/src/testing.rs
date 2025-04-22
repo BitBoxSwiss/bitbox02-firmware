@@ -60,6 +60,7 @@ pub fn mock_memory() {
 
         bitbox02_sys::smarteeprom_bb02_config();
         bitbox02_sys::bitbox02_smarteeprom_init();
+        bitbox02_sys::spi_mem_full_erase();
     }
 }
 

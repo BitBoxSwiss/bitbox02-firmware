@@ -13,15 +13,13 @@
 // limitations under the License.
 
 #include "spi_mem.h"
+#include "bitbox02_pins.h"
 #include "util.h"
+#include <hal_delay.h>
+#include <spi_lite.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#ifndef TESTING
-#include "bitbox02_pins.h"
-#include <hal_delay.h>
-#include <spi_lite.h>
-#endif
 
 #define SECTOR_MASK 0xFFFFF000
 #define MEMORY_LIMIT (SPI_MEM_MEMORY_SIZE - 1)
@@ -35,16 +33,12 @@
 
 static void _spi_mem_cs_low(void)
 {
-#ifndef TESTING
     gpio_set_pin_level(PIN_MEM_CS, 0);
-#endif
 }
 
 static void _spi_mem_cs_high(void)
 {
-#ifndef TESTING
     gpio_set_pin_level(PIN_MEM_CS, 1);
-#endif
 }
 
 static uint8_t _spi_mem_read_sr(void)

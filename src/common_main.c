@@ -73,18 +73,18 @@ void common_main(void)
     mpu_bitbox02_init();
     if (!memory_setup(&_memory_interface_functions)) {
         // If memory setup failed, this also might fail, but can't hurt to try.
-        AbortAutoenter("memory_setup failed");
+        Abort("memory_setup failed");
     }
 
     if (!_setup_wally()) {
-        AbortAutoenter("_setup_wally failed");
+        Abort("_setup_wally failed");
     }
 
     /* Enable/configure SmartEEPROM. */
     smarteeprom_bb02_config();
 
     if (!securechip_init()) {
-        AbortAutoenter("Failed to detect securechip");
+        Abort("Failed to detect securechip");
     }
     // securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
@@ -96,6 +96,6 @@ void common_main(void)
             sizeof(errmsg),
             "Securechip setup failed.\nError code: %i\nPlease contact support.",
             securechip_result);
-        AbortAutoenter(errmsg);
+        Abort(errmsg);
     }
 }

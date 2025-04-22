@@ -110,7 +110,7 @@ void bitbox02_smarteeprom_init(void)
          */
         char msg[200] = {0};
         snprintf(msg, sizeof(msg), "Unrecognized SmartEEPROM version.\nGot %d", current_version);
-        AbortAutoenter(msg);
+        Abort(msg);
     }
 }
 

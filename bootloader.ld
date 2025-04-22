@@ -116,6 +116,7 @@ SECTIONS
     {
         . = ALIGN(4);
         _srtt = .;
+        *(.auto_enter);
         *(.segger_rtt);
         *(.segger_rtt_buf);
         _ertt = .;

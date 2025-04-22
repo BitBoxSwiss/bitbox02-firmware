@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "hardfault.h"
+#include "system.h"
 #include "util.h"
 #include "utils_assert.h"
 #include <memory/memory.h>
@@ -47,20 +48,9 @@ void Abort(const char* msg)
 #endif
     // Break the program if we are debugging
     ASSERT(false);
-    while (1) {
-    }
-}
-
-void AbortAutoenter(const char* msg)
-{
-    auto_enter_t auto_enter = {
-        .value = sectrue_u8,
-    };
-    upside_down_t upside_down = {
-        .value = screen_is_upside_down(),
-    };
-    if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
-        // If this failed, we might not be able to reboot into the bootloader.
-    }
-    Abort(msg);
+    delay_ms(30000);
+    // Restart into bootloader
+    auto_enter = sectrue_u32;
+    _reset_mcu();
+    while (1);
 }

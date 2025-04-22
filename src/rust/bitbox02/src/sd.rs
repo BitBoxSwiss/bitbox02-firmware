@@ -102,11 +102,12 @@ pub fn write_bin(filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::mock_sd;
 
     #[test]
     fn test_list_write_read_erase() {
-        mock_sd();
+        unsafe {
+            bitbox02_sys::sd_format();
+        }
 
         assert_eq!(list_subdir(None), Ok(vec![]));
         assert_eq!(list_subdir(Some("dir1")), Ok(vec![]));

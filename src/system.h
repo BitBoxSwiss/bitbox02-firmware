@@ -15,6 +15,12 @@
 #ifndef _SYSTEM_H_
 #define _SYSTEM_H_
 
+#include "util.h"
+
+// Set this to `sectrue_u32` to stay in bootloader, or anything else to jump to firmware
+
+extern volatile secbool_u32 auto_enter;
+
 /**
  * Reboots the device to bootloader
  */

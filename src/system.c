@@ -18,10 +18,15 @@
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <screen.h>
+#include <stdint.h>
 #ifndef TESTING
 #include "uart.h"
 #include <driver_init.h>
 #endif
+
+// Section is fixed in ram, so can be used to communicate between fw/bl
+// Must stay synchronized with bootloader.c, bootloader.ld, firmware.ld
+volatile secbool_u32 auto_enter __attribute__((section(".auto_enter")));
 
 static void _ble_clear_product(void)
 {
@@ -43,16 +48,7 @@ void reboot_to_bootloader(void)
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         _ble_clear_product();
     }
-    auto_enter_t auto_enter = {
-        .value = sectrue_u8,
-    };
-    upside_down_t upside_down = {
-        .value = screen_is_upside_down(),
-    };
-    if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
-        // If this failed, we might not be able to reboot into the bootloader.
-        // We will try anyway, no point in aborting here.
-    }
+    auto_enter = sectrue_u32;
 #ifndef TESTING
     _reset_mcu();
 #endif

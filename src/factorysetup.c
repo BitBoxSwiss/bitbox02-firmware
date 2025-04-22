@@ -27,6 +27,7 @@
 #include "rust/rust.h"
 #include "screen.h"
 #include "securechip/securechip.h"
+#include "system.h"
 #include "uart.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
@@ -581,19 +582,8 @@ int main(void)
     screen_splash();
     common_main();
 
-    {
-        // Set to re-enter bootloader again, otherwise we are stuck with this
-        // firmware forever.
-        auto_enter_t auto_enter = {
-            .value = sectrue_u8,
-        };
-        upside_down_t upside_down = {
-            .value = false,
-        };
-        if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
-            // Not much we can do here.
-        }
-    }
+    // After reset we prefer to stay in bootloader
+    auto_enter = sectrue_u32;
 
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         _ble_result = _setup_ble();

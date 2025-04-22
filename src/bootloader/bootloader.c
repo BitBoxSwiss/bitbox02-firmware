@@ -51,6 +51,10 @@
 
 #include <assert.h>
 
+// Section is fixed in ram, so can be used to communicate between fw/bl
+// Must stay synchronized with system.c, bootloader.ld, firmware.ld
+volatile secbool_u32 auto_enter __attribute__((section(".auto_enter")));
+
 #define BOOT_OP_LEN 2u // 1 byte op code and 1 byte parameter
 #define BOOTLOADER_CMD (HID_VENDOR_FIRST + 0x03) // Hardware wallet command
 
@@ -845,12 +849,7 @@ static size_t _api_versions(uint8_t* output)
 
 static void _api_reboot(void)
 {
-    chunk_shared_t shared_data;
-    memory_read_shared_bootdata(&shared_data);
-    if (shared_data.fields.auto_enter == sectrue_u8) {
-        shared_data.fields.auto_enter = secfalse_u8;
-        _write_chunk(FLASH_SHARED_DATA_START, shared_data.bytes);
-    }
+    auto_enter = secfalse_u32;
     _reset_mcu();
 }
 
@@ -1076,7 +1075,7 @@ void bootloader_jump(void)
 
     UG_FontSelect(&font_font_a_9X9);
 
-    if (shared_data.fields.auto_enter != sectrue_u8) {
+    if (auto_enter != sectrue_u32) {
 #ifdef BOOTLOADER_DEVDEVICE
         if (!_devdevice_enter(_firmware_verified_jump(&bootdata, secfalse_u32))) {
             _binary_exec();

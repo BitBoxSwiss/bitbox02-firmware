@@ -826,46 +826,6 @@ USE_RESULT bool keystore_encode_xpub_at_keypath(
            WALLY_OK;
 }
 
-static void _tagged_hash(const char* tag, const uint8_t* msg, size_t msg_len, uint8_t* hash_out)
-{
-    uint8_t tag_hash[32] = {0};
-    rust_sha256(tag, strlen(tag), tag_hash);
-    void* hash_ctx = rust_sha256_new();
-    rust_sha256_update(hash_ctx, tag_hash, sizeof(tag_hash));
-    rust_sha256_update(hash_ctx, tag_hash, sizeof(tag_hash));
-    rust_sha256_update(hash_ctx, msg, msg_len);
-    rust_sha256_finish(&hash_ctx, hash_out);
-}
-
-bool keystore_secp256k1_schnorr_bip86_pubkey(const uint8_t* pubkey33, uint8_t* pubkey_out)
-{
-    const secp256k1_context* ctx = wally_get_secp_context();
-
-    secp256k1_pubkey pubkey = {0};
-    if (!secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkey33, 33)) {
-        return false;
-    }
-    secp256k1_xonly_pubkey xonly_pubkey = {0};
-    if (!secp256k1_xonly_pubkey_from_pubkey(ctx, &xonly_pubkey, NULL, &pubkey)) {
-        return false;
-    }
-    uint8_t xonly_pubkey_serialized[32] = {0};
-    if (!secp256k1_xonly_pubkey_serialize(ctx, xonly_pubkey_serialized, &xonly_pubkey)) {
-        return false;
-    }
-    uint8_t hash[32] = {0};
-    secp256k1_pubkey tweaked_pubkey = {0};
-    _tagged_hash("TapTweak", xonly_pubkey_serialized, sizeof(xonly_pubkey_serialized), hash);
-    if (!secp256k1_xonly_pubkey_tweak_add(ctx, &tweaked_pubkey, &xonly_pubkey, hash)) {
-        return false;
-    }
-    secp256k1_xonly_pubkey tweaked_xonly_pubkey = {0};
-    if (!secp256k1_xonly_pubkey_from_pubkey(ctx, &tweaked_xonly_pubkey, NULL, &tweaked_pubkey)) {
-        return false;
-    }
-    return secp256k1_xonly_pubkey_serialize(ctx, pubkey_out, &tweaked_xonly_pubkey) == 1;
-}
-
 static bool _schnorr_keypair(
     const uint32_t* keypath,
     size_t keypath_len,

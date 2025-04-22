@@ -360,19 +360,6 @@ pub fn secp256k1_schnorr_sign(
     }
 }
 
-pub fn secp256k1_schnorr_bip86_pubkey(pubkey33: &[u8]) -> Result<[u8; 32], ()> {
-    let mut pubkey = [0u8; 32];
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_schnorr_bip86_pubkey(
-            pubkey33.as_ptr(),
-            pubkey.as_mut_ptr(),
-        )
-    } {
-        true => Ok(pubkey),
-        false => Err(()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

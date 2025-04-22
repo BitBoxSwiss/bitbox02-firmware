@@ -124,3 +124,16 @@ void memory_get_ble_identity_address(uint8_t* data)
 
     util_zero(&chunk, sizeof(chunk));
 }
+
+void memory_get_ble_metadata(memory_ble_metadata_t* metadata_out)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+    metadata_out->active_index = chunk.fields.ble_active_index;
+    memcpy(metadata_out->allowed_firmware_hash, chunk.fields.ble_allowed_firmware_hash, 32);
+    metadata_out->firmware_sizes[0] = chunk.fields.ble_firmware_sizes[0];
+    metadata_out->firmware_sizes[1] = chunk.fields.ble_firmware_sizes[1];
+    metadata_out->firmware_checksums[0] = chunk.fields.ble_firmware_checksums[0];
+    metadata_out->firmware_checksums[1] = chunk.fields.ble_firmware_checksums[1];
+    util_zero(&chunk, sizeof(chunk));
+}

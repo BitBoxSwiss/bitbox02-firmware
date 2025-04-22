@@ -35,6 +35,7 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
   ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
   ${CMAKE_SOURCE_DIR}/src/memory/spi_mem.c
+  ${CMAKE_SOURCE_DIR}/src/memory/memory_spi.c
   ${CMAKE_SOURCE_DIR}/src/memory/smarteeprom.c
   ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
@@ -513,7 +514,6 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
 
     target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
-    target_link_libraries(${elf} PRIVATE ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.o)
 
     # Optiga config must be defined both when compiling the optiga lib, and also when compiling our
     # sources. We can verify this include is indeed used by our sources - when you point it to a
@@ -534,6 +534,8 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
   target_link_libraries(factory-setup.elf PRIVATE rtt)
+  target_link_libraries(factory-setup.elf PRIVATE ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.o)
+
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})
     add_custom_command(

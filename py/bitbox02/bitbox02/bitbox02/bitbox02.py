@@ -43,6 +43,7 @@ try:
     from bitbox02.communication.generated import common_pb2 as common
     from bitbox02.communication.generated import keystore_pb2 as keystore
     from bitbox02.communication.generated import antiklepto_pb2 as antiklepto
+    from bitbox02.communication.generated import bluetooth_pb2 as bluetooth
     import google.protobuf.empty_pb2
 
     # pylint: disable=unused-import,ungrouped-imports
@@ -1209,3 +1210,46 @@ class BitBox02(BitBoxCommonAPI):
         return self._cardano_msg_query(
             request, expected_response="sign_transaction"
         ).sign_transaction
+
+    def _bluetooth_msg_query(
+        self, bluetooth_request: bluetooth.BluetoothRequest, expected_response: Optional[str] = None
+    ) -> bluetooth.BluetoothResponse:
+        """
+        Same as _msg_query, but one nesting deeper for bluetooth messages.
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.bluetooth.CopyFrom(bluetooth_request)
+        bluetooth_response = self._msg_query(request, expected_response="bluetooth").bluetooth
+        if (
+            expected_response is not None
+            and bluetooth_response.WhichOneof("response") != expected_response
+        ):
+            raise Exception(
+                "Unexpected response: {}, expected: {}".format(
+                    bluetooth_response.WhichOneof("response"), expected_response
+                )
+            )
+        return bluetooth_response
+
+    def bluetooth_upgrade(self, firmware: bytes) -> None:
+        request = bluetooth.BluetoothRequest()
+        request.upgrade_init.CopyFrom(
+            bluetooth.BluetoothUpgradeInitRequest(firmware_length=len(firmware))
+        )
+
+        response = self._bluetooth_msg_query(request)
+        while True:
+            response_type = response.WhichOneof("response")
+            if response_type == "request_chunk":
+                chunk_response = response.request_chunk
+                print("Sending chunk", chunk_response)
+                request = bluetooth.BluetoothRequest()
+                request.chunk.CopyFrom(
+                    bluetooth.BluetoothChunkRequest(data=firmware[chunk_response.offset:chunk_response.offset+chunk_response.length]),
+                )
+                response = self._bluetooth_msg_query(request)
+            elif response_type == "success":
+                break
+            else:
+                raise Exception(f"Unexpected response: f{response_type}")

@@ -35,6 +35,11 @@ const ALLOWLIST_VARS: &[&str] = &[
     "font_font_a_9X9",
     "font_monogram_5X9",
     "font_password_11X12",
+    "MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE",
+    "MEMORY_SPI_BLE_FIRMWARE_1_ADDR",
+    "MEMORY_SPI_BLE_FIRMWARE_2_ADDR",
+    "MEMORY_PLATFORM_BITBOX02",
+    "MEMORY_PLATFORM_BITBOX02_PLUS",
 ];
 
 const ALLOWLIST_TYPES: &[&str] = &[
@@ -100,6 +105,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_set_mnemonic_passphrase_enabled",
     "memory_set_seed_birthdate",
     "memory_setup",
+    "memory_get_ble_metadata",
+    "memory_set_ble_metadata",
+    "memory_get_platform",
+    "spi_mem_write",
     "menu_create",
     "mock_memory_factoryreset",
     "spi_mem_full_erase",

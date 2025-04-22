@@ -1,6 +1,7 @@
 set(PROTO_FILES
   hww.proto
   backup.proto
+  bluetooth.proto
   common.proto
   backup_commands.proto
   bitbox02_system.proto

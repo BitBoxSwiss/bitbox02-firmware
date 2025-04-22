@@ -41,6 +41,7 @@ pub mod screen_saver;
 pub mod sd;
 pub mod secp256k1;
 pub mod securechip;
+pub mod spi_mem;
 pub mod ui;
 
 use ::util::c_types::c_int;

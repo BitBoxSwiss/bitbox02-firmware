@@ -8,7 +8,18 @@ extern const uint8_t _binary_bitbox_da14531_firmware_bin_start;
 extern const uint8_t _binary_bitbox_da14531_firmware_bin_end;
 extern const uint8_t _binary_bitbox_da14531_firmware_bin_size;
 
-const uint8_t* da14531_firmware_start = &_binary_bitbox_da14531_firmware_bin_start;
-const uint8_t* da14531_firmware_end = &_binary_bitbox_da14531_firmware_bin_end;
-const size_t da14531_firmware_size = (size_t)&_binary_bitbox_da14531_firmware_bin_size;
+inline const uint8_t* da14531_firmware_start(void)
+{
+    return &_binary_bitbox_da14531_firmware_bin_start;
+}
+
+inline const uint8_t* da14531_firmware_end(void)
+{
+    return &_binary_bitbox_da14531_firmware_bin_end;
+}
+
+inline size_t da14531_firmware_size(void)
+{
+    return (size_t)&_binary_bitbox_da14531_firmware_bin_size;
+}
 #endif

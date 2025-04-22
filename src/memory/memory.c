@@ -771,6 +771,29 @@ bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len)
     return true;
 }
 
+bool memory_set_ble_metadata(const memory_ble_metadata_t* metadata)
+{
+    chunk_shared_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    memory_read_shared_bootdata(&chunk);
+    memcpy(chunk.fields.ble_allowed_firmware_hash, metadata->allowed_firmware_hash, 32);
+    chunk.fields.ble_active_index = metadata->active_index;
+    chunk.fields.ble_firmware_sizes[0] = metadata->firmware_sizes[0];
+    chunk.fields.ble_firmware_sizes[1] = metadata->firmware_sizes[1];
+    chunk.fields.ble_firmware_checksums[0] = metadata->firmware_checksums[0];
+    chunk.fields.ble_firmware_checksums[1] = metadata->firmware_checksums[1];
+    // As this operation is quite important to succeed, we try it multiple times.
+    for (int i = 0; i < 10; i++) {
+        if (_write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes)) {
+            return true;
+        }
+#ifndef TESTING
+        delay_ms(50);
+#endif
+    }
+    return false;
+}
+
 bool memory_get_salt_root(uint8_t* salt_root_out)
 {
     chunk_1_t chunk = {0};

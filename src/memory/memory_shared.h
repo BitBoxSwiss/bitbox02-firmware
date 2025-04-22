@@ -15,6 +15,7 @@
 #ifndef _MEMORY_SHARED_H_
 #define _MEMORY_SHARED_H_
 
+#include <assert.h>
 #include <stdint.h>
 
 #include <compiler_util.h>
@@ -90,11 +91,31 @@ typedef union {
         uint8_t ble_bond_db[MEMORY_BLE_BOND_DB_LEN];
         uint8_t ble_identity_resolving_key[MEMORY_BLE_IRK_LEN];
         uint8_t ble_identity_address[MEMORY_BLE_ADDR_LEN];
-        uint8_t padding[2]; // align to 4 bytes
+        uint8_t reserve2[2]; // align to 4 bytes
+        // Hash of the BLE firmware that is allowed to be loaded into the BLE chip.
+        uint8_t ble_allowed_firmware_hash[32];
+        // - 0xFF: uninitialized (should never happen after factorysetup)
+        // - 0x00: active BLE firmware is at `MEMORY_SPI_BLE_FIRMWARE_1_ADDR` in the SPI memory
+        // chip.
+        // - 0x01: active BLE firmware is at `MEMORY_SPI_BLE_FIRMWARE_2_ADDR` in the SPI memory
+        // chip.
+        uint8_t ble_active_index;
+        // Checksum of each of the two BLE stored firmwares.
+        //
+        // The checksum is the xor of all bytes. It is returned by the BLE chip after loading the
+        // firmware, so we can verify that the firmware was loaded successfully.
+        uint8_t ble_firmware_checksums[2];
+        uint8_t reserve3[1]; // align to 4 bytes
+        // Size of each of the two stored BLE firmwares.
+        uint16_t ble_firmware_sizes[2];
     } fields;
     uint8_t bytes[FLASH_SHARED_DATA_LEN];
 } chunk_shared_t;
 #pragma GCC diagnostic pop
+
+static_assert(
+    sizeof(((chunk_shared_t*)0)->fields) <= (size_t)FLASH_SHARED_DATA_LEN,
+    "chunk too large");
 
 void memory_read_shared_bootdata(chunk_shared_t* chunk_out);
 
@@ -133,5 +154,15 @@ void memory_get_ble_identity_address(uint8_t* data);
 
 // data_len can be at most MEMORY_BLE_BOND_DB_LEN
 bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len);
+
+typedef struct {
+    uint8_t allowed_firmware_hash[32];
+    uint8_t active_index;
+    uint16_t firmware_sizes[2];
+    uint8_t firmware_checksums[2];
+} memory_ble_metadata_t;
+
+USE_RESULT bool memory_set_ble_metadata(const memory_ble_metadata_t* metadata);
+void memory_get_ble_metadata(memory_ble_metadata_t* metadata_out);
 
 #endif

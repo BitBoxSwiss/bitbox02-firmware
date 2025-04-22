@@ -58,8 +58,6 @@ bool usb_processing_enqueue(
     uint32_t cid);
 void usb_processing_process(struct usb_processing* ctx);
 
-void usb_processing_set_send(struct usb_processing* ctx, void (*send)(void));
-
 struct usb_processing* usb_processing_u2f(void);
 struct usb_processing* usb_processing_hww(void);
 

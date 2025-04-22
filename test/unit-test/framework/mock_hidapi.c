@@ -51,6 +51,10 @@ void* timer_task(void* args)
     for (;;) {
         // printf("tick\n");
         u2f_packet_timeout_tick();
+        uint32_t timeout_cid;
+        while (u2f_packet_timeout_get(&timeout_cid)) {
+            u2f_packet_timeout(timeout_cid);
+        }
         _delay(90);
         pthread_mutex_lock(&mutex);
         if (timer_thread_stop) {
@@ -89,7 +93,6 @@ hid_device* hid_open_path(const char* path)
     static char sham[] = "sham";
     usb_processing_init();
     u2f_device_setup();
-    usb_processing_set_send(usb_processing_u2f(), _send_packet_cb);
     timer_thread_stop = false;
     int res = pthread_create(&thread, NULL, &timer_task, NULL);
     if (res != 0) {

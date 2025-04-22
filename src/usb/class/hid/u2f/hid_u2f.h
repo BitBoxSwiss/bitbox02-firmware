@@ -60,4 +60,7 @@ int32_t hid_u2f_register_callback(enum hid_trans_type trans_type, FUNC_PTR func)
  */
 void hid_u2f_setup(void);
 
+bool hid_u2f_write_poll(const uint8_t* data);
+bool hid_u2f_read(uint8_t* data);
+
 #endif

@@ -14,26 +14,25 @@
 
 use super::Error;
 use crate::pb;
-
 use alloc::vec::Vec;
 
 use pb::response::Response;
 
 use crate::backup;
-use crate::hal::Ui;
+use crate::hal::{Sd, Ui};
 use crate::workflow::{confirm, unlock};
 
 pub async fn check(
     hal: &mut impl crate::hal::Hal,
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
 ) -> Result<Response, Error> {
-    if !bitbox02::sd::sdcard_inserted() {
+    if !hal.sd().sdcard_inserted() {
         return Err(Error::InvalidInput);
     }
 
     let seed = bitbox02::keystore::copy_seed()?;
     let id = backup::id(&seed);
-    let (backup_data, metadata) = backup::load(&id)?;
+    let (backup_data, metadata) = backup::load(hal, &id)?;
     if seed.as_slice() != backup_data.get_seed() {
         if !silent {
             hal.ui().status("Backup missing\nor invalid", false).await;
@@ -110,7 +109,7 @@ pub async fn create(
             return Err(Error::Memory);
         }
         timestamp
-    } else if let Ok((data, _)) = backup::load(&backup::id(&seed)) {
+    } else if let Ok((data, _)) = backup::load(hal, &backup::id(&seed)) {
         // If adding new backup after initialized, we do not know the seed birthdate.
         // If re-creating it, we use the already existing one.
         data.0.birthdate
@@ -118,6 +117,7 @@ pub async fn create(
         0
     };
     match backup::create(
+        hal,
         &seed,
         &bitbox02::memory::get_device_name(),
         timestamp,
@@ -142,10 +142,10 @@ pub async fn create(
     }
 }
 
-pub fn list() -> Result<Response, Error> {
+pub fn list(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let mut info: Vec<pb::BackupInfo> = Vec::new();
-    for dir in bitbox02::sd::list_subdir(None)? {
-        let (_, metadata) = match backup::load(&dir) {
+    for dir in hal.sd().list_subdir(None)? {
+        let (_, metadata) = match backup::load(hal, &dir) {
             Ok(d) => d,
             Err(_) => continue,
         };
@@ -166,7 +166,7 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock_memory, mock_sd, mock_unlocked, mock_unlocked_using_mnemonic};
+    use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
 
     /// Test backup creation on a uninitialized keystore.
     #[test]
@@ -174,7 +174,6 @@ mod tests {
         const EXPECTED_TIMESTMAP: u32 = 1601281809;
 
         // All good.
-        mock_sd();
         mock_memory();
         mock_unlocked();
 
@@ -208,7 +207,7 @@ mod tests {
 
         assert_eq!(
             block_on(check(
-                &mut TestingHal::new(),
+                &mut mock_hal,
                 &pb::CheckBackupRequest { silent: true }
             )),
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
@@ -223,27 +222,29 @@ mod tests {
     fn test_fixture() {
         const EXPECTED_ID: &str =
             "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
-        mock_sd();
         mock_memory();
         mock_unlocked_using_mnemonic(
             "memory raven era cave phone system dice come mechanic split moon repeat",
             "",
         );
 
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(true);
+
         // Create the three files using the a fixture in the directory with the backup ID of the
         // above seed.
         let backup_fixture_v9_12_0: Vec<u8> = hex::decode("0a6c0a6a0a2017834e53e17370800c0bc49b49ef3f1309df104d7239db5bbd093c90eefc995112110891bec6fb0512094d7920426974426f782233081012208af64d31126a39b98f59708a3a463e5b000000000000000000000000000000001891bec6fb05220776392e31332e30").unwrap();
         for i in 0..3 {
-            bitbox02::sd::write_bin(
-                &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),
-                EXPECTED_ID,
-                &backup_fixture_v9_12_0,
-            )
-            .unwrap();
+            mock_hal
+                .sd
+                .write_bin(
+                    &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),
+                    EXPECTED_ID,
+                    &backup_fixture_v9_12_0,
+                )
+                .unwrap();
         }
         // Check that the loaded seed matches the backup.
-        let mut mock_hal = TestingHal::new();
-        mock_hal.sd.inserted = Some(true);
         assert_eq!(
             block_on(check(
                 &mut mock_hal,
@@ -281,11 +282,12 @@ mod tests {
         const DEVICE_NAME_1: &str = "test device name";
         const DEVICE_NAME_2: &str = "another test device name";
 
-        mock_sd();
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(true);
 
         // No backups yet.
         assert_eq!(
-            list(),
+            list(&mut mock_hal),
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![]
             }))
@@ -295,8 +297,6 @@ mod tests {
         mock_memory();
         mock_unlocked_using_mnemonic("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay", "");
 
-        let mut mock_hal = TestingHal::new();
-        mock_hal.sd.inserted = Some(true);
         bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
         assert!(block_on(create(
             &mut mock_hal,
@@ -308,7 +308,7 @@ mod tests {
         .is_ok());
 
         assert_eq!(
-            list(),
+            list(&mut mock_hal,),
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![pb::BackupInfo {
                     id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into(),
@@ -322,8 +322,6 @@ mod tests {
         mock_memory();
         mock_unlocked_using_mnemonic("goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven", "");
         bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
-        let mut mock_hal = TestingHal::new();
-        mock_hal.sd.inserted = Some(true);
         assert!(block_on(create(
             &mut mock_hal,
             &pb::CreateBackupRequest {
@@ -334,7 +332,7 @@ mod tests {
         .is_ok());
 
         assert_eq!(
-            list(),
+            list(&mut mock_hal),
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![
                     pb::BackupInfo {

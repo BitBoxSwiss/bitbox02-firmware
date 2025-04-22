@@ -39,12 +39,6 @@ static void _delay(uint32_t msec)
     nanosleep(&ts, &rem);
 }
 
-// function for sending packets?
-static void _send_packet_cb(void)
-{
-    // printf("send\n");
-}
-
 void* timer_task(void* args)
 {
     (void)args;

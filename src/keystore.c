@@ -614,23 +614,6 @@ bool keystore_get_bip39_word(uint16_t idx, char** word_out)
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;
 }
 
-bool keystore_secp256k1_compressed_to_uncompressed(
-    const uint8_t* pubkey_bytes,
-    uint8_t* uncompressed_out)
-{
-    const secp256k1_context* ctx = wally_get_secp_context();
-    secp256k1_pubkey pubkey;
-    if (!secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkey_bytes, 33)) {
-        return false;
-    }
-    size_t len = 65;
-    if (!secp256k1_ec_pubkey_serialize(
-            ctx, uncompressed_out, &len, &pubkey, SECP256K1_EC_UNCOMPRESSED)) {
-        return false;
-    }
-    return true;
-}
-
 bool keystore_secp256k1_nonce_commit(
     const uint32_t* keypath,
     size_t keypath_len,

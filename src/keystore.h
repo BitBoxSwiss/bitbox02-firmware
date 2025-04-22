@@ -24,7 +24,7 @@
 #include <secp256k1.h>
 #include <wally_bip32.h>
 #include <wally_bip39.h> // for BIP39_WORDLIST_LEN
-#include <wally_crypto.h> // for EC_PUBLIC_KEY_UNCOMPRESSED_LEN and EC_PUBLIC_KEY_LEN
+#include <wally_crypto.h> // for EC_PUBLIC_KEY_LEN
 
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
@@ -159,14 +159,6 @@ void keystore_zero_xkey(struct ext_key* xkey);
  * @param[out] word_out The pointer to the character array for the given index.
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
-
-// Reformats pubkey from compressed 33 bytes to uncompressed 65 bytes (<0x04><64 bytes X><64 bytes
-// Y>),
-// pubkey must be 33 bytes
-// uncompressed_out must be 65 bytes.
-USE_RESULT bool keystore_secp256k1_compressed_to_uncompressed(
-    const uint8_t* pubkey_bytes,
-    uint8_t* uncompressed_out);
 
 /**
  * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of

@@ -121,7 +121,8 @@ impl Xpub {
     ///
     /// (<0x04><64 bytes X><64 bytes Y>).
     pub fn pubkey_uncompressed(&self) -> Result<[u8; 65], ()> {
-        bitbox02::keystore::secp256k1_pubkey_compressed_to_uncompressed(self.public_key())
+        let pk = bitcoin::secp256k1::PublicKey::from_slice(self.public_key()).map_err(|_| ())?;
+        Ok(pk.serialize_uncompressed())
     }
 
     /// Return the tweaked taproot pubkey.

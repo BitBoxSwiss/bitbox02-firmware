@@ -139,7 +139,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "util_format_datetime",
     "wally_free_string",
     "wally_get_secp_context",
-    "wally_hash160",
     "wally_sha512",
 ];
 

@@ -28,11 +28,11 @@ mod util;
 
 #[cfg(feature = "firmware")]
 mod async_usb;
-#[cfg(feature = "firmware")]
+#[cfg(feature = "bitbox02-noise")]
 mod noise;
 #[cfg(feature = "firmware")]
 mod p256;
-#[cfg(feature = "firmware")]
+#[cfg(feature = "sha2")]
 mod sha2;
 #[cfg(feature = "firmware")]
 mod workflow;

@@ -257,34 +257,6 @@ bool memory_set_device_name(const char* name)
     return _write_chunk(CHUNK_1, chunk.bytes);
 }
 
-static void _random_name(char* name_out)
-{
-    static char cached_name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
-
-    if (cached_name[0] == 0x00) {
-        // Generate 4 random uppercase letters
-        uint8_t random[32] = {0};
-        _interface_functions->random_32_bytes(random);
-        uint8_t letters[4];
-        for (size_t i = 0; i < sizeof(letters); i++) {
-            letters[i] = 'A' + (random[i] % 26);
-        }
-
-        // Format into cached name
-        snprintf(
-            cached_name,
-            MEMORY_DEVICE_NAME_MAX_LEN,
-            "BitBox %c%c%c%c",
-            letters[0],
-            letters[1],
-            letters[2],
-            letters[3]);
-    }
-
-    // Copy cached result to output
-    snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", cached_name);
-}
-
 void memory_get_device_name(char* name_out)
 {
     chunk_1_t chunk = {0};
@@ -295,7 +267,7 @@ void memory_get_device_name(char* name_out)
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
             // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
             // identified if multiple BitBoxes are advertising at the same time.
-            _random_name(name_out);
+            memory_random_name(name_out);
         } else {
             snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", MEMORY_DEFAULT_DEVICE_NAME);
         }
@@ -751,24 +723,6 @@ bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_d
 #endif
     }
     return false;
-}
-
-bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len)
-{
-    ASSERT(data_len <= MEMORY_BLE_BOND_DB_LEN);
-    chunk_shared_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    memory_read_shared_bootdata(&chunk);
-    chunk.fields.ble_bond_db_len = data_len;
-    memcpy(&chunk.fields.ble_bond_db[0], data, data_len);
-    if (memcmp(
-            (uint8_t*)(FLASH_SHARED_DATA_START),
-            chunk.bytes,
-            (unsigned int)FLASH_SHARED_DATA_LEN) != 0) {
-        util_log("Updated bond db");
-        return _write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes);
-    }
-    return true;
 }
 
 bool memory_set_ble_metadata(const memory_ble_metadata_t* metadata)

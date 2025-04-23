@@ -20,7 +20,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#if PRODUCT_BITBOX_BTCONLY == 1
+// TODO: Make new logos for plus!
+
+#if (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_PLUS_BTCONLY == 1)
 
 #define IMAGE_BB2_LOGO_W 79
 #define IMAGE_BB2_LOGO_H 25
@@ -43,7 +45,8 @@ static const uint8_t IMAGE_BB2_LOGO[] = {
     0xce, 0x92, 0x64, 0x80, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00};
 
-#elif (PRODUCT_BITBOX_MULTI == 1) || PRODUCT_BITBOX02_FACTORYSETUP == 1
+#elif (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_PLUS_MULTI == 1) || \
+    PRODUCT_BITBOX02_FACTORYSETUP == 1
 
 #define IMAGE_BB2_LOGO_W 79
 #define IMAGE_BB2_LOGO_H 23

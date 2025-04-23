@@ -16,6 +16,7 @@
 #include "hardfault.h"
 #include "memory/memory.h"
 #include "memory/memory_shared.h"
+#include "screen.h"
 #include "ui/screen_stack.h"
 #include "usb/usb_packet.h"
 #include "utils_ringbuffer.h"
@@ -36,19 +37,21 @@
 #define CTRL_CMD_TK_CONFIRM 11
 #define CTRL_CMD_DEBUG 254
 
-static component_t* _ble_pairing_component = NULL;
-
-struct pairing_callback {
-    uint8_t key[4];
-    struct ringbuffer* queue;
-};
-
 struct da14531_ctrl_frame {
     enum da14531_protocol_packet_type type;
     uint16_t payload_length; // includes length of cmd
     uint8_t cmd;
     uint8_t cmd_data[];
 } __attribute((packed));
+
+#if !defined(BOOTLOADER)
+
+static component_t* _ble_pairing_component = NULL;
+
+struct pairing_callback {
+    uint8_t key[4];
+    struct ringbuffer* queue;
+};
 
 static struct pairing_callback _ble_pairing_callback_data;
 
@@ -73,6 +76,23 @@ static void _ble_pairing_callback(bool ok, void* param)
     ui_screen_stack_pop();
     _ble_pairing_component = NULL;
 }
+#else
+extern bool bootloader_pairing_request;
+extern uint8_t bootloader_pairing_code_bytes[16];
+
+static void _bootloader_pairing_code_confirm(void)
+{
+    bootloader_pairing_request = true;
+    uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
+    char code_str[7] = {0};
+    snprintf(code_str, sizeof(code_str), "%lu", (unsigned long)pairing_code_int);
+    UG_ClearBuffer();
+    UG_PutString(0, 0, "Deny", false);
+    UG_PutString(SCREEN_WIDTH - 50, 0, "Confirm", false);
+    UG_PutString(80, SCREEN_HEIGHT / 2 + 2, code_str, false);
+    UG_SendBuffer();
+}
+#endif
 
 static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
 {
@@ -84,7 +104,11 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
         //  rest device name
         uint8_t response[1 + MEMORY_DEVICE_NAME_MAX_LEN] = {0}; // +1 for cmd
         response[0] = CTRL_CMD_DEVICE_NAME;
+#if defined(BOOTLOADER)
+        memory_random_name((char*)&response[1]);
+#else
         memory_get_device_name((char*)&response[1]);
+#endif
         uint16_t len = da14531_protocol_format(
             &tmp[0],
             sizeof(tmp),
@@ -131,6 +155,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
             // TODO handle error.
             Abort("Invalid payload length for BLE pairing code");
         }
+#if !defined(BOOTLOADER)
         memcpy(
             &(_ble_pairing_callback_data.key)[0],
             &frame->cmd_data[0],
@@ -148,16 +173,25 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
         _ble_pairing_component = confirm_create(
             &confirm_params, _ble_pairing_callback, (void*)&_ble_pairing_callback_data);
         ui_screen_stack_push(_ble_pairing_component);
+#else
+        memcpy(
+            &bootloader_pairing_code_bytes[0],
+            &frame->cmd_data[0],
+            sizeof(bootloader_pairing_code_bytes));
+        _bootloader_pairing_code_confirm();
+#endif
     } break;
     case CTRL_CMD_BLE_STATUS:
         // util_log("da14531: BLE status update");
         switch (frame->cmd_data[0]) {
         case 0:
             util_log("da14531: adveritising");
+#if !defined(BOOTLOADER)
             if (_ble_pairing_component != NULL && ui_screen_stack_top() == _ble_pairing_component) {
                 ui_screen_stack_pop();
                 _ble_pairing_component = NULL;
             }
+#endif
             break;
         case 1:
             util_log("da14531: connected");
@@ -259,11 +293,9 @@ void da14531_handler(struct da14531_protocol_frame* frame, struct ringbuffer* qu
     case DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA:
         _ctrl_handler((struct da14531_ctrl_frame*)frame, queue);
         break;
-#if !defined(BOOTLOADER)
     case DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA:
         _hww_handler(frame, queue);
         break;
-#endif
     default:
         break;
     }

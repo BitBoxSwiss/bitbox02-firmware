@@ -21,11 +21,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
   ${CMAKE_SOURCE_DIR}/src/util.c
-  ${CMAKE_SOURCE_DIR}/src/uart.c
-  ${CMAKE_SOURCE_DIR}/src/da14531/crc.c
-  ${CMAKE_SOURCE_DIR}/src/da14531/da14531.c
-  ${CMAKE_SOURCE_DIR}/src/da14531/da14531_protocol.c
-  ${CMAKE_SOURCE_DIR}/src/da14531/da14531_handler.c
   ${CMAKE_SOURCE_DIR}/src/sd.c
   ${CMAKE_SOURCE_DIR}/src/system.c
   ${CMAKE_SOURCE_DIR}/src/hww.c
@@ -107,16 +102,17 @@ set(DBB-FIRMWARE-UI-SOURCES ${DBB-FIRMWARE-UI-SOURCES} PARENT_SCOPE)
 
 set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/util.c
-  ${CMAKE_SOURCE_DIR}/src/uart.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
   ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/startup.c
   ${CMAKE_SOURCE_DIR}/src/bootloader/mpu_regions.c
+  ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/memory/memory_shared.c
   ${CMAKE_SOURCE_DIR}/src/memory/mpu.c
   ${CMAKE_SOURCE_DIR}/src/memory/nvmctrl.c
   ${CMAKE_SOURCE_DIR}/src/memory/spi_mem.c
+  ${CMAKE_SOURCE_DIR}/src/memory/memory_spi.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
@@ -141,6 +137,16 @@ set(QTOUCH-SOURCES
   ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
 )
 set(QTOUCH-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
+
+# The additional files required for the plus platform
+set(PLATFORM-BITBOX02-PLUS-SOURCES
+  ${CMAKE_SOURCE_DIR}/src/uart.c
+  ${CMAKE_SOURCE_DIR}/src/da14531/crc.c
+  ${CMAKE_SOURCE_DIR}/src/da14531/da14531.c
+  ${CMAKE_SOURCE_DIR}/src/da14531/da14531_protocol.c
+  ${CMAKE_SOURCE_DIR}/src/da14531/da14531_handler.c
+)
+set(PLATFORM-BITBOX02-PLUS-SOURCES ${PLATFORM-BITBOX02-PLUS-SOURCES} PARENT_SCOPE)
 
 set(PLATFORM-BITBOX02-SOURCES
   ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
@@ -205,6 +211,7 @@ set(FIRMWARE-SOURCES
   ${DRIVER-SOURCES}
   ${QTOUCH-SOURCES}
   ${SECURECHIP-SOURCES}
+  ${PLATFORM-BITBOX02-PLUS-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
 )
 
@@ -348,23 +355,34 @@ endif()
 
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
 set(BOOTLOADERS-BITBOX02
-  bootloader # Runs signed firmware
-  bootloader-development # Runs signed/unsigned firmware and has bootloader menu
-  bootloader-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
-  bootloader-production # Runs signed firmware and bootloader is locked
-  bootloader-btc # Runs signed (btc-only keys) firmware
-  bootloader-btc-development # Runs signed/unsigned firmware and has bootloader menu
-  bootloader-btc-production # Runs signed (btc-only keys) firmware and bootloader is locked
+  bb02-bl-multi # Runs signed firmware
+  bb02-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
+  bb02-bl-multi-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
+  bb02-bl-multi-production # Runs signed firmware and bootloader is locked
+  bb02-bl-btconly # Runs signed (btc-only keys) firmware
+  bb02-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
+  bb02-bl-btconly-production # Runs signed (btc-only keys) firmware and bootloader is locked
   )
+set(BOOTLOADERS-BITBOX02PLUS
+  bb02p-bl-multi # Runs signed firmware
+  bb02p-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
+  bb02p-bl-multi-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
+  bb02p-bl-multi-production # Runs signed firmware and bootloader is locked
+  bb02p-bl-btconly # Runs signed (btc-only keys) firmware
+  bb02p-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
+  bb02p-bl-btconly-production # Runs signed (btc-only keys) firmware and bootloader is locked
+)
 set(BOOTLOADERS
   ${BOOTLOADERS-BITBOX02}
+  ${BOOTLOADERS-BITBOX02PLUS}
   )
 set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 
+# Used to add QTouch to development bootloaders of bb02 bootloaders
 set(DEVDEVICE-BOOTLOADERS
-  bootloader-development
-  bootloader-development-locked
-  bootloader-btc-development
+  bb02-bl-multi-development
+  bb02-bl-multi-development-locked
+  bb02-bl-btconly-development
 )
 
 set(FIRMWARES
@@ -436,7 +454,7 @@ if(CMAKE_CROSSCOMPILING)
 
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
-    add_executable(${elf} ${BOOTLOADER-SOURCES})
+    add_executable(${elf} ${BOOTLOADER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
     target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
@@ -454,31 +472,52 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
     target_compile_options(${elf} PRIVATE --specs=nosys.specs)
     target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+    target_link_libraries(${elf} PRIVATE -Wl,--print-memory-usage)
   endforeach(bootloader)
 
-  foreach(bootloader ${DEVDEVICE-BOOTLOADERS})
+  foreach(bootloader ${DEVDEVICE-BOOTLOADERS} ${BOOTLOADERS-BITBOX02PLUS})
     set(elf ${bootloader}.elf)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
     target_sources(${elf} PRIVATE ${QTOUCH-SOURCES})
   endforeach(bootloader)
 
-  foreach(bootloader ${BOOTLOADERS-BITBOX02})
-    target_sources(${bootloader}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  foreach(bootloader ${BOOTLOADERS-BITBOX02PLUS})
+    set(elf ${bootloader}.elf)
+    target_sources(${elf} PRIVATE ${PLATFORM-BITBOX02-PLUS-SOURCES})
+    target_link_libraries(${bootloader}.elf PRIVATE embedded-swd)
   endforeach(bootloader)
 
-  target_compile_definitions(bootloader.elf PRIVATE PRODUCT_BITBOX_MULTI)
-  target_compile_definitions(bootloader-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bootloader-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
-  set_property(TARGET bootloader-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
+  # BB02 definitions
+
+  target_compile_definitions(bb02-bl-multi.elf PRIVATE PRODUCT_BITBOX_MULTI)
+  target_compile_definitions(bb02-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bb02-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
+  set_property(TARGET bb02-bl-multi-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
 
-  target_compile_definitions(bootloader-production.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_PRODUCTION)
-  set_property(TARGET bootloader-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
+  target_compile_definitions(bb02-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_PRODUCTION)
+  set_property(TARGET bb02-bl-multi-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bootloader-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
-  target_compile_definitions(bootloader-btc-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bootloader-btc-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
-  set_property(TARGET bootloader-btc-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
+  target_compile_definitions(bb02-bl-btconly.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
+  target_compile_definitions(bb02-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bb02-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
+  set_property(TARGET bb02-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
+
+  # BB02PLUS definitions
+
+  target_compile_definitions(bb02p-bl-multi.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
+  target_compile_definitions(bb02p-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bb02p-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
+  set_property(TARGET bb02p-bl-multi-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
+
+
+  target_compile_definitions(bb02p-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_PRODUCTION)
+  set_property(TARGET bb02p-bl-multi-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
+
+  target_compile_definitions(bb02p-bl-btconly.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
+  target_compile_definitions(bb02p-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bb02p-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_PRODUCTION)
+  set_property(TARGET bb02p-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)

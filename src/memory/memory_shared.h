@@ -165,4 +165,7 @@ typedef struct {
 USE_RESULT bool memory_set_ble_metadata(const memory_ble_metadata_t* metadata);
 void memory_get_ble_metadata(memory_ble_metadata_t* metadata_out);
 
+// name_out must have MEMORY_DEVICE_NAME_MAX_LEN bytes in size.
+void memory_random_name(char* name_out);
+
 #endif

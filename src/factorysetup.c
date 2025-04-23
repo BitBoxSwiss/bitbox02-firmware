@@ -14,6 +14,7 @@
 
 #include "common_main.h"
 #include "da14531/da14531_binary.h"
+#include "da14531/da14531_protocol.h"
 #include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
@@ -24,9 +25,11 @@
 #include "platform_init.h"
 #include "screen.h"
 #include "securechip/securechip.h"
+#include "uart.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
+#include "utils_ringbuffer.h"
 #include <secp256k1.h>
 
 #include <wally_crypto.h>
@@ -152,6 +155,7 @@ typedef enum {
     BLE_ERR_FW_MISMATCH,
     BLE_ERR_SPI_ERASE,
     BLE_ERR_FW_NOT_ALLOWED,
+    BLE_ERR_NOT_BOOTED,
 } ble_error_code_t;
 
 static ble_error_code_t _ble_result;
@@ -442,8 +446,33 @@ static ble_error_code_t _setup_ble(void)
         screen_print_debug("_setup_ble: set metadata failed", 0);
         return BLE_ERR_SET_METADATA;
     }
+
     // Read back FW and re-compute and check hash.
-    return _verify_ble(ble_fw_hash, checksum);
+    ble_error_code_t status = _verify_ble(ble_fw_hash, checksum);
+    if (status != BLE_OK) {
+        screen_print_debug("_setup_ble: failed to verify new firmware", 0);
+        return status;
+    }
+
+    // Boot the chip
+    // protocol_init will reset the chip so it asks for the firmware.
+    da14531_protocol_init();
+    uint8_t uart_read_buf[1024];
+    uint16_t uart_read_buf_len = 0;
+    uint8_t uart_write_buf[1024];
+    struct ringbuffer uart_write_queue;
+    ringbuffer_init(&uart_write_queue, uart_write_buf, sizeof(uart_write_buf));
+    int32_t timeout = 1000000;
+    while (timeout-- > 0) {
+        uart_poll(uart_read_buf, sizeof(uart_read_buf), &uart_read_buf_len, &uart_write_queue);
+        struct da14531_protocol_frame* frame =
+            da14531_protocol_poll(uart_read_buf, &uart_read_buf_len, NULL, &uart_write_queue);
+        if (frame) {
+            // We have successfully booted the chip, the BLE chips firmware sent its first request
+            return BLE_OK;
+        }
+    }
+    return BLE_ERR_NOT_BOOTED;
 }
 
 int main(void)

@@ -11,6 +11,11 @@ macro_rules! log {
 // Make log macro usable in crate
 pub use log;
 
+#[cfg(feature = "rtt")]
+pub static mut CH1_UP: Option<rtt_target::UpChannel> = None;
+#[cfg(feature = "rtt")]
+pub static mut CH0_DOWN: Option<rtt_target::DownChannel> = None;
+
 pub fn rtt_init() {
     #[cfg(feature = "rtt")]
     {
@@ -22,11 +27,30 @@ pub fn rtt_init() {
                     name: "Terminal",
                     section: ".segger_rtt_buf",
                 }
+                1: {
+                    size:  1024,
+                    mode: rtt_target::ChannelMode::NoBlockSkip,
+                    name: "ApiResponse",
+                    section: ".segger_rtt_buf",
+                }
+            }
+            down: {
+                0: {
+                    size: 1024,
+                    mode: rtt_target::ChannelMode::NoBlockSkip,
+                    name: "ApiRequest",
+                    section: ".segger_rtt_buf",
+                }
             }
             section_cb: ".segger_rtt"
         };
 
         rtt_target::set_print_channel(channels.up.0);
+
+        unsafe {
+            CH0_DOWN = Some(channels.down.0);
+            CH1_UP = Some(channels.up.1);
+        }
 
         log!("RTT Initialized");
     }

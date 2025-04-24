@@ -139,7 +139,7 @@ mod tests {
     use crate::bb02_async::block_on;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
-    use bitbox02::testing::{mock_memory, mock_sd};
+    use bitbox02::testing::mock_memory;
 
     use prost::Message;
 
@@ -236,7 +236,6 @@ mod tests {
     #[test]
     fn test_noise() {
         mock_memory();
-        mock_sd();
         let mut make_request = init_noise();
         let request = crate::pb::Request {
             request: Some(crate::pb::request::Request::ListBackups(
@@ -477,7 +476,6 @@ mod tests {
         ] {
             bitbox02::keystore::lock();
             mock_memory();
-            mock_sd();
 
             bitbox02::memory::set_device_name("test device name").unwrap();
 
@@ -508,8 +506,7 @@ mod tests {
                 }]
             );
 
-            let mut mock_hal = TestingHal::new();
-            mock_hal.sd.inserted = Some(true);
+            mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             make_request(
                 &mut mock_hal,
                 (crate::pb::Request {
@@ -541,7 +538,7 @@ mod tests {
 
             let seed = bitbox02::keystore::copy_seed().unwrap();
             assert_eq!(seed.len(), host_entropy.len());
-            let mut mock_hal = TestingHal::new();
+            mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
@@ -566,7 +563,7 @@ mod tests {
             ));
             assert_eq!(mock_hal.ui.screens, vec![]);
 
-            let mut mock_hal = TestingHal::new();
+            mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             make_request(
                 &mut mock_hal,
                 (crate::pb::Request {
@@ -587,7 +584,7 @@ mod tests {
                 }]
             );
 
-            let mut mock_hal = TestingHal::new();
+            mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
@@ -612,7 +609,7 @@ mod tests {
             ));
             assert_eq!(mock_hal.ui.screens, vec![]);
 
-            let mut mock_hal = TestingHal::new();
+            mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             let backup_id = match crate::pb::Response::decode(
                 make_request(
                     &mut mock_hal,
@@ -647,7 +644,7 @@ mod tests {
             };
             assert_eq!(mock_hal.ui.screens, vec![]);
 
-            let mut mock_hal = TestingHal::new();
+            mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             mock_hal
                 .ui
                 .set_enter_string(Box::new(|_params| Ok("password".into())));

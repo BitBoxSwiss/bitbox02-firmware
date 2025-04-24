@@ -33,13 +33,6 @@ pub fn mock_unlocked() {
     mock_unlocked_using_mnemonic(TEST_MNEMONIC, "")
 }
 
-/// This mounts a new FAT32 volume in RAM for use in unit tests. As there is only one volume, access only serially.
-pub fn mock_sd() {
-    unsafe {
-        bitbox02_sys::sd_format();
-    }
-}
-
 unsafe extern "C" fn c_mock_random_32_bytes(buf_out: *mut u8) {
     let s = core::slice::from_raw_parts_mut(buf_out, 32);
     s.copy_from_slice(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");

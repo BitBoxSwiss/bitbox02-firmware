@@ -46,6 +46,8 @@ use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
 
+use crate::hal::Sd;
+
 /// Encodes a protobuf Response message.
 pub fn encode(response: Response) -> Vec<u8> {
     let response = pb::Response {
@@ -168,9 +170,9 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
             set_mnemonic_passphrase_enabled::process(hal, request).await
         }
         Request::InsertRemoveSdcard(ref request) => sdcard::process(hal, request).await,
-        Request::ListBackups(_) => backup::list(),
+        Request::ListBackups(_) => backup::list(hal),
         Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
-            inserted: bitbox02::sd::sdcard_inserted(),
+            inserted: hal.sd().sdcard_inserted(),
         })),
         Request::CheckBackup(ref request) => backup::check(hal, request).await,
         Request::CreateBackup(ref request) => backup::create(hal, request).await,

@@ -293,19 +293,6 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
     }
 }
 
-pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
-    match unsafe {
-        bitbox02_sys::keystore_encrypt_and_store_seed(
-            seed.as_ptr(),
-            seed.len(),
-            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
-        )
-    } {
-        keystore_error_t::KEYSTORE_OK => Ok(()),
-        err => Err(err.into()),
-    }
-}
-
 pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut seed = zeroize::Zeroizing::new([0u8; 96].to_vec());
     match unsafe { bitbox02_sys::keystore_get_ed25519_seed(seed.as_mut_ptr()) } {

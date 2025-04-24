@@ -14,6 +14,8 @@
 
 pub use bitbox02_sys::securechip_model_t as Model;
 
+use alloc::vec::Vec;
+
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match unsafe {
         bitbox02_sys::securechip_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
@@ -44,6 +46,28 @@ pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
 #[cfg(feature = "testing")]
 pub fn u2f_counter_set(_counter: u32) -> Result<(), ()> {
     Ok(())
+}
+
+pub fn init_new_password(password: &str) -> Result<(), ()> {
+    match unsafe {
+        bitbox02_sys::securechip_init_new_password(crate::util::str_to_cstr_vec(password)?.as_ptr())
+    } {
+        0 => Ok(()),
+        _ => Err(()),
+    }
+}
+
+pub fn stretch_password(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mut out = zeroize::Zeroizing::new(vec![0u8; 32]);
+    match unsafe {
+        bitbox02_sys::securechip_stretch_password(
+            crate::util::str_to_cstr_vec(password)?.as_ptr(),
+            out.as_mut_ptr(),
+        )
+    } {
+        0 => Ok(out),
+        _ => Err(()),
+    }
 }
 
 pub fn model() -> Result<Model, ()> {

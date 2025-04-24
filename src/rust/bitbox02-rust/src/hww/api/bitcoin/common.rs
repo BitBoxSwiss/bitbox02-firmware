@@ -29,6 +29,8 @@ use super::{multisig, params::Params, script};
 
 use sha2::{Digest, Sha256};
 
+use bitcoin::hashes::Hash;
+
 const HASH160_LEN: usize = 20;
 const SHA256_LEN: usize = 32;
 
@@ -92,7 +94,9 @@ impl Payload {
                     Payload::from_simple(xpub_cache, params, SimpleType::P2wpkh, keypath)?;
                 let pkscript_p2wpkh = payload_p2wpkh.pk_script(params)?;
                 Ok(Payload {
-                    data: bitbox02::hash160(&pkscript_p2wpkh).to_vec(),
+                    data: bitcoin::hashes::hash160::Hash::hash(&pkscript_p2wpkh)
+                        .to_byte_array()
+                        .to_vec(),
                     output_type: BtcOutputType::P2sh,
                 })
             }
@@ -140,7 +144,9 @@ impl Payload {
             pb::btc_script_config::multisig::ScriptType::P2wshP2sh => {
                 let pkscript_p2wsh = payload_p2wsh.pk_script(params)?;
                 Ok(Payload {
-                    data: bitbox02::hash160(&pkscript_p2wsh).to_vec(),
+                    data: bitcoin::hashes::hash160::Hash::hash(&pkscript_p2wsh)
+                        .to_byte_array()
+                        .to_vec(),
                     output_type: BtcOutputType::P2sh,
                 })
             }

@@ -18,6 +18,8 @@ use alloc::vec::Vec;
 
 pub use pb::btc_pub_request::XPubType;
 
+use bitcoin::hashes::Hash;
+
 #[derive(Clone)]
 pub struct Xpub {
     xpub: pb::XPub,
@@ -114,14 +116,17 @@ impl Xpub {
 
     /// Return the hash160 of the secp256k1 public key.
     pub fn pubkey_hash160(&self) -> Vec<u8> {
-        bitbox02::hash160(self.public_key()).to_vec()
+        bitcoin::hashes::hash160::Hash::hash(self.public_key())
+            .to_byte_array()
+            .to_vec()
     }
 
     /// Return the 65 byte secp256k1 compressed pubkey:
     ///
     /// (<0x04><64 bytes X><64 bytes Y>).
     pub fn pubkey_uncompressed(&self) -> Result<[u8; 65], ()> {
-        bitbox02::keystore::secp256k1_pubkey_compressed_to_uncompressed(self.public_key())
+        let pk = bitcoin::secp256k1::PublicKey::from_slice(self.public_key()).map_err(|_| ())?;
+        Ok(pk.serialize_uncompressed())
     }
 
     /// Return the tweaked taproot pubkey.
@@ -132,7 +137,14 @@ impl Xpub {
     /// See
     /// https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#address-derivation
     pub fn schnorr_bip86_pubkey(&self) -> Result<[u8; 32], ()> {
-        bitbox02::keystore::secp256k1_schnorr_bip86_pubkey(self.public_key())
+        use bitcoin::key::TapTweak;
+        let untweaked_pubkey: bitcoin::key::UntweakedPublicKey =
+            bitcoin::key::PublicKey::from_slice(self.public_key())
+                .map_err(|_| ())?
+                .into();
+        let secp = bitcoin::secp256k1::Secp256k1::new();
+        let (tweaked, _) = untweaked_pubkey.tap_tweak(&secp, None);
+        Ok(tweaked.serialize())
     }
 }
 

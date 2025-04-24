@@ -22,7 +22,6 @@ const ALLOWLIST_VARS: &[&str] = &[
     "BIP32_SERIALIZED_LEN",
     "BIP39_WORDLIST_LEN",
     "EC_PUBLIC_KEY_LEN",
-    "EC_PUBLIC_KEY_UNCOMPRESSED_LEN",
     "INPUT_STRING_MAX_SIZE",
     "KEYSTORE_MAX_SEED_LENGTH",
     "MAX_LABEL_SIZE",
@@ -73,10 +72,8 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_is_locked",
     "keystore_lock",
     "keystore_mock_unlocked",
-    "keystore_secp256k1_compressed_to_uncompressed",
     "keystore_secp256k1_get_private_key",
     "keystore_secp256k1_nonce_commit",
-    "keystore_secp256k1_schnorr_bip86_pubkey",
     "keystore_secp256k1_schnorr_sign",
     "keystore_secp256k1_sign",
     "keystore_unlock",
@@ -141,7 +138,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "util_format_datetime",
     "wally_free_string",
     "wally_get_secp_context",
-    "wally_hash160",
     "wally_sha512",
 ];
 

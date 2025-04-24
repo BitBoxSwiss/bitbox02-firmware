@@ -24,7 +24,7 @@
 #include <secp256k1.h>
 #include <wally_bip32.h>
 #include <wally_bip39.h> // for BIP39_WORDLIST_LEN
-#include <wally_crypto.h> // for EC_PUBLIC_KEY_UNCOMPRESSED_LEN and EC_PUBLIC_KEY_LEN
+#include <wally_crypto.h> // for EC_PUBLIC_KEY_LEN
 
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
@@ -160,14 +160,6 @@ void keystore_zero_xkey(struct ext_key* xkey);
  */
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
 
-// Reformats pubkey from compressed 33 bytes to uncompressed 65 bytes (<0x04><64 bytes X><64 bytes
-// Y>),
-// pubkey must be 33 bytes
-// uncompressed_out must be 65 bytes.
-USE_RESULT bool keystore_secp256k1_compressed_to_uncompressed(
-    const uint8_t* pubkey_bytes,
-    uint8_t* uncompressed_out);
-
 /**
  * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of
  * the ECDSA Anti-Klepto Protocol. For more details, check the docs of
@@ -274,23 +266,7 @@ USE_RESULT bool keystore_encode_xpub_at_keypath(
     uint8_t* out);
 
 /**
- * Return the tweaked taproot pubkey.
- *
- * Instead of returning the original pubkey directly, it is tweaked with the hash of the pubkey.
- *
- * See
- * https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#address-derivation
- *
- * @param[in] pubkey33 33 byte compressed pubkey.
- * @param[out] pubkey_out 32 byte x-only pubkey (see BIP-340 for details).
- */
-USE_RESULT bool keystore_secp256k1_schnorr_bip86_pubkey(
-    const uint8_t* pubkey33,
-    uint8_t* pubkey_out);
-
-/**
- * Sign a message that verifies against the pubkey returned by
- * `keystore_secp256k1_schnorr_bip86_pubkey()`.
+ * Sign a message that verifies against the pubkey tweaked using BIP-86.
  *
  * @param[in] keypath derivation keypath
  * @param[in] keypath_len number of elements in keypath

@@ -638,68 +638,6 @@ static void _test_secp256k1_schnorr_sign(void** state)
     }
 }
 
-static void _test_keystore_secp256k1_schnorr_bip86_pubkey(void** state)
-{
-    // Test vectors from:
-    // https://github.com/bitcoin/bips/blob/edffe529056f6dfd33d8f716fb871467c3c09263/bip-0086.mediawiki#test-vectors
-    // Here we only test the creation of the tweaked pubkkey.
-    _mock_with_mnemonic(
-        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
-        "about",
-        "");
-    {
-        const uint32_t keypath[] = {
-            86 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0,
-            0,
-        };
-        struct ext_key xpub = {0};
-        assert_true(keystore_get_xpub(keypath, 5, &xpub));
-        uint8_t pubkey[32] = {0};
-        assert_true(keystore_secp256k1_schnorr_bip86_pubkey(xpub.pub_key, pubkey));
-        const uint8_t expected_pubkey[32] =
-            "\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4"
-            "\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c";
-        assert_memory_equal(pubkey, expected_pubkey, sizeof(pubkey));
-    }
-    {
-        const uint32_t keypath[] = {
-            86 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0,
-            1,
-        };
-        struct ext_key xpub = {0};
-        assert_true(keystore_get_xpub(keypath, 5, &xpub));
-        uint8_t pubkey[32] = {0};
-        assert_true(keystore_secp256k1_schnorr_bip86_pubkey(xpub.pub_key, pubkey));
-        const uint8_t expected_pubkey[32] =
-            "\xa8\x2f\x29\x94\x4d\x65\xb8\x6a\xe6\xb5\xe5\xcc\x75\xe2\x94\xea\xd6\xc5\x93\x91\xa1"
-            "\xed\xc5\xe0\x16\xe3\x49\x8c\x67\xfc\x7b\xbb";
-        assert_memory_equal(pubkey, expected_pubkey, sizeof(pubkey));
-    }
-    {
-        const uint32_t keypath[] = {
-            86 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            0 + BIP32_INITIAL_HARDENED_CHILD,
-            1,
-            0,
-        };
-        struct ext_key xpub = {0};
-        assert_true(keystore_get_xpub(keypath, 5, &xpub));
-        uint8_t pubkey[32] = {0};
-        assert_true(keystore_secp256k1_schnorr_bip86_pubkey(xpub.pub_key, pubkey));
-        const uint8_t expected_pubkey[32] =
-            "\x88\x2d\x74\xe5\xd0\x57\x2d\x5a\x81\x6c\xef\x00\x41\xa9\x6b\x6c\x1d\xe8\x32\xf6\xf9"
-            "\x67\x6d\x96\x05\xc4\x4d\x5e\x9a\x97\xd3\xdc";
-        assert_memory_equal(pubkey, expected_pubkey, sizeof(pubkey));
-    }
-}
-
 static void _test_keystore_secp256k1_schnorr_sign(void** state)
 {
     _mock_with_mnemonic(
@@ -762,7 +700,6 @@ int main(void)
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_keystore_get_ed25519_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),
-        cmocka_unit_test(_test_keystore_secp256k1_schnorr_bip86_pubkey),
         cmocka_unit_test(_test_keystore_secp256k1_schnorr_sign),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

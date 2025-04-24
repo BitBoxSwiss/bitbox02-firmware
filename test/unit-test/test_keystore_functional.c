@@ -118,7 +118,7 @@ static bool _encode_xpub(const struct ext_key* xpub, char* out, size_t out_len)
         rust_util_bytes(bytes, sizeof(bytes)), rust_util_bytes_mut((uint8_t*)out, out_len));
 }
 
-static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_uncompressed_hex)
+static void _check_pubs(const char* expected_xpub)
 {
     struct ext_key __attribute__((__cleanup__(keystore_zero_xkey))) xpub_3;
     struct ext_key __attribute__((__cleanup__(keystore_zero_xkey))) xpub_5;
@@ -135,11 +135,6 @@ static void _check_pubs(const char* expected_xpub, const char* expected_pubkey_u
     char xpub_serialized[120];
     assert_true(_encode_xpub(&xpub_3, xpub_serialized, sizeof(xpub_serialized)));
     assert_string_equal(xpub_serialized, expected_xpub);
-
-    uint8_t pubkey_uncompressed[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
-    assert_true(keystore_secp256k1_compressed_to_uncompressed(xpub_5.pub_key, pubkey_uncompressed));
-    _assert_equal_memory_hex(
-        pubkey_uncompressed, sizeof(pubkey_uncompressed), expected_pubkey_uncompressed_hex);
 }
 
 static void _test_combination(
@@ -147,7 +142,6 @@ static void _test_combination(
     uint32_t seed_len,
     const char* expected_mnemonic,
     const char* expected_xpub,
-    const char* expected_pubkey_uncompressed_hex,
     const char* expected_u2f_seed_hex)
 {
     assert_false(keystore_unlock_bip39(mnemonic_passphrase));
@@ -163,7 +157,7 @@ static void _test_combination(
     assert_true(keystore_unlock_bip39(mnemonic_passphrase));
     assert_false(keystore_is_locked());
     _check_mnemonic(expected_mnemonic);
-    _check_pubs(expected_xpub, expected_pubkey_uncompressed_hex);
+    _check_pubs(expected_xpub);
 
     uint8_t u2f_seed[32];
     assert_true(keystore_get_u2f_seed(u2f_seed));
@@ -182,18 +176,10 @@ static void _test_fixtures(void** state)
         const char* expected_xpub =
             "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZc"
             "fAC1C75HfR66UbjpAb39f4PnG";
-        const char* expected_pubkey_uncompressed_hex =
-            "0477a44aa9e8c8fb5105ef5ee2394e8aed89ad73fc74361425f06347ecfe326131e1339367ee3cbe877192"
-            "85a07f774b17eb933ecf0b9b82acebc195226d634244";
         const char* expected_u2f_seed_hex =
             "4f464a6667ad88eebcd0f02982761e474ee0dd16253160320f49d1d6681745e9";
         _test_combination(
-            mnemonic_passphrase,
-            seed_len,
-            expected_mnemonic,
-            expected_xpub,
-            expected_pubkey_uncompressed_hex,
-            expected_u2f_seed_hex);
+            mnemonic_passphrase, seed_len, expected_mnemonic, expected_xpub, expected_u2f_seed_hex);
     }
     {
         const char* mnemonic_passphrase = "abc";
@@ -204,18 +190,10 @@ static void _test_fixtures(void** state)
         const char* expected_xpub =
             "xpub6DXBP3HhFdhUTafatEULxfTXUUxDVuCxfa9RAiBU5r6aRgKiABbeBDyqwWWjmKPP1BZvpvVNMbVR5LeHzh"
             "QphtLcPZ8jk3MdLBgc2sACJwR";
-        const char* expected_pubkey_uncompressed_hex =
-            "044fb66eeefd352b441c86a6200a1e871928a367f5ab5f46566645d01d0534791ae39ff64a7d14d2427297"
-            "61ebd3829e8536b389dba543cbc48b1d86c01559d27b";
         const char* expected_u2f_seed_hex =
             "d599da991ad83baaf449c789e2dff1539dd66983b47a1dec1c00ff3f352cccbc";
         _test_combination(
-            mnemonic_passphrase,
-            seed_len,
-            expected_mnemonic,
-            expected_xpub,
-            expected_pubkey_uncompressed_hex,
-            expected_u2f_seed_hex);
+            mnemonic_passphrase, seed_len, expected_mnemonic, expected_xpub, expected_u2f_seed_hex);
     }
     {
         const char* mnemonic_passphrase = "";
@@ -226,18 +204,10 @@ static void _test_fixtures(void** state)
         const char* expected_xpub =
             "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18B"
             "G81VJhJDXnSpRe5NGKwVpXiAb";
-        const char* expected_pubkey_uncompressed_hex =
-            "043113631363e62a07d6a0becafc8063bb311fd1e9e71a6930d995857837642648aba5c743374e19428565"
-            "80f565c6b929737af5439f65f5333baf1d63c1f986bf";
         const char* expected_u2f_seed_hex =
             "fb9dc3fb0a17390776df5c3d8f9261bc5fd5df9f00414cee1393e37e0efda7ef";
         _test_combination(
-            mnemonic_passphrase,
-            seed_len,
-            expected_mnemonic,
-            expected_xpub,
-            expected_pubkey_uncompressed_hex,
-            expected_u2f_seed_hex);
+            mnemonic_passphrase, seed_len, expected_mnemonic, expected_xpub, expected_u2f_seed_hex);
     }
     {
         const char* mnemonic_passphrase = "";
@@ -247,18 +217,10 @@ static void _test_fixtures(void** state)
         const char* expected_xpub =
             "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6"
             "gA4ULCBhvwZj29mHCPYSux3YV";
-        const char* expected_pubkey_uncompressed_hex =
-            "04588110a40455d74a3fd439fa2f4c0994cd0dc64644f9e5bc03cc99e7fcfe32eea56cb72d31cb997663b1"
-            "f62ad12e9c3a24b717064e8db4cc8ca70ac8a98a46a5";
         const char* expected_u2f_seed_hex =
             "20d68b206aff9667b623a460ce61fc94762de67561d6855ca9a6df7b409b2a54";
         _test_combination(
-            mnemonic_passphrase,
-            seed_len,
-            expected_mnemonic,
-            expected_xpub,
-            expected_pubkey_uncompressed_hex,
-            expected_u2f_seed_hex);
+            mnemonic_passphrase, seed_len, expected_mnemonic, expected_xpub, expected_u2f_seed_hex);
     }
 }
 

@@ -22,7 +22,6 @@ use core::convert::TryInto;
 use bitbox02_sys::keystore_error_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
-pub const EC_PUBLIC_KEY_UNCOMPRESSED_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_UNCOMPRESSED_LEN as _;
 pub const EC_PUBLIC_KEY_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_LEN as _;
 pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usize;
 
@@ -200,21 +199,6 @@ pub fn get_bip39_wordlist(indices: Option<&[u16]>) -> Bip39Wordlist {
     )
 }
 
-pub fn secp256k1_pubkey_compressed_to_uncompressed(
-    compressed_pubkey: &[u8],
-) -> Result<[u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN], ()> {
-    let mut pubkey = [0u8; EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_compressed_to_uncompressed(
-            compressed_pubkey.as_ptr(),
-            pubkey.as_mut_ptr(),
-        )
-    } {
-        true => Ok(pubkey),
-        false => Err(()),
-    }
-}
-
 pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<Vec<u8>, ()> {
     let mut xpub = vec![0u8; bitbox02_sys::BIP32_SERIALIZED_LEN as _];
     match unsafe {
@@ -372,19 +356,6 @@ pub fn secp256k1_schnorr_sign(
         )
     } {
         true => Ok(signature),
-        false => Err(()),
-    }
-}
-
-pub fn secp256k1_schnorr_bip86_pubkey(pubkey33: &[u8]) -> Result<[u8; 32], ()> {
-    let mut pubkey = [0u8; 32];
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_schnorr_bip86_pubkey(
-            pubkey33.as_ptr(),
-            pubkey.as_mut_ptr(),
-        )
-    } {
-        true => Ok(pubkey),
         false => Err(()),
     }
 }

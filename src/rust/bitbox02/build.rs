@@ -14,7 +14,6 @@ fn main() {
             // external libs
             println!("cargo::rustc-link-lib=wallycore");
             println!("cargo::rustc-link-lib=secp256k1");
-            println!("cargo::rustc-link-lib=ctaes");
             println!("cargo::rustc-link-lib=fatfs");
             println!("cargo::rustc-link-lib=sd-mock");
 

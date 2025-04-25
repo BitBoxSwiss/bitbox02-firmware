@@ -1,9 +1,6 @@
 [submodule "external/cryptoauthlib"]
 	path = external/cryptoauthlib
 	url = https://github.com/BitBoxSwiss/cryptoauthlib.git
-[submodule "external/ctaes"]
-	path = external/ctaes
-	url = https://github.com/BitBoxSwiss/ctaes.git
 [submodule "external/libwally-core"]
 	path = external/libwally-core
 	url = https://github.com/BitBoxSwiss/libwally-core.git

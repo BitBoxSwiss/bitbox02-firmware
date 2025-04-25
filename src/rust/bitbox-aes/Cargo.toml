@@ -1,0 +1,35 @@
+# Copyright 2025 Shift Cryptos AG
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[package]
+name = "bitbox-aes"
+version = "0.1.0"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2024"
+license = "Apache-2.0"
+
+[dependencies]
+bitbox02 = { path = "../bitbox02", optional = true }
+sha2 = { workspace = true }
+hmac = { version = "0.12", default-features = false, features = ["reset"] }
+ctaes = { version = "0.1.0" }
+zeroize = { workspace = true }
+
+[features]
+# We use wally_sha512 over `sha2::Sha512`, which bloats the binary by an additional ~12.7kB (at the
+# time of writing).  This should be enabled for production builds until we can get rid of
+# wally_sha512 completely.  This feature exists so `cargo test` works.
+use-wally-sha512 = [
+  "dep:bitbox02",
+]

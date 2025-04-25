@@ -30,10 +30,6 @@
 #include <secp256k1_extrakeys.h>
 #include <secp256k1_schnorrsig.h>
 
-// This number of KDF iterations on the 2nd kdf slot when stretching the device
-// password.
-#define KDF_NUM_ITERATIONS (2)
-
 // Change this ONLY via keystore_unlock() or keystore_lock()
 static bool _is_unlocked_device = false;
 // Stores a random key after unlock which, after stretching, is used to encrypt the retained seed.

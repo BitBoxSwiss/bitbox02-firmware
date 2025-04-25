@@ -23,6 +23,7 @@ members = [
     "bitbox02-sys",
     "erc20_params",
     "streaming-silent-payments",
+    "bitbox-aes",
 ]
 
 resolver = "2"
@@ -71,3 +72,7 @@ codegen-units = 1
 panic = 'unwind'
 # Set to false to potentially reduce binary size
 incremental = true
+
+[profile.test]
+debug-assertions = true
+overflow-checks = true

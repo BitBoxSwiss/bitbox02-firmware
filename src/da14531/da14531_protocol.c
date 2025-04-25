@@ -68,7 +68,7 @@ enum escape_state {
 struct serial_link_in {
     enum serial_link_in_state state;
     enum escape_state escape_state;
-    uint8_t buf_in[128];
+    uint8_t buf_in[512];
     size_t buf_in_len;
     uint8_t frame[2048];
     size_t frame_len;
@@ -103,9 +103,10 @@ static const char* _firmware_loader_state_str(enum firmware_loader_state state)
 
 static void _firmware_loader_init(struct firmware_loader* self)
 {
-// If we are in bootloader or factory setup we expect to load the ble firmware, so we start in IDLE.
-// In production firmware we expect the da14531 to already be booted.
-#if defined(BOOTLOADER) || FACTORYSETUP == 1
+// If we are in factory setup we expect to load the ble firmware, so we start in IDLE.
+// In production bootloader and firmware we expect the da14531 to already be booted. We will still
+// load the firmware if it happens to not be loaded.
+#if FACTORYSETUP == 1
     self->state = FIRMWARE_LOADER_STATE_IDLE;
 #else
     self->state = FIRMWARE_LOADER_STATE_DONE;
@@ -148,6 +149,8 @@ static void _firmware_loader_poll(
             if (buf_in[i] == STX) {
                 util_log("da14531: requested firmware");
                 self->state = FIRMWARE_LOADER_STATE_SEEN_STX;
+                // There is no point in sending anything that was scheduled to be sent out
+                ringbuffer_flush(out_queue);
                 break;
             }
         }
@@ -243,10 +246,7 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
             if (self->buf_in[i] == STX) {
                 // Reset ourselves
                 _serial_link_in_init(self);
-                // It is very important that we go straight to SEEN_STX. In case the BLE chip hasn't
-                // been configured it will only request the firmware once. We must not miss that
-                // request.
-                _protocol.loader.state = FIRMWARE_LOADER_STATE_SEEN_STX;
+                _protocol.loader.state = FIRMWARE_LOADER_STATE_IDLE;
                 break;
             }
             // Always reset on SOF
@@ -452,7 +452,12 @@ void da14531_protocol_init(void)
 #if FACTORYSETUP == 1 || !defined(NDEBUG)
     // Reset the device if possible, if we cannot reset it over SWD, it must already be running
     if (!_swd_reset_da14531()) {
+        // This may fail if the BLE chip has been started with a production firmware that has
+        // disabled the debug interface
         util_log("da14531: Failed to reset over SWD");
+    } else {
+        // If we successfully reset the chip, we also would like to load it with firmware
+        _protocol.loader.state = FIRMWARE_LOADER_STATE_IDLE;
     }
 #endif
 }

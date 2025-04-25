@@ -39,6 +39,7 @@
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
+#include "da14531/da14531.h"
 #include "da14531/da14531_protocol.h"
 #include "utils_ringbuffer.h"
 #include <uart.h>
@@ -823,16 +824,9 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
 
     case OP_REBOOT: {
 #if PLATFORM_BITBOX02PLUS == 1
-        // Send an empty product string
-        uint8_t payload = 7;
-        uint8_t tmp[32];
-        uint16_t tmp_len = da14531_protocol_format(
-            &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload, 1);
-        ASSERT(len <= sizeof(tmp));
-        ASSERT(ringbuffer_num(data->queue) + len <= data->queue->size);
-        for (int i = 0; i < tmp_len; i++) {
-            ringbuffer_put(&uart_write_queue, tmp[i]);
-        }
+        // da14531_set_product("", 0, &uart_write_queue);
+        da14531_reset(&uart_write_queue);
+        // Send it now, because we are about to reset ourselves
         while (ringbuffer_num(&uart_write_queue)) {
             uart_poll(NULL, 0, NULL, &uart_write_queue);
         }

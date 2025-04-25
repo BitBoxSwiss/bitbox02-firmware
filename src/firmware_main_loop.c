@@ -62,6 +62,10 @@ void firmware_main_loop(void)
     uint8_t uart_write_buf[UART_OUT_BUF_LEN];
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
 
+// Immediately enqueue the new firmware product string
+#define DEVICE_MODE "{\"p\":\"bb02p-multi\",\"v\":\"9.22.0\"}"
+    da14531_set_product(DEVICE_MODE, sizeof(DEVICE_MODE) - 1, &uart_write_queue);
+
     const uint8_t* hww_data = NULL;
     uint8_t hww_frame[USB_REPORT_SIZE] = {0};
 

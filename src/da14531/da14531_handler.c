@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "da14531/da14531_handler.h"
+#include "da14531.h"
 #include "hardfault.h"
 #include "memory/memory.h"
 #include "memory/memory_shared.h"
@@ -22,20 +23,6 @@
 #include "utils_ringbuffer.h"
 #include <ui/components/confirm.h>
 #include <ui/fonts/monogram_5X9.h>
-
-// Control commands
-#define CTRL_CMD_DEVICE_NAME 1
-#define CTRL_CMD_BOND_DB_GET 2
-#define CTRL_CMD_BOND_DB_SET 3
-#define CTRL_CMD_PAIRING_CODE 4
-#define CTRL_CMD_BLE_STATUS 5
-#define CTRL_CMD_IRK 6
-#define CTRL_CMD_PRODUCT_STRING 7
-#define CTRL_CMD_BLE_CHIP_RESET 8
-#define CTRL_CMD_IDENTITY_ADDRESS 9
-#define CTRL_CMD_PAIRING_SUCCESSFUL 10
-#define CTRL_CMD_TK_CONFIRM 11
-#define CTRL_CMD_DEBUG 254
 
 struct da14531_ctrl_frame {
     enum da14531_protocol_packet_type type;
@@ -228,20 +215,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
 #else
 #define DEVICE_MODE "{\"p\":\"bb02p-multi\",\"v\":\"9.22.0\"}"
 #endif
-        uint8_t response[64] = {0};
-        response[0] = CTRL_CMD_PRODUCT_STRING;
-        memcpy(&response[1], DEVICE_MODE, sizeof(DEVICE_MODE) - 1);
-        uint16_t len = da14531_protocol_format(
-            &tmp[0],
-            sizeof(tmp),
-            DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA,
-            &response[0],
-            1 + sizeof(DEVICE_MODE) - 1);
-        ASSERT(len <= sizeof(tmp));
-        ASSERT(ringbuffer_num(queue) + len <= queue->size);
-        for (int i = 0; i < len; i++) {
-            ringbuffer_put(queue, tmp[i]);
-        }
+        da14531_set_product(DEVICE_MODE, sizeof(DEVICE_MODE) - 1, queue);
     } break;
     case CTRL_CMD_IDENTITY_ADDRESS: {
         // util_log("da14531: get addr");

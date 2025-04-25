@@ -17,6 +17,28 @@
 
 #include "utils_ringbuffer.h"
 
+// Control commands
+#define CTRL_CMD_DEVICE_NAME 1
+#define CTRL_CMD_BOND_DB_GET 2
+#define CTRL_CMD_BOND_DB_SET 3
+#define CTRL_CMD_PAIRING_CODE 4
+#define CTRL_CMD_BLE_STATUS 5
+#define CTRL_CMD_IRK 6
+#define CTRL_CMD_PRODUCT_STRING 7
+#define CTRL_CMD_BLE_CHIP_RESET 8
+#define CTRL_CMD_IDENTITY_ADDRESS 9
+#define CTRL_CMD_PAIRING_SUCCESSFUL 10
+#define CTRL_CMD_TK_CONFIRM 11
+#define CTRL_CMD_BLE_POWER_DOWN 12
+#define CTRL_CMD_DEBUG 254
+
 void da14531_power_down(struct ringbuffer* uart_out);
+
+void da14531_reset(struct ringbuffer* uart_out);
+
+// product is an array of characters to be set as product characteristic
+// procuct_len is the number of characters in the product array
+// uart_out is the queue where to put the outgoing serially encoded bytes
+void da14531_set_product(const char* product, uint16_t product_len, struct ringbuffer* uart_out);
 
 #endif

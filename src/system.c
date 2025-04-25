@@ -19,8 +19,19 @@
 #include <driver_init.h>
 #endif
 
+#include "da14531/da14531.h"
+#include "uart.h"
+#include "utils_ringbuffer.h"
+
 void reboot(void)
 {
+    struct ringbuffer uart_queue;
+    uint8_t uart_queue_buf[64];
+    ringbuffer_init(&uart_queue, &uart_queue_buf[0], sizeof(uart_queue_buf));
+    da14531_set_product("", 0, &uart_queue);
+    while (ringbuffer_num(&uart_queue)) {
+        uart_poll(NULL, 0, NULL, &uart_queue);
+    }
     auto_enter_t auto_enter = {
         .value = sectrue_u8,
     };

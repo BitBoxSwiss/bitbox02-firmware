@@ -87,6 +87,8 @@ int main(void)
     uint16_t uart_read_buf_len = 0;
 
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
+#define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"1.1.0\"}"
+    da14531_set_product(DEVICE_MODE, sizeof(DEVICE_MODE) - 1, &uart_write_queue);
     bool usb_hww_request_seen = false;
 
     da14531_protocol_init();

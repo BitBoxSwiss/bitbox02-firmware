@@ -54,6 +54,8 @@ int bootloader_pairing_request = false;
 uint8_t bootloader_pairing_code_bytes[16] = {0};
 // Must be power of 2, must fit bond_db
 #define UART_OUT_BUF_LEN 2048
+struct ringbuffer uart_write_queue;
+uint8_t uart_write_buf[UART_OUT_BUF_LEN];
 #endif
 
 int main(void)
@@ -84,8 +86,6 @@ int main(void)
     uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
     uint16_t uart_read_buf_len = 0;
 
-    struct ringbuffer uart_write_queue;
-    uint8_t uart_write_buf[UART_OUT_BUF_LEN];
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
     bool usb_hww_request_seen = false;
 

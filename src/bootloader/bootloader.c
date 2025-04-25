@@ -22,7 +22,6 @@
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
-#include <qtouch/qtouch.h>
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
@@ -34,6 +33,16 @@
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
 #include <util.h>
+
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#include <qtouch/qtouch.h>
+#endif
+
+#if PLATFORM_BITBOX02PLUS == 1
+#include "da14531/da14531_protocol.h"
+#include "utils_ringbuffer.h"
+#include <uart.h>
+#endif
 
 #include <assert.h>
 
@@ -131,7 +140,9 @@ static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
 #error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
 #endif
 
-// TODO: New root keys for plus?
+#if PLATFORM_BITBOX02PLUS == 1
+extern struct ringbuffer uart_write_queue;
+#endif
 
 // clang-format off
 #if (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_PLUS_BTCONLY == 1)
@@ -810,9 +821,25 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         len = _api_firmware_erase(input[1], output);
         break;
 
-    case OP_REBOOT:
+    case OP_REBOOT: {
+#if PLATFORM_BITBOX02PLUS == 1
+        // Send an empty product string
+        uint8_t payload = 7;
+        uint8_t tmp[32];
+        uint16_t tmp_len = da14531_protocol_format(
+            &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload, 1);
+        ASSERT(len <= sizeof(tmp));
+        ASSERT(ringbuffer_num(data->queue) + len <= data->queue->size);
+        for (int i = 0; i < tmp_len; i++) {
+            ringbuffer_put(&uart_write_queue, tmp[i]);
+        }
+        while (ringbuffer_num(&uart_write_queue)) {
+            uart_poll(NULL, 0, NULL, &uart_write_queue);
+        }
+#endif
+
         _api_reboot();
-        break;
+    } break;
 
     case OP_WRITE_FIRMWARE_CHUNK: {
         uint8_t chunk_num = input[1];

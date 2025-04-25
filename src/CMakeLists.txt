@@ -481,7 +481,6 @@ if(CMAKE_CROSSCOMPILING)
         optiga
         cryptoauthlib
         fatfs
-        ctaes
         c
         samd51a-ds
         asf4-drivers-min

@@ -35,6 +35,15 @@
 // Must be 0 for the production firmware releases.
 #define FACTORY_DURING_PROD 0
 
+// When to do a sanity check of the expected metadata configuration. The check takes a while and
+// causes a noticable delay at boot, so we don't enable it for production firmwares. We also enable
+// it in debug builds.
+#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || !defined(NDEBUG)
+#define VERIFY_METADATA 1
+#else
+#define VERIFY_METADATA 0
+#endif
+
 // Number of times the first kdf slot can be used over the lifetime of the device.
 // The maxmimum does not seem to be specified, so we use something a little below the endurance
 // indication of 600000 updates. See Solution Reference Manual Figure 32.
@@ -122,6 +131,7 @@ static const securechip_interface_functions_t* _ifs = NULL;
 // During development, set this to `LCSO_STATE_CREATION`.
 #define FINAL_LCSO_STATE LCSO_STATE_OPERATIONAL
 
+#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || VERIFY_METADATA == 1
 static const uint8_t _platform_binding_metadata[] = {
     // Metadata tag in the data object
     0x20,
@@ -411,18 +421,6 @@ static const uint8_t _password_metadata[] = {
     0x31,
 };
 
-#if SMALL_MONOTONIC_COUNTER_MAX_USE > 255
-#error Max unlock attempts does not fit in one byte
-#endif
-// The intial/reset buffer for the small monotonic counter. Initial value: 0, threshold:
-// `SMALL_MONOTONIC_COUNTER_MAX_USE`. Table "Common data structures" -> "Counter":
-// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link24b48059_db81_40f5_8b65_7afca4918ab1
-// Bytes 0-3 are the initial counter value, set to 0.
-// Bytes 4-7 are the threshold.
-// Ints are encoded as uint32 big endian.
-static const uint8_t _counter_password_reset_buf[8] =
-    {0, 0, 0, 0, 0, 0, 0, SMALL_MONOTONIC_COUNTER_MAX_USE};
-
 static const uint8_t _counter_password_metadata[] = {
     // Metadata tag in the data object
     0x20,
@@ -454,6 +452,20 @@ static const uint8_t _counter_password_metadata[] = {
     0x01,
     0x00,
 };
+
+#endif
+
+#if SMALL_MONOTONIC_COUNTER_MAX_USE > 255
+#error Max unlock attempts does not fit in one byte
+#endif
+// The intial/reset buffer for the small monotonic counter. Initial value: 0, threshold:
+// `SMALL_MONOTONIC_COUNTER_MAX_USE`. Table "Common data structures" -> "Counter":
+// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link24b48059_db81_40f5_8b65_7afca4918ab1
+// Bytes 0-3 are the initial counter value, set to 0.
+// Bytes 4-7 are the threshold.
+// Ints are encoded as uint32 big endian.
+static const uint8_t _counter_password_reset_buf[8] =
+    {0, 0, 0, 0, 0, 0, 0, SMALL_MONOTONIC_COUNTER_MAX_USE};
 
 //
 // Sync wrappers around optiga util/crypt functions
@@ -517,6 +529,7 @@ static optiga_lib_status_t _optiga_util_write_data_sync(
     return res;
 }
 
+#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || VERIFY_METADATA == 1
 static optiga_lib_status_t _optiga_util_read_metadata_sync(
     optiga_util_t* me,
     uint16_t optiga_oid,
@@ -528,6 +541,7 @@ static optiga_lib_status_t _optiga_util_read_metadata_sync(
     _WAIT(res, _optiga_lib_status);
     return res;
 }
+#endif
 
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 static optiga_lib_status_t _optiga_util_write_metadata_sync(
@@ -781,6 +795,7 @@ static int _write_arbitrary_data(const arbitrary_data_t* data)
 }
 #endif
 
+#if VERIFY_METADATA == 1
 // In a metadata object (0x20 <len> <tag> <tag len> <tag data> ...),
 // extract tag data for a specific tag.
 // Returns false if the metadata is invalid or the tag is not present, or if the tag data is larger
@@ -834,6 +849,7 @@ static bool _read_metadata_tag(
     // Tag not found
     return false;
 }
+#endif
 
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 // Read the LcsO status from a metadata object. Returns false if the metadata is invalid or LcsO is
@@ -1212,6 +1228,7 @@ static int _factory_setup(void)
 }
 #endif // FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 
+#if VERIFY_METADATA == 1
 static int _verify_metadata(
     uint16_t oid,
     const uint8_t* expected_metadata,
@@ -1257,6 +1274,7 @@ static int _verify_metadata(
     }
     return 0;
 }
+#endif
 
 static int _set_password(
     const uint8_t* password_secret,
@@ -1443,8 +1461,8 @@ static int _verify_config(void)
         return res;
     }
 
+#if VERIFY_METADATA == 1
     // Verify metadata tags are setup as expected.
-
     {
         const uint8_t check_tags[] = {0xC0, 0xD0, 0xD1, 0xD3, 0xE8};
         res = _verify_metadata(
@@ -1558,7 +1576,7 @@ static int _verify_config(void)
             return res;
         }
     }
-
+#endif
     return 0;
 }
 

@@ -140,7 +140,6 @@ dependencies = [
  "hex",
  "p256",
  "sha2",
- "sha3",
  "util",
 ]
 

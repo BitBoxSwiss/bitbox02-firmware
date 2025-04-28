@@ -101,6 +101,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_set_encrypted_seed_and_hmac",
     "memory_get_encrypted_seed_and_hmac",
     "memory_setup",
+    "memory_reset_hww",
     "menu_create",
     "mock_memory_factoryreset",
     "spi_mem_full_erase",

@@ -187,6 +187,13 @@ pub fn get_encrypted_seed_and_hmac() -> Result<Vec<u8>, ()> {
     }
 }
 
+pub fn reset_hww() -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_reset_hww() } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

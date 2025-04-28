@@ -65,7 +65,7 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
 
     // Verify seed.
     if get_and_decrypt_seed(password)?.as_slice() != seed {
-        // TODO: reset hww
+        memory::reset_hww().map_err(|_| Error::Memory)?;
         return Err(Error::Memory);
     }
 

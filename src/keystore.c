@@ -210,67 +210,12 @@ static keystore_error_t _get_and_decrypt_seed(
     return KEYSTORE_OK;
 }
 
-static bool _verify_seed(
-    const char* password,
-    const uint8_t* expected_seed,
-    size_t expected_seed_len)
-{
-    uint8_t decrypted_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-    size_t seed_len;
-    UTIL_CLEANUP_32(decrypted_seed);
-    if (_get_and_decrypt_seed(password, decrypted_seed, &seed_len, NULL) != KEYSTORE_OK) {
-        return false;
-    }
-    if (expected_seed_len != seed_len) {
-        return false;
-    }
-    if (!MEMEQ(expected_seed, decrypted_seed, seed_len)) {
-        return false;
-    }
-    return true;
-}
-
 keystore_error_t keystore_encrypt_and_store_seed(
     const uint8_t* seed,
     size_t seed_length,
     const char* password)
 {
-    if (memory_is_initialized()) {
-        return KEYSTORE_ERR_MEMORY;
-    }
-    keystore_lock();
-    if (!_validate_seed_length(seed_length)) {
-        return KEYSTORE_ERR_SEED_SIZE;
-    }
-    if (securechip_init_new_password(password)) {
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-    uint8_t secret[32] = {0};
-    UTIL_CLEANUP_32(secret);
-    if (securechip_stretch_password(password, secret)) {
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-
-    size_t encrypted_seed_len = seed_length + 64;
-    uint8_t encrypted_seed[encrypted_seed_len];
-    UTIL_CLEANUP_32(encrypted_seed);
-    if (!cipher_aes_hmac_encrypt(seed, seed_length, encrypted_seed, &encrypted_seed_len, secret)) {
-        return KEYSTORE_ERR_ENCRYPT;
-    }
-    if (encrypted_seed_len > 255) { // sanity check, can't happen
-        Abort("keystore_encrypt_and_store_seed");
-    }
-    uint8_t encrypted_seed_len_u8 = (uint8_t)encrypted_seed_len;
-    if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len_u8)) {
-        return KEYSTORE_ERR_MEMORY;
-    }
-    if (!_verify_seed(password, seed, seed_length)) {
-        if (!memory_reset_hww()) {
-            return KEYSTORE_ERR_MEMORY;
-        }
-        return KEYSTORE_ERR_MEMORY;
-    }
-    return KEYSTORE_OK;
+    return rust_keystore_encrypt_and_store_seed(rust_util_bytes(seed, seed_length), password);
 }
 
 keystore_error_t keystore_create_and_store_seed(

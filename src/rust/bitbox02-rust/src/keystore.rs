@@ -51,7 +51,7 @@ fn get_and_decrypt_seed(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, E
 
 pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
     if memory::is_initialized() {
-        return Err(Error::AlreadyInitialized);
+        return Err(Error::Memory);
     }
     keystore::lock();
     validate_seed_length(seed.len())?;

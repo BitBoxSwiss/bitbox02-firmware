@@ -19,7 +19,7 @@ use alloc::vec::Vec;
 
 use core::convert::TryInto;
 
-use bitbox02_sys::keystore_error_t;
+pub use bitbox02_sys::keystore_error_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 pub const EC_PUBLIC_KEY_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_LEN as _;

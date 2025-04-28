@@ -36,6 +36,8 @@ mod p256;
 mod sha2;
 #[cfg(feature = "firmware")]
 mod workflow;
+#[cfg(feature = "firmware")]
+mod keystore;
 
 #[cfg(feature = "firmware")]
 mod der;

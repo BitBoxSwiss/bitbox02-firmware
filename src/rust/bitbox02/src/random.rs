@@ -29,6 +29,20 @@ pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     }
 }
 
+#[cfg(target_arch = "arm")]
+pub fn combined_32_bytes() -> [u8; 32] {
+    let mut out = [0u8; 32];
+    unsafe { bitbox02_sys::random_32_bytes(out.as_mut_ptr()) }
+    out
+}
+
+#[cfg(not(target_arch = "arm"))]
+pub fn combined_32_bytes() -> [u8; 32] {
+    let mut out = [0u8; 32];
+    mcu_32_bytes(&mut out);
+    out
+}
+
 #[cfg(feature = "testing")]
 pub fn mock_reset() {
     unsafe {

@@ -18,7 +18,7 @@ pub mod ed25519;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use bitbox02::{keystore, memory, securechip};
+use bitbox02::{keystore, memory, random, securechip};
 
 #[derive(Debug)]
 pub enum Error {
@@ -58,10 +58,9 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
     securechip::init_new_password(password).map_err(|_| Error::SecureChip)?;
     let secret: zeroize::Zeroizing<Vec<u8>> =
         securechip::stretch_password(password).map_err(|_| Error::SecureChip)?;
-    // TODO: set IV randomly using random_32_bytes().
-    let iv = &[0u8; 16];
+    let iv: &[u8; 16] = &random::combined_32_bytes()[..16].try_into().unwrap();
     let encrypted_seed: Vec<u8> =
-        bitbox_aes::encrypt_with_hmac(iv, secret.as_slice().try_into().unwrap(), seed);
+        bitbox_aes::encrypt_with_hmac(&iv, secret.as_slice().try_into().unwrap(), seed);
     memory::set_encrypted_seed_and_hmac(&encrypted_seed).map_err(|_| Error::Memory)?;
 
     // Verify seed.

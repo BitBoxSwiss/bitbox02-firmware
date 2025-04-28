@@ -108,6 +108,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "progress_create",
     "progress_set",
     "random_32_bytes_mcu",
+    "random_32_bytes",
     "random_mock_reset",
     "reboot",
     "reset_reset",

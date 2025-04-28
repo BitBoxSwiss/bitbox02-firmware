@@ -22,6 +22,7 @@
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
+#include <system.h>
 
 #define SMARTEEPROM_WRITE_MODE_UNBUFFERED (0)
 #define SMARTEEPROM_WRITE_MODE_BUFFERED (1)
@@ -100,7 +101,7 @@ void smarteeprom_bb02_config(void)
      */
     if (!smarteeprom_is_enabled()) {
         smarteeprom_setup();
-        _reset_mcu();
+        reboot();
     }
     NVMCTRL->SEECFG.bit.WMODE = SMARTEEPROM_WRITE_MODE_BUFFERED;
     if (NVMCTRL->SEESTAT.bit.LOAD != 0) {

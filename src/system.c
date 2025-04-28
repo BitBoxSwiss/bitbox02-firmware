@@ -14,12 +14,13 @@
 
 #include "system.h"
 #include <memory/memory.h>
+#include <memory/memory_shared.h>
 #include <screen.h>
 #ifndef TESTING
 #include <driver_init.h>
 #endif
 
-void reboot(void)
+void reboot_to_bootloader(void)
 {
     auto_enter_t auto_enter = {
         .value = sectrue_u8,
@@ -31,6 +32,13 @@ void reboot(void)
         // If this failed, we might not be able to reboot into the bootloader.
         // We will try anyway, no point in aborting here.
     }
+#ifndef TESTING
+    _reset_mcu();
+#endif
+}
+
+void reboot(void)
+{
 #ifndef TESTING
     _reset_mcu();
 #endif

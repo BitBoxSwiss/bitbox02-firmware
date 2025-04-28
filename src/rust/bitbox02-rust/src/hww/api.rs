@@ -161,7 +161,7 @@ fn can_call(request: &Request) -> bool {
 /// Handle a protobuf api call.
 async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Result<Response, Error> {
     match request {
-        Request::Reboot(ref request) => system::reboot(hal, request).await,
+        Request::Reboot(ref request) => system::reboot_to_bootloader(hal, request).await,
         Request::DeviceInfo(_) => device_info::process(),
         Request::DeviceName(ref request) => set_device_name::process(hal, request).await,
         Request::SetPassword(ref request) => set_password::process(hal, request).await,

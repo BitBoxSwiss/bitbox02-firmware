@@ -326,6 +326,21 @@ bool sd_card_inserted(void)
             }
         }
     }
+#if !defined(NDEBUG)
+    switch (err) {
+    case SD_MMC_OK:
+        break;
+    case SD_MMC_ERR_UNUSABLE:
+        util_log("sd_mmc_check returned \"SD_MMC_ERR_UNUSABLE\"");
+        break;
+    case SD_MMC_INIT_ONGOING:
+        util_log("sd_mmc_check returned \"SD_MMC_INIT_ONGOING\" after 10 retries");
+        break;
+    default:
+        util_log("sd_mmc_check returned %d", err);
+        break;
+    }
+#endif
     return err == SD_MMC_OK;
 #endif
 }

@@ -21,7 +21,7 @@ use pb::response::Response;
 use crate::hal::Ui;
 use crate::workflow::confirm;
 
-pub async fn reboot(
+pub async fn reboot_to_bootloader(
     hal: &mut impl crate::hal::Hal,
     &pb::RebootRequest { purpose }: &pb::RebootRequest,
 ) -> Result<Response, Error> {
@@ -38,7 +38,7 @@ pub async fn reboot(
             ..Default::default()
         })
         .await?;
-    bitbox02::reboot()
+    bitbox02::reboot_to_bootloader()
 }
 
 #[cfg(test)]

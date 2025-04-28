@@ -18,6 +18,7 @@
 #include "keystore.h"
 #include "memory/memory.h"
 #include "memory/smarteeprom.h"
+#include "system.h"
 
 #ifndef TESTING
 #include "securechip/securechip.h"
@@ -78,7 +79,7 @@ void reset_reset(bool status)
     /* Disable SmartEEPROM, so it will be erased on next reboot. */
     smarteeprom_disable();
     _show_reset_label(status);
-    _reset_mcu();
+    reboot();
 #else
     (void)status;
 #endif

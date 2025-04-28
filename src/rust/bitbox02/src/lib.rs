@@ -213,8 +213,8 @@ pub fn format_datetime(
 }
 
 #[cfg(not(feature = "testing"))]
-pub fn reboot() -> ! {
-    unsafe { bitbox02_sys::reboot() }
+pub fn reboot_to_bootloader() -> ! {
+    unsafe { bitbox02_sys::reboot_to_bootloader() }
     loop {}
 }
 

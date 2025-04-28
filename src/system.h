@@ -16,6 +16,11 @@
 #define _SYSTEM_H_
 
 /**
+ * Reboots the device to bootloader
+ */
+void reboot_to_bootloader(void);
+
+/**
  * Reboots the device.
  */
 void reboot(void);

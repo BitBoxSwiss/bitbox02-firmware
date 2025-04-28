@@ -117,7 +117,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "progress_set",
     "random_32_bytes_mcu",
     "random_mock_reset",
-    "reboot",
+    "reboot_to_bootloader",
     "reset_reset",
     "screen_print_debug",
     "screen_process",

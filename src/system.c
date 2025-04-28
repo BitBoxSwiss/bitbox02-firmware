@@ -14,6 +14,7 @@
 
 #include "system.h"
 #include <memory/memory.h>
+#include <memory/memory_shared.h>
 #include <screen.h>
 #ifndef TESTING
 #include <driver_init.h>
@@ -23,7 +24,7 @@
 #include "uart.h"
 #include "utils_ringbuffer.h"
 
-void reboot(void)
+static void _ble_clear_product(void)
 {
     struct ringbuffer uart_queue;
     uint8_t uart_queue_buf[64];
@@ -31,6 +32,13 @@ void reboot(void)
     da14531_set_product("", 0, &uart_queue);
     while (ringbuffer_num(&uart_queue)) {
         uart_poll(NULL, 0, NULL, &uart_queue);
+    }
+}
+
+void reboot_to_bootloader(void)
+{
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        _ble_clear_product();
     }
     auto_enter_t auto_enter = {
         .value = sectrue_u8,
@@ -45,4 +53,12 @@ void reboot(void)
 #ifndef TESTING
     _reset_mcu();
 #endif
+}
+
+void reboot(void)
+{
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        _ble_clear_product();
+    }
+    _reset_mcu();
 }

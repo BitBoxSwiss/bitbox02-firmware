@@ -19,7 +19,7 @@ use alloc::vec::Vec;
 
 use core::convert::TryInto;
 
-use bitbox02_sys::keystore_error_t;
+pub use bitbox02_sys::keystore_error_t;
 
 pub const BIP39_WORDLIST_LEN: u16 = bitbox02_sys::BIP39_WORDLIST_LEN as u16;
 pub const EC_PUBLIC_KEY_LEN: usize = bitbox02_sys::EC_PUBLIC_KEY_LEN as _;
@@ -290,19 +290,6 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
     } {
         true => Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec())),
         false => Err(()),
-    }
-}
-
-pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
-    match unsafe {
-        bitbox02_sys::keystore_encrypt_and_store_seed(
-            seed.as_ptr(),
-            seed.len(),
-            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
-        )
-    } {
-        keystore_error_t::KEYSTORE_OK => Ok(()),
-        err => Err(err.into()),
     }
 }
 

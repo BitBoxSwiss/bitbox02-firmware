@@ -18,7 +18,59 @@ pub mod ed25519;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use bitbox02::keystore;
+use bitbox02::{keystore, memory, random, securechip};
+
+#[derive(Debug)]
+pub enum Error {
+    AlreadyInitialized,
+    Memory,
+    SeedSize,
+    SecureChip,
+    IncorrectPassword,
+}
+
+fn validate_seed_length(len: usize) -> Result<(), Error> {
+    match len {
+        16 | 24 | 32 => Ok(()),
+        _ => Err(Error::SeedSize),
+    }
+}
+
+fn get_and_decrypt_seed(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    let encrypted_seed_and_hmac =
+        memory::get_encrypted_seed_and_hmac().map_err(|_| Error::Memory)?;
+
+    // TODO check actual SC result
+    let secret: zeroize::Zeroizing<Vec<u8>> =
+        securechip::stretch_password(password).map_err(|_| Error::SecureChip)?;
+    let seed = bitbox_aes::decrypt_with_hmac(&secret, &encrypted_seed_and_hmac)
+        .map_err(|_| Error::IncorrectPassword)?;
+    validate_seed_length(seed.len())?;
+    Ok(seed)
+}
+
+pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
+    if memory::is_initialized() {
+        return Err(Error::Memory);
+    }
+    keystore::lock();
+    validate_seed_length(seed.len())?;
+    securechip::init_new_password(password).map_err(|_| Error::SecureChip)?;
+    let secret: zeroize::Zeroizing<Vec<u8>> =
+        securechip::stretch_password(password).map_err(|_| Error::SecureChip)?;
+    let iv: &[u8; 16] = &random::combined_32_bytes()[..16].try_into().unwrap();
+    let encrypted_seed: Vec<u8> =
+        bitbox_aes::encrypt_with_hmac(&iv, secret.as_slice().try_into().unwrap(), seed);
+    memory::set_encrypted_seed_and_hmac(&encrypted_seed).map_err(|_| Error::Memory)?;
+
+    // Verify seed.
+    if get_and_decrypt_seed(password)?.as_slice() != seed {
+        memory::reset_hww().map_err(|_| Error::Memory)?;
+        return Err(Error::Memory);
+    }
+
+    Ok(())
+}
 
 /// Derives an xpub from the keystore seed at the given keypath.
 pub fn get_xpub(keypath: &[u32]) -> Result<bip32::Xpub, ()> {

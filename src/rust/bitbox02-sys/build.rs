@@ -65,7 +65,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_copy_seed",
     "keystore_create_and_store_seed",
     "keystore_encode_xpub_at_keypath",
-    "keystore_encrypt_and_store_seed",
     "keystore_get_bip39_mnemonic",
     "keystore_get_bip39_word",
     "keystore_get_ed25519_seed",
@@ -99,7 +98,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_set_initialized",
     "memory_set_mnemonic_passphrase_enabled",
     "memory_set_seed_birthdate",
+    "memory_set_encrypted_seed_and_hmac",
+    "memory_get_encrypted_seed_and_hmac",
     "memory_setup",
+    "memory_reset_hww",
     "menu_create",
     "mock_memory_factoryreset",
     "spi_mem_full_erase",
@@ -107,6 +109,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "progress_create",
     "progress_set",
     "random_32_bytes_mcu",
+    "random_32_bytes",
     "random_mock_reset",
     "reboot",
     "reset_reset",
@@ -127,6 +130,8 @@ const ALLOWLIST_FNS: &[&str] = &[
     "securechip_model",
     "securechip_monotonic_increments_remaining",
     "securechip_u2f_counter_set",
+    "securechip_init_new_password",
+    "securechip_stretch_password",
     "smarteeprom_bb02_config",
     "status_create",
     "trinary_choice_create",
@@ -139,6 +144,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "wally_free_string",
     "wally_get_secp_context",
     "wally_sha512",
+    "cipher_aes_hmac_encrypt",
 ];
 
 const RUSTIFIED_ENUMS: &[&str] = &[

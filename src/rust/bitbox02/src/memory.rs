@@ -15,6 +15,7 @@
 
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // deduct one for the null terminator.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
@@ -160,13 +161,64 @@ pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
     }
 }
 
+pub fn set_encrypted_seed_and_hmac(encrypted_seed_and_hmac: &[u8]) -> Result<(), ()> {
+    match unsafe {
+        bitbox02_sys::memory_set_encrypted_seed_and_hmac(
+            encrypted_seed_and_hmac.as_ptr(),
+            encrypted_seed_and_hmac.len().try_into().unwrap(),
+        )
+    } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
+pub fn get_encrypted_seed_and_hmac() -> Result<Vec<u8>, ()> {
+    let mut out = vec![0u8; 96];
+    let mut out_size = 0u8;
+    match unsafe {
+        bitbox02_sys::memory_get_encrypted_seed_and_hmac(out.as_mut_ptr(), &mut out_size)
+    } {
+        true => {
+            out.truncate(out_size as usize);
+            Ok(out)
+        }
+        false => Err(()),
+    }
+}
+
+pub fn reset_hww() -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_reset_hww() } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::mock_memory;
 
     #[test]
     fn test_get_attestation_bootloader_hash() {
+        mock_memory();
+
         let expected: [u8; 32] = *b"\x71\x3d\xf0\xd5\x8c\x71\x7d\x40\x31\x78\x7c\xdc\x8f\xa3\x5b\x90\x25\x82\xbe\x6a\xb6\xa2\x2e\x09\xde\x44\x77\xd3\x0e\x22\x30\xfc";
         assert_eq!(get_attestation_bootloader_hash(), expected);
+    }
+
+    #[test]
+    fn test_encrypted_seed_and_hmac_roundtrip() {
+        for len in 0..=96 {
+            mock_memory();
+            let value: Vec<u8> = (0..len as u8).collect();
+            assert!(set_encrypted_seed_and_hmac(&value).is_ok());
+            assert_eq!(get_encrypted_seed_and_hmac().unwrap(), value);
+        }
+        {
+            mock_memory();
+            let value: Vec<u8> = (0..97 as u8).collect();
+            assert!(set_encrypted_seed_and_hmac(&value).is_err());
+        }
     }
 }

@@ -36,6 +36,8 @@ mod p256;
 mod sha2;
 #[cfg(feature = "firmware")]
 mod workflow;
+#[cfg(feature = "firmware")]
+mod keystore;
 
 #[cfg(feature = "firmware")]
 mod der;
@@ -78,5 +80,39 @@ pub unsafe extern "C" fn rust_log(ptr: *const ::util::c_types::c_char) {
         let s = unsafe { core::ffi::CStr::from_ptr(ptr as _) };
         let s = unsafe { core::str::from_utf8_unchecked(s.to_bytes()) };
         ::util::log::rtt_target::rprintln!("{}", s);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_cipher_encrypt(
+    iv: crate::util::Bytes,
+    key: crate::util::Bytes,
+    plain: crate::util::Bytes,
+    mut out: crate::util::BytesMut,
+    out_len: &mut usize,
+) {
+    let enc = bitbox_aes::encrypt_with_hmac(
+        &iv.as_ref().try_into().unwrap(),
+        key.as_ref(),
+        plain.as_ref(),
+    );
+    out.as_mut()[..enc.len()].copy_from_slice(&enc);
+    *out_len = enc.len();
+}
+
+#[no_mangle]
+pub extern "C" fn rust_cipher_decrypt(
+    key: crate::util::Bytes,
+    cipher: crate::util::Bytes,
+    mut out: crate::util::BytesMut,
+    out_len: &mut usize,
+) -> bool {
+    match bitbox_aes::decrypt_with_hmac(key.as_ref(), cipher.as_ref()) {
+        Ok(dec) => {
+            out.as_mut()[..dec.len()].copy_from_slice(&dec);
+            *out_len = dec.len();
+            true
+        }
+        Err(_) => false,
     }
 }

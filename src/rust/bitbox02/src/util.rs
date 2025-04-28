@@ -44,7 +44,7 @@ pub fn truncate_str(s: &str, len: usize) -> &str {
 }
 
 /// Converts a Rust string to a null terminated C string by appending a null
-/// terminator.  Returns `Err(())` if the input already contians a null byte.
+/// terminator.  Returns `Err(())` if the input already contains a null byte.
 pub fn str_to_cstr_vec(input: &str) -> Result<Vec<u8>, ()> {
     Ok(alloc::ffi::CString::new(input)
         .or(Err(()))?

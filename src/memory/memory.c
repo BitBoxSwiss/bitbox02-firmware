@@ -504,6 +504,9 @@ bool memory_set_encrypted_seed_and_hmac(const uint8_t* encrypted_seed_and_hmac, 
 {
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
+    if (len > sizeof(chunk.fields.encrypted_seed_and_hmac)) {
+        return false;
+    }
     _read_chunk(CHUNK_1, chunk_bytes);
     chunk.fields.encrypted_seed_and_hmac_len = len;
     memset(

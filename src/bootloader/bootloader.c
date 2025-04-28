@@ -18,16 +18,13 @@
 #include "pac_ext.h"
 
 #include <driver_init.h>
-#include <stdint.h>
-#include <string.h>
-#ifdef BOOTLOADER_DEVDEVICE
-#include <qtouch/qtouch.h>
-#endif
 #include <flags.h>
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
 #include <screen.h>
+#include <stdint.h>
+#include <string.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/oled/oled.h>
@@ -36,6 +33,17 @@
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
 #include <util.h>
+
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#include <qtouch/qtouch.h>
+#endif
+
+#if PLATFORM_BITBOX02PLUS == 1
+#include <da14531/da14531.h>
+#include <da14531/da14531_protocol.h>
+#include <uart.h>
+#include <utils_ringbuffer.h>
+#endif
 
 #include <assert.h>
 
@@ -133,8 +141,12 @@ static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
 #error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
 #endif
 
+#if PLATFORM_BITBOX02PLUS == 1
+extern struct ringbuffer uart_write_queue;
+#endif
+
 // clang-format off
-#if PRODUCT_BITBOX_BTCONLY == 1
+#if (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_PLUS_BTCONLY == 1)
 static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
     {
         0x56, 0x82, 0xcc, 0xed, 0x54, 0x4e, 0xa6, 0xa1, 0x8f, 0x9e, 0x7c, 0x48, 0x40, 0xb8, 0x6d, 0x3d,
@@ -155,7 +167,7 @@ static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] 
         0xde, 0x34, 0x43, 0x8e, 0x71, 0xdf, 0x99, 0xeb, 0x59, 0xb4, 0x1e, 0xb1, 0x32, 0x17, 0xda, 0x8a,
     },
 };
-#elif PRODUCT_BITBOX_MULTI == 1
+#elif (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_PLUS_MULTI == 1)
 static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
     {
         0x08, 0xa6, 0xdc, 0x5f, 0x9b, 0x9e, 0x0c, 0x74, 0x25, 0x06, 0x3d, 0x00, 0x77, 0x66, 0xe1, 0x69,
@@ -810,9 +822,18 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         len = _api_firmware_erase(input[1], output);
         break;
 
-    case OP_REBOOT:
+    case OP_REBOOT: {
+#if PLATFORM_BITBOX02PLUS == 1
+        // da14531_set_product("", 0, &uart_write_queue);
+        da14531_reset(&uart_write_queue);
+        // Send it now, because we are about to reset ourselves
+        while (ringbuffer_num(&uart_write_queue)) {
+            uart_poll(NULL, 0, NULL, &uart_write_queue);
+        }
+#endif
+
         _api_reboot();
-        break;
+    } break;
 
     case OP_WRITE_FIRMWARE_CHUNK: {
         uint8_t chunk_num = input[1];
@@ -917,7 +938,6 @@ static void _check_init(boot_data_t* data)
 }
 
 #ifdef BOOTLOADER_DEVDEVICE
-#if PLATFORM_BITBOX02 == 1
 static bool _devdevice_enter(secbool_u32 firmware_verified)
 {
     UG_ClearBuffer();
@@ -956,7 +976,6 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
         }
     }
 }
-#endif
 #endif
 
 void bootloader_jump(void)

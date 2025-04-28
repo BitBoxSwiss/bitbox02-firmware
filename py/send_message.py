@@ -26,6 +26,7 @@ import base64
 import binascii
 import textwrap
 import json
+from pathlib import Path
 
 import requests  # type: ignore
 import hid
@@ -1446,6 +1447,14 @@ class SendMessage:
             except UserAbortException:
                 eprint("Aborted by user")
 
+    def _bluetooth_upgrade(self) -> None:
+        filename = input("Enter path to the firmware: ")
+        firmware = Path(filename).read_bytes()
+        try:
+            self._device.bluetooth_upgrade(firmware)
+        except UserAbortException:
+            print("Aborted by user")
+
     def _reset_device(self) -> None:
         if self._device.reset():
             print("Device RESET")
@@ -1466,6 +1475,7 @@ class SendMessage:
             ("List device info", self._list_device_info),
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),
+            ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
         )
         choice = ask_user(choices)
         if isinstance(choice, bool):
@@ -1510,6 +1520,7 @@ class SendMessage:
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
             ("BIP85 - BIP39", self._bip85_bip39),
             ("BIP85 - LN", self._bip85_ln),
+            ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
             ("Reset Device", self._reset_device),
         )
         choice = ask_user(choices)

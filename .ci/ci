@@ -55,6 +55,9 @@ make -j8 bootloader-btc
 make -j8 bootloader-btc-development
 make -j8 bootloader-btc-production
 
+make -j8 bootloader-plus
+make -j8 bootloader-plus-development
+
 # Firmware
 make -j8 firmware
 make -j8 firmware-btc

@@ -1,0 +1,9 @@
+// Delete Initial stack pointer for bootloader
+w4 0x00000 0xffffffff
+// Delete Reset_Handler for bootloader
+w4 0x00004 0xffffffff
+// Delete Initial stack pointer for firmware
+w4 0x10000 0xffffffff
+// Delete Reset_Handler for firmware
+w4 0x10004 0xffffffff
+q

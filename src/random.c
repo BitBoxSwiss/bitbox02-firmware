@@ -23,7 +23,7 @@
 #include "hardfault.h"
 #include "random.h"
 #include "util.h"
-#include <wally_crypto.h>
+#include <rust/rust.h>
 
 void random_32_bytes_mcu(uint8_t* buf)
 {
@@ -100,9 +100,7 @@ void random_32_bytes(uint8_t* buf)
     }
 #endif
 
-    if (wally_sha256(random, sizeof(random), buf, RANDOM_NUM_SIZE) != WALLY_OK) {
-        Abort("Abort: wally_sha256");
-    }
+    rust_sha256(random, sizeof(random), buf);
 }
 
 #ifdef TESTING

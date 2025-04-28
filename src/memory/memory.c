@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
 #include "memory.h"
@@ -26,7 +27,6 @@
 #include <rust/rust.h>
 
 #ifndef TESTING
-#include "driver_init.h"
 #include <hal_delay.h>
 #else
 #include <mock_memory.h>
@@ -240,8 +240,8 @@ static const memory_interface_functions_t* _interface_functions = NULL;
 
 bool memory_set_device_name(const char* name)
 {
-    if (name[0] == (char)0xFF) {
-        // utf8 string can't start with 0xFF.
+    if (name[0] == (char)0xFF || name[0] == 0x0) {
+        // utf8 string can't start with 0xFF or be an empty string.
         return false;
     }
 
@@ -257,34 +257,6 @@ bool memory_set_device_name(const char* name)
     return _write_chunk(CHUNK_1, chunk.bytes);
 }
 
-static void _random_name(char* name_out)
-{
-    static char cached_name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
-
-    if (cached_name[0] == 0x00) {
-        // Generate 4 random uppercase letters
-        uint8_t random[32] = {0};
-        _interface_functions->random_32_bytes(random);
-        uint8_t letters[4];
-        for (size_t i = 0; i < sizeof(letters); i++) {
-            letters[i] = 'A' + (random[i] % 26);
-        }
-
-        // Format into cached name
-        snprintf(
-            cached_name,
-            MEMORY_DEVICE_NAME_MAX_LEN,
-            "BitBox %c%c%c%c",
-            letters[0],
-            letters[1],
-            letters[2],
-            letters[3]);
-    }
-
-    // Copy cached result to output
-    snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", cached_name);
-}
-
 void memory_get_device_name(char* name_out)
 {
     chunk_1_t chunk = {0};
@@ -295,7 +267,7 @@ void memory_get_device_name(char* name_out)
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
             // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
             // identified if multiple BitBoxes are advertising at the same time.
-            _random_name(name_out);
+            memory_random_name(name_out);
         } else {
             snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", MEMORY_DEFAULT_DEVICE_NAME);
         }
@@ -410,7 +382,33 @@ bool memory_reset_hww(void)
     // Set a new noise static private key.
     rust_noise_generate_static_private_key(rust_util_bytes_mut(
         chunk.fields.noise_static_private_key, sizeof(chunk.fields.noise_static_private_key)));
-    return _write_chunk(CHUNK_1, chunk.bytes);
+    bool res = _write_chunk(CHUNK_1, chunk.bytes);
+
+    // Reset bond-db and reinitialize IRK and identity address
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        uint8_t random_bytes[32];
+        _interface_functions->random_32_bytes(&random_bytes[0]);
+        chunk_shared_t chunk_shared = {0};
+        memory_read_shared_bootdata(&chunk_shared);
+        memcpy(
+            &chunk_shared.fields.ble_identity_resolving_key[0],
+            &random_bytes[0],
+            sizeof(chunk_shared.fields.ble_identity_resolving_key));
+        memcpy(
+            &chunk_shared.fields.ble_identity_address[0],
+            &random_bytes[sizeof(chunk_shared.fields.ble_identity_address)],
+            sizeof(chunk_shared.fields.ble_identity_address));
+
+        // Two most significant bits must be set to indicate "public static address". See ch. 1.3.2
+        // in "Part B: Link Layer Specification" of bluetooth standard.
+        // ble_addr is stored in little endianness, so MSB is in the first byte.
+        chunk_shared.fields.ble_identity_address[0] |= 0xc;
+
+        memset(&chunk_shared.fields.ble_bond_db, 0xff, sizeof(chunk_shared.fields.ble_bond_db));
+        res |= _write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes);
+    }
+
+    return res;
 }
 
 static bool _is_bitmask_flag_set(uint8_t flag)
@@ -715,6 +713,29 @@ bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down_t upside_d
     memory_read_shared_bootdata(&chunk);
     chunk.fields.auto_enter = auto_enter.value;
     chunk.fields.upside_down = upside_down.value ? 1 : 0;
+    // As this operation is quite important to succeed, we try it multiple times.
+    for (int i = 0; i < 10; i++) {
+        if (_write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes)) {
+            return true;
+        }
+#ifndef TESTING
+        delay_ms(50);
+#endif
+    }
+    return false;
+}
+
+bool memory_set_ble_metadata(const memory_ble_metadata_t* metadata)
+{
+    chunk_shared_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    memory_read_shared_bootdata(&chunk);
+    memcpy(chunk.fields.ble_allowed_firmware_hash, metadata->allowed_firmware_hash, 32);
+    chunk.fields.ble_active_index = metadata->active_index;
+    chunk.fields.ble_firmware_sizes[0] = metadata->firmware_sizes[0];
+    chunk.fields.ble_firmware_sizes[1] = metadata->firmware_sizes[1];
+    chunk.fields.ble_firmware_checksums[0] = metadata->firmware_checksums[0];
+    chunk.fields.ble_firmware_checksums[1] = metadata->firmware_checksums[1];
     // As this operation is quite important to succeed, we try it multiple times.
     for (int i = 0; i < 10; i++) {
         if (_write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes)) {

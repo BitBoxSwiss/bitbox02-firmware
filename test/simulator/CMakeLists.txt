@@ -23,6 +23,10 @@ set(DBB-FILTERED-SOURCES
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
+  "${CMAKE_SOURCE_DIR}/src/da14531/da14531.c"
+  "${CMAKE_SOURCE_DIR}/src/da14531/da14531_protocol.c"
+  "${CMAKE_SOURCE_DIR}/src/da14531/crc.c"
+  "${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/src/utils_ringbuffer.c"
   )
 
 set(IGNORE_SOURCES
@@ -31,6 +35,7 @@ set(IGNORE_SOURCES
     "src/memory/smarteeprom.c"
     "src/memory/mpu.c"
     "src/memory/spi_mem.c"
+    "src/uart.c"
     )
 
 # Exclude some files which depends on the hardware.
@@ -142,6 +147,8 @@ add_dependencies(bitbox_objects-simulator
   sd-mock-simulator
 )
 target_link_libraries(bitbox-simulator PRIVATE ${LIBBITBOX02_RUST} "-lm")
+
+# _UNIT_TEST_ is used by ASF4 to not cross compile
 
 target_compile_definitions(bitbox_objects-simulator PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox_objects-simulator PUBLIC TESTING _UNIT_TEST_)

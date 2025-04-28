@@ -26,6 +26,10 @@ message DeviceInfoRequest {
 }
 
 message DeviceInfoResponse {
+  message Bluetooth {
+    // Hash of the currently active Bluetooth firmware on the device.
+    bytes firmware_hash = 1;
+  }
   string name = 1;
   bool initialized = 2;
   string version = 3;
@@ -33,6 +37,8 @@ message DeviceInfoResponse {
   uint32 monotonic_increments_remaining = 5;
   // From v9.6.0: "ATECC608A" or "ATECC608B".
   string securechip_model = 6;
+  // Only present in Bluetooth-enabled devices.
+  optional Bluetooth bluetooth = 7;
 }
 
 message InsertRemoveSDCardRequest {

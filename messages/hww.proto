@@ -19,6 +19,7 @@ import "common.proto";
 
 import "backup_commands.proto";
 import "bitbox02_system.proto";
+import "bluetooth.proto";
 import "btc.proto";
 import "cardano.proto";
 import "eth.proto";
@@ -67,6 +68,7 @@ message Request {
         ElectrumEncryptionKeyRequest electrum_encryption_key = 26;
         CardanoRequest cardano = 27;
         BIP85Request bip85 = 28;
+        BluetoothRequest bluetooth = 29;
     }
 }
 
@@ -89,5 +91,6 @@ message Response {
         ElectrumEncryptionKeyResponse electrum_encryption_key = 14;
         CardanoResponse cardano = 15;
         BIP85Response bip85 = 16;
+        BluetoothResponse bluetooth = 17;
     }
 }

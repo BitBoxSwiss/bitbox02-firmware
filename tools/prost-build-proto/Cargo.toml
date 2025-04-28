@@ -15,7 +15,7 @@
 [package]
 name = "prost-build-proto"
 version = "0.1.0"
-authors = ["Shift Crypto AG <support@shiftcrypto.ch>"]
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
 edition = "2021"
 license = "Apache-2.0"
 

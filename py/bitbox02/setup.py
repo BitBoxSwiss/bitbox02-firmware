@@ -36,7 +36,7 @@ setuptools.setup(
     name="bitbox02",
     version=find_version(),
     author="Shift Crypto",
-    author_email="support@shiftcrypto.ch",
+    author_email="support@bitbox.swiss",
     packages=setuptools.find_packages(),
     description="Python library for bitbox02 communication",
     long_description=read("README.md"),

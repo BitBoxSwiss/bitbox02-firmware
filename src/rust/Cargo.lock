@@ -116,6 +116,7 @@ dependencies = [
  "erc20_params",
  "hex",
  "hmac",
+ "keccak",
  "minicbor",
  "miniscript",
  "num-bigint",

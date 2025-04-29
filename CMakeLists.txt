@@ -44,6 +44,10 @@ elseif(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
+# This is ignored on platforms other than darwin. By default rust compiles for
+# 10.7 which doesn't link for us.
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+
 project(bitbox02 C)
 
 # nosys is set in arm.cmake so that `project(c)` above works. Remove it since it interferes with compile options

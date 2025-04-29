@@ -175,7 +175,9 @@ static void _firmware_loader_poll(
                     // TODO
                 }
 
+#ifndef TESTING
                 while (!(uart_0_write(ble_fw, ble_fw_size)));
+#endif
                 self->state = FIRMWARE_LOADER_STATE_SENT_FIRMWARE;
             } else {
                 self->state = FIRMWARE_LOADER_STATE_IDLE;

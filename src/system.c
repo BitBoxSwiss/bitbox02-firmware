@@ -30,9 +30,11 @@ static void _ble_clear_product(void)
     uint8_t uart_queue_buf[64];
     ringbuffer_init(&uart_queue, &uart_queue_buf[0], sizeof(uart_queue_buf));
     da14531_set_product("", 0, &uart_queue);
+#ifndef TESTING
     while (ringbuffer_num(&uart_queue)) {
         uart_poll(NULL, 0, NULL, &uart_queue);
     }
+#endif
 }
 
 void reboot_to_bootloader(void)
@@ -60,5 +62,7 @@ void reboot(void)
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         _ble_clear_product();
     }
+#ifndef TESTING
     _reset_mcu();
+#endif
 }

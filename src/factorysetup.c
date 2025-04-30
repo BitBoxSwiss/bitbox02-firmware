@@ -325,7 +325,8 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         break;
     case OP_BLE_RESULT:
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
-            output[1] = _ble_result;
+            output[2] = _ble_result;
+            out_len++;
         } else {
             result = ERR_UNKNOWN_COMMAND;
         }

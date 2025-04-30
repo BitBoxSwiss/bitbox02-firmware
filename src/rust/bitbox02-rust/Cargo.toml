@@ -36,6 +36,7 @@ streaming-silent-payments = { path = "../streaming-silent-payments", optional = 
 hex = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true, optional = true }
+keccak = { workspace = true, optional = true }
 digest = "0.10.6"
 zeroize = { workspace = true }
 num-bigint = { workspace = true, optional = true }
@@ -71,6 +72,7 @@ ed25519 = [
 app-ethereum = [
   "dep:erc20_params",
   "dep:sha3",
+  "dep:keccak",
   "dep:num-bigint",
   "bitbox02/app-ethereum",
 ]

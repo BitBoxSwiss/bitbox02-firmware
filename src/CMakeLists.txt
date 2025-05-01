@@ -179,6 +179,7 @@ set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
 
 set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/src/ui/ugui
   ${CMAKE_SOURCE_DIR}/src/platform
   ${CMAKE_SOURCE_DIR}/src/qtouch
   ${CMAKE_SOURCE_DIR}/src/usb/class
@@ -538,5 +539,7 @@ if(CMAKE_CROSSCOMPILING)
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
       target_compile_options(${name}.elf PRIVATE "-Werror")
     endif()
+
+    target_link_libraries(${name}.elf PRIVATE -Wl,--print-memory-usage)
   endforeach()
 endif()

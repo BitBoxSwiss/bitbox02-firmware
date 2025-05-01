@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ui/ugui/ugui.h>
+#include <ugui.h>
 
 extern const UG_FONT font_font_a_17X18;

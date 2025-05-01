@@ -3,7 +3,7 @@
 //  --bpp 1
 // For copyright, see original font file.
 
-#include <ui/ugui/ugui.h>
+#include <ugui.h>
 
 static UG_FONT_DATA unsigned char fontBits_monogram_5X9[95][9] = {
   {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 }, // 0x20 ' '

@@ -179,6 +179,7 @@ set(FIRMWARE-U2F-SOURCES ${FIRMWARE-U2F-SOURCES} PARENT_SCOPE)
 
 set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/src/ui/ugui
   ${CMAKE_SOURCE_DIR}/src/platform
   ${CMAKE_SOURCE_DIR}/src/qtouch
   ${CMAKE_SOURCE_DIR}/src/usb/class

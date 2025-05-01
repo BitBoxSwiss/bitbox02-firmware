@@ -67,7 +67,7 @@ typedef struct {
     UG_U8  *widths;
 } UG_FONT;
 
-#define UG_FONT_DATA
+#define UG_FONT_DATA const
 
 /* -------------------------------------------------------------------------------- */
 /* -- µGUI CORE STRUCTURE                                                        -- */

@@ -189,6 +189,7 @@ pub fn main() -> Result<(), &'static str> {
     let mut includes = vec![
         // $INCLUDES
         "../..",
+        "../../ui/ugui",
         "../../platform",
         "../../qtouch",
         "../../usb/class",

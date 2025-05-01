@@ -32,7 +32,9 @@ bech32 = { version = "0.11.0", default-features = false }
 bitcoin = { version = "0.32.2", default-features = false }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
-sha2 = { version = "0.10.8", default-features = false }
+# force-soft-compact reduces the binary size by ~3kB. In future versions of sha2 this will change to
+# be a backend config option.  See https://github.com/RustCrypto/hashes/pull/686.
+sha2 = { version = "0.10.9", default-features = false, features = ["force-soft-compact"] }
 sha3 = { version = "0.10.8", default-features = false }
 # We don't rely on this dep directly, the sha3 dep does. We list it here to enable the
 # no_unroll feature to reduce the binary size, saving around 1528 bytes (as measured at time of

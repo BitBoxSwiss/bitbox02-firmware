@@ -538,5 +538,7 @@ if(CMAKE_CROSSCOMPILING)
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
       target_compile_options(${name}.elf PRIVATE "-Werror")
     endif()
+
+    target_link_libraries(${name}.elf PRIVATE -Wl,--print-memory-usage)
   endforeach()
 endif()

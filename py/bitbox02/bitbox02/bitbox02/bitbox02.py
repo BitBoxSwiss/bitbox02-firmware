@@ -175,6 +175,12 @@ class BitBox02(BitBoxCommonAPI):
         }
         if self.version >= semver.VersionInfo(9, 6, 0):
             result["securechip_model"] = response.device_info.securechip_model
+        if response.device_info.bluetooth is not None:
+            result["bluetooth"] = {
+                "firwmare_hash": response.device_info.bluetooth.firmware_hash,
+            }
+        else:
+            result["bluetooth"] = None
 
         return result
 
@@ -1246,7 +1252,11 @@ class BitBox02(BitBoxCommonAPI):
                 print("Sending chunk", chunk_response)
                 request = bluetooth.BluetoothRequest()
                 request.chunk.CopyFrom(
-                    bluetooth.BluetoothChunkRequest(data=firmware[chunk_response.offset:chunk_response.offset+chunk_response.length]),
+                    bluetooth.BluetoothChunkRequest(
+                        data=firmware[
+                            chunk_response.offset : chunk_response.offset + chunk_response.length
+                        ]
+                    ),
                 )
                 response = self._bluetooth_msg_query(request)
             elif response_type == "success":

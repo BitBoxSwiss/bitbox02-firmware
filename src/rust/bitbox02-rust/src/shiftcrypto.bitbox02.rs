@@ -126,6 +126,19 @@ pub struct DeviceInfoResponse {
     /// From v9.6.0: "ATECC608A" or "ATECC608B".
     #[prost(string, tag = "6")]
     pub securechip_model: ::prost::alloc::string::String,
+    /// Only present in Bluetooth-enabled devices.
+    #[prost(message, optional, tag = "7")]
+    pub bluetooth: ::core::option::Option<device_info_response::Bluetooth>,
+}
+/// Nested message and enum types in `DeviceInfoResponse`.
+pub mod device_info_response {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Bluetooth {
+        /// Hash of the currently active Bluetooth firmware on the device.
+        #[prost(bytes = "vec", tag = "1")]
+        pub firmware_hash: ::prost::alloc::vec::Vec<u8>,
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]

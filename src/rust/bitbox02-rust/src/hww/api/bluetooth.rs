@@ -175,7 +175,10 @@ pub async fn process_api(
     hal: &mut impl crate::hal::Hal,
     request: &Request,
 ) -> Result<Response, Error> {
-    if !matches!(memory::get_platform()?, memory::Platform::BitBox02Plus) {
+    if !matches!(
+        memory::get_platform().map_err(|_| Error::Memory)?,
+        memory::Platform::BitBox02Plus
+    ) {
         return Err(Error::Disabled);
     }
     match request {

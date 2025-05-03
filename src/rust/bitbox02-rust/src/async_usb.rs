@@ -101,6 +101,9 @@ where
 
             *state = UsbTaskState::Running(Some(task), WaitingForNextRequestState::Idle);
         }
+        // This panic could happen e.g. if someone reconnects to the BitBox while a task is running,
+        // before the 500ms timeout cancels the task. The proper way to handle would be to let the
+        // host know we are busy so the host can re-retry after some time.
         _ => panic!("spawn: wrong state"),
     }
 }
@@ -149,7 +152,13 @@ pub fn spin() {
         _ => None,
     };
     if let Some(ref mut task) = popped_task {
-        match spin_task(task) {
+        let spin_result = spin_task(task);
+        if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
+            // The task was cancelled while it was running, so there is nothing to do with the
+            // result.
+            return;
+        }
+        match spin_result {
             Poll::Ready(result) => {
                 *USB_TASK_STATE.0.borrow_mut() = UsbTaskState::ResultAvailable(result);
             }
@@ -208,6 +217,11 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
 
 /// Cancel and drop a running task. Returns true if a task was cancelled, false if no task was
 /// running.
+///
+/// Call this inside a running task only if you expect that the host may not be able to read the
+/// result (e.g. when resetting the BLE chip as part of a task), so another task can spawn
+/// afterwards immediately (before the timeout auto-cancles it), which currently would run into a
+/// panic until the response was read and the current task concluded. See the comment in `spawn()`
 pub fn cancel() -> bool {
     let mut state = USB_TASK_STATE.0.borrow_mut();
     if let UsbTaskState::Running(_, _) = *state {

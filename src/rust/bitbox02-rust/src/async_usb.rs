@@ -160,7 +160,7 @@ pub fn spin() {
                 {
                     *task = popped_task;
                 } else {
-                    panic!("spin: illegal executor state");
+                    // The task was cancelled/dropped since we popped it above.
                 }
             }
         }
@@ -286,6 +286,47 @@ mod tests {
             // Response ok.
             assert_eq!(&response[..4], &[4, 5, 6, 7]);
         }
+    }
+
+    struct Forever;
+
+    impl core::future::Future for Forever {
+        type Output = ();
+
+        fn poll(
+            self: core::pin::Pin<&mut Self>,
+            _: &mut core::task::Context,
+        ) -> core::task::Poll<Self::Output> {
+            // Always return pending, never ready.
+            core::task::Poll::Pending
+        }
+    }
+
+    /// A future that never finishes.
+    fn forever() -> impl core::future::Future<Output = ()> {
+        Forever
+    }
+
+    #[test]
+    fn test_cancel_during_spin() {
+        async fn task(_usb_in: UsbIn) -> UsbOut {
+            cancel();
+            // Any async fn will do that actually yields, so we can test below in the copy_response
+            // result that the task was dropped. Without a yield point, the task would finish in one
+            // shot.
+            forever().await;
+            unreachable!();
+        }
+        spawn(task, &[1, 2, 3]);
+        spin();
+
+        let mut response = [0; 100];
+        // The result would be `Err(NotReady)` (duet to `forever().await` if we didn't `cancel()`
+        // inside the task.
+        assert_eq!(
+            copy_response(&mut response),
+            Err(CopyResponseErr::NotRunning)
+        );
     }
 
     #[test]

@@ -179,10 +179,10 @@ add_executable(simulator simulator.c framework/eh_personality.c)
 target_link_libraries(simulator PRIVATE
   $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
   $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
-  -Wl,--start-group
+  $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
   c-unit-tests_rust_c
   bitbox-simulator
-  -Wl,--end-group
+  $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
   ""
 )
 

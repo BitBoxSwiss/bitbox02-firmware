@@ -32,6 +32,9 @@ set(LIBWALLY_CFLAGS  "\
   -D_DEFAULT_SOURCE \
   -fno-strict-aliasing \
 ")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  string(APPEND LIBWALLY_CFLAGS " -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
 
 # Hide some warnings
 set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -Wno-cast-qual -Wno-cast-align \

@@ -20,7 +20,7 @@
 #include "usb/usb_frame.h"
 
 #ifndef CONTINUOUS_INTEGRATION
-#include <hidapi/hidapi.h>
+#include <hidapi.h>
 #else
 typedef void hid_device;
 #endif

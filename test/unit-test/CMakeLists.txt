@@ -12,6 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# No linker for Mach-O supports the linker argument `--wrap`. Since we use
+# that, unit tests will never work on macos. Use linux/arm64 in docker instead.
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    message("No linker for Mach-O supports --wrap, will not generate unit-tests")
+    return()
+endif()
+
+# We use FindPkgConfig instead of FindPackage because it finds libraries in
+# both linux and macos
+find_package(PkgConfig REQUIRED)
+
+# Unit testing uses CMocka
+pkg_check_modules(CMOCKA REQUIRED cmocka)
+# u2f tests with hardware uses hidapi-hidraw
+pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw)
+
+message("hidapi-hidraw " ${HIDAPI_INCLUDE_DIRS})
+
 
 #-----------------------------------------------------------------------------
 # Build bitbox lib to use in tests
@@ -116,6 +134,7 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
+  ${CMOCKA_INCLUDE_DIRS}
 )
 
 target_include_directories(
@@ -163,6 +182,7 @@ target_compile_definitions(bitbox PUBLIC TESTING _UNIT_TEST_)
 target_link_libraries(bitbox
   PUBLIC
     secp256k1
+    ${CMOCKA_LIBRARIES}
   PRIVATE
     wallycore
     ctaes
@@ -195,6 +215,7 @@ target_include_directories(
   u2f-util
   SYSTEM PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${HIDAPI_INCLUDE_DIRS}
 )
 target_include_directories(
   u2f-util
@@ -204,6 +225,8 @@ target_include_directories(
 )
 target_compile_definitions(u2f-util PUBLIC "TESTING" _UNIT_TEST_ PRODUCT_BITBOX_MULTI "APP_U2F=1" "APP_BTC=1" "APP_LTC=1" "APP_ETH=1")
 target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")
+
+target_link_libraries(u2f-util PUBLIC ${HIDAPI_LIBRARIES})
 
 
 #-----------------------------------------------------------------------------
@@ -242,8 +265,6 @@ set(TEST_LIST
    ""
 )
 
-find_package(CMocka REQUIRED)
-
 list(LENGTH TEST_LIST TEST_LIST_LEN)
 math(EXPR TEST_LIST_LEN ${TEST_LIST_LEN}-1)
 foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
@@ -260,7 +281,6 @@ foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
     c-unit-tests_rust_c
     bitbox
     -Wl,--end-group
-    ${CMOCKA_LIBRARIES}
     ${TEST_LINK_ARGS}
   )
   if(NOT ${TEST_NAME} STREQUAL "simulator")
@@ -289,7 +309,6 @@ foreach(TEST_NAME ${U2F_TESTS})
     bitbox
     -Wl,--end-group
     u2f-util
-    ${CMOCKA_LIBRARIES}
   )
   target_compile_definitions(${EXE} PRIVATE "TESTING")
   add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
@@ -302,8 +321,6 @@ foreach(TEST_NAME ${U2F_TESTS})
     $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     u2f-util
-    hidapi-hidraw
-    ${CMOCKA_LIBRARIES}
   )
   target_compile_definitions(${EXE} PRIVATE "TESTING" "WITH_HARDWARE")
 endforeach()

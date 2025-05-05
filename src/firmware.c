@@ -25,6 +25,7 @@
 #include "screen.h"
 #include "ui/screen_stack.h"
 #include "usb/usb_processing.h"
+#include <memory/memory_spi.h>
 
 uint32_t __stack_chk_guard = 0;
 
@@ -41,6 +42,12 @@ int main(void)
     bitbox02_smarteeprom_init();
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         da14531_protocol_init();
+    }
+
+    struct da14531_firmware_version version;
+    if (memory_spi_get_active_ble_firmware_version(&version)) {
+        util_log("%d.%d.%d", version.major, version.minor, version.patch);
+        util_log("hex %s", util_dbg_hex(version.hash, 20));
     }
     usb_processing_init();
     firmware_main_loop();

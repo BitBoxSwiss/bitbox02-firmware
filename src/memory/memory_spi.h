@@ -51,4 +51,17 @@ USE_RESULT bool memory_spi_get_active_ble_firmware(
     size_t* size_out,
     uint8_t* checksum_out);
 
+// This struct is always placed at 0x110 in the firmware
+struct da14531_firmware_version {
+    uint8_t version; // The version of the format of this struct.
+    uint16_t major;
+    uint16_t minor;
+    uint16_t patch;
+    uint8_t hash[20];
+    uint8_t modified;
+} __attribute__((packed));
+
+USE_RESULT bool memory_spi_get_active_ble_firmware_version(
+    struct da14531_firmware_version* version);
+
 #endif

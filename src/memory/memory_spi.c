@@ -20,6 +20,7 @@
 #include <hardfault.h>
 #include <rust/rust.h>
 #include <util.h>
+#include <utils_assert.h>
 
 bool memory_spi_get_active_ble_firmware(
     uint8_t** firmware_out,
@@ -54,4 +55,30 @@ bool memory_spi_get_active_ble_firmware(
     *size_out = size;
     *checksum_out = metadata.firmware_checksums[metadata.active_index];
     return true;
+}
+
+USE_RESULT bool memory_spi_get_active_ble_firmware_version(struct da14531_firmware_version* version)
+{
+    memory_ble_metadata_t metadata = {0};
+    memory_get_ble_metadata(&metadata);
+    util_log("ble active index: %d", metadata.active_index);
+    if (metadata.active_index != 0 && metadata.active_index != 1) {
+        return false;
+    }
+
+    uint32_t ble_addr = metadata.active_index == 0 ? MEMORY_SPI_BLE_FIRMWARE_1_ADDR
+                                                   : MEMORY_SPI_BLE_FIRMWARE_2_ADDR;
+    uint8_t* firmware = spi_mem_read(ble_addr + 0x110, sizeof(struct da14531_firmware_version));
+    ASSERT(firmware);
+    if (!firmware) {
+        return false;
+    }
+
+    memcpy((uint8_t*)version, firmware, sizeof(struct da14531_firmware_version));
+    free(firmware);
+
+    if (version->version == 1) {
+        return true;
+    }
+    return false;
 }

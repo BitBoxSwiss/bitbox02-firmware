@@ -181,6 +181,7 @@ int main(int argc, char* argv[])
                 // input, then it does not consume any packets but it still calls
                 // the send function to send further USB messages
                 usb_processing_process(usb_processing_hww());
+                send_usb_message_socket();
                 temp_len -= (USB_HID_REPORT_OUT_SIZE - 5);
             }
             send_usb_message_socket();

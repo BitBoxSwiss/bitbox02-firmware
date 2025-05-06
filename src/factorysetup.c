@@ -13,16 +13,23 @@
 // limitations under the License.
 
 #include "common_main.h"
+#include "da14531/da14531_binary.h"
+#include "da14531/da14531_protocol.h"
 #include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
 #include "memory/memory.h"
+#include "memory/memory_shared.h"
+#include "memory/memory_spi.h"
+#include "memory/spi_mem.h"
 #include "platform_init.h"
 #include "screen.h"
 #include "securechip/securechip.h"
+#include "uart.h"
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
+#include "utils_ringbuffer.h"
 #include <secp256k1.h>
 
 #include <wally_crypto.h>
@@ -37,6 +44,11 @@
 #define LENSIZE (2)
 
 #define FACTORYSETUP_CMD (HID_VENDOR_FIRST + 0x02) // factory setup commands
+
+// We commit to the BLE firmware hash here to avoid accidentally installing an unexpected firmware.
+static const uint8_t _allowed_ble_fw_hash[32] =
+    "\xdd\x67\x9f\x54\x6c\x3e\xea\xab\x4e\x2a\x23\x94\x19\x90\xc2\xee\xaa\xb9\x12\xea\x68\x90\x09"
+    "\x20\xb6\x18\x5d\x20\x34\x72\xe8\xf8";
 
 // 65 bytes uncompressed secp256k1 root attestation pubkey.
 #define ROOT_PUBKEY_SIZE 65
@@ -121,6 +133,7 @@ typedef enum {
     OP_SET_CERTIFICATE = 'c',
     OP_SC_ROLLKEYS = 'k',
     OP_REBOOT = 'r',
+    OP_BLE_RESULT = 'b',
 } op_code_t;
 
 typedef enum {
@@ -129,6 +142,23 @@ typedef enum {
     ERR_FAILED,
     ERR_UNKNOWN_COMMAND,
 } error_code_t;
+
+typedef enum {
+    BLE_OK,
+    BLE_ERR_FW_TOO_LARGE,
+    BLE_ERR_FLASH_FW,
+    BLE_ERR_GET_METADATA,
+    BLE_ERR_SET_METADATA,
+    BLE_ERR_READ_FW,
+    BLE_ERR_FW_SIZE_MISMATCH,
+    BLE_ERR_FW_CHECKSUM_MISMATCH,
+    BLE_ERR_FW_MISMATCH,
+    BLE_ERR_SPI_ERASE,
+    BLE_ERR_FW_NOT_ALLOWED,
+    BLE_ERR_NOT_BOOTED,
+} ble_error_code_t;
+
+static ble_error_code_t _ble_result;
 
 static void _rtt_send(const uint8_t* msg, size_t len)
 {
@@ -293,6 +323,14 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
     case OP_REBOOT:
         _reset_mcu();
         break;
+    case OP_BLE_RESULT:
+        if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+            output[2] = _ble_result;
+            out_len++;
+        } else {
+            result = ERR_UNKNOWN_COMMAND;
+        }
+        break;
     default:
         screen_sprintf_debug(1000, "unknown command: 0x%x", input[0]);
         result = ERR_UNKNOWN_COMMAND;
@@ -300,6 +338,142 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
     }
     output[1] = result; // error code
     *output_len = out_len;
+}
+
+static void _free(uint8_t** buf)
+{
+    free(*buf);
+    *buf = NULL;
+}
+
+static uint8_t _ble_firmware_checksum(const uint8_t* buf, size_t buf_len)
+{
+    uint8_t res = 0;
+    for (size_t i = 0; i < buf_len; ++i) {
+        res ^= buf[i];
+    }
+    return res;
+}
+
+static ble_error_code_t _verify_ble(const uint8_t* expected_ble_fw_hash, uint8_t expected_checksum)
+{
+    // We don't need to double-check the metadata, `memory_spi_get_active_ble_firmware()` and the
+    // subsequent checks cover it (the FW uses the same function to fetch the active FW).
+
+    uint8_t* __attribute__((__cleanup__(_free))) flashed_ble_fw = NULL;
+    size_t flashed_ble_fw_size = 0;
+    uint8_t flashed_ble_fw_checksum = 0;
+    if (!memory_spi_get_active_ble_firmware(
+            &flashed_ble_fw, &flashed_ble_fw_size, &flashed_ble_fw_checksum)) {
+        screen_print_debug("_setup_ble: get firmware failed", 0);
+        return BLE_ERR_READ_FW;
+    }
+    uint8_t flashed_ble_fw_hash[32] = {0};
+    if (wally_sha256(
+            flashed_ble_fw,
+            flashed_ble_fw_size,
+            flashed_ble_fw_hash,
+            sizeof(flashed_ble_fw_hash)) != WALLY_OK) {
+        Abort("_setup_ble: wally_sha256 failed");
+    }
+    if (flashed_ble_fw_size != da14531_firmware_size()) {
+        screen_print_debug("_setup_ble: size check failed", 0);
+        return BLE_ERR_FW_SIZE_MISMATCH;
+    }
+    if (flashed_ble_fw_checksum != expected_checksum) {
+        screen_print_debug("_setup_ble: checksum mismatch", 0);
+        return BLE_ERR_FW_CHECKSUM_MISMATCH;
+    }
+    if (!MEMEQ(expected_ble_fw_hash, flashed_ble_fw_hash, 32)) {
+        screen_print_debug("_setup_ble: hash check failed", 0);
+        return BLE_ERR_FW_MISMATCH;
+    }
+
+    return BLE_OK;
+}
+
+// TODO: call this as part of an API endpoint?
+static ble_error_code_t _setup_ble(void)
+{
+    if (da14531_firmware_size() > MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE) {
+        return BLE_ERR_FW_TOO_LARGE;
+    }
+
+    uint8_t checksum = _ble_firmware_checksum(da14531_firmware_start(), da14531_firmware_size());
+
+    // Compute FW hash.
+    uint8_t ble_fw_hash[32] = {0};
+    if (wally_sha256(
+            da14531_firmware_start(), da14531_firmware_size(), ble_fw_hash, sizeof(ble_fw_hash)) !=
+        WALLY_OK) {
+        Abort("_setup_ble: wally_sha256 failed");
+    }
+
+    if (!MEMEQ(ble_fw_hash, _allowed_ble_fw_hash, 32)) {
+        return BLE_ERR_FW_NOT_ALLOWED;
+    }
+
+    // BLE already setup, no need to repeat it. This saves a lot of time when repeating the
+    // factorysetup of a device, as then we can skip the time-consuming chip erase below.
+    if (_verify_ble(ble_fw_hash, checksum) == BLE_OK) {
+        screen_print_debug("Skipping BLE setup.\nAlready done.", 0);
+        return BLE_OK;
+    }
+
+    // Erase chip.
+    screen_print_debug("Erasing chip", 0);
+    int32_t erased_sectors = spi_mem_smart_erase();
+    if (erased_sectors == -1) {
+        return BLE_ERR_SPI_ERASE;
+    }
+    util_log("spi mem: erased %ld sectors", (long)erased_sectors);
+
+    // Write FW
+    screen_print_debug("Writing BLE fw", 0);
+    if (!spi_mem_write(
+            MEMORY_SPI_BLE_FIRMWARE_1_ADDR, da14531_firmware_start(), da14531_firmware_size())) {
+        screen_print_debug("Writing BLE fw failed", 0);
+        return BLE_ERR_FLASH_FW;
+    }
+
+    memory_ble_metadata_t metadata;
+    memory_get_ble_metadata(&metadata);
+
+    memcpy(metadata.allowed_firmware_hash, ble_fw_hash, 32);
+    metadata.active_index = 0;
+    metadata.firmware_sizes[0] = (uint16_t)da14531_firmware_size();
+    metadata.firmware_checksums[0] = checksum;
+    if (!memory_set_ble_metadata(&metadata)) {
+        screen_print_debug("_setup_ble: set metadata failed", 0);
+        return BLE_ERR_SET_METADATA;
+    }
+
+    // Read back FW and re-compute and check hash.
+    ble_error_code_t status = _verify_ble(ble_fw_hash, checksum);
+    if (status != BLE_OK) {
+        screen_print_debug("_setup_ble: failed to verify new firmware", 0);
+        return status;
+    }
+
+    // Boot the chip
+    // protocol_init will reset the chip so it asks for the firmware.
+    da14531_protocol_init();
+    uint8_t uart_read_buf[1024];
+    uint16_t uart_read_buf_len = 0;
+    uint8_t uart_write_buf[1024];
+    struct ringbuffer uart_write_queue;
+    ringbuffer_init(&uart_write_queue, uart_write_buf, sizeof(uart_write_buf));
+    int32_t timeout = 1000000;
+    while (timeout-- > 0) {
+        uart_poll(uart_read_buf, sizeof(uart_read_buf), &uart_read_buf_len, &uart_write_queue);
+        struct da14531_protocol_frame* frame =
+            da14531_protocol_poll(uart_read_buf, &uart_read_buf_len, NULL, &uart_write_queue);
+        if (frame) {
+            // We have successfully booted the chip, the BLE chips firmware sent its first request
+            return BLE_OK;
+        }
+    }
+    return BLE_ERR_NOT_BOOTED;
 }
 
 int main(void)
@@ -329,6 +503,10 @@ int main(void)
     SEGGER_RTT_Init();
 
     screen_print_debug("READY", 0);
+
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        _ble_result = _setup_ble();
+    }
 
     uint8_t msg_read[BUFFER_SIZE_DOWN] = {0};
     size_t len_read;

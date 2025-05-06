@@ -25,16 +25,11 @@ int __wrap_rand(void)
     return mock();
 }
 
-int __wrap_wally_sha256(
-    const unsigned char* bytes,
-    size_t bytes_len,
-    unsigned char* bytes_out,
-    size_t len)
+int __wrap_rust_sha256(const unsigned char* data, size_t len, unsigned char* out)
 {
-    check_expected(bytes);
-    check_expected(bytes_len);
-    check_expected(bytes_out);
+    check_expected(data);
     check_expected(len);
+    check_expected(out);
     return 0;
 }
 
@@ -65,10 +60,9 @@ static void _test_random_32_bytes(void** state)
         will_return(__wrap_rand, RANDOM_NUM_SIZE - i);
         expected[i] ^= RANDOM_NUM_SIZE - i;
     }
-    expect_memory(__wrap_wally_sha256, bytes, expected, RANDOM_NUM_SIZE);
-    expect_value(__wrap_wally_sha256, bytes_len, RANDOM_NUM_SIZE);
-    expect_value(__wrap_wally_sha256, bytes_out, buf);
-    expect_value(__wrap_wally_sha256, len, RANDOM_NUM_SIZE);
+    expect_memory(__wrap_rust_sha256, data, expected, RANDOM_NUM_SIZE);
+    expect_value(__wrap_rust_sha256, len, RANDOM_NUM_SIZE);
+    expect_value(__wrap_rust_sha256, out, buf);
     random_32_bytes(buf);
 }
 

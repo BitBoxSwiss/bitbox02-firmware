@@ -14,10 +14,14 @@
 
 #include "reset.h"
 
+#include "da14531/da14531.h"
 #include "hardfault.h"
 #include "keystore.h"
 #include "memory/memory.h"
+#include "memory/memory_shared.h"
 #include "memory/smarteeprom.h"
+#include "system.h"
+#include "uart.h"
 
 #ifndef TESTING
 #include "securechip/securechip.h"
@@ -41,6 +45,19 @@ static void _show_reset_label(bool status)
     UG_SendBuffer();
     comp->f->cleanup(comp);
     delay_ms(3000);
+}
+#endif
+
+#if !defined(TESTING)
+static void _ble_reset(void)
+{
+    struct ringbuffer uart_queue;
+    uint8_t uart_queue_buf[64];
+    ringbuffer_init(&uart_queue, &uart_queue_buf[0], sizeof(uart_queue_buf));
+    da14531_reset(&uart_queue);
+    while (ringbuffer_num(&uart_queue)) {
+        uart_poll(NULL, 0, NULL, &uart_queue);
+    }
 }
 #endif
 
@@ -78,7 +95,13 @@ void reset_reset(bool status)
     /* Disable SmartEEPROM, so it will be erased on next reboot. */
     smarteeprom_disable();
     _show_reset_label(status);
-    _reset_mcu();
+
+    // The ble chip needs to be restarted to load the new secrets.
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        _ble_reset();
+    }
+
+    reboot();
 #else
     (void)status;
 #endif

@@ -257,7 +257,7 @@ mod tests {
 
     /// Can initiate noise and send the Reboot protobuf request when the device is not seeded.
     #[test]
-    fn test_reboot_when_unitialized() {
+    fn test_reboot_when_uninitialized() {
         mock_memory();
 
         let mut make_request = init_noise();
@@ -275,7 +275,10 @@ mod tests {
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
-            Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
+            Err(msg) => assert_eq!(
+                msg.downcast_ref::<&str>(),
+                Some(&"reboot_to_bootloader called")
+            ),
         }
         assert_eq!(
             mock_hal.ui.screens,
@@ -340,7 +343,10 @@ mod tests {
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
-            Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
+            Err(msg) => assert_eq!(
+                msg.downcast_ref::<&str>(),
+                Some(&"reboot_to_bootloader called")
+            ),
         }
         assert_eq!(
             mock_hal.ui.screens,
@@ -454,7 +460,10 @@ mod tests {
         }));
         match reboot_called {
             Ok(()) => panic!("reboot was not called"),
-            Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
+            Err(msg) => assert_eq!(
+                msg.downcast_ref::<&str>(),
+                Some(&"reboot_to_bootloader called")
+            ),
         }
         assert_eq!(
             mock_hal.ui.screens,

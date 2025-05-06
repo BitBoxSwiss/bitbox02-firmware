@@ -44,6 +44,10 @@ elseif(CCACHE_PROGRAM)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
+# This is ignored on platforms other than darwin. By default rust compiles for
+# 10.7 which doesn't link for us.
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+
 project(bitbox02 C)
 
 # nosys is set in arm.cmake so that `project(c)` above works. Remove it since it interferes with compile options
@@ -324,7 +328,7 @@ string(APPEND CMAKE_C_FLAGS " -Wno-cast-function-type")
 
 # Enable stack protection on release builds
 if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-  string(APPEND CMAKE_C_FLAGS " -fstack-protector-all")
+  string(APPEND CMAKE_C_FLAGS " -fstack-protector-strong")
   if(CMAKE_CROSSCOMPILING)
     # Path to empty dummy libssp and libssp_shared. '-llibssp -llibssp_shared' is automatically added
     # with '-fstack-protector-all', but we don't need them as we have our own custom

@@ -36,12 +36,25 @@ global___DeviceInfoRequest = DeviceInfoRequest
 
 class DeviceInfoResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    class Bluetooth(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+        FIRMWARE_HASH_FIELD_NUMBER: builtins.int
+        firmware_hash: builtins.bytes
+        """Hash of the currently active Bluetooth firmware on the device."""
+
+        def __init__(self,
+            *,
+            firmware_hash: builtins.bytes = ...,
+            ) -> None: ...
+        def ClearField(self, field_name: typing_extensions.Literal["firmware_hash",b"firmware_hash"]) -> None: ...
+
     NAME_FIELD_NUMBER: builtins.int
     INITIALIZED_FIELD_NUMBER: builtins.int
     VERSION_FIELD_NUMBER: builtins.int
     MNEMONIC_PASSPHRASE_ENABLED_FIELD_NUMBER: builtins.int
     MONOTONIC_INCREMENTS_REMAINING_FIELD_NUMBER: builtins.int
     SECURECHIP_MODEL_FIELD_NUMBER: builtins.int
+    BLUETOOTH_FIELD_NUMBER: builtins.int
     name: typing.Text
     initialized: builtins.bool
     version: typing.Text
@@ -50,6 +63,10 @@ class DeviceInfoResponse(google.protobuf.message.Message):
     securechip_model: typing.Text
     """From v9.6.0: "ATECC608A" or "ATECC608B"."""
 
+    @property
+    def bluetooth(self) -> global___DeviceInfoResponse.Bluetooth:
+        """Only present in Bluetooth-enabled devices."""
+        pass
     def __init__(self,
         *,
         name: typing.Text = ...,
@@ -58,8 +75,11 @@ class DeviceInfoResponse(google.protobuf.message.Message):
         mnemonic_passphrase_enabled: builtins.bool = ...,
         monotonic_increments_remaining: builtins.int = ...,
         securechip_model: typing.Text = ...,
+        bluetooth: typing.Optional[global___DeviceInfoResponse.Bluetooth] = ...,
         ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["initialized",b"initialized","mnemonic_passphrase_enabled",b"mnemonic_passphrase_enabled","monotonic_increments_remaining",b"monotonic_increments_remaining","name",b"name","securechip_model",b"securechip_model","version",b"version"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_bluetooth",b"_bluetooth","bluetooth",b"bluetooth"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_bluetooth",b"_bluetooth","bluetooth",b"bluetooth","initialized",b"initialized","mnemonic_passphrase_enabled",b"mnemonic_passphrase_enabled","monotonic_increments_remaining",b"monotonic_increments_remaining","name",b"name","securechip_model",b"securechip_model","version",b"version"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_bluetooth",b"_bluetooth"]) -> typing.Optional[typing_extensions.Literal["bluetooth"]]: ...
 global___DeviceInfoResponse = DeviceInfoResponse
 
 class InsertRemoveSDCardRequest(google.protobuf.message.Message):

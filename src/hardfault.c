@@ -15,12 +15,12 @@
 #include "hardfault.h"
 #include "util.h"
 #include "utils_assert.h"
+#include <driver_init.h>
 #include <memory/memory.h>
 #include <platform_config.h>
 #include <screen.h>
 #include <usb/usb.h>
 #ifndef TESTING
-#include <driver_init.h>
 
 void HardFault_Handler(void)
 {

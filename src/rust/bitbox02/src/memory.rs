@@ -22,6 +22,8 @@ pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN 
 // deduct one for the null terminator.
 pub const MULTISIG_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_MULTISIG_NAME_MAX_LEN as usize - 1;
 
+pub use bitbox02_sys::memory_ble_metadata_t as BleMetadata;
+
 pub use bitbox02_sys::memory_result_t as MemoryError;
 
 #[derive(Debug)]
@@ -157,6 +159,35 @@ pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
                 .into(),
         ),
         false => None,
+    }
+}
+
+pub enum Platform {
+    BitBox02,
+    BitBox02Plus,
+}
+
+pub fn get_platform() -> Result<Platform, ()> {
+    match unsafe { bitbox02_sys::memory_get_platform() as u32 } {
+        bitbox02_sys::MEMORY_PLATFORM_BITBOX02 => Ok(Platform::BitBox02),
+        bitbox02_sys::MEMORY_PLATFORM_BITBOX02_PLUS => Ok(Platform::BitBox02Plus),
+        _ => Err(()),
+    }
+}
+
+pub fn get_ble_metadata() -> BleMetadata {
+    let mut metadata = core::mem::MaybeUninit::uninit();
+
+    unsafe {
+        bitbox02_sys::memory_get_ble_metadata(metadata.as_mut_ptr());
+        metadata.assume_init()
+    }
+}
+
+pub fn set_ble_metadata(metadata: &BleMetadata) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_set_ble_metadata(metadata) } {
+        true => Ok(()),
+        false => Err(()),
     }
 }
 

@@ -27,6 +27,7 @@ mod cardano;
 
 mod backup;
 mod bip85;
+mod bluetooth;
 mod device_info;
 mod electrum;
 mod reset;
@@ -129,7 +130,8 @@ fn can_call(request: &Request) -> bool {
         | Request::DeviceLanguage(_)
         | Request::CheckSdcard(_)
         | Request::InsertRemoveSdcard(_)
-        | Request::ListBackups(_) => matches!(
+        | Request::ListBackups(_)
+        | Request::Bluetooth(_) => matches!(
             state,
             State::Uninitialized | State::Seeded | State::InitializedAndUnlocked
         ),
@@ -161,7 +163,7 @@ fn can_call(request: &Request) -> bool {
 /// Handle a protobuf api call.
 async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Result<Response, Error> {
     match request {
-        Request::Reboot(ref request) => system::reboot(hal, request).await,
+        Request::Reboot(ref request) => system::reboot_to_bootloader(hal, request).await,
         Request::DeviceInfo(_) => device_info::process(),
         Request::DeviceName(ref request) => set_device_name::process(hal, request).await,
         Request::SetPassword(ref request) => set_password::process(hal, request).await,
@@ -204,6 +206,11 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
         Request::Bip85(ref request) => bip85::process(hal, request).await,
+        Request::Bluetooth(pb::BluetoothRequest {
+            request: Some(ref request),
+        }) => bluetooth::process_api(hal, request)
+            .await
+            .map(|r| Response::Bluetooth(pb::BluetoothResponse { response: Some(r) })),
         _ => Err(Error::InvalidInput),
     }
 }

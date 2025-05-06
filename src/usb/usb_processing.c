@@ -39,7 +39,7 @@ extern struct timer_descriptor TIMER_0;
  * Amount of time to wait before an outstanding operation times out
  * (if the client is closed).
  */
-#define USB_OUTSTANDING_OP_TIMEOUT_MS (500)
+#define USB_OUTSTANDING_OP_TIMEOUT_MS (7000)
 #define USB_TIMER_TICK_PERIOD_MS (100)
 #define USB_OUTSTANDING_OP_TIMEOUT_TICKS (USB_OUTSTANDING_OP_TIMEOUT_MS / USB_TIMER_TICK_PERIOD_MS)
 

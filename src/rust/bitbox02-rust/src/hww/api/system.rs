@@ -21,7 +21,7 @@ use pb::response::Response;
 use crate::hal::Ui;
 use crate::workflow::confirm;
 
-pub async fn reboot(
+pub async fn reboot_to_bootloader(
     hal: &mut impl crate::hal::Hal,
     &pb::RebootRequest { purpose }: &pb::RebootRequest,
 ) -> Result<Response, Error> {
@@ -38,7 +38,7 @@ pub async fn reboot(
             ..Default::default()
         })
         .await?;
-    bitbox02::reboot()
+    bitbox02::reboot_to_bootloader()
 }
 
 #[cfg(test)]
@@ -52,9 +52,9 @@ mod tests {
     use alloc::boxed::Box;
 
     #[test]
-    pub fn test_reboot() {
+    pub fn test_reboot_to_bootloader() {
         let reboot_called = std::panic::catch_unwind(|| {
-            block_on(reboot(
+            block_on(reboot_to_bootloader(
                 &mut TestingHal::new(),
                 &pb::RebootRequest {
                     purpose: Purpose::Upgrade as _,
@@ -63,17 +63,20 @@ mod tests {
             .unwrap();
         });
         match reboot_called {
-            Ok(()) => panic!("reboot was not called"),
-            Err(msg) => assert_eq!(msg.downcast_ref::<&str>(), Some(&"reboot called")),
+            Ok(()) => panic!("reboot_to_bootloader was not called"),
+            Err(msg) => assert_eq!(
+                msg.downcast_ref::<&str>(),
+                Some(&"reboot_to_bootloader called")
+            ),
         }
     }
 
     #[test]
-    pub fn test_reboot_aborted() {
+    pub fn test_reboot_to_bootloader_aborted() {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(reboot(
+            block_on(reboot_to_bootloader(
                 &mut mock_hal,
                 &pb::RebootRequest {
                     purpose: Purpose::Upgrade as _

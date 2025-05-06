@@ -4,7 +4,8 @@
 #include <platform/platform_config.h>
 
 // TOOD(nc): Create versions for factorysetup
-#if (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX02_FACTORYSETUP == 1)
+#if (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_PLUS_MULTI == 1) || \
+    (PRODUCT_BITBOX02_FACTORYSETUP == 1)
 /* Standard firmware */
 #define DIGITAL_BITBOX_VERSION "@FIRMWARE_VERSION_FULL@"
 #define DIGITAL_BITBOX_VERSION_SHORT "@FIRMWARE_VERSION@"
@@ -16,7 +17,7 @@
 #define DIGITAL_BITBOX_VERSION_MINOR @FIRMWARE_VERSION_MINOR@
 #define DIGITAL_BITBOX_VERSION_PATCH @FIRMWARE_VERSION_PATCH@
 
-#elif PRODUCT_BITBOX_BTCONLY == 1
+#elif PRODUCT_BITBOX_BTCONLY == 1 || PRODUCT_BITBOX_PLUS_BTCONLY == 1
 /* BTC only firmware */
 #define DIGITAL_BITBOX_VERSION "@FIRMWARE_BTC_ONLY_VERSION_FULL@"
 #define DIGITAL_BITBOX_VERSION_SHORT "@FIRMWARE_BTC_ONLY_VERSION@"
@@ -32,7 +33,7 @@
 #error "Invalid product"
 #endif
 
-//TODO: Add hash somewhere were it can be read out
+// TODO: Add hash somewhere were it can be read out
 #define DIGITAL_BITBOX_GITHASH "@GIT_COMMIT_HASH@"
 #define DIGITAL_BITBOX_GITHASH_SHORT "@GIT_COMMIT_HASH_SHORT@"
 

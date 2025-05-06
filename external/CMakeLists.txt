@@ -253,11 +253,6 @@ set_property(TARGET fatfs PROPERTY INTERFACE_LINK_LIBRARIES "")
 target_include_directories(fatfs SYSTEM PUBLIC fatfs/source)
 target_compile_options(fatfs PRIVATE -Wno-switch-default)
 
-add_library(ctaes
-  ctaes/ctaes.c
-)
-target_include_directories(ctaes SYSTEM PUBLIC ctaes)
-
 add_library(rtt
   SEGGER_RTT_V796b/RTT/SEGGER_RTT.c
 )

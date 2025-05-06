@@ -101,6 +101,11 @@ bool __wrap_rust_noise_generate_static_private_key(uint8_t* private_key_out)
     return true;
 }
 
+void __wrap_random_32_bytes_mcu(uint8_t* buf)
+{
+    memcpy(buf, (uint8_t*)mock(), 32);
+}
+
 static void _mock_random_32_bytes(uint8_t* buf)
 {
     memcpy(buf, (uint8_t*)mock(), 32);
@@ -414,7 +419,7 @@ static void _test_memory_get_device_name_default_bluetooth(void** state)
     shared_chunk.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
     will_return(__wrap_memory_read_shared_bootdata_mock, shared_chunk.bytes);
 
-    will_return(_mock_random_32_bytes, entropy);
+    will_return(__wrap_random_32_bytes_mcu, entropy);
 
     memory_get_device_name(name_out);
     assert_string_equal("BitBox AZUV", name_out);

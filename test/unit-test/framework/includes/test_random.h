@@ -16,10 +16,6 @@
 #define _TEST_RANDOM_H
 
 int __wrap_rand(void);
-int __wrap_wally_sha256(
-    const unsigned char* bytes,
-    size_t bytes_len,
-    unsigned char* bytes_out,
-    size_t len);
+int __wrap_rust_sha256(const unsigned char* data, size_t len, unsigned char* out);
 
 #endif

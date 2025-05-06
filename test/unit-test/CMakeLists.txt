@@ -246,7 +246,7 @@ set(TEST_LIST
    gestures
    ""
    random
-   "-Wl,--wrap=rand,--wrap=wally_sha256"
+   "-Wl,--wrap=rand,--wrap=rust_sha256"
    ui_components
    ""
    ui_util

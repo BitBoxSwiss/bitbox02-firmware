@@ -48,6 +48,7 @@ static void _show_reset_label(bool status)
 }
 #endif
 
+#if !defined(TESTING)
 static void _ble_reset(void)
 {
     struct ringbuffer uart_queue;
@@ -58,6 +59,7 @@ static void _ble_reset(void)
         uart_poll(NULL, 0, NULL, &uart_queue);
     }
 }
+#endif
 
 void reset_reset(bool status)
 {

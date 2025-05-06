@@ -807,7 +807,7 @@ static bool sd_mmc_mci_card_init(void)
 
     /* CMD52 Reset SDIO */
     sdio_cmd52(SDIO_CMD52_WRITE_FLAG, SDIO_CIA, SDIO_CCCR_IOA, 0, &data);
-    delay_ms(1);
+    delay_ms(10);
 
     /* CMD0 - Reset all cards to idle state.*/
     if (!driver_send_cmd(sd_mmc_hal, SDMMC_MCI_CMD0_GO_IDLE_STATE, 0)) {

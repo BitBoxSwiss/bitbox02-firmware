@@ -285,7 +285,7 @@ get_property(SECP256k1_INCLUDES TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRE
 foreach(include ${INCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${WALLY_INCLUDES} ${SECP256k1_INCLUDES})
   list(APPEND RUST_INCLUDES -I${include})
 endforeach()
-if(NOT CMAKE_CROSSCOMPILING)
+if(NOT (CMAKE_CROSSCOMPILING AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
   list(APPEND RUST_INCLUDES -I${CMAKE_SOURCE_DIR}/test/unit-test/framework/includes)
 endif()
 
@@ -305,7 +305,10 @@ if(NOT CMAKE_CROSSCOMPILING)
         ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAGS} -- --nocapture --test-threads 1
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
-  add_dependencies(rust-test bitbox_merged generate-protobufs)
+  add_dependencies(rust-test generate-protobufs)
+  if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_dependencies(rust-test bitbox_merged)
+  endif()
 
   add_custom_target(rust-clippy
     COMMAND

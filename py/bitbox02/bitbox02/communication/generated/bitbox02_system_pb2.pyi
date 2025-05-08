@@ -39,14 +39,19 @@ class DeviceInfoResponse(google.protobuf.message.Message):
     class Bluetooth(google.protobuf.message.Message):
         DESCRIPTOR: google.protobuf.descriptor.Descriptor
         FIRMWARE_HASH_FIELD_NUMBER: builtins.int
+        FIRMWARE_VERSION_FIELD_NUMBER: builtins.int
         firmware_hash: builtins.bytes
         """Hash of the currently active Bluetooth firmware on the device."""
+
+        firmware_version: typing.Text
+        """Firmware version, formated as "major.minor.patch"."""
 
         def __init__(self,
             *,
             firmware_hash: builtins.bytes = ...,
+            firmware_version: typing.Text = ...,
             ) -> None: ...
-        def ClearField(self, field_name: typing_extensions.Literal["firmware_hash",b"firmware_hash"]) -> None: ...
+        def ClearField(self, field_name: typing_extensions.Literal["firmware_hash",b"firmware_hash","firmware_version",b"firmware_version"]) -> None: ...
 
     NAME_FIELD_NUMBER: builtins.int
     INITIALIZED_FIELD_NUMBER: builtins.int

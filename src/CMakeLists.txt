@@ -576,7 +576,23 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_BTC=0" "APP_LTC=0" "APP_ETH=0" "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
   target_link_libraries(factory-setup.elf PRIVATE rtt)
-  target_link_libraries(factory-setup.elf PRIVATE ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.o)
+
+  # Copy the binary file to the output directory because the symbol names in
+  # the object file depend on the path to the binary file
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bitbox-da14531-firmware.o
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND ${CMAKE_OBJCOPY} -Ibinary -Oelf32-littlearm --rename-section .data=.rodata,alloc,load,readonly,data,contents bitbox-da14531-firmware.bin bitbox-da14531-firmware.o
+    DEPENDS ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin
+    COMMENT "Convert da14531 firmware to object file using ${CMAKE_OBJCOPY}")
+
+  add_custom_target(
+    da14531-firmware-object
+    DEPENDS bitbox-da14531-firmware.o
+  )
+  add_dependencies(factory-setup.elf da14531-firmware-object)
+
+  target_link_libraries(factory-setup.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bitbox-da14531-firmware.o)
 
 
   foreach(name ${BOOTLOADERS} ${FIRMWARES})

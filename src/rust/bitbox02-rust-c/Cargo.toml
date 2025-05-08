@@ -55,6 +55,7 @@ target-factory-setup = [
 target-c-unit-tests = [
   "dep:bitcoin", # for rust_base58_encode_check()
   "app-bitcoin",
+  "app-litecoin",
   "app-ethereum",
   "app-cardano",
   "firmware",

@@ -47,6 +47,7 @@ set(DBB-FILTERED-SOURCES
 
 set(IGNORE_SOURCES
     "src/screen.c"
+    "src/firmware_main_loop.c"
     "src/memory/nvmctrl.c"
     "src/memory/smarteeprom.c"
     "src/memory/mpu.c"

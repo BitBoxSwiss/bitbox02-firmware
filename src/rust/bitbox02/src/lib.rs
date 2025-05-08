@@ -251,6 +251,16 @@ pub fn sha512(msg: &[u8]) -> [u8; 64] {
     result
 }
 
+#[cfg(not(feature = "testing"))]
+pub fn communication_mode_ble_enabled() -> bool {
+    unsafe { bitbox02_sys::communication_mode_ble_enabled() }
+}
+
+#[cfg(feature = "testing")]
+pub fn communication_mode_ble_enabled() -> bool {
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -35,6 +35,7 @@
 #include <util.h>
 
 #if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#include <memory/memory_spi.h>
 #include <qtouch/qtouch.h>
 #endif
 
@@ -950,6 +951,15 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     } else {
         UG_PutString(0, SCREEN_HEIGHT - 9, "    No firmware found", false);
     }
+#if PLATFORM_BITBOX02PLUS == 1
+    struct da14531_firmware_version version;
+    bool res = memory_spi_get_active_ble_firmware_version(&version);
+    if (res) {
+        char buf[50];
+        snprintf(buf, sizeof(buf), "ble fw: %d.%d.%d", version.major, version.minor, version.patch);
+        UG_PutString(0, SCREEN_HEIGHT - 18, buf, false);
+    }
+#endif
     uint16_t ypos = SCREEN_HEIGHT / 2 - 4;
     uint16_t xpos = SCREEN_WIDTH - 10;
     if (firmware_verified != sectrue_u32) {

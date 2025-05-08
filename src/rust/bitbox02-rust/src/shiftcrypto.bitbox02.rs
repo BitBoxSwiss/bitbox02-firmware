@@ -138,6 +138,9 @@ pub mod device_info_response {
         /// Hash of the currently active Bluetooth firmware on the device.
         #[prost(bytes = "vec", tag = "1")]
         pub firmware_hash: ::prost::alloc::vec::Vec<u8>,
+        /// Firmware version, formated as "major.minor.patch".
+        #[prost(string, tag = "2")]
+        pub firmware_version: ::prost::alloc::string::String,
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

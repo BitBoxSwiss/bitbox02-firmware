@@ -108,6 +108,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_get_ble_metadata",
     "memory_set_ble_metadata",
     "memory_get_platform",
+    "memory_spi_get_active_ble_firmware_version",
     "spi_mem_write",
     "menu_create",
     "mock_memory_factoryreset",

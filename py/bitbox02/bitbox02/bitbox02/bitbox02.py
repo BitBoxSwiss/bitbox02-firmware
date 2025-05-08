@@ -177,7 +177,8 @@ class BitBox02(BitBoxCommonAPI):
             result["securechip_model"] = response.device_info.securechip_model
         if response.device_info.bluetooth is not None:
             result["bluetooth"] = {
-                "firwmare_hash": response.device_info.bluetooth.firmware_hash,
+                "firmware_hash": response.device_info.bluetooth.firmware_hash,
+                "firmware_version": response.device_info.bluetooth.firmware_version,
             }
         else:
             result["bluetooth"] = None

@@ -120,6 +120,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "random_mock_reset",
     "reboot_to_bootloader",
     "reset_reset",
+    "reset_ble",
     "screen_print_debug",
     "screen_process",
     "screen_saver_disable",

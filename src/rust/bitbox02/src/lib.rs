@@ -113,6 +113,10 @@ pub fn reset(status: bool) {
     unsafe { bitbox02_sys::reset_reset(status) }
 }
 
+pub fn reset_ble() {
+    unsafe { bitbox02_sys::reset_ble() }
+}
+
 pub struct Tm {
     tm: bitbox02_sys::tm,
 }

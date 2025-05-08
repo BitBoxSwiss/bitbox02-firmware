@@ -14,6 +14,7 @@
 
 #include "firmware_main_loop.h"
 
+#include "communication_mode.h"
 #include "da14531/da14531.h"
 #include "da14531/da14531_handler.h"
 #include "da14531/da14531_protocol.h"
@@ -44,14 +45,10 @@
 // Must be power of 2
 #define UART_OUT_BUF_LEN 2048
 
-static bool _usb_hww_request_seen = false;
-
 void firmware_main_loop(void)
 {
     // This starts the async orientation screen workflow, which is processed by the loop below.
     orientation_screen();
-
-    bool has_ble = memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS;
 
     // TODO: Send out new BLE product string, so app sees that we are booted
     // Set it to the size of the ringbuffer in the UART driver so we can read out all bytes
@@ -77,7 +74,7 @@ void firmware_main_loop(void)
 
     while (1) {
         // Do UART I/O
-        if (has_ble && !_usb_hww_request_seen) {
+        if (communication_mode_ble_enabled()) {
             if (uart_read_buf_len < sizeof(uart_read_buf) ||
                 ringbuffer_num(&uart_write_queue) > 0) {
                 uart_poll(
@@ -105,14 +102,14 @@ void firmware_main_loop(void)
         // Do USB Input
         if (!hww_data && hid_hww_read(&hww_frame[0])) {
             usb_packet_process((const USB_FRAME*)hww_frame);
-            if (has_ble && !_usb_hww_request_seen) {
+            if (communication_mode_ble_enabled()) {
                 // Enqueue a power down command to the da14531
                 da14531_power_down(&uart_write_queue);
                 // Flush out the power down command. This will be the last UART communication we do.
                 while (ringbuffer_num(&uart_write_queue) > 0) {
                     uart_poll(NULL, 0, NULL, &uart_write_queue);
                 }
-                _usb_hww_request_seen = true;
+                communication_mode_ble_disable();
             }
         }
 #if APP_U2F == 1
@@ -122,7 +119,7 @@ void firmware_main_loop(void)
 #endif
 
         // Do UART Output
-        if (has_ble && !_usb_hww_request_seen) {
+        if (communication_mode_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
                 &uart_read_buf[0], &uart_read_buf_len, hww_data, &uart_write_queue);
             // da14531_protocol_poll has consumed the data, clear pointer

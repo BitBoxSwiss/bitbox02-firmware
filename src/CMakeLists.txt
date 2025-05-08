@@ -584,7 +584,7 @@ if(CMAKE_CROSSCOMPILING)
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND ${CMAKE_OBJCOPY} -Ibinary -Oelf32-littlearm --rename-section .data=.rodata,alloc,load,readonly,data,contents bitbox-da14531-firmware.bin bitbox-da14531-firmware.o
     DEPENDS ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin
-    COMMENT "Convert da14531 firmware to object file")
+    COMMENT "Convert da14531 firmware to object file using ${CMAKE_OBJCOPY}")
 
   add_custom_target(
     da14531-firmware-object

@@ -18,6 +18,9 @@
 #include "da14531_protocol.h"
 #include <utils_ringbuffer.h>
 
+extern const uint8_t* da14531_handler_current_product;
+extern uint8_t da14531_handler_current_product_len;
+
 void da14531_handler(struct da14531_protocol_frame* frame, struct ringbuffer* queue);
 
 #endif

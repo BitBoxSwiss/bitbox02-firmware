@@ -45,7 +45,7 @@ void da14531_power_down(struct ringbuffer* uart_out)
     }
 }
 
-void da14531_set_product(const char* product, uint16_t product_len, struct ringbuffer* uart_out)
+void da14531_set_product(const uint8_t* product, uint16_t product_len, struct ringbuffer* uart_out)
 {
     uint8_t payload[64] = {0};
     payload[0] = CTRL_CMD_PRODUCT_STRING;

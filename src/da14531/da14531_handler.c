@@ -24,6 +24,15 @@
 #include <ui/components/confirm.h>
 #include <ui/fonts/monogram_5X9.h>
 
+#if defined(BOOTLOADER)
+#define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"1.1.0\"}"
+#else
+#define DEVICE_MODE ""
+#endif
+
+const uint8_t* da14531_handler_current_product = (const uint8_t*)DEVICE_MODE;
+uint8_t da14531_handler_current_product_len = sizeof(DEVICE_MODE) - 1;
+
 struct da14531_ctrl_frame {
     enum da14531_protocol_packet_type type;
     uint16_t payload_length; // includes length of cmd
@@ -212,12 +221,8 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
     } break;
     case CTRL_CMD_PRODUCT_STRING: {
         // util_log("da14531: get device mode");
-#if defined(BOOTLOADER)
-#define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"1.1.0\"}"
-#else
-#define DEVICE_MODE "{\"p\":\"bb02p-multi\",\"v\":\"9.22.0\"}"
-#endif
-        da14531_set_product(DEVICE_MODE, sizeof(DEVICE_MODE) - 1, queue);
+        da14531_set_product(
+            da14531_handler_current_product, da14531_handler_current_product_len, queue);
     } break;
     case CTRL_CMD_IDENTITY_ADDRESS: {
         // util_log("da14531: get addr");

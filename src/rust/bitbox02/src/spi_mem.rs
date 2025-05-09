@@ -35,12 +35,8 @@ pub fn get_active_ble_firmware_version() -> Result<String, ()> {
             true => {
                 let ble_fw_version = ble_fw_version.assume_init();
                 // Copy to avoid taking references to unaligned struct fields.
-                let (major, minor, patch) = (
-                    ble_fw_version.major,
-                    ble_fw_version.minor,
-                    ble_fw_version.patch,
-                );
-                Ok(format!("{}.{}.{}", major, minor, patch))
+                let version = ble_fw_version.version;
+                Ok(format!("{}", version))
             }
             false => Err(()),
         }

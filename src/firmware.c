@@ -43,12 +43,6 @@ int main(void)
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         da14531_protocol_init();
     }
-
-    struct da14531_firmware_version version;
-    if (memory_spi_get_active_ble_firmware_version(&version)) {
-        util_log("%d.%d.%d", version.major, version.minor, version.patch);
-        util_log("hex %s", util_dbg_hex(version.hash, 20));
-    }
     usb_processing_init();
     firmware_main_loop();
     return 0;

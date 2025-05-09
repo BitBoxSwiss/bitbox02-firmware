@@ -956,7 +956,7 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     bool res = memory_spi_get_active_ble_firmware_version(&version);
     if (res) {
         char buf[50];
-        snprintf(buf, sizeof(buf), "ble fw: %d.%d.%d", version.major, version.minor, version.patch);
+        snprintf(buf, sizeof(buf), "ble: %d (%s)", version.version, util_dbg_hex(version.hash, 4));
         UG_PutString(0, SCREEN_HEIGHT - 18, buf, false);
     }
 #endif

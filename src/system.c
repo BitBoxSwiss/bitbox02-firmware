@@ -28,7 +28,7 @@ static void _ble_clear_product(void)
     struct ringbuffer uart_queue;
     uint8_t uart_queue_buf[64];
     ringbuffer_init(&uart_queue, &uart_queue_buf[0], sizeof(uart_queue_buf));
-    da14531_set_product("", 0, &uart_queue);
+    da14531_set_product(NULL, 0, &uart_queue);
     while (ringbuffer_num(&uart_queue)) {
 #ifndef TESTING
         uart_poll(NULL, 0, NULL, &uart_queue);

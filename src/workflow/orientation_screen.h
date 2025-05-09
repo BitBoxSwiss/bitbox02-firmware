@@ -15,6 +15,8 @@
 #ifndef __ORIENTATION_SCREEN_H
 #define __ORIENTATION_SCREEN_H
 
-void orientation_screen(void);
+#include <utils_ringbuffer.h>
+
+void orientation_screen(struct ringbuffer* uart_out_queue);
 
 #endif // __ORIENTATION_SCREEN_H

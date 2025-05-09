@@ -85,9 +85,15 @@ int main(void)
     uint16_t uart_read_buf_len = 0;
 
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
-#define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"1.1.0\"}"
-    da14531_set_product(DEVICE_MODE, sizeof(DEVICE_MODE) - 1, &uart_write_queue);
     bool usb_hww_request_seen = false;
+
+    // Set product to bootloader string, this is necessary if we have rebooted from firmware. Must
+    // be done after usb_processing is initalized to avoid getting request from the app to early.
+#define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"1.1.0\"}"
+    da14531_handler_current_product = (const uint8_t*)DEVICE_MODE;
+    da14531_handler_current_product_len = sizeof(DEVICE_MODE) - 1;
+    da14531_set_product(
+        da14531_handler_current_product, da14531_handler_current_product_len, &uart_write_queue);
 
     da14531_protocol_init();
 #endif

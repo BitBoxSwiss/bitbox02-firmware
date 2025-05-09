@@ -1022,7 +1022,8 @@ void bootloader_jump(void)
     util_log("Not jumping to firmware");
     _compute_is_app_flash_empty();
     _render_default_screen();
-    if (usb_start(_api_setup) != ERR_NONE) {
+    _api_setup();
+    if (usb_start() != ERR_NONE) {
         _render_message("Failed to initialize USB", 0);
     }
 }

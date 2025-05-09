@@ -45,11 +45,16 @@ void da14531_power_down(struct ringbuffer* uart_out)
     }
 }
 
-void da14531_set_product(const char* product, uint16_t product_len, struct ringbuffer* uart_out)
+void da14531_set_product(
+    volatile const uint8_t* product,
+    volatile uint16_t product_len,
+    struct ringbuffer* uart_out)
 {
     uint8_t payload[64] = {0};
     payload[0] = CTRL_CMD_PRODUCT_STRING;
-    memcpy(&payload[1], product, product_len);
+    for (int i = 0; i < product_len; i++) {
+        payload[1 + i] = product[i];
+    }
     uint8_t tmp[128];
     uint16_t tmp_len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + product_len);

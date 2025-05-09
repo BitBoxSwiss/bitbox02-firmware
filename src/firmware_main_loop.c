@@ -47,11 +47,8 @@
 
 void firmware_main_loop(void)
 {
-    // This starts the async orientation screen workflow, which is processed by the loop below.
-    orientation_screen();
-
-    // TODO: Send out new BLE product string, so app sees that we are booted
-    // Set it to the size of the ringbuffer in the UART driver so we can read out all bytes
+    // Set the size of uart_read_buf to the size of the ringbuffer in the UART driver so we can read
+    // out all bytes
     uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
     uint16_t uart_read_buf_len = 0;
 
@@ -59,9 +56,8 @@ void firmware_main_loop(void)
     uint8_t uart_write_buf[UART_OUT_BUF_LEN];
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
 
-// Immediately enqueue the new firmware product string
-#define DEVICE_MODE "{\"p\":\"bb02p-multi\",\"v\":\"9.22.0\"}"
-    da14531_set_product(DEVICE_MODE, sizeof(DEVICE_MODE) - 1, &uart_write_queue);
+    // This starts the async orientation screen workflow, which is processed by the loop below.
+    orientation_screen(&uart_write_queue);
 
     const uint8_t* hww_data = NULL;
     uint8_t hww_frame[USB_REPORT_SIZE] = {0};

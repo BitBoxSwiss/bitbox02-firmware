@@ -849,14 +849,12 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
 
     case OP_REBOOT: {
 #if PLATFORM_BITBOX02PLUS == 1
-        // da14531_set_product("", 0, &uart_write_queue);
-        da14531_reset(&uart_write_queue);
-        // Send it now, because we are about to reset ourselves
+        da14531_set_product(NULL, 0, &uart_write_queue);
+        //  Send it now, because we are about to reset ourselves
         while (ringbuffer_num(&uart_write_queue)) {
             uart_poll(NULL, 0, NULL, &uart_write_queue);
         }
 #endif
-
         _api_reboot();
     } break;
 
@@ -1046,7 +1044,8 @@ void bootloader_jump(void)
     util_log("Not jumping to firmware");
     _compute_is_app_flash_empty();
     bootloader_render_default_screen();
-    if (usb_start(_api_setup) != ERR_NONE) {
+    _api_setup();
+    if (usb_start() != ERR_NONE) {
         _render_message("Failed to initialize USB", 0);
     }
 }

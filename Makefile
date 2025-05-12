@@ -79,6 +79,8 @@ bootloader-btc: | build
 	$(MAKE) -C build bb02-bl-btconly.elf
 bootloader-btc-development: | build
 	$(MAKE) -C build bb02-bl-btconly-development.elf
+bootloader-btc-plus-development: | build
+	$(MAKE) -C build bb02p-bl-btconly-development.elf
 bootloader-btc-production: | build
 	$(MAKE) -C build bb02-bl-btconly-production.elf
 factory-setup: | build
@@ -113,6 +115,8 @@ jlink-flash-bootloader-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development.jlink
 jlink-flash-bootloader-plus-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-multi-development.jlink
+jlink-flash-bootloader-btc-plus-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-btconly-development.jlink
 jlink-flash-bootloader-development-locked: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development-locked.jlink
 jlink-flash-bootloader: | build

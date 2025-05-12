@@ -242,7 +242,12 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
     case SERIAL_LINK_STATE_READING: {
         int len = self->buf_in_len;
         for (int i = 0; i < len; i++) {
-            // util_log("i:%d,b:%02x,l:%u", i, self->buf_in[i], self->buf_in_len);
+            // util_log(
+            //     "i:%d,b:%02x,l:%u,h:%s",
+            //     i,
+            //     self->buf_in[i],
+            //     self->buf_in_len,
+            //     util_dbg_hex(&self->frame[0], 10));
             self->buf_in_len--;
             // Reset firmware loader on STX
             if (self->buf_in[i] == STX) {

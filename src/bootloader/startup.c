@@ -156,10 +156,10 @@ int main(void)
                 bool ok;
                 UG_ClearBuffer();
                 if (qtouch_get_scroller_position(top_slider) < 127) {
-                    UG_PutString(0, 0, "deny", false);
+                    bootloader_render_default_screen();
                     ok = false;
                 } else {
-                    UG_PutString(0, 0, "confirm", false);
+                    bootloader_render_ble_confirm_screen(true);
                     ok = true;
                 }
                 uint8_t payload[18] = {0};

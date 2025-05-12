@@ -22,6 +22,7 @@
 #include "usb/usb_packet.h"
 #include "utils_ringbuffer.h"
 #include <ui/components/confirm.h>
+#include <ui/components/ui_images.h>
 #include <ui/fonts/monogram_5X9.h>
 
 struct da14531_ctrl_frame {
@@ -64,21 +65,9 @@ static void _ble_pairing_callback(bool ok, void* param)
     _ble_pairing_component = NULL;
 }
 #else
+#include <bootloader/bootloader.h>
 extern bool bootloader_pairing_request;
 extern uint8_t bootloader_pairing_code_bytes[16];
-
-static void _bootloader_pairing_code_confirm(void)
-{
-    bootloader_pairing_request = true;
-    uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
-    char code_str[7] = {0};
-    snprintf(code_str, sizeof(code_str), "%lu", (unsigned long)pairing_code_int);
-    UG_ClearBuffer();
-    UG_PutString(0, 0, "Deny", false);
-    UG_PutString(SCREEN_WIDTH - 50, 0, "Confirm", false);
-    UG_PutString(80, SCREEN_HEIGHT / 2 + 2, code_str, false);
-    UG_SendBuffer();
-}
 #endif
 
 static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
@@ -165,11 +154,15 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
             &bootloader_pairing_code_bytes[0],
             &frame->cmd_data[0],
             sizeof(bootloader_pairing_code_bytes));
-        _bootloader_pairing_code_confirm();
+        bootloader_render_ble_confirm_screen(false);
 #endif
     } break;
     case CTRL_CMD_BLE_STATUS:
         // util_log("da14531: BLE status update");
+#if defined(BOOTLOADER)
+        bootloader_pairing_request = false;
+        bootloader_render_default_screen();
+#endif
         switch (frame->cmd_data[0]) {
         case 0:
             util_log("da14531: adveritising");

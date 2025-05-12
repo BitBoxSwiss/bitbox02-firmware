@@ -228,7 +228,7 @@ bool sd_list_subdir(sd_list_t* list_out, const char* subdir)
     }
     list_out->num_files = 0;
     size_t allocated_files = 16;
-    list_out->files = (char**)calloc(sizeof(char*), allocated_files);
+    list_out->files = (char**)calloc(allocated_files, sizeof(char*));
     if (list_out->files == NULL) {
         Abort("Error: alloc sd_list_subdir");
     }

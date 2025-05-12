@@ -33,6 +33,8 @@
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
 #include <da14531/da14531_protocol.h>
+#include <memory/memory.h>
+#include <memory/memory_shared.h>
 #include <uart.h>
 #include <utils_ringbuffer.h>
 
@@ -102,6 +104,12 @@ int main(void)
     da14531_handler_current_product_len = sizeof(DEVICE_MODE) - 1;
     da14531_set_product(
         da14531_handler_current_product, da14531_handler_current_product_len, &uart_write_queue);
+
+    // Set device name, the MCU and BLE chip will probably not have the same name after a reset of
+    // only the MCU.
+    char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    memory_random_name(buf);
+    da14531_set_name(buf, strlen(buf), &uart_write_queue);
 
     da14531_protocol_init();
 #endif

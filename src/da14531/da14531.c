@@ -64,3 +64,18 @@ void da14531_set_product(
         ringbuffer_put(uart_out, tmp[i]);
     }
 }
+
+void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart_out)
+{
+    uint8_t payload[64] = {0};
+    payload[0] = CTRL_CMD_DEVICE_NAME;
+    memcpy(&payload[1], name, name_len);
+    uint8_t tmp[128];
+    uint16_t tmp_len = da14531_protocol_format(
+        &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + name_len);
+    ASSERT(tmp_len <= sizeof(tmp));
+    ASSERT(ringbuffer_num(uart_out) + tmp_len <= uart_out->size);
+    for (int i = 0; i < tmp_len; i++) {
+        ringbuffer_put(uart_out, tmp[i]);
+    }
+}

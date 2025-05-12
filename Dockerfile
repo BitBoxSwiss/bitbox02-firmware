@@ -34,18 +34,16 @@ RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/a
 
 # Install gcc8-arm-none-eabi
 RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
-      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-aarch64-arm-none-eabi.tar.xz \
-      GNU_TOOLCHAIN_HASH=c8824bffd057afce2259f7618254e840715f33523a3d4e4294f471208f976764 \
-      GNU_TOOLCHAIN_FORMAT=xz; \
+      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-arm-none-eabi.tar.xz \
+      GNU_TOOLCHAIN_HASH=87330bab085dd8749d4ed0ad633674b9dc48b237b61069e3b481abd364d0a684; \
     else \
-      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2 \
-      GNU_TOOLCHAIN_HASH=fb31fbdfe08406ece43eef5df623c0b2deb8b53e405e2c878300f7a1f303ee52 \
-      GNU_TOOLCHAIN_FORMAT=bz2; \
+      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz \
+      GNU_TOOLCHAIN_HASH=62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823; \
     fi; \
-    wget -O gcc.tar.${GNU_TOOLCHAIN_FORMAT} ${GNU_TOOLCHAIN} &&\
-    echo "$GNU_TOOLCHAIN_HASH gcc.tar.${GNU_TOOLCHAIN_FORMAT}" | sha256sum -c &&\
-    tar -xvf gcc.tar.${GNU_TOOLCHAIN_FORMAT} -C /usr/local --strip-components=1 &&\
-    rm -f gcc.tar.${GNU_TOOLCHAIN_FORMAT}
+    curl -sSL -o gcc.tar.xz ${GNU_TOOLCHAIN} && \
+    echo "$GNU_TOOLCHAIN_HASH gcc.tar.xz" | sha256sum -c && \
+    tar -xvf gcc.tar.xz -C /usr/local --strip-components=1 && \
+    rm -f gcc.tar.xz
 
 # Tools for building
 RUN apt-get update && apt-get install -y \

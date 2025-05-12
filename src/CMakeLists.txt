@@ -533,7 +533,6 @@ if(CMAKE_CROSSCOMPILING)
         embedded-swd
         cryptoauthlib
         fatfs
-        ctaes
         c
         samd51a-ds
         asf4-drivers-min

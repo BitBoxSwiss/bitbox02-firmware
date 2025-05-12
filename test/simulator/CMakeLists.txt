@@ -64,7 +64,6 @@ target_include_directories(
 add_library(bitbox_objects-simulator
   OBJECT
   ${DBB-FILTERED-SOURCES}
-  ${CTAES-SOURCES}
   ${ETHEREUM-SOURCES}
   framework/mock_cipher.c
   framework/mock_memory.c
@@ -103,7 +102,6 @@ target_include_directories(
   SYSTEM PUBLIC
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
-  ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
@@ -123,7 +121,6 @@ target_include_directories(
   SYSTEM PUBLIC
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
-  ${CMAKE_SOURCE_DIR}/external/ctaes
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
@@ -143,7 +140,6 @@ add_dependencies(bitbox_objects-simulator
   rust-cbindgen
   wallycore
   secp256k1
-  ctaes
   fatfs
   sd-mock-simulator
 )
@@ -165,7 +161,6 @@ target_link_libraries(bitbox-simulator
     secp256k1
   PRIVATE
     wallycore
-    ctaes
     fatfs
     sd-mock-simulator
 )

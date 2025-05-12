@@ -10,6 +10,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Ethereum: add confirmation screen for known networks, change base unit to ETH for Arbitrum and Optimism
 - Ethereum: add Base and Gnosis Chain to known networks
 - Bitcoin: enable message signing on testnet and regtest
+- Enable Litecoin in the simulator
 
 ### 9.22.0
 - Update manufacturer HID descriptor to bitbox.swiss

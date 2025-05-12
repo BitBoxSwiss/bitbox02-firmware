@@ -3857,18 +3857,6 @@ static void _test_cipher_aes_hmac_encrypt(void** state)
     }
 }
 
-static void _test_cipher_aes_hmac_encrypt_unhappy(void** state)
-{
-    const uint8_t secret[32] = {0};
-    const uint8_t in[100] = {0};
-    uint8_t out[164] = {0};
-    size_t outlen = sizeof(out) - 1; // outlen too small
-    assert_false(cipher_aes_hmac_encrypt(in, sizeof(in), out, &outlen, secret));
-
-    outlen = sizeof(out);
-    assert_false(cipher_aes_hmac_encrypt(in, sizeof(in), out, &outlen, NULL));
-}
-
 static void _test_cipher_aes_hmac_decrypt_unhappy(void** state)
 {
     const uint8_t secret[32] = {0};
@@ -3891,7 +3879,6 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_cipher_aes_hmac_encrypt),
-        cmocka_unit_test(_test_cipher_aes_hmac_encrypt_unhappy),
         cmocka_unit_test(_test_cipher_aes_hmac_decrypt_unhappy),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

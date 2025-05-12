@@ -25,6 +25,7 @@ crate-type = ["staticlib"]
 
 [dependencies]
 bitbox02-rust = { path = "../bitbox02-rust", optional = true }
+bitbox-aes = { path = "../bitbox-aes", features = ["use-wally-sha512"] }
 bitbox02 = { path = "../bitbox02", optional = true }
 bitbox02-noise = { path = "../bitbox02-noise", optional = true }
 util = { path = "../util" }
@@ -61,6 +62,7 @@ target-factory-setup = [
 target-c-unit-tests = [
   "dep:bitcoin", # for rust_base58_encode_check()
   "app-bitcoin",
+  "app-litecoin",
   "app-ethereum",
   "app-cardano",
   "firmware",

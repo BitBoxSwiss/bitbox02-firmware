@@ -163,13 +163,16 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
 #endif
     } break;
     case CTRL_CMD_BLE_STATUS:
+        if (frame->cmd_data[0] <= DA14531_CONNECTED_CONNECTED_SECURED) {
+            da14531_connected_state = frame->cmd_data[0];
+        }
         // util_log("da14531: BLE status update");
 #if defined(BOOTLOADER)
         bootloader_pairing_request = false;
         bootloader_render_default_screen();
 #endif
         switch (frame->cmd_data[0]) {
-        case 0:
+        case DA14531_CONNECTED_ADVERTISING:
             util_log("da14531: adveritising");
 #if !defined(BOOTLOADER)
             if (_ble_pairing_component != NULL && ui_screen_stack_top() == _ble_pairing_component) {
@@ -179,10 +182,10 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
 #endif
             break;
 #if !defined(NDEBUG)
-        case 1:
+        case DA14531_CONNECTED_CONNECTED:
             util_log("da14531: connected");
             break;
-        case 2:
+        case DA14531_CONNECTED_CONNECTED_SECURED:
             util_log("da14531: connected secure");
             break;
 #endif

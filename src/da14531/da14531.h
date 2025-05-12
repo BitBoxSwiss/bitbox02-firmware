@@ -32,6 +32,14 @@
 #define CTRL_CMD_BLE_POWER_DOWN 12
 #define CTRL_CMD_DEBUG 254
 
+enum da14531_connected_state {
+    DA14531_CONNECTED_ADVERTISING = 0,
+    DA14531_CONNECTED_CONNECTED = 1,
+    DA14531_CONNECTED_CONNECTED_SECURED = 2,
+};
+
+extern enum da14531_connected_state da14531_connected_state;
+
 void da14531_power_down(struct ringbuffer* uart_out);
 
 void da14531_reset(struct ringbuffer* uart_out);
@@ -43,5 +51,9 @@ void da14531_set_product(
     volatile const uint8_t* product,
     volatile uint16_t product_len,
     struct ringbuffer* uart_out);
+
+void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart_out);
+
+void da14531_get_connection_state(struct ringbuffer* uart_out);
 
 #endif

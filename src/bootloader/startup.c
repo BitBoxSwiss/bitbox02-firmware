@@ -30,9 +30,11 @@
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
+#include <communication_mode.h>
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
 #include <da14531/da14531_protocol.h>
+#include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <uart.h>
 #include <utils_ringbuffer.h>
@@ -95,9 +97,8 @@ int main(void)
     uint16_t uart_read_buf_len = 0;
 
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
-    bool usb_hww_request_seen = false;
     if (!memory_ble_enabled()) {
-        usb_hww_request_seen = true;
+        communication_mode_ble_disable();
     }
 
     // Set product to bootloader string, this is necessary if we have rebooted from firmware. Must
@@ -107,6 +108,15 @@ int main(void)
     da14531_set_product(
         da14531_handler_current_product, da14531_handler_current_product_len, &uart_write_queue);
 
+    // Set device name, the MCU and BLE chip will probably not have the same name after a reset of
+    // only the MCU.
+    char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    memory_random_name(buf);
+    da14531_set_name(buf, strlen(buf), &uart_write_queue);
+
+    // Ask for the current conection state
+    da14531_get_connection_state(&uart_write_queue);
+
     da14531_protocol_init();
 #endif
     usb_processing_init();
@@ -114,7 +124,7 @@ int main(void)
     while (1) {
         // Do UART I/O
 #if PLATFORM_BITBOX02PLUS == 1
-        if (!usb_hww_request_seen) {
+        if (communication_mode_ble_enabled()) {
             if (uart_read_buf_len < sizeof(uart_read_buf) ||
                 ringbuffer_num(&uart_write_queue) > 0) {
                 // screen_sprintf_debug(1000, "uart poll");
@@ -132,19 +142,20 @@ int main(void)
         if (!hww_data && hid_hww_read(&hww_frame[0])) {
             usb_packet_process((const USB_FRAME*)hww_frame);
 #if PLATFORM_BITBOX02PLUS == 1
-            if (!usb_hww_request_seen) {
+            if (communication_mode_ble_enabled()) {
                 // Enqueue a power down command to the da14531
                 da14531_power_down(&uart_write_queue);
                 // Flush out the power down command. This will be the last UART communication we do.
                 while (ringbuffer_num(&uart_write_queue) > 0) {
                     uart_poll(NULL, 0, NULL, &uart_write_queue);
                 }
-                usb_hww_request_seen = true;
+                communication_mode_ble_disable();
+                bootloader_render_default_screen();
             }
 #endif
         }
 #if PLATFORM_BITBOX02PLUS == 1
-        if (!usb_hww_request_seen) {
+        if (communication_mode_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
                 &uart_read_buf[0], &uart_read_buf_len, hww_data, &uart_write_queue);
             // da14531_protocol_poll has consumed the data, clear pointer

@@ -299,7 +299,7 @@ static void _render_message(const char* message, int duration)
     delay_ms(duration);
 }
 
-static void _render_default_screen(void)
+void bootloader_render_default_screen(void)
 {
     UG_ClearBuffer();
     _load_logo();
@@ -307,6 +307,30 @@ static void _render_default_screen(void)
         UG_PutString(0, SCREEN_HEIGHT - 9 * 2, "Let's get started!", false);
     }
     UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp", false);
+    UG_SendBuffer();
+}
+
+extern bool bootloader_pairing_request;
+extern uint8_t bootloader_pairing_code_bytes[16];
+
+void bootloader_render_ble_confirm_screen(bool confirmed)
+{
+    bootloader_pairing_request = true;
+    uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
+    char code_str[10] = {0};
+    snprintf(code_str, sizeof(code_str), "%06u", (unsigned)pairing_code_int);
+    UG_ClearBuffer();
+    uint16_t check_width = IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT / 2 - 1;
+    UG_FontSelect(&font_font_a_11X10);
+    if (confirmed) {
+        UG_PutString(15, 0, "Confirm on app", false);
+    } else {
+        UG_PutString(30, 0, "Pairing code", false);
+        image_cross(SCREEN_WIDTH / 16, 0, IMAGE_DEFAULT_CROSS_HEIGHT);
+        image_checkmark(SCREEN_WIDTH * 15 / 16 - check_width, 0, IMAGE_DEFAULT_CHECKMARK_HEIGHT);
+    }
+    UG_FontSelect(&font_monogram_5X9);
+    UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str, false);
     UG_SendBuffer();
 }
 
@@ -378,7 +402,7 @@ static void _render_hash(const char* title, const uint8_t* hash)
         UG_SendBuffer();
         delay_ms(1000);
     }
-    _render_default_screen();
+    bootloader_render_default_screen();
 }
 
 // Sets _is_app_flash_empty by computing a "bare" hash, identical to _firmware_hash
@@ -786,7 +810,7 @@ static size_t _api_screen_rotate(uint8_t* output)
         return _report_status(OP_STATUS_ERR_LOAD_FLAG, output);
     }
     screen_rotate();
-    _render_default_screen();
+    bootloader_render_default_screen();
     return _report_status(OP_STATUS_OK, output);
 }
 
@@ -840,7 +864,7 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         uint8_t chunk_num = input[1];
         len = _api_write_chunk(input + 2, chunk_num, output);
         if (output[1] != OP_STATUS_OK) {
-            _render_default_screen();
+            bootloader_render_default_screen();
         } else {
             _render_progress((float)chunk_num / (float)(_firmware_num_chunks - 1));
         }
@@ -1021,7 +1045,7 @@ void bootloader_jump(void)
     // App not entered. Start USB API to receive boot commands
     util_log("Not jumping to firmware");
     _compute_is_app_flash_empty();
-    _render_default_screen();
+    bootloader_render_default_screen();
     if (usb_start(_api_setup) != ERR_NONE) {
         _render_message("Failed to initialize USB", 0);
     }

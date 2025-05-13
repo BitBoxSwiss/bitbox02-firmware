@@ -1448,7 +1448,9 @@ class SendMessage:
                 eprint("Aborted by user")
 
     def _bluetooth_upgrade(self) -> None:
-        filename = input("Enter path to the firmware: ")
+        filename = input("Enter path to the firmware [bitbox-da14531-firmware.bin]: ")
+        if filename == "":
+            filename = "bitbox-da14531-firmware.bin"
         firmware = Path(filename).read_bytes()
         try:
             self._device.bluetooth_upgrade(firmware)

@@ -95,11 +95,11 @@ RUN rm /tmp/requirements.txt
 
 # Python modules for CI
 RUN python3 -m pip install --upgrade \
-    pylint==2.13.9 \
-    pylint-protobuf==0.20.2 \
-    black==22.3.0 \
-    mypy==0.960 \
-    mypy-protobuf==3.2.0
+    pylint==3.3.7 \
+    pylint-protobuf==0.22.0 \
+    black==25.1.0 \
+    mypy==1.15.0 \
+    mypy-protobuf==3.6.0
 
 # Python modules for packaging
 RUN python3 -m pip install --upgrade \

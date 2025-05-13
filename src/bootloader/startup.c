@@ -33,6 +33,7 @@
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
 #include <da14531/da14531_protocol.h>
+#include <memory/memory_shared.h>
 #include <uart.h>
 #include <utils_ringbuffer.h>
 
@@ -95,6 +96,9 @@ int main(void)
 
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
     bool usb_hww_request_seen = false;
+    if (!memory_ble_enabled()) {
+        usb_hww_request_seen = true;
+    }
 
     // Set product to bootloader string, this is necessary if we have rebooted from firmware. Must
     // be done after usb_processing is initalized to avoid getting request from the app to early.

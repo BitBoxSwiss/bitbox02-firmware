@@ -15,6 +15,9 @@
 syntax = "proto3";
 package shiftcrypto.bitbox02;
 
+message BluetoothToggleEnabledRequest {
+}
+
 message BluetoothUpgradeInitRequest {
   uint32 firmware_length = 1;
 }
@@ -35,6 +38,7 @@ message BluetoothRequest {
   oneof request {
     BluetoothUpgradeInitRequest upgrade_init = 1;
     BluetoothChunkRequest chunk = 2;
+    BluetoothToggleEnabledRequest toggle_enabled = 3;
   }
 }
 

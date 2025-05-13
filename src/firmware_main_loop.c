@@ -68,6 +68,10 @@ void firmware_main_loop(void)
     uint8_t u2f_frame[USB_REPORT_SIZE] = {0};
 #endif
 
+    if (!memory_ble_enabled()) {
+        communication_mode_ble_disable();
+    }
+
     while (1) {
         // Do UART I/O
         if (communication_mode_ble_enabled()) {

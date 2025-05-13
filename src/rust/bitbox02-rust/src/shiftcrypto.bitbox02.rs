@@ -141,6 +141,9 @@ pub mod device_info_response {
         /// Firmware version, formated as "major.minor.patch".
         #[prost(string, tag = "2")]
         pub firmware_version: ::prost::alloc::string::String,
+        /// True if Bluetooth is enabled
+        #[prost(bool, tag = "3")]
+        pub enabled: bool,
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -211,6 +214,9 @@ pub struct SetPasswordRequest {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BluetoothToggleEnabledRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct BluetoothUpgradeInitRequest {
     #[prost(uint32, tag = "1")]
     pub firmware_length: u32,
@@ -235,7 +241,7 @@ pub struct BluetoothRequestChunkResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BluetoothRequest {
-    #[prost(oneof = "bluetooth_request::Request", tags = "1, 2")]
+    #[prost(oneof = "bluetooth_request::Request", tags = "1, 2, 3")]
     pub request: ::core::option::Option<bluetooth_request::Request>,
 }
 /// Nested message and enum types in `BluetoothRequest`.
@@ -247,6 +253,8 @@ pub mod bluetooth_request {
         UpgradeInit(super::BluetoothUpgradeInitRequest),
         #[prost(message, tag = "2")]
         Chunk(super::BluetoothChunkRequest),
+        #[prost(message, tag = "3")]
+        ToggleEnabled(super::BluetoothToggleEnabledRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

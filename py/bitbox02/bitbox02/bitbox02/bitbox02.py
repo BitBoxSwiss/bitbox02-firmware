@@ -179,6 +179,7 @@ class BitBox02(BitBoxCommonAPI):
             result["bluetooth"] = {
                 "firmware_hash": response.device_info.bluetooth.firmware_hash,
                 "firmware_version": response.device_info.bluetooth.firmware_version,
+                "enabled": response.device_info.bluetooth.enabled,
             }
         else:
             result["bluetooth"] = None
@@ -1267,3 +1268,13 @@ class BitBox02(BitBoxCommonAPI):
                 break
             else:
                 raise Exception(f"Unexpected response: f{response_type}")
+
+    def bluetooth_toggle_enabled(self) -> None:
+        """
+        Enable/disable blueooth in non-volatile storage
+        """
+        # pylint: disable=no-member
+        request = bluetooth.BluetoothRequest()
+        request.toggle_enabled.CopyFrom(bluetooth.BluetoothToggleEnabledRequest())
+
+        self._bluetooth_msg_query(request, expected_response="success")

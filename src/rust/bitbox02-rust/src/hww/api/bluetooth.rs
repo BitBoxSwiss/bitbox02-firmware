@@ -173,8 +173,36 @@ async fn process_upgrade(
     } else {
         hal.ui().status("Upgrade failed", false).await;
     }
-
     response
+}
+
+async fn process_toggle_enabled(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
+    let enabled = memory::ble_enabled();
+    let body = if enabled {
+        "Disable Bluetooth?"
+    } else {
+        "Enable Bluetooth?"
+    };
+
+    hal.ui()
+        .confirm(&confirm::Params {
+            body,
+            ..Default::default()
+        })
+        .await?;
+
+    memory::ble_enable(!enabled).map_err(|_| Error::Memory)?;
+
+    let status_text = if enabled {
+        "Bluetooth\ndisabled"
+    } else {
+        "Bluetooth\nenabled"
+    };
+    hal.ui().status(status_text, true).await;
+
+    Ok(pb::bluetooth_response::Response::Success(
+        pb::BluetoothSuccess {},
+    ))
 }
 
 /// Processes a Bluetooth API call (BB02+ only).
@@ -193,6 +221,7 @@ pub async fn process_api(
         // These are streamed asynchronously using the `next_request()` primitive are not handled
         // directly.
         Request::Chunk(_) => Err(Error::InvalidInput),
+        Request::ToggleEnabled(_) => process_toggle_enabled(hal).await,
     }
 }
 

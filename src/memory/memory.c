@@ -903,3 +903,20 @@ bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
     }
     return false;
 }
+
+// Default is BLE ENABLED
+#define MEMORY_BLE_ENABLED 0xFF
+#define MEMORY_BLE_DISABLED 0x01
+
+bool memory_ble_enable(bool enable)
+{
+    chunk_shared_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    memory_read_shared_bootdata(&chunk);
+    if (enable) {
+        chunk.fields.ble_enabled = MEMORY_BLE_ENABLED;
+    } else {
+        chunk.fields.ble_enabled = MEMORY_BLE_DISABLED;
+    }
+    return _write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes);
+}

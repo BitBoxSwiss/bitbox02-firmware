@@ -76,9 +76,9 @@ USE_RESULT bool memory_spi_get_active_ble_firmware_version(struct da14531_firmwa
     memcpy((uint8_t*)version, firmware, sizeof(struct da14531_firmware_version));
     free(firmware);
 
-    ASSERT(version->version == 1);
+    ASSERT(version->metadata_version == 1);
 
-    if (version->version == 1) {
+    if (version->metadata_version == 1) {
         return true;
     }
     return false;

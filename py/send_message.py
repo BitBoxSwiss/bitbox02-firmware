@@ -293,7 +293,7 @@ class SendMessage:
             print("Aborted by user")
 
     def _list_device_info(self) -> None:
-        print(f"All info: {self._device.device_info()}")
+        pprint.pprint(self._device.device_info())
 
     def _reboot(self) -> None:
         inp = input("Select one of: 1=upgrade; 2=go to startup settings: ").strip()

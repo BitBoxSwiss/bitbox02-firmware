@@ -150,6 +150,21 @@ uint8_t memory_get_platform(void)
     }
 }
 
+uint8_t memory_get_ble_enabled(void)
+{
+    chunk_shared_t chunk = {0};
+    memory_read_shared_bootdata(&chunk);
+    uint8_t ble_enabled = chunk.fields.ble_enabled;
+    util_log("ble enabled %x", ble_enabled);
+    util_zero(&chunk, sizeof(chunk));
+    switch (ble_enabled) {
+    case MEMORY_BLE_DISABLED:
+        return ble_enabled;
+    default:
+        return MEMORY_BLE_ENABLED;
+    }
+}
+
 int16_t memory_get_ble_bond_db(uint8_t* data)
 {
     chunk_shared_t chunk = {0};

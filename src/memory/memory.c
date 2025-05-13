@@ -903,3 +903,15 @@ bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
     }
     return false;
 }
+
+bool memory_set_ble_enabled(uint8_t enabled)
+{
+    if (enabled != MEMORY_BLE_ENABLED && enabled != MEMORY_BLE_DISABLED) {
+        return false;
+    }
+    chunk_shared_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    memory_read_shared_bootdata(&chunk);
+    chunk.fields.ble_enabled = enabled;
+    return _write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes);
+}

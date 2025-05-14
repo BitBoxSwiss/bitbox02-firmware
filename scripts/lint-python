@@ -3,7 +3,7 @@
 # Run pylint on a subset of the code, alternatively pass files as arguments.
 
 # Exit on error
-set -e
+set -xe
 
 # Exit on pipe fail
 set -o pipefail

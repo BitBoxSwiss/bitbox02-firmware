@@ -310,11 +310,13 @@ void bootloader_render_default_screen(void)
     UG_SendBuffer();
 }
 
+#if PLATFORM_BITBOX02PLUS
 extern bool bootloader_pairing_request;
 extern uint8_t bootloader_pairing_code_bytes[16];
 
 void bootloader_render_ble_confirm_screen(bool confirmed)
 {
+    qtouch_force_calibrate();
     bootloader_pairing_request = true;
     uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
     char code_str[10] = {0};
@@ -333,6 +335,7 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str, false);
     UG_SendBuffer();
 }
+#endif
 
 static void _render_progress(float progress)
 {

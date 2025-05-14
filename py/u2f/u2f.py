@@ -114,9 +114,8 @@ def _der_to_sig(der: bytes) -> Tuple[int, bytes]:
 
 
 class U2FSender(Protocol):
-    # pylint: disable=unused-argument,no-self-use
-    def u2fhid_msg(self, msg: bytes) -> bytes:
-        ...
+    # pylint: disable=unused-argument
+    def u2fhid_msg(self, msg: bytes) -> bytes: ...
 
 
 class APDU:
@@ -192,6 +191,8 @@ class RegistrationResponse:
         elif msg[1] == 0x82:
             cert_len = msg[2] * 256 + msg[3]
             header_len = 4
+        else:
+            raise Exception("invalid magic number")
 
         return (cert_len + header_len, bytes(msg[: cert_len + header_len]))
 
@@ -257,7 +258,7 @@ class RegistrationRequest:
         self._apdu = APDU(U2F_REGISTER, 0x00, 0x00, len(data), data)
 
     def send(self, bitbox: U2FSender) -> RegistrationResponse:
-        response_bytes = bitbox.u2fhid_msg(self._apdu.__bytes__())
+        response_bytes = bitbox.u2fhid_msg(bytes(self._apdu))
         _status_code_to_exception(response_bytes[-2:])
 
         return RegistrationResponse(response_bytes, self._challenge_parameter, self._app_parameter)
@@ -323,7 +324,7 @@ class AuthenticationRequest:
         self._apdu = APDU(U2F_AUTHENTICATE, 0x03, 0x00, len(data), data)
 
     def send(self, bitbox: U2FSender) -> AuthenticationResponse:
-        response_bytes = bitbox.u2fhid_msg(self._apdu.__bytes__())
+        response_bytes = bitbox.u2fhid_msg(bytes(self._apdu))
         _status_code_to_exception(response_bytes[-2:])
         return AuthenticationResponse(
             response_bytes, self._app_parameter, self._challenge_parameter

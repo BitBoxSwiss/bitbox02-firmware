@@ -28,10 +28,10 @@ import textwrap
 import json
 from pathlib import Path
 
-import requests  # type: ignore
+import requests
 import hid
 import semver
-from tzlocal import get_localzone  # type: ignore
+from tzlocal import get_localzone
 
 from bitbox02 import util
 from bitbox02 import bitbox02
@@ -59,11 +59,11 @@ def eprint(*args: Any, **kwargs: Any) -> None:
 
 
 def ask_user(
-    choices: Sequence[Tuple[str, Callable[[], None]]]
+    choices: Sequence[Tuple[str, Callable[[], None]]],
 ) -> Union[Callable[[], None], bool, None]:
     """Ask user to choose one of the choices, q quits"""
     print("What would you like to do?")
-    for (idx, choice) in enumerate(choices):
+    for idx, choice in enumerate(choices):
         print(f"- ({idx+1}) {choice[0]}")
     print("- (q) Quit")
     ans_str = input("")
@@ -254,7 +254,7 @@ class SendMessage:
             print("No backups found.")
             return
         fmt = "%Y-%m-%d %H:%M:%S %z"
-        for (i, (backup_id, backup_name, date)) in enumerate(backups):
+        for i, (backup_id, backup_name, date) in enumerate(backups):
             date = local_timezone.localize(date)
             date_str = date.strftime(fmt)
             print(f"[{i+1}] Backup Name: {backup_name}, Time: {date_str}, ID: {backup_id}")
@@ -759,7 +759,7 @@ class SendMessage:
         bip44_account: int = 0 + HARDENED
         account_keypath = [48 + HARDENED, 1 + HARDENED, bip44_account, 3 + HARDENED]
         inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
-        for (i, inp) in enumerate(inputs):
+        for i, inp in enumerate(inputs):
             inp["keypath"] = account_keypath + [0, i]
             inp["script_config_index"] = 0
         assert isinstance(outputs[0], bitbox02.BTCOutputInternal)
@@ -790,7 +790,10 @@ class SendMessage:
 
         def get(tx_id: str) -> Any:
             return requests.get(
-                "https://api.blockchair.com/bitcoin/testnet/dashboards/transaction/{}".format(tx_id)
+                "https://api.blockchair.com/bitcoin/testnet/dashboards/transaction/{}".format(
+                    tx_id
+                ),
+                timeout=30,
             ).json()["data"][tx_id]
 
         tx_id = input("Paste a btc testnet tx ID: ").strip()
@@ -1724,6 +1727,9 @@ def connect_to_simulator_bitbox(debug: bool, port: int) -> int:
                 print(f"Read from the simulator:\n{res.hex()}")
             return res
 
+        def close(self) -> None:
+            return None
+
         def __del__(self) -> None:
             print("Simulator quit")
             self.client_socket.close()
@@ -1762,67 +1768,65 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         except devices.NoneFoundException:
             print("Neither bitbox nor bootloader found.")
             return 1
-        else:
-            hid_device = hid.device()
-            hid_device.open_path(bootloader["path"])
-            bootloader_connection = bitbox02.Bootloader(u2fhid.U2FHid(hid_device), bootloader)
-            boot_app = SendMessageBootloader(bootloader_connection)
-            return boot_app.run()
-    else:
-
-        def show_pairing(code: str, device_response: Callable[[], bool]) -> bool:
-            print("Please compare and confirm the pairing code on your BitBox02:")
-            print(code)
-            if not device_response():
-                return False
-            return input("Accept pairing? [y]/n: ").strip() != "n"
-
-        class NoiseConfig(util.NoiseConfigUserCache):
-            """NoiseConfig extends NoiseConfigUserCache"""
-
-            def __init__(self) -> None:
-                super().__init__("shift/send_message")
-
-            def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
-                return show_pairing(code, device_response)
-
-            def attestation_check(self, result: bool) -> None:
-                if result:
-                    print("Device attestation PASSED")
-                else:
-                    print("Device attestation FAILED")
-
-        class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
-            """NoiseConfig extends BitBoxNoiseConfig"""
-
-            def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
-                return show_pairing(code, device_response)
-
-            def attestation_check(self, result: bool) -> None:
-                if result:
-                    print("Device attestation PASSED")
-                else:
-                    print("Device attestation FAILED")
-
-        if use_cache:
-            config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
-        else:
-            config = NoiseConfigNoCache()
-
         hid_device = hid.device()
-        hid_device.open_path(bitbox["path"])
-        bitbox_connection = bitbox02.BitBox02(
-            transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config
-        )
-        try:
-            bitbox_connection.check_min_version()
-        except FirmwareVersionOutdatedException as exc:
-            print("WARNING: ", exc)
+        hid_device.open_path(bootloader["path"])
+        bootloader_connection = bitbox02.Bootloader(u2fhid.U2FHid(hid_device), bootloader)
+        boot_app = SendMessageBootloader(bootloader_connection)
+        return boot_app.run()
 
-        if debug:
-            print("Device Info:")
-            pprint.pprint(bitbox)
-        return SendMessage(bitbox_connection, debug).run()
+    def show_pairing(code: str, device_response: Callable[[], bool]) -> bool:
+        print("Please compare and confirm the pairing code on your BitBox02:")
+        print(code)
+        if not device_response():
+            return False
+        return input("Accept pairing? [y]/n: ").strip() != "n"
+
+    class NoiseConfig(util.NoiseConfigUserCache):
+        """NoiseConfig extends NoiseConfigUserCache"""
+
+        def __init__(self) -> None:
+            super().__init__("shift/send_message")
+
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
+            return show_pairing(code, device_response)
+
+        def attestation_check(self, result: bool) -> None:
+            if result:
+                print("Device attestation PASSED")
+            else:
+                print("Device attestation FAILED")
+
+    class NoiseConfigNoCache(bitbox_api_protocol.BitBoxNoiseConfig):
+        """NoiseConfig extends BitBoxNoiseConfig"""
+
+        def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
+            return show_pairing(code, device_response)
+
+        def attestation_check(self, result: bool) -> None:
+            if result:
+                print("Device attestation PASSED")
+            else:
+                print("Device attestation FAILED")
+
+    if use_cache:
+        config: bitbox_api_protocol.BitBoxNoiseConfig = NoiseConfig()
+    else:
+        config = NoiseConfigNoCache()
+
+    hid_device = hid.device()
+    hid_device.open_path(bitbox["path"])
+    bitbox_connection = bitbox02.BitBox02(
+        transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config
+    )
+    try:
+        bitbox_connection.check_min_version()
+    except FirmwareVersionOutdatedException as exc:
+        print("WARNING: ", exc)
+
+    if debug:
+        print("Device Info:")
+        pprint.pprint(bitbox)
+    return SendMessage(bitbox_connection, debug).run()
 
 
 def main() -> int:

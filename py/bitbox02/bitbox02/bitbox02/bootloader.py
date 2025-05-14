@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Interact with a BitBox02 bootloader. """
+"""Interact with a BitBox02 bootloader."""
 
 import struct
 import typing
@@ -160,7 +160,7 @@ class Bootloader:
         """
         Returns whether the bootloader will automatically show the firmware hash on boot.
         """
-        return bool(self._query(b"H\xFF")[0])
+        return bool(self._query(b"H\xff")[0])
 
     def set_show_firmware_hash(self, enable: bool) -> None:
         """
@@ -233,7 +233,7 @@ class Bootloader:
         # We check by comparing the device reported firmware hash.
         # If erased, the firmware is all '\xFF'.
         firmware_v, _ = self.versions()
-        empty_firmware = struct.pack("<I", firmware_v) + b"\xFF" * MAX_FIRMWARE_SIZE
+        empty_firmware = struct.pack("<I", firmware_v) + b"\xff" * MAX_FIRMWARE_SIZE
         empty_firmware_hash = hashlib.sha256(hashlib.sha256(empty_firmware).digest()).digest()
         reported_firmware_hash, _ = self.get_hashes()
         return empty_firmware_hash == reported_firmware_hash

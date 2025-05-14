@@ -240,7 +240,7 @@ class UnsupportedException(Exception):
 class BitBoxNoiseConfig:
     """Stores Functions required setup a noise connection"""
 
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     def show_pairing(self, code: str, device_response: Callable[[], bool]) -> bool:
         """
         Returns True if the user confirms the pairing (both device and host).
@@ -546,6 +546,8 @@ class BitBoxCommonAPI:
                 edition = BitBox02Edition.MULTI
             elif device_info["product_string"] in (BITBOX02BTC, BITBOX02PLUS_BTC):
                 edition = BitBox02Edition.BTCONLY
+            else:
+                raise Exception("Invalid product string")
         else:
             version, _, edition, _, _ = self.get_info(transport)
 

@@ -8,7 +8,7 @@ docstring-min-length=10
 
 [MESSAGES CONTROL]
 # Black/pylint mismatch on code formatting
-disable=bad-continuation, fixme, too-few-public-methods, duplicate-code, line-too-long, consider-using-f-string, too-many-locals, raise-missing-from, super-init-not-called, too-many-lines
+disable=fixme, too-few-public-methods, duplicate-code, line-too-long, consider-using-f-string, too-many-locals, raise-missing-from, super-init-not-called, too-many-lines, broad-exception-raised, too-many-positional-arguments
 good-names=i,j,tx
 
 [TYPECHECK]

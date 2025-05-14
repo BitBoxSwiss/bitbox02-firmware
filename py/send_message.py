@@ -1460,6 +1460,12 @@ class SendMessage:
         except UserAbortException:
             print("Aborted by user")
 
+    def _bluetooth_toggle_enabled(self) -> None:
+        try:
+            self._device.bluetooth_toggle_enabled()
+        except UserAbortException:
+            print("Aborted by user")
+
     def _reset_device(self) -> None:
         if self._device.reset():
             print("Device RESET")
@@ -1526,6 +1532,7 @@ class SendMessage:
             ("BIP85 - BIP39", self._bip85_bip39),
             ("BIP85 - LN", self._bip85_ln),
             ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
+            ("Toggle bluetooth", self._bluetooth_toggle_enabled),
             ("Reset Device", self._reset_device),
         )
         choice = ask_user(choices)

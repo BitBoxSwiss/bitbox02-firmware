@@ -105,6 +105,8 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_set_mnemonic_passphrase_enabled",
     "memory_set_seed_birthdate",
     "memory_setup",
+    "memory_ble_enabled",
+    "memory_ble_enable",
     "memory_get_ble_metadata",
     "memory_set_ble_metadata",
     "memory_get_platform",

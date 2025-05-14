@@ -86,7 +86,7 @@ typedef union {
         uint8_t authorization_key_split[32];
         uint8_t encryption_key_split[32];
         uint8_t platform;
-        uint8_t reserved[1]; // align to uint16_t
+        uint8_t ble_enabled;
         int16_t ble_bond_db_len;
         uint8_t ble_bond_db[MEMORY_BLE_BOND_DB_LEN];
         uint8_t ble_identity_resolving_key[MEMORY_BLE_IRK_LEN];
@@ -145,6 +145,9 @@ USE_RESULT uint8_t memory_get_platform(void);
 // data must be at least MEMORY_BLE_BOND_DB_LEN long
 // returns -1 if no db was found otherwise length of db
 USE_RESULT int16_t memory_get_ble_bond_db(uint8_t* data);
+
+// Check if BLE is enable on boot
+bool memory_ble_enabled(void);
 
 // data must be at least MEMORY_BLE_IRK_LEN long
 void memory_get_ble_irk(uint8_t* data);

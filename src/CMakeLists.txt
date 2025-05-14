@@ -16,7 +16,6 @@
 
 set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/bip32.c
-  ${CMAKE_SOURCE_DIR}/src/communication_mode.c
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
@@ -146,6 +145,7 @@ set(PLATFORM-BITBOX02-PLUS-SOURCES
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531_protocol.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531_handler.c
+  ${CMAKE_SOURCE_DIR}/src/communication_mode.c
 )
 set(PLATFORM-BITBOX02-PLUS-SOURCES ${PLATFORM-BITBOX02-PLUS-SOURCES} PARENT_SCOPE)
 

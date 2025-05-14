@@ -23,9 +23,7 @@ set(DBB-FILTERED-SOURCES
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
-  "${CMAKE_SOURCE_DIR}/src/da14531/da14531.c"
-  "${CMAKE_SOURCE_DIR}/src/da14531/da14531_protocol.c"
-  "${CMAKE_SOURCE_DIR}/src/da14531/crc.c"
+  ${PLATFORM-BITBOX02-PLUS-SOURCES}
   "${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/src/utils_ringbuffer.c"
   )
 

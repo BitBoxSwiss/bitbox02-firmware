@@ -1254,7 +1254,6 @@ class BitBox02(BitBoxCommonAPI):
             response_type = response.WhichOneof("response")
             if response_type == "request_chunk":
                 chunk_response = response.request_chunk
-                print("Sending chunk", chunk_response)
                 request = bluetooth.BluetoothRequest()
                 request.chunk.CopyFrom(
                     bluetooth.BluetoothChunkRequest(

@@ -71,12 +71,16 @@ bootloader-development-locked: | build
 	$(MAKE) -C build bb02-bl-multi-development-locked.elf
 bootloader-production: | build
 	$(MAKE) -C build bb02-bl-multi-production.elf
+bootloader-debug: | build-debug
+	$(MAKE) -C build-debug bb02-bl-multi-development.elf
 bootloader-plus: | build
 	$(MAKE) -C build bb02p-bl-multi.elf
 bootloader-plus-development: | build
 	$(MAKE) -C build bb02p-bl-multi-development.elf
 bootloader-plus-production: | build
 	$(MAKE) -C build bb02p-bl-multi-production.elf
+bootloader-plus-debug: | build-debug
+	$(MAKE) -C build-debug bb02p-bl-multi-development.elf
 bootloader-btc: | build
 	$(MAKE) -C build bb02-bl-btconly.elf
 bootloader-btc-development: | build

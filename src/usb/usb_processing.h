@@ -73,7 +73,7 @@ void usb_processing_lock(struct usb_processing* ctx);
  * expected behaviour, one can call this function to prevent
  * the USB watchdog from aborting the outstanding operation.
  */
-void usb_processing_timeout_reset(void);
+void usb_processing_timeout_reset(int16_t val);
 
 void usb_processing_unlock(void);
 #endif

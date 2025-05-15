@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "bootloader.h"
+#include "memory/spi_mem.h"
 #include "mpu_regions.h"
 #include "platform_config.h"
 #include "platform_init.h"

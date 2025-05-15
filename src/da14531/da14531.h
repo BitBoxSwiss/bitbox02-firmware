@@ -30,6 +30,8 @@
 #define CTRL_CMD_PAIRING_SUCCESSFUL 10
 #define CTRL_CMD_TK_CONFIRM 11
 #define CTRL_CMD_BLE_POWER_DOWN 12
+#define CTRL_CMD_BLE_RF_POWER 13
+#define CTRL_CMD_PRIVATE_DEVICE_NAME 14
 #define CTRL_CMD_DEBUG 254
 
 void da14531_power_down(struct ringbuffer* uart_out);
@@ -44,4 +46,11 @@ void da14531_set_product(
     volatile uint16_t product_len,
     struct ringbuffer* uart_out);
 
+// Will truncate the name to 0x20 bytes (Max according to da14531 SDK)
+void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart_out);
+
+// Will truncate the name to 0x20 bytes (Max according to da14531 SDK)
+void da14531_set_private_name(const char* name, size_t name_len, struct ringbuffer* uart_out);
+
+void da14531_get_connection_state(struct ringbuffer* uart_out);
 #endif

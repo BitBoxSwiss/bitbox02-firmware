@@ -83,24 +83,18 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
         // util_log("da14531: get device name");
         //  1 byte cmd
         //  rest device name
-        uint8_t response[1 + MEMORY_DEVICE_NAME_MAX_LEN] = {0}; // +1 for cmd
-        response[0] = CTRL_CMD_DEVICE_NAME;
-#if defined(BOOTLOADER)
-        memory_random_name((char*)&response[1]);
-#else
-        memory_get_device_name((char*)&response[1]);
+        char name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+        memory_random_name(name);
+        da14531_set_name(name, strlen(name), queue);
+
+        // Send over the private name
+        char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+        // Send an empty private name in bootloader
+#if !defined(BOOTLOADER)
+        memory_get_device_name(buf);
 #endif
-        uint16_t len = da14531_protocol_format(
-            &tmp[0],
-            sizeof(tmp),
-            DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA,
-            &response[0],
-            1 + strlen((char*)&response[1]));
-        ASSERT(len <= sizeof(tmp));
-        ASSERT(ringbuffer_num(queue) + len <= queue->size);
-        for (int i = 0; i < len; i++) {
-            ringbuffer_put(queue, tmp[i]);
-        }
+        util_log("device name %s", buf);
+        da14531_set_private_name(buf, strlen(buf), queue);
     } break;
     case CTRL_CMD_BOND_DB_GET: {
         // util_log("da14531: get bond db");

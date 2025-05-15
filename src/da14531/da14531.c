@@ -17,6 +17,8 @@
 #include "util.h"
 #include "utils_ringbuffer.h"
 
+#define DA14531_MAX_NAME_SIZE 0x20
+
 void da14531_reset(struct ringbuffer* uart_out)
 {
     util_log("da14531_reset");
@@ -58,6 +60,51 @@ void da14531_set_product(
     uint8_t tmp[128];
     uint16_t tmp_len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + product_len);
+    ASSERT(tmp_len <= sizeof(tmp));
+    ASSERT(ringbuffer_num(uart_out) + tmp_len <= uart_out->size);
+    for (int i = 0; i < tmp_len; i++) {
+        ringbuffer_put(uart_out, tmp[i]);
+    }
+}
+
+void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart_out)
+{
+    name_len = MIN(name_len, (size_t)DA14531_MAX_NAME_SIZE);
+    uint8_t payload[1 + DA14531_MAX_NAME_SIZE] = {0};
+    payload[0] = CTRL_CMD_DEVICE_NAME;
+    memcpy(&payload[1], name, name_len);
+    uint8_t tmp[sizeof(payload) * 2];
+    uint16_t tmp_len = da14531_protocol_format(
+        &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + name_len);
+    ASSERT(tmp_len <= sizeof(tmp));
+    ASSERT(ringbuffer_num(uart_out) + tmp_len <= uart_out->size);
+    for (int i = 0; i < tmp_len; i++) {
+        ringbuffer_put(uart_out, tmp[i]);
+    }
+}
+
+void da14531_set_private_name(const char* name, size_t name_len, struct ringbuffer* uart_out)
+{
+    name_len = MIN(name_len, (size_t)DA14531_MAX_NAME_SIZE);
+    uint8_t payload[1 + DA14531_MAX_NAME_SIZE] = {0};
+    payload[0] = CTRL_CMD_PRIVATE_DEVICE_NAME;
+    memcpy(&payload[1], name, name_len);
+    uint8_t tmp[sizeof(payload) * 2];
+    uint16_t tmp_len = da14531_protocol_format(
+        &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + name_len);
+    ASSERT(tmp_len <= sizeof(tmp));
+    ASSERT(ringbuffer_num(uart_out) + tmp_len <= uart_out->size);
+    for (int i = 0; i < tmp_len; i++) {
+        ringbuffer_put(uart_out, tmp[i]);
+    }
+}
+
+void da14531_get_connection_state(struct ringbuffer* uart_out)
+{
+    uint8_t payload = CTRL_CMD_BLE_STATUS;
+    uint8_t tmp[16];
+    uint16_t tmp_len = da14531_protocol_format(
+        &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload, 1);
     ASSERT(tmp_len <= sizeof(tmp));
     ASSERT(ringbuffer_num(uart_out) + tmp_len <= uart_out->size);
     for (int i = 0; i < tmp_len; i++) {

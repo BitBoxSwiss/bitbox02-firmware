@@ -984,7 +984,7 @@ static void _process_wait_refresh(void)
     } else {
         _state.refresh_webpage_timeout++;
         /* Prevent the USB watchdog from killing this workflow. */
-        usb_processing_timeout_reset();
+        usb_processing_timeout_reset(0);
     }
 }
 

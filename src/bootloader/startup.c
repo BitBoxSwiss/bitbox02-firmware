@@ -196,7 +196,7 @@ int main(void)
                     payload,
                     sizeof(payload));
                 ASSERT(len <= sizeof(tmp));
-                ASSERT(ringbuffer_num(data->queue) + len <= data->queue->size);
+                ASSERT(ringbuffer_num(&uart_write_queue) + len <= uart_write_queue.size);
                 for (int i = 0; i < len; i++) {
                     ringbuffer_put(&uart_write_queue, tmp[i]);
                 }

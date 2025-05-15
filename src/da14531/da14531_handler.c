@@ -163,6 +163,9 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
 #endif
     } break;
     case CTRL_CMD_BLE_STATUS:
+        if (frame->cmd_data[0] < 3) {
+            da14531_connected_state = frame->cmd_data[0];
+        }
         // util_log("da14531: BLE status update");
 #if defined(BOOTLOADER)
         bootloader_pairing_request = false;

@@ -67,22 +67,26 @@ bootloader: | build
 	$(MAKE) -C build bb02-bl-multi.elf
 bootloader-development: | build
 	$(MAKE) -C build bb02-bl-multi-development.elf
-bootloader-plus: | build
-	$(MAKE) -C build bb02p-bl-multi.elf
-bootloader-plus-development: | build
-	$(MAKE) -C build bb02p-bl-multi-development.elf
 bootloader-development-locked: | build
 	$(MAKE) -C build bb02-bl-multi-development-locked.elf
 bootloader-production: | build
 	$(MAKE) -C build bb02-bl-multi-production.elf
+bootloader-plus: | build
+	$(MAKE) -C build bb02p-bl-multi.elf
+bootloader-plus-development: | build
+	$(MAKE) -C build bb02p-bl-multi-development.elf
+bootloader-plus-production: | build
+	$(MAKE) -C build bb02p-bl-multi-production.elf
 bootloader-btc: | build
 	$(MAKE) -C build bb02-bl-btconly.elf
 bootloader-btc-development: | build
 	$(MAKE) -C build bb02-bl-btconly-development.elf
-bootloader-btc-plus-development: | build
-	$(MAKE) -C build bb02p-bl-btconly-development.elf
 bootloader-btc-production: | build
 	$(MAKE) -C build bb02-bl-btconly-production.elf
+bootloader-btc-plus-development: | build
+	$(MAKE) -C build bb02p-bl-btconly-development.elf
+bootloader-btc-plus-production: | build
+	$(MAKE) -C build bb02p-bl-btconly-production.elf
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
 docs: | build

@@ -126,8 +126,13 @@ void image_sdcard(bool mirror)
         x - m * (w - c - 1), y - m * h / 2, x - m * (w - 1), y - m * h / 2 + m * c, C_WHITE);
 }
 
+// Logo images:
+// In the bootloader we hardcode by target. We currently have one firmware for both BB02 and
+// BB02-Plus, so we include both in the firmware.
+
 #if (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_PLUS_BTCONLY == 1)
 
+#if !defined(BOOTLOADER) || (PRODUCT_BITBOX_BTCONLY == 1)
 #define IMAGE_BITBOX02_LOGO_W 79
 #define IMAGE_BITBOX02_LOGO_H 25
 const uint8_t IMAGE_BITBOX02_LOGO[] = {
@@ -147,7 +152,9 @@ const uint8_t IMAGE_BITBOX02_LOGO[] = {
     0x92, 0x52, 0xa4, 0x12, 0x94, 0xa1, 0x09, 0x49, 0x4a, 0x79, 0x23, 0x19, 0x48, 0x19, 0x28, 0x81,
     0xce, 0x92, 0x64, 0x80, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00};
+#endif
 
+#if !defined(BOOTLOADER) || (PRODUCT_BITBOX_PLUS_BTCONLY == 1)
 #define IMAGE_BITBOX02_PLUS_LOGO_W 107
 #define IMAGE_BITBOX02_PLUS_LOGO_H 25
 static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
@@ -173,10 +180,12 @@ static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
     0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
+#endif
 
 #elif (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_PLUS_MULTI == 1) || \
     PRODUCT_BITBOX02_FACTORYSETUP == 1
 
+#if !defined(BOOTLOADER) || (PRODUCT_BITBOX_MULTI == 1)
 #define IMAGE_BITBOX02_LOGO_W 79
 #define IMAGE_BITBOX02_LOGO_H 23
 static const uint8_t IMAGE_BITBOX02_LOGO[] = {
@@ -195,7 +204,9 @@ static const uint8_t IMAGE_BITBOX02_LOGO[] = {
     0x25, 0x29, 0x00, 0x00, 0x00, 0x09, 0x29, 0x49, 0x0f, 0x4a, 0x4a, 0x52, 0x00, 0x00, 0x00, 0x12,
     0x52, 0x92, 0x10, 0x94, 0x94, 0xa4, 0x00, 0x00, 0x00, 0x20, 0x99, 0x24, 0x1c, 0xe9, 0x26, 0x48,
     0x00, 0x00, 0x00, 0x00};
+#endif
 
+#if !defined(BOOTLOADER) || (PRODUCT_BITBOX_PLUS_MULTI == 1)
 #define IMAGE_BITBOX02_PLUS_LOGO_W 107
 #define IMAGE_BITBOX02_PLUS_LOGO_H 23
 static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
@@ -220,6 +231,7 @@ static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x99, 0x24, 0x1c, 0xe9, 0x26, 0x48, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00,
 };
+#endif
 
 #else
 
@@ -227,6 +239,45 @@ static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
 
 #endif
 
+#if defined(BOOTLOADER)
+// image logo for bootloader.
+image_logo_data_t image_logo_data(void)
+{
+#if (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_MULTI == 1) || \
+    (PRODUCT_BITBOX02_FACTORYSETUP == 1)
+    image_logo_data_t result = {
+        .buffer =
+            {
+                .data = IMAGE_BITBOX02_LOGO,
+                .len = sizeof(IMAGE_BITBOX02_LOGO),
+            },
+        .dimensions =
+            {
+                .width = IMAGE_BITBOX02_LOGO_W,
+                .height = IMAGE_BITBOX02_LOGO_H,
+            },
+    };
+    return result;
+#elif (PRODUCT_BITBOX_PLUS_BTCONLY == 1) || (PRODUCT_BITBOX_PLUS_MULTI == 1)
+    image_logo_data_t result = {
+        .buffer =
+            {
+                .data = IMAGE_BITBOX02_PLUS_LOGO,
+                .len = sizeof(IMAGE_BITBOX02_PLUS_LOGO),
+            },
+        .dimensions =
+            {
+                .width = IMAGE_BITBOX02_PLUS_LOGO_W,
+                .height = IMAGE_BITBOX02_PLUS_LOGO_H,
+            },
+    };
+    return result;
+#else
+#error "unknown platform"
+#endif
+}
+#else
+// image logo for firmware.
 image_logo_data_t image_logo_data(void)
 {
     switch (memory_get_platform()) {
@@ -262,3 +313,4 @@ image_logo_data_t image_logo_data(void)
     }
     }
 }
+#endif

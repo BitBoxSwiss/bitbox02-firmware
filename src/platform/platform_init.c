@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "platform_init.h"
+#include "memory/memory_shared.h"
+#include "memory/spi_mem.h"
 #include <driver_init.h>
 #include <ui/oled/oled.h>
 #if !defined(BOOTLOADER)
@@ -38,4 +40,7 @@ void platform_init(void)
 #if !defined(BOOTLOADER)
     sd_mmc_start();
 #endif
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        spi_mem_protected_area_lock();
+    }
 }

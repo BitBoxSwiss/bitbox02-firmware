@@ -122,7 +122,7 @@ jlink-flash-bootloader-development-locked: | build
 jlink-flash-bootloader: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi.jlink
 jlink-flash-bootloader-btc-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btc-development.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btconly-development.jlink
 jlink-flash-bootloader-btc: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btc.jlink
 jlink-flash-firmware: | build

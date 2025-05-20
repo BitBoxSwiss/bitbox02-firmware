@@ -19,6 +19,7 @@
 
 #include <driver_init.h>
 #include <flags.h>
+#include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
@@ -41,6 +42,7 @@
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
+#include <communication_mode.h>
 #include <da14531/da14531.h>
 #include <da14531/da14531_protocol.h>
 #include <uart.h>
@@ -336,10 +338,22 @@ void bootloader_render_default_screen(void)
 {
     UG_ClearBuffer();
     _load_logo();
+#if PLATFORM_BITBOX02PLUS == 1
+    UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp", false);
+    if (communication_mode_ble_enabled() &&
+        da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
+        char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+        memory_random_name(buf);
+        UG_PutString(0, SCREEN_HEIGHT - 9, buf, false);
+    } else if (_is_app_flash_empty) {
+        UG_PutString(0, SCREEN_HEIGHT - 9, "Let's get started!", false);
+    }
+#else
     if (_is_app_flash_empty) {
         UG_PutString(0, SCREEN_HEIGHT - 9 * 2, "Let's get started!", false);
     }
     UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp", false);
+#endif
     UG_SendBuffer();
 }
 
@@ -356,7 +370,6 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     snprintf(code_str, sizeof(code_str), "%06u", (unsigned)pairing_code_int);
     UG_ClearBuffer();
     uint16_t check_width = IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT / 2 - 1;
-    UG_FontSelect(&font_font_a_11X10);
     if (confirmed) {
         UG_PutString(15, 0, "Confirm on app", false);
     } else {
@@ -366,6 +379,7 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     }
     UG_FontSelect(&font_monogram_5X9);
     UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str, false);
+    UG_FontSelect(&font_font_a_9X9);
     UG_SendBuffer();
 }
 #endif

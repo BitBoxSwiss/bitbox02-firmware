@@ -141,12 +141,12 @@ set(QTOUCH-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 
 # The additional files required for the plus platform
 set(PLATFORM-BITBOX02-PLUS-SOURCES
-  ${CMAKE_SOURCE_DIR}/src/uart.c
+  ${CMAKE_SOURCE_DIR}/src/communication_mode.c
   ${CMAKE_SOURCE_DIR}/src/da14531/crc.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531_protocol.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531_handler.c
-  ${CMAKE_SOURCE_DIR}/src/communication_mode.c
+  ${CMAKE_SOURCE_DIR}/src/uart.c
 )
 set(PLATFORM-BITBOX02-PLUS-SOURCES ${PLATFORM-BITBOX02-PLUS-SOURCES} PARENT_SCOPE)
 

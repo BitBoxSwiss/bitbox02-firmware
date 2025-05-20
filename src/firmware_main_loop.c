@@ -56,6 +56,12 @@ void firmware_main_loop(void)
     uint8_t uart_write_buf[UART_OUT_BUF_LEN];
     ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
 
+    /// If the bootloader has booted the BLE chip, the BLE chip isn't aware of the name according to
+    /// the fw. Send it over.
+    char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    memory_get_device_name(buf);
+    da14531_set_name(buf, strlen(buf), &uart_write_queue);
+
     // This starts the async orientation screen workflow, which is processed by the loop below.
     orientation_screen(&uart_write_queue);
 

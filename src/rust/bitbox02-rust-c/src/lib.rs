@@ -48,6 +48,7 @@ mod der;
 #[cfg_attr(feature = "bootloader", allow(unused_variables))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
+    #[cfg(feature = "firmware")]
     ::util::log::log!("{}", info);
     #[cfg(feature = "firmware")]
     bitbox02_rust::print_screen!(0, "Error: {}", info);

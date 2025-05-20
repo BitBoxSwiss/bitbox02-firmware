@@ -27,6 +27,7 @@
 #include <string.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/arial_fonts.h>
+#include <ui/graphics/graphics.h>
 #include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 #include <usb/usb.h>
@@ -297,22 +298,12 @@ static void _binary_exec(void)
 
 static void _load_logo(void)
 {
-    uint16_t x = 0;
-    uint16_t y = 0;
-    for (size_t i = 0; i < sizeof(IMAGE_BB2_LOGO); i++) {
-        uint8_t b = IMAGE_BB2_LOGO[i];
-        for (uint8_t j = 0; j < 8; j++) {
-            if (b & 0x80) {
-                UG_DrawPixel(x, y, C_WHITE);
-            }
-            b <<= 1;
-            x++;
-            if ((x % IMAGE_BB2_LOGO_W) == 0) {
-                x = 0;
-                y++;
-            }
-        }
-    }
+    image_logo_data_t logo = image_logo_data();
+    const position_t pos = {
+        .left = 0,
+        .top = 0,
+    };
+    graphics_draw_image(&pos, &logo.dimensions, &logo.buffer);
 }
 
 static void _load_arrow(int x, int y, int height)

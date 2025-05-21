@@ -121,9 +121,7 @@ void firmware_main_loop(void)
         // Do UART Output
         if (communication_mode_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
-                &uart_read_buf[0], &uart_read_buf_len, hww_data, &uart_write_queue);
-            // da14531_protocol_poll has consumed the data, clear pointer
-            hww_data = NULL;
+                &uart_read_buf[0], &uart_read_buf_len, &hww_data, &uart_write_queue);
 
             if (frame) {
                 da14531_handler(frame, &uart_write_queue);
@@ -131,13 +129,13 @@ void firmware_main_loop(void)
         }
 
         // Do USB Output
-        if (hww_data) {
+        if (!communication_mode_ble_enabled() && hww_data) {
             if (hid_hww_write_poll(hww_data)) {
                 hww_data = NULL;
             }
         }
 #if APP_U2F == 1
-        if (u2f_data) {
+        if (!communication_mode_ble_enabled() && u2f_data) {
             if (hid_u2f_write_poll(u2f_data)) {
                 u2f_data = NULL;
             }

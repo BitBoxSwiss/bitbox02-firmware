@@ -44,7 +44,7 @@ void da14531_protocol_firmware_loaded_done(void);
 struct da14531_protocol_frame* da14531_protocol_poll(
     uint8_t* in_buf,
     uint16_t* in_buf_len,
-    const uint8_t* hww_data,
+    const uint8_t** hww_data,
     struct ringbuffer* out_queue);
 
 /// Formats a packet into buf for sending over serial

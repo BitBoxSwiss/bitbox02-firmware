@@ -157,9 +157,7 @@ int main(void)
 #if PLATFORM_BITBOX02PLUS == 1
         if (communication_mode_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
-                &uart_read_buf[0], &uart_read_buf_len, hww_data, &uart_write_queue);
-            // da14531_protocol_poll has consumed the data, clear pointer
-            hww_data = NULL;
+                &uart_read_buf[0], &uart_read_buf_len, &hww_data, &uart_write_queue);
 
             if (frame) {
                 // screen_sprintf_debug(1000, "got frame");
@@ -167,11 +165,18 @@ int main(void)
             }
         }
 #endif
-        if (hww_data) {
-            if (hid_hww_write_poll(hww_data)) {
-                hww_data = NULL;
+
+#if PLATFORM_BITBOX02PLUS == 1
+        if (!communication_mode_ble_enabled()) {
+#endif
+            if (hww_data) {
+                if (hid_hww_write_poll(hww_data)) {
+                    hww_data = NULL;
+                }
             }
+#if PLATFORM_BITBOX02PLUS == 1
         }
+#endif
         usb_processing_process(usb_processing_hww());
 
 #if PLATFORM_BITBOX02PLUS == 1

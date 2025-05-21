@@ -391,19 +391,24 @@ uint16_t da14531_protocol_format(
 struct da14531_protocol_frame* da14531_protocol_poll(
     uint8_t* in_buf,
     uint16_t* in_buf_len,
-    const uint8_t* hww_data,
+    const uint8_t** hww_data,
     struct ringbuffer* out_queue)
 {
-    if (hww_data) {
-        util_log("out: %s", util_dbg_hex(hww_data, 64));
+    if (*hww_data) {
         uint8_t tmp[128];
         int len = da14531_protocol_format(
-            &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA, hww_data, 64);
+            &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA, *hww_data, 64);
         ASSERT(len < (int)sizeof(tmp));
-        ASSERT(ringbuffer_num(out_queue) + len <= out_queue->size);
+        // If it won't fit, try again later
+        if (ringbuffer_num(out_queue) + len > out_queue->size) {
+            util_log("ringbuffer full");
+            return NULL;
+        }
+        util_log("out: %s", util_dbg_hex(*hww_data, 64));
         for (int i = 0; i < len; i++) {
             ringbuffer_put(out_queue, tmp[i]);
         }
+        *hww_data = NULL;
     }
     struct da14531_protocol_frame* frame = NULL;
     if (_protocol.loader.state != FIRMWARE_LOADER_STATE_DONE) {

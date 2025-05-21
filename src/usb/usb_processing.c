@@ -421,7 +421,7 @@ void usb_processing_init(void)
 void usb_processing_lock(struct usb_processing* ctx)
 {
     if (_usb_state.blocking_ctx) {
-        Abort("Tried to lock the USB stack while locked.");
+        AbortAutoenter("Tried to lock the USB stack while locked.");
     }
     _usb_state.blocking_ctx = ctx;
 }
@@ -434,7 +434,7 @@ void usb_processing_timeout_reset(void)
 void usb_processing_unlock(void)
 {
     if (!_usb_state.blocking_ctx) {
-        Abort("Tried to unlock the USB stack while not locked.");
+        AbortAutoenter("Tried to unlock the USB stack while not locked.");
     }
     _usb_state.blocking_ctx = NULL;
 }

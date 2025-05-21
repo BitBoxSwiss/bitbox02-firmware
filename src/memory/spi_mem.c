@@ -14,6 +14,8 @@
 
 #include "spi_mem.h"
 #include "bitbox02_pins.h"
+#include "random.h"
+#include "screen.h"
 #include "util.h"
 #include <hal_delay.h>
 #include <spi_lite.h>
@@ -24,23 +26,33 @@
 #define SECTOR_MASK 0xFFFFF000
 #define MEMORY_LIMIT (SPI_MEM_MEMORY_SIZE - 1)
 #define SR_WIP 0x01
+#define SR_PROTECT_BITS_MASK 0x3C
+#define SR_PROTECT_BITS_SHIFT 2
+#define SR_PROTECT_BITS (SPI_MEM_PROTECTED_BLOCKS << SR_PROTECT_BITS_SHIFT)
+#define CR1_TB_BIT_BOTTOM 0x8
+#define CR1_TB_BIT_MASK 0x8
 #define CMD_READ 0x03
 #define CMD_WREN 0x06
+#define CMD_WRSR 0x01
 #define CMD_SE 0x20
 #define CMD_PP 0x02
 #define CMD_RDSR 0x05
+#define CMD_RDCR 0x15
 #define CMD_CE 0x60
 
+// Drives the chip select pin low
 static void _spi_mem_cs_low(void)
 {
     gpio_set_pin_level(PIN_MEM_CS, 0);
 }
 
+// Drives the chip select pin high
 static void _spi_mem_cs_high(void)
 {
     gpio_set_pin_level(PIN_MEM_CS, 1);
 }
 
+// Reads the status register
 static uint8_t _spi_mem_read_sr(void)
 {
     uint8_t buffer[2] = {0};
@@ -51,6 +63,60 @@ static uint8_t _spi_mem_read_sr(void)
     return buffer[1];
 }
 
+// Reads the configuration register
+static void _spi_mem_read_cr(uint8_t* data_out)
+{
+    uint8_t buffer[3] = {0};
+    buffer[0] = CMD_RDCR;
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(buffer, 3);
+    _spi_mem_cs_high();
+
+    memcpy(data_out, &buffer[1], 2);
+}
+
+// Waits until the WIP bits goes low
+static void _spi_mem_wait(void)
+{
+    uint8_t status;
+    do {
+        status = _spi_mem_read_sr();
+    } while (status & SR_WIP);
+}
+
+// Set write enable bit
+static void _spi_mem_write_enable(void)
+{
+    uint8_t cmd = CMD_WREN;
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(&cmd, 1);
+    _spi_mem_cs_high();
+}
+
+// Verify if the given address is protected
+static bool _spi_mem_verify_address_protected(uint32_t address)
+{
+    uint8_t protected_blocks = (_spi_mem_read_sr() & SR_PROTECT_BITS_MASK) >> SR_PROTECT_BITS_SHIFT;
+    if (address < (protected_blocks * SPI_MEM_BLOCK_SIZE)) {
+        return true;
+    }
+    return false;
+}
+
+// Write the status and configuration registers
+static void _spi_mem_write_sr(uint8_t* data_in)
+{
+    _spi_mem_write_enable();
+    uint8_t buffer[4] = {0};
+    buffer[0] = CMD_WRSR;
+    memcpy(&buffer[1], data_in, 3);
+    _spi_mem_cs_low();
+    SPI_MEM_exchange_block(buffer, 4);
+    _spi_mem_cs_high();
+    _spi_mem_wait();
+}
+
+// Reads `size` bytes starting from `address` and writes the data into `buffer`
 static void _spi_mem_read(uint32_t address, size_t size, uint8_t* buffer)
 {
     buffer[0] = CMD_READ;
@@ -64,31 +130,21 @@ static void _spi_mem_read(uint32_t address, size_t size, uint8_t* buffer)
     _spi_mem_cs_high();
 }
 
-static void _spi_mem_wait(void)
+bool spi_mem_full_erase(void)
 {
-    uint8_t status;
-    do {
-        status = _spi_mem_read_sr();
-    } while (status & SR_WIP);
-}
+    if (_spi_mem_read_sr() & SR_PROTECT_BITS_MASK) {
+        util_log("Cannot erase with protected area locked.");
+        return false;
+    }
+    _spi_mem_write_enable();
 
-void spi_mem_full_erase(void)
-{
-    uint8_t buffer[2];
-
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
+    uint8_t cmd = CMD_CE;
     _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
-
-    // --- Chip Erase ---
-    buffer[0] = CMD_CE;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
+    SPI_MEM_exchange_block(&cmd, 1);
     _spi_mem_cs_high();
 
     _spi_mem_wait();
+    return true;
 }
 
 bool spi_mem_sector_erase(uint32_t sector_addr)
@@ -97,15 +153,15 @@ bool spi_mem_sector_erase(uint32_t sector_addr)
         util_log("Invalid sector address %p", (void*)(uintptr_t)sector_addr);
         return false;
     }
+    if (_spi_mem_verify_address_protected(sector_addr)) {
+        util_log("Sector address %p protected", (void*)(uintptr_t)sector_addr);
+        return false;
+    }
 
-    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
+    _spi_mem_write_enable();
 
     // --- Sector Erase (write 4 bytes) ---
+    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
     buffer[0] = CMD_SE;
     buffer[1] = (sector_addr >> 16) & 0xFF;
     buffer[2] = (sector_addr >> 8) & 0xFF;
@@ -156,6 +212,7 @@ uint8_t* spi_mem_read(uint32_t address, size_t size)
     return buffer;
 }
 
+// Writes SPI_MEM_PAGE_SIZE bytes from `input` at `page_addr`
 static bool _spi_mem_page_write(uint32_t page_addr, const uint8_t* input)
 {
     if (page_addr % SPI_MEM_PAGE_SIZE != 0) {
@@ -163,14 +220,15 @@ static bool _spi_mem_page_write(uint32_t page_addr, const uint8_t* input)
         return false;
     }
 
-    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
-    // --- Enable Write ---
-    buffer[0] = CMD_WREN;
-    _spi_mem_cs_low();
-    SPI_MEM_exchange_block(buffer, 1);
-    _spi_mem_cs_high();
+    if (_spi_mem_verify_address_protected(page_addr)) {
+        util_log("Page address %p protected", (void*)(uintptr_t)page_addr);
+        return false;
+    }
+
+    _spi_mem_write_enable();
 
     // --- Page Program (write 4 bytes) ---
+    uint8_t buffer[SPI_MEM_PAGE_SIZE + 4];
     buffer[0] = CMD_PP;
     buffer[1] = (page_addr >> 16) & 0xFF;
     buffer[2] = (page_addr >> 8) & 0xFF;
@@ -191,6 +249,11 @@ bool spi_mem_write(uint32_t address, const uint8_t* input, size_t size)
 {
     if (address + size - 1 > MEMORY_LIMIT || size < 1) {
         util_log("Invalid write address %p or size %i", (void*)(uintptr_t)address, (int)size);
+        return false;
+    }
+
+    if (_spi_mem_verify_address_protected(address)) {
+        util_log("Address %p protected", (void*)(uintptr_t)address);
         return false;
     }
 
@@ -249,4 +312,53 @@ int32_t spi_mem_smart_erase(void)
     }
 
     return erased_sectors;
+}
+
+// Writes the `protection` bits into the status register and sets the
+// Top/Bottom bit to bottom in the configuration register.
+static void _spi_mem_set_protection(uint8_t protection)
+{
+    uint8_t reg[3];
+    reg[0] = _spi_mem_read_sr();
+    _spi_mem_read_cr(&reg[1]);
+
+    // clean and update status register with protection bits
+    reg[0] &= ~SR_PROTECT_BITS_MASK;
+    reg[0] |= protection & SR_PROTECT_BITS_MASK;
+
+    // set the top/bottom protection bit.
+    // This is an OTP bit,so the write will have an effect
+    // only the first time.
+    reg[1] = reg[1] | CR1_TB_BIT_BOTTOM;
+
+    _spi_mem_write_sr(reg);
+}
+
+void spi_mem_protected_area_lock(void)
+{
+    _spi_mem_set_protection(SR_PROTECT_BITS);
+}
+
+void spi_mem_protected_area_unlock(void)
+{
+    _spi_mem_set_protection(0x0);
+}
+
+bool spi_mem_protected_area_write(uint32_t address, const uint8_t* input, size_t size)
+{
+    // Additional assert to simplify debug.
+    ASSERT(_spi_mem_verify_address_protected(address + size));
+    if (!_spi_mem_verify_address_protected(address + size)) {
+        util_log(
+            "Write address %p and size %i outside protected area",
+            (void*)(uintptr_t)address,
+            (int)size);
+        return false;
+    }
+    uint8_t protection = _spi_mem_read_sr() & SR_PROTECT_BITS_MASK;
+    _spi_mem_set_protection(0x0);
+    bool result = spi_mem_write(address, input, size);
+    _spi_mem_set_protection(protection);
+
+    return result;
 }

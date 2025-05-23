@@ -32,6 +32,7 @@
 #include <usb/u2f/u2f_keys.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
+#include <utils_assert.h>
 #include <version.h>
 #include <wally_crypto.h>
 
@@ -68,19 +69,14 @@ typedef enum {
 } u2f_auth_state_t;
 
 typedef struct {
+    /**
+     * CID and last command are used to check that we eventually respond to the right command after
+     * the user has confirmed on screen. U2F is normally stateless between transactions, but since
+     * we have a display and Yes/No input we can ask the user on the first request and later respond
+     * that the user is present only if the user confirmed specifically that app-id.
+     */
     uint32_t cid;
-    /**
-     * Command that is currently executing
-     * (blocking) on the U2F stack.
-     */
     uint8_t last_cmd;
-    /**
-     * Keeps track of whether there is an outstanding
-     * U2F operation going on in the background.
-     * This is not strictly necessary, but it's useful
-     * to have as a sanity checking mechanism.
-     */
-    bool locked;
     /**
      * Keeps track of which part of a registration we're currently in.
      */
@@ -131,30 +127,6 @@ static void _clear_state(void)
 {
     _state.reg = U2F_REGISTER_IDLE;
     _state.auth = U2F_AUTHENTICATE_IDLE;
-    _state.locked = false;
-}
-
-/**
- * Unlocks the USB stack. Resets the U2F state.
- */
-static void _unlock(void)
-{
-    usb_processing_unlock();
-    _clear_state();
-}
-
-/**
- * Locks the USB stack to process the given
- * U2F request.
- *
- * @param apdu U2F packet that will own the lock on the USB stack. No other request
- *             will be processed by the USB stack until this request completes.
- */
-static void _lock(const USB_APDU* apdu)
-{
-    usb_processing_lock(usb_processing_u2f());
-    _state.locked = true;
-    _state.last_cmd = apdu->ins;
 }
 
 static component_t* _nudge_label = NULL;
@@ -183,7 +155,7 @@ static void _start_refresh_webpage_screen(void)
     // Unfortunately unlocking takes more time than U2F is allowed to take. With the current
     // architecture of the firmware we cannot run it concurrently to other requests. Therefore
     // we will call it here, make the user unlock the device and then ask the user to refresh
-    // the webpage. (refreshing is only needed for some browsers)
+    // the webpage. (refreshing is only needed for some FIDO Clients)
     _state.refresh_webpage = _create_refresh_webpage();
     ui_screen_stack_push(_state.refresh_webpage);
     _state.refresh_webpage_timeout = 0;
@@ -421,7 +393,7 @@ static void _register_start(const USB_APDU* apdu, Packet* out_packet)
     const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
     uint16_t req_error = _register_sanity_check_req(apdu);
     if (req_error) {
-        _unlock();
+        _clear_state();
         _error(req_error, out_packet);
         return;
     }
@@ -462,7 +434,7 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
     }
 
     /* No more pending operations for U2F register */
-    _unlock();
+    _clear_state();
 
     if (async_result == ASYNC_OP_FALSE) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
@@ -582,7 +554,7 @@ static void _authenticate_start(const USB_APDU* apdu, Packet* out_packet)
 {
     uint16_t req_error = _authenticate_sanity_check_req(apdu);
     if (req_error) {
-        _unlock();
+        _clear_state();
         _error(req_error, out_packet);
         return;
     }
@@ -596,7 +568,7 @@ static void _authenticate_start(const USB_APDU* apdu, Packet* out_packet)
     }
     uint16_t key_error = _authenticate_start_confirm(apdu);
     if (key_error) {
-        _unlock();
+        _clear_state();
         _error(key_error, out_packet);
         return;
     }
@@ -608,7 +580,7 @@ static void _authenticate_wait_refresh(const USB_APDU* apdu, Packet* out_packet)
     _assert_unlocked();
     uint16_t key_error = _authenticate_start_confirm(apdu);
     if (key_error) {
-        _unlock();
+        _clear_state();
         _error(key_error, out_packet);
         return;
     }
@@ -624,7 +596,15 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     U2F_AUTHENTICATE_SIG_STR sig_base;
     uint16_t req_error = _authenticate_sanity_check_req(apdu);
     if (req_error) {
+        _clear_state();
         _error(req_error, out_packet);
+        return;
+    }
+
+    uint16_t key_error = _authenticate_verify_key_valid(apdu);
+    if (key_error) {
+        _clear_state();
+        _error(key_error, out_packet);
         return;
     }
 
@@ -637,7 +617,7 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     }
 
     /* No more blocking operations pending for authentication. */
-    _unlock();
+    _clear_state();
 
     if (async_result == ASYNC_OP_FALSE) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
@@ -706,6 +686,8 @@ static void _cmd_ping(const Packet* in_packet, Packet* out_packet, const size_t 
 {
     (void)max_out_len;
 
+    usb_processing_lock(usb_processing_u2f());
+
     // 0 and broadcast are reserved
     if (in_packet->cid == U2FHID_CID_BROADCAST || in_packet->cid == 0) {
         _error_hid(in_packet->cid, U2FHID_ERR_INVALID_CID, out_packet);
@@ -723,6 +705,8 @@ static void _cmd_ping(const Packet* in_packet, Packet* out_packet, const size_t 
 static void _cmd_wink(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
     (void)max_out_len;
+
+    usb_processing_lock(usb_processing_u2f());
 
     // 0 and broadcast are reserved
     if (in_packet->cid == U2FHID_CID_BROADCAST || in_packet->cid == 0) {
@@ -750,6 +734,8 @@ static void _cmd_wink(const Packet* in_packet, Packet* out_packet, const size_t 
  */
 static void _cmd_init(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
+    usb_processing_lock(usb_processing_u2f());
+
     if (U2FHID_INIT_RESP_SIZE >= max_out_len) {
         _error_hid(in_packet->cid, U2FHID_ERR_OTHER, out_packet);
         return;
@@ -787,14 +773,14 @@ static void _cmd_register(const Packet* in_packet, Packet* out_packet)
 {
     const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
     /* Sanity-check our state. */
-    if (_state.reg != U2F_REGISTER_IDLE &&
-        (_state.last_cmd != U2F_REGISTER || _state.cid != in_packet->cid)) {
-        Abort("U2F reg arbitration failed.");
+    if (_state.reg != U2F_REGISTER_IDLE && _state.last_cmd != U2F_REGISTER) {
+        util_log("u2f: ERROR register invalid state");
+        _clear_state();
+        return;
     }
 
     switch (_state.reg) {
     case U2F_REGISTER_IDLE:
-        _lock(apdu);
         _register_start(apdu, out_packet);
         break;
     case U2F_REGISTER_UNLOCKING:
@@ -812,29 +798,6 @@ static void _cmd_register(const Packet* in_packet, Packet* out_packet)
 }
 
 /**
- * Abort an existing registration request.
- */
-static void _abort_register(void)
-{
-    switch (_state.reg) {
-    case U2F_REGISTER_UNLOCKING:
-        rust_workflow_abort_current();
-        _clear_state();
-        break;
-    case U2F_REGISTER_CONFIRMING:
-        u2f_app_confirm_abort();
-        _clear_state();
-        break;
-    case U2F_REGISTER_WAIT_REFRESH:
-        _stop_refresh_webpage_screen();
-        _clear_state();
-        break;
-    default:
-        Abort("Bad U2F register abort status");
-    }
-}
-
-/**
  * Processes an incoming registration request.
  */
 static void _cmd_authenticate(const Packet* in_packet, Packet* out_packet)
@@ -843,12 +806,13 @@ static void _cmd_authenticate(const Packet* in_packet, Packet* out_packet)
     /* Sanity-check our state. */
     if (_state.auth != U2F_AUTHENTICATE_IDLE &&
         (_state.last_cmd != U2F_AUTHENTICATE || _state.cid != in_packet->cid)) {
-        Abort("U2F auth arbitration failed.");
+        util_log("u2f: ERROR authenticate invalid state");
+        _clear_state();
+        return;
     }
 
     switch (_state.auth) {
     case U2F_AUTHENTICATE_IDLE:
-        _lock(apdu);
         _authenticate_start(apdu, out_packet);
         break;
     case U2F_AUTHENTICATE_UNLOCKING:
@@ -866,34 +830,12 @@ static void _cmd_authenticate(const Packet* in_packet, Packet* out_packet)
 }
 
 /**
- * Abort an existing authentication request.
- */
-static void _abort_authenticate(void)
-{
-    switch (_state.auth) {
-    case U2F_AUTHENTICATE_UNLOCKING:
-        rust_workflow_abort_current();
-        _clear_state();
-        break;
-    case U2F_AUTHENTICATE_CONFIRMING:
-        u2f_app_confirm_abort();
-        _clear_state();
-        break;
-    case U2F_AUTHENTICATE_WAIT_REFRESH:
-        _stop_refresh_webpage_screen();
-        _clear_state();
-        break;
-    default:
-        Abort("Bad U2F register abort status");
-    }
-}
-
-/**
  * Process a U2F message
  */
 static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t max_out_len)
 {
     (void)max_out_len;
+
     // By default always use the recieved cid
     _state.cid = in_packet->cid;
 
@@ -903,6 +845,8 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
         return;
     }
 
+    usb_processing_lock(usb_processing_u2f());
+
     if (apdu->cla != 0) {
         _error(U2F_SW_CLA_NOT_SUPPORTED, out_packet);
         return;
@@ -911,33 +855,27 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
     switch (apdu->ins) {
     case U2F_REGISTER:
         _cmd_register(in_packet, out_packet);
+        _state.last_cmd = apdu->ins;
         break;
     case U2F_AUTHENTICATE:
         _cmd_authenticate(in_packet, out_packet);
+        _state.last_cmd = apdu->ins;
         break;
     case U2F_VERSION:
         _version(apdu, out_packet);
         break;
     default:
         _error(U2F_SW_INS_NOT_SUPPORTED, out_packet);
-        return;
+        break;
     }
 }
 
+// U2F only locks USB stack between a request and a response. A request is always immediately
+// followed by a response. New requests must wait until the current one is finished.
 bool u2f_blocking_request_can_go_through(const Packet* in_packet)
 {
-    if (!_state.locked) {
-        Abort("USB stack thinks we're busy, but we're not.");
-    }
-    /*
-     * Check if this request is the same one we're currently operating on.
-     * For now, this checks the request type and channel ID only.
-     * FUTURE: Maybe check that the key handle is maintained between requests?
-     *         so that when we're asking for confirmation, we ask to confirm
-     *         "a particular key handle" instead of "a particular tab".
-     */
-    const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
-    return apdu->ins == _state.last_cmd && in_packet->cid == _state.cid;
+    (void)in_packet;
+    return false;
 }
 
 void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet)
@@ -980,7 +918,7 @@ static void _process_wait_refresh(void)
 {
     if (_state.refresh_webpage_timeout == 25000) {
         _stop_refresh_webpage_screen();
-        _unlock();
+        _clear_state();
     } else {
         _state.refresh_webpage_timeout++;
         /* Prevent the USB watchdog from killing this workflow. */
@@ -1024,15 +962,15 @@ static void _process_authenticate(void)
 
 void u2f_process(void)
 {
-    if (!_state.locked) {
-        return;
-    }
     switch (_state.last_cmd) {
     case U2F_REGISTER:
         _process_register();
         break;
     case U2F_AUTHENTICATE:
         _process_authenticate();
+        break;
+    case 0:
+        // initial value
         break;
     default:
         Abort("Bad U2F process state.");
@@ -1044,6 +982,8 @@ void u2f_process(void)
  */
 void u2f_device_setup(void)
 {
+    _clear_state();
+    _state.last_cmd = 0;
     const CMD_Callback u2f_cmd_callbacks[] = {
         {U2FHID_PING, _cmd_ping},
         {U2FHID_WINK, _cmd_wink},
@@ -1056,17 +996,5 @@ void u2f_device_setup(void)
 
 void u2f_abort_outstanding_op(void)
 {
-    if (!_state.locked) {
-        Abort("USB stack thinks U2F is busy, but it's not.");
-    }
-    switch (_state.last_cmd) {
-    case U2F_REGISTER:
-        _abort_register();
-        break;
-    case U2F_AUTHENTICATE:
-        _abort_authenticate();
-        break;
-    default:
-        Abort("Invalid U2F status on abort.");
-    }
+    util_log("u2f_abort_outstanding_op");
 }

@@ -25,7 +25,12 @@
 #include "screen.h"
 #include "ui/screen_stack.h"
 #include "usb/usb_processing.h"
+#include <hww.h>
 #include <memory/memory_spi.h>
+
+#if APP_U2F == 1
+#include <u2f.h>
+#endif
 
 uint32_t __stack_chk_guard = 0;
 
@@ -44,6 +49,11 @@ int main(void)
         da14531_protocol_init();
     }
     usb_processing_init();
+    // Setup usb_processing handlers
+    hww_setup();
+#if APP_U2F == 1
+    u2f_device_setup();
+#endif
     firmware_main_loop();
     return 0;
 }

@@ -8,7 +8,7 @@
 // POSIX
 #include <pthread.h>
 
-#include <hidapi/hidapi.h>
+#include <hidapi.h>
 
 #include "queue.h"
 #include "u2f.h"

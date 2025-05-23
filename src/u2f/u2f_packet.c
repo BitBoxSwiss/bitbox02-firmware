@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <util.h>
 
 #define ERR_NONE 0
 
@@ -126,6 +127,7 @@ void u2f_packet_timeout_tick(void)
 
 void u2f_packet_timeout(uint32_t cid)
 {
+    util_log("u2f_packet_timeout");
     _timeout_disable(cid);
     if (cid == _in_state.cid) {
         _reset_state();

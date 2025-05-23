@@ -438,4 +438,8 @@ void usb_processing_unlock(void)
     }
     _usb_state.blocking_ctx = NULL;
 }
+bool usb_processing_locked(struct usb_processing* ctx)
+{
+    return _usb_state.blocking_ctx == ctx;
+}
 #endif

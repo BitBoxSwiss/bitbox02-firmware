@@ -59,6 +59,11 @@ void firmware_main_loop(void)
         }
         if (!u2f_data) {
             u2f_data = queue_pull(queue_u2f_queue());
+            // If USB stack was locked and there is no more messages to send out, time to
+            // unlock it.
+            if (!u2f_data && usb_processing_locked(usb_processing_u2f())) {
+                usb_processing_unlock();
+            }
         }
 #endif
         // Only read new messages if we have nothing to send

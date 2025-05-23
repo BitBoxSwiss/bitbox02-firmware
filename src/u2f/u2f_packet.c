@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <util.h>
 
 #define ERR_NONE 0
 
@@ -126,6 +127,7 @@ void u2f_packet_timeout_tick(void)
 
 void u2f_packet_timeout(uint32_t cid)
 {
+    util_log("u2f_packet_timeout");
     _timeout_disable(cid);
     if (cid == _in_state.cid) {
         _reset_state();
@@ -138,19 +140,23 @@ bool u2f_packet_process(const USB_FRAME* frame)
     struct usb_processing* ctx = usb_processing_u2f();
     switch (usb_frame_process(frame, &_in_state)) {
     case FRAME_ERR_IGNORE:
+        util_log("u2f_packet ignore");
         // Ignore this frame, i.e. no response.
         break;
     case FRAME_ERR_INVALID_SEQ:
+        util_log("u2f_packet seq");
         // Reset the state becuase this error indicates that there is a host application bug
         _reset_state();
         _queue_err(FRAME_ERR_INVALID_SEQ, frame->cid);
         break;
     case FRAME_ERR_CHANNEL_BUSY:
+        util_log("u2f_packet busy");
         // We don't reset the state because this error doesn't indicate something wrong with the
         // "current" connection.
         _queue_err(FRAME_ERR_CHANNEL_BUSY, frame->cid);
         break;
     case FRAME_ERR_INVALID_LEN:
+        util_log("u2f_packet invalid len");
         // Reset the state becuase this error indicates that there is a host application bug
         _reset_state();
         _queue_err(FRAME_ERR_INVALID_LEN, frame->cid);

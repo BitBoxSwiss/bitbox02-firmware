@@ -14,6 +14,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Ethereum: allow fetching xpub at m/44'/60'/0' and m/44'/1'/0'
 - Bitcoin: enable message signing on testnet and regtest
 - Enable Litecoin in the simulator
+- U2F: fix macos/safari macos/firefox support
 
 ### 9.22.0
 - Update manufacturer HID descriptor to bitbox.swiss

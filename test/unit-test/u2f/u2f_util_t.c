@@ -239,6 +239,7 @@ int U2Fob_init(struct U2Fob* device)
         res = U2Fob_receiveHidFrame(device, &response, 2.0);
 
         if (res == -U2FHID_ERR_MSG_TIMEOUT) {
+            printf("err timeout\n");
             return res;
         }
         if (res == -U2FHID_ERR_OTHER) {

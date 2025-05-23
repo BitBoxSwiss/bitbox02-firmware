@@ -72,7 +72,6 @@ static void _u2f_endpoint_available(void)
     if (!hid_u2f_is_enabled()) {
         return;
     };
-    u2f_device_setup();
     hid_u2f_setup();
 }
 #endif

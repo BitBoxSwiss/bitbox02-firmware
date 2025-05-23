@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- U2F: fix macos/safari macos/firefox support
 
 ### 9.23.0
 - Ethereum: add confirmation screen for known networks, change base unit to ETH for Arbitrum and Optimism

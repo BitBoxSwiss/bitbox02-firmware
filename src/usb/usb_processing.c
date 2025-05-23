@@ -243,12 +243,14 @@ static void _usb_execute_packet(struct usb_processing* ctx, const Packet* in_pac
             Packet out_packet;
             _prepare_out_packet(in_packet, &out_packet);
             ctx->registered_cmds[i].process_cmd(in_packet, &out_packet, USB_DATA_MAX_LEN);
+
             _enqueue_frames(ctx, (const Packet*)&out_packet);
             break;
         }
     }
 
     if (!cmd_valid) {
+        util_log("usb_processing: No handler");
         ctx->manage_invalid_endpoint(ctx->out_queue(), _usb_state.in_packet.cid);
     }
 }
@@ -437,5 +439,9 @@ void usb_processing_unlock(void)
         AbortAutoenter("Tried to unlock the USB stack while not locked.");
     }
     _usb_state.blocking_ctx = NULL;
+}
+bool usb_processing_locked(struct usb_processing* ctx)
+{
+    return _usb_state.blocking_ctx == ctx;
 }
 #endif

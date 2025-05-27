@@ -34,6 +34,7 @@ struct U2Fob* device;
 
 U2F_REGISTER_REQ regReq;
 U2F_REGISTER_RESP regRsp;
+U2F_AUTHENTICATE_REQ authReq;
 
 static void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
@@ -126,14 +127,6 @@ static void test_WrongLength_U2F_REGISTER(void)
 
 static void test_Enroll(int expectedSW12, int printinfo)
 {
-    // pick random origin and challenge.
-    for (size_t i = 0; i < sizeof(regReq.challenge); ++i) {
-        regReq.challenge[i] = rand();
-    }
-    for (size_t i = 0; i < sizeof(regReq.appId); ++i) {
-        regReq.appId[i] = rand();
-    }
-
     uint64_t t = 0;
     U2Fob_deltaTime(&t);
 
@@ -218,12 +211,6 @@ static void test_Enroll(int expectedSW12, int printinfo)
 #if defined(WITH_HARDWARE)
 static uint32_t test_Sign(int expectedSW12, bool checkOnly)
 {
-    U2F_AUTHENTICATE_REQ authReq;
-
-    // pick random challenge and use registered appId.
-    for (size_t i = 0; i < sizeof(authReq.challenge); ++i) {
-        authReq.challenge[i] = rand();
-    }
     memcpy(authReq.appId, regReq.appId, sizeof(authReq.appId));
     authReq.keyHandleLength = regRsp.keyHandleLen;
     memcpy(authReq.keyHandle, regRsp.keyHandleCertSig, authReq.keyHandleLength);
@@ -316,6 +303,14 @@ static void run_tests(void)
         PASS(test_WrongLength_U2F_REGISTER());
         PASS(test_BadCLA());
 
+        // pick random origin and challenge.
+        for (size_t i = 0; i < sizeof(regReq.challenge); ++i) {
+            regReq.challenge[i] = rand();
+        }
+        for (size_t i = 0; i < sizeof(regReq.appId); ++i) {
+            regReq.appId[i] = rand();
+        }
+
         // Fob with button should need touch.
         if (arg_hasButton) {
             // Timeout
@@ -327,6 +322,11 @@ static void run_tests(void)
 #if defined(WITH_HARDWARE)
         WaitForUserPresence(device, arg_hasButton);
         PASS(test_Enroll(0x9000, 1));
+
+        // pick random challenge and use registered appId.
+        for (size_t i = 0; i < sizeof(authReq.challenge); ++i) {
+            authReq.challenge[i] = rand();
+        }
 
         // Fob with button should have consumed touch.
         if (arg_hasButton) {
@@ -351,6 +351,12 @@ static void run_tests(void)
         // Sign with check only should not produce signature.
         WaitForUserPresence(device, arg_hasButton);
         PASS(test_Sign(0x6985, true));
+
+        // This triggers the confirmation screen
+        WaitForUserPresence(device, arg_hasButton);
+        PASS(test_Sign(0x6985, false));
+
+        WaitForUserPresence(device, arg_hasButton);
 
         uint32_t ctr1;
         PASS(ctr1 = test_Sign(0x9000, false)); // < fails

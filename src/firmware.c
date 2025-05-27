@@ -23,6 +23,10 @@
 #include "screen.h"
 #include "ui/screen_stack.h"
 
+#if APP_U2F == 1
+#include <u2f.h>
+#endif
+
 uint32_t __stack_chk_guard = 0;
 
 int main(void)
@@ -36,6 +40,9 @@ int main(void)
     qtouch_init();
     common_main();
     bitbox02_smarteeprom_init();
+#if APP_U2F == 1
+    u2f_device_setup();
+#endif
     firmware_main_loop();
     return 0;
 }

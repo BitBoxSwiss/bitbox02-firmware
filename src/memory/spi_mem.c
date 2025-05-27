@@ -174,6 +174,21 @@ bool spi_mem_sector_erase(uint32_t sector_addr)
     // --- Wait for write to end ---
     _spi_mem_wait();
 
+    // --- Check that sector has been actually erased ---
+    uint8_t page_data[SPI_MEM_PAGE_SIZE];
+    for (size_t i = 0; i < SPI_MEM_SECTOR_SIZE / SPI_MEM_PAGE_SIZE; i++) {
+        uint32_t page_addr = sector_addr + i * SPI_MEM_PAGE_SIZE;
+        if (!spi_mem_page_read(page_addr, page_data)) {
+            util_log("Read after sector erase at %p failed", (void*)(uintptr_t)page_addr);
+            return false;
+        }
+        for (size_t j = 0; j < SPI_MEM_PAGE_SIZE; j++) {
+            if (page_data[j] != 0xFF) {
+                util_log("Sector erase at %p failed", (void*)(uintptr_t)(page_addr + j));
+                return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -242,6 +257,16 @@ static bool _spi_mem_page_write(uint32_t page_addr, const uint8_t* input)
     // --- Wait for write to end ---
     _spi_mem_wait();
 
+    // --- Check that input data has been properly written ---
+    uint8_t read_data[SPI_MEM_PAGE_SIZE];
+    if (!spi_mem_page_read(page_addr, read_data)) {
+        util_log("Read after page write at %p failed", (void*)(uintptr_t)page_addr);
+        return false;
+    }
+    if (memcmp(read_data, input, SPI_MEM_PAGE_SIZE) != 0) {
+        util_log("Write page at %p failed", (void*)(uintptr_t)page_addr);
+        return false;
+    }
     return true;
 }
 

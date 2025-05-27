@@ -741,6 +741,8 @@ static void _cmd_init(const Packet* in_packet, Packet* out_packet, const size_t 
         return;
     }
 
+    util_log("u2f init");
+
     const U2FHID_INIT_REQ* init_req = (const U2FHID_INIT_REQ*)&in_packet->data_addr;
     U2FHID_INIT_RESP response;
 
@@ -767,8 +769,7 @@ static void _cmd_register(const Packet* in_packet, Packet* out_packet)
 {
     const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
     /* Sanity-check our state. */
-    if (_state.reg != U2F_REGISTER_IDLE &&
-        (_state.last_cmd != U2F_REGISTER || _state.cid != in_packet->cid)) {
+    if (_state.reg != U2F_REGISTER_IDLE && _state.last_cmd != U2F_REGISTER) {
         util_log("u2f: ERROR register invalid state");
         _clear_state();
         return;
@@ -776,6 +777,7 @@ static void _cmd_register(const Packet* in_packet, Packet* out_packet)
 
     switch (_state.reg) {
     case U2F_REGISTER_IDLE:
+        util_log("reg idle");
         _register_start(apdu, out_packet);
         break;
     case U2F_REGISTER_UNLOCKING:
@@ -785,6 +787,7 @@ static void _cmd_register(const Packet* in_packet, Packet* out_packet)
         _register_wait_refresh(apdu, out_packet);
         break;
     case U2F_REGISTER_CONFIRMING:
+        util_log("reg confirmgin");
         _register_continue(apdu, out_packet);
         break;
     default:
@@ -831,12 +834,7 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
 {
     (void)max_out_len;
 
-    // Give the user 5s to respond to u2f requests (the FIDO Client in u2f is not required to ping
-    // every 200ms like the BitBoxApp does even though most implementations do).
-    usb_processing_timeout_reset(-50);
-
-    // The usb stack must be locked until we have responded to this request.
-    usb_processing_lock(usb_processing_u2f());
+    util_log("u2f msg");
 
     // By default always use the recieved cid
     _state.cid = in_packet->cid;

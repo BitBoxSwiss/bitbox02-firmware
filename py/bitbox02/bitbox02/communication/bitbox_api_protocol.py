@@ -73,93 +73,26 @@ ERR_USER_ABORT = 104
 HARDENED = 0x80000000
 
 
-class AttestationPubkeyInfo(TypedDict):
-    # uncompressed secp256k1 pubkey serialization
-    pubkey: bytes
-    # if not None, a hex-encoded bootloader hashes (of the padded
-    # bootloader binary, i.e. the device bootloader area), for which
-    # this attestation pubkey is
-    accepted_bootloader_hash: Optional[bytes]
-
-
-ATTESTATION_PUBKEYS: Sequence[AttestationPubkeyInfo] = [
-    {
-        "pubkey": bytes.fromhex(
-            "04074ff1273b36c24e80fe3d59e0e897a81732d3f8e9cd07e17e9fc06319cd16b"
-            "25cf74255674477b3ac9cbac2d12f0dc27a662681fcbc12955b0bccdcbbdcfd01"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "044c53a84f41fa7301b378bb3c260fc9b2ff1cbea7a78181279a8566797a736f1"
-            "2cea25fa2b1c27a844392fe9b37547dc6fbd00a2676b816e7d2d3562be2a0cbbd"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "04e9c8dc929796aac65af5084eb54dc1ee482d5e0b5c58e2c93f243c5b70b2152"
-            "3324bdb78d7395317da165ef1138826c3ca3c91ca95e6f490c340cf5508a4a3ec"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "04c2fb05889b9dff5a9fb22a59ee1d16bfc2863f0400ddcb69566e2abe8a15fa0"
-            "ba1240254ca45aa310d170e724e1310ce5f611cada76c12e3c24a926a390ca4be"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "04c4e82d6d1b91e7853eba96a871ad31fc62620b826b0b8acf815c03de31b792a"
-            "98e05bb34d3b9e0df1040eac485f03ff8bbbf7a857ef1cf2a49a60ac084efb88f"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "040526f5b8348a8d55e7b1cac043ce98c55bbdb3311b4d1bb2d654281edf8aeb2"
-            "1f018fb027a6b08e4ddc62c919e648690722d00c6f54c668c9bd8224a1d82423a"
-        ),
-        "accepted_bootloader_hash": bytes.fromhex(
-            "e8fa0bd5fc80b86b9f1ea983664df33b27f6f95855d79fb43248ee4c3d3e6be6"
-        ),
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "0422491e19766bd96a56e3f2f3926a6c57b89209ff47bd10e523b223ff65ab9af"
-            "11c0a5f62c187514f2117ce772de90f9901ee122af78e69bbc4d29eec811be8ec"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "049f1b7180014b6de60d41f16a3c0a37b20146585e4884960249d30f3cd68c74d"
-            "04420d0cedef5719d6b1529b085ecd534fa6c1690be5eb1b3331bc57b5db224dc"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "04adaa011a4ced11310728abb64f09636267ce0b05782da6d3eeaf987cec7c64f"
-            "279ad55327184f9e5b4a1e53089b31bcc65032dad7205325f41ed3d9fdfba1f88"
-        ),
-        "accepted_bootloader_hash": None,
-    },
-    {
-        "pubkey": bytes.fromhex(
-            "044a70e663d7fe5fe0d4cbbb752883e35222b8d7d7bffdaa8d591995d1252528a"
-            "4e9a3e4d5220d485021728b3cdad4fccc681a6ddeea8e2f7c55b4acde8d53573d"
-        ),
-        "accepted_bootloader_hash": None,
-    },
+# uncompressed secp256k1 pubkey serialization, hex-encoded.
+ATTESTATION_PUBKEYS: Sequence[str] = [
+    "04074ff1273b36c24e80fe3d59e0e897a81732d3f8e9cd07e17e9fc06319cd16b25cf74255674477b3ac9cbac2d12f0dc27a662681fcbc12955b0bccdcbbdcfd01",
+    "044c53a84f41fa7301b378bb3c260fc9b2ff1cbea7a78181279a8566797a736f12cea25fa2b1c27a844392fe9b37547dc6fbd00a2676b816e7d2d3562be2a0cbbd",
+    "04e9c8dc929796aac65af5084eb54dc1ee482d5e0b5c58e2c93f243c5b70b21523324bdb78d7395317da165ef1138826c3ca3c91ca95e6f490c340cf5508a4a3ec",
+    "04c2fb05889b9dff5a9fb22a59ee1d16bfc2863f0400ddcb69566e2abe8a15fa0ba1240254ca45aa310d170e724e1310ce5f611cada76c12e3c24a926a390ca4be",
+    "04c4e82d6d1b91e7853eba96a871ad31fc62620b826b0b8acf815c03de31b792a98e05bb34d3b9e0df1040eac485f03ff8bbbf7a857ef1cf2a49a60ac084efb88f",
+    "040526f5b8348a8d55e7b1cac043ce98c55bbdb3311b4d1bb2d654281edf8aeb21f018fb027a6b08e4ddc62c919e648690722d00c6f54c668c9bd8224a1d82423a",
+    "0422491e19766bd96a56e3f2f3926a6c57b89209ff47bd10e523b223ff65ab9af11c0a5f62c187514f2117ce772de90f9901ee122af78e69bbc4d29eec811be8ec",
+    "049f1b7180014b6de60d41f16a3c0a37b20146585e4884960249d30f3cd68c74d04420d0cedef5719d6b1529b085ecd534fa6c1690be5eb1b3331bc57b5db224dc",
+    "04adaa011a4ced11310728abb64f09636267ce0b05782da6d3eeaf987cec7c64f279ad55327184f9e5b4a1e53089b31bcc65032dad7205325f41ed3d9fdfba1f88",
+    "044a70e663d7fe5fe0d4cbbb752883e35222b8d7d7bffdaa8d591995d1252528a4e9a3e4d5220d485021728b3cdad4fccc681a6ddeea8e2f7c55b4acde8d53573d",
 ]
 
-ATTESTATION_PUBKEYS_MAP: Dict[bytes, AttestationPubkeyInfo] = {
-    hashlib.sha256(val["pubkey"]).digest(): val for val in ATTESTATION_PUBKEYS
-}
+
+ATTESTATION_PUBKEYS_MAP: Dict[bytes, bytes] = {}
+for pubkey_hex in ATTESTATION_PUBKEYS:
+    pubkey = bytes.fromhex(pubkey_hex)
+    ATTESTATION_PUBKEYS_MAP[hashlib.sha256(pubkey).digest()] = pubkey
+
 
 OP_ATTESTATION = b"a"
 OP_UNLOCK = b"u"
@@ -604,14 +537,7 @@ class BitBoxCommonAPI:
             # root pubkey could not be identified.
             return False
 
-        root_pubkey_info = ATTESTATION_PUBKEYS_MAP[root_pubkey_identifier]
-        root_pubkey_bytes_uncompressed = root_pubkey_info["pubkey"]
-        if (
-            root_pubkey_info["accepted_bootloader_hash"] is not None
-            and root_pubkey_info["accepted_bootloader_hash"] != bootloader_hash
-        ):
-            return False
-
+        root_pubkey_bytes_uncompressed = ATTESTATION_PUBKEYS_MAP[root_pubkey_identifier]
         root_pubkey = ecdsa.VerifyingKey.from_string(
             root_pubkey_bytes_uncompressed[1:], ecdsa.curves.SECP256k1
         )

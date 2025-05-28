@@ -160,5 +160,7 @@ async fn process_ln(
         })
         .await?;
 
-    keystore::bip85_ln(account_number).map_err(|_| Error::Generic)
+    Ok(crate::keystore::bip85_ln(account_number)
+        .map_err(|_| Error::Generic)?
+        .to_vec())
 }

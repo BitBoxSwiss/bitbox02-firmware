@@ -504,20 +504,6 @@ bool keystore_bip39_mnemonic_from_seed(
     return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
 }
 
-bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size)
-{
-    if (keystore_is_locked()) {
-        return false;
-    }
-    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-    UTIL_CLEANUP_32(seed);
-    size_t seed_length = 0;
-    if (!keystore_copy_seed(seed, &seed_length)) {
-        return false;
-    }
-    return keystore_bip39_mnemonic_from_seed(seed, seed_length, mnemonic_out, mnemonic_out_size);
-}
-
 bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, size_t* seed_len_out)
 {
     return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;

@@ -22,7 +22,7 @@ use pb::response::Response;
 use crate::hal::Ui;
 use crate::workflow::{confirm, mnemonic, unlock};
 
-use bitbox02::keystore;
+use crate::keystore;
 
 /// Handle the ShowMnemonic API call. This shows the seed encoded as
 /// 12/18/24 BIP39 English words. Afterwards, for each word, the user

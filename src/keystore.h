@@ -126,15 +126,6 @@ USE_RESULT bool keystore_bip39_mnemonic_from_seed(
     size_t mnemonic_out_size);
 
 /**
- * @param[out] mnemonic_out resulting mnemonic
- * @param[in] mnemonic_out_size size of mnemonic_out. Should be at least 216 bytes (longest possible
- *            24 word phrase plus null terminator).
- * @return returns false if the keystore is not unlocked or the mnemonic does not fit.
- * The resulting string should be safely zeroed after use.
- */
-USE_RESULT bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size);
-
-/**
  * Turn a bip39 mnemonic into a seed. Make sure to use UTIL_CLEANUP_32 to destroy it.
  * Output can be fed into `keystore_encrypt_and_store_seed` to create a keystore from the mnemonic.
  * @param[in] mnemonic 12/18/24 word bip39 mnemonic

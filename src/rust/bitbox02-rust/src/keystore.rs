@@ -15,6 +15,7 @@
 #[cfg(feature = "ed25519")]
 pub mod ed25519;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
@@ -24,6 +25,11 @@ use util::bip32::HARDENED;
 
 use crate::hash::Sha512;
 use hmac::{digest::FixedOutput, Mac, SimpleHmac};
+
+/// Returns the keystore's seed encoded as a BIP-39 mnemonic.
+pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
+    keystore::bip39_mnemonic_from_seed(&keystore::copy_seed()?)
+}
 
 /// Derives an xpub from the keystore seed at the given keypath.
 pub fn get_xpub(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
@@ -74,7 +80,17 @@ pub fn bip85_ln(index: u32) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 mod tests {
     use super::*;
 
-    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
+    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC};
+
+    #[test]
+    fn test_get_bip39_mnemonic() {
+        keystore::lock();
+        assert!(get_bip39_mnemonic().is_err());
+
+        mock_unlocked();
+
+        assert_eq!(get_bip39_mnemonic().unwrap().as_str(), TEST_MNEMONIC);
+    }
 
     #[test]
     fn test_get_xpub() {

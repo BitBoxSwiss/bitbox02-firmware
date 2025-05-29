@@ -122,20 +122,6 @@ pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
-pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
-    let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
-    match unsafe {
-        bitbox02_sys::keystore_get_bip39_mnemonic(mnemonic.as_mut_ptr(), mnemonic.len() as _)
-    } {
-        false => Err(()),
-        true => Ok(zeroize::Zeroizing::new(
-            crate::util::str_from_null_terminated(&mnemonic[..])
-                .unwrap()
-                .into(),
-        )),
-    }
-}
-
 pub fn bip39_mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
     match unsafe {
@@ -374,7 +360,7 @@ pub fn secp256k1_schnorr_sign(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC};
+    use crate::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use util::bip32::HARDENED;
 
     #[test]
@@ -439,19 +425,6 @@ mod tests {
         assert_eq!(
             copy_seed().unwrap().as_slice(),
             b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
-        );
-    }
-
-    #[test]
-    fn test_get_bip39_mnemonic() {
-        lock();
-        assert!(get_bip39_mnemonic().is_err());
-
-        mock_unlocked();
-
-        assert_eq!(
-            get_bip39_mnemonic().unwrap().as_ref() as &str,
-            TEST_MNEMONIC
         );
     }
 

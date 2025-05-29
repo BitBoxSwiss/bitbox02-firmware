@@ -232,21 +232,6 @@ USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
 USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
 
 /**
- * Computes a BIP39 mnemonic according to BIP-85:
- * https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
- * @param[in] words must be 12, 18 or 24.
- * @param[in] index must be smaller than `BIP32_INITIAL_HARDENED_CHILD`.
- * @param[out] mnemonic_out resulting mnemonic
- * @param[in] mnemonic_out_size size of mnemonic_out. Should be at least 216 bytes (longest possible
- *            24 word phrase plus null terminator).
- */
-USE_RESULT bool keystore_bip85_bip39(
-    uint32_t words,
-    uint32_t index,
-    char* mnemonic_out,
-    size_t mnemonic_out_size);
-
-/**
  * Encode an xpub at the given `keypath` as 78 bytes according to BIP32. The version bytes are
  * the ones corresponding to `xpub`, i.e. 0x0488B21E.
  * `out` must be `BIP32_SERIALIZED_LEN` long.

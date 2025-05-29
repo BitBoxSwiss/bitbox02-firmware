@@ -54,6 +54,34 @@ fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     Ok(out)
 }
 
+/// Computes a BIP39 mnemonic according to BIP-85:
+/// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
+/// `words` must be 12, 18 or 24.
+/// `index` must be smaller than `bip32::HARDENED`.
+pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>, ()> {
+    if index >= HARDENED {
+        return Err(());
+    }
+
+    let seed_size: usize = match words {
+        12 => 16,
+        18 => 24,
+        24 => 32,
+        _ => return Err(()),
+    };
+
+    let keypath = [
+        83696968 + HARDENED,
+        39 + HARDENED,
+        0 + HARDENED,
+        words + HARDENED,
+        index + HARDENED,
+    ];
+
+    let entropy = bip85_entropy(&keypath)?;
+    keystore::bip39_mnemonic_from_seed(&entropy[..seed_size])
+}
+
 /// Computes a 16 byte deterministic seed specifically for Lightning hot wallets according to BIP-85.
 /// It is the same as BIP-85 with app number 39', but instead using app number 19534' (= 0x4c4e =
 /// 'LN'). https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
@@ -150,6 +178,52 @@ mod tests {
             "",
         );
         assert_eq!(root_fingerprint(), Ok(vec![0xf4, 0x0b, 0x46, 0x9a]));
+    }
+
+    #[test]
+    fn test_bip85_bip39() {
+        keystore::lock();
+        assert!(bip85_bip39(12, 0).is_err());
+
+        // Test fixtures generated using:
+        // `docker build -t bip85 .`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 1 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 2147483647 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 18`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 24`
+        // in  https://github.com/ethankosakovsky/bip85/tree/435a0589746c1036735d0a5081167e08abfa7413.
+
+        mock_unlocked_using_mnemonic(
+            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
+            "",
+        );
+
+        assert_eq!(
+            bip85_bip39(12, 0).unwrap().as_ref() as &str,
+            "slender whip place siren tissue chaos ankle door only assume tent shallow",
+        );
+        assert_eq!(
+            bip85_bip39(12, 1).unwrap().as_ref() as &str,
+            "income soft level reunion height pony crane use unfold win keen satisfy",
+        );
+        assert_eq!(
+            bip85_bip39(12, HARDENED - 1).unwrap().as_ref() as &str,
+            "carry build nerve market domain energy mistake script puzzle replace mixture idea",
+        );
+        assert_eq!(
+            bip85_bip39(18, 0).unwrap().as_ref() as &str,
+            "enact peasant tragic habit expand jar senior melody coin acid logic upper soccer later earn napkin planet stereo",
+        );
+        assert_eq!(
+            bip85_bip39(24, 0).unwrap().as_ref() as &str,
+            "cabbage wink october add anchor mean tray surprise gasp tomorrow garbage habit beyond merge where arrive beef gentle animal office drop panel chest size",
+        );
+
+        // Invalid number of words.
+        assert!(bip85_bip39(10, 0).is_err());
+        // Index too high.
+        assert!(bip85_bip39(12, HARDENED).is_err());
     }
 
     #[test]

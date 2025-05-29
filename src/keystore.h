@@ -80,7 +80,7 @@ USE_RESULT keystore_error_t keystore_create_and_store_seed(
 /** Unlocks the keystore seed or checks the password:
  * If the keystore is locked, it decrypts and loads the seed, unlocking the keystore:
  * 1) loads the stored seed and tries to decrypt using password.
- * 2) if successful, the bip39 seed should be derived using keystore_unlock_bip39().
+ * 2) if successful, the bip39 seed should be derived using keystoreu_nlock_bip39().
  * If the keystore is already unlocked, this function does *not* change the state (can be used to
  * check the password).
  * @param[in] password keystore password, used to decrypt the seed.
@@ -124,15 +124,6 @@ USE_RESULT bool keystore_bip39_mnemonic_from_seed(
     size_t seed_size,
     char* mnemonic_out,
     size_t mnemonic_out_size);
-
-/**
- * @param[out] mnemonic_out resulting mnemonic
- * @param[in] mnemonic_out_size size of mnemonic_out. Should be at least 216 bytes (longest possible
- *            24 word phrase plus null terminator).
- * @return returns false if the keystore is not unlocked or the mnemonic does not fit.
- * The resulting string should be safely zeroed after use.
- */
-USE_RESULT bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size);
 
 /**
  * Turn a bip39 mnemonic into a seed. Make sure to use UTIL_CLEANUP_32 to destroy it.

@@ -116,6 +116,16 @@ void keystore_lock(void);
 USE_RESULT bool keystore_is_locked(void);
 
 /**
+ * Converts a 16/24/32 byte seed into a BIP-39 mnemonic string.
+ * Returns false if the seed size is invalid or the output string buffer is not large enough.
+ */
+USE_RESULT bool keystore_bip39_mnemonic_from_seed(
+    const uint8_t* seed,
+    size_t seed_size,
+    char* mnemonic_out,
+    size_t mnemonic_out_size);
+
+/**
  * @param[out] mnemonic_out resulting mnemonic
  * @param[in] mnemonic_out_size size of mnemonic_out. Should be at least 216 bytes (longest possible
  *            24 word phrase plus null terminator).

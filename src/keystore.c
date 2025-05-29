@@ -488,27 +488,34 @@ bool keystore_is_locked(void)
     return !unlocked;
 }
 
-bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size)
+bool keystore_bip39_mnemonic_from_seed(
+    const uint8_t* seed,
+    size_t seed_size,
+    char* mnemonic_out,
+    size_t mnemonic_out_size)
 {
-    if (keystore_is_locked()) {
-        return false;
-    }
     char* mnemonic = NULL;
-    { // block so that `seed` is zeroed as soon as possible
-        uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-        UTIL_CLEANUP_32(seed);
-        size_t seed_length = 0;
-        if (!keystore_copy_seed(seed, &seed_length)) {
-            return false;
-        }
-        if (bip39_mnemonic_from_bytes(NULL, seed, seed_length, &mnemonic) != WALLY_OK) {
-            return false;
-        }
+    if (bip39_mnemonic_from_bytes(NULL, seed, seed_size, &mnemonic) != WALLY_OK) {
+        return false;
     }
     int snprintf_result = snprintf(mnemonic_out, mnemonic_out_size, "%s", mnemonic);
     util_cleanup_str(&mnemonic);
     free(mnemonic);
     return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
+}
+
+bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size)
+{
+    if (keystore_is_locked()) {
+        return false;
+    }
+    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
+    UTIL_CLEANUP_32(seed);
+    size_t seed_length = 0;
+    if (!keystore_copy_seed(seed, &seed_length)) {
+        return false;
+    }
+    return keystore_bip39_mnemonic_from_seed(seed, seed_length, mnemonic_out, mnemonic_out_size);
 }
 
 bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, size_t* seed_len_out)
@@ -782,15 +789,7 @@ bool keystore_bip85_bip39(
     if (!_bip85_entropy(keypath, sizeof(keypath) / sizeof(uint32_t), entropy)) {
         return false;
     }
-
-    char* mnemonic = NULL;
-    if (bip39_mnemonic_from_bytes(NULL, entropy, seed_size, &mnemonic) != WALLY_OK) {
-        return false;
-    }
-    int snprintf_result = snprintf(mnemonic_out, mnemonic_out_size, "%s", mnemonic);
-    util_cleanup_str(&mnemonic);
-    free(mnemonic);
-    return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
+    return keystore_bip39_mnemonic_from_seed(entropy, seed_size, mnemonic_out, mnemonic_out_size);
 }
 
 USE_RESULT bool keystore_encode_xpub_at_keypath(

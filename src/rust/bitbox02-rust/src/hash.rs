@@ -21,7 +21,9 @@ use alloc::vec::Vec;
 /// This implementation accumulates the data to be hashed in heap, it does **not** hash in a
 /// streaming fashion, even when using `update()`.
 #[derive(Default, Clone)]
-pub struct Sha512(Vec<u8>);
+pub struct Sha512 {
+    message: Vec<u8>,
+}
 
 impl digest::HashMarker for Sha512 {}
 
@@ -32,20 +34,20 @@ impl digest::OutputSizeUser for Sha512 {
 impl digest::FixedOutput for Sha512 {
     fn finalize_into(self, out: &mut digest::Output<Self>) {
         // use digest::Digest;
-        // out.copy_from_slice(&sha2::Sha512::digest(&self.0));
-        out.copy_from_slice(&bitbox02::sha512(&self.0));
+        // out.copy_from_slice(&sha2::Sha512::digest(&self.message));
+        out.copy_from_slice(&bitbox02::sha512(&self.message));
     }
 }
 
 impl digest::Update for Sha512 {
     fn update(&mut self, data: &[u8]) {
-        self.0.extend(data);
+        self.message.extend(data);
     }
 }
 
 impl digest::Reset for Sha512 {
     fn reset(&mut self) {
-        self.0 = vec![];
+        self.message = vec![];
     }
 }
 

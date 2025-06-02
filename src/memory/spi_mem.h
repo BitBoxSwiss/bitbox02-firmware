@@ -22,15 +22,18 @@
 
 #define SPI_MEM_PAGE_SIZE 0x100 // 256
 #define SPI_MEM_SECTOR_SIZE 0x1000 // 4k
-#define SPI_MEM_BLOCK_SIZE 0x8000 // 32k
+#define SPI_MEM_BLOCK_SIZE 0x10000 // 64k
 #define SPI_MEM_MEMORY_SIZE 0x200000 // 2M
+#define SPI_MEM_PROTECTED_BLOCKS 2 // First 2 blocks - 128KB
 
 /**
  * @brief Erase the entire flash memory chip.
  *
  * This operation is blocking and will take 30-60 seconds.
+ *
+ * @return true on success, false on error.
  */
-void spi_mem_full_erase(void);
+bool spi_mem_full_erase(void);
 
 /**
  * @brief Erase a single SECTOR_SIZE sector from flash memory.
@@ -87,5 +90,38 @@ USE_RESULT bool spi_mem_write(uint32_t address, const uint8_t* input, size_t siz
  * @return The number of sectors erased on success, -1 on failure.
  */
 USE_RESULT int32_t spi_mem_smart_erase(void);
+
+/**
+ * @brief Enables write protection for the first SPI_MEM_PROTECTED_BLOCKS of the memory.
+ *
+ * Sets the protection bits in the status register to lock the configured protected
+ * memory region, preventing accidental writes or erases.
+ *
+ */
+void spi_mem_protected_area_lock(void);
+
+/**
+ * @brief Disables write protection for the protected memory region.
+ *
+ * Clears the protection bits in the status register, allowing writes and erases
+ * to proceed in the previously locked memory area.
+ *
+ */
+void spi_mem_protected_area_unlock(void);
+
+/**
+ * @brief Temporarily unlocks and writes to a protected flash memory region.
+ *
+ * This function reads the current protection configuration, disables protection,
+ * writes the specified data, and restores the previous protection settings.
+ *
+ * @param[in] address  Start address to write to.
+ * @param[in] input    Pointer to the data to write.
+ * @param[in] size     Number of bytes to write.
+ * @return true if the write operation succeeds, false otherwise.
+ */
+USE_RESULT bool spi_mem_protected_area_write(uint32_t address, const uint8_t* input, size_t size);
+
+void spi_mem_test(void);
 
 #endif // _SPI_MEM_H

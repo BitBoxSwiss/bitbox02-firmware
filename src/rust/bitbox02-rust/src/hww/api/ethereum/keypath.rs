@@ -59,14 +59,16 @@ pub async fn warn_unusual_keypath(
 }
 
 /// Does limit checks the keypath, whitelisting bip44 purpose, account and change.
-/// Only allows the well-known xpubs of m'/44'/60'/0'/0 and m'/44'/1'/0'/0 for now.
+/// Only allows the well-known xpubs of m/44'/60'/0'/0 and m/44'/1'/0'/0 for now,
+/// as well m/44'/60'/0' and m/44'/1'/0' (same but only the hardened prefix).
 /// Since ethereum doesn't use the "change" path part it is always 0 and have become part of the
 /// xpub keypath.
-/// @return true if the keypath is valid, false if it is invalid.
+/// Returns true if the keypath is valid, false if it is invalid.
 pub fn is_valid_keypath_xpub(keypath: &[u32]) -> bool {
-    keypath.len() == 4
-        && (keypath[..4] == [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0]
-            || keypath[..4] == [44 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0])
+    keypath == [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0]
+        || keypath == [44 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0]
+        || keypath == [44 + HARDENED, 60 + HARDENED, 0 + HARDENED]
+        || keypath == [44 + HARDENED, 1 + HARDENED, 0 + HARDENED]
 }
 
 /// Does limit checks the keypath, whitelisting bip44 purpose, account and change.
@@ -98,9 +100,20 @@ mod tests {
         ]));
         assert!(is_valid_keypath_xpub(&[
             44 + HARDENED,
+            60 + HARDENED,
+            0 + HARDENED,
+        ]));
+        assert!(is_valid_keypath_xpub(&[
+            44 + HARDENED,
             1 + HARDENED,
             0 + HARDENED,
             0
+        ]));
+
+        assert!(is_valid_keypath_xpub(&[
+            44 + HARDENED,
+            1 + HARDENED,
+            0 + HARDENED,
         ]));
         // wrong coin.
         assert!(!is_valid_keypath_xpub(&[
@@ -109,12 +122,13 @@ mod tests {
             0 + HARDENED,
             0
         ]));
-        // too short
         assert!(!is_valid_keypath_xpub(&[
             44 + HARDENED,
-            60 + HARDENED,
-            0 + HARDENED
+            0 + HARDENED,
+            0 + HARDENED,
         ]));
+        // too short
+        assert!(!is_valid_keypath_xpub(&[44 + HARDENED, 60 + HARDENED]));
         // too long
         assert!(!is_valid_keypath_xpub(&[
             44 + HARDENED,

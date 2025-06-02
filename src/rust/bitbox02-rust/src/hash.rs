@@ -47,7 +47,7 @@ impl digest::Update for Sha512 {
 
 impl digest::Reset for Sha512 {
     fn reset(&mut self) {
-        self.message = vec![];
+        self.message.clear()
     }
 }
 

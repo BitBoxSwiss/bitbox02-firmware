@@ -21,7 +21,6 @@ import base64
 import hashlib
 import time
 from typing import Callable, Optional, Dict, Tuple, Union, Sequence
-from typing_extensions import TypedDict
 
 import ecdsa
 from noise.connection import NoiseConnection, Keypair
@@ -190,8 +189,8 @@ ATTESTATION_PUBKEYS: Sequence[str] = [
 
 ATTESTATION_PUBKEYS_MAP: Dict[bytes, bytes] = {}
 for pubkey_hex in ATTESTATION_PUBKEYS:
-    pubkey = bytes.fromhex(pubkey_hex)
-    ATTESTATION_PUBKEYS_MAP[hashlib.sha256(pubkey).digest()] = pubkey
+    pubkey_bytes = bytes.fromhex(pubkey_hex)
+    ATTESTATION_PUBKEYS_MAP[hashlib.sha256(pubkey_bytes).digest()] = pubkey_bytes
 
 
 OP_ATTESTATION = b"a"

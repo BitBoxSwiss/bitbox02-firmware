@@ -490,8 +490,8 @@ component_t* trinary_input_string_create(
     ui_util_add_sub_component(component, data->confirm_component);
 
     if (params->wordlist == NULL && !params->number_input) {
-        data->keyboard_switch_component =
-            keyboard_switch_create(top_slider, params->special_chars, component);
+        data->keyboard_switch_component = keyboard_switch_create(
+            top_slider, params->special_chars, params->default_to_digits, component);
         ui_util_add_sub_component(component, data->keyboard_switch_component);
     }
 

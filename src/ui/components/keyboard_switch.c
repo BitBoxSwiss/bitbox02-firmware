@@ -152,6 +152,7 @@ static component_functions_t _component_functions = {
 component_t* keyboard_switch_create(
     slider_location_t location,
     bool special_chars,
+    bool default_to_digits,
     component_t* parent)
 {
     component_t* keyboard_switch = malloc(sizeof(component_t));
@@ -167,7 +168,7 @@ component_t* keyboard_switch_create(
     memset(ks_data, 0, sizeof(keyboard_switch_data_t));
 
     ks_data->location = location;
-    ks_data->mode = LOWER_CASE;
+    ks_data->mode = default_to_digits ? DIGITS : LOWER_CASE;
     ks_data->active = false;
     ks_data->special_chars = special_chars;
 

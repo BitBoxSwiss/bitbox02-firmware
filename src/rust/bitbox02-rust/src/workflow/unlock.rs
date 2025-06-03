@@ -55,12 +55,16 @@ async fn confirm_mnemonic_passphrase(
 pub enum UnlockError {
     UserAbort,
     IncorrectPassword,
+    Memory,
     Generic,
 }
 
-impl core::convert::From<super::cancel::Error> for UnlockError {
-    fn from(_error: super::cancel::Error) -> Self {
-        UnlockError::UserAbort
+impl core::convert::From<password::EnterError> for UnlockError {
+    fn from(error: password::EnterError) -> Self {
+        match error {
+            password::EnterError::Cancelled => UnlockError::UserAbort,
+            password::EnterError::Memory => UnlockError::Memory,
+        }
     }
 }
 
@@ -119,7 +123,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal) {
                 password::CanCancel::No,
             )
             .await
-            .expect("not cancelable");
+            .expect("not cancelable and does not call memory functions");
 
             if let Ok(()) = confirm_mnemonic_passphrase(hal, mnemonic_passphrase.as_str()).await {
                 break;

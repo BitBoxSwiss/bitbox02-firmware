@@ -27,24 +27,34 @@ async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), confirm::Us
         .await
 }
 
+pub enum PasswordType {
+    /// The password to be entered is the device unlock password.
+    DevicePassword,
+    /// The password to be entered is the BIP39 passphrase.
+    Bip39Passphrase,
+}
+
 /// If `can_cancel` is `Yes`, the workflow can be cancelled.
 /// If it is no, the result is always `Ok(())`.
 ///
 /// Example:
 /// ```no_run
-/// let pw = enter("Enter password", true, CanCancel::No).await.unwrap();
+/// let pw = enter(hal, "Enter password", PassswordType::DevicePassword, CanCancel::No).await.unwrap();
 /// // use pw.
 /// ```
 pub async fn enter(
     hal: &mut impl crate::hal::Hal,
     title: &str,
-    special_chars: bool,
+    password_type: PasswordType,
     can_cancel: CanCancel,
 ) -> Result<zeroize::Zeroizing<String>, Error> {
     let params = trinary_input_string::Params {
         title,
         hide: true,
-        special_chars,
+        special_chars: match password_type {
+            PasswordType::DevicePassword => false,
+            PasswordType::Bip39Passphrase => true,
+        },
         longtouch: true,
         ..Default::default()
     };
@@ -84,8 +94,20 @@ impl core::convert::From<Error> for EnterTwiceError {
 pub async fn enter_twice(
     hal: &mut impl crate::hal::Hal,
 ) -> Result<zeroize::Zeroizing<String>, EnterTwiceError> {
-    let password = enter(hal, "Set password", false, CanCancel::Yes).await?;
-    let password_repeat = enter(hal, "Repeat password", false, CanCancel::Yes).await?;
+    let password = enter(
+        hal,
+        "Set password",
+        PasswordType::DevicePassword,
+        CanCancel::Yes,
+    )
+    .await?;
+    let password_repeat = enter(
+        hal,
+        "Repeat password",
+        PasswordType::DevicePassword,
+        CanCancel::Yes,
+    )
+    .await?;
     if password.as_str() != password_repeat.as_str() {
         hal.ui().status("Passwords\ndo not match", false).await;
         return Err(EnterTwiceError::DoNotMatch);

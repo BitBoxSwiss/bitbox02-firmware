@@ -76,7 +76,13 @@ pub async fn unlock_keystore(
     title: &str,
     can_cancel: password::CanCancel,
 ) -> Result<(), UnlockError> {
-    let password = password::enter(hal, title, false, can_cancel).await?;
+    let password = password::enter(
+        hal,
+        title,
+        password::PasswordType::DevicePassword,
+        can_cancel,
+    )
+    .await?;
 
     match keystore::unlock(&password) {
         Ok(()) => Ok(()),
@@ -106,10 +112,14 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal) {
     if bitbox02::memory::is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
-            mnemonic_passphrase =
-                password::enter(hal, "Optional passphrase", true, password::CanCancel::No)
-                    .await
-                    .expect("not cancelable");
+            mnemonic_passphrase = password::enter(
+                hal,
+                "Optional passphrase",
+                password::PasswordType::Bip39Passphrase,
+                password::CanCancel::No,
+            )
+            .await
+            .expect("not cancelable");
 
             if let Ok(()) = confirm_mnemonic_passphrase(hal, mnemonic_passphrase.as_str()).await {
                 break;

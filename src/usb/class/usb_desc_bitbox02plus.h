@@ -26,7 +26,7 @@
 #endif
 
 #if defined(BOOTLOADER)
-#if PRODUCT_BITBOX_BTCONLY == 1
+#if PRODUCT_BITBOX_PLUS_BTCONLY == 1
 #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
     52, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \

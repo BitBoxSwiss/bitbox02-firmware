@@ -121,6 +121,15 @@ void firmware_main_loop(void)
 #if APP_U2F == 1
         if (!u2f_data && hid_u2f_read(&u2f_frame[0])) {
             u2f_packet_process((const USB_FRAME*)u2f_frame);
+            if (communication_mode_ble_enabled()) {
+                // Enqueue a power down command to the da14531
+                da14531_power_down(&uart_write_queue);
+                // Flush out the power down command. This will be the last UART communication we do.
+                while (ringbuffer_num(&uart_write_queue) > 0) {
+                    uart_poll(NULL, 0, NULL, &uart_write_queue);
+                }
+                communication_mode_ble_disable();
+            }
         }
 #endif
 

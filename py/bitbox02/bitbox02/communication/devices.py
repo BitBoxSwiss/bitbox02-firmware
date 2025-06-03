@@ -26,10 +26,10 @@ BB02BTC_BOOTLOADER = "bb02btc-bootloader"
 BITBOX02MULTI = "BitBox02"
 BITBOX02BTC = "BitBox02BTC"
 
-BITBOX02PLUS_MULTI_BOOTLOADER = "bb02p-bl-multi"
-BITBOX02PLUS_BTC_BOOTLOADER = "bb02p-bl-btconly"
-BITBOX02PLUS_MULTI = "bb02p-multi"
-BITBOX02PLUS_BTC = "bb02p-btconly"
+BITBOX02PLUS_MULTI_BOOTLOADER = "BitBox02 Nova Multi bl"
+BITBOX02PLUS_BTC_BOOTLOADER = "BitBox02 Nova BTC-only bl"
+BITBOX02PLUS_MULTI = "BitBox02 Nova Multi"
+BITBOX02PLUS_BTC = "BitBox02 Nova BTC-only"
 
 
 class TooManyFoundException(Exception):

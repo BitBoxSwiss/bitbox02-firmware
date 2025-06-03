@@ -28,34 +28,36 @@
 #if defined(BOOTLOADER)
 #if PRODUCT_BITBOX_BTCONLY == 1
 #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    34, /* bLength */                                                                           \
+    52, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \
-        'b', 0, 'b', 0, '0', 0, '2', 0, 'p', 0, '-', 0, 'b', 0, 'l', 0, '-', 0, 'b', 0, 't', 0, \
-        'c', 0, 'o', 0, 'n', 0, 'l', 0, 'y', 0,
+        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
+        'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, 'l', 0, 'y', 0, \
+        ' ', 0, 'b', 0, 'l', 0,
 #else
 #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    30, /* bLength */                                                                           \
+    46, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \
-        'b', 0, 'b', 0, '0', 0, '2', 0, 'p', 0, '-', 0, 'b', 0, 'l', 0, '-', 0, 'm', 0, 'u', 0, \
-        'l', 0, 't', 0, 'i', 0,
+        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
+        'v', 0, 'a', 0, ' ', 0, 'M', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0, ' ', 0, 'b', 0, 'l', 0,
 #endif
 #elif FACTORYSETUP == 1
 #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    28, /* bLength */                                                                           \
+    44, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \
-        'b', 0, 'b', 0, '0', 0, '2', 0, 'p', 0, '-', 0, 'f', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, \
-        'r', 0, 'y', 0,
+        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
+        'v', 0, 'a', 0, ' ', 0, 'F', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, 'r', 0, 'y', 0,
 #elif PRODUCT_BITBOX_BTCONLY == 1
 #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    28, /* bLength */                                                                           \
+    46, /* bLength */                                                                           \
         0x03, /* bDescriptorType */                                                             \
-        'b', 0, 'b', 0, '0', 0, '2', 0, 'p', 0, '-', 0, 'b', 0, 't', 0, 'c', 0, 'o', 0, 'n', 0, \
-        'l', 0, 'y', 0,
+        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
+        'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, 'l', 0, 'y', 0,
 #else
-#define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC \
-    24, /* bLength */                       \
-        0x03, /* bDescriptorType */         \
-        'b', 0, 'b', 0, '0', 0, '2', 0, 'p', 0, '-', 0, 'm', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0,
+#define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
+    40, /* bLength */                                                                           \
+        0x03, /* bDescriptorType */                                                             \
+        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
+        'v', 0, 'a', 0, ' ', 0, 'M', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0,
 #endif
 
 #define USB_STR_DESC_BB02PLUS           \

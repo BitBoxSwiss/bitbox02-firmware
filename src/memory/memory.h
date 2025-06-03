@@ -263,4 +263,9 @@ USE_RESULT memory_result_t memory_multisig_set_by_hash(const uint8_t* hash, cons
  */
 USE_RESULT bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out);
 
+/**
+ * Enable or disable BLE during boot
+ */
+USE_RESULT bool memory_ble_enable(bool enable);
+
 #endif // _MEMORY_H_

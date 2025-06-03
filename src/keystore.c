@@ -24,6 +24,7 @@
 #include "salt.h"
 #include "securechip/securechip.h"
 #include "util.h"
+#include <usb/usb_processing.h>
 
 #include <rust/rust.h>
 #include <secp256k1_ecdsa_s2c.h>
@@ -48,6 +49,10 @@ static uint8_t _unstretched_retained_bip39_seed_encryption_key[32] = {0};
 // Stores the encrypted BIP-39 seed after bip39-unlock.
 static uint8_t _retained_bip39_seed_encrypted[64 + 64] = {0};
 static size_t _retained_bip39_seed_encrypted_len = 0;
+
+// Unlocking the keystore take longer than the 500ms watchdog we have setup. Reset the watchdog
+// counter to (~7s) to avoid incorrectly assuming we lost communication with the app.
+#define LONG_TIMEOUT (-70)
 
 /**
  * We allow seeds of 16, 24 or 32 bytes.
@@ -395,6 +400,8 @@ keystore_error_t keystore_unlock(
         reset_reset(false);
         return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
     }
+    usb_processing_timeout_reset(LONG_TIMEOUT);
+
     bitbox02_smarteeprom_increment_unlock_attempts();
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
     UTIL_CLEANUP_32(seed);
@@ -442,6 +449,7 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
     if (!_is_unlocked_device) {
         return false;
     }
+    usb_processing_timeout_reset(LONG_TIMEOUT);
     char* mnemonic __attribute__((__cleanup__(_free_string))) = NULL;
     { // block so that `seed` is zeroed as soon as possible
         uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};

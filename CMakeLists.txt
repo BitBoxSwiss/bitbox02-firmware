@@ -328,7 +328,7 @@ string(APPEND CMAKE_C_FLAGS " -Wno-cast-function-type")
 
 # Enable stack protection on release builds
 if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-  string(APPEND CMAKE_C_FLAGS " -fstack-protector-all")
+  string(APPEND CMAKE_C_FLAGS " -fstack-protector-strong")
   if(CMAKE_CROSSCOMPILING)
     # Path to empty dummy libssp and libssp_shared. '-llibssp -llibssp_shared' is automatically added
     # with '-fstack-protector-all', but we don't need them as we have our own custom

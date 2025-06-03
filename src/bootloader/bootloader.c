@@ -18,24 +18,36 @@
 #include "pac_ext.h"
 
 #include <driver_init.h>
-#include <stdint.h>
-#include <string.h>
-#ifdef BOOTLOADER_DEVDEVICE
-#include <qtouch/qtouch.h>
-#endif
 #include <flags.h>
+#include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
 #include <screen.h>
+#include <stdint.h>
+#include <string.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/arial_fonts.h>
+#include <ui/graphics/graphics.h>
 #include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 #include <usb/usb.h>
 #include <usb/usb_packet.h>
 #include <usb/usb_processing.h>
 #include <util.h>
+
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#include <memory/memory_spi.h>
+#include <qtouch/qtouch.h>
+#endif
+
+#if PLATFORM_BITBOX02PLUS == 1
+#include <communication_mode.h>
+#include <da14531/da14531.h>
+#include <da14531/da14531_protocol.h>
+#include <uart.h>
+#include <utils_ringbuffer.h>
+#endif
 
 #include <assert.h>
 
@@ -133,6 +145,10 @@ static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
 #error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
 #endif
 
+#if PLATFORM_BITBOX02PLUS == 1
+extern struct ringbuffer uart_write_queue;
+#endif
+
 // clang-format off
 #if PRODUCT_BITBOX_BTCONLY == 1
 static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
@@ -174,6 +190,48 @@ static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] 
         0xbc, 0xd1, 0x2b, 0x57, 0xaf, 0xa0, 0x29, 0xa4, 0x05, 0x5d, 0x7f, 0x9a, 0x81, 0x75, 0x0f, 0x18,
         0xfc, 0x13, 0x48, 0xdc, 0xda, 0xbd, 0x6e, 0x33, 0x25, 0x5b, 0x29, 0xa5, 0xb7, 0x51, 0x16, 0xbf,
         0xf0, 0xca, 0xde, 0x45, 0xd6, 0x1c, 0x51, 0x4d, 0x86, 0x09, 0xfc, 0xa7, 0x64, 0x1c, 0x9e, 0xe2,
+    }
+};
+#elif PRODUCT_BITBOX_PLUS_BTCONLY == 1
+static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
+    {
+        0x42, 0xeb, 0x2f, 0xfa, 0x68, 0xd8, 0xc4, 0x62, 0x5a, 0x01, 0x2b, 0x46, 0x7f, 0x04, 0x4a, 0xfc,
+        0x2c, 0x38, 0x1b, 0x89, 0x4a, 0x61, 0x29, 0xea, 0x4c, 0x94, 0xd7, 0xbd, 0x97, 0x19, 0x83, 0x75,
+        0xe9, 0x85, 0x96, 0xcf, 0xff, 0x40, 0xec, 0x7c, 0xa7, 0xbc, 0x7a, 0x0d, 0x04, 0x0b, 0xb3, 0x46,
+        0x95, 0x92, 0x04, 0x56, 0x18, 0x81, 0x2d, 0x1a, 0x56, 0xa9, 0x47, 0x82, 0xfa, 0x2d, 0x90, 0xd4,
+    },
+    {
+        0x76, 0x79, 0x4b, 0x9e, 0xff, 0x0d, 0x32, 0x14, 0xd3, 0x56, 0x7a, 0xc0, 0x13, 0x17, 0xc4, 0xcd,
+        0x6f, 0x9b, 0x7d, 0x66, 0xb8, 0x9a, 0xfe, 0x58, 0xf3, 0xd0, 0x39, 0x32, 0x3d, 0x12, 0xb0, 0xc5,
+        0xc8, 0x08, 0xfc, 0xd7, 0x57, 0x51, 0x4c, 0x9d, 0xf3, 0xed, 0x75, 0xcb, 0xba, 0x80, 0x07, 0x27,
+        0xb9, 0x8a, 0x13, 0x5a, 0x86, 0xbc, 0xb7, 0xcf, 0x87, 0x2a, 0x41, 0x09, 0x8d, 0x02, 0x36, 0x32,
+    },
+    {
+        0x3d, 0x67, 0x3b, 0x5b, 0x4a, 0x6e, 0xdb, 0x33, 0xe0, 0x2d, 0x2b, 0xe7, 0xe4, 0x1d, 0xf5, 0x74,
+        0x33, 0x1d, 0x66, 0xf0, 0xdf, 0xfe, 0x44, 0x8f, 0xd3, 0x52, 0x50, 0x3c, 0x3b, 0xe3, 0x91, 0xfc,
+        0x70, 0xd0, 0xd8, 0xa5, 0xed, 0x72, 0x4c, 0xda, 0xbd, 0x86, 0xe6, 0x3e, 0xdb, 0x1c, 0x28, 0xae,
+        0x1d, 0xc3, 0xd6, 0x6b, 0xc5, 0x51, 0x54, 0x67, 0xba, 0xb1, 0xc1, 0xcb, 0x24, 0x48, 0xa8, 0x7a,
+    }
+};
+#elif PRODUCT_BITBOX_PLUS_MULTI == 1
+static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
+    {
+        0x5e, 0x1b, 0x09, 0x1c, 0x8f, 0x71, 0x15, 0xaf, 0xd3, 0x3c, 0x0b, 0x72, 0xe4, 0x4b, 0x3e, 0xd0,
+        0xe1, 0x7a, 0x3c, 0xc4, 0xff, 0x99, 0xf5, 0x65, 0x31, 0xda, 0x11, 0x29, 0x30, 0xb9, 0xf6, 0x70,
+        0x0e, 0x96, 0xd9, 0xb0, 0x15, 0x70, 0xb7, 0x7a, 0x56, 0xc9, 0x8d, 0x75, 0x15, 0x43, 0xbc, 0x36,
+        0xc6, 0xee, 0xe2, 0xbc, 0x9b, 0xfe, 0xce, 0xf7, 0x39, 0xe2, 0xe5, 0xf4, 0xb2, 0xba, 0xdf, 0x4e,
+    },
+    {
+        0xab, 0xf3, 0x5f, 0x53, 0x84, 0xa0, 0x3f, 0x01, 0x91, 0x5c, 0x68, 0xa9, 0xca, 0xb2, 0x53, 0xe8,
+        0xbb, 0xc9, 0x8d, 0x88, 0x7a, 0x72, 0x2a, 0x82, 0xa6, 0x2e, 0x44, 0x1b, 0xb4, 0xd2, 0x2c, 0xdb,
+        0x87, 0x0f, 0x89, 0xdb, 0x22, 0xcf, 0xfd, 0x8a, 0xc2, 0xac, 0xc4, 0x0a, 0x7e, 0xc0, 0x69, 0x89,
+        0x76, 0xb9, 0xa3, 0x6c, 0xee, 0x74, 0xd7, 0x2b, 0xd3, 0x54, 0xe9, 0x0e, 0x59, 0x77, 0x78, 0x47,
+    },
+    {
+        0xe2, 0xd2, 0x04, 0x13, 0x74, 0x8e, 0xfa, 0xdc, 0x81, 0xb2, 0x66, 0x79, 0x06, 0x1c, 0x7c, 0x97,
+        0x0f, 0x47, 0x74, 0xcc, 0x2a, 0xb0, 0x54, 0xa1, 0x46, 0x83, 0x75, 0xff, 0x37, 0xf1, 0x9a, 0x61,
+        0x0c, 0x23, 0x29, 0xc4, 0xe9, 0xed, 0x85, 0xac, 0x3a, 0x68, 0x4c, 0xf4, 0x3e, 0x89, 0x81, 0x1d,
+        0x58, 0xa9, 0xec, 0x5b, 0x6f, 0x40, 0xa3, 0xdd, 0x6a, 0xde, 0x28, 0x79, 0xcb, 0x21, 0x74, 0xcc,
     }
 };
 #else
@@ -242,22 +300,12 @@ static void _binary_exec(void)
 
 static void _load_logo(void)
 {
-    uint16_t x = 0;
-    uint16_t y = 0;
-    for (size_t i = 0; i < sizeof(IMAGE_BB2_LOGO); i++) {
-        uint8_t b = IMAGE_BB2_LOGO[i];
-        for (uint8_t j = 0; j < 8; j++) {
-            if (b & 0x80) {
-                UG_DrawPixel(x, y, C_WHITE);
-            }
-            b <<= 1;
-            x++;
-            if ((x % IMAGE_BB2_LOGO_W) == 0) {
-                x = 0;
-                y++;
-            }
-        }
-    }
+    image_logo_data_t logo = image_logo_data();
+    const position_t pos = {
+        .left = 0,
+        .top = 0,
+    };
+    graphics_draw_image(&pos, &logo.dimensions, &logo.buffer);
 }
 
 static void _load_arrow(int x, int y, int height)
@@ -286,16 +334,55 @@ static void _render_message(const char* message, int duration)
     delay_ms(duration);
 }
 
-static void _render_default_screen(void)
+void bootloader_render_default_screen(void)
 {
     UG_ClearBuffer();
     _load_logo();
+#if PLATFORM_BITBOX02PLUS == 1
+    UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp", false);
+    if (communication_mode_ble_enabled() &&
+        da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
+        char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+        memory_random_name(buf);
+        UG_PutString(0, SCREEN_HEIGHT - 9, buf, false);
+    } else if (_is_app_flash_empty) {
+        UG_PutString(0, SCREEN_HEIGHT - 9, "Let's get started!", false);
+    }
+#else
     if (_is_app_flash_empty) {
         UG_PutString(0, SCREEN_HEIGHT - 9 * 2, "Let's get started!", false);
     }
     UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp", false);
+#endif
     UG_SendBuffer();
 }
+
+#if PLATFORM_BITBOX02PLUS
+extern bool bootloader_pairing_request;
+extern uint8_t bootloader_pairing_code_bytes[16];
+
+void bootloader_render_ble_confirm_screen(bool confirmed)
+{
+    qtouch_force_calibrate();
+    bootloader_pairing_request = true;
+    uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
+    char code_str[10] = {0};
+    snprintf(code_str, sizeof(code_str), "%06u", (unsigned)pairing_code_int);
+    UG_ClearBuffer();
+    uint16_t check_width = IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT / 2 - 1;
+    if (confirmed) {
+        UG_PutString(15, 0, "Confirm on app", false);
+    } else {
+        UG_PutString(30, 0, "Pairing code", false);
+        image_cross(SCREEN_WIDTH / 16, 0, IMAGE_DEFAULT_CROSS_HEIGHT);
+        image_checkmark(SCREEN_WIDTH * 15 / 16 - check_width, 0, IMAGE_DEFAULT_CHECKMARK_HEIGHT);
+    }
+    UG_FontSelect(&font_monogram_5X9);
+    UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str, false);
+    UG_FontSelect(&font_font_a_9X9);
+    UG_SendBuffer();
+}
+#endif
 
 static void _render_progress(float progress)
 {
@@ -365,7 +452,7 @@ static void _render_hash(const char* title, const uint8_t* hash)
         UG_SendBuffer();
         delay_ms(1000);
     }
-    _render_default_screen();
+    bootloader_render_default_screen();
 }
 
 // Sets _is_app_flash_empty by computing a "bare" hash, identical to _firmware_hash
@@ -773,7 +860,7 @@ static size_t _api_screen_rotate(uint8_t* output)
         return _report_status(OP_STATUS_ERR_LOAD_FLAG, output);
     }
     screen_rotate();
-    _render_default_screen();
+    bootloader_render_default_screen();
     return _report_status(OP_STATUS_OK, output);
 }
 
@@ -810,15 +897,22 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         len = _api_firmware_erase(input[1], output);
         break;
 
-    case OP_REBOOT:
+    case OP_REBOOT: {
+#if PLATFORM_BITBOX02PLUS == 1
+        da14531_set_product(NULL, 0, &uart_write_queue);
+        //  Send it now, because we are about to reset ourselves
+        while (ringbuffer_num(&uart_write_queue)) {
+            uart_poll(NULL, 0, NULL, &uart_write_queue);
+        }
+#endif
         _api_reboot();
-        break;
+    } break;
 
     case OP_WRITE_FIRMWARE_CHUNK: {
         uint8_t chunk_num = input[1];
         len = _api_write_chunk(input + 2, chunk_num, output);
         if (output[1] != OP_STATUS_OK) {
-            _render_default_screen();
+            bootloader_render_default_screen();
         } else {
             _render_progress((float)chunk_num / (float)(_firmware_num_chunks - 1));
         }
@@ -917,7 +1011,6 @@ static void _check_init(boot_data_t* data)
 }
 
 #ifdef BOOTLOADER_DEVDEVICE
-#if PLATFORM_BITBOX02 == 1
 static bool _devdevice_enter(secbool_u32 firmware_verified)
 {
     UG_ClearBuffer();
@@ -930,6 +1023,15 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     } else {
         UG_PutString(0, SCREEN_HEIGHT - 9, "    No firmware found", false);
     }
+#if PLATFORM_BITBOX02PLUS == 1
+    struct da14531_firmware_version version;
+    bool res = memory_spi_get_active_ble_firmware_version(&version);
+    if (res) {
+        char buf[50];
+        snprintf(buf, sizeof(buf), "ble: %d (%s)", version.version, util_dbg_hex(version.hash, 4));
+        UG_PutString(0, SCREEN_HEIGHT - 18, buf, false);
+    }
+#endif
     uint16_t ypos = SCREEN_HEIGHT / 2 - 4;
     uint16_t xpos = SCREEN_WIDTH - 10;
     if (firmware_verified != sectrue_u32) {
@@ -956,7 +1058,6 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
         }
     }
 }
-#endif
 #endif
 
 void bootloader_jump(void)
@@ -992,8 +1093,9 @@ void bootloader_jump(void)
     // App not entered. Start USB API to receive boot commands
     util_log("Not jumping to firmware");
     _compute_is_app_flash_empty();
-    _render_default_screen();
-    if (usb_start(_api_setup) != ERR_NONE) {
+    bootloader_render_default_screen();
+    _api_setup();
+    if (usb_start() != ERR_NONE) {
         _render_message("Failed to initialize USB", 0);
     }
 }

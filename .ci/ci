@@ -50,10 +50,15 @@ make -j8 bootloader
 make -j8 bootloader-development
 make -j8 bootloader-development-locked
 make -j8 bootloader-production
+make -j8 bootloader-debug
 
 make -j8 bootloader-btc
 make -j8 bootloader-btc-development
 make -j8 bootloader-btc-production
+
+make -j8 bootloader-plus
+make -j8 bootloader-plus-development
+make -j8 bootloader-plus-debug
 
 # Firmware
 make -j8 firmware

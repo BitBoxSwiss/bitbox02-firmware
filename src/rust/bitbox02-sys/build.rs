@@ -35,6 +35,11 @@ const ALLOWLIST_VARS: &[&str] = &[
     "font_font_a_9X9",
     "font_monogram_5X9",
     "font_password_11X12",
+    "MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE",
+    "MEMORY_SPI_BLE_FIRMWARE_1_ADDR",
+    "MEMORY_SPI_BLE_FIRMWARE_2_ADDR",
+    "MEMORY_PLATFORM_BITBOX02",
+    "MEMORY_PLATFORM_BITBOX02_PLUS",
 ];
 
 const ALLOWLIST_TYPES: &[&str] = &[
@@ -100,6 +105,13 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_set_mnemonic_passphrase_enabled",
     "memory_set_seed_birthdate",
     "memory_setup",
+    "memory_ble_enabled",
+    "memory_ble_enable",
+    "memory_get_ble_metadata",
+    "memory_set_ble_metadata",
+    "memory_get_platform",
+    "memory_spi_get_active_ble_firmware_version",
+    "spi_mem_write",
     "menu_create",
     "mock_memory_factoryreset",
     "spi_mem_full_erase",
@@ -110,6 +122,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "random_mock_reset",
     "reboot_to_bootloader",
     "reset_reset",
+    "reset_ble",
     "screen_print_debug",
     "screen_process",
     "screen_saver_disable",
@@ -139,6 +152,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "wally_free_string",
     "wally_get_secp_context",
     "wally_sha512",
+    "communication_mode_ble_enabled",
 ];
 
 const RUSTIFIED_ENUMS: &[&str] = &[

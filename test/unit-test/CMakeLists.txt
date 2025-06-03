@@ -41,14 +41,18 @@ set(DBB-FILTERED-SOURCES
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
   ${DBB-FIRMWARE-USB-SOURCES}
+  ${PLATFORM-BITBOX02-PLUS-SOURCES}
+  ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/src/utils_ringbuffer.c
   )
 
 set(IGNORE_SOURCES
     "src/screen.c"
+    "src/firmware_main_loop.c"
     "src/memory/nvmctrl.c"
     "src/memory/smarteeprom.c"
     "src/memory/mpu.c"
     "src/memory/spi_mem.c"
+    "src/uart.c"
     )
 
 # Exclude some files which depends on the hardware.
@@ -163,6 +167,8 @@ add_dependencies(bitbox_objects
 )
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
+# _UNIT_TEST_ is used by ASF4 to not cross compile
+
 target_compile_definitions(bitbox_objects PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox_objects PUBLIC TESTING _UNIT_TEST_)
 
@@ -236,7 +242,7 @@ set(TEST_LIST
    gestures
    ""
    random
-   "-Wl,--wrap=rand,--wrap=wally_sha256"
+   "-Wl,--wrap=rand,--wrap=rust_sha256"
    ui_components
    ""
    ui_util
@@ -244,7 +250,7 @@ set(TEST_LIST
    ui_component_gestures
    ""
    memory
-   "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock"
+   "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock,--wrap=random_32_bytes_mcu"
    memory_functional
    ""
    salt

@@ -121,7 +121,7 @@ typedef struct {
      * USB_OUTSTANDING_OP_TIMEOUT_TICKS, any outstanding operation is aborted
      * and the USB stack is forcefully unlocked.
      */
-    uint16_t timeout_counter;
+    int16_t timeout_counter;
 #endif
 } usb_processing_state_t;
 
@@ -287,7 +287,7 @@ static void _usb_arbitrate_packet(struct usb_processing* ctx, const Packet* in_p
     } else {
         _usb_execute_packet(ctx, in_packet);
         /* New packet processed: reset the watchdog timeout. */
-        _usb_state.timeout_counter = 0;
+        usb_processing_timeout_reset(0);
     }
 }
 #endif
@@ -373,7 +373,7 @@ struct usb_processing* usb_processing_hww(void)
 static void _timer_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
-    if (_usb_state.timeout_counter != (uint16_t)-1) {
+    if (_usb_state.timeout_counter < INT16_MAX) {
         _usb_state.timeout_counter++;
     }
 }
@@ -426,9 +426,9 @@ void usb_processing_lock(struct usb_processing* ctx)
     _usb_state.blocking_ctx = ctx;
 }
 
-void usb_processing_timeout_reset(void)
+void usb_processing_timeout_reset(int16_t val)
 {
-    _usb_state.timeout_counter = 0;
+    _usb_state.timeout_counter = val;
 }
 
 void usb_processing_unlock(void)

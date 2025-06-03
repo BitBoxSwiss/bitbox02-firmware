@@ -17,9 +17,21 @@ use crate::pb;
 
 use pb::response::Response;
 
-use bitbox02::{memory, securechip};
+use bitbox02::{memory, securechip, spi_mem};
 
 pub fn process() -> Result<Response, Error> {
+    let bluetooth = match memory::get_platform().map_err(|_| Error::Memory)? {
+        memory::Platform::BitBox02Plus => {
+            let ble_metadata = memory::get_ble_metadata();
+            Some(pb::device_info_response::Bluetooth {
+                firmware_hash: ble_metadata.allowed_firmware_hash.to_vec(),
+                firmware_version: spi_mem::get_active_ble_firmware_version()
+                    .map_err(|_| Error::Memory)?,
+                enabled: memory::ble_enabled(),
+            })
+        }
+        memory::Platform::BitBox02 => None,
+    };
     Ok(Response::DeviceInfo(pb::DeviceInfoResponse {
         name: memory::get_device_name(),
         initialized: memory::is_initialized(),
@@ -31,5 +43,6 @@ pub fn process() -> Result<Response, Error> {
             securechip::Model::ATECC_ATECC608B => "ATECC608B".into(),
             securechip::Model::OPTIGA_TRUST_M_V3 => "OPTIGA_TRUST_M_V3".into(),
         },
+        bluetooth,
     }))
 }

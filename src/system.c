@@ -13,15 +13,36 @@
 // limitations under the License.
 
 #include "system.h"
+#include "da14531/da14531.h"
+#include "utils_ringbuffer.h"
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <screen.h>
 #ifndef TESTING
+#include "uart.h"
 #include <driver_init.h>
 #endif
 
+static void _ble_clear_product(void)
+{
+    struct ringbuffer uart_queue;
+    uint8_t uart_queue_buf[64];
+    ringbuffer_init(&uart_queue, &uart_queue_buf[0], sizeof(uart_queue_buf));
+    da14531_set_product(NULL, 0, &uart_queue);
+    while (ringbuffer_num(&uart_queue)) {
+#ifndef TESTING
+        uart_poll(NULL, 0, NULL, &uart_queue);
+#else
+        ringbuffer_flush(&uart_queue);
+#endif
+    }
+}
+
 void reboot_to_bootloader(void)
 {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        _ble_clear_product();
+    }
     auto_enter_t auto_enter = {
         .value = sectrue_u8,
     };
@@ -39,6 +60,9 @@ void reboot_to_bootloader(void)
 
 void reboot(void)
 {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        _ble_clear_product();
+    }
 #ifndef TESTING
     _reset_mcu();
 #endif

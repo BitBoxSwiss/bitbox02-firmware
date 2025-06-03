@@ -126,6 +126,25 @@ pub struct DeviceInfoResponse {
     /// From v9.6.0: "ATECC608A" or "ATECC608B".
     #[prost(string, tag = "6")]
     pub securechip_model: ::prost::alloc::string::String,
+    /// Only present in Bluetooth-enabled devices.
+    #[prost(message, optional, tag = "7")]
+    pub bluetooth: ::core::option::Option<device_info_response::Bluetooth>,
+}
+/// Nested message and enum types in `DeviceInfoResponse`.
+pub mod device_info_response {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Bluetooth {
+        /// Hash of the currently active Bluetooth firmware on the device.
+        #[prost(bytes = "vec", tag = "1")]
+        pub firmware_hash: ::prost::alloc::vec::Vec<u8>,
+        /// Firmware version, formated as "major.minor.patch".
+        #[prost(string, tag = "2")]
+        pub firmware_version: ::prost::alloc::string::String,
+        /// True if Bluetooth is enabled
+        #[prost(bool, tag = "3")]
+        pub enabled: bool,
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -192,6 +211,68 @@ pub struct SetDeviceNameRequest {
 pub struct SetPasswordRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub entropy: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BluetoothToggleEnabledRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BluetoothUpgradeInitRequest {
+    #[prost(uint32, tag = "1")]
+    pub firmware_length: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BluetoothChunkRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BluetoothSuccess {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BluetoothRequestChunkResponse {
+    #[prost(uint32, tag = "1")]
+    pub offset: u32,
+    #[prost(uint32, tag = "2")]
+    pub length: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BluetoothRequest {
+    #[prost(oneof = "bluetooth_request::Request", tags = "1, 2, 3")]
+    pub request: ::core::option::Option<bluetooth_request::Request>,
+}
+/// Nested message and enum types in `BluetoothRequest`.
+pub mod bluetooth_request {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Request {
+        #[prost(message, tag = "1")]
+        UpgradeInit(super::BluetoothUpgradeInitRequest),
+        #[prost(message, tag = "2")]
+        Chunk(super::BluetoothChunkRequest),
+        #[prost(message, tag = "3")]
+        ToggleEnabled(super::BluetoothToggleEnabledRequest),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BluetoothResponse {
+    #[prost(oneof = "bluetooth_response::Response", tags = "1, 2")]
+    pub response: ::core::option::Option<bluetooth_response::Response>,
+}
+/// Nested message and enum types in `BluetoothResponse`.
+pub mod bluetooth_response {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
+    pub enum Response {
+        #[prost(message, tag = "1")]
+        Success(super::BluetoothSuccess),
+        #[prost(message, tag = "2")]
+        RequestChunk(super::BluetoothRequestChunkResponse),
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1829,7 +1910,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -1892,6 +1973,8 @@ pub mod request {
         Cardano(super::CardanoRequest),
         #[prost(message, tag = "28")]
         Bip85(super::Bip85Request),
+        #[prost(message, tag = "29")]
+        Bluetooth(super::BluetoothRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -1899,7 +1982,7 @@ pub mod request {
 pub struct Response {
     #[prost(
         oneof = "response::Response",
-        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17"
     )]
     pub response: ::core::option::Option<response::Response>,
 }
@@ -1939,5 +2022,7 @@ pub mod response {
         Cardano(super::CardanoResponse),
         #[prost(message, tag = "16")]
         Bip85(super::Bip85Response),
+        #[prost(message, tag = "17")]
+        Bluetooth(super::BluetoothResponse),
     }
 }

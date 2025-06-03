@@ -13,9 +13,12 @@
 // limitations under the License.
 
 #include <bip32.h>
+#include <communication_mode.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/memory.h>
+#include <memory/memory_shared.h>
+#include <memory/memory_spi.h>
 #include <memory/smarteeprom.h>
 #include <memory/spi_mem.h>
 #include <random.h>

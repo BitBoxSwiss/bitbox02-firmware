@@ -26,6 +26,7 @@ import base64
 import binascii
 import textwrap
 import json
+from pathlib import Path
 
 import requests
 import hid
@@ -292,7 +293,7 @@ class SendMessage:
             print("Aborted by user")
 
     def _list_device_info(self) -> None:
-        print(f"All info: {self._device.device_info()}")
+        pprint.pprint(self._device.device_info())
 
     def _reboot(self) -> None:
         inp = input("Select one of: 1=upgrade; 2=go to startup settings: ").strip()
@@ -1449,6 +1450,22 @@ class SendMessage:
             except UserAbortException:
                 eprint("Aborted by user")
 
+    def _bluetooth_upgrade(self) -> None:
+        filename = input("Enter path to the firmware [bitbox-da14531-firmware.bin]: ")
+        if filename == "":
+            filename = "bitbox-da14531-firmware.bin"
+        firmware = Path(filename).read_bytes()
+        try:
+            self._device.bluetooth_upgrade(firmware)
+        except UserAbortException:
+            print("Aborted by user")
+
+    def _bluetooth_toggle_enabled(self) -> None:
+        try:
+            self._device.bluetooth_toggle_enabled()
+        except UserAbortException:
+            print("Aborted by user")
+
     def _reset_device(self) -> None:
         if self._device.reset():
             print("Device RESET")
@@ -1469,6 +1486,7 @@ class SendMessage:
             ("List device info", self._list_device_info),
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),
+            ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
         )
         choice = ask_user(choices)
         if isinstance(choice, bool):
@@ -1513,6 +1531,8 @@ class SendMessage:
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
             ("BIP85 - BIP39", self._bip85_bip39),
             ("BIP85 - LN", self._bip85_ln),
+            ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
+            ("Toggle bluetooth", self._bluetooth_toggle_enabled),
             ("Reset Device", self._reset_device),
         )
         choice = ask_user(choices)

@@ -22,6 +22,10 @@
 #endif
 #include "util.h"
 
+#if !(defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1)
+#include "uart.h"
+#endif
+
 #if defined(BOOTLOADER)
 #define PREFIX "boot"
 #else
@@ -31,6 +35,11 @@
 void platform_init(void)
 {
     oled_init();
+#if !(defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1)
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        uart_init();
+    }
+#endif
 // The factory setup image already has a c implementation of RTT.
 #if FACTORYSETUP != 1
     // these two functions are noops if "rtt" feature isn't enabled in rust

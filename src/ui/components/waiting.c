@@ -57,11 +57,12 @@ component_t* waiting_create(void)
     waiting->dimension.height = SCREEN_HEIGHT;
     waiting->position.top = 0;
     waiting->position.left = 0;
+    image_logo_data_t logo = image_logo_data();
     component_t* bb2_logo = image_create(
-        IMAGE_BB2_LOGO,
-        sizeof(IMAGE_BB2_LOGO),
-        IMAGE_BB2_LOGO_W,
-        IMAGE_BB2_LOGO_H,
+        logo.buffer.data,
+        logo.buffer.len,
+        logo.dimensions.width,
+        logo.dimensions.height,
         CENTER,
         waiting);
     ui_util_add_sub_component(waiting, bb2_logo);

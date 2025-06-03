@@ -41,6 +41,7 @@ pub mod screen_saver;
 pub mod sd;
 pub mod secp256k1;
 pub mod securechip;
+pub mod spi_mem;
 pub mod ui;
 
 use ::util::c_types::c_int;
@@ -110,6 +111,10 @@ pub fn screen_print_debug(msg: &str, duration: i32) {
 
 pub fn reset(status: bool) {
     unsafe { bitbox02_sys::reset_reset(status) }
+}
+
+pub fn reset_ble() {
+    unsafe { bitbox02_sys::reset_ble() }
 }
 
 pub struct Tm {
@@ -248,6 +253,16 @@ pub fn sha512(msg: &[u8]) -> [u8; 64] {
         );
     }
     result
+}
+
+#[cfg(not(feature = "testing"))]
+pub fn communication_mode_ble_enabled() -> bool {
+    unsafe { bitbox02_sys::communication_mode_ble_enabled() }
+}
+
+#[cfg(feature = "testing")]
+pub fn communication_mode_ble_enabled() -> bool {
+    false
 }
 
 #[cfg(test)]

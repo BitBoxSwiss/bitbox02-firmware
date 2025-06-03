@@ -19,13 +19,14 @@
 #include "usb_desc_bitbox02plus.h"
 #include "usb_size.h"
 #include "usbdc.h"
+#include <da14531/da14531.h>
+#include <da14531/da14531_handler.h>
 #include <memory/memory_shared.h>
 #if APP_U2F == 1
 #include "u2f.h"
 #include <usb/class/hid/u2f/hid_u2f.h>
 #endif
 #endif
-#include "usb_processing.h"
 
 #ifndef TESTING
 #include <hal_timer.h>
@@ -47,7 +48,6 @@ static uint8_t _descriptor_bytes_bitbox02plus[] = {
 static struct usbd_descriptors _descriptor_bitbox02plus[] = {
     {_descriptor_bytes_bitbox02plus,
      _descriptor_bytes_bitbox02plus + sizeof(_descriptor_bytes_bitbox02plus)}};
-static void (*_on_hww_init)(void) = NULL;
 static void _hww_endpoint_available(void);
 #if APP_U2F == 1
 static void _u2f_endpoint_available(void);
@@ -59,9 +59,6 @@ static void _hww_endpoint_available(void)
     if (!hid_hww_is_enabled()) {
         return;
     }
-    if (_on_hww_init != NULL) {
-        _on_hww_init();
-    }
     hid_hww_setup();
 }
 
@@ -72,7 +69,6 @@ static void _u2f_endpoint_available(void)
     if (!hid_u2f_is_enabled()) {
         return;
     };
-    u2f_device_setup();
     hid_u2f_setup();
 }
 #endif
@@ -88,7 +84,7 @@ static void _timeout_cb(const struct timer_task* const timer_task)
 
 static bool _usb_enabled = false;
 
-int32_t usb_start(void (*on_hww_init)(void))
+int32_t usb_start(void)
 {
 #if !defined(TESTING) && APP_U2F == 1
     static struct timer_task Timer_task;
@@ -106,7 +102,6 @@ int32_t usb_start(void (*on_hww_init)(void))
     if (ret != 0) {
         return ret;
     }
-    _on_hww_init = on_hww_init;
     ret = hid_hww_init(_hww_endpoint_available);
     if (ret != 0) {
         return ret;
@@ -126,10 +121,7 @@ int32_t usb_start(void (*on_hww_init)(void))
         break;
     }
     usbdc_attach();
-#else
-    (void)on_hww_init;
 #endif
-    usb_processing_init();
     _usb_enabled = true;
     return 0;
 }

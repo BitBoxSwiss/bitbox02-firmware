@@ -21,7 +21,7 @@
 /**
  * Start the USB HID interfaces.
  */
-int32_t usb_start(void (*on_hww_init)(void));
+int32_t usb_start(void);
 
 /**
  * Stop the USB interfaces.

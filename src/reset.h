@@ -18,6 +18,12 @@
 #include <stdbool.h>
 
 /**
+ * Restarts the Bluetooth chip. This also means it will re-load the Bluetooth firmware from SPI
+ * memory.
+ */
+void reset_ble(void);
+
+/**
  * Resets the device:
  * - Updates secure chip KDF keys.
  * - Resets the securechip eeprom (u2f counter).

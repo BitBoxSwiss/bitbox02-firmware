@@ -40,6 +40,8 @@ const ALLOWLIST_VARS: &[&str] = &[
     "MEMORY_SPI_BLE_FIRMWARE_2_ADDR",
     "MEMORY_PLATFORM_BITBOX02",
     "MEMORY_PLATFORM_BITBOX02_PLUS",
+    "MEMORY_SECURECHIP_TYPE_ATECC",
+    "MEMORY_SECURECHIP_TYPE_OPTIGA",
 ];
 
 const ALLOWLIST_TYPES: &[&str] = &[
@@ -110,6 +112,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_get_ble_metadata",
     "memory_set_ble_metadata",
     "memory_get_platform",
+    "memory_get_securechip_type",
     "memory_spi_get_active_ble_firmware_version",
     "spi_mem_write",
     "menu_create",

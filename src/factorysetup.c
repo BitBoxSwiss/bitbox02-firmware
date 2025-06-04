@@ -600,11 +600,11 @@ int main(void)
         }
     }
 
-    screen_print_debug("READY", 0);
-
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         _ble_result = _setup_ble();
     }
+
+    screen_print_debug("READY", 0);
 
     uint8_t msg_read[BUFFER_SIZE_DOWN] = {0};
     size_t len_read;

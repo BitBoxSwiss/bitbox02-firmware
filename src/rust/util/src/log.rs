@@ -51,8 +51,6 @@ pub fn rtt_init() {
             CH0_DOWN = Some(channels.down.0);
             CH1_UP = Some(channels.up.1);
         }
-
-        log!("RTT Initialized");
     }
 }
 

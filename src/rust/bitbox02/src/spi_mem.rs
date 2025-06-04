@@ -20,8 +20,9 @@ pub use bitbox02_sys::MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE as BLE_FIRMWARE_MAX_SIZE;
 
 use alloc::string::String;
 
-pub fn write(address: u32, data: &[u8]) -> Result<(), ()> {
-    match unsafe { bitbox02_sys::spi_mem_write(address, data.as_ptr(), data.len()) } {
+pub fn write_protected(address: u32, data: &[u8]) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::spi_mem_protected_area_write(address, data.as_ptr(), data.len()) }
+    {
         true => Ok(()),
         false => Err(()),
     }

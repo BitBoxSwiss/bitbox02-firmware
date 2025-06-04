@@ -114,7 +114,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_get_platform",
     "memory_get_securechip_type",
     "memory_spi_get_active_ble_firmware_version",
-    "spi_mem_write",
+    "spi_mem_protected_area_write",
     "menu_create",
     "mock_memory_factoryreset",
     "spi_mem_full_erase",

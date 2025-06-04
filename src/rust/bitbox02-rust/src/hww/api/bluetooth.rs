@@ -106,7 +106,7 @@ async fn _process_upgrade(
             firmware_checksum ^= byte;
         }
 
-        spi_mem::write(inactive_ble_fw_address + chunk_offset, &chunk)
+        spi_mem::write_protected(inactive_ble_fw_address + chunk_offset, &chunk)
             .map_err(|_| Error::Memory)?;
 
         // Update progress.

@@ -101,5 +101,6 @@ void util_log_flush(void)
 void util_log_init(void)
 {
     rust_rtt_init();
+    util_log("RTT Initialized");
 }
 #endif

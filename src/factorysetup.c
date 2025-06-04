@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "common_main.h"
+#include "da14531/da14531.h"
 #include "da14531/da14531_binary.h"
 #include "da14531/da14531_protocol.h"
 #include "driver_init.h"
@@ -244,18 +245,18 @@ typedef enum {
 } error_code_t;
 
 typedef enum {
-    BLE_OK,
-    BLE_ERR_FW_TOO_LARGE,
-    BLE_ERR_FLASH_FW,
-    BLE_ERR_GET_METADATA,
-    BLE_ERR_SET_METADATA,
-    BLE_ERR_READ_FW,
-    BLE_ERR_FW_SIZE_MISMATCH,
-    BLE_ERR_FW_CHECKSUM_MISMATCH,
-    BLE_ERR_FW_MISMATCH,
-    BLE_ERR_SPI_ERASE,
-    BLE_ERR_FW_NOT_ALLOWED,
-    BLE_ERR_NOT_BOOTED,
+    BLE_OK = 0,
+    BLE_ERR_FW_TOO_LARGE = 1,
+    BLE_ERR_FLASH_FW = 2,
+    BLE_ERR_GET_METADATA = 3,
+    BLE_ERR_SET_METADATA = 4,
+    BLE_ERR_READ_FW = 5,
+    BLE_ERR_FW_SIZE_MISMATCH = 6,
+    BLE_ERR_FW_CHECKSUM_MISMATCH = 7,
+    BLE_ERR_FW_MISMATCH = 8,
+    BLE_ERR_SPI_ERASE = 9,
+    BLE_ERR_FW_NOT_ALLOWED = 10,
+    BLE_ERR_NOT_BOOTED = 11,
 } ble_error_code_t;
 
 static ble_error_code_t _ble_result;
@@ -563,6 +564,10 @@ static ble_error_code_t _setup_ble(void)
     uint8_t uart_write_buf[1024];
     struct ringbuffer uart_write_queue;
     ringbuffer_init(&uart_write_queue, uart_write_buf, sizeof(uart_write_buf));
+    // If the BLE chip already was successfully booted, for example by running the factory-setup
+    // once already and not power cycled, we need to ask for something to get a uart frame back.
+    // Therefore we schedule a "get connection state".
+    da14531_get_connection_state(&uart_write_queue);
     int32_t timeout = 1000000;
     while (timeout-- > 0) {
         uart_poll(uart_read_buf, sizeof(uart_read_buf), &uart_read_buf_len, &uart_write_queue);
@@ -573,6 +578,7 @@ static ble_error_code_t _setup_ble(void)
             return BLE_OK;
         }
     }
+    screen_print_debug("Failed to check BLE chip status", 0);
     return BLE_ERR_NOT_BOOTED;
 }
 

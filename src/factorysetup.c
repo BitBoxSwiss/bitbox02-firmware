@@ -522,6 +522,8 @@ static ble_error_code_t _setup_ble(void)
         return BLE_OK;
     }
 
+    spi_mem_protected_area_unlock();
+
     // Erase chip.
     screen_print_debug("Erasing chip", 0);
     int32_t erased_sectors = spi_mem_smart_erase();

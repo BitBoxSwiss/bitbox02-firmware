@@ -96,8 +96,12 @@ static void _test_seeds(void** state)
 
 static void _check_mnemonic(const char* expected)
 {
+    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
+    size_t seed_len;
+
     char mnemonic[300];
-    assert_true(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
+    assert_true(keystore_copy_seed(seed, &seed_len));
+    assert_true(keystore_bip39_mnemonic_from_seed(seed, seed_len, mnemonic, sizeof(mnemonic)));
     assert_string_equal(mnemonic, expected);
 }
 

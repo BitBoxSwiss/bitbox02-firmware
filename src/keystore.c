@@ -488,22 +488,15 @@ bool keystore_is_locked(void)
     return !unlocked;
 }
 
-bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size)
+bool keystore_bip39_mnemonic_from_seed(
+    const uint8_t* seed,
+    size_t seed_size,
+    char* mnemonic_out,
+    size_t mnemonic_out_size)
 {
-    if (keystore_is_locked()) {
-        return false;
-    }
     char* mnemonic = NULL;
-    { // block so that `seed` is zeroed as soon as possible
-        uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-        UTIL_CLEANUP_32(seed);
-        size_t seed_length = 0;
-        if (!keystore_copy_seed(seed, &seed_length)) {
-            return false;
-        }
-        if (bip39_mnemonic_from_bytes(NULL, seed, seed_length, &mnemonic) != WALLY_OK) {
-            return false;
-        }
+    if (bip39_mnemonic_from_bytes(NULL, seed, seed_size, &mnemonic) != WALLY_OK) {
+        return false;
     }
     int snprintf_result = snprintf(mnemonic_out, mnemonic_out_size, "%s", mnemonic);
     util_cleanup_str(&mnemonic);
@@ -730,90 +723,6 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
         return false;
     }
     util_zero(message, sizeof(message));
-    return true;
-}
-
-static bool _bip85_entropy(const uint32_t* keypath, size_t keypath_len, uint8_t* out)
-{
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
-        return false;
-    }
-    const uint8_t* priv_key = xprv.priv_key + 1; // first byte is 0
-    const uint8_t key[] = "bip-entropy-from-k";
-    return wally_hmac_sha512(key, sizeof(key), priv_key, 32, out, 64) == WALLY_OK;
-}
-
-bool keystore_bip85_bip39(
-    uint32_t words,
-    uint32_t index,
-    char* mnemonic_out,
-    size_t mnemonic_out_size)
-{
-    size_t seed_size;
-    switch (words) {
-    case 12:
-        seed_size = 16;
-        break;
-    case 18:
-        seed_size = 24;
-        break;
-    case 24:
-        seed_size = 32;
-        break;
-    default:
-        return false;
-    }
-
-    if (index >= BIP32_INITIAL_HARDENED_CHILD) {
-        return false;
-    }
-
-    const uint32_t keypath[] = {
-        83696968 + BIP32_INITIAL_HARDENED_CHILD,
-        39 + BIP32_INITIAL_HARDENED_CHILD,
-        0 + BIP32_INITIAL_HARDENED_CHILD,
-        words + BIP32_INITIAL_HARDENED_CHILD,
-        index + BIP32_INITIAL_HARDENED_CHILD,
-    };
-
-    uint8_t entropy[64] = {0};
-    UTIL_CLEANUP_64(entropy);
-    if (!_bip85_entropy(keypath, sizeof(keypath) / sizeof(uint32_t), entropy)) {
-        return false;
-    }
-
-    char* mnemonic = NULL;
-    if (bip39_mnemonic_from_bytes(NULL, entropy, seed_size, &mnemonic) != WALLY_OK) {
-        return false;
-    }
-    int snprintf_result = snprintf(mnemonic_out, mnemonic_out_size, "%s", mnemonic);
-    util_cleanup_str(&mnemonic);
-    free(mnemonic);
-    return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
-}
-
-bool keystore_bip85_ln(uint32_t index, uint8_t* entropy_out)
-{
-    if (index >= BIP32_INITIAL_HARDENED_CHILD) {
-        return false;
-    }
-
-    const uint32_t keypath[] = {
-        83696968 + BIP32_INITIAL_HARDENED_CHILD,
-        19534 + BIP32_INITIAL_HARDENED_CHILD,
-        0 + BIP32_INITIAL_HARDENED_CHILD,
-        12 + BIP32_INITIAL_HARDENED_CHILD,
-        index + BIP32_INITIAL_HARDENED_CHILD,
-    };
-
-    uint8_t entropy[64] = {0};
-    UTIL_CLEANUP_64(entropy);
-    if (!_bip85_entropy(keypath, sizeof(keypath) / sizeof(uint32_t), entropy)) {
-        return false;
-    }
-
-    memcpy(entropy_out, entropy, 16);
     return true;
 }
 

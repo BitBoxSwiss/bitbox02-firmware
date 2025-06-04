@@ -15,10 +15,21 @@
 #[cfg(feature = "ed25519")]
 pub mod ed25519;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
 use bitbox02::keystore;
+
+use util::bip32::HARDENED;
+
+use crate::hash::Sha512;
+use hmac::{digest::FixedOutput, Mac, SimpleHmac};
+
+/// Returns the keystore's seed encoded as a BIP-39 mnemonic.
+pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
+    keystore::bip39_mnemonic_from_seed(&keystore::copy_seed()?)
+}
 
 /// Derives an xpub from the keystore seed at the given keypath.
 pub fn get_xpub(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
@@ -33,12 +44,81 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
     Ok(get_xpub(&[])?.pubkey_hash160().get(..4).ok_or(())?.to_vec())
 }
 
+fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let priv_key = keystore::secp256k1_get_private_key(keypath)?;
+    let mut mac = SimpleHmac::<Sha512>::new_from_slice(b"bip-entropy-from-k").unwrap();
+    mac.update(&priv_key);
+    let mut out = zeroize::Zeroizing::new(vec![0u8; 64]);
+    let fixed_out: &mut [u8; 64] = out.as_mut_slice().try_into().unwrap();
+    mac.finalize_into(fixed_out.into());
+    Ok(out)
+}
+
+/// Computes a BIP39 mnemonic according to BIP-85:
+/// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
+/// `words` must be 12, 18 or 24.
+/// `index` must be smaller than `bip32::HARDENED`.
+pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>, ()> {
+    if index >= HARDENED {
+        return Err(());
+    }
+
+    let seed_size: usize = match words {
+        12 => 16,
+        18 => 24,
+        24 => 32,
+        _ => return Err(()),
+    };
+
+    let keypath = [
+        83696968 + HARDENED,
+        39 + HARDENED,
+        0 + HARDENED,
+        words + HARDENED,
+        index + HARDENED,
+    ];
+
+    let entropy = bip85_entropy(&keypath)?;
+    keystore::bip39_mnemonic_from_seed(&entropy[..seed_size])
+}
+
+/// Computes a 16 byte deterministic seed specifically for Lightning hot wallets according to BIP-85.
+/// It is the same as BIP-85 with app number 39', but instead using app number 19534' (= 0x4c4e =
+/// 'LN'). https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
+/// Restricted to 16 byte output entropy.
+/// `index` must be smaller than `bip32::HARDENED`.
+pub fn bip85_ln(index: u32) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    if index >= HARDENED {
+        return Err(());
+    }
+    let keypath = [
+        83696968 + HARDENED,
+        19534 + HARDENED,
+        0 + HARDENED,
+        12 + HARDENED,
+        index + HARDENED,
+    ];
+
+    let mut entropy = bip85_entropy(&keypath)?;
+    entropy.truncate(16);
+    Ok(entropy)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
-    use util::bip32::HARDENED;
+    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC};
+
+    #[test]
+    fn test_get_bip39_mnemonic() {
+        keystore::lock();
+        assert!(get_bip39_mnemonic().is_err());
+
+        mock_unlocked();
+
+        assert_eq!(get_bip39_mnemonic().unwrap().as_str(), TEST_MNEMONIC);
+    }
 
     #[test]
     fn test_get_xpub() {
@@ -98,5 +178,78 @@ mod tests {
             "",
         );
         assert_eq!(root_fingerprint(), Ok(vec![0xf4, 0x0b, 0x46, 0x9a]));
+    }
+
+    #[test]
+    fn test_bip85_bip39() {
+        keystore::lock();
+        assert!(bip85_bip39(12, 0).is_err());
+
+        // Test fixtures generated using:
+        // `docker build -t bip85 .`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 1 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 2147483647 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 18`
+        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 24`
+        // in  https://github.com/ethankosakovsky/bip85/tree/435a0589746c1036735d0a5081167e08abfa7413.
+
+        mock_unlocked_using_mnemonic(
+            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
+            "",
+        );
+
+        assert_eq!(
+            bip85_bip39(12, 0).unwrap().as_ref() as &str,
+            "slender whip place siren tissue chaos ankle door only assume tent shallow",
+        );
+        assert_eq!(
+            bip85_bip39(12, 1).unwrap().as_ref() as &str,
+            "income soft level reunion height pony crane use unfold win keen satisfy",
+        );
+        assert_eq!(
+            bip85_bip39(12, HARDENED - 1).unwrap().as_ref() as &str,
+            "carry build nerve market domain energy mistake script puzzle replace mixture idea",
+        );
+        assert_eq!(
+            bip85_bip39(18, 0).unwrap().as_ref() as &str,
+            "enact peasant tragic habit expand jar senior melody coin acid logic upper soccer later earn napkin planet stereo",
+        );
+        assert_eq!(
+            bip85_bip39(24, 0).unwrap().as_ref() as &str,
+            "cabbage wink october add anchor mean tray surprise gasp tomorrow garbage habit beyond merge where arrive beef gentle animal office drop panel chest size",
+        );
+
+        // Invalid number of words.
+        assert!(bip85_bip39(10, 0).is_err());
+        // Index too high.
+        assert!(bip85_bip39(12, HARDENED).is_err());
+    }
+
+    #[test]
+    fn test_bip85_ln() {
+        keystore::lock();
+        assert!(bip85_ln(0).is_err());
+
+        mock_unlocked_using_mnemonic(
+            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
+            "",
+        );
+
+        assert_eq!(
+            bip85_ln(0).unwrap().as_slice(),
+            b"\x3a\x5f\x3b\x88\x8a\xab\x88\xe2\xa9\xab\x99\x1b\x60\xa0\x3e\xd8",
+        );
+        assert_eq!(
+            bip85_ln(1).unwrap().as_slice(),
+            b"\xe7\xd9\xce\x75\xf8\xcb\x17\x57\x0e\x66\x54\x17\xb4\x7f\xa0\xbe",
+        );
+        assert_eq!(
+            bip85_ln(HARDENED - 1).unwrap().as_slice(),
+            b"\x1f\x3b\x75\xea\x25\x27\x49\x70\x0a\x1e\x45\x34\x69\x14\x8c\xa6",
+        );
+
+        // Index too high.
+        assert!(bip85_ln(HARDENED).is_err());
     }
 }

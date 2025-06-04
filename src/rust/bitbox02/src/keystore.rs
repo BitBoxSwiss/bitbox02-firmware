@@ -122,10 +122,15 @@ pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
-pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
+pub fn bip39_mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
     match unsafe {
-        bitbox02_sys::keystore_get_bip39_mnemonic(mnemonic.as_mut_ptr(), mnemonic.len() as _)
+        bitbox02_sys::keystore_bip39_mnemonic_from_seed(
+            seed.as_ptr(),
+            seed.len() as _,
+            mnemonic.as_mut_ptr(),
+            mnemonic.len() as _,
+        )
     } {
         false => Err(()),
         true => Ok(zeroize::Zeroizing::new(
@@ -314,28 +319,6 @@ pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
-pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>, ()> {
-    let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
-    match unsafe {
-        bitbox02_sys::keystore_bip85_bip39(words, index, mnemonic.as_mut_ptr(), mnemonic.len() as _)
-    } {
-        false => Err(()),
-        true => Ok(zeroize::Zeroizing::new(
-            crate::util::str_from_null_terminated(&mnemonic[..])
-                .unwrap()
-                .into(),
-        )),
-    }
-}
-
-pub fn bip85_ln(index: u32) -> Result<Vec<u8>, ()> {
-    let mut entropy = vec![0u8; 16];
-    match unsafe { bitbox02_sys::keystore_bip85_ln(index, entropy.as_mut_ptr()) } {
-        false => Err(()),
-        true => Ok(entropy),
-    }
-}
-
 pub fn secp256k1_schnorr_sign(
     keypath: &[u32],
     msg: &[u8; 32],
@@ -363,7 +346,7 @@ pub fn secp256k1_schnorr_sign(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC};
+    use crate::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use util::bip32::HARDENED;
 
     #[test]
@@ -432,19 +415,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_bip39_mnemonic() {
-        lock();
-        assert!(get_bip39_mnemonic().is_err());
-
-        mock_unlocked();
-
-        assert_eq!(
-            get_bip39_mnemonic().unwrap().as_ref() as &str,
-            TEST_MNEMONIC
-        );
-    }
-
-    #[test]
     fn test_get_bip39_word() {
         assert!(get_bip39_word(2048).is_err());
 
@@ -467,79 +437,6 @@ mod tests {
     }
 
     #[test]
-    fn test_bip85_bip39() {
-        lock();
-        assert!(bip85_bip39(12, 0).is_err());
-
-        // Test fixtures generated using:
-        // `docker build -t bip85 .`
-        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
-        // `podman run --rm bip85 --index 1 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
-        // `podman run --rm bip85 --index 2147483647 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 12`
-        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 18`
-        // `podman run --rm bip85 --index 0 --bip39-mnemonic "virtual weapon code laptop defy cricket vicious target wave leopard garden give" bip39 --num-words 24`
-        // in  https://github.com/ethankosakovsky/bip85/tree/435a0589746c1036735d0a5081167e08abfa7413.
-
-        mock_unlocked_using_mnemonic(
-            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
-            "",
-        );
-
-        assert_eq!(
-            bip85_bip39(12, 0).unwrap().as_ref() as &str,
-            "slender whip place siren tissue chaos ankle door only assume tent shallow",
-        );
-        assert_eq!(
-            bip85_bip39(12, 1).unwrap().as_ref() as &str,
-            "income soft level reunion height pony crane use unfold win keen satisfy",
-        );
-        assert_eq!(
-            bip85_bip39(12, HARDENED - 1).unwrap().as_ref() as &str,
-            "carry build nerve market domain energy mistake script puzzle replace mixture idea",
-        );
-        assert_eq!(
-            bip85_bip39(18, 0).unwrap().as_ref() as &str,
-            "enact peasant tragic habit expand jar senior melody coin acid logic upper soccer later earn napkin planet stereo",
-        );
-        assert_eq!(
-            bip85_bip39(24, 0).unwrap().as_ref() as &str,
-            "cabbage wink october add anchor mean tray surprise gasp tomorrow garbage habit beyond merge where arrive beef gentle animal office drop panel chest size",
-        );
-
-        // Invalid number of words.
-        assert!(bip85_bip39(10, 0).is_err());
-        // Index too high.
-        assert!(bip85_bip39(12, HARDENED).is_err());
-    }
-
-    #[test]
-    fn test_bip85_ln() {
-        lock();
-        assert!(bip85_ln(0).is_err());
-
-        mock_unlocked_using_mnemonic(
-            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
-            "",
-        );
-
-        assert_eq!(
-            bip85_ln(0).unwrap().as_slice(),
-            b"\x3a\x5f\x3b\x88\x8a\xab\x88\xe2\xa9\xab\x99\x1b\x60\xa0\x3e\xd8",
-        );
-        assert_eq!(
-            bip85_ln(1).unwrap().as_slice(),
-            b"\xe7\xd9\xce\x75\xf8\xcb\x17\x57\x0e\x66\x54\x17\xb4\x7f\xa0\xbe",
-        );
-        assert_eq!(
-            bip85_ln(HARDENED - 1).unwrap().as_slice(),
-            b"\x1f\x3b\x75\xea\x25\x27\x49\x70\x0a\x1e\x45\x34\x69\x14\x8c\xa6",
-        );
-
-        // Index too high.
-        assert!(bip85_ln(HARDENED).is_err());
-    }
-
-    #[test]
     fn test_secp256k1_get_private_key() {
         lock();
         let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
@@ -554,5 +451,32 @@ mod tests {
             hex::encode(secp256k1_get_private_key(keypath).unwrap()),
             "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
         );
+    }
+
+    #[test]
+    fn test_bip39_mnemonic_from_seed() {
+        // 12 words
+        let seed = b"\xae\x6a\x40\x26\x1f\x0a\xcc\x16\x57\x04\x9c\xb2\x1a\xf5\xfb\xf7";
+        assert_eq!(
+            bip39_mnemonic_from_seed(seed).unwrap().as_str(),
+            "purpose faith another dignity proud arctic foster near rare stumble leave urge",
+        );
+
+        // 18 words
+        let seed = b"\x2a\x3e\x07\xa9\xe7\x5e\xd7\x3a\xa6\xb2\xe1\xaf\x90\x3d\x50\x17\xde\x80\x4f\xdf\x2b\x45\xc2\x4b";
+        assert_eq!(
+            bip39_mnemonic_from_seed(seed).unwrap().as_str(),
+            "clay usual tuna solid uniform outer onion found question limit favorite cook trend child lake hamster seat foot",
+        );
+
+        // 24 words
+        let seed = b"\x24\x1d\x5b\x78\x35\x90\xc2\x1f\x79\x69\x8e\x7c\xe8\x92\xdd\x03\xfb\x2c\x8f\xad\xc2\x44\x0e\xc2\x3a\xa5\xde\x9e\x2d\x23\x81\xb0";
+        assert_eq!(
+            bip39_mnemonic_from_seed(seed).unwrap().as_str(),
+            "catch turn task hen around autumn toss crack language duty resemble among ready elephant require embrace attract balcony practice rule tissue mushroom almost athlete",
+        );
+
+        // Invalid seed side
+        assert!(bip39_mnemonic_from_seed(b"foo").is_err());
     }
 }

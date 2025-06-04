@@ -19,6 +19,7 @@
 #include <inttypes.h>
 #include <memory/memory.h>
 #include <memory/nvmctrl.h>
+#include <platform/platform_config.h>
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
@@ -101,7 +102,9 @@ void smarteeprom_bb02_config(void)
      */
     if (!smarteeprom_is_enabled()) {
         smarteeprom_setup();
+#if FACTORYSETUP == 0
         reboot();
+#endif
     }
     NVMCTRL->SEECFG.bit.WMODE = SMARTEEPROM_WRITE_MODE_BUFFERED;
     if (NVMCTRL->SEESTAT.bit.LOAD != 0) {

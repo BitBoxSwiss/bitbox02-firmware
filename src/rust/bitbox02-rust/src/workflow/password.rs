@@ -27,33 +27,58 @@ async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), confirm::Us
         .await
 }
 
+pub enum PasswordType {
+    /// The password to be entered is the device unlock password.
+    DevicePassword,
+    /// The password to be entered is the BIP39 passphrase.
+    Bip39Passphrase,
+}
+
+#[derive(Debug)]
+pub enum EnterError {
+    Memory,
+    Cancelled,
+}
+
 /// If `can_cancel` is `Yes`, the workflow can be cancelled.
 /// If it is no, the result is always `Ok(())`.
 ///
 /// Example:
 /// ```no_run
-/// let pw = enter("Enter password", true, CanCancel::No).await.unwrap();
+/// let pw = enter(hal, "Enter password", PassswordType::DevicePassword, CanCancel::No).await.unwrap();
 /// // use pw.
 /// ```
 pub async fn enter(
     hal: &mut impl crate::hal::Hal,
     title: &str,
-    special_chars: bool,
+    password_type: PasswordType,
     can_cancel: CanCancel,
-) -> Result<zeroize::Zeroizing<String>, Error> {
+) -> Result<zeroize::Zeroizing<String>, EnterError> {
     let params = trinary_input_string::Params {
         title,
         hide: true,
-        special_chars,
+        special_chars: match password_type {
+            PasswordType::DevicePassword => false,
+            PasswordType::Bip39Passphrase => true,
+        },
         longtouch: true,
+        default_to_digits: match password_type {
+            PasswordType::DevicePassword => {
+                match bitbox02::memory::get_securechip_type().map_err(|_| EnterError::Memory)? {
+                    bitbox02::memory::SecurechipType::Atecc => false,
+                    bitbox02::memory::SecurechipType::Optiga => true,
+                }
+            }
+            PasswordType::Bip39Passphrase => false,
+        },
         ..Default::default()
     };
 
     loop {
         match hal.ui().enter_string(&params, can_cancel, "").await {
-            o @ Ok(_) => return o,
+            Ok(pw) => return Ok(pw),
             Err(Error::Cancelled) => match prompt_cancel(hal).await {
-                Ok(()) => return Err(Error::Cancelled),
+                Ok(()) => return Err(EnterError::Cancelled),
                 Err(confirm::UserAbort) => {}
             },
         }
@@ -62,14 +87,12 @@ pub async fn enter(
 
 pub enum EnterTwiceError {
     DoNotMatch,
-    Cancelled,
+    EnterError(EnterError),
 }
 
-impl core::convert::From<Error> for EnterTwiceError {
-    fn from(error: Error) -> Self {
-        match error {
-            Error::Cancelled => EnterTwiceError::Cancelled,
-        }
+impl core::convert::From<EnterError> for EnterTwiceError {
+    fn from(error: EnterError) -> Self {
+        EnterTwiceError::EnterError(error)
     }
 }
 
@@ -84,8 +107,20 @@ impl core::convert::From<Error> for EnterTwiceError {
 pub async fn enter_twice(
     hal: &mut impl crate::hal::Hal,
 ) -> Result<zeroize::Zeroizing<String>, EnterTwiceError> {
-    let password = enter(hal, "Set password", false, CanCancel::Yes).await?;
-    let password_repeat = enter(hal, "Repeat password", false, CanCancel::Yes).await?;
+    let password = enter(
+        hal,
+        "Set password",
+        PasswordType::DevicePassword,
+        CanCancel::Yes,
+    )
+    .await?;
+    let password_repeat = enter(
+        hal,
+        "Repeat password",
+        PasswordType::DevicePassword,
+        CanCancel::Yes,
+    )
+    .await?;
     if password.as_str() != password_repeat.as_str() {
         hal.ui().status("Passwords\ndo not match", false).await;
         return Err(EnterTwiceError::DoNotMatch);
@@ -104,7 +139,7 @@ pub async fn enter_twice(
             {
                 Ok(()) => break,
                 Err(confirm::UserAbort) => match prompt_cancel(hal).await {
-                    Ok(()) => return Err(EnterTwiceError::Cancelled),
+                    Ok(()) => return Err(EnterTwiceError::EnterError(EnterError::Cancelled)),
                     Err(confirm::UserAbort) => {}
                 },
             }

@@ -175,6 +175,19 @@ pub fn get_platform() -> Result<Platform, ()> {
     }
 }
 
+pub enum SecurechipType {
+    Atecc,
+    Optiga,
+}
+
+pub fn get_securechip_type() -> Result<SecurechipType, ()> {
+    match unsafe { bitbox02_sys::memory_get_securechip_type() as u32 } {
+        bitbox02_sys::MEMORY_SECURECHIP_TYPE_ATECC => Ok(SecurechipType::Atecc),
+        bitbox02_sys::MEMORY_SECURECHIP_TYPE_OPTIGA => Ok(SecurechipType::Optiga),
+        _ => Err(()),
+    }
+}
+
 pub fn get_ble_metadata() -> BleMetadata {
     let mut metadata = core::mem::MaybeUninit::uninit();
 

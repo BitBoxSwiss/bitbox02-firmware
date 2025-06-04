@@ -107,6 +107,7 @@ pub struct TrinaryInputStringParams<'a> {
     pub special_chars: bool,
     pub longtouch: bool,
     pub cancel_is_backbutton: bool,
+    pub default_to_digits: bool,
 }
 
 impl<'a> TrinaryInputStringParams<'a> {
@@ -138,6 +139,7 @@ impl<'a> TrinaryInputStringParams<'a> {
             special_chars: self.special_chars,
             longtouch: self.longtouch,
             cancel_is_backbutton: self.cancel_is_backbutton,
+            default_to_digits: self.default_to_digits,
         })
     }
 }

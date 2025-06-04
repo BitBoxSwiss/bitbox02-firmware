@@ -48,6 +48,15 @@ impl core::convert::From<crate::workflow::cancel::Error> for Error {
     }
 }
 
+impl core::convert::From<crate::workflow::password::EnterError> for Error {
+    fn from(error: crate::workflow::password::EnterError) -> Self {
+        match error {
+            crate::workflow::password::EnterError::Memory => Error::Memory,
+            crate::workflow::password::EnterError::Cancelled => Error::UserAbort,
+        }
+    }
+}
+
 impl core::convert::From<crate::workflow::password::EnterTwiceError> for Error {
     fn from(error: crate::workflow::password::EnterTwiceError) -> Self {
         match error {
@@ -55,10 +64,7 @@ impl core::convert::From<crate::workflow::password::EnterTwiceError> for Error {
                 // For backwards compatibility.
                 Error::Generic
             }
-            crate::workflow::password::EnterTwiceError::Cancelled => {
-                // Added in v9.13.0.
-                Error::UserAbort
-            }
+            crate::workflow::password::EnterTwiceError::EnterError(err) => err.into(),
         }
     }
 }
@@ -108,6 +114,7 @@ impl core::convert::From<UnlockError> for Error {
     fn from(error: UnlockError) -> Self {
         match error {
             UnlockError::UserAbort => Error::UserAbort,
+            UnlockError::Memory => Error::Memory,
             UnlockError::IncorrectPassword | UnlockError::Generic => Error::Generic,
         }
     }

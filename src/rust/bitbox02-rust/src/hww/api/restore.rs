@@ -140,7 +140,7 @@ pub async fn from_mnemonic(
                     })
                     .await?;
             }
-            Err(password::EnterTwiceError::Cancelled) => return Err(Error::UserAbort),
+            Err(err @ password::EnterTwiceError::EnterError(_)) => return Err(err.into()),
             Ok(password) => break password,
         }
     };

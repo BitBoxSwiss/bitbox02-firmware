@@ -14,6 +14,7 @@
 
 #include "da14531.h"
 #include "da14531_protocol.h"
+#include "hardfault.h"
 #include "util.h"
 #include "utils_ringbuffer.h"
 
@@ -53,6 +54,10 @@ void da14531_set_product(
     struct ringbuffer* uart_out)
 {
     uint8_t payload[64] = {0};
+    if (product_len > sizeof(payload) - 1) {
+        Abort("product string too large");
+        return;
+    }
     payload[0] = CTRL_CMD_PRODUCT_STRING;
     for (int i = 0; i < product_len; i++) {
         payload[1 + i] = product[i];
@@ -71,7 +76,7 @@ void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart
 {
     uint8_t payload[64] = {0};
     payload[0] = CTRL_CMD_DEVICE_NAME;
-    memcpy(&payload[1], name, name_len);
+    memcpy(&payload[1], name, MIN(name_len, sizeof(payload) - 1));
     uint8_t tmp[12 + sizeof(payload) * 2];
     uint16_t tmp_len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + name_len);

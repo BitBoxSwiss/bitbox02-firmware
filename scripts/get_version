@@ -217,7 +217,7 @@ def main():
             if res.returncode != 0:
                 return res.returncode
 
-    res = system(["git", "status", "--porcelain"])
+    res = system(["git", "status", "--porcelain", "--untracked-files=no"])
     if res.returncode != 0:
         return res.returncode
 

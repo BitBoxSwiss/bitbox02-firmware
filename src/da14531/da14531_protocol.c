@@ -182,9 +182,6 @@ static void _firmware_loader_poll(
         break;
     case FIRMWARE_LOADER_STATE_SENT_FIRMWARE:
         if (*buf_in_len == 1) {
-            if (ble_fw == NULL || ble_fw_size == 0) {
-                Abort("ble_fw is NULL");
-            }
             if (buf_in[0] == ble_fw_checksum) {
                 util_log("da14531: checksum success (%x)", buf_in[0]);
                 ASSERT(ringbuffer_num(out_queue) + 1 <= out_queue->size);
@@ -257,11 +254,18 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
                 self->escape_state = ESCAPE_STATE_ACCEPT;
                 if (self->frame_len > 0) {
                     // save the bytes that wasn't consumed
-                    memcpy(&self->buf_in[0], &self->buf_in[i + 1], self->buf_in_len);
+                    memmove(&self->buf_in[0], &self->buf_in[i + 1], self->buf_in_len);
                     self->state = SERIAL_LINK_STATE_CHECK;
                     break;
                 }
                 continue;
+            }
+
+            // If we ran out of space while parsing an incoming frame
+            if (self->frame_len >= sizeof(self->frame)) {
+                ASSERT(false);
+                self->frame_len = 0;
+                self->escape_state = ESCAPE_STATE_WAIT;
             }
 
             switch (self->escape_state) {
@@ -388,7 +392,7 @@ struct da14531_protocol_frame* da14531_protocol_poll(
     struct ringbuffer* out_queue)
 {
     if (hww_data && *hww_data) {
-        uint8_t tmp[128];
+        uint8_t tmp[12 + 64 * 2];
         int len = da14531_protocol_format(
             &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA, *hww_data, 64);
         ASSERT(len < (int)sizeof(tmp));

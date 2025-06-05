@@ -47,8 +47,21 @@ struct da14531_protocol_frame* da14531_protocol_poll(
     const uint8_t** hww_data,
     struct ringbuffer* out_queue);
 
-/// Formats a packet into buf for sending over serial
-/// Returns number of bytes formatted
+// Formats a packet into buf for sending over serial. Worst case the buf_len needs to fit:
+// SOF - 1 byte
+// type - 1 byte
+// len - 2 bytes
+// payload - payload_len bytes
+// CRC - 2 bytes
+// EOF - 1 byte
+//
+// Type, len, payload and crc will have some bytes escaped so worst case takes twice the space.
+//
+// 2 + (1+2+payload_len+2)*2 = 2 + (5+payload_len)*2 = 12 + 2*payload_len
+//
+// For example, 64 bytes require 140 byte buffer worst case.
+//
+// Returns number of formattedb bytes
 uint16_t da14531_protocol_format(
     uint8_t* buf,
     uint16_t buf_len,

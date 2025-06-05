@@ -57,7 +57,7 @@ static void _ble_pairing_callback(bool ok, void* param)
     memcpy(&payload[1], &data->key[0], sizeof(data->key));
     payload[17] = ok ? 1 : 0; /* 1 yes, 0 no */
 
-    uint8_t tmp[32];
+    uint8_t tmp[12 + sizeof(payload) * 2];
     uint16_t len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, payload, sizeof(payload));
     ASSERT(len <= sizeof(tmp));
@@ -72,12 +72,11 @@ static void _ble_pairing_callback(bool ok, void* param)
 #else
 #include <bootloader/bootloader.h>
 extern bool bootloader_pairing_request;
-extern uint8_t bootloader_pairing_code_bytes[16];
+extern uint8_t bootloader_pairing_code_bytes[4];
 #endif
 
 static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
 {
-    uint8_t tmp[1152]; // 1024 + some margin (128)
     switch (frame->cmd) {
     case CTRL_CMD_DEVICE_NAME: {
         // util_log("da14531: get device name");
@@ -90,6 +89,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
 #else
         memory_get_device_name((char*)&response[1]);
 #endif
+        uint8_t tmp[12 + sizeof(response) * 2];
         uint16_t len = da14531_protocol_format(
             &tmp[0],
             sizeof(tmp),
@@ -109,6 +109,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
         int16_t len = memory_get_ble_bond_db(&response[1]);
         // util_log("da14531: bond db len %d", len);
         uint16_t tmp_len;
+        uint8_t tmp[12 + sizeof(response) * 2];
         if (len != -1) {
             tmp_len = da14531_protocol_format(
                 &tmp[0],
@@ -128,13 +129,18 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
     } break;
     case CTRL_CMD_BOND_DB_SET:
         // util_log("da14531: set bond db");
-        // util_log("da14531: bond db len %d", frame->payload_length - 1);
+        if (frame->payload_length < 2) {
+            util_log("da14531: set bond db, invalid length");
+            ASSERT(false);
+            break;
+        }
         memory_set_ble_bond_db(&frame->cmd_data[0], frame->payload_length - 1);
         break;
     case CTRL_CMD_PAIRING_CODE: {
         if (frame->payload_length < 5) {
-            // TODO handle error.
-            Abort("Invalid payload length for BLE pairing code");
+            util_log("da14531: pairing code, invalid length");
+            ASSERT(false);
+            break;
         }
 #if !defined(BOOTLOADER)
         memcpy(
@@ -163,6 +169,11 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
 #endif
     } break;
     case CTRL_CMD_BLE_STATUS:
+        if (frame->payload_length < 2) {
+            util_log("da14531: ble status, invalid length");
+            ASSERT(false);
+            break;
+        }
         if (frame->cmd_data[0] <= DA14531_CONNECTED_CONNECTED_SECURED) {
             da14531_connected_state = frame->cmd_data[0];
         }
@@ -200,6 +211,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
         uint8_t response[1 + MEMORY_BLE_IRK_LEN] = {0}; //+1 for cmd
         response[0] = CTRL_CMD_IRK;
         memory_get_ble_irk(&response[1]);
+        uint8_t tmp[12 + sizeof(response) * 2];
         uint16_t len = da14531_protocol_format(
             &tmp[0],
             sizeof(tmp),
@@ -223,6 +235,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
         uint8_t response[1 + MEMORY_BLE_ADDR_LEN] = {0};
         response[0] = CTRL_CMD_IDENTITY_ADDRESS;
         memory_get_ble_identity_address(&response[1]);
+        uint8_t tmp[12 + sizeof(response) * 2];
         uint16_t len = da14531_protocol_format(
             &tmp[0],
             sizeof(tmp),
@@ -235,8 +248,9 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
             ringbuffer_put(queue, tmp[i]);
         }
     } break;
+#if !defined(NDEBUG)
     case CTRL_CMD_PAIRING_SUCCESSFUL:
-        // util_log("da14531: pairing successful");
+        util_log("da14531: pairing successful");
         break;
     case CTRL_CMD_DEBUG:
         util_log(
@@ -245,6 +259,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
             &frame->cmd_data[0],
             frame->payload_length - 1);
         break;
+#endif
     default:
         break;
     }

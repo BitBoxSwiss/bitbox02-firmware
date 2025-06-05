@@ -180,6 +180,9 @@ int16_t memory_get_ble_bond_db(uint8_t* data)
 bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len)
 {
     ASSERT(data_len <= MEMORY_BLE_BOND_DB_LEN);
+    if (data_len > MEMORY_BLE_BOND_DB_LEN) {
+        return false;
+    }
     chunk_shared_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     memory_read_shared_bootdata(&chunk);

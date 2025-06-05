@@ -23,7 +23,7 @@ void da14531_reset(struct ringbuffer* uart_out)
 {
     util_log("da14531_reset");
     uint8_t payload = CTRL_CMD_BLE_CHIP_RESET;
-    uint8_t buf[10] = {0};
+    uint8_t buf[12 + sizeof(payload) * 2] = {0};
     uint16_t len = da14531_protocol_format(
         &buf[0], sizeof(buf), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload, 1);
     ASSERT(len <= sizeof(buf));
@@ -37,7 +37,7 @@ void da14531_power_down(struct ringbuffer* uart_out)
 {
     util_log("da14531_power_down");
     uint8_t payload[2] = {CTRL_CMD_BLE_POWER_DOWN, 0};
-    uint8_t buf[10] = {0};
+    uint8_t buf[12 + sizeof(payload) * 2] = {0};
     uint16_t len = da14531_protocol_format(
         &buf[0], sizeof(buf), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], sizeof(payload));
     ASSERT(len <= sizeof(buf));
@@ -57,7 +57,7 @@ void da14531_set_product(
     for (int i = 0; i < product_len; i++) {
         payload[1 + i] = product[i];
     }
-    uint8_t tmp[128];
+    uint8_t tmp[12 + sizeof(payload) * 2];
     uint16_t tmp_len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + product_len);
     ASSERT(tmp_len <= sizeof(tmp));
@@ -72,7 +72,7 @@ void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart
     uint8_t payload[64] = {0};
     payload[0] = CTRL_CMD_DEVICE_NAME;
     memcpy(&payload[1], name, name_len);
-    uint8_t tmp[128];
+    uint8_t tmp[12 + sizeof(payload) * 2];
     uint16_t tmp_len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + name_len);
     ASSERT(tmp_len <= sizeof(tmp));
@@ -85,7 +85,7 @@ void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart
 void da14531_get_connection_state(struct ringbuffer* uart_out)
 {
     uint8_t payload = CTRL_CMD_BLE_STATUS;
-    uint8_t tmp[16];
+    uint8_t tmp[12 + sizeof(payload) * 2];
     uint16_t tmp_len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload, 1);
     ASSERT(tmp_len <= sizeof(tmp));

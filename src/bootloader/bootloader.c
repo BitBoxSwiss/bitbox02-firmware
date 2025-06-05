@@ -359,7 +359,7 @@ void bootloader_render_default_screen(void)
 
 #if PLATFORM_BITBOX02PLUS
 extern bool bootloader_pairing_request;
-extern uint8_t bootloader_pairing_code_bytes[16];
+extern uint8_t bootloader_pairing_code_bytes[4];
 
 void bootloader_render_ble_confirm_screen(bool confirmed)
 {

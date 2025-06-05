@@ -6,6 +6,10 @@ set -e
 # Deny warnings in rust. CI will fail to compile any code with warnings in it.
 export RUSTFLAGS="-Dwarnings"
 
+# Check the da14531 firmware matches the hash file, which makes reviewing updates to the binary
+# easier.
+sha256sum --check bitbox-da14531-firmware.bin.sha256
+
 # Check style for C and Rust
 ./.ci/check-style
 

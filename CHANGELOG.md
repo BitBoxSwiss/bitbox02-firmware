@@ -161,8 +161,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### v1.1.0
 - Update manufacturer HID descriptor to bitbox.swiss
-- Remove qtouch code from production bootloader
 - Implement OP_HARDWARE endpoint, to identify the secure chip model
+- Add Bluetooth communication for Bluetooth-enabled targets
 
 ### v1.0.6
 - Replace root pubkeys

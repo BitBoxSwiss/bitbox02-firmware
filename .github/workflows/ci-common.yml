@@ -1,0 +1,219 @@
+# See reference docs at
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+name: Default branch ci
+on:
+  workflow_call:
+    inputs:
+      container-repo:
+        required: true
+        type: string
+      container-version:
+        required: true
+        type: string
+
+jobs:
+  check-sigs:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+
+      - name: Check sigs
+        run: ./.ci/check-release-sigs
+
+  check-hashes:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+
+      - name: Check sigs
+        run: ./.ci/check-hashes
+
+  lint-py:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Lint python (black, mypy, pylint)
+        run: |
+          make -C py clean
+          make -C py
+          ./.ci/check-pep8
+
+  lint-src:
+    runs-on: ubuntu-22.04
+    container:
+      image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+      env:
+        RUSTFLAGS: "-Dwarnings"
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          # Unfortunately linting the sources requires running cmake, so we need to do a full checkout
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Lint src code style (clang-format, rustfmt)
+        run: ./.ci/check-style
+
+      - name: Lint src bugs/best-practice (clang-tidy, clippy)
+        run: |
+          make prepare-tidy
+          ./.ci/check-tidy
+          make run-rust-clippy
+
+  unit-tests:
+    runs-on: ubuntu-22.04
+    container:
+      image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+      env:
+        RUSTFLAGS: "-Dwarnings"
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build unit-tests
+        run: make -j$(($(nproc) + 1)) unit-test
+
+      - name: run unit-tests
+        run: make run-unit-tests
+
+      - name: run rust unit-tests
+        run: make run-rust-unit-tests
+
+      - name: run ATECC608 unit tests
+        run: (cd tools/atecc608; go test ./...)
+
+  simulator:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build simulator
+        run: make -j$(($(nproc) + 1)) simulator
+
+  leakcheck:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Run unit tests under valgrind
+        run: make run-valgrind-on-unit-tests SANITIZE=OFF
+
+  coverage:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build coverage report
+        run: make coverage
+
+  build:
+    strategy:
+      matrix:
+        target:
+          - bootloader
+          - bootloader-development
+          - bootloader-development-locked
+          - bootloader-production
+          - bootloader-debug
+          - bootloader-btc
+          - bootloader-btc-development
+          - bootloader-btc-production
+          - bootloader-plus
+          - bootloader-plus-development
+          - bootloader-plus-debug
+          - firmware
+          - firmware-btc
+          - factory-setup
+          - firmware-debug
+    runs-on: ubuntu-22.04
+    container:
+      image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+      env:
+        RUSTFLAGS: "-Dwarnings"
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build ${{ matrix.target }}
+        run: make -j$(($(nproc)+1)) ${{ matrix.target }}
+
+      - name: Check unwanted symbols
+        if: matrix.target == 'firmware' && !cancelled()
+        run: ./.ci/check-unwanted-symbols
+
+  doc:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build ${{ matrix.target }}
+        run: |
+          (mkdir -p build; cd build; cmake -DDOC_GRAPHS=NO ..)
+          make -j$(($(nproc)+1)) docs

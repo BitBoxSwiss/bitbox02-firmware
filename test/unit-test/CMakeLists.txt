@@ -28,9 +28,6 @@ pkg_check_modules(CMOCKA REQUIRED cmocka)
 # u2f tests with hardware uses hidapi-hidraw
 pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw)
 
-message("hidapi-hidraw " ${HIDAPI_INCLUDE_DIRS})
-
-
 #-----------------------------------------------------------------------------
 # Build bitbox lib to use in tests
 
@@ -59,8 +56,6 @@ set(IGNORE_SOURCES
 foreach(SOURCEFILE ${IGNORE_SOURCES})
     list(FILTER DBB-FILTERED-SOURCES EXCLUDE REGEX ".*/${SOURCEFILE}$")
 endforeach()
-
-message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 
 add_library(sd-mock
   STATIC

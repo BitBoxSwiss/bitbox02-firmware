@@ -8,21 +8,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dev-container:
+    uses: ./.github/workflows/ci-dev-container.yml
+    secrets: inherit
+
   pr-head-ci:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Clone the repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
+    needs: [dev-container]
+    uses: ./.github/workflows/ci-common.yml
+    with:
+      container-repo: ${{ needs.dev-container.outputs.container-repo }}
+      container-version: ${{ needs.dev-container.outputs.container-version }}
+    secrets: inherit
 
-      - name: CI
-        uses: ./.github/actions/pr-ci-common
-        with:
-          base-sha: ${{ github.event.pull_request.base.sha }}
-
-  # Generate a list of commits to run CI on
+  # Build the firmware on every commit to simplify bisecting the firmware
   generate-matrix:
     runs-on: ubuntu-22.04
     outputs:
@@ -48,17 +46,24 @@ jobs:
   # that is that changes to the CI is not tested per commit. All commits use the final version.
   pr-commit-ci:
     runs-on: ubuntu-22.04
-    needs: [ generate-matrix ]
+    needs: [ generate-matrix, dev-container ]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
-    if: needs.generate-matrix.outputs.matrix != ''
+    if: needs.generate-matrix.outputs.matrix != '' && !cancelled()
+    container:
+      image: ${{ needs.dev-container.outputs.container-repo}}:${{ needs.dev-container.outputs.container-version }}
+      env:
+        RUSTFLAGS: "-Dwarnings"
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Create merge commit
         env:
@@ -75,7 +80,5 @@ jobs:
           # get the .ci scripts from there as well.
           git checkout -f ${{ github.event.pull_request.merge_commit_sha }} -- .ci .github
 
-      - name: CI
-        uses: ./.github/actions/pr-ci-common
-        with:
-          base-sha: ${{ github.event.pull_request.base.sha }}
+      - name: build firmware
+        run: make -j$(($(nproc)+1)) firmware

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+sha256sum --check bitbox-da14531-firmware.bin.sha256

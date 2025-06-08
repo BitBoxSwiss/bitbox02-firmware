@@ -1,0 +1,76 @@
+# See reference docs at
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+name: Development container
+on:
+  workflow_call:
+    outputs:
+      container-repo:
+        value: ${{ jobs.dev-container.outputs.container-repo }}
+      container-version:
+        value: ${{ jobs.dev-container.outputs.container-version }}
+
+jobs:
+  dev-container:
+    runs-on: ubuntu-22.04
+    outputs:
+      container-repo: ${{ steps.version.outputs.repo }}
+      container-version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if container should be published
+        id: checks
+        run: |
+          echo modified=$(./.ci/check-container-sources-modified) >> $GITHUB_OUTPUT
+          echo published=$(./.ci/check-container-version-published) >> $GITHUB_OUTPUT
+
+      # On PR builds we will build an image and tag it with `pr-<PR-NUMBER>` if
+      # a new image should be tested. Put that image in GHCR instead of Docker
+      # Hub
+      - name: Get version
+        id: version
+        run: |
+          if [ "true" == "${{ steps.checks.outputs.modified == 'true' && github.event_name == 'pull_request' && 'true'}}" ]; then
+            echo repo=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]') >> $GITHUB_OUTPUT
+            echo version=pr-${{ github.event.number }} >> $GITHUB_OUTPUT
+          else
+            echo repo=shiftcrypto/firmware_v2 >> $GITHUB_OUTPUT
+            echo version=$(cat .containerversion) >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build container
+        if: steps.checks.outputs.published == 'false' && !cancelled()
+        run: |
+          if "${{ steps.checks.outputs.published }}" == "true"; then
+            echo "::error::Container modified but version $(cat .containerversion) already published"
+            exit 1
+          fi
+          repo=${{ steps.version.outputs.repo}}
+          docker build -t $repo:latest -t $repo:${{ steps.version.outputs.version }} .
+
+      - name: Login to Github Container Registry
+        if: github.event_name == 'pull_request' && steps.checks.outputs.published == 'false' && !cancelled()
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: github.event_name == 'push' && steps.checks.outputs.published == 'false' && !cancelled()
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Publish container
+        if: steps.checks.outputs.published == 'false' && !cancelled()
+        run: |
+          repo=${{ steps.version.outputs.repo }}
+          docker push $repo:${{ steps.version.outputs.version }}
+          if [ "true" == "${{ github.event_name == 'push' && 'true' }}" ]; then
+            docker push $repo:latest
+          fi

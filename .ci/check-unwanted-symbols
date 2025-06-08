@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -x
+set -e
+
+# Disallow some symbols in the final binary that we don't want.
+if arm-none-eabi-nm build/bin/firmware.elf | grep -q "float_to_decimal_common_shortest"; then
+    echo "Rust fmt float formatting like {.1} adds significant binary bloat."
+    echo "Use something simpler like (float*10).round() as u64, then format with util::decimal::format"
+    exit 1
+fi
+if arm-none-eabi-nm build/bin/firmware.elf | grep -q "strftime"; then
+    echo "strftime adds significant binary bloat. Use custom formatting like in `format_dateimte()`."
+    exit 1
+fi
+if arm-none-eabi-nm build/bin/firmware.elf | grep -q "sha26sha512"; then
+    # sha26sha512 is a mangled Rust symbol standing for `sha2::sha512`.
+    # One can use rustfilt to see the demangled symbols:
+    # cargo install rustfilt; arm-none-eabi-nm build/bin/firmware.elf | rustfilt
+    echo "sha2::Sha512 adds significant binary bloat."
+    echo "Only use it if there is no other sha512 impl available that is smaller."
+    exit 1
+fi

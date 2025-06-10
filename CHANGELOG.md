@@ -159,6 +159,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Bootloader
 
+### v1.1.1
+- Fix touch in plus bootloader
+
 ### v1.1.0
 - Update manufacturer HID descriptor to bitbox.swiss
 - Implement OP_HARDWARE endpoint, to identify the secure chip model

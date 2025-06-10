@@ -83,7 +83,7 @@ int main(void)
     platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
     screen_init();
-#ifdef BOOTLOADER_DEVDEVICE
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
     qtouch_init();
 #endif
     bootloader_jump();

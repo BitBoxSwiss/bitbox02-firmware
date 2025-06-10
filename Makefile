@@ -63,6 +63,7 @@ firmware-btc: | build
 	$(MAKE) -C build firmware-btc.elf
 firmware-debug: | build-debug
 	$(MAKE) -C build-debug firmware.elf
+
 bootloader: | build
 	$(MAKE) -C build bb02-bl-multi.elf
 bootloader-development: | build
@@ -73,6 +74,14 @@ bootloader-production: | build
 	$(MAKE) -C build bb02-bl-multi-production.elf
 bootloader-debug: | build-debug
 	$(MAKE) -C build-debug bb02-bl-multi-development.elf
+
+bootloader-btc: | build
+	$(MAKE) -C build bb02-bl-btconly.elf
+bootloader-btc-development: | build
+	$(MAKE) -C build bb02-bl-btconly-development.elf
+bootloader-btc-production: | build
+	$(MAKE) -C build bb02-bl-btconly-production.elf
+
 bootloader-plus: | build
 	$(MAKE) -C build bb02p-bl-multi.elf
 bootloader-plus-development: | build
@@ -81,16 +90,14 @@ bootloader-plus-production: | build
 	$(MAKE) -C build bb02p-bl-multi-production.elf
 bootloader-plus-debug: | build-debug
 	$(MAKE) -C build-debug bb02p-bl-multi-development.elf
-bootloader-btc: | build
-	$(MAKE) -C build bb02-bl-btconly.elf
-bootloader-btc-development: | build
-	$(MAKE) -C build bb02-bl-btconly-development.elf
-bootloader-btc-production: | build
-	$(MAKE) -C build bb02-bl-btconly-production.elf
-bootloader-btc-plus-development: | build
+
+bootloader-plus-btc: | build
+	$(MAKE) -C build bb02p-bl-btconly.elf
+bootloader-plus-btc-development: | build
 	$(MAKE) -C build bb02p-bl-btconly-development.elf
-bootloader-btc-plus-production: | build
+bootloader-plus-btc-production: | build
 	$(MAKE) -C build bb02p-bl-btconly-production.elf
+
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
 factory-setup-debug: | build-debug

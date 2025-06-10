@@ -256,10 +256,17 @@ typedef enum {
     BLE_ERR_FW_MISMATCH = 8,
     BLE_ERR_SPI_ERASE = 9,
     BLE_ERR_FW_NOT_ALLOWED = 10,
+    // BLE chip hasn't booted as far as we can tell
     BLE_ERR_NOT_BOOTED = 11,
+    // BLE chip has successfully received the firmware, but isn't responding
+    BLE_ERR_NOT_RESPONDING = 12,
+    // We could not successfully reset the BLE chip over SWD. Might not be an issue if it is a
+    // configured device
+    BLE_ERR_NO_SWD = 13,
 } ble_error_code_t;
 
-static ble_error_code_t _ble_result;
+static ble_error_code_t _ble_flash_result;
+static ble_error_code_t _ble_boot_result;
 
 static void _rtt_send(const uint8_t* msg, size_t len)
 {
@@ -424,8 +431,9 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         break;
     case OP_BLE_RESULT:
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
-            output[2] = _ble_result;
-            out_len++;
+            output[2] = _ble_flash_result;
+            output[3] = _ble_boot_result;
+            out_len += 2;
         } else {
             result = ERR_UNKNOWN_COMMAND;
         }
@@ -492,7 +500,7 @@ static ble_error_code_t _verify_ble(const uint8_t* expected_ble_fw_hash, uint8_t
 }
 
 // TODO: call this as part of an API endpoint?
-static ble_error_code_t _setup_ble(void)
+static ble_error_code_t _ble_flash(void)
 {
     if (da14531_firmware_size() > MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE) {
         return BLE_ERR_FW_TOO_LARGE;
@@ -510,13 +518,6 @@ static ble_error_code_t _setup_ble(void)
 
     if (!MEMEQ(ble_fw_hash, _allowed_ble_fw_hash, 32)) {
         return BLE_ERR_FW_NOT_ALLOWED;
-    }
-
-    // BLE already setup, no need to repeat it. This saves a lot of time when repeating the
-    // factorysetup of a device, as then we can skip the time-consuming chip erase below.
-    if (_verify_ble(ble_fw_hash, checksum) == BLE_OK) {
-        screen_print_debug("Skipping BLE setup.\nAlready done.", 0);
-        return BLE_OK;
     }
 
     spi_mem_protected_area_unlock();
@@ -553,12 +554,18 @@ static ble_error_code_t _setup_ble(void)
     ble_error_code_t status = _verify_ble(ble_fw_hash, checksum);
     if (status != BLE_OK) {
         screen_print_debug("_setup_ble: failed to verify new firmware", 0);
-        return status;
     }
+    return status;
+}
 
-    // Boot the chip
-    // protocol_init will reset the chip so it asks for the firmware.
+static ble_error_code_t _ble_check_booted(bool rerun)
+{
     da14531_protocol_init();
+    if (!rerun) {
+        if (!da14531_protocol_swd_reset()) {
+            return BLE_ERR_NO_SWD;
+        }
+    }
     uint8_t uart_read_buf[1024];
     uint16_t uart_read_buf_len = 0;
     uint8_t uart_write_buf[1024];
@@ -574,9 +581,14 @@ static ble_error_code_t _setup_ble(void)
         struct da14531_protocol_frame* frame =
             da14531_protocol_poll(uart_read_buf, &uart_read_buf_len, NULL, &uart_write_queue);
         if (frame) {
-            // We have successfully booted the chip, the BLE chips firmware sent its first request
+            // We have successfully booted the chip, the BLE chips firmware sent its first
+            // request
             return BLE_OK;
         }
+    }
+    // If we run out of time, we check if the BLE chip requested the firmware
+    if (da14531_protocol_booted_once()) {
+        return BLE_ERR_NOT_RESPONDING;
     }
     screen_print_debug("Failed to check BLE chip status", 0);
     return BLE_ERR_NOT_BOOTED;
@@ -607,7 +619,15 @@ int main(void)
     }
 
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
-        _ble_result = _setup_ble();
+        uint8_t checksum =
+            _ble_firmware_checksum(da14531_firmware_start(), da14531_firmware_size());
+        _ble_flash_result = _verify_ble(_allowed_ble_fw_hash, checksum);
+        // If the flashed firmware is correct, this is a rerun
+        bool rerun = _ble_flash_result == BLE_OK;
+        if (!rerun) {
+            _ble_flash_result = _ble_flash();
+        }
+        _ble_boot_result = _ble_check_booted(rerun);
     }
 
     screen_print_debug("READY", 0);

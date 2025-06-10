@@ -33,6 +33,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+static bool _booted_once = false;
+
 enum firmware_loader_state {
     FIRMWARE_LOADER_STATE_IDLE,
     FIRMWARE_LOADER_STATE_SEEN_STX,
@@ -187,6 +189,7 @@ static void _firmware_loader_poll(
                 ASSERT(ringbuffer_num(out_queue) + 1 <= out_queue->size);
                 ringbuffer_put(out_queue, ACK);
                 self->state = FIRMWARE_LOADER_STATE_DONE;
+                _booted_once = true;
             } else {
                 util_log(
                     "da14531: checksum failure, their:%02X, our:%02X", buf_in[0], ble_fw_checksum);
@@ -457,10 +460,13 @@ void da14531_protocol_init(void)
 {
     _firmware_loader_init(&_protocol.loader);
     _serial_link_in_init(&_protocol.serial_link);
+}
 
 // Only attempt swd reset in factory setup or debug builds. In production swd is turned off and
 // this is therefore useless.
 #if FACTORYSETUP == 1 || !defined(NDEBUG)
+bool da14531_protocol_swd_reset(void)
+{
     // Load the firmware from external flash to RAM so that we are ready to flash.
     if (ble_fw == NULL) {
         if (!memory_spi_get_active_ble_firmware(&ble_fw, &ble_fw_size, &ble_fw_checksum)) {
@@ -474,9 +480,15 @@ void da14531_protocol_init(void)
         util_log("da14531: Failed to reset over SWD");
         free(ble_fw);
         ble_fw = NULL;
-    } else {
-        // If we successfully reset the chip, we also would like to load it with firmware
-        _protocol.loader.state = FIRMWARE_LOADER_STATE_IDLE;
+        return false;
     }
+    // If we successfully reset the chip, we also would like to load it with firmware
+    _protocol.loader.state = FIRMWARE_LOADER_STATE_IDLE;
+    return true;
+}
 #endif
+
+bool da14531_protocol_booted_once(void)
+{
+    return _booted_once;
 }

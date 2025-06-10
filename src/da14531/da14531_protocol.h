@@ -14,6 +14,7 @@
 
 #ifndef DA14531_PROTOCOL_H
 #define DA14531_PROTOCOL_H
+#include "platform_config.h"
 #include "utils_ringbuffer.h"
 #include <stdint.h>
 
@@ -68,4 +69,12 @@ uint16_t da14531_protocol_format(
     enum da14531_protocol_packet_type type,
     const uint8_t* payload,
     uint16_t payload_len);
+
+#if FACTORYSETUP == 1 || !defined(NDEBUG)
+// Reset the BLE chip over SWD and the firmware loader to IDLE state
+bool da14531_protocol_swd_reset(void);
+#endif
+
+bool da14531_protocol_booted_once(void);
+
 #endif

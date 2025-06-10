@@ -395,7 +395,7 @@ void bootloader_init(void)
     _oled_set_pins();
     _ptc_clock_init();
 
-#ifdef BOOTLOADER_DEVDEVICE
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
     // Only needed for qtouch, which is only needed in the devdevice bootloader.
     _timer_peripheral_init();
 #endif

@@ -25,6 +25,8 @@ import sys
 MAGIC_LEN = 4
 MAGIC_MULTI = struct.pack(">I", 0x653F362B)
 MAGIC_BTCONLY = struct.pack(">I", 0x11233B0B)
+MAGIC_BITBOX02PLUS_MULTI = struct.pack(">I", 0x5B648CEB)
+MAGIC_BITBOX02PLUS_BTCONLY = struct.pack(">I", 0x48714774)
 
 MAX_FIRMWARE_SIZE = 884736
 NUM_ROOT_KEYS = 3
@@ -55,9 +57,13 @@ def main() -> int:
     sigdata, firmware = rest[:SIGDATA_LEN], rest[SIGDATA_LEN:]
 
     if magic == MAGIC_MULTI:
-        print("This is a Multi-edition firmware.")
+        print("This is a BitBox02 Multi firmware.")
     elif magic == MAGIC_BTCONLY:
-        print("This is a Bitcoin-only edition firmware.")
+        print("This is a BitBox02 Bitcoin-only firmware.")
+    elif magic == MAGIC_BITBOX02PLUS_MULTI:
+        print("This is a BitBox02 Nova Multi firmware")
+    elif magic == MAGIC_BITBOX02PLUS_BTCONLY:
+        print("This is a BitBox02 Nova Bitcoin-only firmware.")
     else:
         print(
             f"Unrecognized firmware edition; magic = f{magic.hex()}. Maybe you have accidentally invoked this script on an unsigned binary. Make sure to use a signed firmware binary."

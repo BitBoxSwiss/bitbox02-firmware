@@ -451,26 +451,23 @@ static void _test_keystore_lock(void** state)
     assert_true(keystore_is_locked());
 }
 
-static void _test_keystore_get_bip39_mnemonic(void** state)
+static void _test_keystore_bip39_mnemonic_from_seed(void** state)
 {
     char mnemonic[300];
-    _mock_unlocked(NULL, 0, NULL);
-    assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
 
-    _mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
-    assert_false(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
-
-    _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
-    assert_true(keystore_get_bip39_mnemonic(mnemonic, sizeof(mnemonic)));
+    assert_true(keystore_bip39_mnemonic_from_seed(
+        _mock_seed, sizeof(_mock_seed), mnemonic, sizeof(mnemonic)));
     const char* expected_mnemonic =
         "baby mass dust captain baby mass mass dust captain baby mass dutch creek office smoke "
         "grid creek olive baby mass dust captain baby length";
     assert_string_equal(mnemonic, expected_mnemonic);
 
     // Output buffer too short.
-    assert_false(keystore_get_bip39_mnemonic(mnemonic, strlen(expected_mnemonic)));
+    assert_false(keystore_bip39_mnemonic_from_seed(
+        _mock_seed, sizeof(_mock_seed), mnemonic, strlen(expected_mnemonic)));
     // Just enough space to fit.
-    assert_true(keystore_get_bip39_mnemonic(mnemonic, strlen(expected_mnemonic) + 1));
+    assert_true(keystore_bip39_mnemonic_from_seed(
+        _mock_seed, sizeof(_mock_seed), mnemonic, strlen(expected_mnemonic) + 1));
 }
 
 static void _test_keystore_create_and_store_seed(void** state)
@@ -696,7 +693,7 @@ int main(void)
         cmocka_unit_test(_test_keystore_unlock),
         cmocka_unit_test(_test_keystore_unlock_bip39),
         cmocka_unit_test(_test_keystore_lock),
-        cmocka_unit_test(_test_keystore_get_bip39_mnemonic),
+        cmocka_unit_test(_test_keystore_bip39_mnemonic_from_seed),
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_keystore_get_ed25519_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),

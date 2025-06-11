@@ -20,7 +20,7 @@ use pb::response::Response;
 use crate::hal::Ui;
 use crate::workflow::confirm;
 
-use bitbox02::keystore;
+use crate::keystore;
 
 use alloc::vec::Vec;
 
@@ -160,5 +160,7 @@ async fn process_ln(
         })
         .await?;
 
-    keystore::bip85_ln(account_number).map_err(|_| Error::Generic)
+    Ok(keystore::bip85_ln(account_number)
+        .map_err(|_| Error::Generic)?
+        .to_vec())
 }

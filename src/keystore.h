@@ -116,13 +116,14 @@ void keystore_lock(void);
 USE_RESULT bool keystore_is_locked(void);
 
 /**
- * @param[out] mnemonic_out resulting mnemonic
- * @param[in] mnemonic_out_size size of mnemonic_out. Should be at least 216 bytes (longest possible
- *            24 word phrase plus null terminator).
- * @return returns false if the keystore is not unlocked or the mnemonic does not fit.
- * The resulting string should be safely zeroed after use.
+ * Converts a 16/24/32 byte seed into a BIP-39 mnemonic string.
+ * Returns false if the seed size is invalid or the output string buffer is not large enough.
  */
-USE_RESULT bool keystore_get_bip39_mnemonic(char* mnemonic_out, size_t mnemonic_out_size);
+USE_RESULT bool keystore_bip39_mnemonic_from_seed(
+    const uint8_t* seed,
+    size_t seed_size,
+    char* mnemonic_out,
+    size_t mnemonic_out_size);
 
 /**
  * Turn a bip39 mnemonic into a seed. Make sure to use UTIL_CLEANUP_32 to destroy it.
@@ -229,31 +230,6 @@ USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
  * ed25519 private key followed by a 32 byte chain code.
  */
 USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
-
-/**
- * Computes a BIP39 mnemonic according to BIP-85:
- * https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
- * @param[in] words must be 12, 18 or 24.
- * @param[in] index must be smaller than `BIP32_INITIAL_HARDENED_CHILD`.
- * @param[out] mnemonic_out resulting mnemonic
- * @param[in] mnemonic_out_size size of mnemonic_out. Should be at least 216 bytes (longest possible
- *            24 word phrase plus null terminator).
- */
-USE_RESULT bool keystore_bip85_bip39(
-    uint32_t words,
-    uint32_t index,
-    char* mnemonic_out,
-    size_t mnemonic_out_size);
-
-/**
- * Computes a 16 byte deterministic seed specifically for Lightning hot wallets according to BIP-85.
- * It is the same as BIP-85 with app number 39', but instead using app number 19534' (= 0x4c4e =
- * 'LN'). https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
- * Restricted to 16 byte output entropy.
- * @param[in] index must be smaller than `BIP32_INITIAL_HARDENED_CHILD`.
- * @param[out] entropy_out resulting entropy, must be at least 16 bytes in size.
- */
-USE_RESULT bool keystore_bip85_ln(uint32_t index, uint8_t* entropy_out);
 
 /**
  * Encode an xpub at the given `keypath` as 78 bytes according to BIP32. The version bytes are

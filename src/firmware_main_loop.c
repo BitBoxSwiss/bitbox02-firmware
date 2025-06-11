@@ -103,6 +103,11 @@ void firmware_main_loop(void)
         }
         if (!u2f_data) {
             u2f_data = queue_pull(queue_u2f_queue());
+            // If USB stack was locked and there is no more messages to send out, time to
+            // unlock it.
+            if (!u2f_data && usb_processing_locked(usb_processing_u2f())) {
+                usb_processing_unlock();
+            }
         }
 #endif
         // Do USB Input
@@ -120,6 +125,7 @@ void firmware_main_loop(void)
         }
 #if APP_U2F == 1
         if (!u2f_data && hid_u2f_read(&u2f_frame[0])) {
+            util_log("u2f data %s", util_dbg_hex((void*)u2f_frame, 16));
             u2f_packet_process((const USB_FRAME*)u2f_frame);
             if (communication_mode_ble_enabled()) {
                 // Enqueue a power down command to the da14531
@@ -152,6 +158,7 @@ void firmware_main_loop(void)
 #if APP_U2F == 1
         if (!communication_mode_ble_enabled() && u2f_data) {
             if (hid_u2f_write_poll(u2f_data)) {
+                util_log("u2f wrote %s", util_dbg_hex(u2f_data, 16));
                 u2f_data = NULL;
             }
         }

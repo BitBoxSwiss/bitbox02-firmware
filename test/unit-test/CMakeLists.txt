@@ -14,10 +14,6 @@
 
 # No linker for Mach-O supports the linker argument `--wrap`. Since we use
 # that, unit tests will never work on macos. Use linux/arm64 in docker instead.
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    message("No linker for Mach-O supports --wrap, will not generate unit-tests")
-    return()
-endif()
 
 # We use FindPkgConfig instead of FindPackage because it finds libraries in
 # both linux and macos
@@ -26,7 +22,11 @@ find_package(PkgConfig REQUIRED)
 # Unit testing uses CMocka
 pkg_check_modules(CMOCKA REQUIRED cmocka)
 # u2f tests with hardware uses hidapi-hidraw
-pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  pkg_check_modules(HIDAPI REQUIRED hidapi)
+else()
+  pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw)
+endif()
 
 #-----------------------------------------------------------------------------
 # Build bitbox lib to use in tests
@@ -176,7 +176,7 @@ target_compile_definitions(bitbox PUBLIC TESTING _UNIT_TEST_)
 target_link_libraries(bitbox
   PUBLIC
     secp256k1
-    ${CMOCKA_LIBRARIES}
+    ${CMOCKA_LDFLAGS}
   PRIVATE
     wallycore
     fatfs
@@ -219,7 +219,7 @@ target_include_directories(
 target_compile_definitions(u2f-util PUBLIC "TESTING" _UNIT_TEST_ PRODUCT_BITBOX_MULTI "APP_U2F=1" "APP_BTC=1" "APP_LTC=1" "APP_ETH=1")
 target_compile_definitions(u2f-util PUBLIC "USE_KECCAK")
 
-target_link_libraries(u2f-util PUBLIC ${HIDAPI_LIBRARIES})
+target_link_libraries(u2f-util PUBLIC ${HIDAPI_LDFLAGS})
 
 
 #-----------------------------------------------------------------------------
@@ -258,28 +258,32 @@ set(TEST_LIST
    ""
 )
 
-list(LENGTH TEST_LIST TEST_LIST_LEN)
-math(EXPR TEST_LIST_LEN ${TEST_LIST_LEN}-1)
-foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
-  math(EXPR I2 ${I}+1)
-  list(GET TEST_LIST ${I} TEST_NAME)
-  list(GET TEST_LIST ${I2} TEST_LINK_ARGS)
-  set(EXE test_${TEST_NAME})
-  add_executable(${EXE} test_${TEST_NAME}.c framework/eh_personality.c)
-  # asan must be first library in linking order
-  target_link_libraries(${EXE} PRIVATE
-    $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
-    $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
-    -Wl,--start-group
-    c-unit-tests_rust_c
-    bitbox
-    -Wl,--end-group
-    ${TEST_LINK_ARGS}
-  )
-  if(NOT ${TEST_NAME} STREQUAL "simulator")
-      add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
-    endif()
-endforeach()
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  message("No linker for Mach-O supports --wrap, will not generate unit-tests")
+else()
+  list(LENGTH TEST_LIST TEST_LIST_LEN)
+  math(EXPR TEST_LIST_LEN ${TEST_LIST_LEN}-1)
+  foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
+    math(EXPR I2 ${I}+1)
+    list(GET TEST_LIST ${I} TEST_NAME)
+    list(GET TEST_LIST ${I2} TEST_LINK_ARGS)
+    set(EXE test_${TEST_NAME})
+    add_executable(${EXE} test_${TEST_NAME}.c framework/eh_personality.c)
+    # asan must be first library in linking order
+    target_link_libraries(${EXE} PRIVATE
+      $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+      $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
+      -Wl,--start-group
+      c-unit-tests_rust_c
+      bitbox
+      -Wl,--end-group
+      ${TEST_LINK_ARGS}
+    )
+    if(NOT ${TEST_NAME} STREQUAL "simulator")
+        add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
+      endif()
+  endforeach()
+endif()
 
 
 # These unit tests for U2F are special because they don't call any bitbox functions directly, instead they go through hid_read/write.
@@ -297,10 +301,10 @@ foreach(TEST_NAME ${U2F_TESTS})
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
-    -Wl,--start-group
+    $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
     bitbox
-    -Wl,--end-group
+    $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
     u2f-util
   )
   target_compile_definitions(${EXE} PRIVATE "TESTING")

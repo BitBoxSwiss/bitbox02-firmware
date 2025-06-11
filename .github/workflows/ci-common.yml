@@ -173,8 +173,9 @@ jobs:
           - bootloader-plus-development
           - bootloader-plus-production
           - bootloader-plus-debug
-          - bootloader-btc-plus-development
-          - bootloader-btc-plus-production
+          - bootloader-plus-btc
+          - bootloader-plus-btc-development
+          - bootloader-plus-btc-production
           - firmware
           - firmware-btc
           - factory-setup

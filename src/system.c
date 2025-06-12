@@ -36,6 +36,8 @@ static void _ble_clear_product(void)
         ringbuffer_flush(&uart_queue);
 #endif
     }
+    // Wait 100ms to ensure that the product has had time to clear
+    delay_ms(100);
 }
 
 void reboot_to_bootloader(void)

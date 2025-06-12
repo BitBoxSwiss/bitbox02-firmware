@@ -58,6 +58,8 @@ void reset_ble(void)
     while (ringbuffer_num(&uart_queue)) {
         uart_poll(NULL, 0, NULL, &uart_queue);
     }
+    // Make sure the ble chip is turned off long enough that the app gets disconnected
+    delay_ms(100);
 #endif
 }
 
@@ -101,7 +103,8 @@ void reset_reset(bool status)
         reset_ble();
     }
 
-    reboot();
+    // We don't need to "gracefully" reboot since we reset the BLE chip
+    _reset_mcu();
 #else
     (void)status;
 #endif

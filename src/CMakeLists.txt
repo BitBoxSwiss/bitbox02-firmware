@@ -240,19 +240,6 @@ endif()
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 set(RUSTFLAGS "${RUSTFLAGS} --cfg=rust_secp_no_symbol_renaming")
 
-# Apply workaround for a potential miscompilation bug:
-# See
-# - https://github.com/rust-embedded/cortex-m/discussions/503
-# - https://github.com/rust-lang/rust/issues/118867
-# We have not observed any abnormal behavior even though we fulfil all the criteria to be affected
-# (opt-level='z', thumbv7em-none-eabi target, Rust toolchain 1.74.0 being >= 1.73.0), but we apply
-# the workaround just in case.
-#
-# This increases the binary size of the `make firmware` (Multi) build by 11568 bytes at the time of
-# adding this workaround. This can be removed again once the issue above is fixed and we have
-# updated to a Rust toolchain that contains the fix.
-set(RUSTFLAGS "${RUSTFLAGS} -Cllvm-args=--enable-machine-outliner=never")
-
 if(CMAKE_CROSSCOMPILING)
   set(RUST_TARGET_ARCH thumbv7em-none-eabi)
   set(RUST_TARGET_ARCH_DIR ${RUST_TARGET_ARCH})

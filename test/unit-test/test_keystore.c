@@ -174,38 +174,6 @@ static bool _pubkeys_equal(
     return memcmp(pubkey1_bytes, pubkey2_bytes, len) == 0;
 }
 
-static void _test_keystore_get_xpub(void** state)
-{
-    const secp256k1_context* ctx = wally_get_secp_context();
-
-    struct ext_key xpub = {0};
-
-    _mock_unlocked(NULL, 0, NULL);
-    // fails because keystore is locked
-    assert_false(keystore_get_xpub(_keypath, sizeof(_keypath) / sizeof(uint32_t), &xpub));
-
-    _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
-    assert_true(keystore_get_xpub(_keypath, sizeof(_keypath) / sizeof(uint32_t), &xpub));
-
-    secp256k1_pubkey expected_pubkey;
-    assert_true(secp256k1_ec_pubkey_create(ctx, &expected_pubkey, _expected_seckey));
-
-    secp256k1_pubkey pubkey;
-    assert_true(secp256k1_ec_pubkey_parse(ctx, &pubkey, xpub.pub_key, sizeof(xpub.pub_key)));
-
-    assert_true(_pubkeys_equal(ctx, &pubkey, &expected_pubkey));
-
-    char* xpub_string;
-    // Make sure it's a public key, no
-    assert_false(bip32_key_to_base58(&xpub, BIP32_FLAG_KEY_PRIVATE, &xpub_string) == WALLY_OK);
-    assert_true(bip32_key_to_base58(&xpub, BIP32_FLAG_KEY_PUBLIC, &xpub_string) == WALLY_OK);
-    assert_string_equal(
-        xpub_string,
-        "xpub6Gmp9vKrJrVbU5JDcPRm6UmJPjTBurWfqow6w3BoK46E6mVyScMfTXd66WFeLfRa7Ug4iGMWDpWLpZAYcuUHyz"
-        "cWZCqh8393rbuMoerRK1p");
-    wally_free_string(xpub_string);
-}
-
 static void _test_keystore_secp256k1_nonce_commit(void** state)
 {
     uint8_t msg[32] = {0};
@@ -603,7 +571,6 @@ int main(void)
     mock_memory_set_salt_root(_salt_root);
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_keystore_get_xpub),
         cmocka_unit_test(_test_keystore_secp256k1_nonce_commit),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),

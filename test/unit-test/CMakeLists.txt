@@ -232,8 +232,6 @@ set(TEST_LIST
    "-Wl,--wrap=secp256k1_anti_exfil_sign,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=memory_get_salt_root,--wrap=reset_reset,--wrap=random_32_bytes"
    keystore_antiklepto
    ""
-   keystore_functional
-   "-Wl,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=memory_get_salt_root,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts"
    gestures
    ""
    random

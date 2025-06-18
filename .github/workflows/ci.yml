@@ -11,6 +11,9 @@ jobs:
   dev-container:
     uses: ./.github/workflows/ci-dev-container.yml
     secrets: inherit
+    permissions:
+      contents: read
+      packages: write
   ci:
     needs: [dev-container]
     uses: ./.github/workflows/ci-common.yml

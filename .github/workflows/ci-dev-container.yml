@@ -15,6 +15,9 @@ jobs:
     outputs:
       container-repo: ${{ steps.version.outputs.repo }}
       container-version: ${{ steps.version.outputs.version }}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4

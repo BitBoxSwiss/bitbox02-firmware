@@ -356,7 +356,7 @@ pub fn secp256k1_schnorr_sign(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
+    use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
     use alloc::string::ToString;
     use util::bip32::HARDENED;
 
@@ -440,10 +440,28 @@ mod tests {
         lock();
         assert!(get_ed25519_seed().is_err());
 
-        mock_unlocked();
+        // Test vectors taken from:
+        // https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0003/Ledger.md#test-vectors
+        // See also: https://github.com/cardano-foundation/CIPs/pull/132
+
+        mock_unlocked_using_mnemonic("recall grace sport punch exhibit mad harbor stand obey short width stem awkward used stairs wool ugly trap season stove worth toward congress jaguar", "");
         assert_eq!(
-            get_ed25519_seed().unwrap().as_ref() as &[u8],
-            b"\xf8\xcb\x28\x85\x37\x60\x2b\x90\xd1\x29\x75\x4b\xdd\x0e\x4b\xed\xf9\xe2\x92\x3a\x04\xb6\x86\x7e\xdb\xeb\xc7\x93\xa7\x17\x6f\x5d\xca\xc5\xc9\x5d\x5f\xd2\x3a\x8e\x01\x6c\x95\x57\x69\x0e\xad\x1f\x00\x2b\x0f\x35\xd7\x06\xff\x8e\x59\x84\x1c\x09\xe0\xb6\xbb\x23\xf0\xa5\x91\x06\x42\xd0\x77\x98\x17\x40\x2e\x5e\x7a\x75\x54\x95\xe7\x44\xf5\x5c\xf1\x1e\x49\xee\xfd\x22\xa4\x60\xe9\xb2\xf7\x53",
+            hex::encode(get_ed25519_seed().unwrap()),
+            "a08cf85b564ecf3b947d8d4321fb96d70ee7bb760877e371899b14e2ccf88658104b884682b57efd97decbb318a45c05a527b9cc5c2f64f7352935a049ceea60680d52308194ccef2a18e6812b452a5815fbd7f5babc083856919aaf668fe7e4",
+        );
+
+        // Multiple loop iterations.
+
+        mock_unlocked_using_mnemonic("correct cherry mammal bubble want mandate polar hazard crater better craft exotic choice fun tourist census gap lottery neglect address glow carry old business", "");
+        assert_eq!(
+            hex::encode(get_ed25519_seed().unwrap()),
+            "587c6774357ecbf840d4db6404ff7af016dace0400769751ad2abfc77b9a3844cc71702520ef1a4d1b68b91187787a9b8faab0a9bb6b160de541b6ee62469901fc0beda0975fe4763beabd83b7051a5fd5cbce5b88e82c4bbaca265014e524bd",
+        );
+
+        mock_unlocked_using_mnemonic("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art", "foo");
+        assert_eq!(
+            hex::encode(get_ed25519_seed().unwrap()),
+            "f053a1e752de5c26197b60f032a4809f08bb3e5d90484fe42024be31efcba7578d914d3ff992e21652fee6a4d99f6091006938fac2c0c0f9d2de0ba64b754e92a4f3723f23472077aa4cd4dd8a8a175dba07ea1852dad1cf268c61a2679c3890",
         );
     }
 

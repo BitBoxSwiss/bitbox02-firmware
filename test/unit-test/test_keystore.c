@@ -524,59 +524,6 @@ static void _mock_with_mnemonic(const char* mnemonic, const char* passphrase)
     assert_true(keystore_unlock_bip39(passphrase));
 }
 
-static void _test_keystore_get_ed25519_seed(void** state)
-{
-    // Test vectors taken from:
-    // https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0003/Ledger.md#test-vectors
-    // See also: https://github.com/cardano-foundation/CIPs/pull/132
-
-    _mock_with_mnemonic(
-        "recall grace sport punch exhibit mad harbor stand obey short width stem awkward used "
-        "stairs wool ugly trap season stove worth toward congress jaguar",
-        "");
-
-    uint8_t seed[96];
-    assert_true(keystore_get_ed25519_seed(seed));
-    assert_memory_equal(
-        seed,
-        "\xa0\x8c\xf8\x5b\x56\x4e\xcf\x3b\x94\x7d\x8d\x43\x21\xfb\x96\xd7\x0e\xe7\xbb\x76\x08\x77"
-        "\xe3\x71\x89\x9b\x14\xe2\xcc\xf8\x86\x58\x10\x4b\x88\x46\x82\xb5\x7e\xfd\x97\xde\xcb\xb3"
-        "\x18\xa4\x5c\x05\xa5\x27\xb9\xcc\x5c\x2f\x64\xf7\x35\x29\x35\xa0\x49\xce\xea\x60\x68\x0d"
-        "\x52\x30\x81\x94\xcc\xef\x2a\x18\xe6\x81\x2b\x45\x2a\x58\x15\xfb\xd7\xf5\xba\xbc\x08\x38"
-        "\x56\x91\x9a\xaf\x66\x8f\xe7\xe4",
-        sizeof(seed));
-
-    // Multiple loop iterations.
-    _mock_with_mnemonic(
-        "correct cherry mammal bubble want mandate polar hazard crater better craft exotic choice "
-        "fun tourist census gap lottery neglect address glow carry old business",
-        "");
-    assert_true(keystore_get_ed25519_seed(seed));
-    assert_memory_equal(
-        seed,
-        "\x58\x7c\x67\x74\x35\x7e\xcb\xf8\x40\xd4\xdb\x64\x04\xff\x7a\xf0\x16\xda\xce\x04\x00\x76"
-        "\x97\x51\xad\x2a\xbf\xc7\x7b\x9a\x38\x44\xcc\x71\x70\x25\x20\xef\x1a\x4d\x1b\x68\xb9\x11"
-        "\x87\x78\x7a\x9b\x8f\xaa\xb0\xa9\xbb\x6b\x16\x0d\xe5\x41\xb6\xee\x62\x46\x99\x01\xfc\x0b"
-        "\xed\xa0\x97\x5f\xe4\x76\x3b\xea\xbd\x83\xb7\x05\x1a\x5f\xd5\xcb\xce\x5b\x88\xe8\x2c\x4b"
-        "\xba\xca\x26\x50\x14\xe5\x24\xbd",
-        sizeof(seed));
-
-    _mock_with_mnemonic(
-        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
-        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
-        "abandon art",
-        "foo");
-    assert_true(keystore_get_ed25519_seed(seed));
-    assert_memory_equal(
-        seed,
-        "\xf0\x53\xa1\xe7\x52\xde\x5c\x26\x19\x7b\x60\xf0\x32\xa4\x80\x9f\x08\xbb\x3e\x5d\x90\x48"
-        "\x4f\xe4\x20\x24\xbe\x31\xef\xcb\xa7\x57\x8d\x91\x4d\x3f\xf9\x92\xe2\x16\x52\xfe\xe6\xa4"
-        "\xd9\x9f\x60\x91\x00\x69\x38\xfa\xc2\xc0\xc0\xf9\xd2\xde\x0b\xa6\x4b\x75\x4e\x92\xa4\xf3"
-        "\x72\x3f\x23\x47\x20\x77\xaa\x4c\xd4\xdd\x8a\x8a\x17\x5d\xba\x07\xea\x18\x52\xda\xd1\xcf"
-        "\x26\x8c\x61\xa2\x67\x9c\x38\x90",
-        sizeof(seed));
-}
-
 // This tests that `secp256k1_schnorrsig_sign()` is the correct function to be used for schnorr sigs
 // in taproot. It is a separate test because there are test vectors available for this which cannot
 // be made to work with `keystore_secp256k1_schnorr_bip86_sign()`.
@@ -695,7 +642,6 @@ int main(void)
         cmocka_unit_test(_test_keystore_lock),
         cmocka_unit_test(_test_keystore_bip39_mnemonic_from_seed),
         cmocka_unit_test(_test_keystore_create_and_store_seed),
-        cmocka_unit_test(_test_keystore_get_ed25519_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),
         cmocka_unit_test(_test_keystore_secp256k1_schnorr_sign),
     };

@@ -219,7 +219,9 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
 async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)
 {
     if (_state.outstanding_confirm != type || !MEMEQ(app_id, _state.app_id, 32)) {
-        Abort("Arbitration failed for U2F confirmation.");
+        // CID used a new app_id, clearly invalid
+        // TODO: Clear u2f state
+        return ASYNC_OP_NOT_READY;
     }
     bool result = false;
     if (!rust_workflow_confirm_poll(&result)) {

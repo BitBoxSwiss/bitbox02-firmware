@@ -8,7 +8,7 @@
 // POSIX
 #include <pthread.h>
 
-#include <hidapi/hidapi.h>
+#include <hidapi.h>
 
 #include "queue.h"
 #include "u2f.h"
@@ -136,6 +136,9 @@ int hid_read_timeout(hid_device* dev, unsigned char* data, size_t length, int mi
         return -127;
     }
     if (queue_peek(queue_u2f_queue()) == NULL) {
+        if (usb_processing_locked(usb_processing_u2f())) {
+            usb_processing_unlock();
+        }
         _have_data = false;
     }
     _expect_more = false;

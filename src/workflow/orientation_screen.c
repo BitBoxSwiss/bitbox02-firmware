@@ -21,7 +21,6 @@
 #endif
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
-#include <hww.h>
 #include <memory/memory_shared.h>
 #include <screen.h>
 #include <ui/components/lockscreen.h>
@@ -30,10 +29,6 @@
 #include <usb/usb.h>
 #include <utils_ringbuffer.h>
 #include <version.h>
-
-#if APP_U2F
-#include <u2f.h>
-#endif
 
 #ifndef TESTING
 #define IDLE_PERIOD_MS 1300
@@ -66,12 +61,6 @@ static struct select_orientation_data _data = {0};
 static void _idle_timer_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
-
-    // Setup usb_processing handlers
-    hww_setup();
-#if APP_U2F
-    u2f_device_setup();
-#endif
 
     // hww handler in usb_process must be setup before we can allow ble connections
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {

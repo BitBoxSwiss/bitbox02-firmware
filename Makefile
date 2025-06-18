@@ -14,8 +14,15 @@
 
 # This makefile is used as a command runner and not for tracking dependencies between recipies
 
+UNAME_S := $(shell uname -s)
+
 .DEFAULT_GOAL := firmware
-SANITIZE ?= ON
+# asan/ubsan is not supported on darwin, default to off
+ifeq ($(UNAME_S),Darwin)
+  SANITIZE ?= OFF
+else
+  SANITIZE ?= ON
+endif
 simulator: SANITIZE = OFF
 
 bootstrap:

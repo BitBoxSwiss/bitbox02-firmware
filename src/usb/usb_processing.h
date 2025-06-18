@@ -76,6 +76,8 @@ void usb_processing_lock(struct usb_processing* ctx);
 void usb_processing_timeout_reset(int16_t val);
 
 void usb_processing_unlock(void);
+
+bool usb_processing_locked(struct usb_processing* ctx);
 #endif
 
 #endif

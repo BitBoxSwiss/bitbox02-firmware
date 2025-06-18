@@ -63,6 +63,9 @@ version = "0.13.1"
 default-features = false
 features = ["derive"]
 
+[dev-dependencies]
+bitbox-aes = { path = "../bitbox-aes", features = ["use-wally-sha512"] }
+
 [features]
 ed25519 = [
   "dep:bip32-ed25519",

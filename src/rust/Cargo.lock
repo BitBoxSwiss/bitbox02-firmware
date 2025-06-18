@@ -117,6 +117,7 @@ dependencies = [
  "bech32",
  "binascii",
  "bip32-ed25519",
+ "bitbox-aes",
  "bitbox02",
  "bitbox02-noise",
  "bitcoin",

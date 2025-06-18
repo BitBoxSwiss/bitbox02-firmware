@@ -568,6 +568,44 @@ mod tests {
         assert!(matches!(unlock("password"), Err(Error::Unseeded)));
     }
 
+    #[test]
+    fn test_unlock_bip39() {
+        mock_memory();
+        lock();
+
+        let seed = hex::decode("1111111111111111222222222222222233333333333333334444444444444444")
+            .unwrap();
+
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+        crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
+        assert!(unlock_bip39("foo").is_ok());
+
+        // Check that the retained bip39 seed was encrypted with the expected encryption key.
+        let decrypted = {
+            let retained_bip39_seed_encrypted: &[u8] = unsafe {
+                let mut len = 0usize;
+                let ptr = bitbox02_sys::keystore_test_get_retained_bip39_seed_encrypted(&mut len);
+                core::slice::from_raw_parts(ptr, len)
+            };
+            let expected_retained_bip39_seed_secret =
+                hex::decode("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29")
+                    .unwrap();
+            bitbox_aes::decrypt_with_hmac(
+                &expected_retained_bip39_seed_secret,
+                retained_bip39_seed_encrypted,
+            )
+            .unwrap()
+        };
+        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
+        assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
+    }
+
     // This tests that you can create a keystore, unlock it, and then do this again. This is an
     // expected workflow for when the wallet setup process is restarted after seeding and unlocking,
     // but before creating a backup, in which case a new seed is created.

@@ -52,10 +52,6 @@ static uint8_t _mock_bip39_seed[64] = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
 };
 
-static uint8_t _unstretched_retained_bip39_seed_encryption_key[32] =
-    "\x9b\x44\xc7\x04\x88\x93\xfa\xaf\x6e\x2d\x76\x25\xd1\x3d\x8f\x1c\xab\x07\x65\xfd\x61\xf1\x59"
-    "\xd9\x71\x3e\x08\x15\x5d\x06\x71\x7c";
-
 static const uint32_t _keypath[] = {
     44 + BIP32_INITIAL_HARDENED_CHILD,
     0 + BIP32_INITIAL_HARDENED_CHILD,
@@ -68,10 +64,6 @@ static const uint8_t _expected_seckey[32] = {
     0x4e, 0x64, 0xdf, 0xd3, 0x3a, 0xae, 0x66, 0xc4, 0xc7, 0x52, 0x6c, 0xf0, 0x2e, 0xe8, 0xae, 0x3f,
     0x58, 0x92, 0x32, 0x9d, 0x67, 0xdf, 0xd4, 0xad, 0x05, 0xe9, 0xc3, 0xd0, 0x6e, 0xdf, 0x74, 0xfb,
 };
-
-const uint8_t _expected_retained_bip39_seed_secret[32] =
-    "\x85\x6d\x9a\x8c\x1e\xa4\x2a\x69\xae\x76\x32\x42\x44\xac\xe6\x74\x39\x7f\xf1\x36\x0a\x4b\xa4"
-    "\xc8\x5f\xfb\xd4\x2c\xee\x8a\x7f\x29";
 
 // Same as Python:
 // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
@@ -120,16 +112,8 @@ void __wrap_random_32_bytes(uint8_t* buf)
     memcpy(buf, (const void*)mock(), 32);
 }
 
-static void _expect_retain_bip39_seed(void)
-{
-    will_return(__wrap_random_32_bytes, _unstretched_retained_bip39_seed_encryption_key);
-}
-
 void _mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
 {
-    if (bip39_seed != NULL) {
-        _expect_retain_bip39_seed();
-    }
     keystore_mock_unlocked(seed, seed_len, bip39_seed);
 }
 
@@ -236,36 +220,6 @@ static void _expect_encrypt_and_store_seed(void)
     will_return(__wrap_memory_is_initialized, false);
 }
 
-static void _test_keystore_unlock_bip39(void** state)
-{
-    keystore_lock();
-    assert_false(keystore_unlock_bip39(""));
-
-    _mock_unlocked(_mock_seed, sizeof(_mock_seed), NULL);
-    assert_true(keystore_is_locked());
-
-    _expect_retain_bip39_seed();
-    assert_true(keystore_unlock_bip39("foo"));
-    // Check that the retained bip39 seed was encrypted with the expected encryption key.
-    size_t encrypted_len = 0;
-    const uint8_t* retained_bip39_seed_encrypted =
-        keystore_test_get_retained_bip39_seed_encrypted(&encrypted_len);
-    size_t decrypted_len = encrypted_len - 48;
-    uint8_t out[decrypted_len];
-    assert_true(cipher_aes_hmac_decrypt(
-        retained_bip39_seed_encrypted,
-        encrypted_len,
-        out,
-        &decrypted_len,
-        _expected_retained_bip39_seed_secret));
-    assert_int_equal(decrypted_len, 64);
-    const uint8_t expected_bip39_seed[64] =
-        "\x2b\x3c\x63\xde\x86\xf0\xf2\xb1\x3c\xc6\xa3\x6c\x1b\xa2\x31\x4f\xbc\x1b\x40\xc7\x7a\xb9"
-        "\xcb\x64\xe9\x6b\xa4\xd5\xc6\x2f\xc2\x04\x74\x8c\xa6\x62\x6a\x9f\x03\x5e\x7d\x43\x1b\xce"
-        "\x8c\x92\x10\xec\x0b\xdf\xfc\x2e\x7d\xb8\x73\xde\xe5\x6c\x8a\xc2\x15\x3e\xee\x9a";
-    assert_memory_equal(out, expected_bip39_seed, decrypted_len);
-}
-
 static void _test_keystore_lock(void** state)
 {
     _mock_unlocked(NULL, 0, NULL);
@@ -328,7 +282,6 @@ static void _mock_with_mnemonic(const char* mnemonic, const char* passphrase)
     assert_true(keystore_bip39_mnemonic_to_seed(mnemonic, seed, &seed_len));
 
     _mock_unlocked(seed, seed_len, NULL);
-    _expect_retain_bip39_seed();
     assert_true(keystore_unlock_bip39(passphrase));
 }
 
@@ -442,7 +395,6 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_secp256k1_nonce_commit),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
-        cmocka_unit_test(_test_keystore_unlock_bip39),
         cmocka_unit_test(_test_keystore_lock),
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),

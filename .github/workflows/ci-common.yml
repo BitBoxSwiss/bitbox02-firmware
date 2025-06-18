@@ -203,6 +203,13 @@ jobs:
         if: matrix.target == 'firmware' && !cancelled()
         run: ./.ci/check-unwanted-symbols
 
+      - name: Upload artifact
+        if: github.event_name == 'push' && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.target}}-${{github.sha}}.bin
+          path: build*/bin/*.bin
+
   doc:
     runs-on: ubuntu-22.04
     container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
@@ -221,3 +228,26 @@ jobs:
         run: |
           (mkdir -p build; cd build; cmake -DDOC_GRAPHS=NO ..)
           make -j$(($(nproc)+1)) docs
+
+  report-artifacts:
+    needs: [build]
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && !cancelled()
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+      - name: Create vars
+        id: vars
+        run: |
+          echo "git_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Send message to mattermost
+        uses: mattermost/action-mattermost-notify@master
+        continue-on-error: true
+        if: job.status == 'success'
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
+          MATTERMOST_ICON_URL: https://cdn4.iconfinder.com/data/icons/basic-ui-2-line/32/check-mark-checklist-complete-done-512.png
+          MATTERMOST_CHANNEL: eng-artifacts
+          TEXT: |
+            **${{ github.repository }}: Artifacts built**
+            ([${{ github.ref_name }}](https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}), [${{ steps.vars.outputs.git_sha_short }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}), [artifacts](https://github.com/${{ github.repository }}/actions/runs/${{github.run_id}}#artifacts))

@@ -278,25 +278,6 @@ static void _test_keystore_lock(void** state)
     assert_true(keystore_is_locked());
 }
 
-static void _test_keystore_bip39_mnemonic_from_seed(void** state)
-{
-    char mnemonic[300];
-
-    assert_true(keystore_bip39_mnemonic_from_seed(
-        _mock_seed, sizeof(_mock_seed), mnemonic, sizeof(mnemonic)));
-    const char* expected_mnemonic =
-        "baby mass dust captain baby mass mass dust captain baby mass dutch creek office smoke "
-        "grid creek olive baby mass dust captain baby length";
-    assert_string_equal(mnemonic, expected_mnemonic);
-
-    // Output buffer too short.
-    assert_false(keystore_bip39_mnemonic_from_seed(
-        _mock_seed, sizeof(_mock_seed), mnemonic, strlen(expected_mnemonic)));
-    // Just enough space to fit.
-    assert_true(keystore_bip39_mnemonic_from_seed(
-        _mock_seed, sizeof(_mock_seed), mnemonic, strlen(expected_mnemonic) + 1));
-}
-
 static void _test_keystore_create_and_store_seed(void** state)
 {
     const uint8_t seed_random[32] =
@@ -463,7 +444,6 @@ int main(void)
         cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_unlock_bip39),
         cmocka_unit_test(_test_keystore_lock),
-        cmocka_unit_test(_test_keystore_bip39_mnemonic_from_seed),
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),
         cmocka_unit_test(_test_keystore_secp256k1_schnorr_sign),

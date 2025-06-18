@@ -2,7 +2,6 @@ use crate::prelude::*;
 use crate::{cmsghdr, off_t};
 
 pub type dev_t = u32;
-pub type c_char = i8;
 pub type wchar_t = i32;
 pub type clock_t = u64;
 pub type ino_t = u64;
@@ -11,8 +10,6 @@ pub type nlink_t = u32;
 pub type blksize_t = i64;
 pub type clockid_t = c_ulong;
 
-pub type c_long = i64;
-pub type c_ulong = u64;
 pub type time_t = i64;
 pub type suseconds_t = i64;
 
@@ -563,7 +560,7 @@ cfg_if! {
                     .field("ut_name", &self.ut_name)
                     .field("ut_id", &self.ut_id)
                     .field("ut_line", &self.ut_line)
-                    // FIXME: .field("ut_host", &self.ut_host)
+                    // FIXME(debug): .field("ut_host", &self.ut_host)
                     .field("ut_unused", &self.ut_unused)
                     .field("ut_session", &self.ut_session)
                     .field("ut_type", &self.ut_type)
@@ -642,7 +639,7 @@ cfg_if! {
                     .field("d_type", &self.d_type)
                     // Ignore __unused1
                     // Ignore __unused2
-                    // FIXME: .field("d_name", &self.d_name)
+                    // FIXME(debug): .field("d_name", &self.d_name)
                     .finish()
             }
         }
@@ -704,10 +701,10 @@ cfg_if! {
                     .field("f_flags", &self.f_flags)
                     .field("f_syncwrites", &self.f_syncwrites)
                     .field("f_asyncwrites", &self.f_asyncwrites)
-                    // FIXME: .field("f_mntonname", &self.f_mntonname)
+                    // FIXME(debug): .field("f_mntonname", &self.f_mntonname)
                     .field("f_syncreads", &self.f_syncreads)
                     .field("f_asyncreads", &self.f_asyncreads)
-                    // FIXME: .field("f_mntfromname", &self.f_mntfromname)
+                    // FIXME(debug): .field("f_mntfromname", &self.f_mntfromname)
                     .finish()
             }
         }
@@ -865,6 +862,8 @@ cfg_if! {
                 self.mc_fpregs.hash(state);
             }
         }
+        // FIXME(msrv): suggested method was added in 1.85
+        #[allow(unpredictable_function_pointer_comparisons)]
         impl PartialEq for ucontext_t {
             fn eq(&self, other: &ucontext_t) -> bool {
                 self.uc_sigmask == other.uc_sigmask
@@ -1591,14 +1590,6 @@ f! {
         let (idx, offset) = ((cpu >> 6) & 3, cpu & 63);
         0 != cpuset.ary[idx] & (1 << offset)
     }
-
-    pub fn major(dev: crate::dev_t) -> c_int {
-        ((dev >> 8) & 0xff) as c_int
-    }
-
-    pub fn minor(dev: crate::dev_t) -> c_int {
-        (dev & 0xffff00ff) as c_int
-    }
 }
 
 safe_f! {
@@ -1613,6 +1604,14 @@ safe_f! {
         dev |= major << 8;
         dev |= minor;
         dev
+    }
+
+    pub {const} fn major(dev: crate::dev_t) -> c_int {
+        ((dev >> 8) & 0xff) as c_int
+    }
+
+    pub {const} fn minor(dev: crate::dev_t) -> c_int {
+        (dev & 0xffff00ff) as c_int
     }
 }
 
@@ -1703,6 +1702,8 @@ extern "C" {
         mntvbufp: *mut *mut crate::statvfs,
         flags: c_int,
     ) -> c_int;
+
+    pub fn closefrom(lowfd: c_int) -> c_int;
 }
 
 #[link(name = "rt")]

@@ -1,3 +1,7 @@
+#![allow(
+    clippy::incompatible_msrv, // https://github.com/rust-lang/rust-clippy/issues/12257
+)]
+
 mod fst;
 mod roaring;
 mod trie;

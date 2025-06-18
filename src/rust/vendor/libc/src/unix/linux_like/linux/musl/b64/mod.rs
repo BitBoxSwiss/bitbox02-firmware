@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-pub type c_long = i64;
-pub type c_ulong = u64;
 pub type regoff_t = c_long;
 
 s! {
@@ -37,7 +35,7 @@ s! {
         pub msg_stime: crate::time_t,
         pub msg_rtime: crate::time_t,
         pub msg_ctime: crate::time_t,
-        __msg_cbytes: c_ulong,
+        pub __msg_cbytes: c_ulong,
         pub msg_qnum: crate::msgqnum_t,
         pub msg_qbytes: crate::msglen_t,
         pub msg_lspid: crate::pid_t,
@@ -109,6 +107,9 @@ cfg_if! {
     } else if #[cfg(any(target_arch = "loongarch64"))] {
         mod loongarch64;
         pub use self::loongarch64::*;
+    } else if #[cfg(any(target_arch = "wasm32"))] {
+        mod wasm32;
+        pub use self::wasm32::*;
     } else {
         // Unknown target_arch
     }

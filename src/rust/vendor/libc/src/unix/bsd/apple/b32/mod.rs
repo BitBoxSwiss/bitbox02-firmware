@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-pub type c_long = i32;
-pub type c_ulong = u32;
 pub type boolean_t = c_int;
 
 s! {
@@ -47,7 +45,7 @@ s! {
     }
 
     pub struct malloc_zone_t {
-        __private: [crate::uintptr_t; 18], // FIXME: keeping private for now
+        __private: [crate::uintptr_t; 18], // FIXME(macos): keeping private for now
     }
 }
 
@@ -86,7 +84,7 @@ cfg_if! {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("pthread_attr_t")
                     .field("__sig", &self.__sig)
-                    // FIXME: .field("__opaque", &self.__opaque)
+                    // FIXME(debug): .field("__opaque", &self.__opaque)
                     .finish()
             }
         }

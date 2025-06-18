@@ -1,8 +1,8 @@
-use std::{collections::BTreeMap, env, path::PathBuf, sync::atomic::Ordering};
-
 mod configure;
 
-use configure::{configure_f16_f128, Target};
+use std::{collections::BTreeMap, env, path::PathBuf, sync::atomic::Ordering};
+
+use configure::{configure_aliases, configure_f16_f128, Target};
 
 fn main() {
     println!("cargo::rerun-if-changed=build.rs");
@@ -13,13 +13,11 @@ fn main() {
 
     configure_check_cfg();
     configure_f16_f128(&target);
+    configure_aliases(&target);
+
+    configure_libm(&target);
 
     println!("cargo:compiler-rt={}", cwd.join("compiler-rt").display());
-
-    // Activate libm's unstable features to make full use of Nightly.
-    println!("cargo::rustc-check-cfg=cfg(feature, values(\"unstable\", \"force-soft-floats\"))");
-    println!("cargo:rustc-cfg=feature=\"unstable\"");
-    println!("cargo:rustc-cfg=feature=\"force-soft-floats\"");
 
     // Emscripten's runtime includes all the builtins
     if target.os == "emscripten" {
@@ -74,20 +72,6 @@ fn main() {
         }
     }
 
-    // To compile intrinsics.rs for thumb targets, where there is no libc
-    println!("cargo::rustc-check-cfg=cfg(thumb)");
-    if llvm_target[0].starts_with("thumb") {
-        println!("cargo:rustc-cfg=thumb")
-    }
-
-    // compiler-rt `cfg`s away some intrinsics for thumbv6m and thumbv8m.base because
-    // these targets do not have full Thumb-2 support but only original Thumb-1.
-    // We have to cfg our code accordingly.
-    println!("cargo::rustc-check-cfg=cfg(thumb_1)");
-    if llvm_target[0] == "thumbv6m" || llvm_target[0] == "thumbv8m.base" {
-        println!("cargo:rustc-cfg=thumb_1")
-    }
-
     // Only emit the ARM Linux atomic emulation on pre-ARMv6 architectures. This
     // includes the old androideabi. It is deprecated but it is available as a
     // rustc target (arm-linux-androideabi).
@@ -102,6 +86,48 @@ fn main() {
     if llvm_target[0].starts_with("aarch64") {
         generate_aarch64_outlined_atomics();
     }
+}
+
+/// Run configuration for `libm` since it is included directly.
+///
+/// Much of this is copied from `libm/configure.rs`.
+fn configure_libm(target: &Target) {
+    println!("cargo:rustc-check-cfg=cfg(intrinsics_enabled)");
+    println!("cargo:rustc-check-cfg=cfg(arch_enabled)");
+    println!("cargo:rustc-check-cfg=cfg(optimizations_enabled)");
+    println!("cargo:rustc-check-cfg=cfg(feature, values(\"unstable-public-internals\"))");
+
+    // Always use intrinsics
+    println!("cargo:rustc-cfg=intrinsics_enabled");
+
+    // The arch module may contain assembly.
+    if cfg!(feature = "no-asm") {
+        println!("cargo:rustc-cfg=feature=\"force-soft-floats\"");
+    } else {
+        println!("cargo:rustc-cfg=arch_enabled");
+    }
+
+    println!("cargo:rustc-check-cfg=cfg(optimizations_enabled)");
+    if !matches!(target.opt_level.as_str(), "0" | "1") {
+        println!("cargo:rustc-cfg=optimizations_enabled");
+    }
+
+    // Config shorthands
+    println!("cargo:rustc-check-cfg=cfg(x86_no_sse)");
+    if target.arch == "x86" && !target.features.iter().any(|f| f == "sse") {
+        // Shorthand to detect i586 targets
+        println!("cargo:rustc-cfg=x86_no_sse");
+    }
+
+    println!(
+        "cargo:rustc-env=CFG_CARGO_FEATURES={:?}",
+        target.cargo_features
+    );
+    println!("cargo:rustc-env=CFG_OPT_LEVEL={}", target.opt_level);
+    println!("cargo:rustc-env=CFG_TARGET_FEATURES={:?}", target.features);
+
+    // Activate libm's unstable features to make full use of Nightly.
+    println!("cargo:rustc-cfg=feature=\"unstable-intrinsics\"");
 }
 
 fn aarch64_symbol(ordering: Ordering) -> &'static str {
@@ -536,7 +562,7 @@ mod c {
                 ("__fe_raise_inexact", "fp_mode.c"),
             ]);
 
-            if target.os != "windows" {
+            if target.os != "windows" && target.os != "cygwin" {
                 sources.extend(&[("__multc3", "multc3.c")]);
             }
         }
@@ -569,13 +595,15 @@ mod c {
             sources.remove(&["__aeabi_cdcmp", "__aeabi_cfcmp"]);
         }
 
-        // Android uses emulated TLS so we need a runtime support function.
-        if target.os == "android" {
+        // Android and Cygwin uses emulated TLS so we need a runtime support function.
+        if target.os == "android" || target.os == "cygwin" {
             sources.extend(&[("__emutls_get_address", "emutls.c")]);
+        }
 
-            // Work around a bug in the NDK headers (fixed in
-            // https://r.android.com/2038949 which will be released in a future
-            // NDK version) by providing a definition of LONG_BIT.
+        // Work around a bug in the NDK headers (fixed in
+        // https://r.android.com/2038949 which will be released in a future
+        // NDK version) by providing a definition of LONG_BIT.
+        if target.os == "android" {
             cfg.define("LONG_BIT", "(8 * sizeof(long))");
         }
 
@@ -591,7 +619,10 @@ mod c {
         let root = match env::var_os("RUST_COMPILER_RT_ROOT") {
             Some(s) => PathBuf::from(s),
             None => {
-                panic!("RUST_COMPILER_RT_ROOT is not set. You may need to download compiler-rt.")
+                panic!(
+                    "RUST_COMPILER_RT_ROOT is not set. You may need to run \
+                    `ci/download-compiler-rt.sh`."
+                );
             }
         };
         if !root.exists() {
@@ -605,9 +636,10 @@ mod c {
 
         // Include out-of-line atomics for aarch64, which are all generated by supplying different
         // sets of flags to the same source file.
-        // Note: Out-of-line aarch64 atomics are not supported by the msvc toolchain (#430).
+        // Note: Out-of-line aarch64 atomics are not supported by the msvc toolchain (#430) and
+        // on uefi.
         let src_dir = root.join("lib/builtins");
-        if target.arch == "aarch64" && target.env != "msvc" {
+        if target.arch == "aarch64" && target.env != "msvc" && target.os != "uefi" {
             // See below for why we're building these as separate libraries.
             build_aarch64_out_of_line_atomics_libraries(&src_dir, cfg);
 

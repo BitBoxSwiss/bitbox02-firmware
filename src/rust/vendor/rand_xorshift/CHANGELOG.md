@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-01-27
+- Bump the MSRV to 1.63 (#58)
+- Update to `rand_core` v0.9.0 (#58)
+- Rename feature `serde1` to `serde` (#58)
+- Document how zero seeds are handled
+- Correctly document MSRV as 1.36
+- Speed up `from_seed` implementation for 128-bit seeds
+- Add examples for initializing the RNGs
+
 ## [0.3.0] - 2020-12-18
 - Bump `rand_core` version to 0.6 (#17)
 - Derive PartialEq+Eq for XorShiftRng (#6)

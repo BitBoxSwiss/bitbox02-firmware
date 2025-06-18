@@ -6,6 +6,9 @@ use std::env;
 #[allow(dead_code)]
 pub struct Target {
     pub triple: String,
+    pub triple_split: Vec<String>,
+    pub opt_level: String,
+    pub cargo_features: Vec<String>,
     pub os: String,
     pub arch: String,
     pub vendor: String,
@@ -17,15 +20,24 @@ pub struct Target {
 
 impl Target {
     pub fn from_env() -> Self {
+        let triple = env::var("TARGET").unwrap();
+        let triple_split = triple.split('-').map(ToOwned::to_owned).collect();
         let little_endian = match env::var("CARGO_CFG_TARGET_ENDIAN").unwrap().as_str() {
             "little" => true,
             "big" => false,
             x => panic!("unknown endian {x}"),
         };
+        let cargo_features = env::vars()
+            .filter_map(|(name, _value)| name.strip_prefix("CARGO_FEATURE_").map(ToOwned::to_owned))
+            .map(|s| s.to_lowercase().replace("_", "-"))
+            .collect();
 
         Self {
-            triple: env::var("TARGET").unwrap(),
+            triple,
+            triple_split,
             os: env::var("CARGO_CFG_TARGET_OS").unwrap(),
+            opt_level: env::var("OPT_LEVEL").unwrap(),
+            cargo_features,
             arch: env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
             vendor: env::var("CARGO_CFG_TARGET_VENDOR").unwrap(),
             env: env::var("CARGO_CFG_TARGET_ENV").unwrap(),
@@ -48,6 +60,22 @@ impl Target {
     }
 }
 
+pub fn configure_aliases(target: &Target) {
+    // To compile builtins-test-intrinsics for thumb targets, where there is no libc
+    println!("cargo::rustc-check-cfg=cfg(thumb)");
+    if target.triple_split[0].starts_with("thumb") {
+        println!("cargo:rustc-cfg=thumb")
+    }
+
+    // compiler-rt `cfg`s away some intrinsics for thumbv6m and thumbv8m.base because
+    // these targets do not have full Thumb-2 support but only original Thumb-1.
+    // We have to cfg our code accordingly.
+    println!("cargo::rustc-check-cfg=cfg(thumb_1)");
+    if target.triple_split[0] == "thumbv6m" || target.triple_split[0] == "thumbv8m.base" {
+        println!("cargo:rustc-cfg=thumb_1")
+    }
+}
+
 /// Configure whether or not `f16` and `f128` support should be enabled.
 pub fn configure_f16_f128(target: &Target) {
     // Set whether or not `f16` and `f128` are supported at a basic level by LLVM. This only means
@@ -63,14 +91,13 @@ pub fn configure_f16_f128(target: &Target) {
     let f16_enabled = match target.arch.as_str() {
         // Unsupported <https://github.com/llvm/llvm-project/issues/94434>
         "arm64ec" => false,
+        // Crash in LLVM20 <https://github.com/llvm/llvm-project/issues/129394>
+        "aarch64" if !target.features.iter().any(|f| f == "neon") => false,
         // Selection failure <https://github.com/llvm/llvm-project/issues/50374>
         "s390x" => false,
         // Infinite recursion <https://github.com/llvm/llvm-project/issues/97981>
-        // FIXME(llvm): loongarch fixed by <https://github.com/llvm/llvm-project/pull/107791>
         "csky" => false,
         "hexagon" => false,
-        "loongarch64" => false,
-        "mips" | "mips64" | "mips32r6" | "mips64r6" => false,
         "powerpc" | "powerpc64" => false,
         "sparc" | "sparc64" => false,
         "wasm32" | "wasm64" => false,
@@ -83,7 +110,7 @@ pub fn configure_f16_f128(target: &Target) {
         "amdgpu" => false,
         // Unsupported <https://github.com/llvm/llvm-project/issues/94434>
         "arm64ec" => false,
-        // Selection failure <https://github.com/llvm/llvm-project/issues/96432>
+        // FIXME(llvm20): fixed by <https://github.com/llvm/llvm-project/pull/117525>
         "mips64" | "mips64r6" => false,
         // Selection failure <https://github.com/llvm/llvm-project/issues/95471>
         "nvptx64" => false,

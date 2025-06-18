@@ -127,7 +127,7 @@ macro_rules! generate_to_tokens {
     };
 
     (($($arms:tt)*) $tokens:ident $name:ident {}) => {
-        #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+        #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
         impl ::quote::ToTokens for $name {
             fn to_tokens(&self, $tokens: &mut ::proc_macro2::TokenStream) {
                 match self {
@@ -163,4 +163,20 @@ macro_rules! check_keyword_matches {
     (enum enum) => {};
     (pub pub) => {};
     (struct struct) => {};
+}
+
+#[cfg(any(feature = "full", feature = "derive"))]
+macro_rules! return_impl_trait {
+    (
+        $(#[$attr:meta])*
+        $vis:vis fn $name:ident $args:tt -> $impl_trait:ty [$concrete:ty] $body:block
+    ) => {
+        #[cfg(not(docsrs))]
+        $(#[$attr])*
+        $vis fn $name $args -> $concrete $body
+
+        #[cfg(docsrs)]
+        $(#[$attr])*
+        $vis fn $name $args -> $impl_trait $body
+    };
 }

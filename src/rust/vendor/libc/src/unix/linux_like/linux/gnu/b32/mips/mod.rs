@@ -1,10 +1,33 @@
 use crate::prelude::*;
 use crate::{off64_t, off_t};
 
-pub type c_char = i8;
 pub type wchar_t = i32;
 
 s! {
+    pub struct stat {
+        pub st_dev: c_ulong,
+
+        st_pad1: [c_long; 3],
+        pub st_ino: crate::ino_t,
+        pub st_mode: crate::mode_t,
+        pub st_nlink: crate::nlink_t,
+        pub st_uid: crate::uid_t,
+        pub st_gid: crate::gid_t,
+        pub st_rdev: c_ulong,
+        st_pad2: [c_long; 2],
+        pub st_size: off_t,
+        st_pad3: c_long,
+        pub st_atime: crate::time_t,
+        pub st_atime_nsec: c_long,
+        pub st_mtime: crate::time_t,
+        pub st_mtime_nsec: c_long,
+        pub st_ctime: crate::time_t,
+        pub st_ctime_nsec: c_long,
+        pub st_blksize: crate::blksize_t,
+        pub st_blocks: crate::blkcnt_t,
+        st_pad5: [c_long; 14],
+    }
+
     pub struct stat64 {
         pub st_dev: c_ulong,
         st_pad1: [c_long; 3],
@@ -139,7 +162,7 @@ s! {
         pub msg_ctime: crate::time_t,
         #[cfg(target_endian = "little")]
         __glibc_reserved3: c_ulong,
-        __msg_cbytes: c_ulong,
+        pub __msg_cbytes: c_ulong,
         pub msg_qnum: crate::msgqnum_t,
         pub msg_qbytes: crate::msglen_t,
         pub msg_lspid: crate::pid_t,
@@ -290,9 +313,11 @@ pub const SYS_modify_ldt: c_long = 4000 + 123;
 pub const SYS_adjtimex: c_long = 4000 + 124;
 pub const SYS_mprotect: c_long = 4000 + 125;
 pub const SYS_sigprocmask: c_long = 4000 + 126;
+#[deprecated(since = "0.2.70", note = "Functional up to 2.6 kernel")]
 pub const SYS_create_module: c_long = 4000 + 127;
 pub const SYS_init_module: c_long = 4000 + 128;
 pub const SYS_delete_module: c_long = 4000 + 129;
+#[deprecated(since = "0.2.70", note = "Functional up to 2.6 kernel")]
 pub const SYS_get_kernel_syms: c_long = 4000 + 130;
 pub const SYS_quotactl: c_long = 4000 + 131;
 pub const SYS_getpgid: c_long = 4000 + 132;
@@ -349,6 +374,7 @@ pub const SYS_socket: c_long = 4000 + 183;
 pub const SYS_socketpair: c_long = 4000 + 184;
 pub const SYS_setresuid: c_long = 4000 + 185;
 pub const SYS_getresuid: c_long = 4000 + 186;
+#[deprecated(since = "0.2.70", note = "Functional up to 2.6 kernel")]
 pub const SYS_query_module: c_long = 4000 + 187;
 pub const SYS_poll: c_long = 4000 + 188;
 pub const SYS_nfsservctl: c_long = 4000 + 189;

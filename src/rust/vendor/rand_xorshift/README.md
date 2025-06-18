@@ -1,12 +1,10 @@
 # rand_xorshift
 
-[![Build Status](https://travis-ci.org/rust-random/rngs.svg)](https://travis-ci.org/rust-random/rngs)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/rust-random/rngs?svg=true)](https://ci.appveyor.com/project/rust-random/rngs)
+[![Test Status](https://github.com/rust-random/rngs/workflows/Tests/badge.svg?event=push)](https://github.com/rust-random/rngs/actions)
 [![Latest version](https://img.shields.io/crates/v/rand_xorshift.svg)](https://crates.io/crates/rand_xorshift)
 [![Book](https://img.shields.io/badge/book-master-yellow.svg)](https://rust-random.github.io/book/)
 [![API](https://img.shields.io/badge/api-master-yellow.svg)](https://rust-random.github.io/rand/rand_xorshift)
 [![API](https://docs.rs/rand_xorshift/badge.svg)](https://docs.rs/rand_xorshift)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.32+-lightgray.svg)](https://github.com/rust-random/rngs#rust-version-requirements)
 
 Implements the Xorshift random number generator.
 
@@ -32,7 +30,7 @@ Links:
 `rand_xorshift` is `no_std` compatible. It does not require any functionality
 outside of the `core` lib, thus there are no features to configure.
 
-The `serde1` feature includes implementations of `Serialize` and `Deserialize`
+The `serde` feature includes implementations of `Serialize` and `Deserialize`
 for the included RNGs.
 
 

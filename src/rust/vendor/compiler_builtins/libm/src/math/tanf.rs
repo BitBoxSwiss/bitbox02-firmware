@@ -14,9 +14,9 @@
  * ====================================================
  */
 
-use super::{k_tanf, rem_pio2f};
-
 use core::f64::consts::FRAC_PI_2;
+
+use super::{k_tanf, rem_pio2f};
 
 /* Small multiples of pi/2 rounded to double precision. */
 const T1_PIO2: f64 = 1. * FRAC_PI_2; /* 0x3FF921FB, 0x54442D18 */
@@ -24,6 +24,9 @@ const T2_PIO2: f64 = 2. * FRAC_PI_2; /* 0x400921FB, 0x54442D18 */
 const T3_PIO2: f64 = 3. * FRAC_PI_2; /* 0x4012D97C, 0x7F3321D2 */
 const T4_PIO2: f64 = 4. * FRAC_PI_2; /* 0x401921FB, 0x54442D18 */
 
+/// The tangent of `x` (f32).
+///
+/// `x` is specified in radians.
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn tanf(x: f32) -> f32 {
     let x64 = x as f64;
@@ -39,11 +42,7 @@ pub fn tanf(x: f32) -> f32 {
         if ix < 0x39800000 {
             /* |x| < 2**-12 */
             /* raise inexact if x!=0 and underflow if subnormal */
-            force_eval!(if ix < 0x00800000 {
-                x / x1p120
-            } else {
-                x + x1p120
-            });
+            force_eval!(if ix < 0x00800000 { x / x1p120 } else { x + x1p120 });
             return x;
         }
         return k_tanf(x64, false);

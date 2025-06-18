@@ -175,8 +175,8 @@ impl<'a> Speculative for ParseBuffer<'a> {
         if !Rc::ptr_eq(&self_unexp, &fork_unexp) {
             match (fork_sp, self_sp) {
                 // Unexpected set on the fork, but not on `self`, copy it over.
-                (Some(span), None) => {
-                    self_unexp.set(Unexpected::Some(span));
+                (Some((span, delimiter)), None) => {
+                    self_unexp.set(Unexpected::Some(span, delimiter));
                 }
                 // Unexpected unset. Use chain to propagate errors from fork.
                 (None, None) => {
@@ -212,7 +212,7 @@ impl<'a> AnyDelimiter for ParseBuffer<'a> {
     fn parse_any_delimiter(&self) -> Result<(Delimiter, DelimSpan, ParseBuffer)> {
         self.step(|cursor| {
             if let Some((content, delimiter, span, rest)) = cursor.any_group() {
-                let scope = crate::buffer::close_span_of_group(*cursor);
+                let scope = span.close();
                 let nested = crate::parse::advance_step_cursor(cursor, content);
                 let unexpected = crate::parse::get_unexpected(self);
                 let content = crate::parse::new_parse_buffer(scope, nested, unexpected);

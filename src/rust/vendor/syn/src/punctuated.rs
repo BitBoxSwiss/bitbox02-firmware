@@ -92,6 +92,29 @@ impl<T, P> Punctuated<T, P> {
         self.iter_mut().next_back()
     }
 
+    /// Borrows the element at the given index.
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if let Some((value, _punct)) = self.inner.get(index) {
+            Some(value)
+        } else if index == self.inner.len() {
+            self.last.as_deref()
+        } else {
+            None
+        }
+    }
+
+    /// Mutably borrows the element at the given index.
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        let inner_len = self.inner.len();
+        if let Some((value, _punct)) = self.inner.get_mut(index) {
+            Some(value)
+        } else if index == inner_len {
+            self.last.as_deref_mut()
+        } else {
+            None
+        }
+    }
+
     /// Returns an iterator over borrowed syntax tree nodes of type `&T`.
     pub fn iter(&self) -> Iter<T> {
         Iter {
@@ -263,7 +286,7 @@ impl<T, P> Punctuated<T, P> {
     /// Parsing continues until the end of this parse stream. The entire content
     /// of this parse stream must consist of `T` and `P`.
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     pub fn parse_terminated(input: ParseStream) -> Result<Self>
     where
         T: Parse,
@@ -281,10 +304,10 @@ impl<T, P> Punctuated<T, P> {
     ///
     /// [`parse_terminated`]: Punctuated::parse_terminated
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
-    pub fn parse_terminated_with(
-        input: ParseStream,
-        parser: fn(ParseStream) -> Result<T>,
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
+    pub fn parse_terminated_with<'a>(
+        input: ParseStream<'a>,
+        parser: fn(ParseStream<'a>) -> Result<T>,
     ) -> Result<Self>
     where
         P: Parse,
@@ -315,7 +338,7 @@ impl<T, P> Punctuated<T, P> {
     /// is not followed by a `P`, even if there are remaining tokens in the
     /// stream.
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     pub fn parse_separated_nonempty(input: ParseStream) -> Result<Self>
     where
         T: Parse,
@@ -333,10 +356,10 @@ impl<T, P> Punctuated<T, P> {
     ///
     /// [`parse_separated_nonempty`]: Punctuated::parse_separated_nonempty
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
-    pub fn parse_separated_nonempty_with(
-        input: ParseStream,
-        parser: fn(ParseStream) -> Result<T>,
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
+    pub fn parse_separated_nonempty_with<'a>(
+        input: ParseStream<'a>,
+        parser: fn(ParseStream<'a>) -> Result<T>,
     ) -> Result<Self>
     where
         P: Token + Parse,
@@ -358,7 +381,7 @@ impl<T, P> Punctuated<T, P> {
 }
 
 #[cfg(feature = "clone-impls")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
 impl<T, P> Clone for Punctuated<T, P>
 where
     T: Clone,
@@ -378,7 +401,7 @@ where
 }
 
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl<T, P> Eq for Punctuated<T, P>
 where
     T: Eq,
@@ -387,7 +410,7 @@ where
 }
 
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl<T, P> PartialEq for Punctuated<T, P>
 where
     T: PartialEq,
@@ -400,7 +423,7 @@ where
 }
 
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl<T, P> Hash for Punctuated<T, P>
 where
     T: Hash,
@@ -414,7 +437,7 @@ where
 }
 
 #[cfg(feature = "extra-traits")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl<T: Debug, P: Debug> Debug for Punctuated<T, P> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut list = f.debug_list();
@@ -1007,7 +1030,7 @@ impl<T, P> Pair<T, P> {
 }
 
 #[cfg(feature = "clone-impls")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
 impl<T, P> Pair<&T, &P> {
     pub fn cloned(self) -> Pair<T, P>
     where
@@ -1022,7 +1045,7 @@ impl<T, P> Pair<&T, &P> {
 }
 
 #[cfg(feature = "clone-impls")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
 impl<T, P> Clone for Pair<T, P>
 where
     T: Clone,
@@ -1037,7 +1060,7 @@ where
 }
 
 #[cfg(feature = "clone-impls")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
 impl<T, P> Copy for Pair<T, P>
 where
     T: Copy,
@@ -1073,13 +1096,36 @@ impl<T, P> IndexMut<usize> for Punctuated<T, P> {
     }
 }
 
+#[cfg(all(feature = "fold", any(feature = "full", feature = "derive")))]
+pub(crate) fn fold<T, P, V, F>(
+    punctuated: Punctuated<T, P>,
+    fold: &mut V,
+    mut f: F,
+) -> Punctuated<T, P>
+where
+    V: ?Sized,
+    F: FnMut(&mut V, T) -> T,
+{
+    Punctuated {
+        inner: punctuated
+            .inner
+            .into_iter()
+            .map(|(t, p)| (f(fold, t), p))
+            .collect(),
+        last: match punctuated.last {
+            Some(t) => Some(Box::new(f(fold, *t))),
+            None => None,
+        },
+    }
+}
+
 #[cfg(feature = "printing")]
 mod printing {
     use crate::punctuated::{Pair, Punctuated};
     use proc_macro2::TokenStream;
     use quote::{ToTokens, TokenStreamExt};
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl<T, P> ToTokens for Punctuated<T, P>
     where
         T: ToTokens,
@@ -1090,7 +1136,7 @@ mod printing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl<T, P> ToTokens for Pair<T, P>
     where
         T: ToTokens,

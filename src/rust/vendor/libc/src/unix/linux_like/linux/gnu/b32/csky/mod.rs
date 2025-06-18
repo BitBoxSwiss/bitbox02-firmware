@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use crate::{off64_t, off_t};
 
-pub type c_char = u8;
 pub type wchar_t = u32;
 
 s! {
@@ -135,7 +134,7 @@ s! {
         __glibc_reserved2: c_ulong,
         pub msg_ctime: crate::time_t,
         __glibc_reserved3: c_ulong,
-        __msg_cbytes: c_ulong,
+        pub __msg_cbytes: c_ulong,
         pub msg_qnum: crate::msgqnum_t,
         pub msg_qbytes: crate::msglen_t,
         pub msg_lspid: crate::pid_t,

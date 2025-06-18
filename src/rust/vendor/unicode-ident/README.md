@@ -4,7 +4,7 @@ Unicode ident
 [<img alt="github" src="https://img.shields.io/badge/github-dtolnay/unicode--ident-8da0cb?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/dtolnay/unicode-ident)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/unicode-ident.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/unicode-ident)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-unicode--ident-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/unicode-ident)
-[<img alt="build status" src="https://img.shields.io/github/workflow/status/dtolnay/unicode-ident/CI/master?style=for-the-badge" height="20">](https://github.com/dtolnay/unicode-ident/actions?query=branch%3Amaster)
+[<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/dtolnay/unicode-ident/ci.yml?branch=master&style=for-the-badge" height="20">](https://github.com/dtolnay/unicode-ident/actions?query=branch%3Amaster)
 
 Implementation of [Unicode Standard Annex #31][tr31] for determining which
 `char` values are valid in programming language identifiers.
@@ -41,11 +41,11 @@ different ratios of ASCII to non-ASCII codepoints in the input data.
 
 | | static storage | 0% nonascii | 1% | 10% | 100% nonascii |
 |---|---|---|---|---|---|
-| **`unicode-ident`** | 10.0 K | 0.96 ns | 0.95 ns | 1.09 ns | 1.55 ns |
-| **`unicode-xid`** | 11.5 K | 1.88 ns | 2.14 ns | 3.48 ns | 15.63 ns |
-| **`ucd-trie`** | 10.2 K | 1.29 ns | 1.28 ns | 1.36 ns | 2.15 ns |
-| **`fst`** | 138 K | 55.1 ns | 54.9 ns | 53.2 ns | 28.5 ns |
-| **`roaring`** | 66.1 K | 2.78 ns | 3.09 ns | 3.37 ns | 4.70 ns |
+| **`unicode-ident`** | 10.4 K | 1.03 ns | 1.02 ns | 1.11 ns | 1.66 ns |
+| **`unicode-xid`** | 11.8 K | 2.57 ns | 2.74 ns | 3.20 ns | 9.35 ns |
+| **`ucd-trie`** | 10.3 K | 1.27 ns | 1.27 ns | 1.41 ns | 2.53 ns |
+| **`fst`** | 144 K | 49.3 ns | 49.1 ns | 47.1 ns | 27.9 ns |
+| **`roaring`** | 66.1 K | 4.10 ns | 4.05 ns | 4.02 ns | 5.12 ns |
 
 Source code for the benchmark is provided in the *bench* directory of this repo
 and may be repeated by running `cargo criterion`.
@@ -264,8 +264,7 @@ is_xid_start:
 ## License
 
 Use of the Unicode Character Database, as this crate does, is governed by the <a
-href="LICENSE-UNICODE">Unicode License Agreement &ndash; Data Files and Software
-(2016)</a>.
+href="LICENSE-UNICODE">Unicode license</a>.
 
 All intellectual property within this crate that is **not generated** using the
 Unicode Character Database as input is licensed under either of <a

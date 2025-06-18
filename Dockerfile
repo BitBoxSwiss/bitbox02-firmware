@@ -148,8 +148,8 @@ RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
 RUN rustup component add rust-src
-RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.28.0 --locked
-RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.71.1 --locked
+RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.29.0 --locked
+RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.72.0 --locked
 
 # Until cargo vendor supports vendoring dependencies of the rust std libs we
 # need a copy of this file next to the toml file. It also has to be world

@@ -509,6 +509,26 @@ mod tests {
         assert!(bip39_mnemonic_from_seed(b"foo").is_err());
     }
 
+    // This tests that you can create a keystore, unlock it, and then do this again. This is an
+    // expected workflow for when the wallet setup process is restarted after seeding and unlocking,
+    // but before creating a backup, in which case a new seed is created.
+    #[test]
+    fn test_create_and_unlock_twice() {
+        mock_memory();
+        lock();
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+        let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
+            .unwrap();
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        // Create new (different) seed.
+        assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
+    }
+
     // Functional test to store seeds, unlock, retrieve seed.
     #[test]
     fn test_seeds() {

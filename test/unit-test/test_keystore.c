@@ -45,11 +45,6 @@ static uint8_t _mock_seed[32] = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
 };
 
-static uint8_t _mock_seed_2[32] = {
-    0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
-    0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
-};
-
 static uint8_t _mock_bip39_seed[64] = {
     0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
@@ -303,30 +298,6 @@ static void _test_keystore_encrypt_and_store_seed(void** state)
 {
     _expect_encrypt_and_store_seed();
     assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD), KEYSTORE_OK);
-}
-
-// this tests that you can create a keystore, unlock it, and then do this again. This is an expected
-// workflow for when the wallet setup process is restarted after seeding and unlocking, but before
-// creating a backup, in which case a new seed is created.
-static void _test_keystore_create_and_unlock_twice(void** state)
-{
-    _expect_encrypt_and_store_seed();
-    assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD), KEYSTORE_OK);
-
-    uint8_t remaining_attempts;
-    _smarteeprom_reset();
-
-    will_return(__wrap_memory_is_seeded, true);
-    _expect_retain_seed();
-    assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts, NULL));
-
-    // Create new (different) seed.
-    _expect_encrypt_and_store_seed();
-    assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed_2, 32, PASSWORD), KEYSTORE_OK);
-
-    will_return(__wrap_memory_is_seeded, true);
-    _expect_retain_seed();
-    assert_int_equal(KEYSTORE_OK, keystore_unlock(PASSWORD, &remaining_attempts, NULL));
 }
 
 static void _expect_seeded(bool seeded)
@@ -636,7 +607,6 @@ int main(void)
         cmocka_unit_test(_test_keystore_secp256k1_nonce_commit),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
-        cmocka_unit_test(_test_keystore_create_and_unlock_twice),
         cmocka_unit_test(_test_keystore_unlock),
         cmocka_unit_test(_test_keystore_unlock_bip39),
         cmocka_unit_test(_test_keystore_lock),

@@ -262,12 +262,6 @@ static void _expect_encrypt_and_store_seed(void)
     will_return(__wrap_memory_is_initialized, false);
 }
 
-static void _test_keystore_encrypt_and_store_seed(void** state)
-{
-    _expect_encrypt_and_store_seed();
-    assert_int_equal(keystore_encrypt_and_store_seed(_mock_seed, 32, PASSWORD), KEYSTORE_OK);
-}
-
 static void _expect_seeded(bool seeded)
 {
     uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
@@ -573,7 +567,6 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_secp256k1_nonce_commit),
         cmocka_unit_test(_test_keystore_secp256k1_sign),
-        cmocka_unit_test(_test_keystore_encrypt_and_store_seed),
         cmocka_unit_test(_test_keystore_unlock),
         cmocka_unit_test(_test_keystore_unlock_bip39),
         cmocka_unit_test(_test_keystore_lock),

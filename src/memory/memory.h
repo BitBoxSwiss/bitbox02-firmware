@@ -219,6 +219,10 @@ USE_RESULT bool memory_bootloader_set_flags(auto_enter_t auto_enter, upside_down
  */
 USE_RESULT bool memory_get_salt_root(uint8_t* salt_root_out);
 
+#ifdef TESTING
+USE_RESULT bool memory_set_salt_root(const uint8_t* salt_root);
+#endif
+
 /**
  * @param[out] private_key_out must be 32 bytes.
  * @return false if the key has not been initialized (memory_setup() has not

@@ -322,7 +322,17 @@ static void _free_string(char** str)
 
 USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed_len)
 {
+#ifdef TESTING
+    const uint8_t test_unstretched_retained_seed_encryption_key[32] =
+        "\xfe\x09\x76\x01\x14\x52\xa7\x22\x12\xe4\xb8\xbd\x57\x2b\x5b\xe3\x01\x41\xa3\x56\xf1\x13"
+        "\x37\xd2\x9d\x35\xea\x8f\xf9\x97\xbe\xfc";
+    memcpy(
+        _unstretched_retained_seed_encryption_key,
+        test_unstretched_retained_seed_encryption_key,
+        32);
+#else
     random_32_bytes(_unstretched_retained_seed_encryption_key);
+#endif
     uint8_t retained_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_seed_encryption_key);
     keystore_error_t result = _stretch_retained_seed_encryption_key(

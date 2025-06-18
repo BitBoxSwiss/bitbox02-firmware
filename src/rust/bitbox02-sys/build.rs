@@ -42,6 +42,7 @@ const ALLOWLIST_VARS: &[&str] = &[
     "MEMORY_PLATFORM_BITBOX02_PLUS",
     "MEMORY_SECURECHIP_TYPE_ATECC",
     "MEMORY_SECURECHIP_TYPE_OPTIGA",
+    "MAX_UNLOCK_ATTEMPTS",
 ];
 
 const ALLOWLIST_TYPES: &[&str] = &[
@@ -84,10 +85,12 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_unlock",
     "keystore_unlock_bip39",
     "keystore_bip39_mnemonic_from_seed",
+    "keystore_test_get_retained_seed_encrypted",
     "label_create",
     "localtime",
     "lock_animation_start",
     "lock_animation_stop",
+    "memory_set_salt_root",
     "memory_add_noise_remote_static_pubkey",
     "memory_bootloader_hash",
     "memory_check_noise_remote_static_pubkey",
@@ -142,6 +145,8 @@ const ALLOWLIST_FNS: &[&str] = &[
     "securechip_model",
     "securechip_monotonic_increments_remaining",
     "securechip_u2f_counter_set",
+    "smarteeprom_is_enabled",
+    "smarteeprom_disable",
     "smarteeprom_bb02_config",
     "status_create",
     "trinary_choice_create",

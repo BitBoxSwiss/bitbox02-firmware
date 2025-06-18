@@ -759,6 +759,17 @@ bool memory_get_salt_root(uint8_t* salt_root_out)
     return !MEMEQ(salt_root_out, empty, sizeof(empty));
 }
 
+#ifdef TESTING
+bool memory_set_salt_root(const uint8_t* salt_root)
+{
+    chunk_1_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_1, chunk_bytes);
+    memcpy(chunk.fields.salt_root, salt_root, 32);
+    return _write_chunk(CHUNK_1, chunk.bytes);
+}
+#endif
+
 bool memory_get_noise_static_private_key(uint8_t* private_key_out)
 {
     chunk_1_t chunk = {0};

@@ -217,6 +217,14 @@ pub fn ble_enable(enable: bool) -> Result<(), ()> {
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn set_salt_root(salt_root: &[u8; 32]) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_set_salt_root(salt_root.as_ptr()) } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

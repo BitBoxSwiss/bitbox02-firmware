@@ -509,6 +509,65 @@ mod tests {
         assert!(bip39_mnemonic_from_seed(b"foo").is_err());
     }
 
+    #[test]
+    fn test_unlock() {
+        mock_memory();
+        lock();
+
+        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+        crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        // Loop to check that unlocking works while unlocked.
+        for _ in 0..3 {
+            assert!(unlock("password").is_ok());
+        }
+
+        // Also check that the retained seed was encrypted with the expected encryption key.
+        let decrypted = {
+            let retained_seed_encrypted: &[u8] = unsafe {
+                let mut len = 0usize;
+                let ptr = bitbox02_sys::keystore_test_get_retained_seed_encrypted(&mut len);
+                core::slice::from_raw_parts(ptr, len)
+            };
+            let expected_retained_seed_secret =
+                hex::decode("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7")
+                    .unwrap();
+            bitbox_aes::decrypt_with_hmac(&expected_retained_seed_secret, retained_seed_encrypted)
+                .unwrap()
+        };
+        assert_eq!(decrypted.as_slice(), seed.as_slice());
+
+        // First 9 wrong attempts.
+        for i in 1..bitbox02_sys::MAX_UNLOCK_ATTEMPTS {
+            assert!(matches!(
+                unlock("invalid password"),
+                Err(Error::IncorrectPassword { remaining_attempts }) if remaining_attempts
+                    == (bitbox02_sys::MAX_UNLOCK_ATTEMPTS  - i) as u8
+            ));
+            // Still seeded.
+            assert!(crate::memory::is_seeded());
+            // Wrong password does not lock the keystore again if already unlocked.
+            assert!(copy_seed().is_ok());
+        }
+        // Last attempt, triggers reset.
+        assert!(matches!(
+            unlock("invalid password"),
+            Err(Error::MaxAttemptsExceeded),
+        ));
+        // Last wrong attempt locks & resets. There is no more seed.
+        assert!(!crate::memory::is_seeded());
+        assert!(copy_seed().is_err());
+        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+    }
+
     // This tests that you can create a keystore, unlock it, and then do this again. This is an
     // expected workflow for when the wallet setup process is restarted after seeding and unlocking,
     // but before creating a backup, in which case a new seed is created.

@@ -93,6 +93,7 @@ dependencies = [
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
+ "bitbox-aes",
  "bitbox02-sys",
  "bitcoin",
  "hex",

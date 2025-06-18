@@ -8,11 +8,11 @@
 
 extern crate proc_macro;
 
-use std::borrow::Cow;
-use std::collections::BTreeSet;
-
 use proc_macro2::{Delimiter, Group, Ident, Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned, TokenStreamExt};
+use std::borrow::Cow;
+use std::collections::BTreeSet;
+use std::ffi::{CStr, CString};
 
 struct X;
 
@@ -105,6 +105,9 @@ fn test_array() {
 
     let ref_slice: &[X] = &[X, X];
     let _ = quote!(#(#ref_slice #ref_slice)*);
+
+    let array_of_array: [[u8; 2]; 2] = [[0; 2]; 2];
+    let _ = quote!(#(#(#array_of_array)*)*);
 }
 
 #[test]
@@ -230,6 +233,22 @@ fn test_string() {
     let s = "\u{1} a 'b \" c".to_string();
     let tokens = quote!(#s);
     let expected = "\"\\u{1} a 'b \\\" c\"";
+    assert_eq!(expected, tokens.to_string());
+}
+
+#[test]
+fn test_c_str() {
+    let s = CStr::from_bytes_with_nul(b"\x01 a 'b \" c\0").unwrap();
+    let tokens = quote!(#s);
+    let expected = "c\"\\u{1} a 'b \\\" c\"";
+    assert_eq!(expected, tokens.to_string());
+}
+
+#[test]
+fn test_c_string() {
+    let s = CString::new(&b"\x01 a 'b \" c"[..]).unwrap();
+    let tokens = quote!(#s);
+    let expected = "c\"\\u{1} a 'b \\\" c\"";
     assert_eq!(expected, tokens.to_string());
 }
 

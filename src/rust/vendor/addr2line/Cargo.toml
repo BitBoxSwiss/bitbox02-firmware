@@ -13,17 +13,24 @@
 edition = "2018"
 rust-version = "1.65"
 name = "addr2line"
-version = "0.22.0"
-exclude = [
-    "/benches/*",
-    "/fixtures/*",
-    ".github",
-    "*.sh",
-    "*.r",
+version = "0.24.2"
+build = false
+include = [
+    "/CHANGELOG.md",
+    "/Cargo.lock",
+    "/Cargo.toml",
+    "/LICENSE-APACHE",
+    "/LICENSE-MIT",
+    "/README.md",
+    "/src",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A cross-platform symbolication library written in Rust, using `gimli`"
 documentation = "https://docs.rs/addr2line"
-readme = "./README.md"
+readme = "README.md"
 keywords = [
     "DWARF",
     "debug",
@@ -42,27 +49,24 @@ debug = 2
 [profile.release]
 debug = 2
 
-[[example]]
+[lib]
 name = "addr2line"
-required-features = ["default"]
+path = "src/lib.rs"
 
-[[test]]
-name = "output_equivalence"
-harness = false
-required-features = ["default"]
-
-[[test]]
-name = "correctness"
-required-features = ["default"]
-
-[[test]]
-name = "parse"
-required-features = ["std-object"]
+[[bin]]
+name = "addr2line"
+path = "src/bin/addr2line.rs"
+required-features = ["bin"]
 
 [dependencies.alloc]
 version = "1.0.0"
 optional = true
 package = "rustc-std-workspace-alloc"
+
+[dependencies.clap]
+version = "4.3.21"
+features = ["wrap_help"]
+optional = true
 
 [dependencies.compiler_builtins]
 version = "0.1.2"
@@ -85,7 +89,7 @@ optional = true
 default-features = false
 
 [dependencies.gimli]
-version = "0.29.0"
+version = "0.31.1"
 features = ["read"]
 default-features = false
 
@@ -94,8 +98,11 @@ version = "0.9.4"
 optional = true
 
 [dependencies.object]
-version = "0.35.0"
-features = ["read"]
+version = "0.36.0"
+features = [
+    "read",
+    "compression",
+]
 optional = true
 default-features = false
 
@@ -108,12 +115,12 @@ version = "1"
 optional = true
 default-features = false
 
+[dependencies.typed-arena]
+version = "2"
+optional = true
+
 [dev-dependencies.backtrace]
 version = "0.3.13"
-
-[dev-dependencies.clap]
-version = "4.3.21"
-features = ["wrap_help"]
 
 [dev-dependencies.findshlibs]
 version = "0.10"
@@ -121,17 +128,29 @@ version = "0.10"
 [dev-dependencies.libtest-mimic]
 version = "0.7.2"
 
-[dev-dependencies.typed-arena]
-version = "2"
-
 [features]
+all = ["bin"]
+bin = [
+    "loader",
+    "rustc-demangle",
+    "cpp_demangle",
+    "fallible-iterator",
+    "smallvec",
+    "dep:clap",
+]
+cargo-all = []
 default = [
     "rustc-demangle",
     "cpp_demangle",
-    "std-object",
+    "loader",
     "fallible-iterator",
     "smallvec",
-    "memmap2",
+]
+loader = [
+    "std",
+    "dep:object",
+    "dep:memmap2",
+    "dep:typed-arena",
 ]
 rustc-dep-of-std = [
     "core",
@@ -140,10 +159,3 @@ rustc-dep-of-std = [
     "gimli/rustc-dep-of-std",
 ]
 std = ["gimli/std"]
-std-object = [
-    "std",
-    "object",
-    "object/std",
-    "object/compression",
-    "gimli/endian-reader",
-]

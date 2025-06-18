@@ -179,7 +179,7 @@ impl LitStr {
     /// }
     /// ```
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     pub fn parse<T: Parse>(&self) -> Result<T> {
         self.parse_with(T::parse)
     }
@@ -209,7 +209,7 @@ impl LitStr {
     /// # }
     /// ```
     #[cfg(feature = "parsing")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     pub fn parse_with<F: Parser>(&self, parser: F) -> Result<F::Output> {
         use proc_macro2::Group;
 
@@ -604,7 +604,7 @@ mod debug_impls {
     use crate::lit::{LitBool, LitByte, LitByteStr, LitCStr, LitChar, LitFloat, LitInt, LitStr};
     use std::fmt::{self, Debug};
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitStr {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitStr")
@@ -620,7 +620,7 @@ mod debug_impls {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitByteStr {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitByteStr")
@@ -636,7 +636,7 @@ mod debug_impls {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitCStr {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitCStr")
@@ -652,7 +652,7 @@ mod debug_impls {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitByte {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitByte")
@@ -668,7 +668,7 @@ mod debug_impls {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitChar {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitChar")
@@ -684,7 +684,7 @@ mod debug_impls {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitInt {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitInt")
@@ -700,7 +700,7 @@ mod debug_impls {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitFloat {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitFloat")
@@ -716,7 +716,7 @@ mod debug_impls {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
     impl Debug for LitBool {
         fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             self.debug(formatter, "LitBool")
@@ -734,7 +734,7 @@ mod debug_impls {
 }
 
 #[cfg(feature = "clone-impls")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
 impl Clone for LitRepr {
     fn clone(&self) -> Self {
         LitRepr {
@@ -745,7 +745,7 @@ impl Clone for LitRepr {
 }
 
 #[cfg(feature = "clone-impls")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
 impl Clone for LitIntRepr {
     fn clone(&self) -> Self {
         LitIntRepr {
@@ -757,7 +757,7 @@ impl Clone for LitIntRepr {
 }
 
 #[cfg(feature = "clone-impls")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
 impl Clone for LitFloatRepr {
     fn clone(&self) -> Self {
         LitFloatRepr {
@@ -771,7 +771,7 @@ impl Clone for LitFloatRepr {
 macro_rules! lit_extra_traits {
     ($ty:ident) => {
         #[cfg(feature = "clone-impls")]
-        #[cfg_attr(doc_cfg, doc(cfg(feature = "clone-impls")))]
+        #[cfg_attr(docsrs, doc(cfg(feature = "clone-impls")))]
         impl Clone for $ty {
             fn clone(&self) -> Self {
                 $ty {
@@ -781,7 +781,7 @@ macro_rules! lit_extra_traits {
         }
 
         #[cfg(feature = "extra-traits")]
-        #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+        #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
         impl PartialEq for $ty {
             fn eq(&self, other: &Self) -> bool {
                 self.repr.token.to_string() == other.repr.token.to_string()
@@ -789,7 +789,7 @@ macro_rules! lit_extra_traits {
         }
 
         #[cfg(feature = "extra-traits")]
-        #[cfg_attr(doc_cfg, doc(cfg(feature = "extra-traits")))]
+        #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
         impl Hash for $ty {
             fn hash<H>(&self, state: &mut H)
             where
@@ -856,10 +856,13 @@ pub(crate) mod parsing {
         value, Lit, LitBool, LitByte, LitByteStr, LitCStr, LitChar, LitFloat, LitFloatRepr, LitInt,
         LitIntRepr, LitStr,
     };
-    use crate::parse::{Parse, ParseStream};
-    use proc_macro2::{Literal, Punct};
+    use crate::parse::{Parse, ParseStream, Unexpected};
+    use crate::token::{self, Token};
+    use proc_macro2::{Literal, Punct, Span};
+    use std::cell::Cell;
+    use std::rc::Rc;
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Lit {
         fn parse(input: ParseStream) -> Result<Self> {
             input.step(|cursor| {
@@ -930,7 +933,7 @@ pub(crate) mod parsing {
         ))
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitStr {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -941,7 +944,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitByteStr {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -952,7 +955,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitCStr {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -963,7 +966,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitByte {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -974,7 +977,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitChar {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -985,7 +988,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitInt {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -996,7 +999,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitFloat {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -1007,7 +1010,7 @@ pub(crate) mod parsing {
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "parsing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for LitBool {
         fn parse(input: ParseStream) -> Result<Self> {
             let head = input.fork();
@@ -1017,6 +1020,42 @@ pub(crate) mod parsing {
             }
         }
     }
+
+    fn peek_impl(cursor: Cursor, peek: fn(ParseStream) -> bool) -> bool {
+        let scope = Span::call_site();
+        let unexpected = Rc::new(Cell::new(Unexpected::None));
+        let buffer = crate::parse::new_parse_buffer(scope, cursor, unexpected);
+        peek(&buffer)
+    }
+
+    macro_rules! impl_token {
+        ($display:literal $name:ty) => {
+            impl Token for $name {
+                fn peek(cursor: Cursor) -> bool {
+                    fn peek(input: ParseStream) -> bool {
+                        <$name as Parse>::parse(input).is_ok()
+                    }
+                    peek_impl(cursor, peek)
+                }
+
+                fn display() -> &'static str {
+                    $display
+                }
+            }
+
+            impl token::private::Sealed for $name {}
+        };
+    }
+
+    impl_token!("literal" Lit);
+    impl_token!("string literal" LitStr);
+    impl_token!("byte string literal" LitByteStr);
+    impl_token!("C-string literal" LitCStr);
+    impl_token!("byte literal" LitByte);
+    impl_token!("character literal" LitChar);
+    impl_token!("integer literal" LitInt);
+    impl_token!("floating point literal" LitFloat);
+    impl_token!("boolean literal" LitBool);
 }
 
 #[cfg(feature = "printing")]
@@ -1025,56 +1064,56 @@ mod printing {
     use proc_macro2::TokenStream;
     use quote::{ToTokens, TokenStreamExt};
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitStr {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitByteStr {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitCStr {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitByte {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitChar {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitInt {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitFloat {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             self.repr.token.to_tokens(tokens);
         }
     }
 
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "printing")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for LitBool {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             tokens.append(self.token());
@@ -1498,7 +1537,7 @@ mod value {
         assert_eq!(byte(s, 1), b'\'');
 
         // We're going to want to have slices which don't respect codepoint boundaries.
-        let mut v = s[2..].as_bytes();
+        let mut v = &s.as_bytes()[2..];
 
         let b = match byte(v, 0) {
             b'\\' => {

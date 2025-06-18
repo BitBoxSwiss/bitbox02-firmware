@@ -1,8 +1,5 @@
 use crate::prelude::*;
 
-pub type c_char = i8;
-pub type c_long = i64;
-pub type c_ulong = u64;
 pub type clock_t = i32;
 pub type wchar_t = i32;
 pub type time_t = i64;
@@ -347,7 +344,7 @@ cfg_if! {
                     .field("mc_len", &self.mc_len)
                     .field("mc_fpformat", &self.mc_fpformat)
                     .field("mc_ownedfp", &self.mc_ownedfp)
-                    // FIXME: .field("mc_fpstate", &self.mc_fpstate)
+                    // FIXME(debug): .field("mc_fpstate", &self.mc_fpstate)
                     .field("mc_fsbase", &self.mc_fsbase)
                     .field("mc_gsbase", &self.mc_gsbase)
                     .field("mc_xfpustate", &self.mc_xfpustate)

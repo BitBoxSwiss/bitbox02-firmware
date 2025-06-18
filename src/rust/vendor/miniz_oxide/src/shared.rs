@@ -11,7 +11,7 @@ pub const HUFFMAN_LENGTH_ORDER: [u8; 19] = [
 #[doc(hidden)]
 #[cfg(not(feature = "simd"))]
 pub fn update_adler32(adler: u32, data: &[u8]) -> u32 {
-    let mut hash = adler::Adler32::from_checksum(adler);
+    let mut hash = adler2::Adler32::from_checksum(adler);
     hash.write_slice(data);
     hash.checksum()
 }

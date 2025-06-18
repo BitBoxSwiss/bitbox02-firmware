@@ -7,6 +7,7 @@
     clippy::manual_assert,
     clippy::manual_let_else,
     clippy::match_like_matches_macro,
+    clippy::needless_lifetimes,
     clippy::uninlined_format_args
 )]
 
@@ -50,9 +51,9 @@ mod repo;
 
 #[test]
 fn test_round_trip() {
-    common::rayon_init();
+    repo::rayon_init();
     repo::clone_rust();
-    let abort_after = common::abort_after();
+    let abort_after = repo::abort_after();
     if abort_after == 0 {
         panic!("skipping all round_trip tests");
     }
@@ -61,7 +62,7 @@ fn test_round_trip() {
 
     repo::for_each_rust_file(|path| test(path, &failed, abort_after));
 
-    let failed = failed.load(Ordering::Relaxed);
+    let failed = failed.into_inner();
     if failed > 0 {
         panic!("{} failures", failed);
     }
@@ -160,7 +161,8 @@ fn librustc_parse(content: String, sess: &ParseSess) -> PResult<Crate> {
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
     let counter = COUNTER.fetch_add(1, Ordering::Relaxed);
     let name = FileName::Custom(format!("test_round_trip{}", counter));
-    parse::parse_crate_from_source_str(name, content, sess)
+    let mut parser = parse::new_parser_from_source_str(sess, name, content).unwrap();
+    parser.parse_crate_mod()
 }
 
 fn translate_message(diagnostic: &Diag) -> Cow<'static, str> {
@@ -220,7 +222,9 @@ fn normalize(krate: &mut Crate) {
             for arg in &mut e.args {
                 match arg {
                     AngleBracketedArg::Arg(arg) => self.visit_generic_arg(arg),
-                    AngleBracketedArg::Constraint(constraint) => self.visit_constraint(constraint),
+                    AngleBracketedArg::Constraint(constraint) => {
+                        self.visit_assoc_item_constraint(constraint);
+                    }
                 }
             }
         }

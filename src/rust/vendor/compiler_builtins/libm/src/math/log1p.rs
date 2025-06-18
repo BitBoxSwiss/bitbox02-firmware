@@ -65,6 +65,7 @@ const LG5: f64 = 1.818357216161805012e-01; /* 3FC74664 96CB03DE */
 const LG6: f64 = 1.531383769920937332e-01; /* 3FC39A09 D078C69F */
 const LG7: f64 = 1.479819860511658591e-01; /* 3FC2F112 DF3E5244 */
 
+/// The natural logarithm of 1+`x` (f64).
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn log1p(x: f64) -> f64 {
     let mut ui: u64 = x.to_bits();
@@ -117,18 +118,14 @@ pub fn log1p(x: f64) -> f64 {
         k = (hu >> 20) as i32 - 0x3ff;
         /* correction term ~ log(1+x)-log(u), avoid underflow in c/u */
         if k < 54 {
-            c = if k >= 2 {
-                1. - (f64::from_bits(ui) - x)
-            } else {
-                x - (f64::from_bits(ui) - 1.)
-            };
+            c = if k >= 2 { 1. - (f64::from_bits(ui) - x) } else { x - (f64::from_bits(ui) - 1.) };
             c /= f64::from_bits(ui);
         } else {
             c = 0.;
         }
         /* reduce u into [sqrt(2)/2, sqrt(2)] */
         hu = (hu & 0x000fffff) + 0x3fe6a09e;
-        ui = (hu as u64) << 32 | (ui & 0xffffffff);
+        ui = ((hu as u64) << 32) | (ui & 0xffffffff);
         f = f64::from_bits(ui) - 1.;
     }
     hfsq = 0.5 * f * f;

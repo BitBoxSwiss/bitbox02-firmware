@@ -1,6 +1,99 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.2.171](https://github.com/rust-lang/libc/compare/0.2.170...0.2.171) - 2025-03-11
+
+### Added
+
+- Android: Add `if_nameindex`/`if_freenameindex` support ([#4247](https://github.com/rust-lang/libc/pull/4247))
+- Apple: Add missing proc types and constants ([#4310](https://github.com/rust-lang/libc/pull/4310))
+- BSD: Add `devname` ([#4285](https://github.com/rust-lang/libc/pull/4285))
+- Cygwin: Add PTY and group API ([#4309](https://github.com/rust-lang/libc/pull/4309))
+- Cygwin: Add support ([#4279](https://github.com/rust-lang/libc/pull/4279))
+- FreeBSD: Make `spawn.h` interfaces available on all FreeBSD-like systems ([#4294](https://github.com/rust-lang/libc/pull/4294))
+- Linux: Add `AF_XDP` structs for all Linux environments ([#4163](https://github.com/rust-lang/libc/pull/4163))
+- Linux: Add SysV semaphore constants ([#4286](https://github.com/rust-lang/libc/pull/4286))
+- Linux: Add `F_SEAL_EXEC` ([#4316](https://github.com/rust-lang/libc/pull/4316))
+- Linux: Add `SO_PREFER_BUSY_POLL` and `SO_BUSY_POLL_BUDGET` ([#3917](https://github.com/rust-lang/libc/pull/3917))
+- Linux: Add `devmem` structs ([#4299](https://github.com/rust-lang/libc/pull/4299))
+- Linux: Add socket constants up to `SO_DEVMEM_DONTNEED` ([#4299](https://github.com/rust-lang/libc/pull/4299))
+- NetBSD, OpenBSD, DragonflyBSD: Add `closefrom` ([#4290](https://github.com/rust-lang/libc/pull/4290))
+- NuttX: Add `pw_passwd` field to `passwd` ([#4222](https://github.com/rust-lang/libc/pull/4222))
+- Solarish: define `IP_BOUND_IF` and `IPV6_BOUND_IF` ([#4287](https://github.com/rust-lang/libc/pull/4287))
+- Wali: Add bindings for `wasm32-wali-linux-musl` target ([#4244](https://github.com/rust-lang/libc/pull/4244))
+
+### Changed
+
+- AIX: Use `sa_sigaction` instead of a union ([#4250](https://github.com/rust-lang/libc/pull/4250))
+- Make `msqid_ds.__msg_cbytes` public ([#4301](https://github.com/rust-lang/libc/pull/4301))
+- Unix: Make all `major`, `minor`, `makedev` into `const fn` ([#4208](https://github.com/rust-lang/libc/pull/4208))
+
+### Deprecated
+
+- Linux: Deprecate obsolete packet filter interfaces ([#4267](https://github.com/rust-lang/libc/pull/4267))
+
+### Fixed
+
+- Cygwin: Fix strerror_r ([#4308](https://github.com/rust-lang/libc/pull/4308))
+- Cygwin: Fix usage of f! ([#4308](https://github.com/rust-lang/libc/pull/4308))
+- Hermit: Make `stat::st_size` signed ([#4298](https://github.com/rust-lang/libc/pull/4298))
+- Linux: Correct values for `SI_TIMER`, `SI_MESGQ`, `SI_ASYNCIO` ([#4292](https://github.com/rust-lang/libc/pull/4292))
+- NuttX: Update `tm_zone` and `d_name` fields to use `c_char` type ([#4222](https://github.com/rust-lang/libc/pull/4222))
+- Xous: Include the prelude to define `c_int` ([#4304](https://github.com/rust-lang/libc/pull/4304))
+
+### Other
+
+- Add labels to FIXMEs ([#4231](https://github.com/rust-lang/libc/pull/4231), [#4232](https://github.com/rust-lang/libc/pull/4232), [#4234](https://github.com/rust-lang/libc/pull/4234), [#4235](https://github.com/rust-lang/libc/pull/4235), [#4236](https://github.com/rust-lang/libc/pull/4236))
+- CI: Fix "cannot find libc" error on Sparc64 ([#4317](https://github.com/rust-lang/libc/pull/4317))
+- CI: Fix "cannot find libc" error on s390x ([#4317](https://github.com/rust-lang/libc/pull/4317))
+- CI: Pass `--no-self-update` to `rustup update` ([#4306](https://github.com/rust-lang/libc/pull/4306))
+- CI: Remove tests for the `i586-pc-windows-msvc` target ([#4311](https://github.com/rust-lang/libc/pull/4311))
+- CI: Remove the `check_cfg` job ([#4322](https://github.com/rust-lang/libc/pull/4312))
+- Change the range syntax that is giving `ctest` problems ([#4311](https://github.com/rust-lang/libc/pull/4311))
+- Linux: Split out the stat struct for gnu/b32/mips ([#4276](https://github.com/rust-lang/libc/pull/4276))
+
+### Removed
+
+- NuttX: Remove `pthread_set_name_np` ([#4251](https://github.com/rust-lang/libc/pull/4251))
+
+## [0.2.170](https://github.com/rust-lang/libc/compare/0.2.169...0.2.170) - 2025-02-23
+
+### Added
+
+- Android: Declare `setdomainname` and `getdomainname` <https://github.com/rust-lang/libc/pull/4212>
+- FreeBSD: Add `evdev` structures <https://github.com/rust-lang/libc/pull/3756>
+- FreeBSD: Add the new `st_filerev` field to `stat32` ([#4254](https://github.com/rust-lang/libc/pull/4254))
+- Linux: Add `SI_*`` and `TRAP_*`` signal codes <https://github.com/rust-lang/libc/pull/4225>
+- Linux: Add experimental configuration to enable 64-bit time in kernel APIs, set by `RUST_LIBC_UNSTABLE_LINUX_TIME_BITS64`. <https://github.com/rust-lang/libc/pull/4148>
+- Linux: Add recent socket timestamping flags <https://github.com/rust-lang/libc/pull/4273>
+- Linux: Added new CANFD_FDF flag for the flags field of canfd_frame <https://github.com/rust-lang/libc/pull/4223>
+- Musl: add CLONE_NEWTIME <https://github.com/rust-lang/libc/pull/4226>
+- Solarish: add the posix_spawn family of functions <https://github.com/rust-lang/libc/pull/4259>
+
+### Deprecated
+
+- Linux: deprecate kernel modules syscalls <https://github.com/rust-lang/libc/pull/4228>
+
+### Changed
+
+- Emscripten: Assume version is at least 3.1.42 <https://github.com/rust-lang/libc/pull/4243>
+
+### Fixed
+
+- BSD: Correct the definition of `WEXITSTATUS` <https://github.com/rust-lang/libc/pull/4213>
+- Hurd: Fix CMSG_DATA on 64bit systems ([#4240](https://github.com/rust-lang/libc/pull/424))
+- NetBSD: fix `getmntinfo` ([#4265](https://github.com/rust-lang/libc/pull/4265)
+- VxWorks: Fix the size of `time_t` <https://github.com/rust-lang/libc/pull/426>
+
+### Other
+
+- Add labels to FIXMEs <https://github.com/rust-lang/libc/pull/4230>, <https://github.com/rust-lang/libc/pull/4229>, <https://github.com/rust-lang/libc/pull/4237>
+- CI: Bump FreeBSD CI to 13.4 and 14.2 <https://github.com/rust-lang/libc/pull/4260>
+- Copy definitions from core::ffi and centralize them <https://github.com/rust-lang/libc/pull/4256>
+- Define c_char at top-level and remove per-target c_char definitions <https://github.com/rust-lang/libc/pull/4202>
+- Port style.rs to syn and add tests for the style checker <https://github.com/rust-lang/libc/pull/4220>
+
 ## [0.2.169](https://github.com/rust-lang/libc/compare/0.2.168...0.2.169) - 2024-12-18
 
 ### Added

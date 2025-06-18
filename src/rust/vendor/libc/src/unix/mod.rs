@@ -5,16 +5,6 @@
 
 use crate::prelude::*;
 
-pub type c_schar = i8;
-pub type c_uchar = u8;
-pub type c_short = i16;
-pub type c_ushort = u16;
-pub type c_int = i32;
-pub type c_uint = u32;
-pub type c_float = f32;
-pub type c_double = f64;
-pub type c_longlong = i64;
-pub type c_ulonglong = u64;
 pub type intmax_t = i64;
 pub type uintmax_t = u64;
 
@@ -66,6 +56,7 @@ s! {
         pub modtime: time_t,
     }
 
+    // FIXME(time): Needs updates at least for glibc _TIME_BITS=64
     pub struct timeval {
         pub tv_sec: time_t,
         pub tv_usec: suseconds_t,
@@ -144,6 +135,7 @@ s! {
         pub ipv6mr_interface: c_uint,
     }
 
+    #[cfg(not(target_os = "cygwin"))]
     pub struct hostent {
         pub h_name: *mut c_char,
         pub h_aliases: *mut *mut c_char,
@@ -170,6 +162,7 @@ s! {
         pub ws_ypixel: c_ushort,
     }
 
+    #[cfg(not(target_os = "cygwin"))]
     pub struct linger {
         pub l_onoff: c_int,
         pub l_linger: c_int,
@@ -197,6 +190,9 @@ s! {
     pub struct servent {
         pub s_name: *mut c_char,
         pub s_aliases: *mut *mut c_char,
+        #[cfg(target_os = "cygwin")]
+        pub s_port: c_short,
+        #[cfg(not(target_os = "cygwin"))]
         pub s_port: c_int,
         pub s_proto: *mut c_char,
     }
@@ -204,7 +200,10 @@ s! {
     pub struct protoent {
         pub p_name: *mut c_char,
         pub p_aliases: *mut *mut c_char,
+        #[cfg(not(target_os = "cygwin"))]
         pub p_proto: c_int,
+        #[cfg(target_os = "cygwin")]
+        pub p_proto: c_short,
     }
 
     #[repr(align(4))]
@@ -254,7 +253,8 @@ cfg_if! {
     if #[cfg(not(any(
         target_os = "haiku",
         target_os = "illumos",
-        target_os = "solaris"
+        target_os = "solaris",
+        target_os = "cygwin"
     )))] {
         pub const IF_NAMESIZE: size_t = 16;
         pub const IFNAMSIZ: size_t = IF_NAMESIZE;
@@ -379,8 +379,13 @@ cfg_if! {
         // cargo build, don't pull in anything extra as the std dep
         // already pulls in all libs.
     } else if #[cfg(all(
-        target_os = "linux",
-        any(target_env = "gnu", target_env = "uclibc"),
+        any(
+            all(
+                target_os = "linux",
+                any(target_env = "gnu", target_env = "uclibc")
+            ),
+            target_os = "cygwin"
+        ),
         feature = "rustc-dep-of-std"
     ))] {
         #[link(
@@ -537,7 +542,7 @@ missing! {
     #[cfg_attr(feature = "extra_traits", derive(Debug))]
     pub enum FILE {}
     #[cfg_attr(feature = "extra_traits", derive(Debug))]
-    pub enum fpos_t {} // FIXME: fill this out with a struct
+    pub enum fpos_t {} // FIXME(unix): fill this out with a struct
 }
 
 extern "C" {
@@ -1310,6 +1315,7 @@ extern "C" {
                 not(any(target_env = "musl", target_env = "ohos"))
             ),
             target_os = "freebsd",
+            target_os = "cygwin",
             target_os = "dragonfly",
             target_os = "haiku"
         ),
@@ -1329,11 +1335,11 @@ extern "C" {
 
     #[cfg_attr(target_os = "netbsd", link_name = "__gmtime_r50")]
     #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
+    // FIXME(time): for `time_t`
     pub fn gmtime_r(time_p: *const time_t, result: *mut tm) -> *mut tm;
     #[cfg_attr(target_os = "netbsd", link_name = "__localtime_r50")]
     #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
+    // FIXME(time): for `time_t`
     pub fn localtime_r(time_p: *const time_t, result: *mut tm) -> *mut tm;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
@@ -1349,19 +1355,19 @@ extern "C" {
     pub fn time(time: *mut time_t) -> time_t;
     #[cfg_attr(target_os = "netbsd", link_name = "__gmtime50")]
     #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
+    // FIXME(time): for `time_t`
     pub fn gmtime(time_p: *const time_t) -> *mut tm;
     #[cfg_attr(target_os = "netbsd", link_name = "__locatime50")]
     #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
+    // FIXME(time): for `time_t`
     pub fn localtime(time_p: *const time_t) -> *mut tm;
     #[cfg_attr(target_os = "netbsd", link_name = "__difftime50")]
     #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
+    // FIXME(time): for `time_t`
     pub fn difftime(time1: time_t, time0: time_t) -> c_double;
     #[cfg_attr(target_os = "netbsd", link_name = "__timegm50")]
     #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
+    // FIXME(time): for `time_t`
     pub fn timegm(tm: *mut crate::tm) -> time_t;
 
     #[cfg_attr(target_os = "netbsd", link_name = "__mknod50")]
@@ -1379,10 +1385,13 @@ extern "C" {
     pub fn getprotobyname(name: *const c_char) -> *mut protoent;
     pub fn getprotobynumber(proto: c_int) -> *mut protoent;
     pub fn chroot(name: *const c_char) -> c_int;
+    #[cfg(target_os = "cygwin")]
+    pub fn usleep(secs: useconds_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "usleep$UNIX2003"
     )]
+    #[cfg(not(target_os = "cygwin"))]
     pub fn usleep(secs: c_uint) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
@@ -1526,7 +1535,8 @@ cfg_if! {
         target_os = "android",
         target_os = "haiku",
         target_os = "nto",
-        target_os = "solaris"
+        target_os = "solaris",
+        target_os = "cygwin"
     )))] {
         extern "C" {
             pub fn adjtime(delta: *const timeval, olddelta: *mut timeval) -> c_int;
@@ -1619,7 +1629,7 @@ cfg_if! {
                 all(target_os = "freebsd", any(freebsd11, freebsd10)),
                 link_name = "readdir_r@FBSD_1.0"
             )]
-            #[allow(non_autolinks)] // FIXME: `<>` breaks line length limit.
+            #[allow(non_autolinks)] // FIXME(docs): `<>` breaks line length limit.
             /// The 64-bit libc on Solaris and illumos only has readdir_r. If a
             /// 32-bit Solaris or illumos target is ever created, it should use
             /// __posix_readdir_r. See libc(3LIB) on Solaris or illumos:
@@ -1743,6 +1753,9 @@ cfg_if! {
     } else if #[cfg(target_os = "redox")] {
         mod redox;
         pub use self::redox::*;
+    } else if #[cfg(target_os = "cygwin")] {
+        mod cygwin;
+        pub use self::cygwin::*;
     } else if #[cfg(target_os = "nto")] {
         mod nto;
         pub use self::nto::*;

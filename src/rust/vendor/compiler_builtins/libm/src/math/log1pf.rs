@@ -20,6 +20,7 @@ const LG2: f32 = 0.40000972152; /* 0xccce13.0p-25 */
 const LG3: f32 = 0.28498786688; /* 0x91e9ee.0p-25 */
 const LG4: f32 = 0.24279078841; /* 0xf89e26.0p-26 */
 
+/// The natural logarithm of 1+`x` (f32).
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn log1pf(x: f32) -> f32 {
     let mut ui: u32 = x.to_bits();
@@ -72,11 +73,7 @@ pub fn log1pf(x: f32) -> f32 {
         k = (iu >> 23) as i32 - 0x7f;
         /* correction term ~ log(1+x)-log(u), avoid underflow in c/u */
         if k < 25 {
-            c = if k >= 2 {
-                1. - (f32::from_bits(ui) - x)
-            } else {
-                x - (f32::from_bits(ui) - 1.)
-            };
+            c = if k >= 2 { 1. - (f32::from_bits(ui) - x) } else { x - (f32::from_bits(ui) - 1.) };
             c /= f32::from_bits(ui);
         } else {
             c = 0.;

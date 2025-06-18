@@ -3,6 +3,7 @@
 
 #![no_std]
 #![allow(nonstandard_style)]
+#![allow(dead_code)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::result_unit_err)]
 
@@ -85,8 +86,12 @@ pub struct timeval {
 /// The largest number `rand` will return
 pub const RAND_MAX: i32 = 2_147_483_647;
 
+/// Socket address family: IPv4
 pub const AF_INET: i32 = 0;
+/// Socket address family: IPv6
 pub const AF_INET6: i32 = 1;
+/// Socket address family: VSOCK protocol for hypervisor-guest communication
+pub const AF_VSOCK: i32 = 2;
 pub const IPPROTO_IP: i32 = 0;
 pub const IPPROTO_IPV6: i32 = 41;
 pub const IPPROTO_UDP: i32 = 17;
@@ -104,9 +109,13 @@ pub const IP_DROP_MEMBERSHIP: i32 = 4;
 pub const SHUT_RD: i32 = 0;
 pub const SHUT_WR: i32 = 1;
 pub const SHUT_RDWR: i32 = 2;
+/// Socket supports datagrams (connectionless,  unreliable  messages of a fixed maximum length)
 pub const SOCK_DGRAM: i32 = 2;
+/// Socket provides sequenced, reliable,  two-way,  connection-based byte streams.
 pub const SOCK_STREAM: i32 = 1;
+/// Set the O_NONBLOCK file status flag on the open socket
 pub const SOCK_NONBLOCK: i32 = 0o4000;
+/// Set  the  close-on-exec flag on the new socket
 pub const SOCK_CLOEXEC: i32 = 0o40000;
 pub const SOL_SOCKET: i32 = 4095;
 pub const SO_REUSEADDR: i32 = 0x0004;
@@ -147,6 +156,11 @@ pub const EFD_SEMAPHORE: i16 = 0o1;
 pub const EFD_NONBLOCK: i16 = 0o4000;
 pub const EFD_CLOEXEC: i16 = 0o40000;
 pub const IOV_MAX: usize = 1024;
+/// VMADDR_CID_ANY means that any address is possible for binding
+pub const VMADDR_CID_ANY: u32 = u32::MAX;
+pub const VMADDR_CID_HYPERVISOR: u32 = 0;
+pub const VMADDR_CID_LOCAL: u32 = 1;
+pub const VMADDR_CID_HOST: u32 = 2;
 pub type sa_family_t = u8;
 pub type socklen_t = u32;
 pub type in_addr_t = u32;
@@ -172,7 +186,7 @@ pub struct in6_addr {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct sockaddr {
 	pub sa_len: u8,
 	pub sa_family: sa_family_t,
@@ -180,7 +194,18 @@ pub struct sockaddr {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
+pub struct sockaddr_vm {
+	pub svm_len: u8,
+	pub svm_family: sa_family_t,
+	pub svm_reserved1: u16,
+	pub svm_port: u32,
+	pub svm_cid: u32,
+	pub svm_zero: [u8; 4],
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct sockaddr_in {
 	pub sin_len: u8,
 	pub sin_family: sa_family_t,
@@ -190,7 +215,7 @@ pub struct sockaddr_in {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct sockaddr_in6 {
 	pub sin6_len: u8,
 	pub sin6_family: sa_family_t,
@@ -224,28 +249,28 @@ pub struct sockaddr_storage {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct ip_mreq {
 	pub imr_multiaddr: in_addr,
 	pub imr_interface: in_addr,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct ipv6_mreq {
 	pub ipv6mr_multiaddr: in6_addr,
 	pub ipv6mr_interface: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct linger {
 	pub l_onoff: i32,
 	pub l_linger: i32,
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct pollfd {
 	/// file descriptor
 	pub fd: i32,
@@ -270,7 +295,7 @@ pub struct stat {
 	/// device id
 	pub st_rdev: u64,
 	/// size in bytes
-	pub st_size: u64,
+	pub st_size: i64,
 	/// block size
 	pub st_blksize: i64,
 	/// size in blocks
@@ -327,6 +352,22 @@ pub const S_IFLNK: u32 = 0o12_0000;
 pub const S_IFSOCK: u32 = 0o14_0000;
 pub const S_IFMT: u32 = 0o17_0000;
 
+/// Pages may not be accessed.
+pub const PROT_NONE: u32 = 0;
+/// Indicates that the memory region should be readable.
+pub const PROT_READ: u32 = 1 << 0;
+/// Indicates that the memory region should be writable.
+pub const PROT_WRITE: u32 = 1 << 1;
+/// Indicates that the memory region should be executable.
+pub const PROT_EXEC: u32 = 1 << 2;
+
+/// The file offset is set to offset bytes.
+pub const SEEK_SET: i32 = 0;
+/// The file offset is set to its current location plus offset bytes.
+pub const SEEK_CUR: i32 = 1;
+/// The file offset is set to the size of the file plus offset bytes.
+pub const SEEK_END: i32 = 2;
+
 // symbols, which are part of the library operating system
 extern "C" {
 	/// Get the last error number from the thread local storage
@@ -336,6 +377,26 @@ extern "C" {
 	/// Get the last error number from the thread local storage
 	#[link_name = "sys_errno"]
 	pub fn errno() -> i32;
+
+	/// Get memory page size
+	#[link_name = "sys_getpagesize"]
+	pub fn getpagesize() -> i32;
+
+	/// Creates a new virtual memory mapping of the `size` specified with
+	/// protection bits specified in `prot_flags`.
+	#[link_name = "sys_mmap"]
+	pub fn mmap(size: usize, prot_flags: u32, ret: &mut *mut u8) -> i32;
+
+	/// Unmaps memory at the specified `ptr` for `size` bytes.
+	#[link_name = "sys_munmap"]
+	pub fn munmap(ptr: *mut u8, size: usize) -> i32;
+
+	/// Configures the protections associated with a region of virtual memory
+	/// starting at `ptr` and going to `size`.
+	///
+	/// Returns 0 on success and an error code on failure.
+	#[link_name = "sys_mprotect"]
+	pub fn mprotect(ptr: *mut u8, size: usize, prot_flags: u32) -> i32;
 
 	/// If the value at address matches the expected value, park the current thread until it is either
 	/// woken up with [`futex_wake`] (returns 0) or an optional timeout elapses (returns -ETIMEDOUT).
@@ -687,6 +748,14 @@ extern "C" {
 		addr: *mut sockaddr,
 		addrlen: *mut socklen_t,
 	) -> isize;
+
+	/// The fseek() function sets the file position indicator for the stream pointed to by stream.
+	/// The new position, measured in bytes, is obtained by adding offset bytes to the position
+	/// specified by whence.  If whence is set to SEEK_SET, SEEK_CUR, or SEEK_END, the offset is
+	/// relative to the start of the file, the current position indicator, or end-of-file,
+	/// respectively.
+	#[link_name = "sys_lseek"]
+	pub fn lseek(fd: i32, offset: isize, whence: i32) -> isize;
 
 	/// write to a file descriptor
 	///

@@ -13,6 +13,8 @@
  * ====================================================
  */
 
+use core::cmp::Ordering;
+
 use super::{fabsf, scalbnf, sqrtf};
 
 const BP: [f32; 2] = [1.0, 1.5];
@@ -43,6 +45,7 @@ const IVLN2: f32 = 1.4426950216e+00;
 const IVLN2_H: f32 = 1.4426879883e+00;
 const IVLN2_L: f32 = 7.0526075433e-06;
 
+/// Returns `x` to the power of `y` (f32).
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
 pub fn powf(x: f32, y: f32) -> f32 {
     let mut z: f32;
@@ -114,15 +117,13 @@ pub fn powf(x: f32, y: f32) -> f32 {
     /* special value of y */
     if iy == 0x7f800000 {
         /* y is +-inf */
-        if ix == 0x3f800000 {
+        match ix.cmp(&0x3f800000) {
             /* (-1)**+-inf is 1 */
-            return 1.0;
-        } else if ix > 0x3f800000 {
+            Ordering::Equal => return 1.0,
             /* (|x|>1)**+-inf = inf,0 */
-            return if hy >= 0 { y } else { 0.0 };
-        } else {
+            Ordering::Greater => return if hy >= 0 { y } else { 0.0 },
             /* (|x|<1)**+-inf = 0,inf */
-            return if hy >= 0 { 0.0 } else { -y };
+            Ordering::Less => return if hy >= 0 { 0.0 } else { -y },
         }
     }
     if iy == 0x3f800000 {
@@ -181,19 +182,11 @@ pub fn powf(x: f32, y: f32) -> f32 {
         /* if |y| > 2**27 */
         /* over/underflow if x is not close to one */
         if ix < 0x3f7ffff8 {
-            return if hy < 0 {
-                sn * HUGE * HUGE
-            } else {
-                sn * TINY * TINY
-            };
+            return if hy < 0 { sn * HUGE * HUGE } else { sn * TINY * TINY };
         }
 
         if ix > 0x3f800007 {
-            return if hy > 0 {
-                sn * HUGE * HUGE
-            } else {
-                sn * TINY * TINY
-            };
+            return if hy > 0 { sn * HUGE * HUGE } else { sn * TINY * TINY };
         }
 
         /* now |1-x| is TINY <= 2**-20, suffice to compute

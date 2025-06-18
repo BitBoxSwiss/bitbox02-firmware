@@ -1,10 +1,7 @@
 use core::mem::size_of;
 
-pub use crate::arch::c_char_def as c_char;
 use crate::prelude::*;
 
-pub type c_long = i64;
-pub type c_ulong = u64;
 pub type caddr_t = *mut c_char;
 
 pub type clockid_t = c_int;
@@ -56,6 +53,9 @@ pub type lgrp_content_t = c_uint;
 pub type lgrp_lat_between_t = c_uint;
 pub type lgrp_mem_size_flag_t = c_uint;
 pub type lgrp_view_t = c_uint;
+
+pub type posix_spawnattr_t = *mut c_void;
+pub type posix_spawn_file_actions_t = *mut c_void;
 
 #[cfg_attr(feature = "extra_traits", derive(Debug))]
 pub enum timezone {}
@@ -589,7 +589,7 @@ cfg_if! {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("sockaddr_un")
                     .field("sun_family", &self.sun_family)
-                    // FIXME: .field("sun_path", &self.sun_path)
+                    // FIXME(debug): .field("sun_path", &self.sun_path)
                     .finish()
             }
         }
@@ -632,11 +632,11 @@ cfg_if! {
         impl fmt::Debug for utsname {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("utsname")
-                    // FIXME: .field("sysname", &self.sysname)
-                    // FIXME: .field("nodename", &self.nodename)
-                    // FIXME: .field("release", &self.release)
-                    // FIXME: .field("version", &self.version)
-                    // FIXME: .field("machine", &self.machine)
+                    // FIXME(debug): .field("sysname", &self.sysname)
+                    // FIXME(debug): .field("nodename", &self.nodename)
+                    // FIXME(debug): .field("release", &self.release)
+                    // FIXME(debug): .field("version", &self.version)
+                    // FIXME(debug): .field("machine", &self.machine)
                     .finish()
             }
         }
@@ -662,7 +662,7 @@ cfg_if! {
         impl fmt::Debug for fd_set {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.debug_struct("fd_set")
-                    // FIXME: .field("fds_bits", &self.fds_bits)
+                    // FIXME(debug): .field("fds_bits", &self.fds_bits)
                     .finish()
             }
         }
@@ -691,7 +691,7 @@ cfg_if! {
                     .field("ss_family", &self.ss_family)
                     .field("__ss_pad1", &self.__ss_pad1)
                     .field("__ss_align", &self.__ss_align)
-                    // FIXME: .field("__ss_pad2", &self.__ss_pad2)
+                    // FIXME(debug): .field("__ss_pad2", &self.__ss_pad2)
                     .finish()
             }
         }
@@ -740,7 +740,7 @@ cfg_if! {
                     && self.si_code == other.si_code
                     && self.si_errno == other.si_errno
                 {
-                    // FIXME: The `si_pad` field in the 64-bit version of the struct is ignored
+                    // FIXME(solarish): The `si_pad` field in the 64-bit version of the struct is ignored
                     // (for now) when doing comparisons.
 
                     let field_count = self.data_field_count();
@@ -760,7 +760,7 @@ cfg_if! {
                     .field("si_signo", &self.si_signo)
                     .field("si_code", &self.si_code)
                     .field("si_errno", &self.si_errno)
-                    // FIXME: .field("__pad", &self.__pad)
+                    // FIXME(debug): .field("__pad", &self.__pad)
                     .finish()
             }
         }
@@ -770,7 +770,7 @@ cfg_if! {
                 self.si_code.hash(state);
                 self.si_errno.hash(state);
 
-                // FIXME: The `si_pad` field in the 64-bit version of the struct is ignored
+                // FIXME(solarish): The `si_pad` field in the 64-bit version of the struct is ignored
                 // (for now) when doing hashing.
 
                 let field_count = self.data_field_count();
@@ -803,7 +803,7 @@ cfg_if! {
                     .field("sdl_nlen", &self.sdl_nlen)
                     .field("sdl_alen", &self.sdl_alen)
                     .field("sdl_slen", &self.sdl_slen)
-                    // FIXME: .field("sdl_data", &self.sdl_data)
+                    // FIXME(debug): .field("sdl_data", &self.sdl_data)
                     .finish()
             }
         }
@@ -853,7 +853,7 @@ cfg_if! {
         impl PartialEq for pad128_t {
             fn eq(&self, other: &pad128_t) -> bool {
                 unsafe {
-                    // FIXME: self._q == other._q ||
+                    // FIXME(solarish): self._q == other._q ||
                     self._l == other._l
                 }
             }
@@ -862,7 +862,7 @@ cfg_if! {
         impl hash::Hash for pad128_t {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 unsafe {
-                    // FIXME: state.write_i64(self._q as i64);
+                    // FIXME(solarish): state.write_i64(self._q as i64);
                     self._l.hash(state);
                 }
             }
@@ -870,7 +870,7 @@ cfg_if! {
         impl PartialEq for upad128_t {
             fn eq(&self, other: &upad128_t) -> bool {
                 unsafe {
-                    // FIXME: self._q == other._q ||
+                    // FIXME(solarish): self._q == other._q ||
                     self._l == other._l
                 }
             }
@@ -879,7 +879,7 @@ cfg_if! {
         impl hash::Hash for upad128_t {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 unsafe {
-                    // FIXME: state.write_i64(self._q as i64);
+                    // FIXME(solarish): state.write_i64(self._q as i64);
                     self._l.hash(state);
                 }
             }
@@ -1148,6 +1148,7 @@ pub const IPV6_DONTFRAG: c_int = 0x21;
 pub const IPV6_SEC_OPT: c_int = 0x22;
 pub const IPV6_TCLASS: c_int = 0x26;
 pub const IPV6_V6ONLY: c_int = 0x27;
+pub const IPV6_BOUND_IF: c_int = 0x41;
 
 cfg_if! {
     if #[cfg(target_pointer_width = "64")] {
@@ -1544,6 +1545,17 @@ pub const POSIX_MADV_SEQUENTIAL: c_int = 2;
 pub const POSIX_MADV_WILLNEED: c_int = 3;
 pub const POSIX_MADV_DONTNEED: c_int = 4;
 
+pub const POSIX_SPAWN_RESETIDS: c_short = 0x1;
+pub const POSIX_SPAWN_SETPGROUP: c_short = 0x2;
+pub const POSIX_SPAWN_SETSIGDEF: c_short = 0x4;
+pub const POSIX_SPAWN_SETSIGMASK: c_short = 0x8;
+pub const POSIX_SPAWN_SETSCHEDPARAM: c_short = 0x10;
+pub const POSIX_SPAWN_SETSCHEDULER: c_short = 0x20;
+pub const POSIX_SPAWN_SETSIGIGN_NP: c_short = 0x800;
+pub const POSIX_SPAWN_NOSIGCHLD_NP: c_short = 0x1000;
+pub const POSIX_SPAWN_WAITPID_NP: c_short = 0x2000;
+pub const POSIX_SPAWN_NOEXECERR_NP: c_short = 0x4000;
+
 pub const PTHREAD_CREATE_JOINABLE: c_int = 0;
 pub const PTHREAD_CREATE_DETACHED: c_int = 0x40;
 pub const PTHREAD_PROCESS_SHARED: c_int = 1;
@@ -1680,6 +1692,7 @@ pub const IP_ADD_SOURCE_MEMBERSHIP: c_int = 23;
 pub const IP_DROP_SOURCE_MEMBERSHIP: c_int = 24;
 pub const IP_BLOCK_SOURCE: c_int = 21;
 pub const IP_UNBLOCK_SOURCE: c_int = 22;
+pub const IP_BOUND_IF: c_int = 0x41;
 
 // These TCP socket options are common between illumos and Solaris, while higher
 // numbers have generally diverged:
@@ -2688,6 +2701,106 @@ extern "C" {
 
     pub fn posix_fallocate(fd: c_int, offset: off_t, len: off_t) -> c_int;
     pub fn posix_madvise(addr: *mut c_void, len: size_t, advice: c_int) -> c_int;
+
+    pub fn posix_spawn(
+        pid: *mut crate::pid_t,
+        path: *const c_char,
+        file_actions: *const posix_spawn_file_actions_t,
+        attrp: *const posix_spawnattr_t,
+        argv: *const *mut c_char,
+        envp: *const *mut c_char,
+    ) -> c_int;
+    pub fn posix_spawnp(
+        pid: *mut crate::pid_t,
+        file: *const c_char,
+        file_actions: *const posix_spawn_file_actions_t,
+        attrp: *const posix_spawnattr_t,
+        argv: *const *mut c_char,
+        envp: *const *mut c_char,
+    ) -> c_int;
+
+    pub fn posix_spawn_file_actions_init(file_actions: *mut posix_spawn_file_actions_t) -> c_int;
+    pub fn posix_spawn_file_actions_destroy(file_actions: *mut posix_spawn_file_actions_t)
+        -> c_int;
+    pub fn posix_spawn_file_actions_addopen(
+        file_actions: *mut posix_spawn_file_actions_t,
+        fildes: c_int,
+        path: *const c_char,
+        oflag: c_int,
+        mode: crate::mode_t,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addclose(
+        file_actions: *mut posix_spawn_file_actions_t,
+        fildes: c_int,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_adddup2(
+        file_actions: *mut posix_spawn_file_actions_t,
+        fildes: c_int,
+        newfildes: c_int,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addclosefrom_np(
+        file_actions: *mut posix_spawn_file_actions_t,
+        lowfiledes: c_int,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addchdir(
+        file_actions: *mut posix_spawn_file_actions_t,
+        path: *const c_char,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addchdir_np(
+        file_actions: *mut posix_spawn_file_actions_t,
+        path: *const c_char,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addfchdir(
+        file_actions: *mut posix_spawn_file_actions_t,
+        fd: c_int,
+    ) -> c_int;
+
+    pub fn posix_spawnattr_init(attr: *mut posix_spawnattr_t) -> c_int;
+    pub fn posix_spawnattr_destroy(attr: *mut posix_spawnattr_t) -> c_int;
+    pub fn posix_spawnattr_setflags(attr: *mut posix_spawnattr_t, flags: c_short) -> c_int;
+    pub fn posix_spawnattr_getflags(attr: *const posix_spawnattr_t, flags: *mut c_short) -> c_int;
+    pub fn posix_spawnattr_setpgroup(attr: *mut posix_spawnattr_t, pgroup: crate::pid_t) -> c_int;
+    pub fn posix_spawnattr_getpgroup(
+        attr: *const posix_spawnattr_t,
+        _pgroup: *mut crate::pid_t,
+    ) -> c_int;
+    pub fn posix_spawnattr_setschedparam(
+        attr: *mut posix_spawnattr_t,
+        param: *const crate::sched_param,
+    ) -> c_int;
+    pub fn posix_spawnattr_getschedparam(
+        attr: *const posix_spawnattr_t,
+        param: *mut crate::sched_param,
+    ) -> c_int;
+    pub fn posix_spawnattr_setschedpolicy(attr: *mut posix_spawnattr_t, policy: c_int) -> c_int;
+    pub fn posix_spawnattr_getschedpolicy(
+        attr: *const posix_spawnattr_t,
+        _policy: *mut c_int,
+    ) -> c_int;
+    pub fn posix_spawnattr_setsigdefault(
+        attr: *mut posix_spawnattr_t,
+        sigdefault: *const sigset_t,
+    ) -> c_int;
+    pub fn posix_spawnattr_getsigdefault(
+        attr: *const posix_spawnattr_t,
+        sigdefault: *mut sigset_t,
+    ) -> c_int;
+    pub fn posix_spawnattr_setsigignore_np(
+        attr: *mut posix_spawnattr_t,
+        sigignore: *const sigset_t,
+    ) -> c_int;
+    pub fn posix_spawnattr_getsigignore_np(
+        attr: *const posix_spawnattr_t,
+        sigignore: *mut sigset_t,
+    ) -> c_int;
+    pub fn posix_spawnattr_setsigmask(
+        attr: *mut posix_spawnattr_t,
+        sigmask: *const sigset_t,
+    ) -> c_int;
+    pub fn posix_spawnattr_getsigmask(
+        attr: *const posix_spawnattr_t,
+        sigmask: *mut sigset_t,
+    ) -> c_int;
 
     pub fn shmat(shmid: c_int, shmaddr: *const c_void, shmflg: c_int) -> *mut c_void;
 

@@ -2,6 +2,106 @@
 
 --------------------------------------------------------------------------------
 
+## 0.24.2 (2024/10/04)
+
+### Changed
+
+* Enabled caching of DWARF abbreviations.
+  [#318](https://github.com/gimli-rs/addr2line/pull/318)
+
+* Changed the `addr2line` binary to prefer symbol names over DWARF names.
+  [#332](https://github.com/gimli-rs/addr2line/pull/332)
+
+* Updated `gimli` dependency.
+
+### Added
+
+* Added `Context::from_arc_dwarf`.
+  [#327](https://github.com/gimli-rs/addr2line/pull/327)
+
+* Added benchmark comparison.
+  [#315](https://github.com/gimli-rs/addr2line/pull/315)
+  [#321](https://github.com/gimli-rs/addr2line/pull/321)
+  [#322](https://github.com/gimli-rs/addr2line/pull/322)
+  [#325](https://github.com/gimli-rs/addr2line/pull/325)
+
+* Added more tests.
+  [#328](https://github.com/gimli-rs/addr2line/pull/328)
+  [#330](https://github.com/gimli-rs/addr2line/pull/330)
+  [#331](https://github.com/gimli-rs/addr2line/pull/331)
+  [#333](https://github.com/gimli-rs/addr2line/pull/333)
+
+--------------------------------------------------------------------------------
+
+## 0.24.1 (2024/07/26)
+
+### Changed
+
+* Fixed parsing of partial units, which are found in supplementary object files.
+  [#313](https://github.com/gimli-rs/addr2line/pull/313)
+
+--------------------------------------------------------------------------------
+
+## 0.24.0 (2024/07/16)
+
+### Breaking changes
+
+* Updated `gimli` dependency.
+
+### Changed
+
+* Changed the order of ranges returned by `Context::find_location_range`, and
+  fixed handling in rare situations.
+  [#303](https://github.com/gimli-rs/addr2line/pull/303)
+  [#304](https://github.com/gimli-rs/addr2line/pull/304)
+  [#306](https://github.com/gimli-rs/addr2line/pull/306)
+
+* Improved the performance of `Context::find_location`.
+  [#305](https://github.com/gimli-rs/addr2line/pull/305)
+
+### Added
+
+* Added `LoaderReader`.
+  [#307](https://github.com/gimli-rs/addr2line/pull/307)
+
+* Added `--all` option to `addr2line`.
+  [#307](https://github.com/gimli-rs/addr2line/pull/307)
+
+--------------------------------------------------------------------------------
+
+## 0.23.0 (2024/05/26)
+
+### Breaking changes
+
+* Updated `gimli` dependency.
+
+* Deleted `Context::new`, `Context::new_with_sup`, and `builtin_split_dwarf_loader`.
+  Use `Context::from_dwarf` or `Loader::new` instead.
+  This removes `object` from the public API.
+  [#296](https://github.com/gimli-rs/addr2line/pull/296)
+
+### Changed
+
+* Fixed handling of column 0 in the line table.
+  [#290](https://github.com/gimli-rs/addr2line/pull/290)
+
+* Moved `addr2line` from `examples` to `bin`. Requires the `bin` feature.
+  [#291](https://github.com/gimli-rs/addr2line/pull/291)
+
+* Split up `lib.rs` into smaller modules.
+  [#292](https://github.com/gimli-rs/addr2line/pull/292)
+
+### Added
+
+* Added `Loader`. Requires the `loader` feature.
+  [#296](https://github.com/gimli-rs/addr2line/pull/296)
+  [#297](https://github.com/gimli-rs/addr2line/pull/297)
+
+* Added unpacked Mach-O support to `Loader`.
+  [#298](https://github.com/gimli-rs/addr2line/pull/298)
+
+--------------------------------------------------------------------------------
+
 ## 0.22.0 (2024/04/11)
 
 ### Breaking changes

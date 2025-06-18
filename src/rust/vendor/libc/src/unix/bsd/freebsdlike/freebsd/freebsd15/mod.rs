@@ -266,7 +266,8 @@ s! {
         pub st_blksize: crate::blksize_t,
         pub st_flags: crate::fflags_t,
         pub st_gen: u64,
-        pub st_spare: [u64; 10],
+        pub st_filerev: u64,
+        pub st_spare: [u64; 9],
     }
 }
 
@@ -518,14 +519,12 @@ safe_f! {
         dev |= ((minor & 0xffff00ff) as dev_t) << 0;
         dev
     }
-}
 
-f! {
-    pub fn major(dev: crate::dev_t) -> c_int {
+    pub {const} fn major(dev: crate::dev_t) -> c_int {
         (((dev >> 32) & 0xffffff00) | ((dev >> 8) & 0xff)) as c_int
     }
 
-    pub fn minor(dev: crate::dev_t) -> c_int {
+    pub {const} fn minor(dev: crate::dev_t) -> c_int {
         (((dev >> 24) & 0xff00) | (dev & 0xffff00ff)) as c_int
     }
 }

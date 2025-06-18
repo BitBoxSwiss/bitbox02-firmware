@@ -1,9 +1,6 @@
 use crate::prelude::*;
 use crate::PT_FIRSTMACH;
 
-pub type c_long = i64;
-pub type c_ulong = u64;
-pub type c_char = i8;
 pub type ucontext_t = sigcontext;
 
 s! {
@@ -95,8 +92,8 @@ cfg_if! {
                     .field("fx_rdp", &{ self.fx_rdp })
                     .field("fx_mxcsr", &{ self.fx_mxcsr })
                     .field("fx_mxcsr_mask", &{ self.fx_mxcsr_mask })
-                    // FIXME: .field("fx_st", &{self.fx_st})
-                    // FIXME: .field("fx_xmm", &{self.fx_xmm})
+                    // FIXME(debug): .field("fx_st", &{self.fx_st})
+                    // FIXME(debug): .field("fx_xmm", &{self.fx_xmm})
                     .finish()
             }
         }

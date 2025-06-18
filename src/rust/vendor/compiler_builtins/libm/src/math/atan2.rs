@@ -37,8 +37,7 @@
  * to produce the hexadecimal values shown.
  */
 
-use super::atan;
-use super::fabs;
+use super::{atan, fabs};
 
 const PI: f64 = 3.1415926535897931160E+00; /* 0x400921FB, 0x54442D18 */
 const PI_LO: f64 = 1.2246467991473531772E-16; /* 0x3CA1A626, 0x33145C07 */
@@ -115,12 +114,18 @@ pub fn atan2(y: f64, x: f64) -> f64 {
     }
 }
 
-#[test]
-fn sanity_check() {
-    assert_eq!(atan2(0.0, 1.0), 0.0);
-    assert_eq!(atan2(0.0, -1.0), PI);
-    assert_eq!(atan2(-0.0, -1.0), -PI);
-    assert_eq!(atan2(3.0, 2.0), atan(3.0 / 2.0));
-    assert_eq!(atan2(2.0, -1.0), atan(2.0 / -1.0) + PI);
-    assert_eq!(atan2(-2.0, -1.0), atan(-2.0 / -1.0) - PI);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg_attr(x86_no_sse, ignore = "FIXME(i586): possible incorrect rounding")]
+    fn sanity_check() {
+        assert_eq!(atan2(0.0, 1.0), 0.0);
+        assert_eq!(atan2(0.0, -1.0), PI);
+        assert_eq!(atan2(-0.0, -1.0), -PI);
+        assert_eq!(atan2(3.0, 2.0), atan(3.0 / 2.0));
+        assert_eq!(atan2(2.0, -1.0), atan(2.0 / -1.0) + PI);
+        assert_eq!(atan2(-2.0, -1.0), atan(-2.0 / -1.0) - PI);
+    }
 }

@@ -10,17 +10,24 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "miniz_oxide"
-version = "0.7.4"
+version = "0.8.3"
 authors = [
     "Frommi <daniil.liferenko@gmail.com>",
     "oyvindln <oyvindln@users.noreply.github.com>",
+    "Rich Geldreich richgel99@gmail.com",
 ]
+build = false
 exclude = [
     "benches/*",
     "tests/*",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "DEFLATE compression and decompression library rewritten in Rust based on miniz"
 homepage = "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide"
 documentation = "https://docs.rs/miniz_oxide"
@@ -34,12 +41,14 @@ keywords = [
 categories = ["compression"]
 license = "MIT OR Zlib OR Apache-2.0"
 repository = "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide"
+resolver = "1"
 
 [lib]
 name = "miniz_oxide"
+path = "src/lib.rs"
 
-[dependencies.adler]
-version = "1.0"
+[dependencies.adler2]
+version = "2.0"
 default-features = false
 
 [dependencies.alloc]
@@ -61,14 +70,21 @@ version = "0.3.3"
 optional = true
 default-features = false
 
+[dev-dependencies]
+
 [features]
 default = ["with-alloc"]
 rustc-dep-of-std = [
     "core",
     "alloc",
     "compiler_builtins",
-    "adler/rustc-dep-of-std",
+    "adler2/rustc-dep-of-std",
 ]
 simd = ["simd-adler32"]
 std = []
 with-alloc = []
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = ["cfg(fuzzing)"]

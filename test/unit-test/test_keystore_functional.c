@@ -37,7 +37,6 @@
    that seeding/unlocking/derivations work as expected. */
 
 static const char* _some_password = "foo";
-static const char* _some_other_password = "bar";
 
 static uint8_t _seed[KEYSTORE_MAX_SEED_LENGTH] =
     "\xcb\x33\xc2\x0c\xea\x62\xa5\xc2\x77\x52\x7e\x20\x02\xda\x82\xe6\xe2\xb3\x74\x50\xa7\x55\x14"
@@ -56,42 +55,6 @@ static void _smarteeprom_reset(void)
     }
     smarteeprom_bb02_config();
     bitbox02_smarteeprom_init();
-}
-
-static void _test_seeds(void** state)
-{
-    _smarteeprom_reset();
-    assert_true(keystore_is_locked());
-    uint8_t read_seed[KEYSTORE_MAX_SEED_LENGTH];
-    size_t read_seed_len;
-    assert_false(keystore_copy_seed(read_seed, &read_seed_len));
-
-    will_return(__wrap_memory_is_initialized, true);
-    assert_int_equal(
-        keystore_encrypt_and_store_seed(_seed, 32, _some_password), KEYSTORE_ERR_MEMORY);
-
-    uint32_t seed_sizes[3] = {16, 24, 32};
-    for (size_t seed_size_idx = 0; seed_size_idx < 3; seed_size_idx++) {
-        uint32_t seed_size = seed_sizes[seed_size_idx];
-        will_return(__wrap_memory_is_initialized, false);
-        assert_int_equal(
-            keystore_encrypt_and_store_seed(_seed, seed_size, _some_password), KEYSTORE_OK);
-        uint8_t remaining_attempts;
-        will_return(__wrap_memory_is_seeded, true);
-        assert_int_equal(
-            KEYSTORE_ERR_INCORRECT_PASSWORD,
-            keystore_unlock(_some_other_password, &remaining_attempts, NULL));
-        // First time: unlock. After unlock, it becomes a password check.
-        for (int i = 0; i < 3; i++) {
-            will_return(__wrap_memory_is_seeded, true);
-            assert_int_equal(
-                KEYSTORE_OK, keystore_unlock(_some_password, &remaining_attempts, NULL));
-        }
-        assert_true(keystore_copy_seed(read_seed, &read_seed_len));
-        assert_int_equal(seed_size, read_seed_len);
-        assert_memory_equal(read_seed, _seed, seed_size);
-        keystore_lock();
-    }
 }
 
 static void _check_mnemonic(const char* expected)
@@ -231,9 +194,9 @@ static void _test_fixtures(void** state)
 int main(void)
 {
     mock_memory_set_salt_root(_salt_root);
+    _smarteeprom_reset();
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_seeds),
         cmocka_unit_test(_test_fixtures),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

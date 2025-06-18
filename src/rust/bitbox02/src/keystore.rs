@@ -346,7 +346,7 @@ pub fn secp256k1_schnorr_sign(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
+    use crate::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
     use util::bip32::HARDENED;
 
     #[test]
@@ -478,5 +478,45 @@ mod tests {
 
         // Invalid seed side
         assert!(bip39_mnemonic_from_seed(b"foo").is_err());
+    }
+
+    // Functional test to store seeds, unlock, retrieve seed.
+    #[test]
+    fn test_seeds() {
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+
+        for seed_size in [16, 24, 32] {
+            mock_memory();
+            lock();
+
+            // Can repeat until initialized - initialized means backup has been created.
+            for _ in 0..2 {
+                assert!(encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
+            }
+
+            // Wrong password.
+            assert!(matches!(
+                unlock("bar"),
+                Err(Error::IncorrectPassword {
+                    remaining_attempts: 9
+                })
+            ));
+
+            // Can't get seed before unlock.
+            assert!(copy_seed().is_err());
+            // Correct password. First time: unlock. After unlock, it becomes a password check.
+            for _ in 0..3 {
+                assert!(unlock("foo").is_ok());
+            }
+            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+
+            // Can't store new seed once initialized.
+            crate::memory::set_initialized().unwrap();
+            assert!(matches!(
+                encrypt_and_store_seed(&seed[..seed_size], "foo"),
+                Err(Error::Memory)
+            ));
+        }
     }
 }

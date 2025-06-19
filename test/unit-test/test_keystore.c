@@ -59,11 +59,6 @@ static const uint32_t _keypath[] = {
     0,
     5,
 };
-// seckey at the above keypath with the above bip39 seed.
-static const uint8_t _expected_seckey[32] = {
-    0x4e, 0x64, 0xdf, 0xd3, 0x3a, 0xae, 0x66, 0xc4, 0xc7, 0x52, 0x6c, 0xf0, 0x2e, 0xe8, 0xae, 0x3f,
-    0x58, 0x92, 0x32, 0x9d, 0x67, 0xdf, 0xd4, 0xad, 0x05, 0xe9, 0xc3, 0xd0, 0x6e, 0xdf, 0x74, 0xfb,
-};
 
 // Same as Python:
 // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
@@ -117,21 +112,6 @@ void _mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_s
     keystore_mock_unlocked(seed, seed_len, bip39_seed);
 }
 
-static bool _pubkeys_equal(
-    const secp256k1_context* ctx,
-    const secp256k1_pubkey* pubkey1,
-    const secp256k1_pubkey* pubkey2)
-{
-    uint8_t pubkey1_bytes[33];
-    uint8_t pubkey2_bytes[33];
-    size_t len = 33;
-    assert_true(
-        secp256k1_ec_pubkey_serialize(ctx, pubkey1_bytes, &len, pubkey1, SECP256K1_EC_COMPRESSED));
-    assert_true(
-        secp256k1_ec_pubkey_serialize(ctx, pubkey2_bytes, &len, pubkey2, SECP256K1_EC_COMPRESSED));
-    return memcmp(pubkey1_bytes, pubkey2_bytes, len) == 0;
-}
-
 static void _test_keystore_secp256k1_nonce_commit(void** state)
 {
     uint8_t msg[32] = {0};
@@ -165,56 +145,6 @@ static void _test_keystore_secp256k1_nonce_commit(void** state)
     }
 }
 
-static void _test_keystore_secp256k1_sign(void** state)
-{
-    const secp256k1_context* ctx = wally_get_secp_context();
-
-    secp256k1_pubkey expected_pubkey;
-    assert_true(secp256k1_ec_pubkey_create(ctx, &expected_pubkey, _expected_seckey));
-
-    uint8_t msg[32] = {0};
-    memset(msg, 0x88, sizeof(msg));
-    uint8_t sig[64] = {0};
-
-    uint8_t host_nonce[32] = {0};
-    memset(host_nonce, 0x56, sizeof(host_nonce));
-
-    {
-        _mock_unlocked(NULL, 0, NULL);
-        // fails because keystore is locked
-        assert_false(keystore_secp256k1_sign(
-            _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce, sig, NULL));
-    }
-    {
-        _mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);
-
-        _sign_expected_seckey = _expected_seckey;
-        _sign_expected_msg = msg;
-        // check sig by verifying it against the msg.
-        assert_true(keystore_secp256k1_sign(
-            _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce, sig, NULL));
-        secp256k1_ecdsa_signature secp256k1_sig = {0};
-        assert_true(secp256k1_ecdsa_signature_parse_compact(ctx, &secp256k1_sig, sig));
-        assert_true(secp256k1_ecdsa_verify(ctx, &secp256k1_sig, msg, &expected_pubkey));
-    }
-    { // test recoverable id (recid)
-        int recid;
-        assert_true(keystore_secp256k1_sign(
-            _keypath, sizeof(_keypath) / sizeof(uint32_t), msg, host_nonce, sig, &recid));
-        assert_int_equal(recid, 1);
-
-        // Test recid by recovering the public key from the signature and checking against the
-        // expected puklic key.
-        secp256k1_ecdsa_recoverable_signature recoverable_sig;
-        assert_true(
-            secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &recoverable_sig, sig, recid));
-
-        secp256k1_pubkey recovered_pubkey;
-        assert_true(secp256k1_ecdsa_recover(ctx, &recovered_pubkey, &recoverable_sig, msg));
-
-        assert_true(_pubkeys_equal(ctx, &recovered_pubkey, &expected_pubkey));
-    }
-}
 static void _expect_encrypt_and_store_seed(void)
 {
     will_return(__wrap_memory_is_initialized, false);
@@ -394,7 +324,6 @@ int main(void)
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_secp256k1_nonce_commit),
-        cmocka_unit_test(_test_keystore_secp256k1_sign),
         cmocka_unit_test(_test_keystore_lock),
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),

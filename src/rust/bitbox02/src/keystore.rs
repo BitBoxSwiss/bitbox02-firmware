@@ -356,9 +356,50 @@ pub fn secp256k1_schnorr_sign(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
+    use bitcoin::secp256k1;
+
+    use crate::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::string::ToString;
     use util::bip32::HARDENED;
+
+    #[test]
+    fn test_secp256k1_sign() {
+        lock();
+        let keypath = [44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 5];
+        let msg = [0x88u8; 32];
+        let host_nonce = [0x56u8; 32];
+
+        // Fails because keystore is locked.
+        assert!(secp256k1_sign(&keypath, &msg, &host_nonce).is_err());
+
+        mock_unlocked();
+        let sign_result = secp256k1_sign(&keypath, &msg, &host_nonce).unwrap();
+        // Verify signature against expected pubkey.
+
+        let secp = secp256k1::Secp256k1::new();
+        let expected_pubkey = {
+            let pubkey =
+                hex::decode("023ffb4a4e41444d40e4e1e4c6cc329bcba2be50d0ef380aea19d490c373be58fb")
+                    .unwrap();
+            secp256k1::PublicKey::from_slice(&pubkey).unwrap()
+        };
+        let msg = secp256k1::Message::from_digest_slice(&msg).unwrap();
+        // Test recid by recovering the public key from the signature and checking against the
+        // expected public key.
+        let recoverable_sig = secp256k1::ecdsa::RecoverableSignature::from_compact(
+            &sign_result.signature,
+            secp256k1::ecdsa::RecoveryId::from_i32(sign_result.recid as i32).unwrap(),
+        )
+        .unwrap();
+
+        let recovered_pubkey = secp.recover_ecdsa(&msg, &recoverable_sig).unwrap();
+        assert_eq!(recovered_pubkey, expected_pubkey);
+
+        // Verify signature.
+        assert!(secp
+            .verify_ecdsa(&msg, &recoverable_sig.to_standard(), &expected_pubkey)
+            .is_ok());
+    }
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {

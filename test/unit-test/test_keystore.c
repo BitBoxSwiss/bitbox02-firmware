@@ -140,16 +140,6 @@ static void _test_keystore_create_and_store_seed(void** state)
     }
 }
 
-static void _mock_with_mnemonic(const char* mnemonic, const char* passphrase)
-{
-    uint8_t seed[32] = {0};
-    size_t seed_len;
-    assert_true(keystore_bip39_mnemonic_to_seed(mnemonic, seed, &seed_len));
-
-    _mock_unlocked(seed, seed_len, NULL);
-    assert_true(keystore_unlock_bip39(passphrase));
-}
-
 // This tests that `secp256k1_schnorrsig_sign()` is the correct function to be used for schnorr sigs
 // in taproot. It is a separate test because there are test vectors available for this which cannot
 // be made to work with `keystore_secp256k1_schnorr_bip86_sign()`.
@@ -208,51 +198,6 @@ static void _test_secp256k1_schnorr_sign(void** state)
     }
 }
 
-static void _test_keystore_secp256k1_schnorr_sign(void** state)
-{
-    _mock_with_mnemonic(
-        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
-        "about",
-        "");
-    const uint32_t keypath[] = {
-        86 + BIP32_INITIAL_HARDENED_CHILD,
-        0 + BIP32_INITIAL_HARDENED_CHILD,
-        0 + BIP32_INITIAL_HARDENED_CHILD,
-        0,
-        0,
-    };
-    struct ext_key xpub = {0};
-    assert_true(keystore_get_xpub(keypath, 5, &xpub));
-
-    uint8_t msg[32] = {0};
-    memset(msg, 0x88, sizeof(msg));
-    uint8_t sig[64] = {0};
-    uint8_t mock_aux_rand[32] = {0};
-
-    // Test without tweak
-    will_return(__wrap_random_32_bytes, mock_aux_rand);
-    assert_true(keystore_secp256k1_schnorr_sign(keypath, 5, msg, NULL, sig));
-    const secp256k1_context* ctx = wally_get_secp_context();
-    secp256k1_pubkey pubkey = {0};
-    assert_true(secp256k1_ec_pubkey_parse(ctx, &pubkey, xpub.pub_key, sizeof(xpub.pub_key)));
-    secp256k1_xonly_pubkey xonly_pubkey = {0};
-    assert_true(secp256k1_xonly_pubkey_from_pubkey(ctx, &xonly_pubkey, NULL, &pubkey));
-    assert_true(secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &xonly_pubkey));
-
-    // Test with tweak
-    const uint8_t tweak[32] =
-        "\xa3\x9f\xb1\x63\xdb\xd9\xb5\xe0\x84\x0a\xf3\xcc\x1e\xe4\x1d\x5b\x31\x24\x5c\x5d\xd8\xd6"
-        "\xbd\xc3\xd0\x26\xd0\x9b\x89\x64\x99\x7c";
-    will_return(__wrap_random_32_bytes, mock_aux_rand);
-    assert_true(keystore_secp256k1_schnorr_sign(keypath, 5, msg, tweak, sig));
-    secp256k1_pubkey tweaked_pubkey = {0};
-    assert_true(secp256k1_xonly_pubkey_tweak_add(ctx, &tweaked_pubkey, &xonly_pubkey, tweak));
-    secp256k1_xonly_pubkey tweaked_xonly_pubkey = {0};
-    assert_true(
-        secp256k1_xonly_pubkey_from_pubkey(ctx, &tweaked_xonly_pubkey, NULL, &tweaked_pubkey));
-    assert_true(secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &tweaked_xonly_pubkey));
-}
-
 int main(void)
 {
     mock_memory_set_salt_root(_salt_root);
@@ -260,7 +205,6 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),
-        cmocka_unit_test(_test_keystore_secp256k1_schnorr_sign),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

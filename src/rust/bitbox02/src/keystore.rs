@@ -569,6 +569,22 @@ mod tests {
     }
 
     #[test]
+    fn test_lock() {
+        lock();
+        assert!(is_locked());
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
+        assert!(unlock_bip39("foo").is_ok());
+        assert!(!is_locked());
+        lock();
+        assert!(is_locked());
+    }
+
+    #[test]
     fn test_unlock() {
         mock_memory();
         lock();
@@ -642,7 +658,6 @@ mod tests {
 
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(unlock("password").is_ok());
-        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(unlock_bip39("foo").is_ok());
 
         // Check that the retained bip39 seed was encrypted with the expected encryption key.

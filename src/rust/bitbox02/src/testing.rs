@@ -51,6 +51,9 @@ pub fn mock_memory() {
 
         assert!(bitbox02_sys::memory_setup(&MEMORY_IFS));
 
+        if bitbox02_sys::smarteeprom_is_enabled() {
+            bitbox02_sys::smarteeprom_disable();
+        }
         bitbox02_sys::smarteeprom_bb02_config();
         bitbox02_sys::bitbox02_smarteeprom_init();
         bitbox02_sys::spi_mem_full_erase();

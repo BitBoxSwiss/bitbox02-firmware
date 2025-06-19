@@ -30,6 +30,7 @@ hex = { workspace = true }
 
 [dev-dependencies]
 hex = { workspace = true }
+bitbox-aes = { path = "../bitbox-aes" }
 
 [features]
 # Only to be enabled in unit tests.

@@ -356,9 +356,50 @@ pub fn secp256k1_schnorr_sign(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
+    use bitcoin::secp256k1;
+
+    use crate::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::string::ToString;
     use util::bip32::HARDENED;
+
+    #[test]
+    fn test_secp256k1_sign() {
+        lock();
+        let keypath = [44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 5];
+        let msg = [0x88u8; 32];
+        let host_nonce = [0x56u8; 32];
+
+        // Fails because keystore is locked.
+        assert!(secp256k1_sign(&keypath, &msg, &host_nonce).is_err());
+
+        mock_unlocked();
+        let sign_result = secp256k1_sign(&keypath, &msg, &host_nonce).unwrap();
+        // Verify signature against expected pubkey.
+
+        let secp = secp256k1::Secp256k1::new();
+        let expected_pubkey = {
+            let pubkey =
+                hex::decode("023ffb4a4e41444d40e4e1e4c6cc329bcba2be50d0ef380aea19d490c373be58fb")
+                    .unwrap();
+            secp256k1::PublicKey::from_slice(&pubkey).unwrap()
+        };
+        let msg = secp256k1::Message::from_digest_slice(&msg).unwrap();
+        // Test recid by recovering the public key from the signature and checking against the
+        // expected public key.
+        let recoverable_sig = secp256k1::ecdsa::RecoverableSignature::from_compact(
+            &sign_result.signature,
+            secp256k1::ecdsa::RecoveryId::from_i32(sign_result.recid as i32).unwrap(),
+        )
+        .unwrap();
+
+        let recovered_pubkey = secp.recover_ecdsa(&msg, &recoverable_sig).unwrap();
+        assert_eq!(recovered_pubkey, expected_pubkey);
+
+        // Verify signature.
+        assert!(secp
+            .verify_ecdsa(&msg, &recoverable_sig.to_standard(), &expected_pubkey)
+            .is_ok());
+    }
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {
@@ -507,6 +548,123 @@ mod tests {
 
         // Invalid seed side
         assert!(bip39_mnemonic_from_seed(b"foo").is_err());
+    }
+
+    #[test]
+    fn test_unlock() {
+        mock_memory();
+        lock();
+
+        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+        crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        // Loop to check that unlocking works while unlocked.
+        for _ in 0..3 {
+            assert!(unlock("password").is_ok());
+        }
+
+        // Also check that the retained seed was encrypted with the expected encryption key.
+        let decrypted = {
+            let retained_seed_encrypted: &[u8] = unsafe {
+                let mut len = 0usize;
+                let ptr = bitbox02_sys::keystore_test_get_retained_seed_encrypted(&mut len);
+                core::slice::from_raw_parts(ptr, len)
+            };
+            let expected_retained_seed_secret =
+                hex::decode("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7")
+                    .unwrap();
+            bitbox_aes::decrypt_with_hmac(&expected_retained_seed_secret, retained_seed_encrypted)
+                .unwrap()
+        };
+        assert_eq!(decrypted.as_slice(), seed.as_slice());
+
+        // First 9 wrong attempts.
+        for i in 1..bitbox02_sys::MAX_UNLOCK_ATTEMPTS {
+            assert!(matches!(
+                unlock("invalid password"),
+                Err(Error::IncorrectPassword { remaining_attempts }) if remaining_attempts
+                    == (bitbox02_sys::MAX_UNLOCK_ATTEMPTS  - i) as u8
+            ));
+            // Still seeded.
+            assert!(crate::memory::is_seeded());
+            // Wrong password does not lock the keystore again if already unlocked.
+            assert!(copy_seed().is_ok());
+        }
+        // Last attempt, triggers reset.
+        assert!(matches!(
+            unlock("invalid password"),
+            Err(Error::MaxAttemptsExceeded),
+        ));
+        // Last wrong attempt locks & resets. There is no more seed.
+        assert!(!crate::memory::is_seeded());
+        assert!(copy_seed().is_err());
+        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+    }
+
+    #[test]
+    fn test_unlock_bip39() {
+        mock_memory();
+        lock();
+
+        let seed = hex::decode("1111111111111111222222222222222233333333333333334444444444444444")
+            .unwrap();
+
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+        crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
+        assert!(unlock_bip39("foo").is_ok());
+
+        // Check that the retained bip39 seed was encrypted with the expected encryption key.
+        let decrypted = {
+            let retained_bip39_seed_encrypted: &[u8] = unsafe {
+                let mut len = 0usize;
+                let ptr = bitbox02_sys::keystore_test_get_retained_bip39_seed_encrypted(&mut len);
+                core::slice::from_raw_parts(ptr, len)
+            };
+            let expected_retained_bip39_seed_secret =
+                hex::decode("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29")
+                    .unwrap();
+            bitbox_aes::decrypt_with_hmac(
+                &expected_retained_bip39_seed_secret,
+                retained_bip39_seed_encrypted,
+            )
+            .unwrap()
+        };
+        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
+        assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
+    }
+
+    // This tests that you can create a keystore, unlock it, and then do this again. This is an
+    // expected workflow for when the wallet setup process is restarted after seeding and unlocking,
+    // but before creating a backup, in which case a new seed is created.
+    #[test]
+    fn test_create_and_unlock_twice() {
+        mock_memory();
+        lock();
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+        let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
+            .unwrap();
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        // Create new (different) seed.
+        assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
     }
 
     // Functional test to store seeds, unlock, retrieve seed.

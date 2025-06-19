@@ -122,6 +122,14 @@ pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
+pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mut bip39_seed = zeroize::Zeroizing::new(vec![0u8; 64]);
+    match unsafe { bitbox02_sys::keystore_copy_bip39_seed(bip39_seed.as_mut_ptr()) } {
+        true => Ok(bip39_seed),
+        false => Err(()),
+    }
+}
+
 pub fn bip39_mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
     match unsafe {
@@ -202,34 +210,6 @@ pub fn get_bip39_wordlist(indices: Option<&[u16]>) -> Bip39Wordlist {
             })
             .collect(),
     )
-}
-
-pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<Vec<u8>, ()> {
-    let mut xpub = vec![0u8; bitbox02_sys::BIP32_SERIALIZED_LEN as _];
-    match unsafe {
-        bitbox02_sys::keystore_encode_xpub_at_keypath(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            xpub.as_mut_ptr(),
-        )
-    } {
-        true => Ok(xpub),
-        false => Err(()),
-    }
-}
-
-pub fn secp256k1_get_private_key(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mut key = zeroize::Zeroizing::new(vec![0u8; 32]);
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_get_private_key(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            key.as_mut_ptr(),
-        )
-    } {
-        true => Ok(key),
-        false => Err(()),
-    }
 }
 
 pub struct SignResult {
@@ -359,7 +339,6 @@ mod tests {
     use bitcoin::secp256k1;
 
     use crate::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
-    use alloc::string::ToString;
     use util::bip32::HARDENED;
 
     #[test]
@@ -569,23 +548,6 @@ mod tests {
     }
 
     #[test]
-    fn test_secp256k1_get_private_key() {
-        lock();
-        let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
-        assert!(secp256k1_get_private_key(keypath).is_err());
-
-        mock_unlocked_using_mnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-            "",
-        );
-
-        assert_eq!(
-            hex::encode(secp256k1_get_private_key(keypath).unwrap()),
-            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
-        );
-    }
-
-    #[test]
     fn test_bip39_mnemonic_from_seed() {
         // 12 words
         let seed = b"\xae\x6a\x40\x26\x1f\x0a\xcc\x16\x57\x04\x9c\xb2\x1a\xf5\xfb\xf7";
@@ -704,6 +666,13 @@ mod tests {
         assert!(unlock("password").is_ok());
         assert!(unlock_bip39("foo").is_ok());
 
+        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
+
+        assert_eq!(
+            copy_bip39_seed().unwrap().as_slice(),
+            expected_bip39_seed.as_slice()
+        );
+
         // Check that the retained bip39 seed was encrypted with the expected encryption key.
         let decrypted = {
             let retained_bip39_seed_encrypted: &[u8] = unsafe {
@@ -720,7 +689,6 @@ mod tests {
             )
             .unwrap()
         };
-        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
         assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
     }
 
@@ -843,82 +811,6 @@ mod tests {
                 encrypt_and_store_seed(&seed[..seed_size], "foo"),
                 Err(Error::Memory)
             ));
-        }
-    }
-
-    #[test]
-    fn test_fixtures() {
-        struct Test {
-            seed_len: usize,
-            mnemonic_passphrase: &'static str,
-            expected_mnemonic: &'static str,
-            expected_xpub: &'static str,
-            expected_u2f_seed_hex: &'static str,
-        }
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
-
-        let tests = [
-            Test {
-                seed_len: 32,
-                mnemonic_passphrase: "",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
-                expected_xpub: "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
-                expected_u2f_seed_hex: "4f464a6667ad88eebcd0f02982761e474ee0dd16253160320f49d1d6681745e9",
-            },
-            Test {
-                seed_len: 32,
-                mnemonic_passphrase: "abc",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
-                expected_xpub: "xpub6DXBP3HhFdhUTafatEULxfTXUUxDVuCxfa9RAiBU5r6aRgKiABbeBDyqwWWjmKPP1BZvpvVNMbVR5LeHzhQphtLcPZ8jk3MdLBgc2sACJwR",
-                expected_u2f_seed_hex: "d599da991ad83baaf449c789e2dff1539dd66983b47a1dec1c00ff3f352cccbc",
-            },
-            Test {
-                seed_len: 24,
-                mnemonic_passphrase: "",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before subject",
-                expected_xpub: "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18BG81VJhJDXnSpRe5NGKwVpXiAb",
-                expected_u2f_seed_hex: "fb9dc3fb0a17390776df5c3d8f9261bc5fd5df9f00414cee1393e37e0efda7ef",
-            },
-            Test {
-                seed_len: 16,
-                mnemonic_passphrase: "",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass sniff",
-                expected_xpub: "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
-                expected_u2f_seed_hex: "20d68b206aff9667b623a460ce61fc94762de67561d6855ca9a6df7b409b2a54",
-            },
-        ];
-
-        for test in tests {
-            mock_memory();
-            lock();
-            let seed = &seed[..test.seed_len];
-            assert!(unlock_bip39(test.mnemonic_passphrase).is_err());
-            assert!(encrypt_and_store_seed(seed, "foo").is_ok());
-            assert!(unlock_bip39(test.mnemonic_passphrase).is_err());
-            assert!(is_locked());
-            assert!(unlock("foo").is_ok());
-            assert!(is_locked());
-            assert!(unlock_bip39(test.mnemonic_passphrase).is_ok());
-            assert!(!is_locked());
-            assert_eq!(
-                bip39_mnemonic_from_seed(&copy_seed().unwrap())
-                    .unwrap()
-                    .as_str(),
-                test.expected_mnemonic,
-            );
-            let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
-            let encoded_xpub = encode_xpub_at_keypath(keypath).unwrap();
-            assert_eq!(
-                bitcoin::bip32::Xpub::decode(&encoded_xpub)
-                    .unwrap()
-                    .to_string(),
-                test.expected_xpub,
-            );
-            assert_eq!(
-                hex::encode(get_u2f_seed().unwrap()),
-                test.expected_u2f_seed_hex,
-            );
         }
     }
 }

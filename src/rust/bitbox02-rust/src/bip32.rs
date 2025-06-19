@@ -13,12 +13,46 @@
 // limitations under the License.
 
 use super::pb;
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 pub use pb::btc_pub_request::XPubType;
 
 use bitcoin::hashes::Hash;
+use zeroize::Zeroize;
+
+// Wrapper of `bitcoin::bip32::Xpriv` to imlement zeroizing on drop.
+#[derive(PartialEq)]
+pub struct Xprv {
+    // Boxed so moves don't leave copies.
+    pub xprv: Box<bitcoin::bip32::Xpriv>,
+}
+
+impl Drop for Xprv {
+    fn drop(&mut self) {
+        self.xprv.depth.zeroize();
+        let pf: &mut [u8; 4] = self.xprv.parent_fingerprint.as_mut();
+        pf.zeroize();
+        self.xprv.child_number = bitcoin::bip32::ChildNumber::from(0u32);
+        self.xprv.private_key.non_secure_erase();
+        let chain_code: &mut [u8; 32] = self.xprv.chain_code.as_mut();
+        chain_code.zeroize();
+    }
+}
+
+impl From<bitcoin::bip32::Xpriv> for Xprv {
+    /// Convert from `bitcoin::bip32::Xpriv`, attempting to Box it without leaving copies by using
+    /// [RVO](https://github.com/rust-lang/rfcs/pull/2884).
+    ///
+    /// This is only a best effort attempt, as RVO is not guaranteed, and copies might be left on
+    /// the stack in various places, e.g. in the hmac-sha512 engine inside `new_master()`, etc.
+    fn from(value: bitcoin::bip32::Xpriv) -> Self {
+        let xprv = Box::<bitcoin::bip32::Xpriv>::new_uninit();
+        let xprv = Box::write(xprv, value);
+        Self { xprv }
+    }
+}
 
 #[derive(Clone)]
 pub struct Xpub {
@@ -41,6 +75,20 @@ impl core::convert::From<Xpub> for pb::XPub {
     fn from(xpub: Xpub) -> Self {
         xpub.xpub
     }
+}
+
+impl core::convert::From<bitcoin::bip32::Xpub> for Xpub {
+    fn from(xpub: bitcoin::bip32::Xpub) -> Self {
+        Xpub::from_bytes(&xpub.encode()).unwrap()
+    }
+}
+
+/// Converts a keypath slice to a form that can be used with `bitcoin::bip32`.
+pub fn keypath_from_slice(keypath: &[u32]) -> Vec<bitcoin::bip32::ChildNumber> {
+    keypath
+        .iter()
+        .map(|&n| bitcoin::bip32::ChildNumber::from(n))
+        .collect()
 }
 
 impl Xpub {
@@ -106,7 +154,12 @@ impl Xpub {
     /// Derives child xpub at the keypath. All keypath elements must be unhardened.
     pub fn derive(&self, keypath: &[u32]) -> Result<Self, ()> {
         let xpub_ser = self.serialize(Some(XPubType::Xpub))?;
-        Xpub::from_bytes(&bitbox02::bip32::derive_xpub(&xpub_ser, keypath)?)
+        let xpub = bitcoin::bip32::Xpub::decode(&xpub_ser).map_err(|_| ())?;
+        let secp = bitcoin::secp256k1::Secp256k1::verification_only();
+        let xpub = xpub
+            .derive_pub(&secp, &keypath_from_slice(keypath))
+            .map_err(|_| ())?;
+        Ok(xpub.into())
     }
 
     /// Returns the 33 bytes secp256k1 compressed pubkey.

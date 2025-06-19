@@ -33,7 +33,6 @@ use alloc::string::String;
 #[cfg(feature = "testing")]
 pub mod testing;
 
-pub mod bip32;
 pub mod keystore;
 pub mod memory;
 pub mod random;

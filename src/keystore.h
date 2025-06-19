@@ -57,6 +57,15 @@ typedef enum {
 USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out);
 
 /**
+ * Copies the retained bip39 seed into the given buffer. The caller must
+ * zero the seed once it is no longer needed.
+ * @param[out] bip39_seed_out The seed bytes copied from the retained bip39 seed.
+ * The buffer must be 64 bytes long.
+ * @return true if the bip39 seed is available.
+ */
+USE_RESULT bool keystore_copy_bip39_seed(uint8_t* bip32_seed_out);
+
+/**
  * Restores a seed.
  * @param[in] seed The seed that is to be restored.
  * @param[in] seed_length The length of the seed (max. 32 bytes).
@@ -138,23 +147,6 @@ USE_RESULT bool keystore_bip39_mnemonic_to_seed(
     size_t* seed_len_out);
 
 /**
- * Can be used only if the keystore is unlocked. Returns the derived xpub,
- * using bip32 derivation. Derivation is done from the xprv master, so hardened
- * derivation is allowed.
- * On success, xpub_out must be destroyed using keystore_zero_xkey().
- * @return true on success, false on failure.
- */
-USE_RESULT bool keystore_get_xpub(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    struct ext_key* hdkey_neutered_out);
-
-/**
- * Safely destroy a xpub or xprv.
- */
-void keystore_zero_xkey(struct ext_key* xkey);
-
-/**
  * Returns the pointer to a word in the word list for the given index.
  * @param[in] idx The index into the word list. Must be smaller than BIP39_WORDLIST_LEN.
  * @param[out] word_out The pointer to the character array for the given index.
@@ -232,16 +224,6 @@ USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
 USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
 
 /**
- * Encode an xpub at the given `keypath` as 78 bytes according to BIP32. The version bytes are
- * the ones corresponding to `xpub`, i.e. 0x0488B21E.
- * `out` must be `BIP32_SERIALIZED_LEN` long.
- */
-USE_RESULT bool keystore_encode_xpub_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* out);
-
-/**
  * Sign a message that verifies against the pubkey tweaked using BIP-86.
  *
  * @param[in] keypath derivation keypath
@@ -257,18 +239,6 @@ USE_RESULT bool keystore_secp256k1_schnorr_sign(
     const uint8_t* msg32,
     const uint8_t* tweak,
     uint8_t* sig64_out);
-
-/**
- * Get the private key at the keypath.
- *
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len number of elements in keypath
- * @param[out] key_out resulting private key, must be 32 bytes.
- */
-USE_RESULT bool keystore_secp256k1_get_private_key(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* key_out);
 
 #ifdef TESTING
 /**

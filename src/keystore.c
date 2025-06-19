@@ -552,68 +552,6 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
     return true;
 }
 
-static bool _ext_key_equal(struct ext_key* one, struct ext_key* two)
-{
-    if (!MEMEQ(one->chain_code, two->chain_code, sizeof(one->chain_code))) {
-        return false;
-    }
-    if (!MEMEQ(one->parent160, two->parent160, sizeof(one->parent160))) {
-        return false;
-    }
-    if (one->depth != two->depth) {
-        return false;
-    }
-    if (!MEMEQ(one->priv_key, two->priv_key, sizeof(one->priv_key))) {
-        return false;
-    }
-    if (one->child_num != two->child_num) {
-        return false;
-    }
-    if (!MEMEQ(one->hash160, two->hash160, sizeof(one->hash160))) {
-        return false;
-    }
-    if (one->version != two->version) {
-        return false;
-    }
-    if (!MEMEQ(one->pub_key, two->pub_key, sizeof(one->pub_key))) {
-        return false;
-    }
-    return true;
-}
-
-static bool _get_xprv_twice(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    struct ext_key* xprv_out)
-{
-    struct ext_key one __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &one)) {
-        return false;
-    }
-    if (!_get_xprv(keypath, keypath_len, xprv_out)) {
-        return false;
-    }
-    if (!_ext_key_equal(&one, xprv_out)) {
-        keystore_zero_xkey(xprv_out);
-        return false;
-    }
-    return true;
-}
-
-bool keystore_get_xpub(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    struct ext_key* hdkey_neutered_out)
-{
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
-        return false;
-    }
-    bip32_key_strip_private_key(&xprv); // neuter
-    *hdkey_neutered_out = xprv;
-    return true;
-}
-
 void keystore_zero_xkey(struct ext_key* xkey)
 {
     util_zero(xkey, sizeof(struct ext_key));
@@ -739,19 +677,6 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     return true;
 }
 
-USE_RESULT bool keystore_encode_xpub_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* out)
-{
-    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
-        return false;
-    }
-    return bip32_key_serialize(&derived_xpub, BIP32_FLAG_KEY_PUBLIC, out, BIP32_SERIALIZED_LEN) ==
-           WALLY_OK;
-}
-
 static bool _schnorr_keypair(
     const uint32_t* keypath,
     size_t keypath_len,
@@ -806,19 +731,6 @@ bool keystore_secp256k1_schnorr_sign(
         return false;
     }
     return secp256k1_schnorrsig_verify(ctx, sig64_out, msg32, 32, &pubkey) == 1;
-}
-
-bool keystore_secp256k1_get_private_key(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    uint8_t* key_out)
-{
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
-        return false;
-    }
-    memcpy(key_out, xprv.priv_key + 1, 32);
-    return true;
 }
 
 #ifdef TESTING

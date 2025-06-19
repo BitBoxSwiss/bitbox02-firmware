@@ -31,10 +31,56 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     keystore::bip39_mnemonic_from_seed(&keystore::copy_seed()?)
 }
 
-/// Derives an xpub from the keystore seed at the given keypath.
+fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
+    let bip39_seed = keystore::copy_bip39_seed()?;
+    let xprv: bip32::Xprv =
+        bitcoin::bip32::Xpriv::new_master(bitcoin::NetworkKind::Main, &bip39_seed)
+            .map_err(|_| ())?
+            .into();
+    let secp = bitcoin::secp256k1::Secp256k1::new();
+    Ok(xprv
+        .xprv
+        .derive_priv(&secp, &bip32::keypath_from_slice(keypath))
+        .map_err(|_| ())?
+        .into())
+}
+
+fn get_xprv_twice(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
+    let xprv = get_xprv(keypath)?;
+    if xprv == get_xprv(keypath)? {
+        Ok(xprv)
+    } else {
+        Err(())
+    }
+}
+
+/// Get the private key at the keypath.
+pub fn secp256k1_get_private_key(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let xprv = get_xprv(keypath)?;
+    Ok(zeroize::Zeroizing::new(
+        xprv.xprv.private_key.secret_bytes().to_vec(),
+    ))
+}
+
+/// Get the private key at the keypath, computed twice to mitigate the risk of bitflips.
+pub fn secp256k1_get_private_key_twice(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let privkey = secp256k1_get_private_key(keypath)?;
+    if privkey == secp256k1_get_private_key(keypath)? {
+        Ok(privkey)
+    } else {
+        Err(())
+    }
+}
+
+/// Can be used only if the keystore is unlocked. Returns the derived xpub,
+/// using bip32 derivation. Derivation is done from the xprv master, so hardened
+/// derivation is allowed.
 pub fn get_xpub(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
-    // Convert from C keystore to Rust by encoding the xpub in C and decoding it in Rust.
-    bip32::Xpub::from_bytes(&keystore::encode_xpub_at_keypath(keypath)?)
+    let xpriv = get_xprv_twice(keypath)?;
+    let secp = bitcoin::secp256k1::Secp256k1::new();
+    let xpub = bitcoin::bip32::Xpub::from_priv(&secp, &xpriv.xprv);
+
+    Ok(bip32::Xpub::from(xpub))
 }
 
 /// Returns fingerprint of the root public key at m/, which are the first four bytes of its hash160
@@ -45,7 +91,7 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let priv_key = keystore::secp256k1_get_private_key(keypath)?;
+    let priv_key = secp256k1_get_private_key_twice(keypath)?;
     let mut mac = SimpleHmac::<Sha512>::new_from_slice(b"bip-entropy-from-k").unwrap();
     mac.update(&priv_key);
     let mut out = zeroize::Zeroizing::new(vec![0u8; 64]);
@@ -113,6 +159,40 @@ mod tests {
     };
 
     #[test]
+    fn test_secp256k1_get_private_key() {
+        keystore::lock();
+        let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
+        assert!(secp256k1_get_private_key(keypath).is_err());
+
+        mock_unlocked_using_mnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "",
+        );
+
+        assert_eq!(
+            hex::encode(secp256k1_get_private_key(keypath).unwrap()),
+            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
+        );
+    }
+
+    #[test]
+    fn test_secp256k1_get_private_key_twice() {
+        keystore::lock();
+        let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
+        assert!(secp256k1_get_private_key_twice(keypath).is_err());
+
+        mock_unlocked_using_mnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "",
+        );
+
+        assert_eq!(
+            hex::encode(secp256k1_get_private_key_twice(keypath).unwrap()),
+            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
+        );
+    }
+
+    #[test]
     fn test_get_bip39_mnemonic() {
         keystore::lock();
         assert!(get_bip39_mnemonic().is_err());
@@ -125,6 +205,8 @@ mod tests {
     #[test]
     fn test_get_xpub() {
         let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
+        // Also test with unhardened and non-zero elements.
+        let keypath_5 = &[44 + HARDENED, 1 + HARDENED, 10 + HARDENED, 1, 100];
 
         keystore::lock();
         assert!(get_xpub(keypath).is_err());
@@ -141,6 +223,10 @@ mod tests {
         assert_eq!(
             get_xpub(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
             "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
+        );
+        assert_eq!(
+            get_xpub(keypath_5).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            "xpub6HHn1zdtf1RjePopiTV5nxf8jY2xwbJicTQ91jV4cUJZ5EnbvXyBGDhqWt8B9JxxBt9vExi4pdWzrbrM43qSFs747VCGmSy2DPWAhg9MkUg",
         );
 
         // 18 words

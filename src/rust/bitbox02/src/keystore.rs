@@ -212,34 +212,6 @@ pub fn get_bip39_wordlist(indices: Option<&[u16]>) -> Bip39Wordlist {
     )
 }
 
-pub fn encode_xpub_at_keypath(keypath: &[u32]) -> Result<Vec<u8>, ()> {
-    let mut xpub = vec![0u8; bitbox02_sys::BIP32_SERIALIZED_LEN as _];
-    match unsafe {
-        bitbox02_sys::keystore_encode_xpub_at_keypath(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            xpub.as_mut_ptr(),
-        )
-    } {
-        true => Ok(xpub),
-        false => Err(()),
-    }
-}
-
-pub fn secp256k1_get_private_key(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mut key = zeroize::Zeroizing::new(vec![0u8; 32]);
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_get_private_key(
-            keypath.as_ptr(),
-            keypath.len() as _,
-            key.as_mut_ptr(),
-        )
-    } {
-        true => Ok(key),
-        false => Err(()),
-    }
-}
-
 pub struct SignResult {
     pub signature: [u8; 64],
     pub recid: u8,
@@ -572,23 +544,6 @@ mod tests {
         assert_eq!(
             hex::encode(get_ed25519_seed().unwrap()),
             "f053a1e752de5c26197b60f032a4809f08bb3e5d90484fe42024be31efcba7578d914d3ff992e21652fee6a4d99f6091006938fac2c0c0f9d2de0ba64b754e92a4f3723f23472077aa4cd4dd8a8a175dba07ea1852dad1cf268c61a2679c3890",
-        );
-    }
-
-    #[test]
-    fn test_secp256k1_get_private_key() {
-        lock();
-        let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
-        assert!(secp256k1_get_private_key(keypath).is_err());
-
-        mock_unlocked_using_mnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-            "",
-        );
-
-        assert_eq!(
-            hex::encode(secp256k1_get_private_key(keypath).unwrap()),
-            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
         );
     }
 

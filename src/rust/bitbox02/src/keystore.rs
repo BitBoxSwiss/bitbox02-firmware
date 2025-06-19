@@ -402,6 +402,24 @@ mod tests {
     }
 
     #[test]
+    fn test_secp256k1_nonce_commit() {
+        lock();
+        let keypath = [44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 5];
+        let msg = [0x88u8; 32];
+        let host_commitment = [0xabu8; 32];
+
+        // Fails because keystore is locked.
+        assert!(secp256k1_nonce_commit(&keypath, &msg, &host_commitment).is_err());
+
+        mock_unlocked();
+        let client_commitment = secp256k1_nonce_commit(&keypath, &msg, &host_commitment).unwrap();
+        assert_eq!(
+            hex::encode(client_commitment),
+            "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",
+        );
+    }
+
+    #[test]
     fn test_bip39_mnemonic_to_seed() {
         assert!(bip39_mnemonic_to_seed("invalid").is_err());
 

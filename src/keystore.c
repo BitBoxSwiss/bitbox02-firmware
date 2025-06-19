@@ -522,41 +522,6 @@ bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, si
     return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;
 }
 
-static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct ext_key* xprv_out)
-{
-    if (keystore_is_locked()) {
-        return false;
-    }
-
-    uint8_t bip39_seed[64] = {0};
-    UTIL_CLEANUP_64(bip39_seed);
-    if (!keystore_copy_bip39_seed(bip39_seed)) {
-        return false;
-    }
-    struct ext_key xprv_master __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-
-    if (bip32_key_from_seed(
-            bip39_seed, BIP32_ENTROPY_LEN_512, BIP32_VER_MAIN_PRIVATE, 0, &xprv_master) !=
-        WALLY_OK) {
-        return false;
-    }
-    util_zero(bip39_seed, sizeof(bip39_seed));
-    if (keypath_len == 0) {
-        *xprv_out = xprv_master;
-    } else if (
-        bip32_key_from_parent_path(
-            &xprv_master, keypath, keypath_len, BIP32_FLAG_KEY_PRIVATE, xprv_out) != WALLY_OK) {
-        keystore_zero_xkey(xprv_out);
-        return false;
-    }
-    return true;
-}
-
-void keystore_zero_xkey(struct ext_key* xkey)
-{
-    util_zero(xkey, sizeof(struct ext_key));
-}
-
 bool keystore_get_bip39_word(uint16_t idx, char** word_out)
 {
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;
@@ -569,18 +534,17 @@ bool keystore_secp256k1_nonce_commit(
     const uint8_t* host_commitment,
     uint8_t* signer_commitment_out)
 {
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &xprv)) {
+    uint8_t private_key[32] = {0};
+    UTIL_CLEANUP_32(private_key);
+    if (!rust_secp256k1_get_private_key(
+            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
         return false;
     }
+
     const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_s2c_opening signer_commitment;
     if (!secp256k1_ecdsa_anti_exfil_signer_commit(
-            ctx,
-            &signer_commitment,
-            msg32,
-            xprv.priv_key + 1, // first byte is 0,
-            host_commitment)) {
+            ctx, &signer_commitment, msg32, private_key, host_commitment)) {
         return false;
     }
 
@@ -601,19 +565,17 @@ bool keystore_secp256k1_sign(
     if (keystore_is_locked()) {
         return false;
     }
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &xprv)) {
+    uint8_t private_key[32] = {0};
+    UTIL_CLEANUP_32(private_key);
+    if (!rust_secp256k1_get_private_key(
+            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
         return false;
     }
+
     const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_signature secp256k1_sig = {0};
     if (!secp256k1_anti_exfil_sign(
-            ctx,
-            &secp256k1_sig,
-            msg32,
-            xprv.priv_key + 1, // first byte is 0
-            host_nonce32,
-            recid_out)) {
+            ctx, &secp256k1_sig, msg32, private_key, host_nonce32, recid_out)) {
         return false;
     }
     if (!secp256k1_ecdsa_signature_serialize_compact(ctx, sig_compact_out, &secp256k1_sig)) {
@@ -687,13 +649,15 @@ static bool _schnorr_keypair(
     if (keystore_is_locked()) {
         return false;
     }
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &xprv)) {
+    uint8_t private_key[32] = {0};
+    UTIL_CLEANUP_32(private_key);
+    if (!rust_secp256k1_get_private_key(
+            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
         return false;
     }
-    const uint8_t* secret_key = xprv.priv_key + 1; // first byte is 0;
+
     const secp256k1_context* ctx = wally_get_secp_context();
-    if (!secp256k1_keypair_create(ctx, keypair_out, secret_key)) {
+    if (!secp256k1_keypair_create(ctx, keypair_out, private_key)) {
         return false;
     }
     if (tweak != NULL) {

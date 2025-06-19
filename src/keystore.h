@@ -147,11 +147,6 @@ USE_RESULT bool keystore_bip39_mnemonic_to_seed(
     size_t* seed_len_out);
 
 /**
- * Safely destroy a xpub or xprv.
- */
-void keystore_zero_xkey(struct ext_key* xkey);
-
-/**
  * Returns the pointer to a word in the word list for the given index.
  * @param[in] idx The index into the word list. Must be smaller than BIP39_WORDLIST_LEN.
  * @param[out] word_out The pointer to the character array for the given index.

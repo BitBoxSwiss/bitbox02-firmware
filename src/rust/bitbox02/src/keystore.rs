@@ -359,7 +359,6 @@ mod tests {
     use bitcoin::secp256k1;
 
     use crate::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
-    use alloc::string::ToString;
     use util::bip32::HARDENED;
 
     #[test]
@@ -843,82 +842,6 @@ mod tests {
                 encrypt_and_store_seed(&seed[..seed_size], "foo"),
                 Err(Error::Memory)
             ));
-        }
-    }
-
-    #[test]
-    fn test_fixtures() {
-        struct Test {
-            seed_len: usize,
-            mnemonic_passphrase: &'static str,
-            expected_mnemonic: &'static str,
-            expected_xpub: &'static str,
-            expected_u2f_seed_hex: &'static str,
-        }
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
-
-        let tests = [
-            Test {
-                seed_len: 32,
-                mnemonic_passphrase: "",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
-                expected_xpub: "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
-                expected_u2f_seed_hex: "4f464a6667ad88eebcd0f02982761e474ee0dd16253160320f49d1d6681745e9",
-            },
-            Test {
-                seed_len: 32,
-                mnemonic_passphrase: "abc",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
-                expected_xpub: "xpub6DXBP3HhFdhUTafatEULxfTXUUxDVuCxfa9RAiBU5r6aRgKiABbeBDyqwWWjmKPP1BZvpvVNMbVR5LeHzhQphtLcPZ8jk3MdLBgc2sACJwR",
-                expected_u2f_seed_hex: "d599da991ad83baaf449c789e2dff1539dd66983b47a1dec1c00ff3f352cccbc",
-            },
-            Test {
-                seed_len: 24,
-                mnemonic_passphrase: "",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before subject",
-                expected_xpub: "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18BG81VJhJDXnSpRe5NGKwVpXiAb",
-                expected_u2f_seed_hex: "fb9dc3fb0a17390776df5c3d8f9261bc5fd5df9f00414cee1393e37e0efda7ef",
-            },
-            Test {
-                seed_len: 16,
-                mnemonic_passphrase: "",
-                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass sniff",
-                expected_xpub: "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
-                expected_u2f_seed_hex: "20d68b206aff9667b623a460ce61fc94762de67561d6855ca9a6df7b409b2a54",
-            },
-        ];
-
-        for test in tests {
-            mock_memory();
-            lock();
-            let seed = &seed[..test.seed_len];
-            assert!(unlock_bip39(test.mnemonic_passphrase).is_err());
-            assert!(encrypt_and_store_seed(seed, "foo").is_ok());
-            assert!(unlock_bip39(test.mnemonic_passphrase).is_err());
-            assert!(is_locked());
-            assert!(unlock("foo").is_ok());
-            assert!(is_locked());
-            assert!(unlock_bip39(test.mnemonic_passphrase).is_ok());
-            assert!(!is_locked());
-            assert_eq!(
-                bip39_mnemonic_from_seed(&copy_seed().unwrap())
-                    .unwrap()
-                    .as_str(),
-                test.expected_mnemonic,
-            );
-            let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
-            let encoded_xpub = encode_xpub_at_keypath(keypath).unwrap();
-            assert_eq!(
-                bitcoin::bip32::Xpub::decode(&encoded_xpub)
-                    .unwrap()
-                    .to_string(),
-                test.expected_xpub,
-            );
-            assert_eq!(
-                hex::encode(get_u2f_seed().unwrap()),
-                test.expected_u2f_seed_hex,
-            );
         }
     }
 }

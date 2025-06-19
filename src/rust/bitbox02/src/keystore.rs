@@ -724,6 +724,68 @@ mod tests {
         assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
     }
 
+    #[test]
+    fn test_create_and_store_seed() {
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+
+        let host_entropy =
+            hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
+                .unwrap();
+
+        // Invalid seed lengths
+        for size in [8, 24, 40] {
+            assert!(matches!(
+                create_and_store_seed("password", &host_entropy[..size]),
+                Err(Error::SeedSize)
+            ));
+        }
+
+        // Hack to get the random bytes that will be used.
+        let seed_random = {
+            crate::random::mock_reset();
+            crate::random::random_32_bytes()
+        };
+
+        // Derived from mock_salt_root and "password".
+        let password_salted_hashed =
+            hex::decode("e8c70a20d9108fbb9454b1b8e2d7373e78cbaf9de025ab2d4f4d3c7a6711694c")
+                .unwrap();
+
+        // expected_seed = seed_random ^ host_entropy ^ password_salted_hashed
+        let expected_seed: Vec<u8> = seed_random
+            .into_iter()
+            .zip(host_entropy.iter())
+            .zip(password_salted_hashed)
+            .map(|((a, &b), c)| a ^ b ^ c)
+            .collect();
+
+        for size in [16, 32] {
+            mock_memory();
+            crate::random::mock_reset();
+            crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+            lock();
+
+            assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
+            assert!(unlock("password").is_ok());
+            assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
+            // Check the seed has been stored encrypted with the expected encryption key.
+            // Decrypt and check seed.
+            let cipher = crate::memory::get_encrypted_seed_and_hmac().unwrap();
+
+            // Same as Python:
+            // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
+            // See also: mock_securechip.c
+            let expected_encryption_key =
+                hex::decode("e56de448f5f1d29cdcc0e0099007309afe4d5a3ef2349e99dcc41840ad98409e")
+                    .unwrap();
+            let decrypted =
+                bitbox_aes::decrypt_with_hmac(&expected_encryption_key, &cipher).unwrap();
+            assert_eq!(decrypted.as_slice(), &expected_seed[..size]);
+        }
+    }
+
     // This tests that you can create a keystore, unlock it, and then do this again. This is an
     // expected workflow for when the wallet setup process is restarted after seeding and unlocking,
     // but before creating a backup, in which case a new seed is created.

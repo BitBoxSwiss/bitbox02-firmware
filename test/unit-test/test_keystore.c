@@ -17,128 +17,10 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#include <cipher/cipher.h>
 #include <keystore.h>
-#include <memory/bitbox02_smarteeprom.h>
-#include <memory/memory.h>
-#include <memory/smarteeprom.h>
-#include <mock_memory.h>
-#include <secp256k1_ecdsa_s2c.h>
-#include <secp256k1_recovery.h>
 #include <secp256k1_schnorrsig.h>
-#include <securechip/securechip.h>
-#include <util.h>
 
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-#define PASSWORD ("password")
-
-static uint8_t _salt_root[KEYSTORE_MAX_SEED_LENGTH] = {
-    0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
-    0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
-};
-
-// Same as Python:
-// import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
-// See also: securechip_mock.c
-static uint8_t _expected_secret[32] =
-    "\xe5\x6d\xe4\x48\xf5\xf1\xd2\x9c\xdc\xc0\xe0\x09\x90\x07\x30\x9a\xfe\x4d\x5a\x3e\xf2\x34\x9e"
-    "\x99\xdc\xc4\x18\x40\xad\x98\x40\x9e";
-
-int __real_secp256k1_anti_exfil_sign(
-    const secp256k1_context* ctx,
-    secp256k1_ecdsa_signature* sig,
-    const unsigned char* msg32,
-    const unsigned char* seckey,
-    const unsigned char* host_data32,
-    int* recid);
-
-static const unsigned char* _sign_expected_msg = NULL;
-static const unsigned char* _sign_expected_seckey = NULL;
-int __wrap_secp256k1_anti_exfil_sign(
-    const secp256k1_context* ctx,
-    secp256k1_ecdsa_signature* sig,
-    const unsigned char* msg32,
-    const unsigned char* seckey,
-    const unsigned char* host_data32,
-    int* recid)
-{
-    if (_sign_expected_msg != NULL) {
-        assert_memory_equal(_sign_expected_msg, msg32, 32);
-        _sign_expected_msg = NULL;
-    }
-    if (_sign_expected_seckey != NULL) {
-        assert_memory_equal(_sign_expected_seckey, seckey, 32);
-        _sign_expected_seckey = NULL;
-    }
-    return __real_secp256k1_anti_exfil_sign(ctx, sig, msg32, seckey, host_data32, recid);
-}
-
-static bool _reset_reset_called = false;
-void __wrap_reset_reset(void)
-{
-    _reset_reset_called = true;
-}
-
-void __wrap_random_32_bytes(uint8_t* buf)
-{
-    memcpy(buf, (const void*)mock(), 32);
-}
-
-void _mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
-{
-    keystore_mock_unlocked(seed, seed_len, bip39_seed);
-}
-
-static void _expect_encrypt_and_store_seed(void)
-{
-    will_return(__wrap_memory_is_initialized, false);
-}
-
-static void _test_keystore_create_and_store_seed(void** state)
-{
-    const uint8_t seed_random[32] =
-        "\x98\xef\xa1\xb6\x0a\x83\x39\x16\x61\xa2\x4d\xc7\x4a\x80\x4f\x34\x36\xe8\x33\xe0\xaa\xbe"
-        "\x75\xe9\x71\x1e\x5d\xef\x3a\x8f\x9f\x7c";
-    const uint8_t host_entropy[32] =
-        "\x25\x56\x9b\x9a\x11\xf9\xdb\x65\x60\x45\x9e\x8e\x48\xb4\x72\x7a\x4c\x93\x53\x00\x14\x3d"
-        "\x97\x89\x89\xed\x55\xdb\x1d\x1b\x9c\xbe";
-    // expected_seed = seed_random ^ host_entropy ^ password_salted_hashed
-    const uint8_t expected_seed[32] =
-        "\x55\x7e\x30\x0c\xc2\x6a\x6d\xc8\x95\xb3\x62\xf1\xe0\xe3\x0a\x70\x02\xb0\xcf\x7d\x5e\xa6"
-        "\x49\x4d\xb7\xbe\x34\x4e\x40\x85\x6a\x8e";
-
-    // Invalid seed lengths.
-    assert_int_equal(
-        keystore_create_and_store_seed(PASSWORD, host_entropy, 8), KEYSTORE_ERR_SEED_SIZE);
-    assert_int_equal(
-        keystore_create_and_store_seed(PASSWORD, host_entropy, 24), KEYSTORE_ERR_SEED_SIZE);
-    assert_int_equal(
-        keystore_create_and_store_seed(PASSWORD, host_entropy, 40), KEYSTORE_ERR_SEED_SIZE);
-
-    size_t test_sizes[2] = {16, 32};
-    for (size_t i = 0; i < sizeof(test_sizes) / sizeof(test_sizes[0]); i++) {
-        size_t seed_len = test_sizes[i];
-        // Seed random is xored with host entropy and the salted/hashed user password.
-        will_return(__wrap_random_32_bytes, seed_random);
-        _expect_encrypt_and_store_seed();
-        assert_int_equal(
-            keystore_create_and_store_seed(PASSWORD, host_entropy, seed_len), KEYSTORE_OK);
-
-        // Decrypt and check seed.
-        uint8_t encrypted_seed_and_hmac[96] = {0};
-        uint8_t len = 0;
-        assert_true(memory_get_encrypted_seed_and_hmac(encrypted_seed_and_hmac, &len));
-        size_t decrypted_len = len - 48;
-        uint8_t out[decrypted_len];
-        assert_true(cipher_aes_hmac_decrypt(
-            encrypted_seed_and_hmac, len, out, &decrypted_len, _expected_secret));
-        assert_int_equal(decrypted_len, seed_len);
-        assert_memory_equal(expected_seed, out, seed_len);
-    }
-}
 
 // This tests that `secp256k1_schnorrsig_sign()` is the correct function to be used for schnorr sigs
 // in taproot. It is a separate test because there are test vectors available for this which cannot
@@ -200,10 +82,7 @@ static void _test_secp256k1_schnorr_sign(void** state)
 
 int main(void)
 {
-    mock_memory_set_salt_root(_salt_root);
-
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(_test_keystore_create_and_store_seed),
         cmocka_unit_test(_test_secp256k1_schnorr_sign),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

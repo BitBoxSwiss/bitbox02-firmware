@@ -57,6 +57,15 @@ typedef enum {
 USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out);
 
 /**
+ * Copies the retained bip39 seed into the given buffer. The caller must
+ * zero the seed once it is no longer needed.
+ * @param[out] bip39_seed_out The seed bytes copied from the retained bip39 seed.
+ * The buffer must be 64 bytes long.
+ * @return true if the bip39 seed is available.
+ */
+USE_RESULT bool keystore_copy_bip39_seed(uint8_t* bip32_seed_out);
+
+/**
  * Restores a seed.
  * @param[in] seed The seed that is to be restored.
  * @param[in] seed_length The length of the seed (max. 32 bytes).

@@ -45,7 +45,7 @@ static bool _is_unlocked_bip39 = false;
 // Stores a random keyy after bip39-unlock which, after stretching, is used to encrypt the retained
 // bip39 seed.
 static uint8_t _unstretched_retained_bip39_seed_encryption_key[32] = {0};
-// Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _copy_bip39_seed().
+// Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH keystore_copy_bip39_seed().
 // Stores the encrypted BIP-39 seed after bip39-unlock.
 static uint8_t _retained_bip39_seed_encrypted[64 + 64] = {0};
 static size_t _retained_bip39_seed_encrypted_len = 0;
@@ -115,14 +115,7 @@ bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
     return true;
 }
 
-/**
- * Copies the retained bip39 seed into the given buffer. The caller must
- * zero the seed with util_zero once it is no longer needed.
- * @param[out] bip39_seed_out The seed bytes copied from the retained bip39 seed.
- * The buffer must be 64 bytes long.
- * @return true if the bip39 seed is available.
- */
-static bool _copy_bip39_seed(uint8_t* bip39_seed_out)
+bool keystore_copy_bip39_seed(uint8_t* bip39_seed_out)
 {
     if (!_is_unlocked_bip39) {
         return false;
@@ -537,7 +530,7 @@ static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct 
 
     uint8_t bip39_seed[64] = {0};
     UTIL_CLEANUP_64(bip39_seed);
-    if (!_copy_bip39_seed(bip39_seed)) {
+    if (!keystore_copy_bip39_seed(bip39_seed)) {
         return false;
     }
     struct ext_key xprv_master __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
@@ -698,7 +691,7 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     }
     uint8_t bip39_seed[64] = {0};
     UTIL_CLEANUP_64(bip39_seed);
-    if (!_copy_bip39_seed(bip39_seed)) {
+    if (!keystore_copy_bip39_seed(bip39_seed)) {
         return false;
     }
     const uint8_t message[] = "u2f";
@@ -713,7 +706,7 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
 {
     uint8_t bip39_seed[64] = {0};
     UTIL_CLEANUP_64(bip39_seed);
-    if (!_copy_bip39_seed(bip39_seed)) {
+    if (!keystore_copy_bip39_seed(bip39_seed)) {
         return false;
     }
 

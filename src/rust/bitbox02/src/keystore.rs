@@ -122,6 +122,14 @@ pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
+pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mut bip39_seed = zeroize::Zeroizing::new(vec![0u8; 64]);
+    match unsafe { bitbox02_sys::keystore_copy_bip39_seed(bip39_seed.as_mut_ptr()) } {
+        true => Ok(bip39_seed),
+        false => Err(()),
+    }
+}
+
 pub fn bip39_mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
     let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
     match unsafe {
@@ -703,6 +711,13 @@ mod tests {
         assert!(unlock("password").is_ok());
         assert!(unlock_bip39("foo").is_ok());
 
+        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
+
+        assert_eq!(
+            copy_bip39_seed().unwrap().as_slice(),
+            expected_bip39_seed.as_slice()
+        );
+
         // Check that the retained bip39 seed was encrypted with the expected encryption key.
         let decrypted = {
             let retained_bip39_seed_encrypted: &[u8] = unsafe {
@@ -719,7 +734,6 @@ mod tests {
             )
             .unwrap()
         };
-        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
         assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
     }
 

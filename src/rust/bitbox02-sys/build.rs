@@ -69,6 +69,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "empty_create",
     "keystore_bip39_mnemonic_to_seed",
     "keystore_copy_seed",
+    "keystore_copy_bip39_seed",
     "keystore_create_and_store_seed",
     "keystore_encode_xpub_at_keypath",
     "keystore_encrypt_and_store_seed",

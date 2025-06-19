@@ -402,6 +402,68 @@ mod tests {
     }
 
     #[test]
+    fn test_secp256k1_schnorr_sign() {
+        mock_unlocked_using_mnemonic("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "");
+        let keypath = [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
+        let msg = [0x88u8; 32];
+
+        let expected_pubkey = {
+            let pubkey =
+                hex::decode("cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115")
+                    .unwrap();
+            secp256k1::XOnlyPublicKey::from_slice(&pubkey).unwrap()
+        };
+
+        // Test without tweak
+        crate::random::mock_reset();
+        let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
+        let secp = secp256k1::Secp256k1::new();
+        assert!(secp
+            .verify_schnorr(
+                &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
+                &secp256k1::Message::from_digest_slice(&msg).unwrap(),
+                &expected_pubkey
+            )
+            .is_ok());
+
+        // Test with tweak
+        crate::random::mock_reset();
+        let tweak = {
+            let tweak =
+                hex::decode("a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c")
+                    .unwrap();
+            secp256k1::Scalar::from_be_bytes(tweak.try_into().unwrap()).unwrap()
+        };
+        let (tweaked_pubkey, _) = expected_pubkey.add_tweak(&secp, &tweak).unwrap();
+        let sig = secp256k1_schnorr_sign(&keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
+        assert!(secp
+            .verify_schnorr(
+                &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
+                &secp256k1::Message::from_digest_slice(&msg).unwrap(),
+                &tweaked_pubkey
+            )
+            .is_ok());
+    }
+
+    #[test]
+    fn test_secp256k1_nonce_commit() {
+        lock();
+        let keypath = [44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 5];
+        let msg = [0x88u8; 32];
+        let host_commitment = [0xabu8; 32];
+
+        // Fails because keystore is locked.
+        assert!(secp256k1_nonce_commit(&keypath, &msg, &host_commitment).is_err());
+
+        mock_unlocked();
+        let client_commitment = secp256k1_nonce_commit(&keypath, &msg, &host_commitment).unwrap();
+        assert_eq!(
+            hex::encode(client_commitment),
+            "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",
+        );
+    }
+
+    #[test]
     fn test_bip39_mnemonic_to_seed() {
         assert!(bip39_mnemonic_to_seed("invalid").is_err());
 
@@ -551,6 +613,22 @@ mod tests {
     }
 
     #[test]
+    fn test_lock() {
+        lock();
+        assert!(is_locked());
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(unlock("password").is_ok());
+        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
+        assert!(unlock_bip39("foo").is_ok());
+        assert!(!is_locked());
+        lock();
+        assert!(is_locked());
+    }
+
+    #[test]
     fn test_unlock() {
         mock_memory();
         lock();
@@ -624,7 +702,6 @@ mod tests {
 
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(unlock("password").is_ok());
-        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(unlock_bip39("foo").is_ok());
 
         // Check that the retained bip39 seed was encrypted with the expected encryption key.
@@ -645,6 +722,68 @@ mod tests {
         };
         let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
         assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
+    }
+
+    #[test]
+    fn test_create_and_store_seed() {
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+
+        let host_entropy =
+            hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
+                .unwrap();
+
+        // Invalid seed lengths
+        for size in [8, 24, 40] {
+            assert!(matches!(
+                create_and_store_seed("password", &host_entropy[..size]),
+                Err(Error::SeedSize)
+            ));
+        }
+
+        // Hack to get the random bytes that will be used.
+        let seed_random = {
+            crate::random::mock_reset();
+            crate::random::random_32_bytes()
+        };
+
+        // Derived from mock_salt_root and "password".
+        let password_salted_hashed =
+            hex::decode("e8c70a20d9108fbb9454b1b8e2d7373e78cbaf9de025ab2d4f4d3c7a6711694c")
+                .unwrap();
+
+        // expected_seed = seed_random ^ host_entropy ^ password_salted_hashed
+        let expected_seed: Vec<u8> = seed_random
+            .into_iter()
+            .zip(host_entropy.iter())
+            .zip(password_salted_hashed)
+            .map(|((a, &b), c)| a ^ b ^ c)
+            .collect();
+
+        for size in [16, 32] {
+            mock_memory();
+            crate::random::mock_reset();
+            crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+            lock();
+
+            assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
+            assert!(unlock("password").is_ok());
+            assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
+            // Check the seed has been stored encrypted with the expected encryption key.
+            // Decrypt and check seed.
+            let cipher = crate::memory::get_encrypted_seed_and_hmac().unwrap();
+
+            // Same as Python:
+            // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
+            // See also: mock_securechip.c
+            let expected_encryption_key =
+                hex::decode("e56de448f5f1d29cdcc0e0099007309afe4d5a3ef2349e99dcc41840ad98409e")
+                    .unwrap();
+            let decrypted =
+                bitbox_aes::decrypt_with_hmac(&expected_encryption_key, &cipher).unwrap();
+            assert_eq!(decrypted.as_slice(), &expected_seed[..size]);
+        }
     }
 
     // This tests that you can create a keystore, unlock it, and then do this again. This is an

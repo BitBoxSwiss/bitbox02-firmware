@@ -228,8 +228,6 @@ target_link_libraries(u2f-util PUBLIC ${HIDAPI_LDFLAGS})
 set(TEST_LIST
    cleanup
    "-Wl,--wrap=util_cleanup_32"
-   keystore
-   "-Wl,--wrap=secp256k1_anti_exfil_sign,--wrap=memory_is_initialized,--wrap=memory_is_seeded,--wrap=memory_get_failed_unlock_attempts,--wrap=memory_reset_failed_unlock_attempts,--wrap=memory_increment_failed_unlock_attempts,--wrap=memory_set_encrypted_seed_and_hmac,--wrap=memory_get_encrypted_seed_and_hmac,--wrap=memory_get_salt_root,--wrap=reset_reset,--wrap=random_32_bytes"
    keystore_antiklepto
    ""
    gestures

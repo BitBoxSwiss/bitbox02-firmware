@@ -92,6 +92,19 @@ pub fn get_attestation_pubkey_and_certificate(
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn get_encrypted_seed_and_hmac() -> Result<alloc::vec::Vec<u8>, ()> {
+    let mut out = vec![0u8; 96];
+    let mut len = 0u8;
+    match unsafe { bitbox02_sys::memory_get_encrypted_seed_and_hmac(out.as_mut_ptr(), &mut len) } {
+        true => {
+            out.truncate(len as _);
+            Ok(out)
+        }
+        false => Err(()),
+    }
+}
+
 pub fn get_noise_static_private_key() -> Result<zeroize::Zeroizing<[u8; 32]>, ()> {
     let mut out = zeroize::Zeroizing::new([0u8; 32]);
     match unsafe { bitbox02_sys::memory_get_noise_static_private_key(out.as_mut_ptr()) } {

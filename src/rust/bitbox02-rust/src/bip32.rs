@@ -43,6 +43,20 @@ impl core::convert::From<Xpub> for pb::XPub {
     }
 }
 
+impl core::convert::From<bitcoin::bip32::Xpub> for Xpub {
+    fn from(xpub: bitcoin::bip32::Xpub) -> Self {
+        Xpub::from_bytes(&xpub.encode()).unwrap()
+    }
+}
+
+/// Converts a keypath slice to a form that can be used with `bitcoin::bip32`.
+pub fn keypath_from_slice(keypath: &[u32]) -> Vec<bitcoin::bip32::ChildNumber> {
+    keypath
+        .iter()
+        .map(|&n| bitcoin::bip32::ChildNumber::from(n))
+        .collect()
+}
+
 impl Xpub {
     /// Parses an 78-ytes xpub bytestring, encoded according to BIP32. The 4 version bytes are not
     /// checked and discarded.
@@ -106,7 +120,12 @@ impl Xpub {
     /// Derives child xpub at the keypath. All keypath elements must be unhardened.
     pub fn derive(&self, keypath: &[u32]) -> Result<Self, ()> {
         let xpub_ser = self.serialize(Some(XPubType::Xpub))?;
-        Xpub::from_bytes(&bitbox02::bip32::derive_xpub(&xpub_ser, keypath)?)
+        let xpub = bitcoin::bip32::Xpub::decode(&xpub_ser).map_err(|_| ())?;
+        let secp = bitcoin::secp256k1::Secp256k1::verification_only();
+        let xpub = xpub
+            .derive_pub(&secp, &keypath_from_slice(keypath))
+            .map_err(|_| ())?;
+        Ok(xpub.into())
     }
 
     /// Returns the 33 bytes secp256k1 compressed pubkey.

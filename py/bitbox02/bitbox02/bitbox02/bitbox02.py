@@ -1271,7 +1271,7 @@ class BitBox02(BitBoxCommonAPI):
 
     def bluetooth_toggle_enabled(self) -> None:
         """
-        Enable/disable blueooth in non-volatile storage
+        Enable/disable Bluetooth in non-volatile storage
         """
         # pylint: disable=no-member
         request = bluetooth.BluetoothRequest()

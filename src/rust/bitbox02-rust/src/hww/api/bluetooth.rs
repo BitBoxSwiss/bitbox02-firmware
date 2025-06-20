@@ -187,6 +187,7 @@ async fn process_toggle_enabled(hal: &mut impl crate::hal::Hal) -> Result<Respon
     hal.ui()
         .confirm(&confirm::Params {
             body,
+            longtouch: true,
             ..Default::default()
         })
         .await?;

@@ -45,7 +45,7 @@ static bool _is_unlocked_bip39 = false;
 // Stores a random keyy after bip39-unlock which, after stretching, is used to encrypt the retained
 // bip39 seed.
 static uint8_t _unstretched_retained_bip39_seed_encryption_key[32] = {0};
-// Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH _copy_bip39_seed().
+// Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH keystore_copy_bip39_seed().
 // Stores the encrypted BIP-39 seed after bip39-unlock.
 static uint8_t _retained_bip39_seed_encrypted[64 + 64] = {0};
 static size_t _retained_bip39_seed_encrypted_len = 0;
@@ -115,14 +115,7 @@ bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
     return true;
 }
 
-/**
- * Copies the retained bip39 seed into the given buffer. The caller must
- * zero the seed with util_zero once it is no longer needed.
- * @param[out] bip39_seed_out The seed bytes copied from the retained bip39 seed.
- * The buffer must be 64 bytes long.
- * @return true if the bip39 seed is available.
- */
-static bool _copy_bip39_seed(uint8_t* bip39_seed_out)
+bool keystore_copy_bip39_seed(uint8_t* bip39_seed_out)
 {
     if (!_is_unlocked_bip39) {
         return false;
@@ -529,103 +522,6 @@ bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, si
     return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;
 }
 
-static bool _get_xprv(const uint32_t* keypath, const size_t keypath_len, struct ext_key* xprv_out)
-{
-    if (keystore_is_locked()) {
-        return false;
-    }
-
-    uint8_t bip39_seed[64] = {0};
-    UTIL_CLEANUP_64(bip39_seed);
-    if (!_copy_bip39_seed(bip39_seed)) {
-        return false;
-    }
-    struct ext_key xprv_master __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-
-    if (bip32_key_from_seed(
-            bip39_seed, BIP32_ENTROPY_LEN_512, BIP32_VER_MAIN_PRIVATE, 0, &xprv_master) !=
-        WALLY_OK) {
-        return false;
-    }
-    util_zero(bip39_seed, sizeof(bip39_seed));
-    if (keypath_len == 0) {
-        *xprv_out = xprv_master;
-    } else if (
-        bip32_key_from_parent_path(
-            &xprv_master, keypath, keypath_len, BIP32_FLAG_KEY_PRIVATE, xprv_out) != WALLY_OK) {
-        keystore_zero_xkey(xprv_out);
-        return false;
-    }
-    return true;
-}
-
-static bool _ext_key_equal(struct ext_key* one, struct ext_key* two)
-{
-    if (!MEMEQ(one->chain_code, two->chain_code, sizeof(one->chain_code))) {
-        return false;
-    }
-    if (!MEMEQ(one->parent160, two->parent160, sizeof(one->parent160))) {
-        return false;
-    }
-    if (one->depth != two->depth) {
-        return false;
-    }
-    if (!MEMEQ(one->priv_key, two->priv_key, sizeof(one->priv_key))) {
-        return false;
-    }
-    if (one->child_num != two->child_num) {
-        return false;
-    }
-    if (!MEMEQ(one->hash160, two->hash160, sizeof(one->hash160))) {
-        return false;
-    }
-    if (one->version != two->version) {
-        return false;
-    }
-    if (!MEMEQ(one->pub_key, two->pub_key, sizeof(one->pub_key))) {
-        return false;
-    }
-    return true;
-}
-
-static bool _get_xprv_twice(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    struct ext_key* xprv_out)
-{
-    struct ext_key one __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &one)) {
-        return false;
-    }
-    if (!_get_xprv(keypath, keypath_len, xprv_out)) {
-        return false;
-    }
-    if (!_ext_key_equal(&one, xprv_out)) {
-        keystore_zero_xkey(xprv_out);
-        return false;
-    }
-    return true;
-}
-
-bool keystore_get_xpub(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    struct ext_key* hdkey_neutered_out)
-{
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
-        return false;
-    }
-    bip32_key_strip_private_key(&xprv); // neuter
-    *hdkey_neutered_out = xprv;
-    return true;
-}
-
-void keystore_zero_xkey(struct ext_key* xkey)
-{
-    util_zero(xkey, sizeof(struct ext_key));
-}
-
 bool keystore_get_bip39_word(uint16_t idx, char** word_out)
 {
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;
@@ -638,18 +534,17 @@ bool keystore_secp256k1_nonce_commit(
     const uint8_t* host_commitment,
     uint8_t* signer_commitment_out)
 {
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &xprv)) {
+    uint8_t private_key[32] = {0};
+    UTIL_CLEANUP_32(private_key);
+    if (!rust_secp256k1_get_private_key(
+            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
         return false;
     }
+
     const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_s2c_opening signer_commitment;
     if (!secp256k1_ecdsa_anti_exfil_signer_commit(
-            ctx,
-            &signer_commitment,
-            msg32,
-            xprv.priv_key + 1, // first byte is 0,
-            host_commitment)) {
+            ctx, &signer_commitment, msg32, private_key, host_commitment)) {
         return false;
     }
 
@@ -670,19 +565,17 @@ bool keystore_secp256k1_sign(
     if (keystore_is_locked()) {
         return false;
     }
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &xprv)) {
+    uint8_t private_key[32] = {0};
+    UTIL_CLEANUP_32(private_key);
+    if (!rust_secp256k1_get_private_key(
+            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
         return false;
     }
+
     const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_signature secp256k1_sig = {0};
     if (!secp256k1_anti_exfil_sign(
-            ctx,
-            &secp256k1_sig,
-            msg32,
-            xprv.priv_key + 1, // first byte is 0
-            host_nonce32,
-            recid_out)) {
+            ctx, &secp256k1_sig, msg32, private_key, host_nonce32, recid_out)) {
         return false;
     }
     if (!secp256k1_ecdsa_signature_serialize_compact(ctx, sig_compact_out, &secp256k1_sig)) {
@@ -698,7 +591,7 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     }
     uint8_t bip39_seed[64] = {0};
     UTIL_CLEANUP_64(bip39_seed);
-    if (!_copy_bip39_seed(bip39_seed)) {
+    if (!keystore_copy_bip39_seed(bip39_seed)) {
         return false;
     }
     const uint8_t message[] = "u2f";
@@ -713,7 +606,7 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
 {
     uint8_t bip39_seed[64] = {0};
     UTIL_CLEANUP_64(bip39_seed);
-    if (!_copy_bip39_seed(bip39_seed)) {
+    if (!keystore_copy_bip39_seed(bip39_seed)) {
         return false;
     }
 
@@ -746,19 +639,6 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     return true;
 }
 
-USE_RESULT bool keystore_encode_xpub_at_keypath(
-    const uint32_t* keypath,
-    size_t keypath_len,
-    uint8_t* out)
-{
-    struct ext_key derived_xpub __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!keystore_get_xpub(keypath, keypath_len, &derived_xpub)) {
-        return false;
-    }
-    return bip32_key_serialize(&derived_xpub, BIP32_FLAG_KEY_PUBLIC, out, BIP32_SERIALIZED_LEN) ==
-           WALLY_OK;
-}
-
 static bool _schnorr_keypair(
     const uint32_t* keypath,
     size_t keypath_len,
@@ -769,13 +649,15 @@ static bool _schnorr_keypair(
     if (keystore_is_locked()) {
         return false;
     }
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv(keypath, keypath_len, &xprv)) {
+    uint8_t private_key[32] = {0};
+    UTIL_CLEANUP_32(private_key);
+    if (!rust_secp256k1_get_private_key(
+            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
         return false;
     }
-    const uint8_t* secret_key = xprv.priv_key + 1; // first byte is 0;
+
     const secp256k1_context* ctx = wally_get_secp_context();
-    if (!secp256k1_keypair_create(ctx, keypair_out, secret_key)) {
+    if (!secp256k1_keypair_create(ctx, keypair_out, private_key)) {
         return false;
     }
     if (tweak != NULL) {
@@ -813,19 +695,6 @@ bool keystore_secp256k1_schnorr_sign(
         return false;
     }
     return secp256k1_schnorrsig_verify(ctx, sig64_out, msg32, 32, &pubkey) == 1;
-}
-
-bool keystore_secp256k1_get_private_key(
-    const uint32_t* keypath,
-    const size_t keypath_len,
-    uint8_t* key_out)
-{
-    struct ext_key xprv __attribute__((__cleanup__(keystore_zero_xkey))) = {0};
-    if (!_get_xprv_twice(keypath, keypath_len, &xprv)) {
-        return false;
-    }
-    memcpy(key_out, xprv.priv_key + 1, 32);
-    return true;
 }
 
 #ifdef TESTING

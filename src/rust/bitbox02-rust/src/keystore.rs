@@ -31,10 +31,56 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     keystore::bip39_mnemonic_from_seed(&keystore::copy_seed()?)
 }
 
-/// Derives an xpub from the keystore seed at the given keypath.
+fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
+    let bip39_seed = keystore::copy_bip39_seed()?;
+    let xprv: bip32::Xprv =
+        bitcoin::bip32::Xpriv::new_master(bitcoin::NetworkKind::Main, &bip39_seed)
+            .map_err(|_| ())?
+            .into();
+    let secp = bitcoin::secp256k1::Secp256k1::new();
+    Ok(xprv
+        .xprv
+        .derive_priv(&secp, &bip32::keypath_from_slice(keypath))
+        .map_err(|_| ())?
+        .into())
+}
+
+fn get_xprv_twice(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
+    let xprv = get_xprv(keypath)?;
+    if xprv == get_xprv(keypath)? {
+        Ok(xprv)
+    } else {
+        Err(())
+    }
+}
+
+/// Get the private key at the keypath.
+pub fn secp256k1_get_private_key(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let xprv = get_xprv(keypath)?;
+    Ok(zeroize::Zeroizing::new(
+        xprv.xprv.private_key.secret_bytes().to_vec(),
+    ))
+}
+
+/// Get the private key at the keypath, computed twice to mitigate the risk of bitflips.
+pub fn secp256k1_get_private_key_twice(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let privkey = secp256k1_get_private_key(keypath)?;
+    if privkey == secp256k1_get_private_key(keypath)? {
+        Ok(privkey)
+    } else {
+        Err(())
+    }
+}
+
+/// Can be used only if the keystore is unlocked. Returns the derived xpub,
+/// using bip32 derivation. Derivation is done from the xprv master, so hardened
+/// derivation is allowed.
 pub fn get_xpub(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
-    // Convert from C keystore to Rust by encoding the xpub in C and decoding it in Rust.
-    bip32::Xpub::from_bytes(&keystore::encode_xpub_at_keypath(keypath)?)
+    let xpriv = get_xprv_twice(keypath)?;
+    let secp = bitcoin::secp256k1::Secp256k1::new();
+    let xpub = bitcoin::bip32::Xpub::from_priv(&secp, &xpriv.xprv);
+
+    Ok(bip32::Xpub::from(xpub))
 }
 
 /// Returns fingerprint of the root public key at m/, which are the first four bytes of its hash160
@@ -45,7 +91,7 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let priv_key = keystore::secp256k1_get_private_key(keypath)?;
+    let priv_key = secp256k1_get_private_key_twice(keypath)?;
     let mut mac = SimpleHmac::<Sha512>::new_from_slice(b"bip-entropy-from-k").unwrap();
     mac.update(&priv_key);
     let mut out = zeroize::Zeroizing::new(vec![0u8; 64]);
@@ -108,7 +154,43 @@ pub fn bip85_ln(index: u32) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 mod tests {
     use super::*;
 
-    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC};
+    use bitbox02::testing::{
+        mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC,
+    };
+
+    #[test]
+    fn test_secp256k1_get_private_key() {
+        keystore::lock();
+        let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
+        assert!(secp256k1_get_private_key(keypath).is_err());
+
+        mock_unlocked_using_mnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "",
+        );
+
+        assert_eq!(
+            hex::encode(secp256k1_get_private_key(keypath).unwrap()),
+            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
+        );
+    }
+
+    #[test]
+    fn test_secp256k1_get_private_key_twice() {
+        keystore::lock();
+        let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
+        assert!(secp256k1_get_private_key_twice(keypath).is_err());
+
+        mock_unlocked_using_mnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "",
+        );
+
+        assert_eq!(
+            hex::encode(secp256k1_get_private_key_twice(keypath).unwrap()),
+            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
+        );
+    }
 
     #[test]
     fn test_get_bip39_mnemonic() {
@@ -123,6 +205,8 @@ mod tests {
     #[test]
     fn test_get_xpub() {
         let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
+        // Also test with unhardened and non-zero elements.
+        let keypath_5 = &[44 + HARDENED, 1 + HARDENED, 10 + HARDENED, 1, 100];
 
         keystore::lock();
         assert!(get_xpub(keypath).is_err());
@@ -139,6 +223,10 @@ mod tests {
         assert_eq!(
             get_xpub(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
             "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
+        );
+        assert_eq!(
+            get_xpub(keypath_5).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            "xpub6HHn1zdtf1RjePopiTV5nxf8jY2xwbJicTQ91jV4cUJZ5EnbvXyBGDhqWt8B9JxxBt9vExi4pdWzrbrM43qSFs747VCGmSy2DPWAhg9MkUg",
         );
 
         // 18 words
@@ -251,5 +339,77 @@ mod tests {
 
         // Index too high.
         assert!(bip85_ln(HARDENED).is_err());
+    }
+
+    #[test]
+    fn test_fixtures() {
+        struct Test {
+            seed_len: usize,
+            mnemonic_passphrase: &'static str,
+            expected_mnemonic: &'static str,
+            expected_xpub: &'static str,
+            expected_u2f_seed_hex: &'static str,
+        }
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+
+        let tests = [
+            Test {
+                seed_len: 32,
+                mnemonic_passphrase: "",
+                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
+                expected_xpub: "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
+                expected_u2f_seed_hex: "4f464a6667ad88eebcd0f02982761e474ee0dd16253160320f49d1d6681745e9",
+            },
+            Test {
+                seed_len: 32,
+                mnemonic_passphrase: "abc",
+                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
+                expected_xpub: "xpub6DXBP3HhFdhUTafatEULxfTXUUxDVuCxfa9RAiBU5r6aRgKiABbeBDyqwWWjmKPP1BZvpvVNMbVR5LeHzhQphtLcPZ8jk3MdLBgc2sACJwR",
+                expected_u2f_seed_hex: "d599da991ad83baaf449c789e2dff1539dd66983b47a1dec1c00ff3f352cccbc",
+            },
+            Test {
+                seed_len: 24,
+                mnemonic_passphrase: "",
+                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before subject",
+                expected_xpub: "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18BG81VJhJDXnSpRe5NGKwVpXiAb",
+                expected_u2f_seed_hex: "fb9dc3fb0a17390776df5c3d8f9261bc5fd5df9f00414cee1393e37e0efda7ef",
+            },
+            Test {
+                seed_len: 16,
+                mnemonic_passphrase: "",
+                expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass sniff",
+                expected_xpub: "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
+                expected_u2f_seed_hex: "20d68b206aff9667b623a460ce61fc94762de67561d6855ca9a6df7b409b2a54",
+            },
+        ];
+
+        for test in tests {
+            mock_memory();
+            keystore::lock();
+            let seed = &seed[..test.seed_len];
+            assert!(keystore::unlock_bip39(test.mnemonic_passphrase).is_err());
+            assert!(keystore::encrypt_and_store_seed(seed, "foo").is_ok());
+            assert!(keystore::unlock_bip39(test.mnemonic_passphrase).is_err());
+            assert!(keystore::is_locked());
+            assert!(keystore::unlock("foo").is_ok());
+            assert!(keystore::is_locked());
+            assert!(keystore::unlock_bip39(test.mnemonic_passphrase).is_ok());
+            assert!(!keystore::is_locked());
+            assert_eq!(
+                get_bip39_mnemonic().unwrap().as_str(),
+                test.expected_mnemonic,
+            );
+            let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
+            let xpub = get_xpub(keypath).unwrap();
+            assert_eq!(
+                xpub.serialize_str(crate::bip32::XPubType::Xpub).unwrap(),
+                test.expected_xpub,
+            );
+            assert_eq!(
+                hex::encode(keystore::get_u2f_seed().unwrap()),
+                test.expected_u2f_seed_hex,
+            );
+        }
     }
 }

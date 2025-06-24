@@ -784,7 +784,7 @@ async fn _process(
         if let Some(ref mut silent_payment) = silent_payment {
             let keypair = bitcoin::key::UntweakedKeypair::from_seckey_slice(
                 silent_payment.get_secp(),
-                &bitbox02::keystore::secp256k1_get_private_key(&tx_input.keypath)?,
+                &crate::keystore::secp256k1_get_private_key(&tx_input.keypath)?,
             )
             .unwrap();
             // For Taproot, only key path spends are allowed in silent payments, and we need to

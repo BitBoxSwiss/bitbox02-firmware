@@ -72,6 +72,18 @@ static void _test_keystore_antiklepto(void** state)
         host_nonce[0] = i;
         uint8_t host_nonce_commitment[32];
 
+        // Get pubkey at keypath
+        struct ext_key xprv_master = {0};
+        struct ext_key xprv_derived = {0};
+        assert_int_equal(
+            bip32_key_from_seed(
+                _mock_bip39_seed, BIP32_ENTROPY_LEN_512, BIP32_VER_MAIN_PRIVATE, 0, &xprv_master),
+            WALLY_OK);
+        assert_int_equal(
+            bip32_key_from_parent_path(
+                &xprv_master, keypath, 5, BIP32_FLAG_KEY_PRIVATE, &xprv_derived),
+            WALLY_OK);
+
         // Protocol steps are described in secp256k1/include/secp256k1_ecdsa_s2c.h under "ECDSA
         // Anti-Klepto Protocol".
 
@@ -90,11 +102,13 @@ static void _test_keystore_antiklepto(void** state)
         secp256k1_ecdsa_signature parsed_signature;
         assert_true(secp256k1_ecdsa_signature_parse_compact(
             wally_get_secp_context(), &parsed_signature, sig));
-        struct ext_key xpub;
-        assert_true(keystore_get_xpub(keypath, 5, &xpub));
+
         secp256k1_pubkey parsed_pubkey;
         assert_true(secp256k1_ec_pubkey_parse(
-            wally_get_secp_context(), &parsed_pubkey, xpub.pub_key, sizeof(xpub.pub_key)));
+            wally_get_secp_context(),
+            &parsed_pubkey,
+            xprv_derived.pub_key,
+            sizeof(xprv_derived.pub_key)));
         secp256k1_ecdsa_s2c_opening opening;
         assert_true(secp256k1_ecdsa_s2c_opening_parse(
             wally_get_secp_context(), &opening, signer_commitment));

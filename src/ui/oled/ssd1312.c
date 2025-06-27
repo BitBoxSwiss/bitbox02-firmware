@@ -83,6 +83,8 @@ static uint8_t* _frame_buffer;
 void ssd1312_configure(uint8_t* buf)
 {
     _frame_buffer = buf;
+    oled_writer_write_cmd(SSD1312_CMD_SET_LOW_COL(0));
+    oled_writer_write_cmd(SSD1312_CMD_SET_HIGH_COL(0));
     oled_writer_write_cmd(SSD1312_CMD_SET_DISPLAY_OFF);
     oled_writer_write_cmd_with_param(SSD1312_CMD_SET_CONTRAST_CONTROL, 0xff);
     oled_writer_write_cmd_with_param(
@@ -118,6 +120,12 @@ void ssd1312_update(void)
     /* The SSD1312 has one page per 8 rows. One page is 128 bytes. Every byte is 8 rows */
     for (size_t i = 0; i < 64 / 8; i++) {
         oled_writer_write_cmd(SSD1312_CMD_SET_PAGE_START_ADDRESS(i));
+        // Explicitly set column address to 0 during initialization and screen updates to resolve
+        // intermittent ~20px horizontal offset and wrapping, which was experienced on one Nova
+        // device so far. This fixes the symptom, not the underlying issue, as we expect the column
+        // address to be correct if all bytes arrive at the screen.
+        oled_writer_write_cmd(SSD1312_CMD_SET_LOW_COL(0));
+        oled_writer_write_cmd(SSD1312_CMD_SET_HIGH_COL(0));
         oled_writer_write_data(&_frame_buffer[i * 128], 128);
     }
 }

@@ -512,13 +512,6 @@ static ble_error_code_t _setup_ble(void)
         return BLE_ERR_FW_NOT_ALLOWED;
     }
 
-    // BLE already setup, no need to repeat it. This saves a lot of time when repeating the
-    // factorysetup of a device, as then we can skip the time-consuming chip erase below.
-    if (_verify_ble(ble_fw_hash, checksum) == BLE_OK) {
-        screen_print_debug("Skipping BLE setup.\nAlready done.", 0);
-        return BLE_OK;
-    }
-
     spi_mem_protected_area_unlock();
 
     // Erase chip.

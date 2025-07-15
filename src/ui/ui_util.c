@@ -128,11 +128,15 @@ static void _position_left(component_t* parent, component_t* child)
 
 static void _position_right(component_t* parent, component_t* child)
 {
-    child->position.left = parent->position.left + parent->dimension.width - child->dimension.width;
+    uint16_t left = 0;
+    if (parent) {
+        left = parent->position.left + parent->dimension.width;
+    }
+    child->position.left = left - child->dimension.width;
     // The frame of some SSD1312 screens slightly covers around 0.5px on each side, cutting off the
     // text a bit, especially when looking at the device at an angle. We move by one pixel to
     // improve visibility.
-    if (parent->position.left + parent->dimension.width == SCREEN_WIDTH) {
+    if (left == SCREEN_WIDTH) {
         child->position.left -= 1;
     }
 }
@@ -207,7 +211,10 @@ void ui_util_position_left_top(component_t* parent, component_t* child)
  */
 void ui_util_position_right_top(component_t* parent, component_t* child)
 {
-    child->position.top = parent->position.top;
+    child->position.top = 0;
+    if (parent) {
+        child->position.top = parent->position.top;
+    }
     _position_right(parent, child);
 }
 

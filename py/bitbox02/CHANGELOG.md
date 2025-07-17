@@ -8,7 +8,7 @@
 - SD card: Remove API to prompt removal of the microSD card from the device
 - Add support for regtest (supported from firmware version v9.21.0)
 - btc_sign: allow identifying outputs belonging to different accounts of the same keystore
-- Detect BitBox02 Plus
+- Detect BitBox02 Nova
 - Add Bluetooth info to the device info response
 
 # 6.3.0

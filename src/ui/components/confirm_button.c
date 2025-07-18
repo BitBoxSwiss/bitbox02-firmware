@@ -28,7 +28,7 @@ static void _confirm(component_t* confirm_button)
 component_t* confirm_button_create(bool longtouch, icon_button_type_t button_type)
 {
     if (longtouch) {
-        return confirm_gesture_create(NULL);
+        return confirm_gesture_create();
     }
     return icon_button_create(top_slider, button_type, _confirm);
 }

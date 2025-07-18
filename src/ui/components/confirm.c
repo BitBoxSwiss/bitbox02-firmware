@@ -157,7 +157,7 @@ component_t* confirm_create(
             confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, _on_cancel));
     }
     if (params->longtouch) {
-        ui_util_add_sub_component(confirm, confirm_gesture_create(confirm));
+        ui_util_add_sub_component(confirm, confirm_gesture_create());
     } else {
         ui_util_add_sub_component(
             confirm,

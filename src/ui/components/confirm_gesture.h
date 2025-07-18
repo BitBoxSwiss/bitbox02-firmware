@@ -24,7 +24,7 @@
  * Creates a confirm_gesture component on the top slider.
  * @param[in] parent The parent component.
  */
-component_t* confirm_gesture_create(component_t* parent);
+component_t* confirm_gesture_create(void);
 
 bool confirm_gesture_is_active(component_t* component);
 

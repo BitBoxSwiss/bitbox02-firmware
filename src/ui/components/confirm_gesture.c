@@ -154,9 +154,8 @@ static component_functions_t _component_functions = {
 
 /**
  * Creates a confirm_gesture component on the top slider.
- * @param[in] parent The parent component.
  */
-component_t* confirm_gesture_create(component_t* parent)
+component_t* confirm_gesture_create(void)
 {
     confirm_data_t* data = malloc(sizeof(confirm_data_t));
     if (!data) {
@@ -176,9 +175,6 @@ component_t* confirm_gesture_create(component_t* parent)
     memset(confirm_gesture, 0, sizeof(component_t));
     confirm_gesture->data = data;
     confirm_gesture->f = &_component_functions;
-    confirm_gesture->parent = parent;
-
-    ui_util_position_right_top(parent, confirm_gesture);
 
     return confirm_gesture;
 }

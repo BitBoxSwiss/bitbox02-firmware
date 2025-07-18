@@ -7,8 +7,11 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### 9.23.1
 - EVM: add HyperEVM (HYPE) and SONIC (S) to known networks
 - U2F: fix macos/safari macos/firefox support
+- Fix USB timeout bug
 
 ### 9.23.0
 - Ethereum: add confirmation screen for known networks, change base unit to ETH for Arbitrum and Optimism

@@ -1,9 +1,11 @@
 # Reproducible builds
 
-The bitbox02 firmware [releases](https://github.com/BitBoxSwiss/bitbox02-firmware/releases/) are
+The BitBox02 firmware [releases](https://github.com/BitBoxSwiss/bitbox02-firmware/releases/) are
 tagged: `firmware/vX.Y.Z` for the Multi edition, and `firmware-btc-only/vX.Y.Z` for the Bitcoin-only
 edition. The binaries are built from those tags in a reproducible manner, based on fixed versions of
 all dependencies. We use Docker to fix those dependencies.
+
+The unsigned firmware binaries are the same for both **BitBox02** and **BitBox02 Nova**.
 
 *Note*: it is possible to reproduce the binaries without Docker by installing the correct
 dependencies. The instructions below use Docker however, as it makes it a easier to get started.

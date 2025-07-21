@@ -1070,11 +1070,9 @@ void bootloader_jump(void)
 
     _check_init(&bootdata);
 
-#if PLATFORM_BITBOX02 == 1
     if (shared_data.fields.upside_down) {
         screen_rotate();
     }
-#endif
 
     UG_FontSelect(&font_font_a_9X9);
 

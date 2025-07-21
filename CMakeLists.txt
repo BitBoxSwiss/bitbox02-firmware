@@ -97,7 +97,7 @@ endif()
 # Example 'v1.0.0'. They MUST not contain a pre-release label such as '-beta'.
 set(FIRMWARE_VERSION "v9.23.1")
 set(FIRMWARE_BTC_ONLY_VERSION "v9.23.1")
-set(BOOTLOADER_VERSION "v1.1.1")
+set(BOOTLOADER_VERSION "v1.1.2")
 
 find_package(PythonInterp 3.6 REQUIRED)
 

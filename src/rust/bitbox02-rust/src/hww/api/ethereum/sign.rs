@@ -389,7 +389,10 @@ pub async fn _process(
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
-                request.keypath(),
+                &crate::keystore::secp256k1_get_private_key(request.keypath())?
+                    .as_slice()
+                    .try_into()
+                    .unwrap(),
                 &hash,
                 commitment
                     .as_slice()
@@ -404,8 +407,14 @@ pub async fn _process(
         // Return signature directly without the anti-klepto protocol, for backwards compatibility.
         None => [0; 32],
     };
-    let sign_result = keystore::secp256k1_sign(request.keypath(), &hash, &host_nonce)?;
-
+    let sign_result = keystore::secp256k1_sign(
+        &crate::keystore::secp256k1_get_private_key(request.keypath())?
+            .as_slice()
+            .try_into()
+            .unwrap(),
+        &hash,
+        &host_nonce,
+    )?;
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
 

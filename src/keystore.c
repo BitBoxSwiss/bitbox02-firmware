@@ -528,19 +528,11 @@ bool keystore_get_bip39_word(uint16_t idx, char** word_out)
 }
 
 bool keystore_secp256k1_nonce_commit(
-    const uint32_t* keypath,
-    size_t keypath_len,
+    const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_commitment,
     uint8_t* signer_commitment_out)
 {
-    uint8_t private_key[32] = {0};
-    UTIL_CLEANUP_32(private_key);
-    if (!rust_secp256k1_get_private_key(
-            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
-        return false;
-    }
-
     const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_s2c_opening signer_commitment;
     if (!secp256k1_ecdsa_anti_exfil_signer_commit(
@@ -555,23 +547,12 @@ bool keystore_secp256k1_nonce_commit(
 }
 
 bool keystore_secp256k1_sign(
-    const uint32_t* keypath,
-    size_t keypath_len,
+    const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,
     int* recid_out)
 {
-    if (keystore_is_locked()) {
-        return false;
-    }
-    uint8_t private_key[32] = {0};
-    UTIL_CLEANUP_32(private_key);
-    if (!rust_secp256k1_get_private_key(
-            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
-        return false;
-    }
-
     const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_signature secp256k1_sig = {0};
     if (!secp256k1_anti_exfil_sign(

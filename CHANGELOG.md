@@ -166,6 +166,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Bootloader
 
+### v1.1.2
+- BitBox02 Nova: correctly orient bootloader screen
+
 ### v1.1.1
 - Fix touch in plus bootloader
 

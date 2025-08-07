@@ -563,7 +563,10 @@ pub async fn process(
     let host_nonce = match request.host_nonce_commitment {
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
-                &request.keypath,
+                crate::keystore::secp256k1_get_private_key(&request.keypath)?
+                    .as_slice()
+                    .try_into()
+                    .unwrap(),
                 &sighash,
                 commitment
                     .as_slice()
@@ -578,8 +581,14 @@ pub async fn process(
         _ => return Err(Error::InvalidInput),
     };
 
-    let sign_result = bitbox02::keystore::secp256k1_sign(&request.keypath, &sighash, &host_nonce)?;
-
+    let sign_result = bitbox02::keystore::secp256k1_sign(
+        crate::keystore::secp256k1_get_private_key(&request.keypath)?
+            .as_slice()
+            .try_into()
+            .unwrap(),
+        &sighash,
+        &host_nonce,
+    )?;
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);
 

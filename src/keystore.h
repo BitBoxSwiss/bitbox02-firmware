@@ -157,8 +157,7 @@ USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
  * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of
  * the ECDSA Anti-Klepto Protocol. For more details, check the docs of
  * `secp256k1_ecdsa_anti_exfil_signer_commit`.
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len size of keypath buffer
+ * @param[in] private_key 32 byte private key
  * @param[in] msg32 32 byte message which will be signed by `keystore_secp256k1_sign`.
  * @param[in] host_commitment must be `sha256(sha256(tag)||shas256(tag)||host_nonce)` where
  * host_nonce is passed to `keystore_secp256k1_sign()`. See
@@ -166,15 +165,14 @@ USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
  * @param[out] client_commitment_out EC_PUBLIC_KEY_LEN bytes compressed signer nonce pubkey.
  */
 USE_RESULT bool keystore_secp256k1_nonce_commit(
-    const uint32_t* keypath,
-    size_t keypath_len,
+    const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_commitment,
     uint8_t* client_commitment_out);
 
 // clang-format off
 /**
- * Sign message with private key at the given keypath. Keystore must be unlocked.
+ * Sign message with private key using the given private key.
  *
  * Details about `host_nonce32`, the host nonce contribution.
  * Instead of using plain rfc6979 to generate the nonce in this signature, the following formula is used:
@@ -187,8 +185,7 @@ USE_RESULT bool keystore_secp256k1_nonce_commit(
  * This is part of the ECSDA Anti-Klepto protocol, preventing this function to leak any secrets via
  * the signatures (see the ecdsa-s2c module in secp256k1-zpk for more details).
  *
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len size of keypath buffer
+ * @param[in] private_key 32 byte private key
  * @param[in] msg32 32 byte message to sign
  * @param[in] host_nonce32 32 byte nonce contribution. Cannot be NULL.
  * Intended to be a contribution by the host. If there is none available, use 32 zero bytes.
@@ -199,8 +196,7 @@ USE_RESULT bool keystore_secp256k1_nonce_commit(
  */
 // clang-format on
 USE_RESULT bool keystore_secp256k1_sign(
-    const uint32_t* keypath,
-    size_t keypath_len,
+    const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,

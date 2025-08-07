@@ -93,10 +93,11 @@ static void _test_keystore_antiklepto(void** state)
 
         // Commit - protocol step 2.
         assert_true(keystore_secp256k1_nonce_commit(
-            keypath, 5, msg, host_nonce_commitment, signer_commitment));
+            xprv_derived.priv_key + 1, msg, host_nonce_commitment, signer_commitment));
         // Protocol step 3: host_nonce sent from host to signer to be used in step 4
         // Sign - protocol step 4.
-        assert_true(keystore_secp256k1_sign(keypath, 5, msg, host_nonce, sig, &recid));
+        assert_true(
+            keystore_secp256k1_sign(xprv_derived.priv_key + 1, msg, host_nonce, sig, &recid));
 
         // Protocol step 5: host verification.
         secp256k1_ecdsa_signature parsed_signature;

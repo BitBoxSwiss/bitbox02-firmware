@@ -189,6 +189,9 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v4
         with:
+          # Github action is broken: https://github.com/actions/checkout/issues/1638
+          # Remove the below line when the issue is resolved
+          ref: ${{ github.ref }}
           fetch-depth: 0
           fetch-tags: true
           submodules: recursive
@@ -203,12 +206,18 @@ jobs:
         if: matrix.target == 'firmware' && !cancelled()
         run: ./.ci/check-unwanted-symbols
 
+      - name: Print hashes
+        run: sha256sum build*/bin/*
+
       - name: Upload artifact
         if: github.event_name == 'push' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.target}}-${{github.sha}}.bin
-          path: build*/bin/*.bin
+          path: |
+            build*/bin/*.bin
+            build*/bin/*.elf
+            build*/bin/*.map
 
   doc:
     runs-on: ubuntu-22.04

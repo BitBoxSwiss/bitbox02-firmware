@@ -7,6 +7,10 @@ We only support annotated tags, you can check the signature with --verify.
 NOTE: annotated tags have "taggerdate" and "objecttype==tag"
       unannotated tags will have "objecttype==commit" since they are metadataless
 
+NOTE: If this is called from github action, ensure github action hasn't
+      replaced the tag during checkout:
+      https://github.com/actions/checkout/issues/1638
+
 Requires python3.6
 """
 

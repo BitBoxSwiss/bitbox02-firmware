@@ -6,6 +6,10 @@ on:
   push:
     branches:
       - master
+    tags:
+      - bootloader/v*
+      - firmware/v*
+      - firmware-btc-only/v*
 
 jobs:
   dev-container:

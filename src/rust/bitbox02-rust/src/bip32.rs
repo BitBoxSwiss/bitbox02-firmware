@@ -54,7 +54,7 @@ impl From<bitcoin::bip32::Xpriv> for Xprv {
     }
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone)]
 pub struct Xpub {
     xpub: pb::XPub,
 }

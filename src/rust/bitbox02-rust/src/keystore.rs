@@ -45,15 +45,6 @@ fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
         .into())
 }
 
-fn get_xprv_twice(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
-    let xprv = get_xprv(keypath)?;
-    if xprv == get_xprv(keypath)? {
-        Ok(xprv)
-    } else {
-        Err(())
-    }
-}
-
 /// Get the private key at the keypath.
 pub fn secp256k1_get_private_key(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let xprv = get_xprv(keypath)?;
@@ -75,19 +66,35 @@ pub fn secp256k1_get_private_key_twice(keypath: &[u32]) -> Result<zeroize::Zeroi
 /// Can be used only if the keystore is unlocked. Returns the derived xpub,
 /// using bip32 derivation. Derivation is done from the xprv master, so hardened
 /// derivation is allowed.
-pub fn get_xpub(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
-    let xpriv = get_xprv_twice(keypath)?;
+pub fn get_xpub_once(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
+    let xpriv = get_xprv(keypath)?;
     let secp = bitcoin::secp256k1::Secp256k1::new();
     let xpub = bitcoin::bip32::Xpub::from_priv(&secp, &xpriv.xprv);
 
     Ok(bip32::Xpub::from(xpub))
 }
 
+/// Can be used only if the keystore is unlocked. Returns the derived xpub,
+/// using bip32 derivation. Derivation is done from the xprv master, so hardened
+/// derivation is allowed.
+pub fn get_xpub_twice(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
+    let res1 = get_xpub_once(keypath)?;
+    let res2 = get_xpub_once(keypath)?;
+    if res1 != res2 {
+        return Err(());
+    }
+    Ok(res1)
+}
+
 /// Returns fingerprint of the root public key at m/, which are the first four bytes of its hash160
 /// according to:
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
 pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
-    Ok(get_xpub(&[])?.pubkey_hash160().get(..4).ok_or(())?.to_vec())
+    Ok(get_xpub_twice(&[])?
+        .pubkey_hash160()
+        .get(..4)
+        .ok_or(())?
+        .to_vec())
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
@@ -203,13 +210,13 @@ mod tests {
     }
 
     #[test]
-    fn test_get_xpub() {
+    fn test_get_xpub_twice() {
         let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
         // Also test with unhardened and non-zero elements.
         let keypath_5 = &[44 + HARDENED, 1 + HARDENED, 10 + HARDENED, 1, 100];
 
         keystore::lock();
-        assert!(get_xpub(keypath).is_err());
+        assert!(get_xpub_twice(keypath).is_err());
 
         // 24 words
         mock_unlocked_using_mnemonic(
@@ -217,15 +224,15 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub(&[]).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(&[]).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
             "xpub661MyMwAqRbcEhX8d9WJh78SZrxusAzWFoykz4n5CF75uYRzixw5FZPUSoWyhaaJ1bpiPFdzdHSQqJN38PcTkyrLmxT4J2JDYfoGJQ4ioE2",
         );
         assert_eq!(
-            get_xpub(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
             "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
         );
         assert_eq!(
-            get_xpub(keypath_5).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath_5).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
             "xpub6HHn1zdtf1RjePopiTV5nxf8jY2xwbJicTQ91jV4cUJZ5EnbvXyBGDhqWt8B9JxxBt9vExi4pdWzrbrM43qSFs747VCGmSy2DPWAhg9MkUg",
         );
 
@@ -235,7 +242,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
             "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18BG81VJhJDXnSpRe5NGKwVpXiAb",
         );
 
@@ -245,7 +252,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
             "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
         )
     }
@@ -401,7 +408,7 @@ mod tests {
                 test.expected_mnemonic,
             );
             let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
-            let xpub = get_xpub(keypath).unwrap();
+            let xpub = get_xpub_once(keypath).unwrap();
             assert_eq!(
                 xpub.serialize_str(crate::bip32::XPubType::Xpub).unwrap(),
                 test.expected_xpub,

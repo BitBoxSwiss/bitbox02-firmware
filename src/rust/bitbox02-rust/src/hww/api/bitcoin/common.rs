@@ -577,7 +577,7 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        let mut xpub_cache = Bip32XpubCache::new();
+        let mut xpub_cache = Bip32XpubCache::new(crate::xpubcache::Compute::Once);
         let coin_params = super::super::params::get(pb::BtcCoin::Btc);
         // p2wpkh
         assert_eq!(

@@ -125,7 +125,7 @@ async fn xpub(
             })
             .await?
     }
-    let xpub = keystore::get_xpub(keypath)
+    let xpub = keystore::get_xpub_twice(keypath)
         .or(Err(Error::InvalidInput))?
         .serialize_str(xpub_type)?;
     if display {
@@ -163,7 +163,7 @@ pub fn derive_address_simple(
     )
     .or(Err(Error::InvalidInput))?;
     Ok(common::Payload::from_simple(
-        &mut crate::xpubcache::XpubCache::new(),
+        &mut crate::xpubcache::XpubCache::new(crate::xpubcache::Compute::Twice),
         coin_params,
         simple_type,
         keypath,
@@ -1083,7 +1083,7 @@ mod tests {
             root_fingerprint: keystore::root_fingerprint().unwrap(),
             keypath: KEYPATH_ACCOUNT_TESTNET.to_vec(),
             xpub: Some(
-                crate::keystore::get_xpub(KEYPATH_ACCOUNT_TESTNET)
+                crate::keystore::get_xpub_once(KEYPATH_ACCOUNT_TESTNET)
                     .unwrap()
                     .into(),
             ),
@@ -1092,7 +1092,7 @@ mod tests {
             root_fingerprint: keystore::root_fingerprint().unwrap(),
             keypath: KEYPATH_ACCOUNT_MAINNET.to_vec(),
             xpub: Some(
-                crate::keystore::get_xpub(KEYPATH_ACCOUNT_MAINNET)
+                crate::keystore::get_xpub_once(KEYPATH_ACCOUNT_MAINNET)
                     .unwrap()
                     .into(),
             ),

@@ -270,7 +270,7 @@ pub fn validate(multisig: &Multisig, keypath: &[u32]) -> Result<(), Error> {
         return Err(Error::InvalidInput);
     }
 
-    let our_xpub = crate::keystore::get_xpub(keypath)?.serialize(None)?;
+    let our_xpub = crate::keystore::get_xpub_once(keypath)?.serialize(None)?;
     let maybe_our_xpub =
         bip32::Xpub::from(&multisig.xpubs[multisig.our_xpub_index as usize]).serialize(None)?;
     if our_xpub != maybe_our_xpub {

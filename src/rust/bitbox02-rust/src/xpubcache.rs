@@ -37,7 +37,7 @@ pub trait Xpub: Sized {
 
 /// Implements a cache for xpubs. Cached intermediate xpubs are used to derive child xpubs.
 ///
-/// The cache must be configured using `cache_keypath()`, otherwise no caching occurs. The reason
+/// The cache must be configured using `add_keypath()`, otherwise no caching occurs. The reason
 /// for this is that automatic caching is harder to get right and reason about, e.g. in a BTC tx, we
 /// shouldn't cache xpubs at the address level (e.g. m/84/0'/0'/0/0), as they don't repeat and there
 /// can be many of them.

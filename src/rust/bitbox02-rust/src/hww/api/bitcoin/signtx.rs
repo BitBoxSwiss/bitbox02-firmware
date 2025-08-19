@@ -1203,11 +1203,12 @@ async fn _process(
                 sighash_flags: SIGHASH_ALL,
             });
 
+            let private_key = crate::keystore::secp256k1_get_private_key(&tx_input.keypath)?;
             // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
             let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
                 Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
                     let signer_commitment = bitbox02::keystore::secp256k1_nonce_commit(
-                        &tx_input.keypath,
+                        private_key.as_slice().try_into().unwrap(),
                         &sighash,
                         commitment
                             .as_slice()
@@ -1230,8 +1231,12 @@ async fn _process(
                 None => [0; 32],
             };
 
-            let sign_result =
-                bitbox02::keystore::secp256k1_sign(&tx_input.keypath, &sighash, &host_nonce)?;
+            let sign_result = bitbox02::keystore::secp256k1_sign(
+                private_key.as_slice().try_into().unwrap(),
+                &sighash,
+                &host_nonce,
+            )?;
+            drop(private_key);
             next_response.next.has_signature = true;
             next_response.next.signature = sign_result.signature.to_vec();
         }

@@ -83,7 +83,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_secp256k1_sign",
     "keystore_unlock",
     "keystore_unlock_bip39",
-    "keystore_bip39_mnemonic_from_seed",
     "keystore_test_get_retained_seed_encrypted",
     "keystore_test_get_retained_bip39_seed_encrypted",
     "label_create",

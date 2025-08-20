@@ -25,6 +25,8 @@ mod util;
 
 #[cfg(feature = "firmware")]
 mod async_usb;
+#[cfg(feature = "firmware")]
+mod bip39;
 #[cfg(feature = "bitbox02-noise")]
 mod noise;
 #[cfg(feature = "firmware")]

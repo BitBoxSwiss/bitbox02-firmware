@@ -522,6 +522,17 @@ bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, si
     return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;
 }
 
+bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)
+{
+    char* word_ptr;
+    if (bip39_get_word(NULL, idx, &word_ptr) != WALLY_OK) {
+        return false;
+    }
+    int snprintf_result = snprintf(word_out, word_out_size, "%s", word_ptr);
+    wally_free_string(word_ptr);
+    return snprintf_result >= 0 && snprintf_result < (int)word_out_size;
+}
+
 bool keystore_get_bip39_word(uint16_t idx, char** word_out)
 {
     return bip39_get_word(NULL, idx, word_out) == WALLY_OK;

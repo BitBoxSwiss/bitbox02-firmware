@@ -24,8 +24,9 @@
 
 typedef struct {
     const char* title;
-    // Restrict and autocomplete to this list of words. Set to NULL to allow arbitrary input.
-    const char* const* wordlist;
+    // Restrict and autocomplete to this list of BIP39 words. The elements are indices into the
+    // BIP39 English wordlist. Set to NULL to allow arbitrary input.
+    uint16_t const* wordlist;
     // If true, the user can enter numbers only.
     bool number_input;
     // Set to 0 if wordlist is NULL.

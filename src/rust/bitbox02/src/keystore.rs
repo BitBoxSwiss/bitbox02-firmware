@@ -169,25 +169,15 @@ pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
 }
 
 /// An opaque C type which gives access to all BIP39 words.
-pub struct Bip39Wordlist(Vec<*const u8>);
+pub struct Bip39Wordlist(Vec<u16>);
 
 impl Bip39Wordlist {
-    pub fn as_ptr(&self) -> *const *const u8 {
+    pub fn as_ptr(&self) -> *const u16 {
         self.0.as_ptr()
     }
 
     pub fn len(&self) -> usize {
         self.0.len()
-    }
-}
-
-impl Drop for Bip39Wordlist {
-    fn drop(&mut self) {
-        for ptr in self.0.iter() {
-            unsafe {
-                bitbox02_sys::wally_free_string(*ptr as _);
-            }
-        }
     }
 }
 
@@ -198,18 +188,7 @@ pub fn get_bip39_wordlist(indices: Option<&[u16]>) -> Bip39Wordlist {
         Some(indices) => indices.to_vec(),
         None => (0..BIP39_WORDLIST_LEN).collect(),
     };
-    Bip39Wordlist(
-        indices
-            .into_iter()
-            .map(|i| {
-                let mut word_ptr: *mut u8 = core::ptr::null_mut();
-                match unsafe { bitbox02_sys::keystore_get_bip39_word(i, &mut word_ptr) } {
-                    false => panic!("get_bip39_wordlist"),
-                    true => word_ptr as _,
-                }
-            })
-            .collect(),
-    )
+    Bip39Wordlist(indices)
 }
 
 pub struct SignResult {

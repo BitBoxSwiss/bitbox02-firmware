@@ -21,6 +21,7 @@
 #include "trinary_input_char.h"
 
 #include <hardfault.h>
+#include <keystore.h>
 #include <screen.h>
 #include <touch/gestures.h>
 #include <ui/event.h>
@@ -62,7 +63,7 @@ static const UG_FONT* _font = &font_password_11X12;
 
 typedef struct {
     // Can be NULL.
-    const char* const* wordlist;
+    const uint16_t* wordlist;
     size_t wordlist_size;
     bool number_input;
     // Only applies if wordlist != NULL: determines if a word from the wordlist was entered.
@@ -257,7 +258,10 @@ static void _maybe_autocomplete(component_t* trinary_input_string)
     // initial value means no word was found yet.
     size_t found_word_idx = data->wordlist_size;
     for (size_t word_idx = 0; word_idx < data->wordlist_size; word_idx++) {
-        const char* word = data->wordlist[word_idx];
+        char word[10];
+        if (!keystore_get_bip39_word_stack(data->wordlist[word_idx], word, sizeof(word))) {
+            Abort("keystore_get_bip39_word_stack");
+        }
         bool is_prefix = strncmp(data->string, word, data->string_index) == 0;
         if (is_prefix) {
             if (found_word_idx != data->wordlist_size) {
@@ -266,9 +270,16 @@ static void _maybe_autocomplete(component_t* trinary_input_string)
             }
             found_word_idx = word_idx;
         }
+
+        util_zero(word, sizeof(word));
     }
-    data->string_index =
-        snprintf(data->string, sizeof(data->string), "%s", data->wordlist[found_word_idx]);
+    char word[10];
+    if (!keystore_get_bip39_word_stack(data->wordlist[found_word_idx], word, sizeof(word))) {
+        Abort("keystore_get_bip39_word_stack");
+    }
+
+    data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
+    util_zero(word, sizeof(word));
 }
 
 static void _set_alphabet(component_t* trinary_input_string)
@@ -282,7 +293,10 @@ static void _set_alphabet(component_t* trinary_input_string)
         // The wordlist is assumed to be sorted and only have 'a-z' characters.
         char charset[27] = {0};
         for (size_t word_idx = 0; word_idx < data->wordlist_size; word_idx++) {
-            const char* word = data->wordlist[word_idx];
+            char word[10];
+            if (!keystore_get_bip39_word_stack(data->wordlist[word_idx], word, sizeof(word))) {
+                Abort("keystore_get_bip39_word_stack");
+            }
             bool is_prefix = strncmp(data->string, word, data->string_index) == 0;
             if (is_prefix) {
                 if (strlen(word) > data->string_index) {
@@ -329,7 +343,12 @@ static void _set_can_confirm(component_t* trinary_input_string)
     data->can_confirm = false;
     // Can only confirm if the entered word matches a word in the wordlist.
     for (size_t i = 0; i < data->wordlist_size; i++) {
-        if (STREQ(data->wordlist[i], data->string)) {
+        char word[10];
+        if (!keystore_get_bip39_word_stack(data->wordlist[i], word, sizeof(word))) {
+            Abort("keystore_get_bip39_word_stack");
+        }
+
+        if (STREQ(word, data->string)) {
             data->can_confirm = true;
             return;
         }
@@ -515,7 +534,12 @@ void trinary_input_string_set_input(component_t* trinary_input_string, const cha
         return;
     }
     for (size_t i = 0; i < data->wordlist_size; i++) {
-        if (STREQ(data->wordlist[i], word)) {
+        char bip39_word[10];
+        if (!keystore_get_bip39_word_stack(data->wordlist[i], bip39_word, sizeof(bip39_word))) {
+            Abort("keystore_get_bip39_word_stack");
+        }
+
+        if (STREQ(bip39_word, word)) {
             data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
             _set_alphabet(trinary_input_string);
             _set_can_confirm(trinary_input_string);

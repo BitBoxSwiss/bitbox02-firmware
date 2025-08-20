@@ -34,7 +34,7 @@ pub unsafe extern "C" fn rust_derive_bip39_seed(
 
 #[no_mangle]
 pub extern "C" fn rust_get_bip39_word(idx: u16, mut out: crate::util::BytesMut) -> bool {
-    let word = match bitbox02::keystore::get_bip39_word(idx) {
+    let word = match bitbox02_rust::bip39::get_word(idx) {
         Err(()) => return false,
         Ok(w) => w,
     };

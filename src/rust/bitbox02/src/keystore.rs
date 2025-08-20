@@ -136,17 +136,6 @@ pub fn bip39_mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String
     Ok(zeroize::Zeroizing::new(mnemonic.to_string()))
 }
 
-/// `idx` must be smaller than BIP39_WORDLIST_LEN.
-pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
-    Ok(zeroize::Zeroizing::new(
-        bip39::Language::English
-            .word_list()
-            .get(idx as usize)
-            .ok_or(())?
-            .to_string(),
-    ))
-}
-
 pub struct SignResult {
     pub signature: [u8; 64],
     pub recid: u8,
@@ -426,15 +415,6 @@ mod tests {
             copy_seed().unwrap().as_slice(),
             b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
         );
-    }
-
-    #[test]
-    fn test_get_bip39_word() {
-        assert!(get_bip39_word(2048).is_err());
-
-        assert_eq!(get_bip39_word(0).unwrap().as_ref() as &str, "abandon");
-        assert_eq!(get_bip39_word(2047).unwrap().as_ref() as &str, "zoo");
-        assert_eq!(get_bip39_word(563).unwrap().as_ref() as &str, "edit");
     }
 
     #[test]

@@ -252,7 +252,7 @@ else()
   set(RUST_TARGET_ARCH_DIR .)
 endif()
 
-set(RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/target)
+set(RUST_BINARY_DIR ${CMAKE_BINARY_DIR}/src/rust)
 set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c)
 set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
 
@@ -277,7 +277,7 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-  set(RUSTFLAGS_TESTS -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} ${CMOCKA_LDFLAGS} -lbitbox_merged -lstatic=wallycore -lstatic=secp256k1 -lstatic=fatfs -lstatic=hardware-fakes --cfg=rust_secp_no_symbol_renaming)
+  set(RUSTFLAGS_TESTS -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} ${CMOCKA_LDFLAGS} -lstatic=wallycore -lstatic=secp256k1 -lstatic=fatfs -lstatic=hardware-fakes --cfg=rust_secp_no_symbol_renaming)
 
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a
@@ -292,8 +292,9 @@ if(NOT CMAKE_CROSSCOMPILING)
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAGS} -- --nocapture --test-threads 1
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
+    DEPENDS rust-cbindgen
     )
-  add_dependencies(rust-test generate-protobufs bitbox_merged libwally-core fatfs)
+  add_dependencies(rust-test generate-protobufs rust-cbindgen libwally-core fatfs hardware-fakes)
 
   add_custom_target(rust-clippy
     COMMAND
@@ -324,7 +325,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::forget_non_drop
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
-  add_dependencies(rust-clippy generate-protobufs)
+  add_dependencies(rust-clippy generate-protobufs rust-cbindgen)
 endif()
 
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
@@ -390,6 +391,8 @@ foreach(type ${RUST_LIBS})
   add_custom_command(
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
+      ${CMAKE_COMMAND} -E make_directory ${RUST_BINARY_DIR}
+    COMMAND
       ${CMAKE_COMMAND} -E env
       CMAKE_SYSROOT=${CMAKE_SYSROOT}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
@@ -397,13 +400,16 @@ foreach(type ${RUST_LIBS})
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
-      ${CARGO} build $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt> --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG}
+      MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+      LIB_TYPE=${type}
+      ${CARGO} rustc $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv> --offline --features target-${type}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt> --target-dir ${RUST_BINARY_DIR}/feature-${type} ${RUST_CARGO_FLAGS} ${RUST_TARGET_ARCH_ARG} --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml --crate-type=staticlib
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
     # DEPFILES are only supported with the Ninja build tool
     #DEPFILE ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.d
-    WORKING_DIRECTORY ${LIBBITBOX02_RUST_SOURCE_DIR}
+    WORKING_DIRECTORY ${RUST_BINARY_DIR}
     COMMENT "Building Rust library lib${type}_rust_c.a"
+    DEPENDS rust-cbindgen
   )
   add_custom_target(${type}-rust-target DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
   add_library(${type}_rust_c STATIC IMPORTED GLOBAL)

@@ -25,6 +25,7 @@ sha2 = { workspace = true }
 hmac = { version = "0.12", default-features = false, features = ["reset"] }
 ctaes = { version = "0.1.0" }
 zeroize = { workspace = true }
+util = { path = "../util" }
 
 [features]
 # We use wally_sha512 over `sha2::Sha512`, which bloats the binary by an additional ~12.7kB (at the

@@ -83,8 +83,8 @@ message(FATAL_ERROR
 endif()
 
 # Finds objcopy and other utilities for us
+include(CMakeFindBinUtils)
 if(CMAKE_CROSSCOMPILING)
-  include(CMakeFindBinUtils)
   find_program(CMAKE_SIZE "${TOOLCHAIN_PREFIX}size")
   message(STATUS "size: ${CMAKE_SIZE} ${TOOLCHAIN_PREFIX}size")
 endif()

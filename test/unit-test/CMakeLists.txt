@@ -26,147 +26,7 @@ else()
   pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw)
 endif()
 
-#-----------------------------------------------------------------------------
-# Build bitbox lib to use in tests
-
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
-
-set(DBB-FILTERED-SOURCES
-  ${DBB-FIRMWARE-SOURCES}
-  ${DBB-FIRMWARE-UI-SOURCES}
-  ${FIRMWARE-U2F-SOURCES}
-  ${DBB-FIRMWARE-USB-SOURCES}
-  ${PLATFORM-BITBOX02-PLUS-SOURCES}
-  ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/src/utils_ringbuffer.c
-  )
-
-set(IGNORE_SOURCES
-    "src/screen.c"
-    "src/firmware_main_loop.c"
-    "src/memory/nvmctrl.c"
-    "src/memory/smarteeprom.c"
-    "src/memory/mpu.c"
-    "src/memory/spi_mem.c"
-    "src/uart.c"
-    )
-
-# Exclude some files which depends on the hardware.
-foreach(SOURCEFILE ${IGNORE_SOURCES})
-    list(FILTER DBB-FILTERED-SOURCES EXCLUDE REGEX ".*/${SOURCEFILE}$")
-endforeach()
-
-# We create a CMake "object library" to track all the compiled sources so that
-# they can be reused between a normal library and the manually crafted "merged"
-# library.
-# See https://cmake.org/cmake/help/v3.10/command/add_library.html#object-libraries
-add_library(bitbox_objects
-  OBJECT
-  ${DBB-FILTERED-SOURCES}
-  ${ETHEREUM-SOURCES}
-)
-
-add_library(bitbox
-  STATIC
-  $<TARGET_OBJECTS:bitbox_objects>
-)
-
-# Here we create the "merged" library, which starts with the c-lib created by
-# cargo in the "bitbox02-rust-c" project. That project produces a c-lib without
-# mangled symbols so that it is easier to use from C. We then extend that
-# library with all the object files declared in "bitbox_objects", all the code
-# we want to be able to call from tests.
-# By linking to "bitbox_merged" in the rust unit tests we get access to all our
-# code. (That linkage is done by cargo using a "build.rs" script in the
-# bitbox02 rust project.)
-add_custom_command(
-  OUTPUT ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a
-  DEPENDS c-unit-tests_rust_c bitbox_objects $<TARGET_OBJECTS:bitbox_objects>
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:c-unit-tests_rust_c,IMPORTED_LOCATION> ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a
-  COMMAND ar q ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a $<TARGET_OBJECTS:bitbox_objects>
-  VERBATIM
-  COMMAND_EXPAND_LISTS
-)
-
-add_custom_target(bitbox_merged DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libbitbox_merged.a)
-
-target_include_directories(
-  bitbox_objects
-  SYSTEM PUBLIC
-  ${CMAKE_SOURCE_DIR}/external
-  ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
-  ${CMAKE_SOURCE_DIR}/external/fatfs/source
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
-)
-target_include_directories(
-  bitbox_objects
-  PUBLIC
-  ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_BINARY_DIR}/src
-)
-
-target_include_directories(
-  bitbox
-  SYSTEM PUBLIC
-  ${CMAKE_SOURCE_DIR}/external
-  ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
-  ${CMAKE_SOURCE_DIR}/external/fatfs/source
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
-)
-
-target_include_directories(
-  bitbox
-  PUBLIC
-  ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_BINARY_DIR}/src
-)
-
-add_dependencies(bitbox_objects
-  rust-cbindgen
-  wallycore
-  secp256k1
-  fatfs
-)
-target_link_libraries(bitbox_objects PUBLIC hardware-fakes)
-target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
-
-# _UNIT_TEST_ is used by ASF4 to not cross compile
-
-target_compile_definitions(bitbox_objects PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
-target_compile_definitions(bitbox_objects PUBLIC TESTING _UNIT_TEST_)
-
-# Since wallycore is an external projects we need to specify the dependency
-add_dependencies(bitbox_objects libwally-core)
-
-target_compile_definitions(bitbox PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
-target_compile_definitions(bitbox PUBLIC TESTING _UNIT_TEST_)
-
-target_link_libraries(bitbox
-  PUBLIC
-    secp256k1
-  PRIVATE
-    wallycore
-    fatfs
-)
-
-if(SANITIZE_ADDRESS)
-  target_compile_options(bitbox_objects PUBLIC "-fsanitize=address")
-  target_compile_options(bitbox PUBLIC "-fsanitize=address")
-endif()
-if(SANTIZE_UNDEFINED)
-  target_compile_options(bitbox_objects PUBLIC "-fsanitize=undefined")
-  target_compile_options(bitbox PUBLIC "-fsanitize=undefined")
-endif()
-if(COVERAGE)
-  target_link_libraries(bitbox PUBLIC "--coverage")
-  target_compile_options(bitbox_objects PUBLIC "--coverage")
-  target_compile_options(bitbox PUBLIC "--coverage")
-endif()
 
 add_library(u2f-util
   STATIC
@@ -240,17 +100,19 @@ else()
     target_link_libraries(${EXE} PRIVATE
       $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
       $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
-      -Wl,--start-group
-      c-unit-tests_rust_c
-      bitbox
-      hardware-fakes
-      fatfs
-      -Wl,--end-group
       ${TEST_LINK_ARGS}
+      -Wl,--start-group
+      fatfs
+      hardware-fakes
+      c-unit-tests_rust_c
+      -Wl,--end-group
+      wallycore
+      secp256k1
     )
-    if(NOT ${TEST_NAME} STREQUAL "simulator")
-        add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
-      endif()
+    target_include_directories(${EXE} PRIVATE
+        ${INCLUDES}
+    )
+    add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()
 endif()
 
@@ -272,11 +134,12 @@ foreach(TEST_NAME ${U2F_TESTS})
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
-    bitbox
     hardware-fakes
     fatfs
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
     u2f-util
+    wallycore
+    secp256k1
   )
   target_compile_definitions(${EXE} PRIVATE "TESTING")
   add_test(NAME test_${TEST_NAME} COMMAND ${EXE})

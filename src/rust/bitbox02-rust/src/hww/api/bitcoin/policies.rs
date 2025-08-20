@@ -58,7 +58,7 @@ fn is_our_key(key: &pb::KeyOriginInfo, our_root_fingerprint: &[u8]) -> Result<bo
             xpub: Some(xpub),
             ..
         } if root_fingerprint.as_slice() == our_root_fingerprint => {
-            let our_xpub = crate::keystore::get_xpub(keypath)?.serialize(None)?;
+            let our_xpub = crate::keystore::get_xpub_once(keypath)?.serialize(None)?;
             let maybe_our_xpub = bip32::Xpub::from(xpub).serialize(None)?;
             Ok(our_xpub == maybe_our_xpub)
         }
@@ -787,7 +787,7 @@ mod tests {
 
     // Creates a policy for one of our own keys at keypath.
     fn make_our_key(keypath: &[u32]) -> pb::KeyOriginInfo {
-        let our_xpub = crate::keystore::get_xpub(keypath).unwrap();
+        let our_xpub = crate::keystore::get_xpub_once(keypath).unwrap();
         pb::KeyOriginInfo {
             root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
             keypath: keypath.to_vec(),

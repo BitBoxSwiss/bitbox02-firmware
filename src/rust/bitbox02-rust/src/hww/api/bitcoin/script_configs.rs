@@ -126,7 +126,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub(keypath).unwrap().into()),
+                    xpub: Some(crate::keystore::get_xpub_once(keypath).unwrap().into()),
                 },
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],

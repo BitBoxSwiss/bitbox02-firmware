@@ -17,17 +17,27 @@ use super::keystore;
 use crate::bip32;
 use alloc::vec::Vec;
 
+#[derive(Copy, Clone)]
+pub enum Compute {
+    /// The xpubs are derived once. Use for non-critical operations like signing a transaction,
+    /// where a compute error will lead to an invalid signature only.
+    Once,
+    /// The xpubs are derive twice, to mitigate the risk of bitflips or similar compute corruption.
+    /// Used for critical operations, like delivering xpubs to the host.
+    Twice,
+}
+
 pub trait Xpub: Sized {
     /// Derives a child xpub using the provided keypath.
-    fn derive(&self, keypath: &[u32]) -> Result<Self, ()>;
+    fn derive(&self, keypath: &[u32], compute: Compute) -> Result<Self, ()>;
 
     /// Derives an xpub from the root xpub using the provided keypath.
-    fn from_keypath(keypath: &[u32]) -> Result<Self, ()>;
+    fn from_keypath(keypath: &[u32], compute: Compute) -> Result<Self, ()>;
 }
 
 /// Implements a cache for xpubs. Cached intermediate xpubs are used to derive child xpubs.
 ///
-/// The cache must be configured using `cache_keypath()`, otherwise no caching occurs. The reason
+/// The cache must be configured using `add_keypath()`, otherwise no caching occurs. The reason
 /// for this is that automatic caching is harder to get right and reason about, e.g. in a BTC tx, we
 /// shouldn't cache xpubs at the address level (e.g. m/84/0'/0'/0/0), as they don't repeat and there
 /// can be many of them.
@@ -37,13 +47,15 @@ pub struct XpubCache<X> {
     // Cached xpubs. First tuple element is the keypath for which the xpub was cached, the second
     // element is the cached xpub.
     xpubs: Vec<(Vec<u32>, X)>,
+    compute: Compute,
 }
 
 impl<X: Xpub + Clone> XpubCache<X> {
-    pub fn new() -> Self {
+    pub fn new(compute: Compute) -> Self {
         XpubCache {
             keypaths: Vec::new(),
             xpubs: Vec::new(),
+            compute,
         }
     }
 
@@ -71,9 +83,9 @@ impl<X: Xpub + Clone> XpubCache<X> {
         // from an xpub (hardened elements require the xprv).
         const UNHARDENED_LAST: u32 = util::bip32::HARDENED - 1;
         let xpub = if let [prefix @ .., last @ 0..=UNHARDENED_LAST] = keypath {
-            self.get_xpub(prefix)?.derive(&[*last])?
+            self.get_xpub(prefix)?.derive(&[*last], self.compute)?
         } else {
-            X::from_keypath(keypath)?
+            X::from_keypath(keypath, self.compute)?
         };
         self.xpubs.push((keypath.to_vec(), xpub.clone()));
         Ok(xpub)
@@ -95,19 +107,32 @@ impl<X: Xpub + Clone> XpubCache<X> {
             .max_by_key(|(kp, _)| kp.len());
         if let Some((cached_prefix, suffix)) = search_result {
             let xpub = self.cache_get_set(&cached_prefix.clone())?;
-            return xpub.derive(suffix);
+            return xpub.derive(suffix, self.compute);
         }
-        X::from_keypath(keypath)
+        X::from_keypath(keypath, self.compute)
     }
 }
 
 impl Xpub for bip32::Xpub {
-    fn derive(&self, keypath: &[u32]) -> Result<Self, ()> {
-        bip32::Xpub::derive(self, keypath)
+    fn derive(&self, keypath: &[u32], compute: Compute) -> Result<Self, ()> {
+        match compute {
+            Compute::Once => bip32::Xpub::derive(self, keypath),
+            Compute::Twice => {
+                let res1 = bip32::Xpub::derive(self, keypath)?;
+                let res2 = bip32::Xpub::derive(self, keypath)?;
+                if res1 != res2 {
+                    return Err(());
+                }
+                Ok(res2)
+            }
+        }
     }
 
-    fn from_keypath(keypath: &[u32]) -> Result<Self, ()> {
-        keystore::get_xpub(keypath)
+    fn from_keypath(keypath: &[u32], compute: Compute) -> Result<Self, ()> {
+        match compute {
+            Compute::Once => keystore::get_xpub_once(keypath),
+            Compute::Twice => keystore::get_xpub_twice(keypath),
+        }
     }
 }
 
@@ -133,7 +158,7 @@ mod tests {
             bitbox02::testing::UnsafeSyncRefCell::new(0);
 
         impl Xpub for MockXpub {
-            fn derive(&self, keypath: &[u32]) -> Result<Self, ()> {
+            fn derive(&self, keypath: &[u32], _compute: Compute) -> Result<Self, ()> {
                 let mut kp = Vec::new();
                 kp.extend_from_slice(&self.0);
                 kp.extend_from_slice(keypath);
@@ -141,7 +166,7 @@ mod tests {
                 Ok(MockXpub(kp))
             }
 
-            fn from_keypath(keypath: &[u32]) -> Result<Self, ()> {
+            fn from_keypath(keypath: &[u32], _compute: Compute) -> Result<Self, ()> {
                 *ROOT_DERIVATIONS.borrow_mut() += 1;
                 Ok(MockXpub(keypath.to_vec()))
             }
@@ -149,7 +174,7 @@ mod tests {
 
         type MockCache = XpubCache<MockXpub>;
 
-        let mut cache = MockCache::new();
+        let mut cache = MockCache::new(crate::xpubcache::Compute::Once);
 
         assert_eq!(cache.get_xpub(&[]).unwrap().0.as_slice(), &[]);
         assert_eq!(*CHILD_DERIVATIONS.borrow(), 0u32);
@@ -210,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_bip32_xpub_cache() {
-        let mut cache = Bip32XpubCache::new();
+        let mut cache = Bip32XpubCache::new(crate::xpubcache::Compute::Twice);
         cache.add_keypath(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1]);
         cache.add_keypath(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED]);
 

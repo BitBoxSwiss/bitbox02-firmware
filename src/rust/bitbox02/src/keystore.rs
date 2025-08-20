@@ -13,7 +13,8 @@
 // limitations under the License.
 
 extern crate alloc;
-use alloc::string::String;
+use alloc::string::{String, ToString};
+
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -131,41 +132,19 @@ pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 }
 
 pub fn bip39_mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
-    let mut mnemonic = zeroize::Zeroizing::new([0u8; 256]);
-    match unsafe {
-        bitbox02_sys::keystore_bip39_mnemonic_from_seed(
-            seed.as_ptr(),
-            seed.len() as _,
-            mnemonic.as_mut_ptr(),
-            mnemonic.len() as _,
-        )
-    } {
-        false => Err(()),
-        true => Ok(zeroize::Zeroizing::new(
-            crate::util::str_from_null_terminated(&mnemonic[..])
-                .unwrap()
-                .into(),
-        )),
-    }
+    let mnemonic = bip39::Mnemonic::from_entropy(seed).map_err(|_| ())?;
+    Ok(zeroize::Zeroizing::new(mnemonic.to_string()))
 }
 
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
 pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
-    let mut word_ptr: *mut u8 = core::ptr::null_mut();
-    match unsafe { bitbox02_sys::keystore_get_bip39_word(idx, &mut word_ptr) } {
-        false => Err(()),
-        true => {
-            let word = zeroize::Zeroizing::new(unsafe {
-                crate::util::str_from_null_terminated_ptr(word_ptr)
-                    .unwrap()
-                    .into()
-            });
-            unsafe {
-                bitbox02_sys::wally_free_string(word_ptr as _);
-            }
-            Ok(word)
-        }
-    }
+    Ok(zeroize::Zeroizing::new(
+        bip39::Language::English
+            .word_list()
+            .get(idx as usize)
+            .ok_or(())?
+            .to_string(),
+    ))
 }
 
 pub struct SignResult {
@@ -217,19 +196,10 @@ pub fn secp256k1_nonce_commit(
 }
 
 pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mnemonic = zeroize::Zeroizing::new(crate::util::str_to_cstr_vec(mnemonic)?);
-    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH]);
-    let mut seed_len: usize = 0;
-    match unsafe {
-        bitbox02_sys::keystore_bip39_mnemonic_to_seed(
-            mnemonic.as_ptr(),
-            seed.as_mut_ptr(),
-            &mut seed_len,
-        )
-    } {
-        true => Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec())),
-        false => Err(()),
-    }
+    let mnemonic =
+        bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic).map_err(|_| ())?;
+    let (seed, seed_len) = mnemonic.to_entropy_array();
+    Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec()))
 }
 
 pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {

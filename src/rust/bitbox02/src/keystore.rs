@@ -168,29 +168,6 @@ pub fn get_bip39_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     }
 }
 
-/// An opaque C type which gives access to all BIP39 words.
-pub struct Bip39Wordlist(Vec<u16>);
-
-impl Bip39Wordlist {
-    pub fn as_ptr(&self) -> *const u16 {
-        self.0.as_ptr()
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
-/// If indices is None, all BIP39 English words are returned, otherwise only the words of the given
-/// indices in the BIP39 English wordlist.
-pub fn get_bip39_wordlist(indices: Option<&[u16]>) -> Bip39Wordlist {
-    let indices = match indices {
-        Some(indices) => indices.to_vec(),
-        None => (0..BIP39_WORDLIST_LEN).collect(),
-    };
-    Bip39Wordlist(indices)
-}
-
 pub struct SignResult {
     pub signature: [u8; 64],
     pub recid: u8,

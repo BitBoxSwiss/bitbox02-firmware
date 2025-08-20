@@ -156,6 +156,7 @@ dependencies = [
 name = "bitbox02-rust-c"
 version = "0.1.0"
 dependencies = [
+ "bip39",
  "bitbox-aes",
  "bitbox02",
  "bitbox02-noise",

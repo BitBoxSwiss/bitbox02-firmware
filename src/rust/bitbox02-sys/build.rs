@@ -194,8 +194,6 @@ pub fn main() -> Result<(), &'static str> {
     let arm_sysroot = format!("--sysroot={arm_sysroot}");
 
     let extra_flags = if cross_compiling {
-        // APP_ vars active when generating rust declarations from C headers.  It is okay to
-        // activate all of them here - Rust's 'app-' features control usage/compilation.
         vec![
             "-D__SAMD51J20A__",
             "--target=thumbv7em-none-eabi",
@@ -203,7 +201,6 @@ pub fn main() -> Result<(), &'static str> {
             "-mthumb",
             "-mfloat-abi=soft",
             &arm_sysroot,
-            "-DAPP_U2F=1",
         ]
     } else {
         vec!["-DTESTING=1"]
@@ -280,6 +277,9 @@ pub fn main() -> Result<(), &'static str> {
         .arg("-DPB_NO_PACKED_STRUCTS=1")
         .arg("-DPB_FIELD_16BIT=1")
         .arg("-fshort-enums")
+        // APP_ vars active when generating rust declarations from C headers.
+        // It is okay to activate all of them here - Rust's 'app-' features control usage/compilation.
+        .arg("-DAPP_U2F=1")
         .args(&extra_flags)
         .args(includes.iter().map(|s| format!("-I{s}")))
         .output()

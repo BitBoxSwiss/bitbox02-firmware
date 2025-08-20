@@ -34,6 +34,7 @@ der =  { version = "0.7.9", default-features = false, optional = true }
 hex = { workspace = true }
 sha2 = { workspace = true, optional = true }
 bitcoin = { workspace = true, optional = true }
+bip39 = { workspace = true }
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
@@ -65,6 +66,7 @@ target-c-unit-tests = [
   "app-litecoin",
   "app-ethereum",
   "app-cardano",
+  "app-u2f",
   "firmware",
   "c-unit-testing",
 ]

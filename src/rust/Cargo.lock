@@ -79,6 +79,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bip39"
+version = "2.2.0"
+source = "git+https://github.com/benma/rust-bip39.git?branch=bb02#64894af6b7f56bcae9c919866e0c37dc5bf0837b"
+dependencies = [
+ "bitcoin_hashes",
+ "zeroize",
+]
+
+[[package]]
 name = "bitbox-aes"
 version = "0.1.0"
 dependencies = [
@@ -117,6 +126,7 @@ dependencies = [
  "bech32",
  "binascii",
  "bip32-ed25519",
+ "bip39",
  "bitbox-aes",
  "bitbox02",
  "bitbox02-noise",

@@ -11,5 +11,10 @@ git = "https://github.com/BitBoxSwiss/rust-bip32-ed25519"
 tag = "v0.2.0"
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/benma/rust-bip39.git?branch=bb02"]
+git = "https://github.com/benma/rust-bip39.git"
+branch = "bb02"
+replace-with = "vendored-sources"
+
 [source.vendored-sources]
 directory = "vendor"

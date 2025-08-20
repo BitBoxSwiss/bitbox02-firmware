@@ -102,6 +102,7 @@ dependencies = [
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
+ "bip39",
  "bitbox-aes",
  "bitbox02-sys",
  "bitcoin",
@@ -167,6 +168,7 @@ dependencies = [
  "p256",
  "sha2",
  "util",
+ "zeroize",
 ]
 
 [[package]]

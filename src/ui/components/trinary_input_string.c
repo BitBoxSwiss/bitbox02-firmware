@@ -286,7 +286,10 @@ static void _set_alphabet(component_t* trinary_input_string)
 {
     data_t* data = (data_t*)trinary_input_string->data;
     component_t* trinary_char = data->trinary_char_component;
+    data->can_confirm = true;
     if (data->wordlist != NULL) {
+        data->can_confirm = false;
+
         // Restrict input charset based on the available words with.
         // E.g. if the user entered "act", and the wordlist contains "actor", "actress", "action",
         // the charset to select the next letter wil be "eio".
@@ -297,6 +300,11 @@ static void _set_alphabet(component_t* trinary_input_string)
             if (!keystore_get_bip39_word_stack(data->wordlist[word_idx], word, sizeof(word))) {
                 Abort("keystore_get_bip39_word_stack");
             }
+
+            if (STREQ(word, data->string)) {
+                data->can_confirm = true;
+            }
+
             bool is_prefix = strncmp(data->string, word, data->string_index) == 0;
             if (is_prefix) {
                 if (strlen(word) > data->string_index) {
@@ -329,28 +337,6 @@ static void _set_alphabet(component_t* trinary_input_string)
             break;
         default:
             break;
-        }
-    }
-}
-
-static void _set_can_confirm(component_t* trinary_input_string)
-{
-    data_t* data = (data_t*)trinary_input_string->data;
-    if (data->wordlist == NULL) {
-        data->can_confirm = true;
-        return;
-    }
-    data->can_confirm = false;
-    // Can only confirm if the entered word matches a word in the wordlist.
-    for (size_t i = 0; i < data->wordlist_size; i++) {
-        char word[10];
-        if (!keystore_get_bip39_word_stack(data->wordlist[i], word, sizeof(word))) {
-            Abort("keystore_get_bip39_word_stack");
-        }
-
-        if (STREQ(word, data->string)) {
-            data->can_confirm = true;
-            return;
         }
     }
 }
@@ -401,7 +387,6 @@ static void _on_event(const event_t* event, component_t* component)
             }
         }
         _set_alphabet(component);
-        _set_can_confirm(component);
         break;
     default:
         break;
@@ -433,7 +418,6 @@ static void _letter_chosen(component_t* trinary_char, char chosen)
     data->show_last_character = true;
     _maybe_autocomplete(trinary_input_string);
     _set_alphabet(trinary_input_string);
-    _set_can_confirm(trinary_input_string);
     UG_S16 string_width = _constant_string_width(trinary_input_string);
     if (data->target_x + string_width > SCROLL_RIGHT_LIMIT) {
         data->target_x = -string_width + SCROLL_LEFT_PAD;
@@ -522,7 +506,6 @@ component_t* trinary_input_string_create(
     data->trinary_char_component = trinary_input_char_create(_letter_chosen, component);
     ui_util_add_sub_component(component, data->trinary_char_component);
     _set_alphabet(component);
-    _set_can_confirm(component);
 
     return component;
 }
@@ -542,7 +525,6 @@ void trinary_input_string_set_input(component_t* trinary_input_string, const cha
         if (STREQ(bip39_word, word)) {
             data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
             _set_alphabet(trinary_input_string);
-            _set_can_confirm(trinary_input_string);
             return;
         }
     }

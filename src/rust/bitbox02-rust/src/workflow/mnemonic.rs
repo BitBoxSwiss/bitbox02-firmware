@@ -60,7 +60,7 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
                 if picked_indices.contains(&idx) {
                     continue;
                 };
-                let random_word = bitbox02::keystore::get_bip39_word(idx).unwrap();
+                let random_word = crate::bip39::get_word(idx).unwrap();
                 if random_word.as_str() == word {
                     continue;
                 }
@@ -172,7 +172,7 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<u16> {
             let mnemonic = zeroize::Zeroizing::new(format!(
                 "{} {}",
                 entered_words.join(" "),
-                bitbox02::keystore::get_bip39_word(i).unwrap().as_str(),
+                crate::bip39::get_word(i).unwrap().as_str(),
             ));
             if let Ok(seed) = bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
                 break seed;
@@ -205,7 +205,7 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<u16> {
 fn lastword_choices_strings(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
     lastword_choices(entered_words)
         .into_iter()
-        .map(|word_idx| bitbox02::keystore::get_bip39_word(word_idx).unwrap())
+        .map(|word_idx| crate::bip39::get_word(word_idx).unwrap())
         .collect()
 }
 

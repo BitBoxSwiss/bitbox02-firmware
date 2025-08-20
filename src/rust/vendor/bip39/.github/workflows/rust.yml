@@ -1,0 +1,100 @@
+on: [push, pull_request]
+
+name: Continuous integration
+
+jobs:
+  Stable:
+    name: Test - stable toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        # https://github.com/dtolnay/rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Running test script
+        env:
+          DO_NO_STD: true
+          DO_FEATURE_MATRIX: true
+        run: ./contrib/test.sh
+
+  Beta:
+    name: Test - beta toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@beta
+      - name: Running test script
+        env:
+          DO_NO_STD: true
+        run: ./contrib/test.sh
+
+  Nightly:
+    name: Test - nightly toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+      - name: Running test script
+        env:
+          DO_NO_STD: true
+        run: ./contrib/test.sh
+
+  MSRV:
+    name: Test - 1.41.1 toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@1.41.1
+      - name: Running test script
+        env:
+          DO_NO_STD: true
+          DO_FEATURE_MATRIX: true
+        run: ./contrib/test.sh
+
+  Arch32bit:
+    name: Test 32-bit version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Add architecture i386
+        run: sudo dpkg --add-architecture i386
+      - name: Install i686 gcc
+        run: sudo apt-get update -y && sudo apt-get install -y gcc-multilib
+      - name: Install target
+        run: rustup target add i686-unknown-linux-gnu
+      - name: Run test on i686
+        run: cargo test --target i686-unknown-linux-gnu
+
+  Cross:
+    name: Cross test
+    if: ${{ !github.event.act }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install target
+        run: rustup target add s390x-unknown-linux-gnu
+      - name: install cross
+        run: cargo install cross --locked
+      - name: run cross test
+        run: cross test --target s390x-unknown-linux-gnu

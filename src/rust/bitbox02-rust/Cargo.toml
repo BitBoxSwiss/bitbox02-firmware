@@ -65,7 +65,7 @@ default-features = false
 features = ["derive"]
 
 [dev-dependencies]
-bitbox-aes = { path = "../bitbox-aes", features = ["use-wally-sha512"] }
+bitbox-aes = { path = "../bitbox-aes" }
 
 [features]
 ed25519 = [

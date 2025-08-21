@@ -19,8 +19,7 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use hmac::{digest::FixedOutput, Mac, SimpleHmac};
-use sha2::Sha256;
+use bitcoin::hashes::{sha256, Hash, HashEngine, Hmac, HmacEngine};
 
 // AES block size.
 const BLOCK_SIZE: usize = 16;
@@ -78,21 +77,14 @@ fn decrypt(key: &[u8; 32], cipher: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>,
 }
 
 fn sha512(buf: &[u8]) -> [u8; 64] {
-    #[cfg(feature = "use-wally-sha512")]
-    {
-        bitbox02::sha512(buf)
-    }
-    #[cfg(not(feature = "use-wally-sha512"))]
-    {
-        use sha2::Digest;
-        sha2::Sha512::digest(buf).into()
-    }
+    bitcoin::hashes::sha512::Hash::hash(buf).to_byte_array()
 }
 
 fn hmac_sha256(key: &[u8], msg: &[u8]) -> [u8; 32] {
-    let mut mac = SimpleHmac::<Sha256>::new_from_slice(key).unwrap();
-    mac.update(msg);
-    mac.finalize_fixed().into()
+    let mut engine = HmacEngine::<sha256::Hash>::new(key);
+    engine.input(msg);
+    let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+    hmac_result.to_byte_array()
 }
 
 pub fn encrypt_with_hmac(iv: &[u8; 16], key: &[u8], plain: &[u8]) -> Vec<u8> {

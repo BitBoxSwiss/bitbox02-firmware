@@ -271,13 +271,12 @@ async fn get_12th_18th_word(
     // these.
     loop {
         let choices = lastword_choices(entered_words);
-        let candidates = bitbox02::keystore::get_bip39_wordlist(Some(&choices));
         let word = hal
             .ui()
             .enter_string(
                 &trinary_input_string::Params {
                     title,
-                    wordlist: Some(&candidates),
+                    wordlist: Some(&choices),
                     ..Default::default()
                 },
                 trinary_input_string::CanCancel::Yes,
@@ -320,7 +319,7 @@ pub async fn get(
         .await;
 
     // Provide all bip39 words to restrict the keyboard entry.
-    let bip39_wordlist = bitbox02::keystore::get_bip39_wordlist(None);
+    let bip39_wordlist: Vec<u16> = (0..bitbox02::keystore::BIP39_WORDLIST_LEN).collect();
 
     let mut word_idx: usize = 0;
     let mut entered_words = vec![zeroize::Zeroizing::new(String::new()); num_words];

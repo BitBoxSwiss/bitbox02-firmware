@@ -154,6 +154,11 @@ USE_RESULT bool keystore_bip39_mnemonic_to_seed(
 USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
 
 /**
+ * Retrieves the BIP39 word by index. `word_out` should be of at least 9 bytes long.
+ */
+USE_RESULT bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size);
+
+/**
  * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of
  * the ECDSA Anti-Klepto Protocol. For more details, check the docs of
  * `secp256k1_ecdsa_anti_exfil_signer_commit`.

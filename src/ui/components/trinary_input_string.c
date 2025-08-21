@@ -21,6 +21,7 @@
 #include "trinary_input_char.h"
 
 #include <hardfault.h>
+#include <keystore.h>
 #include <screen.h>
 #include <touch/gestures.h>
 #include <ui/event.h>
@@ -62,7 +63,7 @@ static const UG_FONT* _font = &font_password_11X12;
 
 typedef struct {
     // Can be NULL.
-    const char* const* wordlist;
+    const uint16_t* wordlist;
     size_t wordlist_size;
     bool number_input;
     // Only applies if wordlist != NULL: determines if a word from the wordlist was entered.
@@ -246,43 +247,36 @@ static void _render(component_t* component)
     }
 }
 
-// if the current input uniquely identifies a word from the wordlist by prefix, we autocomplete the
-// word.
-static void _maybe_autocomplete(component_t* trinary_input_string)
-{
-    data_t* data = (data_t*)trinary_input_string->data;
-    if (data->wordlist == NULL) {
-        return;
-    }
-    // initial value means no word was found yet.
-    size_t found_word_idx = data->wordlist_size;
-    for (size_t word_idx = 0; word_idx < data->wordlist_size; word_idx++) {
-        const char* word = data->wordlist[word_idx];
-        bool is_prefix = strncmp(data->string, word, data->string_index) == 0;
-        if (is_prefix) {
-            if (found_word_idx != data->wordlist_size) {
-                // Not unique.
-                return;
-            }
-            found_word_idx = word_idx;
-        }
-    }
-    data->string_index =
-        snprintf(data->string, sizeof(data->string), "%s", data->wordlist[found_word_idx]);
-}
-
-static void _set_alphabet(component_t* trinary_input_string)
+// maybe_autocomplete: if the current input uniquely identifies a word from the wordlist by prefix,
+// we autocomplete the word.
+static void _set_alphabet(component_t* trinary_input_string, bool maybe_autocomplete)
 {
     data_t* data = (data_t*)trinary_input_string->data;
     component_t* trinary_char = data->trinary_char_component;
+    data->can_confirm = true;
     if (data->wordlist != NULL) {
+        // Initial value means no word was found yet.
+        size_t found_word_idx = data->wordlist_size;
+        // Multiple words found with the same prefix, in which case we don't autocomplete.
+        bool found_word_not_unique = false;
+
+        data->can_confirm = false;
+
         // Restrict input charset based on the available words with.
         // E.g. if the user entered "act", and the wordlist contains "actor", "actress", "action",
         // the charset to select the next letter wil be "eio".
         // The wordlist is assumed to be sorted and only have 'a-z' characters.
         char charset[27] = {0};
         for (size_t word_idx = 0; word_idx < data->wordlist_size; word_idx++) {
-            const char* word = data->wordlist[word_idx];
+            char word[10];
+            if (!keystore_get_bip39_word_stack(data->wordlist[word_idx], word, sizeof(word))) {
+                Abort("keystore_get_bip39_word_stack");
+            }
+
+            if (STREQ(word, data->string)) {
+                data->can_confirm = true;
+            }
+
             bool is_prefix = strncmp(data->string, word, data->string_index) == 0;
             if (is_prefix) {
                 if (strlen(word) > data->string_index) {
@@ -291,8 +285,32 @@ static void _set_alphabet(component_t* trinary_input_string)
                         charset[strlen(charset)] = include;
                     }
                 }
+
+                if (found_word_idx != data->wordlist_size) {
+                    found_word_not_unique = true;
+                }
+                found_word_idx = word_idx;
             }
+
+            util_zero(word, sizeof(word));
         }
+
+        if (maybe_autocomplete && !found_word_not_unique && found_word_idx != data->wordlist_size) {
+            char word[10];
+            if (!keystore_get_bip39_word_stack(
+                    data->wordlist[found_word_idx], word, sizeof(word))) {
+                Abort("keystore_get_bip39_word_stack");
+            }
+
+            data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
+            // We autocompleted, so we don't offer any more letters to choose. The charset above
+            // was determined before autocomplete and is not valid after autocomplete.
+            charset[0] = '\0';
+            data->can_confirm = true;
+
+            util_zero(word, sizeof(word));
+        }
+
         // Since wordlist is sorted, charset is sorted automatically.
         trinary_input_char_set_alphabet(trinary_char, charset, 1);
     } else if (data->number_input) {
@@ -319,23 +337,6 @@ static void _set_alphabet(component_t* trinary_input_string)
     }
 }
 
-static void _set_can_confirm(component_t* trinary_input_string)
-{
-    data_t* data = (data_t*)trinary_input_string->data;
-    if (data->wordlist == NULL) {
-        data->can_confirm = true;
-        return;
-    }
-    data->can_confirm = false;
-    // Can only confirm if the entered word matches a word in the wordlist.
-    for (size_t i = 0; i < data->wordlist_size; i++) {
-        if (STREQ(data->wordlist[i], data->string)) {
-            data->can_confirm = true;
-            return;
-        }
-    }
-}
-
 static void _on_event(const event_t* event, component_t* component)
 {
     data_t* data = (data_t*)component->data;
@@ -355,11 +356,11 @@ static void _on_event(const event_t* event, component_t* component)
 
     switch (event->id) {
     case EVENT_TOGGLE_ALPHANUMERIC:
-        _set_alphabet(component);
+        _set_alphabet(component, false);
         break;
     case EVENT_BACKWARD:
         if (trinary_input_char_in_progress(data->trinary_char_component)) {
-            _set_alphabet(component);
+            _set_alphabet(component, false);
             break;
         }
         if (data->string_index == 0) {
@@ -381,8 +382,7 @@ static void _on_event(const event_t* event, component_t* component)
                 // data->target_x += MIN(SCREEN_WIDTH - SCROLL_RIGHT_LIMIT, string_width);
             }
         }
-        _set_alphabet(component);
-        _set_can_confirm(component);
+        _set_alphabet(component, false);
         break;
     default:
         break;
@@ -405,16 +405,14 @@ static void _letter_chosen(component_t* trinary_char, char chosen)
     bool confirm_gesture_active =
         data->longtouch && confirm_gesture_is_active(data->confirm_component);
     if (confirm_gesture_active) {
-        _set_alphabet(trinary_input_string);
+        _set_alphabet(trinary_input_string, false);
         return;
     }
     data->string[data->string_index] = chosen;
     data->string_index++;
     data->string[data->string_index] = '\0';
     data->show_last_character = true;
-    _maybe_autocomplete(trinary_input_string);
-    _set_alphabet(trinary_input_string);
-    _set_can_confirm(trinary_input_string);
+    _set_alphabet(trinary_input_string, true);
     UG_S16 string_width = _constant_string_width(trinary_input_string);
     if (data->target_x + string_width > SCROLL_RIGHT_LIMIT) {
         data->target_x = -string_width + SCROLL_LEFT_PAD;
@@ -502,8 +500,7 @@ component_t* trinary_input_string_create(
 
     data->trinary_char_component = trinary_input_char_create(_letter_chosen, component);
     ui_util_add_sub_component(component, data->trinary_char_component);
-    _set_alphabet(component);
-    _set_can_confirm(component);
+    _set_alphabet(component, false);
 
     return component;
 }
@@ -515,10 +512,14 @@ void trinary_input_string_set_input(component_t* trinary_input_string, const cha
         return;
     }
     for (size_t i = 0; i < data->wordlist_size; i++) {
-        if (STREQ(data->wordlist[i], word)) {
+        char bip39_word[10];
+        if (!keystore_get_bip39_word_stack(data->wordlist[i], bip39_word, sizeof(bip39_word))) {
+            Abort("keystore_get_bip39_word_stack");
+        }
+
+        if (STREQ(bip39_word, word)) {
             data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
-            _set_alphabet(trinary_input_string);
-            _set_can_confirm(trinary_input_string);
+            _set_alphabet(trinary_input_string, false);
             return;
         }
     }

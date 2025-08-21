@@ -100,8 +100,8 @@ impl<'a> ConfirmParams<'a> {
 pub struct TrinaryInputStringParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
     pub title: &'a str,
-    /// Currently specialized to the BIP39 wordlist. Can be extended if needed.
-    pub wordlist: Option<&'a crate::keystore::Bip39Wordlist>,
+    /// Currently specialized to the BIP39 wordlist: a list of BIP39 word indices. Can be extended if needed.
+    pub wordlist: Option<&'a [u16]>,
     pub number_input: bool,
     pub hide: bool,
     pub special_chars: bool,

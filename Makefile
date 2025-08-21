@@ -23,7 +23,6 @@ ifeq ($(UNAME_S),Darwin)
 else
   SANITIZE ?= ON
 endif
-simulator: SANITIZE = OFF
 
 bootstrap:
 	git submodule update --init --recursive
@@ -43,11 +42,10 @@ build-build/Makefile:
 	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=$(SANITIZE) -DSANITIZE_UNDEFINED=$(SANITIZE)
 	$(MAKE) -C py/bitbox02
 
-# Should only be used for rust unit tests since we didn't add support to
-# address santizers when they link code compiled with gcc.
-build-build-rust-unit-tests/Makefile:
-	mkdir -p build-build-rust-unit-tests
-	cd build-build-rust-unit-tests && cmake .. -DCOVERAGE=OFF -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
+# ubsan/asan not supported with simulators and rust unit tests
+build-build-noasan/Makefile:
+	mkdir -p build-build-noasan
+	cd build-build-noasan && cmake .. -DCOVERAGE=OFF -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
 	$(MAKE) -C py/bitbox02
 
 # Directory for building for "host" machine according to gcc convention
@@ -62,7 +60,7 @@ build-build: build-build/Makefile
 # Directory for building for "build" machine according to gcc convention
 # Should only be used for rust unit tests since we didn't add support to
 # address santizers when they link code compiled with gcc.
-build-build-rust-unit-tests: build-build-rust-unit-tests/Makefile
+build-build-noasan: build-build-noasan/Makefile
 
 firmware: | build
 	$(MAKE) -C build firmware.elf
@@ -113,19 +111,19 @@ docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build
 	$(MAKE) -C build rust-docs
-simulator: | build-build
-	$(MAKE) -C build-build simulator
+simulator: | build-build-noasan
+	$(MAKE) -C build-build-noasan simulator
 run-simulator: | simulator
-	./build-build/bin/simulator
+	./build-build-noasan/bin/simulator
 unit-test: | build-build
 	$(MAKE) -C build-build
 # Must compile C tests before running them
 run-unit-tests: | build-build
 	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test
-run-rust-unit-tests: | build-build-rust-unit-tests
-	${MAKE} -C build-build-rust-unit-tests rust-test
-run-rust-clippy: | build-build-rust-unit-tests
-	${MAKE} -C build-build-rust-unit-tests rust-clippy
+run-rust-unit-tests: | build-build-noasan
+	${MAKE} -C build-build-noasan rust-test
+run-rust-clippy: | build-build-noasan
+	${MAKE} -C build-build-noasan rust-clippy
 # Must run tests before creating coverage report
 coverage: | build-build
 	${MAKE} -C build-build coverage
@@ -195,4 +193,4 @@ prepare-tidy: | build build-build
 	$(MAKE) -C build rust-cbindgen
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-build build-debug build-build-rust-unit-tests
+	rm -rf build build-build build-debug build-build-noasan

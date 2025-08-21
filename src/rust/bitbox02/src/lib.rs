@@ -241,11 +241,6 @@ pub fn println_stdout(msg: &str) {
     }
 }
 
-pub fn sha512(msg: &[u8]) -> [u8; 64] {
-    use bitcoin::hashes::Hash;
-    bitcoin::hashes::sha512::Hash::hash(msg).to_byte_array()
-}
-
 #[cfg(not(feature = "testing"))]
 pub fn communication_mode_ble_enabled() -> bool {
     unsafe { bitbox02_sys::communication_mode_ble_enabled() }

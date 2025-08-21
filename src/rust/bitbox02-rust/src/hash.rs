@@ -14,9 +14,9 @@
 
 use alloc::vec::Vec;
 
-/// Implements the digest traits for Sha512 backing it with the wally_sha512 C function. This is
-/// done to avoid using a second sha512 implementation like `sha2::Sha512`, which bloats the binary
-/// by an additional ~12.7kB (at the time of writing).
+/// Implements the digest traits for Sha512 backing it with bitcoin::hashes. This is done to avoid
+/// using a second sha512 implementation like `sha2::Sha512`, which bloats the binary by an
+/// additional ~12.7kB (at the time of writing).
 ///
 /// This implementation accumulates the data to be hashed in heap, it does **not** hash in a
 /// streaming fashion, even when using `update()`.
@@ -35,7 +35,8 @@ impl digest::FixedOutput for Sha512 {
     fn finalize_into(self, out: &mut digest::Output<Self>) {
         // use digest::Digest;
         // out.copy_from_slice(&sha2::Sha512::digest(&self.message));
-        out.copy_from_slice(&bitbox02::sha512(&self.message));
+        use bitcoin::hashes::Hash;
+        out.copy_from_slice(bitcoin::hashes::sha512::Hash::hash(&self.message).as_byte_array())
     }
 }
 

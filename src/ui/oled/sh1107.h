@@ -24,7 +24,7 @@
  */
 void sh1107_configure(uint8_t* buf);
 
-void sh1107_set_pixel(uint16_t x, uint16_t y, uint8_t c);
+void sh1107_set_pixel(int16_t x, int16_t y, uint8_t c);
 void sh1107_update(void);
 void sh1107_mirror(bool mirror);
 void sh1107_off(void);

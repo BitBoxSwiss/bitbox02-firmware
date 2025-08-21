@@ -22,6 +22,7 @@
 #include <rust/rust.h>
 #include <screen.h>
 #include <string.h>
+#include <ui/oled/oled.h>
 #include <usb/class/hid/hww/hid_hww.h>
 #include <usb/usb_processing.h>
 
@@ -82,7 +83,7 @@ int main(void)
     bootloader_init();
     platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
-    screen_init();
+    screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
 #if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
     qtouch_init();
 #endif

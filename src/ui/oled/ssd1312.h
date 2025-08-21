@@ -23,7 +23,7 @@
  */
 void ssd1312_configure(uint8_t* buf);
 
-void ssd1312_set_pixel(uint16_t x, uint16_t y, uint8_t c);
+void ssd1312_set_pixel(int16_t x, int16_t y, uint8_t c);
 void ssd1312_update(void);
 void ssd1312_mirror(bool mirror);
 void ssd1312_off(void);

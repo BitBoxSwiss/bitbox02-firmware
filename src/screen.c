@@ -14,7 +14,6 @@
 
 #include "screen.h"
 
-#include <hal_delay.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -24,9 +23,16 @@
 #include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 #include <util.h>
+#include <utils_assert.h>
+
+#ifndef TESTING
+#include <hal_delay.h>
+#endif
 
 static UG_GUI guioled; // Global GUI structure for OLED screen
 static bool screen_upside_down = false;
+static void (*_mirror_fn)(bool);
+static void (*_clear_fn)(void);
 
 UG_COLOR screen_front_color = C_WHITE;
 UG_COLOR screen_back_color = C_BLACK;
@@ -39,11 +45,13 @@ void screen_print_debug(const char* message, int duration)
 {
     char print[100];
     snprintf(print, sizeof(print), "%s", message);
-    UG_ClearBuffer();
+    screen_clear();
     UG_FontSelect(&font_font_a_9X9);
     UG_PutString(0, 0, print, false);
     UG_SendBuffer();
+#ifndef TESTING
     if (duration > 0) delay_ms(duration);
+#endif
 }
 
 void screen_sprintf_debug(int duration, const char* fmt, ...)
@@ -71,7 +79,7 @@ void screen_print_debug_hex(const uint8_t* bytes, size_t len, int duration)
 // Careful, this function is used in both the bootloader and the firmware.
 void screen_splash(void)
 {
-    UG_ClearBuffer();
+    screen_clear();
 
     int height = IMAGE_DEFAULT_ARROW_HEIGHT;
     int x = 0;
@@ -80,7 +88,7 @@ void screen_splash(void)
     image_arrow(SCREEN_WIDTH - x - 2, y, height, ARROW_LEFT);
 
     UG_SendBuffer();
-    UG_ClearBuffer();
+    screen_clear();
 }
 
 void screen_rotate(void)
@@ -88,7 +96,8 @@ void screen_rotate(void)
     screen_upside_down = !screen_upside_down;
     top_slider = 1 - top_slider;
     bottom_slider = 1 - bottom_slider;
-    oled_mirror(screen_upside_down);
+    ASSERT(_mirror_fn);
+    _mirror_fn(screen_upside_down);
 }
 
 bool screen_is_upside_down(void)
@@ -96,12 +105,18 @@ bool screen_is_upside_down(void)
     return screen_upside_down;
 }
 
-void screen_init(void)
+void screen_init(
+    void (*pixel_fn)(UG_S16, UG_S16, UG_COLOR),
+    void (*mirror_fn)(bool),
+    void (*clear_fn)(void))
 {
-    UG_Init(
-        &guioled,
-        (void (*)(UG_S16, UG_S16, UG_COLOR))oled_set_pixel,
-        &font_font_a_11X10,
-        SCREEN_WIDTH,
-        SCREEN_HEIGHT);
+    _mirror_fn = mirror_fn;
+    _clear_fn = clear_fn;
+    UG_Init(&guioled, pixel_fn, &font_font_a_11X10, SCREEN_WIDTH, SCREEN_HEIGHT);
+}
+
+void screen_clear(void)
+{
+    ASSERT(_clear_fn);
+    _clear_fn();
 }

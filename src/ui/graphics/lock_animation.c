@@ -165,7 +165,7 @@ static void _animation_timer_cb(const struct timer_task* const timer_task)
     }
 
     /* Draw the frame. */
-    UG_ClearBuffer();
+    screen_clear();
     position_t pos = {
         .left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
         .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};

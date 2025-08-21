@@ -27,6 +27,7 @@
 #include "usb/usb_processing.h"
 #include <hww.h>
 #include <memory/memory_spi.h>
+#include <ui/oled/oled.h>
 
 #if APP_U2F == 1
 #include <u2f.h>
@@ -40,7 +41,7 @@ int main(void)
     system_init();
     platform_init();
     __stack_chk_guard = common_stack_chk_guard();
-    screen_init();
+    screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
     screen_splash();
     qtouch_init();
     common_main();

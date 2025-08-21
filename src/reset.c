@@ -22,6 +22,7 @@
 #include "memory/smarteeprom.h"
 #include "system.h"
 #include "uart.h"
+#include <screen.h>
 
 #ifndef TESTING
 #include "securechip/securechip.h"
@@ -40,7 +41,7 @@ static void _show_reset_label(bool status)
 {
     const char* msg = "Device reset";
     component_t* comp = status_create(msg, status, NULL, NULL);
-    UG_ClearBuffer();
+    screen_clear();
     comp->f->render(comp);
     UG_SendBuffer();
     comp->f->cleanup(comp);

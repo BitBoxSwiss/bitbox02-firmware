@@ -99,7 +99,7 @@ static void _on_event(const event_t* event, component_t* component)
         return;
     }
     data_t* data = (data_t*)component->data;
-    gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     const char* selected_alphabet;
     if (slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
         selected_alphabet = data->left_alphabet;

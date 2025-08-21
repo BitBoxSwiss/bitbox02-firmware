@@ -58,7 +58,7 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     right_arrow_data_t* data = (right_arrow_data_t*)component->data;
-    gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     switch (event->id) {
     case EVENT_TOP_SHORT_TAP:
     case EVENT_BOTTOM_SHORT_TAP:

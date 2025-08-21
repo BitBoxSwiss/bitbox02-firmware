@@ -36,7 +36,7 @@ enum {
 };
 
 typedef struct {
-    void* data;
+    const void* data;
     uint8_t id;
 } event_t;
 

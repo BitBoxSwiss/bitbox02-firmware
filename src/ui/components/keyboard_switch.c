@@ -88,7 +88,7 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
-    gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     switch (event->id) {
     case EVENT_TOGGLE_ALPHANUMERIC:
         switch (ks_data->mode) {
@@ -111,7 +111,7 @@ static void _on_event(const event_t* event, component_t* component)
         break;
 
     case EVENT_UPDATE_ALPHANUMERIC:
-        ks_data->mode = *(keyboard_mode_t*)event->data;
+        ks_data->mode = *(const keyboard_mode_t*)event->data;
         break;
     case EVENT_TOP_CONTINUOUS_TAP:
         if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&

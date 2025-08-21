@@ -141,7 +141,7 @@ static void _on_event(const event_t* event, component_t* component)
     if (data->scrollable) {
         switch (event->id) {
         case EVENT_BOTTOM_SLIDE: {
-            gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+            const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
             // Variable scroll speed
             int16_t margin = SCREEN_WIDTH / 5;
             data->slider_position_diff += SIGMOID(slider_data->velocity);
@@ -162,7 +162,7 @@ static void _on_event(const event_t* event, component_t* component)
             break;
 
         case EVENT_BOTTOM_CONTINUOUS_TAP: {
-            gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+            const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
             data->slider_position = slider_data->position;
             data->slider_is_touched = true;
             data->slider_was_touched = true;

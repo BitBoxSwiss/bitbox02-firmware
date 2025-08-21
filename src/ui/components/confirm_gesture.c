@@ -107,7 +107,7 @@ static void _on_event(const event_t* event, component_t* component)
         return;
     }
     confirm_data_t* data = (confirm_data_t*)component->data;
-    gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
 
     switch (event->id) {
     case EVENT_TOP_SLIDE_RELEASED:

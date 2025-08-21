@@ -126,7 +126,7 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Return if the slider position is away from the button
     // Only slider events reach here, so ok to typescast event->data
-    gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     switch (data->type) {
     case ICON_BUTTON_CHECK:
     case ICON_BUTTON_NEXT:

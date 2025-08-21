@@ -59,7 +59,7 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     button_data_t* data = (button_data_t*)component->data;
-    gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
+    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     if (data->span_over_slider) {
         if (event->id ==
             ((data->location == top_slider) ? EVENT_TOP_SHORT_TAP : EVENT_BOTTOM_SHORT_TAP)) {

@@ -54,3 +54,10 @@ impl digest::Reset for Sha512 {
 impl digest::core_api::BlockSizeUser for Sha512 {
     type BlockSize = digest::typenum::U128;
 }
+
+impl digest::core_api::UpdateCore for Sha512 {
+    fn update_blocks(&mut self, blocks: &[digest::core_api::Block<Self>]) {
+        self.message
+            .extend(blocks.iter().flat_map(|b| b.iter().copied()))
+    }
+}

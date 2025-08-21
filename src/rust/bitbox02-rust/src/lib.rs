@@ -33,7 +33,7 @@ pub mod bb02_async;
 mod bip32;
 pub mod bip39;
 pub mod hal;
-mod hash;
+pub mod hash;
 pub mod hww;
 pub mod keystore;
 mod version;

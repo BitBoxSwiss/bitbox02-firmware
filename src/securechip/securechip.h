@@ -28,7 +28,6 @@ typedef enum {
     SC_ERR_INVALID_ARGS = -2,
     SC_ERR_CONFIG_MISMATCH = -3,
     SC_ERR_SALT = -4,
-    SC_ERR_HASH = -5,
     // Currently only used by Optiga, but it is in the common errors so that the API of the
     // securechip is consistent and the caller does not need to distinguish between the chips at the
     // callsite.

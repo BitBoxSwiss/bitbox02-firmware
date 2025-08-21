@@ -82,28 +82,28 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
     switch (bt ) {
         case 0xF6:
             bt = 0x94;
-            break; // ö
+            break; // Ã¶
         case 0xD6:
             bt = 0x99;
-            break; // Ö
+            break; // Ã–
         case 0xFC:
             bt = 0x81;
-            break; // ü
+            break; // Ã¼
         case 0xDC:
             bt = 0x9A;
-            break; // Ü
+            break; // Ãœ
         case 0xE4:
             bt = 0x84;
-            break; // ä
+            break; // Ã¤
         case 0xC4:
             bt = 0x8E;
-            break; // Ä
+            break; // Ã„
         case 0xB5:
             bt = 0xE6;
-            break; // µ
+            break; // Âµ
         case 0xB0:
             bt = 0xF8;
-            break; // °
+            break; // Â°
         default:
             break;
     }

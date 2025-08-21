@@ -45,7 +45,7 @@ endforeach()
 message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 
 add_library(sd-mock-simulator
-  STATIC
+  STATIC EXCLUDE_FROM_ALL
   framework/mock_diskio.c
 )
 target_include_directories(
@@ -60,7 +60,7 @@ target_include_directories(
 # library.
 # See https://cmake.org/cmake/help/v3.10/command/add_library.html#object-libraries
 add_library(bitbox_objects-simulator
-  OBJECT
+  OBJECT EXCLUDE_FROM_ALL
   ${DBB-FILTERED-SOURCES}
   ${ETHEREUM-SOURCES}
   framework/mock_cipher.c
@@ -72,7 +72,7 @@ add_library(bitbox_objects-simulator
 )
 
 add_library(bitbox-simulator
-  STATIC
+  STATIC EXCLUDE_FROM_ALL
   $<TARGET_OBJECTS:bitbox_objects-simulator>
 )
 
@@ -175,7 +175,7 @@ endif()
 #-----------------------------------------------------------------------------
 # Simulator
 
-add_executable(simulator simulator.c framework/eh_personality.c)
+add_executable(simulator EXCLUDE_FROM_ALL simulator.c framework/eh_personality.c)
 # asan must be first library in linking order
 target_link_libraries(simulator PRIVATE
   $<$<BOOL:${SANITIZE_ADDRESS}>:asan>

@@ -311,9 +311,7 @@ static void _attestation_sighash(const uint8_t* attestation_device_pubkey, uint8
     uint8_t msg[32 + 64];
     memory_get_attestation_bootloader_hash(msg);
     memcpy(msg + 32, attestation_device_pubkey, 64);
-    if (wally_sha256(msg, sizeof(msg), sighash_out, SHA256_LEN) != WALLY_OK) {
-        Abort("wally_sha256 failed here");
-    }
+    rust_sha256(msg, sizeof(msg), sighash_out);
 }
 
 static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_t* output_len)
@@ -469,13 +467,7 @@ static ble_error_code_t _verify_ble(const uint8_t* expected_ble_fw_hash, uint8_t
         return BLE_ERR_READ_FW;
     }
     uint8_t flashed_ble_fw_hash[32] = {0};
-    if (wally_sha256(
-            flashed_ble_fw,
-            flashed_ble_fw_size,
-            flashed_ble_fw_hash,
-            sizeof(flashed_ble_fw_hash)) != WALLY_OK) {
-        Abort("_setup_ble: wally_sha256 failed");
-    }
+    rust_sha256(flashed_ble_fw, flashed_ble_fw_size, flashed_ble_fw_hash);
     if (flashed_ble_fw_size != da14531_firmware_size()) {
         screen_print_debug("_setup_ble: size check failed", 0);
         return BLE_ERR_FW_SIZE_MISMATCH;
@@ -503,11 +495,7 @@ static ble_error_code_t _setup_ble(void)
 
     // Compute FW hash.
     uint8_t ble_fw_hash[32] = {0};
-    if (wally_sha256(
-            da14531_firmware_start(), da14531_firmware_size(), ble_fw_hash, sizeof(ble_fw_hash)) !=
-        WALLY_OK) {
-        Abort("_setup_ble: wally_sha256 failed");
-    }
+    rust_sha256(da14531_firmware_start(), da14531_firmware_size(), ble_fw_hash);
 
     if (!MEMEQ(ble_fw_hash, _allowed_ble_fw_hash, 32)) {
         return BLE_ERR_FW_NOT_ALLOWED;

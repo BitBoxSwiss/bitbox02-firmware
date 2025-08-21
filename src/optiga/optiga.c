@@ -27,7 +27,6 @@
 #include <salt.h>
 #include <securechip/securechip.h>
 #include <util.h>
-#include <wally_crypto.h>
 
 // Set this to 1 for a more convenience during development.
 // Factory setup will be performed in the normal firmware, which makes it easier to tinker with the
@@ -735,11 +734,7 @@ static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth
     }
 
     uint8_t hmac[32] = {0};
-    if (wally_hmac_sha256(
-            auth_secret, auth_secret_len, random_data, sizeof(random_data), hmac, sizeof(hmac)) !=
-        WALLY_OK) {
-        return 1;
-    }
+    rust_hmac_sha256(auth_secret, auth_secret_len, random_data, sizeof(random_data), hmac);
     res = _optiga_crypt_hmac_verify_sync(
         _crypt,
         OPTIGA_HMAC_SHA_256,
@@ -1711,11 +1706,7 @@ int optiga_stretch_password(const char* password, uint8_t* stretched_out)
         return res;
     }
 
-    if (wally_hmac_sha256(
-            password_secret, sizeof(password_secret), stretched_out, 32, stretched_out, 32) !=
-        WALLY_OK) {
-        return SC_ERR_HASH;
-    }
+    rust_hmac_sha256(password_secret, sizeof(password_secret), stretched_out, 32, stretched_out);
 
     if (!salt_hash_data(
             (const uint8_t*)password,
@@ -1724,15 +1715,8 @@ int optiga_stretch_password(const char* password, uint8_t* stretched_out)
             password_salted_hashed)) {
         return SC_ERR_SALT;
     }
-    if (wally_hmac_sha256(
-            password_salted_hashed,
-            sizeof(password_salted_hashed),
-            stretched_out,
-            32,
-            stretched_out,
-            32) != WALLY_OK) {
-        return SC_ERR_HASH;
-    }
+    rust_hmac_sha256(
+        password_salted_hashed, sizeof(password_salted_hashed), stretched_out, 32, stretched_out);
     return 0;
 }
 

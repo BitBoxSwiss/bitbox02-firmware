@@ -257,7 +257,7 @@ pub fn main() -> Result<(), &'static str> {
         ]);
     } else {
         // unit test framework includes
-        includes.push("../../../test/unit-test/framework/includes")
+        includes.push("../../../test/hardware-mocks/include")
     }
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");

@@ -308,11 +308,6 @@ keystore_error_t keystore_create_and_store_seed(
     return keystore_encrypt_and_store_seed(seed, host_entropy_size, password);
 }
 
-static void _free_string(char** str)
-{
-    wally_free_string(*str);
-}
-
 USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed_len)
 {
 #ifdef TESTING
@@ -463,24 +458,21 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
         return false;
     }
     usb_processing_timeout_reset(LONG_TIMEOUT);
-    char* mnemonic __attribute__((__cleanup__(_free_string))) = NULL;
-    { // block so that `seed` is zeroed as soon as possible
-        uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-        UTIL_CLEANUP_32(seed);
-        size_t seed_length = 0;
-        if (!keystore_copy_seed(seed, &seed_length)) {
-            return false;
-        }
-        if (bip39_mnemonic_from_bytes(NULL, seed, seed_length, &mnemonic) != WALLY_OK) {
-            return false;
-        }
-    }
-    uint8_t bip39_seed[BIP39_SEED_LEN_512] = {0};
-    UTIL_CLEANUP_64(bip39_seed);
-    if (bip39_mnemonic_to_seed(
-            mnemonic, mnemonic_passphrase, bip39_seed, sizeof(bip39_seed), NULL) != WALLY_OK) {
+
+    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
+    UTIL_CLEANUP_32(seed);
+    size_t seed_length = 0;
+    if (!keystore_copy_seed(seed, &seed_length)) {
         return false;
     }
+
+    uint8_t bip39_seed[BIP39_SEED_LEN_512] = {0};
+    UTIL_CLEANUP_64(bip39_seed);
+    rust_derive_bip39_seed(
+        rust_util_bytes(seed, seed_length),
+        mnemonic_passphrase,
+        rust_util_bytes_mut(bip39_seed, sizeof(bip39_seed)));
+
     if (!_retain_bip39_seed(bip39_seed)) {
         return false;
     }
@@ -501,41 +493,9 @@ bool keystore_is_locked(void)
     return !unlocked;
 }
 
-bool keystore_bip39_mnemonic_from_seed(
-    const uint8_t* seed,
-    size_t seed_size,
-    char* mnemonic_out,
-    size_t mnemonic_out_size)
-{
-    char* mnemonic = NULL;
-    if (bip39_mnemonic_from_bytes(NULL, seed, seed_size, &mnemonic) != WALLY_OK) {
-        return false;
-    }
-    int snprintf_result = snprintf(mnemonic_out, mnemonic_out_size, "%s", mnemonic);
-    util_cleanup_str(&mnemonic);
-    free(mnemonic);
-    return snprintf_result >= 0 && snprintf_result < (int)mnemonic_out_size;
-}
-
-bool keystore_bip39_mnemonic_to_seed(const char* mnemonic, uint8_t* seed_out, size_t* seed_len_out)
-{
-    return bip39_mnemonic_to_bytes(NULL, mnemonic, seed_out, 32, seed_len_out) == WALLY_OK;
-}
-
 bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)
 {
-    char* word_ptr;
-    if (bip39_get_word(NULL, idx, &word_ptr) != WALLY_OK) {
-        return false;
-    }
-    int snprintf_result = snprintf(word_out, word_out_size, "%s", word_ptr);
-    wally_free_string(word_ptr);
-    return snprintf_result >= 0 && snprintf_result < (int)word_out_size;
-}
-
-bool keystore_get_bip39_word(uint16_t idx, char** word_out)
-{
-    return bip39_get_word(NULL, idx, word_out) == WALLY_OK;
+    return rust_get_bip39_word(idx, rust_util_bytes_mut((uint8_t*)word_out, word_out_size));
 }
 
 bool keystore_secp256k1_nonce_commit(

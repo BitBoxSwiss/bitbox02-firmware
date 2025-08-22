@@ -33,6 +33,7 @@
 #include "usb/usb_processing.h"
 #include "utils_ringbuffer.h"
 #include <secp256k1.h>
+#include <ui/oled/oled.h>
 
 #include <wally_crypto.h>
 
@@ -581,7 +582,7 @@ int main(void)
     system_init();
     platform_init();
     __stack_chk_guard = common_stack_chk_guard();
-    screen_init();
+    screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
     screen_splash();
     common_main();
 

@@ -84,7 +84,7 @@ static volatile bool _enabled = false;
 
 struct bb02_display {
     void (*configure)(uint8_t*);
-    void (*set_pixel)(uint16_t x, uint16_t y, uint8_t c);
+    void (*set_pixel)(int16_t x, int16_t y, uint8_t c);
     void (*update)(void);
     void (*off)(void);
     void (*mirror)(bool);
@@ -146,7 +146,7 @@ void oled_mirror(bool mirror)
     bb02_display.mirror(mirror);
 }
 
-void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c)
+void oled_set_pixel(int16_t x, int16_t y, uint8_t c)
 {
     bb02_display.set_pixel(x, y, c);
     _frame_buffer_updated = true;

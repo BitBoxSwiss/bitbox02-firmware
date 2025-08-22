@@ -25,7 +25,7 @@ static uint8_t screen_frame_cnt = 0;
 
 void ui_screen_render_component(component_t* component)
 {
-    UG_ClearBuffer();
+    screen_clear();
     component->position.left = 0;
     component->position.top = 0;
     component->f->render(component);
@@ -91,12 +91,14 @@ void screen_process(void)
     component_t* component = screen_process_get_top_component();
     _screen_draw(component);
 
+#ifndef TESTING
     /*
      * If we have changed activity, the gestures
      * detection must start over.
      */
     bool screen_new = _screen_has_changed(component);
     gestures_detect(screen_new, component->emit_without_release);
+#endif
 
     ui_screen_stack_cleanup();
 }

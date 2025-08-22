@@ -94,7 +94,7 @@ void oled_off(void);
  * Set a screen pixel. This fills the frame buffer
  * prior to it being sent to the screen by oled_send_buffer().
  */
-void oled_set_pixel(uint16_t x, uint16_t y, uint8_t c);
+void oled_set_pixel(int16_t x, int16_t y, uint8_t c);
 
 /**
  * Set brightness (0x00..0xff).

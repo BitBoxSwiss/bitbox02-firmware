@@ -275,23 +275,6 @@ add_custom_target(rust-cbindgen
     ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
 )
 
-if(CMAKE_CROSSCOMPILING)
-  get_property(SAMD51A_INCLUDES TARGET samd51a-ds PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-  get_property(ASF4_MIN_INCLUDES TARGET asf4-drivers-min PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-  get_property(ASF4_INCLUDES TARGET asf4-drivers PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-  get_property(CMSIS_INCLUDES TARGET CMSIS PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-endif()
-get_property(WALLY_INCLUDES TARGET wallycore PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-get_property(SECP256k1_INCLUDES TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-
-foreach(include ${INCLUDES} ${SAMD51A_INCLUDES} ${ASF4_INCLUDES} ${ASF4_MIN_INCLUDES} ${CMSIS_INCLUDES} ${WALLY_INCLUDES} ${SECP256k1_INCLUDES})
-  list(APPEND RUST_INCLUDES -I${include})
-endforeach()
-if(NOT (CMAKE_CROSSCOMPILING AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
-  list(APPEND RUST_INCLUDES -I${CMAKE_SOURCE_DIR}/test/unit-test/framework/includes)
-endif()
-
-
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
   # Since we build with all features we need to use a separate build directory.

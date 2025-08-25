@@ -245,10 +245,17 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Create vars
         id: vars
         run: |
-          echo "git_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "git_sha_short=$(git rev-parse --short HEAD)" >> ${GITHUB_OUTPUT}
+          {
+            echo "git_shortlog<<EOF"
+            git shortlog HEAD~..HEAD
+            echo EOF
+          } >> ${GITHUB_OUTPUT}
       - name: Send message to mattermost
         uses: mattermost/action-mattermost-notify@master
         continue-on-error: true
@@ -260,3 +267,6 @@ jobs:
           TEXT: |
             **${{ github.repository }}: Artifacts built**
             ([${{ github.ref_name }}](https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}), [${{ steps.vars.outputs.git_sha_short }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}), [artifacts](https://github.com/${{ github.repository }}/actions/runs/${{github.run_id}}#artifacts))
+            ```
+            ${{ steps.vars.outputs.git_shortlog }}
+            ```

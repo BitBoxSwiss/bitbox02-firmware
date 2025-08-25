@@ -17,7 +17,7 @@
 
 #include <stdint.h>
 
-enum {
+enum event_types {
     EVENT_CONFIRM,
     EVENT_FORWARD,
     EVENT_BACKWARD,

@@ -45,13 +45,18 @@ mod xpubcache;
 #[macro_use]
 extern crate alloc;
 
-#[cfg(test)]
-mod test {
-    use super::*;
+#[cfg(feature = "firmware")]
+use bitbox_aes;
 
-    #[test]
-    fn trivial_test() {
-        let a = alloc::string::String::from("abc");
-        assert!(&a == "abc");
-    }
+//
+// C interface
+//
+
+/// `private_key_out` must be 32 bytes.
+#[no_mangle]
+pub extern "C" fn rust_noise_generate_static_private_key(
+    mut private_key_out: util::bytes::BytesMut,
+) {
+    let key = bitbox02_noise::generate_static_private_key::<hww::noise::BB02Random32>();
+    private_key_out.as_mut().copy_from_slice(&key[..]);
 }

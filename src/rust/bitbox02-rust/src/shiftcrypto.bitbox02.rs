@@ -138,7 +138,7 @@ pub mod device_info_response {
         /// Hash of the currently active Bluetooth firmware on the device.
         #[prost(bytes = "vec", tag = "1")]
         pub firmware_hash: ::prost::alloc::vec::Vec<u8>,
-        /// Firmware version, formated as "major.minor.patch".
+        /// Firmware version, formated as an unsigned integer "1", "2", etc.
         #[prost(string, tag = "2")]
         pub firmware_version: ::prost::alloc::string::String,
         /// True if Bluetooth is enabled

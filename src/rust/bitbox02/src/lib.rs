@@ -30,6 +30,9 @@ extern crate alloc;
 
 use alloc::string::String;
 
+#[cfg(feature = "bindings")]
+pub use bitbox02_sys as bindings;
+
 #[cfg(feature = "testing")]
 pub mod testing;
 
@@ -63,7 +66,7 @@ pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
 }
 
 pub fn ug_clear_buffer() {
-    unsafe { bitbox02_sys::UG_ClearBuffer() }
+    unsafe { bitbox02_sys::screen_clear() }
 }
 
 pub fn ug_send_buffer() {
@@ -267,6 +270,7 @@ pub fn communication_mode_ble_enabled() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate bitbox02_rust;
 
     #[test]
     fn test_format_datetime() {

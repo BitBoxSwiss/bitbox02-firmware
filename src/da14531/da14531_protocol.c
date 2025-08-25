@@ -416,7 +416,7 @@ struct da14531_protocol_frame* da14531_protocol_poll(
     return frame;
 }
 
-#if FACTORYSETUP == 1 || !defined(NDEBUG)
+#if (FACTORYSETUP == 1 || !defined(NDEBUG)) && !defined(TESTING)
 static bool _swd_reset_da14531(void)
 {
     dap_init();
@@ -460,7 +460,7 @@ void da14531_protocol_init(void)
 
 // Only attempt swd reset in factory setup or debug builds. In production swd is turned off and
 // this is therefore useless.
-#if FACTORYSETUP == 1 || !defined(NDEBUG)
+#if (FACTORYSETUP == 1 || !defined(NDEBUG)) && !defined(TESTING)
     // Load the firmware from external flash to RAM so that we are ready to flash.
     if (ble_fw == NULL) {
         if (!memory_spi_get_active_ble_firmware(&ble_fw, &ble_fw_size, &ble_fw_checksum)) {

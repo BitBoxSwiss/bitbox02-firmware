@@ -20,16 +20,6 @@ edition = "2024"
 license = "Apache-2.0"
 
 [dependencies]
-bitbox02 = { path = "../bitbox02", optional = true }
-sha2 = { workspace = true }
-hmac = { version = "0.12", default-features = false, features = ["reset"] }
+bitcoin = { workspace = true }
 ctaes = { version = "0.1.0" }
 zeroize = { workspace = true }
-
-[features]
-# We use wally_sha512 over `sha2::Sha512`, which bloats the binary by an additional ~12.7kB (at the
-# time of writing).  This should be enabled for production builds until we can get rid of
-# wally_sha512 completely.  This feature exists so `cargo test` works.
-use-wally-sha512 = [
-  "dep:bitbox02",
-]

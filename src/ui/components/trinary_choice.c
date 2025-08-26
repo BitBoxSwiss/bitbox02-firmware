@@ -25,9 +25,6 @@
 typedef struct {
     void (*chosen_cb)(trinary_choice_t, void* param);
     void* chosen_cb_param;
-    component_t* button_left;
-    component_t* button_middle;
-    component_t* button_right;
 } data_t;
 
 /**
@@ -95,24 +92,23 @@ component_t* trinary_choice_create(
         ui_util_add_sub_component(component, label_create(message, NULL, CENTER, component));
     }
 
-    data->button_left = button_create(label_left, bottom_slider, 0, _left_selected, component);
-    ui_util_add_sub_component(component, data->button_left);
+    component_t* button_left =
+        button_create(label_left, bottom_slider, 0, _left_selected, component);
+    ui_util_add_sub_component(component, button_left);
 
-    data->button_middle =
+    component_t* button_middle =
         button_create(label_middle, bottom_slider, 0, _middle_selected, component);
-    ui_util_add_sub_component(component, data->button_middle);
+    ui_util_add_sub_component(component, button_middle);
 
-    data->button_right = button_create(label_right, bottom_slider, 0, _right_selected, component);
-    ui_util_add_sub_component(component, data->button_right);
+    component_t* button_right =
+        button_create(label_right, bottom_slider, 0, _right_selected, component);
+    ui_util_add_sub_component(component, button_right);
 
-    ui_util_position_left_bottom_offset(component, data->button_left, 0, 0);
+    ui_util_position_left_bottom_offset(component, button_left, 0, 0);
     ui_util_position_left_bottom_offset(
-        component,
-        data->button_middle,
-        SCREEN_WIDTH / 2 - data->button_middle->dimension.width / 2,
-        0);
+        component, button_middle, SCREEN_WIDTH / 2 - button_middle->dimension.width / 2, 0);
     ui_util_position_left_bottom_offset(
-        component, data->button_right, SCREEN_WIDTH - data->button_right->dimension.width, 0);
+        component, button_right, SCREEN_WIDTH - button_right->dimension.width, 0);
 
     return component;
 }

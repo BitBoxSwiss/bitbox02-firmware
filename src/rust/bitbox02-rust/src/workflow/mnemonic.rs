@@ -324,12 +324,7 @@ pub async fn get(
     let mut word_idx: usize = 0;
     let mut entered_words = vec![zeroize::Zeroizing::new(String::new()); num_words];
     while word_idx < num_words {
-        let title = match word_idx + 1 {
-            n @ 1 | n @ 21 => format!("{}st word", n),
-            n @ 2 | n @ 22 => format!("{}nd word", n),
-            n @ 3 | n @ 23 => format!("{}rd word", n),
-            n => format!("{}th word", n),
-        };
+        let title = format!("{} of {}", word_idx + 1, num_words);
 
         // The already entered word will already be filled out (if not empty, i.e. not entered
         // before). This happens when one goes back to edit previous words, and also when the user

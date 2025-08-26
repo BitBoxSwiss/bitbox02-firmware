@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Change title when entering recovery words to `1 of 24`, `2 of 24`, etc.
 
 ### 9.23.1
 - EVM: add HyperEVM (HYPE) and SONIC (S) to known networks

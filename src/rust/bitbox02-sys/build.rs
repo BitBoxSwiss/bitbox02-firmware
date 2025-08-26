@@ -262,7 +262,6 @@ pub fn main() -> Result<(), &'static str> {
         .args(["--output", &out_path])
         .arg("--use-core")
         .arg("--with-derive-default")
-        .args(["--ctypes-prefix", "util::c_types"])
         .args(
             ALLOWLIST_FNS
                 .iter()

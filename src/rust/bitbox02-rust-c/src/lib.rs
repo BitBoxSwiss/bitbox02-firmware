@@ -71,7 +71,7 @@ pub extern "C" fn rust_rtt_flush() {
 /// The pointer `ptr` must point to a null terminated string
 #[no_mangle]
 #[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
-pub unsafe extern "C" fn rust_log(ptr: *const ::util::c_types::c_char) {
+pub unsafe extern "C" fn rust_log(ptr: *const core::ffi::c_char) {
     #[cfg(all(feature = "rtt", target_os = "none"))]
     {
         if ptr.is_null() {

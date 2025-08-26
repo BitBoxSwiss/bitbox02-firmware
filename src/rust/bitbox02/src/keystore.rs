@@ -66,7 +66,10 @@ pub fn unlock(password: &str) -> Result<(), Error> {
     let mut securechip_result: i32 = 0;
     match unsafe {
         bitbox02_sys::keystore_unlock(
-            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
+            crate::util::str_to_cstr_vec(password)
+                .unwrap()
+                .as_ptr()
+                .cast(),
             &mut remaining_attempts,
             &mut securechip_result,
         )
@@ -89,7 +92,8 @@ pub fn unlock_bip39(mnemonic_passphrase: &str) -> Result<(), Error> {
         bitbox02_sys::keystore_unlock_bip39(
             crate::util::str_to_cstr_vec(mnemonic_passphrase)
                 .unwrap()
-                .as_ptr(),
+                .as_ptr()
+                .cast(),
         )
     } {
         Ok(())
@@ -101,7 +105,10 @@ pub fn unlock_bip39(mnemonic_passphrase: &str) -> Result<(), Error> {
 pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::keystore_create_and_store_seed(
-            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
+            crate::util::str_to_cstr_vec(password)
+                .unwrap()
+                .as_ptr()
+                .cast(),
             host_entropy.as_ptr(),
             host_entropy.len() as _,
         )
@@ -147,7 +154,7 @@ pub fn secp256k1_sign(
     host_nonce: &[u8; 32],
 ) -> Result<SignResult, ()> {
     let mut signature = [0u8; 64];
-    let mut recid: util::c_types::c_int = 0;
+    let mut recid: core::ffi::c_int = 0;
     match unsafe {
         bitbox02_sys::keystore_secp256k1_sign(
             private_key.as_ptr(),
@@ -196,7 +203,10 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
         bitbox02_sys::keystore_encrypt_and_store_seed(
             seed.as_ptr(),
             seed.len(),
-            crate::util::str_to_cstr_vec(password).unwrap().as_ptr(),
+            crate::util::str_to_cstr_vec(password)
+                .unwrap()
+                .as_ptr()
+                .cast(),
         )
     } {
         keystore_error_t::KEYSTORE_OK => Ok(()),

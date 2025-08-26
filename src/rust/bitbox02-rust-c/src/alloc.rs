@@ -15,8 +15,8 @@
 struct BB02Allocator;
 
 extern "C" {
-    pub fn malloc(size: usize) -> *mut util::c_types::c_void;
-    pub fn free(p: *mut util::c_types::c_void);
+    pub fn malloc(size: usize) -> *mut core::ffi::c_void;
+    pub fn free(p: *mut core::ffi::c_void);
 }
 
 unsafe impl core::alloc::GlobalAlloc for BB02Allocator {

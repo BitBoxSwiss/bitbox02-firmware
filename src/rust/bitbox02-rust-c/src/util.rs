@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use util::c_types::c_uchar;
+use core::ffi::c_uchar;
 
 /// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
 ///

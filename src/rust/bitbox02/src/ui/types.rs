@@ -83,9 +83,9 @@ impl<'a> ConfirmParams<'a> {
             crate::util::str_to_cstr_vec(crate::util::truncate_str(self.body, TRUNCATE_SIZE))
                 .unwrap();
         Survive::new(bitbox02_sys::confirm_params_t {
-            title: title_scatch.as_ptr(),
+            title: title_scatch.as_ptr().cast(),
             title_autowrap: self.title_autowrap,
-            body: body_scratch.as_ptr(),
+            body: body_scratch.as_ptr().cast(),
             font: self.font.as_ptr(),
             scrollable: self.scrollable,
             longtouch: self.longtouch,
@@ -125,7 +125,7 @@ impl<'a> TrinaryInputStringParams<'a> {
                 .unwrap();
 
         Survive::new(bitbox02_sys::trinary_input_string_params_t {
-            title: title_scratch.as_ptr(),
+            title: title_scratch.as_ptr().cast(),
             wordlist: match self.wordlist {
                 None => core::ptr::null(),
                 Some(wordlist) => wordlist.as_ptr(),

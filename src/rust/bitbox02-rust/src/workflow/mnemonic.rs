@@ -306,11 +306,11 @@ pub async fn get(
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
     let num_words: usize = match hal
         .ui()
-        .trinary_choice("How many words?", Some("12"), Some("18"), Some("24"))
+        .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
+        TrinaryChoice::TRINARY_CHOICE_MIDDLE => unreachable!(),
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
     };
 

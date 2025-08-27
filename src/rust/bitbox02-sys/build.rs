@@ -213,7 +213,7 @@ pub fn main() -> Result<(), &'static str> {
         "../../usb/class/hid/hww",
         "../../usb/class/hid/u2f",
         // $SECP256k1_INCLUDES
-        "../../../external/libwally-core/src/secp256k1/include",
+        "../../../external/secp256k1-zkp/include",
     ];
 
     if cross_compiling {

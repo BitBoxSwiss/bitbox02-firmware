@@ -235,7 +235,7 @@ else()
   set(RUSTFLAGS "--remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src --remap-path-prefix=$ENV{HOME}=")
 endif()
 
-# Use libsecp256k1 that we link ourselves (included via external/libwally-core).
+# Use libsecp256k1 that we link ourselves.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 set(RUSTFLAGS "${RUSTFLAGS} --cfg=rust_secp_no_symbol_renaming")
 
@@ -277,7 +277,7 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lbitbox_merged -lwallycore -lsecp256k1 -lfatfs -lhardware-fakes)
+  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lbitbox_merged -lsecp256k1 -lfatfs -lhardware-fakes)
 
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a
@@ -293,7 +293,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAGS} -- --nocapture --test-threads 1
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
-  add_dependencies(rust-test generate-protobufs bitbox_merged libwally-core fatfs)
+  add_dependencies(rust-test generate-protobufs bitbox_merged fatfs)
 
   add_custom_target(rust-clippy
     COMMAND
@@ -520,8 +520,7 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
-    add_dependencies(${elf} libwally-core)
-    target_link_libraries(${elf} PRIVATE wallycore secp256k1)
+    target_link_libraries(${elf} PRIVATE secp256k1)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
     # Select the smaller version of libc called nano.

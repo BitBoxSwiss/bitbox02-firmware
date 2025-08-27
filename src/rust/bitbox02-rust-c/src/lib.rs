@@ -18,9 +18,6 @@
 #[macro_use]
 extern crate std;
 
-// Since util_c defines an "alloc_error_handler" we get conflicts with std when testing
-#[cfg(not(test))]
-// for `format!`
 #[macro_use]
 mod alloc;
 
@@ -28,12 +25,16 @@ mod util;
 
 #[cfg(feature = "firmware")]
 mod async_usb;
+#[cfg(feature = "firmware")]
+mod bip39;
 #[cfg(feature = "bitbox02-noise")]
 mod noise;
 #[cfg(feature = "firmware")]
 mod p256;
 #[cfg(feature = "sha2")]
 mod sha2;
+#[cfg(feature = "app-u2f")]
+mod u2f;
 #[cfg(feature = "firmware")]
 mod workflow;
 

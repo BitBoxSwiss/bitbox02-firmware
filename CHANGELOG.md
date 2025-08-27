@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Change title when entering recovery words to `1 of 24`, `2 of 24`, etc.
+- Unlock is now faster after password/passphrase entry (shorter unlock animation)
 
 ### 9.23.1
 - EVM: add HyperEVM (HYPE) and SONIC (S) to known networks

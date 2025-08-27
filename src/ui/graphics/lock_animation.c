@@ -145,7 +145,7 @@ static const uint8_t* _get_frame(int frame_idx)
 }
 #endif
 
-#define TIMEOUT_TICK_PERIOD_MS 100
+#define TIMEOUT_TICK_PERIOD_MS 40
 
 #ifndef TESTING
 static struct timer_task _animation_timer_task = {0};

@@ -125,35 +125,6 @@ void keystore_lock(void);
 USE_RESULT bool keystore_is_locked(void);
 
 /**
- * Converts a 16/24/32 byte seed into a BIP-39 mnemonic string.
- * Returns false if the seed size is invalid or the output string buffer is not large enough.
- */
-USE_RESULT bool keystore_bip39_mnemonic_from_seed(
-    const uint8_t* seed,
-    size_t seed_size,
-    char* mnemonic_out,
-    size_t mnemonic_out_size);
-
-/**
- * Turn a bip39 mnemonic into a seed. Make sure to use UTIL_CLEANUP_32 to destroy it.
- * Output can be fed into `keystore_encrypt_and_store_seed` to create a keystore from the mnemonic.
- * @param[in] mnemonic 12/18/24 word bip39 mnemonic
- * @param[out] seed_out must be 32 bytes
- * @param[out] seed_len_out will be the size of the seed
- */
-USE_RESULT bool keystore_bip39_mnemonic_to_seed(
-    const char* mnemonic,
-    uint8_t* seed_out,
-    size_t* seed_len_out);
-
-/**
- * Returns the pointer to a word in the word list for the given index.
- * @param[in] idx The index into the word list. Must be smaller than BIP39_WORDLIST_LEN.
- * @param[out] word_out The pointer to the character array for the given index.
- */
-USE_RESULT bool keystore_get_bip39_word(uint16_t idx, char** word_out);
-
-/**
  * Retrieves the BIP39 word by index. `word_out` should be of at least 9 bytes long.
  */
 USE_RESULT bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size);

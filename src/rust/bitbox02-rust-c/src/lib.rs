@@ -70,9 +70,9 @@ pub extern "C" fn rust_rtt_flush() {
 ///
 /// The pointer `ptr` must point to a null terminated string
 #[no_mangle]
-#[cfg_attr(not(feature = "rtt"), allow(unused))]
+#[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
 pub unsafe extern "C" fn rust_log(ptr: *const ::util::c_types::c_char) {
-    #[cfg(feature = "rtt")]
+    #[cfg(all(feature = "rtt", target_os = "none"))]
     {
         if ptr.is_null() {
             panic!("`ptr` must be a valid pointer");
@@ -144,9 +144,9 @@ pub unsafe extern "C" fn rust_secp256k1_get_private_key(
 /// The pointer `data` must point to a buffer of length `len`.
 #[no_mangle]
 #[allow(static_mut_refs)]
-#[cfg_attr(not(feature = "rtt"), allow(unused))]
+#[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
 pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
-    #[cfg(feature = "rtt")]
+    #[cfg(all(feature = "rtt", target_os = "none"))]
     {
         let buf = unsafe { core::slice::from_raw_parts(data, len) };
         let channel = unsafe { ::util::log::CH1_UP.as_mut().unwrap() };
@@ -162,14 +162,14 @@ pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
 /// The pointer `data` must point to a buffer of length `len`.
 #[no_mangle]
 #[allow(static_mut_refs)]
-#[cfg_attr(not(feature = "rtt"), allow(unused))]
+#[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
 pub unsafe extern "C" fn rust_rtt_ch0_read(data: *mut u8, len: usize) -> usize {
-    #[cfg(feature = "rtt")]
+    #[cfg(all(feature = "rtt", target_os = "none"))]
     {
         let buf = unsafe { core::slice::from_raw_parts_mut(data, len) };
         let channel = unsafe { ::util::log::CH0_DOWN.as_mut().unwrap() };
         channel.read(buf)
     }
-    #[cfg(not(feature = "rtt"))]
+    #[cfg(not(all(feature = "rtt", target_os = "none")))]
     0
 }

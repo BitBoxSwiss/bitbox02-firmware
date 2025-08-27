@@ -44,17 +44,6 @@ endforeach()
 
 message("FILTERED SOURCES: ${DBB-FILTERED-SOURCES}")
 
-add_library(sd-mock-simulator
-  STATIC EXCLUDE_FROM_ALL
-  framework/mock_diskio.c
-)
-target_include_directories(
-  sd-mock-simulator
-  PUBLIC
-  $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
-)
-
-
 # We create a CMake "object library" to track all the compiled sources so that
 # they can be reused between a normal library and the manually crafted "merged"
 # library.
@@ -63,12 +52,6 @@ add_library(bitbox_objects-simulator
   OBJECT EXCLUDE_FROM_ALL
   ${DBB-FILTERED-SOURCES}
   ${ETHEREUM-SOURCES}
-  framework/mock_cipher.c
-  framework/mock_memory.c
-  framework/mock_spi_mem.c
-  framework/mock_screen.c
-  framework/mock_smarteeprom.c
-  framework/mock_securechip.c
 )
 
 add_library(bitbox-simulator
@@ -109,7 +92,6 @@ target_include_directories(
   bitbox_objects-simulator
   PUBLIC
   ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/../unit-test/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
 )
@@ -129,7 +111,6 @@ target_include_directories(
   bitbox-simulator
   PUBLIC
   ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/../unit-test/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
 )
@@ -139,8 +120,8 @@ add_dependencies(bitbox_objects-simulator
   wallycore
   secp256k1
   fatfs
-  sd-mock-simulator
 )
+target_link_libraries(bitbox_objects-simulator PUBLIC hardware-mocks)
 target_link_libraries(bitbox-simulator PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
 # _UNIT_TEST_ is used by ASF4 to not cross compile
@@ -160,7 +141,6 @@ target_link_libraries(bitbox-simulator
   PRIVATE
     wallycore
     fatfs
-    sd-mock-simulator
 )
 
 if(SANITIZE_ADDRESS)
@@ -175,7 +155,7 @@ endif()
 #-----------------------------------------------------------------------------
 # Simulator
 
-add_executable(simulator EXCLUDE_FROM_ALL simulator.c framework/eh_personality.c)
+add_executable(simulator EXCLUDE_FROM_ALL simulator.c)
 # asan must be first library in linking order
 target_link_libraries(simulator PRIVATE
   $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
@@ -183,6 +163,8 @@ target_link_libraries(simulator PRIVATE
   $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
   c-unit-tests_rust_c
   bitbox-simulator
+  hardware-mocks
+  fatfs
   $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
   ""
 )

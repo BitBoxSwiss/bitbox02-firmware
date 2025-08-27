@@ -350,6 +350,14 @@ if (PROTOC STREQUAL "PROTOC-NOTFOUND")
   message(FATAL_ERROR "Could not find 'protoc'.")
 endif()
 
+# We use FindPkgConfig instead of FindPackage because it finds libraries in
+# both linux and macos
+find_package(PkgConfig REQUIRED)
+
+# Unit testing uses CMocka (rust unit testing is in `src`, which is why we load
+# it already here.)
+pkg_check_modules(CMOCKA REQUIRED cmocka)
+
 #-----------------------------------------------------------------------------
 # Build
 
@@ -389,6 +397,7 @@ if(CMAKE_CROSSCOMPILING)
   add_dependencies(doc rust-docs)
 else()
   include(CTest)
+  add_subdirectory(test/hardware-mocks)
   add_subdirectory(test/unit-test)
   add_subdirectory(test/simulator)
   if(COVERAGE)

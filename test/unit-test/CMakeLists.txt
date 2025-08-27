@@ -19,8 +19,6 @@
 # both linux and macos
 find_package(PkgConfig REQUIRED)
 
-# Unit testing uses CMocka
-pkg_check_modules(CMOCKA REQUIRED cmocka)
 # u2f tests with hardware uses hidapi-hidraw
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   pkg_check_modules(HIDAPI REQUIRED hidapi)
@@ -57,17 +55,6 @@ foreach(SOURCEFILE ${IGNORE_SOURCES})
     list(FILTER DBB-FILTERED-SOURCES EXCLUDE REGEX ".*/${SOURCEFILE}$")
 endforeach()
 
-add_library(sd-mock
-  STATIC
-  framework/mock_diskio.c
-)
-target_include_directories(
-  sd-mock
-  PUBLIC
-  $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
-)
-
-
 # We create a CMake "object library" to track all the compiled sources so that
 # they can be reused between a normal library and the manually crafted "merged"
 # library.
@@ -76,17 +63,6 @@ add_library(bitbox_objects
   OBJECT
   ${DBB-FILTERED-SOURCES}
   ${ETHEREUM-SOURCES}
-  framework/mock_cipher.c
-  framework/mock_screen.c
-  framework/mock_screen_stack.c
-  framework/mock_memory.c
-  framework/mock_spi_mem.c
-  framework/mock_qtouch.c
-  framework/mock_gestures.c
-  framework/mock_component.c
-  framework/mock_smarteeprom.c
-  framework/mock_securechip.c
-  framework/mock_delay.c
 )
 
 add_library(bitbox
@@ -127,10 +103,8 @@ target_include_directories(
   bitbox_objects
   PUBLIC
   ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
-  ${CMOCKA_INCLUDE_DIRS}
 )
 
 target_include_directories(
@@ -148,7 +122,6 @@ target_include_directories(
   bitbox
   PUBLIC
   ${INCLUDES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/framework/includes
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/src
 )
@@ -158,8 +131,8 @@ add_dependencies(bitbox_objects
   wallycore
   secp256k1
   fatfs
-  sd-mock
 )
+target_link_libraries(bitbox_objects PUBLIC hardware-mocks)
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
 # _UNIT_TEST_ is used by ASF4 to not cross compile
@@ -176,11 +149,9 @@ target_compile_definitions(bitbox PUBLIC TESTING _UNIT_TEST_)
 target_link_libraries(bitbox
   PUBLIC
     secp256k1
-    ${CMOCKA_LDFLAGS}
   PRIVATE
     wallycore
     fatfs
-    sd-mock
 )
 
 if(SANITIZE_ADDRESS)
@@ -264,7 +235,7 @@ else()
     list(GET TEST_LIST ${I} TEST_NAME)
     list(GET TEST_LIST ${I2} TEST_LINK_ARGS)
     set(EXE test_${TEST_NAME})
-    add_executable(${EXE} test_${TEST_NAME}.c framework/eh_personality.c)
+    add_executable(${EXE} test_${TEST_NAME}.c)
     # asan must be first library in linking order
     target_link_libraries(${EXE} PRIVATE
       $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
@@ -272,6 +243,8 @@ else()
       -Wl,--start-group
       c-unit-tests_rust_c
       bitbox
+      hardware-mocks
+      fatfs
       -Wl,--end-group
       ${TEST_LINK_ARGS}
     )
@@ -293,13 +266,15 @@ foreach(TEST_NAME ${U2F_TESTS})
   set(EXE test_${TEST_NAME})
 
   # This tests link to our code
-  add_executable(${EXE} test_${TEST_NAME}.c framework/mock_hidapi.c framework/eh_personality.c)
+  add_executable(${EXE} test_${TEST_NAME}.c framework/mock_hidapi.c)
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
     bitbox
+    hardware-mocks
+    fatfs
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
     u2f-util
   )

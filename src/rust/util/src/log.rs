@@ -1,5 +1,5 @@
 // Re-export rtt_target so that it is available to the macro user
-#[cfg(feature = "rtt")]
+#[cfg(all(feature = "rtt", target_os = "none"))]
 pub use ::rtt_target;
 
 /// Macro to log over RTT if `rtt` feature is set, otherwise noop
@@ -11,13 +11,13 @@ macro_rules! log {
 // Make log macro usable in crate
 pub use log;
 
-#[cfg(feature = "rtt")]
+#[cfg(all(feature = "rtt", target_os = "none"))]
 pub static mut CH1_UP: Option<rtt_target::UpChannel> = None;
-#[cfg(feature = "rtt")]
+#[cfg(all(feature = "rtt", target_os = "none"))]
 pub static mut CH0_DOWN: Option<rtt_target::DownChannel> = None;
 
 pub fn rtt_init() {
-    #[cfg(feature = "rtt")]
+    #[cfg(all(feature = "rtt", target_os = "none"))]
     {
         let channels = rtt_target::rtt_init! {
             up: {
@@ -56,6 +56,6 @@ pub fn rtt_init() {
 
 /// Wait until all messages have been read by host
 pub fn rtt_flush() {
-    #[cfg(feature = "rtt")]
+    #[cfg(all(feature = "rtt", target_os = "none"))]
     rtt_target::with_terminal_channel(|c| c.flush());
 }

@@ -277,6 +277,8 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
+  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} ${CMOCKA_LDFLAGS} -lbitbox_merged -lwallycore -lsecp256k1 -lfatfs -lhardware-mocks)
+
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a
   # different set of features.
@@ -286,14 +288,12 @@ if(NOT CMAKE_CROSSCOMPILING)
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
+        RUSTFLAGS="${RUSTFLAGS_TESTS}"
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO} test $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v> --all-features --target-dir ${RUST_BINARY_DIR}/all-features ${RUST_CARGO_FLAGS} -- --nocapture --test-threads 1
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/
     )
-  add_dependencies(rust-test generate-protobufs)
-  if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_dependencies(rust-test bitbox_merged)
-  endif()
+  add_dependencies(rust-test generate-protobufs bitbox_merged libwally-core fatfs)
 
   add_custom_target(rust-clippy
     COMMAND
@@ -379,6 +379,11 @@ endif()
 #  *  firmware-btc_rust_c
 #  *  factory-setup_rust_c
 foreach(type ${RUST_LIBS})
+  # We build the rust standard libs so that everything from the rust runtime
+  # is included (like eh_personality).
+  if(type STREQUAL "c-unit-tests")
+      set(RUST_CARGO_FLAGS ${RUST_CARGO_FLAGS} -Zbuild-std)
+  endif()
   set(lib ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
   # The dummy output is to always trigger rebuild (cargo is clever enough to
   # only rebuild if something changed)

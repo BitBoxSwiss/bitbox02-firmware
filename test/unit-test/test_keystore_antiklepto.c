@@ -19,8 +19,8 @@
 
 #include <keystore.h>
 
+#include <rust/rust.h>
 #include <secp256k1_ecdsa_s2c.h>
-#include <wally_bip32.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -74,16 +74,11 @@ static void _test_keystore_antiklepto(void** state)
         uint8_t host_nonce_commitment[32];
 
         // Get pubkey at keypath
-        struct ext_key xprv_master = {0};
-        struct ext_key xprv_derived = {0};
-        assert_int_equal(
-            bip32_key_from_seed(
-                _mock_bip39_seed, BIP32_ENTROPY_LEN_512, BIP32_VER_MAIN_PRIVATE, 0, &xprv_master),
-            WALLY_OK);
-        assert_int_equal(
-            bip32_key_from_parent_path(
-                &xprv_master, keypath, 5, BIP32_FLAG_KEY_PRIVATE, &xprv_derived),
-            WALLY_OK);
+        uint8_t private_key[32] = {0};
+        assert_true(rust_secp256k1_get_private_key(
+            keypath, 5, rust_util_bytes_mut(private_key, sizeof(private_key))));
+        secp256k1_pubkey public_key = {0};
+        assert_true(secp256k1_ec_pubkey_create(ctx, &public_key, private_key));
 
         // Protocol steps are described in secp256k1/include/secp256k1_ecdsa_s2c.h under "ECDSA
         // Anti-Klepto Protocol".
@@ -93,23 +88,19 @@ static void _test_keystore_antiklepto(void** state)
 
         // Commit - protocol step 2.
         assert_true(keystore_secp256k1_nonce_commit(
-            ctx, xprv_derived.priv_key + 1, msg, host_nonce_commitment, signer_commitment));
+            ctx, private_key, msg, host_nonce_commitment, signer_commitment));
         // Protocol step 3: host_nonce sent from host to signer to be used in step 4
         // Sign - protocol step 4.
-        assert_true(
-            keystore_secp256k1_sign(ctx, xprv_derived.priv_key + 1, msg, host_nonce, sig, &recid));
+        assert_true(keystore_secp256k1_sign(ctx, private_key, msg, host_nonce, sig, &recid));
 
         // Protocol step 5: host verification.
         secp256k1_ecdsa_signature parsed_signature;
         assert_true(secp256k1_ecdsa_signature_parse_compact(ctx, &parsed_signature, sig));
 
-        secp256k1_pubkey parsed_pubkey;
-        assert_true(secp256k1_ec_pubkey_parse(
-            ctx, &parsed_pubkey, xprv_derived.pub_key, sizeof(xprv_derived.pub_key)));
         secp256k1_ecdsa_s2c_opening opening;
         assert_true(secp256k1_ecdsa_s2c_opening_parse(ctx, &opening, signer_commitment));
         assert_true(secp256k1_anti_exfil_host_verify(
-            ctx, &parsed_signature, msg, &parsed_pubkey, host_nonce, &opening));
+            ctx, &parsed_signature, msg, &public_key, host_nonce, &opening));
     }
 
     secp256k1_context_destroy(ctx);

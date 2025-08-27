@@ -14,13 +14,15 @@
 
 use bitcoin::secp256k1::ffi::CPtr;
 
+use bitcoin::secp256k1::{All, Secp256k1};
+
 use alloc::vec::Vec;
 
-pub fn ecdsa_anti_exfil_host_commit(rand32: &[u8]) -> Result<Vec<u8>, ()> {
+pub fn ecdsa_anti_exfil_host_commit(secp: &Secp256k1<All>, rand32: &[u8]) -> Result<Vec<u8>, ()> {
     let mut out = [0u8; 32];
     match unsafe {
         bitbox02_sys::secp256k1_ecdsa_anti_exfil_host_commit(
-            bitbox02_sys::wally_get_secp_context(),
+            secp.ctx().as_ptr().cast(),
             out.as_mut_ptr(),
             rand32.as_ptr(),
         )
@@ -31,6 +33,7 @@ pub fn ecdsa_anti_exfil_host_commit(rand32: &[u8]) -> Result<Vec<u8>, ()> {
 }
 
 pub fn dleq_prove(
+    secp: &Secp256k1<All>,
     sk: &[u8; 32],
     gen2: &bitcoin::secp256k1::PublicKey,
     p1: &bitcoin::secp256k1::PublicKey,
@@ -40,7 +43,7 @@ pub fn dleq_prove(
     let mut e = [0u8; 32];
     let result = unsafe {
         bitbox02_sys::bitbox_secp256k1_dleq_prove(
-            bitbox02_sys::wally_get_secp_context(),
+            secp.ctx().as_ptr().cast(),
             s.as_mut_ptr(),
             e.as_mut_ptr(),
             sk.as_ptr(),
@@ -59,6 +62,7 @@ pub fn dleq_prove(
 }
 
 pub fn dleq_verify(
+    secp: &Secp256k1<All>,
     proof: [u8; 64],
     gen2: &bitcoin::secp256k1::PublicKey,
     p1: &bitcoin::secp256k1::PublicKey,
@@ -66,7 +70,7 @@ pub fn dleq_verify(
 ) -> Result<(), ()> {
     let result = unsafe {
         bitbox02_sys::bitbox_secp256k1_dleq_verify(
-            bitbox02_sys::wally_get_secp_context(),
+            secp.ctx().as_ptr().cast(),
             proof[..32].as_ptr(),
             proof[32..].as_ptr(),
             p1.as_c_ptr() as _,
@@ -99,7 +103,7 @@ mod tests {
 
         let other_pubkey = other_base;
         let other_pubkey = other_pubkey.mul_tweak(&secp, &seckey.into()).unwrap();
-        let proof = dleq_prove(seckey_bytes, &other_base, &pubkey, &other_pubkey).unwrap();
+        let proof = dleq_prove(&secp, seckey_bytes, &other_base, &pubkey, &other_pubkey).unwrap();
         // Check against fixture so potential upstream changes in the DLEQ implementation get
         // caught.  Incompatible changes can break BitBox client libraries that rely on this
         // specific DLEQ implementation.
@@ -108,6 +112,7 @@ mod tests {
             "6c885f825f6ce7565bc6d0bfda90506b11e2682dfe943f5a85badf1c8a96edc5f5e03f5ee2c58bf979646fbada920f9f1c5bd92805fb5b01534b42d26a550f79",
         );
         dleq_verify(
+            &secp,
             proof.try_into().unwrap(),
             &other_base,
             &pubkey,

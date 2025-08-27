@@ -141,10 +141,16 @@ fn create_dleq_proof(
         .mul_tweak(secp, &Scalar::from(*a_sum))
         .map_err(|_| ())?;
 
-    let proof =
-        bitbox02::secp256k1::dleq_prove(a_sum.as_ref(), scan_pubkey, a_sum_pubkey, &c_pubkey)?;
+    let proof = bitbox02::secp256k1::dleq_prove(
+        secp,
+        a_sum.as_ref(),
+        scan_pubkey,
+        a_sum_pubkey,
+        &c_pubkey,
+    )?;
     // Sanity check.
     bitbox02::secp256k1::dleq_verify(
+        secp,
         proof.as_slice().try_into().unwrap(),
         scan_pubkey,
         a_sum_pubkey,

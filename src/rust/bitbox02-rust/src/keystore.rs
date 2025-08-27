@@ -24,6 +24,8 @@ use bitbox02::keystore;
 use util::bip32::HARDENED;
 
 use crate::hash::Sha512;
+use crate::secp256k1::SECP256K1;
+
 use hmac::{digest::FixedOutput, Mac, SimpleHmac};
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
@@ -37,10 +39,9 @@ fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
         bitcoin::bip32::Xpriv::new_master(bitcoin::NetworkKind::Main, &bip39_seed)
             .map_err(|_| ())?
             .into();
-    let secp = bitcoin::secp256k1::Secp256k1::new();
     Ok(xprv
         .xprv
-        .derive_priv(&secp, &bip32::keypath_from_slice(keypath))
+        .derive_priv(SECP256K1, &bip32::keypath_from_slice(keypath))
         .map_err(|_| ())?
         .into())
 }
@@ -68,9 +69,7 @@ pub fn secp256k1_get_private_key_twice(keypath: &[u32]) -> Result<zeroize::Zeroi
 /// derivation is allowed.
 pub fn get_xpub_once(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
     let xpriv = get_xprv(keypath)?;
-    let secp = bitcoin::secp256k1::Secp256k1::new();
-    let xpub = bitcoin::bip32::Xpub::from_priv(&secp, &xpriv.xprv);
-
+    let xpub = bitcoin::bip32::Xpub::from_priv(SECP256K1, &xpriv.xprv);
     Ok(bip32::Xpub::from(xpub))
 }
 

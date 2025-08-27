@@ -22,6 +22,8 @@ pub use pb::btc_pub_request::XPubType;
 use bitcoin::hashes::Hash;
 use zeroize::Zeroize;
 
+use crate::secp256k1::SECP256K1;
+
 // Wrapper of `bitcoin::bip32::Xpriv` to imlement zeroizing on drop.
 #[derive(PartialEq)]
 pub struct Xprv {
@@ -155,9 +157,8 @@ impl Xpub {
     pub fn derive(&self, keypath: &[u32]) -> Result<Self, ()> {
         let xpub_ser = self.serialize(Some(XPubType::Xpub))?;
         let xpub = bitcoin::bip32::Xpub::decode(&xpub_ser).map_err(|_| ())?;
-        let secp = bitcoin::secp256k1::Secp256k1::verification_only();
         let xpub = xpub
-            .derive_pub(&secp, &keypath_from_slice(keypath))
+            .derive_pub(SECP256K1, &keypath_from_slice(keypath))
             .map_err(|_| ())?;
         Ok(xpub.into())
     }
@@ -195,8 +196,7 @@ impl Xpub {
             bitcoin::key::PublicKey::from_slice(self.public_key())
                 .map_err(|_| ())?
                 .into();
-        let secp = bitcoin::secp256k1::Secp256k1::new();
-        let (tweaked, _) = untweaked_pubkey.tap_tweak(&secp, None);
+        let (tweaked, _) = untweaked_pubkey.tap_tweak(SECP256K1, None);
         Ok(tweaked.serialize())
     }
 }

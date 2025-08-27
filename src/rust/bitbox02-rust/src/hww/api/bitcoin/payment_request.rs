@@ -25,6 +25,7 @@ use pb::btc_payment_request_request::{memo, Memo};
 use pb::btc_sign_init_request::FormatUnit;
 
 use crate::hal::Ui;
+use crate::secp256k1::SECP256K1;
 use crate::workflow::{confirm, verify_message};
 
 use sha2::{Digest, Sha256};
@@ -167,19 +168,18 @@ pub fn tst_sign_payment_request(
 
     let privkey = secp256k1::SecretKey::from_slice(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
     let msg = secp256k1::Message::from_digest_slice(&sighash).unwrap();
-    let secp = secp256k1::Secp256k1::new();
-    let sig = secp.sign_ecdsa(&msg, &privkey);
+    let sig = SECP256K1.sign_ecdsa(&msg, &privkey);
     payment_request.signature = sig.serialize_compact().to_vec();
 }
 
 fn ecdsa_verify(sig64: &[u8], msg32: &[u8], pubkey33: &[u8]) -> Result<(), ValidationError> {
-    let secp = secp256k1::Secp256k1::new();
     let pubkey = secp256k1::PublicKey::from_slice(pubkey33)
         .map_err(|_| ValidationError::InvalidSignature)?;
     let msg = secp256k1::Message::from_digest_slice(msg32).unwrap();
     let sig = secp256k1::ecdsa::Signature::from_compact(sig64)
         .map_err(|_| ValidationError::InvalidSignature)?;
-    secp.verify_ecdsa(&msg, &sig, &pubkey)
+    SECP256K1
+        .verify_ecdsa(&msg, &sig, &pubkey)
         .map_err(|_| ValidationError::InvalidSignature)
 }
 

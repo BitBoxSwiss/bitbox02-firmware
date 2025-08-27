@@ -89,6 +89,7 @@ pub async fn process(
     };
 
     let sign_result = bitbox02::keystore::secp256k1_sign(
+        SECP256K1,
         crate::keystore::secp256k1_get_private_key(&request.keypath)?
             .as_slice()
             .try_into()

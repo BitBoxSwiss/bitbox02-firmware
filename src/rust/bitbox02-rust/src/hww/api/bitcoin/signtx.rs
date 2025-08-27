@@ -1232,6 +1232,7 @@ async fn _process(
             };
 
             let sign_result = bitbox02::keystore::secp256k1_sign(
+                SECP256K1,
                 private_key.as_slice().try_into().unwrap(),
                 &sighash,
                 &host_nonce,

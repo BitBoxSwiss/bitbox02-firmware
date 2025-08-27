@@ -151,6 +151,7 @@ pub struct SignResult {
 }
 
 pub fn secp256k1_sign(
+    secp: &Secp256k1<All>,
     private_key: &[u8; 32],
     msg: &[u8; 32],
     host_nonce: &[u8; 32],
@@ -159,6 +160,7 @@ pub fn secp256k1_sign(
     let mut recid: core::ffi::c_int = 0;
     match unsafe {
         bitbox02_sys::keystore_secp256k1_sign(
+            secp.ctx().as_ptr().cast(),
             private_key.as_ptr(),
             msg.as_ptr(),
             host_nonce.as_ptr(),
@@ -278,11 +280,11 @@ mod tests {
         let msg = [0x88u8; 32];
         let host_nonce = [0x56u8; 32];
 
+        let secp = secp256k1::Secp256k1::new();
         let sign_result =
-            secp256k1_sign(&private_key.try_into().unwrap(), &msg, &host_nonce).unwrap();
+            secp256k1_sign(&secp, &private_key.try_into().unwrap(), &msg, &host_nonce).unwrap();
         // Verify signature against expected pubkey.
 
-        let secp = secp256k1::Secp256k1::new();
         let expected_pubkey = {
             let pubkey =
                 hex::decode("023ffb4a4e41444d40e4e1e4c6cc329bcba2be50d0ef380aea19d490c373be58fb")

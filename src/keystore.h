@@ -163,6 +163,7 @@ USE_RESULT bool keystore_secp256k1_nonce_commit(
  * This is part of the ECSDA Anti-Klepto protocol, preventing this function to leak any secrets via
  * the signatures (see the ecdsa-s2c module in secp256k1-zpk for more details).
  *
+ * @param[in] ctx secp256k1 context
  * @param[in] private_key 32 byte private key
  * @param[in] msg32 32 byte message to sign
  * @param[in] host_nonce32 32 byte nonce contribution. Cannot be NULL.
@@ -174,6 +175,7 @@ USE_RESULT bool keystore_secp256k1_nonce_commit(
  */
 // clang-format on
 USE_RESULT bool keystore_secp256k1_sign(
+    const secp256k1_context* ctx,
     const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_nonce32,

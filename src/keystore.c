@@ -516,13 +516,13 @@ bool keystore_secp256k1_nonce_commit(
 }
 
 bool keystore_secp256k1_sign(
+    const secp256k1_context* ctx,
     const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,
     int* recid_out)
 {
-    const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_signature secp256k1_sig = {0};
     if (!secp256k1_anti_exfil_sign(
             ctx, &secp256k1_sig, msg32, private_key, host_nonce32, recid_out)) {

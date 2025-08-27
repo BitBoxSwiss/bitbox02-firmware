@@ -22,9 +22,6 @@
 #include <stdint.h>
 
 #include <secp256k1.h>
-#include <wally_bip32.h>
-#include <wally_bip39.h> // for BIP39_WORDLIST_LEN
-#include <wally_crypto.h> // for EC_PUBLIC_KEY_LEN
 
 #define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN

@@ -157,7 +157,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "ui_screen_stack_pop_all",
     "ui_screen_stack_push",
     "util_format_datetime",
-    "wally_free_string",
     "communication_mode_ble_enabled",
 ];
 
@@ -213,8 +212,6 @@ pub fn main() -> Result<(), &'static str> {
         "../../usb/class/hid",
         "../../usb/class/hid/hww",
         "../../usb/class/hid/u2f",
-        // $WALLY_INCLUDES
-        "../../../external/libwally-core/include",
         // $SECP256k1_INCLUDES
         "../../../external/libwally-core/src/secp256k1/include",
     ];

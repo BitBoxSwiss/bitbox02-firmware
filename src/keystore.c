@@ -464,7 +464,7 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
         return false;
     }
 
-    uint8_t bip39_seed[BIP39_SEED_LEN_512] = {0};
+    uint8_t bip39_seed[64] = {0};
     UTIL_CLEANUP_64(bip39_seed);
     rust_derive_bip39_seed(
         rust_util_bytes(seed, seed_length),

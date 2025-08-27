@@ -29,6 +29,9 @@ use sha2::{Digest, Sha256};
 
 const NUM_RANDOM_WORDS: u8 = 5;
 
+/// Number of words in the BIP-39 wordlist.
+const BIP39_WORDLIST_LEN: u16 = 2048;
+
 fn as_str_vec(v: &[zeroize::Zeroizing<String>]) -> Vec<&str> {
     v.iter().map(|s| s.as_str()).collect()
 }
@@ -56,7 +59,7 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
             // A random word everywhere else.
             // Loop until we get a unique word, we don't want repeated words in the list.
             loop {
-                let idx = rand16() % bitbox02::keystore::BIP39_WORDLIST_LEN;
+                let idx = rand16() % BIP39_WORDLIST_LEN;
                 if picked_indices.contains(&idx) {
                     continue;
                 };
@@ -319,7 +322,7 @@ pub async fn get(
         .await;
 
     // Provide all bip39 words to restrict the keyboard entry.
-    let bip39_wordlist: Vec<u16> = (0..bitbox02::keystore::BIP39_WORDLIST_LEN).collect();
+    let bip39_wordlist: Vec<u16> = (0..BIP39_WORDLIST_LEN).collect();
 
     let mut word_idx: usize = 0;
     let mut entered_words = vec![zeroize::Zeroizing::new(String::new()); num_words];
@@ -430,7 +433,7 @@ mod tests {
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
-        for i in 0..bitbox02::keystore::BIP39_WORDLIST_LEN {
+        for i in 0..BIP39_WORDLIST_LEN {
             let word = bitbox02::keystore::get_bip39_word(i).unwrap();
             let mut m = mnemonic.to_vec();
             m.push(&word);

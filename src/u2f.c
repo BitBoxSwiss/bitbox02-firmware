@@ -34,7 +34,6 @@
 #include <usb/usb_processing.h>
 #include <utils_assert.h>
 #include <version.h>
-#include <wally_crypto.h>
 
 #ifndef TESTING
 #include <hal_timer.h>
@@ -49,6 +48,8 @@ typedef struct {
 
 #define APDU_LEN(A) (uint32_t)(((A).lc1 << 16) + ((A).lc2 << 8) + ((A).lc3))
 #define U2F_KEYHANDLE_LEN (U2F_NONCE_LENGTH + SHA256_LEN)
+#define SHA256_LEN 32
+#define HMAC_SHA256_LEN 32
 
 #if (U2F_EC_KEY_SIZE != SHA256_LEN) || (U2F_EC_KEY_SIZE != U2F_NONCE_LENGTH)
 #error "Incorrect macro values for u2f"

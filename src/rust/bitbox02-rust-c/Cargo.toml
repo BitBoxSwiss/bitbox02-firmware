@@ -73,7 +73,7 @@ target-c-unit-tests = [
 ]
 
 platform-bitbox02 = []
-platform-bitbox02plus = ["sha2", "bitbox02-noise", "bitbox02-rust"]
+platform-bitbox02plus = ["sha2"]
 
 bootloader = []
 firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2", "p256", "der"]

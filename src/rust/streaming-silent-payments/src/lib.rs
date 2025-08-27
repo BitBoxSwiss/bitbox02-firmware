@@ -50,8 +50,8 @@ impl Network {
     }
 }
 
-pub struct SilentPayment {
-    secp: Secp256k1<secp256k1::All>,
+pub struct SilentPayment<'a> {
+    secp: &'a Secp256k1<secp256k1::All>,
     network: Network,
     smallest_outpoint: Option<bitcoin::OutPoint>,
     a_sum: Option<SecretKey>,
@@ -156,20 +156,16 @@ fn create_dleq_proof(
     Ok(result.try_into().unwrap())
 }
 
-impl SilentPayment {
-    pub fn new(network: Network) -> Self {
+impl<'a> SilentPayment<'a> {
+    pub fn new(secp: &'a Secp256k1<secp256k1::All>, network: Network) -> Self {
         SilentPayment {
-            secp: Secp256k1::new(),
+            secp,
             network,
             smallest_outpoint: None,
             a_sum: None,
             inputs_done: false,
             output_created: false,
         }
-    }
-
-    pub fn get_secp(&self) -> &Secp256k1<secp256k1::All> {
-        &self.secp
     }
 
     /// This must be called for *every* input of the transaction.
@@ -195,7 +191,7 @@ impl SilentPayment {
             }
         }
 
-        let (_, parity) = input_key.x_only_public_key(&self.secp);
+        let (_, parity) = input_key.x_only_public_key(self.secp);
         let negated_key: SecretKey = if input_type.is_taproot() && parity == secp256k1::Parity::Odd
         {
             input_key.negate()
@@ -230,7 +226,7 @@ impl SilentPayment {
         } = decode_address(silent_payment_address, self.network.sp_hrp())?;
 
         let a_sum = self.a_sum.as_ref().unwrap();
-        let a_sum_pubkey = a_sum.public_key(&self.secp);
+        let a_sum_pubkey = a_sum.public_key(self.secp);
 
         let inputs_hash =
             hash::calculate_input_hash(self.smallest_outpoint.as_ref().ok_or(())?, a_sum_pubkey);
@@ -238,7 +234,7 @@ impl SilentPayment {
         let partial_secret = a_sum.mul_tweak(&inputs_hash).map_err(|_| ())?;
 
         let ecdh_shared_secret: PublicKey = scan_pubkey
-            .mul_tweak(&self.secp, &partial_secret.into())
+            .mul_tweak(self.secp, &partial_secret.into())
             .map_err(|_| ())?;
 
         // If we want to support more than one silent payment output, we need to get this value from
@@ -250,13 +246,13 @@ impl SilentPayment {
 
         let t_k = calculate_t_k(&ecdh_shared_secret, silent_payment_k).map_err(|_| ())?;
 
-        let res = t_k.public_key(&self.secp);
+        let res = t_k.public_key(self.secp);
         let reskey = res.combine(&spend_pubkey).map_err(|_| ())?;
         let (reskey_xonly, _) = reskey.x_only_public_key();
 
         Ok(TransactionOutput {
             pubkey: reskey_xonly,
-            dleq_proof: create_dleq_proof(&self.secp, a_sum, &a_sum_pubkey, &scan_pubkey)?,
+            dleq_proof: create_dleq_proof(self.secp, a_sum, &a_sum_pubkey, &scan_pubkey)?,
         })
     }
 }
@@ -269,7 +265,8 @@ mod tests {
 
     #[test]
     fn test_basic() {
-        let mut v = SilentPayment::new(Network::Btc);
+        let secp = Secp256k1::new();
+        let mut v = SilentPayment::new(&secp, Network::Btc);
         v.add_input(
             InputType::P2wpkh,
             &SecretKey::from_str(
@@ -319,7 +316,8 @@ mod tests {
 
     #[test]
     fn test_only_one_output() {
-        let mut v = SilentPayment::new(Network::Btc);
+        let secp = Secp256k1::new();
+        let mut v = SilentPayment::new(&secp, Network::Btc);
         v.add_input(
             InputType::P2wpkh,
             &SecretKey::from_str(
@@ -357,7 +355,8 @@ mod tests {
 
     #[test]
     fn test_no_input_after_output() {
-        let mut v = SilentPayment::new(Network::Btc);
+        let secp = Secp256k1::new();
+        let mut v = SilentPayment::new(&secp, Network::Btc);
         v.add_input(
             InputType::P2wpkh,
             &SecretKey::from_str(

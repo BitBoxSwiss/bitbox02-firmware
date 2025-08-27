@@ -23,6 +23,7 @@ use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeyp
 use super::{bip143, bip341, common, keypath};
 
 use crate::hal::Ui;
+use crate::secp256k1::SECP256K1;
 use crate::workflow::{confirm, transaction};
 use crate::xpubcache::{Bip32XpubCache, Compute};
 
@@ -716,7 +717,7 @@ async fn _process(
     let taproot_only = validated_script_configs.iter().all(is_taproot);
 
     let mut silent_payment = if request.contains_silent_payment_outputs {
-        Some(SilentPayment::new(coin.try_into()?))
+        Some(SilentPayment::new(SECP256K1, coin.try_into()?))
     } else {
         None
     };
@@ -783,7 +784,7 @@ async fn _process(
 
         if let Some(ref mut silent_payment) = silent_payment {
             let keypair = bitcoin::key::UntweakedKeypair::from_seckey_slice(
-                silent_payment.get_secp(),
+                SECP256K1,
                 &crate::keystore::secp256k1_get_private_key(&tx_input.keypath)?,
             )
             .unwrap();
@@ -791,10 +792,7 @@ async fn _process(
             // provide the key path spend private key, which means the internal key plus the tap
             // tweak.
             let private_key = if is_taproot(script_config_account) {
-                keypair
-                    .tap_tweak(silent_payment.get_secp(), None)
-                    .to_inner()
-                    .secret_key()
+                keypair.tap_tweak(SECP256K1, None).to_inner().secret_key()
             } else {
                 keypair.secret_key()
             };

@@ -20,7 +20,7 @@ pub fn mcu_32_bytes(out: &mut [u8; 32]) {
 #[cfg(not(target_arch = "arm"))]
 pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     extern "C" {
-        fn rand() -> util::c_types::c_int;
+        fn rand() -> core::ffi::c_int;
     }
 
     for elem in out.iter_mut() {

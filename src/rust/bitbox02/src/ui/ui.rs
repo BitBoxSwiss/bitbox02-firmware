@@ -18,7 +18,7 @@ pub use super::types::{
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
-use util::c_types::{c_char, c_void};
+use core::ffi::{c_char, c_void};
 
 extern crate alloc;
 use alloc::boxed::Box;
@@ -249,7 +249,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
         .collect();
     // Step two: collect pointers. This var also has to be valid until menu_create() finishes, or
     // the pointer will be invalid.
-    let c_words: Vec<*const util::c_types::c_char> =
+    let c_words: Vec<*const core::ffi::c_char> =
         words.iter().map(|word| word.as_ptr() as _).collect();
 
     let (select_word_cb, select_word_cb_param) = match params.select_word_cb {

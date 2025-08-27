@@ -41,7 +41,7 @@ pub fn list_subdir(subdir: Option<&str>) -> Result<Vec<String>, ()> {
         bitbox02_sys::sd_list_subdir(
             &mut list.0,
             match c_subdir.as_ref() {
-                Some(s) => s.as_ptr(),
+                Some(s) => s.as_ptr().cast(),
                 None => core::ptr::null(),
             },
         )
@@ -59,8 +59,8 @@ pub fn list_subdir(subdir: Option<&str>) -> Result<Vec<String>, ()> {
 pub fn erase_file_in_subdir(filename: &str, dir: &str) -> Result<(), ()> {
     match unsafe {
         bitbox02_sys::sd_erase_file_in_subdir(
-            str_to_cstr_vec(filename).unwrap().as_ptr(),
-            str_to_cstr_vec(dir).unwrap().as_ptr(),
+            str_to_cstr_vec(filename).unwrap().as_ptr().cast(),
+            str_to_cstr_vec(dir).unwrap().as_ptr().cast(),
         )
     } {
         true => Ok(()),
@@ -73,8 +73,8 @@ pub fn load_bin(filename: &str, dir: &str) -> Result<zeroize::Zeroizing<Vec<u8>>
     let mut contents_len: usize = 0;
     match unsafe {
         bitbox02_sys::sd_load_bin(
-            str_to_cstr_vec(filename).unwrap().as_ptr(),
-            str_to_cstr_vec(dir).unwrap().as_ptr(),
+            str_to_cstr_vec(filename).unwrap().as_ptr().cast(),
+            str_to_cstr_vec(dir).unwrap().as_ptr().cast(),
             contents.as_mut_ptr(),
             &mut contents_len,
         )
@@ -87,8 +87,8 @@ pub fn load_bin(filename: &str, dir: &str) -> Result<zeroize::Zeroizing<Vec<u8>>
 pub fn write_bin(filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
     match unsafe {
         bitbox02_sys::sd_write_bin(
-            str_to_cstr_vec(filename).unwrap().as_ptr(),
-            str_to_cstr_vec(dir).unwrap().as_ptr(),
+            str_to_cstr_vec(filename).unwrap().as_ptr().cast(),
+            str_to_cstr_vec(dir).unwrap().as_ptr().cast(),
             data.as_ptr(),
             data.len() as _,
             true,

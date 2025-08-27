@@ -15,9 +15,9 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
+use core::ffi::{c_uchar, c_void};
 use sha2::Digest;
 use sha2::Sha256;
-use util::c_types::{c_uchar, c_void};
 
 /// Result must be freed by calling `rust_sha256_finish()` or `rust_sha256_free()`.
 #[no_mangle]

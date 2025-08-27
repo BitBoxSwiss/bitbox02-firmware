@@ -237,6 +237,7 @@ pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 }
 
 pub fn secp256k1_schnorr_sign(
+    secp: &Secp256k1<All>,
     keypath: &[u32],
     msg: &[u8; 32],
     tweak: Option<&[u8; 32]>,
@@ -245,6 +246,7 @@ pub fn secp256k1_schnorr_sign(
 
     match unsafe {
         bitbox02_sys::keystore_secp256k1_schnorr_sign(
+            secp.ctx().as_ptr().cast(),
             keypath.as_ptr(),
             keypath.len() as _,
             msg.as_ptr(),
@@ -320,8 +322,8 @@ mod tests {
 
         // Test without tweak
         crate::random::fake_reset();
-        let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
         let secp = secp256k1::Secp256k1::new();
+        let sig = secp256k1_schnorr_sign(&secp, &keypath, &msg, None).unwrap();
         assert!(secp
             .verify_schnorr(
                 &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
@@ -339,7 +341,8 @@ mod tests {
             secp256k1::Scalar::from_be_bytes(tweak.try_into().unwrap()).unwrap()
         };
         let (tweaked_pubkey, _) = expected_pubkey.add_tweak(&secp, &tweak).unwrap();
-        let sig = secp256k1_schnorr_sign(&keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
+        let sig =
+            secp256k1_schnorr_sign(&secp, &keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
         assert!(secp
             .verify_schnorr(
                 &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),

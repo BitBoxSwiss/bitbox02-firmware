@@ -580,6 +580,7 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
 }
 
 static bool _schnorr_keypair(
+    const secp256k1_context* ctx,
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* tweak,
@@ -596,7 +597,6 @@ static bool _schnorr_keypair(
         return false;
     }
 
-    const secp256k1_context* ctx = wally_get_secp_context();
     if (!secp256k1_keypair_create(ctx, keypair_out, private_key)) {
         return false;
     }
@@ -617,6 +617,7 @@ static void _cleanup_keypair(secp256k1_keypair* keypair)
 }
 
 bool keystore_secp256k1_schnorr_sign(
+    const secp256k1_context* ctx,
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,
@@ -625,10 +626,9 @@ bool keystore_secp256k1_schnorr_sign(
 {
     secp256k1_keypair __attribute__((__cleanup__(_cleanup_keypair))) keypair = {0};
     secp256k1_xonly_pubkey pubkey = {0};
-    if (!_schnorr_keypair(keypath, keypath_len, tweak, &keypair, &pubkey)) {
+    if (!_schnorr_keypair(ctx, keypath, keypath_len, tweak, &keypair, &pubkey)) {
         return false;
     }
-    const secp256k1_context* ctx = wally_get_secp_context();
     uint8_t aux_rand[32] = {0};
     random_32_bytes(aux_rand);
     if (secp256k1_schnorrsig_sign32(ctx, sig64_out, msg32, &keypair, aux_rand) != 1) {

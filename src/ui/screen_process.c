@@ -67,6 +67,7 @@ static void _screen_draw(component_t* component)
     screen_frame_cnt++;
 }
 
+#ifndef TESTING
 /**
  * Detects if the screen component being displayed has changed
  * since the last time this function was called.
@@ -83,6 +84,7 @@ static bool _screen_has_changed(const component_t* current_component)
     }
     return false;
 }
+#endif
 
 void screen_process(void)
 {

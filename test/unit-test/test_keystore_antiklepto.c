@@ -93,7 +93,11 @@ static void _test_keystore_antiklepto(void** state)
 
         // Commit - protocol step 2.
         assert_true(keystore_secp256k1_nonce_commit(
-            xprv_derived.priv_key + 1, msg, host_nonce_commitment, signer_commitment));
+            wally_get_secp_context(),
+            xprv_derived.priv_key + 1,
+            msg,
+            host_nonce_commitment,
+            signer_commitment));
         // Protocol step 3: host_nonce sent from host to signer to be used in step 4
         // Sign - protocol step 4.
         assert_true(

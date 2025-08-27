@@ -18,6 +18,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
+use bitcoin::secp256k1::{All, Secp256k1};
+
 use core::convert::TryInto;
 
 use bitbox02_sys::keystore_error_t;
@@ -173,6 +175,7 @@ pub fn secp256k1_sign(
 }
 
 pub fn secp256k1_nonce_commit(
+    secp: &Secp256k1<All>,
     private_key: &[u8; 32],
     msg: &[u8; 32],
     host_commitment: &[u8; 32],
@@ -180,6 +183,7 @@ pub fn secp256k1_nonce_commit(
     let mut signer_commitment = [0u8; EC_PUBLIC_KEY_LEN];
     match unsafe {
         bitbox02_sys::keystore_secp256k1_nonce_commit(
+            secp.ctx().as_ptr().cast(),
             private_key.as_ptr(),
             msg.as_ptr(),
             host_commitment.as_ptr(),
@@ -347,15 +351,21 @@ mod tests {
 
     #[test]
     fn test_secp256k1_nonce_commit() {
+        let secp = secp256k1::Secp256k1::new();
+
         let private_key =
             hex::decode("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c")
                 .unwrap();
         let msg = [0x88u8; 32];
         let host_commitment = [0xabu8; 32];
 
-        let client_commitment =
-            secp256k1_nonce_commit(&private_key.try_into().unwrap(), &msg, &host_commitment)
-                .unwrap();
+        let client_commitment = secp256k1_nonce_commit(
+            &secp,
+            &private_key.try_into().unwrap(),
+            &msg,
+            &host_commitment,
+        )
+        .unwrap();
         assert_eq!(
             hex::encode(client_commitment),
             "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",

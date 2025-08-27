@@ -27,6 +27,7 @@ use pb::btc_response::Response;
 use bitbox02::keystore;
 
 use crate::hal::Ui;
+use crate::secp256k1::SECP256K1;
 use crate::workflow::{confirm, verify_message};
 
 const MAX_MESSAGE_SIZE: usize = 1024;
@@ -98,6 +99,7 @@ pub async fn process(
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
+                SECP256K1,
                 crate::keystore::secp256k1_get_private_key(keypath)?
                     .as_slice()
                     .try_into()

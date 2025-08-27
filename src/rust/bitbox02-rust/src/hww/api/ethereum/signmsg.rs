@@ -17,6 +17,7 @@ use super::Error;
 
 use bitbox02::keystore;
 
+use crate::secp256k1::SECP256K1;
 use crate::workflow::verify_message;
 
 use pb::eth_response::Response;
@@ -67,6 +68,7 @@ pub async fn process(
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
+                SECP256K1,
                 crate::keystore::secp256k1_get_private_key(&request.keypath)?
                     .as_slice()
                     .try_into()

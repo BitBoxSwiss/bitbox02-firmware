@@ -497,12 +497,12 @@ bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out
 }
 
 bool keystore_secp256k1_nonce_commit(
+    const secp256k1_context* ctx,
     const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_commitment,
     uint8_t* signer_commitment_out)
 {
-    const secp256k1_context* ctx = wally_get_secp_context();
     secp256k1_ecdsa_s2c_opening signer_commitment;
     if (!secp256k1_ecdsa_anti_exfil_signer_commit(
             ctx, &signer_commitment, msg32, private_key, host_commitment)) {

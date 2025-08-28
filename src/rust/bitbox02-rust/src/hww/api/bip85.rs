@@ -67,11 +67,11 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
 
     let num_words: u32 = match hal
         .ui()
-        .trinary_choice("How many words?", "12", "18", "24")
+        .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
         TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => 18,
+        TrinaryChoice::TRINARY_CHOICE_MIDDLE => unreachable!(),
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
     };
 

@@ -64,9 +64,9 @@ pub trait Workflows {
     async fn trinary_choice(
         &mut self,
         message: &str,
-        label_left: &str,
-        label_middle: &str,
-        label_right: &str,
+        label_left: Option<&str>,
+        label_middle: Option<&str>,
+        label_right: Option<&str>,
     ) -> trinary_choice::TrinaryChoice;
 }
 
@@ -126,9 +126,9 @@ impl Workflows for RealWorkflows {
     async fn trinary_choice(
         &mut self,
         message: &str,
-        label_left: &str,
-        label_middle: &str,
-        label_right: &str,
+        label_left: Option<&str>,
+        label_middle: Option<&str>,
+        label_right: Option<&str>,
     ) -> trinary_choice::TrinaryChoice {
         trinary_choice::choose(message, label_left, label_middle, label_right).await
     }

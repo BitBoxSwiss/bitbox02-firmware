@@ -149,9 +149,9 @@ impl Workflows for TestingWorkflows<'_> {
     async fn trinary_choice(
         &mut self,
         _message: &str,
-        _label_left: &str,
-        _label_middle: &str,
-        _label_right: &str,
+        _label_left: Option<&str>,
+        _label_middle: Option<&str>,
+        _label_right: Option<&str>,
     ) -> trinary_choice::TrinaryChoice {
         todo!("not used in unit tests yet");
     }

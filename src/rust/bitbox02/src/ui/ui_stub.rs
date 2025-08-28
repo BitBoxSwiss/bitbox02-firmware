@@ -90,9 +90,9 @@ pub fn menu_create(_params: MenuParams<'_>) -> Component<'_> {
 
 pub fn trinary_choice_create<'a>(
     _message: &'a str,
-    _label_left: &'a str,
-    _label_middle: &'a str,
-    _label_right: &'a str,
+    _label_left: Option<&'a str>,
+    _label_middle: Option<&'a str>,
+    _label_right: Option<&'a str>,
     _chosen_callback: TrinaryChoiceCb,
 ) -> Component<'a> {
     panic!("not used")

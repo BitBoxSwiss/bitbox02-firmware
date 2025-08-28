@@ -16,9 +16,9 @@
 #include "hardfault.h"
 #include "securechip/securechip.h"
 #include <i2c_ecc.h>
+#include <rust/rust.h>
 #include <salt.h>
 #include <util.h>
-#include <wally_crypto.h>
 
 // disabling some warnings, as it's an external library.
 #pragma GCC diagnostic push
@@ -630,15 +630,8 @@ int atecc_stretch_password(const char* password, uint8_t* stretched_out)
             password_salted_hashed)) {
         return SC_ERR_SALT;
     }
-    if (wally_hmac_sha256(
-            password_salted_hashed,
-            sizeof(password_salted_hashed),
-            stretched_out,
-            32,
-            stretched_out,
-            32) != WALLY_OK) {
-        return SC_ERR_HASH;
-    }
+    rust_hmac_sha256(
+        password_salted_hashed, sizeof(password_salted_hashed), stretched_out, 32, stretched_out);
     return 0;
 }
 

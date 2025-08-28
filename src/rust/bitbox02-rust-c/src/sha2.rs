@@ -59,6 +59,50 @@ pub unsafe extern "C" fn rust_sha256(data: *const c_void, len: usize, out: *mut 
     out.copy_from_slice(&hash[..]);
 }
 
+/// Safety: `key` and `data` must be a valid buffers of the corresponding sizes. `out` must be 32
+/// bytes long.
+#[cfg(feature = "firmware")]
+#[no_mangle]
+pub unsafe extern "C" fn rust_hmac_sha256(
+    key: *const c_void,
+    key_len: usize,
+    data: *const c_void,
+    data_len: usize,
+    out: *mut c_uchar,
+) {
+    let out = core::slice::from_raw_parts_mut(out, 32);
+    let key = core::slice::from_raw_parts(key as *const u8, key_len);
+    let data = core::slice::from_raw_parts(data as *const u8, data_len);
+
+    use bitcoin::hashes::{sha256, Hash, HashEngine, Hmac, HmacEngine};
+    let mut engine = HmacEngine::<sha256::Hash>::new(key);
+    engine.input(data);
+    let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+    out.as_mut().copy_from_slice(hmac_result.as_byte_array());
+}
+
+/// Safety: `key` and `data` must be a valid buffers of the corresponding sizes. `out` must be 64
+/// bytes long.
+#[cfg(feature = "firmware")]
+#[no_mangle]
+pub unsafe extern "C" fn rust_hmac_sha512(
+    key: *const c_void,
+    key_len: usize,
+    data: *const c_void,
+    data_len: usize,
+    out: *mut c_uchar,
+) {
+    let out = core::slice::from_raw_parts_mut(out, 64);
+    let key = core::slice::from_raw_parts(key as *const u8, key_len);
+    let data = core::slice::from_raw_parts(data as *const u8, data_len);
+
+    use bitcoin::hashes::{sha512, Hash, HashEngine, Hmac, HmacEngine};
+    let mut engine = HmacEngine::<sha512::Hash>::new(key);
+    engine.input(data);
+    let hmac_result: Hmac<sha512::Hash> = Hmac::from_engine(engine);
+    out.as_mut().copy_from_slice(hmac_result.as_byte_array());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -263,19 +263,11 @@ USE_RESULT static bool _keyhandle_gen(
     // Concatenate AppId and Nonce as input for the first HMAC round
     memcpy(hmac_in, appId, U2F_APPID_SIZE);
     memcpy(hmac_in + U2F_APPID_SIZE, nonce, U2F_NONCE_LENGTH);
-    int res = wally_hmac_sha256(
-        seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), privkey, HMAC_SHA256_LEN);
-    if (res != WALLY_OK) {
-        return false;
-    }
+    rust_hmac_sha256(seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), privkey);
 
     // Concatenate AppId and privkey for the second HMAC round
     memcpy(hmac_in + U2F_APPID_SIZE, privkey, HMAC_SHA256_LEN);
-    res = wally_hmac_sha256(
-        seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), mac, HMAC_SHA256_LEN);
-    if (res != WALLY_OK) {
-        return false;
-    }
+    rust_hmac_sha256(seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), mac);
     return true;
 }
 
@@ -475,7 +467,7 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
     memcpy(sig_base.pubKey, &response->pubKey, U2F_EC_POINT_SIZE);
 
     uint8_t hash[SHA256_LEN] = {0};
-    wally_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash, SHA256_LEN);
+    rust_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash);
 
     rust_p256_sign(
         rust_util_bytes(U2F_ATT_PRIV_KEY, sizeof(U2F_ATT_PRIV_KEY)),
@@ -666,7 +658,7 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     memcpy(sig_base.challenge, auth_request->challenge, U2F_NONCE_LENGTH);
 
     uint8_t hash[SHA256_LEN] = {0};
-    wally_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash, SHA256_LEN);
+    rust_sha256((uint8_t*)&sig_base, sizeof(sig_base), hash);
 
     rust_p256_sign(
         rust_util_bytes(privkey, sizeof(privkey)),

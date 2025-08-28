@@ -25,7 +25,7 @@ crate-type = ["staticlib"]
 
 [dependencies]
 bitbox02-rust = { path = "../bitbox02-rust", optional = true }
-bitbox-aes = { path = "../bitbox-aes", features = ["use-wally-sha512"] }
+bitbox-aes = { path = "../bitbox-aes" }
 bitbox02 = { path = "../bitbox02", optional = true }
 bitbox02-noise = { path = "../bitbox02-noise", optional = true }
 util = { path = "../util" }
@@ -33,6 +33,7 @@ p256 = { version = "0.13.2", default-features = false, features = ["arithmetic",
 der =  { version = "0.7.9", default-features = false, optional = true }
 hex = { workspace = true }
 sha2 = { workspace = true, optional = true }
+digest = { workspace = true, optional = true }
 bitcoin = { workspace = true, optional = true }
 bip39 = { workspace = true }
 zeroize = { workspace = true }
@@ -73,10 +74,10 @@ target-c-unit-tests = [
 ]
 
 platform-bitbox02 = []
-platform-bitbox02plus = ["sha2", "bitbox02-noise", "bitbox02-rust"]
+platform-bitbox02plus = ["sha2"]
 
 bootloader = []
-firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2", "p256", "der"]
+firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2", "dep:bitcoin", "digest", "p256", "der"]
 
 # Only to be enabled in Rust unit tests.
 testing = ["bitbox02-rust/testing", "bitbox02/testing"]

@@ -37,7 +37,7 @@ hex = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true, optional = true }
 keccak = { workspace = true, optional = true }
-digest = "0.10.6"
+digest = { workspace = true }
 zeroize = { workspace = true }
 num-bigint = { workspace = true, optional = true }
 num-traits = { version = "0.2", default-features = false }
@@ -48,7 +48,7 @@ blake2 = { version = "0.10.6", default-features = false, optional = true }
 minicbor = { version = "0.24.0", default-features = false, features = ["alloc"], optional = true }
 crc = { version = "3.0.1", optional = true }
 ed25519-dalek = { version = "2.1.1", default-features = false, features = ["hazmat", "digest"], optional = true }
-hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
+hmac = { workspace = true }
 
 miniscript = { version = "12.2.0", default-features = false, features = ["no-std"], optional = true }
 bitcoin = { workspace = true }
@@ -65,7 +65,7 @@ default-features = false
 features = ["derive"]
 
 [dev-dependencies]
-bitbox-aes = { path = "../bitbox-aes", features = ["use-wally-sha512"] }
+bitbox-aes = { path = "../bitbox-aes" }
 
 [features]
 ed25519 = [

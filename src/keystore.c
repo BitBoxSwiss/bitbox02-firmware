@@ -79,9 +79,7 @@ USE_RESULT static keystore_error_t _stretch_retained_seed_encryption_key(
     if (!salt_hash_data(encryption_key, 32, purpose_out, salted_hashed)) {
         return KEYSTORE_ERR_SALT;
     }
-    if (wally_hmac_sha256(salted_hashed, sizeof(salted_hashed), out, 32, out, 32) != WALLY_OK) {
-        return KEYSTORE_ERR_HASH;
-    }
+    rust_hmac_sha256(salted_hashed, sizeof(salted_hashed), out, 32, out);
     return KEYSTORE_OK;
 }
 
@@ -547,10 +545,7 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
         return false;
     }
     const uint8_t message[] = "u2f";
-    if (wally_hmac_sha256(bip39_seed, 64, message, sizeof(message), seed_out, SHA256_LEN) !=
-        WALLY_OK) {
-        return false;
-    }
+    rust_hmac_sha256(bip39_seed, 64, message, sizeof(message), seed_out);
     return true;
 }
 
@@ -567,10 +562,7 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     // Derive a 64 byte expanded ed25519 private key and put it into seed_out.
     memcpy(seed_out, bip39_seed, 64);
     do {
-        if (wally_hmac_sha512(key, sizeof(key), seed_out, 64, seed_out, 64) != WALLY_OK) {
-            util_zero(seed_out, 64);
-            return false;
-        }
+        rust_hmac_sha512(key, sizeof(key), seed_out, 64, seed_out);
     } while (seed_out[31] & 0x20);
 
     seed_out[0] &= 248;
@@ -582,11 +574,7 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     message[0] = 0x01;
     memcpy(&message[1], bip39_seed, 64);
     util_zero(bip39_seed, sizeof(bip39_seed));
-    if (wally_hmac_sha256(key, sizeof(key), message, sizeof(message), &seed_out[64], 32) !=
-        WALLY_OK) {
-        util_zero(message, sizeof(message));
-        return false;
-    }
+    rust_hmac_sha256(key, sizeof(key), message, sizeof(message), &seed_out[64]);
     util_zero(message, sizeof(message));
     return true;
 }

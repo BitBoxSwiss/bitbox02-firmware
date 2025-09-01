@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string.h>
+#ifndef _FAKE_CIPHER_H_
+#define _FAKE_CIPHER_H_
 
-#include <mock_cipher.h>
+#include <stdint.h>
 
-void cipher_mock_iv(uint8_t* iv_out)
-{
-    memset(iv_out, 'a', 32);
-}
+void cipher_fake_iv(uint8_t* iv_out);
+
+#endif

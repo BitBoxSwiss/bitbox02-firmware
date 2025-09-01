@@ -29,7 +29,7 @@
 #ifndef TESTING
 #include <hal_delay.h>
 #else
-#include <mock_memory.h>
+#include <fake_memory.h>
 #endif
 
 #include <assert.h>
@@ -164,7 +164,7 @@ static void _clean_chunk(uint8_t** chunk_bytes)
 static bool _write_to_address(uint32_t base, uint32_t offset, uint8_t* chunk)
 {
 #ifdef TESTING
-    return memory_write_to_address_mock(base, offset, chunk);
+    return memory_write_to_address_fake(base, offset, chunk);
 #else
     uint32_t addr = base + offset;
     if (addr < base) {
@@ -216,7 +216,7 @@ static bool _write_to_address(uint32_t base, uint32_t offset, uint8_t* chunk)
 static bool _write_chunk(uint32_t chunk_num, uint8_t* chunk)
 {
 #ifdef TESTING
-    return memory_write_chunk_mock(chunk_num, chunk);
+    return memory_write_chunk_fake(chunk_num, chunk);
 #else
     uint32_t offset = chunk_num * CHUNK_SIZE;
     return _write_to_address(FLASH_APPDATA_START, offset, chunk);
@@ -228,7 +228,7 @@ static void _read_chunk(uint32_t chunk_num, uint8_t* chunk_out)
 {
 #ifdef TESTING
     // empty, can be mocked in cmocka.
-    memory_read_chunk_mock(chunk_num, chunk_out);
+    memory_read_chunk_fake(chunk_num, chunk_out);
 #else
     memcpy(chunk_out, (uint8_t*)(FLASH_APPDATA_START + chunk_num * CHUNK_SIZE), CHUNK_SIZE);
 #endif
@@ -701,7 +701,7 @@ bool memory_get_attestation_pubkey_and_certificate(
 void memory_bootloader_hash(uint8_t* hash_out)
 {
 #ifdef TESTING
-    memory_bootloader_hash_mock(hash_out);
+    memory_bootloader_hash_fake(hash_out);
 #else
     uint8_t* bootloader = FLASH_BOOT_START;
     size_t len = FLASH_BOOT_LEN - 32; // 32 bytes are random

@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <setjmp.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <cmocka.h>
-
 #include <rust/rust.h>
 #include <salt.h>
 #include <securechip/securechip.h>

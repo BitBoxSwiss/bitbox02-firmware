@@ -104,7 +104,7 @@ void random_32_bytes(uint8_t* buf)
 }
 
 #ifdef TESTING
-void random_mock_reset(void)
+void random_fake_reset(void)
 {
     srand(0);
 }

@@ -47,7 +47,7 @@ static MEMORY_IFS: bitbox02_sys::memory_interface_functions_t =
 /// The memory is initialized to be like after factory setup, i.e. 0xFF everywhere followed by `memory_setup()`.
 pub fn mock_memory() {
     unsafe {
-        bitbox02_sys::mock_memory_factoryreset();
+        bitbox02_sys::fake_memory_factoryreset();
 
         assert!(bitbox02_sys::memory_setup(&MEMORY_IFS));
 

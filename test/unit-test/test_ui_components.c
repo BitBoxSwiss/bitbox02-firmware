@@ -30,7 +30,7 @@
 #include <ui/fonts/monogram_5X9.h>
 #include <ui/ui_util.h>
 
-#include "mock_component.h"
+#include "fake_component.h"
 #include "mock_qtouch.h"
 
 static void assert_ui_component_functions(component_t* component)
@@ -41,7 +41,7 @@ static void assert_ui_component_functions(component_t* component)
 
 static void test_ui_components_label(void** state)
 {
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     component_t* label = label_create("Test", NULL, CENTER, mock_component);
     assert_non_null(label);
@@ -53,7 +53,7 @@ static void test_ui_components_label(void** state)
 
 static void test_ui_components_right_arrow(void** state)
 {
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     component_t* right_arrow = right_arrow_create(top_slider, mock_component);
     assert_non_null(right_arrow);
@@ -65,7 +65,7 @@ static void test_ui_components_right_arrow(void** state)
 
 static void test_ui_components_left_arrow(void** state)
 {
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     component_t* left_arrow = left_arrow_create(top_slider, mock_component);
     assert_non_null(left_arrow);
@@ -88,7 +88,7 @@ static void test_ui_components_image(void** state)
         0x01, 0xff, 0x00, 0x06, 0x00, 0x00, 0xff, 0x80, 0x03, 0x00, 0x00, 0x1f, 0x00, 0x01, 0xff,
         0xfc, 0x03, 0x00, 0x00, 0xff, 0xfe, 0x01, 0x80, 0x00};
 
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     component_t* image =
         image_create(logo_bytes, sizeof(logo_bytes), 41, 25, CENTER, mock_component);
@@ -128,7 +128,7 @@ static void test_ui_components_info_centered(void** state)
 
 static void test_ui_components_keyboard_switch(void** state)
 {
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     component_t* keyboard_switch = keyboard_switch_create(top_slider, true, false, mock_component);
     assert_non_null(keyboard_switch);

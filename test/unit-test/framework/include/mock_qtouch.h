@@ -12,26 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <setjmp.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <cmocka.h>
+#ifndef _QTOUCH_H_
+#define _QTOUCH_H_
 
-#include "mock_qtouch.h"
+#include <stdint.h>
 
-volatile bool measurement_done_touch = true;
+void __wrap_qtouch_process(void);
 
-uint8_t qtouch_is_scroller_active(uint16_t sensor_node)
-{
-    return (uint8_t)mock();
-}
+uint8_t __wrap_qtouch_get_scroller_is_active(uint16_t sensor_node);
 
-uint16_t qtouch_get_scroller_position(uint16_t sensor_node)
-{
-    return (uint16_t)mock();
-}
+uint16_t __wrap_qtouch_get_scroller_position(uint16_t sensor_node);
 
-void qtouch_process(void) {}
-
-void qtouch_force_calibrate(void) {}
+#endif

@@ -37,9 +37,9 @@ pub fn random_32_bytes() -> alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>> {
 }
 
 #[cfg(feature = "testing")]
-pub fn mock_reset() {
+pub fn fake_reset() {
     unsafe {
-        bitbox02_sys::random_mock_reset();
+        bitbox02_sys::random_fake_reset();
     }
 }
 

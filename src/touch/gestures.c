@@ -22,7 +22,7 @@
 #include "qtouch.h"
 #include <driver_init.h>
 #else
-#include "mock_qtouch.h"
+#include "fake_qtouch.h"
 #endif
 
 #include "gestures.h"

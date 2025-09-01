@@ -28,7 +28,7 @@
 #include "random.h"
 
 #ifdef TESTING
-#include <mock_memory.h>
+#include <fake_memory.h>
 #endif
 
 static void _clean_chunk(uint8_t** chunk_bytes)
@@ -47,7 +47,7 @@ static void _clean_chunk(uint8_t** chunk_bytes)
 static bool _write_to_address(uint32_t base, uint32_t offset, uint8_t* chunk)
 {
 #ifdef TESTING
-    return memory_write_to_address_mock(base, offset, chunk);
+    return memory_write_to_address_fake(base, offset, chunk);
 #else
     uint32_t addr = base + offset;
     if (addr < base) {
@@ -99,7 +99,7 @@ static bool _write_to_address(uint32_t base, uint32_t offset, uint8_t* chunk)
 void memory_read_shared_bootdata(chunk_shared_t* chunk_out)
 {
 #ifdef TESTING
-    memory_read_shared_bootdata_mock(chunk_out->bytes);
+    memory_read_shared_bootdata_fake(chunk_out->bytes);
 #else
     memcpy(chunk_out->bytes, (uint8_t*)(FLASH_SHARED_DATA_START), FLASH_SHARED_DATA_LEN);
 #endif

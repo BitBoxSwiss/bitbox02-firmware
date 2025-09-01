@@ -1,4 +1,4 @@
-// Copyright 2023 Shift Crypto AG
+// Copyright 2019 Shift Cryptosecurity AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _MOCK_CIPHER_H_
-#define _MOCK_CIPHER_H_
+// The real qtouch.h depends on hardware specific headers and cannot be used
+#include <fake_qtouch.h>
 
-#include <stdint.h>
+#include <stdbool.h>
 
-void cipher_mock_iv(uint8_t* iv_out);
+volatile bool measurement_done_touch = true;
 
-#endif
+void qtouch_process(void) {}
+
+void qtouch_force_calibrate(void) {}

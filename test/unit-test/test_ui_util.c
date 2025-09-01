@@ -20,11 +20,11 @@
 
 #include <ui/ui_util.h>
 
-#include "mock_component.h"
+#include "fake_component.h"
 
 static void test_ui_util_position_center(void** state)
 {
-    component_t* mock_component_1 = mock_component_create();
+    component_t* mock_component_1 = fake_component_create();
 
     mock_component_1->dimension.width = 100;
     mock_component_1->dimension.height = 100;
@@ -32,7 +32,7 @@ static void test_ui_util_position_center(void** state)
     mock_component_1->position.left = 0;
     mock_component_1->position.top = 0;
 
-    component_t* mock_component_2 = mock_component_create();
+    component_t* mock_component_2 = fake_component_create();
 
     mock_component_2->dimension.width = 10;
     mock_component_2->dimension.height = 10;
@@ -48,7 +48,7 @@ static void test_ui_util_position_center(void** state)
 
 static void test_ui_util_position_center_top(void** state)
 {
-    component_t* mock_component_1 = mock_component_create();
+    component_t* mock_component_1 = fake_component_create();
 
     mock_component_1->dimension.width = 100;
     mock_component_1->dimension.height = 100;
@@ -56,7 +56,7 @@ static void test_ui_util_position_center_top(void** state)
     mock_component_1->position.left = 0;
     mock_component_1->position.top = 50;
 
-    component_t* mock_component_2 = mock_component_create();
+    component_t* mock_component_2 = fake_component_create();
 
     mock_component_2->dimension.width = 10;
     mock_component_2->dimension.height = 10;
@@ -72,7 +72,7 @@ static void test_ui_util_position_center_top(void** state)
 
 static void test_ui_util_position_center_bottom(void** state)
 {
-    component_t* mock_component_1 = mock_component_create();
+    component_t* mock_component_1 = fake_component_create();
 
     mock_component_1->dimension.width = 100;
     mock_component_1->dimension.height = 100;
@@ -80,7 +80,7 @@ static void test_ui_util_position_center_bottom(void** state)
     mock_component_1->position.left = 0;
     mock_component_1->position.top = 0;
 
-    component_t* mock_component_2 = mock_component_create();
+    component_t* mock_component_2 = fake_component_create();
 
     mock_component_2->dimension.width = 10;
     mock_component_2->dimension.height = 10;
@@ -96,7 +96,7 @@ static void test_ui_util_position_center_bottom(void** state)
 
 static void test_ui_util_position_left_bottom(void** state)
 {
-    component_t* mock_component_1 = mock_component_create();
+    component_t* mock_component_1 = fake_component_create();
 
     mock_component_1->dimension.width = 100;
     mock_component_1->dimension.height = 100;
@@ -104,7 +104,7 @@ static void test_ui_util_position_left_bottom(void** state)
     mock_component_1->position.left = 0;
     mock_component_1->position.top = 0;
 
-    component_t* mock_component_2 = mock_component_create();
+    component_t* mock_component_2 = fake_component_create();
 
     mock_component_2->dimension.width = 10;
     mock_component_2->dimension.height = 10;
@@ -120,7 +120,7 @@ static void test_ui_util_position_left_bottom(void** state)
 
 static void test_ui_util_position_left_top(void** state)
 {
-    component_t* mock_component_1 = mock_component_create();
+    component_t* mock_component_1 = fake_component_create();
 
     mock_component_1->dimension.width = 100;
     mock_component_1->dimension.height = 100;
@@ -128,7 +128,7 @@ static void test_ui_util_position_left_top(void** state)
     mock_component_1->position.left = 0;
     mock_component_1->position.top = 0;
 
-    component_t* mock_component_2 = mock_component_create();
+    component_t* mock_component_2 = fake_component_create();
 
     mock_component_2->dimension.width = 10;
     mock_component_2->dimension.height = 10;
@@ -144,7 +144,7 @@ static void test_ui_util_position_left_top(void** state)
 
 static void test_ui_util_position_right_bottom(void** state)
 {
-    component_t* mock_component_1 = mock_component_create();
+    component_t* mock_component_1 = fake_component_create();
 
     mock_component_1->dimension.width = 100;
     mock_component_1->dimension.height = 100;
@@ -152,7 +152,7 @@ static void test_ui_util_position_right_bottom(void** state)
     mock_component_1->position.left = 0;
     mock_component_1->position.top = 0;
 
-    component_t* mock_component_2 = mock_component_create();
+    component_t* mock_component_2 = fake_component_create();
 
     mock_component_2->dimension.width = 10;
     mock_component_2->dimension.height = 10;
@@ -168,7 +168,7 @@ static void test_ui_util_position_right_bottom(void** state)
 
 static void test_ui_util_position_right_top(void** state)
 {
-    component_t* mock_component_1 = mock_component_create();
+    component_t* mock_component_1 = fake_component_create();
 
     mock_component_1->dimension.width = 100;
     mock_component_1->dimension.height = 100;
@@ -176,7 +176,7 @@ static void test_ui_util_position_right_top(void** state)
     mock_component_1->position.left = 0;
     mock_component_1->position.top = 0;
 
-    component_t* mock_component_2 = mock_component_create();
+    component_t* mock_component_2 = fake_component_create();
 
     mock_component_2->dimension.width = 10;
     mock_component_2->dimension.height = 10;

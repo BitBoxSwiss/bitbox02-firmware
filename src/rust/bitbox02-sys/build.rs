@@ -118,14 +118,14 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_spi_get_active_ble_firmware_version",
     "spi_mem_protected_area_write",
     "menu_create",
-    "mock_memory_factoryreset",
+    "fake_memory_factoryreset",
     "spi_mem_full_erase",
     "printf",
     "progress_create",
     "progress_set",
     "random_32_bytes_mcu",
     "random_32_bytes",
-    "random_mock_reset",
+    "random_fake_reset",
     "reboot_to_bootloader",
     "reset_reset",
     "reset_ble",
@@ -252,7 +252,7 @@ pub fn main() -> Result<(), &'static str> {
         ]);
     } else {
         // unit test framework includes
-        includes.push("../../../test/hardware-mocks/include")
+        includes.push("../../../test/hardware-fakes/include")
     }
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");

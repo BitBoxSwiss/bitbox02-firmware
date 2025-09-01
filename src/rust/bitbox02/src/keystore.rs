@@ -315,7 +315,7 @@ mod tests {
         };
 
         // Test without tweak
-        crate::random::mock_reset();
+        crate::random::fake_reset();
         let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
         let secp = secp256k1::Secp256k1::new();
         assert!(secp
@@ -327,7 +327,7 @@ mod tests {
             .is_ok());
 
         // Test with tweak
-        crate::random::mock_reset();
+        crate::random::fake_reset();
         let tweak = {
             let tweak =
                 hex::decode("a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c")
@@ -623,7 +623,7 @@ mod tests {
 
         // Hack to get the random bytes that will be used.
         let seed_random = {
-            crate::random::mock_reset();
+            crate::random::fake_reset();
             crate::random::random_32_bytes()
         };
 
@@ -642,7 +642,7 @@ mod tests {
 
         for size in [16, 32] {
             mock_memory();
-            crate::random::mock_reset();
+            crate::random::fake_reset();
             crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
             lock();
 

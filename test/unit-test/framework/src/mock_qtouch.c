@@ -1,4 +1,4 @@
-// Copyright 2025 Shift Crypto AG
+// Copyright 2019 Shift Cryptosecurity AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,3 +11,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include <setjmp.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <cmocka.h>
+
+#include "mock_qtouch.h"
+
+uint8_t qtouch_is_scroller_active(uint16_t sensor_node)
+{
+    return (uint8_t)mock();
+}
+
+uint16_t qtouch_get_scroller_position(uint16_t sensor_node)
+{
+    return (uint16_t)mock();
+}

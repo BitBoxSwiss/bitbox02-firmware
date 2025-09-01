@@ -12,23 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string.h>
+#ifndef _FAKE_COMPONENT_H_
+#define _FAKE_COMPONENT_H_
 
-#include <screen.h>
-#include <stdlib.h>
-#include <ui/ui_util.h>
-
-#include "mock_component.h"
-
-/********************************** Label Functions **********************************/
-
-/**
- * Collects all component functions.
- */
-static const component_functions_t MOCK_COMPONENT_FUNCTIONS = {
-    .cleanup = ui_util_component_cleanup,
-    .render = ui_util_component_render_subcomponents,
-    .on_event = ui_util_on_event_noop};
+#include <ui/component.h>
 
 /********************************** Create Instance **********************************/
 
@@ -38,16 +25,6 @@ static const component_functions_t MOCK_COMPONENT_FUNCTIONS = {
  * @param[in] upside_down Whether the text should be rotated 180 degree or not.
  * @param[in] font The font of the label.
  */
-component_t* mock_component_create(void)
-{
-    component_t* mock = malloc(sizeof(component_t));
-    memset(mock, 0, sizeof(component_t));
-    mock->f = &MOCK_COMPONENT_FUNCTIONS;
+component_t* fake_component_create(void);
 
-    mock->dimension.width = SCREEN_WIDTH;
-    mock->dimension.height = SCREEN_HEIGHT;
-    mock->position.left = 0;
-    mock->position.top = 0;
-
-    return mock;
-}
+#endif

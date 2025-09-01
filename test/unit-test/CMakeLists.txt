@@ -19,6 +19,10 @@
 # both linux and macos
 find_package(PkgConfig REQUIRED)
 
+# Unit testing uses CMocka (rust unit testing is in `src`, which is why we load
+# it already here.)
+pkg_check_modules(CMOCKA REQUIRED cmocka)
+
 # u2f tests with hardware uses hidapi-hidraw
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   pkg_check_modules(HIDAPI REQUIRED hidapi)
@@ -32,6 +36,10 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
 set(DBB-FILTERED-SOURCES
+  framework/src/mock_gestures.c
+  framework/src/mock_screen_stack.c
+  framework/src/mock_memory.c
+  framework/src/mock_qtouch.c
   ${DBB-FIRMWARE-SOURCES}
   ${DBB-FIRMWARE-UI-SOURCES}
   ${FIRMWARE-U2F-SOURCES}
@@ -98,12 +106,14 @@ target_include_directories(
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
+  ${CMOCKA_INCLUDE_DIRS}
 )
 target_include_directories(
   bitbox_objects
   PUBLIC
   ${INCLUDES}
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/framework/include
   ${CMAKE_BINARY_DIR}/src
 )
 
@@ -123,6 +133,7 @@ target_include_directories(
   PUBLIC
   ${INCLUDES}
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/framework/include
   ${CMAKE_BINARY_DIR}/src
 )
 
@@ -132,7 +143,7 @@ add_dependencies(bitbox_objects
   secp256k1
   fatfs
 )
-target_link_libraries(bitbox_objects PUBLIC hardware-mocks)
+target_link_libraries(bitbox_objects PUBLIC hardware-fakes)
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
 # _UNIT_TEST_ is used by ASF4 to not cross compile
@@ -149,6 +160,7 @@ target_compile_definitions(bitbox PUBLIC TESTING _UNIT_TEST_)
 target_link_libraries(bitbox
   PUBLIC
     secp256k1
+    ${CMOCKA_LDFLAGS}
   PRIVATE
     wallycore
     fatfs
@@ -212,13 +224,13 @@ set(TEST_LIST
    ui_component_gestures
    ""
    memory
-   "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock,--wrap=random_32_bytes_mcu"
+   "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
    memory_functional
    ""
    salt
    "-Wl,--wrap=memory_get_salt_root"
    cipher
-   "-Wl,--wrap=cipher_mock_iv"
+   "-Wl,--wrap=cipher_fake_iv"
    util
    ""
    ugui
@@ -243,7 +255,7 @@ else()
       -Wl,--start-group
       c-unit-tests_rust_c
       bitbox
-      hardware-mocks
+      hardware-fakes
       fatfs
       -Wl,--end-group
       ${TEST_LINK_ARGS}
@@ -266,14 +278,14 @@ foreach(TEST_NAME ${U2F_TESTS})
   set(EXE test_${TEST_NAME})
 
   # This tests link to our code
-  add_executable(${EXE} test_${TEST_NAME}.c framework/mock_hidapi.c)
+  add_executable(${EXE} test_${TEST_NAME}.c framework/src/mock_hidapi.c)
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
     bitbox
-    hardware-mocks
+    hardware-fakes
     fatfs
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
     u2f-util

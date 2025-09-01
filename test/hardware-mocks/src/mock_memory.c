@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <setjmp.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <cmocka.h>
-
 #include <flags.h>
 #include <memory/memory.h>
 #include <mock_memory.h>
@@ -72,51 +66,6 @@ void memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out)
 void memory_read_shared_bootdata_mock(uint8_t* chunk_out)
 {
     memcpy(chunk_out, _memory_shared_data, (size_t)FLASH_SHARED_DATA_LEN);
-}
-
-bool __wrap_memory_is_initialized(void)
-{
-    return mock();
-}
-
-bool __wrap_memory_is_seeded(void)
-{
-    return mock();
-}
-
-static uint8_t _encrypted_seed_and_hmac[96];
-static uint8_t _encrypted_seed_and_hmac_len;
-
-bool __wrap_memory_set_encrypted_seed_and_hmac(uint8_t* encrypted_seed_and_hmac, uint8_t len)
-{
-    memcpy(_encrypted_seed_and_hmac, encrypted_seed_and_hmac, len);
-    _encrypted_seed_and_hmac_len = len;
-    return true;
-}
-
-bool __wrap_memory_get_encrypted_seed_and_hmac(
-    uint8_t* encrypted_seed_and_hmac_out,
-    uint8_t* len_out)
-{
-    *len_out = _encrypted_seed_and_hmac_len;
-    memcpy(encrypted_seed_and_hmac_out, _encrypted_seed_and_hmac, *len_out);
-    return true;
-}
-
-void __wrap_memory_get_device_name(char* name_out)
-{
-    snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", (const char*)mock());
-}
-
-bool __wrap_memory_set_device_name(const char* name)
-{
-    return mock();
-}
-
-bool __wrap_memory_set_mnemonic_passphrase_enabled(bool enabled)
-{
-    check_expected(enabled);
-    return mock();
 }
 
 static uint8_t _salt_root[32] = {

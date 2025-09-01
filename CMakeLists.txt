@@ -350,14 +350,6 @@ if (PROTOC STREQUAL "PROTOC-NOTFOUND")
   message(FATAL_ERROR "Could not find 'protoc'.")
 endif()
 
-# We use FindPkgConfig instead of FindPackage because it finds libraries in
-# both linux and macos
-find_package(PkgConfig REQUIRED)
-
-# Unit testing uses CMocka (rust unit testing is in `src`, which is why we load
-# it already here.)
-pkg_check_modules(CMOCKA REQUIRED cmocka)
-
 #-----------------------------------------------------------------------------
 # Build
 

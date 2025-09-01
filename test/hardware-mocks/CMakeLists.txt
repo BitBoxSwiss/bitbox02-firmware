@@ -24,9 +24,7 @@ set(HARDWARE-MOCKS-SOURCES
   src/mock_spi_mem.c
   src/mock_component.c
   src/mock_delay.c
-  src/mock_gestures.c
   src/mock_qtouch.c
-  src/mock_screen_stack.c
 )
 
 add_library(hardware-mocks
@@ -56,12 +54,11 @@ target_include_directories(
   PRIVATE
   ${INCLUDES}
   ${CMAKE_BINARY_DIR}/src
-  ${CMOCKA_INCLUDE_DIRS}
   $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-target_link_libraries(hardware-mocks PUBLIC wallycore ${CMOCKA_LDFLAGS})
+target_link_libraries(hardware-mocks PUBLIC wallycore)
 
 if(SANITIZE_ADDRESS)
   target_compile_options(hardware-mocks PUBLIC "-fsanitize=address")

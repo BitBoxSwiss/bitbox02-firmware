@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The real qtouch.h depends on hardware specific headers and cannot be used
-#include <mock_qtouch.h>
+#ifndef _QTOUCH_H_
+#define _QTOUCH_H_
 
-#include <stdbool.h>
+#include <stdint.h>
 
-volatile bool measurement_done_touch = true;
+void __wrap_qtouch_process(void);
 
-void qtouch_process(void) {}
+uint8_t __wrap_qtouch_get_scroller_is_active(uint16_t sensor_node);
 
-void qtouch_force_calibrate(void) {}
+uint16_t __wrap_qtouch_get_scroller_position(uint16_t sensor_node);
+
+#endif

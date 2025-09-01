@@ -1,6 +1,4 @@
-# Hardware mocks and fakes
+# Hardware fakes
 
-This library is used for c unit tests and the c simulator.
-
-Some of the files depend on cmocka to provide mocks. Some of the files are only
-fakes.
+All files in this directory fake hardware functionailty. Used in unit tests and
+simulators

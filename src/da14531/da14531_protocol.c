@@ -23,8 +23,6 @@
 #include <utils_assert.h>
 #ifndef TESTING
 #include "dap.h"
-#else
-#include "mock_dap.h"
 #endif
 
 #include <hardfault.h>

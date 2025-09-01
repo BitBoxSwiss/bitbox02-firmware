@@ -136,7 +136,7 @@ set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 set(QTOUCH-SOURCES
   ${CMAKE_SOURCE_DIR}/src/qtouch/qtouch.c
 )
-set(QTOUCH-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
+set(QTOUCH-SOURCES ${QTOUCH-SOURCES} PARENT_SCOPE)
 
 # The additional files required for the plus platform
 set(PLATFORM-BITBOX02-PLUS-SOURCES
@@ -277,7 +277,7 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} ${CMOCKA_LDFLAGS} -lbitbox_merged -lwallycore -lsecp256k1 -lfatfs -lhardware-mocks)
+  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lbitbox_merged -lwallycore -lsecp256k1 -lfatfs -lhardware-mocks)
 
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a

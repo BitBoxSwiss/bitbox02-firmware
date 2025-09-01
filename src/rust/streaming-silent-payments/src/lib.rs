@@ -396,8 +396,8 @@ mod tests {
         .unwrap();
         let _ = v.create_output("sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv").unwrap();
 
-        assert!(v
-            .add_input(
+        assert!(
+            v.add_input(
                 InputType::P2wpkh,
                 &SecretKey::from_str(
                     "93f5ed907ad5b2bdbbdcb5d9116ebc0a4e1f92f910d5260237fa45a9408aad16",
@@ -411,6 +411,7 @@ mod tests {
                     0,
                 ),
             )
-            .is_err());
+            .is_err()
+        );
     }
 }

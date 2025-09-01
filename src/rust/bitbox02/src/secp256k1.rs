@@ -78,11 +78,7 @@ pub fn dleq_verify(
             p2.as_c_ptr() as _,
         )
     };
-    if result == 1 {
-        Ok(())
-    } else {
-        Err(())
-    }
+    if result == 1 { Ok(()) } else { Err(()) }
 }
 
 #[cfg(test)]

@@ -15,7 +15,7 @@
 //! This module provides the executor for tasks that are spawned with an API request and deliver a
 //! USB response. Terminology: host = computer, device = BitBox02.
 
-use crate::bb02_async::{option, spin as spin_task, Task};
+use crate::bb02_async::{Task, option, spin as spin_task};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::RefCell;
@@ -196,7 +196,7 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
     match *state {
         UsbTaskState::Nothing => Err(CopyResponseErr::NotRunning),
         UsbTaskState::Running(Some(_), ref mut next_request_state) => {
-            if let WaitingForNextRequestState::SendingResponse(ref response) = next_request_state {
+            if let WaitingForNextRequestState::SendingResponse(response) = next_request_state {
                 let len = response.len();
                 dst[..len].copy_from_slice(response);
                 *next_request_state = WaitingForNextRequestState::AwaitingRequest;

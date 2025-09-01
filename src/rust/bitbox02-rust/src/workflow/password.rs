@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{confirm, trinary_input_string, Workflows};
+use super::{Workflows, confirm, trinary_input_string};
 
 pub use trinary_input_string::{CanCancel, Error};
 

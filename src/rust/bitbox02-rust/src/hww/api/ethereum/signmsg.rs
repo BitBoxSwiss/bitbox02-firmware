@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use bitbox02::keystore;
 

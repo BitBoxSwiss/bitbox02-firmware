@@ -30,17 +30,13 @@ pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
 /// # Safety `ptr` must be not null and be a null terminated string. The resulting string is only
 /// valid as long the memory pointed to by `ptr` is valid.
 pub unsafe fn str_from_null_terminated_ptr<'a>(ptr: *const u8) -> Result<&'a str, ()> {
-    core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(()))
+    unsafe { core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(())) }
 }
 
 /// truncate_str truncates string `s` to `len` chars. If `s` is
 /// shorter than `len`, the string is returned unchanged (no panics).
 pub fn truncate_str(s: &str, len: usize) -> &str {
-    if s.len() > len {
-        &s[..len]
-    } else {
-        s
-    }
+    if s.len() > len { &s[..len] } else { s }
 }
 
 /// Converts a Rust string to a null terminated C string by appending a null

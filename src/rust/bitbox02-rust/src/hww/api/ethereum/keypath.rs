@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::params::Params;
 use super::Error;
+use super::params::Params;
 use crate::hal::Ui;
 use crate::workflow::confirm;
 use util::bip32::HARDENED;

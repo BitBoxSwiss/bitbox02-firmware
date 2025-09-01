@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::amount::{calculate_percentage, Amount};
+use super::Error;
+use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
 use super::pb;
-use super::Error;
 
 use bitbox02::keystore;
 
@@ -388,7 +388,7 @@ pub async fn _process(
 
     let host_nonce = match request.host_nonce_commitment() {
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
-        Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
+        Some(pb::AntiKleptoHostNonceCommitment { commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
                 SECP256K1,
                 &crate::keystore::secp256k1_get_private_key(request.keypath())?
@@ -477,36 +477,44 @@ mod tests {
         );
 
         // ETH value must be 0 when transacting ERC20.
-        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
-            value: vec![0],
-            data: valid_data.to_vec(),
-            ..Default::default()
-        }))
-        .is_none());
+        assert!(
+            parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
+                value: vec![0],
+                data: valid_data.to_vec(),
+                ..Default::default()
+            }))
+            .is_none()
+        );
 
         // Invalid method (first byte)
         let invalid_data = b"\xa8\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xff";
-        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
-            data: invalid_data.to_vec(),
-            ..Default::default()
-        }))
-        .is_none());
+        assert!(
+            parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
+                data: invalid_data.to_vec(),
+                ..Default::default()
+            }))
+            .is_none()
+        );
 
         // Recipient too long (not zero padded)
         let invalid_data = b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0babcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xff";
-        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
-            data: invalid_data.to_vec(),
-            ..Default::default()
-        }))
-        .is_none());
+        assert!(
+            parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
+                data: invalid_data.to_vec(),
+                ..Default::default()
+            }))
+            .is_none()
+        );
 
         // Value can't be zero
         let invalid_data = b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x00";
-        assert!(parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
-            data: invalid_data.to_vec(),
-            ..Default::default()
-        }))
-        .is_none());
+        assert!(
+            parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
+                data: invalid_data.to_vec(),
+                ..Default::default()
+            }))
+            .is_none()
+        );
     }
 
     /// Standard ETH transaction with no data field.
@@ -1046,11 +1054,13 @@ mod tests {
         {
             // Check that the above is valid before making invalid variants.
             mock_unlocked();
-            assert!(block_on(process(
-                &mut TestingHal::new(),
-                &Transaction::Legacy(&valid_request)
-            ))
-            .is_ok());
+            assert!(
+                block_on(process(
+                    &mut TestingHal::new(),
+                    &Transaction::Legacy(&valid_request)
+                ))
+                .is_ok()
+            );
         }
 
         {
@@ -1199,11 +1209,13 @@ mod tests {
         {
             // Check that the above is valid before making invalid variants.
             mock_unlocked();
-            assert!(block_on(process(
-                &mut TestingHal::new(),
-                &Transaction::Eip1559(&valid_request)
-            ))
-            .is_ok());
+            assert!(
+                block_on(process(
+                    &mut TestingHal::new(),
+                    &Transaction::Eip1559(&valid_request)
+                ))
+                .is_ok()
+            );
         }
 
         {

@@ -17,8 +17,8 @@ use core::cell::RefCell;
 
 use alloc::boxed::Box;
 
-use bitbox02::ui::trinary_choice_create;
 pub use bitbox02::ui::TrinaryChoice;
+use bitbox02::ui::trinary_choice_create;
 
 pub async fn choose(
     message: &str,

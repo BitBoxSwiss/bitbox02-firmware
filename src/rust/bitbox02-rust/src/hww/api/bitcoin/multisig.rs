@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::Error;
 use super::params::Params;
 use super::pb;
-use super::Error;
 
-use pb::btc_register_script_config_request::XPubType;
-use pb::btc_script_config::{multisig::ScriptType, Multisig};
 use pb::BtcCoin;
+use pb::btc_register_script_config_request::XPubType;
+use pb::btc_script_config::{Multisig, multisig::ScriptType};
 
 use crate::bip32;
 
@@ -825,21 +825,23 @@ mod tests {
         ];
 
         for test in tests {
-            assert!(pkscript(
-                &Multisig {
-                    threshold: test.threshold,
-                    xpubs: test
-                        .xpubs
-                        .iter()
-                        .map(|xpub| parse_xpub(xpub).unwrap())
-                        .collect(),
-                    our_xpub_index: 0,
-                    script_type: ScriptType::P2wsh as _
-                },
-                1,
-                2,
-            )
-            .is_err());
+            assert!(
+                pkscript(
+                    &Multisig {
+                        threshold: test.threshold,
+                        xpubs: test
+                            .xpubs
+                            .iter()
+                            .map(|xpub| parse_xpub(xpub).unwrap())
+                            .collect(),
+                        our_xpub_index: 0,
+                        script_type: ScriptType::P2wsh as _
+                    },
+                    1,
+                    2,
+                )
+                .is_err()
+            );
         }
     }
 }

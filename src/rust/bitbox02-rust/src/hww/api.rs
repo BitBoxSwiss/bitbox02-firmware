@@ -42,7 +42,7 @@ mod system;
 
 use alloc::vec::Vec;
 
-use error::{make_error, Error};
+use error::{Error, make_error};
 use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
@@ -73,8 +73,8 @@ async fn process_api_btc(
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::BtcPub(ref request) => bitcoin::process_pub(hal, request).await,
-        Request::BtcSignInit(ref request) => bitcoin::signtx::process(hal, request).await,
+        Request::BtcPub(request) => bitcoin::process_pub(hal, request).await,
+        Request::BtcSignInit(request) => bitcoin::signtx::process(hal, request).await,
         Request::Btc(pb::BtcRequest {
             request: Some(request),
         }) => bitcoin::process_api(hal, request)
@@ -163,29 +163,29 @@ fn can_call(request: &Request) -> bool {
 /// Handle a protobuf api call.
 async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Result<Response, Error> {
     match request {
-        Request::Reboot(ref request) => system::reboot_to_bootloader(hal, request).await,
+        Request::Reboot(request) => system::reboot_to_bootloader(hal, request).await,
         Request::DeviceInfo(_) => device_info::process(),
-        Request::DeviceName(ref request) => set_device_name::process(hal, request).await,
-        Request::SetPassword(ref request) => set_password::process(hal, request).await,
+        Request::DeviceName(request) => set_device_name::process(hal, request).await,
+        Request::SetPassword(request) => set_password::process(hal, request).await,
         Request::Reset(_) => reset::process(hal).await,
-        Request::SetMnemonicPassphraseEnabled(ref request) => {
+        Request::SetMnemonicPassphraseEnabled(request) => {
             set_mnemonic_passphrase_enabled::process(hal, request).await
         }
-        Request::InsertRemoveSdcard(ref request) => sdcard::process(hal, request).await,
+        Request::InsertRemoveSdcard(request) => sdcard::process(hal, request).await,
         Request::ListBackups(_) => backup::list(hal),
         Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
             inserted: hal.sd().sdcard_inserted(),
         })),
-        Request::CheckBackup(ref request) => backup::check(hal, request).await,
-        Request::CreateBackup(ref request) => backup::create(hal, request).await,
-        Request::RestoreBackup(ref request) => restore::from_file(hal, request).await,
+        Request::CheckBackup(request) => backup::check(hal, request).await,
+        Request::CreateBackup(request) => backup::create(hal, request).await,
+        Request::RestoreBackup(request) => restore::from_file(hal, request).await,
         Request::ShowMnemonic(_) => show_mnemonic::process(hal).await,
-        Request::RestoreFromMnemonic(ref request) => restore::from_mnemonic(hal, request).await,
-        Request::ElectrumEncryptionKey(ref request) => electrum::process(request).await,
+        Request::RestoreFromMnemonic(request) => restore::from_mnemonic(hal, request).await,
+        Request::ElectrumEncryptionKey(request) => electrum::process(request).await,
 
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {
-            request: Some(ref request),
+            request: Some(request),
         }) => ethereum::process_api(hal, request)
             .await
             .map(|r| Response::Eth(pb::EthResponse { response: Some(r) })),
@@ -199,15 +199,15 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
 
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {
-            request: Some(ref request),
+            request: Some(request),
         }) => cardano::process_api(hal, request)
             .await
             .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
-        Request::Bip85(ref request) => bip85::process(hal, request).await,
+        Request::Bip85(request) => bip85::process(hal, request).await,
         Request::Bluetooth(pb::BluetoothRequest {
-            request: Some(ref request),
+            request: Some(request),
         }) => bluetooth::process_api(hal, request)
             .await
             .map(|r| Response::Bluetooth(pb::BluetoothResponse { response: Some(r) })),

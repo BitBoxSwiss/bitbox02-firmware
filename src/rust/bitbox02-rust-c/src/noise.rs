@@ -14,7 +14,7 @@
 // limitations under the License.
 
 /// `private_key_out` must be 32 bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_noise_generate_static_private_key(
     mut private_key_out: crate::util::BytesMut,
 ) {

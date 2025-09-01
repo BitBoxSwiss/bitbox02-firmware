@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string, Workflows};
+use super::{Workflows, confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string};
 
 use alloc::boxed::Box;
 use alloc::string::String;

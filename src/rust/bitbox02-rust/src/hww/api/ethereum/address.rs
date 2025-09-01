@@ -30,11 +30,7 @@ pub fn from_pubkey_hash(recipient: &[u8; 20], address_case: pb::EthAddressCase) 
             for (i, e) in hex.iter_mut().enumerate() {
                 let hash_byte = {
                     let b = hash[i / 2];
-                    if i % 2 == 0 {
-                        b >> 4
-                    } else {
-                        b & 0xf
-                    }
+                    if i % 2 == 0 { b >> 4 } else { b & 0xf }
                 };
                 if *e > b'9' && hash_byte > 7 {
                     *e -= 32; // convert to uppercase

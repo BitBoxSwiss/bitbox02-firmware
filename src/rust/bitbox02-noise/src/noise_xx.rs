@@ -16,7 +16,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use crate::x25519::{PrivateKey, PublicKey, Random32, X25519};
-use noise_rust_crypto::{sensitive::Sensitive, ChaCha20Poly1305, Sha256};
+use noise_rust_crypto::{ChaCha20Poly1305, Sha256, sensitive::Sensitive};
 
 /// Specialization of noise_protocol::HandshakeState, picking the implementations for Diffie
 /// Hellman, Cipher and Hash.

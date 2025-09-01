@@ -15,7 +15,7 @@
 use alloc::vec::Vec;
 
 use crate::hash::Sha512;
-use bip32_ed25519::{Xprv, Xpub, ED25519_EXPANDED_SECRET_KEY_SIZE};
+use bip32_ed25519::{ED25519_EXPANDED_SECRET_KEY_SIZE, Xprv, Xpub};
 
 fn get_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     bitbox02::keystore::get_ed25519_seed()

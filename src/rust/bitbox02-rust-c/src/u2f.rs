@@ -128,7 +128,7 @@ fn app_string(app_id: &[u8; 32]) -> String {
 }
 
 // app_id must be of length 32, and out must be a least 60 bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_u2f_app_string(app_id: crate::util::Bytes, mut out: crate::util::BytesMut) {
     let app_str = app_string(app_id.as_ref().try_into().unwrap());
     let bytes = app_str.as_bytes();

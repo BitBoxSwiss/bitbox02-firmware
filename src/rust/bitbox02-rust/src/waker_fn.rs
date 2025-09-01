@@ -26,22 +26,22 @@ impl<F: Fn() + Send + Sync + 'static> Helper<F> {
     );
 
     unsafe fn clone_waker(ptr: *const ()) -> RawWaker {
-        let arc = ManuallyDrop::new(Arc::from_raw(ptr as *const F));
+        let arc = ManuallyDrop::new(unsafe { Arc::from_raw(ptr as *const F) });
         mem::forget(arc.clone());
         RawWaker::new(ptr, &Self::VTABLE)
     }
 
     unsafe fn wake(ptr: *const ()) {
-        let arc = Arc::from_raw(ptr as *const F);
+        let arc = unsafe { Arc::from_raw(ptr as *const F) };
         (arc)();
     }
 
     unsafe fn wake_by_ref(ptr: *const ()) {
-        let arc = ManuallyDrop::new(Arc::from_raw(ptr as *const F));
+        let arc = ManuallyDrop::new(unsafe { Arc::from_raw(ptr as *const F) });
         (arc)();
     }
 
     unsafe fn drop_waker(ptr: *const ()) {
-        drop(Arc::from_raw(ptr as *const F));
+        drop(unsafe { Arc::from_raw(ptr as *const F) });
     }
 }

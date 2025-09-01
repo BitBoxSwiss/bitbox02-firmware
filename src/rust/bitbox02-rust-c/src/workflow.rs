@@ -24,7 +24,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02_rust::bb02_async::{spin, Task};
+use bitbox02_rust::bb02_async::{Task, spin};
 use bitbox02_rust::workflow::confirm;
 use core::task::Poll;
 
@@ -42,90 +42,102 @@ static mut CONFIRM_PARAMS: Option<confirm::Params> = None;
 static mut CONFIRM_STATE: TaskState<'static, Result<(), confirm::UserAbort>> = TaskState::Nothing;
 static mut BITBOX02_HAL: bitbox02_rust::hal::BitBox02Hal = bitbox02_rust::hal::BitBox02Hal::new();
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
-    UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock(
-        &mut BITBOX02_HAL,
-    )));
+    unsafe {
+        UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock(
+            &mut BITBOX02_HAL,
+        )));
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     title: *const core::ffi::c_char,
     body: *const core::ffi::c_char,
 ) {
-    CONFIRM_TITLE = Some(core::ffi::CStr::from_ptr(title).to_str().unwrap().into());
-    CONFIRM_BODY = Some(core::ffi::CStr::from_ptr(body).to_str().unwrap().into());
-    CONFIRM_PARAMS = Some(confirm::Params {
-        title: CONFIRM_TITLE.as_ref().unwrap(),
-        body: CONFIRM_BODY.as_ref().unwrap(),
-        ..Default::default()
-    });
+    unsafe {
+        CONFIRM_TITLE = Some(core::ffi::CStr::from_ptr(title).to_str().unwrap().into());
+        CONFIRM_BODY = Some(core::ffi::CStr::from_ptr(body).to_str().unwrap().into());
+        CONFIRM_PARAMS = Some(confirm::Params {
+            title: CONFIRM_TITLE.as_ref().unwrap(),
+            body: CONFIRM_BODY.as_ref().unwrap(),
+            ..Default::default()
+        });
 
-    CONFIRM_STATE =
-        TaskState::Running(Box::pin(confirm::confirm(CONFIRM_PARAMS.as_ref().unwrap())));
+        CONFIRM_STATE =
+            TaskState::Running(Box::pin(confirm::confirm(CONFIRM_PARAMS.as_ref().unwrap())));
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spin() {
-    match UNLOCK_STATE {
-        TaskState::Running(ref mut task) => {
-            let result = spin(task);
-            if let Poll::Ready(result) = result {
-                UNLOCK_STATE = TaskState::ResultAvailable(result);
+    unsafe {
+        match UNLOCK_STATE {
+            TaskState::Running(ref mut task) => {
+                let result = spin(task);
+                if let Poll::Ready(result) = result {
+                    UNLOCK_STATE = TaskState::ResultAvailable(result);
+                }
             }
+            _ => (),
         }
-        _ => (),
-    }
-    match CONFIRM_STATE {
-        TaskState::Running(ref mut task) => {
-            let result = spin(task);
-            if let Poll::Ready(result) = result {
-                CONFIRM_STATE = TaskState::ResultAvailable(result);
+        match CONFIRM_STATE {
+            TaskState::Running(ref mut task) => {
+                let result = spin(task);
+                if let Poll::Ready(result) = result {
+                    CONFIRM_STATE = TaskState::ResultAvailable(result);
+                }
             }
+            _ => (),
         }
-        _ => (),
     }
 }
 
 /// Returns true if there was a result.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_unlock_poll(result_out: &mut bool) -> bool {
-    match UNLOCK_STATE {
-        TaskState::ResultAvailable(result) => {
-            UNLOCK_STATE = TaskState::Nothing;
-            match result {
-                Ok(()) => *result_out = true,
-                Err(()) => *result_out = false,
+    unsafe {
+        match UNLOCK_STATE {
+            TaskState::ResultAvailable(result) => {
+                UNLOCK_STATE = TaskState::Nothing;
+                match result {
+                    Ok(()) => *result_out = true,
+                    Err(()) => *result_out = false,
+                }
+                true
             }
-            true
+            _ => false,
         }
-        _ => false,
     }
 }
 
 /// Returns true if there was a result.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_confirm_poll(result_out: &mut bool) -> bool {
-    match CONFIRM_STATE {
-        TaskState::ResultAvailable(ref result) => {
-            CONFIRM_TITLE = None;
-            CONFIRM_BODY = None;
-            CONFIRM_PARAMS = None;
-            CONFIRM_STATE = TaskState::Nothing;
-            *result_out = result.is_ok();
-            true
+    unsafe {
+        match CONFIRM_STATE {
+            TaskState::ResultAvailable(ref result) => {
+                CONFIRM_TITLE = None;
+                CONFIRM_BODY = None;
+                CONFIRM_PARAMS = None;
+                CONFIRM_STATE = TaskState::Nothing;
+                *result_out = result.is_ok();
+                true
+            }
+            _ => false,
         }
-        _ => false,
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_abort_current() {
-    UNLOCK_STATE = TaskState::Nothing;
+    unsafe {
+        UNLOCK_STATE = TaskState::Nothing;
 
-    CONFIRM_TITLE = None;
-    CONFIRM_BODY = None;
-    CONFIRM_PARAMS = None;
-    CONFIRM_STATE = TaskState::Nothing;
+        CONFIRM_TITLE = None;
+        CONFIRM_BODY = None;
+        CONFIRM_PARAMS = None;
+        CONFIRM_STATE = TaskState::Nothing;
+    }
 }

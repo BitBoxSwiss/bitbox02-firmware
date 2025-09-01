@@ -26,7 +26,7 @@ use util::bip32::HARDENED;
 use crate::hash::Sha512;
 use crate::secp256k1::SECP256K1;
 
-use hmac::{digest::FixedOutput, Mac, SimpleHmac};
+use hmac::{Mac, SimpleHmac, digest::FixedOutput};
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
@@ -161,7 +161,7 @@ mod tests {
     use super::*;
 
     use bitbox02::testing::{
-        mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC,
+        TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
     };
 
     #[test]
@@ -223,15 +223,24 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub_twice(&[]).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(&[])
+                .unwrap()
+                .serialize_str(bip32::XPubType::Xpub)
+                .unwrap(),
             "xpub661MyMwAqRbcEhX8d9WJh78SZrxusAzWFoykz4n5CF75uYRzixw5FZPUSoWyhaaJ1bpiPFdzdHSQqJN38PcTkyrLmxT4J2JDYfoGJQ4ioE2",
         );
         assert_eq!(
-            get_xpub_twice(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath)
+                .unwrap()
+                .serialize_str(bip32::XPubType::Xpub)
+                .unwrap(),
             "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
         );
         assert_eq!(
-            get_xpub_twice(keypath_5).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath_5)
+                .unwrap()
+                .serialize_str(bip32::XPubType::Xpub)
+                .unwrap(),
             "xpub6HHn1zdtf1RjePopiTV5nxf8jY2xwbJicTQ91jV4cUJZ5EnbvXyBGDhqWt8B9JxxBt9vExi4pdWzrbrM43qSFs747VCGmSy2DPWAhg9MkUg",
         );
 
@@ -241,7 +250,10 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub_twice(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath)
+                .unwrap()
+                .serialize_str(bip32::XPubType::Xpub)
+                .unwrap(),
             "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18BG81VJhJDXnSpRe5NGKwVpXiAb",
         );
 
@@ -251,7 +263,10 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub_twice(keypath).unwrap().serialize_str(bip32::XPubType::Xpub).unwrap(),
+            get_xpub_twice(keypath)
+                .unwrap()
+                .serialize_str(bip32::XPubType::Xpub)
+                .unwrap(),
             "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
         )
     }

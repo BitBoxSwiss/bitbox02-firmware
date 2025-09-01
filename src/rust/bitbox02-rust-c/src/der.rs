@@ -42,7 +42,7 @@ fn parse_two_int256s(data: &[u8]) -> Result<([u8; 32], [u8; 32]), ()> {
 /// The input is the DER encoding of the signature R/S values encoded as two DER "INGEGER".
 /// It's the same encoding as a regular DER-signature, but without the 0x30 sequence header.
 /// sig_compact_out must be 64 bytes and will contain the R/S values (each 32 bytes).
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_der_parse_optiga_signature(
     sig_der: crate::util::Bytes,
     mut sig_compact_out: crate::util::BytesMut,

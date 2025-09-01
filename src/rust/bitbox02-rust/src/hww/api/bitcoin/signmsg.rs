@@ -16,11 +16,11 @@ use alloc::vec::Vec;
 
 use sha2::{Digest, Sha256};
 
-use super::pb;
 use super::Error;
+use super::pb;
 
-use pb::btc_script_config::{Config, SimpleType};
 use pb::BtcCoin;
+use pb::btc_script_config::{Config, SimpleType};
 
 use pb::btc_response::Response;
 

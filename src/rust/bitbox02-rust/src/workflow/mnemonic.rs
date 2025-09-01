@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::Workflows;
 pub use super::cancel::Error as CancelError;
 use super::cancel::{cancel, set_result, with_cancel};
 use super::confirm;
 use super::menu;
 use super::trinary_choice::TrinaryChoice;
 use super::trinary_input_string;
-use super::Workflows;
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -426,7 +426,7 @@ mod tests {
     use super::*;
 
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock, Data};
+    use bitbox02::testing::{Data, mock};
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
@@ -447,7 +447,9 @@ mod tests {
 
         assert_eq!(
             &as_str_vec(&bruteforce_lastword(&["violin"; 23])),
-            &["boss", "coyote", "dry", "habit", "panel", "regular", "speed", "winter"]
+            &[
+                "boss", "coyote", "dry", "habit", "panel", "regular", "speed", "winter"
+            ]
         );
 
         assert_eq!(

@@ -17,7 +17,7 @@ use core::ffi::c_uchar;
 /// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
 ///
 /// * `dst` - Buffer to zero
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
     if dst.buf.is_null() || dst.len == 0 {
         return;
@@ -28,12 +28,12 @@ pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
 /// Calls `util::name::validate()` on the provided C string.
 /// SAFETY:
 /// `buf` must point to a valid buffer of size `max_len`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_is_name_valid(buf: *const u8, max_len: usize) -> bool {
     if max_len == 0 {
         return false;
     }
-    let slice = core::slice::from_raw_parts(buf, max_len);
+    let slice = unsafe { core::slice::from_raw_parts(buf, max_len) };
     match core::ffi::CStr::from_bytes_until_nul(slice) {
         Ok(cstr) => match cstr.to_str() {
             Ok(s) => util::name::validate(s, max_len - 1),
@@ -47,7 +47,7 @@ pub unsafe extern "C" fn rust_util_is_name_valid(buf: *const u8, max_len: usize)
 ///
 /// * `buf` - bytes to convert to hex.
 /// * `out` - hex will be written here. out len must be at least 2*buf.len+1.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: BytesMut) {
     let bytes = buf.as_ref();
     let hexlen = bytes.len() * 2;
@@ -121,7 +121,7 @@ impl AsMut<[u8]> for BytesMut {
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
 ///
 /// SAFTEY: buf must not be NULL and point to a valid memory area of size `len`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Bytes {
     Bytes { buf, len }
 }
@@ -132,14 +132,14 @@ pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Byt
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
 ///
 /// SAFTEY: buf must not be NULL and point to a valid memory area of size `len`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut {
     BytesMut { buf, len }
 }
 
 /// Base58Check-encode the input.
 #[cfg(feature = "c-unit-testing")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_base58_encode_check(buf: Bytes, mut out: BytesMut) -> bool {
     if buf.len == 0 {
         return false;

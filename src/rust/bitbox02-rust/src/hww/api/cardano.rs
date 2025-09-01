@@ -21,8 +21,8 @@ mod params;
 mod sign_transaction;
 mod xpubs;
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use pb::cardano_request::Request;
 use pb::cardano_response::Response;
@@ -33,8 +33,8 @@ pub async fn process_api(
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::Xpubs(ref request) => xpubs::process(request),
-        Request::Address(ref request) => address::process(hal, request).await,
-        Request::SignTransaction(ref request) => sign_transaction::process(hal, request).await,
+        Request::Xpubs(request) => xpubs::process(request),
+        Request::Address(request) => address::process(hal, request).await,
+        Request::SignTransaction(request) => sign_transaction::process(hal, request).await,
     }
 }

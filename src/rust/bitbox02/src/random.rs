@@ -19,7 +19,7 @@ pub fn mcu_32_bytes(out: &mut [u8; 32]) {
 
 #[cfg(not(target_arch = "arm"))]
 pub fn mcu_32_bytes(out: &mut [u8; 32]) {
-    extern "C" {
+    unsafe extern "C" {
         fn rand() -> core::ffi::c_int;
     }
 

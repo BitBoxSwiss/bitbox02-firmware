@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -21,13 +21,13 @@ use alloc::vec::Vec;
 use crate::hal::Ui;
 use crate::workflow::confirm;
 
+use pb::CardanoNetwork;
 use pb::cardano_response::Response;
 use pb::cardano_script_config::Config;
-use pb::CardanoNetwork;
 
 use blake2::{
-    digest::{Update, VariableOutput},
     Blake2bVar,
+    digest::{Update, VariableOutput},
 };
 
 use super::params;
@@ -423,7 +423,6 @@ mod tests {
             "addr128phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtupnz75xxcrtw79hu",
             "addr1vx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzers66hrl8",
             "addr1w8phkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcyjy7wx",
-
             // Byron addresses:
             "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi", // Yoroi style
             "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy", // Daedalus style
@@ -449,10 +448,8 @@ mod tests {
             "addr_test12rphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtupnz75xxcryqrvmw",
             "addr_test1vz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerspjrlsz",
             "addr_test1wrphkx6acpnf78fuvxn0mkew3l0fd058hzquvz7w36x4gtcl6szpr",
-
             // Byron addresses:
             "37btjrVyb4KEB2STADSsj3MYSAdj52X5FrFWpw2r7Wmj2GDzXjFRsHWuZqrw7zSkwopv8Ci3VWeg6bisU9dgJxW5hb2MZYeduNKbQJrqz3zVBsu9nT", // Daedalus style
-
         ];
 
         for address in &valid_addresses_testnet {
@@ -606,22 +603,22 @@ mod tests {
             Test {
                 keypath_payment: &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
                 keypath_stake: &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
-                expected_address:"addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs",
+                expected_address: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs",
             },
             Test {
                 keypath_payment: &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 10],
                 keypath_stake: &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
-                expected_address:"addr1qxgr8vtpxq6tzghua0ye8tz869y8w5vs3xr6qk83vzmpy2xznmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqatkd04",
+                expected_address: "addr1qxgr8vtpxq6tzghua0ye8tz869y8w5vs3xr6qk83vzmpy2xznmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqatkd04",
             },
             Test {
                 keypath_payment: &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 1, 10],
                 keypath_stake: &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
-                expected_address:"addr1qy6wl9mazd7w8s303a3t6hjx9k3qqjxzcyfrqjug8wu5uw7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqvlsgvu",
+                expected_address: "addr1qy6wl9mazd7w8s303a3t6hjx9k3qqjxzcyfrqjug8wu5uw7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqvlsgvu",
             },
             Test {
-                keypath_payment: &[1852 + HARDENED, 1815 + HARDENED, HARDENED+50, 1, 10],
-                keypath_stake: &[1852 + HARDENED, 1815 + HARDENED, HARDENED+50, 2, 0],
-                expected_address:"addr1q9t8qctl2mg55fvxrlgnlctf70hww5gtj9cgzrane7nj0amdad2jzalmf2zvjnw9x4z8e5emcqklue3gz85vadsgfutq96mqmx",
+                keypath_payment: &[1852 + HARDENED, 1815 + HARDENED, HARDENED + 50, 1, 10],
+                keypath_stake: &[1852 + HARDENED, 1815 + HARDENED, HARDENED + 50, 2, 0],
+                expected_address: "addr1q9t8qctl2mg55fvxrlgnlctf70hww5gtj9cgzrane7nj0amdad2jzalmf2zvjnw9x4z8e5emcqklue3gz85vadsgfutq96mqmx",
             },
         ];
 

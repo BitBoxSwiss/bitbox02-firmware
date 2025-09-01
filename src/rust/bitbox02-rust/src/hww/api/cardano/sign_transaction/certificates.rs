@@ -12,17 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::super::Error;
 use super::super::keypath::validate_address_shelley_stake;
 use super::super::params;
 use super::super::pb;
-use super::super::Error;
 
 use alloc::vec::Vec;
 
 use pb::cardano_sign_transaction_request::{
-    certificate,
+    Certificate, certificate,
     certificate::Cert::{StakeDelegation, StakeDeregistration, StakeRegistration, VoteDelegation},
-    Certificate,
 };
 
 use crate::hal::Ui;

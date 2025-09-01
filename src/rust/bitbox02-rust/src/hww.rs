@@ -641,9 +641,11 @@ mod tests {
                             crate::pb::ListBackupsResponse { info },
                         )),
                 } => match info.as_slice() {
-                    &[crate::pb::BackupInfo {
-                        ref id, ref name, ..
-                    }] => {
+                    &[
+                        crate::pb::BackupInfo {
+                            ref id, ref name, ..
+                        },
+                    ] => {
                         assert_eq!(name.as_str(), "test device name");
                         id.clone()
                     }

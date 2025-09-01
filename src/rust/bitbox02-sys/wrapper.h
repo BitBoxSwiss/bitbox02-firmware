@@ -55,7 +55,7 @@
 #include <wally_crypto.h>
 
 #if defined(TESTING)
-#include <mock_memory.h>
+#include <fake_memory.h>
 #endif
 
 #if !defined(TESTING)

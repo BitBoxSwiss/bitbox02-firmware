@@ -2122,7 +2122,7 @@ mod tests {
             }));
 
         mock_unlocked();
-        bitbox02::random::mock_reset();
+        bitbox02::random::fake_reset();
         let mut init_request = transaction.borrow().init_request();
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {
@@ -2194,7 +2194,7 @@ mod tests {
 
         mock_host_responder(transaction.clone());
         mock_unlocked();
-        bitbox02::random::mock_reset();
+        bitbox02::random::fake_reset();
         let result = block_on(process(
             &mut TestingHal::new(),
             &transaction.borrow().init_request(),
@@ -3148,7 +3148,7 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        bitbox02::random::mock_reset();
+        bitbox02::random::fake_reset();
         // For the policy registration below.
         mock_memory();
 
@@ -3268,7 +3268,7 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        bitbox02::random::mock_reset();
+        bitbox02::random::fake_reset();
         // For the policy registration below.
         mock_memory();
 
@@ -3323,7 +3323,7 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        bitbox02::random::mock_reset();
+        bitbox02::random::fake_reset();
         // For the policy registration below.
         mock_memory();
 
@@ -3614,7 +3614,7 @@ mod tests {
 
         mock_host_responder(transaction.clone());
         mock_unlocked();
-        bitbox02::random::mock_reset();
+        bitbox02::random::fake_reset();
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();

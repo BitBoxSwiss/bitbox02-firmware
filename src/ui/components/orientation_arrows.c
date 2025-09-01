@@ -26,7 +26,7 @@
 #if !defined(TESTING)
 #include <qtouch.h>
 #else
-#include <mock_qtouch.h>
+#include <fake_qtouch.h>
 #endif
 
 #define SCALE 2 // Divide `count` by scale to slow down motion

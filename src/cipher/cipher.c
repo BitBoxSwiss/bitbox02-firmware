@@ -18,7 +18,7 @@
 #include <rust/rust.h>
 
 #ifdef TESTING
-#include <mock_cipher.h>
+#include <fake_cipher.h>
 #endif
 
 bool cipher_aes_hmac_encrypt(
@@ -30,7 +30,7 @@ bool cipher_aes_hmac_encrypt(
 {
     uint8_t iv[32] = {0}; // only 16 bytes needed for IV.
 #ifdef TESTING
-    cipher_mock_iv(iv);
+    cipher_fake_iv(iv);
 #else
     random_32_bytes(iv);
 #endif

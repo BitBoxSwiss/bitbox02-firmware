@@ -121,7 +121,7 @@ add_dependencies(bitbox_objects-simulator
   secp256k1
   fatfs
 )
-target_link_libraries(bitbox_objects-simulator PUBLIC hardware-mocks)
+target_link_libraries(bitbox_objects-simulator PUBLIC hardware-fakes)
 target_link_libraries(bitbox-simulator PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
 # _UNIT_TEST_ is used by ASF4 to not cross compile
@@ -163,7 +163,7 @@ target_link_libraries(simulator PRIVATE
   $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
   c-unit-tests_rust_c
   bitbox-simulator
-  hardware-mocks
+  hardware-fakes
   fatfs
   $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
   ""

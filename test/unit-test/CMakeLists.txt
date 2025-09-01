@@ -143,7 +143,7 @@ add_dependencies(bitbox_objects
   secp256k1
   fatfs
 )
-target_link_libraries(bitbox_objects PUBLIC hardware-mocks)
+target_link_libraries(bitbox_objects PUBLIC hardware-fakes)
 target_link_libraries(bitbox PRIVATE ${LIBBITBOX02_RUST} "-lm")
 
 # _UNIT_TEST_ is used by ASF4 to not cross compile
@@ -224,13 +224,13 @@ set(TEST_LIST
    ui_component_gestures
    ""
    memory
-   "-Wl,--wrap=memory_read_chunk_mock,--wrap=memory_write_chunk_mock,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_mock,--wrap=memory_write_to_address_mock,--wrap=random_32_bytes_mcu"
+   "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
    memory_functional
    ""
    salt
    "-Wl,--wrap=memory_get_salt_root"
    cipher
-   "-Wl,--wrap=cipher_mock_iv"
+   "-Wl,--wrap=cipher_fake_iv"
    util
    ""
    ugui
@@ -255,7 +255,7 @@ else()
       -Wl,--start-group
       c-unit-tests_rust_c
       bitbox
-      hardware-mocks
+      hardware-fakes
       fatfs
       -Wl,--end-group
       ${TEST_LINK_ARGS}
@@ -285,7 +285,7 @@ foreach(TEST_NAME ${U2F_TESTS})
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
     bitbox
-    hardware-mocks
+    hardware-fakes
     fatfs
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
     u2f-util

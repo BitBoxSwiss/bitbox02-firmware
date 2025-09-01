@@ -16,9 +16,9 @@
 #include "memory/bitbox02_smarteeprom.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
+#include <fake_memory.h>
 #include <fcntl.h>
 #include <memory/memory.h>
-#include <mock_memory.h>
 #include <queue.h>
 #include <random.h>
 #include <rust/rust.h>
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    mock_memory_factoryreset();
+    fake_memory_factoryreset();
     memory_interface_functions_t ifs = {
         .random_32_bytes = random_32_bytes_mcu,
     };

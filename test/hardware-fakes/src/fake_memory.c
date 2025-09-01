@@ -14,7 +14,7 @@
 
 #include <flags.h>
 #include <memory/memory.h>
-#include <mock_memory.h>
+#include <fake_memory.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -22,7 +22,7 @@ static uint8_t _memory_shared_data[FLASH_SHARED_DATA_LEN] = {0};
 static uint8_t _memory_app_data[FLASH_APPDATA_LEN] = {0};
 static uint8_t _memory_smarteeprom[SMARTEEPROM_RESERVED_FLASH_PAGES * FLASH_PAGE_SIZE] = {0};
 
-void mock_memory_factoryreset(void)
+void fake_memory_factoryreset(void)
 {
     memset(_memory_shared_data, 0xff, sizeof(_memory_shared_data));
     memset(_memory_app_data, 0xff, sizeof(_memory_app_data));
@@ -43,7 +43,7 @@ static uint8_t* _get_memory(uint32_t base)
     }
 }
 
-bool memory_write_to_address_mock(uint32_t base, uint32_t addr, const uint8_t* chunk)
+bool memory_write_to_address_fake(uint32_t base, uint32_t addr, const uint8_t* chunk)
 {
     if (chunk == NULL) {
         memset(_get_memory(base) + addr, 0xff, (size_t)CHUNK_SIZE);
@@ -53,17 +53,17 @@ bool memory_write_to_address_mock(uint32_t base, uint32_t addr, const uint8_t* c
     return true;
 }
 
-bool memory_write_chunk_mock(uint32_t chunk_num, const uint8_t* chunk)
+bool memory_write_chunk_fake(uint32_t chunk_num, const uint8_t* chunk)
 {
-    return memory_write_to_address_mock(FLASH_APPDATA_START, chunk_num * (size_t)CHUNK_SIZE, chunk);
+    return memory_write_to_address_fake(FLASH_APPDATA_START, chunk_num * (size_t)CHUNK_SIZE, chunk);
 }
 
-void memory_read_chunk_mock(uint32_t chunk_num, uint8_t* chunk_out)
+void memory_read_chunk_fake(uint32_t chunk_num, uint8_t* chunk_out)
 {
     memcpy(chunk_out, _memory_app_data + chunk_num * (size_t)CHUNK_SIZE, (size_t)CHUNK_SIZE);
 }
 
-void memory_read_shared_bootdata_mock(uint8_t* chunk_out)
+void memory_read_shared_bootdata_fake(uint8_t* chunk_out)
 {
     memcpy(chunk_out, _memory_shared_data, (size_t)FLASH_SHARED_DATA_LEN);
 }
@@ -72,7 +72,7 @@ static uint8_t _salt_root[32] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
     0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
 };
-void mock_memory_set_salt_root(const uint8_t* salt_root)
+void fake_memory_set_salt_root(const uint8_t* salt_root)
 {
     memcpy(_salt_root, salt_root, 32);
 }
@@ -87,13 +87,13 @@ static uint8_t _bootloader_hash[32] =
     "\x71\x3d\xf0\xd5\x8c\x71\x7d\x40\x31\x78\x7c\xdc\x8f\xa3\x5b\x90\x25\x82\xbe\x6a\xb6\xa2\x2e"
     "\x09\xde\x44\x77\xd3\x0e\x22\x30\xfc";
 
-void memory_bootloader_hash_mock(uint8_t* hash_out)
+void memory_bootloader_hash_fake(uint8_t* hash_out)
 {
     memcpy(hash_out, _bootloader_hash, 32);
 }
 
-void memory_set_bootloader_hash_mock(const uint8_t* mock_hash)
+void memory_set_bootloader_hash_fake(const uint8_t* fake_hash)
 {
     // NOLINTNEXTLINE(bugprone-not-null-terminated-result)
-    memcpy(_bootloader_hash, mock_hash, sizeof(_bootloader_hash));
+    memcpy(_bootloader_hash, fake_hash, sizeof(_bootloader_hash));
 }

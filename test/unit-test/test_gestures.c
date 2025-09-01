@@ -20,7 +20,7 @@
 
 #include <touch/gestures.h>
 
-#include "mock_component.h"
+#include "fake_component.h"
 #include "mock_gestures.h"
 #include "mock_qtouch.h"
 
@@ -48,7 +48,7 @@ static void reset_state(void)
  */
 static void test_gestures_slide_tap_slide_detected(void** state)
 {
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     mock_gestures_touch_init();
 
@@ -96,7 +96,7 @@ static void test_gestures_slide_tap_slide_detected(void** state)
  */
 static void test_gestures_slide_and_tap_detected(void** state)
 {
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     // SLIDE:
     mock_gestures_touch_init();
@@ -130,7 +130,7 @@ static void test_gestures_slide_and_tap_detected(void** state)
  */
 static void test_gestures_slide_left_to_right_detected(void** state)
 {
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
 
     mock_gestures_touch_init();
     reset_state();

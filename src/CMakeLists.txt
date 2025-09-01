@@ -277,7 +277,7 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lbitbox_merged -lwallycore -lsecp256k1 -lfatfs -lhardware-mocks)
+  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lbitbox_merged -lwallycore -lsecp256k1 -lfatfs -lhardware-fakes)
 
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a

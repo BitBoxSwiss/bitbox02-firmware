@@ -25,7 +25,7 @@
 #include <ui/screen_stack.h>
 #include <ui/ui_util.h>
 
-#include "mock_component.h"
+#include "fake_component.h"
 #include "mock_gestures.h"
 #include "mock_qtouch.h"
 
@@ -46,7 +46,7 @@ static void test_ui_right_arrow_tap(void** state)
         .render = ui_util_component_render_subcomponents,
         .on_event = test_on_event};
 
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
     mock_component->f = &modified_functions;
     ui_screen_stack_push(mock_component);
 
@@ -75,7 +75,7 @@ static void test_ui_left_arrow_tap(void** state)
         .render = ui_util_component_render_subcomponents,
         .on_event = test_on_event};
 
-    component_t* mock_component = mock_component_create();
+    component_t* mock_component = fake_component_create();
     mock_component->f = &modified_functions;
     ui_screen_stack_push(mock_component);
 

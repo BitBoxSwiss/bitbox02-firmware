@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void __wrap_cipher_mock_iv(uint8_t* iv_out)
+void __wrap_cipher_fake_iv(uint8_t* iv_out)
 {
     memcpy(iv_out, (const uint8_t*)mock(), 32);
 }
@@ -3839,7 +3839,7 @@ static void _test_cipher_aes_hmac_encrypt(void** state)
         const test_t* test = &_tests[i];
         uint8_t rand_mock[32] = {0};
         memcpy(rand_mock, test->iv, 16);
-        will_return(__wrap_cipher_mock_iv, rand_mock);
+        will_return(__wrap_cipher_fake_iv, rand_mock);
         size_t cipher_len = test->msg_len + 64;
         uint8_t cipher[cipher_len];
         assert_true(

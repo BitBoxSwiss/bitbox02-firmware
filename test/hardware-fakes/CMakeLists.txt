@@ -14,27 +14,27 @@
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
-set(HARDWARE-MOCKS-SOURCES
-  src/mock_cipher.c
-  src/mock_diskio.c
-  src/mock_memory.c
-  src/mock_screen.c
-  src/mock_securechip.c
-  src/mock_smarteeprom.c
-  src/mock_spi_mem.c
-  src/mock_component.c
-  src/mock_delay.c
-  src/mock_qtouch.c
+set(HARDWARE-FAKES-SOURCES
+  src/fake_cipher.c
+  src/fake_diskio.c
+  src/fake_memory.c
+  src/fake_screen.c
+  src/fake_securechip.c
+  src/fake_smarteeprom.c
+  src/fake_spi_mem.c
+  src/fake_component.c
+  src/fake_delay.c
+  src/fake_qtouch.c
 )
 
-add_library(hardware-mocks
+add_library(hardware-fakes
   STATIC
-  ${HARDWARE-MOCKS-SOURCES}
+  ${HARDWARE-FAKES-SOURCES}
 )
 
-add_dependencies(hardware-mocks rust-cbindgen)
+add_dependencies(hardware-fakes rust-cbindgen)
 
-target_compile_definitions(hardware-mocks PUBLIC
+target_compile_definitions(hardware-fakes PUBLIC
     TESTING
     _UNIT_TEST_
     PRODUCT_BITBOX_MULTI=1
@@ -45,12 +45,12 @@ target_compile_definitions(hardware-mocks PUBLIC
 )
 
 target_include_directories(
-  hardware-mocks
+  hardware-fakes
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_include_directories(
-  hardware-mocks
+  hardware-fakes
   PRIVATE
   ${INCLUDES}
   ${CMAKE_BINARY_DIR}/src
@@ -58,11 +58,11 @@ target_include_directories(
   $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-target_link_libraries(hardware-mocks PUBLIC wallycore)
+target_link_libraries(hardware-fakes PUBLIC wallycore)
 
 if(SANITIZE_ADDRESS)
-  target_compile_options(hardware-mocks PUBLIC "-fsanitize=address")
+  target_compile_options(hardware-fakes PUBLIC "-fsanitize=address")
 endif()
 if(SANTIZE_UNDEFINED)
-  target_compile_options(hardware-mocks PUBLIC "-fsanitize=undefined")
+  target_compile_options(hardware-fakes PUBLIC "-fsanitize=undefined")
 endif()

@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2023 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _MOCK_COMPONENT_H_
-#define _MOCK_COMPONENT_H_
+#include <string.h>
 
-#include <ui/component.h>
+#include <fake_cipher.h>
 
-/********************************** Create Instance **********************************/
-
-/**
- * Creates a label with the given font either upside down or normal.
- * @param[in] text The text of the label.
- * @param[in] upside_down Whether the text should be rotated 180 degree or not.
- * @param[in] font The font of the label.
- */
-component_t* mock_component_create(void);
-
-#endif
+void cipher_fake_iv(uint8_t* iv_out)
+{
+    memset(iv_out, 'a', 32);
+}

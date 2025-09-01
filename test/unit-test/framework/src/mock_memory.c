@@ -20,7 +20,6 @@
 
 #include <flags.h>
 #include <memory/memory.h>
-#include <mock_memory.h>
 #include <stdio.h>
 #include <string.h>
 

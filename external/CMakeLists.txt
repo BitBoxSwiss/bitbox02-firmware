@@ -265,7 +265,7 @@ endif() # CMAKE_CROSSCOMPILING
 # fatfs must to be linked together with a diskio middleware:
 # - in the firmware, it is linked with asf4-drivers, which contains sdmmc_diskio.c (writing to actual microSD cards)
 # - in unit tests, it is linked with a lib containing mock_diskio.c (volume mounted in RAM).
-add_library(fatfs
+add_library(fatfs STATIC
   fatfs/source/ff.c
   fatfs/source/ffunicode.c
   )

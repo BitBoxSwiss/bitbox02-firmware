@@ -1,5 +1,9 @@
 include(ExternalProject)
 
+# Tell `add_library()` to default to STATIC.
+# Needed because secp256k1-zkp/CMakeLists.txt sets it to ON.
+set(BUILD_SHARED_LIBS OFF)
+
 if(CMAKE_CROSSCOMPILING)
   set(CONFIGURE_FLAGS
     --host=${CMAKE_SYSTEM_PROCESSOR}-none-eabi
@@ -14,71 +18,19 @@ string(REPLACE "-mfloat-abi=softfp" "" MODIFIED_C_FLAGS_TMP ${CMAKE_C_FLAGS})
 string(REPLACE "-mfpu=fpv4-sp-d16" "" MODIFIED_C_FLAGS ${MODIFIED_C_FLAGS_TMP})
 
 #----------------------
-# wally-core
 
-# configure flags for secp256k1 bundled in libwally core, to reduce memory consumption
-set(LIBWALLY_SECP256k1_FLAGS --with-ecmult-window=2 --with-ecmult-gen-precision=2 --enable-ecmult-static-precomputation --enable-module-schnorrsig --enable-module-ecdsa-adaptor)
-set(LIBWALLY_CONFIGURE_FLAGS --enable-static --disable-shared --disable-tests ${LIBWALLY_SECP256k1_FLAGS})
-if(SANITIZE_ADDRESS)
-  set(LIBWALLY_CFLAGS "-fsanitize=address")
-endif()
-if(SANITIZE_UNDEFINED)
-  set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -fsanitize=undefined")
-endif()
-# _DEFAULT_SOURCE enables the BSD explicit_bzero function referenced by libwally.
-set(LIBWALLY_CFLAGS  "\
-  ${LIBWALLY_CFLAGS} \
-  ${MODIFIED_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} \
-  -D_DEFAULT_SOURCE \
-  -fno-strict-aliasing \
-")
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  string(APPEND LIBWALLY_CFLAGS " -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-endif()
+## secp256k1-zkp
 
-# Hide some warnings
-set(LIBWALLY_CFLAGS "${LIBWALLY_CFLAGS} -Wno-cast-qual -Wno-cast-align \
-  -Wno-missing-prototypes -Wno-redundant-decls \
-  -Wno-switch-default -Wno-missing-declarations \
-  -Wno-array-bounds -Wno-unused-label -Wno-sign-compare -Wno-type-limits \
-")
-if(CMAKE_CROSSCOMPILING)
-  set(LIBWALLY_LDFLAGS --specs=nosys.specs)
-endif()
-set(LIBWALLY_LDFLAGS "${LIBWALLY_LDFLAGS} ${CMAKE_C_LINK_FLAGS}")
-
-ExternalProject_Add(libwally-core
-  PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/libwally-core
-  STEP_TARGETS    build-libwally
-  SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core
-  CONFIGURE_COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core tools/autogen.sh
-  COMMAND         ${CMAKE_COMMAND} -E env
-                  "CFLAGS=${LIBWALLY_CFLAGS}"
-                  "LDFLAGS=${LIBWALLY_LDFLAGS}"
-                  ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/configure
-                  ${CONFIGURE_FLAGS}
-                  ${LIBWALLY_CONFIGURE_FLAGS}
-  INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
-  COMMAND         ${CMAKE_COMMAND} -E copy
-                  ${CMAKE_CURRENT_BINARY_DIR}/libwally-core/src/libwally-core-build/src/.libs/libwallycore.a
-                  ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libwallycore.a
-  COMMAND         ${CMAKE_COMMAND} -E copy
-                  ${CMAKE_CURRENT_BINARY_DIR}/libwally-core/src/libwally-core-build/src/secp256k1/.libs/libsecp256k1.a
-                  ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libsecp256k1.a
+# Override
+set(SECP256K1_ENABLE_MODULE_RECOVERY ON) # needed only in Rust unit tests.
+set(SECP256K1_ECMULT_WINDOW_SIZE 2 CACHE STRING "Window size for ecmult precomputation for verification, specified as integer in range [2..24]. \"AUTO\" is a reasonable setting for desktop machines (currently 15). [default=AUTO]" FORCE)
+set(SECP256K1_ECMULT_GEN_PREC_BITS 2 CACHE STRING "Precision bits to tune the precomputed table size for signing, specified as integer 2, 4 or 8. \"AUTO\" is a reasonable setting for desktop machines (currently 4). [default=AUTO]" FORCE)
+# Suppress all warnings in this directory, we don't have control over them.
+set_directory_properties(PROPERTIES
+  COMPILE_OPTIONS "-w"
+  DIRECTORY secp256k1-zkp
 )
-
-add_library(wallycore STATIC IMPORTED GLOBAL)
-set_property(TARGET wallycore
-  PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libwallycore.a)
-set_target_properties(wallycore PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/include)
-set_target_properties(wallycore PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/include)
-
-add_library(secp256k1 STATIC IMPORTED GLOBAL)
-set_property(TARGET secp256k1
-  PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/libsecp256k1.a)
-set_target_properties(secp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/src/secp256k1/include)
-set_target_properties(secp256k1 PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libwally-core/src/secp256k1/include)
-
+add_subdirectory(secp256k1-zkp)
 
 if(CMAKE_CROSSCOMPILING)
   # Cortex Microcontroller Software Interface Standard

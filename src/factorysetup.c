@@ -35,8 +35,6 @@
 #include <secp256k1.h>
 #include <ui/oled/oled.h>
 
-#include <wally_crypto.h>
-
 #define BUFFER_SIZE_DOWN 1024
 #define BUFFER_SIZE_UP 1024
 
@@ -387,7 +385,7 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
             result = ERR_INVALID_INPUT;
             break;
         }
-        uint8_t msg32[SHA256_LEN] = {0};
+        uint8_t msg32[32] = {0};
         _attestation_sighash(attestation_device_pubkey, msg32);
         bool matches_a_root_pubkey = false;
         for (size_t pubkey_idx = 0; pubkey_idx < sizeof(_root_pubkey_bytes) / ROOT_PUBKEY_SIZE;

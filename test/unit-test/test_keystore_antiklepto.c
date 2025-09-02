@@ -42,6 +42,8 @@ static uint8_t _mock_bip39_seed[64] = {
     0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
 };
 
+#define BIP32_INITIAL_HARDENED_CHILD 0x80000000
+
 static void _test_keystore_antiklepto(void** state)
 {
     keystore_mock_unlocked(_mock_seed, sizeof(_mock_seed), _mock_bip39_seed);

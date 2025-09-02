@@ -1,9 +1,6 @@
 [submodule "external/cryptoauthlib"]
 	path = external/cryptoauthlib
 	url = https://github.com/BitBoxSwiss/cryptoauthlib.git
-[submodule "external/libwally-core"]
-	path = external/libwally-core
-	url = https://github.com/BitBoxSwiss/libwally-core.git
 [submodule "tools/ttf2ugui"]
 	path = tools/ttf2ugui
 	url = https://github.com/BitBoxSwiss/ttf2ugui
@@ -13,3 +10,6 @@
 [submodule "external/embedded-swd"]
 	path = external/embedded-swd
 	url = https://github.com/BitBoxSwiss/embedded-swd
+[submodule "external/secp256k1-zkp"]
+	path = external/secp256k1-zkp
+	url = https://github.com/BitBoxSwiss/secp256k1-zkp.git

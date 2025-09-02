@@ -24,7 +24,6 @@
 #include "screen.h"
 #include "securechip/securechip.h"
 #include "util.h"
-#include <wally_core.h>
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
 void __attribute__((noreturn)) __stack_chk_fail(void)
@@ -52,32 +51,12 @@ static const securechip_interface_functions_t _securechip_interface_functions = 
     .random_32_bytes = random_32_bytes,
 };
 
-static void _wally_patched_bzero(void* ptr, size_t len)
-{
-    util_zero(ptr, len);
-}
-
-static bool _setup_wally(void)
-{
-    static struct wally_operations _ops = {0};
-    _ops.struct_size = sizeof(struct wally_operations);
-    if (wally_get_operations(&_ops) != WALLY_OK) {
-        return false;
-    }
-    _ops.bzero_fn = _wally_patched_bzero;
-    return wally_set_operations(&_ops) == WALLY_OK;
-}
-
 void common_main(void)
 {
     mpu_bitbox02_init();
     if (!memory_setup(&_memory_interface_functions)) {
         // If memory setup failed, this also might fail, but can't hurt to try.
         AbortAutoenter("memory_setup failed");
-    }
-
-    if (!_setup_wally()) {
-        AbortAutoenter("_setup_wally failed");
     }
 
     /* Enable/configure SmartEEPROM. */

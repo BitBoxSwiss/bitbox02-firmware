@@ -55,10 +55,7 @@ target_include_directories(
   ${INCLUDES}
   ${CMAKE_BINARY_DIR}/src
   $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
 )
-
-target_link_libraries(hardware-fakes PUBLIC wallycore)
 
 if(SANITIZE_ADDRESS)
   target_compile_options(hardware-fakes PUBLIC "-fsanitize=address")

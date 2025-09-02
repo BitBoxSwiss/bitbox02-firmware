@@ -84,7 +84,6 @@ target_include_directories(
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
 )
@@ -102,7 +101,6 @@ target_include_directories(
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
   ${CMAKE_SOURCE_DIR}/external/fatfs/source
-  $<TARGET_PROPERTY:wallycore,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:fatfs,INTERFACE_INCLUDE_DIRECTORIES>
 )
@@ -117,7 +115,6 @@ target_include_directories(
 
 add_dependencies(bitbox_objects-simulator
   rust-cbindgen
-  wallycore
   secp256k1
   fatfs
 )
@@ -129,9 +126,6 @@ target_link_libraries(bitbox-simulator PRIVATE ${LIBBITBOX02_RUST} "-lm")
 target_compile_definitions(bitbox_objects-simulator PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox_objects-simulator PUBLIC TESTING _UNIT_TEST_)
 
-# Since wallycore is an external projects we need to specify the dependency
-add_dependencies(bitbox_objects-simulator libwally-core)
-
 target_compile_definitions(bitbox-simulator PUBLIC "PRODUCT_BITBOX_MULTI=1" "APP_BTC=1" "APP_LTC=1" "APP_U2F=1" "APP_ETH=1")
 target_compile_definitions(bitbox-simulator PUBLIC TESTING _UNIT_TEST_)
 
@@ -139,7 +133,6 @@ target_link_libraries(bitbox-simulator
   PUBLIC
     secp256k1
   PRIVATE
-    wallycore
     fatfs
 )
 

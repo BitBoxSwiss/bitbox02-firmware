@@ -23,6 +23,7 @@ use super::pb;
 use super::Error;
 
 use crate::hal::Ui;
+use crate::secp256k1::SECP256K1;
 use crate::workflow::confirm;
 use bitbox02::keystore;
 
@@ -563,6 +564,7 @@ pub async fn process(
     let host_nonce = match request.host_nonce_commitment {
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
+                SECP256K1,
                 crate::keystore::secp256k1_get_private_key(&request.keypath)?
                     .as_slice()
                     .try_into()
@@ -582,6 +584,7 @@ pub async fn process(
     };
 
     let sign_result = bitbox02::keystore::secp256k1_sign(
+        SECP256K1,
         crate::keystore::secp256k1_get_private_key(&request.keypath)?
             .as_slice()
             .try_into()

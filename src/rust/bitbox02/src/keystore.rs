@@ -18,6 +18,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
+use bitcoin::secp256k1::{All, Secp256k1};
+
 use core::convert::TryInto;
 
 use bitbox02_sys::keystore_error_t;
@@ -149,6 +151,7 @@ pub struct SignResult {
 }
 
 pub fn secp256k1_sign(
+    secp: &Secp256k1<All>,
     private_key: &[u8; 32],
     msg: &[u8; 32],
     host_nonce: &[u8; 32],
@@ -157,6 +160,7 @@ pub fn secp256k1_sign(
     let mut recid: core::ffi::c_int = 0;
     match unsafe {
         bitbox02_sys::keystore_secp256k1_sign(
+            secp.ctx().as_ptr().cast(),
             private_key.as_ptr(),
             msg.as_ptr(),
             host_nonce.as_ptr(),
@@ -173,6 +177,7 @@ pub fn secp256k1_sign(
 }
 
 pub fn secp256k1_nonce_commit(
+    secp: &Secp256k1<All>,
     private_key: &[u8; 32],
     msg: &[u8; 32],
     host_commitment: &[u8; 32],
@@ -180,6 +185,7 @@ pub fn secp256k1_nonce_commit(
     let mut signer_commitment = [0u8; EC_PUBLIC_KEY_LEN];
     match unsafe {
         bitbox02_sys::keystore_secp256k1_nonce_commit(
+            secp.ctx().as_ptr().cast(),
             private_key.as_ptr(),
             msg.as_ptr(),
             host_commitment.as_ptr(),
@@ -233,6 +239,7 @@ pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 }
 
 pub fn secp256k1_schnorr_sign(
+    secp: &Secp256k1<All>,
     keypath: &[u32],
     msg: &[u8; 32],
     tweak: Option<&[u8; 32]>,
@@ -241,6 +248,7 @@ pub fn secp256k1_schnorr_sign(
 
     match unsafe {
         bitbox02_sys::keystore_secp256k1_schnorr_sign(
+            secp.ctx().as_ptr().cast(),
             keypath.as_ptr(),
             keypath.len() as _,
             msg.as_ptr(),
@@ -272,11 +280,11 @@ mod tests {
         let msg = [0x88u8; 32];
         let host_nonce = [0x56u8; 32];
 
+        let secp = secp256k1::Secp256k1::new();
         let sign_result =
-            secp256k1_sign(&private_key.try_into().unwrap(), &msg, &host_nonce).unwrap();
+            secp256k1_sign(&secp, &private_key.try_into().unwrap(), &msg, &host_nonce).unwrap();
         // Verify signature against expected pubkey.
 
-        let secp = secp256k1::Secp256k1::new();
         let expected_pubkey = {
             let pubkey =
                 hex::decode("023ffb4a4e41444d40e4e1e4c6cc329bcba2be50d0ef380aea19d490c373be58fb")
@@ -316,8 +324,8 @@ mod tests {
 
         // Test without tweak
         crate::random::fake_reset();
-        let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
         let secp = secp256k1::Secp256k1::new();
+        let sig = secp256k1_schnorr_sign(&secp, &keypath, &msg, None).unwrap();
         assert!(secp
             .verify_schnorr(
                 &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
@@ -335,7 +343,8 @@ mod tests {
             secp256k1::Scalar::from_be_bytes(tweak.try_into().unwrap()).unwrap()
         };
         let (tweaked_pubkey, _) = expected_pubkey.add_tweak(&secp, &tweak).unwrap();
-        let sig = secp256k1_schnorr_sign(&keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
+        let sig =
+            secp256k1_schnorr_sign(&secp, &keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
         assert!(secp
             .verify_schnorr(
                 &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
@@ -347,15 +356,21 @@ mod tests {
 
     #[test]
     fn test_secp256k1_nonce_commit() {
+        let secp = secp256k1::Secp256k1::new();
+
         let private_key =
             hex::decode("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c")
                 .unwrap();
         let msg = [0x88u8; 32];
         let host_commitment = [0xabu8; 32];
 
-        let client_commitment =
-            secp256k1_nonce_commit(&private_key.try_into().unwrap(), &msg, &host_commitment)
-                .unwrap();
+        let client_commitment = secp256k1_nonce_commit(
+            &secp,
+            &private_key.try_into().unwrap(),
+            &msg,
+            &host_commitment,
+        )
+        .unwrap();
         assert_eq!(
             hex::encode(client_commitment),
             "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",

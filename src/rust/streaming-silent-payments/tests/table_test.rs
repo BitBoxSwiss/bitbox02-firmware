@@ -116,6 +116,7 @@ pub struct OutputWithSignature {
 
 #[test]
 fn test_sending() {
+    let secp = bitcoin::secp256k1::Secp256k1::new();
     let reader =
         BufReader::new(File::open("./tests/testdata/send_and_receive_test_vectors.json").unwrap());
     let tests: Vec<TestData> = serde_json::from_reader(reader).unwrap();
@@ -149,7 +150,7 @@ fn test_sending() {
             assert_eq!(sending_data.given.recipients.len(), 1);
             let sp_address = sending_data.given.recipients[0].as_str();
 
-            let mut v = SilentPayment::new(Network::Btc);
+            let mut v = SilentPayment::new(&secp, Network::Btc);
             for inp in sending_data.given.vin.iter() {
                 let pk_script_hex = inp.prevout.scriptPubKey.hex.as_str();
                 let pk_script_bytes = hex::decode(pk_script_hex).unwrap();

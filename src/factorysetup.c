@@ -301,6 +301,20 @@ static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
     }
 }
 
+static void _free(uint8_t** buf)
+{
+    free(*buf);
+    *buf = NULL;
+}
+
+static void _destroy(secp256k1_context** ctx)
+{
+    if (*ctx) {
+        secp256k1_context_destroy(*ctx);
+        *ctx = NULL;
+    }
+}
+
 /**
  * Computes the hash which is signed by the root key.
  * @param[in] attestation_device_pubkey 64 bytes P-256 pubkey.
@@ -352,7 +366,7 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         out_len = 2 + 64;
         break;
     }
-    case OP_SET_CERTIFICATE:
+    case OP_SET_CERTIFICATE: {
         if (in_len != 1 + 64 + 64 + 32) {
             result = ERR_INVALID_INPUT;
             break;
@@ -364,7 +378,10 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         const uint8_t* root_pubkey_identifier = input + 1 + pubkey_size + certificate_size;
 
         // Verify sig
-        secp256k1_context* ctx = wally_get_secp_context();
+
+        secp256k1_context* __attribute__((__cleanup__(_destroy))) ctx =
+            secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+
         secp256k1_ecdsa_signature sig = {0};
         if (!secp256k1_ecdsa_signature_parse_compact(ctx, &sig, certificate)) {
             result = ERR_INVALID_INPUT;
@@ -377,10 +394,7 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
              pubkey_idx++) {
             secp256k1_pubkey pubkey;
             if (!secp256k1_ec_pubkey_parse(
-                    wally_get_secp_context(),
-                    &pubkey,
-                    _root_pubkey_bytes[pubkey_idx],
-                    ROOT_PUBKEY_SIZE)) {
+                    ctx, &pubkey, _root_pubkey_bytes[pubkey_idx], ROOT_PUBKEY_SIZE)) {
                 Abort("Invalid root pubkey");
             }
 
@@ -404,6 +418,7 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         }
         screen_print_debug("DONE", 0);
         break;
+    }
     case OP_SC_ROLLKEYS:
         if (!securechip_reset_keys()) {
             screen_print_debug("resetting securechip keys: failed", 0);
@@ -436,12 +451,6 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
     }
     output[1] = result; // error code
     *output_len = out_len;
-}
-
-static void _free(uint8_t** buf)
-{
-    free(*buf);
-    *buf = NULL;
 }
 
 static uint8_t _ble_firmware_checksum(const uint8_t* buf, size_t buf_len)

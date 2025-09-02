@@ -133,6 +133,7 @@ USE_RESULT bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size
  * Get a commitment to the original nonce before tweaking it with the host nonce. This is part of
  * the ECDSA Anti-Klepto Protocol. For more details, check the docs of
  * `secp256k1_ecdsa_anti_exfil_signer_commit`.
+ * @param[in] ctx secp256k1 context
  * @param[in] private_key 32 byte private key
  * @param[in] msg32 32 byte message which will be signed by `keystore_secp256k1_sign`.
  * @param[in] host_commitment must be `sha256(sha256(tag)||shas256(tag)||host_nonce)` where
@@ -141,6 +142,7 @@ USE_RESULT bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size
  * @param[out] client_commitment_out EC_PUBLIC_KEY_LEN bytes compressed signer nonce pubkey.
  */
 USE_RESULT bool keystore_secp256k1_nonce_commit(
+    const secp256k1_context* ctx,
     const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_commitment,
@@ -161,6 +163,7 @@ USE_RESULT bool keystore_secp256k1_nonce_commit(
  * This is part of the ECSDA Anti-Klepto protocol, preventing this function to leak any secrets via
  * the signatures (see the ecdsa-s2c module in secp256k1-zpk for more details).
  *
+ * @param[in] ctx secp256k1 context
  * @param[in] private_key 32 byte private key
  * @param[in] msg32 32 byte message to sign
  * @param[in] host_nonce32 32 byte nonce contribution. Cannot be NULL.
@@ -172,6 +175,7 @@ USE_RESULT bool keystore_secp256k1_nonce_commit(
  */
 // clang-format on
 USE_RESULT bool keystore_secp256k1_sign(
+    const secp256k1_context* ctx,
     const uint8_t* private_key,
     const uint8_t* msg32,
     const uint8_t* host_nonce32,
@@ -198,6 +202,7 @@ USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
 /**
  * Sign a message that verifies against the pubkey tweaked using BIP-86.
  *
+ * @param[in] ctx secp256k1 context
  * @param[in] keypath derivation keypath
  * @param[in] keypath_len number of elements in keypath
  * @param[in] msg32 32 byte message to sign
@@ -206,6 +211,7 @@ USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
  * @param[out] sig64_out resulting 64 byte signature
  */
 USE_RESULT bool keystore_secp256k1_schnorr_sign(
+    const secp256k1_context* ctx,
     const uint32_t* keypath,
     size_t keypath_len,
     const uint8_t* msg32,

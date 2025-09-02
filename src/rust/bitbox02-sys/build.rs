@@ -158,7 +158,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "ui_screen_stack_push",
     "util_format_datetime",
     "wally_free_string",
-    "wally_get_secp_context",
     "communication_mode_ble_enabled",
 ];
 

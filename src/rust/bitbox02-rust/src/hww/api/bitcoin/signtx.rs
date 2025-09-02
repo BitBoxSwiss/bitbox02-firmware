@@ -23,6 +23,7 @@ use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeyp
 use super::{bip143, bip341, common, keypath};
 
 use crate::hal::Ui;
+use crate::secp256k1::SECP256K1;
 use crate::workflow::{confirm, transaction};
 use crate::xpubcache::{Bip32XpubCache, Compute};
 
@@ -716,7 +717,7 @@ async fn _process(
     let taproot_only = validated_script_configs.iter().all(is_taproot);
 
     let mut silent_payment = if request.contains_silent_payment_outputs {
-        Some(SilentPayment::new(coin.try_into()?))
+        Some(SilentPayment::new(SECP256K1, coin.try_into()?))
     } else {
         None
     };
@@ -783,7 +784,7 @@ async fn _process(
 
         if let Some(ref mut silent_payment) = silent_payment {
             let keypair = bitcoin::key::UntweakedKeypair::from_seckey_slice(
-                silent_payment.get_secp(),
+                SECP256K1,
                 &crate::keystore::secp256k1_get_private_key(&tx_input.keypath)?,
             )
             .unwrap();
@@ -791,10 +792,7 @@ async fn _process(
             // provide the key path spend private key, which means the internal key plus the tap
             // tweak.
             let private_key = if is_taproot(script_config_account) {
-                keypair
-                    .tap_tweak(silent_payment.get_secp(), None)
-                    .to_inner()
-                    .secret_key()
+                keypair.tap_tweak(SECP256K1, None).to_inner().secret_key()
             } else {
                 keypair.secret_key()
             };
@@ -1172,6 +1170,7 @@ async fn _process(
 
             next_response.next.has_signature = true;
             next_response.next.signature = bitbox02::keystore::secp256k1_schnorr_sign(
+                SECP256K1,
                 &tx_input.keypath,
                 &sighash,
                 if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {
@@ -1208,6 +1207,7 @@ async fn _process(
             let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
                 Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
                     let signer_commitment = bitbox02::keystore::secp256k1_nonce_commit(
+                        SECP256K1,
                         private_key.as_slice().try_into().unwrap(),
                         &sighash,
                         commitment
@@ -1232,6 +1232,7 @@ async fn _process(
             };
 
             let sign_result = bitbox02::keystore::secp256k1_sign(
+                SECP256K1,
                 private_key.as_slice().try_into().unwrap(),
                 &sighash,
                 &host_nonce,
@@ -2643,7 +2644,8 @@ mod tests {
         // tested in test_keystore_antiklepto.c. That the host nonce was included in the sig is
         // tested by the siganture fixture test below.x
         let host_nonce_commitment = pb::AntiKleptoHostNonceCommitment {
-            commitment: bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(host_nonce).unwrap(),
+            commitment: bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, host_nonce)
+                .unwrap(),
         };
         transaction.borrow_mut().inputs[1].host_nonce = Some(host_nonce.to_vec());
         transaction.borrow_mut().inputs[1]

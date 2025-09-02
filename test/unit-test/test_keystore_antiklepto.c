@@ -21,7 +21,6 @@
 
 #include <secp256k1_ecdsa_s2c.h>
 #include <wally_bip32.h>
-#include <wally_crypto.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -66,6 +65,8 @@ static void _test_keystore_antiklepto(void** state)
     uint8_t sig[64];
     int recid;
 
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+
     for (int i = 0; i < 3; i++) {
         keypath[4] = i;
         msg[0] = i;
@@ -88,39 +89,30 @@ static void _test_keystore_antiklepto(void** state)
         // Anti-Klepto Protocol".
 
         // Protocol step 1.
-        assert_true(secp256k1_ecdsa_anti_exfil_host_commit(
-            wally_get_secp_context(), host_nonce_commitment, host_nonce));
+        assert_true(secp256k1_ecdsa_anti_exfil_host_commit(ctx, host_nonce_commitment, host_nonce));
 
         // Commit - protocol step 2.
         assert_true(keystore_secp256k1_nonce_commit(
-            xprv_derived.priv_key + 1, msg, host_nonce_commitment, signer_commitment));
+            ctx, xprv_derived.priv_key + 1, msg, host_nonce_commitment, signer_commitment));
         // Protocol step 3: host_nonce sent from host to signer to be used in step 4
         // Sign - protocol step 4.
         assert_true(
-            keystore_secp256k1_sign(xprv_derived.priv_key + 1, msg, host_nonce, sig, &recid));
+            keystore_secp256k1_sign(ctx, xprv_derived.priv_key + 1, msg, host_nonce, sig, &recid));
 
         // Protocol step 5: host verification.
         secp256k1_ecdsa_signature parsed_signature;
-        assert_true(secp256k1_ecdsa_signature_parse_compact(
-            wally_get_secp_context(), &parsed_signature, sig));
+        assert_true(secp256k1_ecdsa_signature_parse_compact(ctx, &parsed_signature, sig));
 
         secp256k1_pubkey parsed_pubkey;
         assert_true(secp256k1_ec_pubkey_parse(
-            wally_get_secp_context(),
-            &parsed_pubkey,
-            xprv_derived.pub_key,
-            sizeof(xprv_derived.pub_key)));
+            ctx, &parsed_pubkey, xprv_derived.pub_key, sizeof(xprv_derived.pub_key)));
         secp256k1_ecdsa_s2c_opening opening;
-        assert_true(secp256k1_ecdsa_s2c_opening_parse(
-            wally_get_secp_context(), &opening, signer_commitment));
+        assert_true(secp256k1_ecdsa_s2c_opening_parse(ctx, &opening, signer_commitment));
         assert_true(secp256k1_anti_exfil_host_verify(
-            wally_get_secp_context(),
-            &parsed_signature,
-            msg,
-            &parsed_pubkey,
-            host_nonce,
-            &opening));
+            ctx, &parsed_signature, msg, &parsed_pubkey, host_nonce, &opening));
     }
+
+    secp256k1_context_destroy(ctx);
 }
 
 int main(void)

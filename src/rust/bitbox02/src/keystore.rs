@@ -13,10 +13,12 @@
 // limitations under the License.
 
 extern crate alloc;
-use alloc::string::{String, ToString};
 
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
+
+use util::cell::SyncUnsafeCell;
 
 use bitcoin::secp256k1::{All, Secp256k1};
 
@@ -27,6 +29,8 @@ use bitbox02_sys::keystore_error_t;
 /// Length of a compressed secp256k1 pubkey.
 const EC_PUBLIC_KEY_LEN: usize = 33;
 pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usize;
+
+static ROOT_FINGERPRINT: SyncUnsafeCell<Option<[u8; 4]>> = SyncUnsafeCell::new(None);
 
 pub fn is_locked() -> bool {
     unsafe { bitbox02_sys::keystore_is_locked() }
@@ -87,21 +91,37 @@ pub fn unlock(password: &str) -> Result<(), Error> {
 
 pub fn lock() {
     unsafe { bitbox02_sys::keystore_lock() }
+
+    unsafe { ROOT_FINGERPRINT.write(None) }
 }
 
 pub fn unlock_bip39(mnemonic_passphrase: &str) -> Result<(), Error> {
+    let mut root_fingerprint = [0u8; 4];
     if unsafe {
         bitbox02_sys::keystore_unlock_bip39(
             crate::util::str_to_cstr_vec(mnemonic_passphrase)
                 .unwrap()
                 .as_ptr()
                 .cast(),
+            root_fingerprint.as_mut_ptr(),
         )
     } {
+        // Store root fingerprint.
+        unsafe {
+            ROOT_FINGERPRINT.write(Some(root_fingerprint));
+        }
+
         Ok(())
     } else {
         Err(Error::CannotUnlockBIP39)
     }
+}
+
+pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
+    if is_locked() {
+        return Err(());
+    }
+    unsafe { ROOT_FINGERPRINT.read().ok_or(()).map(|fp| fp.to_vec()) }
 }
 
 pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
@@ -485,9 +505,12 @@ mod tests {
                 .unwrap();
         crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
+        assert!(root_fingerprint().is_err());
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(unlock("password").is_ok());
+        assert!(root_fingerprint().is_err());
         assert!(unlock_bip39("foo").is_ok());
+        assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
         let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
 

@@ -15,6 +15,7 @@
 #![cfg_attr(not(test), no_std)]
 pub mod ascii;
 pub mod bip32;
+pub mod cell;
 pub mod decimal;
 pub mod log;
 pub mod name;

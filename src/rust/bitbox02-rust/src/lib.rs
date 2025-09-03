@@ -36,7 +36,7 @@ pub mod hal;
 pub mod hash;
 pub mod hww;
 pub mod keystore;
-mod secp256k1;
+pub mod secp256k1;
 mod version;
 mod waker_fn;
 pub mod workflow;

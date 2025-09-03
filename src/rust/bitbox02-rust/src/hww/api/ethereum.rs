@@ -27,8 +27,8 @@ mod sign;
 mod sign_typed_msg;
 mod signmsg;
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use pb::eth_request::Request;
 use pb::eth_response::Response;
@@ -80,14 +80,14 @@ pub async fn process_api(
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::Pub(ref request) => pubrequest::process(hal, request).await,
-        Request::SignMsg(ref request) => signmsg::process(hal, request).await,
-        Request::Sign(ref request) => sign::process(hal, &sign::Transaction::Legacy(request)).await,
-        Request::SignEip1559(ref request) => {
+        Request::Pub(request) => pubrequest::process(hal, request).await,
+        Request::SignMsg(request) => signmsg::process(hal, request).await,
+        Request::Sign(request) => sign::process(hal, &sign::Transaction::Legacy(request)).await,
+        Request::SignEip1559(request) => {
             sign::process(hal, &sign::Transaction::Eip1559(request)).await
         }
         Request::AntikleptoSignature(_) => Err(Error::InvalidInput),
-        Request::SignTypedMsg(ref request) => sign_typed_msg::process(hal, request).await,
+        Request::SignTypedMsg(request) => sign_typed_msg::process(hal, request).await,
         Request::TypedMsgValue(_) => Err(Error::InvalidInput),
     }
 }

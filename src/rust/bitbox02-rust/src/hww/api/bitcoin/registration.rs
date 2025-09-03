@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::Error;
 use super::params;
 use super::pb;
-use super::Error;
 
 use alloc::string::String;
 
+use pb::BtcCoin;
 use pb::btc_register_script_config_request::XPubType;
 use pb::btc_response::Response;
 use pb::btc_script_config::Config;
-use pb::BtcCoin;
 
 use super::multisig::SortXpubs;
 
@@ -193,7 +193,7 @@ mod tests {
     use bitbox02::testing::{mock_memory, mock_unlocked_using_mnemonic};
     use util::bip32::HARDENED;
 
-    use pb::btc_script_config::{multisig::ScriptType, Multisig};
+    use pb::btc_script_config::{Multisig, multisig::ScriptType};
 
     #[test]
     fn test_process_is_script_config_registered() {

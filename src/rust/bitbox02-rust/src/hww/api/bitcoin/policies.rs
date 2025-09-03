@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::Error;
 use super::params::Params;
 use super::pb;
-use super::Error;
 use pb::BtcCoin;
 
 use pb::btc_script_config::Policy;
@@ -947,18 +947,20 @@ mod tests {
         assert!(parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]), coin).is_ok());
 
         // All good, all keys are used across internal key & leaf scripts.
-        assert!(parse(
-            &make_policy(
-                "tr(@0/**,{pk(@1/**),pk(@2/**)})",
-                &[
-                    our_key.clone(),
-                    make_key(SOME_XPUB_1),
-                    make_key(SOME_XPUB_2)
-                ],
-            ),
-            coin
-        )
-        .is_ok());
+        assert!(
+            parse(
+                &make_policy(
+                    "tr(@0/**,{pk(@1/**),pk(@2/**)})",
+                    &[
+                        our_key.clone(),
+                        make_key(SOME_XPUB_1),
+                        make_key(SOME_XPUB_2)
+                    ],
+                ),
+                coin
+            )
+            .is_ok()
+        );
 
         // Unsupported coins
         for coin in [BtcCoin::Ltc, BtcCoin::Tltc] {
@@ -1214,78 +1216,88 @@ mod tests {
         );
 
         // Account keypath does not match.
-        assert!(get_change_and_address_index(
-            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
-            &[our_key.clone(), some_key.clone()],
-            &[true, false],
-            &[
-                48 + HARDENED,
-                1 + HARDENED,
-                0 + HARDENED,
-                0 + HARDENED,
-                11,
-                5,
-            ],
-        )
-        .is_err());
+        assert!(
+            get_change_and_address_index(
+                ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+                &[our_key.clone(), some_key.clone()],
+                &[true, false],
+                &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    0 + HARDENED,
+                    11,
+                    5,
+                ],
+            )
+            .is_err()
+        );
 
         // Keypath change/receive element does not match.
-        assert!(get_change_and_address_index(
-            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
-            &[our_key.clone(), some_key.clone()],
-            &[true, false],
-            &[
-                48 + HARDENED,
-                1 + HARDENED,
-                0 + HARDENED,
-                3 + HARDENED,
-                20,
-                5,
-            ],
-        )
-        .is_err());
+        assert!(
+            get_change_and_address_index(
+                ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+                &[our_key.clone(), some_key.clone()],
+                &[true, false],
+                &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    20,
+                    5,
+                ],
+            )
+            .is_err()
+        );
 
         // Keypath too long
-        assert!(get_change_and_address_index(
-            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
-            &[our_key.clone(), some_key.clone()],
-            &[true, false],
-            &[
-                48 + HARDENED,
-                1 + HARDENED,
-                0 + HARDENED,
-                3 + HARDENED,
-                10,
-                5,
-                0,
-            ],
-        )
-        .is_err());
+        assert!(
+            get_change_and_address_index(
+                ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+                &[our_key.clone(), some_key.clone()],
+                &[true, false],
+                &[
+                    48 + HARDENED,
+                    1 + HARDENED,
+                    0 + HARDENED,
+                    3 + HARDENED,
+                    10,
+                    5,
+                    0,
+                ],
+            )
+            .is_err()
+        );
 
         // Keypath too short
-        assert!(get_change_and_address_index(
-            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
-            &[our_key.clone(), some_key.clone()],
-            &[true, false],
-            &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED, 10,],
-        )
-        .is_err());
+        assert!(
+            get_change_and_address_index(
+                ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+                &[our_key.clone(), some_key.clone()],
+                &[true, false],
+                &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED, 10,],
+            )
+            .is_err()
+        );
 
         // Keypath is valid but uses a key in the policy that is not ours.
-        assert!(get_change_and_address_index(
-            ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
-            &[
-                our_key.clone(),
-                pb::KeyOriginInfo {
-                    root_fingerprint: b"aaaa".to_vec(),
-                    keypath: vec![99 + HARDENED],
-                    xpub: Some(parse_xpub(SOME_XPUB_1).unwrap()),
-                }
-            ],
-            &[true, false],
-            &[99 + HARDENED, 20, 0],
-        )
-        .is_err());
+        assert!(
+            get_change_and_address_index(
+                ["@0/<10;11>/*", "@1/<20;21>/*"].iter(),
+                &[
+                    our_key.clone(),
+                    pb::KeyOriginInfo {
+                        root_fingerprint: b"aaaa".to_vec(),
+                        keypath: vec![99 + HARDENED],
+                        xpub: Some(parse_xpub(SOME_XPUB_1).unwrap()),
+                    }
+                ],
+                &[true, false],
+                &[99 + HARDENED, 20, 0],
+            )
+            .is_err()
+        );
     }
 
     #[test]

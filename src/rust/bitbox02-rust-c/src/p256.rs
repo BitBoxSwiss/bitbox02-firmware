@@ -14,7 +14,7 @@
 
 /// Derive the public key of a ECC NIST-P256 private key.
 /// private_key must be 32 bytes, public_key_out must be 64 bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_p256_pubkey(
     private_key: crate::util::Bytes,
     mut public_key_out: crate::util::BytesMut,
@@ -31,13 +31,13 @@ pub extern "C" fn rust_p256_pubkey(
 /// private_key must be 32 bytes.
 /// msg must be 32 bytes digest and is signed directly without further hashing.
 /// sig_out must be 64 bytes.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_p256_sign(
     private_key: crate::util::Bytes,
     msg: crate::util::Bytes,
     mut sig_out: crate::util::BytesMut,
 ) {
-    use p256::ecdsa::{signature::hazmat::PrehashSigner, Signature, SigningKey};
+    use p256::ecdsa::{Signature, SigningKey, signature::hazmat::PrehashSigner};
     let signing_key = SigningKey::from_slice(private_key.as_ref()).unwrap();
     let (signature, _): (Signature, _) = signing_key.sign_prehash(msg.as_ref()).unwrap();
     sig_out.as_mut().copy_from_slice(&signature.to_bytes());

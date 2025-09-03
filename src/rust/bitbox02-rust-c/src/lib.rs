@@ -56,12 +56,12 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_rtt_init() {
     ::util::log::rtt_init()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_rtt_flush() {
     ::util::log::rtt_flush();
 }
@@ -69,7 +69,7 @@ pub extern "C" fn rust_rtt_flush() {
 /// # Safety
 ///
 /// The pointer `ptr` must point to a null terminated string
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
 pub unsafe extern "C" fn rust_log(ptr: *const core::ffi::c_char) {
     #[cfg(all(feature = "rtt", target_os = "none"))]
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn rust_log(ptr: *const core::ffi::c_char) {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_cipher_encrypt(
     iv: crate::util::Bytes,
     key: crate::util::Bytes,
@@ -100,7 +100,7 @@ pub extern "C" fn rust_cipher_encrypt(
     *out_len = enc.len();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_cipher_decrypt(
     key: crate::util::Bytes,
     cipher: crate::util::Bytes,
@@ -121,16 +121,18 @@ pub extern "C" fn rust_cipher_decrypt(
 ///
 /// keypath pointer has point to a buffer of length `keypath_len` uint32 elements.
 #[cfg(feature = "firmware")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_secp256k1_get_private_key(
     keypath: *const u32,
     keypath_len: usize,
     mut out: crate::util::BytesMut,
 ) -> bool {
-    match bitbox02_rust::keystore::secp256k1_get_private_key(core::slice::from_raw_parts(
-        keypath,
-        keypath_len,
-    )) {
+    match unsafe {
+        bitbox02_rust::keystore::secp256k1_get_private_key(core::slice::from_raw_parts(
+            keypath,
+            keypath_len,
+        ))
+    } {
         Ok(private_key) => {
             out.as_mut().copy_from_slice(&private_key);
             true
@@ -142,7 +144,7 @@ pub unsafe extern "C" fn rust_secp256k1_get_private_key(
 /// # Safety
 ///
 /// The pointer `data` must point to a buffer of length `len`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(static_mut_refs)]
 #[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
 pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
@@ -160,7 +162,7 @@ pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
 /// # Safety
 ///
 /// The pointer `data` must point to a buffer of length `len`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(static_mut_refs)]
 #[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
 pub unsafe extern "C" fn rust_rtt_ch0_read(data: *mut u8, len: usize) -> usize {

@@ -18,7 +18,7 @@
 ///
 /// `seed` must be 16, 24 or 32 bytes long.
 /// `out` must be exactly 64 bytes long.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_derive_bip39_seed(
     seed: crate::util::Bytes,
     passphrase: *const core::ffi::c_char,
@@ -26,13 +26,13 @@ pub unsafe extern "C" fn rust_derive_bip39_seed(
 ) {
     let mnemonic =
         bip39::Mnemonic::from_entropy_in(bip39::Language::English, seed.as_ref()).unwrap();
-    let passphrase = core::ffi::CStr::from_ptr(passphrase);
+    let passphrase = unsafe { core::ffi::CStr::from_ptr(passphrase) };
     let bip39_seed =
         zeroize::Zeroizing::new(mnemonic.to_seed_normalized(passphrase.to_str().unwrap()));
     out.as_mut().clone_from_slice(&bip39_seed[..]);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_get_bip39_word(idx: u16, mut out: crate::util::BytesMut) -> bool {
     let word = match bitbox02_rust::bip39::get_word(idx) {
         Err(()) => return false,

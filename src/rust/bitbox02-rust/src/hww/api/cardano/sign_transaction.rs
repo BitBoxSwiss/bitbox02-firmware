@@ -15,15 +15,15 @@
 mod cbor;
 mod certificates;
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use blake2::{
-    digest::{Update, VariableOutput},
     Blake2bVar,
+    digest::{Update, VariableOutput},
 };
 
 use crate::hal::Ui;
@@ -228,7 +228,7 @@ async fn _process(
         match output.script_config {
             Some(ref script_config) => match script_config {
                 CardanoScriptConfig {
-                    config: Some(ref config),
+                    config: Some(config),
                 } => {
                     let encoded_address = super::address::validate_and_encode_payment_address(
                         params,
@@ -335,7 +335,7 @@ mod tests {
     use bitbox02::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
-    use pb::cardano_sign_transaction_request::{certificate, certificate::Cert, Certificate};
+    use pb::cardano_sign_transaction_request::{Certificate, certificate, certificate::Cert};
 
     #[test]
     fn test_format_asset() {
@@ -1227,9 +1227,11 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert!(block_on(process(&mut mock_hal, &tx)).is_ok());
-        assert!(mock_hal
-            .ui
-            .contains_confirm("High fee", "The fee is 17.0%\nthe send amount.\nProceed?"));
+        assert!(
+            mock_hal
+                .ui
+                .contains_confirm("High fee", "The fee is 17.0%\nthe send amount.\nProceed?")
+        );
     }
 
     #[test]

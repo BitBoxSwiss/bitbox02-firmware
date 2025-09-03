@@ -295,17 +295,22 @@ mod tests {
 
         // Create one backup.
         mock_memory();
-        mock_unlocked_using_mnemonic("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay", "");
+        mock_unlocked_using_mnemonic(
+            "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
+            "",
+        );
 
         bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
-        assert!(block_on(create(
-            &mut mock_hal,
-            &pb::CreateBackupRequest {
-                timestamp: EXPECTED_TIMESTAMP,
-                timezone_offset: 18000,
-            }
-        ))
-        .is_ok());
+        assert!(
+            block_on(create(
+                &mut mock_hal,
+                &pb::CreateBackupRequest {
+                    timestamp: EXPECTED_TIMESTAMP,
+                    timezone_offset: 18000,
+                }
+            ))
+            .is_ok()
+        );
 
         assert_eq!(
             list(&mut mock_hal,),
@@ -320,16 +325,21 @@ mod tests {
 
         // Create another backup.
         mock_memory();
-        mock_unlocked_using_mnemonic("goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven", "");
+        mock_unlocked_using_mnemonic(
+            "goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven",
+            "",
+        );
         bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
-        assert!(block_on(create(
-            &mut mock_hal,
-            &pb::CreateBackupRequest {
-                timestamp: EXPECTED_TIMESTAMP,
-                timezone_offset: 18000,
-            }
-        ))
-        .is_ok());
+        assert!(
+            block_on(create(
+                &mut mock_hal,
+                &pb::CreateBackupRequest {
+                    timestamp: EXPECTED_TIMESTAMP,
+                    timezone_offset: 18000,
+                }
+            ))
+            .is_ok()
+        );
 
         assert_eq!(
             list(&mut mock_hal),

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use super::cancel::{cancel, set_result, Error};
+pub use super::cancel::{Error, cancel, set_result};
 pub use bitbox02::ui::TrinaryInputStringParams as Params;
 
 use crate::bb02_async::option;

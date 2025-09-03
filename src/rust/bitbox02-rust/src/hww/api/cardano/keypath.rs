@@ -85,8 +85,13 @@ pub fn validate_address_shelley_stake(
     keypath: &[u32],
     bip44_account: Option<u32>,
 ) -> Result<(), Error> {
-    if let &[BIP44_PURPOSE_SHELLEY, BIP44_COIN, account, BIP44_STAKE_ROLE, BIP44_STAKE_ADDRESS] =
-        keypath
+    if let &[
+        BIP44_PURPOSE_SHELLEY,
+        BIP44_COIN,
+        account,
+        BIP44_STAKE_ROLE,
+        BIP44_STAKE_ADDRESS,
+    ] = keypath
     {
         if bip44_account.is_some_and(|a| a != account) {
             return Err(Error);
@@ -149,11 +154,10 @@ mod tests {
         );
 
         // force account, mismatch
-        assert!(validate_address_shelley_payment(
-            &[purpose, coin, account, 0, 0],
-            Some(50 + HARDENED)
-        )
-        .is_err());
+        assert!(
+            validate_address_shelley_payment(&[purpose, coin, account, 0, 0], Some(50 + HARDENED))
+                .is_err()
+        );
 
         // high address
         assert!(validate_address_shelley_payment(&[purpose, coin, account, 0, 9999], None).is_ok());
@@ -205,11 +209,10 @@ mod tests {
         );
 
         // force account, mismatch
-        assert!(validate_address_shelley_stake(
-            &[purpose, coin, account, 2, 0],
-            Some(50 + HARDENED)
-        )
-        .is_err());
+        assert!(
+            validate_address_shelley_stake(&[purpose, coin, account, 2, 0], Some(50 + HARDENED))
+                .is_err()
+        );
 
         // invalid address
         assert!(validate_address_shelley_stake(&[purpose, coin, account, 2, 1], None).is_err());
@@ -243,58 +246,72 @@ mod tests {
         let coin = 1815 + HARDENED;
         let account = 99 + HARDENED;
 
-        assert!(validate_address_shelley(
-            &[purpose, coin, account, 0, 0],
-            &[purpose, coin, account, 2, 0],
-            None
-        )
-        .is_ok());
+        assert!(
+            validate_address_shelley(
+                &[purpose, coin, account, 0, 0],
+                &[purpose, coin, account, 2, 0],
+                None
+            )
+            .is_ok()
+        );
 
-        assert!(validate_address_shelley(
-            &[purpose, coin, account, 0, 100],
-            &[purpose, coin, account, 2, 0],
-            None
-        )
-        .is_ok());
+        assert!(
+            validate_address_shelley(
+                &[purpose, coin, account, 0, 100],
+                &[purpose, coin, account, 2, 0],
+                None
+            )
+            .is_ok()
+        );
 
         // payment key is a change key
-        assert!(validate_address_shelley(
-            &[purpose, coin, account, 1, 100],
-            &[purpose, coin, account, 2, 0],
-            None
-        )
-        .is_ok());
+        assert!(
+            validate_address_shelley(
+                &[purpose, coin, account, 1, 100],
+                &[purpose, coin, account, 2, 0],
+                None
+            )
+            .is_ok()
+        );
 
         // force account
-        assert!(validate_address_shelley(
-            &[purpose, coin, account, 0, 0],
-            &[purpose, coin, account, 2, 0],
-            Some(account),
-        )
-        .is_ok());
+        assert!(
+            validate_address_shelley(
+                &[purpose, coin, account, 0, 0],
+                &[purpose, coin, account, 2, 0],
+                Some(account),
+            )
+            .is_ok()
+        );
 
         // force account, mismatch
-        assert!(validate_address_shelley(
-            &[purpose, coin, account, 0, 0],
-            &[purpose, coin, account, 2, 0],
-            Some(50 + HARDENED),
-        )
-        .is_err());
+        assert!(
+            validate_address_shelley(
+                &[purpose, coin, account, 0, 0],
+                &[purpose, coin, account, 2, 0],
+                Some(50 + HARDENED),
+            )
+            .is_err()
+        );
 
         // different accounts
-        assert!(validate_address_shelley(
-            &[purpose, coin, 98 + HARDENED, 0, 100],
-            &[purpose, coin, 99 + HARDENED, 2, 0],
-            None
-        )
-        .is_err());
+        assert!(
+            validate_address_shelley(
+                &[purpose, coin, 98 + HARDENED, 0, 100],
+                &[purpose, coin, 99 + HARDENED, 2, 0],
+                None
+            )
+            .is_err()
+        );
 
         // stake address index is not 0
-        assert!(validate_address_shelley(
-            &[purpose, coin, account, 0, 100],
-            &[purpose, coin, account, 2, 1],
-            None
-        )
-        .is_err());
+        assert!(
+            validate_address_shelley(
+                &[purpose, coin, account, 0, 100],
+                &[purpose, coin, account, 2, 1],
+                None
+            )
+            .is_err()
+        );
     }
 }

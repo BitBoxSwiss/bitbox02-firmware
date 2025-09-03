@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use crate::pb;
-pub use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
 pub use pb::btc_script_config::SimpleType;
+pub use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
 
 const ALL_MULTISCRIPT_SCRIPT_TYPES: [MultisigScriptType; 2] =
     [MultisigScriptType::P2wsh, MultisigScriptType::P2wshP2sh];
@@ -196,20 +196,24 @@ mod tests {
         }
         assert!(validate_account(&[0, 0, 100 + HARDENED], 0, 0).is_err());
 
-        assert!(validate_account(
-            &[84 + HARDENED, 1 + HARDENED, 1 + HARDENED],
-            84 + HARDENED,
-            1 + HARDENED,
-        )
-        .is_ok());
+        assert!(
+            validate_account(
+                &[84 + HARDENED, 1 + HARDENED, 1 + HARDENED],
+                84 + HARDENED,
+                1 + HARDENED,
+            )
+            .is_ok()
+        );
 
         // Too many elements.
-        assert!(validate_account(
-            &[84 + HARDENED, 1 + HARDENED, 1 + HARDENED, 1 + HARDENED],
-            84 + HARDENED,
-            1 + HARDENED,
-        )
-        .is_err());
+        assert!(
+            validate_account(
+                &[84 + HARDENED, 1 + HARDENED, 1 + HARDENED, 1 + HARDENED],
+                84 + HARDENED,
+                1 + HARDENED,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -217,50 +221,62 @@ mod tests {
         let coin = 1 + HARDENED;
 
         // Valid p2wsh-p2sh.
-        assert!(validate_account_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED],
-            coin,
-            MultisigScriptType::P2wshP2sh
-        )
-        .is_ok());
+        assert!(
+            validate_account_multisig(
+                &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED],
+                coin,
+                MultisigScriptType::P2wshP2sh
+            )
+            .is_ok()
+        );
 
         // Valid p2wsh.
-        assert!(validate_account_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_ok());
+        assert!(
+            validate_account_multisig(
+                &[48 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED],
+                coin,
+                MultisigScriptType::P2wsh
+            )
+            .is_ok()
+        );
 
         // Valid Nunchuk-style.
-        assert!(validate_account_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_ok());
-        assert!(validate_account_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED],
-            coin,
-            MultisigScriptType::P2wshP2sh
-        )
-        .is_ok());
+        assert!(
+            validate_account_multisig(
+                &[48 + HARDENED, coin, 0 + HARDENED],
+                coin,
+                MultisigScriptType::P2wsh
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_account_multisig(
+                &[48 + HARDENED, coin, 0 + HARDENED],
+                coin,
+                MultisigScriptType::P2wshP2sh
+            )
+            .is_ok()
+        );
 
         // Valid script (last element).
-        assert!(validate_account_multisig(
-            &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
+        assert!(
+            validate_account_multisig(
+                &[48 + HARDENED, coin, 0 + HARDENED, 1 + HARDENED],
+                coin,
+                MultisigScriptType::P2wsh
+            )
+            .is_err()
+        );
 
         // Wrong purpose.
-        assert!(validate_account_multisig(
-            &[49 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED],
-            coin,
-            MultisigScriptType::P2wsh
-        )
-        .is_err());
+        assert!(
+            validate_account_multisig(
+                &[49 + HARDENED, coin, 0 + HARDENED, 2 + HARDENED],
+                coin,
+                MultisigScriptType::P2wsh
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -270,24 +286,28 @@ mod tests {
         let taproot_support = true;
         for mode in [ReceiveSpend::Receive, ReceiveSpend::Spend] {
             // valid p2wpkh-p2sh; receive
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_ok());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_ok()
+            );
 
             // valid p2wpkh-p2sh; receive on high address
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 0, 9999],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_ok());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 0, 9999],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_ok()
+            );
 
             // invalid p2wpkh-p2sh; receive on too high address - only allowed when spending
             assert_eq!(
@@ -303,130 +323,156 @@ mod tests {
             );
 
             // valid p2wpkh-p2sh; change
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 1, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_ok());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 1, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_ok()
+            );
 
             // valid p2wpkh-p2sh; invalid bip44 change values
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 2, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 0 + HARDENED, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 1 + HARDENED, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 2, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 0 + HARDENED, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 1 + HARDENED, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
 
             // invalid p2wpkh-p2sh; wrong purpose
-            assert!(validate_address_simple(
-                &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
 
             // invalid p2wpkh-p2sh; account too high
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, 100 + HARDENED, 0, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, 100 + HARDENED, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
 
             // invalid p2wpkh-p2sh; account too low
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, HARDENED - 1, 0, 0],
-                bip44_coin,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, HARDENED - 1, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
 
             // invalid p2wpkh-p2sh; expected coin mismatch
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin + 1,
-                SimpleType::P2wpkhP2sh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin + 1,
+                    SimpleType::P2wpkhP2sh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
 
             // valid p2wpkh
-            assert!(validate_address_simple(
-                &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin,
-                SimpleType::P2wpkh,
-                taproot_support,
-                mode,
-            )
-            .is_ok());
+            assert!(
+                validate_address_simple(
+                    &[84 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkh,
+                    taproot_support,
+                    mode,
+                )
+                .is_ok()
+            );
 
             // invalid p2wpkh; wrong purpose
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin,
-                SimpleType::P2wpkh,
-                taproot_support,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2wpkh,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
 
             // valid p2tr
-            assert!(validate_address_simple(
-                &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin,
-                SimpleType::P2tr,
-                taproot_support,
-                mode,
-            )
-            .is_ok());
+            assert!(
+                validate_address_simple(
+                    &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2tr,
+                    taproot_support,
+                    mode,
+                )
+                .is_ok()
+            );
 
             // invalid p2tr, taproot not supported
-            assert!(validate_address_simple(
-                &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin,
-                SimpleType::P2tr,
-                false,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[86 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2tr,
+                    false,
+                    mode,
+                )
+                .is_err()
+            );
 
             // invalid p2tr; wrong purpose
-            assert!(validate_address_simple(
-                &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
-                bip44_coin,
-                SimpleType::P2tr,
-                taproot_support,
-                mode,
-            )
-            .is_err());
+            assert!(
+                validate_address_simple(
+                    &[49 + HARDENED, bip44_coin, bip44_account, 0, 0],
+                    bip44_coin,
+                    SimpleType::P2tr,
+                    taproot_support,
+                    mode,
+                )
+                .is_err()
+            );
         }
     }
 
@@ -450,95 +496,121 @@ mod tests {
         let bip44_coin = 1 + HARDENED;
         let taproot_support = true;
         // Valid singlesig xpubs.
-        assert!(validate_xpub(
-            &[49 + HARDENED, bip44_coin, 0 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_ok());
-        assert!(validate_xpub(
-            &[84 + HARDENED, bip44_coin, 0 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_ok());
-        assert!(validate_xpub(
-            &[86 + HARDENED, bip44_coin, 0 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_ok());
+        assert!(
+            validate_xpub(
+                &[49 + HARDENED, bip44_coin, 0 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_xpub(
+                &[84 + HARDENED, bip44_coin, 0 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_xpub(
+                &[86 + HARDENED, bip44_coin, 0 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_ok()
+        );
 
         // Valid multisig xpubs.
-        assert!(validate_xpub(
-            &[48 + HARDENED, bip44_coin, 0 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_ok());
-        assert!(validate_xpub(
-            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 1 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_ok());
-        assert!(validate_xpub(
-            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_ok());
+        assert!(
+            validate_xpub(
+                &[48 + HARDENED, bip44_coin, 0 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_xpub(
+                &[48 + HARDENED, bip44_coin, 0 + HARDENED, 1 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_xpub(
+                &[48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_ok()
+        );
 
         // No taproot.
-        assert!(validate_xpub(
-            &[86 + HARDENED, bip44_coin, 0 + HARDENED],
-            bip44_coin,
-            false,
-        )
-        .is_err());
+        assert!(
+            validate_xpub(
+                &[86 + HARDENED, bip44_coin, 0 + HARDENED],
+                bip44_coin,
+                false,
+            )
+            .is_err()
+        );
 
         // Invalid multisig script type.
-        assert!(validate_xpub(
-            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 3 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_err());
+        assert!(
+            validate_xpub(
+                &[48 + HARDENED, bip44_coin, 0 + HARDENED, 3 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_err()
+        );
 
         // Coin mismatch.
-        assert!(validate_xpub(
-            &[48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
-            bip44_coin + 1,
-            taproot_support
-        )
-        .is_err());
+        assert!(
+            validate_xpub(
+                &[48 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+                bip44_coin + 1,
+                taproot_support
+            )
+            .is_err()
+        );
 
         // Invalid account.
-        assert!(validate_xpub(
-            &[48 + HARDENED, bip44_coin, HARDENED - 1, 2 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_err());
-        assert!(validate_xpub(
-            &[48 + HARDENED, bip44_coin, HARDENED + 100, 2 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_err());
+        assert!(
+            validate_xpub(
+                &[48 + HARDENED, bip44_coin, HARDENED - 1, 2 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_err()
+        );
+        assert!(
+            validate_xpub(
+                &[48 + HARDENED, bip44_coin, HARDENED + 100, 2 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_err()
+        );
 
         // Invalid purpose.
-        assert!(validate_xpub(
-            &[44 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_err());
-        assert!(validate_xpub(
-            &[100 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
-            bip44_coin,
-            taproot_support
-        )
-        .is_err());
+        assert!(
+            validate_xpub(
+                &[44 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_err()
+        );
+        assert!(
+            validate_xpub(
+                &[100 + HARDENED, bip44_coin, 0 + HARDENED, 2 + HARDENED],
+                bip44_coin,
+                taproot_support
+            )
+            .is_err()
+        );
     }
 }

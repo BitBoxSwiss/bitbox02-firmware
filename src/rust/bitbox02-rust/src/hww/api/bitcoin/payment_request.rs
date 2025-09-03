@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use alloc::vec::Vec;
 
@@ -21,7 +21,7 @@ use super::common::format_amount;
 use super::params;
 use super::script::serialize_varint;
 
-use pb::btc_payment_request_request::{memo, Memo};
+use pb::btc_payment_request_request::{Memo, memo};
 use pb::btc_sign_init_request::FormatUnit;
 
 use crate::hal::Ui;

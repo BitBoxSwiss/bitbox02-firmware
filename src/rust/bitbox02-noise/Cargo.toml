@@ -17,7 +17,7 @@
 name = "bitbox02-noise"
 version = "0.1.0"
 authors = ["Shift Crypto AG <support@bitbox.swiss>"]
-edition = "2021"
+edition = "2024"
 description = "BitBox02 noise protocol primitives"
 license = "Apache-2.0"
 

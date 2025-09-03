@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use pb::bluetooth_request::Request;
 use pb::bluetooth_response::Response;
@@ -218,7 +218,7 @@ pub async fn process_api(
         return Err(Error::Disabled);
     }
     match request {
-        Request::UpgradeInit(ref request) => process_upgrade(hal, request).await,
+        Request::UpgradeInit(request) => process_upgrade(hal, request).await,
         // These are streamed asynchronously using the `next_request()` primitive are not handled
         // directly.
         Request::Chunk(_) => Err(Error::InvalidInput),
@@ -299,14 +299,16 @@ mod tests {
             };
             let allowed_hash: [u8; 32] =
                 Sha256::digest(vec![0; test.firmware_length as usize]).into();
-            assert!(block_on(_process_upgrade(
-                &mut mock_funcs,
-                &pb::BluetoothUpgradeInitRequest {
-                    firmware_length: test.firmware_length,
-                },
-                &allowed_hash,
-            ))
-            .is_ok());
+            assert!(
+                block_on(_process_upgrade(
+                    &mut mock_funcs,
+                    &pb::BluetoothUpgradeInitRequest {
+                        firmware_length: test.firmware_length,
+                    },
+                    &allowed_hash,
+                ))
+                .is_ok()
+            );
             assert_eq!(mock_funcs.chunk_requests, test.expected_chunk_requests);
         }
     }

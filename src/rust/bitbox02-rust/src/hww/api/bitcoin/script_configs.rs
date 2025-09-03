@@ -14,8 +14,8 @@
 
 use alloc::string::String;
 
-use super::pb;
 use super::Error;
+use super::pb;
 use pb::btc_script_config::{Multisig, SimpleType};
 
 use super::policies::ParsedPolicy;

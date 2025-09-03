@@ -20,9 +20,8 @@ use std::io::BufReader;
 use std::str::FromStr;
 
 use streaming_silent_payments::{
-    bitcoin,
+    InputType, Network, SilentPayment, bitcoin,
     bitcoin::secp256k1::{SecretKey, XOnlyPublicKey},
-    InputType, Network, SilentPayment,
 };
 
 /// The following structs have been copied from:

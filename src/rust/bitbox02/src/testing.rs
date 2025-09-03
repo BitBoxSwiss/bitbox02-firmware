@@ -34,7 +34,7 @@ pub fn mock_unlocked() {
 }
 
 unsafe extern "C" fn c_mock_random_32_bytes(buf_out: *mut u8) {
-    let s = core::slice::from_raw_parts_mut(buf_out, 32);
+    let s = unsafe { core::slice::from_raw_parts_mut(buf_out, 32) };
     s.copy_from_slice(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 }
 

@@ -29,8 +29,8 @@ mod script_configs;
 pub mod signmsg;
 pub mod signtx;
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use crate::hal::Ui;
 use crate::workflow::confirm;
@@ -39,13 +39,13 @@ use util::bip32::HARDENED;
 
 use crate::keystore;
 
+use pb::BtcCoin;
+use pb::BtcScriptConfig;
 use pb::btc_pub_request::{Output, XPubType};
 use pb::btc_request::Request;
 use pb::btc_script_config::{Config, SimpleType};
 use pb::btc_script_config::{Multisig, Policy};
 use pb::response::Response;
-use pb::BtcCoin;
-use pb::BtcScriptConfig;
 
 use alloc::string::String;
 
@@ -308,13 +308,13 @@ pub async fn process_api(
     request: &Request,
 ) -> Result<pb::btc_response::Response, Error> {
     match request {
-        Request::IsScriptConfigRegistered(ref request) => {
+        Request::IsScriptConfigRegistered(request) => {
             registration::process_is_script_config_registered(request)
         }
-        Request::RegisterScriptConfig(ref request) => {
+        Request::RegisterScriptConfig(request) => {
             registration::process_register_script_config(hal, request).await
         }
-        Request::SignMessage(ref request) => signmsg::process(hal, request).await,
+        Request::SignMessage(request) => signmsg::process(hal, request).await,
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
         Request::PrevtxInit(_)
@@ -336,7 +336,7 @@ mod tests {
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     use bitbox02::testing::{
-        mock_memory, mock_unlocked, mock_unlocked_using_mnemonic, TEST_MNEMONIC,
+        TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
     };
     use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
     use util::bip32::HARDENED;
@@ -499,20 +499,19 @@ mod tests {
 
             let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(process_pub(&mut mock_hal ,&req)),
+                block_on(process_pub(&mut mock_hal, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
                 })),
             );
             assert_eq!(
                 mock_hal.ui.screens,
-                vec![
-                    Screen::Confirm {
-                        title: test.expected_display_title.into(),
-                        body: test.expected_xpub.into(),
-                        longtouch: false,
-                    },
-                ]);
+                vec![Screen::Confirm {
+                    title: test.expected_display_title.into(),
+                    body: test.expected_xpub.into(),
+                    longtouch: false,
+                },]
+            );
         }
 
         {
@@ -806,13 +805,12 @@ mod tests {
             );
             assert_eq!(
                 mock_hal.ui.screens,
-                vec![
-                    Screen::Confirm {
-                        title: test.expected_display_title.into(),
-                        body: test.expected_address.into(),
-                        longtouch: false,
-                    },
-                ]);
+                vec![Screen::Confirm {
+                    title: test.expected_display_title.into(),
+                    body: test.expected_address.into(),
+                    longtouch: false,
+                },]
+            );
         }
 
         // --- Negative tests
@@ -840,18 +838,20 @@ mod tests {
         req_invalid.keypath = [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 10000].to_vec();
         assert!(block_on(process_pub(&mut TestingHal::new(), &req_invalid)).is_err());
         // -- No taproot in Litecoin
-        assert!(block_on(process_pub(
-            &mut TestingHal::new(),
-            &pb::BtcPubRequest {
-                coin: BtcCoin::Ltc as _,
-                keypath: [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
-                display: false,
-                output: Some(Output::ScriptConfig(BtcScriptConfig {
-                    config: Some(Config::SimpleType(SimpleType::P2tr as _)),
-                })),
-            }
-        ))
-        .is_err());
+        assert!(
+            block_on(process_pub(
+                &mut TestingHal::new(),
+                &pb::BtcPubRequest {
+                    coin: BtcCoin::Ltc as _,
+                    keypath: [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0].to_vec(),
+                    display: false,
+                    output: Some(Output::ScriptConfig(BtcScriptConfig {
+                        config: Some(Config::SimpleType(SimpleType::P2tr as _)),
+                    })),
+                }
+            ))
+            .is_err()
+        );
     }
 
     #[test]
@@ -952,11 +952,7 @@ mod tests {
                 ],
                 expected_info: "1-of-2\nBitcoin multisig",
                 our_xpub_index: 1,
-                keypath: &[
-                    45 + HARDENED,
-                    1,
-                    2
-                ],
+                keypath: &[45 + HARDENED, 1, 2],
                 script_type: MultisigScriptType::P2wsh,
                 expected_address: "bc1qtsvlhzltl05etjjeqh00urwttu6ep4xn3c0ccndz77unttut9h0qvrcs04",
             },
@@ -991,13 +987,7 @@ mod tests {
                 ],
                 expected_info: "2-of-2\nBitcoin multisig",
                 our_xpub_index: 1,
-                keypath: &[
-                    48 + HARDENED,
-                    0 + HARDENED,
-                    0 + HARDENED,
-                    1,
-                    0,
-                ],
+                keypath: &[48 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 0],
                 script_type: MultisigScriptType::P2wshP2sh,
                 expected_address: "341hw7cuzpf2AtSuXupX5Pu3tkkXv24bvo",
             },

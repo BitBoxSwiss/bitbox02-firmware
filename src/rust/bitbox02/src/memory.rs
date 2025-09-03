@@ -229,11 +229,7 @@ pub fn ble_enabled() -> bool {
 
 pub fn ble_enable(enable: bool) -> Result<(), ()> {
     let res = unsafe { bitbox02_sys::memory_ble_enable(enable) };
-    if res {
-        Ok(())
-    } else {
-        Err(())
-    }
+    if res { Ok(()) } else { Err(()) }
 }
 
 #[cfg(feature = "testing")]

@@ -19,7 +19,7 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use bitcoin::hashes::{sha256, Hash, HashEngine, Hmac, HmacEngine};
+use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256};
 
 // AES block size.
 const BLOCK_SIZE: usize = 16;

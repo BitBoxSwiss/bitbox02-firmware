@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::pb;
 use super::Error;
+use super::pb;
 
 use super::common::format_amount;
 use super::payment_request;
@@ -471,10 +471,12 @@ async fn validate_input_script_configs<'a>(
 
     // We get multisig out of the way first.
 
-    if let [ValidatedScriptConfigWithKeypath {
-        config: ValidatedScriptConfig::Multisig { name, multisig },
-        ..
-    }] = script_configs.as_slice()
+    if let [
+        ValidatedScriptConfigWithKeypath {
+            config: ValidatedScriptConfig::Multisig { name, multisig },
+            ..
+        },
+    ] = script_configs.as_slice()
     {
         super::multisig::confirm(hal, "Spend from", coin_params, name, multisig).await?;
         return Ok(script_configs);
@@ -482,14 +484,16 @@ async fn validate_input_script_configs<'a>(
 
     // Then we get policies out of the way.
 
-    if let [ValidatedScriptConfigWithKeypath {
-        config:
-            ValidatedScriptConfig::Policy {
-                name,
-                parsed_policy,
-            },
-        ..
-    }] = script_configs.as_slice()
+    if let [
+        ValidatedScriptConfigWithKeypath {
+            config:
+                ValidatedScriptConfig::Policy {
+                    name,
+                    parsed_policy,
+                },
+            ..
+        },
+    ] = script_configs.as_slice()
     {
         // We could check here that the account keypath matches one of our keys in the policy and
         // abort early, but we don't have to - if the keypath does not match we will fail when
@@ -1276,7 +1280,7 @@ mod tests {
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
-    use pb::btc_payment_request_request::{memo, Memo};
+    use pb::btc_payment_request_request::{Memo, memo};
     use util::bip32::HARDENED;
 
     fn extract_next(response: &Response) -> &pb::BtcSignNextResponse {
@@ -2465,9 +2469,11 @@ mod tests {
             fee: "2.05419010 BTC".into(),
             longtouch: false
         }));
-        assert!(mock_hal
-            .ui
-            .contains_confirm("High fee", "The fee is 18.1%\nthe send amount.\nProceed?"));
+        assert!(
+            mock_hal
+                .ui
+                .contains_confirm("High fee", "The fee is 18.1%\nthe send amount.\nProceed?")
+        );
         assert_eq!(
             mock_hal.ui.screens.len() as u32,
             tx.total_confirmations + 1 // plus status screen
@@ -3357,13 +3363,15 @@ mod tests {
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
 
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(
-            &mut mock_hal,
-            &transaction
-                .borrow()
-                .init_request_policy(policy, keypath_account),
-        ))
-        .is_ok());
+        assert!(
+            block_on(process(
+                &mut mock_hal,
+                &transaction
+                    .borrow()
+                    .init_request_policy(policy, keypath_account),
+            ))
+            .is_ok()
+        );
 
         assert_eq!(
             mock_hal.ui.screens,

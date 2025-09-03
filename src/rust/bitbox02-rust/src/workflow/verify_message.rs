@@ -14,7 +14,7 @@
 
 use alloc::vec::Vec;
 
-use super::{confirm, Workflows};
+use super::{Workflows, confirm};
 
 use util::ascii;
 

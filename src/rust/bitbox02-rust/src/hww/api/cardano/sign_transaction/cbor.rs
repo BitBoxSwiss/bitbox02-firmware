@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::super::Error;
 use super::super::params;
 use super::super::pb;
-use super::super::Error;
 
 use alloc::vec::Vec;
 
 use digest::Update;
 use minicbor::encode::{Encoder, Write};
 
-use pb::cardano_sign_transaction_request::{certificate, Certificate, Withdrawal};
+use pb::cardano_sign_transaction_request::{Certificate, Withdrawal, certificate};
 
-use super::super::address::{decode_payment_address, pubkey_hash_at_keypath, ADDRESS_HASH_SIZE};
+use super::super::address::{ADDRESS_HASH_SIZE, decode_payment_address, pubkey_hash_at_keypath};
 
 /// A newtype for hashers to implement the Write trait, enabling serializing cbor directly into the
 /// hasher.
@@ -249,7 +249,7 @@ pub fn encode_transaction_body<W: Write>(
 mod tests {
     use super::*;
     use alloc::vec::Vec;
-    use blake2::{digest::VariableOutput, Blake2bVar};
+    use blake2::{Blake2bVar, digest::VariableOutput};
 
     fn encode_something<W: Write>(
         encoder: &mut Encoder<W>,

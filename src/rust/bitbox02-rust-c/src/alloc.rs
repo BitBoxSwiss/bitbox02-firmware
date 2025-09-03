@@ -14,17 +14,17 @@
 
 struct BB02Allocator;
 
-extern "C" {
+unsafe extern "C" {
     pub fn malloc(size: usize) -> *mut core::ffi::c_void;
     pub fn free(p: *mut core::ffi::c_void);
 }
 
 unsafe impl core::alloc::GlobalAlloc for BB02Allocator {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        malloc(layout.size()) as _
+        unsafe { malloc(layout.size()) as _ }
     }
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
-        free(ptr as _)
+        unsafe { free(ptr as _) }
     }
 }
 

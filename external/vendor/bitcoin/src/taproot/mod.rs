@@ -158,7 +158,16 @@ pub const TAPROOT_CONTROL_BASE_SIZE: usize = 33;
 pub const TAPROOT_CONTROL_MAX_SIZE: usize =
     TAPROOT_CONTROL_BASE_SIZE + TAPROOT_CONTROL_NODE_SIZE * TAPROOT_CONTROL_MAX_NODE_COUNT;
 
-// type alias for versioned tap script corresponding merkle proof
+/// The leaf script with its version.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct LeafScript<S> {
+    /// The version of the script.
+    pub version: LeafVersion,
+    /// The script, usually `ScriptBuf` or `&Script`.
+    pub script: S,
+}
+
+// type alias for versioned tap script corresponding Merkle proof
 type ScriptMerkleProofMap = BTreeMap<(ScriptBuf, LeafVersion), BTreeSet<TaprootMerkleBranch>>;
 
 /// Represents taproot spending information.
@@ -1547,7 +1556,7 @@ mod test {
         let control_block =
             ControlBlock::decode(&Vec::<u8>::from_hex(control_block_hex).unwrap()).unwrap();
         assert_eq!(control_block_hex, control_block.serialize().to_lower_hex_string());
-        assert!(control_block.verify_taproot_commitment(secp, out_pk.to_inner(), &script));
+        assert!(control_block.verify_taproot_commitment(secp, out_pk.to_x_only_public_key(), &script));
     }
 
     #[test]
@@ -1654,7 +1663,7 @@ mod test {
             let ctrl_block = tree_info.control_block(&ver_script).unwrap();
             assert!(ctrl_block.verify_taproot_commitment(
                 &secp,
-                output_key.to_inner(),
+                output_key.to_x_only_public_key(),
                 &ver_script.0
             ))
         }
@@ -1729,7 +1738,7 @@ mod test {
             let ctrl_block = tree_info.control_block(&ver_script).unwrap();
             assert!(ctrl_block.verify_taproot_commitment(
                 &secp,
-                output_key.to_inner(),
+                output_key.to_x_only_public_key(),
                 &ver_script.0
             ))
         }
@@ -1845,7 +1854,7 @@ mod test {
             let addr = Address::p2tr(secp, internal_key, merkle_root, KnownHrp::Mainnet);
             let spk = addr.script_pubkey();
 
-            assert_eq!(expected_output_key, output_key.to_inner());
+            assert_eq!(expected_output_key, output_key.to_x_only_public_key());
             assert_eq!(expected_tweak, tweak);
             assert_eq!(expected_addr, addr);
             assert_eq!(expected_spk, spk);

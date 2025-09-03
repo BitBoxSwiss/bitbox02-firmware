@@ -496,6 +496,20 @@ impl PrivateKey {
             inner: secp256k1::SecretKey::from_slice(&data[1..33])?,
         })
     }
+
+    /// Returns a new private key with the negated secret value.
+    ///
+    /// The resulting key corresponds to the same x-only public key (identical x-coordinate)
+    /// but with the opposite y-coordinate parity. This is useful for ensuring compatibility
+    /// with specific public key formats and BIP-340 requirements.
+    #[inline]
+    pub fn negate(&self) -> Self {
+        PrivateKey {
+            compressed: self.compressed,
+            network: self.network,
+            inner: self.inner.negate(),
+        }
+    }
 }
 
 impl fmt::Display for PrivateKey {
@@ -803,9 +817,11 @@ impl TapTweak for UntweakedKeypair {
     ///  * p is the internal private key
     ///  * H is the hash function
     ///  * c is the commitment data
+    ///
     /// The public key is generated from a private key by multiplying with generator point, Q = qG.
     ///
     /// # Returns
+    ///
     /// The tweaked key and its parity.
     fn tap_tweak<C: Verification>(
         self,
@@ -839,8 +855,17 @@ impl TweakedPublicKey {
         TweakedPublicKey(key)
     }
 
-    /// Returns the underlying public key.
+    #[doc(hidden)]
+    #[deprecated(since="0.32.6", note="use to_x_only_public_key() instead")]
     pub fn to_inner(self) -> XOnlyPublicKey { self.0 }
+
+    /// Returns the underlying x-only public key.
+    #[inline]
+    pub fn to_x_only_public_key(self) -> XOnlyPublicKey { self.0 }
+
+    /// Returns a reference to the underlying x-only public key.
+    #[inline]
+    pub fn as_x_only_public_key(&self) -> &XOnlyPublicKey { &self.0 }
 
     /// Serialize the key as a byte-encoded pair of values. In compressed form
     /// the y-coordinate is represented by only a single bit, as x determines
@@ -858,9 +883,17 @@ impl TweakedKeypair {
     #[inline]
     pub fn dangerous_assume_tweaked(pair: Keypair) -> TweakedKeypair { TweakedKeypair(pair) }
 
+    #[doc(hidden)]
+    #[deprecated(since="0.32.6", note="use to_keypair() instead")]
+    pub fn to_inner(self) -> Keypair { self.0 }
+
     /// Returns the underlying key pair.
     #[inline]
-    pub fn to_inner(self) -> Keypair { self.0 }
+    pub fn to_keypair(self) -> Keypair { self.0 }
+
+    /// Returns a reference to the underlying key pair.
+    #[inline]
+    pub fn as_keypair(&self) -> &Keypair { &self.0 }
 
     /// Returns the [`TweakedPublicKey`] and its [`Parity`] for this [`TweakedKeypair`].
     #[inline]
@@ -1521,12 +1554,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(not(feature = "std"), feature = "no-std"))]
+    #[cfg(not(feature = "std"))]
     fn private_key_debug_is_obfuscated() {
         let sk =
             PrivateKey::from_str("cVt4o7BGAig1UXywgGSmARhxMdzP5qvQsxKkSsc1XEkw3tDTQFpy").unwrap();
         // Why is this not shortened? In rust-secp256k1/src/secret it is printed with "#{:016x}"?
-        let want = "PrivateKey { compressed: true, network: Testnet, inner: SecretKey(#7217ac58fbad8880a91032107b82cb6c5422544b426c350ee005cf509f3dbf7b) }";
+        let want = "PrivateKey { compressed: true, network: Test, inner: SecretKey(#7217ac58fbad8880a91032107b82cb6c5422544b426c350ee005cf509f3dbf7b) }";
         let got = format!("{:?}", sk);
         assert_eq!(got, want)
     }

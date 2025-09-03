@@ -74,6 +74,8 @@ pub enum AddressType {
     P2wsh,
     /// Pay to taproot.
     P2tr,
+    /// Pay to anchor.
+    P2a
 }
 
 impl fmt::Display for AddressType {
@@ -84,6 +86,7 @@ impl fmt::Display for AddressType {
             AddressType::P2wpkh => "p2wpkh",
             AddressType::P2wsh => "p2wsh",
             AddressType::P2tr => "p2tr",
+            AddressType::P2a => "p2a",
         })
     }
 }
@@ -97,6 +100,7 @@ impl FromStr for AddressType {
             "p2wpkh" => Ok(AddressType::P2wpkh),
             "p2wsh" => Ok(AddressType::P2wsh),
             "p2tr" => Ok(AddressType::P2tr),
+            "p2a" => Ok(AddressType::P2a),
             _ => Err(UnknownAddressTypeError(s.to_owned())),
         }
     }
@@ -190,7 +194,7 @@ impl fmt::Display for AddressInner {
 pub enum KnownHrp {
     /// The main Bitcoin network.
     Mainnet,
-    /// The test networks, testnet and signet.
+    /// The test networks, testnet (testnet3), testnet4, and signet.
     Testnets,
     /// The regtest network.
     Regtest,
@@ -203,7 +207,7 @@ impl KnownHrp {
 
         match network {
             Bitcoin => Self::Mainnet,
-            Testnet | Signet => Self::Testnets,
+            Testnet | Testnet4 | Signet => Self::Testnets,
             Regtest => Self::Regtest,
         }
     }
@@ -319,8 +323,8 @@ pub enum AddressData {
 /// ```
 ///
 /// 2. `Debug` on `Address<NetworkUnchecked>` does not produce clean address but address wrapped by
-/// an indicator that its network has not been checked. This is to encourage programmer to properly
-/// check the network and use `Display` in user-facing context.
+///    an indicator that its network has not been checked. This is to encourage programmer to properly
+///    check the network and use `Display` in user-facing context.
 ///
 /// ```
 /// # use std::str::FromStr;
@@ -382,6 +386,9 @@ impl<V: NetworkValidation> Address<V> {
     pub fn as_unchecked(&self) -> &Address<NetworkUnchecked> {
         unsafe { &*(self as *const Address<V> as *const Address<NetworkUnchecked>) }
     }
+
+    /// Marks the network of this address as unchecked.
+    pub fn into_unchecked(self) -> Address<NetworkUnchecked> { Address(self.0, PhantomData) }
 }
 
 /// Methods and functions that can be called only on `Address<NetworkChecked>`.
@@ -493,6 +500,8 @@ impl Address {
                     Some(AddressType::P2wsh)
                 } else if program.is_p2tr() {
                     Some(AddressType::P2tr)
+                } else if program.is_p2a() {
+                    Some(AddressType::P2a)
                 } else {
                     None
                 },
@@ -704,7 +713,7 @@ impl Address<NetworkUnchecked> {
     ///
     /// let address: Address<NetworkUnchecked> = "32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf".parse().unwrap();
     /// assert!(address.is_valid_for_network(Network::Bitcoin));
-    /// assert_eq!(address.is_valid_for_network(Network::Testnet), false);
+    /// assert_eq!(address.is_valid_for_network(Network::Testnet4), false);
     /// ```
     pub fn is_valid_for_network(&self, n: Network) -> bool {
         use AddressInner::*;
@@ -773,16 +782,7 @@ impl Address<NetworkUnchecked> {
     /// For details about this mechanism, see section [*Parsing addresses*](Address#parsing-addresses)
     /// on [`Address`].
     #[inline]
-    pub fn assume_checked(self) -> Address {
-        use AddressInner::*;
-
-        let inner = match self.0 {
-            P2pkh { hash, network } => P2pkh { hash, network },
-            P2sh { hash, network } => P2sh { hash, network },
-            Segwit { program, hrp } => Segwit { program, hrp },
-        };
-        Address(inner, PhantomData)
-    }
+    pub fn assume_checked(self) -> Address { Address(self.0, PhantomData) }
 }
 
 impl From<Address> for script::ScriptBuf {
@@ -1372,5 +1372,23 @@ mod tests {
                 assert_eq!(addr.matches_script_pubkey(&another.script_pubkey()), addr == another);
             }
         }
+    }
+
+    #[test]
+    fn pay_to_anchor_address_regtest() {
+        // Verify that p2a uses the expected address for regtest.
+        // This test-vector is borrowed from the bitcoin source code.
+        let address_str = "bcrt1pfeesnyr2tx";
+
+        let script = ScriptBuf::new_p2a();
+        let address_unchecked = address_str.parse().unwrap();
+        let address = Address::from_script(&script, Network::Regtest).unwrap();
+        assert_eq!(address.as_unchecked(), &address_unchecked);
+        assert_eq!(address.to_string(), address_str);
+
+        // Verify that the address is considered standard
+        // and that the output type is P2a
+        assert!(address.is_spend_standard());
+        assert_eq!(address.address_type(), Some(AddressType::P2a));
     }
 }

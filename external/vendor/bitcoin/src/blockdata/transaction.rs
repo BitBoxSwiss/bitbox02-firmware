@@ -11,12 +11,13 @@
 //! This module provides the structures and functions needed to support transactions.
 //!
 
-use core::{cmp, fmt, str};
+use core::{cmp, fmt};
+use core::str::FromStr;
 
 use hashes::{sha256d, Hash};
 use internals::write_err;
-use io::{BufRead, Write};
-use units::parse;
+use io::{Read, Write};
+use units::parse::{self, ParseIntError};
 
 use super::Weight;
 use crate::blockdata::locktime::absolute::{self, Height, Time};
@@ -527,7 +528,37 @@ impl fmt::Debug for Sequence {
     }
 }
 
-units::impl_parse_str_from_int_infallible!(Sequence, u32, from_consensus);
+impl FromStr for Sequence {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        parse::int::<u32, &str>(s).map(Sequence::from_consensus)
+    }
+}
+
+impl TryFrom<&str> for Sequence {
+    type Error = ParseIntError;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        Sequence::from_str(s)
+    }
+}
+
+impl TryFrom<String> for Sequence {
+    type Error = ParseIntError;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Sequence::from_str(&s)
+    }
+}
+
+impl TryFrom<Box<str>> for Sequence {
+    type Error = ParseIntError;
+
+    fn try_from(s: Box<str>) -> Result<Self, Self::Error> {
+        Sequence::from_str(&s)
+    }
+}
 
 /// Bitcoin transaction output.
 ///
@@ -1151,7 +1182,7 @@ impl Encodable for Version {
 }
 
 impl Decodable for Version {
-    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         Decodable::consensus_decode(r).map(Version)
     }
 }
@@ -1169,7 +1200,7 @@ impl Encodable for OutPoint {
     }
 }
 impl Decodable for OutPoint {
-    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         Ok(OutPoint {
             txid: Decodable::consensus_decode(r)?,
             vout: Decodable::consensus_decode(r)?,
@@ -1188,7 +1219,7 @@ impl Encodable for TxIn {
 }
 impl Decodable for TxIn {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(TxIn {
@@ -1207,7 +1238,7 @@ impl Encodable for Sequence {
 }
 
 impl Decodable for Sequence {
-    fn consensus_decode<R: BufRead + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+    fn consensus_decode<R: Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         Decodable::consensus_decode(r).map(Sequence)
     }
 }
@@ -1237,7 +1268,7 @@ impl Encodable for Transaction {
 }
 
 impl Decodable for Transaction {
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let version = Version::consensus_decode_from_finite_reader(r)?;

@@ -547,36 +547,6 @@ bool keystore_get_u2f_seed(uint8_t* seed_out)
     return true;
 }
 
-bool keystore_get_ed25519_seed(uint8_t* seed_out)
-{
-    uint8_t bip39_seed[64] = {0};
-    UTIL_CLEANUP_64(bip39_seed);
-    if (!keystore_copy_bip39_seed(bip39_seed)) {
-        return false;
-    }
-
-    const uint8_t key[] = "ed25519 seed";
-
-    // Derive a 64 byte expanded ed25519 private key and put it into seed_out.
-    memcpy(seed_out, bip39_seed, 64);
-    do {
-        rust_hmac_sha512(key, sizeof(key), seed_out, 64, seed_out);
-    } while (seed_out[31] & 0x20);
-
-    seed_out[0] &= 248;
-    seed_out[31] &= 127;
-    seed_out[31] |= 64;
-
-    // Compute chain code and put it into seed_out at offset 64.
-    uint8_t message[65] = {0};
-    message[0] = 0x01;
-    memcpy(&message[1], bip39_seed, 64);
-    util_zero(bip39_seed, sizeof(bip39_seed));
-    rust_hmac_sha256(key, sizeof(key), message, sizeof(message), &seed_out[64]);
-    util_zero(message, sizeof(message));
-    return true;
-}
-
 #ifdef TESTING
 void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
 {

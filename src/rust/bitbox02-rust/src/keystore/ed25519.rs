@@ -17,8 +17,45 @@ use alloc::vec::Vec;
 use crate::hash::Sha512;
 use bip32_ed25519::{ED25519_EXPANDED_SECRET_KEY_SIZE, Xprv, Xpub};
 
+use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
+
+fn hmac_sha512(key: &[u8], msg: &[u8]) -> [u8; 64] {
+    let mut engine = HmacEngine::<sha512::Hash>::new(key);
+    engine.input(msg);
+    Hmac::from_engine(engine).to_byte_array()
+}
+
+/// Get the seed to be used for ed25519 applications such as Cardano. The output is the root key to
+/// BIP32-ED25519.
+/// This implements a derivation compatible with Ledger according to
+/// https://github.com/LedgerHQ/orakolo/blob/0b2d5e669ec61df9a824df9fa1a363060116b490/src/python/orakolo/HDEd25519.py.
+/// Returns 96 bytes. It will contain a 64 byte expanded ed25519 private key followed by a 32 byte chain code.
 fn get_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    bitbox02::keystore::get_ed25519_seed()
+    let bip39_seed = bitbox02::keystore::copy_bip39_seed()?;
+    let mut seed_out = zeroize::Zeroizing::new(vec![0u8; 96]);
+    let first64: &mut [u8] = &mut seed_out.as_mut_slice()[..64];
+    first64.copy_from_slice(&bip39_seed);
+
+    let key = b"ed25519 seed";
+
+    loop {
+        first64.copy_from_slice(&hmac_sha512(key, first64));
+        if first64[31] & 0x20 == 0 {
+            break;
+        }
+    }
+
+    seed_out[0] &= 248;
+    seed_out[31] &= 127;
+    seed_out[31] |= 64;
+
+    // Compute chain code and put it into seed_out at offset 64.
+    let mut engine = HmacEngine::<sha256::Hash>::new(key);
+    engine.input(&[0x01]);
+    engine.input(&bip39_seed);
+    let hmac_result: [u8; 32] = Hmac::from_engine(engine).to_byte_array();
+    seed_out[64..].copy_from_slice(&hmac_result);
+    Ok(seed_out)
 }
 
 fn get_xprv(keypath: &[u32]) -> Result<Xprv<Sha512>, ()> {

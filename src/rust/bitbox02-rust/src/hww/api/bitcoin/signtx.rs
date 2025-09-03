@@ -1173,8 +1173,7 @@ async fn _process(
             });
 
             next_response.next.has_signature = true;
-            next_response.next.signature = bitbox02::keystore::secp256k1_schnorr_sign(
-                SECP256K1,
+            next_response.next.signature = crate::keystore::secp256k1_schnorr_sign(
                 &tx_input.keypath,
                 &sighash,
                 if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {

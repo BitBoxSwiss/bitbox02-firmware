@@ -28,8 +28,6 @@
 
 #include <rust/rust.h>
 #include <secp256k1_ecdsa_s2c.h>
-#include <secp256k1_extrakeys.h>
-#include <secp256k1_schnorrsig.h>
 
 // Change this ONLY via keystore_unlock() or keystore_lock()
 static bool _is_unlocked_device = false;
@@ -577,64 +575,6 @@ bool keystore_get_ed25519_seed(uint8_t* seed_out)
     rust_hmac_sha256(key, sizeof(key), message, sizeof(message), &seed_out[64]);
     util_zero(message, sizeof(message));
     return true;
-}
-
-static bool _schnorr_keypair(
-    const secp256k1_context* ctx,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const uint8_t* tweak,
-    secp256k1_keypair* keypair_out,
-    secp256k1_xonly_pubkey* pubkey_out)
-{
-    if (keystore_is_locked()) {
-        return false;
-    }
-    uint8_t private_key[32] = {0};
-    UTIL_CLEANUP_32(private_key);
-    if (!rust_secp256k1_get_private_key(
-            keypath, keypath_len, rust_util_bytes_mut(private_key, sizeof(private_key)))) {
-        return false;
-    }
-
-    if (!secp256k1_keypair_create(ctx, keypair_out, private_key)) {
-        return false;
-    }
-    if (tweak != NULL) {
-        if (secp256k1_keypair_xonly_tweak_add(ctx, keypair_out, tweak) != 1) {
-            return false;
-        }
-    }
-    if (!secp256k1_keypair_xonly_pub(ctx, pubkey_out, NULL, keypair_out)) {
-        return false;
-    }
-    return true;
-}
-
-static void _cleanup_keypair(secp256k1_keypair* keypair)
-{
-    util_zero(keypair, sizeof(secp256k1_keypair));
-}
-
-bool keystore_secp256k1_schnorr_sign(
-    const secp256k1_context* ctx,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const uint8_t* msg32,
-    const uint8_t* tweak,
-    uint8_t* sig64_out)
-{
-    secp256k1_keypair __attribute__((__cleanup__(_cleanup_keypair))) keypair = {0};
-    secp256k1_xonly_pubkey pubkey = {0};
-    if (!_schnorr_keypair(ctx, keypath, keypath_len, tweak, &keypair, &pubkey)) {
-        return false;
-    }
-    uint8_t aux_rand[32] = {0};
-    random_32_bytes(aux_rand);
-    if (secp256k1_schnorrsig_sign32(ctx, sig64_out, msg32, &keypair, aux_rand) != 1) {
-        return false;
-    }
-    return secp256k1_schnorrsig_verify(ctx, sig64_out, msg32, 32, &pubkey) == 1;
 }
 
 #ifdef TESTING

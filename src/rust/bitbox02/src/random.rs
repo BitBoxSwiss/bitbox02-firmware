@@ -29,7 +29,6 @@ pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     }
 }
 
-#[cfg(feature = "testing")]
 pub fn random_32_bytes() -> alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>> {
     let mut out = alloc::boxed::Box::new(zeroize::Zeroizing::new([0u8; 32]));
     unsafe { bitbox02_sys::random_32_bytes(out.as_mut_ptr()) }

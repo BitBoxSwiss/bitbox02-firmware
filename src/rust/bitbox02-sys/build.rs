@@ -79,7 +79,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_lock",
     "keystore_mock_unlocked",
     "keystore_secp256k1_nonce_commit",
-    "keystore_secp256k1_schnorr_sign",
     "keystore_secp256k1_sign",
     "keystore_unlock",
     "keystore_unlock_bip39",

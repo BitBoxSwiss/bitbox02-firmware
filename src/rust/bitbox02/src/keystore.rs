@@ -238,39 +238,12 @@ pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
-pub fn secp256k1_schnorr_sign(
-    secp: &Secp256k1<All>,
-    keypath: &[u32],
-    msg: &[u8; 32],
-    tweak: Option<&[u8; 32]>,
-) -> Result<[u8; 64], ()> {
-    let mut signature = [0u8; 64];
-
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_schnorr_sign(
-            secp.ctx().as_ptr().cast(),
-            keypath.as_ptr(),
-            keypath.len() as _,
-            msg.as_ptr(),
-            match tweak {
-                Some(t) => t.as_ptr(),
-                None => core::ptr::null() as *const _,
-            },
-            signature.as_mut_ptr(),
-        )
-    } {
-        true => Ok(signature),
-        false => Err(()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use bitcoin::secp256k1;
 
     use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
-    use util::bip32::HARDENED;
 
     #[test]
     fn test_secp256k1_sign() {
@@ -307,56 +280,6 @@ mod tests {
         assert!(
             secp.verify_ecdsa(&msg, &recoverable_sig.to_standard(), &expected_pubkey)
                 .is_ok()
-        );
-    }
-
-    #[test]
-    fn test_secp256k1_schnorr_sign() {
-        mock_unlocked_using_mnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-            "",
-        );
-        let keypath = [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
-        let msg = [0x88u8; 32];
-
-        let expected_pubkey = {
-            let pubkey =
-                hex::decode("cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115")
-                    .unwrap();
-            secp256k1::XOnlyPublicKey::from_slice(&pubkey).unwrap()
-        };
-
-        // Test without tweak
-        crate::random::fake_reset();
-        let secp = secp256k1::Secp256k1::new();
-        let sig = secp256k1_schnorr_sign(&secp, &keypath, &msg, None).unwrap();
-        assert!(
-            secp.verify_schnorr(
-                &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
-                &secp256k1::Message::from_digest_slice(&msg).unwrap(),
-                &expected_pubkey
-            )
-            .is_ok()
-        );
-
-        // Test with tweak
-        crate::random::fake_reset();
-        let tweak = {
-            let tweak =
-                hex::decode("a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c")
-                    .unwrap();
-            secp256k1::Scalar::from_be_bytes(tweak.try_into().unwrap()).unwrap()
-        };
-        let (tweaked_pubkey, _) = expected_pubkey.add_tweak(&secp, &tweak).unwrap();
-        let sig =
-            secp256k1_schnorr_sign(&secp, &keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
-        assert!(
-            secp.verify_schnorr(
-                &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
-                &secp256k1::Message::from_digest_slice(&msg).unwrap(),
-                &tweaked_pubkey
-            )
-            .is_ok()
         );
     }
 

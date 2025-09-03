@@ -15,9 +15,9 @@ use alloc::boxed::Box;
 use core::convert::TryInto;
 
 use core::ops::{Deref, DerefMut};
-use digest::{core_api::BlockSizeUser, typenum::U64, Digest};
+use digest::{Digest, core_api::BlockSizeUser, typenum::U64};
 use hmac::{Mac, SimpleHmac};
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use curve25519_dalek::{
     edwards::{CompressedEdwardsY, EdwardsPoint},
@@ -115,8 +115,7 @@ impl<D: Digest<OutputSize = U64> + BlockSizeUser> Xpub<D> {
     }
 }
 
-#[derive(Zeroize, Clone, Debug, PartialEq)]
-#[zeroize(drop)]
+#[derive(Zeroize, ZeroizeOnDrop, Clone, Debug, PartialEq)]
 struct XprvData {
     // An xprv consists of an expanded Ed25519 secret key and a chain
     // code.
@@ -134,7 +133,7 @@ struct XprvData {
 }
 
 /// The `D` digest type param must implement SHA512. Use `sha2::Sha512` if in doubt.
-#[derive(Clone, Debug)]
+#[derive(Zeroize, ZeroizeOnDrop, Clone, Debug)]
 pub struct Xprv<D: Digest<OutputSize = U64> + BlockSizeUser + Clone>(
     // The data is boxed so that moving an `Xprv` does not accidentally
     // leave copies of the data on the stack.
@@ -371,18 +370,24 @@ mod tests {
 
     #[test]
     fn xpub_hard_derivation_fails() {
-        assert!(Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
-            .public()
-            .derive(HARDENED_OFFSET - 1)
-            .is_ok());
-        assert!(Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
-            .public()
-            .derive(HARDENED_OFFSET)
-            .is_err());
-        assert!(Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
-            .public()
-            .derive(u32::MAX)
-            .is_err());
+        assert!(
+            Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
+                .public()
+                .derive(HARDENED_OFFSET - 1)
+                .is_ok()
+        );
+        assert!(
+            Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
+                .public()
+                .derive(HARDENED_OFFSET)
+                .is_err()
+        );
+        assert!(
+            Xprv::<Sha512>::from_normalize(KEY, CHAIN_CODE)
+                .public()
+                .derive(u32::MAX)
+                .is_err()
+        );
     }
 
     #[test]

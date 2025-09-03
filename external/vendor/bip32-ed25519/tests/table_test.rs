@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 
 // Our crate:
-use bip32_ed25519::{Xprv, ED25519_EXPANDED_SECRET_KEY_SIZE};
+use bip32_ed25519::{ED25519_EXPANDED_SECRET_KEY_SIZE, Xprv};
 
 // Another crate for comparison:
 use ed25519_bip32;

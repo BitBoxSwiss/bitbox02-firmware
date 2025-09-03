@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <fake_memory.h>
 #include <flags.h>
 #include <memory/memory.h>
-#include <fake_memory.h>
 #include <stdio.h>
 #include <string.h>
 

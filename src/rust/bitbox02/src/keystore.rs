@@ -220,14 +220,6 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
     }
 }
 
-pub fn get_ed25519_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mut seed = zeroize::Zeroizing::new([0u8; 96].to_vec());
-    match unsafe { bitbox02_sys::keystore_get_ed25519_seed(seed.as_mut_ptr()) } {
-        true => Ok(seed),
-        false => Err(()),
-    }
-}
-
 // Currently only used in the functional tests below.
 #[cfg(feature = "testing")]
 pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
@@ -238,39 +230,12 @@ pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
-pub fn secp256k1_schnorr_sign(
-    secp: &Secp256k1<All>,
-    keypath: &[u32],
-    msg: &[u8; 32],
-    tweak: Option<&[u8; 32]>,
-) -> Result<[u8; 64], ()> {
-    let mut signature = [0u8; 64];
-
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_schnorr_sign(
-            secp.ctx().as_ptr().cast(),
-            keypath.as_ptr(),
-            keypath.len() as _,
-            msg.as_ptr(),
-            match tweak {
-                Some(t) => t.as_ptr(),
-                None => core::ptr::null() as *const _,
-            },
-            signature.as_mut_ptr(),
-        )
-    } {
-        true => Ok(signature),
-        false => Err(()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use bitcoin::secp256k1;
 
     use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
-    use util::bip32::HARDENED;
 
     #[test]
     fn test_secp256k1_sign() {
@@ -307,56 +272,6 @@ mod tests {
         assert!(
             secp.verify_ecdsa(&msg, &recoverable_sig.to_standard(), &expected_pubkey)
                 .is_ok()
-        );
-    }
-
-    #[test]
-    fn test_secp256k1_schnorr_sign() {
-        mock_unlocked_using_mnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-            "",
-        );
-        let keypath = [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
-        let msg = [0x88u8; 32];
-
-        let expected_pubkey = {
-            let pubkey =
-                hex::decode("cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115")
-                    .unwrap();
-            secp256k1::XOnlyPublicKey::from_slice(&pubkey).unwrap()
-        };
-
-        // Test without tweak
-        crate::random::fake_reset();
-        let secp = secp256k1::Secp256k1::new();
-        let sig = secp256k1_schnorr_sign(&secp, &keypath, &msg, None).unwrap();
-        assert!(
-            secp.verify_schnorr(
-                &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
-                &secp256k1::Message::from_digest_slice(&msg).unwrap(),
-                &expected_pubkey
-            )
-            .is_ok()
-        );
-
-        // Test with tweak
-        crate::random::fake_reset();
-        let tweak = {
-            let tweak =
-                hex::decode("a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c")
-                    .unwrap();
-            secp256k1::Scalar::from_be_bytes(tweak.try_into().unwrap()).unwrap()
-        };
-        let (tweaked_pubkey, _) = expected_pubkey.add_tweak(&secp, &tweak).unwrap();
-        let sig =
-            secp256k1_schnorr_sign(&secp, &keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
-        assert!(
-            secp.verify_schnorr(
-                &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
-                &secp256k1::Message::from_digest_slice(&msg).unwrap(),
-                &tweaked_pubkey
-            )
-            .is_ok()
         );
     }
 
@@ -445,46 +360,6 @@ mod tests {
         assert_eq!(
             copy_seed().unwrap().as_slice(),
             b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
-        );
-    }
-
-    #[test]
-    fn test_get_ed25519_seed() {
-        // No seed on a locked keystore.
-        lock();
-        assert!(get_ed25519_seed().is_err());
-
-        // Test vectors taken from:
-        // https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0003/Ledger.md#test-vectors
-        // See also: https://github.com/cardano-foundation/CIPs/pull/132
-
-        mock_unlocked_using_mnemonic(
-            "recall grace sport punch exhibit mad harbor stand obey short width stem awkward used stairs wool ugly trap season stove worth toward congress jaguar",
-            "",
-        );
-        assert_eq!(
-            hex::encode(get_ed25519_seed().unwrap()),
-            "a08cf85b564ecf3b947d8d4321fb96d70ee7bb760877e371899b14e2ccf88658104b884682b57efd97decbb318a45c05a527b9cc5c2f64f7352935a049ceea60680d52308194ccef2a18e6812b452a5815fbd7f5babc083856919aaf668fe7e4",
-        );
-
-        // Multiple loop iterations.
-
-        mock_unlocked_using_mnemonic(
-            "correct cherry mammal bubble want mandate polar hazard crater better craft exotic choice fun tourist census gap lottery neglect address glow carry old business",
-            "",
-        );
-        assert_eq!(
-            hex::encode(get_ed25519_seed().unwrap()),
-            "587c6774357ecbf840d4db6404ff7af016dace0400769751ad2abfc77b9a3844cc71702520ef1a4d1b68b91187787a9b8faab0a9bb6b160de541b6ee62469901fc0beda0975fe4763beabd83b7051a5fd5cbce5b88e82c4bbaca265014e524bd",
-        );
-
-        mock_unlocked_using_mnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
-            "foo",
-        );
-        assert_eq!(
-            hex::encode(get_ed25519_seed().unwrap()),
-            "f053a1e752de5c26197b60f032a4809f08bb3e5d90484fe42024be31efcba7578d914d3ff992e21652fee6a4d99f6091006938fac2c0c0f9d2de0ba64b754e92a4f3723f23472077aa4cd4dd8a8a175dba07ea1852dad1cf268c61a2679c3890",
         );
     }
 

@@ -186,35 +186,6 @@ USE_RESULT bool keystore_secp256k1_sign(
  */
 USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
 
-/**
- * Get the seed to be used for ed25519 applications such as Cardano. The output is the root key to
- * BIP32-ED25519.
- * This implements a derivation compatible with Ledger according to
- * https://github.com/LedgerHQ/orakolo/blob/0b2d5e669ec61df9a824df9fa1a363060116b490/src/python/orakolo/HDEd25519.py.
- * @param seed_out Buffer for the seed. Must be 96 bytes. It will contain a 64 byte expanded
- * ed25519 private key followed by a 32 byte chain code.
- */
-USE_RESULT bool keystore_get_ed25519_seed(uint8_t* seed_out);
-
-/**
- * Sign a message that verifies against the pubkey tweaked using BIP-86.
- *
- * @param[in] ctx secp256k1 context
- * @param[in] keypath derivation keypath
- * @param[in] keypath_len number of elements in keypath
- * @param[in] msg32 32 byte message to sign
- * @param[in] tweak 32 bytes, tweak private key before signing with this tweak. Use NULL to not
- *            tweak.
- * @param[out] sig64_out resulting 64 byte signature
- */
-USE_RESULT bool keystore_secp256k1_schnorr_sign(
-    const secp256k1_context* ctx,
-    const uint32_t* keypath,
-    size_t keypath_len,
-    const uint8_t* msg32,
-    const uint8_t* tweak,
-    uint8_t* sig64_out);
-
 #ifdef TESTING
 /**
  * convenience to mock the keystore state (locked, seed) in tests.

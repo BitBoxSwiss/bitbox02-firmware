@@ -122,7 +122,6 @@ dependencies = [
 name = "bitbox02-rust"
 version = "0.1.0"
 dependencies = [
- "bech32",
  "binascii",
  "bip32-ed25519",
  "bip39",
@@ -961,7 +960,6 @@ dependencies = [
 name = "streaming-silent-payments"
 version = "0.1.0"
 dependencies = [
- "bech32",
  "bitbox02",
  "bitcoin",
  "hex",

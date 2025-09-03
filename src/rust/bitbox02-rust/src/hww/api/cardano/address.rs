@@ -25,6 +25,8 @@ use pb::CardanoNetwork;
 use pb::cardano_response::Response;
 use pb::cardano_script_config::Config;
 
+use bitcoin::bech32;
+
 use blake2::{
     Blake2bVar,
     digest::{Update, VariableOutput},

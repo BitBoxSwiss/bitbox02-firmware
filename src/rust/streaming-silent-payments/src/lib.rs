@@ -19,6 +19,7 @@ extern crate alloc;
 mod hash;
 
 pub use bitcoin;
+use bitcoin::bech32;
 use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::{self, PublicKey, Scalar, Secp256k1, SecretKey, XOnlyPublicKey};
 

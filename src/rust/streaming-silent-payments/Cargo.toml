@@ -21,7 +21,6 @@ license = "Apache-2.0"
 
 [dependencies]
 bitcoin = { workspace = true }
-bech32 = { workspace = true }
 bitbox02 = { path = "../bitbox02" }
 
 [dev-dependencies]

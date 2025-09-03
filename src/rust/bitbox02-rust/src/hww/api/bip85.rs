@@ -121,15 +121,6 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         })
         .await?;
 
-    hal.ui()
-        .confirm(&confirm::Params {
-            title: "",
-            body: &format!("{} word mnemonic\nfollows", num_words),
-            accept_is_nextarrow: true,
-            ..Default::default()
-        })
-        .await?;
-
     let mnemonic = keystore::bip85_bip39(num_words, index)?;
     let words: Vec<&str> = mnemonic.split(' ').collect();
     mnemonic::show_and_confirm_mnemonic(hal, &words).await?;

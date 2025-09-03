@@ -114,6 +114,16 @@ pub async fn show_and_confirm_mnemonic(
     hal: &mut impl crate::hal::Hal,
     words: &[&str],
 ) -> Result<(), CancelError> {
+    hal.ui()
+        .confirm(&confirm::Params {
+            title: "",
+            body: &format!("{} words follow", words.len()),
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await
+        .map_err(|_| CancelError::Cancelled)?;
+
     // Part 1) Scroll through words
     show_mnemonic(words).await?;
 

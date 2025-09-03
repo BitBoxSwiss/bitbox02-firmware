@@ -156,6 +156,34 @@ pub fn bip85_ln(index: u32) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     Ok(entropy)
 }
 
+/// Sign a message using the private key at the keypath, which is optionally tweaked with the given
+/// tweak.
+pub fn secp256k1_schnorr_sign(
+    keypath: &[u32],
+    msg: &[u8; 32],
+    tweak: Option<&[u8; 32]>,
+) -> Result<[u8; 64], ()> {
+    let private_key = secp256k1_get_private_key(keypath)?;
+    let mut keypair =
+        bitcoin::secp256k1::Keypair::from_seckey_slice(SECP256K1, &private_key).map_err(|_| ())?;
+
+    if let Some(tweak) = tweak {
+        keypair = keypair
+            .add_xonly_tweak(
+                SECP256K1,
+                &bitcoin::secp256k1::Scalar::from_be_bytes(*tweak).map_err(|_| ())?,
+            )
+            .map_err(|_| ())?;
+    }
+
+    let sig = SECP256K1.sign_schnorr_with_aux_rand(
+        &bitcoin::secp256k1::Message::from_digest(*msg),
+        &keypair,
+        &bitbox02::random::random_32_bytes(),
+    );
+    Ok(sig.serialize())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -163,6 +191,8 @@ mod tests {
     use bitbox02::testing::{
         TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
     };
+
+    use bitcoin::secp256k1;
 
     #[test]
     fn test_secp256k1_get_private_key() {
@@ -432,5 +462,55 @@ mod tests {
                 test.expected_u2f_seed_hex,
             );
         }
+    }
+
+    #[test]
+    fn test_secp256k1_schnorr_sign() {
+        mock_unlocked_using_mnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            "",
+        );
+        let keypath = [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
+        let msg = [0x88u8; 32];
+
+        let expected_pubkey = {
+            let pubkey =
+                hex::decode("cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115")
+                    .unwrap();
+            secp256k1::XOnlyPublicKey::from_slice(&pubkey).unwrap()
+        };
+
+        // Test without tweak
+        bitbox02::random::fake_reset();
+        let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
+        assert!(
+            SECP256K1
+                .verify_schnorr(
+                    &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
+                    &secp256k1::Message::from_digest_slice(&msg).unwrap(),
+                    &expected_pubkey
+                )
+                .is_ok()
+        );
+
+        // Test with tweak
+        bitbox02::random::fake_reset();
+        let tweak = {
+            let tweak =
+                hex::decode("a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c")
+                    .unwrap();
+            secp256k1::Scalar::from_be_bytes(tweak.try_into().unwrap()).unwrap()
+        };
+        let (tweaked_pubkey, _) = expected_pubkey.add_tweak(SECP256K1, &tweak).unwrap();
+        let sig = secp256k1_schnorr_sign(&keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
+        assert!(
+            SECP256K1
+                .verify_schnorr(
+                    &secp256k1::schnorr::Signature::from_slice(&sig).unwrap(),
+                    &secp256k1::Message::from_digest(msg),
+                    &tweaked_pubkey
+                )
+                .is_ok()
+        );
     }
 }

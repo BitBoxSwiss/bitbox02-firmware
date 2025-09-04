@@ -29,6 +29,7 @@ use super::{multisig, params::Params, script};
 
 use sha2::{Digest, Sha256};
 
+use bitcoin::bech32;
 use bitcoin::hashes::Hash;
 
 const HASH160_LEN: usize = 20;

@@ -21,6 +21,8 @@ use super::pb;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use bitcoin::bech32;
+
 use blake2::{
     Blake2bVar,
     digest::{Update, VariableOutput},

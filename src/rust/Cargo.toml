@@ -29,10 +29,9 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-bech32 = { version = "0.11.0", default-features = false }
 # The secp-recovery feature is currently only needed in tests to make use of `RecoverableSignature`.
 # Attempting to enable it conditionally only for tests somehow leads to linking errors (duplicate secp256k1 symbols).
-bitcoin = { version = "0.32.2", default-features = false, features = ["secp-recovery"] }
+bitcoin = { version = "0.32.7", default-features = false, features = ["secp-recovery"] }
 # Replace with upstream once https://github.com/rust-bitcoin/rust-bip39/pull/76 is merged and released.
 bip39 = { git = "https://github.com/benma/rust-bip39.git", branch = "bb02", default-features = false, features = ["zeroize"] }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }

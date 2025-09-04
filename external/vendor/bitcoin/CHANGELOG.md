@@ -1,3 +1,36 @@
+# 0.32.7 - 2025-07-30
+
+- Backport - Use `_u32` in `FeeRate` constructor instead of `_unchecked` [#4552](https://github.com/rust-bitcoin/rust-bitcoin/pull/4552)
+- Backport - Add support for pay to anchor outputs [#4691](https://github.com/rust-bitcoin/rust-bitcoin/pull/4691)
+- Backport - Remove `non_exhaustive` from `Network` [#4658](https://github.com/rust-bitcoin/rust-bitcoin/pull/4658)
+
+# 0.32.6 - 2025-05-06
+
+- Backport - Fix `is_invalid_use_of_sighash_single()` incompatibility with Bitcoin Core [#4122](https://github.com/rust-bitcoin/rust-bitcoin/pull/4122)
+- Backport - Backport witness fixes [#4101](https://github.com/rust-bitcoin/rust-bitcoin/pull/4101)
+- Backport - bip32: Return error when attempting to derive past maximum depth [#4434](https://github.com/rust-bitcoin/rust-bitcoin/pull/4434)
+- Backport - Add `XOnlyPublicKey` support for PSBT key retrieval and improve Taproot signing [#4443](https://github.com/rust-bitcoin/rust-bitcoin/pull/4443)
+- Backport - Add methods to retrieve inner types [#4450](https://github.com/rust-bitcoin/rust-bitcoin/pull/4450)
+
+# 0.32.5 - 2024-11-27
+
+- Backport - Re-export `bech32` crate [#3662](https://github.com/rust-bitcoin/rust-bitcoin/pull/3662)
+- Backport - Add API for extracting the inner payload of `RawNetworkMessage` [#3523](https://github.com/rust-bitcoin/rust-bitcoin/pull/3523)
+- Backport - Fix bug in witness stack getters [#3626](https://github.com/rust-bitcoin/rust-bitcoin/pull/3626)
+- Backport - address: Add `Address::into_unchecked` [#3655](https://github.com/rust-bitcoin/rust-bitcoin/pull/3655)
+
+# 0.32.4 - 2024-10-24
+
+- Bound decode methods on `Read`, rather than `BufRead` [#3173](https://github.com/rust-bitcoin/rust-bitcoin/pull/3173)
+- Backport - Some additional inspectors on `Script` and `Witness` [#2646](https://github.com/rust-bitcoin/rust-bitcoin/pull/2646)
+- Backport - Add difficulty adjustment calculation [#3494](https://github.com/rust-bitcoin/rust-bitcoin/pull/3494)
+- Backport - Add testnet 4 support [#3453](https://github.com/rust-bitcoin/rust-bitcoin/pull/3453)
+- Backport - CI: Copy main workflow from master [#3418](https://github.com/rust-bitcoin/rust-bitcoin/pull/3418)
+
+# 0.32.3 - 2024-09-27
+
+- Backport BIP-32 alias' without typo [#3252](https://github.com/rust-bitcoin/rust-bitcoin/pull/3252)
+
 # 0.32.2 - 2024-06-07
 
 - Fix a bug when parsing 256-bit numeric types [#2837](https://github.com/rust-bitcoin/rust-bitcoin/pull/2837)

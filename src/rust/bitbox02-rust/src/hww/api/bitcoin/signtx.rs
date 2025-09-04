@@ -796,7 +796,7 @@ async fn _process(
             // provide the key path spend private key, which means the internal key plus the tap
             // tweak.
             let private_key = if is_taproot(script_config_account) {
-                keypair.tap_tweak(SECP256K1, None).to_inner().secret_key()
+                keypair.tap_tweak(SECP256K1, None).to_keypair().secret_key()
             } else {
                 keypair.secret_key()
             };

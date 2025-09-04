@@ -113,6 +113,8 @@ rust-docs: | build
 	$(MAKE) -C build rust-docs
 simulator: | build-build-noasan
 	$(MAKE) -C build-build-noasan simulator
+simulator-ng: | build-build-noasan
+	$(MAKE) -C build-build-noasan simulator-ng
 run-simulator: | simulator
 	./build-build-noasan/bin/simulator
 unit-test: | build-build
@@ -194,3 +196,7 @@ prepare-tidy: | build build-build
 	$(MAKE) -C build-build rust-cbindgen
 clean:
 	rm -rf build build-build build-debug build-build-noasan
+
+# When you vendor rust libs avoid duplicates
+vendor-rust-deps:
+	(cd external; ./vendor-rust.sh)

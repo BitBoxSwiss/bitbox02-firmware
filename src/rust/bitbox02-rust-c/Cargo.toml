@@ -68,6 +68,15 @@ target-c-unit-tests = [
   "firmware",
   "c-unit-testing",
 ]
+target-simulator-ng = [
+  "dep:bitcoin", # for rust_base58_encode_check()
+  "app-bitcoin",
+  "app-litecoin",
+  "app-ethereum",
+  "app-cardano",
+  "app-u2f",
+  "firmware",
+]
 
 platform-bitbox02 = []
 platform-bitbox02plus = ["util/sha2", "bitbox02-noise", "bitbox02-rust"]

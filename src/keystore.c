@@ -448,7 +448,7 @@ keystore_error_t keystore_unlock(
     return result;
 }
 
-bool keystore_unlock_bip39(const char* mnemonic_passphrase)
+bool keystore_unlock_bip39(const char* mnemonic_passphrase, uint8_t* root_fingerprint_out)
 {
     if (!_is_unlocked_device) {
         return false;
@@ -467,7 +467,8 @@ bool keystore_unlock_bip39(const char* mnemonic_passphrase)
     rust_derive_bip39_seed(
         rust_util_bytes(seed, seed_length),
         mnemonic_passphrase,
-        rust_util_bytes_mut(bip39_seed, sizeof(bip39_seed)));
+        rust_util_bytes_mut(bip39_seed, sizeof(bip39_seed)),
+        rust_util_bytes_mut(root_fingerprint_out, 4));
 
     if (!_retain_bip39_seed(bip39_seed)) {
         return false;

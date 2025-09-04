@@ -72,6 +72,8 @@ mod tests {
             }
             Ok("password".into())
         }));
+
+        bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
             block_on(process(
                 &mut mock_hal,
@@ -81,6 +83,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 19);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
         assert!(!keystore::is_locked());

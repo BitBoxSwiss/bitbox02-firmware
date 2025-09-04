@@ -144,6 +144,8 @@ const ALLOWLIST_FNS: &[&str] = &[
     "securechip_model",
     "securechip_monotonic_increments_remaining",
     "securechip_u2f_counter_set",
+    "fake_securechip_event_counter",
+    "fake_securechip_event_counter_reset",
     "smarteeprom_is_enabled",
     "smarteeprom_disable",
     "smarteeprom_bb02_config",

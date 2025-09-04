@@ -205,10 +205,12 @@ mod tests {
             "",
         );
 
+        bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
             hex::encode(secp256k1_get_private_key(keypath).unwrap()),
             "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
         );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
     }
 
     #[test]
@@ -222,10 +224,12 @@ mod tests {
             "",
         );
 
+        bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
             hex::encode(secp256k1_get_private_key_twice(keypath).unwrap()),
             "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
         );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
     }
 
     #[test]
@@ -252,6 +256,9 @@ mod tests {
             "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
             "",
         );
+
+        bitbox02::securechip::fake_event_counter_reset();
+
         assert_eq!(
             get_xpub_twice(&[])
                 .unwrap()
@@ -259,6 +266,9 @@ mod tests {
                 .unwrap(),
             "xpub661MyMwAqRbcEhX8d9WJh78SZrxusAzWFoykz4n5CF75uYRzixw5FZPUSoWyhaaJ1bpiPFdzdHSQqJN38PcTkyrLmxT4J2JDYfoGJQ4ioE2",
         );
+
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
+
         assert_eq!(
             get_xpub_twice(keypath)
                 .unwrap()
@@ -310,7 +320,10 @@ mod tests {
             "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
             "",
         );
+
+        bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(root_fingerprint(), Ok(vec![0x02, 0x40, 0xe9, 0x2a]));
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
 
         mock_unlocked_using_mnemonic(
             "small agent wife animal marine cloth exit thank stool idea steel frame",
@@ -439,20 +452,37 @@ mod tests {
             mock_memory();
             keystore::lock();
             let seed = &seed[..test.seed_len];
+
             assert!(keystore::unlock_bip39(test.mnemonic_passphrase).is_err());
+
+            bitbox02::securechip::fake_event_counter_reset();
             assert!(keystore::encrypt_and_store_seed(seed, "foo").is_ok());
+            assert_eq!(bitbox02::securechip::fake_event_counter(), 11);
+
             assert!(keystore::unlock_bip39(test.mnemonic_passphrase).is_err());
             assert!(keystore::is_locked());
+
+            bitbox02::securechip::fake_event_counter_reset();
             assert!(keystore::unlock("foo").is_ok());
+            assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+
             assert!(keystore::is_locked());
+
+            bitbox02::securechip::fake_event_counter_reset();
             assert!(keystore::unlock_bip39(test.mnemonic_passphrase).is_ok());
+            assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
+
             assert!(!keystore::is_locked());
             assert_eq!(
                 get_bip39_mnemonic().unwrap().as_str(),
                 test.expected_mnemonic,
             );
             let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
+
+            bitbox02::securechip::fake_event_counter_reset();
             let xpub = get_xpub_once(keypath).unwrap();
+            assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+
             assert_eq!(
                 xpub.serialize_str(crate::bip32::XPubType::Xpub).unwrap(),
                 test.expected_xpub,
@@ -482,7 +512,11 @@ mod tests {
 
         // Test without tweak
         bitbox02::random::fake_reset();
+
+        bitbox02::securechip::fake_event_counter_reset();
         let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+
         assert!(
             SECP256K1
                 .verify_schnorr(

@@ -46,6 +46,16 @@ pub fn u2f_counter_set(_counter: u32) -> Result<(), ()> {
     Ok(())
 }
 
+#[cfg(feature = "testing")]
+pub fn fake_event_counter() -> u32 {
+    unsafe { bitbox02_sys::fake_securechip_event_counter() }
+}
+
+#[cfg(feature = "testing")]
+pub fn fake_event_counter_reset() {
+    unsafe { bitbox02_sys::fake_securechip_event_counter_reset() }
+}
+
 pub fn model() -> Result<Model, ()> {
     let mut ver = core::mem::MaybeUninit::uninit();
     match unsafe { bitbox02_sys::securechip_model(ver.as_mut_ptr()) } {

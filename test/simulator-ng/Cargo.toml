@@ -1,0 +1,13 @@
+[package]
+name = "simulator-ng"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# SDL2 "bundled" feature doesn't work with "SDL2_image"
+# SDL2 "static-link" feature doesn't work if the library is placed in a "system dir"
+sdl2 = { version="0.37.0", default-features=false, features=["static-link", "use-pkgconfig", "image"] }
+bitbox02-rust = { path="../../src/rust/bitbox02-rust" }
+bitbox02-rust-c = { path="../../src/rust/bitbox02-rust-c", features=["target-simulator-ng", "testing"] }
+bitbox02 = { path="../../src/rust/bitbox02", features=["bindings"] }
+bitbox-aes = { path="../../src/rust/bitbox-aes"}

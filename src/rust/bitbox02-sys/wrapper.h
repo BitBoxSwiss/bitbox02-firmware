@@ -53,6 +53,12 @@
 
 #if defined(TESTING)
 #include <fake_memory.h>
+#include <hww.h>
+#include <touch/gestures.h>
+#include <ui/event.h>
+#include <ui/event_handler.h>
+#include <usb/usb_packet.h>
+#include <usb/usb_processing.h>
 #endif
 
 #if !defined(TESTING)

@@ -64,6 +64,11 @@ RUN apt-get update && apt-get install -y \
     libudev-dev \
     libhidapi-dev
 
+# Deps for graphical simulator
+RUN apt-get update && apt-get install -y \
+    libsdl2-dev \
+    libsdl2-image-dev
+
 RUN apt-get update && apt-get install -y \
     doxygen \
     graphviz

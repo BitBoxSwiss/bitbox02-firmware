@@ -123,6 +123,23 @@ jobs:
       - name: Build simulator
         run: make -j$(($(nproc) + 1)) simulator
 
+  simulator-ng:
+    runs-on: ubuntu-22.04
+    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build simulator
+        run: make -j$(($(nproc) + 1)) simulator-ng
+
   leakcheck:
     runs-on: ubuntu-22.04
     container: ${{ inputs.container-repo }}:${{ inputs.container-version }}

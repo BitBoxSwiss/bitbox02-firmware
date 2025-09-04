@@ -39,6 +39,10 @@ void screen_process(void);
  * Period of screen updates.
  * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.
  */
+#if defined(TESTING)
+#define SCREEN_FRAME_RATE 1
+#else
 #define SCREEN_FRAME_RATE 30
+#endif
 
 #endif

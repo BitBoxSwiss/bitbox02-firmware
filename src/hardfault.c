@@ -20,8 +20,13 @@
 #include <platform_config.h>
 #include <screen.h>
 #include <usb/usb.h>
-#ifndef TESTING
 
+#if defined(TESTING)
+#include <stdio.h>
+#include <stdlib.h>
+#endif
+
+#ifndef TESTING
 void HardFault_Handler(void)
 {
     Abort("Unexpected error.\nPlease contact support.");
@@ -35,20 +40,23 @@ void MemManage_Handler(void)
 
 void Abort(const char* msg)
 {
+#if defined(TESTING)
+    fprintf(stderr, "%s\n", msg);
+    exit(1);
+#else
     util_log("%s", msg);
     screen_print_debug(msg, 0);
     usb_stop();
-#if !defined(TESTING)
 #if defined(BOOTLOADER)
     bootloader_close_interfaces();
 #else
     system_close_interfaces();
 #endif
-#endif
     // Break the program if we are debugging
     ASSERT(false);
     while (1) {
     }
+#endif
 }
 
 void AbortAutoenter(const char* msg)

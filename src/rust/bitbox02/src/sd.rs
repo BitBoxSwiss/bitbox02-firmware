@@ -48,7 +48,7 @@ pub fn list_subdir(subdir: Option<&str>) -> Result<Vec<String>, ()> {
     } {
         true => (0..list.0.num_files)
             .map(|i| unsafe {
-                let ptr = *list.0.files.add(i) as *const u8;
+                let ptr = *list.0.files.add(i);
                 crate::util::str_from_null_terminated_ptr(ptr).map(String::from)
             })
             .collect(),

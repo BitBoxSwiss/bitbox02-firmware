@@ -78,19 +78,19 @@ where
         F2: FnMut(zeroize::Zeroizing<String>),
     {
         let pw: zeroize::Zeroizing<String> = zeroize::Zeroizing::new(
-            crate::util::str_from_null_terminated_ptr(password)
+            unsafe { crate::util::str_from_null_terminated_ptr(password) }
                 .unwrap()
                 .into(),
         );
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = Box::from_raw(param as *mut F2);
+        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
         callback(pw);
     }
 
     unsafe extern "C" fn c_cancel_callback(param: *mut c_void) {
         let callback = param as *mut ContinueCancelCb;
-        (*callback)();
+        unsafe { (*callback)() };
     }
 
     let (cancel_cb, cancel_cb_param) = match cancel_callback {
@@ -137,7 +137,7 @@ where
     {
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = Box::from_raw(param as *mut F2);
+        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
         callback(result);
     }
     let mut title_scratch = Vec::new();
@@ -177,7 +177,7 @@ where
     {
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = Box::from_raw(param as *mut F2);
+        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
         callback();
     }
 
@@ -208,7 +208,7 @@ where
     {
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = Box::from_raw(param as *mut F2);
+        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
         callback(sd_done);
     }
 
@@ -230,19 +230,19 @@ where
 pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     unsafe extern "C" fn c_select_word_cb(word_idx: u8, param: *mut c_void) {
         let callback = param as *mut SelectWordCb;
-        (*callback)(word_idx);
+        unsafe { (*callback)(word_idx) };
     }
 
     unsafe extern "C" fn c_continue_cancel_cb(param: *mut c_void) {
         let callback = param as *mut ContinueCancelCb;
-        (*callback)();
+        unsafe { (*callback)() };
     }
 
     // We want to turn &[&str] into a C char**.
     //
     // Step 1: create the C strings. This var has to be alive until after menu_create() finishes,
     // otherwise the pointers we send to menu_create() will be invalid.
-    let words: Vec<Vec<u8>> = params
+    let words: Vec<Vec<core::ffi::c_char>> = params
         .words
         .iter()
         .map(|word| crate::util::str_to_cstr_vec(word).unwrap())
@@ -325,7 +325,7 @@ pub fn trinary_choice_create<'a>(
 ) -> Component<'a> {
     unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, param: *mut c_void) {
         let callback = param as *mut TrinaryChoiceCb;
-        (*callback)(choice);
+        unsafe { (*callback)(choice) };
     }
 
     let chosen_cb_param = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
@@ -372,7 +372,7 @@ pub fn confirm_transaction_address_create<'a, 'b>(
 ) -> Component<'b> {
     unsafe extern "C" fn c_callback(result: bool, param: *mut c_void) {
         let callback = param as *mut AcceptRejectCb;
-        (*callback)(result);
+        unsafe { (*callback)(result) };
     }
 
     let callback_param = Box::into_raw(Box::new(callback)) as *mut c_void;
@@ -403,7 +403,7 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
 ) -> Component<'b> {
     unsafe extern "C" fn c_callback(result: bool, param: *mut c_void) {
         let callback = param as *mut AcceptRejectCb;
-        (*callback)(result);
+        unsafe { (*callback)(result) };
     }
 
     let callback_param = Box::into_raw(Box::new(callback)) as *mut c_void;

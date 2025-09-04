@@ -23,3 +23,4 @@ license = "Apache-2.0"
 bitcoin = { workspace = true }
 ctaes = { version = "0.1.0" }
 zeroize = { workspace = true }
+util = {path = "../util" }

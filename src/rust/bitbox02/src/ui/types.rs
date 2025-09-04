@@ -70,8 +70,8 @@ impl<'a> ConfirmParams<'a> {
     /// alive for as long as the C params live.
     pub(crate) fn to_c_params(
         &self,
-        title_scatch: &'a mut Vec<u8>,
-        body_scratch: &'a mut Vec<u8>,
+        title_scatch: &'a mut Vec<core::ffi::c_char>,
+        body_scratch: &'a mut Vec<core::ffi::c_char>,
     ) -> Survive<'a, bitbox02_sys::confirm_params_t> {
         // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
         // truncate and append '...'.
@@ -114,7 +114,7 @@ impl<'a> TrinaryInputStringParams<'a> {
     #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
     pub(crate) fn to_c_params(
         &self,
-        title_scratch: &'a mut Vec<u8>,
+        title_scratch: &'a mut Vec<core::ffi::c_char>,
     ) -> Survive<'a, bitbox02_sys::trinary_input_string_params_t> {
         // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
         // truncate and append '...'.

@@ -24,6 +24,12 @@ license = "Apache-2.0"
 num-bigint = { workspace = true, default-features = false }
 rtt-target = { version = "0.6.1", optional = true }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"], optional = true }
+hex = {workspace = true}
+sha2 = { workspace = true, optional = true }
+p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"], optional = true }
+bitcoin = {workspace = true}
 
 [features]
 rtt = ["dep:rtt-target", "dep:cortex-m"]
+c-unit-testing = []
+firmware = []

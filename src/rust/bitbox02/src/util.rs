@@ -29,7 +29,9 @@ pub fn str_from_null_terminated(input: &[u8]) -> Result<&str, ()> {
 ///
 /// # Safety `ptr` must be not null and be a null terminated string. The resulting string is only
 /// valid as long the memory pointed to by `ptr` is valid.
-pub unsafe fn str_from_null_terminated_ptr<'a>(ptr: *const u8) -> Result<&'a str, ()> {
+pub unsafe fn str_from_null_terminated_ptr<'a>(
+    ptr: *const core::ffi::c_char,
+) -> Result<&'a str, ()> {
     unsafe { core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(())) }
 }
 
@@ -41,10 +43,20 @@ pub fn truncate_str(s: &str, len: usize) -> &str {
 
 /// Converts a Rust string to a null terminated C string by appending a null
 /// terminator.  Returns `Err(())` if the input already contians a null byte.
-pub fn str_to_cstr_vec(input: &str) -> Result<Vec<u8>, ()> {
-    Ok(alloc::ffi::CString::new(input)
+pub fn str_to_cstr_vec(input: &str) -> Result<Vec<core::ffi::c_char>, ()> {
+    // into_bytes_with_nul always returns Vec<u8> independent of platform. Let's cast it to c_char
+    // which is platform specific (unsigned on some platforms, signed on others)
+    let cstr = alloc::ffi::CString::new(input)
         .or(Err(()))?
-        .into_bytes_with_nul())
+        .into_bytes_with_nul();
+    // Ideally we'd use Vec::into_raw_parts, but it's unstable.
+    // Before we disassemble `cstr` into its raw parts, make sure it
+    // does not get dropped!
+    let mut v = core::mem::ManuallyDrop::new(cstr);
+    let ptr = v.as_mut_ptr();
+    let len = v.len();
+    let cap = v.capacity();
+    Ok(unsafe { Vec::from_raw_parts(ptr.cast(), len, cap) })
 }
 
 #[cfg(test)]
@@ -85,39 +97,47 @@ mod tests {
     #[allow(clippy::manual_c_str_literals)]
     fn test_str_from_null_terminated_ptr() {
         assert_eq!(
-            unsafe { str_from_null_terminated_ptr(b"\0".as_ptr()) },
+            unsafe { str_from_null_terminated_ptr(b"\0".as_ptr().cast()) },
             Ok("")
         );
         assert_eq!(
-            unsafe { str_from_null_terminated_ptr(b"hello\0".as_ptr()) },
+            unsafe { str_from_null_terminated_ptr(b"hello\0".as_ptr().cast()) },
             Ok("hello")
         );
         assert_eq!(
-            unsafe { str_from_null_terminated_ptr(b"hello\0world".as_ptr()) },
+            unsafe { str_from_null_terminated_ptr(b"hello\0world".as_ptr().cast()) },
             Ok("hello")
         );
         // valid utf8.
         assert_eq!(
             unsafe {
                 str_from_null_terminated_ptr(
-                    b"\xc3\xb6\xc3\xa4\xc3\xbc \xf0\x9f\x91\x8c\0world".as_ptr(),
+                    b"\xc3\xb6\xc3\xa4\xc3\xbc \xf0\x9f\x91\x8c\0world"
+                        .as_ptr()
+                        .cast(),
                 )
             },
             Ok("öäü 👌")
         );
         // invalid utf8 after the null terminator
         assert_eq!(
-            unsafe { str_from_null_terminated_ptr(b"hello\0\xFF".as_ptr()) },
+            unsafe { str_from_null_terminated_ptr(b"hello\0\xFF".as_ptr().cast()) },
             Ok("hello")
         );
         // invalid utf8 before the null terminator
-        assert!(unsafe { str_from_null_terminated_ptr(b"\xFF\0world".as_ptr()) }.is_err());
+        assert!(unsafe { str_from_null_terminated_ptr(b"\xFF\0world".as_ptr().cast()) }.is_err());
     }
 
     #[test]
     fn test_str_to_cstr_vec() {
-        assert_eq!(str_to_cstr_vec(""), Ok(b"\0".to_vec()));
-        assert_eq!(str_to_cstr_vec("test"), Ok(b"test\0".to_vec()));
+        assert_eq!(str_to_cstr_vec(""), Ok(vec![0]));
+        assert_eq!(
+            str_to_cstr_vec("test"),
+            Ok(b"test\0"
+                .iter()
+                .map(|c| *c as _)
+                .collect::<Vec<core::ffi::c_char>>())
+        );
         assert_eq!(str_to_cstr_vec("te\0st"), Err(()));
     }
 }

@@ -54,6 +54,7 @@ DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count)
 
 DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count)
 {
+    (void)pdrv;
     for (UINT i = 0; i < count; i++) {
         memcpy(&_data[SECTOR_SIZE * sector + SECTOR_SIZE * i], &buff[SECTOR_SIZE * i], SECTOR_SIZE);
     }

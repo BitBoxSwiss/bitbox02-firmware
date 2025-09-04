@@ -40,7 +40,7 @@ pub async fn process(
         hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
-    unlock::unlock_bip39(hal).await;
+    unlock::unlock_bip39(hal, &keystore::copy_seed()?).await;
     Ok(Response::Success(pb::Success {}))
 }
 

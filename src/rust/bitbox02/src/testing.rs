@@ -22,7 +22,7 @@ pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
     unsafe {
         bitbox02_sys::keystore_mock_unlocked(seed.as_ptr(), seed.len() as _, core::ptr::null())
     }
-    keystore::unlock_bip39(passphrase).unwrap();
+    keystore::unlock_bip39(&seed, passphrase).unwrap();
 }
 
 pub const TEST_MNEMONIC: &str = "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay";

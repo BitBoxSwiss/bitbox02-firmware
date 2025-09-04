@@ -17,7 +17,6 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::general::abort;
 use crate::hal::Ui;
 use crate::workflow::{confirm, mnemonic, password, unlock};
 
@@ -84,9 +83,6 @@ pub async fn from_file(
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-    if bitbox02::keystore::unlock(&password).is_err() {
-        abort("restore_from_file: unlock failed");
-    };
 
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
@@ -160,10 +156,6 @@ pub async fn from_mnemonic(
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-    // This should never fail.
-    if bitbox02::keystore::unlock(&password).is_err() {
-        abort("restore_from_mnemonic: unlock failed");
-    };
 
     unlock::unlock_bip39(hal).await;
     Ok(Response::Success(pb::Success {}))
@@ -207,7 +199,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 19);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 14);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
         assert!(!keystore::is_locked());

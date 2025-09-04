@@ -345,6 +345,13 @@ keystore_error_t keystore_encrypt_and_store_seed(
         }
         return KEYSTORE_ERR_MEMORY;
     }
+
+    keystore_error_t retain_seed_result = _retain_seed(seed, seed_length);
+    if (retain_seed_result != KEYSTORE_OK) {
+        return retain_seed_result;
+    }
+    _is_unlocked_device = true;
+
     return KEYSTORE_OK;
 }
 

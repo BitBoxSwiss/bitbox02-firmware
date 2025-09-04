@@ -577,14 +577,7 @@ mod tests {
 
             bitbox02::securechip::fake_event_counter_reset();
             assert!(keystore::encrypt_and_store_seed(seed, "foo").is_ok());
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 11);
-
-            assert!(keystore::unlock_bip39(test.mnemonic_passphrase).is_err());
-            assert!(keystore::is_locked());
-
-            bitbox02::securechip::fake_event_counter_reset();
-            assert!(keystore::unlock("foo").is_ok());
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+            assert_eq!(bitbox02::securechip::fake_event_counter(), 12);
 
             assert!(keystore::is_locked());
 

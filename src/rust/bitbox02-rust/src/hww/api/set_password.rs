@@ -40,9 +40,6 @@ pub async fn process(
         hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
-    if keystore::unlock(&password).is_err() {
-        panic!("Unexpected error during restore: unlock failed.");
-    }
     unlock::unlock_bip39(hal).await;
     Ok(Response::Success(pb::Success {}))
 }
@@ -83,7 +80,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 19);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 14);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
         assert!(!keystore::is_locked());

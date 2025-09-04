@@ -107,4 +107,6 @@ testing = [
 
 c-unit-testing = []
 
+simulator-graphical = []
+
 firmware = []

@@ -59,6 +59,14 @@ messages. The encryption protocol used is Noise with out-of-band authentication.
 The instructions for setting up a development environment can be found in [BUILD.md](BUILD.md).
 Please also read our [CONTRIBUTING.md](CONTRIBUTING.md) before filing issues and pull requests.
 
+### Simulator
+
+To test without hardware there are two kinds of simulators. One with GUI and
+one without. See more details in [BUILD.md](BUILD.md#build-the-simulator).
+
+<p align="center"><img src="./doc/bb02-simulator-graphical.png" /></p>
+
+
 ## Installing/upgrading firmware
 
 There are two main ways to install or upgrade firmware on a BitBox02:

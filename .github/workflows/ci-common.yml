@@ -201,6 +201,7 @@ jobs:
           - factory-setup
           - firmware-debug
           - simulator
+          - simulator-graphical
     runs-on: ubuntu-22.04
     container:
       image: ${{ inputs.container-repo }}:${{ inputs.container-version }}

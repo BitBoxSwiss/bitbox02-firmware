@@ -12,19 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Reset the USB processing timeout to the given value.
-pub fn timeout_reset(value: i16) {
-    unsafe {
-        bitbox02_sys::usb_processing_timeout_reset(value);
-    }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn init() {
-    unsafe { bitbox02_sys::usb_processing_init() }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn process_hww() {
-    unsafe { bitbox02_sys::usb_processing_process(bitbox02_sys::usb_processing_hww()) }
-}
+pub use bitbox02_sys::UG_COLOR;

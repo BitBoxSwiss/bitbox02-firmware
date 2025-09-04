@@ -16,7 +16,7 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
-#[cfg(any(test, feature = "c-unit-testing"))]
+#[cfg(any(test, feature = "c-unit-testing", feature = "simulator-graphical"))]
 #[allow(unused_imports)]
 #[macro_use]
 extern crate std;
@@ -31,19 +31,31 @@ extern crate alloc;
 
 use alloc::string::String;
 
-#[cfg(feature = "testing")]
+#[cfg(any(feature = "testing", feature = "simulator-graphical"))]
 pub mod testing;
 
 pub mod delay;
+#[cfg(feature = "simulator-graphical")]
+pub mod event;
+#[cfg(feature = "simulator-graphical")]
+pub mod hww;
 pub mod keystore;
 pub mod memory;
+#[cfg(feature = "simulator-graphical")]
+pub mod queue;
 pub mod random;
+#[cfg(feature = "simulator-graphical")]
+pub mod screen;
 pub mod screen_saver;
 pub mod sd;
 pub mod secp256k1;
 pub mod securechip;
+#[cfg(feature = "simulator-graphical")]
+pub mod smarteeprom;
 pub mod spi_mem;
 pub mod ui;
+#[cfg(feature = "simulator-graphical")]
+pub mod usb_packet;
 pub mod usb_processing;
 
 use core::ffi::c_int;
@@ -65,8 +77,8 @@ pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
     }
 }
 
-pub fn ug_clear_buffer() {
-    unsafe { bitbox02_sys::UG_ClearBuffer() }
+pub fn screen_clear() {
+    unsafe { bitbox02_sys::screen_clear() }
 }
 
 pub fn ug_send_buffer() {

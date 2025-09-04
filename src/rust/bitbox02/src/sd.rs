@@ -19,6 +19,11 @@ use alloc::vec::Vec;
 use crate::util::str_to_cstr_vec;
 use bitbox02_sys::SD_MAX_FILE_SIZE;
 
+#[cfg(any(feature = "testing", feature = "simulator-graphical"))]
+pub fn format() -> bool {
+    unsafe { bitbox02_sys::sd_format() }
+}
+
 pub fn sdcard_inserted() -> bool {
     unsafe { bitbox02_sys::sd_card_inserted() }
 }
@@ -105,9 +110,7 @@ mod tests {
 
     #[test]
     fn test_list_write_read_erase() {
-        unsafe {
-            bitbox02_sys::sd_format();
-        }
+        format();
 
         assert_eq!(list_subdir(None), Ok(vec![]));
         assert_eq!(list_subdir(Some("dir1")), Ok(vec![]));

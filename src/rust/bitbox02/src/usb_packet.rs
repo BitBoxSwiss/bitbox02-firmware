@@ -11,20 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pub use bitbox02_sys::USB_FRAME;
 
-/// Reset the USB processing timeout to the given value.
-pub fn timeout_reset(value: i16) {
-    unsafe {
-        bitbox02_sys::usb_processing_timeout_reset(value);
-    }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn init() {
-    unsafe { bitbox02_sys::usb_processing_init() }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn process_hww() {
-    unsafe { bitbox02_sys::usb_processing_process(bitbox02_sys::usb_processing_hww()) }
+pub fn process(packet: &[u8; 64]) -> bool {
+    unsafe { bitbox02_sys::usb_packet_process(packet.as_ptr() as *const _) }
 }

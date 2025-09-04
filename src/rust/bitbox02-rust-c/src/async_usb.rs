@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![allow(clippy::missing_safety_doc)]
 
 use bitbox02_rust::async_usb::{on_next_request, spawn, waiting_for_next_request};
 use bitbox02_rust::hww::process_packet;

@@ -161,10 +161,20 @@ make bootloader
 
 ### Build the simulator
 
-The Multi edition firmware can be built as a simulator for linux-amd64. To build it, run:
+The Multi edition firmware can be built as a simulator for linux and macos. To
+build it, run:
 
 ```sh
 make simulator
+```
+
+### Build the graphical simulator
+
+The Multi edition firmware can be built as a graphical simulator for linux and
+macos. To build it, run:
+
+```sh
+make simulator-graphical
 ```
 
 ### Flash instructions
@@ -236,17 +246,28 @@ To view the results, open `build/docs/html/index.html` in a web browser.
 Run it with:
 
 ```sh
-./build-build/bin/simulator
+./build-build-noasan/bin/simulator
 ```
 
-This launches a server simulating the firmware. The send_message tool can connect to it with:
+or the following if you built the graphical one:
+
+```sh
+./build-build-noasan/bin/simulator-graphical --preseed
+```
+
+This launches a server simulating the firmware. The send_message tool can
+connect to it with:
 
     ./py/send_message.py --simulator
 
-If you choose to create a wallet by restoring a mnemonic, the simulator will automatically use this
-mnemonic:
+Both simulators can load the following seed:
 
-    boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide
+    boring mistake dish oyster truth pigeon viable emerge sort crash wire
+    portion cannon couple enact box walk height pull today solid off enable
+    tide
+
+The graphical simulator does it with the flag `--preseed`. The original
+simulator loads it if you restore from mnemonic.
 
 
 #### Debugging using the J-Link probe and GDB

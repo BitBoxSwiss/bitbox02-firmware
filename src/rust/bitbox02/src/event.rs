@@ -11,20 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pub use bitbox02_sys::event_slider_data_t;
+pub use bitbox02_sys::event_t;
+pub use bitbox02_sys::event_types;
 
-/// Reset the USB processing timeout to the given value.
-pub fn timeout_reset(value: i16) {
-    unsafe {
-        bitbox02_sys::usb_processing_timeout_reset(value);
-    }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn init() {
-    unsafe { bitbox02_sys::usb_processing_init() }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn process_hww() {
-    unsafe { bitbox02_sys::usb_processing_process(bitbox02_sys::usb_processing_hww()) }
+pub fn emit_event(event: &event_t) {
+    unsafe { bitbox02_sys::emit_event(event as *const _) }
 }

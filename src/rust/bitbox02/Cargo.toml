@@ -42,6 +42,8 @@ testing = ["util/testing"]
 unit-testing = []
 # Active when the Rust code is compiled to be linked into the C unit tests and simulator.
 c-unit-testing = []
+# Active when building for the graphical simulator
+simulator-graphical = []
 
 app-ethereum = []
 app-bitcoin = []

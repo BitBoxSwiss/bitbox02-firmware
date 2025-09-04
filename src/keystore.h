@@ -63,7 +63,7 @@ USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out);
 USE_RESULT bool keystore_copy_bip39_seed(uint8_t* bip32_seed_out);
 
 /**
- * Restores a seed.
+ * Restores a seed. This also unlocks the keystore with this seed.
  * @param[in] seed The seed that is to be restored.
  * @param[in] seed_length The length of the seed (max. 32 bytes).
  * @param[in] password The password with which we encrypt the seed.
@@ -75,6 +75,7 @@ keystore_encrypt_and_store_seed(const uint8_t* seed, size_t seed_length, const c
    Generates the seed, mixes it with host_entropy, and stores it encrypted with the
    password. The size of the host entropy determines the size of the seed. Can be either 16 or 32
    bytes, resulting in 12 or 24 BIP39 recovery words.
+   This also unlocks the keystore with the new seed.
    @param[in] host_entropy bytes of entropy to be mixed in.
    @param[in] host_entropy_size must be 16 or 32.
 */

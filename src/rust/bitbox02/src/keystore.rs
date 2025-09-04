@@ -398,7 +398,6 @@ mod tests {
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
-        assert!(unlock("password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(unlock_bip39("foo").is_ok());
         assert!(!is_locked());
@@ -422,6 +421,7 @@ mod tests {
         crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        lock();
 
         // Loop to check that unlocking works while unlocked.
         for _ in 0..3 {
@@ -486,7 +486,6 @@ mod tests {
         crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
-        assert!(unlock("password").is_ok());
         assert!(unlock_bip39("foo").is_ok());
 
         let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
@@ -559,7 +558,6 @@ mod tests {
             lock();
 
             assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
-            assert!(unlock("password").is_ok());
             assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.
@@ -590,14 +588,12 @@ mod tests {
         let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
             .unwrap();
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
-        assert!(unlock("password").is_ok());
         // Create new (different) seed.
         assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
-        assert!(unlock("password").is_ok());
         assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
     }
 
-    // Functional test to store seeds, unlock, retrieve seed.
+    // Functional test to store seeds, lock/unlock, retrieve seed.
     #[test]
     fn test_seeds() {
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
@@ -611,6 +607,12 @@ mod tests {
             for _ in 0..2 {
                 assert!(encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
             }
+            // Also unlocks, so we can get the retained seed.
+            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+
+            lock();
+            // Can't get seed before unlock.
+            assert!(copy_seed().is_err());
 
             // Wrong password.
             assert!(matches!(
@@ -620,8 +622,6 @@ mod tests {
                 })
             ));
 
-            // Can't get seed before unlock.
-            assert!(copy_seed().is_err());
             // Correct password. First time: unlock. After unlock, it becomes a password check.
             for _ in 0..3 {
                 assert!(unlock("foo").is_ok());

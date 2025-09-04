@@ -44,12 +44,12 @@ int commfd;
 static volatile sig_atomic_t sigint_called = false;
 static int sockfd;
 
-int get_usb_message_socket(uint8_t* input)
+static int get_usb_message_socket(uint8_t* input)
 {
     return read(commfd, input, USB_HID_REPORT_OUT_SIZE);
 }
 
-void send_usb_message_socket(void)
+static void send_usb_message_socket(void)
 {
     const uint8_t* data = queue_pull(queue_hww_queue());
     while (data) {
@@ -62,7 +62,7 @@ void send_usb_message_socket(void)
     }
 }
 
-void simulate_firmware_execution(const uint8_t* input)
+static void simulate_firmware_execution(const uint8_t* input)
 {
     usb_packet_process((const USB_FRAME*)input);
     rust_workflow_spin();
@@ -70,8 +70,9 @@ void simulate_firmware_execution(const uint8_t* input)
     usb_processing_process(usb_processing_hww());
 }
 
-static void _int_handler(int _signum)
+static void _int_handler(int signum)
 {
+    (void)signum;
     sigint_called = true;
     close(sockfd);
 }

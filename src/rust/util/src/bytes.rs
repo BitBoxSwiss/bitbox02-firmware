@@ -14,35 +14,6 @@
 
 use core::ffi::c_uchar;
 
-/// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
-///
-/// * `dst` - Buffer to zero
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_util_zero(mut dst: BytesMut) {
-    if dst.buf.is_null() || dst.len == 0 {
-        return;
-    }
-    util::zero(dst.as_mut())
-}
-
-/// Calls `util::name::validate()` on the provided C string.
-/// SAFETY:
-/// `buf` must point to a valid buffer of size `max_len`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rust_util_is_name_valid(buf: *const u8, max_len: usize) -> bool {
-    if max_len == 0 {
-        return false;
-    }
-    let slice = unsafe { core::slice::from_raw_parts(buf, max_len) };
-    match core::ffi::CStr::from_bytes_until_nul(slice) {
-        Ok(cstr) => match cstr.to_str() {
-            Ok(s) => util::name::validate(s, max_len - 1),
-            Err(_) => false,
-        },
-        Err(_) => false,
-    }
-}
-
 /// Convert bytes to hex representation
 ///
 /// * `buf` - bytes to convert to hex.
@@ -63,14 +34,32 @@ pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: BytesMut) {
 
 #[repr(C)]
 pub struct Bytes {
-    buf: *const c_uchar,
-    len: usize,
+    pub(crate) buf: *const c_uchar,
+    pub(crate) len: usize,
+}
+
+impl Bytes {
+    pub fn len(&self) -> usize {
+        self.len
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 }
 
 #[repr(C)]
 pub struct BytesMut {
-    buf: *mut c_uchar,
-    len: usize,
+    pub(crate) buf: *mut c_uchar,
+    pub(crate) len: usize,
+}
+
+impl BytesMut {
+    pub fn len(&self) -> usize {
+        self.len
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 }
 
 impl AsRef<[u8]> for Bytes {
@@ -120,7 +109,9 @@ impl AsMut<[u8]> for BytesMut {
 /// * `buf` - Must be a valid pointer to an array of bytes
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
 ///
-/// SAFTEY: buf must not be NULL and point to a valid memory area of size `len`.
+/// # Safety
+///
+/// buf must not be NULL and point to a valid memory area of size `len`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Bytes {
     Bytes { buf, len }
@@ -131,49 +122,18 @@ pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Byt
 /// * `buf` - Must be a valid pointer to an array of bytes
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
 ///
-/// SAFTEY: buf must not be NULL and point to a valid memory area of size `len`.
+/// # Safety
+///
+/// buf must not be NULL and point to a valid memory area of size `len`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut {
     BytesMut { buf, len }
-}
-
-/// Base58Check-encode the input.
-#[cfg(feature = "c-unit-testing")]
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_base58_encode_check(buf: Bytes, mut out: BytesMut) -> bool {
-    if buf.len == 0 {
-        return false;
-    }
-    let encoded = bitcoin::base58::encode_check(buf.as_ref());
-    out.as_mut()[..encoded.len()].copy_from_slice(encoded.as_bytes());
-    // Null-terminator.
-    out.as_mut()[encoded.len()] = 0;
-    true
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::prelude::v1::*;
-
-    #[test]
-    fn zeroing() {
-        let mut buf = [1u8, 2, 3, 4];
-        rust_util_zero(unsafe { rust_util_bytes_mut(buf.as_mut_ptr(), buf.len() - 1) });
-        assert_eq!(&buf[..], &[0, 0, 0, 4]);
-    }
-
-    #[test]
-    fn zeroing_empty() {
-        let mut buf = [];
-        rust_util_zero(unsafe { rust_util_bytes_mut(buf.as_mut_ptr(), 0) });
-    }
-
-    #[test]
-    fn zeroing_null() {
-        rust_util_zero(unsafe { rust_util_bytes_mut(core::ptr::null_mut(), 0) });
-    }
-
     #[test]
     #[should_panic]
     fn create_invalid_bytes_mut() {
@@ -207,35 +167,5 @@ mod tests {
             unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
         );
         assert_eq!(string, "0102030e0fff\0xxxxxxxxxxxxxxxxxxxxxxx");
-    }
-
-    #[test]
-    fn test_rust_base58_encode_check() {
-        let buf = b"test";
-        let mut result_buf = [0u8; 100];
-        assert!(rust_base58_encode_check(
-            unsafe { rust_util_bytes(buf.as_ptr(), buf.len()) },
-            unsafe { rust_util_bytes_mut(result_buf.as_mut_ptr(), result_buf.len()) },
-        ));
-        let expected = b"LUC1eAJa5jW\0";
-        assert_eq!(&result_buf[..expected.len()], expected);
-    }
-
-    #[test]
-    // For clarity we want explicit null terminators in the strings below, not CStr literals
-    // `c"..."`.
-    #[allow(clippy::manual_c_str_literals)]
-    fn test_rust_util_is_name_valid() {
-        unsafe {
-            // Valid
-            assert!(rust_util_is_name_valid("foo\0".as_ptr(), 4));
-            assert!(rust_util_is_name_valid("foo\0........".as_ptr(), 12));
-
-            // Invalid
-            assert!(!rust_util_is_name_valid("fo\no\0".as_ptr(), 5));
-            assert!(!rust_util_is_name_valid("".as_ptr(), 0));
-            assert!(!rust_util_is_name_valid("foo\0".as_ptr(), 3));
-            assert!(!rust_util_is_name_valid("foo".as_ptr(), 3));
-        }
     }
 }

@@ -32,10 +32,13 @@ hex = { workspace = true }
 [dev-dependencies]
 hex = { workspace = true }
 bitbox-aes = { path = "../bitbox-aes" }
+bitbox02-rust = { path = "../bitbox02-rust" }
 
 [features]
-# Only to be enabled in unit tests.
+# Only to be enabled in unit tests and simulators
 testing = []
+# Enables UI stubs for rust unit tests
+unit-testing = []
 # Active when the Rust code is compiled to be linked into the C unit tests and simulator.
 c-unit-testing = []
 

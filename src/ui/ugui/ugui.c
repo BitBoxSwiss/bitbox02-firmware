@@ -191,7 +191,6 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
     yp = y;
 
     const int str_length = strlens(str);
-    uint8_t line = 0;
 
     for (int i = 0; i < str_length; i++) {
         chr = (char)(inverted ? str[str_length - 1 - i] : str[i]);
@@ -202,7 +201,6 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
             if (autobreak == 1) {
                 xp = gui->x_dim;
             } else {
-                line++;
                 xp = x;
                 yp += gui->font.char_height + gui->char_v_space;
             }
@@ -212,7 +210,6 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
              gui->font.char_width;
 
         if ( autobreak == 1 && xp + cw > gui->x_dim - 1 ) {
-            line++;
             xp = x;
             yp += gui->font.char_height + gui->char_v_space;
         }

@@ -37,6 +37,8 @@ pub mod hash;
 pub mod hww;
 pub mod keystore;
 mod secp256k1;
+#[cfg(feature = "app-u2f")]
+mod u2f;
 mod version;
 mod waker_fn;
 pub mod workflow;
@@ -48,12 +50,17 @@ mod xpubcache;
 extern crate alloc;
 
 #[cfg(test)]
-mod test {
-    use super::*;
+extern crate bitbox_aes;
 
-    #[test]
-    fn trivial_test() {
-        let a = alloc::string::String::from("abc");
-        assert!(&a == "abc");
-    }
+//
+// C interface
+//
+
+/// `private_key_out` must be 32 bytes.
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_noise_generate_static_private_key(
+    mut private_key_out: util::bytes::BytesMut,
+) {
+    let key = bitbox02_noise::generate_static_private_key::<hww::noise::BB02Random32>();
+    private_key_out.as_mut().copy_from_slice(&key[..]);
 }

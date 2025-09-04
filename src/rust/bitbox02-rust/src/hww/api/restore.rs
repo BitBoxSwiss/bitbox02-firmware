@@ -168,3 +168,50 @@ pub async fn from_mnemonic(
     unlock::unlock_bip39(hal).await;
     Ok(Response::Success(pb::Success {}))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::bb02_async::block_on;
+    use crate::hal::testing::TestingHal;
+    use bitbox02::testing::mock_memory;
+    use bitbox02::{keystore, memory};
+
+    use alloc::boxed::Box;
+
+    #[test]
+    fn test_from_mnemonic() {
+        mock_memory();
+        keystore::lock();
+        let mut counter = 0u32;
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.set_enter_string(Box::new(|params| {
+            counter += 1;
+            match counter {
+                1 => assert_eq!(params.title, "Set password"),
+                2 => assert_eq!(params.title, "Repeat password"),
+                _ => panic!("too many user inputs"),
+            }
+            Ok("password".into())
+        }));
+
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(
+            block_on(from_mnemonic(
+                &mut mock_hal,
+                &pb::RestoreFromMnemonicRequest {
+                    timestamp: 0,
+                    timezone_offset: 0,
+                }
+            )),
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 19);
+        drop(mock_hal); // to remove mutable borrow of counter
+        assert_eq!(counter, 2);
+        assert!(!keystore::is_locked());
+        assert!(memory::is_initialized());
+        assert!(keystore::copy_seed().unwrap().len() == 32);
+    }
+}

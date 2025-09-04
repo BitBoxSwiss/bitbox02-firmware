@@ -21,12 +21,20 @@ enum DelayState {
     Done,
 }
 
-#[cfg(not(any(feature = "testing", feature = "c-unit-testing")))]
+#[cfg(not(any(
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+)))]
 struct DelayInner {
     bitbox02_delay: bitbox02_sys::delay_t,
 }
 
-#[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+#[cfg(any(
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+))]
 struct DelayInner {
     thread_handle: Option<std::thread::JoinHandle<()>>,
     done: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -39,7 +47,11 @@ pub struct Delay {
 }
 
 impl Delay {
-    #[cfg(not(any(feature = "testing", feature = "c-unit-testing")))]
+    #[cfg(not(any(
+        feature = "testing",
+        feature = "c-unit-testing",
+        feature = "simulator-graphical"
+    )))]
     pub fn from_ms(ms: u32) -> Result<Delay, ()> {
         let delay = if ms == 0 {
             Delay {
@@ -69,7 +81,11 @@ impl Delay {
         };
         Ok(delay)
     }
-    #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+    #[cfg(any(
+        feature = "testing",
+        feature = "c-unit-testing",
+        feature = "simulator-graphical"
+    ))]
     pub fn from_ms(ms: u32) -> Result<Delay, ()> {
         let delay = if ms == 0 {
             Delay {
@@ -94,7 +110,11 @@ impl Delay {
     }
 }
 
-#[cfg(not(any(feature = "testing", feature = "c-unit-testing")))]
+#[cfg(not(any(
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+)))]
 impl Future for Delay {
     type Output = ();
 
@@ -118,7 +138,11 @@ impl Future for Delay {
     }
 }
 
-#[cfg(any(feature = "testing", feature = "c-unit-testing"))]
+#[cfg(any(
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+))]
 impl Future for Delay {
     type Output = ();
     fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {

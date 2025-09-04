@@ -37,6 +37,9 @@ static uint8_t _unstretched_retained_seed_encryption_key[32] = {0};
 // Stores the encrypted seed after unlock.
 static uint8_t _retained_seed_encrypted[KEYSTORE_MAX_SEED_LENGTH + 64] = {0};
 static size_t _retained_seed_encrypted_len = 0;
+// A hash of the unencrypted retained seed, used for comparing seeds without knowing their
+// plaintext.
+static uint8_t _retained_seed_hash[32] = {0};
 
 // Change this ONLY via keystore_unlock_bip39().
 static bool _is_unlocked_bip39 = false;
@@ -224,6 +227,17 @@ static bool _verify_seed(
     return true;
 }
 
+static keystore_error_t _hash_seed(const uint8_t* seed, size_t seed_len, uint8_t* out)
+{
+    uint8_t salted_key[32] = {0};
+    if (!salt_hash_data(NULL, 0, "keystore_retain_seed_hash", salted_key)) {
+        return KEYSTORE_ERR_SALT;
+    }
+
+    rust_hmac_sha256(salted_key, sizeof(salted_key), seed, seed_len, out);
+    return KEYSTORE_OK;
+}
+
 USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed_len)
 {
 #ifdef TESTING
@@ -253,7 +267,8 @@ USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed
         return KEYSTORE_ERR_ENCRYPT;
     }
     _retained_seed_encrypted_len = len;
-    return KEYSTORE_OK;
+
+    return _hash_seed(seed, seed_len, _retained_seed_hash);
 }
 
 USE_RESULT static bool _retain_bip39_seed(const uint8_t* bip39_seed)
@@ -298,6 +313,8 @@ static void _delete_retained_seeds(void)
         sizeof(_unstretched_retained_seed_encryption_key));
     util_zero(_retained_seed_encrypted, sizeof(_retained_seed_encrypted));
     _retained_seed_encrypted_len = 0;
+    util_zero(_retained_seed_hash, sizeof(_retained_seed_hash));
+
     util_zero(
         _unstretched_retained_bip39_seed_encryption_key,
         sizeof(_unstretched_retained_seed_encryption_key));
@@ -455,17 +472,23 @@ keystore_error_t keystore_unlock(
     return result;
 }
 
-bool keystore_unlock_bip39(const char* mnemonic_passphrase, uint8_t* root_fingerprint_out)
+bool keystore_unlock_bip39(
+    const uint8_t* seed,
+    size_t seed_length,
+    const char* mnemonic_passphrase,
+    uint8_t* root_fingerprint_out)
 {
     if (!_is_unlocked_device) {
         return false;
     }
     usb_processing_timeout_reset(LONG_TIMEOUT);
 
-    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-    UTIL_CLEANUP_32(seed);
-    size_t seed_length = 0;
-    if (!keystore_copy_seed(seed, &seed_length)) {
+    uint8_t seed_hashed[32] = {0};
+    UTIL_CLEANUP_32(seed_hashed);
+    if (_hash_seed(seed, seed_length, seed_hashed) != KEYSTORE_OK) {
+        return false;
+    }
+    if (!MEMEQ(seed_hashed, _retained_seed_hash, sizeof(_retained_seed_hash))) {
         return false;
     }
 

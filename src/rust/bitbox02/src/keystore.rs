@@ -95,10 +95,12 @@ pub fn lock() {
     unsafe { ROOT_FINGERPRINT.write(None) }
 }
 
-pub fn unlock_bip39(mnemonic_passphrase: &str) -> Result<(), Error> {
+pub fn unlock_bip39(seed: &[u8], mnemonic_passphrase: &str) -> Result<(), Error> {
     let mut root_fingerprint = [0u8; 4];
     if unsafe {
         bitbox02_sys::keystore_unlock_bip39(
+            seed.as_ptr(),
+            seed.len(),
             crate::util::str_to_cstr_vec(mnemonic_passphrase)
                 .unwrap()
                 .as_ptr()
@@ -409,7 +411,7 @@ mod tests {
             .unwrap();
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(unlock_bip39("foo").is_ok());
+        assert!(unlock_bip39(&seed, "foo").is_ok());
         assert!(!is_locked());
         lock();
         assert!(is_locked());
@@ -498,7 +500,10 @@ mod tests {
         assert!(root_fingerprint().is_err());
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(root_fingerprint().is_err());
-        assert!(unlock_bip39("foo").is_ok());
+        // Incorrect seed passed
+        assert!(unlock_bip39(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "foo").is_err());
+        // Correct seed passed.
+        assert!(unlock_bip39(&seed, "foo").is_ok());
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
         let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();

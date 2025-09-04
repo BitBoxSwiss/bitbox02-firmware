@@ -65,7 +65,8 @@ pub async fn from_file(
     }
 
     let password = password::enter_twice(hal).await?;
-    if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(data.get_seed(), &password) {
+    let seed = data.get_seed();
+    if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(seed, &password) {
         hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;
@@ -87,7 +88,7 @@ pub async fn from_file(
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
 
-    unlock::unlock_bip39(hal).await;
+    unlock::unlock_bip39(hal, seed).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -157,7 +158,7 @@ pub async fn from_mnemonic(
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
 
-    unlock::unlock_bip39(hal).await;
+    unlock::unlock_bip39(hal, &seed).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -199,7 +200,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 14);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 13);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
         assert!(!keystore::is_locked());

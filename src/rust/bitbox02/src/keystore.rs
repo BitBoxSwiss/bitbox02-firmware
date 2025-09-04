@@ -422,9 +422,16 @@ mod tests {
         crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+
         // Loop to check that unlocking works while unlocked.
         for _ in 0..3 {
+            // First call: unlock Further calls perform a password check. The first onedoes a seed
+            // rentention (1 securechip event). The password check does not do the rentention but a
+            // copy_seed() instead to check the seed, so they end up hacing the same number of
+            // events.crate::securechip::fake_event_counter_reset();
+            crate::securechip::fake_event_counter_reset();
             assert!(unlock("password").is_ok());
+            assert_eq!(crate::securechip::fake_event_counter(), 6);
         }
 
         // Also check that the retained seed was encrypted with the expected encryption key.

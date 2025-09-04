@@ -80,7 +80,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 14);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 9);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
         assert!(!keystore::is_locked());

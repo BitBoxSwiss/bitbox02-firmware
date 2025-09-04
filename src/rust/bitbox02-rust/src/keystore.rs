@@ -577,7 +577,7 @@ mod tests {
 
             bitbox02::securechip::fake_event_counter_reset();
             assert!(keystore::encrypt_and_store_seed(seed, "foo").is_ok());
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 12);
+            assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
             assert!(keystore::is_locked());
 

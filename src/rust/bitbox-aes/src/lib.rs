@@ -111,6 +111,40 @@ pub fn decrypt_with_hmac(key: &[u8], cipher: &[u8]) -> Result<zeroize::Zeroizing
     decrypt(encryption_key.try_into().unwrap(), cipher)
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_cipher_encrypt(
+    iv: util::bytes::Bytes,
+    key: util::bytes::Bytes,
+    plain: util::bytes::Bytes,
+    mut out: util::bytes::BytesMut,
+    out_len: &mut usize,
+) {
+    let enc = encrypt_with_hmac(
+        &iv.as_ref().try_into().unwrap(),
+        key.as_ref(),
+        plain.as_ref(),
+    );
+    out.as_mut()[..enc.len()].copy_from_slice(&enc);
+    *out_len = enc.len();
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_cipher_decrypt(
+    key: util::bytes::Bytes,
+    cipher: util::bytes::Bytes,
+    mut out: util::bytes::BytesMut,
+    out_len: &mut usize,
+) -> bool {
+    match decrypt_with_hmac(key.as_ref(), cipher.as_ref()) {
+        Ok(dec) => {
+            out.as_mut()[..dec.len()].copy_from_slice(&dec);
+            *out_len = dec.len();
+            true
+        }
+        Err(_) => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

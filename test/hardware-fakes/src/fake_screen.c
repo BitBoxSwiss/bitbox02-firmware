@@ -28,6 +28,7 @@ slider_location_t bottom_slider = 0;
 
 void screen_print_debug(const char* message, int duration)
 {
+    (void)duration;
     printf("%s\n", message);
 }
 

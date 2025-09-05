@@ -15,9 +15,9 @@
 
 mod types;
 
-#[cfg_attr(feature = "testing", path = "ui/ui_stub.rs")]
+#[cfg_attr(feature = "unit-testing", path = "ui/ui_stub.rs")]
 #[cfg_attr(
-    not(feature = "testing"),
+    not(feature = "unit-testing"),
     cfg_attr(feature = "c-unit-testing", path = "ui/ui_stub_c_unit_tests.rs")
 )]
 // We don't actually use ui::ui anywhere, we re-export below.

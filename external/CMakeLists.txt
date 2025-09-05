@@ -25,6 +25,10 @@ string(REPLACE "-mfpu=fpv4-sp-d16" "" MODIFIED_C_FLAGS ${MODIFIED_C_FLAGS_TMP})
 set(SECP256K1_ENABLE_MODULE_RECOVERY ON) # needed only in Rust unit tests.
 set(SECP256K1_ECMULT_WINDOW_SIZE 2 CACHE STRING "Window size for ecmult precomputation for verification, specified as integer in range [2..24]. \"AUTO\" is a reasonable setting for desktop machines (currently 15). [default=AUTO]" FORCE)
 set(SECP256K1_ECMULT_GEN_PREC_BITS 2 CACHE STRING "Precision bits to tune the precomputed table size for signing, specified as integer 2, 4 or 8. \"AUTO\" is a reasonable setting for desktop machines (currently 4). [default=AUTO]" FORCE)
+set(SECP256K1_BUILD_BENCHMARK OFF CACHE BOOL "Build benchmarks.")
+set(SECP256K1_BUILD_TESTS OFF CACHE BOOL "Build tests.")
+set(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF CACHE BOOL "Build exhaustive tests.")
+set(SECP256K1_BUILD_CTIME_TESTS OFF CACHE BOOL "Build constant-time tests.")
 # Suppress all warnings in this directory, we don't have control over them.
 set_directory_properties(PROPERTIES
   COMPILE_OPTIONS "-w"

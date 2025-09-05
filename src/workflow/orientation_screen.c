@@ -99,6 +99,8 @@ void orientation_screen(struct ringbuffer* uart_out_queue)
 {
 #ifndef TESTING
     _data.uart_out_queue = uart_out_queue;
+#else
+    (void)uart_out_queue;
 #endif
     ui_screen_stack_push(orientation_arrows_create(_select_orientation_done, NULL));
 }

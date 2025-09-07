@@ -23,10 +23,9 @@ use bitbox02::keystore;
 
 use util::bip32::HARDENED;
 
-use crate::hash::Sha512;
 use crate::secp256k1::SECP256K1;
 
-use hmac::{Mac, SimpleHmac, digest::FixedOutput};
+use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha512};
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
@@ -98,12 +97,12 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let priv_key = secp256k1_get_private_key_twice(keypath)?;
-    let mut mac = SimpleHmac::<Sha512>::new_from_slice(b"bip-entropy-from-k").unwrap();
-    mac.update(&priv_key);
-    let mut out = zeroize::Zeroizing::new(vec![0u8; 64]);
-    let fixed_out: &mut [u8; 64] = out.as_mut_slice().try_into().unwrap();
-    mac.finalize_into(fixed_out.into());
-    Ok(out)
+
+    let mut engine = HmacEngine::<sha512::Hash>::new(b"bip-entropy-from-k");
+    engine.input(&priv_key);
+    Ok(zeroize::Zeroizing::new(
+        Hmac::from_engine(engine).to_byte_array().to_vec(),
+    ))
 }
 
 /// Computes a BIP39 mnemonic according to BIP-85:

@@ -532,21 +532,6 @@ bool keystore_secp256k1_sign(
     return true;
 }
 
-bool keystore_get_u2f_seed(uint8_t* seed_out)
-{
-    if (keystore_is_locked()) {
-        return false;
-    }
-    uint8_t bip39_seed[64] = {0};
-    UTIL_CLEANUP_64(bip39_seed);
-    if (!keystore_copy_bip39_seed(bip39_seed)) {
-        return false;
-    }
-    const uint8_t message[] = "u2f";
-    rust_hmac_sha256(bip39_seed, 64, message, sizeof(message), seed_out);
-    return true;
-}
-
 #ifdef TESTING
 void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len, const uint8_t* bip39_seed)
 {

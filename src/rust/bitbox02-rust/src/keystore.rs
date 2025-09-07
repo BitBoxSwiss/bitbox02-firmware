@@ -183,6 +183,19 @@ pub fn secp256k1_schnorr_sign(
     Ok(sig.serialize())
 }
 
+/// Get the seed to be used for u2f
+#[cfg(feature = "app-u2f")]
+pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let bip39_seed = keystore::copy_bip39_seed()?;
+
+    let mut engine = HmacEngine::<bitcoin::hashes::sha256::Hash>::new(&bip39_seed);
+    // Null-terminator for backwards compatibility from the time when this was coded in C.
+    engine.input(b"u2f\0");
+    Ok(zeroize::Zeroizing::new(
+        Hmac::from_engine(engine).to_byte_array().to_vec(),
+    ))
+}
+
 /// # Safety
 ///
 /// keypath pointer has point to a buffer of length `keypath_len` uint32 elements.
@@ -199,6 +212,18 @@ pub unsafe extern "C" fn rust_secp256k1_get_private_key(
             true
         }
         Err(()) => false,
+    }
+}
+
+#[cfg(feature = "app-u2f")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut) -> bool {
+    match get_u2f_seed() {
+        Ok(seed) => {
+            seed_out.as_mut().copy_from_slice(&seed);
+            true
+        }
+        Err(_) => false,
     }
 }
 
@@ -506,7 +531,7 @@ mod tests {
                 test.expected_xpub,
             );
             assert_eq!(
-                hex::encode(keystore::get_u2f_seed().unwrap()),
+                hex::encode(get_u2f_seed().unwrap()),
                 test.expected_u2f_seed_hex,
             );
         }

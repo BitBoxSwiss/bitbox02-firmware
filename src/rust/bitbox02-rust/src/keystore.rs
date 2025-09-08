@@ -187,7 +187,7 @@ pub fn secp256k1_schnorr_sign(
 /// # Safety
 ///
 /// keypath pointer has point to a buffer of length `keypath_len` uint32 elements.
-#[cfg(feature = "firmware")]
+#[cfg(feature = "c-unit-testing")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_secp256k1_get_private_key(
     keypath: *const u32,

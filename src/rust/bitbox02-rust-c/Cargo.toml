@@ -73,7 +73,16 @@ platform-bitbox02 = []
 platform-bitbox02plus = ["util/sha2", "bitbox02-noise", "bitbox02-rust"]
 
 bootloader = []
-firmware = ["bitbox02-rust", "bitbox02-rust/firmware", "bitbox02", "bitbox02-noise", "util/sha2", "util/p256", "util/firmware", "der", "bitbox-aes"]
+firmware = [
+  "bitbox02-rust",
+  "bitbox02-rust/firmware",
+  "bitbox02",
+  "bitbox02-noise",
+  "util/sha2",
+  "util/firmware",
+  "der",
+  "bitbox-aes",
+]
 
 # Only to be enabled in Rust unit tests.
 testing = ["bitbox02-rust/testing", "bitbox02/testing"]
@@ -100,6 +109,7 @@ app-litecoin = [
 app-u2f = [
   # enable this feature in the deps
   "bitbox02-rust/app-u2f",
+  "util/p256",
 ]
 
 app-cardano = [

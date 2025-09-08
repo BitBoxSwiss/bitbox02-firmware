@@ -44,8 +44,8 @@ fn parse_two_int256s(data: &[u8]) -> Result<([u8; 32], [u8; 32]), ()> {
 /// sig_compact_out must be 64 bytes and will contain the R/S values (each 32 bytes).
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_der_parse_optiga_signature(
-    sig_der: crate::util::Bytes,
-    mut sig_compact_out: crate::util::BytesMut,
+    sig_der: util::bytes::Bytes,
+    mut sig_compact_out: util::bytes::BytesMut,
 ) -> bool {
     match parse_two_int256s(sig_der.as_ref()) {
         Ok((first, second)) => {
@@ -66,9 +66,9 @@ mod tests {
         let sig_der = b"\x02\x02\x12\x34\x02\x03\x00\xab\xcd";
         let mut sig_compact = [0u8; 64];
         assert!(rust_der_parse_optiga_signature(
-            unsafe { crate::util::rust_util_bytes(sig_der.as_ptr(), sig_der.len()) },
+            unsafe { util::bytes::rust_util_bytes(sig_der.as_ptr(), sig_der.len()) },
             unsafe {
-                crate::util::rust_util_bytes_mut(sig_compact.as_mut_ptr(), sig_compact.len())
+                util::bytes::rust_util_bytes_mut(sig_compact.as_mut_ptr(), sig_compact.len())
             },
         ));
         assert_eq!(

@@ -129,7 +129,7 @@ fn app_string(app_id: &[u8; 32]) -> String {
 
 // app_id must be of length 32, and out must be a least 60 bytes.
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_u2f_app_string(app_id: crate::util::Bytes, mut out: crate::util::BytesMut) {
+pub extern "C" fn rust_u2f_app_string(app_id: util::bytes::Bytes, mut out: util::bytes::BytesMut) {
     let app_str = app_string(app_id.as_ref().try_into().unwrap());
     let bytes = app_str.as_bytes();
     let out = out.as_mut();
@@ -146,8 +146,8 @@ mod tests {
         let app_id = b"\xc5\x0f\x8a\x7b\x70\x8e\x92\xf8\x2e\x7a\x50\xe2\xbd\xc5\x5d\x8f\xd9\x1a\x22\xfe\x6b\x29\xc0\xcd\xf7\x80\x55\x30\x84\x2a\xf5\x81";
         let mut string = [0u8; 100];
         rust_u2f_app_string(
-            unsafe { crate::util::rust_util_bytes(app_id.as_ptr(), app_id.len()) },
-            unsafe { crate::util::rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+            unsafe { util::bytes::rust_util_bytes(app_id.as_ptr(), app_id.len()) },
+            unsafe { util::bytes::rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
         );
         assert_eq!(
             core::ffi::CStr::from_bytes_until_nul(&string)
@@ -163,8 +163,8 @@ mod tests {
         let app_id = b"\x24\x1d\x5b\x78\x35\x90\xc2\x1f\x79\x69\x8e\x7c\xe8\x92\xdd\x03\xfb\x2c\x8f\xad\xc2\x44\x0e\xc2\x3a\xa5\xde\x9e\x2d\x23\x81\xb0";
         let mut string = [0u8; 100];
         rust_u2f_app_string(
-            unsafe { crate::util::rust_util_bytes(app_id.as_ptr(), app_id.len()) },
-            unsafe { crate::util::rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+            unsafe { util::bytes::rust_util_bytes(app_id.as_ptr(), app_id.len()) },
+            unsafe { util::bytes::rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
         );
         assert_eq!(
             core::ffi::CStr::from_bytes_until_nul(&string)

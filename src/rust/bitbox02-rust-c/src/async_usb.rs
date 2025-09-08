@@ -52,7 +52,7 @@ pub unsafe extern "C" fn rust_async_usb_copy_response(out: *mut bitbox02::buffer
 ///
 /// `usb_in` are the api request bytes.
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_async_usb_on_request_hww(usb_in: crate::util::Bytes) {
+pub extern "C" fn rust_async_usb_on_request_hww(usb_in: util::bytes::Bytes) {
     if waiting_for_next_request() {
         on_next_request(usb_in.as_ref());
     } else {

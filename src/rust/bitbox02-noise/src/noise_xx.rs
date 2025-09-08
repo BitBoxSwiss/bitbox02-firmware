@@ -20,6 +20,7 @@ use noise_rust_crypto::{ChaCha20Poly1305, Sha256, sensitive::Sensitive};
 
 /// Specialization of noise_protocol::HandshakeState, picking the implementations for Diffie
 /// Hellman, Cipher and Hash.
+/// cbindgen:ignore
 pub type HandshakeState<R> = noise_protocol::HandshakeState<X25519<R>, ChaCha20Poly1305, Sha256>;
 
 /// Common handshake hash that can be derived by both parties. The pairing code is derived from it.

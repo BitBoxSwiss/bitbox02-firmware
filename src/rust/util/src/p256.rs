@@ -16,8 +16,8 @@
 /// private_key must be 32 bytes, public_key_out must be 64 bytes.
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_p256_pubkey(
-    private_key: crate::util::Bytes,
-    mut public_key_out: crate::util::BytesMut,
+    private_key: crate::bytes::Bytes,
+    mut public_key_out: crate::bytes::BytesMut,
 ) {
     use p256::elliptic_curve::sec1::ToEncodedPoint;
     let secret_key = p256::SecretKey::from_slice(private_key.as_ref()).unwrap();
@@ -33,9 +33,9 @@ pub extern "C" fn rust_p256_pubkey(
 /// sig_out must be 64 bytes.
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_p256_sign(
-    private_key: crate::util::Bytes,
-    msg: crate::util::Bytes,
-    mut sig_out: crate::util::BytesMut,
+    private_key: crate::bytes::Bytes,
+    msg: crate::bytes::Bytes,
+    mut sig_out: crate::bytes::BytesMut,
 ) {
     use p256::ecdsa::{Signature, SigningKey, signature::hazmat::PrehashSigner};
     let signing_key = SigningKey::from_slice(private_key.as_ref()).unwrap();
@@ -58,8 +58,8 @@ mod tests {
         let privkey = b"\x50\x3e\x32\xee\xb9\xca\xb8\x67\x3f\x78\x47\xc0\x47\xfa\x57\xad\x2b\xe0\x48\x5d\x07\x59\x94\x84\x13\xcc\x8c\x00\x2b\x52\x9f\xe4";
         let mut pubkey = [0u8; 64];
         rust_p256_pubkey(
-            unsafe { crate::util::rust_util_bytes(privkey.as_ptr(), privkey.len()) },
-            unsafe { crate::util::rust_util_bytes_mut(pubkey.as_mut_ptr(), pubkey.len()) },
+            unsafe { crate::bytes::rust_util_bytes(privkey.as_ptr(), privkey.len()) },
+            unsafe { crate::bytes::rust_util_bytes_mut(pubkey.as_mut_ptr(), pubkey.len()) },
         );
     }
 
@@ -75,9 +75,9 @@ mod tests {
         let msg = Sha256::digest(b"msg");
         let mut sig = [0u8; 64];
         rust_p256_sign(
-            unsafe { crate::util::rust_util_bytes(privkey.as_ptr(), privkey.len()) },
-            unsafe { crate::util::rust_util_bytes(msg.as_ptr(), msg.len()) },
-            unsafe { crate::util::rust_util_bytes_mut(sig.as_mut_ptr(), sig.len()) },
+            unsafe { crate::bytes::rust_util_bytes(privkey.as_ptr(), privkey.len()) },
+            unsafe { crate::bytes::rust_util_bytes(msg.as_ptr(), msg.len()) },
+            unsafe { crate::bytes::rust_util_bytes_mut(sig.as_mut_ptr(), sig.len()) },
         );
         assert_eq!(
             hex::encode(sig),

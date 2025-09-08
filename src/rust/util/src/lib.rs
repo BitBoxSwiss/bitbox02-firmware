@@ -15,9 +15,16 @@
 #![cfg_attr(not(test), no_std)]
 pub mod ascii;
 pub mod bip32;
+pub mod bytes;
 pub mod decimal;
 pub mod log;
 pub mod name;
+
+mod base58;
+#[cfg(feature = "p256")]
+mod p256;
+#[cfg(feature = "sha2")]
+mod sha2;
 
 // for `format!`
 #[macro_use]
@@ -49,6 +56,21 @@ impl<T> Survive<'_, T> {
     }
 }
 
+// # C interface
+
+/// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
+///
+/// * `dst` - Buffer to zero
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_util_zero(mut dst: bytes::BytesMut) {
+    if dst.buf.is_null() || dst.len == 0 {
+        return;
+    }
+    zero(dst.as_mut())
+}
+
+// # Tests
+
 #[cfg(test)]
 mod tests {
     extern crate std;
@@ -74,5 +96,23 @@ mod tests {
         let mut buf = [1u8, 2, 3];
         zero(&mut buf[1..2]);
         assert_eq!(&buf[..], &[1, 0, 3]);
+    }
+
+    #[test]
+    fn zeroing_ciface() {
+        let mut buf = [1u8, 2, 3, 4];
+        rust_util_zero(unsafe { bytes::rust_util_bytes_mut(buf.as_mut_ptr(), buf.len() - 1) });
+        assert_eq!(&buf[..], &[0, 0, 0, 4]);
+    }
+
+    #[test]
+    fn zeroing_ciface_empty() {
+        let mut buf = [];
+        rust_util_zero(unsafe { bytes::rust_util_bytes_mut(buf.as_mut_ptr(), 0) });
+    }
+
+    #[test]
+    fn zeroing_ciface_null() {
+        rust_util_zero(unsafe { bytes::rust_util_bytes_mut(core::ptr::null_mut(), 0) });
     }
 }

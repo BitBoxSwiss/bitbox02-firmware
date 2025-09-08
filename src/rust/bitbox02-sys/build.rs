@@ -171,6 +171,89 @@ const RUSTIFIED_ENUMS: &[&str] = &[
     "trinary_choice_t",
 ];
 
+// BITBOX02_SOURCES are only used for native builds (simulator). Avoid cross-target specific files.
+const BITBOX02_SOURCES: &[&str] = &[
+    "src/cipher/cipher.c",
+    "src/communication_mode.c",
+    "src/da14531/crc.c",
+    "src/da14531/da14531_handler.c",
+    "src/da14531/da14531_protocol.c",
+    "src/da14531/da14531.c",
+    "src/hardfault.c",
+    "src/hww.c",
+    "src/i2c_ecc.c",
+    "src/keystore.c",
+    "src/memory/bitbox02_smarteeprom.c",
+    "src/memory/memory_shared.c",
+    "src/memory/memory_spi.c",
+    "src/memory/memory.c",
+    "src/platform/platform_init.c",
+    "src/queue.c",
+    "src/random.c",
+    "src/reset.c",
+    "src/salt.c",
+    "src/screen.c",
+    "src/sd.c",
+    "src/system.c",
+    "src/touch/gestures.c",
+    "src/u2f.c",
+    "src/u2f/u2f_app.c",
+    "src/u2f/u2f_packet.c",
+    "src/ui/components/button.c",
+    "src/ui/components/confirm_button.c",
+    "src/ui/components/confirm_gesture.c",
+    "src/ui/components/confirm_transaction.c",
+    "src/ui/components/confirm.c",
+    "src/ui/components/empty.c",
+    "src/ui/components/entry_screen.c",
+    "src/ui/components/icon_button.c",
+    "src/ui/components/image.c",
+    "src/ui/components/info_centered.c",
+    "src/ui/components/keyboard_switch.c",
+    "src/ui/components/knight_rider.c",
+    "src/ui/components/label.c",
+    "src/ui/components/left_arrow.c",
+    "src/ui/components/lockscreen.c",
+    "src/ui/components/menu.c",
+    "src/ui/components/orientation_arrows.c",
+    "src/ui/components/progress.c",
+    "src/ui/components/right_arrow.c",
+    "src/ui/components/screensaver.c",
+    "src/ui/components/sdcard.c",
+    "src/ui/components/status.c",
+    "src/ui/components/trinary_choice.c",
+    "src/ui/components/trinary_input_char.c",
+    "src/ui/components/trinary_input_string.c",
+    "src/ui/components/ui_images.c",
+    "src/ui/components/waiting.c",
+    "src/ui/event_handler.c",
+    "src/ui/fonts/font_a_11X10.c",
+    "src/ui/fonts/font_a_11X12.c",
+    "src/ui/fonts/font_a_13X14.c",
+    "src/ui/fonts/font_a_15X16.c",
+    "src/ui/fonts/font_a_17X18.c",
+    "src/ui/fonts/font_a_9X9.c",
+    "src/ui/fonts/monogram_5X9.c",
+    "src/ui/fonts/password_11X12.c",
+    "src/ui/fonts/password_9X9.c",
+    "src/ui/graphics/graphics.c",
+    "src/ui/graphics/lock_animation.c",
+    "src/ui/oled/sh1107.c",
+    "src/ui/oled/ssd1312.c",
+    "src/ui/screen_process.c",
+    "src/ui/screen_saver.c",
+    "src/ui/screen_stack.c",
+    "src/ui/ugui/ugui.c",
+    "src/ui/ui_util.c",
+    "src/usb/usb_frame.c",
+    "src/usb/usb_packet.c",
+    "src/usb/usb_processing.c",
+    "src/usb/usb.c",
+    "src/util.c",
+    "src/workflow/orientation_screen.c",
+    "external/asf4-drivers/hal/utils/src/utils_ringbuffer.c",
+];
+
 pub fn main() -> Result<(), &'static str> {
     // We could theoretically list every header file that we end up depending on, but that is hard
     // to maintain. So instead we just listen to changes on "wrapper.h" which is good enough.
@@ -197,9 +280,10 @@ pub fn main() -> Result<(), &'static str> {
             "-mthumb",
             "-mfloat-abi=soft",
             &arm_sysroot,
+            "-fshort-enums",
         ]
     } else {
-        vec!["-DTESTING=1"]
+        vec!["-DTESTING", "-D_UNIT_TEST_", "-DPRODUCT_BITBOX_MULTI=1"]
     };
 
     let mut includes = vec![
@@ -214,7 +298,17 @@ pub fn main() -> Result<(), &'static str> {
         "../../usb/class/hid/u2f",
         // $SECP256k1_INCLUDES
         "../../../external/secp256k1-zkp/include",
+        // ASF4 headers allowed in unit tests
+        "../../../external/asf4-drivers/hal/utils/include",
+        // fatfs
+        "../../../external/fatfs/source",
     ];
+
+    // rust.h is created by cbindgen in the cmake build directory
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let rust_h_dir = PathBuf::from([&out_dir, "../../../../../.."].join("/"));
+    println!("rust_h_dir: {:?}", rust_h_dir.canonicalize());
+    includes.push(rust_h_dir.as_os_str().to_str().unwrap());
 
     if cross_compiling {
         includes.extend([
@@ -225,7 +319,6 @@ pub fn main() -> Result<(), &'static str> {
             "../../../external/asf4-drivers/Config",
             "../../../external/asf4-drivers/hal/include",
             "../../../external/asf4-drivers/hal/include",
-            "../../../external/asf4-drivers/hal/utils/include",
             "../../../external/asf4-drivers/hpl/core",
             "../../../external/asf4-drivers/hpl/gclk",
             "../../../external/asf4-drivers/hpl/pm",
@@ -248,11 +341,24 @@ pub fn main() -> Result<(), &'static str> {
         ]);
     } else {
         // unit test framework includes
-        includes.push("../../../test/hardware-fakes/include")
+        includes.push("../../../test/hardware-fakes/include");
     }
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");
     let out_path = out_path.into_os_string().into_string().unwrap();
+
+    // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
+    // simulator)
+    let mut definitions = vec![
+        "-DPB_NO_PACKED_STRUCTS=1",
+        "-DPB_FIELD_16BIT=1",
+        "-DAPP_BTC=1",
+        "-DAPP_LTC=1",
+        "-DAPP_U2F=1",
+        "-DAPP_ETH=1",
+    ];
+    definitions.extend(&extra_flags);
+
     let res = Command::new("bindgen")
         .args(["--output", &out_path])
         .arg("--use-core")
@@ -267,13 +373,7 @@ pub fn main() -> Result<(), &'static str> {
         .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
         .arg("wrapper.h")
         .arg("--")
-        .arg("-DPB_NO_PACKED_STRUCTS=1")
-        .arg("-DPB_FIELD_16BIT=1")
-        .arg("-fshort-enums")
-        // APP_ vars active when generating rust declarations from C headers.
-        // It is okay to activate all of them here - Rust's 'app-' features control usage/compilation.
-        .arg("-DAPP_U2F=1")
-        .args(&extra_flags)
+        .args(&definitions)
         .args(includes.iter().map(|s| format!("-I{s}")))
         .output()
         .expect("Failed to run bindgen");
@@ -285,5 +385,56 @@ pub fn main() -> Result<(), &'static str> {
         );
         return Err("Bindgen failed");
     }
+
+    // For the c unit tests and c simulator we build a library that mocks/fakes real user behavior
+    // and logs to stdout
+    // For the rust simulator (with gui) we build a library that behaves more like the real
+    // hardware since we have graphical inputs and outputs.
+    let excludes = if let Ok(libtype) = env::var("LIB_TYPE") {
+        match libtype.as_str() {
+            "c-unit-tests" => vec!["src/screen.c"],
+            _ => vec![],
+        }
+    } else {
+        vec![]
+    };
+
+    let source_includes = &[
+        "test/hardware-fakes/src/fake_cipher.c",
+        "test/hardware-fakes/src/fake_component.c",
+        "test/hardware-fakes/src/fake_diskio.c",
+        "test/hardware-fakes/src/fake_memory.c",
+        "test/hardware-fakes/src/fake_qtouch.c",
+        "test/hardware-fakes/src/fake_screen.c",
+        "test/hardware-fakes/src/fake_securechip.c",
+        "test/hardware-fakes/src/fake_smarteeprom.c",
+        "test/hardware-fakes/src/fake_spi_mem.c",
+    ];
+
+    // Build the c deps for unit tests
+    if !cross_compiling {
+        let mdir = env::var("CARGO_MANIFEST_DIR").unwrap();
+        let mut builder = cc::Build::new();
+
+        let files: Vec<String> = BITBOX02_SOURCES
+            .iter()
+            .chain(source_includes.iter())
+            .filter(|x| !excludes.contains(x))
+            .map(|s| [&mdir, "../../..", s].join("/"))
+            .collect();
+
+        builder.files(&files);
+        for definition in &definitions {
+            builder.flag(definition);
+        }
+        builder.includes(&includes);
+
+        builder.compile("bitbox02");
+
+        for file in &files {
+            println!("cargo::rerun-if-changed={file}");
+        }
+    }
+
     Ok(())
 }

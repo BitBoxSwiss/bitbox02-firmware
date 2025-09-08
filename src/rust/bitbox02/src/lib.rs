@@ -254,6 +254,7 @@ pub fn communication_mode_ble_enabled() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate bitbox02_rust;
 
     #[test]
     fn test_format_datetime() {

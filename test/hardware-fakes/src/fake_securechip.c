@@ -66,6 +66,8 @@ bool securechip_u2f_counter_inc(uint32_t* counter)
 
 bool securechip_attestation_sign(const uint8_t* msg, uint8_t* signature_out)
 {
+    (void)msg;
+    (void)signature_out;
     _event_counter += 1;
     return false;
 }

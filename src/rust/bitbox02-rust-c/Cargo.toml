@@ -20,16 +20,12 @@ authors = ["Shift Crypto AG <support@bitbox.swiss>"]
 edition = "2024"
 license = "Apache-2.0"
 
-[lib]
-crate-type = ["staticlib"]
-
 [dependencies]
 bitbox02-rust = { path = "../bitbox02-rust", optional = true }
-bitbox-aes = { path = "../bitbox-aes" }
+bitbox-aes = { path = "../bitbox-aes", optional = true }
 bitbox02 = { path = "../bitbox02", optional = true }
 bitbox02-noise = { path = "../bitbox02-noise", optional = true }
 util = { path = "../util" }
-p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"], optional = true }
 der =  { version = "0.7.9", default-features = false, optional = true }
 hex = { workspace = true }
 sha2 = { workspace = true, optional = true }
@@ -74,10 +70,10 @@ target-c-unit-tests = [
 ]
 
 platform-bitbox02 = []
-platform-bitbox02plus = ["sha2"]
+platform-bitbox02plus = ["util/sha2", "bitbox02-noise", "bitbox02-rust"]
 
 bootloader = []
-firmware = ["bitbox02-rust", "bitbox02", "bitbox02-noise", "sha2", "dep:bitcoin", "digest", "p256", "der"]
+firmware = ["bitbox02-rust", "bitbox02-rust/firmware", "bitbox02", "bitbox02-noise", "util/sha2", "util/p256", "util/firmware", "der", "bitbox-aes"]
 
 # Only to be enabled in Rust unit tests.
 testing = ["bitbox02-rust/testing", "bitbox02/testing"]

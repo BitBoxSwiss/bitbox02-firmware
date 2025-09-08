@@ -15,6 +15,7 @@
 #include <fake_memory.h>
 #include <flags.h>
 #include <memory/memory.h>
+#include <memory/memory_shared.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -27,6 +28,25 @@ void fake_memory_factoryreset(void)
     memset(_memory_shared_data, 0xff, sizeof(_memory_shared_data));
     memset(_memory_app_data, 0xff, sizeof(_memory_app_data));
     memset(_memory_smarteeprom, 0xff, sizeof(_memory_smarteeprom));
+}
+#define ALLOWED_HASH                                                                               \
+    "\x1e\x4a\xa8\x36\x4e\x93\x5c\x07\x85\xe4\xf8\x91\x20\x83\x07\xd8\x32\xf7\x88\x17\x2e\x4b\xf6" \
+    "\x16\x21\xde\x6d\xf9\xec\x3c\x21\x5f"
+
+bool fake_memory_nova(void)
+{
+    chunk_shared_t* shared_ptr = (chunk_shared_t*)&_memory_shared_data[0];
+    shared_ptr->fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+
+    memory_ble_metadata_t ble_metadata = {0};
+    memcpy(ble_metadata.allowed_firmware_hash, ALLOWED_HASH, sizeof(ALLOWED_HASH) - 1);
+    if (!memory_set_ble_metadata(&ble_metadata)) {
+        return false;
+    }
+    if (!memory_ble_enable(false)) {
+        return false;
+    }
+    return true;
 }
 
 static uint8_t* _get_memory(uint32_t base)

@@ -19,6 +19,7 @@
 #include <fake_memory.h>
 #include <fcntl.h>
 #include <memory/memory.h>
+#include <memory/memory_shared.h>
 #include <queue.h>
 #include <random.h>
 #include <rust/rust.h>
@@ -126,6 +127,10 @@ int main(int argc, char* argv[])
     printf("Memory setup %s\n", memory_success ? "success" : "failed");
     if (!memory_success) {
         perror("ERROR, memory setup failed");
+        return 1;
+    }
+    if (!fake_memory_nova()) {
+        printf("fake_memory_nova failed");
         return 1;
     }
 

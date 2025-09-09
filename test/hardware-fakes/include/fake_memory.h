@@ -21,6 +21,7 @@
 #include <flags.h>
 
 void fake_memory_factoryreset(void);
+bool fake_memory_nova(void);
 bool memory_write_to_address_fake(uint32_t base, uint32_t addr, const uint8_t* chunk);
 bool memory_write_chunk_fake(uint32_t chunk_num, const uint8_t* chunk);
 void memory_read_chunk_fake(uint32_t chunk_num, uint8_t* chunk_out);

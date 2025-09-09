@@ -11,6 +11,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Unlock is now faster after password/passphrase entry (shorter unlock animation)
 - Remove option to restore from 18 recovery words
 - simulator: enable Test Merchant for payment requests
+- simulator: simulate a Nova device
 
 ### 9.23.1
 - EVM: add HyperEVM (HYPE) and SONIC (S) to known networks

@@ -331,6 +331,14 @@ class SendMessage:
         except UserAbortException:
             eprint("Aborted by user")
 
+    def _btc_xpubs(self) -> None:
+        xpubs = self._device.btc_xpubs(
+            keypaths=[[84 + HARDENED, 0 + HARDENED, i + HARDENED] for i in range(20)],
+        )
+        print("xpubs for m/84'/0'/{0'..19'}:")
+        for xpub in xpubs:
+            print(xpub)
+
     def _get_electrum_encryption_key(self) -> None:
         print(
             "Electrum wallet encryption xpub at keypath m/4541509'/1112098098':",
@@ -376,7 +384,7 @@ class SendMessage:
         my_xpub = self._device.btc_xpub(
             keypath=account_keypath,
             coin=coin,
-            xpub_type=bitbox02.btc.BTCPubRequest.XPUB,  # pylint: disable=no-member,
+            xpub_type=bitbox02.btc.BTCPubRequest.XPUB,
             display=False,
         )
         multisig_config = bitbox02.btc.BTCScriptConfig(
@@ -1503,6 +1511,7 @@ class SendMessage:
             ("Change device name", self._change_name_workflow),
             ("Get root fingerprint", self._get_root_fingerprint),
             ("Retrieve zpub of first account", self._display_zpub),
+            ("Retrieve multiple xpubs", self._btc_xpubs),
             ("Retrieve a BTC address", self._btc_address),
             ("Retrieve a BTC Multisig address", self._btc_multisig_address),
             ("Retrieve a BTC policy address", self._btc_policy_address),

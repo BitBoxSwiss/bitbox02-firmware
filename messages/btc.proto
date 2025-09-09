@@ -93,6 +93,17 @@ message BTCPubRequest {
   bool display = 5;
 }
 
+message BTCXpubsRequest{
+  enum XPubType {
+    UNKNOWN = 0;
+    XPUB = 1;
+    TPUB = 2;
+  }
+  BTCCoin coin = 1;
+  XPubType xpub_type = 2;
+  repeated Keypath keypaths = 3;
+}
+
 message BTCScriptConfigWithKeypath {
   BTCScriptConfig script_config = 2;
   repeated uint32 keypath = 3;
@@ -281,6 +292,7 @@ message BTCRequest {
     BTCSignMessageRequest sign_message = 6;
     AntiKleptoSignatureRequest antiklepto_signature = 7;
     BTCPaymentRequestRequest payment_request = 8;
+    BTCXpubsRequest xpubs = 9;
   }
 }
 
@@ -291,5 +303,6 @@ message BTCResponse {
     BTCSignNextResponse sign_next = 3;
     BTCSignMessageResponse sign_message = 4;
     AntiKleptoSignerCommitment antiklepto_signer_commitment = 5;
+    PubsResponse pubs = 6;
   }
 }

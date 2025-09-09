@@ -6,6 +6,12 @@ pub struct PubResponse {
     pub r#pub: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PubsResponse {
+    #[prost(string, repeated, tag = "1")]
+    pub pubs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct RootFingerprintRequest {}
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -509,6 +515,58 @@ pub mod btc_pub_request {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BtcXpubsRequest {
+    #[prost(enumeration = "BtcCoin", tag = "1")]
+    pub coin: i32,
+    #[prost(enumeration = "btc_xpubs_request::XPubType", tag = "2")]
+    pub xpub_type: i32,
+    #[prost(message, repeated, tag = "3")]
+    pub keypaths: ::prost::alloc::vec::Vec<Keypath>,
+}
+/// Nested message and enum types in `BTCXpubsRequest`.
+pub mod btc_xpubs_request {
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum XPubType {
+        Unknown = 0,
+        Xpub = 1,
+        Tpub = 2,
+    }
+    impl XPubType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                XPubType::Unknown => "UNKNOWN",
+                XPubType::Xpub => "XPUB",
+                XPubType::Tpub => "TPUB",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNKNOWN" => Some(Self::Unknown),
+                "XPUB" => Some(Self::Xpub),
+                "TPUB" => Some(Self::Tpub),
+                _ => None,
+            }
+        }
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcScriptConfigWithKeypath {
     #[prost(message, optional, tag = "2")]
     pub script_config: ::core::option::Option<BtcScriptConfig>,
@@ -904,7 +962,7 @@ pub struct BtcSignMessageResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcRequest {
-    #[prost(oneof = "btc_request::Request", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
+    #[prost(oneof = "btc_request::Request", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9")]
     pub request: ::core::option::Option<btc_request::Request>,
 }
 /// Nested message and enum types in `BTCRequest`.
@@ -928,12 +986,14 @@ pub mod btc_request {
         AntikleptoSignature(super::AntiKleptoSignatureRequest),
         #[prost(message, tag = "8")]
         PaymentRequest(super::BtcPaymentRequestRequest),
+        #[prost(message, tag = "9")]
+        Xpubs(super::BtcXpubsRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcResponse {
-    #[prost(oneof = "btc_response::Response", tags = "1, 2, 3, 4, 5")]
+    #[prost(oneof = "btc_response::Response", tags = "1, 2, 3, 4, 5, 6")]
     pub response: ::core::option::Option<btc_response::Response>,
 }
 /// Nested message and enum types in `BTCResponse`.
@@ -951,6 +1011,8 @@ pub mod btc_response {
         SignMessage(super::BtcSignMessageResponse),
         #[prost(message, tag = "5")]
         AntikleptoSignerCommitment(super::AntiKleptoSignerCommitment),
+        #[prost(message, tag = "6")]
+        Pubs(super::PubsResponse),
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

@@ -79,7 +79,7 @@ class DeviceInfoResponse(google.protobuf.message.Message):
         firmware_hash: builtins.bytes
         """Hash of the currently active Bluetooth firmware on the device."""
         firmware_version: builtins.str
-        """Firmware version, formated as "major.minor.patch"."""
+        """Firmware version, formated as an unsigned integer "1", "2", etc."""
         enabled: builtins.bool
         """True if Bluetooth is enabled"""
         def __init__(

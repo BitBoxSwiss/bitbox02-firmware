@@ -41,6 +41,22 @@ class PubResponse(google.protobuf.message.Message):
 global___PubResponse = PubResponse
 
 @typing.final
+class PubsResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PUBS_FIELD_NUMBER: builtins.int
+    @property
+    def pubs(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        pubs: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["pubs", b"pubs"]) -> None: ...
+
+global___PubsResponse = PubsResponse
+
+@typing.final
 class RootFingerprintRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 

@@ -39,7 +39,7 @@ pub trait Xpub: Sized {
 ///
 /// The cache must be configured using `add_keypath()`, otherwise no caching occurs. The reason
 /// for this is that automatic caching is harder to get right and reason about, e.g. in a BTC tx, we
-/// shouldn't cache xpubs at the address level (e.g. m/84/0'/0'/0/0), as they don't repeat and there
+/// shouldn't cache xpubs at the address level (e.g. m/84'/0'/0'/0/0), as they don't repeat and there
 /// can be many of them.
 pub struct XpubCache<X> {
     // List of keypaths for which we want to cache xpubs for.

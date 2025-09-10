@@ -27,9 +27,9 @@ ARG TARGETARCH
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip bzip2 xz-utils
 
-# for clang-*-15, see https://apt.llvm.org/
-RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/apt/sources.list && \
-    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/apt/sources.list && \
+# for clang-*-20, see https://apt.llvm.org/. Stay in sync with rust compiler
+RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main" >> /etc/apt/sources.list && \
+    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main" >> /etc/apt/sources.list && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
 # Install gcc8-arm-none-eabi
@@ -48,7 +48,7 @@ RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
 # Tools for building
 RUN apt-get update && apt-get install -y \
     make \
-    llvm-18 \
+    llvm-20 \
     gcc-10 \
     binutils \
     valgrind \
@@ -80,8 +80,8 @@ RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 100
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    clang-format-18 \
-    clang-tidy-18
+    clang-format-20 \
+    clang-tidy-20
 
 RUN python3 -m pip install --upgrade pip
 

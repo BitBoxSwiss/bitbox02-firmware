@@ -179,13 +179,6 @@ USE_RESULT bool keystore_secp256k1_sign(
     uint8_t* sig_compact_out,
     int* recid_out);
 
-/**
- * Get the seed to be used for u2f
- * @param seed_out Buffer for seed, must be KEYSTORE_U2F_SEED_LENGTH
- * @return true if succes
- */
-USE_RESULT bool keystore_get_u2f_seed(uint8_t* seed_out);
-
 #ifdef TESTING
 /**
  * convenience to mock the keystore state (locked, seed) in tests.

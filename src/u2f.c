@@ -257,7 +257,7 @@ USE_RESULT static bool _keyhandle_gen(
     uint8_t hmac_in[U2F_APPID_SIZE + U2F_NONCE_LENGTH];
     uint8_t seed[32];
     UTIL_CLEANUP_32(seed);
-    if (!keystore_get_u2f_seed(seed)) {
+    if (!rust_keystore_get_u2f_seed(rust_util_bytes_mut(seed, sizeof(seed)))) {
         return false;
     }
 

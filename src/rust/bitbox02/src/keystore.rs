@@ -220,16 +220,6 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
     }
 }
 
-// Currently only used in the functional tests below.
-#[cfg(feature = "testing")]
-pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mut seed = zeroize::Zeroizing::new([0u8; 32].to_vec());
-    match unsafe { bitbox02_sys::keystore_get_u2f_seed(seed.as_mut_ptr()) } {
-        true => Ok(seed),
-        false => Err(()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

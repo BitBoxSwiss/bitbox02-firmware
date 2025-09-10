@@ -23,10 +23,9 @@ use bitbox02::keystore;
 
 use util::bip32::HARDENED;
 
-use crate::hash::Sha512;
 use crate::secp256k1::SECP256K1;
 
-use hmac::{Mac, SimpleHmac, digest::FixedOutput};
+use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha512};
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
@@ -138,12 +137,12 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let priv_key = secp256k1_get_private_key_twice(keypath)?;
-    let mut mac = SimpleHmac::<Sha512>::new_from_slice(b"bip-entropy-from-k").unwrap();
-    mac.update(&priv_key);
-    let mut out = zeroize::Zeroizing::new(vec![0u8; 64]);
-    let fixed_out: &mut [u8; 64] = out.as_mut_slice().try_into().unwrap();
-    mac.finalize_into(fixed_out.into());
-    Ok(out)
+
+    let mut engine = HmacEngine::<sha512::Hash>::new(b"bip-entropy-from-k");
+    engine.input(&priv_key);
+    Ok(zeroize::Zeroizing::new(
+        Hmac::from_engine(engine).to_byte_array().to_vec(),
+    ))
 }
 
 /// Computes a BIP39 mnemonic according to BIP-85:
@@ -224,6 +223,19 @@ pub fn secp256k1_schnorr_sign(
     Ok(sig.serialize())
 }
 
+/// Get the seed to be used for u2f
+#[cfg(feature = "app-u2f")]
+pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let bip39_seed = keystore::copy_bip39_seed()?;
+
+    let mut engine = HmacEngine::<bitcoin::hashes::sha256::Hash>::new(&bip39_seed);
+    // Null-terminator for backwards compatibility from the time when this was coded in C.
+    engine.input(b"u2f\0");
+    Ok(zeroize::Zeroizing::new(
+        Hmac::from_engine(engine).to_byte_array().to_vec(),
+    ))
+}
+
 /// # Safety
 ///
 /// keypath pointer has point to a buffer of length `keypath_len` uint32 elements.
@@ -240,6 +252,18 @@ pub unsafe extern "C" fn rust_secp256k1_get_private_key(
             true
         }
         Err(()) => false,
+    }
+}
+
+#[cfg(feature = "app-u2f")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut) -> bool {
+    match get_u2f_seed() {
+        Ok(seed) => {
+            seed_out.as_mut().copy_from_slice(&seed);
+            true
+        }
+        Err(_) => false,
     }
 }
 
@@ -584,7 +608,7 @@ mod tests {
                 test.expected_xpub,
             );
             assert_eq!(
-                hex::encode(keystore::get_u2f_seed().unwrap()),
+                hex::encode(get_u2f_seed().unwrap()),
                 test.expected_u2f_seed_hex,
             );
         }

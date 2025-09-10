@@ -28,6 +28,7 @@ mod script;
 mod script_configs;
 pub mod signmsg;
 pub mod signtx;
+mod xpubs;
 
 use super::Error;
 use super::pb;
@@ -315,6 +316,7 @@ pub async fn process_api(
             registration::process_register_script_config(hal, request).await
         }
         Request::SignMessage(request) => signmsg::process(hal, request).await,
+        Request::Xpubs(request) => xpubs::process_xpubs(request).await,
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
         Request::PrevtxInit(_)

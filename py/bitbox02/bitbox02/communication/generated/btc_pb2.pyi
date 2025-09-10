@@ -264,6 +264,43 @@ class BTCPubRequest(google.protobuf.message.Message):
 global___BTCPubRequest = BTCPubRequest
 
 @typing.final
+class BTCXpubsRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    class _XPubType:
+        ValueType = typing.NewType("ValueType", builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+
+    class _XPubTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCXpubsRequest._XPubType.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        UNKNOWN: BTCXpubsRequest._XPubType.ValueType  # 0
+        XPUB: BTCXpubsRequest._XPubType.ValueType  # 1
+        TPUB: BTCXpubsRequest._XPubType.ValueType  # 2
+
+    class XPubType(_XPubType, metaclass=_XPubTypeEnumTypeWrapper): ...
+    UNKNOWN: BTCXpubsRequest.XPubType.ValueType  # 0
+    XPUB: BTCXpubsRequest.XPubType.ValueType  # 1
+    TPUB: BTCXpubsRequest.XPubType.ValueType  # 2
+
+    COIN_FIELD_NUMBER: builtins.int
+    XPUB_TYPE_FIELD_NUMBER: builtins.int
+    KEYPATHS_FIELD_NUMBER: builtins.int
+    coin: global___BTCCoin.ValueType
+    xpub_type: global___BTCXpubsRequest.XPubType.ValueType
+    @property
+    def keypaths(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[common_pb2.Keypath]: ...
+    def __init__(
+        self,
+        *,
+        coin: global___BTCCoin.ValueType = ...,
+        xpub_type: global___BTCXpubsRequest.XPubType.ValueType = ...,
+        keypaths: collections.abc.Iterable[common_pb2.Keypath] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["coin", b"coin", "keypaths", b"keypaths", "xpub_type", b"xpub_type"]) -> None: ...
+
+global___BTCXpubsRequest = BTCXpubsRequest
+
+@typing.final
 class BTCScriptConfigWithKeypath(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -826,6 +863,7 @@ class BTCRequest(google.protobuf.message.Message):
     SIGN_MESSAGE_FIELD_NUMBER: builtins.int
     ANTIKLEPTO_SIGNATURE_FIELD_NUMBER: builtins.int
     PAYMENT_REQUEST_FIELD_NUMBER: builtins.int
+    XPUBS_FIELD_NUMBER: builtins.int
     @property
     def is_script_config_registered(self) -> global___BTCIsScriptConfigRegisteredRequest: ...
     @property
@@ -842,6 +880,8 @@ class BTCRequest(google.protobuf.message.Message):
     def antiklepto_signature(self) -> antiklepto_pb2.AntiKleptoSignatureRequest: ...
     @property
     def payment_request(self) -> global___BTCPaymentRequestRequest: ...
+    @property
+    def xpubs(self) -> global___BTCXpubsRequest: ...
     def __init__(
         self,
         *,
@@ -853,10 +893,11 @@ class BTCRequest(google.protobuf.message.Message):
         sign_message: global___BTCSignMessageRequest | None = ...,
         antiklepto_signature: antiklepto_pb2.AntiKleptoSignatureRequest | None = ...,
         payment_request: global___BTCPaymentRequestRequest | None = ...,
+        xpubs: global___BTCXpubsRequest | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "is_script_config_registered", b"is_script_config_registered", "payment_request", b"payment_request", "prevtx_init", b"prevtx_init", "prevtx_input", b"prevtx_input", "prevtx_output", b"prevtx_output", "register_script_config", b"register_script_config", "request", b"request", "sign_message", b"sign_message"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "is_script_config_registered", b"is_script_config_registered", "payment_request", b"payment_request", "prevtx_init", b"prevtx_init", "prevtx_input", b"prevtx_input", "prevtx_output", b"prevtx_output", "register_script_config", b"register_script_config", "request", b"request", "sign_message", b"sign_message"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["request", b"request"]) -> typing.Literal["is_script_config_registered", "register_script_config", "prevtx_init", "prevtx_input", "prevtx_output", "sign_message", "antiklepto_signature", "payment_request"] | None: ...
+    def HasField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "is_script_config_registered", b"is_script_config_registered", "payment_request", b"payment_request", "prevtx_init", b"prevtx_init", "prevtx_input", b"prevtx_input", "prevtx_output", b"prevtx_output", "register_script_config", b"register_script_config", "request", b"request", "sign_message", b"sign_message", "xpubs", b"xpubs"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "is_script_config_registered", b"is_script_config_registered", "payment_request", b"payment_request", "prevtx_init", b"prevtx_init", "prevtx_input", b"prevtx_input", "prevtx_output", b"prevtx_output", "register_script_config", b"register_script_config", "request", b"request", "sign_message", b"sign_message", "xpubs", b"xpubs"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["request", b"request"]) -> typing.Literal["is_script_config_registered", "register_script_config", "prevtx_init", "prevtx_input", "prevtx_output", "sign_message", "antiklepto_signature", "payment_request", "xpubs"] | None: ...
 
 global___BTCRequest = BTCRequest
 
@@ -869,6 +910,7 @@ class BTCResponse(google.protobuf.message.Message):
     SIGN_NEXT_FIELD_NUMBER: builtins.int
     SIGN_MESSAGE_FIELD_NUMBER: builtins.int
     ANTIKLEPTO_SIGNER_COMMITMENT_FIELD_NUMBER: builtins.int
+    PUBS_FIELD_NUMBER: builtins.int
     @property
     def success(self) -> global___BTCSuccess: ...
     @property
@@ -879,6 +921,8 @@ class BTCResponse(google.protobuf.message.Message):
     def sign_message(self) -> global___BTCSignMessageResponse: ...
     @property
     def antiklepto_signer_commitment(self) -> antiklepto_pb2.AntiKleptoSignerCommitment: ...
+    @property
+    def pubs(self) -> common_pb2.PubsResponse: ...
     def __init__(
         self,
         *,
@@ -887,9 +931,10 @@ class BTCResponse(google.protobuf.message.Message):
         sign_next: global___BTCSignNextResponse | None = ...,
         sign_message: global___BTCSignMessageResponse | None = ...,
         antiklepto_signer_commitment: antiklepto_pb2.AntiKleptoSignerCommitment | None = ...,
+        pubs: common_pb2.PubsResponse | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "is_script_config_registered", b"is_script_config_registered", "response", b"response", "sign_message", b"sign_message", "sign_next", b"sign_next", "success", b"success"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "is_script_config_registered", b"is_script_config_registered", "response", b"response", "sign_message", b"sign_message", "sign_next", b"sign_next", "success", b"success"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["response", b"response"]) -> typing.Literal["success", "is_script_config_registered", "sign_next", "sign_message", "antiklepto_signer_commitment"] | None: ...
+    def HasField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "is_script_config_registered", b"is_script_config_registered", "pubs", b"pubs", "response", b"response", "sign_message", b"sign_message", "sign_next", b"sign_next", "success", b"success"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "is_script_config_registered", b"is_script_config_registered", "pubs", b"pubs", "response", b"response", "sign_message", b"sign_message", "sign_next", b"sign_next", "success", b"success"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["response", b"response"]) -> typing.Literal["success", "is_script_config_registered", "sign_next", "sign_message", "antiklepto_signer_commitment", "pubs"] | None: ...
 
 global___BTCResponse = BTCResponse

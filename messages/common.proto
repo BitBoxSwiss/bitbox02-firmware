@@ -19,6 +19,10 @@ message PubResponse {
   string pub = 1;
 }
 
+message PubsResponse {
+  repeated string pubs = 1;
+}
+
 message RootFingerprintRequest {
 }
 

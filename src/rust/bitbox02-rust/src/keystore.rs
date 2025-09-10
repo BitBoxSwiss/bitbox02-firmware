@@ -85,6 +85,46 @@ pub fn get_xpub_twice(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
     Ok(res1)
 }
 
+/// Gets multiple xpubs at once. This is better than multiple calls to `get_xpub_twice()` as it only
+/// uses two secure chip operations in total, instead of two per xpub.
+pub fn get_xpubs_twice(keypaths: &[&[u32]]) -> Result<Vec<bip32::Xpub>, ()> {
+    if keystore::is_locked() {
+        return Err(());
+    }
+    if keypaths.is_empty() {
+        return Ok(vec![]);
+    }
+    // We get the root xprv as a starting point (twice to mitigate bitflips), afterwards we don't
+    // need the securechip anymore.
+    let xprv = get_xprv(&[])?;
+    let xprv2 = get_xprv(&[])?;
+
+    let mut out = Vec::with_capacity(keypaths.len());
+    for keypath in keypaths {
+        if xprv != xprv2 {
+            return Err(());
+        }
+
+        let derive_xpub = || -> Result<bip32::Xpub, ()> {
+            let derived_xprv = xprv
+                .xprv
+                .derive_priv(SECP256K1, &bip32::keypath_from_slice(keypath))
+                .map_err(|_| ())?;
+            Ok(bip32::Xpub::from(bitcoin::bip32::Xpub::from_priv(
+                SECP256K1,
+                &derived_xprv,
+            )))
+        };
+        let derived_xpub = derive_xpub()?;
+        if derived_xpub != derive_xpub()? {
+            return Err(());
+        }
+        out.push(derived_xpub);
+    }
+
+    Ok(out)
+}
+
 /// Returns fingerprint of the root public key at m/, which are the first four bytes of its hash160
 /// according to:
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
@@ -328,6 +368,43 @@ mod tests {
                 .unwrap(),
             "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
         )
+    }
+
+    #[test]
+    fn test_get_xpubs_twice() {
+        keystore::lock();
+        assert!(get_xpubs_twice(&[]).is_err());
+
+        mock_unlocked_using_mnemonic(
+            "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
+            "",
+        );
+
+        // Helper to convert to strings.
+        let get = |keypaths| -> Vec<String> {
+            get_xpubs_twice(keypaths)
+                .unwrap()
+                .iter()
+                .map(|xpub| xpub.serialize_str(bip32::XPubType::Xpub).unwrap())
+                .collect()
+        };
+
+        bitbox02::securechip::fake_event_counter_reset();
+        assert!(get_xpubs_twice(&[]).unwrap().is_empty());
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 0);
+
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(
+            get(&[
+                &[84 + HARDENED, HARDENED, HARDENED],
+                &[86 + HARDENED, HARDENED, HARDENED],
+            ]),
+            vec![
+                "xpub6CNbmcHwZDudAvCAZVE5kejUoFD63mbkRbRMA2HoF9oNWsCofni87gJKp31qZJ9FsCMQR2vK9AS51mT8dgUMGsHW6SfaAKb4eSzpqJn7zwK",
+                "xpub6CGwpj8iQNuzSeeEKF4yuQt32fpLqfHj7sUfFH4uW34DoctWPksxAdjNYC9KwYgwA149B7SDdcLH1aFmucRcjBL4U6piN7HgaiFCBsToamH",
+            ],
+        );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
     }
 
     #[test]

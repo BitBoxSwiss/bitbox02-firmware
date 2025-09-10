@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x14shiftcrypto.bitbox02\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"\x18\n\x16RootFingerprintRequest\".\n\x17RootFingerprintResponse\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\x0c\"l\n\x04XPub\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\x0c\x12\x1a\n\x12parent_fingerprint\x18\x02 \x01(\x0c\x12\x11\n\tchild_num\x18\x03 \x01(\r\x12\x12\n\nchain_code\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x05 \x01(\x0c\"\x1a\n\x07Keypath\x12\x0f\n\x07keypath\x18\x01 \x03(\r\"d\n\rKeyOriginInfo\x12\x18\n\x10root_fingerprint\x18\x01 \x01(\x0c\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12(\n\x04xpub\x18\x03 \x01(\x0b\x32\x1a.shiftcrypto.bitbox02.XPubb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x14shiftcrypto.bitbox02\"\x1a\n\x0bPubResponse\x12\x0b\n\x03pub\x18\x01 \x01(\t\"\x1c\n\x0cPubsResponse\x12\x0c\n\x04pubs\x18\x01 \x03(\t\"\x18\n\x16RootFingerprintRequest\".\n\x17RootFingerprintResponse\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\x0c\"l\n\x04XPub\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\x0c\x12\x1a\n\x12parent_fingerprint\x18\x02 \x01(\x0c\x12\x11\n\tchild_num\x18\x03 \x01(\r\x12\x12\n\nchain_code\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x05 \x01(\x0c\"\x1a\n\x07Keypath\x12\x0f\n\x07keypath\x18\x01 \x03(\r\"d\n\rKeyOriginInfo\x12\x18\n\x10root_fingerprint\x18\x01 \x01(\x0c\x12\x0f\n\x07keypath\x18\x02 \x03(\r\x12(\n\x04xpub\x18\x03 \x01(\x0b\x32\x1a.shiftcrypto.bitbox02.XPubb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'common_pb2', globals())
@@ -22,14 +22,16 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   _PUBRESPONSE._serialized_start=38
   _PUBRESPONSE._serialized_end=64
-  _ROOTFINGERPRINTREQUEST._serialized_start=66
-  _ROOTFINGERPRINTREQUEST._serialized_end=90
-  _ROOTFINGERPRINTRESPONSE._serialized_start=92
-  _ROOTFINGERPRINTRESPONSE._serialized_end=138
-  _XPUB._serialized_start=140
-  _XPUB._serialized_end=248
-  _KEYPATH._serialized_start=250
-  _KEYPATH._serialized_end=276
-  _KEYORIGININFO._serialized_start=278
-  _KEYORIGININFO._serialized_end=378
+  _PUBSRESPONSE._serialized_start=66
+  _PUBSRESPONSE._serialized_end=94
+  _ROOTFINGERPRINTREQUEST._serialized_start=96
+  _ROOTFINGERPRINTREQUEST._serialized_end=120
+  _ROOTFINGERPRINTRESPONSE._serialized_start=122
+  _ROOTFINGERPRINTRESPONSE._serialized_end=168
+  _XPUB._serialized_start=170
+  _XPUB._serialized_end=278
+  _KEYPATH._serialized_start=280
+  _KEYPATH._serialized_end=306
+  _KEYORIGININFO._serialized_start=308
+  _KEYORIGININFO._serialized_end=408
 # @@protoc_insertion_point(module_scope)

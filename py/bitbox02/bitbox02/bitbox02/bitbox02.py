@@ -320,6 +320,26 @@ class BitBox02(BitBoxCommonAPI):
         )
         return self._msg_query(request).pub.pub
 
+    def btc_xpubs(
+        self,
+        keypaths: Sequence[Sequence[int]],
+        coin: "btc.BTCCoin.V" = btc.BTC,
+        xpub_type: "btc.BTCXpubsRequest.XPubType.V" = btc.BTCXpubsRequest.XPUB,
+    ) -> List[str]:
+        """
+        Retrieve up to 20 xpubs.
+        """
+        self._require_atleast(semver.VersionInfo(9, 24, 0))
+        btc_request = btc.BTCRequest()
+        btc_request.xpubs.CopyFrom(
+            btc.BTCXpubsRequest(
+                coin=coin,
+                keypaths=[common.Keypath(keypath=keypath) for keypath in keypaths],
+                xpub_type=xpub_type,
+            )
+        )
+        return list(self._btc_msg_query(btc_request, expected_response="pubs").pubs.pubs)
+
     def btc_address(
         self,
         keypath: Sequence[int],

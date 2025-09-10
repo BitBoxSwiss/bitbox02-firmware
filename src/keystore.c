@@ -224,86 +224,6 @@ static bool _verify_seed(
     return true;
 }
 
-keystore_error_t keystore_encrypt_and_store_seed(
-    const uint8_t* seed,
-    size_t seed_length,
-    const char* password)
-{
-    if (memory_is_initialized()) {
-        return KEYSTORE_ERR_MEMORY;
-    }
-    keystore_lock();
-    if (!_validate_seed_length(seed_length)) {
-        return KEYSTORE_ERR_SEED_SIZE;
-    }
-    if (securechip_init_new_password(password)) {
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-    uint8_t secret[32] = {0};
-    UTIL_CLEANUP_32(secret);
-    if (securechip_stretch_password(password, secret)) {
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-
-    size_t encrypted_seed_len = seed_length + 64;
-    uint8_t encrypted_seed[encrypted_seed_len];
-    UTIL_CLEANUP_32(encrypted_seed);
-    if (!cipher_aes_hmac_encrypt(seed, seed_length, encrypted_seed, &encrypted_seed_len, secret)) {
-        return KEYSTORE_ERR_ENCRYPT;
-    }
-    if (encrypted_seed_len > 255) { // sanity check, can't happen
-        Abort("keystore_encrypt_and_store_seed");
-    }
-    uint8_t encrypted_seed_len_u8 = (uint8_t)encrypted_seed_len;
-    if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len_u8)) {
-        return KEYSTORE_ERR_MEMORY;
-    }
-    if (!_verify_seed(password, seed, seed_length)) {
-        if (!memory_reset_hww()) {
-            return KEYSTORE_ERR_MEMORY;
-        }
-        return KEYSTORE_ERR_MEMORY;
-    }
-    return KEYSTORE_OK;
-}
-
-keystore_error_t keystore_create_and_store_seed(
-    const char* password,
-    const uint8_t* host_entropy,
-    size_t host_entropy_size)
-{
-    if (host_entropy_size != 16 && host_entropy_size != 32) {
-        return KEYSTORE_ERR_SEED_SIZE;
-    }
-    if (KEYSTORE_MAX_SEED_LENGTH != RANDOM_NUM_SIZE) {
-        Abort("keystore create: size mismatch");
-    }
-    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
-    UTIL_CLEANUP_32(seed);
-    random_32_bytes(seed);
-
-    // Mix in Host entropy.
-    for (size_t i = 0; i < host_entropy_size; i++) {
-        seed[i] ^= host_entropy[i];
-    }
-
-    // Mix in entropy derived from the user password.
-    uint8_t password_salted_hashed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-    UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
-            "keystore_seed_generation",
-            password_salted_hashed)) {
-        return KEYSTORE_ERR_SALT;
-    }
-
-    for (size_t i = 0; i < host_entropy_size; i++) {
-        seed[i] ^= password_salted_hashed[i];
-    }
-    return keystore_encrypt_and_store_seed(seed, host_entropy_size, password);
-}
-
 USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed_len)
 {
 #ifdef TESTING
@@ -383,6 +303,86 @@ static void _delete_retained_seeds(void)
         sizeof(_unstretched_retained_seed_encryption_key));
     util_zero(_retained_bip39_seed_encrypted, sizeof(_retained_bip39_seed_encrypted));
     _retained_bip39_seed_encrypted_len = 0;
+}
+
+keystore_error_t keystore_encrypt_and_store_seed(
+    const uint8_t* seed,
+    size_t seed_length,
+    const char* password)
+{
+    if (memory_is_initialized()) {
+        return KEYSTORE_ERR_MEMORY;
+    }
+    keystore_lock();
+    if (!_validate_seed_length(seed_length)) {
+        return KEYSTORE_ERR_SEED_SIZE;
+    }
+    if (securechip_init_new_password(password)) {
+        return KEYSTORE_ERR_SECURECHIP;
+    }
+    uint8_t secret[32] = {0};
+    UTIL_CLEANUP_32(secret);
+    if (securechip_stretch_password(password, secret)) {
+        return KEYSTORE_ERR_SECURECHIP;
+    }
+
+    size_t encrypted_seed_len = seed_length + 64;
+    uint8_t encrypted_seed[encrypted_seed_len];
+    UTIL_CLEANUP_32(encrypted_seed);
+    if (!cipher_aes_hmac_encrypt(seed, seed_length, encrypted_seed, &encrypted_seed_len, secret)) {
+        return KEYSTORE_ERR_ENCRYPT;
+    }
+    if (encrypted_seed_len > 255) { // sanity check, can't happen
+        Abort("keystore_encrypt_and_store_seed");
+    }
+    uint8_t encrypted_seed_len_u8 = (uint8_t)encrypted_seed_len;
+    if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len_u8)) {
+        return KEYSTORE_ERR_MEMORY;
+    }
+    if (!_verify_seed(password, seed, seed_length)) {
+        if (!memory_reset_hww()) {
+            return KEYSTORE_ERR_MEMORY;
+        }
+        return KEYSTORE_ERR_MEMORY;
+    }
+    return KEYSTORE_OK;
+}
+
+keystore_error_t keystore_create_and_store_seed(
+    const char* password,
+    const uint8_t* host_entropy,
+    size_t host_entropy_size)
+{
+    if (host_entropy_size != 16 && host_entropy_size != 32) {
+        return KEYSTORE_ERR_SEED_SIZE;
+    }
+    if (KEYSTORE_MAX_SEED_LENGTH != RANDOM_NUM_SIZE) {
+        Abort("keystore create: size mismatch");
+    }
+    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
+    UTIL_CLEANUP_32(seed);
+    random_32_bytes(seed);
+
+    // Mix in Host entropy.
+    for (size_t i = 0; i < host_entropy_size; i++) {
+        seed[i] ^= host_entropy[i];
+    }
+
+    // Mix in entropy derived from the user password.
+    uint8_t password_salted_hashed[KEYSTORE_MAX_SEED_LENGTH] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "keystore_seed_generation",
+            password_salted_hashed)) {
+        return KEYSTORE_ERR_SALT;
+    }
+
+    for (size_t i = 0; i < host_entropy_size; i++) {
+        seed[i] ^= password_salted_hashed[i];
+    }
+    return keystore_encrypt_and_store_seed(seed, host_entropy_size, password);
 }
 
 keystore_error_t keystore_unlock(

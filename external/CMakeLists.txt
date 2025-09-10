@@ -238,7 +238,7 @@ aux_source_directory(optiga-trust-m/src/comms/ifx_i2c SRC_COMMS_IFX_I2C_FILES)
 aux_source_directory(optiga-trust-m/src/crypt SRC_CRYPT_FILES)
 aux_source_directory(optiga-trust-m/src/util SRC_UTIL_FILES)
 set(PAL_FILES optiga-trust-m/extras/pal/pal_crypt_mbedtls.c)
-add_library(optiga
+add_library(optiga EXCLUDE_FROM_ALL
   ${SRC_CMD_FILES}
   ${SRC_COMMON_FILES}
   ${SRC_COMMS_IFX_I2C_FILES}

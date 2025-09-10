@@ -97,6 +97,9 @@ jobs:
       - name: Build unit-tests
         run: make -j$(($(nproc) + 1)) unit-test
 
+      - name: Check that address sanitizer is enabled
+        run: nm build-build/bin/test_cleanup | grep __asan_version_mismatch_check_v8
+
       - name: run unit-tests
         run: make run-unit-tests
 

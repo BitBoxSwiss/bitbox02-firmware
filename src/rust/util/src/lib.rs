@@ -16,6 +16,7 @@
 pub mod ascii;
 pub mod bip32;
 pub mod bytes;
+pub mod cell;
 pub mod decimal;
 pub mod log;
 pub mod name;

@@ -106,9 +106,13 @@ keystore_unlock(const char* password, uint8_t* remaining_attempts_out, int* secu
 /** Unlocks the bip39 seed.
  * @param[in] mnemonic_passphrase bip39 passphrase used in the derivation. Use the
  * empty string if no passphrase is needed or provided.
+ * @param[out] root_fingerprint_out must be 4 bytes long and will contain the root fingerprint of
+ * the wallet.
  * @return returns false if there was a critital memory error, otherwise true.
  */
-USE_RESULT bool keystore_unlock_bip39(const char* mnemonic_passphrase);
+USE_RESULT bool keystore_unlock_bip39(
+    const char* mnemonic_passphrase,
+    uint8_t* root_fingerprint_out);
 
 /**
  * Locks the keystore (resets to state before `keystore_unlock()`).

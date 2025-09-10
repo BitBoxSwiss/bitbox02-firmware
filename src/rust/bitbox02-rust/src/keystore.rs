@@ -128,11 +128,7 @@ pub fn get_xpubs_twice(keypaths: &[&[u32]]) -> Result<Vec<bip32::Xpub>, ()> {
 /// according to:
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
 pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
-    Ok(get_xpub_twice(&[])?
-        .pubkey_hash160()
-        .get(..4)
-        .ok_or(())?
-        .to_vec())
+    keystore::root_fingerprint()
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
@@ -443,13 +439,17 @@ mod tests {
 
         bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(root_fingerprint(), Ok(vec![0x02, 0x40, 0xe9, 0x2a]));
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
+        // fingerprint is precomputed during bip39 unlock, so takes no securechip events.
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 0);
 
         mock_unlocked_using_mnemonic(
             "small agent wife animal marine cloth exit thank stool idea steel frame",
             "",
         );
         assert_eq!(root_fingerprint(), Ok(vec![0xf4, 0x0b, 0x46, 0x9a]));
+
+        keystore::lock();
+        assert_eq!(root_fingerprint(), Err(()));
     }
 
     #[test]

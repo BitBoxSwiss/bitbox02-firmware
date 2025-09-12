@@ -17,7 +17,6 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::general::abort;
 use crate::hal::Ui;
 use crate::workflow::{confirm, mnemonic, password, unlock};
 
@@ -66,7 +65,8 @@ pub async fn from_file(
     }
 
     let password = password::enter_twice(hal).await?;
-    if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(data.get_seed(), &password) {
+    let seed = data.get_seed();
+    if let Err(err) = bitbox02::keystore::encrypt_and_store_seed(seed, &password) {
         hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;
@@ -84,14 +84,11 @@ pub async fn from_file(
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-    if bitbox02::keystore::unlock(&password).is_err() {
-        abort("restore_from_file: unlock failed");
-    };
 
     // Ignore non-critical error.
     let _ = bitbox02::memory::set_device_name(&metadata.name);
 
-    unlock::unlock_bip39(hal).await;
+    unlock::unlock_bip39(hal, seed).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -160,12 +157,8 @@ pub async fn from_mnemonic(
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
-    // This should never fail.
-    if bitbox02::keystore::unlock(&password).is_err() {
-        abort("restore_from_mnemonic: unlock failed");
-    };
 
-    unlock::unlock_bip39(hal).await;
+    unlock::unlock_bip39(hal, &seed).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -207,11 +200,20 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 19);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 8);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
         assert!(!keystore::is_locked());
         assert!(memory::is_initialized());
-        assert!(keystore::copy_seed().unwrap().len() == 32);
+        // Seed of hardcoded phrase used in unit tests:
+        // boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide
+        assert_eq!(
+            hex::encode(keystore::copy_seed().unwrap()),
+            "19f1bcfccf3e9d497cd245cf864ff0d42216625258d4f68d56b571aceb329257"
+        );
+        assert_eq!(
+            hex::encode(keystore::copy_bip39_seed().unwrap()),
+            "257724bccc8858cfe565b456b01263a4a6a45184fab4531f5c199649207a74e74c399a01d4f957258c05cee818369b31404c884a4b7a29ff6886bae6700fb56a"
+        );
     }
 }

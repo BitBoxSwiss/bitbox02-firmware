@@ -108,7 +108,7 @@ pub async fn unlock_keystore(
 
 /// Performs the BIP39 keystore unlock, including unlock animation. If the optional passphrase
 /// feature is enabled, the user will be asked for the passphrase.
-pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal) {
+pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     // Empty passphrase by default.
     let mut mnemonic_passphrase = zeroize::Zeroizing::new("".into());
 
@@ -133,7 +133,8 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal) {
         }
     }
 
-    let result = bitbox02::ui::with_lock_animation(|| keystore::unlock_bip39(&mnemonic_passphrase));
+    let result =
+        bitbox02::ui::with_lock_animation(|| keystore::unlock_bip39(seed, &mnemonic_passphrase));
     if result.is_err() {
         abort("bip39 unlock failed");
     }
@@ -160,6 +161,6 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
         .is_err()
     {}
 
-    unlock_bip39(hal).await;
+    unlock_bip39(hal, &bitbox02::keystore::copy_seed()?).await;
     Ok(())
 }

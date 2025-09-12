@@ -17,12 +17,7 @@
 UNAME_S := $(shell uname -s)
 
 .DEFAULT_GOAL := firmware
-# asan/ubsan is not supported on darwin, default to off
-ifeq ($(UNAME_S),Darwin)
-  SANITIZE ?= OFF
-else
-  SANITIZE ?= ON
-endif
+SANITIZE ?= ON
 
 bootstrap:
 	git submodule update --init --recursive

@@ -16,7 +16,7 @@ add_executable(simulator EXCLUDE_FROM_ALL simulator.c)
 
 # asan must be first library in linking order
 target_link_libraries(simulator PRIVATE
-    $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+    $<$<BOOL:${SANITIZE_ADDRESS}>:-fsanitize=address>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c

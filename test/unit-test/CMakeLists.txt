@@ -31,7 +31,7 @@ endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
 
-add_library(mocks STATIC
+add_library(mocks STATIC EXCLUDE_FROM_ALL
     framework/src/mock_gestures.c
     framework/src/mock_screen_stack.c
     framework/src/mock_memory.c
@@ -89,7 +89,7 @@ else()
     add_executable(${EXE} test_${TEST_NAME}.c)
     # asan must be first library in linking order
     target_link_libraries(${EXE} PRIVATE
-      $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+      $<$<BOOL:${SANITIZE_ADDRESS}>:-fsanitize=address>
       $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
       -Wl,--start-group
       c-unit-tests_rust_c
@@ -114,10 +114,12 @@ add_library(u2f-util
   u2f/u2f_util_t.c
 )
 target_include_directories(u2f-util
-  PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
   SYSTEM PUBLIC
   ${HIDAPI_INCLUDE_DIRS}
+)
+target_include_directories(u2f-util
+  PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # NOTE: we only depend on include directories and definitions from c-unit-tests_rust_c
@@ -136,7 +138,7 @@ foreach(TEST_NAME ${U2F_TESTS})
   # This tests link to our code
   add_executable(${EXE} test_${TEST_NAME}.c framework/src/mock_hidapi.c)
   target_link_libraries(${EXE} PRIVATE
-    $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+    $<$<BOOL:${SANITIZE_ADDRESS}>:-fsanitize=address>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
@@ -152,7 +154,7 @@ foreach(TEST_NAME ${U2F_TESTS})
   add_executable(${EXE} test_${TEST_NAME}.c)
   # asan must be first library in linking order
   target_link_libraries(${EXE} PRIVATE
-    $<$<BOOL:${SANITIZE_ADDRESS}>:asan>
+    $<$<BOOL:${SANITIZE_ADDRESS}>:-fsanitize=address>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     u2f-util
   )

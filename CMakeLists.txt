@@ -46,7 +46,7 @@ endif()
 
 # This is ignored on platforms other than darwin. By default rust compiles for
 # 10.7 which doesn't link for us.
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11" CACHE STRING "Minimum OS X deployment version")
 
 project(bitbox02 C)
 
@@ -65,6 +65,7 @@ option(COVERAGE "Compile with test coverage flags." OFF)
 option(SANITIZE_ADDRESS "Compile with asan." OFF)
 option(SANITIZE_UNDEFINED "Compile with ubsan." OFF)
 option(CMAKE_VERBOSE_MAKEFILE "Verbose build." OFF)
+
 # Generate compile_command.json (for tidy and other tools)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -343,6 +344,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_XOPEN_SOURCE=600")
 string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
 add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
 
+if(SANITIZE_ADDRESS)
+    string(APPEND CMAKE_C_FLAGS " -fsanitize=address")
+endif()
+if(SANITIZE_UNDEFINED)
+    string(APPEND CMAKE_C_FLAGS " -fsanitize=undefined")
+endif()
 
 # protoc is used to generate API messages
 find_program(PROTOC protoc)

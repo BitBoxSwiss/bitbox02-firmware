@@ -18,17 +18,60 @@
 #include <memory/memory_shared.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+
+
+#define FAKE_MEMORY_ENV_VAR "FAKE_MEMORY_FILEPATH"
+#define SHARED_SUFFIX "shared"
+#define APP_SUFFIX "app"
+#define EEPROM_SUFFIX "eeprom"
 
 static uint8_t _memory_shared_data[FLASH_SHARED_DATA_LEN] = {0};
 static uint8_t _memory_app_data[FLASH_APPDATA_LEN] = {0};
 static uint8_t _memory_smarteeprom[SMARTEEPROM_RESERVED_FLASH_PAGES * FLASH_PAGE_SIZE] = {0};
+
+static void _init_file_if_needed(
+    const char* base_path,
+    const char* suffix,
+    const uint8_t* data,
+    size_t data_size)
+{
+    char path[512];
+    if (snprintf(path, sizeof(path), "%s_%s", base_path, suffix) >= sizeof(path)) {
+        fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
+        exit(EXIT_FAILURE);
+    }
+
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        return; // The file already exists, do nothing.
+    }
+
+    FILE* f = fopen(path, "wb");
+    if (f) {
+        fwrite(data, 1, data_size, f);
+        fclose(f);
+    } else {
+        fprintf(stderr, "error: could not create fake memory file %s\n", path);
+        exit(EXIT_FAILURE);
+    }
+}
 
 void fake_memory_factoryreset(void)
 {
     memset(_memory_shared_data, 0xff, sizeof(_memory_shared_data));
     memset(_memory_app_data, 0xff, sizeof(_memory_app_data));
     memset(_memory_smarteeprom, 0xff, sizeof(_memory_smarteeprom));
+
+    const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
+    if (base_path) {
+        _init_file_if_needed(base_path, SHARED_SUFFIX, _memory_shared_data, sizeof(_memory_shared_data));
+        _init_file_if_needed(base_path, APP_SUFFIX, _memory_app_data, sizeof(_memory_app_data));
+        _init_file_if_needed(base_path, EEPROM_SUFFIX, _memory_smarteeprom, sizeof(_memory_smarteeprom));
+    }
 }
+
 #define ALLOWED_HASH                                                                               \
     "\x1e\x4a\xa8\x36\x4e\x93\x5c\x07\x85\xe4\xf8\x91\x20\x83\x07\xd8\x32\xf7\x88\x17\x2e\x4b\xf6" \
     "\x16\x21\xde\x6d\xf9\xec\x3c\x21\x5f"
@@ -63,8 +106,78 @@ static uint8_t* _get_memory(uint32_t base)
     }
 }
 
+static void _write_file_chunk(const char* suffix, uint32_t offset, const uint8_t* chunk, size_t len)
+{
+    char path[512];
+    const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
+    if (!base_path) {
+        return;
+    }
+    if (snprintf(path, sizeof(path), "%s_%s", base_path, suffix) >= sizeof(path)) {
+        fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
+        exit(EXIT_FAILURE);
+    }
+    FILE* f = fopen(path, "r+b");
+    if (!f) {
+        fprintf(stderr, "error: fake memory file %s not found\n", path);
+        exit(EXIT_FAILURE);
+    }
+    fseek(f, offset, SEEK_SET);
+    fwrite(chunk, 1, len, f);
+    fclose(f);
+}
+
+static void _read_file_chunk(const char* suffix, uint32_t offset, uint8_t* chunk, size_t len)
+{
+    char path[512];
+    const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
+    if (!base_path) {
+        return;
+    }
+    if (snprintf(path, sizeof(path), "%s_%s", base_path, suffix) >= sizeof(path)) {
+        fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
+        exit(EXIT_FAILURE);
+    }
+    FILE* f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "error: fake memory file %s not found\n", path);
+        exit(EXIT_FAILURE);
+    }
+    fseek(f, offset, SEEK_SET);
+    fread(chunk, 1, len, f);
+    fclose(f);
+}
+
 bool memory_write_to_address_fake(uint32_t base, uint32_t addr, const uint8_t* chunk)
 {
+    const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
+
+    if (base_path) {
+        size_t len = CHUNK_SIZE;
+        const char* suffix = NULL;
+        switch (base) {
+        case FLASH_SHARED_DATA_START:
+            suffix = SHARED_SUFFIX;
+            break;
+        case FLASH_APPDATA_START:
+            suffix = APP_SUFFIX;
+            break;
+        case FLASH_SMARTEEPROM_START:
+            suffix = EEPROM_SUFFIX;
+            break;
+        default:
+            return false;
+        }
+        if (chunk == NULL) {
+            uint8_t empty[CHUNK_SIZE];
+            memset(empty, 0xff, CHUNK_SIZE);
+            _write_file_chunk(suffix, addr, empty, len);
+        } else {
+            _write_file_chunk(suffix, addr, chunk, len);
+        }
+        return true;
+    }
+
     if (chunk == NULL) {
         memset(_get_memory(base) + addr, 0xff, (size_t)CHUNK_SIZE);
     } else {
@@ -80,11 +193,23 @@ bool memory_write_chunk_fake(uint32_t chunk_num, const uint8_t* chunk)
 
 void memory_read_chunk_fake(uint32_t chunk_num, uint8_t* chunk_out)
 {
+    const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
+    if (base_path) {
+        _read_file_chunk(APP_SUFFIX, chunk_num * (size_t)CHUNK_SIZE, chunk_out, (size_t)CHUNK_SIZE);
+        return;
+    }
+
     memcpy(chunk_out, _memory_app_data + chunk_num * (size_t)CHUNK_SIZE, (size_t)CHUNK_SIZE);
 }
 
 void memory_read_shared_bootdata_fake(uint8_t* chunk_out)
 {
+    const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
+    if (base_path) {
+        _read_file_chunk(SHARED_SUFFIX, 0, chunk_out, (size_t)FLASH_SHARED_DATA_LEN);
+        return;
+    }
+
     memcpy(chunk_out, _memory_shared_data, (size_t)FLASH_SHARED_DATA_LEN);
 }
 

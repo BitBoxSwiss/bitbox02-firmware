@@ -13,6 +13,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - simulator: enable Test Merchant for payment requests
 - simulator: simulate a Nova device
 - Add API call to fetch multiple xpubs at once
+- Add the option for the simulator to write its memory to file.
 
 ### 9.23.1
 - EVM: add HyperEVM (HYPE) and SONIC (S) to known networks

@@ -38,7 +38,8 @@ static void _init_file_if_needed(
     size_t data_size)
 {
     char path[512];
-    if (snprintf(path, sizeof(path), "%s_%s", base_path, suffix) >= sizeof(path)) {
+    int written = snprintf(path, sizeof(path), "%s_%s", base_path, suffix);
+    if (written <0  || (size_t) written >= sizeof(path)) {
         fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
         exit(EXIT_FAILURE);
     }
@@ -113,7 +114,8 @@ static void _write_file_chunk(const char* suffix, uint32_t offset, const uint8_t
     if (!base_path) {
         return;
     }
-    if (snprintf(path, sizeof(path), "%s_%s", base_path, suffix) >= sizeof(path)) {
+    int written = snprintf(path, sizeof(path), "%s_%s", base_path, suffix);
+    if (written <0  || (size_t) written >= sizeof(path)) {
         fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
         exit(EXIT_FAILURE);
     }
@@ -134,7 +136,8 @@ static void _read_file_chunk(const char* suffix, uint32_t offset, uint8_t* chunk
     if (!base_path) {
         return;
     }
-    if (snprintf(path, sizeof(path), "%s_%s", base_path, suffix) >= sizeof(path)) {
+    int written = snprintf(path, sizeof(path), "%s_%s", base_path, suffix);
+    if (written <0  || (size_t) written >= sizeof(path)) {
         fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
         exit(EXIT_FAILURE);
     }
@@ -144,7 +147,11 @@ static void _read_file_chunk(const char* suffix, uint32_t offset, uint8_t* chunk
         exit(EXIT_FAILURE);
     }
     fseek(f, offset, SEEK_SET);
-    fread(chunk, 1, len, f);
+    size_t nread = fread(chunk, 1, len, f);
+    if (nread != len) {
+        fprintf(stderr, "expected %zu bytes, got %zu\n", len, nread);
+        exit(EXIT_FAILURE);
+    }
     fclose(f);
 }
 

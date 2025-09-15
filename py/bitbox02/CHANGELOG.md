@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+# 7.1.0
+- Add `btc_xpubs()` to fetch multiple xpubs at once
+
 # 7.0.0
 - get_info: add optional device initialized boolean to returned tuple
 - eth_sign: add address_case field, which should be initialized by the client

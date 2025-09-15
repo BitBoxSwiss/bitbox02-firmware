@@ -109,23 +109,6 @@ jobs:
       - name: run ATECC608 unit tests
         run: (cd tools/atecc608; go test ./...)
 
-  simulator:
-    runs-on: ubuntu-22.04
-    container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
-    steps:
-      - name: Clone the repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          submodules: recursive
-
-      - name: Mark directory as safe
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
-
-      - name: Build simulator
-        run: make -j$(($(nproc) + 1)) simulator
-
   leakcheck:
     runs-on: ubuntu-22.04
     container: ${{ inputs.container-repo }}:${{ inputs.container-version }}
@@ -183,6 +166,7 @@ jobs:
           - firmware-btc
           - factory-setup
           - firmware-debug
+          - simulator
     runs-on: ubuntu-22.04
     container:
       image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
@@ -221,6 +205,7 @@ jobs:
             build*/bin/*.bin
             build*/bin/*.elf
             build*/bin/*.map
+            build*/bin/simulator
 
   doc:
     runs-on: ubuntu-22.04

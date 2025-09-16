@@ -230,12 +230,12 @@ else()
   set(RUST_PROFILE "release")
   set(RUST_CARGO_FLAGS "--release")
   # For binary reproducibility, strip path prefixes that can be different depending on environment (e.g. /home/<user>, etc.).
-  set(RUSTFLAGS "--remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src --remap-path-prefix=$ENV{HOME}=")
+  string(APPEND RUSTFLAGS " --remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src --remap-path-prefix=$ENV{HOME}=")
 endif()
 
 # Use libsecp256k1 that we link ourselves.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
-set(RUSTFLAGS "${RUSTFLAGS} --cfg=rust_secp_no_symbol_renaming")
+string(APPEND RUSTFLAGS " --cfg=rust_secp_no_symbol_renaming")
 
 if(CMAKE_CROSSCOMPILING)
   set(RUST_TARGET_ARCH thumbv7em-none-eabi)

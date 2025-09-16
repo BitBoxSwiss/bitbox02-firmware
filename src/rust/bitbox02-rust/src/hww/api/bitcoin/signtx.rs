@@ -717,8 +717,20 @@ async fn _process(
     let mut hasher_amounts = Sha256::new();
     let mut hasher_scriptpubkeys = Sha256::new();
 
-    // Are all inputs taproot?
-    let taproot_only = validated_script_configs.iter().all(is_taproot);
+    let prev_txs = pb::btc_sign_init_request::PrevTxs::try_from(request.prev_txs)?;
+
+    // We will request to stream previous transactions if not all inputs are Taproot.
+    let prevtxs_required: bool = match prev_txs {
+        // For backwards compatibility for client's that don't provide the `prev_txs` field: handle
+        // it like before `prev_txs` was introduced by inspecting the script configs and seeing if
+        // all of them are taproot. This is not robust, as non-Taproot change outputs are included
+        // there and falsely leads to previous transactions being required.
+        pb::btc_sign_init_request::PrevTxs::Default => {
+            !validated_script_configs.iter().all(is_taproot)
+        }
+        pb::btc_sign_init_request::PrevTxs::Required => true,
+        pb::btc_sign_init_request::PrevTxs::NotRequired => false,
+    };
 
     let mut silent_payment = if request.contains_silent_payment_outputs {
         Some(SilentPayment::new(SECP256K1, coin.try_into()?))
@@ -775,7 +787,7 @@ async fn _process(
         hasher_scriptpubkeys.update(serialize_varint(pk_script.len() as u64).as_slice());
         hasher_scriptpubkeys.update(pk_script.as_slice());
 
-        if !taproot_only {
+        if prevtxs_required {
             handle_prevtx(
                 input_index,
                 &tx_input,
@@ -784,6 +796,8 @@ async fn _process(
                 &mut next_response,
             )
             .await?;
+        } else if !is_taproot(script_config_account) {
+            return Err(Error::InvalidInput);
         }
 
         if let Some(ref mut silent_payment) = silent_payment {
@@ -1572,6 +1586,7 @@ mod tests {
                     .outputs
                     .iter()
                     .any(|output| output.silent_payment.is_some()),
+                prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
             }
         }
 
@@ -1595,6 +1610,7 @@ mod tests {
                 locktime: self.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
             }
         }
 
@@ -1679,6 +1695,7 @@ mod tests {
             locktime: 0,
             format_unit: FormatUnit::Default as _,
             contains_silent_payment_outputs: false,
+            prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
         };
 
         {
@@ -1871,6 +1888,7 @@ mod tests {
                         locktime: 0,
                         format_unit: FormatUnit::Default as _,
                         contains_silent_payment_outputs: false,
+                        prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
                     }
                 )),
                 Err(Error::InvalidInput)
@@ -2147,6 +2165,57 @@ mod tests {
         assert!(unsafe { !PREVTX_REQUESTED });
     }
 
+    /// Test signing if all inputs are of type P2TR, but change is not of type P2TR.
+    /// Previous transactions are requested for backwards compatibility when
+    #[test]
+    fn test_script_type_p2tr_different_change() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        for input in transaction.borrow_mut().inputs.iter_mut() {
+            input.input.keypath[0] = 86 + HARDENED;
+            input.input.script_config_index = 1;
+        }
+
+        let tx = transaction.clone();
+        // Check that previous transactions are not streamed, as all inputs are taproot.
+        static mut PREVTX_REQUESTED: bool = false;
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response: Response| {
+                let next = extract_next(&response);
+                if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
+                    unsafe { PREVTX_REQUESTED = true }
+                }
+                Ok(tx.borrow().make_host_request(response))
+            }));
+
+        mock_unlocked();
+        bitbox02::random::fake_reset();
+        let mut init_request = transaction.borrow().init_request();
+        init_request
+            .script_configs
+            .push(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(
+                        SimpleType::P2tr as _,
+                    )),
+                }),
+                keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
+            });
+
+        init_request.prev_txs = pb::btc_sign_init_request::PrevTxs::NotRequired as _;
+        assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
+        assert!(unsafe { !PREVTX_REQUESTED });
+
+        // Also test compatibility mode - before the introduction of `prev_txs`, the previous
+        // transactions were wrongly requested in this case.
+        unsafe {
+            PREVTX_REQUESTED = false;
+        }
+        init_request.prev_txs = pb::btc_sign_init_request::PrevTxs::Default as _;
+        assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
+        assert!(unsafe { PREVTX_REQUESTED });
+    }
+
     /// Test signing if with mixed inputs, one of them being taproot. Previous transactions of all
     /// inputs should be streamed in this case.
     #[test]
@@ -2180,10 +2249,30 @@ mod tests {
                 }),
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
+
+        // In compatibility mode, prevtxs are correctly requested.
+        init_request.prev_txs = pb::btc_sign_init_request::PrevTxs::Default as _;
+        unsafe { PREVTX_REQUESTED = 0 };
         assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
         assert_eq!(
             unsafe { PREVTX_REQUESTED },
             transaction.borrow().inputs.len() as _
+        );
+
+        // Same as when the client explicitly states it.
+        init_request.prev_txs = pb::btc_sign_init_request::PrevTxs::Required as _;
+        unsafe { PREVTX_REQUESTED = 0 };
+        assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
+        assert_eq!(
+            unsafe { PREVTX_REQUESTED },
+            transaction.borrow().inputs.len() as _
+        );
+
+        // Client can't lie about it.
+        init_request.prev_txs = pb::btc_sign_init_request::PrevTxs::NotRequired as _;
+        assert_eq!(
+            block_on(process(&mut TestingHal::new(), &init_request)),
+            Err(Error::InvalidInput)
         );
     }
 
@@ -2881,6 +2970,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
             }
         };
 
@@ -2976,6 +3066,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
             }
         };
         assert_eq!(
@@ -3047,6 +3138,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
             }
         };
         let result = block_on(process(&mut TestingHal::new(), &init_request));
@@ -3124,6 +3216,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                prev_txs: pb::btc_sign_init_request::PrevTxs::Default as _,
             }
         };
         let result = block_on(process(&mut TestingHal::new(), &init_request));

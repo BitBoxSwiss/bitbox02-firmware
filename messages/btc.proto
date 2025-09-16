@@ -129,6 +129,19 @@ message BTCSignInitRequest {
   // used script configs for outputs that send to an address of the same keystore, but not
   // necessarily the same account (as defined by `script_configs` above).
   repeated BTCScriptConfigWithKeypath output_script_configs = 10;
+
+  enum PrevTxs {
+    PREV_TXS_DEFAULT = 0;
+    PREV_TXS_REQUIRED = 1;
+    PREV_TXS_NOT_REQUIRED = 2;
+  }
+  // Set this to:
+  // - `PREV_TXS_DEFAULT` for compatibility mode, the value will be determined using `script_configs`.
+  //  This is not robust, as non-Taproot change outputs are included there and falsely leads to
+  //  previous transactions being required.
+  // - `PREV_TXS_REQUIRED` if not all transaction inputs are Taproot.
+  // - `PREV_TXS_NOT_REQUIRED` if all transaction inputs are Taproot.
+  PrevTxs prev_txs = 11;
 }
 
 message BTCSignNextResponse {

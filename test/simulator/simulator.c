@@ -143,6 +143,20 @@ int main(int argc, char* argv[])
         perror("ERROR opening socket");
         return 1;
     }
+
+    int yes = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0) {
+        perror("setsockopt(SO_REUSEADDR) failed");
+        return 1;
+    }
+
+#ifdef SO_REUSEPORT
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes)) < 0) {
+        perror("setsockopt(SO_REUSEPORT) failed");
+        return 1;
+    }
+#endif
+
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;

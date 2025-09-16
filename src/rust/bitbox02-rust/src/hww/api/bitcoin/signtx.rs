@@ -1659,7 +1659,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_sign_init_fail() {
+    fn test_sign_init_fail() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
 
         let init_req_valid = pb::BtcSignInitRequest {
@@ -1895,7 +1895,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_process() {
+    fn test_process() {
         static mut UI_COUNTER: u32 = 0;
         static mut PREVTX_REQUESTED: u32 = 0;
 
@@ -2042,7 +2042,7 @@ mod tests {
 
     /// Test that receiving an unexpected message from the host results in an invalid state error.
     #[test]
-    pub fn test_invalid_state() {
+    fn test_invalid_state() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         mock_unlocked();
@@ -2066,7 +2066,7 @@ mod tests {
 
     /// Test signing if all inputs are of type P2WPKH-P2SH.
     #[test]
-    pub fn test_script_type_p2wpkh_p2sh() {
+    fn test_script_type_p2wpkh_p2sh() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         for input in transaction.borrow_mut().inputs.iter_mut() {
@@ -2101,7 +2101,7 @@ mod tests {
 
     /// Test signing if all inputs are of type P2TR.
     #[test]
-    pub fn test_script_type_p2tr() {
+    fn test_script_type_p2tr() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         for input in transaction.borrow_mut().inputs.iter_mut() {
@@ -2150,7 +2150,7 @@ mod tests {
     /// Test signing if with mixed inputs, one of them being taproot. Previous transactions of all
     /// inputs should be streamed in this case.
     #[test]
-    pub fn test_script_type_p2tr_mixed() {
+    fn test_script_type_p2tr_mixed() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
@@ -2191,7 +2191,7 @@ mod tests {
     /// receive addresses at these indices (to mitigate ransom attacks), we should still be able to
     /// spend them.
     #[test]
-    pub fn test_spend_high_address_index() {
+    fn test_spend_high_address_index() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.keypath[4] = 100000;
@@ -2208,7 +2208,7 @@ mod tests {
 
     /// Test invalid input cases.
     #[test]
-    pub fn test_invalid_input() {
+    fn test_invalid_input() {
         enum TestCase {
             // all inputs should be the same coin type.
             WrongCoinInput,
@@ -2319,7 +2319,7 @@ mod tests {
 
     /// Test signing with mixed input types.
     #[test]
-    pub fn test_mixed_inputs() {
+    fn test_mixed_inputs() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
@@ -3588,7 +3588,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_payment_request() {
+    fn test_payment_request() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 

@@ -88,18 +88,13 @@ void memory_read_shared_bootdata_fake(uint8_t* chunk_out)
     memcpy(chunk_out, _memory_shared_data, (size_t)FLASH_SHARED_DATA_LEN);
 }
 
-static uint8_t _salt_root[32] = {
+uint8_t _salt_root[32] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
     0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
 };
 void fake_memory_set_salt_root(const uint8_t* salt_root)
 {
     memcpy(_salt_root, salt_root, 32);
-}
-bool __wrap_memory_get_salt_root(uint8_t* salt_root_out)
-{
-    memcpy(salt_root_out, _salt_root, 32);
-    return true;
 }
 
 // Arbitrary value.

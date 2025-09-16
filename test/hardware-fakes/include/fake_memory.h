@@ -20,6 +20,8 @@
 
 #include <flags.h>
 
+extern uint8_t _salt_root[32];
+
 void fake_memory_factoryreset(void);
 bool fake_memory_nova(void);
 bool memory_write_to_address_fake(uint32_t base, uint32_t addr, const uint8_t* chunk);

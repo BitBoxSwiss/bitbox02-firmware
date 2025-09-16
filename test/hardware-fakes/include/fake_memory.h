@@ -28,6 +28,7 @@ void memory_read_chunk_fake(uint32_t chunk_num, uint8_t* chunk_out);
 // Size: `FLASH_SHARED_DATA_LEN`.
 void memory_read_shared_bootdata_fake(uint8_t* chunk_out);
 void fake_memory_set_salt_root(const uint8_t* salt_root);
+const uint8_t* fake_memory_get_salt_root(void);
 void memory_bootloader_hash_fake(uint8_t* hash_out);
 void memory_set_bootloader_hash_fake(const uint8_t* fake_hash);
 #endif

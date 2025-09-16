@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
+#include <fake_memory.h>
 #include <flags.h>
 #include <memory/memory.h>
 #include <stdio.h>
@@ -66,4 +67,10 @@ bool __wrap_memory_set_mnemonic_passphrase_enabled(bool enabled)
 {
     check_expected(enabled);
     return mock();
+}
+
+bool __wrap_memory_get_salt_root(uint8_t* salt_root_out)
+{
+    memcpy(salt_root_out, fake_memory_get_salt_root(), 32);
+    return true;
 }

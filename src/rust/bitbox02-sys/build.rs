@@ -270,7 +270,7 @@ pub fn main() -> Result<(), &'static str> {
     let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
     let arm_sysroot = format!("--sysroot={arm_sysroot}");
 
-    let extra_flags = if cross_compiling {
+    let mut extra_flags = if cross_compiling {
         vec![
             "-D__SAMD51J20A__",
             "--target=thumbv7em-none-eabi",
@@ -283,6 +283,15 @@ pub fn main() -> Result<(), &'static str> {
     } else {
         vec!["-DTESTING", "-D_UNIT_TEST_", "-DPRODUCT_BITBOX_MULTI=1"]
     };
+
+    // If user enables -Dwarnings for rust we also want to enable -Werror for C.
+    if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
+        for flag in rustflags.split('\x1f') {
+            if flag == "-Dwarnings" {
+                extra_flags.push("-Werror");
+            }
+        }
+    }
 
     let mut includes = vec![
         // $INCLUDES

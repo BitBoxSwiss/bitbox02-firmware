@@ -28,17 +28,10 @@ void ui_screen_render_component(component_t* component);
 component_t* screen_process_get_top_component(void);
 
 /**
- * Runs the UI once.
- *
- * This function will update the screen (if needed)
- * and process gesture-related events.
+ *  Renders screen to frame buffer
  */
 void screen_process(void);
 
-/**
- * Period of screen updates.
- * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.
- */
-#define SCREEN_FRAME_RATE 30
+void screen_process_init(void);
 
 #endif

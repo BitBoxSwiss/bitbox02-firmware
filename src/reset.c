@@ -46,7 +46,7 @@ static void _show_reset_label(bool status)
     canvas_clear();
     comp->f->render(comp);
     canvas_commit();
-    oled_blit();
+    oled_blit(true);
     comp->f->cleanup(comp);
     delay_ms(3000);
 }

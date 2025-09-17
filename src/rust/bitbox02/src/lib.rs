@@ -71,7 +71,7 @@ pub fn canvas_commit() {
 }
 
 pub fn oled_blit() {
-    unsafe { bitbox02_sys::oled_blit() }
+    unsafe { bitbox02_sys::oled_blit(true) }
 }
 
 pub fn ug_font_select_9x9() {

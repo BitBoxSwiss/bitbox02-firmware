@@ -24,13 +24,23 @@
 void oled_writer_write_data(const uint8_t* buf, size_t buf_len);
 
 /*
+ * Write display data to graphics RAM
+ */
+void oled_writer_write_data_blocking(const uint8_t* buf, size_t buf_len);
+
+/*
  * Write single byte command
  */
-void oled_writer_write_cmd(uint8_t command);
+void oled_writer_write_cmd_blocking(uint8_t command);
 
 /*
  * Write double byte command
  */
-void oled_writer_write_cmd_with_param(uint8_t command, uint8_t value);
+void oled_writer_write_cmd_with_param_blocking(uint8_t command, uint8_t value);
+
+/*
+ * Initialize oled writer
+ */
+void oled_writer_init(void);
 
 #endif

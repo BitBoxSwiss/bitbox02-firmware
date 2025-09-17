@@ -95,8 +95,25 @@ static struct bb02_display bb02_display = {
     .mirror = sh1107_mirror,
 };
 
+static struct timer_task task_blit_screen;
+volatile bool blit_screen = true;
+
+static void blit_screen_cb(const struct timer_task* const timer_task)
+{
+    (void)timer_task;
+    blit_screen = true;
+}
+
 void oled_init(void)
 {
+    oled_writer_init();
+
+    // Limit screen blitting to 62.5hz
+    task_blit_screen.interval = 16;
+    task_blit_screen.cb = blit_screen_cb;
+    task_blit_screen.mode = TIMER_TASK_REPEAT;
+    timer_add_task(&TIMER_0, &task_blit_screen);
+
     if (memory_get_screen_type() == MEMORY_SCREEN_TYPE_SSD1312) {
         bb02_display.configure = ssd1312_configure;
         bb02_display.set_pixel = ssd1312_set_pixel;
@@ -126,9 +143,12 @@ void oled_init(void)
     _enabled = true;
 }
 
-void oled_blit(void)
+void oled_blit(bool force)
 {
-    bb02_display.blit();
+    if (blit_screen || force) {
+        blit_screen = false;
+        bb02_display.blit();
+    }
 }
 
 void oled_mirror(bool mirror)
@@ -155,5 +175,5 @@ void oled_off(void)
 void oled_set_brightness(uint8_t value)
 {
     // brightness uses the same command on all displays 0x81.
-    oled_writer_write_cmd_with_param(0x81, value);
+    oled_writer_write_cmd_with_param_blocking(0x81, value);
 }

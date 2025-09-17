@@ -219,9 +219,9 @@ int main(void)
                 }
                 bootloader_pairing_request = false;
                 canvas_commit();
-                oled_blit();
             }
         }
+        oled_blit(false);
 #endif
     }
     return 0;

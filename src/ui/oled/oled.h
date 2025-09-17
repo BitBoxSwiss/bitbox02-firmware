@@ -78,7 +78,7 @@ void oled_mirror(bool mirror);
 /**
  * Transfer active canvas to the screen
  */
-void oled_blit(void);
+void oled_blit(bool force);
 
 /**
  * Turn off oled

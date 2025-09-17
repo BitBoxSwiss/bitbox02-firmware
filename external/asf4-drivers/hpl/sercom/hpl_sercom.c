@@ -31,6 +31,7 @@
  * \asf_license_stop
  *
  */
+#include <hpl_spi_m_dma.h>
 #include <hpl_dma.h>
 #include <hpl_i2c_m_async.h>
 #include <hpl_i2c_m_sync.h>
@@ -3025,4 +3026,429 @@ void _spi_s_async_set_irq_state(struct _spi_async_dev *const device, const enum 
                                 const bool state)
 {
 	_spi_m_async_set_irq_state(device, type, state);
+}
+#ifndef CONF_SERCOM_0_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_0_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_0_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_0_SPI_M_DMA_RX_CHANNEL 1
+#endif
+#ifndef CONF_SERCOM_1_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_1_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_1_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_1_SPI_M_DMA_RX_CHANNEL 1
+#endif
+#ifndef CONF_SERCOM_2_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_2_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_2_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_2_SPI_M_DMA_RX_CHANNEL 1
+#endif
+#ifndef CONF_SERCOM_3_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_3_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_3_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_3_SPI_M_DMA_RX_CHANNEL 1
+#endif
+#ifndef CONF_SERCOM_4_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_4_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_4_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_4_SPI_M_DMA_RX_CHANNEL 1
+#endif
+#ifndef CONF_SERCOM_5_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_5_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_5_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_5_SPI_M_DMA_RX_CHANNEL 1
+#endif
+#ifndef CONF_SERCOM_6_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_6_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_6_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_6_SPI_M_DMA_RX_CHANNEL 1
+#endif
+#ifndef CONF_SERCOM_7_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_7_SPI_M_DMA_TX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_7_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_7_SPI_M_DMA_RX_CHANNEL 1
+#endif
+
+#ifndef CONF_SERCOM_0_SPI_RX_CHANNEL
+#define CONF_SERCOM_0_SPI_RX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_1_SPI_RX_CHANNEL
+#define CONF_SERCOM_1_SPI_RX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_2_SPI_RX_CHANNEL
+#define CONF_SERCOM_2_SPI_RX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_3_SPI_RX_CHANNEL
+#define CONF_SERCOM_3_SPI_RX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_4_SPI_RX_CHANNEL
+#define CONF_SERCOM_4_SPI_RX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_5_SPI_RX_CHANNEL
+#define CONF_SERCOM_5_SPI_RX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_6_SPI_RX_CHANNEL
+#define CONF_SERCOM_6_SPI_RX_CHANNEL 0
+#endif
+#ifndef CONF_SERCOM_7_SPI_RX_CHANNEL
+#define CONF_SERCOM_7_SPI_RX_CHANNEL 0
+#endif
+
+/** \internal Enable SERCOM SPI RX
+ *
+ *  \param[in] hw Pointer to the hardware register base.
+ *
+ * \return Enabling status
+ */
+static int32_t _spi_sync_rx_enable(void *const hw)
+{
+	if (hri_sercomspi_is_syncing(hw, SERCOM_SPI_SYNCBUSY_CTRLB)) {
+		return ERR_BUSY;
+	}
+
+	hri_sercomspi_set_CTRLB_RXEN_bit(hw);
+
+	return ERR_NONE;
+}
+
+/** \internal Disable SERCOM SPI RX
+ *
+ *  \param[in] hw Pointer to the hardware register base.
+ *
+ * \return Disabling status
+ */
+static int32_t _spi_sync_rx_disable(void *const hw)
+{
+	if (hri_sercomspi_is_syncing(hw, SERCOM_SPI_SYNCBUSY_CTRLB)) {
+		return ERR_BUSY;
+	}
+	hri_sercomspi_clear_CTRLB_RXEN_bit(hw);
+
+	return ERR_NONE;
+}
+
+static int32_t _spi_m_dma_rx_enable(struct _spi_m_dma_dev *dev)
+{
+	ASSERT(dev && dev->prvt);
+
+	return _spi_sync_rx_enable(dev->prvt);
+}
+
+static int32_t _spi_m_dma_rx_disable(struct _spi_m_dma_dev *dev)
+{
+	ASSERT(dev && dev->prvt);
+
+	return _spi_sync_rx_disable(dev->prvt);
+}
+
+/**
+ *  \brief Get the spi source address for DMA
+ *  \param[in] dev Pointer to the SPI device instance
+ *
+ *  \return The spi source address
+ */
+static uint32_t _spi_m_get_source_for_dma(void *const hw)
+{
+	return (uint32_t) & (((Sercom *)hw)->SPI.DATA);
+}
+
+/**
+ *  \brief Get the spi destination address for DMA
+ *  \param[in] dev Pointer to the SPI device instance
+ *
+ *  \return The spi destination address
+ */
+static uint32_t _spi_m_get_destination_for_dma(void *const hw)
+{
+	return (uint32_t) & (((Sercom *)hw)->SPI.DATA);
+}
+
+/**
+ *  \brief Return the SPI TX DMA channel index
+ *  \param[in] hw_addr The hardware register base address
+ *
+ *  \return SPI TX DMA channel index.
+ */
+static uint8_t _spi_get_tx_dma_channel(const void *const hw)
+{
+	uint8_t index = _sercom_get_hardware_index(hw);
+
+	switch (index) {
+	case 0:
+		return CONF_SERCOM_0_SPI_M_DMA_TX_CHANNEL;
+	case 1:
+		return CONF_SERCOM_1_SPI_M_DMA_TX_CHANNEL;
+	case 2:
+		return CONF_SERCOM_2_SPI_M_DMA_TX_CHANNEL;
+	case 3:
+		return CONF_SERCOM_3_SPI_M_DMA_TX_CHANNEL;
+	case 4:
+		return CONF_SERCOM_4_SPI_M_DMA_TX_CHANNEL;
+	case 5:
+		return CONF_SERCOM_5_SPI_M_DMA_TX_CHANNEL;
+	case 6:
+		return CONF_SERCOM_6_SPI_M_DMA_TX_CHANNEL;
+	case 7:
+		return CONF_SERCOM_7_SPI_M_DMA_TX_CHANNEL;
+	default:
+		return CONF_SERCOM_0_SPI_M_DMA_TX_CHANNEL;
+	}
+}
+
+/**
+ *  \brief Return whether SPI RX DMA channel is enabled or not
+ *  \param[in] hw_addr The hardware register base address
+ *
+ *  \return one if enabled.
+ */
+static uint8_t _spi_is_rx_dma_channel_enabled(const void *const hw)
+{
+	uint8_t index = _sercom_get_hardware_index(hw);
+
+	switch (index) {
+	case 0:
+		return CONF_SERCOM_0_SPI_RX_CHANNEL;
+	case 1:
+		return CONF_SERCOM_1_SPI_RX_CHANNEL;
+	case 2:
+		return CONF_SERCOM_2_SPI_RX_CHANNEL;
+	case 3:
+		return CONF_SERCOM_3_SPI_RX_CHANNEL;
+	case 4:
+		return CONF_SERCOM_4_SPI_RX_CHANNEL;
+	case 5:
+		return CONF_SERCOM_5_SPI_RX_CHANNEL;
+	case 6:
+		return CONF_SERCOM_6_SPI_RX_CHANNEL;
+	case 7:
+		return CONF_SERCOM_7_SPI_RX_CHANNEL;
+	default:
+		return false;
+	}
+}
+
+/**
+ *  \brief Return the SPI RX DMA channel index
+ *  \param[in] hw_addr The hardware register base address
+ *
+ *  \return SPI RX DMA channel index.
+ */
+static uint8_t _spi_get_rx_dma_channel(const void *const hw)
+{
+	uint8_t index = _sercom_get_hardware_index(hw);
+
+	switch (index) {
+	case 0:
+		return CONF_SERCOM_0_SPI_M_DMA_RX_CHANNEL;
+	case 1:
+		return CONF_SERCOM_1_SPI_M_DMA_RX_CHANNEL;
+	case 2:
+		return CONF_SERCOM_2_SPI_M_DMA_RX_CHANNEL;
+	case 3:
+		return CONF_SERCOM_3_SPI_M_DMA_RX_CHANNEL;
+	case 4:
+		return CONF_SERCOM_4_SPI_M_DMA_RX_CHANNEL;
+	case 5:
+		return CONF_SERCOM_5_SPI_M_DMA_RX_CHANNEL;
+	case 6:
+		return CONF_SERCOM_6_SPI_M_DMA_RX_CHANNEL;
+	case 7:
+		return CONF_SERCOM_7_SPI_M_DMA_RX_CHANNEL;
+	default:
+		return CONF_SERCOM_0_SPI_M_DMA_TX_CHANNEL;
+	}
+}
+
+/**
+ *  \brief Callback for RX
+ *  \param[in, out] dev Pointer to the DMA resource.
+ */
+static void _spi_dma_rx_complete(struct _dma_resource *resource)
+{
+	struct _spi_m_dma_dev *dev = (struct _spi_m_dma_dev *)resource->back;
+
+	if (dev->callbacks.rx) {
+		dev->callbacks.rx(resource);
+	}
+}
+
+/**
+ *  \brief Callback for TX
+ *  \param[in, out] dev Pointer to the DMA resource.
+ */
+static void _spi_dma_tx_complete(struct _dma_resource *resource)
+{
+	struct _spi_m_dma_dev *dev = (struct _spi_m_dma_dev *)resource->back;
+
+	if (dev->callbacks.tx) {
+		dev->callbacks.tx(resource);
+	}
+}
+
+/**
+ *  \brief Callback for ERROR
+ *  \param[in, out] dev Pointer to the DMA resource.
+ */
+static void _spi_dma_error_occured(struct _dma_resource *resource)
+{
+	struct _spi_m_dma_dev *dev = (struct _spi_m_dma_dev *)resource->back;
+
+	if (dev->callbacks.error) {
+		dev->callbacks.error(resource);
+	}
+}
+
+int32_t _spi_m_dma_init(struct _spi_m_dma_dev *dev, void *const hw)
+{
+	const struct sercomspi_regs_cfg *regs = _spi_get_regs((uint32_t)hw);
+
+	ASSERT(dev && hw);
+
+	if (regs == NULL) {
+		return ERR_INVALID_ARG;
+	}
+
+	if (!hri_sercomspi_is_syncing(hw, SERCOM_SPI_SYNCBUSY_SWRST)) {
+		uint32_t mode = regs->ctrla & SERCOM_SPI_CTRLA_MODE_Msk;
+		if (hri_sercomspi_get_CTRLA_reg(hw, SERCOM_SPI_CTRLA_ENABLE)) {
+			hri_sercomspi_clear_CTRLA_ENABLE_bit(hw);
+			hri_sercomspi_wait_for_sync(hw, SERCOM_SPI_SYNCBUSY_ENABLE);
+		}
+		hri_sercomspi_write_CTRLA_reg(hw, SERCOM_SPI_CTRLA_SWRST | mode);
+	}
+	hri_sercomspi_wait_for_sync(hw, SERCOM_SPI_SYNCBUSY_SWRST);
+
+	dev->prvt = hw;
+
+	_spi_load_regs_master(hw, regs);
+
+	/* If enabled, initialize DMA rx channel */
+	if (_spi_is_rx_dma_channel_enabled(hw)) {
+		_dma_get_channel_resource(&dev->resource, _spi_get_rx_dma_channel(hw));
+		dev->resource->back                 = dev;
+		dev->resource->dma_cb.transfer_done = _spi_dma_rx_complete;
+		dev->resource->dma_cb.error         = _spi_dma_error_occured;
+	}
+	/* Initialize DMA tx channel */
+	_dma_get_channel_resource(&dev->resource, _spi_get_tx_dma_channel(hw));
+	dev->resource->back                 = dev;
+	dev->resource->dma_cb.transfer_done = _spi_dma_tx_complete;
+	dev->resource->dma_cb.error         = _spi_dma_error_occured;
+
+	return ERR_NONE;
+}
+
+int32_t _spi_m_dma_deinit(struct _spi_m_dma_dev *dev)
+{
+	return _spi_deinit(dev->prvt);
+}
+
+int32_t _spi_m_dma_enable(struct _spi_m_dma_dev *dev)
+{
+	ASSERT(dev && dev->prvt);
+
+	return _spi_sync_enable(dev->prvt);
+}
+
+int32_t _spi_m_dma_disable(struct _spi_m_dma_dev *dev)
+{
+	ASSERT(dev && dev->prvt);
+
+	return _spi_sync_disable(dev->prvt);
+}
+
+int32_t _spi_m_dma_set_mode(struct _spi_m_dma_dev *dev, const enum spi_transfer_mode mode)
+{
+	ASSERT(dev && dev->prvt);
+
+	return _spi_set_mode(dev->prvt, mode);
+}
+
+int32_t _spi_m_dma_set_baudrate(struct _spi_m_dma_dev *dev, const uint32_t baud_val)
+{
+	ASSERT(dev && dev->prvt);
+
+	return _spi_set_baudrate(dev->prvt, baud_val);
+}
+
+int32_t _spi_m_dma_set_data_order(struct _spi_m_dma_dev *dev, const enum spi_data_order dord)
+{
+	ASSERT(dev && dev->prvt);
+
+	return _spi_set_data_order(dev->prvt, dord);
+}
+
+int32_t _spi_m_dma_set_char_size(struct _spi_m_dma_dev *dev, const enum spi_char_size char_size)
+{
+	uint8_t size;
+
+	ASSERT(dev && dev->prvt);
+
+	_spi_set_char_size(dev->prvt, char_size, &size);
+
+	return size;
+}
+
+void _spi_m_dma_register_callback(struct _spi_m_dma_dev *dev, enum _spi_dma_dev_cb_type type, _spi_dma_cb_t func)
+{
+	switch (type) {
+	case SPI_DEV_CB_DMA_TX:
+		dev->callbacks.tx = func;
+		_dma_set_irq_state(_spi_get_tx_dma_channel(dev->prvt), DMA_TRANSFER_COMPLETE_CB, func != NULL);
+		break;
+	case SPI_DEV_CB_DMA_RX:
+		dev->callbacks.rx = func;
+		_dma_set_irq_state(_spi_get_rx_dma_channel(dev->prvt), DMA_TRANSFER_COMPLETE_CB, func != NULL);
+		break;
+	case SPI_DEV_CB_DMA_ERROR:
+		dev->callbacks.error = func;
+		_dma_set_irq_state(_spi_get_rx_dma_channel(dev->prvt), DMA_TRANSFER_ERROR_CB, func != NULL);
+		_dma_set_irq_state(_spi_get_tx_dma_channel(dev->prvt), DMA_TRANSFER_ERROR_CB, func != NULL);
+		break;
+	case SPI_DEV_CB_DMA_N:
+		break;
+	}
+}
+
+int32_t _spi_m_dma_transfer(struct _spi_m_dma_dev *dev, uint8_t const *txbuf, uint8_t *const rxbuf,
+                            const uint16_t length)
+{
+	const struct sercomspi_regs_cfg *regs  = _spi_get_regs((uint32_t)dev->prvt);
+	uint8_t                          rx_ch = _spi_get_rx_dma_channel(dev->prvt);
+	uint8_t                          tx_ch = _spi_get_tx_dma_channel(dev->prvt);
+
+	if (rxbuf) {
+		/* Enable spi rx */
+		_spi_m_dma_rx_enable(dev);
+		_dma_set_source_address(rx_ch, (void *)_spi_m_get_source_for_dma(dev->prvt));
+		_dma_set_destination_address(rx_ch, rxbuf);
+		_dma_set_data_amount(rx_ch, length);
+		_dma_enable_transaction(rx_ch, false);
+	} else {
+		/* Disable spi rx */
+		_spi_m_dma_rx_disable(dev);
+	}
+
+	if (txbuf) {
+		/* Enable spi tx */
+		_dma_set_source_address(tx_ch, txbuf);
+		_dma_set_destination_address(tx_ch, (void *)_spi_m_get_destination_for_dma(dev->prvt));
+		_dma_srcinc_enable(tx_ch, true);
+		_dma_set_data_amount(tx_ch, length);
+	} else {
+		_dma_set_source_address(tx_ch, &regs->dummy_byte);
+		_dma_set_destination_address(tx_ch, (void *)_spi_m_get_destination_for_dma(dev->prvt));
+		_dma_srcinc_enable(tx_ch, false);
+		_dma_set_data_amount(tx_ch, length);
+	}
+	_dma_enable_transaction(tx_ch, false);
+
+	return ERR_NONE;
 }

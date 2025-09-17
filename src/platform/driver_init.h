@@ -31,6 +31,7 @@
 #include <hal_rand_sync.h>
 #include <hal_sha_sync.h>
 #include <hal_sleep.h>
+#include <hal_spi_m_dma.h>
 #include <hal_timer.h>
 #include <hal_usart_async.h>
 #include <hal_usb_device.h>
@@ -59,6 +60,7 @@ extern struct rand_sync_desc RAND_0;
 extern PPUKCL_PARAM pvPUKCLParam;
 extern PUKCL_PARAM PUKCLParam;
 extern struct usart_async_descriptor USART_0;
+extern struct spi_m_dma_descriptor SPI_0;
 #endif
 
 /**

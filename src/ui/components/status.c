@@ -21,7 +21,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define STATUS_DEFAULT_DELAY 500 // counts
+#define STATUS_DEFAULT_DELAY 100 // counts
 
 typedef struct {
     bool status;

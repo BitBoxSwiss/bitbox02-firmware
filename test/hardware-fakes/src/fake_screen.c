@@ -43,5 +43,3 @@ bool screen_is_upside_down(void)
 {
     return false;
 }
-
-void screen_clear(void) {}

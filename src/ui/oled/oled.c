@@ -77,15 +77,12 @@
 #include <ui/oled/ssd1312.h>
 #include <ui/ugui/ugui.h>
 
-static bool _frame_buffer_updated = false;
-static uint8_t _frame_buffer[128 * 8];
-
 static volatile bool _enabled = false;
 
 struct bb02_display {
-    void (*configure)(uint8_t*);
+    void (*configure)(void);
     void (*set_pixel)(int16_t x, int16_t y, uint8_t c);
-    void (*update)(void);
+    void (*blit)(void);
     void (*off)(void);
     void (*mirror)(bool);
 };
@@ -93,7 +90,7 @@ struct bb02_display {
 static struct bb02_display bb02_display = {
     .configure = sh1107_configure,
     .set_pixel = sh1107_set_pixel,
-    .update = sh1107_update,
+    .blit = sh1107_blit,
     .off = sh1107_off,
     .mirror = sh1107_mirror,
 };
@@ -103,7 +100,7 @@ void oled_init(void)
     if (memory_get_screen_type() == MEMORY_SCREEN_TYPE_SSD1312) {
         bb02_display.configure = ssd1312_configure;
         bb02_display.set_pixel = ssd1312_set_pixel;
-        bb02_display.update = ssd1312_update;
+        bb02_display.blit = ssd1312_blit;
         bb02_display.off = ssd1312_off;
         bb02_display.mirror = ssd1312_mirror;
     }
@@ -120,25 +117,18 @@ void oled_init(void)
     gpio_set_pin_level(PIN_OLED_RES, 1);
     delay_us(5);
 
-    oled_clear_buffer();
-
-    bb02_display.configure(_frame_buffer);
-
-    delay_ms(100);
-
     // DC-DC ON
     gpio_set_pin_level(PIN_OLED_ON, 1);
+    delay_ms(100);
+
+    bb02_display.configure();
+
     _enabled = true;
 }
 
-void oled_send_buffer(void)
+void oled_blit(void)
 {
-    bb02_display.update();
-}
-
-void oled_clear_buffer(void)
-{
-    memset(_frame_buffer, 0, sizeof(_frame_buffer));
+    bb02_display.blit();
 }
 
 void oled_mirror(bool mirror)
@@ -149,7 +139,6 @@ void oled_mirror(bool mirror)
 void oled_set_pixel(int16_t x, int16_t y, uint8_t c)
 {
     bb02_display.set_pixel(x, y, c);
-    _frame_buffer_updated = true;
 }
 
 void oled_off(void)

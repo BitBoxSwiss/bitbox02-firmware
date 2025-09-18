@@ -220,9 +220,9 @@ int main(void)
                 }
                 bootloader_pairing_request = false;
                 canvas_commit();
-                oled_present();
             }
         }
+        oled_present(true);
 #endif
     }
     return 0;

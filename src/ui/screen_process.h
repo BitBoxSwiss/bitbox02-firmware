@@ -45,16 +45,6 @@ void screen_process_waiting_switch_to_lockscreen(void);
  */
 void screen_process(void);
 
-/**
- * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.
- *
- * In the simulator screen_process is called with a fixed frame rate so there a rate dividor isn't
- * necessary.
- */
-#if defined(TESTING)
-    #define SCREEN_FRAME_RATE 1
-#else
-    #define SCREEN_FRAME_RATE 30
-#endif
+void screen_process_init(void);
 
 #endif

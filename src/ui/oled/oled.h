@@ -78,7 +78,7 @@ void oled_mirror(bool mirror);
 /**
  * Transfer active canvas to the screen
  */
-void oled_present(void);
+void oled_present(bool force);
 
 /**
  * Turn off oled
@@ -88,12 +88,13 @@ void oled_off(void);
 /**
  * Set a pixel on the "working" canvas arcoding to the screen requirements. The working and active
  * canvases are flipped with canvas_commit();
+ * @param c Must be 0 for black and 1 for white
  */
 void oled_set_pixel(int16_t x, int16_t y, uint8_t c);
 
 /**
  * Set brightness (0x00..0xff).
- * 0x00 does not mean black, just loweset brightness.
+ * 0x00 does not mean black, just lowest brightness.
  */
 void oled_set_brightness(uint8_t value);
 

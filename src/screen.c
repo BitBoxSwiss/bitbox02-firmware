@@ -49,7 +49,7 @@ void screen_print_debug(const char* message, int duration)
     UG_FontSelect(&font_font_a_9X9);
     UG_PutString(0, 0, print, false);
     canvas_commit();
-    oled_present();
+    oled_present(true);
 #ifndef TESTING
     if (duration > 0) delay_ms(duration);
 #else
@@ -89,7 +89,7 @@ void screen_splash(void)
     image_arrow(SCREEN_WIDTH - x - 2, y, height, ARROW_LEFT);
 
     canvas_commit();
-    oled_present();
+    oled_present(true);
 }
 
 void screen_rotate(void)

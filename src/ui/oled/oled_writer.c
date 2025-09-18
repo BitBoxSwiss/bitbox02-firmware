@@ -14,6 +14,14 @@
 
 #include "oled_writer.h"
 #include "driver_init.h"
+#include <stdbool.h>
+
+// microseconds to wait after buffer has been sent out over SPI
+// (works with 3, use 6 to have some margin)
+#define WAIT_AFTER_TX_READY 6
+
+static struct io_descriptor* _io;
+volatile bool _tx_ready = true;
 
 enum _interface_t {
     INTERFACE_COMMAND,
@@ -30,27 +38,59 @@ static inline void _write(enum _interface_t interface, const uint8_t* buf, size_
     uint8_t cmd = interface == INTERFACE_COMMAND ? 0 : 1;
     gpio_set_pin_level(PIN_OLED_CMD, cmd);
     gpio_set_pin_level(PIN_OLED_CS, 0);
-    // It is safe to cast from const here because "write_block" only reads from buf
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-    SPI_OLED_write_block((void*)buf, buf_len);
-#pragma GCC diagnostic pop
-    gpio_set_pin_level(PIN_OLED_CS, 1);
+    io_write(_io, buf, buf_len);
 }
 
+// This function intentionally does not block until buffer is transferred
 void oled_writer_write_data(const uint8_t* buf, size_t buf_len)
 {
     _write(INTERFACE_DATA, buf, buf_len);
 }
 
-void oled_writer_write_cmd(uint8_t command)
+void oled_writer_write_data_blocking(const uint8_t* buf, size_t buf_len)
 {
-    const uint8_t buf[] = {command};
-    _write(INTERFACE_COMMAND, buf, sizeof(buf));
+    _tx_ready = false;
+    oled_writer_write_data(buf, buf_len);
+    while (!_tx_ready);
+    // Wait a moment so that CMD/CS doesn't change until device has processed all data
+    delay_us(WAIT_AFTER_TX_READY);
+    gpio_set_pin_level(PIN_OLED_CS, 1);
 }
 
-void oled_writer_write_cmd_with_param(uint8_t command, uint8_t value)
+void oled_writer_write_cmd_blocking(uint8_t command)
 {
-    const uint8_t buf[] = {command, value};
+    _tx_ready = false;
+    const uint8_t buf[] __attribute((aligned(4))) = {command};
     _write(INTERFACE_COMMAND, buf, sizeof(buf));
+    // Buffer is stack allocated, need to wait until done
+    while (!_tx_ready);
+    // Wait a moment so that CMD/CS doesn't change until device has processed all data
+    delay_us(WAIT_AFTER_TX_READY);
+    gpio_set_pin_level(PIN_OLED_CS, 1);
+}
+
+void oled_writer_write_cmd_with_param_blocking(uint8_t command, uint8_t value)
+{
+    _tx_ready = false;
+    const uint8_t buf[] __attribute((aligned(4))) = {command, value};
+    _write(INTERFACE_COMMAND, buf, sizeof(buf));
+    // Buffer is stack allocated, need to wait until done
+    while (!_tx_ready);
+    // Wait a moment so that CMD/CS doesn't change until device has processed all data
+    delay_us(WAIT_AFTER_TX_READY);
+    gpio_set_pin_level(PIN_OLED_CS, 1);
+}
+
+static void _dma_tx_complete(struct _dma_resource* resource)
+{
+    (void)resource;
+    _tx_ready = true;
+}
+
+void oled_writer_init(void)
+{
+    spi_m_dma_get_io_descriptor(&SPI_0, &_io);
+
+    spi_m_dma_register_callback(&SPI_0, SPI_M_DMA_CB_TX_DONE, _dma_tx_complete);
+    spi_m_dma_enable(&SPI_0);
 }

@@ -35,6 +35,7 @@
 #include <platform/platform_init.h>
 #include <rust/rust.h>
 #include <ui/fonts/monogram_5X9.h>
+#include <ui/oled/oled.h>
 #include <utils_ringbuffer.h>
 #if APP_U2F == 1
     #include "u2f.h"
@@ -68,6 +69,7 @@ static void _orientation_screen_poll(struct ringbuffer* uart_write_queue)
 
 void firmware_main_loop(void)
 {
+    screen_process_init();
     // Set the size of uart_read_buf to the size of the ringbuffer in the UART driver so we can read
     // out all bytes
     uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
@@ -193,8 +195,9 @@ void firmware_main_loop(void)
 #if APP_U2F == 1
         u2f_process();
 #endif
-
         screen_process();
+        oled_present(false);
+
         /* And finally, run the high-level event processing. */
 
         rust_workflow_spin();

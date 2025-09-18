@@ -87,7 +87,7 @@ pub fn canvas_commit() {
 }
 
 pub fn oled_present() {
-    unsafe { bitbox02_sys::oled_present() }
+    unsafe { bitbox02_sys::oled_present(true) }
 }
 
 pub fn ug_font_select_9x9() {

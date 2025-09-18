@@ -15,6 +15,7 @@
 #include "screen_process.h"
 #include "screen_stack.h"
 #include <hardfault.h>
+#include <platform/driver_init.h>
 #include <touch/gestures.h>
 #include <ui/canvas.h>
 #include <ui/components/waiting.h>
@@ -23,7 +24,29 @@
 #include <ui/screen_saver.h>
 #include <ui/ugui/ugui.h>
 
-static uint8_t screen_frame_cnt = 0;
+volatile bool update_ui = true;
+
+#if !defined(TESTING)
+static struct timer_task task_update_ui;
+
+static void update_ui_cb(const struct timer_task* const timer_task)
+{
+    (void)timer_task;
+    update_ui = true;
+}
+#endif
+
+void screen_process_init(void)
+{
+#if !defined(TESTING)
+    // Limit UI updateing to 100Hz
+    task_update_ui.interval = 10;
+    task_update_ui.cb = update_ui_cb;
+    task_update_ui.mode = TIMER_TASK_REPEAT;
+
+    timer_add_task(&TIMER_0, &task_update_ui);
+#endif
+}
 
 void ui_screen_render_component(component_t* component)
 {
@@ -31,7 +54,6 @@ void ui_screen_render_component(component_t* component)
     component->position.top = 0;
     component->f->render(component);
     canvas_commit();
-    oled_present();
 }
 
 static component_t* _get_waiting_screen(void)
@@ -70,15 +92,6 @@ component_t* screen_process_get_top_component(void)
     return result;
 }
 
-static void _screen_draw(component_t* component)
-{
-    if (screen_frame_cnt == SCREEN_FRAME_RATE) {
-        screen_frame_cnt = 0;
-        ui_screen_render_component(component);
-    }
-    screen_frame_cnt++;
-}
-
 #ifndef TESTING
 /**
  * Detects if the screen component being displayed has changed
@@ -100,10 +113,14 @@ static bool _screen_has_changed(const component_t* current_component)
 
 void screen_process(void)
 {
-    screen_saver_process();
-
     component_t* component = screen_process_get_top_component();
-    _screen_draw(component);
+
+    if (update_ui) {
+        update_ui = false;
+        screen_saver_process();
+
+        ui_screen_render_component(component);
+    }
 
 #ifndef TESTING
     /*

@@ -16,17 +16,21 @@
 #include <string.h>
 #include <ui/canvas.h>
 
-static uint8_t* _canvas_active = NULL;
-static uint8_t* _canvas_working = NULL;
+#define NUM_CANVASES 3
 
-// One working buffer and one active buffer. The buffer must be 4 byte aligned for DMA transfers.
+// The buffers must be 4 byte aligned for DMA transfers.
 static uint8_t _canvas_0[CANVAS_SIZE] __attribute__((aligned(4))) = {0};
 static uint8_t _canvas_1[CANVAS_SIZE] __attribute__((aligned(4))) = {0};
+static uint8_t _canvas_2[CANVAS_SIZE] __attribute__((aligned(4))) = {0};
+
+static uint8_t* _canvases[NUM_CANVASES] = {0};
+static uint8_t _canvas_active = 0;
 
 void canvas_init(void)
 {
-    _canvas_working = _canvas_0;
-    _canvas_active = _canvas_1;
+    _canvases[0] = _canvas_0;
+    _canvases[1] = _canvas_1;
+    _canvases[2] = _canvas_2;
 }
 
 void canvas_fill(uint8_t color)
@@ -42,20 +46,19 @@ void canvas_clear(void)
 
 void canvas_commit(void)
 {
-    uint8_t* _canvas_tmp = _canvas_working;
-    _canvas_working = _canvas_active;
-    _canvas_active = _canvas_tmp;
+    _canvas_active = (_canvas_active + 1) % NUM_CANVASES;
     canvas_clear();
 }
 
 uint8_t* canvas_working(void)
 {
-    ASSERT(_canvas_working);
-    return _canvas_working;
+    uint8_t canvas_working = (_canvas_active + 1) % NUM_CANVASES;
+    ASSERT(_canvases[canvas_working]);
+    return _canvases[canvas_working];
 }
 
 uint8_t* canvas_active(void)
 {
-    ASSERT(_canvas_active);
-    return _canvas_active;
+    ASSERT(_canvases[_canvas_active]);
+    return _canvases[_canvas_active];
 }

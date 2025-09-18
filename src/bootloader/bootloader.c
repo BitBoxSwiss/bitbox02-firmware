@@ -331,7 +331,7 @@ static void _render_message(const char* message, int duration)
     snprintf(print, sizeof(print), "%s", message);
     UG_PutString(0, 0, print, false);
     canvas_commit();
-    oled_present();
+    oled_present(true);
     delay_ms(duration);
 }
 
@@ -355,7 +355,7 @@ void bootloader_render_default_screen(void)
     UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp", false);
 #endif
     canvas_commit();
-    oled_present();
+    oled_present(true);
 }
 
 #if PLATFORM_BITBOX02PLUS
@@ -381,7 +381,7 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str, false);
     UG_FontSelect(&font_font_a_9X9);
     canvas_commit();
-    oled_present();
+    oled_present(true);
 }
 #endif
 
@@ -402,7 +402,7 @@ static void _render_progress(float progress)
     }
     UG_PutString(SCREEN_WIDTH / 2 - 3, SCREEN_HEIGHT - 9 * 2, msg, false);
     canvas_commit();
-    oled_present();
+    oled_present(true);
 }
 
 static void _render_hash(const char* title, const uint8_t* hash)
@@ -450,7 +450,7 @@ static void _render_hash(const char* title, const uint8_t* hash)
         UG_FontSelect(f_regular);
 
         canvas_commit();
-        oled_present();
+        oled_present(true);
         delay_ms(1000);
     }
     bootloader_render_default_screen();
@@ -1044,7 +1044,7 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
         UG_DrawLine(xpos - 2, ypos + 3, xpos, ypos + 5, C_WHITE);
     }
     canvas_commit();
-    oled_present();
+    oled_present(true);
     while (true) {
         do {
             qtouch_process();

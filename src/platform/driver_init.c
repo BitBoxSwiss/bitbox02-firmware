@@ -23,9 +23,7 @@
 #include <stdint.h>
 #include <utils.h>
 
-#define PIN_HIGH 1
-#define PIN_LOW 0
-
+struct spi_m_dma_descriptor SPI_0;
 struct sha_sync_descriptor HASH_ALGORITHM_0;
 struct timer_descriptor TIMER_0;
 struct flash_descriptor FLASH_0;
@@ -116,10 +114,11 @@ static void _spi_init(void)
         GCLK, SERCOM3_GCLK_ID_CORE, CONF_GCLK_SERCOM3_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(
         GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
+
     hri_mclk_set_APBBMASK_SERCOM3_bit(MCLK);
-    SPI_OLED_init();
+    spi_m_dma_init(&SPI_0, SERCOM3);
+
     _spi_set_pins();
-    SPI_OLED_enable();
 }
 
 static void _spi_mem_clock_init(void)
@@ -434,7 +433,7 @@ void system_close_interfaces(void)
     i2c_m_sync_deinit(&I2C_0);
     // OLED interface bus
     // Display remains on last screen
-    SPI_OLED_disable();
+    spi_m_dma_deinit(&SPI_0);
     // Flash
     flash_deinit(&FLASH_0);
     // USB
@@ -451,7 +450,7 @@ void bootloader_close_interfaces(void)
     }
     // OLED interface bus
     // Display remains on last screen
-    SPI_OLED_disable();
+    spi_m_dma_deinit(&SPI_0);
     // Flash
     flash_deinit(&FLASH_0);
     // USB

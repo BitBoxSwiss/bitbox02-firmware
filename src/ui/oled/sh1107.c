@@ -76,66 +76,68 @@
 
 void sh1107_configure(void)
 {
-    oled_writer_write_cmd(SH1107_CMD_SET_DISPLAY_OFF);
-    oled_writer_write_cmd_with_param(SH1107_CMD_SET_CONTRAST_CONTROL, 0xff);
-    oled_writer_write_cmd(SH1107_CMD_SET_VERTICAL_ADDRESSING_MODE);
-    oled_writer_write_cmd(SH1107_CMD_SET_SEGMENT_RE_MAP_REVERSE);
-    oled_writer_write_cmd(SH1107_CMD_SET_COM_OUTPUT_SCAN_UP);
-    oled_writer_write_cmd(SH1107_CMD_SET_NORMAL_DISPLAY);
-    oled_writer_write_cmd_with_param(SH1107_CMD_SET_MULTIPLEX_RATIO, 0x3f);
+    oled_writer_write_cmd_blocking(SH1107_CMD_SET_DISPLAY_OFF);
+    oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_CONTRAST_CONTROL, 0xff);
+    oled_writer_write_cmd_blocking(SH1107_CMD_SET_VERTICAL_ADDRESSING_MODE);
+    oled_writer_write_cmd_blocking(SH1107_CMD_SET_SEGMENT_RE_MAP_REVERSE);
+    oled_writer_write_cmd_blocking(SH1107_CMD_SET_COM_OUTPUT_SCAN_UP);
+    oled_writer_write_cmd_blocking(SH1107_CMD_SET_NORMAL_DISPLAY);
+    oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_MULTIPLEX_RATIO, 0x3f);
     // Shift the columns by 96 when display is in non-mirrored orientation
-    oled_writer_write_cmd_with_param(SH1107_CMD_SET_DISPLAY_OFFSET, 0x60);
-    oled_writer_write_cmd_with_param(SH1107_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO, 0xf0);
-    oled_writer_write_cmd_with_param(SH1107_CMD_SET_PRE_CHARGE_PERIOD, 0x22);
-    oled_writer_write_cmd_with_param(SH1107_CMD_SET_VCOMH_DESELECT_LEVEL, 0x35);
-    oled_writer_write_cmd_with_param(0xad, 0x8a);
-    oled_writer_write_cmd(SH1107_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
-    sh1107_present();
-    oled_writer_write_cmd(SH1107_CMD_SET_DISPLAY_ON);
+    oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_DISPLAY_OFFSET, 0x60);
+    oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO, 0xf0);
+    oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_PRE_CHARGE_PERIOD, 0x22);
+    oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_VCOMH_DESELECT_LEVEL, 0x35);
+    oled_writer_write_cmd_with_param_blocking(0xad, 0x8a);
+    oled_writer_write_cmd_blocking(SH1107_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
+    oled_writer_write_data_blocking(canvas_active(), CANVAS_SIZE);
+    oled_writer_write_cmd_blocking(SH1107_CMD_SET_DISPLAY_ON);
 }
 
 /* pixels can be accessed via buf[y*16+x/8] >> x%8 */
 void sh1107_set_pixel(int16_t x, int16_t y, uint8_t c)
 {
-    uint32_t p;
     if (x < 0 || x > 127) return;
     if (y < 0 || y > 63) return;
-    p = y * 16;
-    p += x / 8;
-    if (c) {
-        canvas_working()[p] |= 1 << (x % 8);
-    } else {
-        canvas_working()[p] &= ~(1 << (x % 8));
-    }
+    uint_fast8_t shift = x % 8;
+    uint8_t* p = &canvas_working()[y * 16 + x / 8];
+    //  Clear pixel
+    *p &= ~(1 << shift);
+    // Set pixel
+    *p |= (c & 0x1) << shift;
 }
 
 /* The SH1107 Segment/Common driver specifies that there are 16 pages per column
  * In total we should be writing 64*128 pixels. 8 bits per page, 16 pages per column and 64
- * columns */
+ * columns
+ *
+ * Since the display requires us to execute commands between each row we need to use the blocking
+ * interface.
+ * */
 void sh1107_present(void)
 {
     for (size_t i = 0; i < 64; i++) {
-        oled_writer_write_cmd(SH1107_CMD_SET_LOW_COL(i));
-        oled_writer_write_cmd(SH1107_CMD_SET_HIGH_COL(i));
-        oled_writer_write_data(&canvas_active()[i * 16], 16);
+        oled_writer_write_cmd_blocking(SH1107_CMD_SET_LOW_COL(i));
+        oled_writer_write_cmd_blocking(SH1107_CMD_SET_HIGH_COL(i));
+        oled_writer_write_data_blocking(&canvas_active()[i * 16], 16);
     }
 }
 
 void sh1107_mirror(bool mirror)
 {
     if (mirror) {
-        oled_writer_write_cmd(SH1107_CMD_SET_SEGMENT_RE_MAP_NORMAL);
-        oled_writer_write_cmd(SH1107_CMD_SET_COM_OUTPUT_SCAN_DOWN);
+        oled_writer_write_cmd_blocking(SH1107_CMD_SET_SEGMENT_RE_MAP_NORMAL);
+        oled_writer_write_cmd_blocking(SH1107_CMD_SET_COM_OUTPUT_SCAN_DOWN);
         // Shift the columns by 32 when display is in mirrored orientation
-        oled_writer_write_cmd_with_param(SH1107_CMD_SET_DISPLAY_OFFSET, 0x20);
+        oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_DISPLAY_OFFSET, 0x20);
     } else {
-        oled_writer_write_cmd(SH1107_CMD_SET_SEGMENT_RE_MAP_REVERSE);
-        oled_writer_write_cmd(SH1107_CMD_SET_COM_OUTPUT_SCAN_UP);
-        oled_writer_write_cmd_with_param(SH1107_CMD_SET_DISPLAY_OFFSET, 0x60);
+        oled_writer_write_cmd_blocking(SH1107_CMD_SET_SEGMENT_RE_MAP_REVERSE);
+        oled_writer_write_cmd_blocking(SH1107_CMD_SET_COM_OUTPUT_SCAN_UP);
+        oled_writer_write_cmd_with_param_blocking(SH1107_CMD_SET_DISPLAY_OFFSET, 0x60);
     }
 }
 
 void sh1107_off(void)
 {
-    oled_writer_write_cmd(SH1107_CMD_SET_DISPLAY_OFF);
+    oled_writer_write_cmd_blocking(SH1107_CMD_SET_DISPLAY_OFF);
 }

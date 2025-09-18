@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#define SCALE 6 // Divide active_count by scale to slow down motion
+#define SCALE 4 // Divide active_count by scale to slow down motion
 
 typedef struct {
     bool active_top; // Marker is 'active', i.e., touched

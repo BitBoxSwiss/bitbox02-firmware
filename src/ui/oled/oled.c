@@ -96,9 +96,25 @@ static struct bb02_display bb02_display = {
     .mirror = sh1107_mirror,
 };
 
+static struct timer_task _task_present_screen;
+static volatile bool _present_screen = true;
+
+static void present_screen_cb(const struct timer_task* const timer_task)
+{
+    (void)timer_task;
+    _present_screen = true;
+}
+
 void oled_init(void)
 {
     canvas_init();
+    oled_writer_init();
+
+    // Limit screen presentting to 30Hz
+    _task_present_screen.interval = 33;
+    _task_present_screen.cb = present_screen_cb;
+    _task_present_screen.mode = TIMER_TASK_REPEAT;
+    timer_add_task(&TIMER_0, &_task_present_screen);
 
     if (memory_get_screen_type() == MEMORY_SCREEN_TYPE_SSD1312) {
         bb02_display.configure = ssd1312_configure;
@@ -110,30 +126,38 @@ void oled_init(void)
     if (_enabled) {
         return;
     }
-    // DC-DC OFF
-    gpio_set_pin_level(PIN_OLED_ON, 0);
-    delay_us(5);
 
-    // Hard reset OLED display controller
-    gpio_set_pin_level(PIN_OLED_RES, 0);
-    delay_us(5);
-    gpio_set_pin_level(PIN_OLED_RES, 1);
-    delay_us(5);
+    // * VDD is powered on at the same time as the MCU.
+    // * PIN_OLED_RES starts high (see driver_init.c)
+    // * PIN_OLED_ON starts low (see driver_init.c)
 
-    oled_present();
+    // Wait at least 20ms from VDD ON
+    delay_ms(25);
+
+    gpio_set_pin_level(PIN_OLED_RES, PIN_LOW);
+    // Wait at least 3us
+    delay_us(6);
+    gpio_set_pin_level(PIN_OLED_RES, PIN_HIGH);
+    delay_us(5);
 
     bb02_display.configure();
 
+    // VCC ON
+    gpio_set_pin_level(PIN_OLED_ON, PIN_HIGH);
+
+    // Wait at least 100ms from DISPLAY_ON before starting to use
     delay_ms(100);
 
-    // DC-DC ON
-    gpio_set_pin_level(PIN_OLED_ON, 1);
     _enabled = true;
 }
 
-void oled_present(void)
+void oled_present(bool force)
 {
     bb02_display.present();
+    if (_present_screen || force) {
+        _present_screen = false;
+        bb02_display.present();
+    }
 }
 
 void oled_mirror(bool mirror)
@@ -160,5 +184,5 @@ void oled_off(void)
 void oled_set_brightness(uint8_t value)
 {
     // brightness uses the same command on all displays 0x81.
-    oled_writer_write_cmd_with_param(0x81, value);
+    oled_writer_write_cmd_with_param_blocking(0x81, value);
 }

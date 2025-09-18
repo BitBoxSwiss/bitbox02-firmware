@@ -15,6 +15,7 @@
 #include "ssd1312.h"
 #include "oled_writer.h"
 #include <stdbool.h>
+#include <ui/canvas.h>
 
 #define SSD1312_CMD_SET_LOW_COL(column) (0x00 | ((column) & 0x0F))
 #define SSD1312_CMD_SET_HIGH_COL(column) (0x10 | (((column) >> 4) & 0x07))
@@ -78,11 +79,8 @@
 // Double byte command
 #define SSD1312_CMD_SET_CHARGE_PUMP_SETTING 0x8D
 
-static uint8_t* _frame_buffer;
-
-void ssd1312_configure(uint8_t* buf)
+void ssd1312_configure(void)
 {
-    _frame_buffer = buf;
     oled_writer_write_cmd(SSD1312_CMD_SET_LOW_COL(0));
     oled_writer_write_cmd(SSD1312_CMD_SET_HIGH_COL(0));
     oled_writer_write_cmd(SSD1312_CMD_SET_DISPLAY_OFF);
@@ -98,7 +96,7 @@ void ssd1312_configure(uint8_t* buf)
     oled_writer_write_cmd_with_param(SSD1312_CMD_SET_VCOMH_SELECT_LEVEL, 0x35);
     oled_writer_write_cmd_with_param(SSD1312_CMD_SET_IREF, 0x40);
     oled_writer_write_cmd(SSD1312_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
-    ssd1312_update();
+    ssd1312_present();
     oled_writer_write_cmd(SSD1312_CMD_SET_DISPLAY_ON);
 }
 
@@ -110,12 +108,12 @@ void ssd1312_set_pixel(int16_t x, int16_t y, uint8_t c)
     p = (y / 8) * 128;
     p += x;
     if (c) {
-        _frame_buffer[p] |= 1 << (y % 8);
+        canvas_working()[p] |= 1 << (y % 8);
     } else {
-        _frame_buffer[p] &= ~(1 << (y % 8));
+        canvas_working()[p] &= ~(1 << (y % 8));
     }
 }
-void ssd1312_update(void)
+void ssd1312_present(void)
 {
     /* The SSD1312 has one page per 8 rows. One page is 128 bytes. Every byte is 8 rows */
     for (size_t i = 0; i < 64 / 8; i++) {
@@ -126,7 +124,7 @@ void ssd1312_update(void)
         // address to be correct if all bytes arrive at the screen.
         oled_writer_write_cmd(SSD1312_CMD_SET_LOW_COL(0));
         oled_writer_write_cmd(SSD1312_CMD_SET_HIGH_COL(0));
-        oled_writer_write_data(&_frame_buffer[i * 128], 128);
+        oled_writer_write_data(&canvas_active()[i * 128], 128);
     }
 }
 

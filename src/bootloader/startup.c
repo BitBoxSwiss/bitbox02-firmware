@@ -22,6 +22,7 @@
 #include <rust/rust.h>
 #include <screen.h>
 #include <string.h>
+#include <ui/canvas.h>
 #include <ui/oled/oled.h>
 #include <usb/class/hid/hww/hid_hww.h>
 #include <usb/usb_processing.h>
@@ -83,7 +84,7 @@ int main(void)
     bootloader_init();
     platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
-    screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
+    screen_init(oled_set_pixel, oled_mirror);
 #if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
     qtouch_init();
 #endif
@@ -190,7 +191,6 @@ int main(void)
 
             if (qtouch_is_scroller_active(top_slider)) {
                 bool ok;
-                UG_ClearBuffer();
                 if (qtouch_get_scroller_position(top_slider) < 127) {
                     bootloader_render_default_screen();
                     ok = false;
@@ -219,7 +219,8 @@ int main(void)
                     ringbuffer_put(&uart_write_queue, tmp[i]);
                 }
                 bootloader_pairing_request = false;
-                UG_SendBuffer();
+                canvas_commit();
+                oled_present();
             }
         }
 #endif

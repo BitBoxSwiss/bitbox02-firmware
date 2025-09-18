@@ -30,6 +30,7 @@
 #include <securechip/securechip.h>
 #include <system.h>
 #include <time.h>
+#include <ui/canvas.h>
 #include <ui/components/confirm.h>
 #include <ui/components/confirm_transaction.h>
 #include <ui/components/empty.h>

@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <ui/canvas.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/oled/oled.h>
@@ -32,7 +33,6 @@
 static UG_GUI guioled; // Global GUI structure for OLED screen
 static bool screen_upside_down = false;
 static void (*_mirror_fn)(bool);
-static void (*_clear_fn)(void);
 
 UG_COLOR screen_front_color = C_WHITE;
 UG_COLOR screen_back_color = C_BLACK;
@@ -45,10 +45,11 @@ void screen_print_debug(const char* message, int duration)
 {
     char print[100];
     snprintf(print, sizeof(print), "%s", message);
-    screen_clear();
+    canvas_clear();
     UG_FontSelect(&font_font_a_9X9);
     UG_PutString(0, 0, print, false);
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
 #ifndef TESTING
     if (duration > 0) delay_ms(duration);
 #else
@@ -81,16 +82,14 @@ void screen_print_debug_hex(const uint8_t* bytes, size_t len, int duration)
 // Careful, this function is used in both the bootloader and the firmware.
 void screen_splash(void)
 {
-    screen_clear();
-
     int height = IMAGE_DEFAULT_ARROW_HEIGHT;
     int x = 0;
     int y = SCREEN_HEIGHT / 2 - height;
     image_arrow(x - height + 2, y, height, ARROW_RIGHT);
     image_arrow(SCREEN_WIDTH - x - 2, y, height, ARROW_LEFT);
 
-    UG_SendBuffer();
-    screen_clear();
+    canvas_commit();
+    oled_present();
 }
 
 void screen_rotate(void)
@@ -107,18 +106,8 @@ bool screen_is_upside_down(void)
     return screen_upside_down;
 }
 
-void screen_init(
-    void (*pixel_fn)(UG_S16, UG_S16, UG_COLOR),
-    void (*mirror_fn)(bool),
-    void (*clear_fn)(void))
+void screen_init(void (*pixel_fn)(UG_S16, UG_S16, UG_COLOR), void (*mirror_fn)(bool))
 {
     _mirror_fn = mirror_fn;
-    _clear_fn = clear_fn;
     UG_Init(&guioled, pixel_fn, &font_font_a_11X10, SCREEN_WIDTH, SCREEN_HEIGHT);
-}
-
-void screen_clear(void)
-{
-    ASSERT(_clear_fn);
-    _clear_fn();
 }

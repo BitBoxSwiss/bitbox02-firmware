@@ -14,13 +14,16 @@
 
 use core::time::Duration;
 
-use bitbox02::{delay, screen_clear, ug_font_select_9x9, ug_put_string, ug_send_buffer};
+use bitbox02::{
+    canvas_clear, canvas_commit, delay, oled_present, ug_font_select_9x9, ug_put_string,
+};
 
 pub fn print_debug_internal(duration: Duration, msg: &str) {
-    screen_clear();
+    canvas_clear();
     ug_font_select_9x9();
     ug_put_string(0, 0, msg, false);
-    ug_send_buffer();
+    canvas_commit();
+    oled_present();
     delay(duration);
 }
 

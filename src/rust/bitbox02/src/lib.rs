@@ -34,6 +34,7 @@ use alloc::string::String;
 #[cfg(any(feature = "testing", feature = "simulator-graphical"))]
 pub mod testing;
 
+pub mod canvas;
 pub mod delay;
 #[cfg(feature = "simulator-graphical")]
 pub mod event;
@@ -77,12 +78,16 @@ pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
     }
 }
 
-pub fn screen_clear() {
-    unsafe { bitbox02_sys::screen_clear() }
+pub fn canvas_clear() {
+    unsafe { bitbox02_sys::canvas_clear() }
 }
 
-pub fn ug_send_buffer() {
-    unsafe { bitbox02_sys::UG_SendBuffer() }
+pub fn canvas_commit() {
+    unsafe { bitbox02_sys::canvas_commit() }
+}
+
+pub fn oled_present() {
+    unsafe { bitbox02_sys::oled_present() }
 }
 
 pub fn ug_font_select_9x9() {

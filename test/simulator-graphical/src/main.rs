@@ -129,15 +129,6 @@ fn pixel_fn(x: i16, y: i16, c: UG_COLOR) {
     }
 }
 
-fn clear_fn() {
-    let mut screen = SCREEN_FB.lock().unwrap();
-    if let DynamicImage::ImageRgba8(rgba) = &mut *screen {
-        for pixel in rgba.pixels_mut() {
-            *pixel = Rgba([0, 0, 0, 0]);
-        }
-    }
-}
-
 fn mirror_fn(_: bool) {
     MIRROR.fetch_xor(true, Ordering::Relaxed);
 }
@@ -145,7 +136,8 @@ fn mirror_fn(_: bool) {
 static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
 fn init_hww(preseed: bool) -> bool {
-    bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
+    bitbox02::screen::init(pixel_fn, mirror_fn);
+    bitbox02::canvas::init();
     bitbox02::screen::splash();
 
     // BitBox02 simulation initialization
@@ -687,10 +679,29 @@ impl ApplicationHandler<UserEvent> for App {
                 {
                     // TODO: We should only update texture and redraw in case screen actually changed.
                     // Update opengl texture from "screen_process"
-                    let screen_fb = &*SCREEN_FB.lock().unwrap();
-                    canvas
-                        .update_image(screen_id, ImageSource::try_from(screen_fb).unwrap(), 0, 0)
-                        .unwrap();
+                    {
+                        let screen_fb = &*SCREEN_FB.lock().unwrap();
+
+                        // Blit screen
+                        canvas
+                            .update_image(
+                                screen_id,
+                                ImageSource::try_from(screen_fb).unwrap(),
+                                0,
+                                0,
+                            )
+                            .unwrap();
+                    }
+                    {
+                        let screen_fb = &mut *SCREEN_FB.lock().unwrap();
+
+                        // Clear screen
+                        if let DynamicImage::ImageRgba8(rgba) = &mut *screen_fb {
+                            for pixel in rgba.pixels_mut() {
+                                *pixel = Rgba([0, 0, 0, 0]);
+                            }
+                        }
+                    }
 
                     window.request_redraw();
                 }

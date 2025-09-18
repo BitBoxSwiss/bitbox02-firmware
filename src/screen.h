@@ -34,10 +34,7 @@ extern slider_location_t bottom_slider;
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
-void screen_init(
-    void (*pixel_fn)(UG_S16, UG_S16, UG_COLOR),
-    void (*mirror_fn)(bool),
-    void (*clear_fn)(void));
+void screen_init(void (*pixel_fn)(UG_S16, UG_S16, UG_COLOR), void (*mirror_fn)(bool));
 void screen_print_debug(const char* message, int duration);
 void screen_sprintf_debug(int duration, const char* fmt, ...) __attribute__((format(printf, 2, 0)));
 void screen_print_debug_hex(const uint8_t* bytes, size_t len, int duration);

@@ -14,6 +14,7 @@
 
 #include "sh1107.h"
 #include "oled_writer.h"
+#include <ui/canvas.h>
 
 // Specify the column address of display RAM 0-127
 #define SH1107_CMD_SET_LOW_COL(column) (0x00 | ((column) & 0x0F))
@@ -73,11 +74,8 @@
 // Double byte command (0x00 to 0x7F)
 #define SH1107_CMD_SET_DISPLAY_START_LINE 0xDC
 
-static uint8_t* _frame_buffer;
-
-void sh1107_configure(uint8_t* buf)
+void sh1107_configure(void)
 {
-    _frame_buffer = buf;
     oled_writer_write_cmd(SH1107_CMD_SET_DISPLAY_OFF);
     oled_writer_write_cmd_with_param(SH1107_CMD_SET_CONTRAST_CONTROL, 0xff);
     oled_writer_write_cmd(SH1107_CMD_SET_VERTICAL_ADDRESSING_MODE);
@@ -92,7 +90,7 @@ void sh1107_configure(uint8_t* buf)
     oled_writer_write_cmd_with_param(SH1107_CMD_SET_VCOMH_DESELECT_LEVEL, 0x35);
     oled_writer_write_cmd_with_param(0xad, 0x8a);
     oled_writer_write_cmd(SH1107_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
-    sh1107_update();
+    sh1107_present();
     oled_writer_write_cmd(SH1107_CMD_SET_DISPLAY_ON);
 }
 
@@ -105,21 +103,21 @@ void sh1107_set_pixel(int16_t x, int16_t y, uint8_t c)
     p = y * 16;
     p += x / 8;
     if (c) {
-        _frame_buffer[p] |= 1 << (x % 8);
+        canvas_working()[p] |= 1 << (x % 8);
     } else {
-        _frame_buffer[p] &= ~(1 << (x % 8));
+        canvas_working()[p] &= ~(1 << (x % 8));
     }
 }
 
 /* The SH1107 Segment/Common driver specifies that there are 16 pages per column
  * In total we should be writing 64*128 pixels. 8 bits per page, 16 pages per column and 64
  * columns */
-void sh1107_update(void)
+void sh1107_present(void)
 {
     for (size_t i = 0; i < 64; i++) {
         oled_writer_write_cmd(SH1107_CMD_SET_LOW_COL(i));
         oled_writer_write_cmd(SH1107_CMD_SET_HIGH_COL(i));
-        oled_writer_write_data(&_frame_buffer[i * 16], 16);
+        oled_writer_write_data(&canvas_active()[i * 16], 16);
     }
 }
 

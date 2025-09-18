@@ -65,7 +65,6 @@
 
 #include "oled.h"
 
-#include "oled_writer.h"
 #include <driver_init.h>
 #include <hardfault.h>
 #include <memory/memory_shared.h>
@@ -73,19 +72,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <ui/canvas.h>
+#include <ui/oled/oled_writer.h>
 #include <ui/oled/sh1107.h>
 #include <ui/oled/ssd1312.h>
 #include <ui/ugui/ugui.h>
 
-static bool _frame_buffer_updated = false;
-static uint8_t _frame_buffer[128 * 8];
-
 static volatile bool _enabled = false;
 
 struct bb02_display {
-    void (*configure)(uint8_t*);
+    void (*configure)(void);
     void (*set_pixel)(int16_t x, int16_t y, uint8_t c);
-    void (*update)(void);
+    void (*present)(void);
     void (*off)(void);
     void (*mirror)(bool);
 };
@@ -93,17 +91,19 @@ struct bb02_display {
 static struct bb02_display bb02_display = {
     .configure = sh1107_configure,
     .set_pixel = sh1107_set_pixel,
-    .update = sh1107_update,
+    .present = sh1107_present,
     .off = sh1107_off,
     .mirror = sh1107_mirror,
 };
 
 void oled_init(void)
 {
+    canvas_init();
+
     if (memory_get_screen_type() == MEMORY_SCREEN_TYPE_SSD1312) {
         bb02_display.configure = ssd1312_configure;
         bb02_display.set_pixel = ssd1312_set_pixel;
-        bb02_display.update = ssd1312_update;
+        bb02_display.present = ssd1312_present;
         bb02_display.off = ssd1312_off;
         bb02_display.mirror = ssd1312_mirror;
     }
@@ -120,9 +120,9 @@ void oled_init(void)
     gpio_set_pin_level(PIN_OLED_RES, 1);
     delay_us(5);
 
-    oled_clear_buffer();
+    oled_present();
 
-    bb02_display.configure(_frame_buffer);
+    bb02_display.configure();
 
     delay_ms(100);
 
@@ -131,14 +131,9 @@ void oled_init(void)
     _enabled = true;
 }
 
-void oled_send_buffer(void)
+void oled_present(void)
 {
-    bb02_display.update();
-}
-
-void oled_clear_buffer(void)
-{
-    memset(_frame_buffer, 0, sizeof(_frame_buffer));
+    bb02_display.present();
 }
 
 void oled_mirror(bool mirror)
@@ -149,7 +144,6 @@ void oled_mirror(bool mirror)
 void oled_set_pixel(int16_t x, int16_t y, uint8_t c)
 {
     bb02_display.set_pixel(x, y, c);
-    _frame_buffer_updated = true;
 }
 
 void oled_off(void)

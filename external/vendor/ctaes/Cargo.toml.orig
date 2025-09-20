@@ -1,0 +1,25 @@
+[package]
+name = "ctaes"
+authors = ["Marko Bencun <benma@bitbox.swiss>"]
+version = "0.1.0"
+homepage = "https://bitbox.swiss/"
+repository = "https://github.com/BitBoxSwiss/rust-ctaes/"
+edition = "2024"
+license = "Apache-2.0"
+description = "A wrapper of Bitcoin Core's ctaes C library. ctaes is a simple constant-time AES implementation."
+keywords = [
+    "aes",
+    "crypto",
+    "encryption",
+    "ffi",
+    "no_std"
+]
+categories = ["cryptography", "external-ffi-bindings", "embedded", "no-std"]
+
+[dependencies]
+
+[dev-dependencies]
+hex = "0.4"
+
+[build-dependencies]
+cc = "1"

@@ -1,0 +1,23 @@
+[package]
+name = "bitcoin-io"
+version = "0.1.2"
+authors = ["Matt Corallo <birchneutea@mattcorallo.com>"]
+license = "CC0-1.0"
+repository = "https://github.com/rust-bitcoin/rust-bitcoin"
+documentation = "https://docs.rs/bitcoin-io/"
+description = "Simple I/O traits for no-std (and std) environments"
+categories = ["no-std"]
+keywords = [ "io", "no-std" ]
+readme = "README.md"
+edition = "2021"
+rust-version = "1.56.1"
+exclude = ["tests", "contrib"]
+
+[features]
+default = ["std"]
+std = ["alloc"]
+alloc = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::cell::OnceCell;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -10,7 +11,6 @@ use memmap2::Mmap;
 use object::{Object, ObjectMapFile, ObjectSection, SymbolMap, SymbolMapName};
 use typed_arena::Arena;
 
-use crate::lazy::LazyCell;
 use crate::{
     Context, FrameIter, Location, LocationRangeIter, LookupContinuation, LookupResult,
     SplitDwarfLoad,
@@ -126,20 +126,32 @@ impl Loader {
     }
 
     /// Find the symbol table entry corresponding to the given virtual memory address.
+    /// Return the symbol name.
     pub fn find_symbol(&self, probe: u64) -> Option<&str> {
-        self.borrow_internal(|i, _data, _mmap| i.find_symbol(probe))
+        self.find_symbol_info(probe).map(|symbol| symbol.name)
+    }
+
+    /// Find the symbol table entry corresponding to the given virtual memory address.
+    pub fn find_symbol_info(&self, probe: u64) -> Option<Symbol> {
+        self.borrow_internal(|i, _data, _mmap| i.find_symbol_info(probe))
+    }
+
+    /// Get the address of a section
+    pub fn get_section_range(&self, section_name: &[u8]) -> Option<gimli::Range> {
+        self.borrow_internal(|i, _data, _mmap| i.get_section_range(section_name))
     }
 }
 
 struct LoaderInternal<'a> {
     ctx: Context<LoaderReader<'a>>,
+    object: object::File<'a>,
     relative_address_base: u64,
     symbols: SymbolMap<SymbolMapName<'a>>,
     dwarf_package: Option<gimli::DwarfPackage<LoaderReader<'a>>>,
     // Map from address to Mach-O object file path.
     object_map: object::ObjectMap<'a>,
     // A context for each Mach-O object file.
-    objects: Vec<LazyCell<Option<ObjectContext<'a>>>>,
+    objects: Vec<OnceCell<Option<ObjectContext<'a>>>>,
 }
 
 impl<'a> LoaderInternal<'a> {
@@ -151,13 +163,13 @@ impl<'a> LoaderInternal<'a> {
     ) -> Result<Self> {
         let file = File::open(path)?;
         let map = arena_mmap.alloc(unsafe { Mmap::map(&file)? });
-        let mut object = object::File::parse(&**map)?;
+        let object = object::File::parse(&**map)?;
 
         let relative_address_base = object.relative_address_base();
         let symbols = object.symbol_map();
         let object_map = object.object_map();
         let mut objects = Vec::new();
-        objects.resize_with(object_map.objects().len(), LazyCell::new);
+        objects.resize_with(object_map.objects().len(), OnceCell::new);
 
         // Load supplementary object file.
         // TODO: use debuglink and debugaltlink
@@ -171,7 +183,7 @@ impl<'a> LoaderInternal<'a> {
         };
 
         // Load Mach-O dSYM file, ignoring errors.
-        if let Some(map) = (|| {
+        let dsym = if let Some(map) = (|| {
             let uuid = object.mach_uuid().ok()??;
             path.parent()?.read_dir().ok()?.find_map(|candidate| {
                 let candidate = candidate.ok()?;
@@ -195,17 +207,21 @@ impl<'a> LoaderInternal<'a> {
             })
         })() {
             let map = arena_mmap.alloc(map);
-            object = object::File::parse(&**map)?;
-        }
+            Some(object::File::parse(&**map)?)
+        } else {
+            None
+        };
+        let dwarf_object = dsym.as_ref().unwrap_or(&object);
 
         // Load the DWARF sections.
-        let endian = if object.is_little_endian() {
+        let endian = if dwarf_object.is_little_endian() {
             gimli::RunTimeEndian::Little
         } else {
             gimli::RunTimeEndian::Big
         };
-        let mut dwarf =
-            gimli::Dwarf::load(|id| load_section(Some(id.name()), &object, endian, arena_data))?;
+        let mut dwarf = gimli::Dwarf::load(|id| {
+            load_section(Some(id.name()), dwarf_object, endian, arena_data)
+        })?;
         if let Some(sup_object) = &sup_object {
             dwarf.load_sup(|id| load_section(Some(id.name()), sup_object, endian, arena_data))?;
         }
@@ -244,6 +260,7 @@ impl<'a> LoaderInternal<'a> {
 
         Ok(LoaderInternal {
             ctx,
+            object,
             relative_address_base,
             symbols,
             dwarf_package,
@@ -270,15 +287,28 @@ impl<'a> LoaderInternal<'a> {
     ) -> Option<(&Context<LoaderReader<'a>>, u64)> {
         let symbol = self.object_map.get(probe)?;
         let object_context = self.objects[symbol.object_index()]
-            .borrow_with(|| {
+            .get_or_init(|| {
                 ObjectContext::new(symbol.object(&self.object_map), arena_data, arena_mmap)
             })
             .as_ref()?;
         object_context.ctx(symbol.name(), probe - symbol.address())
     }
 
-    fn find_symbol(&self, probe: u64) -> Option<&str> {
-        self.symbols.get(probe).map(|x| x.name())
+    fn find_symbol_info(&self, probe: u64) -> Option<Symbol> {
+        self.symbols.get(probe).map(|x| Symbol {
+            name: x.name(),
+            address: x.address(),
+        })
+    }
+
+    fn get_section_range(&self, section_name: &[u8]) -> Option<gimli::Range> {
+        self.object
+            .section_by_name_bytes(section_name)
+            .map(|section| {
+                let begin = section.address();
+                let end = begin + section.size();
+                gimli::Range { begin, end }
+            })
     }
 
     fn find_location(
@@ -448,4 +478,22 @@ fn convert_path(bytes: &[u8]) -> Result<PathBuf> {
 fn convert_path(bytes: &[u8]) -> Result<PathBuf> {
     let s = std::str::from_utf8(bytes)?;
     Ok(PathBuf::from(s))
+}
+
+/// Information from a symbol table entry.
+pub struct Symbol<'a> {
+    name: &'a str,
+    address: u64,
+}
+
+impl<'a> Symbol<'a> {
+    /// Get the symbol name.
+    pub fn name(&self) -> &'a str {
+        self.name
+    }
+
+    /// Get the symbol address.
+    pub fn address(&self) -> u64 {
+        self.address
+    }
 }

@@ -657,7 +657,7 @@ impl ParsedPolicy<'_> {
 ///
 /// The parsed output keeps the key strings as is (e.g. "@0/**"). They will be processed and
 /// replaced with actual pubkeys in a later step.
-pub fn parse(policy: &Policy, coin: BtcCoin) -> Result<ParsedPolicy, Error> {
+pub fn parse(policy: &Policy, coin: BtcCoin) -> Result<ParsedPolicy<'_>, Error> {
     check_enabled(coin)?;
     if policy.keys.len() > MAX_KEYS {
         return Err(Error::InvalidInput);
@@ -876,7 +876,7 @@ mod tests {
         let coin = BtcCoin::Tbtc;
         let our_key = make_our_key(KEYPATH_ACCOUNT);
         // Parse a valid example and check that the keys are collected as is as strings.
-        let policy = make_policy("wsh(pk(@0/**))", &[our_key.clone()]);
+        let policy = make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key));
         match &parse(&policy, coin).unwrap().descriptor {
             Descriptor::Wsh(Wsh {
                 miniscript_expr, ..
@@ -908,14 +908,18 @@ mod tests {
 
         // Unknown top-level fragment.
         assert_eq!(
-            parse(&make_policy("unknown(pk(@0/**))", &[our_key.clone()]), coin).unwrap_err(),
+            parse(
+                &make_policy("unknown(pk(@0/**))", core::slice::from_ref(&our_key)),
+                coin
+            )
+            .unwrap_err(),
             Error::InvalidInput,
         );
 
         // Unknown script fragment.
         assert_eq!(
             parse(
-                &make_policy("wsh(unknown(@0/**))", &[our_key.clone()]),
+                &make_policy("wsh(unknown(@0/**))", core::slice::from_ref(&our_key)),
                 coin
             )
             .unwrap_err(),
@@ -944,7 +948,13 @@ mod tests {
         let coin = BtcCoin::Tbtc;
 
         // All good.
-        assert!(parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]), coin).is_ok());
+        assert!(
+            parse(
+                &make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key)),
+                coin
+            )
+            .is_ok()
+        );
 
         // All good, all keys are used across internal key & leaf scripts.
         assert!(
@@ -965,7 +975,10 @@ mod tests {
         // Unsupported coins
         for coin in [BtcCoin::Ltc, BtcCoin::Tltc] {
             assert!(matches!(
-                parse(&make_policy("wsh(pk(@0/**))", &[our_key.clone()]), coin),
+                parse(
+                    &make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key)),
+                    coin
+                ),
                 Err(Error::InvalidInput)
             ));
         }
@@ -1042,7 +1055,10 @@ mod tests {
 
         // Referenced key does not exist
         assert!(matches!(
-            parse(&make_policy("wsh(pk(@1/**))", &[our_key.clone()]), coin),
+            parse(
+                &make_policy("wsh(pk(@1/**))", core::slice::from_ref(&our_key)),
+                coin
+            ),
             Err(Error::InvalidInput)
         ));
     }
@@ -1055,7 +1071,7 @@ mod tests {
         let our_key = make_our_key(KEYPATH_ACCOUNT);
 
         // Ok, one key.
-        let pol = make_policy("wsh(pk(@0/**))", &[our_key.clone()]);
+        let pol = make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key));
         assert!(parse(&pol, coin).is_ok());
 
         // Ok, two keys.
@@ -1068,7 +1084,7 @@ mod tests {
         // Ok, one key with different derivations
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;3>/*)))",
-            &[our_key.clone()],
+            core::slice::from_ref(&our_key),
         );
         assert!(parse(&pol, coin).is_ok());
 
@@ -1078,33 +1094,39 @@ mod tests {
         // accident.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<1;2>/*)))",
-            &[our_key.clone()],
+            core::slice::from_ref(&our_key),
         );
         assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy.
-        let pol = make_policy("wsh(or_b(pk(@0/**),s:pk(@0/**)))", &[our_key.clone()]);
+        let pol = make_policy(
+            "wsh(or_b(pk(@0/**),s:pk(@0/**)))",
+            core::slice::from_ref(&our_key),
+        );
         assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy (same change and receive).
-        let pol = make_policy("wsh(pk(@0/<0;0>/*))", &[our_key.clone()]);
+        let pol = make_policy("wsh(pk(@0/<0;0>/*))", core::slice::from_ref(&our_key));
         assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy, using different notations for the same thing.
-        let pol = make_policy("wsh(or_b(pk(@0/**),s:pk(@0/<0;1>/*)))", &[our_key.clone()]);
+        let pol = make_policy(
+            "wsh(or_b(pk(@0/**),s:pk(@0/<0;1>/*)))",
+            core::slice::from_ref(&our_key),
+        );
         assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy, using same receive but different change.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<0;2>/*)))",
-            &[our_key.clone()],
+            core::slice::from_ref(&our_key),
         );
         assert!(parse(&pol, coin).is_err());
 
         // Duplicate key inside policy, using same change but different receive.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;1>/*)))",
-            &[our_key.clone()],
+            core::slice::from_ref(&our_key),
         );
         assert!(parse(&pol, coin).is_err());
     }
@@ -1117,7 +1139,7 @@ mod tests {
         let our_key = make_our_key(KEYPATH_ACCOUNT);
 
         // Ok, only internal key.
-        let pol = make_policy("tr(@0/**)", &[our_key.clone()]);
+        let pol = make_policy("tr(@0/**)", core::slice::from_ref(&our_key));
         assert!(parse(&pol, coin).is_ok());
 
         // Ok, one leaf with one key.
@@ -1140,7 +1162,7 @@ mod tests {
 
         // Duplicate keys across internal key and multiple leafs. Technically okay, but prohibited
         // by BIP-388.
-        let pol = make_policy("tr(@0/**,pk(@0/**))", &[our_key.clone()]);
+        let pol = make_policy("tr(@0/**,pk(@0/**))", core::slice::from_ref(&our_key));
         assert!(parse(&pol, coin).is_err());
 
         // Duplicate key in one leaf script.
@@ -1184,7 +1206,7 @@ mod tests {
         assert_eq!(
             get_change_and_address_index(
                 ["@0/<10;11>/*", "@0/<20;21>/*"].iter(),
-                &[our_key.clone()],
+                core::slice::from_ref(&our_key),
                 &[true],
                 &[
                     48 + HARDENED,
@@ -1337,7 +1359,7 @@ mod tests {
         };
 
         // pk(key) => <key> OP_CHECKSIG
-        let result = witness_script("wsh(pk(@0/**))", &[our_key.clone()], false);
+        let result = witness_script("wsh(pk(@0/**))", core::slice::from_ref(&our_key), false);
         let expected_derived_pubkey =
             "039d626054b8fd7e8371ee7341549846cc7703b5530d6b7ddc08dc8a3b78455924";
         assert_eq!(
@@ -1447,10 +1469,13 @@ mod tests {
         let our_key = make_our_key(&[86 + HARDENED, HARDENED, HARDENED]);
 
         let (is_change, address_index) = (false, 0);
-        let derived = parse(&make_policy("tr(@0/**)", &[our_key.clone()]), coin)
-            .unwrap()
-            .derive(is_change, address_index)
-            .unwrap();
+        let derived = parse(
+            &make_policy("tr(@0/**)", core::slice::from_ref(&our_key)),
+            coin,
+        )
+        .unwrap()
+        .derive(is_change, address_index)
+        .unwrap();
         match derived {
             Descriptor::Tr(tr) => {
                 assert_eq!(
@@ -1503,18 +1528,18 @@ mod tests {
                 "b014ba52b642976b952dd028a763a05d039199e87e0c8e9559aa215793b77bd9";
             let desc = "tr(@0/<10;11>/*,{pk(@0/<20;21>/*),pk(@0/<30;31>/*)})";
             assert_eq!(
-                output_key(desc, &[our_key.clone()], false, ADDRESS_INDEX),
+                output_key(desc, core::slice::from_ref(&our_key), false, ADDRESS_INDEX),
                 expected_receive
             );
             assert_eq!(
-                output_key(desc, &[our_key.clone()], true, ADDRESS_INDEX),
+                output_key(desc, core::slice::from_ref(&our_key), true, ADDRESS_INDEX),
                 expected_change
             );
             for receive in [10, 20, 30] {
                 assert_eq!(
                     output_key_at_keypath(
                         desc,
-                        &[our_key.clone()],
+                        core::slice::from_ref(&our_key),
                         &[
                             48 + HARDENED,
                             1 + HARDENED,
@@ -1531,7 +1556,7 @@ mod tests {
                 assert_eq!(
                     output_key_at_keypath(
                         desc,
-                        &[our_key.clone()],
+                        core::slice::from_ref(&our_key),
                         &[
                             48 + HARDENED,
                             1 + HARDENED,

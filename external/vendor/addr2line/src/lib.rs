@@ -42,6 +42,7 @@ pub extern crate fallible_iterator;
 pub extern crate gimli;
 
 use alloc::sync::Arc;
+use core::cell::OnceCell;
 use core::ops::ControlFlow;
 
 use crate::function::{Function, Functions, InlinedFunction, LazyFunctions};
@@ -64,13 +65,12 @@ mod frame;
 pub use frame::{demangle, demangle_auto, Frame, FrameIter, FunctionName, Location};
 
 mod function;
-mod lazy;
 mod line;
 
 #[cfg(feature = "loader")]
 mod loader;
 #[cfg(feature = "loader")]
-pub use loader::{Loader, LoaderReader};
+pub use loader::{Loader, LoaderReader, Symbol};
 
 mod lookup;
 pub use lookup::{LookupContinuation, LookupResult, SplitDwarfLoad};
@@ -79,6 +79,7 @@ mod unit;
 pub use unit::LocationRangeIter;
 
 type Error = gimli::Error;
+type LazyResult<T> = OnceCell<Result<T, Error>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DebugFile {
@@ -122,6 +123,8 @@ impl<R: gimli::Reader> Context<R> {
             debug_info,
             debug_line,
             debug_line_str,
+            debug_macinfo: default_section.clone().into(),
+            debug_macro: default_section.clone().into(),
             debug_str,
             debug_str_offsets,
             debug_types: default_section.clone().into(),

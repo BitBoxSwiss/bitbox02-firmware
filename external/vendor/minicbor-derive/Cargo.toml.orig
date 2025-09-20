@@ -1,0 +1,26 @@
+[package]
+name          = "minicbor-derive"
+version       = "0.15.0"
+authors       = ["Toralf Wittner <tw@dtex.org>"]
+license       = "BlueOak-1.0.0"
+edition       = "2021"
+description   = "Derive minicbor `Decode` and `Encode` traits."
+repository    = "https://gitlab.com/twittner/minicbor"
+documentation = "https://twittner.gitlab.io/minicbor/minicbor_derive/"
+keywords      = ["cbor", "serialization", "encoding", "binary", "no_std"]
+categories    = ["encoding"]
+
+[lib]
+proc-macro = true
+
+[features]
+alloc = []
+std   = ["alloc"]
+
+[dependencies]
+proc-macro2 = "1.0.79"
+quote       = "1.0.35"
+syn         = { version = "2.0.58", features = ["derive", "extra-traits", "visit"] }
+
+[dev-dependencies]
+minicbor = { path = "../minicbor", features = ["std", "derive"] }

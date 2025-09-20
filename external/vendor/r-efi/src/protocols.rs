@@ -33,6 +33,7 @@ pub mod load_file2;
 pub mod loaded_image;
 pub mod loaded_image_device_path;
 pub mod managed_network;
+pub mod memory_attribute;
 pub mod mp_services;
 pub mod pci_io;
 pub mod platform_driver_override;

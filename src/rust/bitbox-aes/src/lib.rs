@@ -36,7 +36,7 @@ fn pkcs7_pad(buf: &mut Vec<u8>) {
 
 /// To unpad, the padding length is read from the last byte and that many bytes are removed.
 fn pkcs7_unpad(buf: &mut Vec<u8>) -> Result<(), ()> {
-    if buf.len() % BLOCK_SIZE != 0 {
+    if !buf.len().is_multiple_of(BLOCK_SIZE) {
         return Err(());
     }
     let pad_len = *buf.last().ok_or(())?;

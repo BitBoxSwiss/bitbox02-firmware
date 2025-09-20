@@ -40,8 +40,6 @@ pub const SO_PASSCRED: c_int = 16;
 pub const SO_PEERCRED: c_int = 17;
 pub const SO_RCVLOWAT: c_int = 18;
 pub const SO_SNDLOWAT: c_int = 19;
-const SO_RCVTIMEO_OLD: c_int = 20;
-const SO_SNDTIMEO_OLD: c_int = 21;
 pub const SO_SECURITY_AUTHENTICATION: c_int = 22;
 pub const SO_SECURITY_ENCRYPTION_TRANSPORT: c_int = 23;
 pub const SO_SECURITY_ENCRYPTION_NETWORK: c_int = 24;
@@ -50,9 +48,6 @@ pub const SO_ATTACH_FILTER: c_int = 26;
 pub const SO_DETACH_FILTER: c_int = 27;
 pub const SO_GET_FILTER: c_int = SO_ATTACH_FILTER;
 pub const SO_PEERNAME: c_int = 28;
-const SO_TIMESTAMP_OLD: c_int = 29;
-const SO_TIMESTAMPNS_OLD: c_int = 35;
-const SO_TIMESTAMPING_OLD: c_int = 37;
 
 cfg_if! {
     if #[cfg(all(
@@ -76,6 +71,12 @@ cfg_if! {
         pub const SO_RCVTIMEO: c_int = 66;
         pub const SO_SNDTIMEO: c_int = 67;
     } else {
+        const SO_TIMESTAMP_OLD: c_int = 29;
+        const SO_TIMESTAMPNS_OLD: c_int = 35;
+        const SO_TIMESTAMPING_OLD: c_int = 37;
+        const SO_RCVTIMEO_OLD: c_int = 20;
+        const SO_SNDTIMEO_OLD: c_int = 21;
+
         pub const SO_TIMESTAMP: c_int = SO_TIMESTAMP_OLD;
         pub const SO_TIMESTAMPNS: c_int = SO_TIMESTAMPNS_OLD;
         pub const SO_TIMESTAMPING: c_int = SO_TIMESTAMPING_OLD;
@@ -157,22 +158,6 @@ pub const SO_PEERPIDFD: c_int = 77;
 pub const SO_DEVMEM_LINEAR: c_int = 78;
 pub const SO_DEVMEM_DMABUF: c_int = 79;
 pub const SO_DEVMEM_DONTNEED: c_int = 80;
-
-cfg_if! {
-    if #[cfg(any(
-        target_arch = "x86",
-        target_arch = "x86_64",
-        target_arch = "arm",
-        target_arch = "aarch64",
-        target_arch = "riscv64",
-        target_arch = "s390x",
-        target_arch = "csky",
-        target_arch = "loongarch64"
-    ))] {
-        pub const FICLONE: c_ulong = 0x40049409;
-        pub const FICLONERANGE: c_ulong = 0x4020940D;
-    }
-}
 
 // Defined in unix/linux_like/mod.rs
 // pub const SCM_TIMESTAMP: c_int = SO_TIMESTAMP;
@@ -264,79 +249,6 @@ pub const BLKIOMIN: Ioctl = 0x1278;
 pub const BLKIOOPT: Ioctl = 0x1279;
 pub const BLKSSZGET: Ioctl = 0x1268;
 pub const BLKPBSZGET: Ioctl = 0x127B;
-// linux/if_tun.h
-pub const TUNSETNOCSUM: Ioctl = 0x400454c8;
-pub const TUNSETDEBUG: Ioctl = 0x400454c9;
-pub const TUNSETIFF: Ioctl = 0x400454ca;
-pub const TUNSETPERSIST: Ioctl = 0x400454cb;
-pub const TUNSETOWNER: Ioctl = 0x400454cc;
-pub const TUNSETLINK: Ioctl = 0x400454cd;
-pub const TUNSETGROUP: Ioctl = 0x400454ce;
-pub const TUNGETFEATURES: Ioctl = 0x800454cf;
-pub const TUNSETOFFLOAD: Ioctl = 0x400454d0;
-pub const TUNSETTXFILTER: Ioctl = 0x400454d1;
-pub const TUNGETIFF: Ioctl = 0x800454d2;
-pub const TUNGETSNDBUF: Ioctl = 0x800454d3;
-pub const TUNSETSNDBUF: Ioctl = 0x400454d4;
-pub const TUNGETVNETHDRSZ: Ioctl = 0x800454d7;
-pub const TUNSETVNETHDRSZ: Ioctl = 0x400454d8;
-pub const TUNSETQUEUE: Ioctl = 0x400454d9;
-pub const TUNSETIFINDEX: Ioctl = 0x400454da;
-pub const TUNSETVNETLE: Ioctl = 0x400454dc;
-pub const TUNGETVNETLE: Ioctl = 0x800454dd;
-/* The TUNSETVNETBE and TUNGETVNETBE ioctls are for cross-endian support on
- * little-endian hosts. Not all kernel configurations support them, but all
- * configurations that support SET also support GET.
- */
-pub const TUNSETVNETBE: Ioctl = 0x400454de;
-pub const TUNGETVNETBE: Ioctl = 0x800454df;
-pub const TUNSETSTEERINGEBPF: Ioctl = 0x800454e0;
-pub const TUNSETFILTEREBPF: Ioctl = 0x800454e1;
-
-cfg_if! {
-    // Those type are constructed using the _IOC macro
-    // DD-SS_SSSS_SSSS_SSSS-TTTT_TTTT-NNNN_NNNN
-    // where D stands for direction (either None (00), Read (01) or Write (11))
-    // where S stands for size (int, long, struct...)
-    // where T stands for type ('f','v','X'...)
-    // where N stands for NR (NumbeR)
-    if #[cfg(any(
-        target_arch = "x86",
-        target_arch = "arm",
-        target_arch = "csky"
-    ))] {
-        pub const FS_IOC_GETFLAGS: Ioctl = 0x80046601;
-        pub const FS_IOC_SETFLAGS: Ioctl = 0x40046602;
-        pub const FS_IOC_GETVERSION: Ioctl = 0x80047601;
-        pub const FS_IOC_SETVERSION: Ioctl = 0x40047602;
-        pub const FS_IOC32_GETFLAGS: Ioctl = 0x80046601;
-        pub const FS_IOC32_SETFLAGS: Ioctl = 0x40046602;
-        pub const FS_IOC32_GETVERSION: Ioctl = 0x80047601;
-        pub const FS_IOC32_SETVERSION: Ioctl = 0x40047602;
-        pub const TUNATTACHFILTER: Ioctl = 0x400854d5;
-        pub const TUNDETACHFILTER: Ioctl = 0x400854d6;
-        pub const TUNGETFILTER: Ioctl = 0x800854db;
-    } else if #[cfg(any(
-        target_arch = "x86_64",
-        target_arch = "riscv64",
-        target_arch = "aarch64",
-        target_arch = "s390x",
-        target_arch = "loongarch64",
-        target_arch = "wasm32"
-    ))] {
-        pub const FS_IOC_GETFLAGS: Ioctl = 0x80086601;
-        pub const FS_IOC_SETFLAGS: Ioctl = 0x40086602;
-        pub const FS_IOC_GETVERSION: Ioctl = 0x80087601;
-        pub const FS_IOC_SETVERSION: Ioctl = 0x40087602;
-        pub const FS_IOC32_GETFLAGS: Ioctl = 0x80046601;
-        pub const FS_IOC32_SETFLAGS: Ioctl = 0x40046602;
-        pub const FS_IOC32_GETVERSION: Ioctl = 0x80047601;
-        pub const FS_IOC32_SETVERSION: Ioctl = 0x40047602;
-        pub const TUNATTACHFILTER: Ioctl = 0x401054d5;
-        pub const TUNDETACHFILTER: Ioctl = 0x401054d6;
-        pub const TUNGETFILTER: Ioctl = 0x801054db;
-    }
-}
 
 cfg_if! {
     if #[cfg(any(target_arch = "arm", target_arch = "s390x"))] {
@@ -402,9 +314,6 @@ cfg_if! {
         pub const RLIMIT_RTPRIO: c_int = 14;
         pub const RLIMIT_RTTIME: c_int = 15;
         #[deprecated(since = "0.2.64", note = "Not stable across OS versions")]
-        #[cfg(not(target_arch = "loongarch64"))]
-        pub const RLIM_NLIMITS: c_int = 15;
-        #[cfg(target_arch = "loongarch64")]
         pub const RLIM_NLIMITS: c_int = 16;
         #[allow(deprecated)]
         #[deprecated(since = "0.2.64", note = "Not stable across OS versions")]

@@ -1,0 +1,34 @@
+[package]
+name = "secp256k1-sys"
+version = "0.10.0"
+authors = [ "Dawid Ciężarkiewicz <dpc@ucore.info>",
+            "Andrew Poelstra <apoelstra@wpsoftware.net>",
+            "Steven Roose <steven@stevenroose.org>" ]
+license = "CC0-1.0"
+homepage = "https://github.com/rust-bitcoin/rust-secp256k1/"
+repository = "https://github.com/rust-bitcoin/rust-secp256k1/"
+documentation = "https://docs.rs/secp256k1-sys/"
+description = "FFI for Pieter Wuille's `libsecp256k1` library."
+keywords = [ "secp256k1", "libsecp256k1", "ffi" ]
+readme = "README.md"
+build = "build.rs"
+links = "rustsecp256k1_v0_10_0"
+edition = "2021"
+rust-version = "1.56.1"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[build-dependencies]
+cc = "1.0.28"
+
+[dev-dependencies]
+libc = "0.2"
+
+[features]
+default = ["std"]
+recovery = []
+lowmemory = []
+std = ["alloc"]
+alloc = []

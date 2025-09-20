@@ -1,8 +1,7 @@
 #![doc = include_str!("../README.md")]
-#![feature(naked_functions)]
-#![feature(non_exhaustive_omitted_patterns_lint)]
 // lang_items is an internal feature. `internal_features` lint is added recently
 // so also allow unknown lints to prevent warning in older nightly versions.
+#![allow(unknown_lints)]
 #![cfg_attr(
     any(
         feature = "personality",
@@ -21,8 +20,6 @@
     feature(core_intrinsics)
 )]
 #![cfg_attr(feature = "panic-handler", feature(thread_local))]
-#![warn(rust_2018_idioms)]
-#![warn(unsafe_op_in_unsafe_fn)]
 #![no_std]
 
 #[cfg(feature = "alloc")]

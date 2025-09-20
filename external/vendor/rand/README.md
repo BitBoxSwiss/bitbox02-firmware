@@ -16,12 +16,12 @@ Rand is a set of crates supporting (pseudo-)random generators:
 
 With broad support for random value generation and random processes:
 
--   [`StandardUniform`](https://docs.rs/rand/latest/rand/distributions/struct.StandardUniform.html) random value sampling,
-    [`Uniform`](https://docs.rs/rand/latest/rand/distributions/struct.Uniform.html)-ranged value sampling
+-   [`StandardUniform`](https://docs.rs/rand/latest/rand/distr/struct.StandardUniform.html) random value sampling,
+    [`Uniform`](https://docs.rs/rand/latest/rand/distr/struct.Uniform.html)-ranged value sampling
     and [more](https://docs.rs/rand/latest/rand/distr/index.html)
 -   Samplers for a large number of non-uniform random number distributions via our own
     [`rand_distr`](https://docs.rs/rand_distr) and via
-    the [`statrs`](https://docs.rs/statrs/0.13.0/statrs/)
+    the [`statrs`](https://docs.rs/statrs)
 -   Random processes (mostly choose and shuffle) via [`rand::seq`](https://docs.rs/rand/latest/rand/seq/index.html) traits
 
 All with:
@@ -39,12 +39,11 @@ Rand **is not**:
     not simplicity. If you prefer a small-and-simple library, there are
     alternatives including [fastrand](https://crates.io/crates/fastrand)
     and [oorandom](https://crates.io/crates/oorandom).
--   A cryptography library. Rand provides functionality for generating
-    unpredictable random data (potentially applicable depending on requirements)
-    but does not provide high-level cryptography functionality.
-
-Rand is a community project and cannot provide legally-binding guarantees of
-security.
+-   Primarily a cryptographic library. `rand` does provide some generators which
+    aim to support unpredictable value generation under certain constraints;
+    see [SECURITY.md](https://github.com/rust-random/rand/blob/master/SECURITY.md) for details.
+    Users are expected to determine for themselves
+    whether `rand`'s functionality meets their own security requirements.
 
 Documentation:
 
@@ -56,11 +55,11 @@ Documentation:
 ## Versions
 
 Rand is *mature* (suitable for general usage, with infrequent breaking releases
-which minimise breakage) but not yet at 1.0. Current versions are:
+which minimise breakage) but not yet at 1.0. Current `MAJOR.MINOR` versions are:
 
 -   Version 0.9 was released in January 2025.
 
-See the [CHANGELOG](CHANGELOG.md) or [Upgrade Guide](https://rust-random.github.io/book/update.html) for more details.
+See the [CHANGELOG](https://github.com/rust-random/rand/blob/master/CHANGELOG.md) or [Upgrade Guide](https://rust-random.github.io/book/update.html) for more details.
 
 ## Crate Features
 
@@ -70,6 +69,7 @@ Rand is built with these features enabled by default:
 -   `alloc` (implied by `std`) enables functionality requiring an allocator
 -   `os_rng` (implied by `std`) enables `rngs::OsRng`, using the [getrandom] crate
 -   `std_rng` enables inclusion of `StdRng`, `ThreadRng`
+-   `small_rng` enables inclusion of the `SmallRng` PRNG
 
 Optionally, the following dependencies can be enabled:
 
@@ -77,10 +77,14 @@ Optionally, the following dependencies can be enabled:
 
 Additionally, these features configure Rand:
 
--   `small_rng` enables inclusion of the `SmallRng` PRNG
 -   `nightly` includes some additions requiring nightly Rust
 -   `simd_support` (experimental) enables sampling of SIMD values
     (uniformly random SIMD integers and floats), requiring nightly Rust
+-   `unbiased` use unbiased sampling for algorithms supporting this option: Uniform distribution.
+
+    (By default, bias affecting no more than one in  2^48 samples is accepted.)
+
+    Note: enabling this option is expected to affect reproducibility of results.
 
 Note that nightly features are not stable and therefore not all library and
 compiler versions will be compatible. This is especially true of Rand's
@@ -97,23 +101,20 @@ Many (but not all) algorithms are intended to have reproducible output. Read mor
 
 The Rand library supports a variety of CPU architectures. Platform integration is outsourced to [getrandom].
 
-### WASM support
+### WebAssembly support
 
-Seeding entropy from OS on WASM target `wasm32-unknown-unknown` is not
-*automatically* supported by `rand` or `getrandom`. If you are fine with
-seeding the generator manually, you can disable the `os_rng` feature
-and use the methods on the `SeedableRng` trait. To enable seeding from OS,
-either use a different target such as `wasm32-wasi` or add a direct
-dependency on [getrandom] with the `js` feature (if the target supports
-JavaScript). See
-[getrandom#WebAssembly support](https://docs.rs/getrandom/latest/getrandom/#webassembly-support).
+The [WASI](https://github.com/WebAssembly/WASI/tree/main) and Emscripten
+targets are directly supported. The `wasm32-unknown-unknown` target is not
+*automatically* supported. To enable support for this target, refer to the
+[`getrandom` documentation for WebAssembly](https://docs.rs/getrandom/latest/getrandom/#webassembly-support).
+Alternatively, the `os_rng` feature may be disabled.
 
 # License
 
 Rand is distributed under the terms of both the MIT license and the
 Apache License (Version 2.0).
 
-See [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT), and
-[COPYRIGHT](COPYRIGHT) for details.
+See [LICENSE-APACHE](https://github.com/rust-random/rand/blob/master/LICENSE-APACHE) and [LICENSE-MIT](https://github.com/rust-random/rand/blob/master/LICENSE-MIT), and
+[COPYRIGHT](https://github.com/rust-random/rand/blob/master/COPYRIGHT) for details.
 
 [getrandom]: https://crates.io/crates/getrandom

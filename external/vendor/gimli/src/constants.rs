@@ -1060,9 +1060,21 @@ DwLnct(u16) {
 });
 
 dw!(
+/// Type codes for macro definitions in the `.debug_macinfo` section.
+///
+/// See Section 7.22, Figure 39 for DWARF 4.
+DwMacinfo(u8) {
+    DW_MACINFO_define = 0x01,
+    DW_MACINFO_undef = 0x02,
+    DW_MACINFO_start_file = 0x03,
+    DW_MACINFO_end_file = 0x04,
+    DW_MACINFO_vendor_ext = 0xff,
+});
+
+dw!(
 /// The encodings for macro information entry types.
 ///
-/// See Section 7.23, Table 7.28.
+/// See Section 7.23, Table 7.28 for DWARF 5.
 DwMacro(u8) {
     DW_MACRO_define = 0x01,
     DW_MACRO_undef = 0x02,

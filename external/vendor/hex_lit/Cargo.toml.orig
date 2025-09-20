@@ -1,0 +1,19 @@
+[package]
+name = "hex_lit"
+version = "0.1.1"
+authors = ["Martin Habovstiak <martin.habovstiak@gmail.com>"]
+edition = "2018"
+description = "Hex macro literals without use of hex macros"
+repository = "https://github.com/Kixunil/hex_lit"
+readme = "README.md"
+keywords = ["hex", "literal", "hex-literal"]
+categories = ["encoding", "rust-patterns", "no-std"]
+license = "MITNFA"
+
+[package.metadata.docs.rs]
+features = ["rust_v_1_46"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+
+[features]
+rust_v_1_46 = []

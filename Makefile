@@ -173,7 +173,7 @@ run-bootloader:
 run-factory-setup-debug:
 	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/factory-setup.elf
 dockerinit:
-	./scripts/container.sh build --pull --force-rm --no-cache -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
+	./scripts/container.sh build --pull -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:
 	./scripts/container.sh pull shiftcrypto/firmware_v2:$(shell cat .containerversion)
 dockerdev:

@@ -271,6 +271,7 @@ fn elf_any() {
         (Architecture::X86_64, Endianness::Little),
         (Architecture::X86_64_X32, Endianness::Little),
         (Architecture::Hexagon, Endianness::Little),
+        (Architecture::LoongArch32, Endianness::Little),
         (Architecture::LoongArch64, Endianness::Little),
         (Architecture::M68k, Endianness::Big),
         (Architecture::Mips, Endianness::Little),
@@ -286,6 +287,7 @@ fn elf_any() {
         (Architecture::Sparc, Endianness::Big),
         (Architecture::Sparc32Plus, Endianness::Big),
         (Architecture::Sparc64, Endianness::Big),
+        (Architecture::SuperH, Endianness::Big),
         (Architecture::Xtensa, Endianness::Little),
     ]
     .iter()

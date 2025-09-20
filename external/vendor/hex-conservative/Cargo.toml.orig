@@ -1,0 +1,51 @@
+[package]
+name = "hex-conservative"
+version = "0.2.1"
+authors = ["Martin Habovštiak <martin.habovstiak@gmail.com>", "Andrew Poelstra <apoelstra@wpsoftware.net>"]
+license = "CC0-1.0"
+repository = "https://github.com/rust-bitcoin/hex-conservative"
+documentation = "https://docs.rs/hex-conservative/"
+description = "A hex encoding and decoding crate with a conservative MSRV and dependency policy."
+categories = ["encoding"]
+keywords = ["encoding", "hex", "hexadecimal"]
+readme = "README.md"
+edition = "2018"
+exclude = ["tests", "contrib"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[workspace]
+members = ["fuzz"]
+
+[features]
+default = ["std"]
+std = ["alloc"]
+alloc = []
+
+[dependencies]
+arrayvec = { version = "0.7.2", default-features = false }
+core2 = { version = "0.3.2", default-features = false, optional = true }
+serde = { version = "1.0", default-features = false, optional = true }
+
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[[example]]
+name = "hexy"
+
+[[example]]
+name = "custom"
+
+[[example]]
+name = "wrap_array_display_hex_trait"
+
+[[example]]
+name = "wrap_array_fmt_traits"
+
+[[example]]
+name = "serde"
+required-features = ["std", "serde"]

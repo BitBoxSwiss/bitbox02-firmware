@@ -113,14 +113,12 @@ macro_rules! save {
     (maybesavefp()) => { "" };
 }
 
-#[naked]
+#[unsafe(naked)]
 pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), ptr: *mut ()) {
-    unsafe {
-        #[cfg(target_feature = "neon")]
-        save!(gp, fp);
-        #[cfg(not(target_feature = "neon"))]
-        save!(gp);
-    }
+    #[cfg(target_feature = "neon")]
+    save!(gp, fp);
+    #[cfg(not(target_feature = "neon"))]
+    save!(gp);
 }
 
 macro_rules! restore {

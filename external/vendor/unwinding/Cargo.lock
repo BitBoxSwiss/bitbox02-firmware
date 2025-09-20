@@ -10,11 +10,10 @@ checksum = "7925a77545f37a18e152a4aeaeb9a220309022067cafcfa2ecebe9ec55d36ccb"
 
 [[package]]
 name = "gimli"
-version = "0.31.1"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
+checksum = "93563d740bc9ef04104f9ed6f86f1e3275c2cdafb95664e26584b9ca807a8ffe"
 dependencies = [
- "compiler_builtins",
  "rustc-std-workspace-alloc",
  "rustc-std-workspace-core",
 ]
@@ -45,7 +44,7 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 
 [[package]]
 name = "unwinding"
-version = "0.2.5"
+version = "0.2.7"
 dependencies = [
  "compiler_builtins",
  "gimli",

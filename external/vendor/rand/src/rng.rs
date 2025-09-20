@@ -12,8 +12,8 @@
 use crate::distr::uniform::{SampleRange, SampleUniform};
 use crate::distr::{self, Distribution, StandardUniform};
 use core::num::Wrapping;
+use core::{mem, slice};
 use rand_core::RngCore;
-use zerocopy::IntoBytes;
 
 /// User-level interface for RNGs
 ///
@@ -110,11 +110,11 @@ pub trait Rng: RngCore {
     /// # Example
     ///
     /// ```
-    /// use rand::{rngs::mock::StepRng, Rng};
+    /// use rand::{rngs::SmallRng, Rng, SeedableRng};
     ///
-    /// let rng = StepRng::new(1, 1);
+    /// let rng = SmallRng::seed_from_u64(0);
     /// let v: Vec<i32> = rng.random_iter().take(5).collect();
-    /// assert_eq!(&v, &[1, 2, 3, 4, 5]);
+    /// assert_eq!(v.len(), 5);
     /// ```
     #[inline]
     fn random_iter<T>(self) -> distr::Iter<StandardUniform, Self, T>
@@ -393,14 +393,36 @@ impl Fill for [u8] {
     }
 }
 
+/// Call target for unsafe macros
+const unsafe fn __unsafe() {}
+
+/// Implement `Fill` for given type `$t`.
+///
+/// # Safety
+/// All bit patterns of `[u8; size_of::<$t>()]` must represent values of `$t`.
 macro_rules! impl_fill {
     () => {};
-    ($t:ty) => {
+    ($t:ty) => {{
+        // Force caller to wrap with an `unsafe` block
+        __unsafe();
+
         impl Fill for [$t] {
-            #[inline(never)] // in micro benchmarks, this improves performance
             fn fill<R: Rng + ?Sized>(&mut self, rng: &mut R) {
                 if self.len() > 0 {
-                    rng.fill_bytes(self.as_mut_bytes());
+                    let size = mem::size_of_val(self);
+                    rng.fill_bytes(
+                        // SAFETY: `self` non-null and valid for reads and writes within its `size`
+                        // bytes. `self` meets the alignment requirements of `&mut [u8]`.
+                        // The contents of `self` are initialized. Both `[u8]` and `[$t]` are valid
+                        // for all bit-patterns of their contents (note that the SAFETY requirement
+                        // on callers of this macro). `self` is not borrowed.
+                        unsafe {
+                            slice::from_raw_parts_mut(self.as_mut_ptr()
+                                as *mut u8,
+                                size
+                            )
+                        }
+                    );
                     for x in self {
                         *x = x.to_le();
                     }
@@ -409,27 +431,41 @@ macro_rules! impl_fill {
         }
 
         impl Fill for [Wrapping<$t>] {
-            #[inline(never)]
             fn fill<R: Rng + ?Sized>(&mut self, rng: &mut R) {
                 if self.len() > 0 {
-                    rng.fill_bytes(self.as_mut_bytes());
+                    let size = self.len() * mem::size_of::<$t>();
+                    rng.fill_bytes(
+                        // SAFETY: `self` non-null and valid for reads and writes within its `size`
+                        // bytes. `self` meets the alignment requirements of `&mut [u8]`.
+                        // The contents of `self` are initialized. Both `[u8]` and `[$t]` are valid
+                        // for all bit-patterns of their contents (note that the SAFETY requirement
+                        // on callers of this macro). `self` is not borrowed.
+                        unsafe {
+                            slice::from_raw_parts_mut(self.as_mut_ptr()
+                                as *mut u8,
+                                size
+                            )
+                        }
+                    );
                     for x in self {
-                    *x = Wrapping(x.0.to_le());
+                        *x = Wrapping(x.0.to_le());
                     }
                 }
             }
-        }
+        }}
     };
-    ($t:ty, $($tt:ty,)*) => {
+    ($t:ty, $($tt:ty,)*) => {{
         impl_fill!($t);
         // TODO: this could replace above impl once Rust #32463 is fixed
         // impl_fill!(Wrapping<$t>);
         impl_fill!($($tt,)*);
-    }
+    }}
 }
 
-impl_fill!(u16, u32, u64, u128,);
-impl_fill!(i8, i16, i32, i64, i128,);
+// SAFETY: All bit patterns of `[u8; size_of::<$t>()]` represent values of `u*`.
+const _: () = unsafe { impl_fill!(u16, u32, u64, u128,) };
+// SAFETY: All bit patterns of `[u8; size_of::<$t>()]` represent values of `i*`.
+const _: () = unsafe { impl_fill!(i8, i16, i32, i64, i128,) };
 
 impl<T, const N: usize> Fill for [T; N]
 where
@@ -443,14 +479,13 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rngs::mock::StepRng;
-    use crate::test::rng;
+    use crate::test::{const_rng, rng};
     #[cfg(feature = "alloc")]
     use alloc::boxed::Box;
 
     #[test]
     fn test_fill_bytes_default() {
-        let mut r = StepRng::new(0x11_22_33_44_55_66_77_88, 0);
+        let mut r = const_rng(0x11_22_33_44_55_66_77_88);
 
         // check every remainder mod 8, both in small and big vectors.
         let lengths = [0, 1, 2, 3, 4, 5, 6, 7, 80, 81, 82, 83, 84, 85, 86, 87];
@@ -471,7 +506,7 @@ mod test {
     #[test]
     fn test_fill() {
         let x = 9041086907909331047; // a random u64
-        let mut rng = StepRng::new(x, 0);
+        let mut rng = const_rng(x);
 
         // Convert to byte sequence and back to u64; byte-swap twice if BE.
         let mut array = [0u64; 2];
@@ -501,7 +536,7 @@ mod test {
     #[test]
     fn test_fill_empty() {
         let mut array = [0u32; 0];
-        let mut rng = StepRng::new(0, 1);
+        let mut rng = rng(1);
         rng.fill(&mut array);
         rng.fill(&mut array[..]);
     }

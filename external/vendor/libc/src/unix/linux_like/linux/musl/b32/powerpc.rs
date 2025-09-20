@@ -53,6 +53,14 @@ s! {
     }
 
     pub struct ipc_perm {
+        #[cfg(musl_v1_2_3)]
+        pub __key: crate::key_t,
+        #[cfg(not(musl_v1_2_3))]
+        #[deprecated(
+            since = "0.2.173",
+            note = "This field is incorrectly named and will be changed
+                to __key in a future release."
+        )]
         pub __ipc_perm_key: crate::key_t,
         pub uid: crate::uid_t,
         pub gid: crate::gid_t,
@@ -745,7 +753,3 @@ pub const SYS_process_mrelease: c_long = 448;
 pub const SYS_futex_waitv: c_long = 449;
 pub const SYS_set_mempolicy_home_node: c_long = 450;
 pub const SYS_mseal: c_long = 462;
-
-extern "C" {
-    pub fn getrandom(buf: *mut c_void, buflen: size_t, flags: c_uint) -> ssize_t;
-}

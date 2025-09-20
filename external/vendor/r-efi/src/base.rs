@@ -748,7 +748,7 @@ impl Guid {
     /// instance. Note that you can safely transmute instead.
     ///
     /// See `as_bytes()` for the inverse operation.
-    pub fn from_bytes(bytes: &[u8; 16]) -> Self {
+    pub const fn from_bytes(bytes: &[u8; 16]) -> Self {
         unsafe { core::mem::transmute::<[u8; 16], Guid>(*bytes) }
     }
 
@@ -756,7 +756,7 @@ impl Guid {
     ///
     /// This provides access to a Guid through a byte array. It is a simple re-interpretation of
     /// the Guid value as a 128-bit byte array. No conversion is performed. This is a simple cast.
-    pub fn as_bytes(&self) -> &[u8; 16] {
+    pub const fn as_bytes(&self) -> &[u8; 16] {
         unsafe { core::mem::transmute::<&Guid, &[u8; 16]>(self) }
     }
 }

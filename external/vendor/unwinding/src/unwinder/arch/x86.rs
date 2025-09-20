@@ -56,51 +56,49 @@ impl ops::IndexMut<gimli::Register> for Context {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), ptr: *mut ()) {
     // No need to save caller-saved registers here.
-    unsafe {
-        core::arch::naked_asm!(
-            maybe_cfi!(".cfi_startproc"),
-            "sub esp, 52",
-            maybe_cfi!(".cfi_def_cfa_offset 56"),
-            "
-            mov [esp + 4], ecx
-            mov [esp + 8], edx
-            mov [esp + 12], ebx
+    core::arch::naked_asm!(
+        maybe_cfi!(".cfi_startproc"),
+        "sub esp, 52",
+        maybe_cfi!(".cfi_def_cfa_offset 56"),
+        "
+        mov [esp + 4], ecx
+        mov [esp + 8], edx
+        mov [esp + 12], ebx
 
-            /* Adjust the stack to account for the return address */
-            lea eax, [esp + 56]
-            mov [esp + 16], eax
+        /* Adjust the stack to account for the return address */
+        lea eax, [esp + 56]
+        mov [esp + 16], eax
 
-            mov [esp + 20], ebp
-            mov [esp + 24], esi
-            mov [esp + 28], edi
+        mov [esp + 20], ebp
+        mov [esp + 24], esi
+        mov [esp + 28], edi
 
-            /* Return address */
-            mov eax, [esp + 52]
-            mov [esp + 32], eax
+        /* Return address */
+        mov eax, [esp + 52]
+        mov [esp + 32], eax
 
-            stmxcsr [esp + 36]
-            fnstcw [esp + 40]
+        stmxcsr [esp + 36]
+        fnstcw [esp + 40]
 
-            mov eax, [esp + 60]
-            mov ecx, esp
-            push eax
-            ",
-            maybe_cfi!(".cfi_adjust_cfa_offset 4"),
-            "push ecx",
-            maybe_cfi!(".cfi_adjust_cfa_offset 4"),
-            "
-            call [esp + 64]
+        mov eax, [esp + 60]
+        mov ecx, esp
+        push eax
+        ",
+        maybe_cfi!(".cfi_adjust_cfa_offset 4"),
+        "push ecx",
+        maybe_cfi!(".cfi_adjust_cfa_offset 4"),
+        "
+        call [esp + 64]
 
-            add esp, 60
-            ",
-            maybe_cfi!(".cfi_def_cfa_offset 4"),
-            "ret",
-            maybe_cfi!(".cfi_endproc"),
-        );
-    }
+        add esp, 60
+        ",
+        maybe_cfi!(".cfi_def_cfa_offset 4"),
+        "ret",
+        maybe_cfi!(".cfi_endproc"),
+    );
 }
 
 pub unsafe fn restore_context(ctx: &Context) -> ! {

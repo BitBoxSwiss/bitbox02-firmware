@@ -8,6 +8,28 @@ A [separate changelog is kept for rand_core](rand_core/CHANGELOG.md).
 
 You may also find the [Upgrade Guide](https://rust-random.github.io/book/update.html) useful.
 
+## [0.9.2 — 2025-07-20]
+### Deprecated
+- Deprecate `rand::rngs::mock` module and `StepRng` generator (#1634)
+
+### Additions
+- Enable `WeightedIndex<usize>` (de)serialization (#1646)
+
+## [0.9.1] - 2025-04-17
+### Security and unsafe
+- Revise "not a crypto library" policy again (#1565)
+- Remove `zerocopy` dependency from `rand` (#1579)
+
+### Fixes
+- Fix feature `simd_support` for recent nightly rust (#1586)
+
+### Changes
+- Allow `fn rand::seq::index::sample_weighted` and `fn IndexedRandom::choose_multiple_weighted` to return fewer than `amount` results (#1623), reverting an undocumented change (#1382) to the previous release.
+
+### Additions
+- Add `rand::distr::Alphabetic` distribution. (#1587)
+- Re-export `rand_core` (#1604)
+
 ## [0.9.0] - 2025-01-27
 ### Security and unsafe
 - Policy: "rand is not a crypto library" (#1514)

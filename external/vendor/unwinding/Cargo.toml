@@ -10,9 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
+edition = "2024"
+rust-version = "1.88"
 name = "unwinding"
-version = "0.2.5"
+version = "0.2.7"
 authors = ["Gary Guo <gary@garyguo.net>"]
 build = false
 autolib = false
@@ -89,7 +90,7 @@ optional = true
 package = "rustc-std-workspace-core"
 
 [dependencies.gimli]
-version = "0.31"
+version = "0.32"
 features = ["read-core"]
 default-features = false
 

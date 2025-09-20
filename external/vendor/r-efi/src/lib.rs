@@ -87,6 +87,22 @@
 //!    stem from the safety guarantees of the surrounding code, not of the
 //!    raw-pointer handling.
 //!
+//! # Specification Details
+//!
+//! This section lists errata of, and general comments on, the UEFI
+//! specification relevant to the development of `r-efi`:
+//!
+//!  * The `Unload` function-pointer of the LoadedImageProtocol can be `NULL`,
+//!    despite the protocol documentation lacking any mention of this. Other
+//!    parts of the specification refer to images lacking an unload function,
+//!    but there is no explicit documentation how this manifests in the
+//!    protocol structure. EDK2 assumes `NULL` indicates a lack of unload
+//!    function, and an errata has been submitted to the UEFI forum.
+//!
+//!  * The specification mandates an 8-byte alignment for the `GUID` structure
+//!    However, all widespread implementations (including EDK2) use a 4-byte
+//!    alignment. An errata has been reported to EDK2 (still pending).
+//!
 //! # Examples
 //!
 //! To write free-standing UEFI applications, you need to disable the entry-point provided by rust

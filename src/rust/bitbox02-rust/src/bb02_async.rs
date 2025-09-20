@@ -54,7 +54,7 @@ pub async fn option_no_screensaver<O>(opt: &RefCell<Option<O>>) -> O {
 
 /// Waits for an option to contain a value and returns that value, leaving `None` in its place.
 /// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
-pub fn option<O>(option: &RefCell<Option<O>>) -> AsyncOption<O> {
+pub fn option<O>(option: &RefCell<Option<O>>) -> AsyncOption<'_, O> {
     AsyncOption(option)
 }
 

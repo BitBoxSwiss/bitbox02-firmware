@@ -32,7 +32,7 @@ s! {
         pub st_dev: dev_t,
         pub st_ino: ino_t,
         pub st_mode: mode_t,
-        pub st_nlink: u64,
+        pub st_nlink: nlink_t,
         pub st_uid: u32,
         pub st_gid: u32,
         pub st_rdev: dev_t,
@@ -517,7 +517,39 @@ pub const _SC_THREAD_STACK_MIN: i32 = 0x58;
 pub const _SC_GETPW_R_SIZE_MAX: i32 = 0x25;
 
 // signal.h
-pub const SIGPIPE: i32 = 13;
+pub const SIGHUP: c_int = 1;
+pub const SIGINT: c_int = 2;
+pub const SIGQUIT: c_int = 3;
+pub const SIGILL: c_int = 4;
+pub const SIGTRAP: c_int = 5;
+pub const SIGABRT: c_int = 6;
+pub const SIGIOT: c_int = 6;
+pub const SIGBUS: c_int = 7;
+pub const SIGFPE: c_int = 8;
+pub const SIGKILL: c_int = 9;
+pub const SIGUSR1: c_int = 10;
+pub const SIGSEGV: c_int = 11;
+pub const SIGUSR2: c_int = 12;
+pub const SIGPIPE: c_int = 13;
+pub const SIGALRM: c_int = 14;
+pub const SIGTERM: c_int = 15;
+pub const SIGSTKFLT: c_int = 16;
+pub const SIGCHLD: c_int = 17;
+pub const SIGCONT: c_int = 18;
+pub const SIGSTOP: c_int = 19;
+pub const SIGTSTP: c_int = 20;
+pub const SIGTTIN: c_int = 21;
+pub const SIGTTOU: c_int = 22;
+pub const SIGURG: c_int = 23;
+pub const SIGXCPU: c_int = 24;
+pub const SIGXFSZ: c_int = 25;
+pub const SIGVTALRM: c_int = 26;
+pub const SIGPROF: c_int = 27;
+pub const SIGWINCH: c_int = 28;
+pub const SIGIO: c_int = 29;
+pub const SIGPOLL: c_int = SIGIO;
+pub const SIGPWR: c_int = 30;
+pub const SIGSYS: c_int = 31;
 
 // pthread.h
 pub const PTHREAD_MUTEX_NORMAL: i32 = 0;
@@ -559,4 +591,6 @@ extern "C" {
     pub fn pthread_setname_np(thread: pthread_t, name: *const c_char) -> i32;
     pub fn pthread_getname_np(thread: pthread_t, name: *mut c_char, len: usize) -> i32;
     pub fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> isize;
+    pub fn arc4random() -> u32;
+    pub fn arc4random_buf(bytes: *mut c_void, nbytes: usize);
 }

@@ -485,16 +485,11 @@ keystore_error_t keystore_unlock(
     return result;
 }
 
-bool keystore_unlock_bip39(
-    const uint8_t* seed,
-    size_t seed_length,
-    const char* mnemonic_passphrase,
-    uint8_t* root_fingerprint_out)
+bool keystore_unlock_bip39_check(const uint8_t* seed, size_t seed_length)
 {
     if (!_is_unlocked_device) {
         return false;
     }
-    usb_processing_timeout_reset(LONG_TIMEOUT);
 
     uint8_t seed_hashed[32] = {0};
     UTIL_CLEANUP_32(seed_hashed);
@@ -502,6 +497,30 @@ bool keystore_unlock_bip39(
         return false;
     }
     if (!MEMEQ(seed_hashed, _retained_seed_hash, sizeof(_retained_seed_hash))) {
+        return false;
+    }
+
+    usb_processing_timeout_reset(LONG_TIMEOUT);
+
+    return true;
+}
+
+bool keystore_unlock_bip39_finalize(const uint8_t* bip39_seed)
+{
+    if (!_retain_bip39_seed(bip39_seed)) {
+        return false;
+    }
+    _is_unlocked_bip39 = true;
+    return true;
+}
+
+bool keystore_unlock_bip39(
+    const uint8_t* seed,
+    size_t seed_length,
+    const char* mnemonic_passphrase,
+    uint8_t* root_fingerprint_out)
+{
+    if (!keystore_unlock_bip39_check(seed, seed_length)) {
         return false;
     }
 
@@ -513,11 +532,7 @@ bool keystore_unlock_bip39(
         rust_util_bytes_mut(bip39_seed, sizeof(bip39_seed)),
         rust_util_bytes_mut(root_fingerprint_out, 4));
 
-    if (!_retain_bip39_seed(bip39_seed)) {
-        return false;
-    }
-    _is_unlocked_bip39 = true;
-    return true;
+    return keystore_unlock_bip39_finalize(bip39_seed);
 }
 
 void keystore_lock(void)

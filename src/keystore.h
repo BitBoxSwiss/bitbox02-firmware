@@ -104,6 +104,15 @@ USE_RESULT keystore_error_t keystore_create_and_store_seed(
 USE_RESULT keystore_error_t
 keystore_unlock(const char* password, uint8_t* remaining_attempts_out, int* securechip_result_out);
 
+/**
+ * Checks if bip39 unlocking can be performed. It can be performed if `keystore_unlock()`
+ * successfully and the input seed matches the keystore seed (i.e. must match the output
+ * of `keystore_copy_seed()`).
+ * @param[in] seed the input seed to BIP39.
+ * @param[in] seed_length the size of the seed
+ */
+USE_RESULT bool keystore_unlock_bip39_check(const uint8_t* seed, size_t seed_length);
+
 /** Unlocks the bip39 seed. The input seed must be the keystore seed (i.e. must match the output
  * of `keystore_copy_seed()`).
  * @param[in] seed the input seed to BIP39.
@@ -119,6 +128,12 @@ USE_RESULT bool keystore_unlock_bip39(
     size_t seed_length,
     const char* mnemonic_passphrase,
     uint8_t* root_fingerprint_out);
+
+/**
+ * Retains the given bip39 seed and marks the keystore as unlocked.
+ * @param[in] bip39_seed 64 byte bip39 seed.
+ */
+USE_RESULT bool keystore_unlock_bip39_finalize(const uint8_t* bip39_seed);
 
 /**
  * Locks the keystore (resets to state before `keystore_unlock()`).

@@ -183,3 +183,14 @@ pub fn empty_create<'a>() -> Component<'a> {
         _p: PhantomData,
     }
 }
+
+pub fn unlock_animation_create<'a, F>(mut on_done: F) -> Component<'a>
+where
+    F: FnMut() + 'a,
+{
+    on_done();
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}

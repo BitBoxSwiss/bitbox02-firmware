@@ -476,3 +476,31 @@ pub fn empty_create<'a>() -> Component<'a> {
         _p: PhantomData,
     }
 }
+
+pub fn unlock_animation_create<'a, F>(on_done: F) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut() + 'a,
+{
+    unsafe extern "C" fn c_on_done<F2>(param: *mut c_void)
+    where
+        F2: FnMut(),
+    {
+        // The callback is dropped afterwards. This is safe because
+        // this C callback is guaranteed to be called only once.
+        let mut on_done = unsafe { Box::from_raw(param as *mut F2) };
+        on_done();
+    }
+    let component = unsafe {
+        bitbox02_sys::unlock_animation_create(
+            Some(c_on_done::<F>),
+            Box::into_raw(Box::new(on_done)) as *mut _, // passed to c_on_done as `param`.
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        on_drop: None,
+        _p: PhantomData,
+    }
+}

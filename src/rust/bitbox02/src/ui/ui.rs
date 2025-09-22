@@ -436,9 +436,9 @@ pub fn trinary_input_string_set_input(component: &mut Component, word: &str) {
     }
 }
 
-pub fn with_lock_animation<F: Fn() -> R, R>(f: F) -> R {
+pub async fn with_lock_animation<F: AsyncFn() -> R, R>(f: F) -> R {
     unsafe { bitbox02_sys::lock_animation_start() };
-    let result = f();
+    let result = f().await;
     unsafe { bitbox02_sys::lock_animation_stop() };
     result
 }

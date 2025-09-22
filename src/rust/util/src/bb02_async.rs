@@ -59,3 +59,15 @@ pub fn block_on<O>(task: impl core::future::Future<Output = O>) -> O {
         }
     }
 }
+
+pub fn yield_now() -> impl core::future::Future<Output = ()> {
+    let mut yielded = false;
+    core::future::poll_fn(move |_cx| {
+        if yielded {
+            core::task::Poll::Ready(())
+        } else {
+            yielded = true;
+            core::task::Poll::Pending
+        }
+    })
+}

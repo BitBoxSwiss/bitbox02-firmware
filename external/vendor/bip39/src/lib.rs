@@ -557,6 +557,27 @@ impl Mnemonic {
 		seed
 	}
 
+	/// Async version of `to_seed_normalized`.
+	pub async fn to_seed_normalized_async(
+		&self,
+		normalized_passphrase: &str,
+		yield_now: impl AsyncFn(),
+	) -> [u8; 64] {
+		const PBKDF2_ROUNDS: usize = 2048;
+		const PBKDF2_BYTES: usize = 64;
+
+		let mut seed = [0u8; PBKDF2_BYTES];
+		pbkdf2::pbkdf2_async(
+			self.words(),
+			normalized_passphrase.as_bytes(),
+			PBKDF2_ROUNDS,
+			&mut seed,
+			yield_now,
+		)
+		.await;
+		seed
+	}
+
 	/// Convert to seed bytes.
 	#[cfg(feature = "unicode-normalization")]
 	pub fn to_seed<'a, P: Into<Cow<'a, str>>>(&self, passphrase: P) -> [u8; 64] {
@@ -729,8 +750,8 @@ mod tests {
 		}
 	}
 
-	#[test]
-	fn test_vectors_english() {
+	#[tokio::test]
+	async fn test_vectors_english() {
 		// These vectors are tuples of
 		// (entropy, mnemonic, seed)
 		let test_vectors = [
@@ -878,6 +899,15 @@ mod tests {
 			assert_eq!(
 				&seed[..],
 				&mnemonic.to_seed_normalized("TREZOR")[..],
+				"failed vector: {}",
+				mnemonic_str
+			);
+
+			assert_eq!(
+				&seed[..],
+				&mnemonic
+					.to_seed_normalized_async("TREZOR", tokio::task::yield_now)
+					.await[..],
 				"failed vector: {}",
 				mnemonic_str
 			);

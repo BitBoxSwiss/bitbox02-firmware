@@ -119,10 +119,6 @@ pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {
     panic!("not used")
 }
 
-pub fn with_lock_animation<F: Fn() -> R, R>(f: F) -> R {
-    f()
-}
-
 pub fn screen_stack_pop_all() {}
 
 pub fn progress_create<'a>(_title: &str) -> Component<'a> {

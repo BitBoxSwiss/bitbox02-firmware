@@ -17,6 +17,7 @@
 #include <hardfault.h>
 #include <screen.h>
 #include <ui/component.h>
+#include <ui/screen_process.h>
 #include <ui/ui_util.h>
 
 #include <stdint.h>
@@ -25,7 +26,11 @@
 // This many iterations times the slowdown factor to render the whole animation.
 #define LOCK_ANIMATION_N_FRAMES (38)
 
-#define SLOWDOWN_FACTOR (10)
+// Since BIP39 unlock takes 2048 iterations, and the screen frame rate is 30 (SCREEN_FRAME_RATE,
+// render is called only every 30th iteration), if we want both to finish at the same time, the
+// slowdown factor becomes the following. 10% is added so the animation takes a bt longer than the
+// actual unlock.
+#define SLOWDOWN_FACTOR (1.1f * (2048 / ((float)LOCK_ANIMATION_N_FRAMES * (float)SCREEN_FRAME_RATE)))
 
 #define LOCK_ANIMATION_FRAME_WIDTH (28)
 #define LOCK_ANIMATION_FRAME_HEIGHT (25)

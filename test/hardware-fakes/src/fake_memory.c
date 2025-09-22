@@ -17,10 +17,9 @@
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <stdlib.h>
-
 
 #define FAKE_MEMORY_ENV_VAR "FAKE_MEMORY_FILEPATH"
 #define SHARED_SUFFIX "shared"
@@ -39,7 +38,7 @@ static void _init_file_if_needed(
 {
     char path[512];
     int written = snprintf(path, sizeof(path), "%s_%s", base_path, suffix);
-    if (written <0  || (size_t) written >= sizeof(path)) {
+    if (written < 0 || (size_t)written >= sizeof(path)) {
         fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
         exit(EXIT_FAILURE);
     }
@@ -67,9 +66,11 @@ void fake_memory_factoryreset(void)
 
     const char* base_path = getenv(FAKE_MEMORY_ENV_VAR);
     if (base_path) {
-        _init_file_if_needed(base_path, SHARED_SUFFIX, _memory_shared_data, sizeof(_memory_shared_data));
+        _init_file_if_needed(
+            base_path, SHARED_SUFFIX, _memory_shared_data, sizeof(_memory_shared_data));
         _init_file_if_needed(base_path, APP_SUFFIX, _memory_app_data, sizeof(_memory_app_data));
-        _init_file_if_needed(base_path, EEPROM_SUFFIX, _memory_smarteeprom, sizeof(_memory_smarteeprom));
+        _init_file_if_needed(
+            base_path, EEPROM_SUFFIX, _memory_smarteeprom, sizeof(_memory_smarteeprom));
     }
 }
 
@@ -115,7 +116,7 @@ static void _write_file_chunk(const char* suffix, uint32_t offset, const uint8_t
         return;
     }
     int written = snprintf(path, sizeof(path), "%s_%s", base_path, suffix);
-    if (written <0  || (size_t) written >= sizeof(path)) {
+    if (written < 0 || (size_t)written >= sizeof(path)) {
         fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
         exit(EXIT_FAILURE);
     }
@@ -137,7 +138,7 @@ static void _read_file_chunk(const char* suffix, uint32_t offset, uint8_t* chunk
         return;
     }
     int written = snprintf(path, sizeof(path), "%s_%s", base_path, suffix);
-    if (written <0  || (size_t) written >= sizeof(path)) {
+    if (written < 0 || (size_t)written >= sizeof(path)) {
         fprintf(stderr, "file path %s_%s too long\n", base_path, suffix);
         exit(EXIT_FAILURE);
     }

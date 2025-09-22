@@ -32,11 +32,9 @@ extern "C" {
 
 #include "hal_timer.h"
 
-#include "qtm_common_components_api.h"
-#include "qtm_binding_layer_0x0005_api.h"
 #include "qtm_acq_samd51_0x000f_api.h"
+#include "qtm_common_components_api.h"
 #include "qtm_touch_key_0x0002_api.h"
-#include "qtm_scroller_0x000b_api.h"
 
 /*----------------------------------------------------------------------------
  *   prototypes

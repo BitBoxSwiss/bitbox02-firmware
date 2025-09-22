@@ -60,3 +60,37 @@ pub fn block_on<O>(task: impl core::future::Future<Output = O>) -> O {
         }
     }
 }
+
+/// Yields to the executor.
+pub fn yield_now() -> impl core::future::Future<Output = ()> {
+    let mut yielded = false;
+    core::future::poll_fn(move |_cx| {
+        if yielded {
+            core::task::Poll::Ready(())
+        } else {
+            yielded = true;
+            core::task::Poll::Pending
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_yield_now() {
+        async fn f1() -> i32 {
+            yield_now().await;
+            yield_now().await;
+            yield_now().await;
+            42
+        }
+
+        let mut task: Task<i32> = Box::pin(f1());
+        assert_eq!(spin(&mut task), Poll::Pending);
+        assert_eq!(spin(&mut task), Poll::Pending);
+        assert_eq!(spin(&mut task), Poll::Pending);
+        assert_eq!(spin(&mut task), Poll::Ready(42));
+    }
+}

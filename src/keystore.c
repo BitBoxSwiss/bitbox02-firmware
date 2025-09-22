@@ -41,9 +41,9 @@ static size_t _retained_seed_encrypted_len = 0;
 // plaintext.
 static uint8_t _retained_seed_hash[32] = {0};
 
-// Change this ONLY via keystore_unlock_bip39().
+// Change this ONLY via keystore_unlock_bip39_finalize().
 static bool _is_unlocked_bip39 = false;
-// Stores a random keyy after bip39-unlock which, after stretching, is used to encrypt the retained
+// Stores a random key after bip39-unlock which, after stretching, is used to encrypt the retained
 // bip39 seed.
 static uint8_t _unstretched_retained_bip39_seed_encryption_key[32] = {0};
 // Must be defined if _is_unlocked is true. ONLY ACCESS THIS WITH keystore_copy_bip39_seed().
@@ -512,27 +512,6 @@ bool keystore_unlock_bip39_finalize(const uint8_t* bip39_seed)
     }
     _is_unlocked_bip39 = true;
     return true;
-}
-
-bool keystore_unlock_bip39(
-    const uint8_t* seed,
-    size_t seed_length,
-    const char* mnemonic_passphrase,
-    uint8_t* root_fingerprint_out)
-{
-    if (!keystore_unlock_bip39_check(seed, seed_length)) {
-        return false;
-    }
-
-    uint8_t bip39_seed[64] = {0};
-    UTIL_CLEANUP_64(bip39_seed);
-    rust_derive_bip39_seed(
-        rust_util_bytes(seed, seed_length),
-        mnemonic_passphrase,
-        rust_util_bytes_mut(bip39_seed, sizeof(bip39_seed)),
-        rust_util_bytes_mut(root_fingerprint_out, 4));
-
-    return keystore_unlock_bip39_finalize(bip39_seed);
 }
 
 void keystore_lock(void)

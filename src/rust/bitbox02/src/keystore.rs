@@ -95,28 +95,59 @@ pub fn lock() {
     unsafe { ROOT_FINGERPRINT.write(None) }
 }
 
-pub fn unlock_bip39(seed: &[u8], mnemonic_passphrase: &str) -> Result<(), Error> {
-    let mut root_fingerprint = [0u8; 4];
-    if unsafe {
-        bitbox02_sys::keystore_unlock_bip39(
-            seed.as_ptr(),
-            seed.len(),
-            crate::util::str_to_cstr_vec(mnemonic_passphrase)
-                .unwrap()
-                .as_ptr()
-                .cast(),
-            root_fingerprint.as_mut_ptr(),
-        )
-    } {
-        // Store root fingerprint.
-        unsafe {
-            ROOT_FINGERPRINT.write(Some(root_fingerprint));
-        }
-
+fn unlock_bip39_check(seed: &[u8]) -> Result<(), Error> {
+    if unsafe { bitbox02_sys::keystore_unlock_bip39_check(seed.as_ptr(), seed.len()) } {
         Ok(())
     } else {
         Err(Error::CannotUnlockBIP39)
     }
+}
+
+fn unlock_bip39_finalize(bip39_seed: &[u8; 64]) -> Result<(), Error> {
+    if unsafe { bitbox02_sys::keystore_unlock_bip39_finalize(bip39_seed.as_ptr()) } {
+        Ok(())
+    } else {
+        Err(Error::CannotUnlockBIP39)
+    }
+}
+
+fn derive_bip39_seed(
+    secp: &Secp256k1<All>,
+    seed: &[u8],
+    mnemonic_passphrase: &str,
+) -> (zeroize::Zeroizing<[u8; 64]>, [u8; 4]) {
+    let mnemonic = bip39::Mnemonic::from_entropy_in(bip39::Language::English, seed).unwrap();
+    let bip39_seed: zeroize::Zeroizing<[u8; 64]> =
+        zeroize::Zeroizing::new(mnemonic.to_seed_normalized(mnemonic_passphrase));
+    let root_fingerprint: [u8; 4] =
+        bitcoin::bip32::Xpriv::new_master(bitcoin::NetworkKind::Main, bip39_seed.as_ref())
+            .unwrap()
+            .fingerprint(secp)
+            .to_bytes();
+
+    (bip39_seed, root_fingerprint)
+}
+
+/// Unlocks the bip39 seed. The input seed must be the keystore seed (i.e. must match the output
+/// of `keystore_copy_seed()`).
+/// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
+/// passphrase is needed or provided.
+pub fn unlock_bip39(
+    secp: &Secp256k1<All>,
+    seed: &[u8],
+    mnemonic_passphrase: &str,
+) -> Result<(), Error> {
+    unlock_bip39_check(seed)?;
+
+    let (bip39_seed, root_fingerprint) = derive_bip39_seed(secp, seed, mnemonic_passphrase);
+
+    unlock_bip39_finalize(bip39_seed.as_slice().try_into().unwrap())?;
+
+    // Store root fingerprint.
+    unsafe {
+        ROOT_FINGERPRINT.write(Some(root_fingerprint));
+    }
+    Ok(())
 }
 
 pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
@@ -411,7 +442,7 @@ mod tests {
             .unwrap();
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(unlock_bip39(&seed, "foo").is_ok());
+        assert!(unlock_bip39(&secp256k1::Secp256k1::new(), &seed, "foo").is_ok());
         assert!(!is_locked());
         lock();
         assert!(is_locked());
@@ -485,6 +516,69 @@ mod tests {
     }
 
     #[test]
+    fn test_derive_bip39_seed() {
+        struct Test {
+            seed: &'static str,
+            passphrase: &'static str,
+            expected_bip39_seed: &'static str,
+            expected_root_fingerprint: &'static str,
+        }
+
+        let tests = &[
+            // 16 byte seed
+            Test {
+                seed: "fb5cf00d5ea61059fa066e25a6be9544",
+                passphrase: "",
+                expected_bip39_seed: "f4577e463be595868060e5a763328153155b4167cd284998c8c6096d044742372020f5b052d0c41c1c5e6a6a7da2cb8a367aaaa074fab7773e8d5b2f684257ed",
+                expected_root_fingerprint: "0b2fa4e5",
+            },
+            Test {
+                seed: "fb5cf00d5ea61059fa066e25a6be9544",
+                passphrase: "password",
+                expected_bip39_seed: "5922fb7630bc7cb871af102f733b6bdb8f05945147cd4646a89056fde0bdad5c3a4ff5be3f9e7af535f570e7053b5b22472555b331bc89cb797c306f7eb6a5a1",
+                expected_root_fingerprint: "c4062d44",
+            },
+            // 24 byte seed
+            Test {
+                seed: "23705a91b177b49822f28b3f1a60072d113fcaff4f250191",
+                passphrase: "",
+                expected_bip39_seed: "4a2a016a6d90eb3a79b7931ca0a172df5c5bfee3e5b47f0fd84bc0791ea3bbc9476c3d5de71cdb12c37e93c2aa3d5c303257f1992aed400fc5bbfc7da787bfa7",
+                expected_root_fingerprint: "62fd19e0",
+            },
+            Test {
+                seed: "23705a91b177b49822f28b3f1a60072d113fcaff4f250191",
+                passphrase: "password",
+                expected_bip39_seed: "bc317ee0f88870254be32274d63ec2b0e962bf09f3ca04287912bfc843f2fab7c556f8657cadc924f99a217b0daa91898303a8414102031a125c50023e45a80b",
+                expected_root_fingerprint: "c745266d",
+            },
+            // 32 byte seed
+            Test {
+                seed: "bd83a008b3b78c8cc56c678d1b7bfc651cc5be8242f44b5c0db96a34ee297833",
+                passphrase: "",
+                expected_bip39_seed: "63f844e2c61ecfb20f9100de381a7a9ec875b085f5ac7735a2ba4d615a0f4147b87be402f65651969130683deeef752760c09e291604fe4b89d61ffee2630be8",
+                expected_root_fingerprint: "93ba3a7b",
+            },
+            Test {
+                seed: "bd83a008b3b78c8cc56c678d1b7bfc651cc5be8242f44b5c0db96a34ee297833",
+                passphrase: "password",
+                expected_bip39_seed: "42e90dacd61f3373542d212f0fb9c291dcea84a6d85034272372dde7188638a98527280d65e41599f30d3434d8ee3d4747dbb84801ff1a851d2306c7d1648374",
+                expected_root_fingerprint: "b95c9318",
+            },
+        ];
+
+        let secp = secp256k1::Secp256k1::new();
+        for test in tests {
+            let seed = hex::decode(test.seed).unwrap();
+            let (bip39_seed, root_fingerprint) = derive_bip39_seed(&secp, &seed, test.passphrase);
+            assert_eq!(hex::encode(bip39_seed).as_str(), test.expected_bip39_seed);
+            assert_eq!(
+                hex::encode(root_fingerprint).as_str(),
+                test.expected_root_fingerprint
+            );
+        }
+    }
+
+    #[test]
     fn test_unlock_bip39() {
         mock_memory();
         lock();
@@ -497,13 +591,15 @@ mod tests {
                 .unwrap();
         crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
+        let secp = secp256k1::Secp256k1::new();
+
         assert!(root_fingerprint().is_err());
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(root_fingerprint().is_err());
         // Incorrect seed passed
-        assert!(unlock_bip39(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "foo").is_err());
+        assert!(unlock_bip39(&secp, b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "foo").is_err());
         // Correct seed passed.
-        assert!(unlock_bip39(&seed, "foo").is_ok());
+        assert!(unlock_bip39(&secp, &seed, "foo").is_ok());
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
         let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();

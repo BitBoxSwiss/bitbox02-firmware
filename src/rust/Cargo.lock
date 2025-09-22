@@ -81,7 +81,7 @@ dependencies = [
 [[package]]
 name = "bip39"
 version = "2.2.0"
-source = "git+https://github.com/benma/rust-bip39.git?branch=bb02#64894af6b7f56bcae9c919866e0c37dc5bf0837b"
+source = "git+https://github.com/BitBoxSwiss/rust-bip39.git?branch=bitbox-20250922#b14ff04022ff100c92bf2bdedc488ec73b9c9d53"
 dependencies = [
  "bitcoin_hashes",
  "zeroize",

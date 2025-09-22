@@ -40,7 +40,6 @@ pub mod secp256k1;
 #[cfg(feature = "app-u2f")]
 mod u2f;
 mod version;
-mod waker_fn;
 pub mod workflow;
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 mod xpubcache;

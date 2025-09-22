@@ -1,4 +1,4 @@
-// Copyright 2020 Shift Cryptosecurity AG
+// Copyright 2025 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "lock_animation.h"
-
-#include <stdint.h>
+#include "unlock_animation.h"
 
 #include <hardfault.h>
-
-#include "graphics.h"
 #include <screen.h>
-#include <ui/ugui/ugui.h>
+#include <ui/component.h>
+#include <ui/screen_process.h>
+#include <ui/ui_util.h>
 
-#ifndef TESTING
-#include <hal_timer.h>
-#include <platform/driver_init.h>
-#endif
+#include <stdint.h>
+#include <string.h>
+
+// This many iterations times the slowdown factor to render the whole animation.
+#define LOCK_ANIMATION_N_FRAMES (38)
+
+// Since BIP39 unlock takes 2048 iterations, and the screen frame rate is 30 (SCREEN_FRAME_RATE,
+// render is called only every 30th iteration), if we want both to finish at the same time, the
+// slowdown factor becomes the following:
+// (1.1f * (2048 / ((float)LOCK_ANIMATION_N_FRAMES * (float)SCREEN_FRAME_RATE)))
+// 10% is added so the animation takes a bit longer than the actual unlock.
+// The above value is 1.9761, we simply round up to 2.
+#define SLOWDOWN_FACTOR (2)
+
+#define LOCK_ANIMATION_FRAME_WIDTH (28)
+#define LOCK_ANIMATION_FRAME_HEIGHT (25)
+#define LOCK_ANIMATION_FRAME_SIZE \
+    ((LOCK_ANIMATION_FRAME_WIDTH * LOCK_ANIMATION_FRAME_HEIGHT + 7) / 8)
+
+typedef struct {
+    int frame;
+    void (*on_done)(void*);
+    void* on_done_param;
+} data_t;
 
 #define LOCK_ANIMATION_ACTUAL_N_FRAMES (10)
 /**
@@ -42,7 +60,6 @@
  */
 #define LOCK_ANIMATION_PAUSE_FRAME (2)
 
-#ifndef TESTING
 static const uint8_t LOCK_ANIMATION[LOCK_ANIMATION_ACTUAL_N_FRAMES][LOCK_ANIMATION_FRAME_SIZE] = {
     // Frame 0 - Closed lock
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -143,62 +160,56 @@ static const uint8_t* _get_frame(int frame_idx)
     }
     return LOCK_ANIMATION[actual_frame_idx];
 }
-#endif
 
-#define TIMEOUT_TICK_PERIOD_MS 40
-
-#ifndef TESTING
-static struct timer_task _animation_timer_task = {0};
-static int _animation_current_frame = 0;
-
-/**
- * Displays frames of the lock animation
- * at a regular rate until it's finished.
- * Leaves the last frame on the screen.
- */
-static void _animation_timer_cb(const struct timer_task* const timer_task)
+static void _render(component_t* component)
 {
-    (void)timer_task;
-    if (_animation_current_frame == LOCK_ANIMATION_N_FRAMES) {
+    data_t* data = (data_t*)component->data;
+    int frame = data->frame / SLOWDOWN_FACTOR;
+
+    if (frame >= LOCK_ANIMATION_N_FRAMES) {
         /* End of the animation */
+        if (data->on_done) {
+            data->on_done(data->on_done_param);
+            data->on_done = NULL;
+        }
         return;
     }
 
     /* Draw the frame. */
-    screen_clear();
     position_t pos = {
         .left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
         .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};
     dimension_t dim = {.width = LOCK_ANIMATION_FRAME_WIDTH, .height = LOCK_ANIMATION_FRAME_HEIGHT};
-    in_buffer_t image = {
-        .data = _get_frame(_animation_current_frame), .len = LOCK_ANIMATION_FRAME_SIZE};
+    in_buffer_t image = {.data = _get_frame(frame), .len = LOCK_ANIMATION_FRAME_SIZE};
     graphics_draw_image(&pos, &dim, &image);
-    UG_SendBuffer();
-    _animation_current_frame++;
-}
-#endif
-
-/**
- * Sets up a timer animating a lock icon every 100ms
- */
-void lock_animation_start(void)
-{
-#ifndef TESTING
-    _animation_timer_task.interval = TIMEOUT_TICK_PERIOD_MS;
-    _animation_timer_task.cb = _animation_timer_cb;
-    _animation_timer_task.mode = TIMER_TASK_REPEAT;
-    timer_stop(&TIMER_0);
-    timer_add_task(&TIMER_0, &_animation_timer_task);
-    _animation_current_frame = 0;
-    timer_start(&TIMER_0);
-#endif
+    data->frame++;
 }
 
-void lock_animation_stop(void)
+static const component_functions_t _component_functions = {
+    .cleanup = ui_util_component_cleanup,
+    .render = _render,
+    .on_event = NULL,
+};
+
+component_t* unlock_animation_create(void (*on_done)(void*), void* on_done_param)
 {
-#ifndef TESTING
-    timer_stop(&TIMER_0);
-    timer_remove_task(&TIMER_0, &_animation_timer_task);
-    timer_start(&TIMER_0);
-#endif
+    data_t* data = malloc(sizeof(data_t));
+    if (!data) {
+        Abort("Error: malloc unlock_animation data");
+    }
+    memset(data, 0, sizeof(data_t));
+    data->on_done = on_done;
+    data->on_done_param = on_done_param;
+
+    component_t* component = malloc(sizeof(component_t));
+    if (!component) {
+        Abort("Error: malloc unlock_animation_data");
+    }
+    memset(component, 0, sizeof(component_t));
+
+    component->f = &_component_functions;
+    component->data = data;
+    component->dimension.width = SCREEN_WIDTH;
+    component->dimension.height = SCREEN_HEIGHT;
+    return component;
 }

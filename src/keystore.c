@@ -506,7 +506,6 @@ bool keystore_unlock_bip39_check(const uint8_t* seed, size_t seed_length)
     if (!_check_retained_seed(seed, seed_length)) {
         return false;
     }
-    usb_processing_timeout_reset(LONG_TIMEOUT);
 
     return true;
 }

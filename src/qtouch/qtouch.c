@@ -46,11 +46,11 @@ static void qtm_measure_complete_callback(void);
 
 /*! \brief Touch Error callback function prototype.
  */
-static void qtm_error_callback(uint8_t err);
+static void qtm_error_callback(uint8_t error);
 
-/*! \brief Calculate scroller positions based on custom filter.
+/* Update our scroller implementation
  */
-static void qtouch_process_scroller_positions(void);
+void qtouch_process_scroller_positions(void);
 
 /*----------------------------------------------------------------------------
  *     Global Variables
@@ -195,26 +195,6 @@ static touch_ret_t touch_sensors_config(void)
     return (touch_ret);
 }
 
-/*
- * Force calibrate
- *
- * Call this function when the user "probably" isn't touching the device to reset all the
- * calibration values. It will only reset inputs that are not considered to be in "touched" states
- */
-void qtouch_force_calibrate(void)
-{
-    qtm_touch_key_data_t* key;
-    for (uint16_t i = 0U; i < DEF_NUM_CHANNELS; i++) {
-        key = &qtlib_key_data_set1[i];
-        uint16_t value = key->node_data_struct_ptr->node_acq_signals;
-        uint16_t reference = key->channel_reference;
-        int32_t diff = (int32_t)reference - (int32_t)value;
-        if (!(key->sensor_state & KEY_TOUCHED_MASK) && diff > KEY_FORCE_CALIBRATE_THRESHOLD) {
-            key->channel_reference = key->node_data_struct_ptr->node_acq_signals;
-        }
-    }
-}
-
 /*============================================================================
 static void qtm_measure_complete_callback( void )
 ------------------------------------------------------------------------------
@@ -244,9 +224,9 @@ Derived Module_error_codes:
         ... and so on
 
 ============================================================================*/
-static void qtm_error_callback(uint8_t err)
+static void qtm_error_callback(uint8_t error)
 {
-    module_error_code = err + 1u;
+    module_error_code = error + 1u;
 }
 
 /*============================================================================
@@ -364,9 +344,18 @@ uint16_t qtouch_get_sensor_node_signal(uint16_t sensor_node)
     return (ptc_qtlib_node_stat1[sensor_node].node_acq_signals);
 }
 
+void qtouch_update_sensor_node_signal(uint16_t sensor_node, uint16_t new_signal)
+{
+    ptc_qtlib_node_stat1[sensor_node].node_acq_signals = new_signal;
+}
 uint16_t qtouch_get_sensor_node_reference(uint16_t sensor_node)
 {
     return (qtlib_key_data_set1[sensor_node].channel_reference);
+}
+
+void qtouch_update_sensor_node_reference(uint16_t sensor_node, uint16_t new_reference)
+{
+    qtlib_key_data_set1[sensor_node].channel_reference = new_reference;
 }
 
 uint16_t qtouch_get_sensor_cc_val(uint16_t sensor_node)
@@ -374,15 +363,24 @@ uint16_t qtouch_get_sensor_cc_val(uint16_t sensor_node)
     return (ptc_qtlib_node_stat1[sensor_node].node_comp_caps);
 }
 
+void qtouch_update_sensor_cc_val(uint16_t sensor_node, uint16_t new_cc_value)
+{
+    ptc_qtlib_node_stat1[sensor_node].node_comp_caps = new_cc_value;
+}
+
 uint8_t qtouch_get_sensor_state(uint16_t sensor_node)
 {
     return (qtlib_key_set1.qtm_touch_key_data[sensor_node].sensor_state);
 }
 
+void qtouch_update_sensor_state(uint16_t sensor_node, uint8_t new_state)
+{
+    qtlib_key_set1.qtm_touch_key_data[sensor_node].sensor_state = new_state;
+}
+
 /* Holds preceding unfiltered scroller positions */
 static uint16_t sensor_previous_filtered_reading[DEF_NUM_SENSORS][DEF_SENSOR_NUM_PREV_POS] = {0};
 
-/* Custom sensor signal filter. */
 uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
 {
     // Filter the sensor signal.

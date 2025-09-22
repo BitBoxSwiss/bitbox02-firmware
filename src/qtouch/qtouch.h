@@ -65,7 +65,7 @@ extern "C" {
  * Range: FREQ_SEL_0 - FREQ_SEL_15 , FREQ_SEL_SPREAD
  * Default value: FREQ_SEL_0.
  */
-#define DEF_SEL_FREQ_INIT FREQ_SEL_8
+#define DEF_SEL_FREQ_INIT FREQ_SEL_0
 
 /*----------------------------------------------------------------------------
  *     defines
@@ -81,68 +81,26 @@ extern "C" {
  */
 #define DEF_NUM_CHANNELS (8)
 
-/* Defines node parameter setting
- * {X-line, Y-line, Charge Share Delay, NODE_RSEL_PRSC(series resistor, prescaler), NODE_G(Analog
- * Gain , Digital Gain), filter level}
+/* Defines self-cap node parameter setting
+ * {X-line, Y-line, Charge Share Delay, Prescaler, NODE_G(Analog Gain , Digital
+ * Gain), filter level}
  */
-// Slider 1 buttons
-#define NODE_0_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(26),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
-#define NODE_1_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(27),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
-#define NODE_2_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(28),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
-#define NODE_3_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(29),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
-// Slider 0 buttons
-#define NODE_4_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(30),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
-#define NODE_5_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(31),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
-#define NODE_6_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(20),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
-#define NODE_7_PARAMS                             \
-    {X_NONE,                                      \
-     Y_LINE(21),                                  \
-     0,                                           \
-     NODE_RSEL_PRSC(RSEL_VAL_20, PRSC_DIV_SEL_1), \
-     NODE_GAIN(GAIN_4, GAIN_4),                   \
-     FILTER_LEVEL_512}
+#define NODE_0_PARAMS \
+    {X_NONE, Y_LINE(26), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_128}
+#define NODE_1_PARAMS \
+    {X_NONE, Y_LINE(27), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_128}
+#define NODE_2_PARAMS \
+    {X_NONE, Y_LINE(28), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_128}
+#define NODE_3_PARAMS \
+    {X_NONE, Y_LINE(29), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
+#define NODE_4_PARAMS \
+    {X_NONE, Y_LINE(30), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
+#define NODE_5_PARAMS \
+    {X_NONE, Y_LINE(31), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
+#define NODE_6_PARAMS \
+    {X_NONE, Y_LINE(20), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
+#define NODE_7_PARAMS \
+    {X_NONE, Y_LINE(21), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
 
 /**********************************************************/
 /***************** Key Params   ******************/
@@ -151,39 +109,38 @@ extern "C" {
  * Range: 1 to 65535.
  * Default value: 1
  */
-#define DEF_NUM_SENSORS (DEF_NUM_CHANNELS)
+#define DEF_NUM_SENSORS (8)
 
 /* Defines Key Sensor setting
  * {Sensor Threshold, Sensor Hysterisis, Sensor AKS}
  */
-// 0..3 higher Slider left to right 4..7 lower Slider right to left
-#define KEY_0_PARAMS {16, HYST_50, NO_AKS_GROUP}
-#define KEY_1_PARAMS {16, HYST_50, NO_AKS_GROUP}
-#define KEY_2_PARAMS {16, HYST_50, NO_AKS_GROUP}
-#define KEY_3_PARAMS {16, HYST_50, NO_AKS_GROUP}
-#define KEY_4_PARAMS {16, HYST_50, NO_AKS_GROUP}
-#define KEY_5_PARAMS {16, HYST_50, NO_AKS_GROUP}
-#define KEY_6_PARAMS {16, HYST_50, NO_AKS_GROUP}
-#define KEY_7_PARAMS {16, HYST_50, NO_AKS_GROUP}
+#define KEY_0_PARAMS {15, HYST_25, AKS_GROUP_1}
+#define KEY_1_PARAMS {15, HYST_25, AKS_GROUP_1}
+#define KEY_2_PARAMS {15, HYST_25, AKS_GROUP_1}
+#define KEY_3_PARAMS {15, HYST_25, AKS_GROUP_1}
+#define KEY_4_PARAMS {12, HYST_25, AKS_GROUP_2}
+#define KEY_5_PARAMS {15, HYST_25, AKS_GROUP_2}
+#define KEY_6_PARAMS {16, HYST_25, AKS_GROUP_2}
+#define KEY_7_PARAMS {12, HYST_25, AKS_GROUP_2}
 
 /* De-bounce counter for additional measurements to confirm touch detection
  * Range: 0 to 255.
  * Default value: 4.
  */
-#define DEF_TOUCH_DET_INT 0
+#define DEF_TOUCH_DET_INT 1
 
 /* De-bounce counter for additional measurements to confirm away from touch signal
  * to initiate Away from touch re-calibration.
  * Range: 0 to 255.
  * Default value: 5.
  */
-#define DEF_ANTI_TCH_DET_INT 0
+#define DEF_ANTI_TCH_DET_INT 1
 
 /* Threshold beyond with automatic sensor recalibration is initiated.
  * Range: RECAL_100/ RECAL_50 / RECAL_25 / RECAL_12_5 / RECAL_6_25 / MAX_RECAL
  * Default value: RECAL_100.
  */
-#define DEF_ANTI_TCH_RECAL_THRSHLD RECAL_50
+#define DEF_ANTI_TCH_RECAL_THRSHLD RECAL_100
 
 /* Rate at which sensor reference value is adjusted towards sensor signal value
  * when signal value is greater than reference.
@@ -191,7 +148,7 @@ extern "C" {
  * Range: 0-255
  * Default value: 20u = 4 seconds.
  */
-#define DEF_TCH_DRIFT_RATE 20
+#define DEF_TCH_DRIFT_RATE 1
 
 /* Rate at which sensor reference value is adjusted towards sensor signal value
  * when signal value is less than reference.
@@ -199,33 +156,26 @@ extern "C" {
  * Range: 0-255
  * Default value: 5u = 1 second.
  */
-#define DEF_ANTI_TCH_DRIFT_RATE 5
+#define DEF_ANTI_TCH_DRIFT_RATE 1
 
 /* Time to restrict drift on all sensor when one or more sensors are activated.
  * Units: 200ms
  * Range: 0-255
  * Default value: 20u = 4 seconds.
  */
-#define DEF_DRIFT_HOLD_TIME 20
+#define DEF_DRIFT_HOLD_TIME 1
 
 /* Set mode for additional sensor measurements based on touch activity.
  * Range: REBURST_NONE / REBURST_UNRESOLVED / REBURST_ALL
  * Default value: REBURST_UNRESOLVED
  */
-#define DEF_REBURST_MODE REBURST_ALL
+#define DEF_REBURST_MODE REBURST_NONE
 
 /* Sensor maximum ON duration upon touch.
  * Range: 0-255
  * Default value: 0
  */
 #define DEF_MAX_ON_DURATION 0
-
-/*
- * The count that the reference value must be above the measured value to
- * allow the force calibrate procedure to overwrite the reference to the
- * current measured value.
- */
-#define KEY_FORCE_CALIBRATE_THRESHOLD 10
 
 /**********************************************************/
 /***************** Slider/Wheel Parameters ****************/
@@ -242,9 +192,9 @@ extern "C" {
 #define DEF_SCROLLER_OFFSET_0 4 // Index of first button in scroller
 #define DEF_SCROLLER_OFFSET_1 0 // Index of first button in scroller
 #define DEF_SCROLLER_RESOLUTION 256 // Scroller resolution in bits
-#define DEF_SCROLLER_DET_THRESHOLD 25 // Scroller detect threshold
-#define DEF_SCROLLER_TOUCH_THRESHOLD 25 // Scroller active threshold
-#define DEF_SCROLLER_UNTOUCH_THRESHOLD 20 // Scroller active threshold
+#define DEF_SCROLLER_DET_THRESHOLD 12 // Scroller detect threshold
+#define DEF_SCROLLER_TOUCH_THRESHOLD 12 // Scroller active threshold
+#define DEF_SCROLLER_UNTOUCH_THRESHOLD 9 // Scroller active threshold
 #define DEF_SCROLLER_DEADBAND 13 // 13 bits = 5% of 256-bit range
 #define DEF_SCROLLER_NUM_PREV_POS \
     4 // Number of previous scroller positions to remember; used in a simple filter

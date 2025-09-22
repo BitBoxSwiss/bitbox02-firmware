@@ -36,25 +36,13 @@ Copyright (c) 2017 Microchip. All rights reserved.
  *   prototypes
  *----------------------------------------------------------------------------*/
 
-/*! \brief configure binding layer config parameter
- */
-static void build_qtm_config(qtm_control_t* qtm);
-
 /*! \brief configure keys, wheels and sliders.
  */
 static touch_ret_t touch_sensors_config(void);
 
-/*! \brief Init complete callback function prototype.
- */
-static void init_complete_callback(void);
-
 /*! \brief Touch measure complete callback function example prototype.
  */
 static void qtm_measure_complete_callback(void);
-
-/*! \brief Touch post process complete callback function prototype.
- */
-static void qtm_post_process_complete(void);
 
 /*! \brief Touch Error callback function prototype.
  */
@@ -68,13 +56,14 @@ static void qtouch_process_scroller_positions(void);
  *     Global Variables
  *----------------------------------------------------------------------------*/
 
-/* Binding layer control */
-qtm_control_t qtm_control;
-qtm_control_t* p_qtm_control;
-qtm_state_t qstate;
+/* Flag to indicate time for touch measurement */
+volatile uint8_t time_to_measure_touch_flag = 0;
+
+/* postporcess request flag */
+volatile uint8_t touch_postprocess_request = 0;
 
 /* Measurement Done Touch Flag  */
-volatile bool measurement_done_touch = false;
+volatile uint8_t measurement_done_touch = 0;
 
 /* Error Handling */
 uint8_t module_error_code = 0;
@@ -171,76 +160,6 @@ qtm_touch_key_control_t qtlib_key_set1 = {
  * fast responsiveness.
  */
 
-/**********************************************************/
-/****************  Binding Layer Module  ******************/
-/**********************************************************/
-#define LIB_MODULES_INIT_LIST {(module_init_t) & qtm_ptc_init_acquisition_module, null}
-
-#define LIB_MODULES_PROC_LIST {(module_proc_t) & qtm_key_sensors_process, null}
-
-#define LIB_INIT_DATA_MODELS_LIST {(void*)&qtlib_acq_set1, null}
-
-#define LIB_DATA_MODELS_PROC_LIST {(void*)&qtlib_key_set1, null}
-
-#define LIB_MODULES_ACQ_ENGINES_LIST {(module_acq_t) & qtm_ptc_start_measurement_seq, null}
-
-#define LIB_MODULES_ACQ_ENGINES_LIST_DM {(void*)&qtlib_acq_set1, null}
-
-/* QTM run time options */
-module_init_t library_modules_init[] = LIB_MODULES_INIT_LIST;
-module_proc_t library_modules_proc[] = LIB_MODULES_PROC_LIST;
-module_arg_t library_module_init_data_models[] = LIB_INIT_DATA_MODELS_LIST;
-module_acq_t library_modules_acq_engines[] = LIB_MODULES_ACQ_ENGINES_LIST;
-
-module_arg_t library_module_acq_engine_data_model[] = LIB_MODULES_ACQ_ENGINES_LIST_DM;
-module_arg_t library_module_proc_data_model[] = LIB_DATA_MODELS_PROC_LIST;
-
-/*----------------------------------------------------------------------------
- *   function definitions
- *----------------------------------------------------------------------------*/
-
-/*============================================================================
-static void build_qtm_config(qtm_control_t *qtm)
-------------------------------------------------------------------------------
-Purpose: Initialization of binding layer module
-Input  : Pointer of binding layer container data structure
-Output : none
-Notes  :
-============================================================================*/
-static void build_qtm_config(qtm_control_t* qtm)
-{
-    /* Initialise the Flags by clearing them */
-    qtm->binding_layer_flags = 0x00U;
-
-    /*!< List of function pointers to acquisition sets */
-    qtm->library_modules_init = library_modules_init;
-
-    /*!< List of function pointers to post processing modules  */
-    qtm->library_modules_proc = library_modules_proc;
-
-    /*!< List of Acquisition Engines (Acq Modules one per AcqSet */
-    qtm->library_modules_acq = library_modules_acq_engines;
-
-    /*!< Data Model for Acquisition modules  */
-    qtm->library_module_init_data_model = library_module_init_data_models;
-
-    /*!< Data Model for post processing modules  */
-    qtm->library_module_proc_data_model = library_module_proc_data_model;
-
-    /*!< Data model for inline module processes  */
-    qtm->library_modules_acq_dm = library_module_acq_engine_data_model;
-
-    /*!< Post porcessing pointer */
-    qtm->qtm_acq_pp = qtm_acquisition_process;
-
-    /* Register Binding layer callbacks */
-    qtm->qtm_init_complete_callback = init_complete_callback;
-    qtm->qtm_error_callback = qtm_error_callback;
-    qtm->qtm_measure_complete_callback = qtm_measure_complete_callback;
-    qtm->qtm_pre_process_callback = null;
-    qtm->qtm_post_process_callback = qtm_post_process_complete;
-}
-
 /*============================================================================
 static touch_ret_t touch_sensors_config(void)
 ------------------------------------------------------------------------------
@@ -255,6 +174,9 @@ static touch_ret_t touch_sensors_config(void)
 {
     uint16_t sensor_nodes;
     touch_ret_t touch_ret = TOUCH_SUCCESS;
+
+    /* Init acquisition module */
+    qtm_ptc_init_acquisition_module(&qtlib_acq_set1);
 
     /* Init pointers to DMA sequence memory */
     qtm_ptc_qtlib_assign_signal_memory(&touch_acq_signals_raw[0]);
@@ -294,21 +216,6 @@ void qtouch_force_calibrate(void)
 }
 
 /*============================================================================
-static void init_complete_callback(void)
-------------------------------------------------------------------------------
-Purpose: Callback function from binding layer called after the completion of
-         acquisition module initialization.
-Input  : none
-Output : none
-Notes  :
-============================================================================*/
-static void init_complete_callback(void)
-{
-    /* Configure touch sensors with Application specific settings */
-    touch_sensors_config();
-}
-
-/*============================================================================
 static void qtm_measure_complete_callback( void )
 ------------------------------------------------------------------------------
 Purpose: Callback function from binding layer called after the completion of
@@ -320,88 +227,16 @@ Notes  :
 ============================================================================*/
 static void qtm_measure_complete_callback(void)
 {
-    qtm_control.binding_layer_flags |= (1 << node_pp_request);
-}
-
-/*============================================================================
-static void qtm_post_process_complete(void)
-------------------------------------------------------------------------------
-Purpose: Callback function from binding layer called after the completion of
-         post processing. This function sets the reburst flag based on the
-         key sensor group status, calls the datastreamer output function to
-         display the module data.
-Input  : none
-Output : none
-Notes  :
-============================================================================*/
-static void qtm_post_process_complete(void)
-{
-    {
-        // This block is a workaround for a rare touch issue.
-        //
-        // After boot, reburst is required until the sensors are calibrated (see reburst_request
-        // below). Afterwards, they are calibrated and the sensor signal and reference values can be
-        // used to figure out touch gestures.
-        //
-        // Normally, calibration finishes quickly (tests showed in about 12 loop iterations).
-        // Afterwards, reference and signal values are non-zero. In very rare cases, a sensor can
-        // have a reference value of 0 until it is physically touched, meaning that touch is
-        // required to finish calibration. This could be due to a hardware or production quirk. In
-        // this case, reburst would be requested until that sensor is touched, and gesture detection
-        // would not start until then. In this csae, a user could not interact with the device at
-        // all until they first touched the faulty sensor.
-        //
-        // As a workaround for this, if we have sensors with a zero reference value of 0 after 30
-        // iterations, we assume that all other sensors are calibrated and allow gesture detection
-        // and user interaction. When the user then touches the weird sensor with a zero reference
-        // value in normal use of the device, it too would be calibrated and start working normally.
-        static int counter = 0;
-        if (counter == 30 && !measurement_done_touch) {
-            for (uint16_t i = 0; i < DEF_NUM_SENSORS; i++) {
-                if (qtouch_get_sensor_node_reference(i) == 0) {
-                    measurement_done_touch = true;
-                    break;
-                }
-            }
-        }
-        counter++;
-    }
-
-    if ((0U != (qtlib_key_set1.qtm_touch_key_group_data->qtm_keys_status & 0x80U))) {
-        p_qtm_control->binding_layer_flags |= (1U << reburst_request);
-    } else {
-        measurement_done_touch = true;
-    }
-
-    if (measurement_done_touch) {
-        qtouch_process_scroller_positions(); // Run the custom filter
-    }
+    touch_postprocess_request = 1u;
 }
 
 /*============================================================================
 static void qtm_error_callback(uint8_t error)
 ------------------------------------------------------------------------------
-Purpose: Callback function from binding layer called after the completion of
-                 post processing. This function is called only when there is error.
+Purpose: this function is used to report error in the modules.
 Input  : error code
 Output : decoded module error code
 Notes  :
-Error Handling supported by Binding layer module:
-        Acquisition Module Error codes: 0x8<error code>
-        0x81 - Qtm init
-        0x82 - start acq
-        0x83 - cal sensors
-        0x84 - cal hardware
-
-        Post processing Modules error codes: 0x4<process_id>
-        0x40, 0x41, 0x42, ...
-        process_id is the sequence of process IDs listed in #define LIB_MODULES_PROC_LIST macro.
-        Process IDs start from zero and maximum is 15
-
-        Examples:
-        0x40 -> error in post processing module 1
-        0x42 -> error in post processing module 3
-
 Derived Module_error_codes:
         Acquisition module error =1
         post processing module1 error = 2
@@ -411,12 +246,7 @@ Derived Module_error_codes:
 ============================================================================*/
 static void qtm_error_callback(uint8_t err)
 {
-    module_error_code = 0;
-    if (err & 0x80) {
-        module_error_code = 1;
-    } else if (err & 0x40) {
-        module_error_code = (err & 0x0F) + 2;
-    }
+    module_error_code = err + 1u;
 }
 
 /*============================================================================
@@ -432,12 +262,8 @@ void qtouch_init(void)
 {
     qtouch_timer_config();
 
-    build_qtm_config(&qtm_control);
-
-    qtm_binding_layer_init(&qtm_control);
-
-    /* get a pointer to the binding layer control */
-    p_qtm_control = qmt_get_binding_layer_ptr();
+    /* Configure touch sensors with Application specific settings */
+    touch_sensors_config();
 }
 
 /*============================================================================
@@ -454,38 +280,43 @@ void qtouch_process(void)
 {
     touch_ret_t touch_ret;
 
-    /* check the time_to_measure_touch flag for Touch Acquisition */
-    if (p_qtm_control->binding_layer_flags & (1U << time_to_measure_touch)) {
+    /* check the time_to_measure_touch_flag flag for Touch Acquisition */
+    if (time_to_measure_touch_flag == 1u) {
         /* Do the acquisition */
-        touch_ret = qtm_lib_start_acquisition(0);
+        touch_ret = qtm_ptc_start_measurement_seq(&qtlib_acq_set1, qtm_measure_complete_callback);
 
         /* if the Acquistion request was successful then clear the request flag */
         if (TOUCH_SUCCESS == touch_ret) {
             /* Clear the Measure request flag */
-            p_qtm_control->binding_layer_flags &= (uint8_t) ~(1U << time_to_measure_touch);
+            time_to_measure_touch_flag = 0u;
         }
     }
 
     /* check the flag for node level post processing */
-    if (p_qtm_control->binding_layer_flags & (1U << node_pp_request)) {
-        /* Run Acquisition moudle level post pocessing*/
-        touch_ret = qtm_lib_acq_process();
+    if (touch_postprocess_request == 1u) {
+        /* Reset the flags for node_level_post_processing */
+        touch_postprocess_request = 0u;
+
+        /* Run Acquisition module level post processing*/
+        touch_ret = qtm_acquisition_process();
 
         /* Check the return value */
         if (TOUCH_SUCCESS == touch_ret) {
             /* Returned with success: Start module level post processing */
-            qtm_lib_post_process();
+            touch_ret = qtm_key_sensors_process(&qtlib_key_set1);
+            if (TOUCH_SUCCESS != touch_ret) {
+                qtm_error_callback(1);
+            }
+            qtouch_process_scroller_positions();
         } else {
             /* Acq module Eror Detected: Issue an Acq module common error code 0x80 */
-            qtm_error_callback(0x80);
+            qtm_error_callback(0);
         }
 
-        /* Reset the flags for node_level_post_processing */
-        p_qtm_control->binding_layer_flags &= (uint8_t) ~(1U << node_pp_request);
-
-        if (p_qtm_control->binding_layer_flags & (1U << reburst_request)) {
-            p_qtm_control->binding_layer_flags |= (1U << time_to_measure_touch);
-            p_qtm_control->binding_layer_flags &= ~(1U << reburst_request);
+        if ((0u != (qtlib_key_set1.qtm_touch_key_group_data->qtm_keys_status & 0x80u))) {
+            time_to_measure_touch_flag = 1u;
+        } else {
+            measurement_done_touch = 1u;
         }
     }
 }
@@ -502,7 +333,7 @@ Notes  :
 void qtouch_timer_handler(void)
 {
     /* Count complete - Measure touch sensors */
-    qtm_control.binding_layer_flags |= (1U << time_to_measure_touch);
+    time_to_measure_touch_flag = 1u;
     qtm_update_qtlib_timer(DEF_TOUCH_MEASUREMENT_PERIOD_MS);
 }
 
@@ -515,11 +346,17 @@ static void qtouch_timer_task_cb(const struct timer_task* const timer_task)
 void qtouch_timer_config(void)
 {
     static struct timer_task Timer_task;
+    static uint8_t timer_task_added = 0;
+
+    if (timer_task_added) {
+        timer_remove_task(&TIMER_0, &Timer_task);
+    }
     Timer_task.interval = DEF_TOUCH_MEASUREMENT_PERIOD_MS;
     Timer_task.cb = qtouch_timer_task_cb;
     Timer_task.mode = TIMER_TASK_REPEAT;
 
     timer_add_task(&TIMER_0, &Timer_task);
+    timer_task_added = 1;
 }
 
 uint16_t qtouch_get_sensor_node_signal(uint16_t sensor_node)
@@ -702,10 +539,8 @@ Notes    :  none
 ============================================================================*/
 void ADC0_1_Handler(void)
 {
-    CRITICAL_SECTION_ENTER()
     ADC0->INTFLAG.reg |= 1U;
     qtm_samd51_ptc_handler();
-    CRITICAL_SECTION_LEAVE()
 }
 
 #endif /* TOUCH_C */

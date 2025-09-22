@@ -80,6 +80,8 @@ pub async fn unlock_keystore(
     title: &str,
     can_cancel: password::CanCancel,
 ) -> Result<(), UnlockError> {
+    super::unlock_animation::animate().await;
+
     let password = password::enter(
         hal,
         title,

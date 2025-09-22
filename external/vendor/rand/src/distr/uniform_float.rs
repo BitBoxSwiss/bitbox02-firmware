@@ -219,14 +219,14 @@ uniform_float_impl! { feature = "simd_support", f64x8, u64x8, f64, u64, 64 - 52 
 mod tests {
     use super::*;
     use crate::distr::{utils::FloatSIMDScalarUtils, Uniform};
-    use crate::rngs::mock::StepRng;
+    use crate::test::{const_rng, step_rng};
 
     #[test]
     #[cfg_attr(miri, ignore)] // Miri is too slow
     fn test_floats() {
         let mut rng = crate::test::rng(252);
-        let mut zero_rng = StepRng::new(0, 0);
-        let mut max_rng = StepRng::new(0xffff_ffff_ffff_ffff, 0);
+        let mut zero_rng = const_rng(0);
+        let mut max_rng = const_rng(0xffff_ffff_ffff_ffff);
         macro_rules! t {
             ($ty:ty, $f_scalar:ident, $bits_shifted:expr) => {{
                 let v: &[($f_scalar, $f_scalar)] = &[
@@ -248,31 +248,34 @@ mod tests {
                         let my_uniform = Uniform::new(low, high).unwrap();
                         let my_incl_uniform = Uniform::new_inclusive(low, high).unwrap();
                         for _ in 0..100 {
-                            let v = rng.sample(my_uniform).extract(lane);
+                            let v = rng.sample(my_uniform).extract_lane(lane);
                             assert!(low_scalar <= v && v <= high_scalar);
-                            let v = rng.sample(my_incl_uniform).extract(lane);
+                            let v = rng.sample(my_incl_uniform).extract_lane(lane);
                             assert!(low_scalar <= v && v <= high_scalar);
                             let v =
                                 <$ty as SampleUniform>::Sampler::sample_single(low, high, &mut rng)
                                     .unwrap()
-                                    .extract(lane);
+                                    .extract_lane(lane);
                             assert!(low_scalar <= v && v <= high_scalar);
                             let v = <$ty as SampleUniform>::Sampler::sample_single_inclusive(
                                 low, high, &mut rng,
                             )
                             .unwrap()
-                            .extract(lane);
+                            .extract_lane(lane);
                             assert!(low_scalar <= v && v <= high_scalar);
                         }
 
                         assert_eq!(
                             rng.sample(Uniform::new_inclusive(low, low).unwrap())
-                                .extract(lane),
+                                .extract_lane(lane),
                             low_scalar
                         );
 
-                        assert_eq!(zero_rng.sample(my_uniform).extract(lane), low_scalar);
-                        assert_eq!(zero_rng.sample(my_incl_uniform).extract(lane), low_scalar);
+                        assert_eq!(zero_rng.sample(my_uniform).extract_lane(lane), low_scalar);
+                        assert_eq!(
+                            zero_rng.sample(my_incl_uniform).extract_lane(lane),
+                            low_scalar
+                        );
                         assert_eq!(
                             <$ty as SampleUniform>::Sampler::sample_single(
                                 low,
@@ -280,7 +283,7 @@ mod tests {
                                 &mut zero_rng
                             )
                             .unwrap()
-                            .extract(lane),
+                            .extract_lane(lane),
                             low_scalar
                         );
                         assert_eq!(
@@ -290,12 +293,12 @@ mod tests {
                                 &mut zero_rng
                             )
                             .unwrap()
-                            .extract(lane),
+                            .extract_lane(lane),
                             low_scalar
                         );
 
-                        assert!(max_rng.sample(my_uniform).extract(lane) <= high_scalar);
-                        assert!(max_rng.sample(my_incl_uniform).extract(lane) <= high_scalar);
+                        assert!(max_rng.sample(my_uniform).extract_lane(lane) <= high_scalar);
+                        assert!(max_rng.sample(my_incl_uniform).extract_lane(lane) <= high_scalar);
                         // sample_single cannot cope with max_rng:
                         // assert!(<$ty as SampleUniform>::Sampler
                         //     ::sample_single(low, high, &mut max_rng).unwrap()
@@ -307,7 +310,7 @@ mod tests {
                                 &mut max_rng
                             )
                             .unwrap()
-                            .extract(lane)
+                            .extract_lane(lane)
                                 <= high_scalar
                         );
 
@@ -315,10 +318,8 @@ mod tests {
                         // since for those rounding might result in selecting high for a very
                         // long time.
                         if (high_scalar - low_scalar) > 0.0001 {
-                            let mut lowering_max_rng = StepRng::new(
-                                0xffff_ffff_ffff_ffff,
-                                (-1i64 << $bits_shifted) as u64,
-                            );
+                            let mut lowering_max_rng =
+                                step_rng(0xffff_ffff_ffff_ffff, (-1i64 << $bits_shifted) as u64);
                             assert!(
                                 <$ty as SampleUniform>::Sampler::sample_single(
                                     low,
@@ -326,7 +327,7 @@ mod tests {
                                     &mut lowering_max_rng
                                 )
                                 .unwrap()
-                                .extract(lane)
+                                .extract_lane(lane)
                                     <= high_scalar
                             );
                         }

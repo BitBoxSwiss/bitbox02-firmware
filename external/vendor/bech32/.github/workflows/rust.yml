@@ -1,0 +1,157 @@
+on: [push, pull_request]
+
+name: Continuous Integration
+
+jobs:
+  Stable:
+    name: Test - stable toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        # https://github.com/dtolnay/rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Running test script
+        env:
+          DO_LINT: true
+          DO_DOCS: true
+          DO_FEATURE_MATRIX: true
+        run: ./contrib/test.sh
+
+  Beta:
+    name: Test - beta toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@beta
+      - name: Running test script
+        env:
+          DO_FEATURE_MATRIX: true
+        run: ./contrib/test.sh
+
+  Nightly:
+    name: Test - nightly toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+      - name: Running test script
+        env:
+          DO_DOCSRS: true
+          DO_FMT: true
+          DO_BENCH: true
+        run: ./contrib/test.sh
+
+  MSRV:
+    name: Test - 1.48.0 toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@1.48.0
+      - name: Running test script
+        env:
+          DO_FEATURE_MATRIX: true
+        run: ./contrib/test.sh
+
+  EmbeddedWithAlloc:
+    name: no_std with alloc
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        run: sudo apt update && sudo apt install -y qemu-system-arm gcc-arm-none-eabi
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: thumbv7m-none-eabi
+      - name: Run
+        env:
+          RUSTFLAGS: "-C link-arg=-Tlink.x"
+          CARGO_TARGET_THUMBV7M_NONE_EABI_RUNNER: "qemu-system-arm -cpu cortex-m3 -machine mps2-an385 -nographic -semihosting-config enable=on,target=native -kernel"
+        run: cd embedded/with-allocator && cargo run --target thumbv7m-none-eabi
+
+  EmbeddedNoAlloc:
+    name: no_std no alloc
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        run: sudo apt update && sudo apt install -y qemu-system-arm gcc-arm-none-eabi
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: thumbv7m-none-eabi
+      - name: Run
+        env:
+          RUSTFLAGS: "-C link-arg=-Tlink.x"
+          CARGO_TARGET_THUMBV7M_NONE_EABI_RUNNER: "qemu-system-arm -cpu cortex-m3 -machine mps2-an385 -nographic -semihosting-config enable=on,target=native -kernel"
+        run: cd embedded/no-allocator && cargo run --target thumbv7m-none-eabi
+
+  Arch32bit:
+    name: Test 32-bit version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Add architecture i386
+        run: sudo dpkg --add-architecture i386
+      - name: Install i686 gcc
+        run: sudo apt-get update -y && sudo apt-get install -y gcc-multilib
+      - name: Install target
+        run: rustup target add i686-unknown-linux-gnu
+      - name: Run tests on i686
+        run: cargo test --target i686-unknown-linux-gnu
+
+  Cross:
+    name: Cross test
+    if: ${{ !github.event.act }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install target
+        run: rustup target add s390x-unknown-linux-gnu
+      - name: install cross
+        run: cargo install cross --locked
+      - name: run cross test
+        run: cross test --target s390x-unknown-linux-gnu
+
+  API:
+    name: Check for changes to the public API
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Crate
+        uses: actions/checkout@v3
+      - name: Checkout Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+      - name: Install cargo-public-api
+        run: cargo install --locked cargo-public-api
+      - name: Running API checker script
+        run: ./contrib/check-for-api-changes.sh

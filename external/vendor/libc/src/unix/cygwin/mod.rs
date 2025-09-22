@@ -351,6 +351,8 @@ s! {
         pub cr2: u64,
     }
 
+    // FIXME(1.0): This should not implement `PartialEq`
+    #[allow(unpredictable_function_pointer_comparisons)]
     pub struct sigevent {
         pub sigev_value: sigval,
         pub sigev_signo: c_int,
@@ -435,6 +437,19 @@ s! {
         pub f_flag: c_ulong,
         pub f_namemax: c_ulong,
     }
+
+    pub struct statfs {
+        pub f_type: c_long,
+        pub f_bsize: c_long,
+        pub f_blocks: c_long,
+        pub f_bfree: c_long,
+        pub f_bavail: c_long,
+        pub f_files: c_long,
+        pub f_ffree: c_long,
+        pub f_fsid: c_long,
+        pub f_namelen: c_long,
+        pub f_spare: [c_long; 6],
+    }
 }
 
 s_no_extra_traits! {
@@ -498,7 +513,7 @@ s_no_extra_traits! {
     }
 
     pub struct utsname {
-        pub sysname: [c_char; 65],
+        pub sysname: [c_char; 66],
         pub nodename: [c_char; 65],
         pub release: [c_char; 65],
         pub version: [c_char; 65],
@@ -570,19 +585,6 @@ cfg_if! {
 
         impl Eq for siginfo_t {}
 
-        impl fmt::Debug for siginfo_t {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("siginfo_t")
-                    .field("si_signo", &self.si_signo)
-                    .field("si_code", &self.si_code)
-                    .field("si_pid", &self.si_pid)
-                    .field("si_uid", &self.si_uid)
-                    .field("si_errno", &self.si_errno)
-                    // Ignore __pad
-                    .finish()
-            }
-        }
-
         impl hash::Hash for siginfo_t {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.si_signo.hash(state);
@@ -591,24 +593,6 @@ cfg_if! {
                 self.si_uid.hash(state);
                 self.si_errno.hash(state);
                 // Ignore __pad
-            }
-        }
-
-        impl fmt::Debug for ifreq {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("ifreq")
-                    .field("ifr_name", &self.ifr_name)
-                    .field("ifr_ifru", &self.ifr_ifru)
-                    .finish()
-            }
-        }
-
-        impl fmt::Debug for ifconf {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("ifconf")
-                    .field("ifc_len", &self.ifc_len)
-                    .field("ifc_ifcu", &self.ifc_ifcu)
-                    .finish()
             }
         }
 
@@ -625,16 +609,6 @@ cfg_if! {
         }
 
         impl Eq for dirent {}
-
-        impl fmt::Debug for dirent {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("dirent")
-                    .field("d_ino", &self.d_ino)
-                    .field("d_type", &self.d_type)
-                    // FIXME: .field("d_name", &self.d_name)
-                    .finish()
-            }
-        }
 
         impl hash::Hash for dirent {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
@@ -656,15 +630,6 @@ cfg_if! {
         }
 
         impl Eq for sockaddr_un {}
-
-        impl fmt::Debug for sockaddr_un {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("sockaddr_un")
-                    .field("sun_family", &self.sun_family)
-                    // FIXME: .field("sun_path", &self.sun_path)
-                    .finish()
-            }
-        }
 
         impl hash::Hash for sockaddr_un {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
@@ -708,19 +673,6 @@ cfg_if! {
         }
 
         impl Eq for utsname {}
-
-        impl fmt::Debug for utsname {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("utsname")
-                    // FIXME: .field("sysname", &self.sysname)
-                    // FIXME: .field("nodename", &self.nodename)
-                    // FIXME: .field("release", &self.release)
-                    // FIXME: .field("version", &self.version)
-                    // FIXME: .field("machine", &self.machine)
-                    // FIXME: .field("domainname", &self.domainname)
-                    .finish()
-            }
-        }
 
         impl hash::Hash for utsname {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
@@ -961,6 +913,8 @@ pub const SOL_UDP: c_int = 17;
 pub const IPTOS_LOWDELAY: u8 = 0x10;
 pub const IPTOS_THROUGHPUT: u8 = 0x08;
 pub const IPTOS_RELIABILITY: u8 = 0x04;
+pub const IPTOS_LOWCOST: u8 = 0x02;
+pub const IPTOS_MINCOST: u8 = IPTOS_LOWCOST;
 pub const IP_DEFAULT_MULTICAST_TTL: c_int = 1;
 pub const IP_DEFAULT_MULTICAST_LOOP: c_int = 1;
 pub const IP_OPTIONS: c_int = 1;
@@ -977,8 +931,18 @@ pub const IP_DROP_SOURCE_MEMBERSHIP: c_int = 16;
 pub const IP_BLOCK_SOURCE: c_int = 17;
 pub const IP_UNBLOCK_SOURCE: c_int = 18;
 pub const IP_PKTINFO: c_int = 19;
+pub const IP_RECVTTL: c_int = 21;
 pub const IP_UNICAST_IF: c_int = 31;
+pub const IP_RECVTOS: c_int = 40;
+pub const IP_MTU_DISCOVER: c_int = 71;
+pub const IP_MTU: c_int = 73;
+pub const IP_RECVERR: c_int = 75;
+pub const IP_PMTUDISC_WANT: c_int = 0;
+pub const IP_PMTUDISC_DO: c_int = 1;
+pub const IP_PMTUDISC_DONT: c_int = 2;
+pub const IP_PMTUDISC_PROBE: c_int = 3;
 pub const IPV6_HOPOPTS: c_int = 1;
+pub const IPV6_HDRINCL: c_int = 2;
 pub const IPV6_UNICAST_HOPS: c_int = 4;
 pub const IPV6_MULTICAST_IF: c_int = 9;
 pub const IPV6_MULTICAST_HOPS: c_int = 10;
@@ -997,6 +961,13 @@ pub const IPV6_RTHDR: c_int = 32;
 pub const IPV6_RECVRTHDR: c_int = 38;
 pub const IPV6_TCLASS: c_int = 39;
 pub const IPV6_RECVTCLASS: c_int = 40;
+pub const IPV6_MTU_DISCOVER: c_int = 71;
+pub const IPV6_MTU: c_int = 72;
+pub const IPV6_RECVERR: c_int = 75;
+pub const IPV6_PMTUDISC_WANT: c_int = 0;
+pub const IPV6_PMTUDISC_DO: c_int = 1;
+pub const IPV6_PMTUDISC_DONT: c_int = 2;
+pub const IPV6_PMTUDISC_PROBE: c_int = 3;
 pub const MCAST_JOIN_GROUP: c_int = 41;
 pub const MCAST_LEAVE_GROUP: c_int = 42;
 pub const MCAST_BLOCK_SOURCE: c_int = 43;
@@ -1786,6 +1757,20 @@ pub const POSIX_SPAWN_SETSCHEDULER: c_int = 0x08;
 pub const POSIX_SPAWN_SETSIGDEF: c_int = 0x10;
 pub const POSIX_SPAWN_SETSIGMASK: c_int = 0x20;
 
+pub const POSIX_FADV_NORMAL: c_int = 0;
+pub const POSIX_FADV_SEQUENTIAL: c_int = 1;
+pub const POSIX_FADV_RANDOM: c_int = 2;
+pub const POSIX_FADV_WILLNEED: c_int = 3;
+pub const POSIX_FADV_DONTNEED: c_int = 4;
+pub const POSIX_FADV_NOREUSE: c_int = 5;
+
+pub const FALLOC_FL_PUNCH_HOLE: c_int = 0x0001;
+pub const FALLOC_FL_ZERO_RANGE: c_int = 0x0002;
+pub const FALLOC_FL_UNSHARE_RANGE: c_int = 0x0004;
+pub const FALLOC_FL_COLLAPSE_RANGE: c_int = 0x0008;
+pub const FALLOC_FL_INSERT_RANGE: c_int = 0x0010;
+pub const FALLOC_FL_KEEP_SIZE: c_int = 0x1000;
+
 f! {
     pub fn FD_CLR(fd: c_int, set: *mut fd_set) -> () {
         let fd = fd as usize;
@@ -1865,14 +1850,6 @@ f! {
         set1.bits == set2.bits
     }
 
-    pub fn major(dev: dev_t) -> c_uint {
-        ((dev >> 16) & 0xffff) as c_uint
-    }
-
-    pub fn minor(dev: dev_t) -> c_uint {
-        (dev & 0xffff) as c_uint
-    }
-
     pub fn CMSG_LEN(length: c_uint) -> c_uint {
         CMSG_ALIGN(::core::mem::size_of::<cmsghdr>()) as c_uint + length
     }
@@ -1909,6 +1886,14 @@ safe_f! {
         let ma = ma as dev_t;
         let mi = mi as dev_t;
         (ma << 16) | (mi & 0xffff)
+    }
+
+    pub {const} fn major(dev: dev_t) -> c_uint {
+        ((dev >> 16) & 0xffff) as c_uint
+    }
+
+    pub {const} fn minor(dev: dev_t) -> c_uint {
+        (dev & 0xffff) as c_uint
     }
 
     pub {const} fn WIFEXITED(status: c_int) -> bool {
@@ -2157,8 +2142,6 @@ extern "C" {
     pub fn timingsafe_bcmp(a: *const c_void, b: *const c_void, len: size_t) -> c_int;
     pub fn timingsafe_memcmp(a: *const c_void, b: *const c_void, len: size_t) -> c_int;
 
-    pub fn memccpy(dest: *mut c_void, src: *const c_void, c: c_int, count: size_t) -> *mut c_void;
-
     pub fn memmem(
         haystack: *const c_void,
         haystacklen: size_t,
@@ -2178,17 +2161,16 @@ extern "C" {
     pub fn dup3(src: c_int, dst: c_int, flags: c_int) -> c_int;
     pub fn eaccess(pathname: *const c_char, mode: c_int) -> c_int;
     pub fn euidaccess(pathname: *const c_char, mode: c_int) -> c_int;
-    // pub fn execlpe(path: *const c_char, arg0: *const c_char, ...) -> c_int;
 
     pub fn execvpe(
         file: *const c_char,
-        argv: *const *const c_char,
-        envp: *const *const c_char,
+        argv: *const *mut c_char,
+        envp: *const *mut c_char,
     ) -> c_int;
 
     pub fn faccessat(dirfd: c_int, pathname: *const c_char, mode: c_int, flags: c_int) -> c_int;
 
-    pub fn fexecve(fd: c_int, argv: *const *const c_char, envp: *const *const c_char) -> c_int;
+    pub fn fexecve(fd: c_int, argv: *const *mut c_char, envp: *const *mut c_char) -> c_int;
 
     pub fn fdatasync(fd: c_int) -> c_int;
     pub fn getdomainname(name: *mut c_char, len: size_t) -> c_int;
@@ -2349,7 +2331,7 @@ extern "C" {
     ) -> c_int;
 
     pub fn pthread_setname_np(thread: pthread_t, name: *const c_char) -> c_int;
-    pub fn pthread_sigqueue(thread: *mut pthread_t, sig: c_int, value: sigval) -> c_int;
+    pub fn pthread_sigqueue(thread: pthread_t, sig: c_int, value: sigval) -> c_int;
 
     pub fn ioctl(fd: c_int, request: c_int, ...) -> c_int;
 
@@ -2436,6 +2418,22 @@ extern "C" {
         fd: c_int,
         newfd: c_int,
     ) -> c_int;
+    pub fn posix_spawn_file_actions_addchdir(
+        actions: *mut crate::posix_spawn_file_actions_t,
+        path: *const c_char,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addfchdir(
+        actions: *mut crate::posix_spawn_file_actions_t,
+        fd: c_int,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addchdir_np(
+        actions: *mut crate::posix_spawn_file_actions_t,
+        path: *const c_char,
+    ) -> c_int;
+    pub fn posix_spawn_file_actions_addfchdir_np(
+        actions: *mut crate::posix_spawn_file_actions_t,
+        fd: c_int,
+    ) -> c_int;
 
     pub fn forkpty(
         amaster: *mut c_int,
@@ -2472,4 +2470,11 @@ extern "C" {
         result: *mut *mut crate::group,
     ) -> c_int;
     pub fn initgroups(user: *const c_char, group: crate::gid_t) -> c_int;
+
+    pub fn statfs(path: *const c_char, buf: *mut statfs) -> c_int;
+    pub fn fstatfs(fd: c_int, buf: *mut statfs) -> c_int;
+
+    pub fn posix_fadvise(fd: c_int, offset: off_t, len: off_t, advise: c_int) -> c_int;
+    pub fn posix_fallocate(fd: c_int, offset: off_t, len: off_t) -> c_int;
+    pub fn fallocate(fd: c_int, mode: c_int, offset: off_t, len: off_t) -> c_int;
 }

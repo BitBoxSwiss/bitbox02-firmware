@@ -3,19 +3,9 @@
 version = 3
 
 [[package]]
-name = "compiler_builtins"
-version = "0.1.144"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d18a7b7b5a56aa131e62314b4d862c9f6aa2860f615f3770094ec9064d7ec572"
-dependencies = [
- "rustc-std-workspace-core",
-]
-
-[[package]]
 name = "hermit-abi"
-version = "0.5.0"
+version = "0.5.2"
 dependencies = [
- "compiler_builtins",
  "rustc-std-workspace-alloc",
  "rustc-std-workspace-core",
 ]

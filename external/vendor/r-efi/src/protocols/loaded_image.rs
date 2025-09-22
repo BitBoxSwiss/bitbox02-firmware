@@ -35,5 +35,5 @@ pub struct Protocol {
     pub image_size: u64,
     pub image_code_type: crate::system::MemoryType,
     pub image_data_type: crate::system::MemoryType,
-    pub unload: ProtocolUnload,
+    pub unload: Option<ProtocolUnload>,
 }

@@ -173,60 +173,56 @@ macro_rules! code {
     };
 }
 
-#[naked]
+#[unsafe(naked)]
 pub extern "C-unwind" fn save_context(f: extern "C" fn(&mut Context, *mut ()), ptr: *mut ()) {
     // No need to save caller-saved registers here.
     #[cfg(target_feature = "d")]
-    unsafe {
-        core::arch::naked_asm!(
-            maybe_cfi!(".cfi_startproc"),
-            "
-            mv t0, sp
-            add sp, sp, -0x210
-            ",
-            maybe_cfi!(".cfi_def_cfa_offset 0x210"),
-            "sd ra, 0x200(sp)",
-            maybe_cfi!(".cfi_offset ra, -16"),
-            code!(save_gp),
-            code!(save_fp),
-            "
-            mv t0, a0
-            mv a0, sp
-            jalr t0
-            ld ra, 0x200(sp)
-            add sp, sp, 0x210
-            ",
-            maybe_cfi!(".cfi_def_cfa_offset 0"),
-            maybe_cfi!(".cfi_restore ra"),
-            "ret",
-            maybe_cfi!(".cfi_endproc"),
-        );
-    }
+    core::arch::naked_asm!(
+        maybe_cfi!(".cfi_startproc"),
+        "
+        mv t0, sp
+        add sp, sp, -0x210
+        ",
+        maybe_cfi!(".cfi_def_cfa_offset 0x210"),
+        "sd ra, 0x200(sp)",
+        maybe_cfi!(".cfi_offset ra, -16"),
+        code!(save_gp),
+        code!(save_fp),
+        "
+        mv t0, a0
+        mv a0, sp
+        jalr t0
+        ld ra, 0x200(sp)
+        add sp, sp, 0x210
+        ",
+        maybe_cfi!(".cfi_def_cfa_offset 0"),
+        maybe_cfi!(".cfi_restore ra"),
+        "ret",
+        maybe_cfi!(".cfi_endproc"),
+    );
     #[cfg(not(target_feature = "d"))]
-    unsafe {
-        core::arch::naked_asm!(
-            maybe_cfi!(".cfi_startproc"),
-            "
-            mv t0, sp
-            add sp, sp, -0x110
-            ",
-            maybe_cfi!(".cfi_def_cfa_offset 0x110"),
-            "sd ra, 0x100(sp)",
-            maybe_cfi!(".cfi_offset ra, -16"),
-            code!(save_gp),
-            "
-            mv t0, a0
-            mv a0, sp
-            jalr t0
-            ld ra, 0x100(sp)
-            add sp, sp, 0x110
-            ",
-            maybe_cfi!(".cfi_def_cfa_offset 0"),
-            maybe_cfi!(".cfi_restore ra"),
-            "ret",
-            maybe_cfi!(".cfi_endproc"),
-        );
-    }
+    core::arch::naked_asm!(
+        maybe_cfi!(".cfi_startproc"),
+        "
+        mv t0, sp
+        add sp, sp, -0x110
+        ",
+        maybe_cfi!(".cfi_def_cfa_offset 0x110"),
+        "sd ra, 0x100(sp)",
+        maybe_cfi!(".cfi_offset ra, -16"),
+        code!(save_gp),
+        "
+        mv t0, a0
+        mv a0, sp
+        jalr t0
+        ld ra, 0x100(sp)
+        add sp, sp, 0x110
+        ",
+        maybe_cfi!(".cfi_def_cfa_offset 0"),
+        maybe_cfi!(".cfi_restore ra"),
+        "ret",
+        maybe_cfi!(".cfi_endproc"),
+    );
 }
 
 pub unsafe fn restore_context(ctx: &Context) -> ! {

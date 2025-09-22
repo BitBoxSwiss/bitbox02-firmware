@@ -12,15 +12,8 @@
 //
 // To integrate the allocator with rust, we need to provide a global variable
 // annotated as `#[global_allocator]`. It must implement the `GlobalAlloc`
-// trait. We use the `Bridge` type from our crate to serve this. Furthermore,
-// we need to define a callback to be invoked in out-of-memory situations. We
-// simply make it forward the error to our panic-handler, which we already
-// provided in the previous example.
-//
-// The error-handler required by the `alloc::*` objects is unstable as well,
-// so the `alloc_error_handler` feature is required.
+// trait. We use the `Bridge` type from our crate to serve this.
 
-#![feature(alloc_error_handler)]
 #![no_main]
 #![no_std]
 
@@ -32,11 +25,6 @@ use r_efi::efi;
 
 #[global_allocator]
 static GLOBAL_ALLOCATOR: r_efi_alloc::global::Bridge = r_efi_alloc::global::Bridge::new();
-
-#[alloc_error_handler]
-fn rust_oom_handler(_layout: core::alloc::Layout) -> ! {
-    panic!();
-}
 
 #[panic_handler]
 fn rust_panic_handler(_info: &core::panic::PanicInfo) -> ! {

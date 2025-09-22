@@ -340,6 +340,7 @@ if(NOT CMAKE_CROSSCOMPILING)
             -A clippy::enum_variant_names
             -A clippy::derive_partial_eq_without_eq
             -A clippy::forget_non_drop
+            -A clippy::collapsible_if
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_SOURCE_DIR}/rust
     )

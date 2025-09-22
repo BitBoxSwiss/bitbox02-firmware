@@ -2,6 +2,15 @@
 
 use crate::prelude::*;
 
+cfg_if! {
+    if #[cfg(doc)] {
+        pub(crate) type Ioctl = c_int;
+    } else {
+        #[doc(hidden)]
+        pub type Ioctl = c_int;
+    }
+}
+
 pub type clock_t = c_long;
 pub type time_t = c_long;
 pub type suseconds_t = c_long;
@@ -337,19 +346,6 @@ s! {
         pub dlpi_tls_data: *mut c_void,
     }
 
-    // linux/filter.h
-    pub struct sock_filter {
-        pub code: crate::__u16,
-        pub jt: crate::__u8,
-        pub jf: crate::__u8,
-        pub k: crate::__u32,
-    }
-
-    pub struct sock_fprog {
-        pub len: c_ushort,
-        pub filter: *mut sock_filter,
-    }
-
     // linux/seccomp.h
     pub struct seccomp_data {
         pub nr: c_int,
@@ -664,15 +660,6 @@ cfg_if! {
             }
         }
         impl Eq for sockaddr_nl {}
-        impl fmt::Debug for sockaddr_nl {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("sockaddr_nl")
-                    .field("nl_family", &self.nl_family)
-                    .field("nl_pid", &self.nl_pid)
-                    .field("nl_groups", &self.nl_groups)
-                    .finish()
-            }
-        }
         impl hash::Hash for sockaddr_nl {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.nl_family.hash(state);
@@ -696,18 +683,6 @@ cfg_if! {
         }
 
         impl Eq for dirent {}
-
-        impl fmt::Debug for dirent {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("dirent")
-                    .field("d_ino", &self.d_ino)
-                    .field("d_off", &self.d_off)
-                    .field("d_reclen", &self.d_reclen)
-                    .field("d_type", &self.d_type)
-                    // FIXME(debug): .field("d_name", &self.d_name)
-                    .finish()
-            }
-        }
 
         impl hash::Hash for dirent {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
@@ -735,18 +710,6 @@ cfg_if! {
 
         impl Eq for dirent64 {}
 
-        impl fmt::Debug for dirent64 {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("dirent64")
-                    .field("d_ino", &self.d_ino)
-                    .field("d_off", &self.d_off)
-                    .field("d_reclen", &self.d_reclen)
-                    .field("d_type", &self.d_type)
-                    // FIXME(debug): .field("d_name", &self.d_name)
-                    .finish()
-            }
-        }
-
         impl hash::Hash for dirent64 {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.d_ino.hash(state);
@@ -768,18 +731,6 @@ cfg_if! {
         }
 
         impl Eq for siginfo_t {}
-
-        impl fmt::Debug for siginfo_t {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("siginfo_t")
-                    .field("si_signo", &self.si_signo)
-                    .field("si_errno", &self.si_errno)
-                    .field("si_code", &self.si_code)
-                    // Ignore _pad
-                    // Ignore _align
-                    .finish()
-            }
-        }
 
         impl hash::Hash for siginfo_t {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
@@ -808,16 +759,6 @@ cfg_if! {
         }
 
         impl Eq for lastlog {}
-
-        impl fmt::Debug for lastlog {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("lastlog")
-                    .field("ll_time", &self.ll_time)
-                    .field("ll_line", &self.ll_line)
-                    // FIXME(debug): .field("ll_host", &self.ll_host)
-                    .finish()
-            }
-        }
 
         impl hash::Hash for lastlog {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
@@ -857,24 +798,6 @@ cfg_if! {
 
         impl Eq for utmp {}
 
-        impl fmt::Debug for utmp {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("utmp")
-                    .field("ut_type", &self.ut_type)
-                    .field("ut_pid", &self.ut_pid)
-                    .field("ut_line", &self.ut_line)
-                    .field("ut_id", &self.ut_id)
-                    .field("ut_user", &self.ut_user)
-                    // FIXME(debug): .field("ut_host", &self.ut_host)
-                    .field("ut_exit", &self.ut_exit)
-                    .field("ut_session", &self.ut_session)
-                    .field("ut_tv", &self.ut_tv)
-                    .field("ut_addr_v6", &self.ut_addr_v6)
-                    .field("unused", &self.unused)
-                    .finish()
-            }
-        }
-
         impl hash::Hash for utmp {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.ut_type.hash(state);
@@ -911,18 +834,6 @@ cfg_if! {
 
         impl Eq for sockaddr_alg {}
 
-        impl fmt::Debug for sockaddr_alg {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("sockaddr_alg")
-                    .field("salg_family", &self.salg_family)
-                    .field("salg_type", &self.salg_type)
-                    .field("salg_feat", &self.salg_feat)
-                    .field("salg_mask", &self.salg_mask)
-                    .field("salg_name", &&self.salg_name[..])
-                    .finish()
-            }
-        }
-
         impl hash::Hash for sockaddr_alg {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.salg_family.hash(state);
@@ -941,16 +852,6 @@ cfg_if! {
             }
         }
         impl Eq for uinput_setup {}
-
-        impl fmt::Debug for uinput_setup {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("uinput_setup")
-                    .field("id", &self.id)
-                    .field("name", &&self.name[..])
-                    .field("ff_effects_max", &self.ff_effects_max)
-                    .finish()
-            }
-        }
 
         impl hash::Hash for uinput_setup {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
@@ -973,20 +874,6 @@ cfg_if! {
         }
         impl Eq for uinput_user_dev {}
 
-        impl fmt::Debug for uinput_user_dev {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("uinput_setup")
-                    .field("name", &&self.name[..])
-                    .field("id", &self.id)
-                    .field("ff_effects_max", &self.ff_effects_max)
-                    .field("absmax", &&self.absmax[..])
-                    .field("absmin", &&self.absmin[..])
-                    .field("absfuzz", &&self.absfuzz[..])
-                    .field("absflat", &&self.absflat[..])
-                    .finish()
-            }
-        }
-
         impl hash::Hash for uinput_user_dev {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.name.hash(state);
@@ -996,24 +883,6 @@ cfg_if! {
                 self.absmin.hash(state);
                 self.absfuzz.hash(state);
                 self.absflat.hash(state);
-            }
-        }
-
-        impl fmt::Debug for ifreq {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("ifreq")
-                    .field("ifr_name", &self.ifr_name)
-                    .field("ifr_ifru", &self.ifr_ifru)
-                    .finish()
-            }
-        }
-
-        impl fmt::Debug for ifconf {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("ifconf")
-                    .field("ifc_len", &self.ifc_len)
-                    .field("ifc_ifcu", &self.ifc_ifcu)
-                    .finish()
             }
         }
 
@@ -1035,15 +904,6 @@ cfg_if! {
         impl Eq for af_alg_iv {}
 
         #[allow(deprecated)]
-        impl fmt::Debug for af_alg_iv {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("af_alg_iv")
-                    .field("ivlen", &self.ivlen)
-                    .finish()
-            }
-        }
-
-        #[allow(deprecated)]
         impl hash::Hash for af_alg_iv {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
                 self.as_slice().hash(state);
@@ -1058,15 +918,6 @@ cfg_if! {
             }
         }
         impl Eq for prop_info {}
-        impl fmt::Debug for prop_info {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.debug_struct("prop_info")
-                    .field("__name", &self.__name)
-                    .field("__serial", &self.__serial)
-                    .field("__value", &self.__value)
-                    .finish()
-            }
-        }
     }
 }
 
@@ -1555,6 +1406,7 @@ pub const SO_PEEK_OFF: c_int = 42;
 pub const SO_BUSY_POLL: c_int = 46;
 pub const SCM_TIMESTAMPING_OPT_STATS: c_int = 54;
 pub const SCM_TIMESTAMPING_PKTINFO: c_int = 58;
+pub const SO_BINDTOIFINDEX: c_int = 62;
 pub const SO_TIMESTAMP_NEW: c_int = 63;
 pub const SO_TIMESTAMPNS_NEW: c_int = 64;
 pub const SO_TIMESTAMPING_NEW: c_int = 65;
@@ -1697,27 +1549,6 @@ pub const FIONREAD: c_int = 0x541B;
 pub const TIOCCONS: c_int = 0x541D;
 pub const TIOCSBRK: c_int = 0x5427;
 pub const TIOCCBRK: c_int = 0x5428;
-cfg_if! {
-    if #[cfg(any(
-        target_arch = "x86",
-        target_arch = "x86_64",
-        target_arch = "arm",
-        target_arch = "aarch64",
-        target_arch = "riscv64",
-        target_arch = "s390x"
-    ))] {
-        pub const FICLONE: c_int = 0x40049409;
-        pub const FICLONERANGE: c_int = 0x4020940D;
-    } else if #[cfg(any(
-        target_arch = "mips",
-        target_arch = "mips64",
-        target_arch = "powerpc",
-        target_arch = "powerpc64"
-    ))] {
-        pub const FICLONE: c_int = 0x80049409;
-        pub const FICLONERANGE: c_int = 0x8020940D;
-    }
-}
 
 pub const ST_RDONLY: c_ulong = 1;
 pub const ST_NOSUID: c_ulong = 2;
@@ -1899,38 +1730,6 @@ pub const BLKIOOPT: c_int = 0x1279;
 pub const BLKSSZGET: c_int = 0x1268;
 pub const BLKPBSZGET: c_int = 0x127B;
 
-cfg_if! {
-    // Those type are constructed using the _IOC macro
-    // DD-SS_SSSS_SSSS_SSSS-TTTT_TTTT-NNNN_NNNN
-    // where D stands for direction (either None (00), Read (01) or Write (11))
-    // where S stands for size (int, long, struct...)
-    // where T stands for type ('f','v','X'...)
-    // where N stands for NR (NumbeR)
-    if #[cfg(any(target_arch = "x86", target_arch = "arm"))] {
-        pub const FS_IOC_GETFLAGS: c_int = 0x80046601;
-        pub const FS_IOC_SETFLAGS: c_int = 0x40046602;
-        pub const FS_IOC_GETVERSION: c_int = 0x80047601;
-        pub const FS_IOC_SETVERSION: c_int = 0x40047602;
-        pub const FS_IOC32_GETFLAGS: c_int = 0x80046601;
-        pub const FS_IOC32_SETFLAGS: c_int = 0x40046602;
-        pub const FS_IOC32_GETVERSION: c_int = 0x80047601;
-        pub const FS_IOC32_SETVERSION: c_int = 0x40047602;
-    } else if #[cfg(any(
-        target_arch = "x86_64",
-        target_arch = "riscv64",
-        target_arch = "aarch64"
-    ))] {
-        pub const FS_IOC_GETFLAGS: c_int = 0x80086601;
-        pub const FS_IOC_SETFLAGS: c_int = 0x40086602;
-        pub const FS_IOC_GETVERSION: c_int = 0x80087601;
-        pub const FS_IOC_SETVERSION: c_int = 0x40087602;
-        pub const FS_IOC32_GETFLAGS: c_int = 0x80046601;
-        pub const FS_IOC32_SETFLAGS: c_int = 0x40046602;
-        pub const FS_IOC32_GETVERSION: c_int = 0x80047601;
-        pub const FS_IOC32_SETVERSION: c_int = 0x40047602;
-    }
-}
-
 pub const EAI_AGAIN: c_int = 2;
 pub const EAI_BADFLAGS: c_int = 3;
 pub const EAI_FAIL: c_int = 4;
@@ -1984,6 +1783,12 @@ pub const NLM_F_REPLACE: c_int = 0x100;
 pub const NLM_F_EXCL: c_int = 0x200;
 pub const NLM_F_CREATE: c_int = 0x400;
 pub const NLM_F_APPEND: c_int = 0x800;
+
+pub const NLM_F_NONREC: c_int = 0x100;
+pub const NLM_F_BULK: c_int = 0x200;
+
+pub const NLM_F_CAPPED: c_int = 0x100;
+pub const NLM_F_ACK_TLVS: c_int = 0x200;
 
 pub const NLMSG_NOOP: c_int = 0x1;
 pub const NLMSG_ERROR: c_int = 0x2;
@@ -2194,18 +1999,22 @@ pub const GRND_NONBLOCK: c_uint = 0x0001;
 pub const GRND_RANDOM: c_uint = 0x0002;
 pub const GRND_INSECURE: c_uint = 0x0004;
 
+// <linux/seccomp.h>
 pub const SECCOMP_MODE_DISABLED: c_uint = 0;
 pub const SECCOMP_MODE_STRICT: c_uint = 1;
 pub const SECCOMP_MODE_FILTER: c_uint = 2;
 
-pub const SECCOMP_FILTER_FLAG_TSYNC: c_ulong = 1;
-pub const SECCOMP_FILTER_FLAG_LOG: c_ulong = 2;
-pub const SECCOMP_FILTER_FLAG_SPEC_ALLOW: c_ulong = 4;
-pub const SECCOMP_FILTER_FLAG_NEW_LISTENER: c_ulong = 8;
+pub const SECCOMP_SET_MODE_STRICT: c_uint = 0;
+pub const SECCOMP_SET_MODE_FILTER: c_uint = 1;
+pub const SECCOMP_GET_ACTION_AVAIL: c_uint = 2;
+pub const SECCOMP_GET_NOTIF_SIZES: c_uint = 3;
 
-pub const SECCOMP_RET_ACTION_FULL: c_uint = 0xffff0000;
-pub const SECCOMP_RET_ACTION: c_uint = 0x7fff0000;
-pub const SECCOMP_RET_DATA: c_uint = 0x0000ffff;
+pub const SECCOMP_FILTER_FLAG_TSYNC: c_ulong = 1 << 0;
+pub const SECCOMP_FILTER_FLAG_LOG: c_ulong = 1 << 1;
+pub const SECCOMP_FILTER_FLAG_SPEC_ALLOW: c_ulong = 1 << 2;
+pub const SECCOMP_FILTER_FLAG_NEW_LISTENER: c_ulong = 1 << 3;
+pub const SECCOMP_FILTER_FLAG_TSYNC_ESRCH: c_ulong = 1 << 4;
+pub const SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV: c_ulong = 1 << 5;
 
 pub const SECCOMP_RET_KILL_PROCESS: c_uint = 0x80000000;
 pub const SECCOMP_RET_KILL_THREAD: c_uint = 0x00000000;
@@ -2216,6 +2025,15 @@ pub const SECCOMP_RET_USER_NOTIF: c_uint = 0x7fc00000;
 pub const SECCOMP_RET_TRACE: c_uint = 0x7ff00000;
 pub const SECCOMP_RET_LOG: c_uint = 0x7ffc0000;
 pub const SECCOMP_RET_ALLOW: c_uint = 0x7fff0000;
+
+pub const SECCOMP_RET_ACTION_FULL: c_uint = 0xffff0000;
+pub const SECCOMP_RET_ACTION: c_uint = 0x7fff0000;
+pub const SECCOMP_RET_DATA: c_uint = 0x0000ffff;
+
+pub const SECCOMP_USER_NOTIF_FLAG_CONTINUE: c_ulong = 1;
+
+pub const SECCOMP_ADDFD_FLAG_SETFD: c_ulong = 1;
+pub const SECCOMP_ADDFD_FLAG_SEND: c_ulong = 2;
 
 pub const NLA_F_NESTED: c_int = 1 << 15;
 pub const NLA_F_NET_BYTEORDER: c_int = 1 << 14;
@@ -2645,30 +2463,6 @@ pub const SND_CNT: usize = SND_MAX as usize + 1;
 // linux/uinput.h
 pub const UINPUT_VERSION: c_uint = 5;
 pub const UINPUT_MAX_NAME_SIZE: usize = 80;
-
-// bionic/libc/kernel/uapi/linux/if_tun.h
-pub const IFF_TUN: c_int = 0x0001;
-pub const IFF_TAP: c_int = 0x0002;
-pub const IFF_NAPI: c_int = 0x0010;
-pub const IFF_NAPI_FRAGS: c_int = 0x0020;
-pub const IFF_NO_CARRIER: c_int = 0x0040;
-pub const IFF_NO_PI: c_int = 0x1000;
-pub const IFF_ONE_QUEUE: c_int = 0x2000;
-pub const IFF_VNET_HDR: c_int = 0x4000;
-pub const IFF_TUN_EXCL: c_int = 0x8000;
-pub const IFF_MULTI_QUEUE: c_int = 0x0100;
-pub const IFF_ATTACH_QUEUE: c_int = 0x0200;
-pub const IFF_DETACH_QUEUE: c_int = 0x0400;
-pub const IFF_PERSIST: c_int = 0x0800;
-pub const IFF_NOFILTER: c_int = 0x1000;
-// Features for GSO (TUNSETOFFLOAD)
-pub const TUN_F_CSUM: c_uint = 0x01;
-pub const TUN_F_TSO4: c_uint = 0x02;
-pub const TUN_F_TSO6: c_uint = 0x04;
-pub const TUN_F_TSO_ECN: c_uint = 0x08;
-pub const TUN_F_UFO: c_uint = 0x10;
-pub const TUN_F_USO4: c_uint = 0x20;
-pub const TUN_F_USO6: c_uint = 0x40;
 
 // start android/platform/bionic/libc/kernel/uapi/linux/if_ether.h
 // from https://android.googlesource.com/platform/bionic/+/HEAD/libc/kernel/uapi/linux/if_ether.h
@@ -3598,7 +3392,7 @@ f! {
         let next = (cmsg as usize + super::CMSG_ALIGN((*cmsg).cmsg_len as usize)) as *mut cmsghdr;
         let max = (*mhdr).msg_control as usize + (*mhdr).msg_controllen as usize;
         if (next.offset(1)) as usize > max {
-            0 as *mut cmsghdr
+            core::ptr::null_mut::<cmsghdr>()
         } else {
             next as *mut cmsghdr
         }
@@ -3703,7 +3497,6 @@ extern "C" {
     pub fn gettimeofday(tp: *mut crate::timeval, tz: *mut crate::timezone) -> c_int;
     pub fn mlock2(addr: *const c_void, len: size_t, flags: c_int) -> c_int;
     pub fn madvise(addr: *mut c_void, len: size_t, advice: c_int) -> c_int;
-    pub fn ioctl(fd: c_int, request: c_int, ...) -> c_int;
     pub fn msync(addr: *mut c_void, len: size_t, flags: c_int) -> c_int;
     pub fn mprotect(addr: *mut c_void, len: size_t, prot: c_int) -> c_int;
     pub fn recvfrom(
@@ -4065,6 +3858,8 @@ extern "C" {
     pub fn android_set_abort_message(msg: *const c_char);
 
     pub fn gettid() -> crate::pid_t;
+
+    pub fn getauxval(type_: c_ulong) -> c_ulong;
 
     /// Only available in API Version 28+
     pub fn getrandom(buf: *mut c_void, buflen: size_t, flags: c_uint) -> ssize_t;

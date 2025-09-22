@@ -1,0 +1,70 @@
+[package]
+name = "miniscript"
+version = "12.2.0"
+authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>, Sanket Kanjalkar <sanket1729@gmail.com>"]
+license = "CC0-1.0"
+homepage = "https://github.com/rust-bitcoin/rust-miniscript/"
+repository = "https://github.com/rust-bitcoin/rust-miniscript/"
+description = "Miniscript: a subset of Bitcoin Script designed for analysis"
+keywords = [ "crypto", "bitcoin", "miniscript", "script" ]
+readme = "README.md"
+edition = "2018"
+
+[features]
+default = ["std"]
+std = ["bitcoin/std", "bitcoin/secp-recovery", "bech32/std"]
+no-std = ["bech32/alloc"]
+compiler = []
+trace = []
+
+serde = ["actual-serde", "bitcoin/serde"]
+rand = ["bitcoin/rand"]
+base64 = ["bitcoin/base64"]
+
+[dependencies]
+bech32 = { version = "0.11.0", default-features = false }
+bitcoin = { version = "0.32.0", default-features = false }
+
+# Do NOT use this as a feature! Use the `serde` feature instead.
+actual-serde = { package = "serde", version = "1.0.103", optional = true }
+
+[dev-dependencies]
+serde_test = "1.0.147"
+bitcoin = { version = "0.32.0", features = ["base64"] }
+secp256k1 = {version = "0.29.0", features = ["rand-std"]}
+
+[[example]]
+name = "htlc"
+required-features = ["std", "compiler"]
+
+[[example]]
+name = "parse"
+required-features = ["std"]
+
+[[example]]
+name = "sign_multisig"
+required-features = ["std"]
+
+[[example]]
+name = "verify_tx"
+required-features = ["std"]
+
+[[example]]
+name = "xpub_descriptors"
+required-features = ["std"]
+
+[[example]]
+name = "taproot"
+required-features = ["compiler","std"]
+
+[[example]]
+name = "psbt_sign_finalize"
+required-features = ["std", "base64"]
+
+[[example]]
+name = "big"
+required-features = ["std", "base64", "compiler"]
+
+[workspace]
+members = ["bitcoind-tests", "fuzz"]
+exclude = ["embedded"]

@@ -130,6 +130,14 @@ impl<A> Dlmalloc<A> {
             system_allocator,
         }
     }
+
+    pub fn allocator(&self) -> &A {
+        &self.system_allocator
+    }
+
+    pub fn allocator_mut(&mut self) -> &mut A {
+        &mut self.system_allocator
+    }
 }
 
 impl<A: Allocator> Dlmalloc<A> {
@@ -232,7 +240,7 @@ impl<A: Allocator> Dlmalloc<A> {
     fn align_as_chunk(&self, ptr: *mut u8) -> *mut Chunk {
         unsafe {
             let chunk = Chunk::to_mem(ptr.cast());
-            ptr.add(self.align_offset(chunk)).cast()
+            ptr.wrapping_add(self.align_offset(chunk)).cast()
         }
     }
 
@@ -420,7 +428,7 @@ impl<A: Allocator> Dlmalloc<A> {
             } else {
                 self.least_addr = cmp::min(tbase, self.least_addr);
                 let mut sp: *mut Segment = &mut self.seg;
-                while !sp.is_null() && (*sp).base != tbase.add(tsize) {
+                while !sp.is_null() && (*sp).base != tbase.wrapping_add(tsize) {
                     sp = (*sp).next;
                 }
                 if !sp.is_null() && !Segment::is_extern(sp) && Segment::sys_flags(sp) == flags {
@@ -563,7 +571,7 @@ impl<A: Allocator> Dlmalloc<A> {
         let newmmsize =
             self.mmap_align(nb + 6 * mem::size_of::<usize>() + self.malloc_alignment() - 1);
         let ptr = self.system_allocator.remap(
-            oldp.cast::<u8>().sub(offset),
+            oldp.cast::<u8>().wrapping_sub(offset),
             oldmmsize,
             newmmsize,
             can_move,
@@ -571,7 +579,7 @@ impl<A: Allocator> Dlmalloc<A> {
         if ptr.is_null() {
             return ptr::null_mut();
         }
-        let newp = ptr.add(offset).cast::<Chunk>();
+        let newp = ptr.wrapping_add(offset).cast::<Chunk>();
         let psize = newmmsize - offset - self.mmap_foot_pad();
         (*newp).head = psize;
         (*Chunk::plus_offset(newp, psize)).head = Chunk::fencepost_head();
@@ -614,7 +622,7 @@ impl<A: Allocator> Dlmalloc<A> {
             let pos = if (br as usize - p as usize) > self.min_chunk_size() {
                 br.cast::<u8>()
             } else {
-                br.cast::<u8>().add(alignment)
+                br.cast::<u8>().wrapping_add(alignment)
             };
             let newp = pos.cast::<Chunk>();
             let leadsize = pos as usize - p as usize;
@@ -662,7 +670,7 @@ impl<A: Allocator> Dlmalloc<A> {
                 psize += prevsize + self.mmap_foot_pad();
                 if self
                     .system_allocator
-                    .free(p.cast::<u8>().sub(prevsize), psize)
+                    .free(p.cast::<u8>().wrapping_sub(prevsize), psize)
                 {
                     self.footprint -= psize;
                 }
@@ -786,10 +794,10 @@ impl<A: Allocator> Dlmalloc<A> {
         let old_end = Segment::top(oldsp);
         let ssize = self.pad_request(mem::size_of::<Segment>());
         let offset = ssize + mem::size_of::<usize>() * 4 + self.malloc_alignment() - 1;
-        let rawsp = old_end.sub(offset);
+        let rawsp = old_end.wrapping_sub(offset);
         let offset = self.align_offset(Chunk::to_mem(rawsp.cast()));
-        let asp = rawsp.add(offset);
-        let csp = if asp < old_top.add(self.min_chunk_size()) {
+        let asp = rawsp.wrapping_add(offset);
+        let csp = if asp < old_top.wrapping_add(self.min_chunk_size()) {
             old_top
         } else {
             asp
@@ -961,13 +969,13 @@ impl<A: Allocator> Dlmalloc<A> {
     unsafe fn smallbin_at(&mut self, idx: u32) -> *mut Chunk {
         let idx = usize::try_from(idx * 2).unwrap();
         debug_assert!(idx < self.smallbins.len());
-        self.smallbins.as_mut_ptr().add(idx).cast()
+        self.smallbins.as_mut_ptr().wrapping_add(idx).cast()
     }
 
     unsafe fn treebin_at(&mut self, idx: u32) -> *mut *mut TreeChunk {
         let idx = usize::try_from(idx).unwrap();
         debug_assert!(idx < self.treebins.len());
-        self.treebins.as_mut_ptr().add(idx)
+        self.treebins.as_mut_ptr().wrapping_add(idx)
     }
 
     fn compute_tree_index(&self, size: usize) -> u32 {
@@ -1016,14 +1024,15 @@ impl<A: Allocator> Dlmalloc<A> {
 
     unsafe fn insert_small_chunk(&mut self, chunk: *mut Chunk, size: usize) {
         let idx = self.small_index(size);
-        let head = self.smallbin_at(idx);
-        let mut f = head;
         debug_assert!(size >= self.min_chunk_size());
-        if !self.smallmap_is_marked(idx) {
+        let (f, head) = if !self.smallmap_is_marked(idx) {
             self.mark_smallmap(idx);
+            let head = self.smallbin_at(idx);
+            (head, head)
         } else {
-            f = (*head).prev;
-        }
+            let head = self.smallbin_at(idx);
+            ((*head).prev, head)
+        };
 
         (*head).prev = chunk;
         (*f).next = chunk;
@@ -1212,7 +1221,7 @@ impl<A: Allocator> Dlmalloc<A> {
                 psize += prevsize + self.mmap_foot_pad();
                 if self
                     .system_allocator
-                    .free(p.cast::<u8>().sub(prevsize), psize)
+                    .free(p.cast::<u8>().wrapping_sub(prevsize), psize)
                 {
                     self.footprint -= psize;
                 }
@@ -1355,8 +1364,8 @@ impl<A: Allocator> Dlmalloc<A> {
                 let psize = Chunk::size(p);
                 // We can unmap if the first chunk holds the entire segment and
                 // isn't pinned.
-                let chunk_top = p.cast::<u8>().add(psize);
-                let top = base.add(size - self.top_foot_size());
+                let chunk_top = p.cast::<u8>().wrapping_add(psize);
+                let top = base.wrapping_add(size - self.top_foot_size());
                 if !Chunk::inuse(p) && chunk_top >= top {
                     let tp = p.cast::<TreeChunk>();
                     debug_assert!(Segment::holds(sp, sp.cast()));
@@ -1718,11 +1727,11 @@ impl Chunk {
     }
 
     unsafe fn next(me: *mut Chunk) -> *mut Chunk {
-        me.cast::<u8>().add((*me).head & !FLAG_BITS).cast()
+        me.cast::<u8>().wrapping_add((*me).head & !FLAG_BITS).cast()
     }
 
     unsafe fn prev(me: *mut Chunk) -> *mut Chunk {
-        me.cast::<u8>().sub((*me).prev_foot).cast()
+        me.cast::<u8>().wrapping_sub((*me).prev_foot).cast()
     }
 
     unsafe fn cinuse(me: *mut Chunk) -> bool {
@@ -1777,15 +1786,15 @@ impl Chunk {
     }
 
     unsafe fn plus_offset(me: *mut Chunk, offset: usize) -> *mut Chunk {
-        me.cast::<u8>().add(offset).cast()
+        me.cast::<u8>().wrapping_add(offset).cast()
     }
 
     unsafe fn minus_offset(me: *mut Chunk, offset: usize) -> *mut Chunk {
-        me.cast::<u8>().sub(offset).cast()
+        me.cast::<u8>().wrapping_sub(offset).cast()
     }
 
     unsafe fn to_mem(me: *mut Chunk) -> *mut u8 {
-        me.cast::<u8>().add(Chunk::mem_offset())
+        me.cast::<u8>().wrapping_add(Chunk::mem_offset())
     }
 
     fn mem_offset() -> usize {
@@ -1793,7 +1802,7 @@ impl Chunk {
     }
 
     unsafe fn from_mem(mem: *mut u8) -> *mut Chunk {
-        mem.sub(2 * mem::size_of::<usize>()).cast()
+        mem.wrapping_sub(2 * mem::size_of::<usize>()).cast()
     }
 }
 
@@ -1840,7 +1849,7 @@ impl Segment {
     }
 
     unsafe fn top(seg: *mut Segment) -> *mut u8 {
-        (*seg).base.add((*seg).size)
+        (*seg).base.wrapping_add((*seg).size)
     }
 }
 

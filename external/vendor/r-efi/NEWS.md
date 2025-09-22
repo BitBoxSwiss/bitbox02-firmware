@@ -1,5 +1,44 @@
 # r-efi - UEFI Reference Specification Protocol Constants and Definitions
 
+## CHANGES WITH 5.3.0:
+
+        * Remove the optional dependency on `compiler-builtins`, which was
+          needed to build r-efi as part of rustc. This is no longer necessary.
+
+        Contributions from: David Rheinsberg, Trevor Gross
+
+        - Dußlingen, 2025-06-17
+
+## CHANGES WITH 5.2.0:
+
+        * Add the memory attribute protocol.
+
+        Contributions from: David Rheinsberg, Oliver Smith-Denny
+
+        - Dußlingen, 2024-12-22
+
+## CHANGES WITH 5.1.0:
+
+        * Mark `Guid::as_bytes` and `Guid::from_bytes` as `const fn`, aligning
+          them with the other methods on `Guid`. This helps creating constant
+          GUIDs via macros or other external helpers.
+
+        Contributions from: Christopher Zurcher, David Rheinsberg
+
+        - Dußlingen, 2024-09-01
+
+## CHANGES WITH 5.0.0:
+
+        * Change the type of the `unload` function-pointer of the Loaded Image
+          Protocol to `Option<Unload>`, given that it can be `NULL` to indicate
+          that the image cannot be unloaded.
+          This is a major API break, but any users very likely need to adjust
+          anyway to avoid NULL-derefs.
+
+        Contributions from: David Rheinsberg, John Schock
+
+        - Dußlingen, 2024-07-30
+
 ## CHANGES WITH 4.5.0:
 
         * Implement or derive more standard traits for UEFI base types. In

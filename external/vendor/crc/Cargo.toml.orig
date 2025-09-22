@@ -1,0 +1,18 @@
+[package]
+name = "crc"
+version = "3.0.1"
+authors = [
+    "Rui Hu <code@mrhooray.com>",
+    "Akhil Velagapudi <4@4khil.com>"
+]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/mrhooray/crc-rs.git"
+documentation = "https://docs.rs/crc"
+description = "Rust implementation of CRC with support of various standards"
+keywords = ["crc", "crc16", "crc32", "crc64", "hash"]
+categories = ["algorithms", "no-std"]
+edition = "2018"
+
+[dependencies]
+crc-catalog = "2.1.0"

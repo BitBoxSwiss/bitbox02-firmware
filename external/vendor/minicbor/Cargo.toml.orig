@@ -1,0 +1,33 @@
+[package]
+name          = "minicbor"
+version       = "0.24.0"
+authors       = ["Toralf Wittner <tw@dtex.org>"]
+license       = "BlueOak-1.0.0"
+edition       = "2021"
+description   = "A small CBOR codec suitable for no_std environments."
+repository    = "https://gitlab.com/twittner/minicbor"
+documentation = "https://twittner.gitlab.io/minicbor/minicbor/"
+keywords      = ["cbor", "serialization", "encoding", "binary", "no_std"]
+categories    = ["encoding"]
+build         = "build.rs"
+
+[package.metadata.docs.rs]
+features = ["std", "derive", "half"]
+
+[features]
+full   = ["std", "derive", "half"]
+alloc  = ["minicbor-derive?/alloc"]
+std    = ["alloc", "minicbor-derive?/std"]
+derive = ["minicbor-derive"]
+
+[dependencies]
+minicbor-derive = { version = "0.15.0", path = "../minicbor-derive", optional = true }
+half            = { version = "2.4.0", default-features = false, optional = true }
+
+[dev-dependencies]
+minicbor = { path = ".", features = ["std", "half"] }
+
+[[bin]]
+name = "cbor-display"
+required-features = ["std", "half"]
+

@@ -19,7 +19,7 @@
 # $ docker run --privileged --rm tonistiigi/binfmt --install arm64
 
 FROM ubuntu:22.04
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 # These are automatically provided by docker (no need for --build-arg)
 ARG TARGETPLATFORM
@@ -117,7 +117,7 @@ RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
     curl -L0 ${PROTOC_URL} -o /tmp/protoc-21.2.zip && \
     unzip /tmp/protoc-21.2.zip -d /opt/protoc && \
     rm /tmp/protoc-21.2.zip
-ENV PATH /opt/protoc/bin:$PATH
+ENV PATH=/opt/protoc/bin:$PATH
 
 # Make Python3 the default
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
@@ -129,18 +129,18 @@ RUN apt-get update && apt-get install -y \
 RUN python3 -m pip install gcovr
 
 # Install Go, used for the tools in tools/go and for test/gounittest
-ENV GOPATH /opt/go
-ENV GOROOT /opt/go_dist/go
-ENV PATH $GOROOT/bin:$GOPATH/bin:$PATH
+ENV GOPATH=/opt/go
+ENV GOROOT=/opt/go_dist/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 RUN mkdir -p /opt/go_dist && \
     curl https://dl.google.com/go/go1.19.3.linux-${TARGETARCH}.tar.gz | tar -xz -C /opt/go_dist
 
 # Install lcov from release (the one from the repos is too old).
 RUN cd /opt && wget https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14.tar.gz && tar -xf lcov-1.14.tar.gz
-ENV PATH /opt/lcov-1.14/bin:$PATH
+ENV PATH=/opt/lcov-1.14/bin:$PATH
 
 # Install rust compiler
-ENV PATH /opt/cargo/bin:$PATH
+ENV PATH=/opt/cargo/bin:$PATH
 ENV RUSTUP_HOME=/opt/rustup
 COPY src/rust/rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' /tmp/rust-toolchain.toml) -y

@@ -1,0 +1,18 @@
+[package]
+name = "binascii"
+version = "0.1.4"
+authors = ["Naim A. <naim@abda.nl>"]
+description = "Useful no-std binascii operations including base64, base32 and base16 (hex)"
+keywords = ["base64", "base32", "base16", "hex"]
+categories = ["encoding", "no-std"]
+license = "MIT"
+repository = "https://github.com/naim94a/binascii-rs"
+readme = "README.md"
+
+[features]
+default = ["encode", "decode"]
+encode = []
+decode = []
+
+[badges]
+travis-ci = { repository = "naim94a/binascii-rs", branch = "master" }

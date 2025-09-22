@@ -52,9 +52,11 @@ AUTHORS-LGPL:
 
 COPYRIGHT: (ordered alphabetically)
         Copyright (C) 2017-2022 Red Hat, Inc.
+        Copyright (C) 2022-2025 David Rheinsberg
 
 AUTHORS: (ordered alphabetically)
         Ayush Singh <ayushsingh1325@gmail.com>
-        David Rheinsberg <david.rheinsberg@gmail.com>
+        David Rheinsberg <david@readahead.eu>
         Mizuho MORI <morimolymoly@gmail.com>
         Tom Gundersen <teg@jklm.no>
+        Trevor Gross <tmgross@umich.edu>

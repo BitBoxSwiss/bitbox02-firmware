@@ -33,6 +33,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <sys/select.h>
 #include <stdbool.h>
 #include <sys/socket.h>
 
@@ -172,19 +173,26 @@ int main(int argc, char* argv[])
         while (1) {
             // Simulator polls for USB messages from client and then processes them
 
-            int bytes_read = read(commfd, input, USB_HID_REPORT_OUT_SIZE);
-            if (bytes_read == 0) {
-                 // client disconnected
+            fd_set readfds;
+            FD_ZERO(&readfds);
+            FD_SET(commfd, &readfds);
+             // 0.05ms timeout, so this loop does not lead to 100% CPU usage, but is also not
+             // unbearably slow. It is a trade-off as we don't have proper waking of our Rust tasks,
+             // just busy polling.
+            struct timeval timeout = {0, 500};
+
+            if (select(commfd + 1, &readfds, NULL, NULL, &timeout) < 0) {
                 break;
             }
-            else if (bytes_read == -1) {
-                if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                    perror("read error");
-                    break;
+
+            if (FD_ISSET(commfd, &readfds)) {
+                int bytes_read = read(commfd, input, USB_HID_REPORT_OUT_SIZE);
+                if (bytes_read == 0) break;
+                else if (bytes_read > 0) {
+                    usb_packet_process((const USB_FRAME*)input);
                 }
-            } else {
-                usb_packet_process((const USB_FRAME*)input);
             }
+
 
             usb_processing_process(usb_processing_hww());
             rust_workflow_spin();

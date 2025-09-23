@@ -48,9 +48,9 @@ pub async fn confirm(hal: &mut impl crate::hal::Hal, hash: &[u8; 32]) -> Result<
 mod tests {
     use super::*;
 
-    use crate::bb02_async::block_on;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
+    use util::bb02_async::block_on;
 
     use alloc::boxed::Box;
 

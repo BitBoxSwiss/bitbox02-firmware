@@ -471,6 +471,9 @@ class BitBox02(BitBoxCommonAPI):
 
         sigs: List[Tuple[int, bytes]] = []
 
+        all_inputs_are_taproot = all(
+            is_taproot(script_configs[inp["script_config_index"]]) for inp in inputs
+        )
         # Init request
         request = hww.Request()
         request.btc_sign_init.CopyFrom(
@@ -483,6 +486,11 @@ class BitBox02(BitBoxCommonAPI):
                 locktime=locktime,
                 format_unit=format_unit,
                 output_script_configs=output_script_configs,
+                prev_txs=(
+                    btc.BTCSignInitRequest.PrevTxs.PREV_TXS_NOT_REQUIRED
+                    if all_inputs_are_taproot
+                    else btc.BTCSignInitRequest.PrevTxs.PREV_TXS_REQUIRED
+                ),
             )
         )
         next_response = self._msg_query(request, expected_response="btc_sign_next").btc_sign_next

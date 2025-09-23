@@ -342,6 +342,21 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     SAT: BTCSignInitRequest.FormatUnit.ValueType  # 1
     """Only valid for BTC/TBTC, formats as "sat"/"tsat"."""
 
+    class _PrevTxs:
+        ValueType = typing.NewType("ValueType", builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+
+    class _PrevTxsEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[BTCSignInitRequest._PrevTxs.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        PREV_TXS_DEFAULT: BTCSignInitRequest._PrevTxs.ValueType  # 0
+        PREV_TXS_REQUIRED: BTCSignInitRequest._PrevTxs.ValueType  # 1
+        PREV_TXS_NOT_REQUIRED: BTCSignInitRequest._PrevTxs.ValueType  # 2
+
+    class PrevTxs(_PrevTxs, metaclass=_PrevTxsEnumTypeWrapper): ...
+    PREV_TXS_DEFAULT: BTCSignInitRequest.PrevTxs.ValueType  # 0
+    PREV_TXS_REQUIRED: BTCSignInitRequest.PrevTxs.ValueType  # 1
+    PREV_TXS_NOT_REQUIRED: BTCSignInitRequest.PrevTxs.ValueType  # 2
+
     COIN_FIELD_NUMBER: builtins.int
     SCRIPT_CONFIGS_FIELD_NUMBER: builtins.int
     VERSION_FIELD_NUMBER: builtins.int
@@ -351,6 +366,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     FORMAT_UNIT_FIELD_NUMBER: builtins.int
     CONTAINS_SILENT_PAYMENT_OUTPUTS_FIELD_NUMBER: builtins.int
     OUTPUT_SCRIPT_CONFIGS_FIELD_NUMBER: builtins.int
+    PREV_TXS_FIELD_NUMBER: builtins.int
     coin: global___BTCCoin.ValueType
     version: builtins.int
     """must be 1 or 2"""
@@ -360,6 +376,14 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     """must be <500000000"""
     format_unit: global___BTCSignInitRequest.FormatUnit.ValueType
     contains_silent_payment_outputs: builtins.bool
+    prev_txs: global___BTCSignInitRequest.PrevTxs.ValueType
+    """Set this to:
+    - `PREV_TXS_DEFAULT` for compatibility mode, the value will be determined using `script_configs`.
+     This is not robust, as non-Taproot change outputs are included there and falsely leads to
+     previous transactions being required.
+    - `PREV_TXS_REQUIRED` if not all transaction inputs are Taproot.
+    - `PREV_TXS_NOT_REQUIRED` if all transaction inputs are Taproot.
+    """
     @property
     def script_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BTCScriptConfigWithKeypath]:
         """used script configs in inputs and changes"""
@@ -382,8 +406,9 @@ class BTCSignInitRequest(google.protobuf.message.Message):
         format_unit: global___BTCSignInitRequest.FormatUnit.ValueType = ...,
         contains_silent_payment_outputs: builtins.bool = ...,
         output_script_configs: collections.abc.Iterable[global___BTCScriptConfigWithKeypath] | None = ...,
+        prev_txs: global___BTCSignInitRequest.PrevTxs.ValueType = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["coin", b"coin", "contains_silent_payment_outputs", b"contains_silent_payment_outputs", "format_unit", b"format_unit", "locktime", b"locktime", "num_inputs", b"num_inputs", "num_outputs", b"num_outputs", "output_script_configs", b"output_script_configs", "script_configs", b"script_configs", "version", b"version"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["coin", b"coin", "contains_silent_payment_outputs", b"contains_silent_payment_outputs", "format_unit", b"format_unit", "locktime", b"locktime", "num_inputs", b"num_inputs", "num_outputs", b"num_outputs", "output_script_configs", b"output_script_configs", "prev_txs", b"prev_txs", "script_configs", b"script_configs", "version", b"version"]) -> None: ...
 
 global___BTCSignInitRequest = BTCSignInitRequest
 

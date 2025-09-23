@@ -14,6 +14,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - simulator: simulate a Nova device
 - Add API call to fetch multiple xpubs at once
 - Add the option for the simulator to write its memory to file.
+- Bitcoin: do not request previous transactions if all inputs are Taproot, even if an output paying
+  to the same account is not Taproot
 
 ### 9.23.1
 - EVM: add HyperEVM (HYPE) and SONIC (S) to known networks

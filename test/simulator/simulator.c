@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <version.h>
 
+#include <errno.h>
 #include <getopt.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -45,11 +46,6 @@ int commfd;
 static volatile sig_atomic_t sigint_called = false;
 static int sockfd;
 
-static int get_usb_message_socket(uint8_t* input)
-{
-    return read(commfd, input, USB_HID_REPORT_OUT_SIZE);
-}
-
 static void send_usb_message_socket(void)
 {
     const uint8_t* data = queue_pull(queue_hww_queue());
@@ -61,14 +57,6 @@ static void send_usb_message_socket(void)
         }
         data = queue_pull(queue_hww_queue());
     }
-}
-
-static void simulate_firmware_execution(const uint8_t* input)
-{
-    usb_packet_process((const USB_FRAME*)input);
-    rust_workflow_spin();
-    rust_async_usb_spin();
-    usb_processing_process(usb_processing_hww());
 }
 
 static void _int_handler(int signum)
@@ -170,13 +158,37 @@ int main(int argc, char* argv[])
         }
         printf("Socket connection setup success\n");
 
+        // Set commfd to non-blocking
+        int flags = fcntl(commfd, F_GETFL, 0);
+        if (flags == -1 || fcntl(commfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+            perror("fcntl");
+            close(commfd);
+            continue;
+        }
+
         // BitBox02 firmware loop
         uint8_t input[BUFFER_SIZE];
         int temp_len;
         while (1) {
             // Simulator polls for USB messages from client and then processes them
-            if (!get_usb_message_socket(input)) break;
-            simulate_firmware_execution(input);
+
+            int bytes_read = read(commfd, input, USB_HID_REPORT_OUT_SIZE);
+            if (bytes_read == 0) {
+                 // client disconnected
+                break;
+            }
+            else if (bytes_read == -1) {
+                if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                    perror("read error");
+                    break;
+                }
+            } else {
+                usb_packet_process((const USB_FRAME*)input);
+            }
+
+            usb_processing_process(usb_processing_hww());
+            rust_workflow_spin();
+            rust_async_usb_spin();
 
             // If the USB message to be sent from firmware is bigger than one packet,
             // then the simulator sends the message in multiple packets. Packets use

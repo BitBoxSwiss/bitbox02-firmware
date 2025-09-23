@@ -59,10 +59,10 @@ pub fn option<O>(option: &RefCell<Option<O>>) -> AsyncOption<'_, O> {
 }
 
 /// Polls a future until the result is available.
+#[cfg(feature = "testing")]
 pub fn block_on<O>(task: impl core::future::Future<Output = O>) -> O {
     let mut task: crate::bb02_async::Task<O> = alloc::boxed::Box::pin(task);
     loop {
-        bitbox02::ui::screen_process();
         if let Poll::Ready(result) = spin(&mut task) {
             return result;
         }

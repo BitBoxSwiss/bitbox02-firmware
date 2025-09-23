@@ -39,11 +39,11 @@
 #include <ui/components/status.h>
 #include <ui/components/trinary_choice.h>
 #include <ui/components/trinary_input_string.h>
+#include <ui/components/unlock_animation.h>
 #include <ui/fonts/font_a_11X10.h>
 #include <ui/fonts/font_a_9X9.h>
 #include <ui/fonts/monogram_5X9.h>
 #include <ui/fonts/password_11X12.h>
-#include <ui/graphics/lock_animation.h>
 #include <ui/oled/oled.h>
 #include <ui/screen_process.h>
 #include <ui/screen_saver.h>

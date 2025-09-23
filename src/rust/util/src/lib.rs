@@ -14,12 +14,14 @@
 
 #![cfg_attr(not(test), no_std)]
 pub mod ascii;
+pub mod bb02_async;
 pub mod bip32;
 pub mod bytes;
 pub mod cell;
 pub mod decimal;
 pub mod log;
 pub mod name;
+mod waker_fn;
 
 mod base58;
 #[cfg(feature = "p256")]

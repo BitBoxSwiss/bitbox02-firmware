@@ -1,4 +1,4 @@
-// Copyright 2020 Shift Cryptosecurity AG
+// Copyright 2025 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::bb02_async::option_no_screensaver;
 use core::cell::RefCell;
 
-pub use util::bb02_async::{Task, block_on, option, spin};
-
-/// Disables the screensaver while waiting for an option to contain a value. Afterwards, it returns that value
-pub async fn option_no_screensaver<O>(opt: &RefCell<Option<O>>) -> O {
-    bitbox02::screen_saver::screen_saver_disable();
-    let result = option(opt).await;
-    bitbox02::screen_saver::screen_saver_enable();
-    result
+pub async fn animate() {
+    let result = RefCell::new(None as Option<()>);
+    let mut component = bitbox02::ui::unlock_animation_create(|| {
+        *result.borrow_mut() = Some(());
+    });
+    component.screen_stack_push();
+    option_no_screensaver(&result).await
 }

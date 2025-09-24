@@ -622,4 +622,68 @@ mod tests {
             b"\x25\x0e\xc8\x02\xb6\xd3\xdb\x98\x42\xd1\xbd\xbe\x0e\xe4\x8d\x52\xf9\xa4\xb4\x6e\x60\xcb\xbb\xab\x3b\xcc\x4e\xe9\x15\x73\xfc\xe8"
         );
     }
+
+    #[test]
+    fn test_pkscript() {
+        let params = super::super::params::get(pb::BtcCoin::Btc);
+
+        let payload = Payload {
+            data: vec![],
+            output_type: BtcOutputType::Unknown,
+        };
+        assert_eq!(payload.pk_script(params), Err(Error::InvalidInput));
+
+        struct Test {
+            payload: &'static str,
+            output_type: BtcOutputType,
+            expected_pkscript: &'static str,
+        }
+
+        let tests = [
+            Test {
+                payload: "669c6cb1883c50a1b10c34bd1693c1f34fe3d798",
+                output_type: BtcOutputType::P2pkh,
+                expected_pkscript: "76a914669c6cb1883c50a1b10c34bd1693c1f34fe3d79888ac",
+            },
+            Test {
+                payload: "b59e844a19063a882b3c34b64b941a8acdad74ee",
+                output_type: BtcOutputType::P2sh,
+                expected_pkscript: "a914b59e844a19063a882b3c34b64b941a8acdad74ee87",
+            },
+            Test {
+                payload: "b7cfb87a9806bb232e64f64e714785bd8366596b",
+                output_type: BtcOutputType::P2wpkh,
+                expected_pkscript: "0014b7cfb87a9806bb232e64f64e714785bd8366596b",
+            },
+            Test {
+                payload: "526e8e589b4bf1de80774986d972aed96ae70f17572d35fe89e61e9e88e2dd4a",
+                output_type: BtcOutputType::P2wsh,
+                expected_pkscript: "0020526e8e589b4bf1de80774986d972aed96ae70f17572d35fe89e61e9e88e2dd4a",
+            },
+            Test {
+                payload: "a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c",
+                output_type: BtcOutputType::P2tr,
+                expected_pkscript: "5120a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c",
+            },
+        ];
+
+        for test in tests {
+            // OK
+            let payload = Payload {
+                data: hex::decode(test.payload).unwrap(),
+                output_type: test.output_type,
+            };
+            assert_eq!(
+                hex::encode(payload.pk_script(params).unwrap()),
+                test.expected_pkscript
+            );
+
+            // Payload of wrong size
+            let payload = Payload {
+                data: hex::decode(&test.payload[2..]).unwrap(),
+                output_type: test.output_type,
+            };
+            assert_eq!(payload.pk_script(params), Err(Error::Generic));
+        }
+    }
 }

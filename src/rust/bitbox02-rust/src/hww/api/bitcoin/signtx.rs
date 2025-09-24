@@ -1,4 +1,4 @@
-// Copyright 2022-2024 Shift Crypto AG
+// Copyright 2022-2025 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -853,11 +853,17 @@ async fn _process(
             };
         }
 
-        if tx_output.value == 0 {
+        let output_type = pb::BtcOutputType::try_from(tx_output.r#type)?;
+
+        // We don't allow regular outputs to have 0 value.
+        // OP_RETURN outputs however we require to have 0 value.
+        if output_type == pb::BtcOutputType::OpReturn {
+            if tx_output.value != 0 {
+                return Err(Error::InvalidInput);
+            }
+        } else if tx_output.value == 0 {
             return Err(Error::InvalidInput);
         }
-
-        let output_type = pb::BtcOutputType::try_from(tx_output.r#type)?;
 
         // Get payload. If the output is marked ours, we compute the payload from the keystore,
         // otherwise it is provided in tx_output.payload.
@@ -949,14 +955,19 @@ async fn _process(
         if !is_change {
             // Verify output if it is not a change output.
             // Assemble address to display, get user confirmation.
-            let address = if let Some(sp) = tx_output.silent_payment.as_ref() {
-                sp.address.clone()
-            } else {
-                payload.address(coin_params)?
+            let address = || -> Result<String, Error> {
+                if let Some(sp) = tx_output.silent_payment.as_ref() {
+                    Ok(sp.address.clone())
+                } else {
+                    Ok(payload.address(coin_params)?)
+                }
             };
 
             if let Some(output_payment_request_index) = tx_output.payment_request_index {
                 if output_payment_request_index != 0 {
+                    return Err(Error::InvalidInput);
+                }
+                if output_type == pb::BtcOutputType::OpReturn {
                     return Err(Error::InvalidInput);
                 }
                 if payment_request_seen {
@@ -970,7 +981,7 @@ async fn _process(
                     coin_params,
                     &payment_request,
                     tx_output.value,
-                    &address,
+                    &address()?,
                 )
                 .is_err()
                 {
@@ -979,6 +990,16 @@ async fn _process(
                 }
 
                 payment_request_seen = true;
+            } else if output_type == pb::BtcOutputType::OpReturn {
+                // OP_RETURN value was validated to be 0 above, so we don't need to show the amount.
+                crate::workflow::verify_message::verify(
+                    hal,
+                    "OP_RETURN",
+                    "OP_RETURN",
+                    &tx_output.payload,
+                    false,
+                )
+                .await?;
             } else {
                 // When sending coins back to the same account (non-change), or another account of
                 // the same keystore (change or non-change), we show a prefix to let the user know.
@@ -1001,9 +1022,9 @@ async fn _process(
                 hal.ui()
                     .verify_recipient(
                         &(if let Some(prefix) = prefix {
-                            format!("{}: {}", prefix, address)
+                            format!("{}: {}", prefix, address()?)
                         } else {
-                            address
+                            address()?
                         }),
                         &format_amount(coin_params, format_unit, tx_output.value)?,
                     )
@@ -3681,6 +3702,104 @@ mod tests {
                     success: true
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn test_op_return() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        // Attach OP_RETURN output
+        {
+            let mut tx = transaction.borrow_mut();
+            tx.outputs.push(pb::BtcSignOutputRequest {
+                r#type: pb::BtcOutputType::OpReturn as _,
+                value: 0,
+                payload: b"hello world".to_vec(),
+                ..Default::default()
+            });
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        bitbox02::random::fake_reset();
+        let init_request = transaction.borrow().init_request();
+
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &init_request));
+
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                assert_eq!(
+                    hex::encode(next.signature),
+                    "f49c71b89ec3510ebebae9aff9f967ad9bb6cc0c4cddbdf851f97e47e9922646622459e522b0751fa246e49a8e48417344a5384a9f68c1c85cd03804b35e1e1e",
+                );
+            }
+            _ => panic!("wrong result"),
+        }
+
+        assert!(mock_hal.ui.contains_confirm("OP_RETURN", "hello world"));
+    }
+
+    #[test]
+    fn test_op_return_nonascii() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        // Attach OP_RETURN output
+        {
+            let mut tx = transaction.borrow_mut();
+            tx.outputs.push(pb::BtcSignOutputRequest {
+                r#type: pb::BtcOutputType::OpReturn as _,
+                value: 0,
+                payload: vec![1, 2, 3, 4, 5],
+                ..Default::default()
+            });
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        bitbox02::random::fake_reset();
+        let init_request = transaction.borrow().init_request();
+
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &init_request));
+        assert!(result.is_ok());
+
+        assert!(
+            mock_hal
+                .ui
+                .contains_confirm("OP_RETURN\ndata (hex)", "0102030405")
+        );
+    }
+
+    #[test]
+    fn test_op_return_fail_nonzero_value() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        // Attach OP_RETURN output
+        {
+            let mut tx = transaction.borrow_mut();
+            tx.outputs.push(pb::BtcSignOutputRequest {
+                r#type: pb::BtcOutputType::OpReturn as _,
+                value: 100,
+                payload: b"hello world".to_vec(),
+                ..Default::default()
+            });
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        bitbox02::random::fake_reset();
+        let init_request = transaction.borrow().init_request();
+
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            block_on(process(&mut mock_hal, &init_request)),
+            Err(Error::InvalidInput)
         );
     }
 }

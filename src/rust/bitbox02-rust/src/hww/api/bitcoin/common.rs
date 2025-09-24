@@ -211,7 +211,8 @@ impl Payload {
         }
     }
 
-    /// Converts a payload to an address.
+    /// Converts a payload to an address. Returns an error for invalid input or if an address does
+    /// not exist for the output type (e.g. OP_RETURN).
     pub fn address(&self, params: &Params) -> Result<String, ()> {
         let payload = self.data.as_slice();
         match self.output_type {
@@ -252,6 +253,7 @@ impl Payload {
                 }
                 encode_segwit_addr(params.bech32_hrp, 1, payload)
             }
+            BtcOutputType::OpReturn => Err(()),
         }
     }
 
@@ -288,6 +290,11 @@ impl Payload {
                     bitcoin::XOnlyPublicKey::from_slice(payload).map_err(|_| Error::Generic)?,
                 );
                 ScriptBuf::new_p2tr_tweaked(tweaked)
+            }
+            BtcOutputType::OpReturn => {
+                let pushbytes: &bitcoin::script::PushBytes =
+                    payload.try_into().map_err(|_| Error::InvalidInput)?;
+                ScriptBuf::new_op_return(pushbytes)
             }
         };
         Ok(script.into_bytes())
@@ -657,6 +664,22 @@ mod tests {
                 output_type: BtcOutputType::P2tr,
                 expected_pkscript: "5120a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c",
             },
+            Test {
+                payload: "aabbcc",
+                output_type: BtcOutputType::OpReturn,
+                expected_pkscript: "6a03aabbcc",
+            },
+            Test {
+                payload: "",
+                output_type: BtcOutputType::OpReturn,
+                expected_pkscript: "6a00",
+            },
+            Test {
+                // 80 byte payload
+                payload: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                output_type: BtcOutputType::OpReturn,
+                expected_pkscript: "6a4c50aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            },
         ];
 
         for test in tests {
@@ -667,15 +690,17 @@ mod tests {
             };
             assert_eq!(
                 hex::encode(payload.pk_script(params).unwrap()),
-                test.expected_pkscript
+                test.expected_pkscript,
             );
 
-            // Payload of wrong size
-            let payload = Payload {
-                data: hex::decode(&test.payload[2..]).unwrap(),
-                output_type: test.output_type,
-            };
-            assert_eq!(payload.pk_script(params), Err(Error::Generic));
+            // Payload of wrong size. Does not apply to OpReturn, almost any size is accepted.
+            if test.output_type != BtcOutputType::OpReturn {
+                let payload = Payload {
+                    data: hex::decode(&test.payload[2..]).unwrap(),
+                    output_type: test.output_type,
+                };
+                assert_eq!(payload.pk_script(params), Err(Error::Generic));
+            }
         }
     }
 }

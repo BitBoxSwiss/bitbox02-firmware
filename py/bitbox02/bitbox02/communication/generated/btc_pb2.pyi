@@ -70,6 +70,7 @@ class _BTCOutputTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._
     P2WPKH: _BTCOutputType.ValueType  # 3
     P2WSH: _BTCOutputType.ValueType  # 4
     P2TR: _BTCOutputType.ValueType  # 5
+    OP_RETURN: _BTCOutputType.ValueType  # 6
 
 class BTCOutputType(_BTCOutputType, metaclass=_BTCOutputTypeEnumTypeWrapper): ...
 
@@ -79,6 +80,7 @@ P2SH: BTCOutputType.ValueType  # 2
 P2WPKH: BTCOutputType.ValueType  # 3
 P2WSH: BTCOutputType.ValueType  # 4
 P2TR: BTCOutputType.ValueType  # 5
+OP_RETURN: BTCOutputType.ValueType  # 6
 global___BTCOutputType = BTCOutputType
 
 @typing.final

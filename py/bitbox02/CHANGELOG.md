@@ -4,6 +4,7 @@
 
 # 7.1.0
 - Add `btc_xpubs()` to fetch multiple xpubs at once
+- Bitcoin: add support for OP_RETURN outputs
 
 # 7.0.0
 - get_info: add optional device initialized boolean to returned tuple

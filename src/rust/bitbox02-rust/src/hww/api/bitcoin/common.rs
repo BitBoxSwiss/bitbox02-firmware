@@ -1,4 +1,4 @@
-// Copyright 2022-2024 Shift Crypto AG
+// Copyright 2022-2025 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,10 +25,11 @@ pub use pb::btc_sign_init_request::FormatUnit;
 pub use pb::{BtcCoin, BtcOutputType};
 
 use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
-use super::{multisig, params::Params, script};
+use super::{multisig, params::Params};
 
 use sha2::{Digest, Sha256};
 
+use bitcoin::ScriptBuf;
 use bitcoin::bech32;
 use bitcoin::hashes::Hash;
 
@@ -254,51 +255,42 @@ impl Payload {
         }
     }
 
-    /// Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output type.
+    /// Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output
+    /// type.
     pub fn pk_script(&self, params: &Params) -> Result<Vec<u8>, Error> {
         let payload = self.data.as_slice();
-        match self.output_type {
-            BtcOutputType::Unknown => Err(Error::InvalidInput),
+        let script = match self.output_type {
+            BtcOutputType::Unknown => return Err(Error::InvalidInput),
             BtcOutputType::P2pkh => {
-                if payload.len() != HASH160_LEN {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_DUP, script::OP_HASH160];
-                script::push_data(&mut result, payload);
-                result.extend_from_slice(&[script::OP_EQUALVERIFY, script::OP_CHECKSIG]);
-                Ok(result)
+                let pk_hash =
+                    bitcoin::PubkeyHash::from_slice(payload).map_err(|_| Error::Generic)?;
+
+                ScriptBuf::new_p2pkh(&pk_hash)
             }
             BtcOutputType::P2sh => {
-                if payload.len() != HASH160_LEN {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_HASH160];
-                script::push_data(&mut result, payload);
-                result.push(script::OP_EQUAL);
-                Ok(result)
+                let script_hash =
+                    bitcoin::ScriptHash::from_slice(payload).map_err(|_| Error::Generic)?;
+                ScriptBuf::new_p2sh(&script_hash)
             }
-            BtcOutputType::P2wpkh | BtcOutputType::P2wsh => {
-                if (self.output_type == BtcOutputType::P2wpkh && payload.len() != HASH160_LEN)
-                    || (self.output_type == BtcOutputType::P2wsh && payload.len() != SHA256_LEN)
-                {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_0];
-                script::push_data(&mut result, payload);
-                Ok(result)
+            BtcOutputType::P2wpkh => {
+                let wpkh = bitcoin::WPubkeyHash::from_slice(payload).map_err(|_| Error::Generic)?;
+                ScriptBuf::new_p2wpkh(&wpkh)
+            }
+            BtcOutputType::P2wsh => {
+                let wsh = bitcoin::WScriptHash::from_slice(payload).map_err(|_| Error::Generic)?;
+                ScriptBuf::new_p2wsh(&wsh)
             }
             BtcOutputType::P2tr => {
                 if !params.taproot_support {
                     return Err(Error::InvalidInput);
                 }
-                if payload.len() != 32 {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_1];
-                script::push_data(&mut result, payload);
-                Ok(result)
+                let tweaked = bitcoin::key::TweakedPublicKey::dangerous_assume_tweaked(
+                    bitcoin::XOnlyPublicKey::from_slice(payload).map_err(|_| Error::Generic)?,
+                );
+                ScriptBuf::new_p2tr_tweaked(tweaked)
             }
-        }
+        };
+        Ok(script.into_bytes())
     }
 }
 

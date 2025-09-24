@@ -243,6 +243,10 @@ set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-Os -ggdb")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -ggdb -DNDEBUG")
 
+if(DEFINED ENV{RUSTFLAGS})
+    set(RUSTFLAGS $ENV{RUSTFLAGS})
+endif()
+
 #-----------------------------------------------------------------------------
 # Print system information and build options
 
@@ -270,6 +274,7 @@ message(STATUS "Compiler cache:         ${CMAKE_C_COMPILER_LAUNCHER}")
 message(STATUS "Linker:                 ${CMAKE_LINKER}")
 message(STATUS "Archiver:               ${CMAKE_AR}")
 message(STATUS "Default CFLAGS:         ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}}")
+message(STATUS "Default RUSTFLAGS:      ${RUSTFLAGS}")
 message(STATUS "Default EXE LDFLAGS:    ${CMAKE_EXE_LINKER_FLAGS}")
 message(STATUS "            - Options -")
 message(STATUS "Build type:             ${CMAKE_BUILD_TYPE}")

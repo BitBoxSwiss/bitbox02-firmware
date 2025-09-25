@@ -90,18 +90,19 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     switch (event->id) {
-    case EVENT_TOP_CONTINUOUS_TAP:
-        if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&
-            slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.source == top_slider && ks_data->location == top_slider &&
+            event->data.position > SLIDER_POSITION_ONE_THIRD &&
+            event->data.position <= SLIDER_POSITION_TWO_THIRD) {
             ks_data->active = true;
             break;
         }
         /* FALLTHROUGH */
-    case EVENT_TOP_SHORT_TAP:
-        if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&
-            slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
+    case EVENT_SHORT_TAP:
+        if (event->data.source == top_slider && ks_data->location == top_slider &&
+            event->data.position > SLIDER_POSITION_ONE_THIRD &&
+            event->data.position <= SLIDER_POSITION_TWO_THIRD) {
             ks_data->active = false;
             switch (ks_data->mode) {
             case LOWER_CASE:

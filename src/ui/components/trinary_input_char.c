@@ -95,15 +95,14 @@ static void _alphabet_selected(component_t* component, const char* alphabet)
 
 static void _on_event(const event_t* event, component_t* component)
 {
-    if (event->id != EVENT_BOTTOM_SHORT_TAP) {
+    if (!(event->id == EVENT_SHORT_TAP && event->data.source == bottom_slider)) {
         return;
     }
     data_t* data = (data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     const char* selected_alphabet;
-    if (slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
+    if (event->data.position <= SLIDER_POSITION_ONE_THIRD) {
         selected_alphabet = data->left_alphabet;
-    } else if (slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
+    } else if (event->data.position <= SLIDER_POSITION_TWO_THIRD) {
         selected_alphabet = data->middle_alphabet;
     } else {
         selected_alphabet = data->right_alphabet;

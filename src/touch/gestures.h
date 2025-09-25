@@ -33,12 +33,6 @@
 #define SLIDER_POSITION_ONE_THIRD (MAX_SLIDER_POS / 3)
 #define SLIDER_POSITION_TWO_THIRD (MAX_SLIDER_POS / 3 * 2)
 
-typedef struct {
-    int16_t diff;
-    uint16_t position;
-    int32_t velocity;
-} gestures_slider_data_t;
-
 /**
  * Detects a gestures and calls the respective callback.
  * @param[in] reset The flag indicates whether the gesture history should be

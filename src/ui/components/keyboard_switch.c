@@ -34,6 +34,8 @@ typedef struct {
     bool active; // Marker is 'active', i.e., touched
     // if true, the special chars keyboard mode is available.
     bool special_chars;
+    void (*on_keyboard_switch_cb)(keyboard_mode_t mode, void* user_data);
+    void* user_data;
 } keyboard_switch_data_t;
 
 /**
@@ -90,29 +92,6 @@ static void _on_event(const event_t* event, component_t* component)
     keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
     const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     switch (event->id) {
-    case EVENT_TOGGLE_ALPHANUMERIC:
-        switch (ks_data->mode) {
-        case LOWER_CASE:
-            ks_data->mode = UPPER_CASE;
-            break;
-        case UPPER_CASE:
-            ks_data->mode = DIGITS;
-            break;
-        case DIGITS:
-            ks_data->mode = ks_data->special_chars ? SPECIAL_CHARS : LOWER_CASE;
-            break;
-        case SPECIAL_CHARS:
-            ks_data->mode = LOWER_CASE;
-            break;
-        default:
-            Abort("Keyboard mode unrecognized");
-            break;
-        }
-        break;
-
-    case EVENT_UPDATE_ALPHANUMERIC:
-        ks_data->mode = *(const keyboard_mode_t*)event->data;
-        break;
     case EVENT_TOP_CONTINUOUS_TAP:
         if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&
             slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
@@ -124,9 +103,24 @@ static void _on_event(const event_t* event, component_t* component)
         if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&
             slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
             ks_data->active = false;
-            event_t e;
-            e.id = EVENT_TOGGLE_ALPHANUMERIC;
-            emit_event(&e);
+            switch (ks_data->mode) {
+            case LOWER_CASE:
+                ks_data->mode = UPPER_CASE;
+                break;
+            case UPPER_CASE:
+                ks_data->mode = DIGITS;
+                break;
+            case DIGITS:
+                ks_data->mode = ks_data->special_chars ? SPECIAL_CHARS : LOWER_CASE;
+                break;
+            case SPECIAL_CHARS:
+                ks_data->mode = LOWER_CASE;
+                break;
+            default:
+                Abort("Keyboard mode unrecognized");
+                break;
+            }
+            ks_data->on_keyboard_switch_cb(ks_data->mode, ks_data->user_data);
             break;
         }
         /* FALLTHROUGH */
@@ -153,7 +147,9 @@ component_t* keyboard_switch_create(
     slider_location_t location,
     bool special_chars,
     bool default_to_digits,
-    component_t* parent)
+    component_t* parent,
+    void (*on_keyboard_switch_cb)(keyboard_mode_t mode, void* user_data),
+    void* user_data)
 {
     component_t* keyboard_switch = malloc(sizeof(component_t));
     if (!keyboard_switch) {
@@ -171,6 +167,8 @@ component_t* keyboard_switch_create(
     ks_data->mode = default_to_digits ? DIGITS : LOWER_CASE;
     ks_data->active = false;
     ks_data->special_chars = special_chars;
+    ks_data->on_keyboard_switch_cb = on_keyboard_switch_cb;
+    ks_data->user_data = user_data;
 
     keyboard_switch->data = ks_data;
     keyboard_switch->f = &_component_functions;

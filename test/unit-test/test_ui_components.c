@@ -33,6 +33,17 @@
 #include "fake_component.h"
 #include "mock_qtouch.h"
 
+static void _cb(void* user_data)
+{
+    (void)user_data;
+}
+
+static void _ks_cb(keyboard_mode_t mode, void* user_data)
+{
+    (void)mode;
+    (void)user_data;
+}
+
 static void assert_ui_component_functions(component_t* component)
 {
     assert_non_null(component->f->render);
@@ -55,7 +66,7 @@ static void test_ui_components_right_arrow(void** state)
 {
     component_t* mock_component = fake_component_create();
 
-    component_t* right_arrow = right_arrow_create(top_slider, mock_component);
+    component_t* right_arrow = right_arrow_create(top_slider, mock_component, _cb, NULL);
     assert_non_null(right_arrow);
     assert_ui_component_functions(right_arrow);
     right_arrow->f->cleanup(right_arrow);
@@ -67,7 +78,7 @@ static void test_ui_components_left_arrow(void** state)
 {
     component_t* mock_component = fake_component_create();
 
-    component_t* left_arrow = left_arrow_create(top_slider, mock_component);
+    component_t* left_arrow = left_arrow_create(top_slider, mock_component, _cb, NULL);
     assert_non_null(left_arrow);
     assert_ui_component_functions(left_arrow);
     left_arrow->f->cleanup(left_arrow);
@@ -130,7 +141,8 @@ static void test_ui_components_keyboard_switch(void** state)
 {
     component_t* mock_component = fake_component_create();
 
-    component_t* keyboard_switch = keyboard_switch_create(top_slider, true, false, mock_component);
+    component_t* keyboard_switch =
+        keyboard_switch_create(top_slider, true, false, mock_component, _ks_cb, NULL);
     assert_non_null(keyboard_switch);
     assert_ui_component_functions(keyboard_switch);
     keyboard_switch->f->cleanup(keyboard_switch);

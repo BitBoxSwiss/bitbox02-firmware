@@ -64,9 +64,10 @@ static const component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-static void _cancel_callback(component_t* component)
+static void _cancel_callback(void* user_data)
 {
-    data_t* data = (data_t*)component->parent->data;
+    component_t* self = (component_t*)user_data;
+    data_t* data = (data_t*)self->data;
     if (data->callback) {
         data->callback(false, data->user_data);
         data->callback = NULL;
@@ -103,6 +104,6 @@ component_t* sdcard_create(void (*callback)(bool inserted, void* user_data), voi
             screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
             component));
     ui_util_add_sub_component(
-        component, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_callback));
+        component, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_callback, component));
     return component;
 }

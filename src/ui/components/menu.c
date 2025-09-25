@@ -66,9 +66,10 @@ static void _select(component_t* button)
     }
 }
 
-static void _cancel(component_t* component)
+static void _cancel(void* user_data)
 {
-    menu_data_t* data = (menu_data_t*)component->parent->data;
+    component_t* self = (component_t*)user_data;
+    menu_data_t* data = (menu_data_t*)self->data;
     if (data->cancel_cb != NULL) {
         data->cancel_cb(data->cancel_cb_param);
     }
@@ -142,26 +143,28 @@ static void _update_arrow_visibility(menu_data_t* data, uint8_t new_index)
     }
 }
 
-static void _back(component_t* component)
+static void _back(void* user_data)
 {
-    menu_data_t* data = (menu_data_t*)component->data;
+    component_t* self = (component_t*)user_data;
+    menu_data_t* data = (menu_data_t*)self->data;
     uint8_t new_index = data->index > 0 ? data->index - 1 : data->index;
     int32_t diff_to_middle = (data->labels[new_index]->position.left +
                               data->labels[new_index]->dimension.width / 2 - SCREEN_WIDTH / 2) *
                              -1;
     _update_arrow_visibility(data, new_index);
-    _update_positions(component, diff_to_middle);
+    _update_positions(self, diff_to_middle);
 }
 
-static void _forward(component_t* component)
+static void _forward(void* user_data)
 {
-    menu_data_t* data = (menu_data_t*)component->data;
+    component_t* self = (component_t*)user_data;
+    menu_data_t* data = (menu_data_t*)self->data;
     uint8_t new_index = data->index < (data->length - 1) ? data->index + 1 : data->index;
     int32_t diff_to_middle = (data->labels[new_index]->position.left +
                               data->labels[new_index]->dimension.width / 2 - SCREEN_WIDTH / 2) *
                              -1;
     _update_arrow_visibility(data, new_index);
-    _update_positions(component, diff_to_middle);
+    _update_positions(self, diff_to_middle);
 }
 
 /**
@@ -178,21 +181,6 @@ static void _render(component_t* component)
     UG_DrawLine(x1, y, x2, y, screen_front_color);
 
     ui_util_component_render_subcomponents(component);
-}
-
-static void _on_event(const event_t* event, component_t* component)
-{
-    // gestures_slider_data_t* slider_data = (gestures_slider_data_t*)event->data;
-    switch (event->id) {
-    case EVENT_BACKWARD:
-        _back(component);
-        break;
-    case EVENT_FORWARD:
-        _forward(component);
-        break;
-    default:
-        break;
-    }
 }
 
 /**
@@ -214,7 +202,7 @@ static void _cleanup(component_t* component)
 static const component_functions_t _component_functions = {
     .cleanup = _cleanup,
     .render = _render,
-    .on_event = _on_event,
+    .on_event = NULL,
 };
 
 /********************************** Create Instance **********************************/
@@ -297,13 +285,14 @@ component_t* menu_create(
     }
 
     if (cancel_cb != NULL) {
-        ui_util_add_sub_component(menu, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel));
+        ui_util_add_sub_component(
+            menu, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel, menu));
     }
 
-    data->back_arrow = left_arrow_create(bottom_slider, menu);
+    data->back_arrow = left_arrow_create(bottom_slider, menu, _back, menu);
     ui_util_add_sub_component(menu, data->back_arrow);
 
-    data->forward_arrow = right_arrow_create(bottom_slider, menu);
+    data->forward_arrow = right_arrow_create(bottom_slider, menu, _forward, menu);
     ui_util_add_sub_component(menu, data->forward_arrow);
 
     _update_arrow_visibility(data, 0);

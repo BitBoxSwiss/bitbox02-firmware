@@ -247,6 +247,26 @@ static void _render(component_t* component)
     }
 }
 
+static void _input_char_set_alphabet(component_t* trinary_char, keyboard_mode_t mode)
+{
+    switch (mode) {
+    case LOWER_CASE:
+        trinary_input_char_set_alphabet(trinary_char, _alphabet_lowercase, 1);
+        break;
+    case UPPER_CASE:
+        trinary_input_char_set_alphabet(trinary_char, _alphabet_uppercase, 1);
+        break;
+    case DIGITS:
+        trinary_input_char_set_alphabet(trinary_char, _digits, 1);
+        break;
+    case SPECIAL_CHARS:
+        trinary_input_char_set_alphabet(trinary_char, _special_chars, 2);
+        break;
+    default:
+        break;
+    }
+}
+
 // maybe_autocomplete: if the current input uniquely identifies a word from the wordlist by prefix,
 // we autocomplete the word.
 static void _set_alphabet(component_t* trinary_input_string, bool maybe_autocomplete)
@@ -315,84 +335,24 @@ static void _set_alphabet(component_t* trinary_input_string, bool maybe_autocomp
         trinary_input_char_set_alphabet(trinary_char, charset, 1);
     } else if (data->number_input) {
         trinary_input_char_set_alphabet(trinary_char, _digits, 1);
-    } else {
+    } else if (data->keyboard_switch_component != NULL) {
         // Otherwise set the input charset based on the user selected keyboard mode.
         keyboard_mode_t keyboard_mode = keyboard_current_mode(data->keyboard_switch_component);
-        switch (keyboard_mode) {
-        case LOWER_CASE:
-            trinary_input_char_set_alphabet(trinary_char, _alphabet_lowercase, 1);
-            break;
-        case UPPER_CASE:
-            trinary_input_char_set_alphabet(trinary_char, _alphabet_uppercase, 1);
-            break;
-        case DIGITS:
-            trinary_input_char_set_alphabet(trinary_char, _digits, 1);
-            break;
-        case SPECIAL_CHARS:
-            trinary_input_char_set_alphabet(trinary_char, _special_chars, 2);
-            break;
-        default:
-            break;
-        }
+        _input_char_set_alphabet(trinary_char, keyboard_mode);
     }
 }
 
-static void _on_event(const event_t* event, component_t* component)
+static void _on_keyboard_switch_cb(keyboard_mode_t mode, void* user_data)
 {
-    data_t* data = (data_t*)component->data;
-
-    if (event->id == EVENT_CONFIRM && data->can_confirm) {
-        if (data->confirm_cb) {
-            data->confirm_cb(data->string, data->confirm_user_data);
-            data->confirm_cb = NULL;
-        }
-        return;
-    }
-
-    // Other gestures deactivated during confirming.
-    if (data->longtouch && confirm_gesture_is_active(data->confirm_component)) {
-        return;
-    }
-
-    switch (event->id) {
-    case EVENT_TOGGLE_ALPHANUMERIC:
-        _set_alphabet(component, false);
-        break;
-    case EVENT_BACKWARD:
-        if (trinary_input_char_in_progress(data->trinary_char_component)) {
-            _set_alphabet(component, false);
-            break;
-        }
-        if (data->string_index == 0) {
-            // Back button is cancel.
-            if (data->cancel_cb != NULL) {
-                data->cancel_cb(data->cancel_user_data);
-            }
-            return;
-        }
-        // Move cursor backward and display preceeding character
-        if (data->string_index > 0) {
-            data->string_index--;
-            data->string[data->string_index] = '\0';
-            data->show_last_character = false;
-            UG_S16 string_width = _constant_string_width(component);
-            if (data->target_x < STRING_POS_X_START &&
-                data->target_x + string_width < SCROLL_LEFT_PAD) {
-                data->target_x = SCROLL_RIGHT_LIMIT - string_width;
-                // data->target_x += MIN(SCREEN_WIDTH - SCROLL_RIGHT_LIMIT, string_width);
-            }
-        }
-        _set_alphabet(component, false);
-        break;
-    default:
-        break;
-    }
+    component_t* self = (component_t*)user_data;
+    data_t* data = (data_t*)self->data;
+    _input_char_set_alphabet(data->trinary_char_component, mode);
 }
 
-static void _confirm_button_cb(component_t* confirm_button)
+static void _confirm_button_cb(void* user_data)
 {
-    component_t* component = confirm_button->parent;
-    data_t* data = (data_t*)component->data;
+    component_t* self = (component_t*)user_data;
+    data_t* data = self->data;
     if (data->can_confirm) {
         if (data->confirm_cb) {
             data->confirm_cb(data->string, data->confirm_user_data);
@@ -401,10 +361,40 @@ static void _confirm_button_cb(component_t* confirm_button)
     }
 }
 
-static void _cancel(component_t* cancel_button)
+static void _back(void* user_data)
 {
-    component_t* component = cancel_button->parent;
-    data_t* data = (data_t*)component->data;
+    component_t* self = (component_t*)user_data;
+    data_t* data = (data_t*)self->data;
+    if (trinary_input_char_in_progress(data->trinary_char_component)) {
+        _set_alphabet(self, false);
+        return;
+    }
+    if (data->string_index == 0) {
+        // Back button is cancel.
+        if (data->cancel_cb != NULL) {
+            data->cancel_cb(data->cancel_user_data);
+        }
+        return;
+    }
+    // Move cursor backward and display preceeding character
+    if (data->string_index > 0) {
+        data->string_index--;
+        data->string[data->string_index] = '\0';
+        data->show_last_character = false;
+        UG_S16 string_width = _constant_string_width(self);
+        if (data->target_x < STRING_POS_X_START &&
+            data->target_x + string_width < SCROLL_LEFT_PAD) {
+            data->target_x = SCROLL_RIGHT_LIMIT - string_width;
+            // data->target_x += MIN(SCREEN_WIDTH - SCROLL_RIGHT_LIMIT, string_width);
+        }
+    }
+    _set_alphabet(self, false);
+}
+
+static void _cancel(void* user_data)
+{
+    component_t* self = (component_t*)user_data;
+    data_t* data = (data_t*)self->data;
     if (data->cancel_cb != NULL) {
         data->cancel_cb(data->cancel_user_data);
     }
@@ -431,16 +421,14 @@ static void _letter_chosen(component_t* trinary_char, char chosen)
     }
 
     if (data->string_index + 1 >= INPUT_STRING_MAX_SIZE) {
-        event_t e;
-        e.id = EVENT_CONFIRM;
-        emit_event(&e);
+        _confirm_button_cb(trinary_input_string);
     }
 }
 
 static const component_functions_t component_functions = {
     .cleanup = _cleanup,
     .render = _render,
-    .on_event = _on_event,
+    .on_event = NULL,
 };
 
 /********************************** Create Instance **********************************/
@@ -490,23 +478,29 @@ component_t* trinary_input_string_create(
     component->position.left = 0;
 
     if (cancel_cb != NULL) {
-        data->cancel_component = icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel);
+        data->cancel_component =
+            icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel, component);
         ui_util_add_sub_component(component, data->cancel_component);
     }
-    data->left_arrow_component = left_arrow_create(top_slider, component);
+    data->left_arrow_component = left_arrow_create(top_slider, component, _back, component);
     ui_util_add_sub_component(component, data->left_arrow_component);
 
     if (params->longtouch) {
-        data->confirm_component = confirm_gesture_create();
+        data->confirm_component = confirm_gesture_create(_confirm_button_cb, component);
     } else {
         data->confirm_component =
-            icon_button_create(top_slider, ICON_BUTTON_CHECK, _confirm_button_cb);
+            icon_button_create(top_slider, ICON_BUTTON_CHECK, _confirm_button_cb, component);
     }
     ui_util_add_sub_component(component, data->confirm_component);
 
     if (params->wordlist == NULL && !params->number_input) {
         data->keyboard_switch_component = keyboard_switch_create(
-            top_slider, params->special_chars, params->default_to_digits, component);
+            top_slider,
+            params->special_chars,
+            params->default_to_digits,
+            component,
+            _on_keyboard_switch_cb,
+            component);
         ui_util_add_sub_component(component, data->keyboard_switch_component);
     }
 

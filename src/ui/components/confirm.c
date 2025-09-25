@@ -31,8 +31,9 @@ typedef struct {
     void* user_data;
 } data_t;
 
-static void _dispatch_confirm(component_t* self)
+static void _on_confirm(void* user_data)
 {
+    component_t* self = (component_t*)user_data;
     data_t* data = (data_t*)self->data;
     if (data->callback) {
         data->callback(true, data->user_data);
@@ -40,22 +41,9 @@ static void _dispatch_confirm(component_t* self)
     }
 }
 
-static void _on_event(const event_t* event, component_t* component)
+static void _on_cancel(void* user_data)
 {
-    if (event->id == EVENT_CONFIRM) {
-        _dispatch_confirm(component);
-    }
-}
-
-static void _on_confirm(component_t* component)
-{
-    component_t* self = component->parent;
-    _dispatch_confirm(self);
-}
-
-static void _on_cancel(component_t* component)
-{
-    component_t* self = component->parent;
+    component_t* self = (component_t*)user_data;
     data_t* data = (data_t*)self->data;
     if (data->callback) {
         data->callback(false, data->user_data);
@@ -71,7 +59,7 @@ static void _on_cancel(component_t* component)
 static const component_functions_t _component_functions = {
     .cleanup = ui_util_component_cleanup,
     .render = ui_util_component_render_subcomponents,
-    .on_event = _on_event,
+    .on_event = NULL,
 };
 
 /********************************** Create Instance **********************************/
@@ -154,17 +142,18 @@ component_t* confirm_create(
     // Create buttons
     if (!params->accept_only) {
         ui_util_add_sub_component(
-            confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, _on_cancel));
+            confirm, icon_button_create(slider_position, ICON_BUTTON_CROSS, _on_cancel, confirm));
     }
     if (params->longtouch) {
-        ui_util_add_sub_component(confirm, confirm_gesture_create());
+        ui_util_add_sub_component(confirm, confirm_gesture_create(_on_confirm, confirm));
     } else {
         ui_util_add_sub_component(
             confirm,
             icon_button_create(
                 slider_position,
                 params->accept_is_nextarrow ? ICON_BUTTON_NEXT : ICON_BUTTON_CHECK,
-                _on_confirm));
+                _on_confirm,
+                confirm));
     }
 
     return confirm;

@@ -100,41 +100,32 @@ static void _render(component_t* component)
  */
 static void _on_event(const event_t* event, component_t* component)
 {
-    // Avoid type casting to unknown events
-    if (event->id != EVENT_TOP_SLIDE_RELEASED && event->id != EVENT_BOTTOM_SLIDE_RELEASED &&
-        event->id != EVENT_TOP_CONTINUOUS_TAP && event->id != EVENT_BOTTOM_CONTINUOUS_TAP &&
-        event->id != EVENT_TOP_SHORT_TAP && event->id != EVENT_BOTTOM_SHORT_TAP &&
-        event->id != EVENT_TOP_LONG_TAP && event->id != EVENT_BOTTOM_LONG_TAP &&
-        event->id != EVENT_TOP_SLIDE && event->id != EVENT_BOTTOM_SLIDE) {
-        return;
-    }
     confirm_data_t* data = (confirm_data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
 
     switch (event->id) {
-    case EVENT_TOP_SLIDE_RELEASED:
-        data->active_top = false;
-        break;
-    case EVENT_TOP_CONTINUOUS_TAP:
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
-            data->active_top = true;
+    case EVENT_SLIDE_RELEASED:
+        if (event->data.source == top_slider) {
+            data->active_top = false;
+        } else {
+            data->active_bottom = false;
         }
         break;
-    case EVENT_TOP_SHORT_TAP:
-        data->active_top = false;
-        break;
-    case EVENT_BOTTOM_SLIDE_RELEASED:
-        data->active_bottom = false;
-        break;
-    case EVENT_BOTTOM_CONTINUOUS_TAP:
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
-            data->active_bottom = true;
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.position > SLIDER_POSITION_TWO_THIRD &&
+            event->data.position <= MAX_SLIDER_POS) {
+            if (event->data.source == top_slider) {
+                data->active_top = true;
+            } else {
+                data->active_bottom = true;
+            }
         }
         break;
-    case EVENT_BOTTOM_SHORT_TAP:
-        data->active_bottom = false;
+    case EVENT_SHORT_TAP:
+        if (event->data.source == top_slider) {
+            data->active_top = false;
+        } else {
+            data->active_bottom = false;
+        }
         break;
     default:
         break;

@@ -106,16 +106,9 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Return if the slider event is on the wrong slider
     switch (event->id) {
-    case EVENT_TOP_SHORT_TAP:
-    case EVENT_TOP_CONTINUOUS_TAP:
-        if (data->location != top_slider) {
-            data->active = false;
-            return;
-        }
-        break;
-    case EVENT_BOTTOM_SHORT_TAP:
-    case EVENT_BOTTOM_CONTINUOUS_TAP:
-        if (data->location != bottom_slider) {
+    case EVENT_SHORT_TAP:
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.source != data->location) {
             data->active = false;
             return;
         }
@@ -127,17 +120,16 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Return if the slider position is away from the button
     // Only slider events reach here, so ok to typescast event->data
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     switch (data->type) {
     case ICON_BUTTON_CHECK:
     case ICON_BUTTON_NEXT:
-        if (slider_data->position < SLIDER_POSITION_TWO_THIRD) {
+        if (event->data.position < SLIDER_POSITION_TWO_THIRD) {
             data->active = false;
             return;
         }
         break;
     case ICON_BUTTON_CROSS:
-        if (slider_data->position >= SLIDER_POSITION_ONE_THIRD) {
+        if (event->data.position >= SLIDER_POSITION_ONE_THIRD) {
             data->active = false;
             return;
         }
@@ -151,8 +143,7 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Call the callback on short tap
     switch (event->id) {
-    case EVENT_TOP_SHORT_TAP:
-    case EVENT_BOTTOM_SHORT_TAP:
+    case EVENT_SHORT_TAP:
         if (data->callback) {
             data->callback(data->user_data);
         }

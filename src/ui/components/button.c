@@ -59,18 +59,13 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     button_data_t* data = (button_data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
-    if (data->span_over_slider) {
-        if (event->id ==
-            ((data->location == top_slider) ? EVENT_TOP_SHORT_TAP : EVENT_BOTTOM_SHORT_TAP)) {
+    if (event->id == EVENT_SHORT_TAP && event->data.source == data->location) {
+        if (data->span_over_slider) {
             data->callback(component);
-        }
-    } else {
-        if (event->id ==
-                ((data->location == top_slider) ? EVENT_TOP_SHORT_TAP : EVENT_BOTTOM_SHORT_TAP) &&
-            slider_data->position >= component->position.left * MAX_SLIDER_POS / SCREEN_WIDTH &&
-            slider_data->position <= (component->position.left + component->dimension.width) *
-                                         MAX_SLIDER_POS / SCREEN_WIDTH) {
+        } else if (
+            event->data.position >= component->position.left * MAX_SLIDER_POS / SCREEN_WIDTH &&
+            event->data.position <= (component->position.left + component->dimension.width) *
+                                        MAX_SLIDER_POS / SCREEN_WIDTH) {
             data->callback(component);
         }
     }

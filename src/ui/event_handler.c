@@ -47,16 +47,12 @@ void emit_event(const event_t* event)
     //
     // If the screensaver is not active, we reset the timer with any touch interaction.
     switch (event->id) {
-    case EVENT_TOP_SHORT_TAP:
-    case EVENT_BOTTOM_SHORT_TAP:
-    case EVENT_BOTTOM_SLIDE_RELEASED:
-    case EVENT_TOP_SLIDE_RELEASED:
+    case EVENT_SHORT_TAP:
+    case EVENT_SLIDE_RELEASED:
         screen_saver_reset();
         break;
-    case EVENT_TOP_SLIDE:
-    case EVENT_BOTTOM_SLIDE:
-    case EVENT_TOP_CONTINUOUS_TAP:
-    case EVENT_BOTTOM_CONTINUOUS_TAP:
+    case EVENT_SLIDE:
+    case EVENT_CONTINUOUS_TAP:
         if (screen_saver_get() == NULL) {
             screen_saver_reset();
         }

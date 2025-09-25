@@ -60,18 +60,13 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     right_arrow_data_t* data = (right_arrow_data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
+    if (event->data.source != data->location) {
+        return;
+    }
     switch (event->id) {
-    case EVENT_TOP_SHORT_TAP:
-    case EVENT_BOTTOM_SHORT_TAP:
-        if (data->location == top_slider && event->id == EVENT_BOTTOM_SHORT_TAP) {
-            break;
-        }
-        if (data->location == bottom_slider && event->id == EVENT_TOP_SHORT_TAP) {
-            break;
-        }
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
+    case EVENT_SHORT_TAP:
+        if (event->data.position > SLIDER_POSITION_TWO_THIRD &&
+            event->data.position <= MAX_SLIDER_POS) {
             data->active = false;
             if (data->callback) {
                 data->callback(data->user_data);
@@ -79,17 +74,9 @@ static void _on_event(const event_t* event, component_t* component)
             break;
         }
         /* FALLTHROUGH */
-    case EVENT_TOP_CONTINUOUS_TAP:
-    case EVENT_BOTTOM_CONTINUOUS_TAP:
-        if (data->location == top_slider && event->id == EVENT_BOTTOM_CONTINUOUS_TAP) {
-            break;
-        }
-        if (data->location == bottom_slider && event->id == EVENT_TOP_CONTINUOUS_TAP) {
-            break;
-        }
-
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.position > SLIDER_POSITION_TWO_THIRD &&
+            event->data.position <= MAX_SLIDER_POS) {
             data->active = true;
             break;
         }

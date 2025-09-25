@@ -36,6 +36,8 @@ typedef struct {
     bool confirmed; // Confirm event occurred
     uint16_t active_count; // Start at an offset to allow movement on first touch
     uint16_t bottom_arrow_slidein; // from zero to arrow height * SCALE
+    void (*callback)(void* user_data);
+    void* user_data;
 } confirm_data_t;
 
 bool confirm_gesture_is_active(component_t* component)
@@ -84,9 +86,9 @@ static void _render(component_t* component)
 
     // The user confirms when the top and bottom arrows touch
     if (y0 + arrow_height > y1 && !data->confirmed) {
-        event_t event;
-        event.id = EVENT_CONFIRM;
-        emit_event(&event);
+        if (data->callback) {
+            data->callback(data->user_data);
+        }
         data->confirmed = true;
     }
 }
@@ -155,7 +157,7 @@ static component_functions_t _component_functions = {
 /**
  * Creates a confirm_gesture component on the top slider.
  */
-component_t* confirm_gesture_create(void)
+component_t* confirm_gesture_create(void (*callback)(void*), void* user_data)
 {
     confirm_data_t* data = malloc(sizeof(confirm_data_t));
     if (!data) {
@@ -167,6 +169,8 @@ component_t* confirm_gesture_create(void)
     data->confirmed = false;
     data->active_count = SCALE - 1;
     data->bottom_arrow_slidein = 0;
+    data->callback = callback;
+    data->user_data = user_data;
 
     component_t* confirm_gesture = malloc(sizeof(component_t));
     if (!confirm_gesture) {

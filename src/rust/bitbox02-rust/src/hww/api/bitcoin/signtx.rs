@@ -1273,13 +1273,13 @@ pub async fn process(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bb02_async::block_on;
     use crate::bip32::parse_xpub;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
     use pb::btc_payment_request_request::{Memo, memo};
+    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     fn extract_next(response: &Response) -> &pb::BtcSignNextResponse {

@@ -44,11 +44,11 @@ pub async fn process(
 mod tests {
     use super::*;
 
-    use crate::bb02_async::block_on;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
+    use util::bb02_async::block_on;
 
     #[test]
     pub fn test_mnemonic_passphrase_enabled() {

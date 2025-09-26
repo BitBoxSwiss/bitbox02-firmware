@@ -31,5 +31,6 @@ bitcoin = {workspace = true}
 
 [features]
 rtt = ["dep:rtt-target", "dep:cortex-m"]
+testing = []
 c-unit-testing = []
 firmware = []

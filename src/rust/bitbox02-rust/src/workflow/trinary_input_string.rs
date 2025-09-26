@@ -15,8 +15,8 @@
 pub use super::cancel::{Error, cancel, set_result};
 pub use bitbox02::ui::TrinaryInputStringParams as Params;
 
-use crate::bb02_async::option;
 use core::cell::RefCell;
+use util::bb02_async::option;
 
 use alloc::boxed::Box;
 use alloc::string::String;

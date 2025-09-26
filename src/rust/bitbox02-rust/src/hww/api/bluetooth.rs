@@ -230,8 +230,8 @@ pub async fn process_api(
 mod tests {
     use super::*;
 
-    use crate::bb02_async::block_on;
     use bitbox02::testing::mock_memory;
+    use util::bb02_async::block_on;
 
     #[test]
     fn test_chunk_streaming() {

@@ -24,9 +24,9 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02_rust::bb02_async::{Task, spin};
 use bitbox02_rust::workflow::confirm;
 use core::task::Poll;
+use util::bb02_async::{Task, spin};
 
 enum TaskState<'a, O> {
     Nothing,

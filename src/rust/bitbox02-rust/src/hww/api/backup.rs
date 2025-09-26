@@ -162,11 +162,11 @@ pub fn list(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
 mod tests {
     use super::*;
 
-    use crate::bb02_async::block_on;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
+    use util::bb02_async::block_on;
 
     /// Test backup creation on a uninitialized keystore.
     #[test]

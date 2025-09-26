@@ -15,11 +15,11 @@
 //! This module provides the executor for tasks that are spawned with an API request and deliver a
 //! USB response. Terminology: host = computer, device = BitBox02.
 
-use crate::bb02_async::{Task, option, spin as spin_task};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::Poll;
+use util::bb02_async::{Task, option, spin as spin_task};
 
 type UsbOut = Vec<u8>;
 type UsbIn = Vec<u8>;

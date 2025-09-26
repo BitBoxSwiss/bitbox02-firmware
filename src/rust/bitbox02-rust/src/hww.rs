@@ -136,10 +136,10 @@ mod tests {
     use super::*;
     extern crate std;
 
-    use crate::bb02_async::block_on;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
     use bitbox02::testing::mock_memory;
+    use util::bb02_async::block_on;
 
     use prost::Message;
 

@@ -41,9 +41,9 @@ pub async fn process(
 mod tests {
     use super::*;
 
-    use crate::bb02_async::block_on;
     use crate::hal::testing::TestingHal;
     use alloc::boxed::Box;
+    use util::bb02_async::block_on;
 
     #[test]
     pub fn test_reset() {

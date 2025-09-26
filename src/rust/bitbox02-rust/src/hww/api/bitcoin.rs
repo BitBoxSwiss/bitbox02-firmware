@@ -331,7 +331,6 @@ pub async fn process_api(
 mod tests {
     use super::*;
 
-    use crate::bb02_async::block_on;
     use crate::bip32::parse_xpub;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
@@ -341,6 +340,7 @@ mod tests {
         TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
     };
     use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
+    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     #[test]

@@ -330,11 +330,11 @@ pub async fn process(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bb02_async::block_on;
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_unlocked;
+    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     use pb::cardano_sign_transaction_request::{Certificate, certificate, certificate::Cert};

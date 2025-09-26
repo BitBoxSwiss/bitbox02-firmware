@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "confirm_transaction.h"
-#include "confirm_button.h"
 #include "icon_button.h"
 #include "label.h"
 #include "ui_images.h"
@@ -71,6 +70,16 @@ static void _cancel(component_t* cancel_button)
     }
 }
 
+static void _confirm_button_cb(component_t* confirm_button)
+{
+    component_t* component = confirm_button->parent;
+    data_t* data = (data_t*)component->data;
+    if (data->callback) {
+        data->callback(true, data->callback_param);
+        data->callback = NULL;
+    }
+}
+
 /********************************** Component Functions **********************************/
 
 /**
@@ -120,7 +129,8 @@ static component_t* _confirm_transaction_create(
 
     ui_util_add_sub_component(confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel));
 
-    ui_util_add_sub_component(confirm, confirm_button_create(longtouch, ICON_BUTTON_NEXT));
+    ui_util_add_sub_component(
+        confirm, icon_button_create(longtouch, ICON_BUTTON_NEXT, _confirm_button_cb));
 
     if (data->has_address) {
         ui_util_add_sub_component(

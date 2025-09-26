@@ -133,8 +133,9 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
         }
     }
 
-    let result =
-        bitbox02::ui::with_lock_animation(|| keystore::unlock_bip39(seed, &mnemonic_passphrase));
+    let result = bitbox02::ui::with_lock_animation(|| {
+        keystore::unlock_bip39(crate::secp256k1::SECP256K1, seed, &mnemonic_passphrase)
+    });
     if result.is_err() {
         abort("bip39 unlock failed");
     }

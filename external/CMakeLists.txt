@@ -66,6 +66,7 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hal/src/hal_delay.c
     asf4-drivers/hal/src/hal_timer.c
     asf4-drivers/hal/src/hal_usb_device.c
+    asf4-drivers/hal/src/hal_spi_m_dma.c
     asf4-drivers/hal/src/hal_rand_sync.c
     asf4-drivers/hal/src/hal_flash.c
     asf4-drivers/hal/src/hal_pac.c
@@ -75,6 +76,7 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hal/src/hal_usart_async.c
     asf4-drivers/hal/utils/src/utils_ringbuffer.c
     asf4-drivers/hpl/gclk/hpl_gclk.c
+    asf4-drivers/hpl/dmac/hpl_dmac.c
     asf4-drivers/hpl/oscctrl/hpl_oscctrl.c
     asf4-drivers/hpl/mclk/hpl_mclk.c
     asf4-drivers/hpl/osc32kctrl/hpl_osc32kctrl.c

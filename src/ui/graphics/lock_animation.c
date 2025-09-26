@@ -20,6 +20,8 @@
 
 #include "graphics.h"
 #include <screen.h>
+#include <ui/canvas.h>
+#include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 
 #ifndef TESTING
@@ -145,7 +147,7 @@ static const uint8_t* _get_frame(int frame_idx)
 }
 #endif
 
-#define TIMEOUT_TICK_PERIOD_MS 40
+#define TIMEOUT_TICK_PERIOD_MS 50
 
 #ifndef TESTING
 static struct timer_task _animation_timer_task = {0};
@@ -165,7 +167,7 @@ static void _animation_timer_cb(const struct timer_task* const timer_task)
     }
 
     /* Draw the frame. */
-    screen_clear();
+    canvas_clear();
     position_t pos = {
         .left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
         .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};
@@ -173,7 +175,10 @@ static void _animation_timer_cb(const struct timer_task* const timer_task)
     in_buffer_t image = {
         .data = _get_frame(_animation_current_frame), .len = LOCK_ANIMATION_FRAME_SIZE};
     graphics_draw_image(&pos, &dim, &image);
-    UG_SendBuffer();
+    // TODO: When this function is refactored away from being called in interrupt context, update
+    // `_canvas_active` in `canvas.c` to not be volatile.
+    canvas_commit();
+    oled_blit(true);
     _animation_current_frame++;
 }
 #endif
@@ -184,6 +189,9 @@ static void _animation_timer_cb(const struct timer_task* const timer_task)
 void lock_animation_start(void)
 {
 #ifndef TESTING
+    // decrease RTC priority so that it can be interrupted by SERCOM3 TX interrupt so that screen
+    // blitting works in the interrupt. All interrupts have default priority of 0 (highest)
+    NVIC_SetPriority(RTC_IRQn, 1);
     _animation_timer_task.interval = TIMEOUT_TICK_PERIOD_MS;
     _animation_timer_task.cb = _animation_timer_cb;
     _animation_timer_task.mode = TIMER_TASK_REPEAT;
@@ -197,6 +205,7 @@ void lock_animation_start(void)
 void lock_animation_stop(void)
 {
 #ifndef TESTING
+    NVIC_SetPriority(RTC_IRQn, 0);
     timer_stop(&TIMER_0);
     timer_remove_task(&TIMER_0, &_animation_timer_task);
     timer_start(&TIMER_0);

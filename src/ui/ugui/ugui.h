@@ -135,8 +135,4 @@ UG_S16 UG_GetYDim( void );
 void UG_FontSetHSpace( UG_U16 s );
 void UG_FontSetVSpace( UG_U16 s );
 
-/* ssd1306.h wrapper */
-void UG_SendBuffer(void);
-void UG_ClearBuffer(void);
-
 #endif

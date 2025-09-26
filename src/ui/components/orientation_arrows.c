@@ -72,7 +72,7 @@ static void _render(component_t* component)
     int16_t x;
     int16_t y;
     int16_t height = IMAGE_DEFAULT_ARROW_HEIGHT;
-    int16_t position = data->screen_count / SCALE;
+    int16_t position = data->screen_count * SCALE;
     if (position < COUNT_CHANGE_DIRECTION) {
         // Horizontal motion
         x = position;
@@ -85,15 +85,15 @@ static void _render(component_t* component)
         y = position - COUNT_CHANGE_DIRECTION + SCREEN_HEIGHT / 2;
         image_arrow(x, y, height, ARROW_DOWN);
         image_arrow(x, SCREEN_HEIGHT - y - height, height, ARROW_UP);
-    } else if (position < COUNT_SHOW_TEXT + SCALE * 12) {
+    } else if (position < COUNT_SHOW_TEXT + 12 / SCALE) {
         // Zoom in to rotate arrow
         uint8_t r;
         r =
             MIN(IMAGE_ROTATE_H / 2,
-                MAX(0, (position - COUNT_SHOW_TEXT - (12 - IMAGE_ROTATE_H / 2)) / SCALE));
+                MAX(0, (position - COUNT_SHOW_TEXT - (12 - IMAGE_ROTATE_H / 2)) * SCALE));
         UG_DrawCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, r, screen_front_color);
         // Raise text
-        y = (position - COUNT_SHOW_TEXT) / SCALE; // Slower movement
+        y = (position - COUNT_SHOW_TEXT) * SCALE; // Slower movement
         for (int i = 0; i < 2; i++) {
             component_t* sc = component->sub_components.sub_components[i];
             sc->position.top =
@@ -107,15 +107,15 @@ static void _render(component_t* component)
         for (int i = 0; i < 2; i++) {
             // Calculate bounce position
             y = ((data->screen_count - period / 4) % period) - (i ? 0 : period / 2);
-            if (y > bounce * SCALE * 4 || y < 0) {
+            if (y > bounce * 4 / SCALE || y < 0) {
                 // No bounce
                 y = 0;
-            } else if (y > bounce * SCALE * 2) {
-                y = bounce * SCALE * 4 - y;
+            } else if (y > bounce * 2 / SCALE) {
+                y = bounce * 4 / SCALE - y;
             } else if (y > 0) {
                 // y = y;
             }
-            y = y / SCALE / 4;
+            y = y / 4 * SCALE;
             // Bounce text
             component_t* sc = component->sub_components.sub_components[i];
             sc->position.top = i ? y : SCREEN_HEIGHT - sc->dimension.height - y;

@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "trinary_input_string.h"
-#include "confirm_button.h"
 #include "confirm_gesture.h"
+#include "icon_button.h"
 #include "keyboard_switch.h"
 #include "label.h"
 #include "left_arrow.h"
@@ -389,6 +389,18 @@ static void _on_event(const event_t* event, component_t* component)
     }
 }
 
+static void _confirm_button_cb(component_t* confirm_button)
+{
+    component_t* component = confirm_button->parent;
+    data_t* data = (data_t*)component->data;
+    if (data->can_confirm) {
+        if (data->confirm_cb) {
+            data->confirm_cb(data->string, data->confirm_user_data);
+            data->confirm_cb = NULL;
+        }
+    }
+}
+
 static void _cancel(component_t* cancel_button)
 {
     component_t* component = cancel_button->parent;
@@ -484,7 +496,12 @@ component_t* trinary_input_string_create(
     data->left_arrow_component = left_arrow_create(top_slider, component);
     ui_util_add_sub_component(component, data->left_arrow_component);
 
-    data->confirm_component = confirm_button_create(params->longtouch, ICON_BUTTON_CHECK);
+    if (params->longtouch) {
+        data->confirm_component = confirm_gesture_create();
+    } else {
+        data->confirm_component =
+            icon_button_create(top_slider, ICON_BUTTON_CHECK, _confirm_button_cb);
+    }
     ui_util_add_sub_component(component, data->confirm_component);
 
     if (params->wordlist == NULL && !params->number_input) {

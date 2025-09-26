@@ -577,7 +577,7 @@ int main(void)
     system_init();
     platform_init();
     __stack_chk_guard = common_stack_chk_guard();
-    screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
+    screen_init(oled_set_pixel, oled_mirror);
     screen_splash();
     common_main();
 

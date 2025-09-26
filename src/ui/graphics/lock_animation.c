@@ -20,6 +20,8 @@
 
 #include "graphics.h"
 #include <screen.h>
+#include <ui/canvas.h>
+#include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 
 #ifndef TESTING
@@ -165,7 +167,7 @@ static void _animation_timer_cb(const struct timer_task* const timer_task)
     }
 
     /* Draw the frame. */
-    screen_clear();
+    canvas_clear();
     position_t pos = {
         .left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
         .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};
@@ -173,7 +175,10 @@ static void _animation_timer_cb(const struct timer_task* const timer_task)
     in_buffer_t image = {
         .data = _get_frame(_animation_current_frame), .len = LOCK_ANIMATION_FRAME_SIZE};
     graphics_draw_image(&pos, &dim, &image);
-    UG_SendBuffer();
+    // TODO: When this function is refactored away from being called in interrupt context, update
+    // `_canvas_active` in `canvas.c` to not be volatile.
+    canvas_commit();
+    oled_blit();
     _animation_current_frame++;
 }
 #endif

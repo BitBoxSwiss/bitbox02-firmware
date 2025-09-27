@@ -138,36 +138,35 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     data_t* data = (data_t*)component->data;
+    if (event->data.source != bottom_slider) {
+        return;
+    }
     if (data->scrollable) {
         switch (event->id) {
-        case EVENT_BOTTOM_SLIDE: {
-            const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
+        case EVENT_SLIDE: {
             // Variable scroll speed
             int16_t margin = SCREEN_WIDTH / 5;
-            data->slider_position_diff += SIGMOID(slider_data->velocity);
+            data->slider_position_diff += SIGMOID(event->data.velocity);
             data->text_position = data->text_position_last + (int16_t)data->slider_position_diff;
             data->text_position = MIN(
                 component->dimension.width / 2 + margin,
                 MAX(-margin - component->dimension.width / 2 + SCREEN_WIDTH, data->text_position));
-            data->slider_position = slider_data->position;
+            data->slider_position = event->data.position;
             data->slider_is_touched = true;
             data->slider_was_touched = true;
             break;
         }
-
-        case EVENT_BOTTOM_SLIDE_RELEASED:
+        case EVENT_SLIDE_RELEASED:
             data->text_position_last = data->text_position;
             data->slider_position_diff = 0;
             data->slider_is_touched = false;
             break;
 
-        case EVENT_BOTTOM_CONTINUOUS_TAP: {
-            const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
-            data->slider_position = slider_data->position;
+        case EVENT_CONTINUOUS_TAP:
+            data->slider_position = event->data.position;
             data->slider_is_touched = true;
             data->slider_was_touched = true;
             break;
-        }
         default:
             break;
         }

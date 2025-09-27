@@ -36,6 +36,8 @@ typedef struct {
     bool confirmed; // Confirm event occurred
     uint16_t active_count; // Start at an offset to allow movement on first touch
     uint16_t bottom_arrow_slidein; // from zero to arrow height * SCALE
+    void (*callback)(void* user_data);
+    void* user_data;
 } confirm_data_t;
 
 bool confirm_gesture_is_active(component_t* component)
@@ -84,9 +86,9 @@ static void _render(component_t* component)
 
     // The user confirms when the top and bottom arrows touch
     if (y0 + arrow_height > y1 && !data->confirmed) {
-        event_t event;
-        event.id = EVENT_CONFIRM;
-        emit_event(&event);
+        if (data->callback) {
+            data->callback(data->user_data);
+        }
         data->confirmed = true;
     }
 }
@@ -98,41 +100,32 @@ static void _render(component_t* component)
  */
 static void _on_event(const event_t* event, component_t* component)
 {
-    // Avoid type casting to unknown events
-    if (event->id != EVENT_TOP_SLIDE_RELEASED && event->id != EVENT_BOTTOM_SLIDE_RELEASED &&
-        event->id != EVENT_TOP_CONTINUOUS_TAP && event->id != EVENT_BOTTOM_CONTINUOUS_TAP &&
-        event->id != EVENT_TOP_SHORT_TAP && event->id != EVENT_BOTTOM_SHORT_TAP &&
-        event->id != EVENT_TOP_LONG_TAP && event->id != EVENT_BOTTOM_LONG_TAP &&
-        event->id != EVENT_TOP_SLIDE && event->id != EVENT_BOTTOM_SLIDE) {
-        return;
-    }
     confirm_data_t* data = (confirm_data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
 
     switch (event->id) {
-    case EVENT_TOP_SLIDE_RELEASED:
-        data->active_top = false;
-        break;
-    case EVENT_TOP_CONTINUOUS_TAP:
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
-            data->active_top = true;
+    case EVENT_SLIDE_RELEASED:
+        if (event->data.source == top_slider) {
+            data->active_top = false;
+        } else {
+            data->active_bottom = false;
         }
         break;
-    case EVENT_TOP_SHORT_TAP:
-        data->active_top = false;
-        break;
-    case EVENT_BOTTOM_SLIDE_RELEASED:
-        data->active_bottom = false;
-        break;
-    case EVENT_BOTTOM_CONTINUOUS_TAP:
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
-            data->active_bottom = true;
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.position > SLIDER_POSITION_TWO_THIRD &&
+            event->data.position <= MAX_SLIDER_POS) {
+            if (event->data.source == top_slider) {
+                data->active_top = true;
+            } else {
+                data->active_bottom = true;
+            }
         }
         break;
-    case EVENT_BOTTOM_SHORT_TAP:
-        data->active_bottom = false;
+    case EVENT_SHORT_TAP:
+        if (event->data.source == top_slider) {
+            data->active_top = false;
+        } else {
+            data->active_bottom = false;
+        }
         break;
     default:
         break;
@@ -155,7 +148,7 @@ static component_functions_t _component_functions = {
 /**
  * Creates a confirm_gesture component on the top slider.
  */
-component_t* confirm_gesture_create(void)
+component_t* confirm_gesture_create(void (*callback)(void*), void* user_data)
 {
     confirm_data_t* data = malloc(sizeof(confirm_data_t));
     if (!data) {
@@ -167,6 +160,8 @@ component_t* confirm_gesture_create(void)
     data->confirmed = false;
     data->active_count = SCALE - 1;
     data->bottom_arrow_slidein = 0;
+    data->callback = callback;
+    data->user_data = user_data;
 
     component_t* confirm_gesture = malloc(sizeof(component_t));
     if (!confirm_gesture) {

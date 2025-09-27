@@ -33,7 +33,9 @@ component_t* keyboard_switch_create(
     slider_location_t location,
     bool special_chars,
     bool default_to_digits,
-    component_t* parent);
+    component_t* parent,
+    void (*on_keyboard_switch_cb)(keyboard_mode_t mode, void* user_data),
+    void* user_data);
 
 /**
  * @return the currently selected keyboard

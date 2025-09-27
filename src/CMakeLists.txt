@@ -74,7 +74,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/trinary_input_string.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/waiting.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/screensaver.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/entry_screen.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/knight_rider.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/right_arrow.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/left_arrow.c
@@ -82,7 +81,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_gesture.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/label.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_button.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/keyboard_switch.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/orientation_arrows.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/info_centered.c

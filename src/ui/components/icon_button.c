@@ -34,7 +34,8 @@ typedef struct {
     bool active; // Marker is 'active', i.e., touched
     uint16_t active_count;
     icon_button_type_t type;
-    void (*callback)(component_t* component);
+    void (*callback)(void* user_data);
+    void* user_data;
 } data_t;
 
 /**
@@ -105,16 +106,9 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Return if the slider event is on the wrong slider
     switch (event->id) {
-    case EVENT_TOP_SHORT_TAP:
-    case EVENT_TOP_CONTINUOUS_TAP:
-        if (data->location != top_slider) {
-            data->active = false;
-            return;
-        }
-        break;
-    case EVENT_BOTTOM_SHORT_TAP:
-    case EVENT_BOTTOM_CONTINUOUS_TAP:
-        if (data->location != bottom_slider) {
+    case EVENT_SHORT_TAP:
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.source != data->location) {
             data->active = false;
             return;
         }
@@ -126,17 +120,16 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Return if the slider position is away from the button
     // Only slider events reach here, so ok to typescast event->data
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
     switch (data->type) {
     case ICON_BUTTON_CHECK:
     case ICON_BUTTON_NEXT:
-        if (slider_data->position < SLIDER_POSITION_TWO_THIRD) {
+        if (event->data.position < SLIDER_POSITION_TWO_THIRD) {
             data->active = false;
             return;
         }
         break;
     case ICON_BUTTON_CROSS:
-        if (slider_data->position >= SLIDER_POSITION_ONE_THIRD) {
+        if (event->data.position >= SLIDER_POSITION_ONE_THIRD) {
             data->active = false;
             return;
         }
@@ -150,10 +143,9 @@ static void _on_event(const event_t* event, component_t* component)
 
     // Call the callback on short tap
     switch (event->id) {
-    case EVENT_TOP_SHORT_TAP:
-    case EVENT_BOTTOM_SHORT_TAP:
+    case EVENT_SHORT_TAP:
         if (data->callback) {
-            data->callback(component);
+            data->callback(data->user_data);
         }
         break;
     default:
@@ -175,7 +167,8 @@ static component_functions_t _component_functions = {
 component_t* icon_button_create(
     slider_location_t location,
     icon_button_type_t type,
-    void (*callback)(component_t* component))
+    void (*callback)(void* user_data),
+    void* user_data)
 {
     component_t* icon_button = malloc(sizeof(component_t));
     if (!icon_button) {
@@ -192,6 +185,7 @@ component_t* icon_button_create(
     data->active_count = SCALE - 1; // Start at an offset to allow movement on first touch
     data->type = type;
     data->callback = callback;
+    data->user_data = user_data;
     icon_button->data = data;
     icon_button->f = &_component_functions;
     icon_button->parent = NULL; // Gets set by ui_util_add_sub_component() if `icon_button` is

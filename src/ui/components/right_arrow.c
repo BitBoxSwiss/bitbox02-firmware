@@ -33,6 +33,8 @@
 typedef struct {
     uint8_t location;
     bool active; // Marker is 'active', i.e., touched
+    void (*callback)(void* user_data);
+    void* user_data;
 } right_arrow_data_t;
 
 /**
@@ -58,36 +60,23 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     right_arrow_data_t* data = (right_arrow_data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
+    if (event->data.source != data->location) {
+        return;
+    }
     switch (event->id) {
-    case EVENT_TOP_SHORT_TAP:
-    case EVENT_BOTTOM_SHORT_TAP:
-        if (data->location == top_slider && event->id == EVENT_BOTTOM_SHORT_TAP) {
-            break;
-        }
-        if (data->location == bottom_slider && event->id == EVENT_TOP_SHORT_TAP) {
-            break;
-        }
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
+    case EVENT_SHORT_TAP:
+        if (event->data.position > SLIDER_POSITION_TWO_THIRD &&
+            event->data.position <= MAX_SLIDER_POS) {
             data->active = false;
-            event_t e;
-            e.id = EVENT_FORWARD;
-            emit_event(&e);
+            if (data->callback) {
+                data->callback(data->user_data);
+            }
             break;
         }
         /* FALLTHROUGH */
-    case EVENT_TOP_CONTINUOUS_TAP:
-    case EVENT_BOTTOM_CONTINUOUS_TAP:
-        if (data->location == top_slider && event->id == EVENT_BOTTOM_CONTINUOUS_TAP) {
-            break;
-        }
-        if (data->location == bottom_slider && event->id == EVENT_TOP_CONTINUOUS_TAP) {
-            break;
-        }
-
-        if (slider_data->position > SLIDER_POSITION_TWO_THIRD &&
-            slider_data->position <= MAX_SLIDER_POS) {
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.position > SLIDER_POSITION_TWO_THIRD &&
+            event->data.position <= MAX_SLIDER_POS) {
             data->active = true;
             break;
         }
@@ -116,7 +105,11 @@ static component_functions_t _component_functions = {
  * @param[in] location whether the arrow should be rendered on top or bottom (top/bottom slider)
  * @param[in] parent The parent component.
  */
-component_t* right_arrow_create(slider_location_t location, component_t* parent)
+component_t* right_arrow_create(
+    slider_location_t location,
+    component_t* parent,
+    void (*callback)(void*),
+    void* user_data)
 {
     right_arrow_data_t* data = malloc(sizeof(right_arrow_data_t));
     if (!data) {
@@ -124,6 +117,8 @@ component_t* right_arrow_create(slider_location_t location, component_t* parent)
     }
     memset(data, 0, sizeof(right_arrow_data_t));
     data->location = location;
+    data->callback = callback;
+    data->user_data = user_data;
 
     component_t* right_arrow = malloc(sizeof(component_t));
     if (!right_arrow) {

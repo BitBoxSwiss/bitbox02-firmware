@@ -101,7 +101,8 @@ app-cardano = [
 ]
 
 testing = [
-  "bitbox02/testing"
+  "bitbox02/testing",
+  "util/testing"
 ]
 
 c-unit-testing = []

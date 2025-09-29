@@ -8,6 +8,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 
+### 9.23.2
+- Improve touch sensor reliability when the sdcard is inserted
+
 ### 9.23.1
 - EVM: add HyperEVM (HYPE) and SONIC (S) to known networks
 - U2F: fix macos/safari macos/firefox support

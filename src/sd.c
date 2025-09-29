@@ -315,7 +315,6 @@ bool sd_card_inserted(void)
     return true;
 #else
     sd_mmc_err_t err = sd_mmc_check(0);
-    sd_mmc_pause_clock();
     /* If initialization is ongoing, wait up to 1 second for it to initialize */
     if (err == SD_MMC_INIT_ONGOING) {
         for (int i = 0; i < 10; ++i) {
@@ -326,6 +325,7 @@ bool sd_card_inserted(void)
             }
         }
     }
+    sd_mmc_pause_clock();
 #if !defined(NDEBUG)
     switch (err) {
     case SD_MMC_OK:

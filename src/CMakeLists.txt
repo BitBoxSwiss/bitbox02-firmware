@@ -53,6 +53,7 @@ set(DBB-FIRMWARE-USB-SOURCES ${DBB-FIRMWARE-USB-SOURCES} PARENT_SCOPE)
 set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/screen.c
     ${CMAKE_SOURCE_DIR}/src/ui/graphics/graphics.c
+    ${CMAKE_SOURCE_DIR}/src/ui/canvas.c
     ${CMAKE_SOURCE_DIR}/src/ui/graphics/lock_animation.c
     ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
@@ -114,6 +115,7 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/memory_spi.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
+  ${CMAKE_SOURCE_DIR}/src/ui/canvas.c
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X10.c

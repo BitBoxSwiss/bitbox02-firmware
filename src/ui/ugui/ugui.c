@@ -852,15 +852,3 @@ void UG_FontSetVSpace( UG_U16 s )
         gui->char_v_space = s;
     }
 }
-
-void UG_SendBuffer(void) {
-#ifndef TESTING
-    oled_send_buffer();
-#endif
-}
-
-void UG_ClearBuffer(void) {
-#ifndef TESTING
-    oled_clear_buffer();
-#endif
-}

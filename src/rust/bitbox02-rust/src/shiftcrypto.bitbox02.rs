@@ -599,6 +599,14 @@ pub struct BtcSignInitRequest {
     /// necessarily the same account (as defined by `script_configs` above).
     #[prost(message, repeated, tag = "10")]
     pub output_script_configs: ::prost::alloc::vec::Vec<BtcScriptConfigWithKeypath>,
+    /// Set this to:
+    /// - `PREV_TXS_DEFAULT` for compatibility mode, the value will be determined using `script_configs`.
+    ///   This is not robust, as non-Taproot change outputs are included there and falsely leads to
+    ///   previous transactions being required.
+    /// - `PREV_TXS_REQUIRED` if not all transaction inputs are Taproot.
+    /// - `PREV_TXS_NOT_REQUIRED` if all transaction inputs are Taproot.
+    #[prost(enumeration = "btc_sign_init_request::PrevTxs", tag = "11")]
+    pub prev_txs: i32,
 }
 /// Nested message and enum types in `BTCSignInitRequest`.
 pub mod btc_sign_init_request {
@@ -636,6 +644,45 @@ pub mod btc_sign_init_request {
             match value {
                 "DEFAULT" => Some(Self::Default),
                 "SAT" => Some(Self::Sat),
+                _ => None,
+            }
+        }
+    }
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum PrevTxs {
+        Default = 0,
+        Required = 1,
+        NotRequired = 2,
+    }
+    impl PrevTxs {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                PrevTxs::Default => "PREV_TXS_DEFAULT",
+                PrevTxs::Required => "PREV_TXS_REQUIRED",
+                PrevTxs::NotRequired => "PREV_TXS_NOT_REQUIRED",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "PREV_TXS_DEFAULT" => Some(Self::Default),
+                "PREV_TXS_REQUIRED" => Some(Self::Required),
+                "PREV_TXS_NOT_REQUIRED" => Some(Self::NotRequired),
                 _ => None,
             }
         }

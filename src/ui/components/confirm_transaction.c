@@ -33,8 +33,8 @@ typedef struct {
     bool has_address;
     // accepted: true means the user accepted the info shown, false means the user rejected the
     // info.
-    void (*callback)(bool accepted, void* param);
-    void* callback_param;
+    void (*callback)(bool accepted, void* user_data);
+    void* user_data;
 } data_t;
 
 static void _render(component_t* component)
@@ -55,7 +55,7 @@ static void _on_event(const event_t* event, component_t* component)
     if (event->id == EVENT_CONFIRM) {
         data_t* data = (data_t*)component->data;
         if (data->callback) {
-            data->callback(true, data->callback_param);
+            data->callback(true, data->user_data);
             data->callback = NULL;
         }
     }
@@ -66,7 +66,7 @@ static void _cancel(component_t* cancel_button)
     component_t* component = cancel_button->parent;
     data_t* data = (data_t*)component->data;
     if (data->callback != NULL) {
-        data->callback(false, data->callback_param);
+        data->callback(false, data->user_data);
         data->callback = NULL;
     }
 }
@@ -90,8 +90,8 @@ static component_t* _confirm_transaction_create(
     const char* fee,
     bool verify_total, /* if true, verify total and fee, otherwise verify amount and address */
     bool longtouch,
-    void (*callback)(bool, void*),
-    void* callback_param)
+    void (*callback)(bool accepted, void* user_data),
+    void* user_data)
 {
     if (address && fee) {
         Abort("Error: confirm btc does not support displaying both address and fee");
@@ -112,7 +112,7 @@ static component_t* _confirm_transaction_create(
 
     data->has_address = strlens(address);
     data->callback = callback;
-    data->callback_param = callback_param;
+    data->user_data = user_data;
     confirm->data = data;
     confirm->f = &_component_functions;
     confirm->dimension.width = SCREEN_WIDTH;
@@ -153,20 +153,18 @@ static component_t* _confirm_transaction_create(
 component_t* confirm_transaction_address_create(
     const char* amount,
     const char* address,
-    void (*callback)(bool accepted, void* param),
-    void* callback_param)
+    void (*callback)(bool accepted, void* user_data),
+    void* user_data)
 {
-    return _confirm_transaction_create(
-        amount, address, NULL, false, false, callback, callback_param);
+    return _confirm_transaction_create(amount, address, NULL, false, false, callback, user_data);
 }
 
 component_t* confirm_transaction_fee_create(
     const char* amount,
     const char* fee,
     bool longtouch,
-    void (*callback)(bool accepted, void* param),
-    void* callback_param)
+    void (*callback)(bool accepted, void* user_data),
+    void* user_data)
 {
-    return _confirm_transaction_create(
-        amount, NULL, fee, true, longtouch, callback, callback_param);
+    return _confirm_transaction_create(amount, NULL, fee, true, longtouch, callback, user_data);
 }

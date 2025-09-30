@@ -47,11 +47,11 @@ typedef struct {
  * @param[in] params see confirm_params_t for details.
  * @param[in] callback The callback triggered when the user accepts or rejects. Will be called at
  * most once.
- * @param[in] callback_param passed through to the callback.
+ * @param[in] user_data passed through to the callback.
  */
 component_t* confirm_create(
     const confirm_params_t* params,
-    void (*callback)(bool, void* param),
-    void* callback_param);
+    void (*callback)(bool result, void* user_data),
+    void* user_data);
 
 #endif

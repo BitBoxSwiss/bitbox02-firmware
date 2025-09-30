@@ -54,10 +54,10 @@ typedef struct {
  */
 component_t* trinary_input_string_create(
     const trinary_input_string_params_t* params,
-    void (*confirm_cb)(const char* input, void* param),
-    void* confirm_callback_param,
-    void (*cancel_cb)(void* param),
-    void* cancel_callback_param);
+    void (*confirm_cb)(const char* input, void* confirm_user_data),
+    void* confirm_user_data,
+    void (*cancel_cb)(void* cancel_user_data),
+    void* cancel_user_data);
 
 /**
  * Only applicable in wordlist-mode.

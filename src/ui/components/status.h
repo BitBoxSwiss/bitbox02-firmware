@@ -29,7 +29,7 @@
 component_t* status_create(
     const char* text,
     bool status_success,
-    void (*callback)(void*),
-    void* callback_param);
+    void (*callback)(void* user_data),
+    void* user_data);
 
 #endif

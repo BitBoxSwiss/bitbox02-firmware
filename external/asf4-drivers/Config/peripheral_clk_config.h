@@ -340,7 +340,7 @@
 
 // <i> Select the slow clock source.
 #ifndef CONF_GCLK_SERCOM5_SLOW_SRC
-#define CONF_GCLK_SERCOM5_SLOW_SRC GCLK_PCHCTRL_GEN_GCLK2_Val
+#define CONF_GCLK_SERCOM5_SLOW_SRC GCLK_PCHCTRL_GEN_GCLK4_Val
 #endif
 
 /**
@@ -356,7 +356,7 @@
  * \brief SERCOM5's Slow Clock frequency
  */
 #ifndef CONF_GCLK_SERCOM5_SLOW_FREQUENCY
-#define CONF_GCLK_SERCOM5_SLOW_FREQUENCY 12000000
+#define CONF_GCLK_SERCOM5_SLOW_FREQUENCY 32768
 #endif
 
 // <h> SDHC Clock Settings
@@ -389,7 +389,7 @@
 // <i> Select the clock source for SDHC.
 // <id> sdhc_gclk_selection
 #ifndef CONF_GCLK_SDHC0_SRC
-#define CONF_GCLK_SDHC0_SRC GCLK_PCHCTRL_GEN_GCLK3_Val
+#define CONF_GCLK_SDHC0_SRC GCLK_PCHCTRL_GEN_GCLK5_Val
 #endif
 
 // <y> SDHC clock slow source
@@ -430,7 +430,7 @@
  * \brief SDHC's Clock frequency
  */
 #ifndef CONF_SDHC0_FREQUENCY
-#define CONF_SDHC0_FREQUENCY 48000000
+#define CONF_SDHC0_FREQUENCY 8000000
 #endif
 
 /**

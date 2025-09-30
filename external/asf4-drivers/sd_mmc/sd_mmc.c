@@ -44,6 +44,7 @@
 #if CONF_OS_SUPPORT
 #include <hal_rtos.h>
 #endif
+#include <hal_delay.h>
 #include <hal_gpio.h>
 #include <utils.h>
 #include <utils_assert.h>
@@ -1121,6 +1122,7 @@ static bool sd_mmc_mci_card_init(void)
 #if (CONF_SDIO_SUPPORT == 1)
 	/* CMD52 Reset SDIO */
 	sdio_cmd52(SDIO_CMD52_WRITE_FLAG, SDIO_CIA, SDIO_CCCR_IOA, 0, &data);
+        delay_ms(10);
 #endif
 
 	/* CMD0 - Reset all cards to idle state.*/
@@ -1130,10 +1132,12 @@ static bool sd_mmc_mci_card_init(void)
 	if (!sd_cmd8(&v2)) {
 		return false;
 	}
+        delay_ms(1);
 	/* Try to get the SDIO card's operating condition */
 	if (!sdio_op_cond()) {
 		return false;
 	}
+        delay_ms(1);
 
 	if (sd_mmc_card->type & CARD_TYPE_SD) {
 		/* Try to get the SD card's operating condition */

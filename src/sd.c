@@ -315,10 +315,11 @@ bool sd_card_inserted(void)
     return true;
 #else
     sd_mmc_err_t err = sd_mmc_check(0);
-    /* If initialization is ongoing, wait up to 1 second for it to initialize */
-    if (err == SD_MMC_INIT_ONGOING) {
-        for (int i = 0; i < 10; ++i) {
-            delay_ms(100);
+    /* If initialization is ongoing, wait up to 1 second for it to initialize. */
+    /* The first time sd_mmc_check is called it may return SD_MMC_ERR_NO_CARD. */
+    if (err == SD_MMC_ERR_NO_CARD || err == SD_MMC_INIT_ONGOING) {
+        for (int i = 0; i < 100; ++i) {
+            delay_ms(10);
             err = sd_mmc_check(0);
             if (err != SD_MMC_INIT_ONGOING) {
                 break;
@@ -334,7 +335,7 @@ bool sd_card_inserted(void)
         util_log("sd_mmc_check returned \"SD_MMC_ERR_UNUSABLE\"");
         break;
     case SD_MMC_INIT_ONGOING:
-        util_log("sd_mmc_check returned \"SD_MMC_INIT_ONGOING\" after 10 retries");
+        util_log("sd_mmc_check returned \"SD_MMC_INIT_ONGOING\" after 1s");
         break;
     default:
         util_log("sd_mmc_check returned %d", err);

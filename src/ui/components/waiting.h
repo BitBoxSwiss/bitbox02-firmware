@@ -18,8 +18,14 @@
 #include <ui/component.h>
 
 /**
- * Creates a waiting screen.
+ * Creates a waiting screen. It starts out with a lockscreen (see lockscreen.c). Once
+ * `waiting_host_connected()` is called, the waiting screen will switch to showing the logo image.
  */
 component_t* waiting_create(void);
+
+/**
+ * Switch the waiting screen to show the BitBox logo instead.
+ */
+void waiting_host_connected(component_t* component);
 
 #endif

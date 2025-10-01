@@ -25,3 +25,7 @@ mod types;
 mod ui;
 
 pub use ui::*;
+
+pub fn screen_process_host_connected() {
+    unsafe { bitbox02_sys::screen_process_host_connected() }
+}

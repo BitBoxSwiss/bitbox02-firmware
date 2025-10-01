@@ -30,7 +30,6 @@
  */
 typedef struct {
     keyboard_mode_t mode;
-    slider_location_t location;
     bool active; // Marker is 'active', i.e., touched
     // if true, the special chars keyboard mode is available.
     bool special_chars;
@@ -90,18 +89,20 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     keyboard_switch_data_t* ks_data = (keyboard_switch_data_t*)component->data;
-    const gestures_slider_data_t* slider_data = (const gestures_slider_data_t*)event->data;
+    if (event->data.source != top_slider) {
+        return;
+    }
     switch (event->id) {
-    case EVENT_TOP_CONTINUOUS_TAP:
-        if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&
-            slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
+    case EVENT_CONTINUOUS_TAP:
+        if (event->data.position > SLIDER_POSITION_ONE_THIRD &&
+            event->data.position <= SLIDER_POSITION_TWO_THIRD) {
             ks_data->active = true;
             break;
         }
         /* FALLTHROUGH */
-    case EVENT_TOP_SHORT_TAP:
-        if (ks_data->location == top_slider && slider_data->position > SLIDER_POSITION_ONE_THIRD &&
-            slider_data->position <= SLIDER_POSITION_TWO_THIRD) {
+    case EVENT_SHORT_TAP:
+        if (event->data.position > SLIDER_POSITION_ONE_THIRD &&
+            event->data.position <= SLIDER_POSITION_TWO_THIRD) {
             ks_data->active = false;
             switch (ks_data->mode) {
             case LOWER_CASE:
@@ -144,7 +145,6 @@ static component_functions_t _component_functions = {
 /********************************** Create Instance **********************************/
 
 component_t* keyboard_switch_create(
-    slider_location_t location,
     bool special_chars,
     bool default_to_digits,
     component_t* parent,
@@ -163,7 +163,6 @@ component_t* keyboard_switch_create(
     }
     memset(ks_data, 0, sizeof(keyboard_switch_data_t));
 
-    ks_data->location = location;
     ks_data->mode = default_to_digits ? DIGITS : LOWER_CASE;
     ks_data->active = false;
     ks_data->special_chars = special_chars;

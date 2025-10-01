@@ -144,18 +144,6 @@ static void _reset_state(void)
     memset(_state, 0, sizeof(_state));
 }
 
-/**
- * Prepares the gestures data to be sent with an emitted event
- */
-static void _collect_gestures_data(
-    gestures_detection_state_t* state,
-    gestures_slider_data_t* slider_data)
-{
-    slider_data->position = state->position_current;
-    slider_data->diff = state->position_current - state->position_start;
-    slider_data->velocity = state->velocity_sum;
-}
-
 /********************************** GESTURE DETECTION **********************************/
 
 static bool _is_continuous_tap(uint8_t location)
@@ -194,59 +182,63 @@ static void _gesture_emit_event(uint8_t id, slider_location_t location)
     if (!_released_since_new_screen) {
         return;
     }
-    gestures_slider_data_t slider_data;
-    _collect_gestures_data(&_state[location], &slider_data);
-    event_t event = {.data = &slider_data, .id = id};
+    event_slider_data_t slider_data = {
+        .source = location,
+        .position = _state[location].position_current,
+        .diff = _state[location].position_current - _state[location].position_start,
+        .velocity = _state[location].velocity_sum,
+    };
+    event_t event = {.id = id, .data = slider_data};
     emit_event(&event);
 }
 
 static void _emit_continuous_slide_event(void)
 {
     if (_is_continuous_slide(top_slider)) {
-        _gesture_emit_event(EVENT_TOP_SLIDE, top_slider);
+        _gesture_emit_event(EVENT_SLIDE, top_slider);
     }
     if (_is_continuous_slide(bottom_slider)) {
-        _gesture_emit_event(EVENT_BOTTOM_SLIDE, bottom_slider);
+        _gesture_emit_event(EVENT_SLIDE, bottom_slider);
     }
 }
 
 static void _emit_slide_release_event(void)
 {
     if (_is_slide_released(top_slider)) {
-        _gesture_emit_event(EVENT_TOP_SLIDE_RELEASED, top_slider);
+        _gesture_emit_event(EVENT_SLIDE_RELEASED, top_slider);
     }
     if (_is_slide_released(bottom_slider)) {
-        _gesture_emit_event(EVENT_BOTTOM_SLIDE_RELEASED, bottom_slider);
+        _gesture_emit_event(EVENT_SLIDE_RELEASED, bottom_slider);
     }
 }
 
 static void _emit_long_tap_event(void)
 {
     if (_is_long_tap_release(top_slider)) {
-        _gesture_emit_event(EVENT_TOP_LONG_TAP, top_slider);
+        _gesture_emit_event(EVENT_LONG_TAP, top_slider);
     }
     if (_is_long_tap_release(bottom_slider)) {
-        _gesture_emit_event(EVENT_BOTTOM_LONG_TAP, bottom_slider);
+        _gesture_emit_event(EVENT_LONG_TAP, bottom_slider);
     }
 }
 
 static void _emit_short_tap_event(void)
 {
     if (_is_tap_release(top_slider)) {
-        _gesture_emit_event(EVENT_TOP_SHORT_TAP, top_slider);
+        _gesture_emit_event(EVENT_SHORT_TAP, top_slider);
     }
     if (_is_tap_release(bottom_slider)) {
-        _gesture_emit_event(EVENT_BOTTOM_SHORT_TAP, bottom_slider);
+        _gesture_emit_event(EVENT_SHORT_TAP, bottom_slider);
     }
 }
 
 static void _emit_continuous_tap_event(void)
 {
     if (_is_continuous_tap(top_slider)) {
-        _gesture_emit_event(EVENT_TOP_CONTINUOUS_TAP, top_slider);
+        _gesture_emit_event(EVENT_CONTINUOUS_TAP, top_slider);
     }
     if (_is_continuous_tap(bottom_slider)) {
-        _gesture_emit_event(EVENT_BOTTOM_CONTINUOUS_TAP, bottom_slider);
+        _gesture_emit_event(EVENT_CONTINUOUS_TAP, bottom_slider);
     }
 }
 

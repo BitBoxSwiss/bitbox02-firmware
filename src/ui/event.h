@@ -15,24 +15,27 @@
 #ifndef _EVENT_H_
 #define _EVENT_H_
 
+#include <screen.h>
 #include <stdint.h>
 
+typedef struct {
+    slider_location_t source;
+    int16_t diff;
+    uint16_t position;
+    int32_t velocity;
+} event_slider_data_t;
+
 enum {
-    EVENT_BOTTOM_SLIDE,
-    EVENT_TOP_SLIDE,
-    EVENT_BOTTOM_SLIDE_RELEASED,
-    EVENT_TOP_SLIDE_RELEASED,
-    EVENT_TOP_CONTINUOUS_TAP,
-    EVENT_BOTTOM_CONTINUOUS_TAP,
-    EVENT_TOP_LONG_TAP,
-    EVENT_BOTTOM_LONG_TAP,
-    EVENT_TOP_SHORT_TAP,
-    EVENT_BOTTOM_SHORT_TAP,
+    EVENT_SLIDE,
+    EVENT_SLIDE_RELEASED,
+    EVENT_CONTINUOUS_TAP,
+    EVENT_LONG_TAP,
+    EVENT_SHORT_TAP,
 };
 
 typedef struct {
-    const void* data;
     uint8_t id;
+    event_slider_data_t data;
 } event_t;
 
 #endif

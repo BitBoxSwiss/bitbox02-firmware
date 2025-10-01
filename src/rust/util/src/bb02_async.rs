@@ -60,3 +60,86 @@ pub fn block_on<O>(task: impl core::future::Future<Output = O>) -> O {
         }
     }
 }
+
+/// Yields to the executor.
+pub fn yield_now() -> impl core::future::Future<Output = ()> {
+    let mut yielded = false;
+    core::future::poll_fn(move |_cx| {
+        if yielded {
+            core::task::Poll::Ready(())
+        } else {
+            yielded = true;
+            core::task::Poll::Pending
+        }
+    })
+}
+
+/// Executes both futures in tandem, returning the results of both when both are done.
+pub fn join<O1, O2>(
+    fut1: impl core::future::Future<Output = O1>,
+    fut2: impl core::future::Future<Output = O2>,
+) -> impl core::future::Future<Output = (O1, O2)> {
+    let mut fut1 = Box::pin(fut1);
+    let mut fut2 = Box::pin(fut2);
+
+    let mut result1 = None;
+    let mut result2 = None;
+
+    core::future::poll_fn(move |cx| {
+        if result1.is_none() {
+            if let Poll::Ready(res) = fut1.as_mut().poll(cx) {
+                result1 = Some(res);
+            }
+        }
+
+        if result2.is_none() {
+            if let Poll::Ready(res) = fut2.as_mut().poll(cx) {
+                result2 = Some(res);
+            }
+        }
+
+        if result1.is_some() && result2.is_some() {
+            Poll::Ready((result1.take().unwrap(), result2.take().unwrap()))
+        } else {
+            Poll::Pending
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_yield_now() {
+        async fn f1() -> i32 {
+            yield_now().await;
+            yield_now().await;
+            yield_now().await;
+            42
+        }
+
+        let mut task: Task<i32> = Box::pin(f1());
+        assert_eq!(spin(&mut task), Poll::Pending);
+        assert_eq!(spin(&mut task), Poll::Pending);
+        assert_eq!(spin(&mut task), Poll::Pending);
+        assert_eq!(spin(&mut task), Poll::Ready(42));
+    }
+
+    #[test]
+    fn test_join() {
+        async fn f1() -> i32 {
+            -42
+        }
+
+        async fn f2() -> Box<u32> {
+            yield_now().await;
+            yield_now().await;
+            yield_now().await;
+            Box::new(42)
+        }
+
+        assert_eq!(block_on(join(f1(), f2())), (-42, Box::new(42)));
+        assert_eq!(block_on(join(f2(), f1())), (Box::new(42), -42));
+    }
+}

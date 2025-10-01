@@ -32,16 +32,21 @@ void ui_screen_render_component(component_t* component)
     UG_SendBuffer();
 }
 
+static component_t* _waiting_screen = NULL;
 static component_t* _get_waiting_screen(void)
 {
-    static component_t* waiting_screen = NULL;
-    if (waiting_screen == NULL) {
-        waiting_screen = waiting_create();
-        if (waiting_screen == NULL) {
+    if (_waiting_screen == NULL) {
+        _waiting_screen = waiting_create();
+        if (_waiting_screen == NULL) {
             Abort("Could not create\nwaiting screen");
         }
     }
-    return waiting_screen;
+    return _waiting_screen;
+}
+
+void screen_process_host_connected(void)
+{
+    waiting_host_connected(_get_waiting_screen());
 }
 
 component_t* screen_process_get_top_component(void)

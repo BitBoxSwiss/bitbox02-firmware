@@ -110,6 +110,13 @@ fn api_attestation(usb_in: &[u8]) -> Vec<u8> {
 }
 
 async fn _process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> Vec<u8> {
+    // Update the waiting screen from "See the BitBoxApp" to the logo, now that the host is
+    // connected. When the device is initialized, we delay this until the unlock call, otherwise
+    // there would be a flicker where the logo would be shown before the host invokes unlock.
+    if !bitbox02::memory::is_initialized() || usb_in.as_slice() == [OP_UNLOCK] {
+        bitbox02::ui::screen_process_waiting_switch_to_logo();
+    }
+
     match usb_in.split_first() {
         Some((&OP_UNLOCK, b"")) => return api_unlock(hal).await,
         Some((&OP_ATTESTATION, rest)) => return api_attestation(rest),

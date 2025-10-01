@@ -495,7 +495,6 @@ component_t* trinary_input_string_create(
 
     if (params->wordlist == NULL && !params->number_input) {
         data->keyboard_switch_component = keyboard_switch_create(
-            top_slider,
             params->special_chars,
             params->default_to_digits,
             component,

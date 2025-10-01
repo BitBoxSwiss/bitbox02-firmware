@@ -24,6 +24,10 @@
  * Creates a left arrow component.
  * param[in] location whether the arrow should be rendered on top or bottom (UPPER/LOWER slider)
  */
-component_t* left_arrow_create(slider_location_t location, component_t* parent);
+component_t* left_arrow_create(
+    slider_location_t location,
+    component_t* parent,
+    void (*callback)(void*),
+    void* user_data);
 
 #endif

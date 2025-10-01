@@ -32,6 +32,7 @@ typedef enum {
 component_t* icon_button_create(
     slider_location_t location,
     icon_button_type_t type,
-    void (*callback)(component_t* component));
+    void (*callback)(void* user_data),
+    void* user_data);
 
 #endif

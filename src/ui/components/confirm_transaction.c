@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "confirm_transaction.h"
-#include "confirm_button.h"
+#include "confirm_gesture.h"
 #include "icon_button.h"
 #include "label.h"
 #include "ui_images.h"
@@ -50,23 +50,22 @@ static void _render(component_t* component)
     }
 }
 
-static void _on_event(const event_t* event, component_t* component)
+static void _cancel_cb(void* user_data)
 {
-    if (event->id == EVENT_CONFIRM) {
-        data_t* data = (data_t*)component->data;
-        if (data->callback) {
-            data->callback(true, data->user_data);
-            data->callback = NULL;
-        }
+    component_t* self = (component_t*)user_data;
+    data_t* data = (data_t*)self->data;
+    if (data->callback != NULL) {
+        data->callback(false, data->user_data);
+        data->callback = NULL;
     }
 }
 
-static void _cancel(component_t* cancel_button)
+static void _confirm_cb(void* user_data)
 {
-    component_t* component = cancel_button->parent;
-    data_t* data = (data_t*)component->data;
-    if (data->callback != NULL) {
-        data->callback(false, data->user_data);
+    component_t* self = (component_t*)user_data;
+    data_t* data = (data_t*)self->data;
+    if (data->callback) {
+        data->callback(true, data->user_data);
         data->callback = NULL;
     }
 }
@@ -79,7 +78,7 @@ static void _cancel(component_t* cancel_button)
 static const component_functions_t _component_functions = {
     .cleanup = ui_util_component_cleanup,
     .render = _render,
-    .on_event = _on_event,
+    .on_event = NULL,
 };
 
 /********************************** Create Instance **********************************/
@@ -118,9 +117,15 @@ static component_t* _confirm_transaction_create(
     confirm->dimension.width = SCREEN_WIDTH;
     confirm->dimension.height = SCREEN_HEIGHT;
 
-    ui_util_add_sub_component(confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel));
+    ui_util_add_sub_component(
+        confirm, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_cb, confirm));
 
-    ui_util_add_sub_component(confirm, confirm_button_create(longtouch, ICON_BUTTON_NEXT));
+    if (longtouch) {
+        ui_util_add_sub_component(confirm, confirm_gesture_create(_confirm_cb, confirm));
+    } else {
+        ui_util_add_sub_component(
+            confirm, icon_button_create(top_slider, ICON_BUTTON_NEXT, _confirm_cb, confirm));
+    }
 
     if (data->has_address) {
         ui_util_add_sub_component(

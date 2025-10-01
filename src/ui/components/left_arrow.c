@@ -33,6 +33,8 @@
 typedef struct {
     uint8_t location;
     bool active; // Marker is 'active', i.e., touched
+    void (*callback)(void* user_data);
+    void* user_data;
 } left_arrow_data_t;
 
 /**
@@ -70,9 +72,9 @@ static void _on_event(const event_t* event, component_t* component)
         }
         if (slider_data->position <= SLIDER_POSITION_ONE_THIRD) {
             data->active = false;
-            event_t e;
-            e.id = EVENT_BACKWARD;
-            emit_event(&e);
+            if (data->callback) {
+                data->callback(data->user_data);
+            }
             break;
         }
         /* FALLTHROUGH */
@@ -111,7 +113,11 @@ static component_functions_t _component_functions = {
  * @param[in] location whether the arrow should be rendered on top or bottom (top/bottom slider)
  * @param[in] parent The parent component.
  */
-component_t* left_arrow_create(slider_location_t location, component_t* parent)
+component_t* left_arrow_create(
+    slider_location_t location,
+    component_t* parent,
+    void (*callback)(void*),
+    void* user_data)
 {
     left_arrow_data_t* data = malloc(sizeof(left_arrow_data_t));
     if (!data) {
@@ -120,6 +126,8 @@ component_t* left_arrow_create(slider_location_t location, component_t* parent)
     memset(data, 0, sizeof(left_arrow_data_t));
     data->location = location;
     data->active = false;
+    data->callback = callback;
+    data->user_data = user_data;
 
     component_t* left_arrow = malloc(sizeof(component_t));
     if (!left_arrow) {

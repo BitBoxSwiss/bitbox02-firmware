@@ -28,9 +28,10 @@ typedef struct {
 enum {
     EVENT_SLIDE,
     EVENT_SLIDE_RELEASED,
-    EVENT_CONTINUOUS_TAP,
     EVENT_LONG_TAP,
     EVENT_SHORT_TAP,
+    EVENT_CONTINUOUS_TAP,
+    EVENT_ENUM_MAX, // MAX must always be last, indicates the number of items in the enumration
 };
 
 typedef struct {

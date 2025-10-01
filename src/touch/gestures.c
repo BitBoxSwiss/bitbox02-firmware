@@ -146,6 +146,8 @@ static void _reset_state(void)
 
 /********************************** GESTURE DETECTION **********************************/
 
+typedef bool (*gesture_detect_fn)(uint8_t location);
+
 static bool _is_continuous_tap(uint8_t location)
 {
     return _state[location].max_slide_travel < TAP_SLIDE_TOLERANCE &&
@@ -192,55 +194,13 @@ static void _gesture_emit_event(uint8_t id, slider_location_t location)
     emit_event(&event);
 }
 
-static void _emit_continuous_slide_event(void)
-{
-    if (_is_continuous_slide(top_slider)) {
-        _gesture_emit_event(EVENT_SLIDE, top_slider);
-    }
-    if (_is_continuous_slide(bottom_slider)) {
-        _gesture_emit_event(EVENT_SLIDE, bottom_slider);
-    }
-}
-
-static void _emit_slide_release_event(void)
-{
-    if (_is_slide_released(top_slider)) {
-        _gesture_emit_event(EVENT_SLIDE_RELEASED, top_slider);
-    }
-    if (_is_slide_released(bottom_slider)) {
-        _gesture_emit_event(EVENT_SLIDE_RELEASED, bottom_slider);
-    }
-}
-
-static void _emit_long_tap_event(void)
-{
-    if (_is_long_tap_release(top_slider)) {
-        _gesture_emit_event(EVENT_LONG_TAP, top_slider);
-    }
-    if (_is_long_tap_release(bottom_slider)) {
-        _gesture_emit_event(EVENT_LONG_TAP, bottom_slider);
-    }
-}
-
-static void _emit_short_tap_event(void)
-{
-    if (_is_tap_release(top_slider)) {
-        _gesture_emit_event(EVENT_SHORT_TAP, top_slider);
-    }
-    if (_is_tap_release(bottom_slider)) {
-        _gesture_emit_event(EVENT_SHORT_TAP, bottom_slider);
-    }
-}
-
-static void _emit_continuous_tap_event(void)
-{
-    if (_is_continuous_tap(top_slider)) {
-        _gesture_emit_event(EVENT_CONTINUOUS_TAP, top_slider);
-    }
-    if (_is_continuous_tap(bottom_slider)) {
-        _gesture_emit_event(EVENT_CONTINUOUS_TAP, bottom_slider);
-    }
-}
+static gesture_detect_fn _emit_event_detect_fns[EVENT_ENUM_MAX] = {
+    [EVENT_SLIDE] = _is_continuous_slide,
+    [EVENT_SLIDE_RELEASED] = _is_slide_released,
+    [EVENT_LONG_TAP] = _is_long_tap_release,
+    [EVENT_SHORT_TAP] = _is_tap_release,
+    [EVENT_CONTINUOUS_TAP] = _is_continuous_tap,
+};
 
 /********************************** MEASURE, DETECT and CALLBACK **********************************/
 
@@ -263,11 +223,14 @@ static void _measure_and_emit(void)
     }
 
     if (gesture_detected) {
-        _emit_continuous_slide_event();
-        _emit_slide_release_event();
-        _emit_long_tap_event();
-        _emit_short_tap_event();
-        _emit_continuous_tap_event();
+        for (int event_idx = 0; event_idx < EVENT_ENUM_MAX; event_idx++) {
+            if (_emit_event_detect_fns[event_idx](top_slider)) {
+                _gesture_emit_event(event_idx, top_slider);
+            }
+            if (_emit_event_detect_fns[event_idx](bottom_slider)) {
+                _gesture_emit_event(event_idx, bottom_slider);
+            }
+        }
     }
 
     bool both_sliders_released_or_inactive = true;

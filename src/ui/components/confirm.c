@@ -28,14 +28,14 @@
 
 typedef struct {
     void (*callback)(bool, void* param);
-    void* callback_param;
+    void* user_data;
 } data_t;
 
 static void _dispatch_confirm(component_t* self)
 {
     data_t* data = (data_t*)self->data;
     if (data->callback) {
-        data->callback(true, data->callback_param);
+        data->callback(true, data->user_data);
         data->callback = NULL;
     }
 }
@@ -58,7 +58,7 @@ static void _on_cancel(component_t* component)
     component_t* self = component->parent;
     data_t* data = (data_t*)self->data;
     if (data->callback) {
-        data->callback(false, data->callback_param);
+        data->callback(false, data->user_data);
         data->callback = NULL;
     }
 }
@@ -78,8 +78,8 @@ static const component_functions_t _component_functions = {
 
 component_t* confirm_create(
     const confirm_params_t* params,
-    void (*callback)(bool, void* param),
-    void* callback_param)
+    void (*callback)(bool result, void* user_data),
+    void* user_data)
 {
     if (!callback) {
         Abort("confirm_create callback missing");
@@ -96,7 +96,7 @@ component_t* confirm_create(
     }
     memset(data, 0, sizeof(data_t));
     data->callback = callback;
-    data->callback_param = callback_param;
+    data->user_data = user_data;
 
     confirm->data = data;
     confirm->f = &_component_functions;

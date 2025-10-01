@@ -23,13 +23,13 @@
  * @param[in] address to send coins
  * @param[in] callback The callback triggered when the user accepts or rejects. Is called at most
  * once.
- * @param[in] callback_param Passed to `callback`.
+ * @param[in] user_data Passed to `callback`.
  */
 component_t* confirm_transaction_address_create(
     const char* amount,
     const char* address,
-    void (*callback)(bool accepted, void* param),
-    void* callback_param);
+    void (*callback)(bool accepted, void* user_data),
+    void* user_data);
 
 /**
  * Creates a confirm screen.
@@ -39,13 +39,13 @@ component_t* confirm_transaction_address_create(
  * next-arrow is shown.
  * @param[in] callback The callback triggered when the user accepts or rejects. Is called at most
  * once.
- * @param[in] callback_param Passed to `callback`.
+ * @param[in] user_data Passed to `callback`.
  */
 component_t* confirm_transaction_fee_create(
     const char* amount,
     const char* fee,
     bool longtouch,
-    void (*callback)(bool accepted, void* param),
-    void* callback_param);
+    void (*callback)(bool accepted, void* user_data),
+    void* user_data);
 
 #endif

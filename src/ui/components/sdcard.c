@@ -23,8 +23,8 @@
 #include <ui/screen_stack.h>
 
 typedef struct {
-    void (*callback)(bool, void*);
-    void* callback_param;
+    void (*callback)(bool inserted, void* user_data);
+    void* user_data;
     // TODO: use a TIMER interrupt to get a more accurate timer.
     // 250 is ~0.5 sec. Unit: rendering rate.
     int check_interval;
@@ -35,7 +35,7 @@ static void _insert_poll_callback(component_t* component)
 {
     data_t* data = (data_t*)component->data;
     if (data->callback && sd_card_inserted()) {
-        data->callback(true, data->callback_param);
+        data->callback(true, data->user_data);
         data->callback = NULL;
         return;
     }
@@ -68,12 +68,12 @@ static void _cancel_callback(component_t* component)
 {
     data_t* data = (data_t*)component->parent->data;
     if (data->callback) {
-        data->callback(false, data->callback_param);
+        data->callback(false, data->user_data);
         data->callback = NULL;
     }
 }
 
-component_t* sdcard_create(void (*callback)(bool, void*), void* callback_param)
+component_t* sdcard_create(void (*callback)(bool inserted, void* user_data), void* user_data)
 {
     component_t* component = malloc(sizeof(component_t));
     if (!component) {
@@ -87,7 +87,7 @@ component_t* sdcard_create(void (*callback)(bool, void*), void* callback_param)
     memset(component, 0, sizeof(component_t));
 
     data->callback = callback;
-    data->callback_param = callback_param;
+    data->user_data = user_data;
     data->check_interval = 250;
     data->count = 0;
     component->data = data;

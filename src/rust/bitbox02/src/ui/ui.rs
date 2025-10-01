@@ -73,7 +73,7 @@ where
     // Callback must outlive component.
     F: FnMut(zeroize::Zeroizing<String>) + 'a,
 {
-    unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, param: *mut c_void)
+    unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, user_data: *mut c_void)
     where
         F2: FnMut(zeroize::Zeroizing<String>),
     {
@@ -84,16 +84,16 @@ where
         );
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
+        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
         callback(pw);
     }
 
-    unsafe extern "C" fn c_cancel_callback(param: *mut c_void) {
-        let callback = param as *mut ContinueCancelCb;
+    unsafe extern "C" fn c_cancel_callback(user_data: *mut c_void) {
+        let callback = user_data as *mut ContinueCancelCb;
         unsafe { (*callback)() };
     }
 
-    let (cancel_cb, cancel_cb_param) = match cancel_callback {
+    let (cancel_cb, cancel_user_data) = match cancel_callback {
         None => (None, core::ptr::null_mut()),
         Some(cb) => (
             Some(c_cancel_callback as _),
@@ -105,10 +105,10 @@ where
         bitbox02_sys::trinary_input_string_create(
             &params.to_c_params(&mut title_scratch).data, // title copied in C
             Some(c_confirm_callback::<F>),
-            // passed to c_confirm_callback as `param`.
+            // passed to c_confirm_callback as `user_data`.
             Box::into_raw(Box::new(confirm_callback)) as *mut _,
             cancel_cb,
-            cancel_cb_param,
+            cancel_user_data,
         )
     };
     Component {
@@ -116,8 +116,8 @@ where
         is_pushed: false,
         on_drop: Some(Box::new(move || unsafe {
             // Drop all callbacks.
-            if !cancel_cb_param.is_null() {
-                drop(Box::from_raw(cancel_cb_param as *mut ContinueCancelCb));
+            if !cancel_user_data.is_null() {
+                drop(Box::from_raw(cancel_user_data as *mut ContinueCancelCb));
             }
         })),
         _p: PhantomData,
@@ -131,13 +131,13 @@ where
     // Callback must outlive component.
     F: FnMut(bool) + 'a,
 {
-    unsafe extern "C" fn c_callback<F2>(result: bool, param: *mut c_void)
+    unsafe extern "C" fn c_callback<F2>(result: bool, user_data: *mut c_void)
     where
         F2: FnMut(bool),
     {
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
+        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
         callback(result);
     }
     let mut title_scratch = Vec::new();
@@ -148,7 +148,7 @@ where
                 .to_c_params(&mut title_scratch, &mut body_scratch)
                 .data,
             Some(c_callback::<F>),
-            // passed to the C callback as `param`
+            // passed to the C callback as `user_data`
             Box::into_raw(Box::new(result_callback)) as *mut _,
         )
     };
@@ -171,13 +171,13 @@ where
     // Callback must outlive component.
     F: FnMut() + 'a,
 {
-    unsafe extern "C" fn c_callback<F2>(param: *mut c_void)
+    unsafe extern "C" fn c_callback<F2>(user_data: *mut c_void)
     where
         F2: FnMut(),
     {
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
+        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
         callback();
     }
 
@@ -186,7 +186,7 @@ where
             crate::util::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
             status_success,
             Some(c_callback::<F>),
-            Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `param`.
+            Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `user_data`.
         )
     };
     Component {
@@ -202,20 +202,20 @@ where
     // Callback must outlive component.
     F: FnMut(bool) + 'a,
 {
-    unsafe extern "C" fn c_callback<F2>(sd_done: bool, param: *mut c_void)
+    unsafe extern "C" fn c_callback<F2>(sd_done: bool, user_data: *mut c_void)
     where
         F2: FnMut(bool),
     {
         // The callback is dropped afterwards. This is safe because
         // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(param as *mut F2) };
+        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
         callback(sd_done);
     }
 
     let component = unsafe {
         bitbox02_sys::sdcard_create(
             Some(c_callback::<F>),
-            // passed to the C callback as `param`
+            // passed to the C callback as `user_data`
             Box::into_raw(Box::new(callback)) as *mut _,
         )
     };
@@ -228,13 +228,13 @@ where
 }
 
 pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
-    unsafe extern "C" fn c_select_word_cb(word_idx: u8, param: *mut c_void) {
-        let callback = param as *mut SelectWordCb;
+    unsafe extern "C" fn c_select_word_cb(word_idx: u8, user_data: *mut c_void) {
+        let callback = user_data as *mut SelectWordCb;
         unsafe { (*callback)(word_idx) };
     }
 
-    unsafe extern "C" fn c_continue_cancel_cb(param: *mut c_void) {
-        let callback = param as *mut ContinueCancelCb;
+    unsafe extern "C" fn c_continue_cancel_cb(user_data: *mut c_void) {
+        let callback = user_data as *mut ContinueCancelCb;
         unsafe { (*callback)() };
     }
 
@@ -252,7 +252,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     let c_words: Vec<*const core::ffi::c_char> =
         words.iter().map(|word| word.as_ptr() as _).collect();
 
-    let (select_word_cb, select_word_cb_param) = match params.select_word_cb {
+    let (select_word_cb, select_word_user_data) = match params.select_word_cb {
         None => (None, core::ptr::null_mut()),
         Some(cb) => (
             Some(c_select_word_cb as _),
@@ -260,7 +260,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
         ),
     };
 
-    let (continue_on_last_cb, continue_on_last_cb_param) = match params.continue_on_last_cb {
+    let (continue_on_last_cb, continue_on_last_user_data) = match params.continue_on_last_cb {
         None => (None, core::ptr::null_mut()),
         Some(cb) => (
             Some(c_continue_cancel_cb as _),
@@ -268,7 +268,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
         ),
     };
 
-    let (cancel_cb, cancel_cb_param) = match params.cancel_cb {
+    let (cancel_cb, cancel_user_data) = match params.cancel_cb {
         None => (None, core::ptr::null_mut()),
         Some(cb) => (
             Some(c_continue_cancel_cb as _),
@@ -282,16 +282,16 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
         bitbox02_sys::menu_create(
             c_words.as_ptr(),
             select_word_cb,
-            select_word_cb_param,
+            select_word_user_data,
             words.len() as _,
             // copied in C
             title
                 .as_ref()
                 .map_or_else(core::ptr::null, |title| title.as_ptr()),
             continue_on_last_cb,
-            continue_on_last_cb_param,
+            continue_on_last_user_data,
             cancel_cb,
-            cancel_cb_param,
+            cancel_user_data,
             core::ptr::null_mut(),
         )
     };
@@ -300,16 +300,16 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
         is_pushed: false,
         on_drop: Some(Box::new(move || unsafe {
             // Drop all callbacks.
-            if !select_word_cb_param.is_null() {
-                drop(Box::from_raw(select_word_cb_param as *mut SelectWordCb));
+            if !select_word_user_data.is_null() {
+                drop(Box::from_raw(select_word_user_data as *mut SelectWordCb));
             }
-            if !continue_on_last_cb_param.is_null() {
+            if !continue_on_last_user_data.is_null() {
                 drop(Box::from_raw(
-                    continue_on_last_cb_param as *mut ContinueCancelCb,
+                    continue_on_last_user_data as *mut ContinueCancelCb,
                 ));
             }
-            if !cancel_cb_param.is_null() {
-                drop(Box::from_raw(cancel_cb_param as *mut ContinueCancelCb));
+            if !cancel_user_data.is_null() {
+                drop(Box::from_raw(cancel_user_data as *mut ContinueCancelCb));
             }
         })),
         _p: PhantomData,
@@ -323,12 +323,12 @@ pub fn trinary_choice_create<'a>(
     label_right: Option<&'a str>,
     chosen_callback: TrinaryChoiceCb,
 ) -> Component<'a> {
-    unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, param: *mut c_void) {
-        let callback = param as *mut TrinaryChoiceCb;
+    unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, user_data: *mut c_void) {
+        let callback = user_data as *mut TrinaryChoiceCb;
         unsafe { (*callback)(choice) };
     }
 
-    let chosen_cb_param = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
+    let chosen_user_data = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
 
     let label_left = label_left.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
     let label_middle = label_middle.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
@@ -350,7 +350,7 @@ pub fn trinary_choice_create<'a>(
                 .as_ref()
                 .map_or_else(core::ptr::null, |label| label.as_ptr()),
             Some(c_chosen_cb as _),
-            chosen_cb_param,
+            chosen_user_data,
             core::ptr::null_mut(), // parent component, there is no parent.
         )
     };
@@ -359,7 +359,7 @@ pub fn trinary_choice_create<'a>(
         is_pushed: false,
         on_drop: Some(Box::new(move || unsafe {
             // Drop all callbacks.
-            drop(Box::from_raw(chosen_cb_param as *mut TrinaryChoiceCb));
+            drop(Box::from_raw(chosen_user_data as *mut TrinaryChoiceCb));
         })),
         _p: PhantomData,
     }
@@ -370,18 +370,18 @@ pub fn confirm_transaction_address_create<'a, 'b>(
     address: &'a str,
     callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
-    unsafe extern "C" fn c_callback(result: bool, param: *mut c_void) {
-        let callback = param as *mut AcceptRejectCb;
+    unsafe extern "C" fn c_callback(result: bool, user_data: *mut c_void) {
+        let callback = user_data as *mut AcceptRejectCb;
         unsafe { (*callback)(result) };
     }
 
-    let callback_param = Box::into_raw(Box::new(callback)) as *mut c_void;
+    let user_data = Box::into_raw(Box::new(callback)) as *mut c_void;
     let component = unsafe {
         bitbox02_sys::confirm_transaction_address_create(
             crate::util::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
             crate::util::str_to_cstr_vec(address).unwrap().as_ptr(), // copied in C
             Some(c_callback as _),
-            callback_param,
+            user_data,
         )
     };
     Component {
@@ -389,7 +389,7 @@ pub fn confirm_transaction_address_create<'a, 'b>(
         is_pushed: false,
         on_drop: Some(Box::new(move || unsafe {
             // Drop all callbacks.
-            drop(Box::from_raw(callback_param as *mut AcceptRejectCb));
+            drop(Box::from_raw(user_data as *mut AcceptRejectCb));
         })),
         _p: PhantomData,
     }
@@ -401,19 +401,19 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
     longtouch: bool,
     callback: AcceptRejectCb<'b>,
 ) -> Component<'b> {
-    unsafe extern "C" fn c_callback(result: bool, param: *mut c_void) {
-        let callback = param as *mut AcceptRejectCb;
+    unsafe extern "C" fn c_callback(result: bool, user_data: *mut c_void) {
+        let callback = user_data as *mut AcceptRejectCb;
         unsafe { (*callback)(result) };
     }
 
-    let callback_param = Box::into_raw(Box::new(callback)) as *mut c_void;
+    let user_data = Box::into_raw(Box::new(callback)) as *mut c_void;
     let component = unsafe {
         bitbox02_sys::confirm_transaction_fee_create(
             crate::util::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
             crate::util::str_to_cstr_vec(fee).unwrap().as_ptr(),    // copied in C
             longtouch,
             Some(c_callback as _),
-            callback_param,
+            user_data,
         )
     };
     Component {
@@ -421,7 +421,7 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
         is_pushed: false,
         on_drop: Some(Box::new(move || unsafe {
             // Drop all callbacks.
-            drop(Box::from_raw(callback_param as *mut AcceptRejectCb));
+            drop(Box::from_raw(user_data as *mut AcceptRejectCb));
         })),
         _p: PhantomData,
     }

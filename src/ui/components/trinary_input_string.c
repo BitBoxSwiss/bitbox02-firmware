@@ -72,10 +72,10 @@ typedef struct {
     bool hide;
     // use hold gesture vs. simple tap to confirm.
     bool longtouch;
-    void (*confirm_cb)(const char* string, void* param);
-    void* confirm_callback_param;
-    void (*cancel_cb)(void* param);
-    void* cancel_callback_param;
+    void (*confirm_cb)(const char* string, void* confirm_user_data);
+    void* confirm_user_data;
+    void (*cancel_cb)(void* cancel_user_data);
+    void* cancel_user_data;
 
     // Internals follow.
 
@@ -343,7 +343,7 @@ static void _on_event(const event_t* event, component_t* component)
 
     if (event->id == EVENT_CONFIRM && data->can_confirm) {
         if (data->confirm_cb) {
-            data->confirm_cb(data->string, data->confirm_callback_param);
+            data->confirm_cb(data->string, data->confirm_user_data);
             data->confirm_cb = NULL;
         }
         return;
@@ -366,7 +366,7 @@ static void _on_event(const event_t* event, component_t* component)
         if (data->string_index == 0) {
             // Back button is cancel.
             if (data->cancel_cb != NULL) {
-                data->cancel_cb(data->cancel_callback_param);
+                data->cancel_cb(data->cancel_user_data);
             }
             return;
         }
@@ -394,7 +394,7 @@ static void _cancel(component_t* cancel_button)
     component_t* component = cancel_button->parent;
     data_t* data = (data_t*)component->data;
     if (data->cancel_cb != NULL) {
-        data->cancel_cb(data->cancel_callback_param);
+        data->cancel_cb(data->cancel_user_data);
     }
 }
 
@@ -435,10 +435,10 @@ static const component_functions_t component_functions = {
 
 component_t* trinary_input_string_create(
     const trinary_input_string_params_t* params,
-    void (*confirm_cb)(const char* input, void* param),
-    void* confirm_callback_param,
-    void (*cancel_cb)(void* param),
-    void* cancel_callback_param)
+    void (*confirm_cb)(const char* input, void* confirm_user_data),
+    void* confirm_user_data,
+    void (*cancel_cb)(void* cancel_user_data),
+    void* cancel_user_data)
 {
     component_t* component = malloc(sizeof(component_t));
     if (!component) {
@@ -456,9 +456,9 @@ component_t* trinary_input_string_create(
     }
 
     data->confirm_cb = confirm_cb;
-    data->confirm_callback_param = confirm_callback_param;
+    data->confirm_user_data = confirm_user_data;
     data->cancel_cb = cancel_cb;
-    data->cancel_callback_param = cancel_callback_param;
+    data->cancel_user_data = cancel_user_data;
     data->wordlist = params->wordlist;
     data->wordlist_size = params->wordlist_size;
     data->number_input = params->number_input;

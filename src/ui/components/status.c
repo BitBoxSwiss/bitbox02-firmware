@@ -26,8 +26,8 @@
 typedef struct {
     bool status;
     int counter;
-    void (*callback)(void*);
-    void* callback_param;
+    void (*callback)(void* user_data);
+    void* user_data;
 } status_data_t;
 
 static void _render(component_t* component)
@@ -41,7 +41,7 @@ static void _render(component_t* component)
     }
     if (data->callback != NULL) {
         if (data->counter == STATUS_DEFAULT_DELAY) {
-            data->callback(data->callback_param);
+            data->callback(data->user_data);
             data->callback = NULL;
             data->counter = 0;
         }
@@ -63,8 +63,8 @@ static const component_functions_t _component_functions = {
 component_t* status_create(
     const char* text,
     bool status_success,
-    void (*callback)(void*),
-    void* callback_param)
+    void (*callback)(void* user_data),
+    void* user_data)
 {
     component_t* status = malloc(sizeof(component_t));
     if (!status) {
@@ -79,7 +79,7 @@ component_t* status_create(
 
     data->status = status_success;
     data->callback = callback;
-    data->callback_param = callback_param;
+    data->user_data = user_data;
     status->data = data;
     status->f = &_component_functions;
     status->dimension.width = SCREEN_WIDTH;

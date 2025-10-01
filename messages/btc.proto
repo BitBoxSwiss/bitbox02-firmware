@@ -175,6 +175,7 @@ enum BTCOutputType {
   P2WPKH = 3;
   P2WSH = 4;
   P2TR = 5;
+  OP_RETURN = 6;
 }
 
 message BTCSignOutputRequest {

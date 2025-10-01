@@ -23,6 +23,7 @@
 #include <touch/gestures.h>
 #include <ui/ui_util.h>
 #include <util.h>
+#include <utils_assert.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,9 +32,9 @@
 #define SCALE 6 // Divide active_count by scale to slow down motion
 
 typedef struct {
-    bool active_top; // Marker is 'active', i.e., touched
-    bool active_bottom; // Marker is 'active', i.e., touched
-    bool confirmed; // Confirm event occurred
+    bool gesture_active; // Marker is 'active', i.e., touched.
+    bool active[2]; // Slider is active
+    bool confirmed; // Confirm callback called
     uint16_t active_count; // Start at an offset to allow movement on first touch
     uint16_t bottom_arrow_slidein; // from zero to arrow height * SCALE
     void (*callback)(void* user_data);
@@ -43,7 +44,7 @@ typedef struct {
 bool confirm_gesture_is_active(component_t* component)
 {
     confirm_data_t* data = (confirm_data_t*)component->data;
-    return data->active_top;
+    return data->gesture_active;
 }
 
 /**
@@ -57,19 +58,22 @@ static void _render(component_t* component)
     confirm_data_t* data = (confirm_data_t*)component->data;
 
     // Update active_count
-    if (data->active_top && data->active_bottom) {
+    if (data->active[0] && data->active[1]) {
         data->active_count++;
+        data->gesture_active = true;
     } else {
         data->active_count = MAX(SCALE - 1, data->active_count - SCALE);
     }
 
-    // Update bottom arrow slidein
-    if (data->active_top) {
+    // Update bottom arrow slidein if top is active
+    if (data->active[top_slider]) {
         if (data->bottom_arrow_slidein < arrow_height * SCALE) {
             data->bottom_arrow_slidein++;
         }
     } else if (data->bottom_arrow_slidein > 0) {
         data->bottom_arrow_slidein--;
+    } else if (data->bottom_arrow_slidein == 0) {
+        data->gesture_active = false;
     }
 
     // Draw the top arrow
@@ -101,31 +105,18 @@ static void _render(component_t* component)
 static void _on_event(const event_t* event, component_t* component)
 {
     confirm_data_t* data = (confirm_data_t*)component->data;
+    ASSERT(event->data.source < sizeof(data->active));
 
     switch (event->id) {
-    case EVENT_SLIDE_RELEASED:
-        if (event->data.source == top_slider) {
-            data->active_top = false;
-        } else {
-            data->active_bottom = false;
-        }
-        break;
     case EVENT_CONTINUOUS_TAP:
         if (event->data.position > SLIDER_POSITION_TWO_THIRD &&
             event->data.position <= MAX_SLIDER_POS) {
-            if (event->data.source == top_slider) {
-                data->active_top = true;
-            } else {
-                data->active_bottom = true;
-            }
+            data->active[event->data.source] = true;
         }
         break;
+    case EVENT_SLIDE_RELEASED:
     case EVENT_SHORT_TAP:
-        if (event->data.source == top_slider) {
-            data->active_top = false;
-        } else {
-            data->active_bottom = false;
-        }
+        data->active[event->data.source] = false;
         break;
     default:
         break;
@@ -155,8 +146,9 @@ component_t* confirm_gesture_create(void (*callback)(void*), void* user_data)
         Abort("Error: malloc confirm_gesture data");
     }
     memset(data, 0, sizeof(confirm_data_t));
-    data->active_top = false;
-    data->active_bottom = false;
+    data->gesture_active = false;
+    data->active[0] = false;
+    data->active[1] = false;
     data->confirmed = false;
     data->active_count = SCALE - 1;
     data->bottom_arrow_slidein = 0;

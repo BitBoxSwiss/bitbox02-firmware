@@ -31,6 +31,7 @@ enum {
     EVENT_CONTINUOUS_TAP,
     EVENT_LONG_TAP,
     EVENT_SHORT_TAP,
+    EVENT_ENUM_MAX, // MAX must always be last, indicates the number of items in the enumration
 };
 
 typedef struct {

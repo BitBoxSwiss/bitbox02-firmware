@@ -216,11 +216,6 @@ static void _render(component_t* component)
         UG_PutString(0, STRING_POS_Y, "...", false);
     }
 
-    // Render sub-components
-    if (data->can_confirm) {
-        data->confirm_component->f->render(data->confirm_component);
-    }
-
     // Do not process events for components which are not rendered.
     data->trinary_char_component->disabled = true;
     data->left_arrow_component->disabled = true;
@@ -244,6 +239,12 @@ static void _render(component_t* component)
     }
     if (data->title_on_top || show_title) {
         data->title_component->f->render(data->title_component);
+    }
+
+    // Render confirm button or gesture (render confirm gesture last so that bottom triangle is
+    // above keyboard)
+    if (data->can_confirm) {
+        data->confirm_component->f->render(data->confirm_component);
     }
 }
 

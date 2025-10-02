@@ -68,6 +68,17 @@ pub trait Workflows {
         label_middle: Option<&str>,
         label_right: Option<&str>,
     ) -> trinary_choice::TrinaryChoice;
+
+    /// Display the BIP39 mnemonic to the user.
+    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error>;
+
+    /// Display these BIP39 mnemonic word choices to the user as part of the quiz to confirm the
+    /// user backuped up the mnemonic correctly.
+    async fn quiz_mnemonic_word(
+        &mut self,
+        choices: &[&str],
+        title: &str,
+    ) -> Result<u8, cancel::Error>;
 }
 
 pub struct RealWorkflows;
@@ -131,5 +142,17 @@ impl Workflows for RealWorkflows {
         label_right: Option<&str>,
     ) -> trinary_choice::TrinaryChoice {
         trinary_choice::choose(message, label_left, label_middle, label_right).await
+    }
+
+    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {
+        mnemonic::show_mnemonic(words).await
+    }
+
+    async fn quiz_mnemonic_word(
+        &mut self,
+        choices: &[&str],
+        title: &str,
+    ) -> Result<u8, cancel::Error> {
+        mnemonic::confirm_word(choices, title).await
     }
 }

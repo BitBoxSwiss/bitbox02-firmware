@@ -77,7 +77,7 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
 }
 
 /// Displays all mnemonic words in a scroll-through screen.
-async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
+pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
     let result = RefCell::new(None);
     let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
         words,
@@ -94,7 +94,7 @@ async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
 }
 
 /// Displays the `choices` to the user, returning the index of the selected choice.
-async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
+pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
     let result = RefCell::new(None);
     let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
         words: choices,
@@ -125,7 +125,7 @@ pub async fn show_and_confirm_mnemonic(
         .map_err(|_| CancelError::Cancelled)?;
 
     // Part 1) Scroll through words
-    show_mnemonic(words).await?;
+    hal.ui().show_mnemonic(words).await?;
 
     // Can only succeed due to `accept_only`.
     let _ = hal
@@ -147,9 +147,9 @@ pub async fn show_and_confirm_mnemonic(
         choices.push("Back to\nrecovery words");
         let back_idx = (choices.len() - 1) as u8;
         loop {
-            match confirm_word(&choices, &title).await? {
+            match hal.ui().quiz_mnemonic_word(&choices, &title).await? {
                 selected_idx if selected_idx == correct_idx => break,
-                selected_idx if selected_idx == back_idx => show_mnemonic(words).await?,
+                selected_idx if selected_idx == back_idx => hal.ui().show_mnemonic(words).await?,
                 _ => hal.ui().status("Incorrect word\nTry again", false).await,
             }
         }

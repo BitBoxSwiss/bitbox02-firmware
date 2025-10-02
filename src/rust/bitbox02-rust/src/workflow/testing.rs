@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{Workflows, confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string};
+use super::{
+    Workflows, cancel, confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string,
+};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -153,6 +155,18 @@ impl Workflows for TestingWorkflows<'_> {
         _label_middle: Option<&str>,
         _label_right: Option<&str>,
     ) -> trinary_choice::TrinaryChoice {
+        todo!("not used in unit tests yet");
+    }
+
+    async fn show_mnemonic(&mut self, _words: &[&str]) -> Result<(), cancel::Error> {
+        todo!("not used in unit tests yet");
+    }
+
+    async fn quiz_mnemonic_word(
+        &mut self,
+        _choices: &[&str],
+        _title: &str,
+    ) -> Result<u8, cancel::Error> {
         todo!("not used in unit tests yet");
     }
 }

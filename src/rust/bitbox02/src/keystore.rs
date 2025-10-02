@@ -466,15 +466,18 @@ mod tests {
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         lock();
 
+        // First call: unlock. The first one does a seed rentention (1 securechip event).
+        crate::securechip::fake_event_counter_reset();
+        assert!(unlock("password").is_ok());
+        assert_eq!(crate::securechip::fake_event_counter(), 6);
+
         // Loop to check that unlocking works while unlocked.
-        for _ in 0..3 {
-            // First call: unlock Further calls perform a password check. The first onedoes a seed
-            // rentention (1 securechip event). The password check does not do the rentention but a
-            // copy_seed() instead to check the seed, so they end up hacing the same number of
-            // events.crate::securechip::fake_event_counter_reset();
+        for _ in 0..2 {
+            // Further calls perform a password check.The password check does not do the retention
+            // so it ends up needing one secure chip operation less.
             crate::securechip::fake_event_counter_reset();
             assert!(unlock("password").is_ok());
-            assert_eq!(crate::securechip::fake_event_counter(), 6);
+            assert_eq!(crate::securechip::fake_event_counter(), 5);
         }
 
         // Also check that the retained seed was encrypted with the expected encryption key.

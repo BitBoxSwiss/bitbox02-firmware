@@ -18,19 +18,15 @@ Support: Visit http://www.microchip.com/support/hottopics.aspx
 Copyright (c) 2017 Microchip. All rights reserved.
 ------------------------------------------------------------------------------
 ============================================================================*/
-
 #ifndef TOUCH_C
 #define TOUCH_C
 /*----------------------------------------------------------------------------
  *     include files
  *----------------------------------------------------------------------------*/
 
+#include <platform/driver_init.h>
+
 #include "qtouch.h"
-#include "license.h"
-#include "touch_api_ptc.h"
-#include "util.h"
-#include <driver_init.h>
-#include <platform_config.h>
 
 /*----------------------------------------------------------------------------
  *   prototypes
@@ -50,7 +46,7 @@ static void qtm_error_callback(uint8_t error);
 
 /* Update our scroller implementation
  */
-void qtouch_process_scroller_positions(void);
+void qtouch_process_scroller_positions(scroller_control_t* scrollers);
 
 /*----------------------------------------------------------------------------
  *     Global Variables
@@ -99,17 +95,6 @@ qtm_acquisition_control_t qtlib_acq_set1 = {
     &ptc_seq_node_cfg1[0],
     &ptc_qtlib_node_stat1[0]};
 
-/* Stores recent unfiltered scroller positions for custom filter */
-__extension__ static uint16_t scroller_previous_position[][DEF_SCROLLER_NUM_PREV_POS] = {
-    [0 ...(DEF_NUM_SCROLLERS - 1)][0 ...(DEF_SCROLLER_NUM_PREV_POS - 1)] = 0};
-
-/* Current scroller position consisting of a moving-average of preceding positions for custom filter
- */
-__extension__ static uint16_t scroller_position[] = {[0 ...(DEF_NUM_SCROLLERS - 1)] = 0};
-
-/* Whether or not scroller reading exceeds threshold for custom filter */
-__extension__ static bool scroller_active[DEF_NUM_SCROLLERS] = {[0 ...(DEF_NUM_SCROLLERS - 1)] = 0};
-
 /**********************************************************/
 /*********************** Keys Module **********************/
 /**********************************************************/
@@ -141,6 +126,7 @@ qtm_touch_key_config_t qtlib_key_configs_set1[DEF_NUM_SENSORS] = {
     KEY_5_PARAMS,
     KEY_6_PARAMS,
     KEY_7_PARAMS};
+
 /* Container */
 qtm_touch_key_control_t qtlib_key_set1 = {
     &qtlib_key_grp_data_set1,
@@ -160,6 +146,36 @@ qtm_touch_key_control_t qtlib_key_set1 = {
  * fast responsiveness.
  */
 
+/* Holds preceding touch key deltas (signal - reference) */
+__extension__ int16_t scroller_deltas[DEF_NUM_SENSORS] = {0};
+
+scroller_config_t scroller_config[2] = {
+    [0] =
+        {DEF_SCROLLER_OFFSET_0,
+         DEF_SCROLLER_NUM_CHANNELS,
+         DEF_SCROLLER_RESOLUTION,
+         DEF_SCROLLER_TOUCH_THRESHOLD,
+         DEF_SCROLLER_UNTOUCH_THRESHOLD,
+         DEF_SCROLLER_DEADBAND,
+         DEF_SCROLLER_HYSTERESIS,
+         DEF_SCROLLER_TOUCH_DRIFT_IN},
+    [1] =
+        {DEF_SCROLLER_OFFSET_1,
+         DEF_SCROLLER_NUM_CHANNELS,
+         DEF_SCROLLER_RESOLUTION,
+         DEF_SCROLLER_TOUCH_THRESHOLD,
+         DEF_SCROLLER_UNTOUCH_THRESHOLD,
+         DEF_SCROLLER_DEADBAND,
+         DEF_SCROLLER_HYSTERESIS,
+         DEF_SCROLLER_TOUCH_DRIFT_IN},
+};
+scroller_data_t scroller_data[2] = {0};
+
+scroller_control_t scroller_control[2] = {
+    [0] = {&scroller_config[0], &scroller_data[0]},
+    [1] = {&scroller_config[1], &scroller_data[1]},
+};
+
 /*============================================================================
 static touch_ret_t touch_sensors_config(void)
 ------------------------------------------------------------------------------
@@ -168,8 +184,8 @@ Input  : none
 Output : none
 Notes  :
 ============================================================================*/
-/* Touch sensors config - assign nodes to buttons / wheels / sliders / surfaces / water level / etc
- */
+/* Touch sensors config - assign nodes to buttons / wheels / sliders / surfaces
+ * / water level / etc */
 static touch_ret_t touch_sensors_config(void)
 {
     uint16_t sensor_nodes;
@@ -182,14 +198,14 @@ static touch_ret_t touch_sensors_config(void)
     qtm_ptc_qtlib_assign_signal_memory(&touch_acq_signals_raw[0]);
 
     /* Initialize sensor nodes */
-    for (sensor_nodes = 0U; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
+    for (sensor_nodes = 0u; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
         /* Enable each node for measurement and mark for calibration */
         qtm_enable_sensor_node(&qtlib_acq_set1, sensor_nodes);
         qtm_calibrate_sensor_node(&qtlib_acq_set1, sensor_nodes);
     }
 
     /* Enable sensor keys and assign nodes */
-    for (sensor_nodes = 0U; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
+    for (sensor_nodes = 0u; sensor_nodes < DEF_NUM_CHANNELS; sensor_nodes++) {
         qtm_init_sensor_key(&qtlib_key_set1, sensor_nodes, &ptc_qtlib_node_stat1[sensor_nodes]);
     }
     return (touch_ret);
@@ -198,7 +214,7 @@ static touch_ret_t touch_sensors_config(void)
 /*============================================================================
 static void qtm_measure_complete_callback( void )
 ------------------------------------------------------------------------------
-Purpose: Callback function from binding layer called after the completion of
+Purpose: this function is called after the completion of
          measurement cycle. This function sets the post processing request
          flag to trigger the post processing.
 Input  : none
@@ -218,10 +234,10 @@ Input  : error code
 Output : decoded module error code
 Notes  :
 Derived Module_error_codes:
-        Acquisition module error =1
-        post processing module1 error = 2
-        post processing module2 error = 3
-        ... and so on
+    Acquisition module error =1
+    post processing module1 error = 2
+    post processing module2 error = 3
+    ... and so on
 
 ============================================================================*/
 static void qtm_error_callback(uint8_t error)
@@ -229,10 +245,24 @@ static void qtm_error_callback(uint8_t error)
     module_error_code = error + 1u;
 }
 
+static void scroller_init(void)
+{
+    for (int i = 0; i < DEF_NUM_SCROLLERS; i++) {
+        scroller_config_t* config = scroller_control[i].config;
+        scroller_data_t* data = scroller_control[i].data;
+        data->deltas = &scroller_deltas[config->start_key];
+        data->hyst_left = config->hysteresis / 2;
+        data->hyst_right = config->hysteresis / 2;
+        data->position = 0;
+        data->raw_position = 0;
+        data->touch_area = 0;
+    }
+}
+
 /*============================================================================
-void qtouch_init(void)
+void touch_init(void)
 ------------------------------------------------------------------------------
-Purpose: Initialization of touch library. PTC, timer, binding layer and
+Purpose: Initialization of touch library. PTC, timer, and
          datastreamer modules are initialized in this function.
 Input  : none
 Output : none
@@ -244,10 +274,13 @@ void qtouch_init(void)
 
     /* Configure touch sensors with Application specific settings */
     touch_sensors_config();
+
+    /* Configure scrollers */
+    scroller_init();
 }
 
 /*============================================================================
-void qtouch_process(void)
+void touch_process(void)
 ------------------------------------------------------------------------------
 Purpose: Main processing function of touch library. This function initiates the
          acquisition, calls post processing after the acquistion complete and
@@ -287,7 +320,7 @@ void qtouch_process(void)
             if (TOUCH_SUCCESS != touch_ret) {
                 qtm_error_callback(1);
             }
-            qtouch_process_scroller_positions();
+            qtouch_process_scroller_positions(scroller_control);
         } else {
             /* Acq module Eror Detected: Issue an Acq module common error code 0x80 */
             qtm_error_callback(0);
@@ -302,7 +335,7 @@ void qtouch_process(void)
 }
 
 /*============================================================================
-void qtouch_timer_handler(void)
+void touch_timer_handler(void)
 ------------------------------------------------------------------------------
 Purpose: This function updates the time elapsed to the touch key module to
          synchronize the internal time counts used by the module.
@@ -317,7 +350,7 @@ void qtouch_timer_handler(void)
     qtm_update_qtlib_timer(DEF_TOUCH_MEASUREMENT_PERIOD_MS);
 }
 
-static void qtouch_timer_task_cb(const struct timer_task* const timer_task)
+static void Timer_task_cb(const struct timer_task* const timer_task)
 {
     (void)timer_task;
     qtouch_timer_handler();
@@ -332,11 +365,12 @@ void qtouch_timer_config(void)
         timer_remove_task(&TIMER_0, &Timer_task);
     }
     Timer_task.interval = DEF_TOUCH_MEASUREMENT_PERIOD_MS;
-    Timer_task.cb = qtouch_timer_task_cb;
+    Timer_task.cb = Timer_task_cb;
     Timer_task.mode = TIMER_TASK_REPEAT;
 
     timer_add_task(&TIMER_0, &Timer_task);
     timer_task_added = 1;
+    timer_start(&TIMER_0);
 }
 
 uint16_t qtouch_get_sensor_node_signal(uint16_t sensor_node)
@@ -348,6 +382,7 @@ void qtouch_update_sensor_node_signal(uint16_t sensor_node, uint16_t new_signal)
 {
     ptc_qtlib_node_stat1[sensor_node].node_acq_signals = new_signal;
 }
+
 uint16_t qtouch_get_sensor_node_reference(uint16_t sensor_node)
 {
     return (qtlib_key_data_set1[sensor_node].channel_reference);
@@ -378,153 +413,179 @@ void qtouch_update_sensor_state(uint16_t sensor_node, uint8_t new_state)
     qtlib_key_set1.qtm_touch_key_data[sensor_node].sensor_state = new_state;
 }
 
-/* Holds preceding unfiltered scroller positions */
-static uint16_t sensor_previous_filtered_reading[DEF_NUM_SENSORS][DEF_SENSOR_NUM_PREV_POS] = {0};
-
-uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node)
-{
-    // Filter the sensor signal.
-    //
-    // Smooth it out and saturate it so that values never go beyond DEF_SENSOR_CEILING.
-    // This helps to mitigate 'jumpy' channels that exist at higher sensor readings when
-    // in noisy environments.
-    //
-    uint16_t X;
-    uint16_t sensor_raw = qtouch_get_sensor_node_signal(sensor_node);
-    uint16_t sensor_reference = qtouch_get_sensor_node_reference(sensor_node);
-
-    if (sensor_reference == 0) {
-        // If a sensor reference is 0, it means that the sensor is not yet calibrated (or dead).
-        // The signal can be high anyway, which makes it look like the sensor is being touched when
-        // it isn't.
-        return 0;
-    }
-    X = sensor_raw < sensor_reference ? 0 : sensor_raw - sensor_reference;
-    // Add more weight to edge buttons because they are physically smaller (smaller readings).
-    if ((sensor_node == DEF_SCROLLER_OFFSET_0) || (sensor_node == DEF_SCROLLER_OFFSET_1) ||
-        (sensor_node == DEF_SCROLLER_OFFSET_0 + DEF_SCROLLER_NUM_CHANNELS - 1) ||
-        (sensor_node == DEF_SCROLLER_OFFSET_1 + DEF_SCROLLER_NUM_CHANNELS - 1)) {
-        X = (uint16_t)((double)X * (1 + DEF_SENSOR_EDGE_WEIGHT));
-    }
-    // Saturate out-of-range readings.
-    X = (X > DEF_SENSOR_CEILING) ? DEF_SENSOR_CEILING : X;
-
-    // Calculate sensor readout using a moving average
-    // The moving average wieghts previous N readings twice current reading
-    uint16_t moving_average_cummulative_weight = 1; // Add one for current reading calculated above
-    uint16_t X_ave = X;
-    for (size_t j = 0; j < DEF_SENSOR_NUM_PREV_POS; j++) {
-        moving_average_cummulative_weight += 2;
-        X_ave += sensor_previous_filtered_reading[sensor_node][j] * 2;
-    }
-    X_ave = X_ave / moving_average_cummulative_weight;
-
-    // Update recorded previous positions
-    for (size_t j = 0; j < DEF_SENSOR_NUM_PREV_POS - 1; j++) {
-        sensor_previous_filtered_reading[sensor_node][j] =
-            sensor_previous_filtered_reading[sensor_node][j + 1];
-    }
-    sensor_previous_filtered_reading[sensor_node][DEF_SENSOR_NUM_PREV_POS - 1] = X;
-
-    return X_ave;
-}
-
 bool qtouch_is_scroller_active(uint16_t scroller)
 {
-    return scroller_active[scroller];
+    return scroller_control[scroller].data->active;
+}
+uint16_t qtouch_get_scroller_position(uint16_t scroller)
+{
+    return scroller_control[scroller].data->position;
 }
 
-uint16_t qtouch_get_scroller_position(uint16_t sensor_node)
+// EMA is applied to the node readings to filter out noise. Fixed point is used to make it
+// less resource intense than floating points.
+//
+// Exponential Moving Average with N=3, ALPHA=2/(N+1)
+#define Q_FACTOR 1024
+#define ALPHA 512
+#define ONE_MINUS_ALPHA (Q_FACTOR - ALPHA)
+
+void qtouch_process_scroller_positions(scroller_control_t* scrollers)
 {
-    return scroller_position[sensor_node];
-}
+    scroller_control_t* scroller;
+    scroller_control_t* scrollers_end = scrollers + DEF_NUM_SCROLLERS;
+    for (scroller = scrollers; scroller < scrollers_end; scroller++) {
+        scroller_config_t* config = scroller->config;
+        scroller_data_t* data = scroller->data;
+        int node_max = -1;
+        int16_t node_max_value = INT16_MIN;
+        data->touch_area = 0;
+        bool key_active = 0;
+        bool scroller_active = data->active;
 
-void qtouch_process_scroller_positions(void)
-{
-    for (uint8_t scroller = 0; scroller < DEF_NUM_SCROLLERS; scroller++) {
-        uint8_t i, j;
-        uint16_t sum = 0;
-        uint16_t max_sensor_reading = 0;
-        uint16_t min_sensor_reading = DEF_SENSOR_CEILING;
-        uint16_t weighted_sum = 0;
-        uint16_t filtered_readings[DEF_SCROLLER_NUM_CHANNELS] = {0};
-        uint16_t sensor_location[DEF_SCROLLER_NUM_CHANNELS] = {
-            1, // Offset by `1` because a `0` location cannot be weight-averaged
-            DEF_SCROLLER_RESOLUTION / 3,
-            DEF_SCROLLER_RESOLUTION / 3 * 2,
-            DEF_SCROLLER_RESOLUTION};
+        for (int i = 0; i < config->number_of_keys; i++) {
+            uint8_t node = config->start_key + i;
+            int32_t delta = max(
+                0, qtouch_get_sensor_node_signal(node) - qtouch_get_sensor_node_reference(node));
 
-        for (i = 0; i < DEF_SCROLLER_NUM_CHANNELS; i++) {
-            filtered_readings[i] = qtouch_get_sensor_node_signal_filtered(
-                i + (scroller ? DEF_SCROLLER_OFFSET_1 : DEF_SCROLLER_OFFSET_0));
-            min_sensor_reading = (filtered_readings[i] < min_sensor_reading) ? filtered_readings[i]
-                                                                             : min_sensor_reading;
-            max_sensor_reading = (filtered_readings[i] > max_sensor_reading) ? filtered_readings[i]
-                                                                             : max_sensor_reading;
-        }
+            // Ignore small deltas
+            delta = delta < 4 ? 0 : delta;
 
-        // Read filterd data and weight by sensor physical location
-        // Reduce the value by the min_sensor_reading to improve positional accuracy.
-        // Touch position is calculated with a weighted average of the sensor readings.
-        // If properly calibrated, sensors on the opposite end of a finger touch would
-        // be zero and thus make no contribution to the weighted average. If the baseline
-        // sensor readings are elevated, the sensors on the opposite edge DO contribute
-        // to the weighted average making a positional artifact (i.e. the position is more
-        // central than it should be in reality). This artifact is higher when the finger
-        // is a bit distant while approaching and lower/negligible when the finger is
-        // fully touching the device. This can cause the position to move enough to enter
-        // "slide" mode and disable "tap" events being emitted.
-        for (i = 0; i < DEF_SCROLLER_NUM_CHANNELS; i++) {
-            sum += filtered_readings[i] - min_sensor_reading;
-            weighted_sum += (filtered_readings[i] - min_sensor_reading) * sensor_location[i];
-        }
+            // Some node readings have a max amplitude that is approximately 50% lower than the
+            // highest reading nodes. For the slider position to be accurately estimated the
+            // amplitudes need to have similar max amplitudes.
 
-        // Compensate for deadband (i.e. when only a single edge button gives a reading and
-        // neighbors do not)
-        uint16_t scaled_value = weighted_sum / sum;
-        scaled_value =
-            (scaled_value < DEF_SCROLLER_DEADBAND) ? DEF_SCROLLER_DEADBAND : (weighted_sum / sum);
-        scaled_value = (scaled_value > (DEF_SCROLLER_RESOLUTION - DEF_SCROLLER_DEADBAND))
-                           ? (DEF_SCROLLER_RESOLUTION - DEF_SCROLLER_DEADBAND)
-                           : scaled_value;
-        scaled_value = ((scaled_value - DEF_SCROLLER_DEADBAND) * (DEF_SCROLLER_RESOLUTION - 1)) /
-                       (DEF_SCROLLER_RESOLUTION - 2 * DEF_SCROLLER_DEADBAND);
-
-        // Calculate scroller position using a moving average
-        // The moving average wieghts previous N readings twice current reading
-        if (sum >= DEF_SCROLLER_DET_THRESHOLD) {
-            uint16_t moving_average_cummulative_weight = 0;
-            scroller_position[scroller] = 0;
-            for (j = 0; j < DEF_SCROLLER_NUM_PREV_POS; j++) {
-                if (scroller_previous_position[scroller][j] != DEF_SCROLLER_OFF) {
-                    moving_average_cummulative_weight += 2;
-                    scroller_position[scroller] += scroller_previous_position[scroller][j] * 2;
-                }
+            // Increase some nodes with 50%
+            if (node == 1 || node == 3 || node == 4 || node == 5 || node == 7) {
+                delta += delta >> 1;
             }
-            scroller_position[scroller] +=
-                scaled_value; // Most recent signal is half weight of others to help avoid bounce
-                              // when finger is released
-            scroller_position[scroller] =
-                scroller_position[scroller] / (moving_average_cummulative_weight + 1);
+            // Increase some nodes with 25%
+            if (node == 0 || node == 5 || node == 6) {
+                delta += delta >> 2;
+            }
+
+            // Apply EMA
+            delta = (delta * ALPHA + data->deltas[i] * ONE_MINUS_ALPHA) / Q_FACTOR;
+
+            data->deltas[i] = delta;
+
+            // If any key is in touch, the scroller is considered in touch
+            if (qtouch_get_sensor_state(node) == QTM_KEY_STATE_DETECT) {
+                key_active = 1;
+            }
+
+            // Find the node with the highest signal to determine how to calculate touch area.
+            if (data->deltas[i] > node_max_value) {
+                node_max = i;
+                node_max_value = data->deltas[i];
+            }
         }
 
-        // Update recorded previous positions and scroller active state
-        for (j = 0; j < DEF_SCROLLER_NUM_PREV_POS - 1; j++) {
-            scroller_previous_position[scroller][j] = scroller_previous_position[scroller][j + 1];
+        switch (node_max) {
+        case 0:
+            data->touch_area = data->deltas[0] + (data->deltas[1] >> 2);
+            break;
+        case 1:
+            data->touch_area = (data->deltas[0] >> 3) + data->deltas[1] + (data->deltas[2] >> 3);
+            break;
+        case 2:
+            data->touch_area = (data->deltas[1] >> 3) + data->deltas[2] + (data->deltas[3] >> 3);
+            break;
+        case 3:
+            data->touch_area = (data->deltas[2] >> 2) + data->deltas[3];
+            break;
+        default:
+            break;
         }
-        if (sum >= DEF_SCROLLER_DET_THRESHOLD) {
-            scroller_previous_position[scroller][DEF_SCROLLER_NUM_PREV_POS - 1] = scaled_value;
+
+        // In case no single node is in touch, but multiple nodes together are, treat that as in
+        // touch
+        if (data->touch_area > config->touch_threshold) {
+            data->touch_count_in = min(255, data->touch_count_in + 1);
+            if (data->touch_count_in > config->touch_count_in) {
+                scroller_active = 1;
+            }
+        }
+        if (data->touch_area < config->untouch_threshold) {
+            scroller_active = 0;
+            data->touch_count_in = 0;
+        }
+
+        bool active = key_active | scroller_active;
+
+        // shift up all calculations to increase precision
+        uint32_t fp_offset = 2;
+        uint32_t raw_pos = 0;
+        uint32_t weight_sum = 0;
+        uint32_t sum = 0;
+        // offset weights with "half distance" to avoid "centroid at the edge" problem. i.e. that
+        // the weight of the zeroth node is 0 and therefore it only weakly influences the result.
+        uint32_t half_distance =
+            (1 << (config->resolution + fp_offset)) / (config->number_of_keys - 1) / 2;
+        for (int i = 0; i < config->number_of_keys; ++i) {
+            int32_t delta = data->deltas[i];
+            sum += delta;
+            int32_t weight =
+                (i << (config->resolution + fp_offset)) / (config->number_of_keys - 1) +
+                half_distance;
+            raw_pos += delta * weight;
+            weight_sum += weight;
+        }
+        raw_pos /= sum;
+        raw_pos -= min(raw_pos, half_distance);
+        raw_pos >>= fp_offset;
+
+        if (active) {
+            int32_t pos = data->position;
+
+            if (data->active) {
+                int32_t raw_pos_delta = raw_pos - pos;
+                if (raw_pos_delta < -data->hyst_left || raw_pos_delta > data->hyst_right) {
+                    pos = raw_pos;
+
+                    /* handle hysterisis, when finger changes direction */
+                    if (pos < data->position) {
+                        data->hyst_left = 0;
+                        data->hyst_right = config->hysteresis;
+                    }
+                    if (pos > data->position) {
+                        data->hyst_left = config->hysteresis;
+                        data->hyst_right = 0;
+                    }
+                }
+            } else {
+                pos = raw_pos;
+            }
+
+            /* Handle deadband (close to 0 and close to max resolution) */
+            if (raw_pos < config->deadband) {
+                pos = 0;
+                data->hyst_left = 0;
+                data->hyst_right = config->hysteresis / 2;
+            }
+            if (raw_pos >= ((1U << config->resolution) - 1) - config->deadband) {
+                pos = (1 << config->resolution) - 1;
+                data->hyst_left = config->hysteresis / 2;
+                data->hyst_right = 0;
+            }
+
+            data->position = pos;
+            data->raw_position = raw_pos;
         } else {
-            scroller_previous_position[scroller][DEF_SCROLLER_NUM_PREV_POS - 1] = DEF_SCROLLER_OFF;
+            data->raw_position = raw_pos;
+            data->hyst_left = config->hysteresis / 2;
+            data->hyst_right = config->hysteresis / 2;
         }
-        // Use the maximum value of all sensor readings as an estimate of pressure.
-        // Put a threshold on this to detect whether we're touching or not.
-        if (max_sensor_reading >= DEF_SCROLLER_TOUCH_THRESHOLD) {
-            scroller_active[scroller] = true;
-        } else if (max_sensor_reading <= DEF_SCROLLER_UNTOUCH_THRESHOLD) {
-            scroller_active[scroller] = false;
-        }
+        data->active = active;
     }
+}
+
+void qtouch_calibrate_node(uint16_t sensor_node)
+{
+    /* Calibrate Node */
+    qtm_calibrate_sensor_node(&qtlib_acq_set1, sensor_node);
+    /* Initialize key */
+    qtm_init_sensor_key(&qtlib_key_set1, sensor_node, &ptc_qtlib_node_stat1[sensor_node]);
 }
 
 /*============================================================================
@@ -537,7 +598,7 @@ Notes    :  none
 ============================================================================*/
 void ADC0_1_Handler(void)
 {
-    ADC0->INTFLAG.reg |= 1U;
+    ADC0->INTFLAG.reg |= 1u;
     qtm_samd51_ptc_handler();
 }
 

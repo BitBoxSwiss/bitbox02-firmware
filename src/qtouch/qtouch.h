@@ -30,6 +30,33 @@ extern "C" {
 
 #include "touch_api_ptc.h"
 
+typedef struct {
+    uint16_t start_key;
+    uint8_t number_of_keys;
+    uint8_t resolution;
+    uint16_t touch_threshold;
+    uint16_t untouch_threshold;
+    uint8_t deadband;
+    uint8_t hysteresis;
+    uint8_t touch_count_in;
+} scroller_config_t;
+
+typedef struct {
+    int16_t* deltas;
+    uint16_t touch_area;
+    uint16_t raw_position;
+    uint16_t position;
+    uint8_t active;
+    uint8_t hyst_left;
+    uint8_t hyst_right;
+    uint8_t touch_count_in;
+} scroller_data_t;
+
+typedef struct {
+    scroller_config_t* config;
+    scroller_data_t* data;
+} scroller_control_t;
+
 /**********************************************************/
 /******************* Acquisition controls *****************/
 /**********************************************************/
@@ -44,14 +71,15 @@ extern "C" {
  */
 #define DEF_SENSOR_TYPE NODE_SELFCAP
 
-/* Set sensor calibration mode for charge share delay ,Prescaler or series resistor.
- * Range: CAL_AUTO_TUNE_NONE / CAL_AUTO_TUNE_RSEL / CAL_AUTO_TUNE_PRSC / CAL_AUTO_TUNE_CSD
- * Default value: CAL_AUTO_TUNE_NONE.
+/* Set sensor calibration mode for charge share delay ,Prescaler or series
+ * resistor. Range: CAL_AUTO_TUNE_NONE / CAL_AUTO_TUNE_RSEL / CAL_AUTO_TUNE_PRSC
+ * / CAL_AUTO_TUNE_CSD Default value: CAL_AUTO_TUNE_NONE.
  */
 #define DEF_PTC_CAL_OPTION CAL_AUTO_TUNE_NONE
 
-/* Defines the interrupt priority for the PTC. Set low priority to PTC interrupt for applications
- * having interrupt time constraints. Range: 0 to 2 Default: 2 (Lowest Priority)
+/* Defines the interrupt priority for the PTC. Set low priority to PTC interrupt
+ * for applications having interrupt time constraints. Range: 0 to 2 Default: 2
+ * (Lowest Priority)
  */
 #define DEF_PTC_INTERRUPT_PRIORITY 2
 
@@ -129,10 +157,9 @@ extern "C" {
  */
 #define DEF_TOUCH_DET_INT 1
 
-/* De-bounce counter for additional measurements to confirm away from touch signal
- * to initiate Away from touch re-calibration.
- * Range: 0 to 255.
- * Default value: 5.
+/* De-bounce counter for additional measurements to confirm away from touch
+ * signal to initiate Away from touch re-calibration. Range: 0 to 255. Default
+ * value: 5.
  */
 #define DEF_ANTI_TCH_DET_INT 1
 
@@ -191,22 +218,13 @@ extern "C" {
 #define DEF_SCROLLER_NUM_CHANNELS 4 // Number of channels per scroller
 #define DEF_SCROLLER_OFFSET_0 4 // Index of first button in scroller
 #define DEF_SCROLLER_OFFSET_1 0 // Index of first button in scroller
-#define DEF_SCROLLER_RESOLUTION 256 // Scroller resolution in bits
-#define DEF_SCROLLER_DET_THRESHOLD 12 // Scroller detect threshold
-#define DEF_SCROLLER_TOUCH_THRESHOLD 12 // Scroller active threshold
-#define DEF_SCROLLER_UNTOUCH_THRESHOLD 9 // Scroller active threshold
-#define DEF_SCROLLER_DEADBAND 13 // 13 bits = 5% of 256-bit range
-#define DEF_SCROLLER_NUM_PREV_POS \
-    4 // Number of previous scroller positions to remember; used in a simple filter
-#define DEF_SCROLLER_OFF \
-    0xFFFF // Marker for indicating scroller reading does not exceed detection threshold
-#define DEF_SENSOR_EDGE_WEIGHT \
-    0.15 // Percent added weight to edge sensors, which are physically smaller
-#define DEF_SENSOR_NUM_PREV_POS \
-    4 // Number of previous sensor positions to remember; used in a simple filter
-#define DEF_SENSOR_CEILING \
-    50 // Maximum sensor reading. Mitigates 'jumpy' channels that exist at higher
-       // sensor readings when in noisy environments.
+#define DEF_SCROLLER_RESOLUTION 8 // Scroller resolution in bits
+#define DEF_SCROLLER_TOUCH_THRESHOLD 35 // Scroller active threshold
+#define DEF_SCROLLER_UNTOUCH_THRESHOLD 20 // Scroller active threshold
+#define DEF_SCROLLER_DEADBAND \
+    10 // everything below deadband is locked to 0 and above max-deadband is locked to max
+#define DEF_SCROLLER_HYSTERESIS 16 // Position needs to move at least this much
+#define DEF_SCROLLER_TOUCH_DRIFT_IN 2 // number of counts in touch before being active
 
 #ifdef __cplusplus
 }

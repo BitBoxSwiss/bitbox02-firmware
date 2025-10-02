@@ -17,8 +17,8 @@ Copyright (c) 2017 Microchip. All rights reserved.
 ------------------------------------------------------------------------------
 ============================================================================*/
 
-#ifndef QTOUCH_H
-#define QTOUCH_H
+#ifndef TOUCH_H
+#define TOUCH_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,6 +30,31 @@ extern "C" {
 
 #include "touch_api_ptc.h"
 
+typedef struct {
+    uint16_t start_key;
+    uint8_t number_of_keys;
+    uint8_t resolution;
+    uint16_t contact_threshold;
+    uint16_t untouch_threshold;
+    uint8_t deadband;
+    uint8_t hysteresis;
+} scroller_config_t;
+
+typedef struct {
+    int16_t* deltas;
+    uint16_t touch_area;
+    uint16_t raw_position;
+    uint16_t position;
+    uint8_t active;
+    uint8_t hyst_left;
+    uint8_t hyst_right;
+} scroller_data_t;
+
+typedef struct {
+    scroller_config_t* config;
+    scroller_data_t* data;
+} scroller_control_t;
+
 /**********************************************************/
 /******************* Acquisition controls *****************/
 /**********************************************************/
@@ -37,21 +62,22 @@ extern "C" {
  * Range: 1 to 255.
  * Default value: 20.
  */
-#define DEF_TOUCH_MEASUREMENT_PERIOD_MS 20
+#define DEF_TOUCH_MEASUREMENT_PERIOD_MS 10
 
 /* Defines the Type of sensor
  * Default value: NODE_MUTUAL.
  */
 #define DEF_SENSOR_TYPE NODE_SELFCAP
 
-/* Set sensor calibration mode for charge share delay ,Prescaler or series resistor.
- * Range: CAL_AUTO_TUNE_NONE / CAL_AUTO_TUNE_RSEL / CAL_AUTO_TUNE_PRSC / CAL_AUTO_TUNE_CSD
- * Default value: CAL_AUTO_TUNE_NONE.
+/* Set sensor calibration mode for charge share delay ,Prescaler or series
+ * resistor. Range: CAL_AUTO_TUNE_NONE / CAL_AUTO_TUNE_RSEL / CAL_AUTO_TUNE_PRSC
+ * / CAL_AUTO_TUNE_CSD Default value: CAL_AUTO_TUNE_NONE.
  */
 #define DEF_PTC_CAL_OPTION CAL_AUTO_TUNE_NONE
 
-/* Defines the interrupt priority for the PTC. Set low priority to PTC interrupt for applications
- * having interrupt time constraints. Range: 0 to 2 Default: 2 (Lowest Priority)
+/* Defines the interrupt priority for the PTC. Set low priority to PTC interrupt
+ * for applications having interrupt time constraints. Range: 0 to 2 Default: 2
+ * (Lowest Priority)
  */
 #define DEF_PTC_INTERRUPT_PRIORITY 2
 
@@ -81,11 +107,10 @@ extern "C" {
  */
 #define DEF_NUM_CHANNELS (8)
 
-/* Defines node parameter setting
- * {X-line, Y-line, Charge Share Delay, NODE_RSEL_PRSC(series resistor, prescaler), NODE_G(Analog
- * Gain , Digital Gain), filter level}
+/* Defines self-cap node parameter setting
+ * {X-line, Y-line, Charge Share Delay, Prescaler, NODE_G(Analog Gain , Digital
+ * Gain), filter level}
  */
-// Slider 1 buttons
 #define NODE_0_PARAMS \
     {X_NONE, Y_LINE(26), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_64}
 #define NODE_1_PARAMS \
@@ -94,7 +119,6 @@ extern "C" {
     {X_NONE, Y_LINE(28), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
 #define NODE_3_PARAMS \
     {X_NONE, Y_LINE(29), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_64}
-// Slider 0 buttons
 #define NODE_4_PARAMS \
     {X_NONE, Y_LINE(30), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_64}
 #define NODE_5_PARAMS \
@@ -111,20 +135,19 @@ extern "C" {
  * Range: 1 to 65535.
  * Default value: 1
  */
-#define DEF_NUM_SENSORS (DEF_NUM_CHANNELS)
+#define DEF_NUM_SENSORS (8)
 
 /* Defines Key Sensor setting
  * {Sensor Threshold, Sensor Hysterisis, Sensor AKS}
  */
-// 0..3 higher Slider left to right 4..7 lower Slider right to left
-#define KEY_0_PARAMS {12, HYST_25, AKS_GROUP_1}
+#define KEY_0_PARAMS {24, HYST_25, AKS_GROUP_1}
 #define KEY_1_PARAMS {12, HYST_25, AKS_GROUP_1}
-#define KEY_2_PARAMS {12, HYST_25, AKS_GROUP_1}
-#define KEY_3_PARAMS {12, HYST_25, AKS_GROUP_1}
-#define KEY_4_PARAMS {12, HYST_25, AKS_GROUP_2}
-#define KEY_5_PARAMS {12, HYST_25, AKS_GROUP_2}
-#define KEY_6_PARAMS {12, HYST_25, AKS_GROUP_2}
-#define KEY_7_PARAMS {12, HYST_25, AKS_GROUP_2}
+#define KEY_2_PARAMS {15, HYST_25, AKS_GROUP_1}
+#define KEY_3_PARAMS {26, HYST_25, AKS_GROUP_1}
+#define KEY_4_PARAMS {24, HYST_25, AKS_GROUP_2}
+#define KEY_5_PARAMS {13, HYST_25, AKS_GROUP_2}
+#define KEY_6_PARAMS {15, HYST_25, AKS_GROUP_2}
+#define KEY_7_PARAMS {23, HYST_25, AKS_GROUP_2}
 
 /* De-bounce counter for additional measurements to confirm touch detection
  * Range: 0 to 255.
@@ -132,10 +155,9 @@ extern "C" {
  */
 #define DEF_TOUCH_DET_INT 1
 
-/* De-bounce counter for additional measurements to confirm away from touch signal
- * to initiate Away from touch re-calibration.
- * Range: 0 to 255.
- * Default value: 5.
+/* De-bounce counter for additional measurements to confirm away from touch
+ * signal to initiate Away from touch re-calibration. Range: 0 to 255. Default
+ * value: 5.
  */
 #define DEF_ANTI_TCH_DET_INT 1
 
@@ -172,13 +194,13 @@ extern "C" {
  * Range: REBURST_NONE / REBURST_UNRESOLVED / REBURST_ALL
  * Default value: REBURST_UNRESOLVED
  */
-#define DEF_REBURST_MODE REBURST_NONE
+#define DEF_REBURST_MODE REBURST_UNRESOLVED
 
 /* Sensor maximum ON duration upon touch.
  * Range: 0-255
  * Default value: 0
  */
-#define DEF_MAX_ON_DURATION 50
+#define DEF_MAX_ON_DURATION 0
 
 /**********************************************************/
 /***************** Slider/Wheel Parameters ****************/
@@ -195,26 +217,22 @@ extern "C" {
 #define DEF_SCROLLER_NUM_CHANNELS 4 // Number of channels per scroller
 #define DEF_SCROLLER_OFFSET_0 4 // Index of first button in scroller
 #define DEF_SCROLLER_OFFSET_1 0 // Index of first button in scroller
-#define DEF_SCROLLER_RESOLUTION 256 // Scroller resolution in bits
-#define DEF_SCROLLER_DET_THRESHOLD 12 // Scroller detect threshold
-#define DEF_SCROLLER_TOUCH_THRESHOLD 12 // Scroller active threshold
-#define DEF_SCROLLER_UNTOUCH_THRESHOLD 9 // Scroller active threshold
-#define DEF_SCROLLER_DEADBAND 13 // 13 bits = 5% of 256-bit range
-#define DEF_SCROLLER_NUM_PREV_POS \
-    4 // Number of previous scroller positions to remember; used in a simple filter
-#define DEF_SCROLLER_OFF \
-    0xFFFF // Marker for indicating scroller reading does not exceed detection threshold
-/*
-#define DEF_SENSOR_EDGE_WEIGHT \
-    0.15 // Percent added weight to edge sensors, which are physically smaller
-*/
-#define DEF_SENSOR_NUM_PREV_POS \
-    4 // Number of previous sensor positions to remember; used in a simple filter
-#define DEF_SENSOR_CEILING \
-    50 // Maximum sensor reading. Mitigates 'jumpy' channels that exist at higher
-       // sensor readings when in noisy environments.
+#define DEF_SCROLLER_RESOLUTION 8 // Scroller resolution in bits
+#define DEF_SCROLLER_TOUCH_THRESHOLD 25 // Scroller active threshold
+#define DEF_SCROLLER_UNTOUCH_THRESHOLD 15 // Scroller active threshold
+#define DEF_SCROLLER_DEADBAND \
+    12 // everything below deadband is locked to 0 and above max-deadband is locked to max
+#define DEF_SCROLLER_HYSTERESIS 10 // Position needs to move at least this much
+
+/**********************************************************/
+/***************** Communication - Data Streamer ******************/
+/**********************************************************/
+
+#define DEF_TOUCH_DATA_STREAMER_ENABLE 0u
+#define DATA_STREAMER_BOARD_TYPE USER_BOARD
+#define KRONO_GESTURE_ENABLE 0
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-#endif // QTOUCH_H
+#endif // TOUCH_C

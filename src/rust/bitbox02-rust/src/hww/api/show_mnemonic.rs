@@ -20,7 +20,7 @@ use crate::pb;
 use pb::response::Response;
 
 use crate::hal::Ui;
-use crate::workflow::{confirm, mnemonic, unlock};
+use crate::workflow::{confirm, unlock};
 
 use crate::keystore;
 
@@ -55,7 +55,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 
-    mnemonic::show_and_confirm_mnemonic(hal, &words).await?;
+    hal.ui().show_and_confirm_mnemonic(&words).await?;
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
 

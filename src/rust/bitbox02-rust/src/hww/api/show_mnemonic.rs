@@ -149,7 +149,7 @@ mod tests {
             block_on(process(&mut mock_hal)),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
 
         assert_eq!(
             mock_hal.ui.screens,

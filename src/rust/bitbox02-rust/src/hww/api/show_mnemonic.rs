@@ -62,3 +62,149 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
     hal.ui().status("Backup created", true).await;
     Ok(Response::Success(pb::Success {}))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use alloc::boxed::Box;
+
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
+    use bitbox02::testing::mock_memory;
+    use util::bb02_async::block_on;
+
+    /// When not yet initialized, we show the mnemonic without a password check. This happens during
+    /// wallet setup.
+    #[test]
+    fn test_process_uninitialized() {
+        mock_memory();
+        bitbox02::keystore::encrypt_and_store_seed(
+            hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
+                .unwrap()
+                .as_slice(),
+            "password",
+        )
+        .unwrap();
+
+        assert!(!bitbox02::memory::is_initialized());
+
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.set_enter_string(Box::new(|_params| {
+            panic!("unexpected call to enter password")
+        }));
+
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(
+            block_on(process(&mut mock_hal)),
+            Ok(Response::Success(pb::Success {}))
+        );
+        // 1 operation for one copy_seed() to get the seed to display it.
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "DO NOT share your\nrecovery words with\nanyone!".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Recovery\nwords".into(),
+                    body: "Please write down\nthe following words".into(),
+                    longtouch: false
+                },
+                Screen::ShowAndConfirmMnemonic {
+                    mnemonic: "shy parrot age monkey rhythm snake mystery burden topic hello mouse script gesture tattoo demand float verify shoe recycle cool network better aspect list".into(),
+                },
+                Screen::Status {
+                    title: "Backup created".into(),
+                    success: true
+                },
+            ]
+        );
+    }
+    /// When initialized, a password check is prompted before displaying the mnemonic.
+    #[test]
+    fn test_process_initialized() {
+        mock_memory();
+        bitbox02::keystore::encrypt_and_store_seed(
+            hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
+                .unwrap()
+                .as_slice(),
+            "password",
+        )
+        .unwrap();
+
+        bitbox02::memory::set_initialized().unwrap();
+
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .ui
+            .set_enter_string(Box::new(|_params| Ok("password".into())));
+
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(
+            block_on(process(&mut mock_hal)),
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "DO NOT share your\nrecovery words with\nanyone!".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Recovery\nwords".into(),
+                    body: "Please write down\nthe following words".into(),
+                    longtouch: false
+                },
+                Screen::ShowAndConfirmMnemonic {
+                    mnemonic: "shy parrot age monkey rhythm snake mystery burden topic hello mouse script gesture tattoo demand float verify shoe recycle cool network better aspect list".into(),
+                },
+                Screen::Status {
+                    title: "Backup created".into(),
+                    success: true
+                },
+            ]
+        );
+    }
+
+    /// When initialized, a password check is prompted before displaying the mnemonic.
+    /// This tests that we fail early if the wrong password is entered.
+    #[test]
+    fn test_process_initialized_wrong_password() {
+        mock_memory();
+        bitbox02::keystore::encrypt_and_store_seed(
+            hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
+                .unwrap()
+                .as_slice(),
+            "password",
+        )
+        .unwrap();
+
+        bitbox02::memory::set_initialized().unwrap();
+
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .ui
+            .set_enter_string(Box::new(|_params| Ok("wrong password".into())));
+
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(block_on(process(&mut mock_hal)), Err(Error::Generic));
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![Screen::Status {
+                title: "Wrong password\n9 tries remain".into(),
+                success: false,
+            }]
+        );
+    }
+}

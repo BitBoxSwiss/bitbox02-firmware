@@ -130,7 +130,6 @@ static void _render(component_t* component)
         }
         data->enable_touch = true;
     }
-    qtouch_force_calibrate();
     data->screen_count++;
 }
 

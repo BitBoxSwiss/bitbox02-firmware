@@ -34,10 +34,11 @@ typedef struct {
     uint16_t start_key;
     uint8_t number_of_keys;
     uint8_t resolution;
-    uint16_t contact_threshold;
+    uint16_t touch_threshold;
     uint16_t untouch_threshold;
     uint8_t deadband;
     uint8_t hysteresis;
+    uint8_t touch_count_in;
 } scroller_config_t;
 
 typedef struct {
@@ -48,6 +49,7 @@ typedef struct {
     uint8_t active;
     uint8_t hyst_left;
     uint8_t hyst_right;
+    uint8_t touch_count_in;
 } scroller_data_t;
 
 typedef struct {
@@ -120,7 +122,7 @@ typedef struct {
 #define NODE_3_PARAMS \
     {X_NONE, Y_LINE(29), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_64}
 #define NODE_4_PARAMS \
-    {X_NONE, Y_LINE(30), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_64}
+    {X_NONE, Y_LINE(30), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
 #define NODE_5_PARAMS \
     {X_NONE, Y_LINE(31), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
 #define NODE_6_PARAMS \
@@ -140,14 +142,14 @@ typedef struct {
 /* Defines Key Sensor setting
  * {Sensor Threshold, Sensor Hysterisis, Sensor AKS}
  */
-#define KEY_0_PARAMS {24, HYST_25, AKS_GROUP_1}
-#define KEY_1_PARAMS {12, HYST_25, AKS_GROUP_1}
+#define KEY_0_PARAMS {15, HYST_25, AKS_GROUP_1}
+#define KEY_1_PARAMS {15, HYST_25, AKS_GROUP_1}
 #define KEY_2_PARAMS {15, HYST_25, AKS_GROUP_1}
-#define KEY_3_PARAMS {26, HYST_25, AKS_GROUP_1}
-#define KEY_4_PARAMS {24, HYST_25, AKS_GROUP_2}
-#define KEY_5_PARAMS {13, HYST_25, AKS_GROUP_2}
-#define KEY_6_PARAMS {15, HYST_25, AKS_GROUP_2}
-#define KEY_7_PARAMS {23, HYST_25, AKS_GROUP_2}
+#define KEY_3_PARAMS {21, HYST_25, AKS_GROUP_1}
+#define KEY_4_PARAMS {12, HYST_25, AKS_GROUP_2}
+#define KEY_5_PARAMS {15, HYST_25, AKS_GROUP_2}
+#define KEY_6_PARAMS {16, HYST_25, AKS_GROUP_2}
+#define KEY_7_PARAMS {21, HYST_25, AKS_GROUP_2}
 
 /* De-bounce counter for additional measurements to confirm touch detection
  * Range: 0 to 255.
@@ -194,7 +196,7 @@ typedef struct {
  * Range: REBURST_NONE / REBURST_UNRESOLVED / REBURST_ALL
  * Default value: REBURST_UNRESOLVED
  */
-#define DEF_REBURST_MODE REBURST_UNRESOLVED
+#define DEF_REBURST_MODE REBURST_ALL
 
 /* Sensor maximum ON duration upon touch.
  * Range: 0-255
@@ -218,11 +220,12 @@ typedef struct {
 #define DEF_SCROLLER_OFFSET_0 4 // Index of first button in scroller
 #define DEF_SCROLLER_OFFSET_1 0 // Index of first button in scroller
 #define DEF_SCROLLER_RESOLUTION 8 // Scroller resolution in bits
-#define DEF_SCROLLER_TOUCH_THRESHOLD 25 // Scroller active threshold
-#define DEF_SCROLLER_UNTOUCH_THRESHOLD 15 // Scroller active threshold
+#define DEF_SCROLLER_TOUCH_THRESHOLD 32 // Scroller active threshold
+#define DEF_SCROLLER_UNTOUCH_THRESHOLD 16 // Scroller active threshold
 #define DEF_SCROLLER_DEADBAND \
-    12 // everything below deadband is locked to 0 and above max-deadband is locked to max
-#define DEF_SCROLLER_HYSTERESIS 10 // Position needs to move at least this much
+    5 // everything below deadband is locked to 0 and above max-deadband is locked to max
+#define DEF_SCROLLER_HYSTERESIS 20 // Position needs to move at least this much
+#define DEF_SCROLLER_TOUCH_DRIFT_IN 2 // number of counts in touch before being active
 
 /**********************************************************/
 /***************** Communication - Data Streamer ******************/

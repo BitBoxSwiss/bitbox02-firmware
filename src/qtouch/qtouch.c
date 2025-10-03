@@ -160,7 +160,8 @@ scroller_config_t scroller_config[2] = {
          DEF_SCROLLER_TOUCH_THRESHOLD,
          DEF_SCROLLER_UNTOUCH_THRESHOLD,
          DEF_SCROLLER_DEADBAND,
-         DEF_SCROLLER_HYSTERESIS},
+         DEF_SCROLLER_HYSTERESIS,
+         DEF_SCROLLER_TOUCH_DRIFT_IN},
     [1] =
         {DEF_SCROLLER_OFFSET_1,
          DEF_SCROLLER_NUM_CHANNELS,
@@ -168,7 +169,8 @@ scroller_config_t scroller_config[2] = {
          DEF_SCROLLER_TOUCH_THRESHOLD,
          DEF_SCROLLER_UNTOUCH_THRESHOLD,
          DEF_SCROLLER_DEADBAND,
-         DEF_SCROLLER_HYSTERESIS},
+         DEF_SCROLLER_HYSTERESIS,
+         DEF_SCROLLER_TOUCH_DRIFT_IN},
 };
 scroller_data_t scroller_data[2] = {0};
 
@@ -449,20 +451,27 @@ void qtouch_process_scroller_positions(scroller_control_t* scrollers)
         int node_max = -1;
         int16_t node_max_value = INT16_MIN;
         data->touch_area = 0;
+        bool key_active = 0;
+        bool scroller_active = data->active;
 
         for (int i = 0; i < config->number_of_keys; i++) {
             uint8_t node = config->start_key + i;
             int16_t delta = max(
                 0, qtouch_get_sensor_node_signal(node) - qtouch_get_sensor_node_reference(node));
-            // Apply weighted moving average
-            data->deltas[i] = (2 * delta + data->deltas[i]) / 3;
-            // multiply inner sensors with 1.75 (The ones at the edges have higher PTC gain)
+            // delta = max(0, delta - qtlib_key_configs_set1[node].channel_threshold);
+            // multiply inner sensors with 1.50 (The ones at the edges have higher PTC gain)
             if (i > 0 && i < config->number_of_keys - 1) {
-                data->deltas[i] += (data->deltas[i] >> 1) + (data->deltas[i] >> 2);
+                // data->deltas[i] +=
+                //     (data->deltas[i] >> 1) + (data->deltas[i] >> 2) + (data->deltas[i] >> 3);
+                //   data->deltas[i] += (data->deltas[i] >> 1) + (data->deltas[i] >> 3);
+                data->deltas[i] += data->deltas[i] >> 1;
             }
+
+            //  Apply weighted moving average if it was active
+            data->deltas[i] = (2 * delta + data->deltas[i]) / 3;
             // If any key is in touch, the scroller is considered in touch
-            if ((qtouch_get_sensor_state(node) & QTM_KEY_DETECT) == QTM_KEY_DETECT) {
-                data->active = 1;
+            if (qtouch_get_sensor_state(node) == QTM_KEY_STATE_DETECT) {
+                key_active = 1;
             }
             // Find the node with the highest signal to determine how to calculate touch area.
             if (data->deltas[i] > node_max_value) {
@@ -490,75 +499,80 @@ void qtouch_process_scroller_positions(scroller_control_t* scrollers)
 
         // In case no single node is in touch, but multiple nodes together are, treat that as in
         // touch
-        if (data->touch_area > config->contact_threshold) {
-            data->active = 1;
-        } else if (data->touch_area < config->untouch_threshold) {
-            data->active = 0;
+        if (data->touch_area > config->touch_threshold) {
+            data->touch_count_in = min(255, data->touch_count_in + 1);
+            if (data->touch_count_in > config->touch_count_in) {
+                scroller_active = 1;
+            }
+        }
+        if (data->touch_area < config->untouch_threshold) {
+            scroller_active = 0;
+            data->touch_count_in = 0;
         }
 
-        uint32_t fixed_precision_offset = 16;
-        if (data->active) {
-            int32_t raw_pos = 0;
-            int32_t weight_sum = 0;
-            uint32_t sum = 0;
-            for (int i = 0; i < config->number_of_keys; ++i) {
-                // Ignore all sensor values below 5
-                // int32_t delta = data->deltas[i] > 5 ? data->deltas[i] : 0;
-                int32_t delta = data->deltas[i];
-                sum += delta;
-                int32_t weight = (i << fixed_precision_offset);
-                // int32_t weight = i;
-                //  float weight = (float)i / (config->number_of_keys - 1);
-                raw_pos += max(0, delta * weight) * 2;
-                weight_sum += i;
-            }
-            // Make weighted average
-            raw_pos /= weight_sum;
-            // Normalize position
-            raw_pos /= sum;
-            raw_pos <<= config->resolution;
-            // Bring back down
-            raw_pos >>= fixed_precision_offset;
+        bool active = key_active | scroller_active;
 
-            // use weighted moving average on raw position
-            raw_pos = (data->raw_position + 2 * raw_pos) / 3;
+        // offset all calculations to increase precision
+        uint32_t fp_offset = 2;
+        uint32_t raw_pos = 0;
+        uint32_t weight_sum = 0;
+        uint32_t sum = 0;
+        for (int i = 0; i < config->number_of_keys; ++i) {
+            int32_t delta = data->deltas[i];
+            sum += delta;
+            int32_t weight = (i << (config->resolution + fp_offset)) / (config->number_of_keys - 1);
+            raw_pos += delta * weight;
+            weight_sum += weight;
+        }
+        raw_pos /= sum;
+        raw_pos >>= fp_offset;
 
+        raw_pos = (data->raw_position + 4 * raw_pos) / 5;
+
+        if (active) {
             int32_t pos = data->position;
 
-            int32_t raw_pos_delta = raw_pos - data->position;
-            if (raw_pos_delta < -data->hyst_left || raw_pos_delta > data->hyst_right) {
-                pos = raw_pos;
+            // use weighted moving average on raw position if it was active
+            if (data->active) {
+                int32_t raw_pos_delta = raw_pos - pos;
+                if (raw_pos_delta < -data->hyst_left || raw_pos_delta > data->hyst_right) {
+                    pos = raw_pos;
 
-                /* handle hysterisis, when finger changes direction */
-                if (pos < data->position) {
-                    data->hyst_left = 0;
-                    data->hyst_right = config->hysteresis;
+                    /* handle hysterisis, when finger changes direction */
+                    if (pos < data->position) {
+                        data->hyst_left = 0;
+                        data->hyst_right = config->hysteresis;
+                    }
+                    if (pos > data->position) {
+                        data->hyst_left = config->hysteresis;
+                        data->hyst_right = 0;
+                    }
                 }
-                if (pos > data->position) {
-                    data->hyst_left = config->hysteresis;
-                    data->hyst_right = 0;
-                }
+            } else {
+                pos = raw_pos;
             }
 
             /* Handle deadband (close to 0 and close to max resolution) */
             if (raw_pos < config->deadband) {
                 pos = 0;
                 data->hyst_left = 0;
-                data->hyst_right = config->hysteresis;
+                data->hyst_right = config->hysteresis / 2;
             }
-            if (raw_pos >= ((1 << config->resolution) - 1) - config->deadband) {
+            if (raw_pos >= (uint32_t)((1 << config->resolution) - 1) - config->deadband) {
                 pos = (1 << config->resolution) - 1;
-                data->hyst_left = config->hysteresis;
+                data->hyst_left = config->hysteresis / 2;
                 data->hyst_right = 0;
             }
 
             data->position = pos;
             data->raw_position = raw_pos;
-            // data->position = raw_pos;
         } else {
+            // data->position = data->raw_position;
+            data->raw_position = raw_pos;
             data->hyst_left = config->hysteresis / 2;
             data->hyst_right = config->hysteresis / 2;
         }
+        data->active = active;
     }
 }
 

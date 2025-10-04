@@ -179,3 +179,55 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
     unlock_bip39(hal, &bitbox02::keystore::copy_seed()?).await;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::hal::testing::TestingHal;
+    use crate::workflow::testing::Screen;
+    use alloc::boxed::Box;
+    use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
+    use util::bb02_async::block_on;
+
+    #[test]
+    fn test_unlock_success() {
+        mock_memory();
+
+        // Set up an initialized wallet with password
+        bitbox02::keystore::encrypt_and_store_seed(
+            hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
+                .unwrap()
+                .as_slice(),
+            "password",
+        )
+        .unwrap();
+
+        bitbox02::memory::set_initialized().unwrap();
+
+        // Lock the keystore to simulate the normal locked state
+        bitbox02::keystore::lock();
+
+        let mut password_entered = false;
+
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.set_enter_string(Box::new(|_params| {
+            password_entered = true;
+            Ok("password".into())
+        }));
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(block_on(unlock(&mut mock_hal)), Ok(()));
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 8);
+
+        assert!(!bitbox02::keystore::is_locked());
+
+        assert_eq!(
+            bitbox02::keystore::copy_bip39_seed().unwrap().as_slice(),
+            hex::decode("cff4b263e5b0eb299e5fd35fcd09988f6b14e5b464f8d18fb84b152f889dd2a30550f4c2b346cae825ffedd4a87fc63fc12a9433de5125b6c7fdbc5eab0c590b")
+                .unwrap(),
+        );
+
+        drop(mock_hal); // to remove mutable borrow of `password_entered`
+        assert!(password_entered);
+    }
+}

@@ -79,6 +79,20 @@ pub trait Workflows {
         choices: &[&str],
         title: &str,
     ) -> Result<u8, cancel::Error>;
+
+    /// Display the mnemonic words and have the user confirm them in a multiple-choice quiz.
+    ///
+    /// The default implementation is implemented in terms of `self.show_mnemonic()`,
+    /// `self.quiz_mnemonic_word()`, etc.
+    ///
+    /// This function is defined in the HAL so unit tests can easily mock it. Real implementations
+    /// should leave the default implementation.
+    async fn show_and_confirm_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error>
+    where
+        Self: Sized,
+    {
+        mnemonic::show_and_confirm_mnemonic(self, words).await
+    }
 }
 
 pub struct RealWorkflows;

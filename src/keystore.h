@@ -95,14 +95,22 @@ USE_RESULT keystore_error_t keystore_create_and_store_seed(
  * @param[out] remaining_attempts_out will have the number of remaining attempts.
  * If zero, the keystore is locked until the device is reset.
  * @param[out] securechip_result_out, if not NULL, will contain the error code from
+ * @param[out] seed_out The seed bytes copied from the retained seed.
+ * The buffer should be KEYSTORE_MAX_SEED_LENGTH bytes long. The caller must
+ * zero the seed once it is no longer needed.
+ * @param[out] seed_len_out The seed length.
  * `securechip_kdf()` if there was a secure chip error, and 0 otherwise.
  * @return
  * - KEYSTORE_OK if they keystore was successfully unlocked
  * - KEYSTORE_ERR_* if unsuccessful.
  * Only call this if memory_is_seeded() returns true.
  */
-USE_RESULT keystore_error_t
-keystore_unlock(const char* password, uint8_t* remaining_attempts_out, int* securechip_result_out);
+USE_RESULT keystore_error_t keystore_unlock(
+    const char* password,
+    uint8_t* remaining_attempts_out,
+    int* securechip_result_out,
+    uint8_t* seed_out,
+    size_t* seed_len_out);
 
 /**
  * Checks if bip39 unlocking can be performed. It can be performed if `keystore_unlock()`

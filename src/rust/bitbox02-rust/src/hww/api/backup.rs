@@ -99,15 +99,15 @@ pub async fn create(
 
     let is_initialized = bitbox02::memory::is_initialized();
 
-    if is_initialized {
-        unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?;
-    }
-
-    let seed = bitbox02::keystore::copy_seed()?;
-
-    // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes
-    // some delay.
-    futures_lite::future::yield_now().await;
+    let seed = if is_initialized {
+        unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
+    } else {
+        let seed = bitbox02::keystore::copy_seed()?;
+        // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes
+        // some delay.
+        futures_lite::future::yield_now().await;
+        seed
+    };
 
     let seed_birthdate = if !is_initialized {
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
@@ -256,7 +256,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
         assert_eq!(
             mock_hal.ui.screens,
             vec![

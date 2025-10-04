@@ -67,9 +67,11 @@ impl core::convert::From<keystore_error_t> for Error {
     }
 }
 
-pub fn unlock(password: &str) -> Result<(), Error> {
+pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let mut remaining_attempts: u8 = 0;
     let mut securechip_result: i32 = 0;
+    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
+    let mut seed_len: usize = 0;
     match unsafe {
         bitbox02_sys::keystore_unlock(
             crate::util::str_to_cstr_vec(password)
@@ -78,9 +80,14 @@ pub fn unlock(password: &str) -> Result<(), Error> {
                 .cast(),
             &mut remaining_attempts,
             &mut securechip_result,
+            seed.as_mut_ptr(),
+            &mut seed_len,
         )
     } {
-        keystore_error_t::KEYSTORE_OK => Ok(()),
+        keystore_error_t::KEYSTORE_OK => {
+            seed.truncate(seed_len);
+            Ok(seed)
+        }
         keystore_error_t::KEYSTORE_ERR_INCORRECT_PASSWORD => {
             Err(Error::IncorrectPassword { remaining_attempts })
         }
@@ -483,7 +490,7 @@ mod tests {
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
         crate::securechip::fake_event_counter_reset();
-        assert!(unlock("password").is_ok());
+        assert_eq!(unlock("password").unwrap().as_slice(), seed);
         assert_eq!(crate::securechip::fake_event_counter(), 6);
 
         // Loop to check that unlocking works while unlocked.
@@ -491,7 +498,7 @@ mod tests {
             // Further calls perform a password check.The password check does not do the retention
             // so it ends up needing one secure chip operation less.
             crate::securechip::fake_event_counter_reset();
-            assert!(unlock("password").is_ok());
+            assert_eq!(unlock("password").unwrap().as_slice(), seed);
             assert_eq!(crate::securechip::fake_event_counter(), 5);
         }
 
@@ -630,7 +637,9 @@ mod tests {
             .is_err()
         );
         // Correct seed passed.
+        crate::securechip::fake_event_counter_reset();
         assert!(block_on(unlock_bip39(&secp, &seed, "foo", async || {})).is_ok());
+        assert_eq!(crate::securechip::fake_event_counter(), 1);
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
         let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
@@ -769,7 +778,7 @@ mod tests {
 
             // Correct password. First time: unlock. After unlock, it becomes a password check.
             for _ in 0..3 {
-                assert!(unlock("foo").is_ok());
+                assert_eq!(unlock("foo").unwrap().as_slice(), &seed[..seed_size]);
             }
             assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
 

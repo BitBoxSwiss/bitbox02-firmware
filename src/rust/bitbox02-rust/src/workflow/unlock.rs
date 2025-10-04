@@ -19,6 +19,8 @@ use bitbox02::keystore;
 
 pub use password::CanCancel;
 
+use alloc::vec::Vec;
+
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
 /// false if the user rejected it.
 async fn confirm_mnemonic_passphrase(
@@ -79,7 +81,7 @@ pub async fn unlock_keystore(
     hal: &mut impl crate::hal::Hal,
     title: &str,
     can_cancel: password::CanCancel,
-) -> Result<(), UnlockError> {
+) -> Result<zeroize::Zeroizing<Vec<u8>>, UnlockError> {
     let password = password::enter(
         hal,
         title,
@@ -89,7 +91,7 @@ pub async fn unlock_keystore(
     .await?;
 
     match keystore::unlock(&password) {
-        Ok(()) => Ok(()),
+        Ok(seed) => Ok(seed),
         Err(keystore::Error::IncorrectPassword { remaining_attempts }) => {
             let msg = match remaining_attempts {
                 1 => "Wrong password\n1 try remains".into(),
@@ -171,13 +173,12 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
     }
 
     // Loop unlock until the password is correct or the device resets.
-    while unlock_keystore(hal, "Enter password", password::CanCancel::No)
-        .await
-        .is_err()
-    {}
-
-    unlock_bip39(hal, &bitbox02::keystore::copy_seed()?).await;
-    Ok(())
+    loop {
+        if let Ok(seed) = unlock_keystore(hal, "Enter password", password::CanCancel::No).await {
+            unlock_bip39(hal, &seed).await;
+            return Ok(());
+        }
+    }
 }
 
 #[cfg(test)]
@@ -217,7 +218,8 @@ mod tests {
         }));
         bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(block_on(unlock(&mut mock_hal)), Ok(()));
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 8);
+        // 6 for keystore unlock, 1 for keystore bip39 unlock.
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
         assert!(!bitbox02::keystore::is_locked());
 

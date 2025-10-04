@@ -186,6 +186,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
+        bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
             block_on(create(
                 &mut mock_hal,
@@ -196,6 +197,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
         assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
         assert_eq!(
             mock_hal.ui.screens,
@@ -221,6 +223,68 @@ mod tests {
                 id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into()
             }))
         );
+    }
+
+    /// Test backup creation on a initialized keystore. The sdcard does not contain the backup yet.
+    #[test]
+    pub fn test_create_initialized_new() {
+        const TIMESTMAP: u32 = 1601281809;
+
+        mock_memory();
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+        bitbox02::keystore::encrypt_and_store_seed(&seed, "password").unwrap();
+        bitbox02::memory::set_initialized().unwrap();
+
+        let mut password_entered: bool = false;
+
+        let mut mock_hal = TestingHal::new();
+        mock_hal.sd.inserted = Some(true);
+        mock_hal.ui.set_enter_string(Box::new(|_params| {
+            password_entered = true;
+            Ok("password".into())
+        }));
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(
+            block_on(create(
+                &mut mock_hal,
+                &pb::CreateBackupRequest {
+                    timestamp: TIMESTMAP,
+                    timezone_offset: 18000,
+                }
+            )),
+            Ok(Response::Success(pb::Success {}))
+        );
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Is today?".into(),
+                    body: "Mon 2020-09-28".into(),
+                    longtouch: false
+                },
+                Screen::Status {
+                    title: "Backup created".into(),
+                    success: true
+                }
+            ]
+        );
+
+        mock_hal.ui.remove_enter_string(); // no more password entry needed
+        assert_eq!(
+            block_on(check(
+                &mut mock_hal,
+                &pb::CheckBackupRequest { silent: true }
+            )),
+            Ok(Response::CheckBackup(pb::CheckBackupResponse {
+                id: backup::id(&seed),
+            }))
+        );
+
+        drop(mock_hal); // to remove mutable borrow of `password_entered`
+        assert!(password_entered);
     }
 
     /// Use backup file fixtures generated using firmware v9.12.0 and perform tests on it. This

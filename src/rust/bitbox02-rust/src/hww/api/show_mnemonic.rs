@@ -139,10 +139,13 @@ mod tests {
 
         bitbox02::memory::set_initialized().unwrap();
 
+        let mut password_entered: bool = false;
+
         let mut mock_hal = TestingHal::new();
-        mock_hal
-            .ui
-            .set_enter_string(Box::new(|_params| Ok("password".into())));
+        mock_hal.ui.set_enter_string(Box::new(|_params| {
+            password_entered = true;
+            Ok("password".into())
+        }));
 
         bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
@@ -173,6 +176,9 @@ mod tests {
                 },
             ]
         );
+
+        drop(mock_hal); // to remove mutable borrow of `password_entered`
+        assert!(password_entered);
     }
 
     /// When initialized, a password check is prompted before displaying the mnemonic.

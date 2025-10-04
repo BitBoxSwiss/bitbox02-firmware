@@ -206,4 +206,8 @@ impl<'a> TestingWorkflows<'a> {
     pub fn set_enter_string(&mut self, cb: EnterStringCb<'a>) {
         self._enter_string = Some(cb);
     }
+
+    pub fn remove_enter_string(&mut self) {
+        self._enter_string = None;
+    }
 }

@@ -44,7 +44,7 @@ pub async fn process(
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
 async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
     use crate::workflow::trinary_choice::TrinaryChoice;
-    use crate::workflow::{mnemonic, trinary_input_string};
+    use crate::workflow::trinary_input_string;
 
     hal.ui()
         .confirm(&confirm::Params {
@@ -123,7 +123,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
 
     let mnemonic = keystore::bip85_bip39(num_words, index)?;
     let words: Vec<&str> = mnemonic.split(' ').collect();
-    mnemonic::show_and_confirm_mnemonic(hal, &words).await?;
+    hal.ui().show_and_confirm_mnemonic(&words).await?;
 
     hal.ui().status("Finished", true).await;
 

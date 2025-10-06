@@ -29,6 +29,7 @@
 #include "screen.h"
 #include "sd.h"
 #include "util.h"
+#include <usb/usb_processing.h>
 
 #include <ff.h>
 
@@ -311,14 +312,17 @@ void sd_free_list(sd_list_t* list)
 
 bool sd_card_inserted(void)
 {
+    // The sd card is allowed up to 1s to initialize, therefore the usb processing timeout must also
+    // be increased by about 1s.
+    usb_processing_timeout_reset(-10);
 #ifdef TESTING
     return true;
 #else
     sd_mmc_err_t err = sd_mmc_check(0);
     /* If initialization is ongoing, wait up to 1 second for it to initialize */
     if (err == SD_MMC_INIT_ONGOING) {
-        for (int i = 0; i < 10; ++i) {
-            delay_ms(100);
+        for (int i = 0; i < 100; ++i) {
+            delay_ms(10);
             err = sd_mmc_check(0);
             if (err != SD_MMC_INIT_ONGOING) {
                 break;

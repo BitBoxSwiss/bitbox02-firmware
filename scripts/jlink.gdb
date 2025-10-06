@@ -1,11 +1,15 @@
 # Connect to jlink gdb server
 target extended-remote :2331
 
-# load the firmware into ROM
-load
+# It seems more reliable to reset the chip before loading the new firmware. It
+# is also how they do it in the example in the wiki:
+# https://kb.segger.com/J-Link_GDB_Server#Console
 
 # Reset the CPU
 monitor reset
+
+# load the firmware into ROM
+load
 
 # Set VTOR (Vector Table Offset Register) to where the firmware is located
 set *(uint32_t*)0xE000ED08=0x10000

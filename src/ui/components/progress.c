@@ -38,7 +38,7 @@ static void _render(component_t* component)
 static const component_functions_t _component_functions = {
     .cleanup = ui_util_component_cleanup,
     .render = _render,
-    .on_event = ui_util_on_event_noop,
+    .on_event = NULL,
 };
 
 component_t* progress_create(const char* title)

@@ -54,13 +54,6 @@ void ui_util_component_render_subcomponents(component_t* component);
 void ui_util_component_cleanup(component_t* component);
 
 /**
- * A no-op function for components that do not handle events.
- * @param[in] event The emitted event.
- * @param[in] component The component that receives the event.
- */
-void ui_util_on_event_noop(const event_t* event, component_t* component);
-
-/**
  * Positions the child component in the center (vertical and horizontal) of the
  * parent component.
  * @param[in] parent The parent component.

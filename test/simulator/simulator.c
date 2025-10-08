@@ -42,7 +42,8 @@ static const char* _simulator_version = "1.0.0";
 int data_len;
 int commfd;
 
-static volatile sig_atomic_t sigint_called = false;
+static volatile sig_atomic_t quitting = false;
+static volatile sig_atomic_t hangup = false;
 static int sockfd;
 
 static int get_usb_message_socket(uint8_t* input)
@@ -71,17 +72,28 @@ static void simulate_firmware_execution(const uint8_t* input)
     usb_processing_process(usb_processing_hww());
 }
 
-static void _int_handler(int signum)
+static void _quit_handler(int signum)
 {
     (void)signum;
-    sigint_called = true;
-    close(sockfd);
+    quitting = true;
+}
+
+static void _hup_handler(int signum)
+{
+    (void)signum;
+    hangup = true;
 }
 
 int main(int argc, char* argv[])
 {
-    signal(SIGINT, _int_handler);
-    // Default port number
+    struct sigaction psa;
+    memset(&psa, 0, sizeof(struct sigaction));
+    psa.sa_handler = _quit_handler;
+    sigaction(SIGINT, &psa, NULL);
+    sigaction(SIGTERM, &psa, NULL);
+    psa.sa_handler = _hup_handler;
+    sigaction(SIGHUP, &psa, NULL);
+    //  Default port number
     int portno = 15423;
 
     struct option long_options[] = {
@@ -162,11 +174,12 @@ int main(int argc, char* argv[])
     while (1) {
         if ((commfd = accept(sockfd, (struct sockaddr*)&serv_addr, (socklen_t*)&serv_addr_len)) <
             0) {
-            if (sigint_called) {
-                printf("\nGot Ctrl-C, exiting\n");
+            if (quitting) {
+                printf("\nGot signal, exiting\n");
+                break;
             }
             perror("accept");
-            return 1;
+            break;
         }
         printf("Socket connection setup success\n");
 
@@ -175,7 +188,33 @@ int main(int argc, char* argv[])
         int temp_len;
         while (1) {
             // Simulator polls for USB messages from client and then processes them
-            if (!get_usb_message_socket(input)) break;
+            if (get_usb_message_socket(input) < 1) {
+                if (quitting) {
+                    printf("\nGot term/int signal, exiting\n");
+                    // Using LINGER we force a TCP RST instead of graceful shutdown. Without this
+                    // trick the port keeps being bound for 10s of seconds after the application has
+                    // died, hindering future executions.
+                    struct linger sol = {.l_onoff = 1, .l_linger = 0};
+                    int res = setsockopt(commfd, SOL_SOCKET, SO_LINGER, &sol, sizeof(sol));
+                    if (res) {
+                        perror("setsockopt");
+                    }
+                    shutdown(commfd, SHUT_RDWR);
+                    uint8_t buf[1024];
+                    while (read(commfd, buf, sizeof(buf)) > 0);
+                    close(commfd);
+                    goto after_main_loop;
+                }
+                if (hangup) {
+                    hangup = false;
+                    printf("\nGot hangup signal, disconnecting\n");
+                    shutdown(commfd, SHUT_RDWR);
+                    uint8_t buf[1024];
+                    while (read(commfd, buf, sizeof(buf)) > 0);
+                    close(commfd);
+                }
+                break;
+            }
             simulate_firmware_execution(input);
 
             // If the USB message to be sent from firmware is bigger than one packet,
@@ -196,5 +235,7 @@ int main(int argc, char* argv[])
         printf("Socket connection closed\n");
         printf("Waiting for new clients, CTRL+C to shut down the simulator\n");
     }
+after_main_loop:
+    close(sockfd);
     return 0;
 }

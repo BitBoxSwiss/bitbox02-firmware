@@ -111,10 +111,10 @@ pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelErr
 }
 
 pub async fn show_and_confirm_mnemonic(
-    hal: &mut impl crate::hal::Hal,
+    hal_ui: &mut impl crate::hal::Ui,
     words: &[&str],
 ) -> Result<(), CancelError> {
-    hal.ui()
+    hal_ui
         .confirm(&confirm::Params {
             title: "",
             body: &format!("{} words follow", words.len()),
@@ -125,11 +125,10 @@ pub async fn show_and_confirm_mnemonic(
         .map_err(|_| CancelError::Cancelled)?;
 
     // Part 1) Scroll through words
-    hal.ui().show_mnemonic(words).await?;
+    hal_ui.show_mnemonic(words).await?;
 
     // Can only succeed due to `accept_only`.
-    let _ = hal
-        .ui()
+    let _ = hal_ui
         .confirm(&confirm::Params {
             title: "",
             body: "Please confirm\neach word",
@@ -147,10 +146,10 @@ pub async fn show_and_confirm_mnemonic(
         choices.push("Back to\nrecovery words");
         let back_idx = (choices.len() - 1) as u8;
         loop {
-            match hal.ui().quiz_mnemonic_word(&choices, &title).await? {
+            match hal_ui.quiz_mnemonic_word(&choices, &title).await? {
                 selected_idx if selected_idx == correct_idx => break,
-                selected_idx if selected_idx == back_idx => hal.ui().show_mnemonic(words).await?,
-                _ => hal.ui().status("Incorrect word\nTry again", false).await,
+                selected_idx if selected_idx == back_idx => hal_ui.show_mnemonic(words).await?,
+                _ => hal_ui.status("Incorrect word\nTry again", false).await,
             }
         }
     }

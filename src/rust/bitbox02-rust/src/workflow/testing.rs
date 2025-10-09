@@ -40,6 +40,9 @@ pub enum Screen {
         title: String,
         success: bool,
     },
+    ShowAndConfirmMnemonic {
+        mnemonic: String,
+    },
     More,
 }
 
@@ -168,6 +171,13 @@ impl Workflows for TestingWorkflows<'_> {
         _title: &str,
     ) -> Result<u8, cancel::Error> {
         todo!("not used in unit tests yet");
+    }
+
+    async fn show_and_confirm_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {
+        self.screens.push(Screen::ShowAndConfirmMnemonic {
+            mnemonic: words.join(" "),
+        });
+        Ok(())
     }
 }
 

@@ -422,6 +422,23 @@ keystore_error_t keystore_create_and_store_seed(
     return keystore_encrypt_and_store_seed(seed, host_entropy_size, password);
 }
 
+// Checks if the retained seed matches the passed seed.
+static bool _check_retained_seed(const uint8_t* seed, size_t seed_length)
+{
+    if (!_is_unlocked_device) {
+        return false;
+    }
+    uint8_t seed_hashed[32] = {0};
+    UTIL_CLEANUP_32(seed_hashed);
+    if (_hash_seed(seed, seed_length, seed_hashed) != KEYSTORE_OK) {
+        return false;
+    }
+    if (!MEMEQ(seed_hashed, _retained_seed_hash, sizeof(_retained_seed_hash))) {
+        return false;
+    }
+    return true;
+}
+
 keystore_error_t keystore_unlock(
     const char* password,
     uint8_t* remaining_attempts_out,
@@ -455,12 +472,7 @@ keystore_error_t keystore_unlock(
     if (result == KEYSTORE_OK) {
         if (_is_unlocked_device) {
             // Already unlocked. Fail if the seed changed under our feet (should never happen).
-            uint8_t current_seed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-            size_t current_seed_len = 0;
-            if (!keystore_copy_seed(current_seed, &current_seed_len)) {
-                return KEYSTORE_ERR_DECRYPT;
-            }
-            if (seed_len != current_seed_len || !MEMEQ(current_seed, seed, current_seed_len)) {
+            if (!_check_retained_seed(seed, seed_len)) {
                 Abort("Seed has suddenly changed. This should never happen.");
             }
         } else {
@@ -491,15 +503,9 @@ bool keystore_unlock_bip39_check(const uint8_t* seed, size_t seed_length)
         return false;
     }
 
-    uint8_t seed_hashed[32] = {0};
-    UTIL_CLEANUP_32(seed_hashed);
-    if (_hash_seed(seed, seed_length, seed_hashed) != KEYSTORE_OK) {
+    if (!_check_retained_seed(seed, seed_length)) {
         return false;
     }
-    if (!MEMEQ(seed_hashed, _retained_seed_hash, sizeof(_retained_seed_hash))) {
-        return false;
-    }
-
     usb_processing_timeout_reset(LONG_TIMEOUT);
 
     return true;

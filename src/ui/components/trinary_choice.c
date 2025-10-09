@@ -33,7 +33,7 @@ typedef struct {
 static const component_functions_t _component_functions = {
     .cleanup = ui_util_component_cleanup,
     .render = ui_util_component_render_subcomponents,
-    .on_event = ui_util_on_event_noop,
+    .on_event = NULL,
 };
 
 static void _left_selected(component_t* button)

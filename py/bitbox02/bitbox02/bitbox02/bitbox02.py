@@ -467,6 +467,16 @@ class BitBox02(BitBoxCommonAPI):
             # Attaching output info supported since v9.22.0.
             self._require_atleast(semver.VersionInfo(9, 22, 0))
 
+        if any(
+            map(
+                lambda output: isinstance(output, BTCOutputExternal)
+                and output.type == btc.BTCOutputType.OP_RETURN,
+                outputs,
+            )
+        ):
+            # OP_RETURN supported sice v9.24.0
+            self._require_atleast(semver.VersionInfo(9, 24, 0))
+
         supports_antiklepto = self.version >= semver.VersionInfo(9, 4, 0)
 
         sigs: List[Tuple[int, bytes]] = []

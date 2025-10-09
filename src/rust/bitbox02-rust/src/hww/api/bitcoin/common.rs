@@ -1,4 +1,4 @@
-// Copyright 2022-2024 Shift Crypto AG
+// Copyright 2022-2025 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,10 +25,11 @@ pub use pb::btc_sign_init_request::FormatUnit;
 pub use pb::{BtcCoin, BtcOutputType};
 
 use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
-use super::{multisig, params::Params, script};
+use super::{multisig, params::Params};
 
 use sha2::{Digest, Sha256};
 
+use bitcoin::ScriptBuf;
 use bitcoin::bech32;
 use bitcoin::hashes::Hash;
 
@@ -210,7 +211,8 @@ impl Payload {
         }
     }
 
-    /// Converts a payload to an address.
+    /// Converts a payload to an address. Returns an error for invalid input or if an address does
+    /// not exist for the output type (e.g. OP_RETURN).
     pub fn address(&self, params: &Params) -> Result<String, ()> {
         let payload = self.data.as_slice();
         match self.output_type {
@@ -251,54 +253,51 @@ impl Payload {
                 }
                 encode_segwit_addr(params.bech32_hrp, 1, payload)
             }
+            BtcOutputType::OpReturn => Err(()),
         }
     }
 
-    /// Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output type.
+    /// Computes the pkScript from a pubkey hash or script hash or pubkey, depending on the output
+    /// type.
     pub fn pk_script(&self, params: &Params) -> Result<Vec<u8>, Error> {
         let payload = self.data.as_slice();
-        match self.output_type {
-            BtcOutputType::Unknown => Err(Error::InvalidInput),
+        let script = match self.output_type {
+            BtcOutputType::Unknown => return Err(Error::InvalidInput),
             BtcOutputType::P2pkh => {
-                if payload.len() != HASH160_LEN {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_DUP, script::OP_HASH160];
-                script::push_data(&mut result, payload);
-                result.extend_from_slice(&[script::OP_EQUALVERIFY, script::OP_CHECKSIG]);
-                Ok(result)
+                let pk_hash =
+                    bitcoin::PubkeyHash::from_slice(payload).map_err(|_| Error::Generic)?;
+
+                ScriptBuf::new_p2pkh(&pk_hash)
             }
             BtcOutputType::P2sh => {
-                if payload.len() != HASH160_LEN {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_HASH160];
-                script::push_data(&mut result, payload);
-                result.push(script::OP_EQUAL);
-                Ok(result)
+                let script_hash =
+                    bitcoin::ScriptHash::from_slice(payload).map_err(|_| Error::Generic)?;
+                ScriptBuf::new_p2sh(&script_hash)
             }
-            BtcOutputType::P2wpkh | BtcOutputType::P2wsh => {
-                if (self.output_type == BtcOutputType::P2wpkh && payload.len() != HASH160_LEN)
-                    || (self.output_type == BtcOutputType::P2wsh && payload.len() != SHA256_LEN)
-                {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_0];
-                script::push_data(&mut result, payload);
-                Ok(result)
+            BtcOutputType::P2wpkh => {
+                let wpkh = bitcoin::WPubkeyHash::from_slice(payload).map_err(|_| Error::Generic)?;
+                ScriptBuf::new_p2wpkh(&wpkh)
+            }
+            BtcOutputType::P2wsh => {
+                let wsh = bitcoin::WScriptHash::from_slice(payload).map_err(|_| Error::Generic)?;
+                ScriptBuf::new_p2wsh(&wsh)
             }
             BtcOutputType::P2tr => {
                 if !params.taproot_support {
                     return Err(Error::InvalidInput);
                 }
-                if payload.len() != 32 {
-                    return Err(Error::Generic);
-                }
-                let mut result = vec![script::OP_1];
-                script::push_data(&mut result, payload);
-                Ok(result)
+                let tweaked = bitcoin::key::TweakedPublicKey::dangerous_assume_tweaked(
+                    bitcoin::XOnlyPublicKey::from_slice(payload).map_err(|_| Error::Generic)?,
+                );
+                ScriptBuf::new_p2tr_tweaked(tweaked)
             }
-        }
+            BtcOutputType::OpReturn => {
+                let pushbytes: &bitcoin::script::PushBytes =
+                    payload.try_into().map_err(|_| Error::InvalidInput)?;
+                ScriptBuf::new_op_return(pushbytes)
+            }
+        };
+        Ok(script.into_bytes())
     }
 }
 
@@ -621,5 +620,87 @@ mod tests {
             .as_slice(),
             b"\x25\x0e\xc8\x02\xb6\xd3\xdb\x98\x42\xd1\xbd\xbe\x0e\xe4\x8d\x52\xf9\xa4\xb4\x6e\x60\xcb\xbb\xab\x3b\xcc\x4e\xe9\x15\x73\xfc\xe8"
         );
+    }
+
+    #[test]
+    fn test_pkscript() {
+        let params = super::super::params::get(pb::BtcCoin::Btc);
+
+        let payload = Payload {
+            data: vec![],
+            output_type: BtcOutputType::Unknown,
+        };
+        assert_eq!(payload.pk_script(params), Err(Error::InvalidInput));
+
+        struct Test {
+            payload: &'static str,
+            output_type: BtcOutputType,
+            expected_pkscript: &'static str,
+        }
+
+        let tests = [
+            Test {
+                payload: "669c6cb1883c50a1b10c34bd1693c1f34fe3d798",
+                output_type: BtcOutputType::P2pkh,
+                expected_pkscript: "76a914669c6cb1883c50a1b10c34bd1693c1f34fe3d79888ac",
+            },
+            Test {
+                payload: "b59e844a19063a882b3c34b64b941a8acdad74ee",
+                output_type: BtcOutputType::P2sh,
+                expected_pkscript: "a914b59e844a19063a882b3c34b64b941a8acdad74ee87",
+            },
+            Test {
+                payload: "b7cfb87a9806bb232e64f64e714785bd8366596b",
+                output_type: BtcOutputType::P2wpkh,
+                expected_pkscript: "0014b7cfb87a9806bb232e64f64e714785bd8366596b",
+            },
+            Test {
+                payload: "526e8e589b4bf1de80774986d972aed96ae70f17572d35fe89e61e9e88e2dd4a",
+                output_type: BtcOutputType::P2wsh,
+                expected_pkscript: "0020526e8e589b4bf1de80774986d972aed96ae70f17572d35fe89e61e9e88e2dd4a",
+            },
+            Test {
+                payload: "a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c",
+                output_type: BtcOutputType::P2tr,
+                expected_pkscript: "5120a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c",
+            },
+            Test {
+                payload: "aabbcc",
+                output_type: BtcOutputType::OpReturn,
+                expected_pkscript: "6a03aabbcc",
+            },
+            Test {
+                payload: "",
+                output_type: BtcOutputType::OpReturn,
+                expected_pkscript: "6a00",
+            },
+            Test {
+                // 80 byte payload
+                payload: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                output_type: BtcOutputType::OpReturn,
+                expected_pkscript: "6a4c50aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            },
+        ];
+
+        for test in tests {
+            // OK
+            let payload = Payload {
+                data: hex::decode(test.payload).unwrap(),
+                output_type: test.output_type,
+            };
+            assert_eq!(
+                hex::encode(payload.pk_script(params).unwrap()),
+                test.expected_pkscript,
+            );
+
+            // Payload of wrong size. Does not apply to OpReturn, almost any size is accepted.
+            if test.output_type != BtcOutputType::OpReturn {
+                let payload = Payload {
+                    data: hex::decode(&test.payload[2..]).unwrap(),
+                    output_type: test.output_type,
+                };
+                assert_eq!(payload.pk_script(params), Err(Error::Generic));
+            }
+        }
     }
 }

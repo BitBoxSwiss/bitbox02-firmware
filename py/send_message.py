@@ -788,6 +788,43 @@ class SendMessage:
         for input_index, sig in sigs:
             print("Signature for input {}: {}".format(input_index, sig.hex()))
 
+    def _sign_btc_op_return(
+        self,
+        format_unit: "bitbox02.btc.BTCSignInitRequest.FormatUnit.V" = bitbox02.btc.BTCSignInitRequest.FormatUnit.DEFAULT,
+    ) -> None:
+        # pylint: disable=no-member
+        bip44_account: int = 0 + HARDENED
+        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        outputs.append(
+            bitbox02.BTCOutputExternal(
+                output_type=bitbox02.btc.OP_RETURN,
+                output_payload=b"hello world",
+                value=0,
+            )
+        )
+        sigs = self._device.btc_sign(
+            bitbox02.btc.BTC,
+            [
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                    ),
+                    keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+                bitbox02.btc.BTCScriptConfigWithKeypath(
+                    script_config=bitbox02.btc.BTCScriptConfig(
+                        simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                    ),
+                    keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
+                ),
+            ],
+            inputs=inputs,
+            outputs=outputs,
+            format_unit=format_unit,
+        )
+        for input_index, sig in sigs:
+            print("Signature for input {}: {}".format(input_index, sig.hex()))
+
     def _sign_btc_tx_from_raw(self) -> None:
         """
         Experiment with testnet transactions.
@@ -896,6 +933,7 @@ class SendMessage:
             ("Taproot inputs", self._sign_btc_taproot_inputs),
             ("Taproot output", self._sign_btc_taproot_output),
             ("Policy", self._sign_btc_policy),
+            ("OP_RETURN", self._sign_btc_op_return),
             ("From testnet tx ID", self._sign_btc_tx_from_raw),
         )
         choice = ask_user(choices)

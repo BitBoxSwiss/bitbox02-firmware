@@ -133,9 +133,23 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
         }
     }
 
-    let result = bitbox02::ui::with_lock_animation(|| {
-        keystore::unlock_bip39(crate::secp256k1::SECP256K1, seed, &mnemonic_passphrase)
-    });
+    let ((), result) = futures_lite::future::zip(
+        super::unlock_animation::animate(),
+        keystore::unlock_bip39(
+            crate::secp256k1::SECP256K1,
+            seed,
+            &mnemonic_passphrase,
+            // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
+            // simulator.
+            #[cfg(feature = "c-unit-testing")]
+            async || {},
+            // we yield every time to keep the processing time per iteration to a minimum.
+            #[cfg(not(feature = "c-unit-testing"))]
+            futures_lite::future::yield_now,
+        ),
+    )
+    .await;
+
     if result.is_err() {
         abort("bip39 unlock failed");
     }

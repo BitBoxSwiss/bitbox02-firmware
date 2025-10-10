@@ -162,10 +162,6 @@ pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {
     panic!("not implemented")
 }
 
-pub fn with_lock_animation<F: Fn() -> R, R>(f: F) -> R {
-    f()
-}
-
 pub fn screen_stack_pop_all() {}
 
 pub fn progress_create<'a>(_title: &str) -> Component<'a> {
@@ -178,6 +174,17 @@ pub fn progress_create<'a>(_title: &str) -> Component<'a> {
 pub fn progress_set(_component: &mut Component, _progress: f32) {}
 
 pub fn empty_create<'a>() -> Component<'a> {
+    Component {
+        is_pushed: false,
+        _p: PhantomData,
+    }
+}
+
+pub fn unlock_animation_create<'a, F>(mut on_done: F) -> Component<'a>
+where
+    F: FnMut() + 'a,
+{
+    on_done();
     Component {
         is_pushed: false,
         _p: PhantomData,

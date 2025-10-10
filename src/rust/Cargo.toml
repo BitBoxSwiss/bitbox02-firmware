@@ -32,8 +32,10 @@ resolver = "2"
 # The secp-recovery feature is currently only needed in tests to make use of `RecoverableSignature`.
 # Attempting to enable it conditionally only for tests somehow leads to linking errors (duplicate secp256k1 symbols).
 bitcoin = { version = "0.32.7", default-features = false, features = ["secp-recovery"] }
-# Replace with upstream once https://github.com/rust-bitcoin/rust-bip39/pull/76 is merged and released.
-bip39 = { git = "https://github.com/benma/rust-bip39.git", branch = "bb02", default-features = false, features = ["zeroize"] }
+# Forked for:
+# - https://github.com/rust-bitcoin/rust-bip39/pull/76 -> custom commit can be removed once this is merged
+# - async functionality
+bip39 = { git = "https://github.com/BitBoxSwiss/rust-bip39.git", branch = "bitbox-20250922", default-features = false, features = ["zeroize"] }
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
 # force-soft-compact reduces the binary size by ~3kB. In future versions of sha2 this will change to
@@ -47,6 +49,7 @@ hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 # writing, this might fluctuate over time).
 keccak = { version = "0.1.4", default-features = false, features = ["no_unroll"] }
 zeroize = "1.7.0"
+futures-lite = { version = "2.6.1", default-features = false }
 
 [patch.crates-io]
 rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }

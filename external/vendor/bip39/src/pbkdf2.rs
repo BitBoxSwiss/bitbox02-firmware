@@ -126,3 +126,41 @@ pub(crate) fn pbkdf2<M>(mnemonic: M, unprefixed_salt: &[u8], c: usize, res: &mut
 		}
 	}
 }
+
+pub(crate) async fn pbkdf2_async<M>(
+	mnemonic: M,
+	unprefixed_salt: &[u8],
+	c: usize,
+	res: &mut [u8],
+	yield_now: impl AsyncFn(),
+) where
+	M: Iterator<Item = &'static str> + Clone,
+{
+	let prf = create_hmac_engine(mnemonic);
+
+	for (i, chunk) in res.chunks_mut(sha512::Hash::LEN).enumerate() {
+		for v in chunk.iter_mut() {
+			*v = 0;
+		}
+
+		let mut salt = {
+			let mut prfc = prf.clone();
+			prfc.input(SALT_PREFIX.as_bytes());
+			prfc.input(unprefixed_salt);
+			prfc.input(&u32_to_array_be((i + 1) as u32));
+
+			let salt = hmac::Hmac::from_engine(prfc).to_byte_array();
+			xor(chunk, &salt);
+			salt
+		};
+
+		for _ in 1..c {
+			let mut prfc = prf.clone();
+			prfc.input(&salt);
+			salt = hmac::Hmac::from_engine(prfc).to_byte_array();
+
+			xor(chunk, &salt);
+			yield_now().await;
+		}
+	}
+}

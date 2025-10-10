@@ -56,6 +56,7 @@ bip39 = { workspace = true }
 # small-hash feature to reduce the binary size, saving around 2784 bytes (as measured at time of
 # writing, this might fluctuate over time).
 bitcoin_hashes = { version = "0.14.0", default-features = false, features = ["small-hash"] }
+futures-lite = { workspace = true }
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.

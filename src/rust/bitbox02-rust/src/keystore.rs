@@ -270,6 +270,7 @@ mod tests {
     use bitbox02::testing::{
         TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
     };
+    use util::bb02_async::block_on;
 
     use bitcoin::secp256k1;
 
@@ -573,7 +574,15 @@ mod tests {
             keystore::lock();
             let seed = &seed[..test.seed_len];
 
-            assert!(keystore::unlock_bip39(SECP256K1, seed, test.mnemonic_passphrase).is_err());
+            assert!(
+                block_on(keystore::unlock_bip39(
+                    SECP256K1,
+                    seed,
+                    test.mnemonic_passphrase,
+                    async || {}
+                ))
+                .is_err()
+            );
 
             bitbox02::securechip::fake_event_counter_reset();
             assert!(keystore::encrypt_and_store_seed(seed, "foo").is_ok());
@@ -582,7 +591,15 @@ mod tests {
             assert!(keystore::is_locked());
 
             bitbox02::securechip::fake_event_counter_reset();
-            assert!(keystore::unlock_bip39(SECP256K1, seed, test.mnemonic_passphrase).is_ok());
+            assert!(
+                block_on(keystore::unlock_bip39(
+                    SECP256K1,
+                    seed,
+                    test.mnemonic_passphrase,
+                    async || {}
+                ))
+                .is_ok()
+            );
             assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
 
             assert!(!keystore::is_locked());

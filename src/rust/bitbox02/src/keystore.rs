@@ -111,14 +111,18 @@ fn unlock_bip39_finalize(bip39_seed: &[u8; 64]) -> Result<(), Error> {
     }
 }
 
-fn derive_bip39_seed(
+async fn derive_bip39_seed(
     secp: &Secp256k1<All>,
     seed: &[u8],
     mnemonic_passphrase: &str,
+    yield_now: impl AsyncFn(),
 ) -> (zeroize::Zeroizing<[u8; 64]>, [u8; 4]) {
     let mnemonic = bip39::Mnemonic::from_entropy_in(bip39::Language::English, seed).unwrap();
-    let bip39_seed: zeroize::Zeroizing<[u8; 64]> =
-        zeroize::Zeroizing::new(mnemonic.to_seed_normalized(mnemonic_passphrase));
+    let bip39_seed: zeroize::Zeroizing<[u8; 64]> = zeroize::Zeroizing::new(
+        mnemonic
+            .to_seed_normalized_async(mnemonic_passphrase, yield_now)
+            .await,
+    );
     let root_fingerprint: [u8; 4] =
         bitcoin::bip32::Xpriv::new_master(bitcoin::NetworkKind::Main, bip39_seed.as_ref())
             .unwrap()
@@ -132,14 +136,16 @@ fn derive_bip39_seed(
 /// of `keystore_copy_seed()`).
 /// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
 /// passphrase is needed or provided.
-pub fn unlock_bip39(
+pub async fn unlock_bip39(
     secp: &Secp256k1<All>,
     seed: &[u8],
     mnemonic_passphrase: &str,
+    yield_now: impl AsyncFn(),
 ) -> Result<(), Error> {
     unlock_bip39_check(seed)?;
 
-    let (bip39_seed, root_fingerprint) = derive_bip39_seed(secp, seed, mnemonic_passphrase);
+    let (bip39_seed, root_fingerprint) =
+        derive_bip39_seed(secp, seed, mnemonic_passphrase, yield_now).await;
 
     unlock_bip39_finalize(bip39_seed.as_slice().try_into().unwrap())?;
 
@@ -279,6 +285,7 @@ mod tests {
     use bitcoin::secp256k1;
 
     use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
+    use util::bb02_async::block_on;
 
     #[test]
     fn test_secp256k1_sign() {
@@ -442,7 +449,15 @@ mod tests {
             .unwrap();
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(unlock_bip39(&secp256k1::Secp256k1::new(), &seed, "foo").is_ok());
+        assert!(
+            block_on(unlock_bip39(
+                &secp256k1::Secp256k1::new(),
+                &seed,
+                "foo",
+                async || {}
+            ))
+            .is_ok()
+        );
         assert!(!is_locked());
         lock();
         assert!(is_locked());
@@ -572,7 +587,12 @@ mod tests {
         let secp = secp256k1::Secp256k1::new();
         for test in tests {
             let seed = hex::decode(test.seed).unwrap();
-            let (bip39_seed, root_fingerprint) = derive_bip39_seed(&secp, &seed, test.passphrase);
+            let (bip39_seed, root_fingerprint) = block_on(derive_bip39_seed(
+                &secp,
+                &seed,
+                test.passphrase,
+                async || {},
+            ));
             assert_eq!(hex::encode(bip39_seed).as_str(), test.expected_bip39_seed);
             assert_eq!(
                 hex::encode(root_fingerprint).as_str(),
@@ -600,9 +620,17 @@ mod tests {
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(root_fingerprint().is_err());
         // Incorrect seed passed
-        assert!(unlock_bip39(&secp, b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "foo").is_err());
+        assert!(
+            block_on(unlock_bip39(
+                &secp,
+                b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "foo",
+                async || {}
+            ))
+            .is_err()
+        );
         // Correct seed passed.
-        assert!(unlock_bip39(&secp, &seed, "foo").is_ok());
+        assert!(block_on(unlock_bip39(&secp, &seed, "foo", async || {})).is_ok());
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
         let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();

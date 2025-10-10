@@ -33,7 +33,7 @@ pub async fn from_file(
         })
         .await?;
 
-    let (data, metadata) = match crate::backup::load(hal, &request.id) {
+    let (data, metadata) = match crate::backup::load(hal, &request.id).await {
         Ok(d) => d,
         Err(_) => {
             hal.ui().status("Could not\nrestore backup", false).await;

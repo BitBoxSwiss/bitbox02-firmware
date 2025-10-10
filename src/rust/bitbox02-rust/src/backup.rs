@@ -158,18 +158,18 @@ fn bitwise_recovery(buf1: &[u8], buf2: &[u8], buf3: &[u8]) -> Result<Zeroizing<V
     Ok(recovered_contents)
 }
 
-pub fn load(
+pub async fn load(
     hal: &mut impl crate::hal::Hal,
     dir: &str,
 ) -> Result<(Zeroizing<BackupData>, pb_backup::BackupMetaData), ()> {
-    let files = hal.sd().list_subdir(Some(dir))?;
+    let files = hal.sd().list_subdir(Some(dir)).await?;
     if files.len() != 3 {
         return Err(());
     }
     let file_contents: [Zeroizing<Vec<u8>>; 3] = [
-        hal.sd().load_bin(&files[0], dir)?,
-        hal.sd().load_bin(&files[1], dir)?,
-        hal.sd().load_bin(&files[2], dir)?,
+        hal.sd().load_bin(&files[0], dir).await?,
+        hal.sd().load_bin(&files[1], dir).await?,
+        hal.sd().load_bin(&files[2], dir).await?,
     ];
     for contents in file_contents.iter() {
         if let o @ Ok(_) = load_from_buffer(contents) {
@@ -186,7 +186,7 @@ pub fn load(
     )?)
 }
 
-pub fn create(
+pub async fn create(
     hal: &mut impl crate::hal::Hal,
     seed: &[u8],
     name: &str,
@@ -232,7 +232,11 @@ pub fn create(
     };
     let backup_encoded = backup.encode_to_vec();
     let dir = id(seed);
-    let files = hal.sd().list_subdir(Some(&dir)).or(Err(Error::SdList))?;
+    let files = hal
+        .sd()
+        .list_subdir(Some(&dir))
+        .await
+        .or(Err(Error::SdList))?;
 
     let filename_datetime = {
         let tm = bitbox02::get_datetime(backup_create_timestamp).map_err(|_| Error::Generic)?;
@@ -255,10 +259,12 @@ pub fn create(
         }
         hal.sd()
             .write_bin(&filename, &dir, &backup_encoded)
+            .await
             .or(Err(Error::SdWrite))?;
         if hal
             .sd()
             .load_bin(&filename, &dir)
+            .await
             .or(Err(Error::SdRead))?
             .as_slice()
             != backup_encoded.as_slice()
@@ -268,7 +274,7 @@ pub fn create(
     }
     let mut stale = false;
     for file in files {
-        if hal.sd().erase_file_in_subdir(&file, &dir).is_err() {
+        if hal.sd().erase_file_in_subdir(&file, &dir).await.is_err() {
             stale = true
         }
     }
@@ -284,6 +290,8 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use core::convert::TryInto;
+
+    use crate::bb02_async::block_on;
 
     #[test]
     fn test_id() {
@@ -307,11 +315,21 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         let timestamp = 1601281809;
         let birthdate = timestamp - 32400;
-        assert!(create(&mut mock_hal, seed, "test name", timestamp, birthdate).is_ok());
+        assert!(block_on(create(
+            &mut mock_hal,
+            seed,
+            "test name",
+            timestamp,
+            birthdate
+        ))
+        .is_ok());
         let dir = id(seed);
-        assert_eq!(mock_hal.sd.list_subdir(None), Ok(vec![dir.clone()]));
         assert_eq!(
-            mock_hal.sd.list_subdir(Some(&dir)),
+            block_on(mock_hal.sd.list_subdir(None)),
+            Ok(vec![dir.clone()])
+        );
+        assert_eq!(
+            block_on(mock_hal.sd.list_subdir(Some(&dir))),
             Ok(vec![
                 "backup_Mon_2020-09-28T08-30-09Z_0.bin".into(),
                 "backup_Mon_2020-09-28T08-30-09Z_1.bin".into(),
@@ -320,9 +338,16 @@ mod tests {
         );
 
         // Recreating using same timestamp is not allowed and doesn't change the backups.
-        assert!(create(&mut mock_hal, seed, "new name", timestamp, birthdate).is_err());
+        assert!(block_on(create(
+            &mut mock_hal,
+            seed,
+            "new name",
+            timestamp,
+            birthdate
+        ))
+        .is_err());
         assert_eq!(
-            mock_hal.sd.list_subdir(Some(&dir)),
+            block_on(mock_hal.sd.list_subdir(Some(&dir))),
             Ok(vec![
                 "backup_Mon_2020-09-28T08-30-09Z_0.bin".into(),
                 "backup_Mon_2020-09-28T08-30-09Z_1.bin".into(),
@@ -330,24 +355,30 @@ mod tests {
             ])
         );
 
-        let contents: [zeroize::Zeroizing<Vec<u8>>; 3] = mock_hal
-            .sd
-            .list_subdir(Some(&dir))
-            .unwrap()
-            .iter()
-            .map(|file| mock_hal.sd.load_bin(file, &dir).unwrap())
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
+        let contents: [zeroize::Zeroizing<Vec<u8>>; 3] =
+            block_on(mock_hal.sd.list_subdir(Some(&dir)))
+                .unwrap()
+                .iter()
+                .map(|file| block_on(mock_hal.sd.load_bin(file, &dir)).unwrap())
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap();
         assert!(
             contents[0].as_slice() == contents[1].as_slice()
                 && contents[0].as_slice() == contents[2].as_slice()
         );
 
         // Recreating the backup removes the previous files.
-        assert!(create(&mut mock_hal, seed, "new name", timestamp + 1, birthdate).is_ok());
+        assert!(block_on(create(
+            &mut mock_hal,
+            seed,
+            "new name",
+            timestamp + 1,
+            birthdate
+        ))
+        .is_ok());
         assert_eq!(
-            mock_hal.sd.list_subdir(Some(&dir)),
+            block_on(mock_hal.sd.list_subdir(Some(&dir))),
             Ok(vec![
                 "backup_Mon_2020-09-28T08-30-10Z_0.bin".into(),
                 "backup_Mon_2020-09-28T08-30-10Z_1.bin".into(),
@@ -355,7 +386,7 @@ mod tests {
             ])
         );
 
-        let (backup_data, metadata) = load(&mut mock_hal, &dir).unwrap();
+        let (backup_data, metadata) = block_on(load(&mut mock_hal, &dir)).unwrap();
         assert_eq!(backup_data.get_seed(), seed);
         assert_eq!(backup_data.0.birthdate, birthdate);
         assert_eq!(metadata.name.as_str(), "new name");

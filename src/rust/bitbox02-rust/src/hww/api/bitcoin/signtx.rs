@@ -1299,6 +1299,7 @@ mod tests {
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
+    use hex_lit::hex;
     use pb::btc_payment_request_request::{Memo, memo};
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
@@ -2049,8 +2050,11 @@ mod tests {
                     match coin {
                         pb::BtcCoin::Btc => {
                             assert_eq!(
-                                &next.signature,
-                                b"\x2e\x08\x4a\x0a\x5f\x9b\xab\xb3\x5d\xf6\xec\x3a\x89\x72\x0b\xcf\xc0\x88\xd4\xba\x6a\xee\x47\x97\x3c\x55\xfe\xc3\xb3\xdd\xaa\x60\x07\xc7\xb1\x1c\x8b\x5a\x1a\x68\x20\xca\x74\xa8\x5a\xeb\x4c\xf5\x45\xc1\xb3\x37\x53\x70\xf4\x4f\x24\xd5\x3d\x61\xfe\x67\x6e\x4c");
+                                next.signature,
+                                hex!(
+                                    "2e084a0a5f9babb35df6ec3a89720bcfc088d4ba6aee47973c55fec3b3ddaa6007c7b11c8b5a1a6820ca74a85aeb4cf545c1b3375370f44f24d53d61fe676e4c"
+                                )
+                            );
                         }
                         _ => {}
                     }
@@ -2114,7 +2118,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x3a\x46\x18\xf6\x16\x3c\x1d\x55\x3b\xeb\xc2\xc6\xac\x08\x86\x6d\x9f\x02\x7c\xa6\x63\xee\xa7\x43\x65\x8b\xb0\x58\x1c\x42\x33\xa4\x32\x98\x4c\xca\xeb\x52\x04\x4f\x70\x47\x47\x94\xc5\x54\x46\xa5\xd8\x23\xe1\xfb\x96\x9a\x39\x13\x2f\x7d\xa2\x30\xd2\xdd\x33\x75");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "3a4618f6163c1d553bebc2c6ac08866d9f027ca663eea743658bb0581c4233a432984ccaeb52044f70474794c55446a5d823e1fb969a39132f7da230d2dd3375"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -2161,7 +2170,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x47\x2e\xf2\xaa\x29\x3d\x56\x97\x64\x9a\x53\x64\xd4\x05\x67\xd6\xea\xf5\x08\xfc\xa9\xe5\x13\x21\xc5\xa4\x8d\xe4\x2c\x32\xb4\xbb\xc2\xd0\xce\xe4\xab\x6f\xea\x1f\x3b\x13\x7a\x1c\xbc\xa2\xab\xe7\x2a\xa9\x45\xc5\x0e\x95\xe0\x2f\xa8\xac\x35\x4f\xdd\xf2\xca\x10");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "472ef2aa293d5697649a5364d40567d6eaf508fca9e51321c5a48de42c32b4bbc2d0cee4ab6fea1f3b137a1cbca2abe72aa945c50e95e02fa8ac354fddf2ca10"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -2507,7 +2521,8 @@ mod tests {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::P2tr as _;
-        transaction.borrow_mut().outputs[0].payload = b"\xa6\x08\x69\xf0\xdb\xcf\x1d\xc6\x59\xc9\xce\xcb\xaf\x80\x50\x13\x5e\xa9\xe8\xcd\xc4\x87\x05\x3f\x1d\xc6\x88\x09\x49\xdc\x68\x4c".to_vec();
+        transaction.borrow_mut().outputs[0].payload =
+            hex!("a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c").to_vec();
         mock_host_responder(transaction.clone());
         mock_unlocked();
 
@@ -2524,7 +2539,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x8f\x1e\x0e\x8f\x98\xd3\x6d\xb1\x19\x62\x64\xf1\xa3\x00\xfa\xe3\x17\xf1\x50\x8d\x2c\x48\x9f\xbb\xd6\x60\xe0\x48\xc4\x52\x9c\x61\x2f\x59\x57\x6c\x86\xa2\x6f\xfa\x47\x6d\x97\x35\x1e\x46\x9e\xf6\xed\x27\x84\xae\xcb\x71\x05\x3a\x51\x66\x77\x5c\xcb\x4d\x7b\x9b");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "8f1e0e8f98d36db1196264f1a300fae317f1508d2c489fbbd660e048c4529c612f59576c86a26ffa476d97351e469ef6ed2784aecb71053a5166775ccb4d7b9b"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -2549,16 +2569,20 @@ mod tests {
                 address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
             });
         let tx = transaction.clone();
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(
-            move |response: Response| {
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response: Response| {
                 let next = extract_next(&response);
 
                 if NextType::try_from(next.r#type).unwrap() == NextType::Output && next.index == 1 {
-                    assert_eq!(next.generated_output_pkscript.as_slice(), b"\x51\x20\x7b\x91\x01\xd6\x0c\x64\x61\xff\x3e\x18\xf0\x83\x2e\x7f\x1e\x95\x20\x84\x20\x50\x62\xd7\xe0\xb7\xb0\x88\x12\xc2\x64\xcf\xe7\x13");
+                    assert_eq!(
+                        next.generated_output_pkscript,
+                        hex!(
+                            "51207b9101d60c6461ff3e18f0832e7f1e952084205062d7e0b7b08812c264cfe713"
+                        )
+                    );
                 }
                 Ok(tx.borrow().make_host_request(response))
-            },
-        ));
+            }));
         mock_unlocked();
 
         let mut init_request = transaction.borrow().init_request();
@@ -2614,7 +2638,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\xe1\x15\xd7\xd2\xd2\xb7\xef\x06\x8e\x7b\x89\xde\x83\xec\x79\x17\x44\xd4\x6b\x8b\xae\x8a\x59\x31\xa7\x3e\xf6\x44\xc0\xdb\x01\xcf\x2f\x2e\x2a\x02\x79\x7a\x29\xa1\x81\xfe\x74\xea\x1f\x5d\x2b\xca\xba\x4d\x70\xe0\xe7\x74\x24\x12\xa6\x80\xfd\x62\x95\x7a\x90\xf7");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "e115d7d2d2b7ef068e7b89de83ec791744d46b8bae8a5931a73ef644c0db01cf2f2e2a02797a29a181fe74ea1f5d2bcaba4d70e0e7742412a680fd62957a90f7"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -2664,13 +2693,13 @@ mod tests {
     fn test_antiklepto() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        let host_nonce = b"\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab\xab";
+        let host_nonce = hex!("abababababababababababababababababababababababababababababababab");
         // The host nonce commitment value does not impact this test, but an invalid commitment
         // would fail the antiklepto signature check on the host. The host check is skipped here and
         // tested in test_keystore_antiklepto.c. That the host nonce was included in the sig is
         // tested by the siganture fixture test below.x
         let host_nonce_commitment = pb::AntiKleptoHostNonceCommitment {
-            commitment: bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, host_nonce)
+            commitment: bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce)
                 .unwrap(),
         };
         transaction.borrow_mut().inputs[1].host_nonce = Some(host_nonce.to_vec());
@@ -2688,7 +2717,12 @@ mod tests {
                 response: Some(pb::btc_response::Response::SignNext(next)),
             })) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x2e\x6d\xe6\x54\x62\x6e\xe9\x12\xbf\x2e\x0c\xf5\xa5\x67\x49\x89\x1a\xa9\x89\x56\xd4\x0e\x29\xe3\x8b\x8a\x64\x4d\x5c\x62\xcf\xcc\x44\xe7\x72\x92\x84\xff\x30\xf9\x24\x8c\xd7\x0a\x54\x57\xb0\xe2\x32\x4e\x7c\x47\x3f\x66\x00\x43\x2a\xcd\xc8\xd9\x2f\xb1\x67\x66");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "2e6de654626ee912bf2e0cf5a56749891aa98956d40e29e38b8a644d5c62cfcc44e7729284ff30f9248cd70a5457b0e2324e7c473f6600432acdc8d92fb16766"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -2861,8 +2895,9 @@ mod tests {
         mock_memory();
 
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
-        let multisig_hash = b"\x89\x75\x1d\x19\xe4\xe2\x6f\xbe\xee\x2f\xd2\xc4\xf5\x6a\xb7\xae\x5b\xe6\xdc\x46\x48\x2e\x81\x24\x1f\x4a\xcc\xfb\xc0\xa1\x58\x4e";
-        bitbox02::memory::multisig_set_by_hash(multisig_hash, "test multisig account name")
+        let multisig_hash =
+            hex!("89751d19e4e26fbeee2fd2c4f56ab7ae5be6dc46482e81241f4accfbc0a1584e");
+        bitbox02::memory::multisig_set_by_hash(&multisig_hash, "test multisig account name")
             .unwrap();
 
         let init_request = {
@@ -2911,7 +2946,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x1b\xee\x37\xe9\x12\x3f\xd3\x7f\xb8\xbe\x2d\xd2\x53\xea\x81\x0a\x02\x13\x02\xe1\x49\x62\xf4\x6e\xee\xa9\x79\xd9\x6f\xfb\x4c\x67\x69\xd0\x07\xde\x36\x0f\x50\xe1\xde\x37\x8d\xe4\x8e\x7a\x9f\xc7\x9c\x47\x24\x5b\x36\x0d\xaf\x27\x64\x75\x29\xc9\x2e\x86\xb2\x03");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "1bee37e9123fd37fb8be2dd253ea810a021302e14962f46eeea979d96ffb4c6769d007de360f50e1de378de48e7a9fc79c47245b360daf27647529c92e86b203"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -3027,8 +3067,9 @@ mod tests {
         mock_memory();
 
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
-        let multisig_hash = b"\xa0\xa9\x82\xa6\xf5\xba\x92\x86\xee\x45\xcd\x14\x0f\xd7\x63\xd4\x34\x43\xd6\x85\xa8\x9b\xc6\x07\x72\x55\x3c\xc5\x41\x8f\xcc\xc4";
-        bitbox02::memory::multisig_set_by_hash(multisig_hash, "test multisig account name")
+        let multisig_hash =
+            hex!("a0a982a6f5ba9286ee45cd140fd763d43443d685a89bc60772553cc5418fccc4");
+        bitbox02::memory::multisig_set_by_hash(&multisig_hash, "test multisig account name")
             .unwrap();
 
         let init_request = {
@@ -3074,7 +3115,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\xa7\x23\x42\x86\x9a\x29\xb0\x24\x33\xfa\xae\x2a\xc5\xc4\x9f\x03\x3e\xff\xd3\xa6\xb6\x06\x23\x87\x8e\xf7\xbf\x8b\x14\xde\xe2\xa0\x3a\x76\x51\x1b\x37\xba\xf1\x5e\x70\x75\x07\xf4\x8b\x10\xcd\xf5\xa8\xf3\x0b\x0a\xda\x4d\xa2\x2a\x38\xa5\x47\x6f\x69\x91\x1d\x8e");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "a72342869a29b02433faae2ac5c49f033effd3a6b60623878ef7bf8b14dee2a03a76511b37baf15e707507f48b10cdf5a8f30b0ada4da22a38a5476f69911d8e"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -3093,8 +3139,9 @@ mod tests {
         mock_memory();
 
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
-        let multisig_hash = b"\x9d\xfc\x06\x52\xe2\xa3\x05\xc8\xb9\x94\x96\x20\xf9\x8e\xe1\x46\x50\x30\x2e\x38\x5f\x23\x94\x1b\xc6\x07\xcc\x35\xfd\x7a\x77\x81";
-        bitbox02::memory::multisig_set_by_hash(multisig_hash, "test multisig account name")
+        let multisig_hash =
+            hex!("9dfc0652e2a305c8b9949620f98ee14650302e385f23941bc607cc35fd7a7781");
+        bitbox02::memory::multisig_set_by_hash(&multisig_hash, "test multisig account name")
             .unwrap();
 
         let init_request = {
@@ -3151,7 +3198,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\xdb\xed\x8b\x1a\xef\xbd\xcf\xd7\xf3\xe6\xd9\xdf\xf5\xec\x83\xc5\xed\x77\xca\xd7\x27\x8b\x06\xc5\xf4\xd3\x30\x72\xf3\x00\xc2\xd6\x13\xd1\x66\x17\x1c\x54\xd2\x02\x41\x5b\x53\x44\xa9\x2d\x4f\x6f\x9b\x36\xac\x31\x4d\xc9\x3e\x18\xbd\xcf\x61\x35\xde\x4d\x11\xbf");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "dbed8b1aefbdcfd7f3e6d9dff5ec83c5ed77cad7278b06c5f4d33072f300c2d613d166171c54d202415b5344a92d4f6f9b36ac314dc93e18bdcf6135de4d11bf"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -3213,7 +3265,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x57\x36\xb8\xee\xc7\x59\x4a\xd9\x06\xda\xf8\xd3\xfa\xc6\x4d\x58\xae\xd3\x5f\xc5\x07\x26\xb0\xed\x6d\x5f\xb1\xc8\x01\x9f\xca\xb0\x60\x6c\xed\x7d\x09\xbc\x9a\x75\xfa\xdf\x5b\xa4\x5c\xc9\x5d\xc1\x5f\xb6\x79\x69\x97\x46\x67\x39\xa9\xf6\x38\x3b\xd1\x59\xda\xe4");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "5736b8eec7594ad906daf8d3fac64d58aed35fc50726b0ed6d5fb1c8019fcab0606ced7d09bc9a75fadf5ba45cc95dc15fb6796997466739a9f6383bd159dae4"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -3331,7 +3388,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\xf4\xb7\x60\xfa\x7f\x1c\xa8\xa0\x01\x49\xbf\x43\x9c\x07\xdc\xd3\xaa\xfe\x4c\x98\x11\x16\x07\xce\xce\x4b\x80\x06\x6f\x7e\xf2\xe4\x40\x6d\x18\x83\x19\x90\xde\xf0\xbf\x4a\x5b\x56\x47\xdc\x42\x6e\xf1\xf7\x49\x52\x4a\xdf\x0a\x68\x96\x84\x4c\xd9\x0b\x79\x60\x31");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "f4b760fa7f1ca8a00149bf439c07dcd3aafe4c98111607cece4b80066f7ef2e4406d18831990def0bf4a5b5647dc426ef1f749524adf0a6896844cd90b796031"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -3366,7 +3428,7 @@ mod tests {
                     xpub: Some(parse_xpub("tpubD6NzVbkrYhZ4WNrreqKvZr3qeJR7meg2BgaGP9upLkt7bp5SY6AAhY8vaN8ThfCjVcK6ZzE6kZbinszppNoGKvypeTmhyQ6uvUptXEXqknv").unwrap()),
                 },
                 pb::KeyOriginInfo {
-                    root_fingerprint: hex::decode("ffd63c8d").unwrap(),
+                    root_fingerprint: hex!("ffd63c8d").to_vec(),
                     keypath: vec![48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 2 + HARDENED],
                     xpub: Some(parse_xpub("tpubDExA3EC3iAsPxPhFn4j6gMiVup6V2eH3qKyk69RcTc9TTNRfFYVPad8bJD5FCHVQxyBT4izKsvr7Btd2R4xmQ1hZkvsqGBaeE82J71uTK4N").unwrap()),
                 },
@@ -3505,7 +3567,12 @@ mod tests {
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
-                assert_eq!(&next.signature, b"\x1c\x6b\x54\x65\x85\x9d\xb7\xdb\xd8\x8f\x17\x4d\x07\xa9\xdf\x41\x6d\x6d\xfa\x1e\x74\x29\x03\x98\x95\x84\xcd\x72\xe9\x89\xd1\x41\x48\x5a\xd9\xd7\x12\xdf\x28\x52\xa6\x50\x0e\x06\x85\x64\x04\x95\x9c\x01\x0d\x52\x54\x35\x3d\x11\xab\x31\x67\x37\x7e\xd4\xee\x88");
+                assert_eq!(
+                    next.signature,
+                    hex!(
+                        "1c6b5465859db7dbd88f174d07a9df416d6dfa1e742903989584cd72e989d141485ad9d712df2852a6500e06856404959c010d5254353d11ab3167377ed4ee88"
+                    )
+                );
             }
             _ => panic!("wrong result"),
         }
@@ -3733,8 +3800,10 @@ mod tests {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
                 assert_eq!(
-                    hex::encode(next.signature),
-                    "f49c71b89ec3510ebebae9aff9f967ad9bb6cc0c4cddbdf851f97e47e9922646622459e522b0751fa246e49a8e48417344a5384a9f68c1c85cd03804b35e1e1e",
+                    next.signature,
+                    hex!(
+                        "f49c71b89ec3510ebebae9aff9f967ad9bb6cc0c4cddbdf851f97e47e9922646622459e522b0751fa246e49a8e48417344a5384a9f68c1c85cd03804b35e1e1e"
+                    ),
                 );
             }
             _ => panic!("wrong result"),

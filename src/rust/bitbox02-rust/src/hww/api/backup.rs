@@ -104,6 +104,11 @@ pub async fn create(
     }
 
     let seed = bitbox02::keystore::copy_seed()?;
+
+    // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes
+    // some delay.
+    futures_lite::future::yield_now().await;
+
     let seed_birthdate = if !is_initialized {
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);

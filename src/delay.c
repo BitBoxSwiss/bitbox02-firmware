@@ -1,4 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
+// Copyright 2025 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,62 +13,64 @@
 // limitations under the License.
 
 #include <delay.h>
-#include <pthread.h>
+#include <hal_timer.h>
+#include <platform/driver_init.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include <unistd.h>
-
-void delay_ms(const uint16_t ms)
-{
-    usleep(1000 * ms);
-}
-
-void delay_us(const uint16_t us)
-{
-    usleep(us);
-}
+#include <utils_assert.h>
 
 struct task {
-    pthread_t thread;
+    struct timer_task timer;
     volatile bool done;
-    uint32_t ms;
 };
 
 static struct task _tasks[10] = {0};
 static struct task _empty = {0};
 
-void* delay_run(void* user_data)
+static void _hal_timer_cb(const struct timer_task* const timer)
 {
-    struct task* task = (struct task*)user_data;
-    usleep(1000 * task->ms);
-    task->done = true;
-    return 0;
+    for (int i = 0; i < (int)(sizeof(_tasks) / sizeof(struct task)); i++) {
+        if (&_tasks[i].timer == timer) {
+            _tasks[i].done = true;
+        }
+    }
 }
 
 bool delay_init_ms(delay_t* self, uint32_t ms)
 {
+    // find an unused slot in tasks
     int i;
+    CRITICAL_SECTION_ENTER();
     for (i = 0; i < (int)(sizeof(_tasks) / sizeof(struct task)); i++) {
         if (memcmp(&_tasks[i], &_empty, sizeof(struct task)) == 0) {
             break;
         }
     }
+    CRITICAL_SECTION_LEAVE();
+    if (i == sizeof(_tasks)) {
+        return false;
+    }
     _tasks[i].done = false;
-    _tasks[i].ms = ms;
+    memset(&_tasks[i], 0, sizeof(struct task));
+    _tasks[i].timer.interval = ms;
+    _tasks[i].timer.cb = _hal_timer_cb;
+    _tasks[i].timer.mode = TIMER_TASK_ONE_SHOT;
     self->id = i;
     return true;
 }
 
 void delay_start(const delay_t* self)
 {
-    pthread_create(&_tasks[self->id].thread, NULL, &delay_run, &_tasks[self->id]);
+    ASSERT(self->id < (sizeof(_tasks) / sizeof(struct task)));
+    ASSERT(!_tasks[self->id].done);
+    timer_add_task(&TIMER_0, &_tasks[self->id].timer);
 }
 
 bool delay_poll(const delay_t* self)
 {
+    ASSERT(self->id < (sizeof(_tasks) / sizeof(struct task)));
     if (_tasks[self->id].done) {
-        pthread_join(_tasks[self->id].thread, NULL);
         memset(&_tasks[self->id], 0, sizeof(struct task));
         return true;
     }

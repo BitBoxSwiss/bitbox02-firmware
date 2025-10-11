@@ -16,6 +16,7 @@
 
 set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/firmware_main_loop.c
+  ${CMAKE_SOURCE_DIR}/src/delay.c
   ${CMAKE_SOURCE_DIR}/src/keystore.c
   ${CMAKE_SOURCE_DIR}/src/random.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
@@ -36,7 +37,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
   ${CMAKE_SOURCE_DIR}/src/reset.c
   ${CMAKE_SOURCE_DIR}/src/cipher/cipher.c
-  ${CMAKE_SOURCE_DIR}/src/workflow/orientation_screen.c
   ${CMAKE_SOURCE_DIR}/src/queue.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
 )

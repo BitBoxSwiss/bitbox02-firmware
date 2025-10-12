@@ -15,6 +15,8 @@
 use super::Error;
 use super::pb;
 
+use hex_lit::hex;
+
 use pb::bluetooth_request::Request;
 use pb::bluetooth_response::Response;
 
@@ -27,7 +29,9 @@ use alloc::vec::Vec;
 
 use bitbox02::{memory, spi_mem};
 
-const ALLOWED_HASH: &[u8; 32] = b"\x1e\x4a\xa8\x36\x4e\x93\x5c\x07\x85\xe4\xf8\x91\x20\x83\x07\xd8\x32\xf7\x88\x17\x2e\x4b\xf6\x16\x21\xde\x6d\xf9\xec\x3c\x21\x5f";
+// See also bitbox-da14531-firmware.bin.sha256.
+const ALLOWED_HASH: [u8; 32] =
+    hex!("1e4aa8364e935c0785e4f891208307d832f788172e4bf61621de6df9ec3c215f");
 
 // We want to write FW to the memory chip in erase-size chunks, so that we don't repeatedly need to
 // read-erase-write the same sector.
@@ -159,7 +163,7 @@ async fn process_upgrade(
         })
         .await?;
 
-    let response = _process_upgrade(&mut RealFuncs, request, ALLOWED_HASH).await;
+    let response = _process_upgrade(&mut RealFuncs, request, &ALLOWED_HASH).await;
 
     if response.is_ok() {
         hal.ui().status("Upgrade\nsuccessful", true).await;

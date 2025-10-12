@@ -57,6 +57,7 @@ bip39 = { workspace = true }
 # writing, this might fluctuate over time).
 bitcoin_hashes = { version = "0.14.0", default-features = false, features = ["small-hash"] }
 futures-lite = { workspace = true }
+hex_lit = { workspace = true, features = ["rust_v_1_46"] }
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.
@@ -66,7 +67,6 @@ features = ["derive"]
 
 [dev-dependencies]
 bitbox-aes = { path = "../bitbox-aes" }
-hex_lit = { workspace = true }
 
 [features]
 ed25519 = [

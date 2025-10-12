@@ -244,7 +244,9 @@ set(CMAKE_C_FLAGS_DEBUG "-Os -ggdb")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -ggdb -DNDEBUG")
 
 if(DEFINED ENV{RUSTFLAGS})
-    set(RUSTFLAGS $ENV{RUSTFLAGS})
+    set(RUSTFLAGS "$ENV{RUSTFLAGS}")
+else()
+    set(RUSTFLAGS "")
 endif()
 
 #-----------------------------------------------------------------------------

@@ -347,6 +347,9 @@ keystore_error_t keystore_encrypt_and_store_seed(
     if (!_validate_seed_length(seed_length)) {
         return KEYSTORE_ERR_SEED_SIZE;
     }
+
+    usb_processing_timeout_reset(LONG_TIMEOUT);
+
     if (securechip_init_new_password(password)) {
         return KEYSTORE_ERR_SECURECHIP;
     }

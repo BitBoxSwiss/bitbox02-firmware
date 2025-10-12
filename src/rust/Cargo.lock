@@ -139,6 +139,7 @@ dependencies = [
  "erc20_params",
  "futures-lite",
  "hex",
+ "hex_lit",
  "hmac",
  "keccak",
  "minicbor",

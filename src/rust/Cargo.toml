@@ -50,6 +50,7 @@ hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 keccak = { version = "0.1.4", default-features = false, features = ["no_unroll"] }
 zeroize = "1.7.0"
 futures-lite = { version = "2.6.1", default-features = false }
+hex_lit = { version = "0.1.1", default-features = false }
 
 [patch.crates-io]
 rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }

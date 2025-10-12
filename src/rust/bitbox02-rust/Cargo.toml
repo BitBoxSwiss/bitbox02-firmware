@@ -66,6 +66,7 @@ features = ["derive"]
 
 [dev-dependencies]
 bitbox-aes = { path = "../bitbox-aes" }
+hex_lit = { workspace = true }
 
 [features]
 ed25519 = [

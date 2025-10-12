@@ -267,6 +267,8 @@ pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut
 mod tests {
     use super::*;
 
+    use hex_lit::hex;
+
     use bitbox02::testing::{
         TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
     };
@@ -287,8 +289,8 @@ mod tests {
 
         bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
-            hex::encode(secp256k1_get_private_key(keypath).unwrap()),
-            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
+            secp256k1_get_private_key(keypath).unwrap().as_slice(),
+            hex!("4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"),
         );
         assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
     }
@@ -306,8 +308,8 @@ mod tests {
 
         bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
-            hex::encode(secp256k1_get_private_key_twice(keypath).unwrap()),
-            "4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"
+            secp256k1_get_private_key_twice(keypath).unwrap().as_slice(),
+            hex!("4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"),
         );
         assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
     }
@@ -511,15 +513,15 @@ mod tests {
 
         assert_eq!(
             bip85_ln(0).unwrap().as_slice(),
-            b"\x3a\x5f\x3b\x88\x8a\xab\x88\xe2\xa9\xab\x99\x1b\x60\xa0\x3e\xd8",
+            hex!("3a5f3b888aab88e2a9ab991b60a03ed8"),
         );
         assert_eq!(
             bip85_ln(1).unwrap().as_slice(),
-            b"\xe7\xd9\xce\x75\xf8\xcb\x17\x57\x0e\x66\x54\x17\xb4\x7f\xa0\xbe",
+            hex!("e7d9ce75f8cb17570e665417b47fa0be"),
         );
         assert_eq!(
             bip85_ln(HARDENED - 1).unwrap().as_slice(),
-            b"\x1f\x3b\x75\xea\x25\x27\x49\x70\x0a\x1e\x45\x34\x69\x14\x8c\xa6",
+            hex!("1f3b75ea252749700a1e453469148ca6"),
         );
 
         // Index too high.
@@ -533,10 +535,9 @@ mod tests {
             mnemonic_passphrase: &'static str,
             expected_mnemonic: &'static str,
             expected_xpub: &'static str,
-            expected_u2f_seed_hex: &'static str,
+            expected_u2f_seed: [u8; 32],
         }
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
 
         let tests = [
             Test {
@@ -544,28 +545,36 @@ mod tests {
                 mnemonic_passphrase: "",
                 expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
                 expected_xpub: "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
-                expected_u2f_seed_hex: "4f464a6667ad88eebcd0f02982761e474ee0dd16253160320f49d1d6681745e9",
+                expected_u2f_seed: hex!(
+                    "4f464a6667ad88eebcd0f02982761e474ee0dd16253160320f49d1d6681745e9"
+                ),
             },
             Test {
                 seed_len: 32,
                 mnemonic_passphrase: "abc",
                 expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
                 expected_xpub: "xpub6DXBP3HhFdhUTafatEULxfTXUUxDVuCxfa9RAiBU5r6aRgKiABbeBDyqwWWjmKPP1BZvpvVNMbVR5LeHzhQphtLcPZ8jk3MdLBgc2sACJwR",
-                expected_u2f_seed_hex: "d599da991ad83baaf449c789e2dff1539dd66983b47a1dec1c00ff3f352cccbc",
+                expected_u2f_seed: hex!(
+                    "d599da991ad83baaf449c789e2dff1539dd66983b47a1dec1c00ff3f352cccbc"
+                ),
             },
             Test {
                 seed_len: 24,
                 mnemonic_passphrase: "",
                 expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before subject",
                 expected_xpub: "xpub6C7fKxGtTzEVxCC22U2VHx4GpaVy77DzU6KdZ1CLuHgoUGviBMWDc62uoQVxqcRa5RQbMPnffjpwxve18BG81VJhJDXnSpRe5NGKwVpXiAb",
-                expected_u2f_seed_hex: "fb9dc3fb0a17390776df5c3d8f9261bc5fd5df9f00414cee1393e37e0efda7ef",
+                expected_u2f_seed: hex!(
+                    "fb9dc3fb0a17390776df5c3d8f9261bc5fd5df9f00414cee1393e37e0efda7ef"
+                ),
             },
             Test {
                 seed_len: 16,
                 mnemonic_passphrase: "",
                 expected_mnemonic: "sleep own lobster state clean thrive tail exist cactus bitter pass sniff",
                 expected_xpub: "xpub6DLvpzjKpJ8k4xYrWYPmZQkUe9dkG1eRig2v6Jz4iYgo8hcpHWx87gGoCGDaB2cHFZ3ExUfe1jDiMu7Ch6gA4ULCBhvwZj29mHCPYSux3YV",
-                expected_u2f_seed_hex: "20d68b206aff9667b623a460ce61fc94762de67561d6855ca9a6df7b409b2a54",
+                expected_u2f_seed: hex!(
+                    "20d68b206aff9667b623a460ce61fc94762de67561d6855ca9a6df7b409b2a54"
+                ),
             },
         ];
 
@@ -617,10 +626,7 @@ mod tests {
                 xpub.serialize_str(crate::bip32::XPubType::Xpub).unwrap(),
                 test.expected_xpub,
             );
-            assert_eq!(
-                hex::encode(get_u2f_seed().unwrap()),
-                test.expected_u2f_seed_hex,
-            );
+            assert_eq!(get_u2f_seed().unwrap().as_slice(), test.expected_u2f_seed);
         }
     }
 
@@ -634,9 +640,7 @@ mod tests {
         let msg = [0x88u8; 32];
 
         let expected_pubkey = {
-            let pubkey =
-                hex::decode("cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115")
-                    .unwrap();
+            let pubkey = hex!("cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115");
             secp256k1::XOnlyPublicKey::from_slice(&pubkey).unwrap()
         };
 
@@ -659,12 +663,10 @@ mod tests {
 
         // Test with tweak
         bitbox02::random::fake_reset();
-        let tweak = {
-            let tweak =
-                hex::decode("a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c")
-                    .unwrap();
-            secp256k1::Scalar::from_be_bytes(tweak.try_into().unwrap()).unwrap()
-        };
+        let tweak = secp256k1::Scalar::from_be_bytes(hex!(
+            "a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c"
+        ))
+        .unwrap();
         let (tweaked_pubkey, _) = expected_pubkey.add_tweak(SECP256K1, &tweak).unwrap();
         let sig = secp256k1_schnorr_sign(&keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
         assert!(

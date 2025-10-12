@@ -230,12 +230,12 @@ else()
   set(RUST_PROFILE "release")
   set(RUST_CARGO_FLAGS "--release")
   # For binary reproducibility, strip path prefixes that can be different depending on environment (e.g. /home/<user>, etc.).
-  string(APPEND RUSTFLAGS " --remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src --remap-path-prefix=$ENV{HOME}=")
+  string(JOIN " " RUSTFLAGS "${RUSTFLAGS}" "--remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src" "--remap-path-prefix=$ENV{HOME}=")
 endif()
 
 # Use libsecp256k1 that we link ourselves.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
-string(APPEND RUSTFLAGS " --cfg=rust_secp_no_symbol_renaming")
+string(JOIN " " RUSTFLAGS "${RUSTFLAGS}" "--cfg=rust_secp_no_symbol_renaming")
 
 if(CMAKE_CROSSCOMPILING)
   set(RUST_TARGET_ARCH thumbv7em-none-eabi)
@@ -284,7 +284,7 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-  set(RUSTFLAGS_TESTS ${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lsecp256k1 -lstatic=fatfs)
+  set(RUSTFLAGS_TESTS "${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lsecp256k1 -lstatic=fatfs")
 
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a
@@ -295,7 +295,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
-        RUSTFLAGS="${RUSTFLAGS_TESTS}"
+        RUSTFLAGS=${RUSTFLAGS_TESTS}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO}
           test

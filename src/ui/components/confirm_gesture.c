@@ -43,7 +43,7 @@ typedef struct {
 bool confirm_gesture_is_active(component_t* component)
 {
     confirm_data_t* data = (confirm_data_t*)component->data;
-    return data->active_top;
+    return data->active_top || data->bottom_arrow_slidein != 0;
 }
 
 /**

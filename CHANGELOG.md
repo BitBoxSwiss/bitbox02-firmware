@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### v9.24.0
 - Change title when entering recovery words to `1 of 24`, `2 of 24`, etc.
 - Remove option to restore from 18 recovery words
 - simulator: enable Test Merchant for payment requests

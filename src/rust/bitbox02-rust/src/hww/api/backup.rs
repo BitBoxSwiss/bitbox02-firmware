@@ -26,13 +26,13 @@ pub async fn check(
     hal: &mut impl crate::hal::Hal,
     &pb::CheckBackupRequest { silent }: &pb::CheckBackupRequest,
 ) -> Result<Response, Error> {
-    if !hal.sd().sdcard_inserted() {
+    if !hal.sd().sdcard_inserted().await {
         return Err(Error::InvalidInput);
     }
 
     let seed = bitbox02::keystore::copy_seed()?;
     let id = backup::id(&seed);
-    let (backup_data, metadata) = backup::load(hal, &id)?;
+    let (backup_data, metadata) = backup::load(hal, &id).await?;
     if seed.as_slice() != backup_data.get_seed() {
         if !silent {
             hal.ui().status("Backup missing\nor invalid", false).await;
@@ -104,12 +104,17 @@ pub async fn create(
     }
 
     let seed = bitbox02::keystore::copy_seed()?;
+
+    // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes
+    // some delay.
+    futures_lite::future::yield_now().await;
+
     let seed_birthdate = if !is_initialized {
         if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);
         }
         timestamp
-    } else if let Ok((data, _)) = backup::load(hal, &backup::id(&seed)) {
+    } else if let Ok((data, _)) = backup::load(hal, &backup::id(&seed)).await {
         // If adding new backup after initialized, we do not know the seed birthdate.
         // If re-creating it, we use the already existing one.
         data.0.birthdate
@@ -122,7 +127,9 @@ pub async fn create(
         &bitbox02::memory::get_device_name(),
         timestamp,
         seed_birthdate,
-    ) {
+    )
+    .await
+    {
         Ok(()) => {
             // The backup was created, so reporting an error here
             // could have bad consequences like replacing the sd card,
@@ -142,10 +149,10 @@ pub async fn create(
     }
 }
 
-pub fn list(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
+pub async fn list(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let mut info: Vec<pb::BackupInfo> = Vec::new();
-    for dir in hal.sd().list_subdir(None)? {
-        let (_, metadata) = match backup::load(hal, &dir) {
+    for dir in hal.sd().list_subdir(None).await? {
+        let (_, metadata) = match backup::load(hal, &dir).await {
             Ok(d) => d,
             Err(_) => continue,
         };
@@ -235,14 +242,12 @@ mod tests {
         // above seed.
         let backup_fixture_v9_12_0: Vec<u8> = hex::decode("0a6c0a6a0a2017834e53e17370800c0bc49b49ef3f1309df104d7239db5bbd093c90eefc995112110891bec6fb0512094d7920426974426f782233081012208af64d31126a39b98f59708a3a463e5b000000000000000000000000000000001891bec6fb05220776392e31332e30").unwrap();
         for i in 0..3 {
-            mock_hal
-                .sd
-                .write_bin(
-                    &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),
-                    EXPECTED_ID,
-                    &backup_fixture_v9_12_0,
-                )
-                .unwrap();
+            block_on(mock_hal.sd.write_bin(
+                &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),
+                EXPECTED_ID,
+                &backup_fixture_v9_12_0,
+            ))
+            .unwrap();
         }
         // Check that the loaded seed matches the backup.
         assert_eq!(
@@ -287,7 +292,7 @@ mod tests {
 
         // No backups yet.
         assert_eq!(
-            list(&mut mock_hal),
+            block_on(list(&mut mock_hal)),
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![]
             }))
@@ -313,7 +318,7 @@ mod tests {
         );
 
         assert_eq!(
-            list(&mut mock_hal,),
+            block_on(list(&mut mock_hal)),
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![pb::BackupInfo {
                     id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into(),
@@ -342,7 +347,7 @@ mod tests {
         );
 
         assert_eq!(
-            list(&mut mock_hal),
+            block_on(list(&mut mock_hal)),
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![
                     pb::BackupInfo {

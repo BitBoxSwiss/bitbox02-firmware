@@ -26,6 +26,7 @@
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
+#include <ui/canvas.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/graphics/graphics.h>
@@ -328,15 +329,14 @@ static void _render_message(const char* message, int duration)
 {
     char print[100];
     snprintf(print, sizeof(print), "%s", message);
-    UG_ClearBuffer();
     UG_PutString(0, 0, print, false);
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
     delay_ms(duration);
 }
 
 void bootloader_render_default_screen(void)
 {
-    UG_ClearBuffer();
     _load_logo();
 #if PLATFORM_BITBOX02PLUS == 1
     UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp", false);
@@ -354,7 +354,8 @@ void bootloader_render_default_screen(void)
     }
     UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp", false);
 #endif
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
 }
 
 #if PLATFORM_BITBOX02PLUS
@@ -368,7 +369,6 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
     char code_str[10] = {0};
     snprintf(code_str, sizeof(code_str), "%06u", (unsigned)pairing_code_int);
-    UG_ClearBuffer();
     uint16_t check_width = IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT / 2 - 1;
     if (confirmed) {
         UG_PutString(15, 0, "Confirm on app", false);
@@ -380,13 +380,13 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     UG_FontSelect(&font_monogram_5X9);
     UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str, false);
     UG_FontSelect(&font_font_a_9X9);
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
 }
 #endif
 
 static void _render_progress(float progress)
 {
-    UG_ClearBuffer();
     _load_logo();
     if (progress > 0) {
         char label[5] = {0};
@@ -401,7 +401,8 @@ static void _render_progress(float progress)
         msg = "INSTALLING";
     }
     UG_PutString(SCREEN_WIDTH / 2 - 3, SCREEN_HEIGHT - 9 * 2, msg, false);
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
 }
 
 static void _render_hash(const char* title, const uint8_t* hash)
@@ -433,7 +434,6 @@ static void _render_hash(const char* title, const uint8_t* hash)
         &hash_hex[48]);
 
     for (uint8_t i = 1; i <= seconds; i++) {
-        UG_ClearBuffer();
         UG_PutString(0, 0, title, false);
 
         snprintf(timer_buf, sizeof(timer_buf), "%ds", seconds - i);
@@ -449,7 +449,8 @@ static void _render_hash(const char* title, const uint8_t* hash)
 
         UG_FontSelect(f_regular);
 
-        UG_SendBuffer();
+        canvas_commit();
+        oled_present();
         delay_ms(1000);
     }
     bootloader_render_default_screen();
@@ -1013,7 +1014,6 @@ static void _check_init(boot_data_t* data)
 #ifdef BOOTLOADER_DEVDEVICE
 static bool _devdevice_enter(secbool_u32 firmware_verified)
 {
-    UG_ClearBuffer();
     UG_PutString(0, 0, "    <Enter bootloader>", false);
     UG_PutString(0, SCREEN_HEIGHT / 2 - 11, "DEV DEVICE", false);
     UG_PutString(0, SCREEN_HEIGHT / 2 + 2, "NOT FOR VALUE", false);
@@ -1043,7 +1043,8 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
         UG_DrawLine(xpos + 5, ypos, xpos, ypos + 5, C_WHITE);
         UG_DrawLine(xpos - 2, ypos + 3, xpos, ypos + 5, C_WHITE);
     }
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
     while (true) {
         do {
             qtouch_process();

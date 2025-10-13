@@ -1,4 +1,4 @@
-// Copyright 2021 Shift Crypto AG
+// Copyright 2025 Shift Crypto AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _SH1107_H_
-#define _SH1107_H_
-
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-/*
- * The sh1107 driver will store this pointer and later use it for "set_pixel" and "update".
- */
-void sh1107_configure(void);
-
-void sh1107_set_pixel(int16_t x, int16_t y, uint8_t c);
-void sh1107_present(void);
-void sh1107_mirror(bool mirror);
-void sh1107_off(void);
-
-#endif
+void oled_present(void) {}

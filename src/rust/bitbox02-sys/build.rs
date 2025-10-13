@@ -128,6 +128,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "reset_ble",
     "screen_print_debug",
     "screen_process",
+    "screen_process_waiting_switch_to_logo",
     "screen_saver_disable",
     "screen_saver_enable",
     "sd_card_inserted",

@@ -73,7 +73,6 @@ static void _idle_timer_cb(const struct timer_task* const timer_task)
     }
 
     usb_start();
-    ui_screen_stack_push(lockscreen_create());
 }
 #endif
 

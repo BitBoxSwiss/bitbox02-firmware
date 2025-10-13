@@ -25,3 +25,7 @@ mod types;
 mod ui;
 
 pub use ui::*;
+
+pub fn screen_process_waiting_switch_to_logo() {
+    unsafe { bitbox02_sys::screen_process_waiting_switch_to_logo() }
+}

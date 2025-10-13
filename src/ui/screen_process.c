@@ -44,6 +44,11 @@ static component_t* _get_waiting_screen(void)
     return waiting_screen;
 }
 
+void screen_process_waiting_switch_to_logo(void)
+{
+    waiting_switch_to_logo(_get_waiting_screen());
+}
+
 component_t* screen_process_get_top_component(void)
 {
     component_t* saver = screen_saver_get();

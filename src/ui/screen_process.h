@@ -28,6 +28,11 @@ void ui_screen_render_component(component_t* component);
 component_t* screen_process_get_top_component(void);
 
 /**
+ * Wraps `waiting_switch_to_logo()` for the waiting screen.
+ */
+void screen_process_waiting_switch_to_logo(void);
+
+/**
  * Runs the UI once.
  *
  * This function will update the screen (if needed)

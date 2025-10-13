@@ -40,10 +40,6 @@ void screen_process_waiting_switch_to_logo(void);
  */
 void screen_process(void);
 
-/**
- * Period of screen updates.
- * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.
- */
-#define SCREEN_FRAME_RATE 30
+void screen_process_init(void);
 
 #endif

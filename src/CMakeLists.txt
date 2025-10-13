@@ -128,6 +128,7 @@ set(DRIVER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/platform/driver_init.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
   ${CMAKE_SOURCE_DIR}/src/ui/oled/oled_writer.c
+  ${CMAKE_SOURCE_DIR}/src/ui/canvas.c
 )
 set(DRIVER-SOURCES ${DRIVER-SOURCES} PARENT_SCOPE)
 

@@ -71,19 +71,14 @@
 void oled_init(void);
 
 /**
- * Prints the frame buffer to the screen.
- */
-void oled_send_buffer(void);
-
-/**
- * Clears the frame buffer.
- */
-void oled_clear_buffer(void);
-
-/**
  * Sets displayed frames rotated by 180 degrees.
  */
 void oled_mirror(bool mirror);
+
+/**
+ * Transfer active canvas to the screen
+ */
+void oled_present(bool force);
 
 /**
  * Turn off oled
@@ -91,14 +86,15 @@ void oled_mirror(bool mirror);
 void oled_off(void);
 
 /**
- * Set a screen pixel. This fills the frame buffer
- * prior to it being sent to the screen by oled_send_buffer().
+ * Set a pixel on the "working" canvas arcoding to the screen requirements. The working and active
+ * canvases are flipped with canvas_commit();
+ * @param c Must be 0 for black and 1 for white
  */
 void oled_set_pixel(int16_t x, int16_t y, uint8_t c);
 
 /**
  * Set brightness (0x00..0xff).
- * 0x00 does not mean black, just loweset brightness.
+ * 0x00 does not mean black, just lowest brightness.
  */
 void oled_set_brightness(uint8_t value);
 

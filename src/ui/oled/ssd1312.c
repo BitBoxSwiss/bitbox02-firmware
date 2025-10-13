@@ -15,6 +15,7 @@
 #include "ssd1312.h"
 #include "oled_writer.h"
 #include <stdbool.h>
+#include <ui/canvas.h>
 
 #define SSD1312_CMD_SET_LOW_COL(column) (0x00 | ((column) & 0x0F))
 #define SSD1312_CMD_SET_HIGH_COL(column) (0x10 | (((column) >> 4) & 0x07))
@@ -78,70 +79,60 @@
 // Double byte command
 #define SSD1312_CMD_SET_CHARGE_PUMP_SETTING 0x8D
 
-static uint8_t* _frame_buffer;
-
-void ssd1312_configure(uint8_t* buf)
+void ssd1312_configure(void)
 {
-    _frame_buffer = buf;
-    oled_writer_write_cmd(SSD1312_CMD_SET_LOW_COL(0));
-    oled_writer_write_cmd(SSD1312_CMD_SET_HIGH_COL(0));
-    oled_writer_write_cmd(SSD1312_CMD_SET_DISPLAY_OFF);
-    oled_writer_write_cmd_with_param(SSD1312_CMD_SET_CONTRAST_CONTROL, 0xff);
-    oled_writer_write_cmd_with_param(
-        SSD1312_CMD_SET_MEMORY_ADDRESSING_MODE, SSD1312_CMD_SET_PAGE_ADDRESSING_MODE);
-    oled_writer_write_cmd(SSD1312_CMD_SET_SEGMENT_RE_MAP_SEG0_0);
-    oled_writer_write_cmd(SSD1312_CMD_SET_COM_OUTPUT_SCAN_DOWN);
-    oled_writer_write_cmd(SSD1312_CMD_SET_NORMAL_DISPLAY);
-    oled_writer_write_cmd_with_param(SSD1312_CMD_SET_MULTIPLEX_RATIO, 0x3f);
-    oled_writer_write_cmd_with_param(SSD1312_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO, 0xf0);
-    oled_writer_write_cmd_with_param(SSD1312_CMD_SET_PRE_CHARGE_PERIOD, 0x22);
-    oled_writer_write_cmd_with_param(SSD1312_CMD_SET_VCOMH_SELECT_LEVEL, 0x35);
-    oled_writer_write_cmd_with_param(SSD1312_CMD_SET_IREF, 0x40);
-    oled_writer_write_cmd(SSD1312_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
-    ssd1312_update();
-    oled_writer_write_cmd(SSD1312_CMD_SET_DISPLAY_ON);
+    // Initialize in the same order as the product docs example
+    oled_writer_write_cmd_blocking(SSD1312_CMD_SET_DISPLAY_OFF);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_MULTIPLEX_RATIO, 0x3f);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_IREF, 0x40);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_DISPLAY_OFFSET, 0);
+    oled_writer_write_cmd_blocking(SSD1312_CMD_SET_COM_OUTPUT_SCAN_DOWN);
+    oled_writer_write_cmd_blocking(SSD1312_CMD_SET_SEGMENT_RE_MAP_SEG0_0);
+    oled_writer_write_cmd_blocking(SSD1312_CMD_SET_NORMAL_DISPLAY);
+    oled_writer_write_cmd_blocking(SSD1312_CMD_SET_DISPLAY_START_LINE(0));
+    oled_writer_write_cmd_blocking(SSD1312_CMD_ENTIRE_DISPLAY_AND_GDDRAM_ON);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_CONTRAST_CONTROL, 0xff);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_PRE_CHARGE_PERIOD, 0x22);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_DISPLAY_CLOCK_DIVIDE_RATIO, 0xf0);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_SEG_PINS, 0x10);
+    oled_writer_write_cmd_with_param_blocking(
+        SSD1312_CMD_SET_MEMORY_ADDRESSING_MODE, SSD1312_CMD_SET_SEG_PAGE_H_MODE);
+    oled_writer_write_cmd_with_param_blocking(SSD1312_CMD_SET_VCOMH_SELECT_LEVEL, 0x35);
+
+    oled_writer_write_data_blocking(canvas_active(), CANVAS_SIZE);
+
+    oled_writer_write_cmd_blocking(SSD1312_CMD_SET_DISPLAY_ON);
 }
 
 void ssd1312_set_pixel(int16_t x, int16_t y, uint8_t c)
 {
-    uint32_t p;
     if (x < 0 || x > 127) return;
     if (y < 0 || y > 63) return;
-    p = (y / 8) * 128;
-    p += x;
-    if (c) {
-        _frame_buffer[p] |= 1 << (y % 8);
-    } else {
-        _frame_buffer[p] &= ~(1 << (y % 8));
-    }
+    uint_fast8_t shift = x % 8;
+    uint_fast8_t num_cols = x / 8;
+    uint8_t* p = &canvas_working()[num_cols * 64 + y];
+    // Clear pixel
+    *p &= ~(1 << shift);
+    // Set pixel
+    *p |= (c & 0x1) << shift;
 }
-void ssd1312_update(void)
+void ssd1312_present(void)
 {
-    /* The SSD1312 has one page per 8 rows. One page is 128 bytes. Every byte is 8 rows */
-    for (size_t i = 0; i < 64 / 8; i++) {
-        oled_writer_write_cmd(SSD1312_CMD_SET_PAGE_START_ADDRESS(i));
-        // Explicitly set column address to 0 during initialization and screen updates to resolve
-        // intermittent ~20px horizontal offset and wrapping, which was experienced on one Nova
-        // device so far. This fixes the symptom, not the underlying issue, as we expect the column
-        // address to be correct if all bytes arrive at the screen.
-        oled_writer_write_cmd(SSD1312_CMD_SET_LOW_COL(0));
-        oled_writer_write_cmd(SSD1312_CMD_SET_HIGH_COL(0));
-        oled_writer_write_data(&_frame_buffer[i * 128], 128);
-    }
+    oled_writer_write_data(canvas_active(), CANVAS_SIZE);
 }
 
 void ssd1312_mirror(bool mirror)
 {
     if (mirror) {
-        oled_writer_write_cmd(SSD1312_CMD_SET_SEGMENT_RE_MAP_SEG0_128);
-        oled_writer_write_cmd(SSD1312_CMD_SET_COM_OUTPUT_SCAN_UP);
+        oled_writer_write_cmd_blocking(SSD1312_CMD_SET_SEGMENT_RE_MAP_SEG0_128);
+        oled_writer_write_cmd_blocking(SSD1312_CMD_SET_COM_OUTPUT_SCAN_UP);
     } else {
-        oled_writer_write_cmd(SSD1312_CMD_SET_SEGMENT_RE_MAP_SEG0_0);
-        oled_writer_write_cmd(SSD1312_CMD_SET_COM_OUTPUT_SCAN_DOWN);
+        oled_writer_write_cmd_blocking(SSD1312_CMD_SET_SEGMENT_RE_MAP_SEG0_0);
+        oled_writer_write_cmd_blocking(SSD1312_CMD_SET_COM_OUTPUT_SCAN_DOWN);
     }
 }
 
 void ssd1312_off(void)
 {
-    oled_writer_write_cmd(SSD1312_CMD_SET_DISPLAY_OFF);
+    oled_writer_write_cmd_blocking(SSD1312_CMD_SET_DISPLAY_OFF);
 }

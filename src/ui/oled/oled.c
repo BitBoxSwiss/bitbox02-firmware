@@ -65,7 +65,6 @@
 
 #include "oled.h"
 
-#include "oled_writer.h"
 #include <driver_init.h>
 #include <hardfault.h>
 #include <memory/memory_shared.h>
@@ -73,19 +72,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <ui/canvas.h>
+#include <ui/oled/oled_writer.h>
 #include <ui/oled/sh1107.h>
 #include <ui/oled/ssd1312.h>
 #include <ui/ugui/ugui.h>
 
-static bool _frame_buffer_updated = false;
-static uint8_t _frame_buffer[128 * 8];
-
 static volatile bool _enabled = false;
 
 struct bb02_display {
-    void (*configure)(uint8_t*);
+    void (*configure)(void);
     void (*set_pixel)(int16_t x, int16_t y, uint8_t c);
-    void (*update)(void);
+    void (*present)(void);
     void (*off)(void);
     void (*mirror)(bool);
 };
@@ -93,52 +91,73 @@ struct bb02_display {
 static struct bb02_display bb02_display = {
     .configure = sh1107_configure,
     .set_pixel = sh1107_set_pixel,
-    .update = sh1107_update,
+    .present = sh1107_present,
     .off = sh1107_off,
     .mirror = sh1107_mirror,
 };
 
+static struct timer_task _task_present_screen;
+static volatile bool _present_screen = true;
+
+static void present_screen_cb(const struct timer_task* const timer_task)
+{
+    (void)timer_task;
+    _present_screen = true;
+}
+
 void oled_init(void)
 {
+    canvas_init();
+    oled_writer_init();
+
+    // Limit screen presentting to 30Hz
+    _task_present_screen.interval = 33;
+    _task_present_screen.cb = present_screen_cb;
+    _task_present_screen.mode = TIMER_TASK_REPEAT;
+    timer_add_task(&TIMER_0, &_task_present_screen);
+
     if (memory_get_screen_type() == MEMORY_SCREEN_TYPE_SSD1312) {
         bb02_display.configure = ssd1312_configure;
         bb02_display.set_pixel = ssd1312_set_pixel;
-        bb02_display.update = ssd1312_update;
+        bb02_display.present = ssd1312_present;
         bb02_display.off = ssd1312_off;
         bb02_display.mirror = ssd1312_mirror;
     }
     if (_enabled) {
         return;
     }
-    // DC-DC OFF
-    gpio_set_pin_level(PIN_OLED_ON, 0);
+
+    // * VDD is powered on at the same time as the MCU.
+    // * PIN_OLED_RES starts high (see driver_init.c)
+    // * PIN_OLED_ON starts low (see driver_init.c)
+
+    // Wait at least 20ms from VDD ON
+    delay_ms(25);
+
+    gpio_set_pin_level(PIN_OLED_RES, PIN_LOW);
+    // Wait at least 3us
+    delay_us(6);
+    gpio_set_pin_level(PIN_OLED_RES, PIN_HIGH);
     delay_us(5);
 
-    // Hard reset OLED display controller
-    gpio_set_pin_level(PIN_OLED_RES, 0);
-    delay_us(5);
-    gpio_set_pin_level(PIN_OLED_RES, 1);
-    delay_us(5);
+    bb02_display.configure();
 
-    oled_clear_buffer();
+    // VCC ON
+    gpio_set_pin_level(PIN_OLED_ON, PIN_HIGH);
 
-    bb02_display.configure(_frame_buffer);
-
+    // Wait at least 100ms from DISPLAY_ON before starting to use
     delay_ms(100);
 
-    // DC-DC ON
-    gpio_set_pin_level(PIN_OLED_ON, 1);
     _enabled = true;
 }
 
-void oled_send_buffer(void)
+void oled_present(bool force)
 {
-    bb02_display.update();
-}
-
-void oled_clear_buffer(void)
-{
-    memset(_frame_buffer, 0, sizeof(_frame_buffer));
+    bb02_display.present();
+    if (_present_screen || force) {
+        _present_screen = false;
+        bb02_display.present();
+    }
 }
 
 void oled_mirror(bool mirror)
@@ -149,7 +168,6 @@ void oled_mirror(bool mirror)
 void oled_set_pixel(int16_t x, int16_t y, uint8_t c)
 {
     bb02_display.set_pixel(x, y, c);
-    _frame_buffer_updated = true;
 }
 
 void oled_off(void)
@@ -166,5 +184,5 @@ void oled_off(void)
 void oled_set_brightness(uint8_t value)
 {
     // brightness uses the same command on all displays 0x81.
-    oled_writer_write_cmd_with_param(0x81, value);
+    oled_writer_write_cmd_with_param_blocking(0x81, value);
 }

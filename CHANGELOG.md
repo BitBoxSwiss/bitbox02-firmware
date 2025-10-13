@@ -8,6 +8,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 
+### v9.23.3
+- Bluetooth: fix communication timeout when creating/restoring a wallet
+
 ### 9.23.2
 - Improve touch sensor reliability when the sdcard is inserted
 

@@ -52,6 +52,7 @@ component_t* waiting_create(void)
         Abort("Error: malloc waiting data");
     }
     memset(data, 0, sizeof(data_t));
+    data->show_logo = true;
 
     component_t* waiting = malloc(sizeof(component_t));
     if (!waiting) {
@@ -65,7 +66,16 @@ component_t* waiting_create(void)
     waiting->position.left = 0;
     waiting->data = data;
 
-    ui_util_add_sub_component(waiting, lockscreen_create());
+    image_logo_data_t logo = image_logo_data();
+    component_t* bb2_logo = image_create(
+        logo.buffer.data,
+        logo.buffer.len,
+        logo.dimensions.width,
+        logo.dimensions.height,
+        CENTER,
+        waiting);
+
+    ui_util_add_sub_component(waiting, bb2_logo);
 
     return waiting;
 }
@@ -96,4 +106,23 @@ void waiting_switch_to_logo(component_t* component)
         component);
 
     component->sub_components.sub_components[0] = bb2_logo;
+}
+
+void waiting_switch_to_lockscreen(component_t* component)
+{
+    data_t* data = (data_t*)component->data;
+    if (!data->show_logo) {
+        return;
+    }
+    data->show_logo = false;
+
+    if (component->sub_components.amount != 1) {
+        // Sanity check to avoid memory bugs, should never happen.
+        Abort("waiting_switch_to_lockscreen");
+        return;
+    }
+
+    ui_util_component_cleanup(component->sub_components.sub_components[0]);
+
+    component->sub_components.sub_components[0] = lockscreen_create();
 }

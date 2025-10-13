@@ -16,6 +16,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Add the option for the simulator to write its memory to file.
 - Bitcoin: add support for OP_RETURN outputs
 
+### v9.23.3
+- Bluetooth: fix communication timeout when creating/restoring a wallet
+
 ### 9.23.2
 - Improve touch sensor reliability when the sdcard is inserted
 

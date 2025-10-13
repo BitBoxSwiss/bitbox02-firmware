@@ -152,7 +152,14 @@ pub async fn unlock_bip39(
     unlock_bip39_check(seed)?;
 
     let (bip39_seed, root_fingerprint) =
-        derive_bip39_seed(secp, seed, mnemonic_passphrase, yield_now).await;
+        derive_bip39_seed(secp, seed, mnemonic_passphrase, &yield_now).await;
+
+    let (bip39_seed_2, root_fingerprint_2) =
+        derive_bip39_seed(secp, seed, mnemonic_passphrase, &yield_now).await;
+
+    if bip39_seed != bip39_seed_2 || root_fingerprint != root_fingerprint_2 {
+        return Err(Error::Memory);
+    }
 
     unlock_bip39_finalize(bip39_seed.as_slice().try_into().unwrap())?;
 

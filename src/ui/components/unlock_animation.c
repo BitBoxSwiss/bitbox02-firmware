@@ -26,13 +26,13 @@
 // This many iterations times the slowdown factor to render the whole animation.
 #define LOCK_ANIMATION_N_FRAMES (38)
 
-// Since BIP39 unlock takes 2048 iterations, and the screen frame rate is 30 (SCREEN_FRAME_RATE,
-// render is called only every 30th iteration), if we want both to finish at the same time, the
-// slowdown factor becomes the following:
-// (1.1f * (2048 / ((float)LOCK_ANIMATION_N_FRAMES * (float)SCREEN_FRAME_RATE)))
+// Since BIP39 unlock takes 2048*2 iterations (it is performed twice), and the screen frame rate is
+// 30 (SCREEN_FRAME_RATE, render is called only every 30th iteration), if we want both to finish at
+// the same time, the slowdown factor becomes the following:
+// (1.1f * (2048*2 / ((float)LOCK_ANIMATION_N_FRAMES * (float)SCREEN_FRAME_RATE)))
 // 10% is added so the animation takes a bit longer than the actual unlock.
-// The above value is 1.9761, we simply round up to 2.
-#define SLOWDOWN_FACTOR (2)
+// The above value is 3.95, we simply round up to 4.
+#define SLOWDOWN_FACTOR (4)
 
 #define LOCK_ANIMATION_FRAME_WIDTH (28)
 #define LOCK_ANIMATION_FRAME_HEIGHT (25)
@@ -137,7 +137,7 @@ static const uint8_t LOCK_ANIMATION[LOCK_ANIMATION_ACTUAL_N_FRAMES][LOCK_ANIMATI
  */
 static const uint8_t* _get_frame(int frame_idx)
 {
-    if (frame_idx >= LOCK_ANIMATION_N_FRAMES) {
+    if (frame_idx >= LOCK_ANIMATION_N_FRAMES + LOCK_ANIMATION_FRAMES_STOP_TIME) {
         Abort("Invalid lock animation frame requested.");
     }
     /* First part of the animation: Closed lock for LOCK_ANIMATION_FRAMES_STOP_TIME frames. */
@@ -166,7 +166,7 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     int frame = data->frame / SLOWDOWN_FACTOR;
 
-    if (frame >= LOCK_ANIMATION_N_FRAMES) {
+    if (frame >= LOCK_ANIMATION_N_FRAMES + LOCK_ANIMATION_FRAMES_STOP_TIME) {
         /* End of the animation */
         if (data->on_done) {
             data->on_done(data->on_done_param);

@@ -22,18 +22,20 @@ use pb::response::Response;
 use crate::hal::Ui;
 use crate::workflow::{confirm, unlock};
 
-use crate::keystore;
-
 /// Handle the ShowMnemonic API call. This shows the seed encoded as
 /// 12/18/24 BIP39 English words. Afterwards, for each word, the user
 /// is asked to pick the right word among 5 words, to check if they
 /// wrote it down correctly.
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
-    if bitbox02::memory::is_initialized() {
-        unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?;
-    }
+    let mnemonic_sentence = {
+        let seed = if bitbox02::memory::is_initialized() {
+            unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
+        } else {
+            bitbox02::keystore::copy_seed()?
+        };
 
-    let mnemonic_sentence = keystore::get_bip39_mnemonic()?;
+        bitbox02::keystore::bip39_mnemonic_from_seed(&seed)?
+    };
 
     hal.ui()
         .confirm(&confirm::Params {
@@ -139,17 +141,20 @@ mod tests {
 
         bitbox02::memory::set_initialized().unwrap();
 
+        let mut password_entered: bool = false;
+
         let mut mock_hal = TestingHal::new();
-        mock_hal
-            .ui
-            .set_enter_string(Box::new(|_params| Ok("password".into())));
+        mock_hal.ui.set_enter_string(Box::new(|_params| {
+            password_entered = true;
+            Ok("password".into())
+        }));
 
         bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(
             block_on(process(&mut mock_hal)),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -173,6 +178,9 @@ mod tests {
                 },
             ]
         );
+
+        drop(mock_hal); // to remove mutable borrow of `password_entered`
+        assert!(password_entered);
     }
 
     /// When initialized, a password check is prompted before displaying the mnemonic.

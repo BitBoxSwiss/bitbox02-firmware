@@ -445,7 +445,9 @@ static bool _check_retained_seed(const uint8_t* seed, size_t seed_length)
 keystore_error_t keystore_unlock(
     const char* password,
     uint8_t* remaining_attempts_out,
-    int* securechip_result_out)
+    int* securechip_result_out,
+    uint8_t* seed_out,
+    size_t* seed_len_out)
 {
     if (!memory_is_seeded()) {
         return KEYSTORE_ERR_UNSEEDED;
@@ -486,6 +488,11 @@ keystore_error_t keystore_unlock(
             _is_unlocked_device = true;
         }
         bitbox02_smarteeprom_reset_unlock_attempts();
+
+        if (seed_out != NULL && seed_len_out != NULL) {
+            memcpy(seed_out, seed, seed_len);
+            *seed_len_out = seed_len;
+        }
     }
     // Compute remaining attempts
     failed_attempts = bitbox02_smarteeprom_get_unlock_attempts();

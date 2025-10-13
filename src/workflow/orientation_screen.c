@@ -25,6 +25,7 @@
 #include <screen.h>
 #include <ui/components/lockscreen.h>
 #include <ui/components/orientation_arrows.h>
+#include <ui/screen_process.h>
 #include <ui/screen_stack.h>
 #include <usb/usb.h>
 #include <utils_ringbuffer.h>
@@ -73,6 +74,7 @@ static void _idle_timer_cb(const struct timer_task* const timer_task)
     }
 
     usb_start();
+    screen_process_waiting_switch_to_lockscreen();
 }
 #endif
 

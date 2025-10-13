@@ -33,6 +33,11 @@ component_t* screen_process_get_top_component(void);
 void screen_process_waiting_switch_to_logo(void);
 
 /**
+ * Wraps `waiting_switch_to_lockscreen()` for the waiting screen.
+ */
+void screen_process_waiting_switch_to_lockscreen(void);
+
+/**
  * Runs the UI once.
  *
  * This function will update the screen (if needed)

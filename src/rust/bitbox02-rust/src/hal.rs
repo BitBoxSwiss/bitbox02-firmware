@@ -18,12 +18,19 @@ pub use crate::workflow::Workflows as Ui;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use futures_lite::future::yield_now;
+
+#[allow(async_fn_in_trait)]
 pub trait Sd {
-    fn sdcard_inserted(&mut self) -> bool;
-    fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()>;
-    fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()>;
-    fn load_bin(&mut self, filename: &str, dir: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
-    fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()>;
+    async fn sdcard_inserted(&mut self) -> bool;
+    async fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()>;
+    async fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()>;
+    async fn load_bin(
+        &mut self,
+        filename: &str,
+        dir: &str,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
+    async fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -36,28 +43,42 @@ pub struct BitBox02Sd;
 
 impl Sd for BitBox02Sd {
     #[inline(always)]
-    fn sdcard_inserted(&mut self) -> bool {
-        bitbox02::sd::sdcard_inserted()
+    async fn sdcard_inserted(&mut self) -> bool {
+        let result = bitbox02::sd::sdcard_inserted();
+        yield_now().await;
+        result
     }
 
     #[inline(always)]
-    fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()> {
-        bitbox02::sd::list_subdir(subdir)
+    async fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()> {
+        let result = bitbox02::sd::list_subdir(subdir);
+        yield_now().await;
+        result
     }
 
     #[inline(always)]
-    fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()> {
-        bitbox02::sd::erase_file_in_subdir(filename, dir)
+    async fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()> {
+        let result = bitbox02::sd::erase_file_in_subdir(filename, dir);
+        yield_now().await;
+        result
     }
 
     #[inline(always)]
-    fn load_bin(&mut self, filename: &str, dir: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-        bitbox02::sd::load_bin(filename, dir)
+    async fn load_bin(
+        &mut self,
+        filename: &str,
+        dir: &str,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+        let result = bitbox02::sd::load_bin(filename, dir);
+        yield_now().await;
+        result
     }
 
     #[inline(always)]
-    fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
-        bitbox02::sd::write_bin(filename, dir, data)
+    async fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
+        let result = bitbox02::sd::write_bin(filename, dir, data);
+        yield_now().await;
+        result
     }
 }
 
@@ -105,11 +126,11 @@ pub mod testing {
     }
 
     impl super::Sd for TestingSd {
-        fn sdcard_inserted(&mut self) -> bool {
+        async fn sdcard_inserted(&mut self) -> bool {
             self.inserted.unwrap()
         }
 
-        fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()> {
+        async fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()> {
             match subdir {
                 Some(key) => Ok(self
                     .files
@@ -120,14 +141,14 @@ pub mod testing {
             }
         }
 
-        fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()> {
+        async fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()> {
             self.files
                 .get_mut(dir)
                 .and_then(|files| files.remove(filename).map(|_| ()))
                 .ok_or(())
         }
 
-        fn load_bin(
+        async fn load_bin(
             &mut self,
             filename: &str,
             dir: &str,
@@ -139,7 +160,7 @@ pub mod testing {
                 .ok_or(())
         }
 
-        fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
+        async fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
             self.files
                 .entry(dir.into())
                 .or_default()
@@ -176,29 +197,38 @@ pub mod testing {
         use super::*;
         use crate::hal::Sd;
 
+        use crate::bb02_async::block_on;
+
         // Quick check if our mock TestingSd implementation makes sense.
         #[test]
         fn test_sd_list_write_read_erase() {
             let mut sd = TestingSd::new();
-            assert_eq!(sd.list_subdir(None), Ok(vec![]));
-            assert_eq!(sd.list_subdir(Some("dir1")), Ok(vec![]));
+            assert_eq!(block_on(sd.list_subdir(None)), Ok(vec![]));
+            assert_eq!(block_on(sd.list_subdir(Some("dir1"))), Ok(vec![]));
 
-            assert!(sd.load_bin("file1.txt", "dir1").is_err());
-            assert!(sd.write_bin("file1.txt", "dir1", b"data").is_ok());
-            assert_eq!(sd.list_subdir(None), Ok(vec!["dir1".into()]));
-            assert_eq!(sd.list_subdir(Some("dir1")), Ok(vec!["file1.txt".into()]));
+            assert!(block_on(sd.load_bin("file1.txt", "dir1")).is_err());
+            assert!(block_on(sd.write_bin("file1.txt", "dir1", b"data")).is_ok());
+            assert_eq!(block_on(sd.list_subdir(None)), Ok(vec!["dir1".into()]));
             assert_eq!(
-                sd.load_bin("file1.txt", "dir1").unwrap().as_slice(),
+                block_on(sd.list_subdir(Some("dir1"))),
+                Ok(vec!["file1.txt".into()])
+            );
+            assert_eq!(
+                block_on(sd.load_bin("file1.txt", "dir1"))
+                    .unwrap()
+                    .as_slice(),
                 b"data"
             );
-            assert!(sd.write_bin("file1.txt", "dir1", b"replaced data").is_ok());
+            assert!(block_on(sd.write_bin("file1.txt", "dir1", b"replaced data")).is_ok());
             assert_eq!(
-                sd.load_bin("file1.txt", "dir1").unwrap().as_slice(),
+                block_on(sd.load_bin("file1.txt", "dir1"))
+                    .unwrap()
+                    .as_slice(),
                 b"replaced data"
             );
-            assert!(sd.erase_file_in_subdir("doesnt-exist.txt", "dir1").is_err());
-            assert!(sd.erase_file_in_subdir("file1.txt", "dir1").is_ok());
-            assert_eq!(sd.list_subdir(Some("dir1")), Ok(vec![]));
+            assert!(block_on(sd.erase_file_in_subdir("doesnt-exist.txt", "dir1")).is_err());
+            assert!(block_on(sd.erase_file_in_subdir("file1.txt", "dir1")).is_ok());
+            assert_eq!(block_on(sd.list_subdir(Some("dir1"))), Ok(vec![]));
         }
     }
 }

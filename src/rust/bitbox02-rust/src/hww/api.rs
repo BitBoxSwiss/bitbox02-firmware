@@ -172,9 +172,9 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
             set_mnemonic_passphrase_enabled::process(hal, request).await
         }
         Request::InsertRemoveSdcard(ref request) => sdcard::process(hal, request).await,
-        Request::ListBackups(_) => backup::list(hal),
+        Request::ListBackups(_) => backup::list(hal).await,
         Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
-            inserted: hal.sd().sdcard_inserted(),
+            inserted: hal.sd().sdcard_inserted().await,
         })),
         Request::CheckBackup(ref request) => backup::check(hal, request).await,
         Request::CreateBackup(ref request) => backup::create(hal, request).await,

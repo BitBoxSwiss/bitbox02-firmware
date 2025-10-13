@@ -25,7 +25,7 @@ pub async fn process(
     hal: &mut impl crate::hal::Hal,
     &pb::InsertRemoveSdCardRequest { action }: &pb::InsertRemoveSdCardRequest,
 ) -> Result<Response, Error> {
-    let inserted = hal.sd().sdcard_inserted();
+    let inserted = hal.sd().sdcard_inserted().await;
     match SdCardAction::try_from(action) {
         Ok(SdCardAction::InsertCard) => {}
         _ => return Ok(Response::Success(pb::Success {})),

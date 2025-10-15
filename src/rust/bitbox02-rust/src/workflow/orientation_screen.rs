@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option_no_screensaver;
+use util::bb02_async::option;
 
 pub async fn create<CB>(orientation_selected_cb: CB)
 where
@@ -28,7 +28,7 @@ where
     orientation_arrows.screen_stack_push();
 
     // Wait until orientation has been chosen
-    option_no_screensaver(&result).await;
+    option(&result).await;
     drop(orientation_arrows);
 
     // During this delay the bb02 logotype is shown

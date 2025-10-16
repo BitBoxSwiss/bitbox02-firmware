@@ -304,6 +304,40 @@ bool memory_setup(const memory_interface_functions_t* ifs)
     }
     _interface_functions = ifs;
 
+    // Initialize hww memory
+    {
+        chunk_1_t chunk = {0};
+        CLEANUP_CHUNK(chunk);
+        _read_chunk(CHUNK_1, chunk_bytes);
+
+        uint8_t salt_root_empty[sizeof(chunk.fields.salt_root)] = {
+            [0 ... sizeof(chunk.fields.salt_root) - 1] = 0xff};
+        bool chunk_1_dirty = false;
+        if (memcmp(chunk.fields.salt_root, salt_root_empty, sizeof(chunk.fields.salt_root)) == 0) {
+            // Set salt root
+            _interface_functions->random_32_bytes(chunk.fields.salt_root);
+            chunk_1_dirty = true;
+        }
+
+        uint8_t noise_static_key_empty[sizeof(chunk.fields.noise_static_private_key)] = {
+            [0 ... sizeof(chunk.fields.noise_static_private_key) - 1] = 0xff};
+        if (memcmp(
+                noise_static_key_empty,
+                chunk.fields.noise_static_private_key,
+                sizeof(chunk.fields.noise_static_private_key)) == 0) {
+            // Set a new noise static private key.
+            rust_noise_generate_static_private_key(rust_util_bytes_mut(
+                chunk.fields.noise_static_private_key,
+                sizeof(chunk.fields.noise_static_private_key)));
+            chunk_1_dirty = true;
+        }
+        if (chunk_1_dirty) {
+            if (!_write_chunk(CHUNK_1, chunk.bytes)) {
+                return false;
+            }
+        }
+    }
+
     chunk_0_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
@@ -363,26 +397,13 @@ bool memory_cleanup_smarteeprom(void)
 
 bool memory_reset_hww(void)
 {
+    bool res = true;
     // Erase all app data chunks expect the first and the last one, which is permanent.
     for (uint32_t chunk = CHUNK_1; chunk < (FLASH_APPDATA_LEN / CHUNK_SIZE) - 1; chunk++) {
         if (!_write_chunk(chunk, NULL)) {
-            return false;
+            res = false;
         }
     }
-
-    // Initialize hww memory
-
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-
-    // Set salt root
-    _interface_functions->random_32_bytes(chunk.fields.salt_root);
-
-    // Set a new noise static private key.
-    rust_noise_generate_static_private_key(rust_util_bytes_mut(
-        chunk.fields.noise_static_private_key, sizeof(chunk.fields.noise_static_private_key)));
-    bool res = _write_chunk(CHUNK_1, chunk.bytes);
 
     // Reset bond-db and reinitialize IRK and identity address
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
@@ -399,13 +420,15 @@ bool memory_reset_hww(void)
             &random_bytes[sizeof(chunk_shared.fields.ble_identity_address)],
             sizeof(chunk_shared.fields.ble_identity_address));
 
-        // Two most significant bits must be set to indicate "public static address". See ch. 1.3.2
-        // in "Part B: Link Layer Specification" of bluetooth standard.
-        // ble_addr is stored in little endianness, so MSB is in the first byte.
+        // Two most significant bits must be set to indicate "public static address". See
+        // ch. 1.3.2 in "Part B: Link Layer Specification" of bluetooth standard. ble_addr is
+        // stored in little endianness, so MSB is in the first byte.
         chunk_shared.fields.ble_identity_address[0] |= 0xc;
 
         memset(&chunk_shared.fields.ble_bond_db, 0xff, sizeof(chunk_shared.fields.ble_bond_db));
-        res |= _write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes);
+        if (!_write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes)) {
+            return false;
+        }
     }
 
     return res;

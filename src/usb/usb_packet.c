@@ -67,7 +67,7 @@ bool usb_packet_process(const USB_FRAME* frame)
     switch (usb_frame_process(frame, &_in_state)) {
     case FRAME_ERR_IGNORE:
         // Ignore this frame, i.e. no response.
-        return false;
+        break;
     case FRAME_ERR_INVALID_SEQ:
         // Reset the state becuase this error indicates that there is a host application bug
         _reset_state();

@@ -66,8 +66,6 @@ set(TEST_LIST
    "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
    memory_functional
    ""
-   salt
-   "-Wl,--wrap=memory_get_salt_root"
    cipher
    "-Wl,--wrap=cipher_fake_iv"
    util

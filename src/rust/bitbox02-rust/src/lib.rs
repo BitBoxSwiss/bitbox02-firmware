@@ -36,6 +36,7 @@ pub mod hal;
 pub mod hash;
 pub mod hww;
 pub mod keystore;
+pub mod salt;
 pub mod secp256k1;
 #[cfg(feature = "app-u2f")]
 mod u2f;

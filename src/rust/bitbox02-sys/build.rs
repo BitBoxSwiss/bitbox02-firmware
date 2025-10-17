@@ -99,6 +99,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_is_initialized",
     "memory_is_mnemonic_passphrase_enabled",
     "memory_is_seeded",
+    "memory_get_salt_root",
     "memory_multisig_get_by_hash",
     "memory_multisig_set_by_hash",
     "memory_set_device_name",

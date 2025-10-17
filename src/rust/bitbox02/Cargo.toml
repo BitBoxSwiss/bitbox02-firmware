@@ -33,6 +33,7 @@ hex = { workspace = true }
 hex = { workspace = true }
 bitbox-aes = { path = "../bitbox-aes" }
 bitbox02-rust = { path = "../bitbox02-rust" }
+hex_lit = { workspace = true }
 
 [features]
 # Only to be enabled in unit tests and simulators

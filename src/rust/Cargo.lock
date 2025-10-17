@@ -107,6 +107,7 @@ dependencies = [
  "bitbox02-sys",
  "bitcoin",
  "hex",
+ "hex_lit",
  "util",
  "zeroize",
 ]

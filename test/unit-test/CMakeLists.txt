@@ -34,7 +34,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototype
 add_library(mocks STATIC EXCLUDE_FROM_ALL
     framework/src/mock_gestures.c
     framework/src/mock_screen_stack.c
-    framework/src/mock_memory.c
     framework/src/mock_qtouch.c
 )
 target_link_libraries(mocks PUBLIC c-unit-tests_rust_c ${CMOCKA_LDFLAGS})

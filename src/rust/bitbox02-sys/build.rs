@@ -50,6 +50,7 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "component_t",
     "confirm_params_t",
     "trinary_input_string_params_t",
+    "securechip_error_t",
 ];
 
 const ALLOWLIST_FNS: &[&str] = &[
@@ -142,6 +143,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "sdcard_create",
     "secp256k1_ecdsa_anti_exfil_host_commit",
     "securechip_attestation_sign",
+    "securechip_kdf",
     "securechip_model",
     "securechip_monotonic_increments_remaining",
     "securechip_u2f_counter_set",
@@ -167,6 +169,7 @@ const RUSTIFIED_ENUMS: &[&str] = &[
     "memory_result_t",
     "multisig_script_type_t",
     "output_type_t",
+    "securechip_error_t",
     "securechip_model_t",
     "simple_type_t",
     "trinary_choice_t",

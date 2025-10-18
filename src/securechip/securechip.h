@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// Keep in sync with securechip.rs `SECURECHIP_ERRORS`.
 typedef enum {
     // Errors common to any securechip implementation
     SC_ERR_IFS = -1,

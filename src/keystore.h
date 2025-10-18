@@ -62,6 +62,12 @@ USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out);
  */
 USE_RESULT bool keystore_copy_bip39_seed(uint8_t* bip32_seed_out);
 
+USE_RESULT keystore_error_t keystore_stretch_retained_seed_encryption_key(
+    const uint8_t* encryption_key,
+    const char* purpose_in,
+    const char* purpose_out,
+    uint8_t* out);
+
 /**
  * Restores a seed. This also unlocks the keystore with this seed.
  * @param[in] seed The seed that is to be restored.

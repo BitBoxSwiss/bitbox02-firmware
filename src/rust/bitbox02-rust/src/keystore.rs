@@ -131,6 +131,16 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
     keystore::root_fingerprint()
 }
 
+/// Stretches the given encryption_key using the securechip. The resulting key is used to encrypt
+/// the retained seed or bip39 seed.
+pub fn stretch_retained_seed_encryption_key(
+    encryption_key: &[u8; 32],
+    purpose_in: &str,
+    purpose_out: &str,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, keystore::Error> {
+    keystore::stretch_retained_seed_encryption_key(encryption_key, purpose_in, purpose_out)
+}
+
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let priv_key = secp256k1_get_private_key_twice(keypath)?;
 
@@ -453,6 +463,37 @@ mod tests {
 
         keystore::lock();
         assert_eq!(root_fingerprint(), Err(()));
+    }
+
+    #[test]
+    fn test_stretch_retained_seed_encryption_key_success() {
+        mock_memory();
+        let salt_root = hex!("0000000000000000111111111111111122222222222222223333333333333333");
+        bitbox02::memory::set_salt_root(&salt_root).unwrap();
+
+        let encryption_key =
+            hex!("00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00");
+
+        let stretched = stretch_retained_seed_encryption_key(
+            &encryption_key,
+            "keystore_retained_seed_access_in",
+            "keystore_retained_seed_access_out",
+        )
+        .unwrap();
+
+        let expected = hex!("b6b20683810aee16b5603ae95d14eaae5ae2c8d9df9b66e1b67c698e627bb208");
+        assert_eq!(stretched.as_slice(), expected.as_slice());
+    }
+
+    #[test]
+    fn test_stretch_retained_seed_encryption_key_salt_error() {
+        mock_memory();
+        bitbox02::memory::set_salt_root(&[0xffu8; 32]).unwrap();
+
+        let encryption_key = [0u8; 32];
+        let result =
+            stretch_retained_seed_encryption_key(&encryption_key, "purpose_in", "purpose_out");
+        assert!(matches!(result, Err(keystore::Error::Salt)));
     }
 
     #[test]

@@ -213,6 +213,27 @@ pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
+pub fn stretch_retained_seed_encryption_key(
+    encryption_key: &[u8; 32],
+    purpose_in: &str,
+    purpose_out: &str,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    let purpose_in_c = crate::util::str_to_cstr_vec(purpose_in).unwrap();
+    let purpose_out_c = crate::util::str_to_cstr_vec(purpose_out).unwrap();
+    let mut out = zeroize::Zeroizing::new(vec![0u8; 32]);
+    match unsafe {
+        bitbox02_sys::keystore_stretch_retained_seed_encryption_key(
+            encryption_key.as_ptr(),
+            purpose_in_c.as_ptr().cast(),
+            purpose_out_c.as_ptr().cast(),
+            out.as_mut_ptr(),
+        )
+    } {
+        keystore_error_t::KEYSTORE_OK => Ok(out),
+        err => Err(err.into()),
+    }
+}
+
 pub fn bip39_mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
     let mnemonic = bip39::Mnemonic::from_entropy(seed).map_err(|_| ())?;
     Ok(zeroize::Zeroizing::new(mnemonic.to_string()))

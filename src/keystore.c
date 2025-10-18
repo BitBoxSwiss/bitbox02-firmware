@@ -63,7 +63,7 @@ static bool _validate_seed_length(size_t seed_len)
     return seed_len == 16 || seed_len == 24 || seed_len == 32;
 }
 
-USE_RESULT static keystore_error_t _stretch_retained_seed_encryption_key(
+USE_RESULT keystore_error_t keystore_stretch_retained_seed_encryption_key(
     const uint8_t* encryption_key,
     const char* purpose_in,
     const char* purpose_out,
@@ -92,7 +92,7 @@ bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
 
     uint8_t retained_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_seed_encryption_key);
-    if (_stretch_retained_seed_encryption_key(
+    if (keystore_stretch_retained_seed_encryption_key(
             _unstretched_retained_seed_encryption_key,
             "keystore_retained_seed_access_in",
             "keystore_retained_seed_access_out",
@@ -122,7 +122,7 @@ bool keystore_copy_bip39_seed(uint8_t* bip39_seed_out)
 
     uint8_t retained_bip39_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_bip39_seed_encryption_key);
-    if (_stretch_retained_seed_encryption_key(
+    if (keystore_stretch_retained_seed_encryption_key(
             _unstretched_retained_bip39_seed_encryption_key,
             "keystore_retained_bip39_seed_access_in",
             "keystore_retained_bip39_seed_access_out",
@@ -266,7 +266,7 @@ USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed
 #endif
     uint8_t retained_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_seed_encryption_key);
-    keystore_error_t result = _stretch_retained_seed_encryption_key(
+    keystore_error_t result = keystore_stretch_retained_seed_encryption_key(
         _unstretched_retained_seed_encryption_key,
         "keystore_retained_seed_access_in",
         "keystore_retained_seed_access_out",
@@ -299,7 +299,7 @@ USE_RESULT static bool _retain_bip39_seed(const uint8_t* bip39_seed)
 #endif
     uint8_t retained_bip39_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_bip39_seed_encryption_key);
-    if (_stretch_retained_seed_encryption_key(
+    if (keystore_stretch_retained_seed_encryption_key(
             _unstretched_retained_bip39_seed_encryption_key,
             "keystore_retained_bip39_seed_access_in",
             "keystore_retained_bip39_seed_access_out",

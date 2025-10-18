@@ -63,27 +63,6 @@ static bool _validate_seed_length(size_t seed_len)
     return seed_len == 16 || seed_len == 24 || seed_len == 32;
 }
 
-USE_RESULT keystore_error_t keystore_stretch_retained_seed_encryption_key(
-    const uint8_t* encryption_key,
-    const char* purpose_in,
-    const char* purpose_out,
-    uint8_t* out)
-{
-    uint8_t salted_hashed[32] = {0};
-    UTIL_CLEANUP_32(salted_hashed);
-    if (!salt_hash_data(encryption_key, 32, purpose_in, salted_hashed)) {
-        return KEYSTORE_ERR_SALT;
-    }
-    if (securechip_kdf(salted_hashed, 32, out)) {
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-    if (!salt_hash_data(encryption_key, 32, purpose_out, salted_hashed)) {
-        return KEYSTORE_ERR_SALT;
-    }
-    rust_hmac_sha256(salted_hashed, sizeof(salted_hashed), out, 32, out);
-    return KEYSTORE_OK;
-}
-
 bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
 {
     if (!_is_unlocked_device) {
@@ -92,11 +71,15 @@ bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
 
     uint8_t retained_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_seed_encryption_key);
-    if (keystore_stretch_retained_seed_encryption_key(
-            _unstretched_retained_seed_encryption_key,
+    if (!rust_keystore_stretch_retained_seed_encryption_key(
+            rust_util_bytes(
+                _unstretched_retained_seed_encryption_key,
+                sizeof(_unstretched_retained_seed_encryption_key)),
             "keystore_retained_seed_access_in",
             "keystore_retained_seed_access_out",
-            retained_seed_encryption_key) != KEYSTORE_OK) {
+            rust_util_bytes_mut(
+                retained_seed_encryption_key,
+                sizeof(retained_seed_encryption_key)))) {
         return false;
     }
     size_t len = _retained_seed_encrypted_len - 48;
@@ -122,11 +105,15 @@ bool keystore_copy_bip39_seed(uint8_t* bip39_seed_out)
 
     uint8_t retained_bip39_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_bip39_seed_encryption_key);
-    if (keystore_stretch_retained_seed_encryption_key(
-            _unstretched_retained_bip39_seed_encryption_key,
+    if (!rust_keystore_stretch_retained_seed_encryption_key(
+            rust_util_bytes(
+                _unstretched_retained_bip39_seed_encryption_key,
+                sizeof(_unstretched_retained_bip39_seed_encryption_key)),
             "keystore_retained_bip39_seed_access_in",
             "keystore_retained_bip39_seed_access_out",
-            retained_bip39_seed_encryption_key) != KEYSTORE_OK) {
+            rust_util_bytes_mut(
+                retained_bip39_seed_encryption_key,
+                sizeof(retained_bip39_seed_encryption_key)))) {
         return false;
     }
     size_t len = _retained_bip39_seed_encrypted_len - 48;
@@ -266,13 +253,15 @@ USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed
 #endif
     uint8_t retained_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_seed_encryption_key);
-    keystore_error_t result = keystore_stretch_retained_seed_encryption_key(
-        _unstretched_retained_seed_encryption_key,
+    bool stretched = rust_keystore_stretch_retained_seed_encryption_key(
+        rust_util_bytes(
+            _unstretched_retained_seed_encryption_key,
+            sizeof(_unstretched_retained_seed_encryption_key)),
         "keystore_retained_seed_access_in",
         "keystore_retained_seed_access_out",
-        retained_seed_encryption_key);
-    if (result != KEYSTORE_OK) {
-        return result;
+        rust_util_bytes_mut(retained_seed_encryption_key, sizeof(retained_seed_encryption_key)));
+    if (!stretched) {
+        return KEYSTORE_ERR_STRETCH_RETAINED_SEED_KEY;
     }
     size_t len = seed_len + 64;
     if (!cipher_aes_hmac_encrypt(
@@ -299,11 +288,15 @@ USE_RESULT static bool _retain_bip39_seed(const uint8_t* bip39_seed)
 #endif
     uint8_t retained_bip39_seed_encryption_key[32] = {0};
     UTIL_CLEANUP_32(retained_bip39_seed_encryption_key);
-    if (keystore_stretch_retained_seed_encryption_key(
-            _unstretched_retained_bip39_seed_encryption_key,
+    if (!rust_keystore_stretch_retained_seed_encryption_key(
+            rust_util_bytes(
+                _unstretched_retained_bip39_seed_encryption_key,
+                sizeof(_unstretched_retained_bip39_seed_encryption_key)),
             "keystore_retained_bip39_seed_access_in",
             "keystore_retained_bip39_seed_access_out",
-            retained_bip39_seed_encryption_key) != KEYSTORE_OK) {
+            rust_util_bytes_mut(
+                retained_bip39_seed_encryption_key,
+                sizeof(retained_bip39_seed_encryption_key)))) {
         return false;
     }
     size_t len = sizeof(_retained_bip39_seed_encrypted);

@@ -19,13 +19,13 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use bitbox02::keystore;
+use bitbox02::{keystore, securechip};
 
 use util::bip32::HARDENED;
 
 use crate::secp256k1::SECP256K1;
 
-use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha512};
+use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
@@ -138,7 +138,53 @@ pub fn stretch_retained_seed_encryption_key(
     purpose_in: &str,
     purpose_out: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, keystore::Error> {
-    keystore::stretch_retained_seed_encryption_key(encryption_key, purpose_in, purpose_out)
+    let salted_in =
+        crate::salt::hash_data(encryption_key, purpose_in).map_err(|_| keystore::Error::Salt)?;
+
+    let kdf = securechip::kdf(salted_in.as_slice()).map_err(|err| match err {
+        securechip::Error::SecureChip(sc_err) => keystore::Error::SecureChip(sc_err as i32),
+        securechip::Error::Status(status) => keystore::Error::SecureChip(status),
+    })?;
+
+    let salted_out =
+        crate::salt::hash_data(encryption_key, purpose_out).map_err(|_| keystore::Error::Salt)?;
+
+    let mut engine = HmacEngine::<sha256::Hash>::new(salted_out.as_slice());
+    engine.input(kdf.as_slice());
+    let stretched = Hmac::<sha256::Hash>::from_engine(engine).to_byte_array();
+
+    Ok(zeroize::Zeroizing::new(stretched.to_vec()))
+}
+
+/// # Safety
+///
+/// `encryption_key` must refer to a 32-byte buffer and `out` must have space for 32 bytes.
+/// `purpose_in` and `purpose_out` must be null-terminated C strings.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_keystore_stretch_retained_seed_encryption_key(
+    encryption_key: util::bytes::Bytes,
+    purpose_in: *const core::ffi::c_char,
+    purpose_out: *const core::ffi::c_char,
+    mut out: util::bytes::BytesMut,
+) -> bool {
+    let encryption_key: [u8; 32] = match encryption_key.as_ref().try_into() {
+        Ok(key) => key,
+        Err(_) => return false,
+    };
+    let purpose_in = unsafe { bitbox02::util::str_from_null_terminated_ptr(purpose_in) };
+    let purpose_out = unsafe { bitbox02::util::str_from_null_terminated_ptr(purpose_out) };
+    let (purpose_in, purpose_out) = match (purpose_in, purpose_out) {
+        (Ok(purpose_in), Ok(purpose_out)) => (purpose_in, purpose_out),
+        _ => return false,
+    };
+
+    match stretch_retained_seed_encryption_key(&encryption_key, purpose_in, purpose_out) {
+        Ok(stretched) => {
+            out.as_mut().copy_from_slice(stretched.as_slice());
+            true
+        }
+        Err(_) => false,
+    }
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
@@ -483,6 +529,37 @@ mod tests {
 
         let expected = hex!("b6b20683810aee16b5603ae95d14eaae5ae2c8d9df9b66e1b67c698e627bb208");
         assert_eq!(stretched.as_slice(), expected.as_slice());
+    }
+
+    #[test]
+    fn test_rust_keystore_stretch_retained_seed_encryption_key_success() {
+        mock_memory();
+        let salt_root =
+            hex::decode("0000000000000000111111111111111122222222222222223333333333333333")
+                .unwrap();
+        bitbox02::memory::set_salt_root(salt_root.as_slice().try_into().unwrap()).unwrap();
+
+        let encryption_key_vec =
+            hex::decode("00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00")
+                .unwrap();
+
+        let mut out = [0u8; 32];
+        let purpose_in = c"keystore_retained_seed_access_in";
+        let purpose_out = c"keystore_retained_seed_access_out";
+
+        let success = unsafe {
+            rust_keystore_stretch_retained_seed_encryption_key(
+                util::bytes::rust_util_bytes(encryption_key_vec.as_ptr(), encryption_key_vec.len()),
+                purpose_in.as_ptr(),
+                purpose_out.as_ptr(),
+                util::bytes::rust_util_bytes_mut(out.as_mut_ptr(), out.len()),
+            )
+        };
+        assert!(success);
+        let expected =
+            hex::decode("b6b20683810aee16b5603ae95d14eaae5ae2c8d9df9b66e1b67c698e627bb208")
+                .unwrap();
+        assert_eq!(out, expected.as_slice());
     }
 
     #[test]

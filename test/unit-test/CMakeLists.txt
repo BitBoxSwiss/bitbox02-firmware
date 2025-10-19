@@ -34,7 +34,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototype
 add_library(mocks STATIC EXCLUDE_FROM_ALL
     framework/src/mock_gestures.c
     framework/src/mock_screen_stack.c
-    framework/src/mock_memory.c
     framework/src/mock_qtouch.c
 )
 target_link_libraries(mocks PUBLIC c-unit-tests_rust_c ${CMOCKA_LDFLAGS})
@@ -66,8 +65,6 @@ set(TEST_LIST
    "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
    memory_functional
    ""
-   salt
-   "-Wl,--wrap=memory_get_salt_root"
    cipher
    "-Wl,--wrap=cipher_fake_iv"
    util

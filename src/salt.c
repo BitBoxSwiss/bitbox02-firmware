@@ -21,25 +21,9 @@
 
 bool salt_hash_data(const uint8_t* data, size_t data_len, const char* purpose, uint8_t* hash_out)
 {
-    if (data_len > 0 && data == NULL) {
+    if ((data_len > 0 && data == NULL) || purpose == NULL || hash_out == NULL) {
         return false;
     }
-    if (!purpose || !hash_out) {
-        return false;
-    }
-
-    uint8_t salt_root[32];
-    UTIL_CLEANUP_32(salt_root);
-    if (!memory_get_salt_root(salt_root)) {
-        return false;
-    }
-
-    void* ctx = rust_sha256_new();
-    rust_sha256_update(ctx, salt_root, sizeof(salt_root));
-    rust_sha256_update(ctx, purpose, strlen(purpose));
-    if (data != NULL) {
-        rust_sha256_update(ctx, data, data_len);
-    }
-    rust_sha256_finish(&ctx, hash_out);
-    return true;
+    return rust_salt_hash_data(
+        rust_util_bytes(data, data_len), purpose, rust_util_bytes_mut(hash_out, 32));
 }

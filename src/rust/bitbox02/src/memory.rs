@@ -15,6 +15,7 @@
 
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // deduct one for the null terminator.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
@@ -232,6 +233,15 @@ pub fn ble_enable(enable: bool) -> Result<(), ()> {
     if res { Ok(()) } else { Err(()) }
 }
 
+pub fn get_salt_root() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mut salt_root = zeroize::Zeroizing::new(vec![0u8; 32]);
+    if unsafe { bitbox02_sys::memory_get_salt_root(salt_root.as_mut_ptr()) } {
+        Ok(salt_root)
+    } else {
+        Err(())
+    }
+}
+
 #[cfg(feature = "testing")]
 pub fn set_salt_root(salt_root: &[u8; 32]) -> Result<(), ()> {
     match unsafe { bitbox02_sys::memory_set_salt_root(salt_root.as_ptr()) } {
@@ -244,9 +254,29 @@ pub fn set_salt_root(salt_root: &[u8; 32]) -> Result<(), ()> {
 mod tests {
     use super::*;
 
+    use hex_lit::hex;
+
     #[test]
     fn test_get_attestation_bootloader_hash() {
-        let expected: [u8; 32] = *b"\x71\x3d\xf0\xd5\x8c\x71\x7d\x40\x31\x78\x7c\xdc\x8f\xa3\x5b\x90\x25\x82\xbe\x6a\xb6\xa2\x2e\x09\xde\x44\x77\xd3\x0e\x22\x30\xfc";
+        let expected: [u8; 32] =
+            hex!("713df0d58c717d4031787cdc8fa35b902582be6ab6a22e09de4477d30e2230fc");
         assert_eq!(get_attestation_bootloader_hash(), expected);
+    }
+
+    #[test]
+    fn test_get_salt_root_roundtrip() {
+        let original = get_salt_root().unwrap();
+
+        let expected = hex!("00112233445566778899aabbccddeefffeeddccbbaa998877665544332211000");
+
+        set_salt_root(expected.as_slice().try_into().unwrap()).unwrap();
+        let salt_root = get_salt_root().unwrap();
+        assert_eq!(salt_root.as_slice(), &expected);
+
+        let erased = [0xffu8; 32];
+        set_salt_root(&erased).unwrap();
+        assert!(get_salt_root().is_err());
+
+        set_salt_root(original.as_slice().try_into().unwrap()).unwrap();
     }
 }

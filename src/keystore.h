@@ -41,6 +41,7 @@ typedef enum {
     KEYSTORE_ERR_HASH,
     KEYSTORE_ERR_ENCRYPT,
     KEYSTORE_ERR_DECRYPT,
+    KEYSTORE_ERR_STRETCH_RETAINED_SEED_KEY,
 } keystore_error_t;
 
 /**

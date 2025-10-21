@@ -1,0 +1,8 @@
+By signing this file, the signer confirms that the firmware binary built from:
+
+git tag firmware/v9.24.0
+git commit hash ca5877dbc61bde4bfc643da6028aa9e3c077e62c
+
+resulted, at the time of signing, in a firmware binary file with the following sha256sum:
+
+41f1053ecdf2edc02834408f5cef0cd3d685913f3846619fbbbfa29b0461d9bc

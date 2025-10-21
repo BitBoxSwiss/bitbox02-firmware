@@ -112,30 +112,25 @@ void firmware_main_loop(void)
 #endif
         // Do USB Input
         if (!hww_data && hid_hww_read(&hww_frame[0])) {
-            usb_packet_process((const USB_FRAME*)hww_frame);
-            if (communication_mode_ble_enabled()) {
-                // Enqueue a power down command to the da14531
-                da14531_power_down(&uart_write_queue);
-                // Flush out the power down command. This will be the last UART communication we do.
-                while (ringbuffer_num(&uart_write_queue) > 0) {
-                    uart_poll(NULL, 0, NULL, &uart_write_queue);
+            if (usb_packet_process((const USB_FRAME*)hww_frame)) {
+                if (communication_mode_ble_enabled()) {
+                    // Enqueue a power down command to the da14531
+                    da14531_power_down(&uart_write_queue);
+                    // Flush out the power down command. This will be the last UART communication we
+                    // do.
+                    while (ringbuffer_num(&uart_write_queue) > 0) {
+                        uart_poll(NULL, 0, NULL, &uart_write_queue);
+                    }
+                    communication_mode_ble_disable();
                 }
-                communication_mode_ble_disable();
+            } else {
+                util_log("usb_packet_process: invalid");
             }
         }
 #if APP_U2F == 1
         if (!u2f_data && hid_u2f_read(&u2f_frame[0])) {
             util_log("u2f data %s", util_dbg_hex((void*)u2f_frame, 16));
             u2f_packet_process((const USB_FRAME*)u2f_frame);
-            if (communication_mode_ble_enabled()) {
-                // Enqueue a power down command to the da14531
-                da14531_power_down(&uart_write_queue);
-                // Flush out the power down command. This will be the last UART communication we do.
-                while (ringbuffer_num(&uart_write_queue) > 0) {
-                    uart_poll(NULL, 0, NULL, &uart_write_queue);
-                }
-                communication_mode_ble_disable();
-            }
         }
 #endif
 
@@ -156,7 +151,7 @@ void firmware_main_loop(void)
             }
         }
 #if APP_U2F == 1
-        if (!communication_mode_ble_enabled() && u2f_data) {
+        if (u2f_data) {
             if (hid_u2f_write_poll(u2f_data)) {
                 util_log("u2f wrote %s", util_dbg_hex(u2f_data, 16));
                 u2f_data = NULL;

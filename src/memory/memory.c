@@ -304,7 +304,7 @@ bool memory_setup(const memory_interface_functions_t* ifs)
     }
     _interface_functions = ifs;
 
-    // Initialize hww memory
+    // Initialize hww memory if reset
     {
         chunk_1_t chunk = {0};
         CLEANUP_CHUNK(chunk);
@@ -338,16 +338,13 @@ bool memory_setup(const memory_interface_functions_t* ifs)
         }
     }
 
+    // Factory setup
     chunk_0_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     if (chunk.fields.factory_setup_done == sectrue_u8) {
         // already factory installed
         return true;
-    }
-    // Perform factory setup.
-    if (!memory_reset_hww()) {
-        return false;
     }
 
     chunk_shared_t shared_chunk = {0};

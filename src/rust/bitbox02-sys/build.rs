@@ -419,7 +419,6 @@ pub fn main() -> Result<(), &'static str> {
         "test/hardware-fakes/src/fake_cipher.c",
         "test/hardware-fakes/src/fake_component.c",
         "test/hardware-fakes/src/fake_diskio.c",
-        "test/hardware-fakes/src/fake_delay.c",
         "test/hardware-fakes/src/fake_memory.c",
         "test/hardware-fakes/src/fake_qtouch.c",
         "test/hardware-fakes/src/fake_screen.c",

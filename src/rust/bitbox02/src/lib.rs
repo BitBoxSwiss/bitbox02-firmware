@@ -16,7 +16,8 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
-#[cfg(test)]
+#[cfg(any(test, feature = "c-unit-testing"))]
+#[allow(unused_imports)]
 #[macro_use]
 extern crate std;
 

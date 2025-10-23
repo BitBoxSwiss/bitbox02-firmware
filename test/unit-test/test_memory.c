@@ -115,7 +115,7 @@ static const memory_interface_functions_t _ifs = {
     .random_32_bytes = _mock_random_32_bytes,
 };
 
-static void _expect_reset(uint8_t* empty_chunk1, uint8_t* empty_chunk2)
+static void _expect_reset(void)
 {
     // Reset all except first and last chunk.
     for (uint32_t write_calls = 0; write_calls < FLASH_APP_DATA_LEN / CHUNK_SIZE - 2;
@@ -124,24 +124,7 @@ static void _expect_reset(uint8_t* empty_chunk1, uint8_t* empty_chunk2)
         expect_value(__wrap_memory_write_chunk_fake, chunk, NULL);
         will_return(__wrap_memory_write_chunk_fake, true);
     }
-
-    will_return(_mock_random_32_bytes, _salt_root);
-
-    // Initialize chunk 1
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
-    will_return(__wrap_memory_read_chunk_fake, empty_chunk1);
-
-    expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
-    memcpy(&empty_chunk2[_addr_noise_static_private_key], _noise_static_private_key, 32);
-    memcpy(&empty_chunk2[_addr_salt_root], _salt_root, 32);
-    expect_memory(__wrap_memory_write_chunk_fake, chunk, empty_chunk2, CHUNK_SIZE);
-    will_return(__wrap_memory_write_chunk_fake, true);
 }
-
-#define EXPECT_RESET          \
-    EMPTYCHUNK(reset_chunk1); \
-    EMPTYCHUNK(reset_chunk2); \
-    _expect_reset(reset_chunk1, reset_chunk2);
 
 static void _expect_setup(uint8_t* expected_chunk, uint8_t* expected_shared_chunk)
 {
@@ -161,7 +144,7 @@ static void _expect_setup(uint8_t* expected_chunk, uint8_t* expected_shared_chun
     expect_memory(__wrap_memory_write_chunk_fake, chunk, expected_chunk, CHUNK_SIZE);
 }
 
-static void _expect_keys(void)
+static void _will_return_keys(void)
 {
     will_return(_mock_random_32_bytes, _io_key);
     will_return(_mock_random_32_bytes, _io_key_split);
@@ -173,16 +156,28 @@ static void _expect_keys(void)
 
 static void _test_memory_setup(void** state)
 {
+    EMPTYCHUNK(chunk1_empty);
+    EMPTYCHUNK(chunk1_populated);
+    will_return(_mock_random_32_bytes, _salt_root);
+
+    // Initialize chunk 1 (salt, noise static private key)
+    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
+    will_return(__wrap_memory_read_chunk_fake, chunk1_empty);
+
+    expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
+    memcpy(&chunk1_populated[_addr_noise_static_private_key], _noise_static_private_key, 32);
+    memcpy(&chunk1_populated[_addr_salt_root], _salt_root, 32);
+    expect_memory(__wrap_memory_write_chunk_fake, chunk, chunk1_populated, CHUNK_SIZE);
+    will_return(__wrap_memory_write_chunk_fake, true);
+
     // Success if setup not yet done.
     expect_value(__wrap_memory_read_chunk_fake, chunk_num, 0);
     EMPTYCHUNK(empty_chunk);
     will_return(__wrap_memory_read_chunk_fake, empty_chunk);
-    EXPECT_RESET;
 
-    _expect_keys();
+    _will_return_keys();
 
     EMPTYCHUNK(empty_shared_chunk);
-    will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
 
     EMPTYCHUNK(setup_chunk);
@@ -192,6 +187,11 @@ static void _test_memory_setup(void** state)
     assert_true(memory_setup(&_ifs));
 
     // Success if setup already done before.
+    // Check chunk 1 setup (salt, noise static private key)
+    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
+    will_return(__wrap_memory_read_chunk_fake, chunk1_populated);
+
+    // Check chunk 0 if "factory_setup_done" is set
     expect_value(__wrap_memory_read_chunk_fake, chunk_num, 0);
     EMPTYCHUNK(chunk0_setupdone);
     chunk0_setupdone[_addr_factory_setup_done] = _factory_setup_done;
@@ -199,7 +199,7 @@ static void _test_memory_setup(void** state)
     assert_true(memory_setup(&_ifs));
 }
 
-static void _fail_reset(void)
+static void _fail_write_chunk1(void)
 {
     expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
     expect_value(__wrap_memory_write_chunk_fake, chunk, NULL);
@@ -209,10 +209,10 @@ static void _fail_reset(void)
 static void _test_memory_setup_failreset(void** state)
 {
     // Fail because resetting failed.
-    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 0);
-    EMPTYCHUNK(chunk0);
-    will_return(__wrap_memory_read_chunk_fake, chunk0);
-    _fail_reset();
+    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
+    EMPTYCHUNK(chunk1);
+    will_return(__wrap_memory_read_chunk_fake, chunk1);
+    _fail_write_chunk1();
     assert_false(memory_setup(&_ifs));
 }
 
@@ -223,9 +223,9 @@ static void _test_memory_setup_failpersist(void** state)
     EMPTYCHUNK(chunk0);
     will_return(__wrap_memory_read_chunk_fake, chunk0);
 
-    EXPECT_RESET;
+    _expect_reset();
 
-    _expect_keys();
+    _will_return_keys();
 
     EMPTYCHUNK(empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
@@ -378,12 +378,15 @@ static void _test_memory_set_mnemonic_passphrase_enabled(void** state)
 
 static void _test_memory_reset_hww(void** state)
 {
+    // Fetches shared chunk for memory_get_platform()
+    _expect_reset();
     EMPTYCHUNK(empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
-    EXPECT_RESET;
     assert_true(memory_reset_hww());
 
-    _fail_reset();
+    // Fetches shared chunk for memory_get_platform()
+    will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
+    _fail_write_chunk1();
     assert_false(memory_reset_hww());
 }
 

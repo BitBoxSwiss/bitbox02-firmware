@@ -62,6 +62,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
         CONFIRM_PARAMS = Some(confirm::Params {
             title: CONFIRM_TITLE.as_ref().unwrap(),
             body: CONFIRM_BODY.as_ref().unwrap(),
+            accept_only: true,
             ..Default::default()
         });
 

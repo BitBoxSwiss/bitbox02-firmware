@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "hardfault.h"
+#include "system.h"
 #include "util.h"
 #include "utils_assert.h"
 #include <driver_init.h>
@@ -27,6 +28,7 @@
 #endif
 
 #ifndef TESTING
+#define ABORT_COUNTDOWN 30
 void HardFault_Handler(void)
 {
     Abort("Unexpected error.\nPlease contact support.");
@@ -46,29 +48,18 @@ void Abort(const char* msg)
 #else
     util_log("%s", msg);
     screen_print_debug(msg, 0);
-    usb_stop();
-#if defined(BOOTLOADER)
-    bootloader_close_interfaces();
-#else
-    system_close_interfaces();
-#endif
     // Break the program if we are debugging
     ASSERT(false);
-    while (1) {
+    char buf[30] = {0};
+    for (int i = 0; i < ABORT_COUNTDOWN; i++) {
+        snprintf(buf, sizeof(buf), "Enter bootloader in %02d", ABORT_COUNTDOWN - i);
+        UG_PutStringCentered(0, 56, 128, 8, buf, false);
+        UG_SendBuffer();
+        delay_ms(1000);
     }
+    // Restart into bootloader
+    auto_enter = sectrue_u32;
+    _reset_mcu();
+    while (1);
 #endif
-}
-
-void AbortAutoenter(const char* msg)
-{
-    auto_enter_t auto_enter = {
-        .value = sectrue_u8,
-    };
-    upside_down_t upside_down = {
-        .value = screen_is_upside_down(),
-    };
-    if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
-        // If this failed, we might not be able to reboot into the bootloader.
-    }
-    Abort(msg);
 }

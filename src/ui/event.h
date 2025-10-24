@@ -25,7 +25,7 @@ typedef struct {
     int32_t velocity;
 } event_slider_data_t;
 
-enum {
+enum event_types {
     EVENT_SLIDE,
     EVENT_SLIDE_RELEASED,
     EVENT_LONG_TAP,

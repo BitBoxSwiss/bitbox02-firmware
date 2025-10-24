@@ -38,5 +38,16 @@ We generate one header file `rust.h` and ever product specific function is `#ifd
 
 # Vendoring
 
-Run the vendoring script `vendor.sh` to vendor dependencies from crates.io. The
-script will ensure that also rust std libs dependencies are vendored.
+Run the vendoring script `vendor-rust.sh` to vendor dependencies from
+crates.io. The script will ensure that also rust std libs dependencies are
+vendored.
+
+When the toolchain (and standard libraries) are updated they usually depend on
+newer versions of crates. Update our lockfile to the same versions to avoid
+vendoringing duplicate versions. You can use:
+
+```
+cargo update <package> --precise <version>
+```
+
+to specify specific versions to up/downgrade to.

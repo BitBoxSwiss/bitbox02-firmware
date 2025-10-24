@@ -16,7 +16,8 @@
 // This crate contains safe wrappers around C functions provided by bitbox02_sys.
 #![no_std]
 
-#[cfg(test)]
+#[cfg(any(test, feature = "c-unit-testing"))]
+#[allow(unused_imports)]
 #[macro_use]
 extern crate std;
 
@@ -33,6 +34,7 @@ use alloc::string::String;
 #[cfg(feature = "testing")]
 pub mod testing;
 
+pub mod delay;
 pub mod keystore;
 pub mod memory;
 pub mod random;
@@ -76,6 +78,10 @@ pub fn ug_font_select_9x9() {
 
 pub fn ug_font_select_11x10() {
     unsafe { bitbox02_sys::UG_FontSelect(&bitbox02_sys::font_font_a_11X10) }
+}
+
+pub fn screen_rotate() {
+    unsafe { bitbox02_sys::screen_rotate() }
 }
 
 #[cfg_attr(not(target_arch = "arm"), allow(unused_variables))]

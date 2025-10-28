@@ -107,6 +107,22 @@ USE_RESULT bool memory_is_initialized(void);
 USE_RESULT bool memory_set_initialized(void);
 
 /**
+ * Sets the "reset hww" flag to indicate that reset is in progress. Returns false if it fails to
+ * write to flash.
+ */
+USE_RESULT bool memory_set_reset_hww(void);
+
+/**
+ * Clears the "reset hww" flag. Returns false if it fails to write to flash.
+ */
+USE_RESULT bool memory_clear_reset_hww(void);
+
+/**
+ * Get the "reset hww" flag.
+ */
+USE_RESULT bool memory_get_reset_hww(void);
+
+/**
  * Returns true if the bip39 passphrase feature is enabled.
  */
 USE_RESULT bool memory_is_mnemonic_passphrase_enabled(void);

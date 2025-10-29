@@ -134,7 +134,8 @@ typedef union {
         // Hash of bootloader used in the attestation sighash.
         // If not set, the actual bootloader area is hashed.
         secbool_u8 attestation_bootloader_hash_set;
-        uint8_t reserved[3];
+        secbool_u8 reset_hww;
+        uint8_t reserved[2];
         uint8_t attestation_bootloader_hash[32];
     } fields;
     uint8_t bytes[CHUNK_SIZE];
@@ -304,11 +305,17 @@ bool memory_setup(const memory_interface_functions_t* ifs)
     }
     _interface_functions = ifs;
 
+    // Factory setup
     chunk_0_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
     if (chunk.fields.factory_setup_done == sectrue_u8) {
-        // already factory installed
+        // already factory installed, check if there is a failed hww reset
+        if (memory_get_reset_hww()) {
+            if (!memory_reset_hww()) {
+                return false;
+            }
+        }
         return true;
     }
     // Perform factory setup.
@@ -363,6 +370,10 @@ bool memory_cleanup_smarteeprom(void)
 
 bool memory_reset_hww(void)
 {
+    if (!memory_set_reset_hww()) {
+        return false;
+    }
+
     // Erase all app data chunks expect the first and the last one, which is permanent.
     for (uint32_t chunk = CHUNK_1; chunk < (FLASH_APPDATA_LEN / CHUNK_SIZE) - 1; chunk++) {
         if (!_write_chunk(chunk, NULL)) {
@@ -371,7 +382,6 @@ bool memory_reset_hww(void)
     }
 
     // Initialize hww memory
-
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
@@ -382,7 +392,9 @@ bool memory_reset_hww(void)
     // Set a new noise static private key.
     rust_noise_generate_static_private_key(rust_util_bytes_mut(
         chunk.fields.noise_static_private_key, sizeof(chunk.fields.noise_static_private_key)));
-    bool res = _write_chunk(CHUNK_1, chunk.bytes);
+    if (!_write_chunk(CHUNK_1, chunk.bytes)) {
+        return false;
+    }
 
     // Reset bond-db and reinitialize IRK and identity address
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
@@ -405,10 +417,16 @@ bool memory_reset_hww(void)
         chunk_shared.fields.ble_identity_address[0] |= 0xc;
 
         memset(&chunk_shared.fields.ble_bond_db, 0xff, sizeof(chunk_shared.fields.ble_bond_db));
-        res |= _write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes);
+        if (!_write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes)) {
+            return false;
+        }
     }
 
-    return res;
+    if (!memory_clear_reset_hww()) {
+        return false;
+    }
+
+    return true;
 }
 
 static bool _is_bitmask_flag_set(uint8_t flag)
@@ -441,6 +459,32 @@ bool memory_set_initialized(void)
     bitmask |= BITMASK_INITIALIZED;
     chunk.fields.bitmask = ~bitmask;
     return _write_chunk(CHUNK_1, chunk.bytes);
+}
+
+bool memory_set_reset_hww(void)
+{
+    chunk_7_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_7_PERMANENT, chunk_bytes);
+    chunk.fields.reset_hww = sectrue_u8;
+    return _write_chunk(CHUNK_7_PERMANENT, chunk.bytes);
+}
+
+bool memory_clear_reset_hww(void)
+{
+    chunk_7_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_7_PERMANENT, chunk_bytes);
+    chunk.fields.reset_hww = secfalse_u8;
+    return _write_chunk(CHUNK_7_PERMANENT, chunk.bytes);
+}
+
+bool memory_get_reset_hww(void)
+{
+    chunk_7_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_7_PERMANENT, chunk_bytes);
+    return chunk.fields.reset_hww == sectrue_u8;
 }
 
 bool memory_is_mnemonic_passphrase_enabled(void)

@@ -19,6 +19,7 @@
 
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
+#include <util.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -117,6 +118,16 @@ static const memory_interface_functions_t _ifs = {
 
 static void _expect_reset(uint8_t* empty_chunk1, uint8_t* empty_chunk2)
 {
+    EMPTYCHUNK(chunk7);
+    // set "reset hww" flag in chunk 7
+    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 7);
+    will_return(__wrap_memory_read_chunk_fake, chunk7);
+
+    expect_value(__wrap_memory_write_chunk_fake, chunk_num, 7);
+    chunk7[1] = sectrue_u8;
+    expect_memory(__wrap_memory_write_chunk_fake, chunk, chunk7, CHUNK_SIZE);
+    will_return(__wrap_memory_write_chunk_fake, true);
+
     // Reset all except first and last chunk.
     for (uint32_t write_calls = 0; write_calls < FLASH_APP_DATA_LEN / CHUNK_SIZE - 2;
          write_calls++) {
@@ -135,6 +146,15 @@ static void _expect_reset(uint8_t* empty_chunk1, uint8_t* empty_chunk2)
     memcpy(&empty_chunk2[_addr_noise_static_private_key], _noise_static_private_key, 32);
     memcpy(&empty_chunk2[_addr_salt_root], _salt_root, 32);
     expect_memory(__wrap_memory_write_chunk_fake, chunk, empty_chunk2, CHUNK_SIZE);
+    will_return(__wrap_memory_write_chunk_fake, true);
+
+    // clear "reset hww" flag in chunk 7
+    expect_value(__wrap_memory_read_chunk_fake, chunk_num, 7);
+    will_return(__wrap_memory_read_chunk_fake, chunk7);
+
+    expect_value(__wrap_memory_write_chunk_fake, chunk_num, 7);
+    chunk7[1] = secfalse_u8;
+    expect_memory(__wrap_memory_write_chunk_fake, chunk, chunk7, CHUNK_SIZE);
     will_return(__wrap_memory_write_chunk_fake, true);
 }
 

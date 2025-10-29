@@ -15,6 +15,7 @@
 #include "common_main.h"
 #include "da14531/da14531.h"
 #include "da14531/da14531_binary.h"
+#include "da14531/da14531_handler.h"
 #include "da14531/da14531_protocol.h"
 #include "driver_init.h"
 #include "flags.h"
@@ -554,16 +555,18 @@ static ble_error_code_t _setup_ble(void)
     struct ringbuffer uart_write_queue;
     ringbuffer_init(&uart_write_queue, uart_write_buf, sizeof(uart_write_buf));
     // If the BLE chip already was successfully booted, for example by running the factory-setup
-    // once already and not power cycled, we need to ask for something to get a uart frame back.
-    // Therefore we schedule a "get connection state".
-    da14531_get_connection_state(&uart_write_queue);
+    // once already and not power cycled, we need to reset it to trigger a complete setup again.
+    da14531_reset(&uart_write_queue);
     int32_t timeout = 1000000;
     while (timeout-- > 0) {
         uart_poll(uart_read_buf, sizeof(uart_read_buf), &uart_read_buf_len, &uart_write_queue);
         struct da14531_protocol_frame* frame =
             da14531_protocol_poll(uart_read_buf, &uart_read_buf_len, NULL, &uart_write_queue);
         if (frame) {
-            // We have successfully booted the chip, the BLE chips firmware sent its first request
+            da14531_handler(frame, &uart_write_queue);
+        }
+        if (da14531_handler_bond_db_set()) {
+            // We have successfully booted the BLE chip and the bond db is stored.
             return BLE_OK;
         }
     }

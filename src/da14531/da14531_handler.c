@@ -75,6 +75,15 @@ extern bool bootloader_pairing_request;
 extern uint8_t bootloader_pairing_code_bytes[4];
 #endif
 
+#if FACTORYSETUP == 1
+bool _bond_db_set = false;
+
+bool da14531_handler_bond_db_set(void)
+{
+    return _bond_db_set;
+}
+#endif
+
 static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
 {
     switch (frame->cmd) {
@@ -135,6 +144,9 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
             break;
         }
         memory_set_ble_bond_db(&frame->cmd_data[0], frame->payload_length - 1);
+#if FACTORYSETUP == 1
+        _bond_db_set = true;
+#endif
         break;
     case CTRL_CMD_PAIRING_CODE: {
         if (frame->payload_length < 5) {

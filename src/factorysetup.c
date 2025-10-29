@@ -585,11 +585,13 @@ int main(void)
     common_main();
 
     {
-        // Set to re-enter bootloader again, otherwise we are stuck with this
-        // firmware forever.
+        // We set auto_enter = true, as new devices are shipped without firmware, and a new device
+        // should start in the bootloader without trying to boot the firmware.
         auto_enter_t auto_enter = {
             .value = sectrue_u8,
         };
+        // We set upside_down = false, so the default bootloader orientation on a new device is such
+        // that it oriented correctly when inserted into a laptop or iPad from the right hand side.
         upside_down_t upside_down = {
             .value = false,
         };

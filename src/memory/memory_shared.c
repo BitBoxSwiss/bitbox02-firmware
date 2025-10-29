@@ -166,6 +166,11 @@ bool memory_ble_enabled(void)
 
 int16_t memory_get_ble_bond_db(uint8_t* data)
 {
+#if FACTORYSETUP == 1
+    // Always return "empty bond db" in factory setup to ensure idempotency. This will force the BLE
+    // chip to always set the bond db when it has booted.
+    return -1;
+#endif
     chunk_shared_t chunk = {0};
     memory_read_shared_bootdata(&chunk);
     int16_t len = chunk.fields.ble_bond_db_len;

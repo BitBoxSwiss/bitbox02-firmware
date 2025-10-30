@@ -223,7 +223,7 @@ pub struct SignResult {
     pub recid: u8,
 }
 
-pub fn secp256k1_sign(
+pub fn _secp256k1_sign(
     secp: &Secp256k1<All>,
     private_key: &[u8; 32],
     msg: &[u8; 32],
@@ -300,44 +300,6 @@ mod tests {
 
     use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
     use util::bb02_async::block_on;
-
-    #[test]
-    fn test_secp256k1_sign() {
-        let private_key =
-            hex::decode("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c")
-                .unwrap();
-        let msg = [0x88u8; 32];
-        let host_nonce = [0x56u8; 32];
-
-        let secp = secp256k1::Secp256k1::new();
-        let sign_result =
-            secp256k1_sign(&secp, &private_key.try_into().unwrap(), &msg, &host_nonce).unwrap();
-        // Verify signature against expected pubkey.
-
-        let expected_pubkey = {
-            let pubkey =
-                hex::decode("023ffb4a4e41444d40e4e1e4c6cc329bcba2be50d0ef380aea19d490c373be58fb")
-                    .unwrap();
-            secp256k1::PublicKey::from_slice(&pubkey).unwrap()
-        };
-        let msg = secp256k1::Message::from_digest_slice(&msg).unwrap();
-        // Test recid by recovering the public key from the signature and checking against the
-        // expected public key.
-        let recoverable_sig = secp256k1::ecdsa::RecoverableSignature::from_compact(
-            &sign_result.signature,
-            secp256k1::ecdsa::RecoveryId::from_i32(sign_result.recid as i32).unwrap(),
-        )
-        .unwrap();
-
-        let recovered_pubkey = secp.recover_ecdsa(&msg, &recoverable_sig).unwrap();
-        assert_eq!(recovered_pubkey, expected_pubkey);
-
-        // Verify signature.
-        assert!(
-            secp.verify_ecdsa(&msg, &recoverable_sig.to_standard(), &expected_pubkey)
-                .is_ok()
-        );
-    }
 
     #[test]
     fn test_secp256k1_nonce_commit() {

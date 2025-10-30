@@ -26,6 +26,12 @@ pub fn get_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
     ))
 }
 
+/// Encode a seed as a BIP39 mnemonic.
+pub fn mnemonic_from_seed(seed: &[u8]) -> Result<zeroize::Zeroizing<String>, ()> {
+    let mnemonic = bip39::Mnemonic::from_entropy(seed).map_err(|_| ())?;
+    Ok(zeroize::Zeroizing::new(mnemonic.to_string()))
+}
+
 /// Decode a BIP39 mnemonic.
 pub fn mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mnemonic =
@@ -101,6 +107,33 @@ mod tests {
         assert_eq!(get_word(0).unwrap().as_ref() as &str, "abandon");
         assert_eq!(get_word(2047).unwrap().as_ref() as &str, "zoo");
         assert_eq!(get_word(563).unwrap().as_ref() as &str, "edit");
+    }
+
+    #[test]
+    fn test_mnemonic_from_seed() {
+        // 12 words
+        let seed = b"\xae\x6a\x40\x26\x1f\x0a\xcc\x16\x57\x04\x9c\xb2\x1a\xf5\xfb\xf7";
+        assert_eq!(
+            mnemonic_from_seed(seed).unwrap().as_str(),
+            "purpose faith another dignity proud arctic foster near rare stumble leave urge",
+        );
+
+        // 18 words
+        let seed = b"\x2a\x3e\x07\xa9\xe7\x5e\xd7\x3a\xa6\xb2\xe1\xaf\x90\x3d\x50\x17\xde\x80\x4f\xdf\x2b\x45\xc2\x4b";
+        assert_eq!(
+            mnemonic_from_seed(seed).unwrap().as_str(),
+            "clay usual tuna solid uniform outer onion found question limit favorite cook trend child lake hamster seat foot",
+        );
+
+        // 24 words
+        let seed = b"\x24\x1d\x5b\x78\x35\x90\xc2\x1f\x79\x69\x8e\x7c\xe8\x92\xdd\x03\xfb\x2c\x8f\xad\xc2\x44\x0e\xc2\x3a\xa5\xde\x9e\x2d\x23\x81\xb0";
+        assert_eq!(
+            mnemonic_from_seed(seed).unwrap().as_str(),
+            "catch turn task hen around autumn toss crack language duty resemble among ready elephant require embrace attract balcony practice rule tissue mushroom almost athlete",
+        );
+
+        // Invalid seed side
+        assert!(mnemonic_from_seed(b"foo").is_err());
     }
 
     #[test]

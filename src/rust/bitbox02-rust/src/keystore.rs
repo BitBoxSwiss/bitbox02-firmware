@@ -84,7 +84,7 @@ pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), 
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
-    keystore::bip39_mnemonic_from_seed(&copy_seed()?)
+    crate::bip39::mnemonic_from_seed(&copy_seed()?)
 }
 
 fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
@@ -276,7 +276,7 @@ pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>,
     ];
 
     let entropy = bip85_entropy(&keypath)?;
-    keystore::bip39_mnemonic_from_seed(&entropy[..seed_size])
+    crate::bip39::mnemonic_from_seed(&entropy[..seed_size])
 }
 
 /// Computes a 16 byte deterministic seed specifically for Lightning hot wallets according to BIP-85.

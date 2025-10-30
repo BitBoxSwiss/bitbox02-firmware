@@ -50,8 +50,9 @@ typedef struct {
 static void _flip(component_t* component)
 {
     orientation_data_t* data = (orientation_data_t*)component->parent->data;
-    if (data->enable_touch) {
+    if (data->enable_touch && data->done_callback) {
         data->done_callback(true, data->cb_param);
+        data->done_callback = NULL;
     }
 }
 
@@ -61,8 +62,9 @@ static void _flip(component_t* component)
 static void _stay(component_t* component)
 {
     orientation_data_t* data = (orientation_data_t*)component->parent->data;
-    if (data->enable_touch) {
+    if (data->enable_touch && data->done_callback) {
         data->done_callback(false, data->cb_param);
+        data->done_callback = NULL;
     }
 }
 

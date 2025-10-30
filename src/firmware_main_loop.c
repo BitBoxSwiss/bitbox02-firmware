@@ -32,10 +32,10 @@
 #include "usb/usb.h"
 #include "usb/usb_frame.h"
 #include "usb/usb_processing.h"
-#include "workflow/orientation_screen.h"
 #include <rust/rust.h>
 #include <ui/fonts/monogram_5X9.h>
 #include <utils_ringbuffer.h>
+#include <version.h>
 #if APP_U2F == 1
 #include "u2f.h"
 #include "u2f/u2f_packet.h"
@@ -44,6 +44,36 @@
 
 // Must be power of 2
 #define UART_OUT_BUF_LEN 2048
+
+// Currently we have one firmware for both BB02 and BB02_PLUS, and only the
+// PRODUCT_BITBOX_MULTI/BTCONLY definitions apply. The PRODUCT_BITBOX_PLUS_MULTI/BTCONLY defs
+// currently only apply in the bootloader, which we don't need here.
+#if PRODUCT_BITBOX_MULTI == 1
+#define PRODUCT_STRING_SUFFIX "multi"
+#elif PRODUCT_BITBOX_BTCONLY == 1
+#define PRODUCT_STRING_SUFFIX "btconly"
+#elif PRODUCT_BITBOX02_FACTORYSETUP == 1
+// Dummy, not actually needed, but this file is currently needlessly compiled for factorysetup.
+#define PRODUCT_STRING_SUFFIX "factory"
+#else
+#error "unknown edition"
+#endif
+
+#define DEVICE_MODE \
+    "{\"p\":\"bb02p-" PRODUCT_STRING_SUFFIX "\",\"v\":\"" DIGITAL_BITBOX_VERSION "\"}"
+
+static void _orientation_done_cb(void* user_data)
+{
+    struct ringbuffer* uart_out_queue = (struct ringbuffer*)user_data;
+    // hww handler in usb_process must be setup before we can allow ble connections
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        da14531_handler_current_product = (const uint8_t*)DEVICE_MODE;
+        da14531_handler_current_product_len = sizeof(DEVICE_MODE) - 1;
+        da14531_set_product(
+            da14531_handler_current_product, da14531_handler_current_product_len, uart_out_queue);
+    }
+    usb_start();
+}
 
 void firmware_main_loop(void)
 {
@@ -63,7 +93,8 @@ void firmware_main_loop(void)
     da14531_set_name(buf, strlen(buf), &uart_write_queue);
 
     // This starts the async orientation screen workflow, which is processed by the loop below.
-    orientation_screen(&uart_write_queue);
+
+    rust_workflow_spawn_orientation_screen(_orientation_done_cb, &uart_write_queue);
 
     const uint8_t* hww_data = NULL;
     uint8_t hww_frame[USB_REPORT_SIZE] = {0};

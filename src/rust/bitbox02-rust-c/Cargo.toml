@@ -74,7 +74,6 @@ target-simulator-graphical = [
   "app-litecoin",
   "app-ethereum",
   "app-cardano",
-  "app-u2f",
   "firmware",
   "simulator-graphical",
 ]

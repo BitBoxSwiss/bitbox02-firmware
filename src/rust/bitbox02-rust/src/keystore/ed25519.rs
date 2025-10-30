@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_get_xpub() {
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(get_xpub(&[]).is_err());
 
         mock_unlocked();
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_get_xprv() {
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(get_xprv(&[]).is_err());
 
         mock_unlocked();
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_sign() {
         let msg = &[0u8; 32];
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(sign(&[10 + HARDENED_OFFSET, 10], msg).is_err());
 
         mock_unlocked();

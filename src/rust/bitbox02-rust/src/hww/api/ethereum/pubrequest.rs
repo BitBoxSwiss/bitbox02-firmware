@@ -138,7 +138,7 @@ mod tests {
         );
 
         // xpub fetching/encoding failed.
-        bitbox02::keystore::lock();
+        keystore::lock();
         assert_eq!(
             block_on(process(&mut TestingHal::new(), &request)),
             Err(Error::InvalidInput)
@@ -231,7 +231,7 @@ mod tests {
         );
 
         // Keystore locked.
-        bitbox02::keystore::lock();
+        keystore::lock();
         assert_eq!(
             block_on(process(
                 &mut TestingHal::new(),

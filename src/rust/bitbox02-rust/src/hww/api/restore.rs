@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn test_from_mnemonic() {
         mock_memory();
-        keystore::lock();
+        crate::keystore::lock();
         let mut counter = 0u32;
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|params| {

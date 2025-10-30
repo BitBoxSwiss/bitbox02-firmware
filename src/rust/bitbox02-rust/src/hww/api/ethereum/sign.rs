@@ -1177,7 +1177,7 @@ mod tests {
 
         {
             // Keystore locked.
-            keystore::lock();
+            crate::keystore::lock();
             assert_eq!(
                 block_on(process(
                     &mut TestingHal::new(),

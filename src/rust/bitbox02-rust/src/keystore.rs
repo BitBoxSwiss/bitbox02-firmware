@@ -27,6 +27,11 @@ use crate::secp256k1::SECP256K1;
 
 use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 
+/// Locks the keystore (resets to state before `keystore::unlock()`).
+pub fn lock() {
+    keystore::_lock();
+}
+
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     keystore::bip39_mnemonic_from_seed(&keystore::copy_seed()?)
@@ -333,8 +338,31 @@ mod tests {
     use bitcoin::secp256k1;
 
     #[test]
+    fn test_lock() {
+        lock();
+        assert!(keystore::is_locked());
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+        assert!(keystore::encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(keystore::is_locked()); // still locked, it is only unlocked after unlock_bip39.
+        assert!(
+            block_on(keystore::unlock_bip39(
+                &secp256k1::Secp256k1::new(),
+                &seed,
+                "foo",
+                async || {}
+            ))
+            .is_ok()
+        );
+        assert!(!keystore::is_locked());
+        lock();
+        assert!(keystore::is_locked());
+    }
+
+    #[test]
     fn test_secp256k1_get_private_key() {
-        keystore::lock();
+        lock();
         let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
         assert!(secp256k1_get_private_key(keypath).is_err());
 
@@ -353,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_secp256k1_get_private_key_twice() {
-        keystore::lock();
+        lock();
         let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
         assert!(secp256k1_get_private_key_twice(keypath).is_err());
 
@@ -372,7 +400,7 @@ mod tests {
 
     #[test]
     fn test_get_bip39_mnemonic() {
-        keystore::lock();
+        lock();
         assert!(get_bip39_mnemonic().is_err());
 
         mock_unlocked();
@@ -386,7 +414,7 @@ mod tests {
         // Also test with unhardened and non-zero elements.
         let keypath_5 = &[44 + HARDENED, 1 + HARDENED, 10 + HARDENED, 1, 100];
 
-        keystore::lock();
+        lock();
         assert!(get_xpub_twice(keypath).is_err());
 
         // 24 words
@@ -451,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_get_xpubs_twice() {
-        keystore::lock();
+        lock();
         assert!(get_xpubs_twice(&[]).is_err());
 
         mock_unlocked_using_mnemonic(
@@ -488,7 +516,7 @@ mod tests {
 
     #[test]
     fn test_root_fingerprint() {
-        keystore::lock();
+        lock();
         assert_eq!(root_fingerprint(), Err(()));
 
         mock_unlocked_using_mnemonic(
@@ -507,7 +535,7 @@ mod tests {
         );
         assert_eq!(root_fingerprint(), Ok(vec![0xf4, 0x0b, 0x46, 0x9a]));
 
-        keystore::lock();
+        lock();
         assert_eq!(root_fingerprint(), Err(()));
     }
 
@@ -575,7 +603,7 @@ mod tests {
 
     #[test]
     fn test_bip85_bip39() {
-        keystore::lock();
+        lock();
         assert!(bip85_bip39(12, 0).is_err());
 
         // Test fixtures generated using:
@@ -621,7 +649,7 @@ mod tests {
 
     #[test]
     fn test_bip85_ln() {
-        keystore::lock();
+        lock();
         assert!(bip85_ln(0).is_err());
 
         mock_unlocked_using_mnemonic(
@@ -698,7 +726,7 @@ mod tests {
 
         for test in tests {
             mock_memory();
-            keystore::lock();
+            lock();
             let seed = &seed[..test.seed_len];
 
             assert!(

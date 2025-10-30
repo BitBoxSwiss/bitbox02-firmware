@@ -488,7 +488,7 @@ mod tests {
 
     #[test]
     fn test_pubkey_hash_at_keypath() {
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(
             pubkey_hash_at_keypath(&[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0]).is_err()
         );
@@ -515,7 +515,7 @@ mod tests {
         );
 
         // Keystore locked
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert_eq!(
             do_pkh_skh(
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],

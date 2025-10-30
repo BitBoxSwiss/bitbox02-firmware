@@ -343,7 +343,7 @@ mod tests {
 
         // Can reboot when seeded and locked. This happens when the user sets a password and then
         // reconnects the device.
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
@@ -372,7 +372,7 @@ mod tests {
 
         let mut make_request = init_noise();
 
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
         mock_hal
@@ -434,7 +434,7 @@ mod tests {
         };
 
         // Can't reboot when initialized but locked.
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         let response_encoded =
             make_request(&mut mock_hal, &reboot_request.encode_to_vec()).unwrap();
@@ -490,7 +490,7 @@ mod tests {
             &b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"[..],
             &b"aaaaaaaaaaaaaaaa"[..],
         ] {
-            bitbox02::keystore::lock();
+            crate::keystore::lock();
             mock_memory();
 
             bitbox02::memory::set_device_name("test device name").unwrap();

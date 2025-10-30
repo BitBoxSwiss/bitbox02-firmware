@@ -1705,7 +1705,7 @@ mod tests {
 
         {
             // test keystore locked
-            bitbox02::keystore::lock();
+            crate::keystore::lock();
             assert_eq!(
                 block_on(process(&mut TestingHal::new(), &init_req_valid,)),
                 Err(Error::InvalidState)

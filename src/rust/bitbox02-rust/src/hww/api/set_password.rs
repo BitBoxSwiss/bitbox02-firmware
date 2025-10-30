@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn test_process() {
         mock_memory();
-        keystore::lock();
+        crate::keystore::lock();
         let mut counter = 0u32;
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|params| {
@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_process_16_bytes() {
         mock_memory();
-        keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal
             .ui
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn test_process_invalid_host_entropy() {
         mock_memory();
-        keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal
             .ui
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn test_process_2nd_password_doesnt_match() {
         mock_memory();
-        keystore::lock();
+        crate::keystore::lock();
         let mut counter = 0u32;
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|_params| {

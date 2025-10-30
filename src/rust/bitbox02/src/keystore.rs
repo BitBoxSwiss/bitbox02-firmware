@@ -96,7 +96,7 @@ pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     }
 }
 
-pub fn lock() {
+pub fn _lock() {
     unsafe { bitbox02_sys::keystore_lock() }
 
     unsafe { ROOT_FINGERPRINT.write(None) }
@@ -455,32 +455,9 @@ mod tests {
     }
 
     #[test]
-    fn test_lock() {
-        lock();
-        assert!(is_locked());
-
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
-        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(
-            block_on(unlock_bip39(
-                &secp256k1::Secp256k1::new(),
-                &seed,
-                "foo",
-                async || {}
-            ))
-            .is_ok()
-        );
-        assert!(!is_locked());
-        lock();
-        assert!(is_locked());
-    }
-
-    #[test]
     fn test_unlock() {
         mock_memory();
-        lock();
+        _lock();
 
         assert!(matches!(unlock("password"), Err(Error::Unseeded)));
 
@@ -493,7 +470,7 @@ mod tests {
         crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
-        lock();
+        _lock();
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
         crate::securechip::fake_event_counter_reset();
@@ -618,7 +595,7 @@ mod tests {
     #[test]
     fn test_unlock_bip39() {
         mock_memory();
-        lock();
+        _lock();
 
         let seed = hex::decode("1111111111111111222222222222222233333333333333334444444444444444")
             .unwrap();
@@ -716,7 +693,7 @@ mod tests {
             mock_memory();
             crate::random::fake_reset();
             crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
-            lock();
+            _lock();
 
             assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
             assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
@@ -742,7 +719,7 @@ mod tests {
     #[test]
     fn test_create_and_unlock_twice() {
         mock_memory();
-        lock();
+        _lock();
 
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
@@ -762,7 +739,7 @@ mod tests {
 
         for seed_size in [16, 24, 32] {
             mock_memory();
-            lock();
+            _lock();
 
             // Can repeat until initialized - initialized means backup has been created.
             for _ in 0..2 {
@@ -771,7 +748,7 @@ mod tests {
             // Also unlocks, so we can get the retained seed.
             assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
 
-            lock();
+            _lock();
             // Can't get seed before unlock.
             assert!(copy_seed().is_err());
 

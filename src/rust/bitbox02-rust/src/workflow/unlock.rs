@@ -207,7 +207,7 @@ mod tests {
         bitbox02::memory::set_initialized().unwrap();
 
         // Lock the keystore to simulate the normal locked state
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
 
         let mut password_entered = false;
 

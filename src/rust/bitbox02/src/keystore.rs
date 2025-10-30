@@ -249,7 +249,7 @@ pub fn _secp256k1_sign(
     }
 }
 
-pub fn secp256k1_nonce_commit(
+pub fn _secp256k1_nonce_commit(
     secp: &Secp256k1<All>,
     private_key: &[u8; 32],
     msg: &[u8; 32],
@@ -300,29 +300,6 @@ mod tests {
 
     use crate::testing::mock_memory;
     use util::bb02_async::block_on;
-
-    #[test]
-    fn test_secp256k1_nonce_commit() {
-        let secp = secp256k1::Secp256k1::new();
-
-        let private_key =
-            hex::decode("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c")
-                .unwrap();
-        let msg = [0x88u8; 32];
-        let host_commitment = [0xabu8; 32];
-
-        let client_commitment = secp256k1_nonce_commit(
-            &secp,
-            &private_key.try_into().unwrap(),
-            &msg,
-            &host_commitment,
-        )
-        .unwrap();
-        assert_eq!(
-            hex::encode(client_commitment),
-            "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",
-        );
-    }
 
     #[test]
     fn test_bip39_mnemonic_to_seed() {

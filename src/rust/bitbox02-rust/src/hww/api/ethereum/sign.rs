@@ -17,10 +17,9 @@ use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
 use super::pb;
 
-use bitbox02::keystore;
+use crate::keystore;
 
 use crate::hal::Ui;
-use crate::secp256k1::SECP256K1;
 use crate::workflow::{confirm, transaction};
 
 use alloc::vec::Vec;
@@ -390,8 +389,7 @@ pub async fn _process(
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
-                SECP256K1,
-                &crate::keystore::secp256k1_get_private_key(request.keypath())?
+                &keystore::secp256k1_get_private_key(request.keypath())?
                     .as_slice()
                     .try_into()
                     .unwrap(),
@@ -409,8 +407,8 @@ pub async fn _process(
         // Return signature directly without the anti-klepto protocol, for backwards compatibility.
         None => [0; 32],
     };
-    let sign_result = crate::keystore::secp256k1_sign(
-        &crate::keystore::secp256k1_get_private_key(request.keypath())?
+    let sign_result = keystore::secp256k1_sign(
+        &keystore::secp256k1_get_private_key(request.keypath())?
             .as_slice()
             .try_into()
             .unwrap(),
@@ -1176,7 +1174,7 @@ mod tests {
 
         {
             // Keystore locked.
-            crate::keystore::lock();
+            keystore::lock();
             assert_eq!(
                 block_on(process(
                     &mut TestingHal::new(),

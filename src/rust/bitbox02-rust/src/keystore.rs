@@ -28,6 +28,9 @@ use crate::secp256k1::SECP256K1;
 
 use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 
+/// Length of a compressed secp256k1 pubkey.
+const EC_PUBLIC_KEY_LEN: usize = 33;
+
 /// Locks the keystore (resets to state before `keystore::unlock()`).
 pub fn lock() {
     keystore::_lock();
@@ -287,6 +290,27 @@ pub fn secp256k1_sign(
     host_nonce: &[u8; 32],
 ) -> Result<SignResult, ()> {
     keystore::_secp256k1_sign(SECP256K1, private_key, msg, host_nonce)
+}
+
+/// Get a commitment to the original nonce before tweaking it with the host nonce. This is part of
+/// the ECDSA Anti-Klepto Protocol. For more details, check the docs of
+/// `secp256k1_ecdsa_anti_exfil_signer_commit`.
+///
+/// # Arguments
+/// * `private_key` - 32 byte private key
+/// * `msg` - 32 byte message which will be signed by `secp256k1_sign`
+/// * `host_commitment` - must be `sha256(sha256(tag)||sha256(tag)||host_nonce)` where
+///   host_nonce is passed to `secp256k1_sign()`. See `secp256k1_ecdsa_anti_exfil_host_commit()`.
+///
+/// # Returns
+/// * `Ok([u8; EC_PUBLIC_KEY_LEN])` - EC_PUBLIC_KEY_LEN bytes compressed signer nonce pubkey on success
+/// * `Err(())` on failure
+pub fn secp256k1_nonce_commit(
+    private_key: &[u8; 32],
+    msg: &[u8; 32],
+    host_commitment: &[u8; 32],
+) -> Result<[u8; EC_PUBLIC_KEY_LEN], ()> {
+    keystore::_secp256k1_nonce_commit(SECP256K1, private_key, msg, host_commitment)
 }
 
 /// Sign a message using the private key at the keypath, which is optionally tweaked with the given
@@ -881,6 +905,23 @@ mod tests {
             SECP256K1
                 .verify_ecdsa(&msg, &recoverable_sig.to_standard(), &expected_pubkey)
                 .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_secp256k1_nonce_commit() {
+        let private_key =
+            hex::decode("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c")
+                .unwrap();
+        let msg = [0x88u8; 32];
+        let host_commitment = [0xabu8; 32];
+
+        let client_commitment =
+            secp256k1_nonce_commit(&private_key.try_into().unwrap(), &msg, &host_commitment)
+                .unwrap();
+        assert_eq!(
+            hex::encode(client_commitment),
+            "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",
         );
     }
 

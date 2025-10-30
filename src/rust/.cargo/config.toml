@@ -17,4 +17,4 @@ branch = "bitbox-20250922"
 replace-with = "vendored-sources"
 
 [source.vendored-sources]
-directory = "external/vendor"
+directory = "../../external/vendor"

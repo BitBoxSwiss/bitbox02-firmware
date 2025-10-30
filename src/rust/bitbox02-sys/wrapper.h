@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <communication_mode.h>
+#include <delay.h>
 #include <keystore.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/memory.h>
@@ -34,6 +35,7 @@
 #include <ui/components/empty.h>
 #include <ui/components/label.h>
 #include <ui/components/menu.h>
+#include <ui/components/orientation_arrows.h>
 #include <ui/components/progress.h>
 #include <ui/components/sdcard.h>
 #include <ui/components/status.h>
@@ -49,10 +51,17 @@
 #include <ui/screen_saver.h>
 #include <ui/screen_stack.h>
 #include <ui/ugui/ugui.h>
+#include <usb/usb.h>
 #include <util.h>
 
 #if defined(TESTING)
 #include <fake_memory.h>
+#include <hww.h>
+#include <touch/gestures.h>
+#include <ui/event.h>
+#include <ui/event_handler.h>
+#include <usb/usb_packet.h>
+#include <usb/usb_processing.h>
 #endif
 
 #if !defined(TESTING)

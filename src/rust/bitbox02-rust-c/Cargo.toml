@@ -68,6 +68,15 @@ target-c-unit-tests = [
   "firmware",
   "c-unit-testing",
 ]
+target-simulator-graphical = [
+  "dep:bitcoin", # for rust_base58_encode_check()
+  "app-bitcoin",
+  "app-litecoin",
+  "app-ethereum",
+  "app-cardano",
+  "firmware",
+  "simulator-graphical",
+]
 
 platform-bitbox02 = []
 platform-bitbox02plus = ["util/sha2", "bitbox02-noise", "bitbox02-rust"]
@@ -89,6 +98,8 @@ testing = ["bitbox02-rust/testing", "bitbox02/testing"]
 
 # Active when the Rust code is compiled to be linked into the C unit tests and simulator.
 c-unit-testing = ["bitbox02-rust/c-unit-testing", "bitbox02/c-unit-testing"]
+
+simulator-graphical = ["bitbox02-rust/simulator-graphical"]
 
 app-ethereum = [
   # enable this feature in the deps

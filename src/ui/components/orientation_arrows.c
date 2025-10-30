@@ -52,6 +52,7 @@ static void _flip(component_t* component)
     orientation_data_t* data = (orientation_data_t*)component->parent->data;
     if (data->enable_touch) {
         data->done_callback(true, data->cb_param);
+        data->enable_touch = false;
     }
 }
 
@@ -63,6 +64,7 @@ static void _stay(component_t* component)
     orientation_data_t* data = (orientation_data_t*)component->parent->data;
     if (data->enable_touch) {
         data->done_callback(false, data->cb_param);
+        data->enable_touch = false;
     }
 }
 

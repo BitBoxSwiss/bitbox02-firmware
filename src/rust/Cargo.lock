@@ -1065,6 +1065,7 @@ version = "0.1.0"
 dependencies = [
  "bitcoin",
  "cortex-m",
+ "critical-section",
  "hex",
  "num-bigint",
  "p256",

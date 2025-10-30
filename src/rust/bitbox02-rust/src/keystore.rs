@@ -24,7 +24,7 @@ pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
 
 use util::bip32::HARDENED;
-use util::cell::SyncUnsafeCell;
+use util::cell::SyncCell;
 
 use crate::secp256k1::SECP256K1;
 
@@ -33,12 +33,12 @@ use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 /// Length of a compressed secp256k1 pubkey.
 const EC_PUBLIC_KEY_LEN: usize = 33;
 
-static ROOT_FINGERPRINT: SyncUnsafeCell<Option<[u8; 4]>> = SyncUnsafeCell::new(None);
+static ROOT_FINGERPRINT: SyncCell<Option<[u8; 4]>> = SyncCell::new(None);
 
 /// Locks the keystore (resets to state before `unlock()`).
 pub fn lock() {
     keystore::_lock();
-    unsafe { ROOT_FINGERPRINT.write(None) }
+    ROOT_FINGERPRINT.write(None)
 }
 
 /// Returns false if the keystore is unlocked (unlock() followed by unlock_bip39()), true otherwise.
@@ -74,9 +74,7 @@ pub async fn unlock_bip39(
     keystore::unlock_bip39_finalize(bip39_seed.as_slice().try_into().unwrap())?;
 
     // Store root fingerprint.
-    unsafe {
-        ROOT_FINGERPRINT.write(Some(root_fingerprint));
-    }
+    ROOT_FINGERPRINT.write(Some(root_fingerprint));
     Ok(())
 }
 
@@ -208,7 +206,7 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
     if is_locked() {
         return Err(());
     }
-    unsafe { ROOT_FINGERPRINT.read().ok_or(()).map(|fp| fp.to_vec()) }
+    ROOT_FINGERPRINT.read().ok_or(()).map(|fp| fp.to_vec())
 }
 
 /// Stretches the given encryption_key using the securechip. The resulting key is used to encrypt

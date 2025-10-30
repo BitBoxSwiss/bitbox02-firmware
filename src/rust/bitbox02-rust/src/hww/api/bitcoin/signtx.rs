@@ -661,7 +661,7 @@ async fn _process(
     hal: &mut impl crate::hal::Hal,
     request: &pb::BtcSignInitRequest,
 ) -> Result<Response, Error> {
-    if bitbox02::keystore::is_locked() {
+    if crate::keystore::is_locked() {
         return Err(Error::InvalidState);
     }
     // Validate the coin.

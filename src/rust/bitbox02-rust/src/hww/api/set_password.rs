@@ -83,7 +83,7 @@ mod tests {
         assert_eq!(bitbox02::securechip::fake_event_counter(), 9);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
-        assert!(!keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
         assert!(crate::keystore::copy_seed().unwrap().len() == 32);
     }
 
@@ -105,7 +105,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert!(!keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
         assert!(crate::keystore::copy_seed().unwrap().len() == 16);
     }
 
@@ -118,7 +118,7 @@ mod tests {
         mock_hal
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
-        assert!(keystore::is_locked());
+        assert!(crate::keystore::is_locked());
         assert_eq!(
             block_on(process(
                 &mut mock_hal,
@@ -128,7 +128,7 @@ mod tests {
             )),
             Err(Error::InvalidInput),
         );
-        assert!(keystore::is_locked());
+        assert!(crate::keystore::is_locked());
     }
 
     #[test]
@@ -154,6 +154,6 @@ mod tests {
             )),
             Err(Error::Generic),
         );
-        assert!(keystore::is_locked());
+        assert!(crate::keystore::is_locked());
     }
 }

@@ -329,7 +329,7 @@ mod tests {
             }]
         );
 
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
         assert!(bitbox02::memory::is_seeded());
         assert!(!bitbox02::memory::is_initialized());
 
@@ -391,7 +391,7 @@ mod tests {
             .as_ref(),
         )
         .unwrap();
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
         assert!(!bitbox02::memory::is_initialized());
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
@@ -456,7 +456,7 @@ mod tests {
             block_on(_process_packet(&mut mock_hal, vec![OP_UNLOCK])),
             [OP_STATUS_SUCCESS].to_vec()
         );
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
 
         // Since in the previous request the msg was encrypted but not decrypted (query was
         // rejected), the noise states are out of sync and we need to make a new channel.

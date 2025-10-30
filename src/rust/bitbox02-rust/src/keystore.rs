@@ -36,6 +36,11 @@ pub fn lock() {
     keystore::_lock();
 }
 
+/// Returns false if the keystore is unlocked (unlock() followed by unlock_bip39()), true otherwise.
+pub fn is_locked() -> bool {
+    keystore::_is_locked()
+}
+
 /// Returns a copy of the retained seed. Errors if the keystore is locked.
 pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     keystore::_copy_seed()
@@ -101,7 +106,7 @@ pub fn get_xpub_twice(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
 /// Gets multiple xpubs at once. This is better than multiple calls to `get_xpub_twice()` as it only
 /// uses two secure chip operations in total, instead of two per xpub.
 pub fn get_xpubs_twice(keypaths: &[&[u32]]) -> Result<Vec<bip32::Xpub>, ()> {
-    if keystore::is_locked() {
+    if is_locked() {
         return Err(());
     }
     if keypaths.is_empty() {
@@ -433,12 +438,12 @@ mod tests {
     #[test]
     fn test_lock() {
         lock();
-        assert!(keystore::is_locked());
+        assert!(is_locked());
 
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
         assert!(keystore::encrypt_and_store_seed(&seed, "password").is_ok());
-        assert!(keystore::is_locked()); // still locked, it is only unlocked after unlock_bip39.
+        assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(
             block_on(keystore::unlock_bip39(
                 &secp256k1::Secp256k1::new(),
@@ -448,9 +453,9 @@ mod tests {
             ))
             .is_ok()
         );
-        assert!(!keystore::is_locked());
+        assert!(!is_locked());
         lock();
-        assert!(keystore::is_locked());
+        assert!(is_locked());
     }
 
     #[test]
@@ -836,7 +841,7 @@ mod tests {
             assert!(keystore::encrypt_and_store_seed(seed, "foo").is_ok());
             assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
-            assert!(keystore::is_locked());
+            assert!(is_locked());
 
             bitbox02::securechip::fake_event_counter_reset();
             assert!(
@@ -850,7 +855,7 @@ mod tests {
             );
             assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
 
-            assert!(!keystore::is_locked());
+            assert!(!is_locked());
             assert_eq!(
                 get_bip39_mnemonic().unwrap().as_str(),
                 test.expected_mnemonic,

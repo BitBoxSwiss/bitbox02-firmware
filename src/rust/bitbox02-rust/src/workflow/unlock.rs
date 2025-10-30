@@ -168,7 +168,7 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
     if !bitbox02::memory::is_initialized() {
         return Err(());
     }
-    if !bitbox02::keystore::is_locked() {
+    if !crate::keystore::is_locked() {
         return Ok(());
     }
 
@@ -221,7 +221,7 @@ mod tests {
         // 6 for keystore unlock, 1 for keystore bip39 unlock.
         assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
 
         assert_eq!(
             bitbox02::keystore::copy_bip39_seed().unwrap().as_slice(),

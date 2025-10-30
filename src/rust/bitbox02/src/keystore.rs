@@ -32,7 +32,7 @@ pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usi
 
 static ROOT_FINGERPRINT: SyncUnsafeCell<Option<[u8; 4]>> = SyncUnsafeCell::new(None);
 
-pub fn is_locked() -> bool {
+pub fn _is_locked() -> bool {
     unsafe { bitbox02_sys::keystore_is_locked() }
 }
 
@@ -171,7 +171,7 @@ pub async fn unlock_bip39(
 }
 
 pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
-    if is_locked() {
+    if _is_locked() {
         return Err(());
     }
     unsafe { ROOT_FINGERPRINT.read().ok_or(()).map(|fp| fp.to_vec()) }

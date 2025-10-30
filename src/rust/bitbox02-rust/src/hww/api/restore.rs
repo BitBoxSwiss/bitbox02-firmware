@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(bitbox02::securechip::fake_event_counter(), 8);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
-        assert!(!keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
         assert!(memory::is_initialized());
         // Seed of hardcoded phrase used in unit tests:
         // boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide

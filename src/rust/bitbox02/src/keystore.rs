@@ -195,7 +195,7 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
     unsafe { ROOT_FINGERPRINT.read().ok_or(()).map(|fp| fp.to_vec()) }
 }
 
-pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
+pub fn _create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::keystore_create_and_store_seed(
             crate::util::str_to_cstr_vec(password)
@@ -316,7 +316,6 @@ mod tests {
     use super::*;
     use bitcoin::secp256k1;
 
-    use crate::testing::mock_memory;
     use util::bb02_async::block_on;
 
     #[test]
@@ -444,67 +443,6 @@ mod tests {
                 hex::encode(root_fingerprint).as_str(),
                 test.expected_root_fingerprint
             );
-        }
-    }
-
-    #[test]
-    fn test_create_and_store_seed() {
-        let mock_salt_root =
-            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
-                .unwrap();
-
-        let host_entropy =
-            hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
-                .unwrap();
-
-        // Invalid seed lengths
-        for size in [8, 24, 40] {
-            assert!(matches!(
-                create_and_store_seed("password", &host_entropy[..size]),
-                Err(Error::SeedSize)
-            ));
-        }
-
-        // Hack to get the random bytes that will be used.
-        let seed_random = {
-            crate::random::fake_reset();
-            crate::random::random_32_bytes()
-        };
-
-        // Derived from mock_salt_root and "password".
-        let password_salted_hashed =
-            hex::decode("e8c70a20d9108fbb9454b1b8e2d7373e78cbaf9de025ab2d4f4d3c7a6711694c")
-                .unwrap();
-
-        // expected_seed = seed_random ^ host_entropy ^ password_salted_hashed
-        let expected_seed: Vec<u8> = seed_random
-            .into_iter()
-            .zip(host_entropy.iter())
-            .zip(password_salted_hashed)
-            .map(|((a, &b), c)| a ^ b ^ c)
-            .collect();
-
-        for size in [16, 32] {
-            mock_memory();
-            crate::random::fake_reset();
-            crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
-            _lock();
-
-            assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
-            assert_eq!(_copy_seed().unwrap().as_slice(), &expected_seed[..size]);
-            // Check the seed has been stored encrypted with the expected encryption key.
-            // Decrypt and check seed.
-            let cipher = crate::memory::get_encrypted_seed_and_hmac().unwrap();
-
-            // Same as Python:
-            // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
-            // See also: mock_securechip.c
-            let expected_encryption_key =
-                hex::decode("e56de448f5f1d29cdcc0e0099007309afe4d5a3ef2349e99dcc41840ad98409e")
-                    .unwrap();
-            let decrypted =
-                bitbox_aes::decrypt_with_hmac(&expected_encryption_key, &cipher).unwrap();
-            assert_eq!(decrypted.as_slice(), &expected_seed[..size]);
         }
     }
 }

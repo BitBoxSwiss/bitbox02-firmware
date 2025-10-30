@@ -74,6 +74,14 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
     keystore::_encrypt_and_store_seed(seed, password)
 }
 
+/// Generates the seed, mixes it with host_entropy, and stores it encrypted with the
+/// password. The size of the host entropy determines the size of the seed. Can be either 16 or 32
+/// bytes, resulting in 12 or 24 BIP39 recovery words.
+/// This also unlocks the keystore with the new seed.
+pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
+    keystore::_create_and_store_seed(password, host_entropy)
+}
+
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     keystore::bip39_mnemonic_from_seed(&copy_seed()?)
@@ -460,6 +468,67 @@ mod tests {
             copy_seed().unwrap().as_slice(),
             b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
         );
+    }
+
+    #[test]
+    fn test_create_and_store_seed() {
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+
+        let host_entropy =
+            hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
+                .unwrap();
+
+        // Invalid seed lengths
+        for size in [8, 24, 40] {
+            assert!(matches!(
+                create_and_store_seed("password", &host_entropy[..size]),
+                Err(Error::SeedSize)
+            ));
+        }
+
+        // Hack to get the random bytes that will be used.
+        let seed_random = {
+            bitbox02::random::fake_reset();
+            bitbox02::random::random_32_bytes()
+        };
+
+        // Derived from mock_salt_root and "password".
+        let password_salted_hashed =
+            hex::decode("e8c70a20d9108fbb9454b1b8e2d7373e78cbaf9de025ab2d4f4d3c7a6711694c")
+                .unwrap();
+
+        // expected_seed = seed_random ^ host_entropy ^ password_salted_hashed
+        let expected_seed: Vec<u8> = seed_random
+            .into_iter()
+            .zip(host_entropy.iter())
+            .zip(password_salted_hashed)
+            .map(|((a, &b), c)| a ^ b ^ c)
+            .collect();
+
+        for size in [16, 32] {
+            mock_memory();
+            bitbox02::random::fake_reset();
+            bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+            lock();
+
+            assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
+            assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
+            // Check the seed has been stored encrypted with the expected encryption key.
+            // Decrypt and check seed.
+            let cipher = bitbox02::memory::get_encrypted_seed_and_hmac().unwrap();
+
+            // Same as Python:
+            // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
+            // See also: mock_securechip.c
+            let expected_encryption_key =
+                hex::decode("e56de448f5f1d29cdcc0e0099007309afe4d5a3ef2349e99dcc41840ad98409e")
+                    .unwrap();
+            let decrypted =
+                bitbox_aes::decrypt_with_hmac(&expected_encryption_key, &cipher).unwrap();
+            assert_eq!(decrypted.as_slice(), &expected_seed[..size]);
+        }
     }
 
     // This tests that you can create a keystore, unlock it, and then do this again. This is an

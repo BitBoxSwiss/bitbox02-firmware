@@ -18,7 +18,7 @@ use crate::pb;
 use crate::hal::Ui;
 use crate::workflow::{password, unlock};
 
-use bitbox02::keystore;
+use crate::keystore;
 use pb::response::Response;
 
 /// Handles the SetPassword api call. This has the user enter a password twice and creates the
@@ -40,7 +40,7 @@ pub async fn process(
         hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
-    unlock::unlock_bip39(hal, &crate::keystore::copy_seed()?).await;
+    unlock::unlock_bip39(hal, &keystore::copy_seed()?).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn test_process() {
         mock_memory();
-        crate::keystore::lock();
+        keystore::lock();
         let mut counter = 0u32;
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|params| {
@@ -83,15 +83,15 @@ mod tests {
         assert_eq!(bitbox02::securechip::fake_event_counter(), 9);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
-        assert!(!crate::keystore::is_locked());
-        assert!(crate::keystore::copy_seed().unwrap().len() == 32);
+        assert!(!keystore::is_locked());
+        assert!(keystore::copy_seed().unwrap().len() == 32);
     }
 
     /// Shorter host entropy results in shorter seed.
     #[test]
     fn test_process_16_bytes() {
         mock_memory();
-        crate::keystore::lock();
+        keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal
             .ui
@@ -105,20 +105,20 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert!(!crate::keystore::is_locked());
-        assert!(crate::keystore::copy_seed().unwrap().len() == 16);
+        assert!(!keystore::is_locked());
+        assert!(keystore::copy_seed().unwrap().len() == 16);
     }
 
     /// Invalid host entropy size.
     #[test]
     fn test_process_invalid_host_entropy() {
         mock_memory();
-        crate::keystore::lock();
+        keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
-        assert!(crate::keystore::is_locked());
+        assert!(keystore::is_locked());
         assert_eq!(
             block_on(process(
                 &mut mock_hal,
@@ -128,13 +128,13 @@ mod tests {
             )),
             Err(Error::InvalidInput),
         );
-        assert!(crate::keystore::is_locked());
+        assert!(keystore::is_locked());
     }
 
     #[test]
     fn test_process_2nd_password_doesnt_match() {
         mock_memory();
-        crate::keystore::lock();
+        keystore::lock();
         let mut counter = 0u32;
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|_params| {
@@ -154,6 +154,6 @@ mod tests {
             )),
             Err(Error::Generic),
         );
-        assert!(crate::keystore::is_locked());
+        assert!(keystore::is_locked());
     }
 }

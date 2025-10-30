@@ -42,7 +42,7 @@ pub fn process(request: &pb::CardanoXpubsRequest) -> Result<Response, Error> {
 mod tests {
     use super::*;
 
-    use bitbox02::testing::mock_unlocked;
+    use crate::keystore::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
     #[test]

@@ -34,7 +34,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
             crate::keystore::copy_seed()?
         };
 
-        bitbox02::keystore::bip39_mnemonic_from_seed(&seed)?
+        crate::bip39::mnemonic_from_seed(&seed)?
     };
 
     hal.ui()

@@ -186,7 +186,7 @@ fn lastword_choices(entered_words: &[&str]) -> Vec<u16> {
                 entered_words.join(" "),
                 crate::bip39::get_word(i).unwrap().as_str(),
             ));
-            if let Ok(seed) = bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
+            if let Ok(seed) = crate::bip39::mnemonic_to_seed(&mnemonic) {
                 break seed;
             }
             i += 1;

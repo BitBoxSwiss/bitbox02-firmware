@@ -92,8 +92,8 @@ pub fn sign(keypath: &[u32], msg: &[u8; 32]) -> Result<SignResult, ()> {
 mod tests {
     use super::*;
 
+    use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use bip32_ed25519::HARDENED_OFFSET;
-    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use digest::Digest;
 
     #[test]

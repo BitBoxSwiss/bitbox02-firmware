@@ -589,7 +589,7 @@ mod tests {
         };
 
         // Keystore locked.
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(validate(&multisig, keypath).is_err());
 
         // Ok.

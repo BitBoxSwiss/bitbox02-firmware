@@ -31,7 +31,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         let seed = if bitbox02::memory::is_initialized() {
             unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
         } else {
-            bitbox02::keystore::copy_seed()?
+            crate::keystore::copy_seed()?
         };
 
         bitbox02::keystore::bip39_mnemonic_from_seed(&seed)?
@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn test_process_uninitialized() {
         mock_memory();
-        bitbox02::keystore::encrypt_and_store_seed(
+        crate::keystore::encrypt_and_store_seed(
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn test_process_initialized() {
         mock_memory();
-        bitbox02::keystore::encrypt_and_store_seed(
+        crate::keystore::encrypt_and_store_seed(
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn test_process_initialized_wrong_password() {
         mock_memory();
-        bitbox02::keystore::encrypt_and_store_seed(
+        crate::keystore::encrypt_and_store_seed(
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),

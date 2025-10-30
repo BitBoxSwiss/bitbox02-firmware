@@ -329,7 +329,7 @@ mod tests {
             }]
         );
 
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
         assert!(bitbox02::memory::is_seeded());
         assert!(!bitbox02::memory::is_initialized());
 
@@ -343,7 +343,7 @@ mod tests {
 
         // Can reboot when seeded and locked. This happens when the user sets a password and then
         // reconnects the device.
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
@@ -372,7 +372,7 @@ mod tests {
 
         let mut make_request = init_noise();
 
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
         mock_hal
@@ -391,7 +391,7 @@ mod tests {
             .as_ref(),
         )
         .unwrap();
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
         assert!(!bitbox02::memory::is_initialized());
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
@@ -434,7 +434,7 @@ mod tests {
         };
 
         // Can't reboot when initialized but locked.
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
         let response_encoded =
             make_request(&mut mock_hal, &reboot_request.encode_to_vec()).unwrap();
@@ -456,7 +456,7 @@ mod tests {
             block_on(_process_packet(&mut mock_hal, vec![OP_UNLOCK])),
             [OP_STATUS_SUCCESS].to_vec()
         );
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
 
         // Since in the previous request the msg was encrypted but not decrypted (query was
         // rejected), the noise states are out of sync and we need to make a new channel.
@@ -490,7 +490,7 @@ mod tests {
             &b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"[..],
             &b"aaaaaaaaaaaaaaaa"[..],
         ] {
-            bitbox02::keystore::lock();
+            crate::keystore::lock();
             mock_memory();
 
             bitbox02::memory::set_device_name("test device name").unwrap();
@@ -552,7 +552,7 @@ mod tests {
                 ]
             );
 
-            let seed = bitbox02::keystore::copy_seed().unwrap();
+            let seed = crate::keystore::copy_seed().unwrap();
             assert_eq!(seed.len(), host_entropy.len());
             mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             assert!(matches!(
@@ -718,7 +718,7 @@ mod tests {
             );
 
             // Restored seed is the same as the seed that was backed up.
-            assert_eq!(seed, bitbox02::keystore::copy_seed().unwrap());
+            assert_eq!(seed, crate::keystore::copy_seed().unwrap());
         }
     }
 }

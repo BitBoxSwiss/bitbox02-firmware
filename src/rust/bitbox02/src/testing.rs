@@ -22,7 +22,7 @@ pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
     unsafe {
         bitbox02_sys::keystore_mock_unlocked(seed.as_ptr(), seed.len() as _, core::ptr::null())
     }
-    util::bb02_async::block_on(keystore::unlock_bip39(
+    util::bb02_async::block_on(keystore::_unlock_bip39(
         &bitcoin::secp256k1::Secp256k1::new(),
         &seed,
         passphrase,

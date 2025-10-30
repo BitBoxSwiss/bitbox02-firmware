@@ -250,7 +250,7 @@ mod tests {
         );
 
         // Make sure the following xpubs are derived using the cache only, not touching the seed.
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
 
         assert_eq!(
             &cache

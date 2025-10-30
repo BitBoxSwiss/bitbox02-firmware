@@ -31,7 +31,7 @@ fn hmac_sha512(key: &[u8], msg: &[u8]) -> [u8; 64] {
 /// https://github.com/LedgerHQ/orakolo/blob/0b2d5e669ec61df9a824df9fa1a363060116b490/src/python/orakolo/HDEd25519.py.
 /// Returns 96 bytes. It will contain a 64 byte expanded ed25519 private key followed by a 32 byte chain code.
 fn get_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let bip39_seed = bitbox02::keystore::copy_bip39_seed()?;
+    let bip39_seed = crate::keystore::copy_bip39_seed()?;
     let mut seed_out = zeroize::Zeroizing::new(vec![0u8; 96]);
     let first64: &mut [u8] = &mut seed_out.as_mut_slice()[..64];
     first64.copy_from_slice(&bip39_seed);
@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_get_xpub() {
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(get_xpub(&[]).is_err());
 
         mock_unlocked();
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_get_xprv() {
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(get_xprv(&[]).is_err());
 
         mock_unlocked();
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_sign() {
         let msg = &[0u8; 32];
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert!(sign(&[10 + HARDENED_OFFSET, 10], msg).is_err());
 
         mock_unlocked();

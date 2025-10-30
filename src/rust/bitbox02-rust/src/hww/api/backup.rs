@@ -30,7 +30,7 @@ pub async fn check(
         return Err(Error::InvalidInput);
     }
 
-    let seed = bitbox02::keystore::copy_seed()?;
+    let seed = crate::keystore::copy_seed()?;
     let id = backup::id(&seed);
     let (backup_data, metadata) = backup::load(hal, &id).await?;
     if seed.as_slice() != backup_data.get_seed() {
@@ -102,7 +102,7 @@ pub async fn create(
     let seed = if is_initialized {
         unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
     } else {
-        let seed = bitbox02::keystore::copy_seed()?;
+        let seed = crate::keystore::copy_seed()?;
         // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes
         // some delay.
         futures_lite::future::yield_now().await;
@@ -234,7 +234,7 @@ mod tests {
 
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
-        bitbox02::keystore::encrypt_and_store_seed(&seed, "password").unwrap();
+        crate::keystore::encrypt_and_store_seed(&seed, "password").unwrap();
         bitbox02::memory::set_initialized().unwrap();
 
         let mut password_entered: bool = false;

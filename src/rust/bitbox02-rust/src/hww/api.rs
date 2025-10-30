@@ -110,7 +110,7 @@ fn can_call(request: &Request) -> bool {
         InitializedAndUnlocked,
     }
     let state: State = if bitbox02::memory::is_initialized() {
-        if bitbox02::keystore::is_locked() {
+        if crate::keystore::is_locked() {
             State::InitializedAndLocked
         } else {
             State::InitializedAndUnlocked

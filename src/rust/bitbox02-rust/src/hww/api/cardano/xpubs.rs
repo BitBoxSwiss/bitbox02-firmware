@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_process() {
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
         assert_eq!(
             process(&pb::CardanoXpubsRequest { keypaths: vec![] }),
             Ok(Response::Xpubs(pb::CardanoXpubsResponse { xpubs: vec![] })),

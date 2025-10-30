@@ -661,7 +661,7 @@ async fn _process(
     hal: &mut impl crate::hal::Hal,
     request: &pb::BtcSignInitRequest,
 ) -> Result<Response, Error> {
-    if bitbox02::keystore::is_locked() {
+    if crate::keystore::is_locked() {
         return Err(Error::InvalidState);
     }
     // Validate the coin.
@@ -1230,8 +1230,7 @@ async fn _process(
             // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
             let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
                 Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
-                    let signer_commitment = bitbox02::keystore::secp256k1_nonce_commit(
-                        SECP256K1,
+                    let signer_commitment = crate::keystore::secp256k1_nonce_commit(
                         private_key.as_slice().try_into().unwrap(),
                         &sighash,
                         commitment
@@ -1255,8 +1254,7 @@ async fn _process(
                 None => [0; 32],
             };
 
-            let sign_result = bitbox02::keystore::secp256k1_sign(
-                SECP256K1,
+            let sign_result = crate::keystore::secp256k1_sign(
                 private_key.as_slice().try_into().unwrap(),
                 &sighash,
                 &host_nonce,
@@ -1705,7 +1703,7 @@ mod tests {
 
         {
             // test keystore locked
-            bitbox02::keystore::lock();
+            crate::keystore::lock();
             assert_eq!(
                 block_on(process(&mut TestingHal::new(), &init_req_valid,)),
                 Err(Error::InvalidState)

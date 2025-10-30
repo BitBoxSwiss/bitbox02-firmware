@@ -33,12 +33,11 @@ pub fn process() -> Result<Response, Error> {
 mod tests {
     use super::*;
 
-    use bitbox02::keystore::lock;
     use bitbox02::testing::mock_unlocked_using_mnemonic;
 
     #[test]
     fn test_process() {
-        lock();
+        keystore::lock();
         assert_eq!(process(), Err(Error::Generic));
 
         mock_unlocked_using_mnemonic(

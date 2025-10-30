@@ -15,7 +15,6 @@
 use crate::general::abort;
 use crate::hal::Ui;
 use crate::workflow::{confirm, password};
-use bitbox02::keystore;
 
 pub use password::CanCancel;
 
@@ -90,9 +89,9 @@ pub async fn unlock_keystore(
     )
     .await?;
 
-    match keystore::unlock(&password) {
+    match crate::keystore::unlock(&password) {
         Ok(seed) => Ok(seed),
-        Err(keystore::Error::IncorrectPassword { remaining_attempts }) => {
+        Err(crate::keystore::Error::IncorrectPassword { remaining_attempts }) => {
             let msg = match remaining_attempts {
                 1 => "Wrong password\n1 try remains".into(),
                 n => format!("Wrong password\n{} tries remain", n),
@@ -137,8 +136,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
 
     let ((), result) = futures_lite::future::zip(
         super::unlock_animation::animate(),
-        keystore::unlock_bip39(
-            crate::secp256k1::SECP256K1,
+        crate::keystore::unlock_bip39(
             seed,
             &mnemonic_passphrase,
             // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
@@ -168,7 +166,7 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
     if !bitbox02::memory::is_initialized() {
         return Err(());
     }
-    if !bitbox02::keystore::is_locked() {
+    if !crate::keystore::is_locked() {
         return Ok(());
     }
 
@@ -196,7 +194,7 @@ mod tests {
         mock_memory();
 
         // Set up an initialized wallet with password
-        bitbox02::keystore::encrypt_and_store_seed(
+        crate::keystore::encrypt_and_store_seed(
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),
@@ -207,7 +205,7 @@ mod tests {
         bitbox02::memory::set_initialized().unwrap();
 
         // Lock the keystore to simulate the normal locked state
-        bitbox02::keystore::lock();
+        crate::keystore::lock();
 
         let mut password_entered = false;
 
@@ -221,10 +219,10 @@ mod tests {
         // 6 for keystore unlock, 1 for keystore bip39 unlock.
         assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
-        assert!(!bitbox02::keystore::is_locked());
+        assert!(!crate::keystore::is_locked());
 
         assert_eq!(
-            bitbox02::keystore::copy_bip39_seed().unwrap().as_slice(),
+            crate::keystore::copy_bip39_seed().unwrap().as_slice(),
             hex::decode("cff4b263e5b0eb299e5fd35fcd09988f6b14e5b464f8d18fb84b152f889dd2a30550f4c2b346cae825ffedd4a87fc63fc12a9433de5125b6c7fdbc5eab0c590b")
                 .unwrap(),
         );

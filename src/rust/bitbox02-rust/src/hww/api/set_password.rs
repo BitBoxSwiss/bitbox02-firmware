@@ -18,7 +18,7 @@ use crate::pb;
 use crate::hal::Ui;
 use crate::workflow::{password, unlock};
 
-use bitbox02::keystore;
+use crate::keystore;
 use pb::response::Response;
 
 /// Handles the SetPassword api call. This has the user enter a password twice and creates the

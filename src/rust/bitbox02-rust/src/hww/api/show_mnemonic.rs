@@ -31,7 +31,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         let seed = if bitbox02::memory::is_initialized() {
             unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
         } else {
-            bitbox02::keystore::copy_seed()?
+            crate::keystore::copy_seed()?
         };
 
         bitbox02::keystore::bip39_mnemonic_from_seed(&seed)?

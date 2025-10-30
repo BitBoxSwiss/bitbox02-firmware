@@ -193,7 +193,7 @@ pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), 
     }
 }
 
-pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+pub fn _copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
     let mut seed_len: usize = 0;
     match unsafe { bitbox02_sys::keystore_copy_seed(seed.as_mut_ptr(), &mut seed_len) } {
@@ -298,7 +298,7 @@ mod tests {
     use super::*;
     use bitcoin::secp256k1;
 
-    use crate::testing::{mock_memory, mock_unlocked_using_mnemonic};
+    use crate::testing::mock_memory;
     use util::bb02_async::block_on;
 
     #[test]
@@ -353,38 +353,6 @@ mod tests {
         // 24 words
         assert_eq!(
             bip39_mnemonic_to_seed("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay").unwrap().as_ref() as &[u8],
-            b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
-        );
-    }
-
-    #[test]
-    fn test_copy_seed() {
-        // 12 words
-        mock_unlocked_using_mnemonic(
-            "trust cradle viable innocent stand equal little small junior frost laundry room",
-            "",
-        );
-        assert_eq!(
-            copy_seed().unwrap().as_slice(),
-            b"\xe9\xa6\x3f\xcd\x3a\x4d\x48\x98\x20\xa6\x63\x79\x2b\xad\xf6\xdd",
-        );
-
-        // 18 words
-        mock_unlocked_using_mnemonic(
-            "pupil parent toe bright slam plastic spy suspect verb battle nominee loan call crystal upset razor luggage join",
-            "",
-        );
-        assert_eq!(
-            copy_seed().unwrap().as_slice(),
-            b"\xad\xf4\x07\x8e\x0e\x0c\xb1\x4c\x34\xd6\xd6\xf2\x82\x6a\x57\xc1\x82\x06\x6a\xbb\xcd\x95\x84\xcf",
-        );
-
-        mock_unlocked_using_mnemonic(
-            "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
-            "",
-        );
-        assert_eq!(
-            copy_seed().unwrap().as_slice(),
             b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
         );
     }
@@ -473,7 +441,7 @@ mod tests {
             // Still seeded.
             assert!(crate::memory::is_seeded());
             // Wrong password does not lock the keystore again if already unlocked.
-            assert!(copy_seed().is_ok());
+            assert!(_copy_seed().is_ok());
         }
         // Last attempt, triggers reset.
         assert!(matches!(
@@ -482,7 +450,7 @@ mod tests {
         ));
         // Last wrong attempt locks & resets. There is no more seed.
         assert!(!crate::memory::is_seeded());
-        assert!(copy_seed().is_err());
+        assert!(_copy_seed().is_err());
         assert!(matches!(unlock("password"), Err(Error::Unseeded)));
     }
 
@@ -658,7 +626,7 @@ mod tests {
             _lock();
 
             assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
-            assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
+            assert_eq!(_copy_seed().unwrap().as_slice(), &expected_seed[..size]);
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.
             let cipher = crate::memory::get_encrypted_seed_and_hmac().unwrap();
@@ -690,7 +658,7 @@ mod tests {
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         // Create new (different) seed.
         assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
-        assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
+        assert_eq!(_copy_seed().unwrap().as_slice(), &seed2);
     }
 
     // Functional test to store seeds, lock/unlock, retrieve seed.
@@ -708,11 +676,11 @@ mod tests {
                 assert!(encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
             }
             // Also unlocks, so we can get the retained seed.
-            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+            assert_eq!(_copy_seed().unwrap().as_slice(), &seed[..seed_size]);
 
             _lock();
             // Can't get seed before unlock.
-            assert!(copy_seed().is_err());
+            assert!(_copy_seed().is_err());
 
             // Wrong password.
             assert!(matches!(
@@ -726,7 +694,7 @@ mod tests {
             for _ in 0..3 {
                 assert_eq!(unlock("foo").unwrap().as_slice(), &seed[..seed_size]);
             }
-            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+            assert_eq!(_copy_seed().unwrap().as_slice(), &seed[..seed_size]);
 
             // Can't store new seed once initialized.
             crate::memory::set_initialized().unwrap();

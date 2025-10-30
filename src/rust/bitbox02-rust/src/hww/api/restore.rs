@@ -208,7 +208,7 @@ mod tests {
         // Seed of hardcoded phrase used in unit tests:
         // boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide
         assert_eq!(
-            hex::encode(keystore::copy_seed().unwrap()),
+            hex::encode(crate::keystore::copy_seed().unwrap()),
             "19f1bcfccf3e9d497cd245cf864ff0d42216625258d4f68d56b571aceb329257"
         );
         assert_eq!(

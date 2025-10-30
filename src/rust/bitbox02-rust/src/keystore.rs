@@ -33,9 +33,14 @@ pub fn lock() {
     keystore::_lock();
 }
 
+/// Returns a copy of the retained seed. Errors if the keystore is locked.
+pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    keystore::_copy_seed()
+}
+
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
-    keystore::bip39_mnemonic_from_seed(&keystore::copy_seed()?)
+    keystore::bip39_mnemonic_from_seed(&copy_seed()?)
 }
 
 fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
@@ -368,6 +373,38 @@ mod tests {
     use util::bb02_async::block_on;
 
     use bitcoin::secp256k1;
+
+    #[test]
+    fn test_copy_seed() {
+        // 12 words
+        mock_unlocked_using_mnemonic(
+            "trust cradle viable innocent stand equal little small junior frost laundry room",
+            "",
+        );
+        assert_eq!(
+            copy_seed().unwrap().as_slice(),
+            b"\xe9\xa6\x3f\xcd\x3a\x4d\x48\x98\x20\xa6\x63\x79\x2b\xad\xf6\xdd",
+        );
+
+        // 18 words
+        mock_unlocked_using_mnemonic(
+            "pupil parent toe bright slam plastic spy suspect verb battle nominee loan call crystal upset razor luggage join",
+            "",
+        );
+        assert_eq!(
+            copy_seed().unwrap().as_slice(),
+            b"\xad\xf4\x07\x8e\x0e\x0c\xb1\x4c\x34\xd6\xd6\xf2\x82\x6a\x57\xc1\x82\x06\x6a\xbb\xcd\x95\x84\xcf",
+        );
+
+        mock_unlocked_using_mnemonic(
+            "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
+            "",
+        );
+        assert_eq!(
+            copy_seed().unwrap().as_slice(),
+            b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
+        );
+    }
 
     #[test]
     fn test_lock() {

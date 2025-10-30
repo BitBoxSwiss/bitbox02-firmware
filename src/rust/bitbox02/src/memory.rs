@@ -17,6 +17,8 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+pub const MAX_UNLOCK_ATTEMPTS: u8 = bitbox02_sys::MAX_UNLOCK_ATTEMPTS as u8;
+
 // deduct one for the null terminator.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
 

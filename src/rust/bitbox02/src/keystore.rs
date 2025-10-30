@@ -67,7 +67,7 @@ impl core::convert::From<keystore_error_t> for Error {
     }
 }
 
-pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+pub fn _unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let mut remaining_attempts: u8 = 0;
     let mut securechip_result: i32 = 0;
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
@@ -137,6 +137,15 @@ async fn derive_bip39_seed(
             .to_bytes();
 
     (bip39_seed, root_fingerprint)
+}
+
+#[cfg(feature = "testing")]
+pub fn test_get_retained_seed_encrypted() -> &'static [u8] {
+    unsafe {
+        let mut len = 0usize;
+        let ptr = bitbox02_sys::keystore_test_get_retained_seed_encrypted(&mut len);
+        core::slice::from_raw_parts(ptr, len)
+    }
 }
 
 /// Unlocks the bip39 seed. The input seed must be the keystore seed (i.e. must match the output
@@ -362,76 +371,6 @@ mod tests {
     }
 
     #[test]
-    fn test_unlock() {
-        mock_memory();
-        _lock();
-
-        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
-
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
-
-        let mock_salt_root =
-            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
-                .unwrap();
-        crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
-
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
-        _lock();
-
-        // First call: unlock. The first one does a seed rentention (1 securechip event).
-        crate::securechip::fake_event_counter_reset();
-        assert_eq!(unlock("password").unwrap().as_slice(), seed);
-        assert_eq!(crate::securechip::fake_event_counter(), 6);
-
-        // Loop to check that unlocking works while unlocked.
-        for _ in 0..2 {
-            // Further calls perform a password check.The password check does not do the retention
-            // so it ends up needing one secure chip operation less.
-            crate::securechip::fake_event_counter_reset();
-            assert_eq!(unlock("password").unwrap().as_slice(), seed);
-            assert_eq!(crate::securechip::fake_event_counter(), 5);
-        }
-
-        // Also check that the retained seed was encrypted with the expected encryption key.
-        let decrypted = {
-            let retained_seed_encrypted: &[u8] = unsafe {
-                let mut len = 0usize;
-                let ptr = bitbox02_sys::keystore_test_get_retained_seed_encrypted(&mut len);
-                core::slice::from_raw_parts(ptr, len)
-            };
-            let expected_retained_seed_secret =
-                hex::decode("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7")
-                    .unwrap();
-            bitbox_aes::decrypt_with_hmac(&expected_retained_seed_secret, retained_seed_encrypted)
-                .unwrap()
-        };
-        assert_eq!(decrypted.as_slice(), seed.as_slice());
-
-        // First 9 wrong attempts.
-        for i in 1..bitbox02_sys::MAX_UNLOCK_ATTEMPTS {
-            assert!(matches!(
-                unlock("invalid password"),
-                Err(Error::IncorrectPassword { remaining_attempts }) if remaining_attempts
-                    == (bitbox02_sys::MAX_UNLOCK_ATTEMPTS  - i) as u8
-            ));
-            // Still seeded.
-            assert!(crate::memory::is_seeded());
-            // Wrong password does not lock the keystore again if already unlocked.
-            assert!(_copy_seed().is_ok());
-        }
-        // Last attempt, triggers reset.
-        assert!(matches!(
-            unlock("invalid password"),
-            Err(Error::MaxAttemptsExceeded),
-        ));
-        // Last wrong attempt locks & resets. There is no more seed.
-        assert!(!crate::memory::is_seeded());
-        assert!(_copy_seed().is_err());
-        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
-    }
-
-    #[test]
     fn test_derive_bip39_seed() {
         struct Test {
             seed: &'static str,
@@ -636,49 +575,5 @@ mod tests {
         // Create new (different) seed.
         assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
         assert_eq!(_copy_seed().unwrap().as_slice(), &seed2);
-    }
-
-    // Functional test to store seeds, lock/unlock, retrieve seed.
-    #[test]
-    fn test_seeds() {
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
-
-        for seed_size in [16, 24, 32] {
-            mock_memory();
-            _lock();
-
-            // Can repeat until initialized - initialized means backup has been created.
-            for _ in 0..2 {
-                assert!(encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
-            }
-            // Also unlocks, so we can get the retained seed.
-            assert_eq!(_copy_seed().unwrap().as_slice(), &seed[..seed_size]);
-
-            _lock();
-            // Can't get seed before unlock.
-            assert!(_copy_seed().is_err());
-
-            // Wrong password.
-            assert!(matches!(
-                unlock("bar"),
-                Err(Error::IncorrectPassword {
-                    remaining_attempts: 9
-                })
-            ));
-
-            // Correct password. First time: unlock. After unlock, it becomes a password check.
-            for _ in 0..3 {
-                assert_eq!(unlock("foo").unwrap().as_slice(), &seed[..seed_size]);
-            }
-            assert_eq!(_copy_seed().unwrap().as_slice(), &seed[..seed_size]);
-
-            // Can't store new seed once initialized.
-            crate::memory::set_initialized().unwrap();
-            assert!(matches!(
-                encrypt_and_store_seed(&seed[..seed_size], "foo"),
-                Err(Error::Memory)
-            ));
-        }
     }
 }

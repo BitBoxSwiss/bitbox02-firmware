@@ -19,6 +19,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
+pub use bitbox02::keystore::Error;
 pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
 
@@ -31,7 +32,7 @@ use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 /// Length of a compressed secp256k1 pubkey.
 const EC_PUBLIC_KEY_LEN: usize = 33;
 
-/// Locks the keystore (resets to state before `keystore::unlock()`).
+/// Locks the keystore (resets to state before `unlock()`).
 pub fn lock() {
     keystore::_lock();
 }
@@ -39,6 +40,10 @@ pub fn lock() {
 /// Returns false if the keystore is unlocked (unlock() followed by unlock_bip39()), true otherwise.
 pub fn is_locked() -> bool {
     keystore::_is_locked()
+}
+
+pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    keystore::_unlock(password)
 }
 
 /// Returns a copy of the retained seed. Errors if the keystore is locked.
@@ -156,17 +161,16 @@ pub fn stretch_retained_seed_encryption_key(
     encryption_key: &[u8; 32],
     purpose_in: &str,
     purpose_out: &str,
-) -> Result<zeroize::Zeroizing<Vec<u8>>, keystore::Error> {
-    let salted_in =
-        crate::salt::hash_data(encryption_key, purpose_in).map_err(|_| keystore::Error::Salt)?;
+) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    let salted_in = crate::salt::hash_data(encryption_key, purpose_in).map_err(|_| Error::Salt)?;
 
     let kdf = securechip::kdf(salted_in.as_slice()).map_err(|err| match err {
-        securechip::Error::SecureChip(sc_err) => keystore::Error::SecureChip(sc_err as i32),
-        securechip::Error::Status(status) => keystore::Error::SecureChip(status),
+        securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
+        securechip::Error::Status(status) => Error::SecureChip(status),
     })?;
 
     let salted_out =
-        crate::salt::hash_data(encryption_key, purpose_out).map_err(|_| keystore::Error::Salt)?;
+        crate::salt::hash_data(encryption_key, purpose_out).map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_out.as_slice());
     engine.input(kdf.as_slice());
@@ -459,6 +463,72 @@ mod tests {
     }
 
     #[test]
+    fn test_unlock() {
+        mock_memory();
+        lock();
+
+        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+        bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+
+        assert!(keystore::encrypt_and_store_seed(&seed, "password").is_ok());
+        lock();
+
+        // First call: unlock. The first one does a seed rentention (1 securechip event).
+        bitbox02::securechip::fake_event_counter_reset();
+        assert_eq!(unlock("password").unwrap().as_slice(), seed);
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+
+        // Loop to check that unlocking works while unlocked.
+        for _ in 0..2 {
+            // Further calls perform a password check.The password check does not do the retention
+            // so it ends up needing one secure chip operation less.
+            bitbox02::securechip::fake_event_counter_reset();
+            assert_eq!(unlock("password").unwrap().as_slice(), seed);
+            assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+        }
+
+        // Also check that the retained seed was encrypted with the expected encryption key.
+        let decrypted = {
+            let retained_seed_encrypted: &[u8] = keystore::test_get_retained_seed_encrypted();
+            let expected_retained_seed_secret =
+                hex::decode("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7")
+                    .unwrap();
+            bitbox_aes::decrypt_with_hmac(&expected_retained_seed_secret, retained_seed_encrypted)
+                .unwrap()
+        };
+        assert_eq!(decrypted.as_slice(), seed.as_slice());
+
+        // First 9 wrong attempts.
+        for i in 1..bitbox02::memory::MAX_UNLOCK_ATTEMPTS {
+            assert!(matches!(
+                unlock("invalid password"),
+                Err(Error::IncorrectPassword { remaining_attempts }) if remaining_attempts
+                    == bitbox02::memory::MAX_UNLOCK_ATTEMPTS  - i
+            ));
+            // Still seeded.
+            assert!(bitbox02::memory::is_seeded());
+            // Wrong password does not lock the keystore again if already unlocked.
+            assert!(copy_seed().is_ok());
+        }
+        // Last attempt, triggers reset.
+        assert!(matches!(
+            unlock("invalid password"),
+            Err(Error::MaxAttemptsExceeded),
+        ));
+        // Last wrong attempt locks & resets. There is no more seed.
+        assert!(!bitbox02::memory::is_seeded());
+        assert!(copy_seed().is_err());
+        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+    }
+
+    #[test]
     fn test_secp256k1_get_private_key() {
         lock();
         let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
@@ -696,7 +766,7 @@ mod tests {
         let encryption_key = [0u8; 32];
         let result =
             stretch_retained_seed_encryption_key(&encryption_key, "purpose_in", "purpose_out");
-        assert!(matches!(result, Err(keystore::Error::Salt)));
+        assert!(matches!(result, Err(Error::Salt)));
     }
 
     #[test]
@@ -978,5 +1048,49 @@ mod tests {
                 )
                 .is_ok()
         );
+    }
+
+    // Functional test to store seeds, lock/unlock, retrieve seed.
+    #[test]
+    fn test_seeds() {
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+
+        for seed_size in [16, 24, 32] {
+            mock_memory();
+            lock();
+
+            // Can repeat until initialized - initialized means backup has been created.
+            for _ in 0..2 {
+                assert!(keystore::encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
+            }
+            // Also unlocks, so we can get the retained seed.
+            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+
+            lock();
+            // Can't get seed before unlock.
+            assert!(copy_seed().is_err());
+
+            // Wrong password.
+            assert!(matches!(
+                unlock("bar"),
+                Err(Error::IncorrectPassword {
+                    remaining_attempts: 9
+                })
+            ));
+
+            // Correct password. First time: unlock. After unlock, it becomes a password check.
+            for _ in 0..3 {
+                assert_eq!(unlock("foo").unwrap().as_slice(), &seed[..seed_size]);
+            }
+            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+
+            // Can't store new seed once initialized.
+            bitbox02::memory::set_initialized().unwrap();
+            assert!(matches!(
+                keystore::encrypt_and_store_seed(&seed[..seed_size], "foo"),
+                Err(Error::Memory)
+            ));
+        }
     }
 }

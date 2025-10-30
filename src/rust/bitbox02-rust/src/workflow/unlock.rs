@@ -196,7 +196,7 @@ mod tests {
         mock_memory();
 
         // Set up an initialized wallet with password
-        bitbox02::keystore::encrypt_and_store_seed(
+        crate::keystore::encrypt_and_store_seed(
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),

@@ -51,6 +51,12 @@ pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     keystore::_copy_seed()
 }
 
+/// Restores a seed. This also unlocks the keystore with this seed.
+/// `password` is the password with which we encrypt the seed.
+pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
+    keystore::_encrypt_and_store_seed(seed, password)
+}
+
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
 pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
     keystore::bip39_mnemonic_from_seed(&copy_seed()?)
@@ -439,6 +445,24 @@ mod tests {
         );
     }
 
+    // This tests that you can create a keystore, unlock it, and then do this again. This is an
+    // expected workflow for when the wallet setup process is restarted after seeding and unlocking,
+    // but before creating a backup, in which case a new seed is created.
+    #[test]
+    fn test_create_and_unlock_twice() {
+        mock_memory();
+        lock();
+
+        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
+            .unwrap();
+        let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
+            .unwrap();
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        // Create new (different) seed.
+        assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
+        assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
+    }
+
     #[test]
     fn test_lock() {
         lock();
@@ -446,7 +470,7 @@ mod tests {
 
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
-        assert!(keystore::encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(
             block_on(keystore::unlock_bip39(
@@ -477,7 +501,7 @@ mod tests {
                 .unwrap();
         bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
-        assert!(keystore::encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         lock();
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
@@ -908,7 +932,7 @@ mod tests {
             );
 
             bitbox02::securechip::fake_event_counter_reset();
-            assert!(keystore::encrypt_and_store_seed(seed, "foo").is_ok());
+            assert!(encrypt_and_store_seed(seed, "foo").is_ok());
             assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
             assert!(is_locked());
@@ -1062,7 +1086,7 @@ mod tests {
 
             // Can repeat until initialized - initialized means backup has been created.
             for _ in 0..2 {
-                assert!(keystore::encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
+                assert!(encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
             }
             // Also unlocks, so we can get the retained seed.
             assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
@@ -1088,7 +1112,7 @@ mod tests {
             // Can't store new seed once initialized.
             bitbox02::memory::set_initialized().unwrap();
             assert!(matches!(
-                keystore::encrypt_and_store_seed(&seed[..seed_size], "foo"),
+                encrypt_and_store_seed(&seed[..seed_size], "foo"),
                 Err(Error::Memory)
             ));
         }

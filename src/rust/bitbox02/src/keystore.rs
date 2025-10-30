@@ -286,7 +286,7 @@ pub fn bip39_mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u
     Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec()))
 }
 
-pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
+pub fn _encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::keystore_encrypt_and_store_seed(
             seed.as_ptr(),
@@ -454,7 +454,7 @@ mod tests {
         let secp = secp256k1::Secp256k1::new();
 
         assert!(root_fingerprint().is_err());
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(_encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(root_fingerprint().is_err());
         // Incorrect seed passed
         assert!(
@@ -557,23 +557,5 @@ mod tests {
                 bitbox_aes::decrypt_with_hmac(&expected_encryption_key, &cipher).unwrap();
             assert_eq!(decrypted.as_slice(), &expected_seed[..size]);
         }
-    }
-
-    // This tests that you can create a keystore, unlock it, and then do this again. This is an
-    // expected workflow for when the wallet setup process is restarted after seeding and unlocking,
-    // but before creating a backup, in which case a new seed is created.
-    #[test]
-    fn test_create_and_unlock_twice() {
-        mock_memory();
-        _lock();
-
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
-        let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
-            .unwrap();
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
-        // Create new (different) seed.
-        assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
-        assert_eq!(_copy_seed().unwrap().as_slice(), &seed2);
     }
 }

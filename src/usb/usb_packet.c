@@ -92,7 +92,7 @@ bool usb_packet_process(const USB_FRAME* frame)
                 ctx, _in_state.data, _in_state.len, _in_state.cmd, _in_state.cid)) {
             // Queue filled and will be sent during usb processing
             _reset_state();
-            return false;
+            return true;
         }
         // Else: Currently processing a message, reset the state and forget about this packet
         _reset_state();

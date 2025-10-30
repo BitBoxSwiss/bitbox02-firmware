@@ -822,7 +822,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
                     // Event loop has quit
                     return;
                 }
-                std::thread::sleep(Duration::from_micros(10000));
+                std::thread::sleep(Duration::from_micros(5000));
             }
         }
     });

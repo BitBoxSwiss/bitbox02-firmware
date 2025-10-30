@@ -148,11 +148,20 @@ pub fn test_get_retained_seed_encrypted() -> &'static [u8] {
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn test_get_retained_bip39_seed_encrypted() -> &'static [u8] {
+    unsafe {
+        let mut len = 0usize;
+        let ptr = bitbox02_sys::keystore_test_get_retained_bip39_seed_encrypted(&mut len);
+        core::slice::from_raw_parts(ptr, len)
+    }
+}
+
 /// Unlocks the bip39 seed. The input seed must be the keystore seed (i.e. must match the output
 /// of `keystore_copy_seed()`).
 /// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
 /// passphrase is needed or provided.
-pub async fn unlock_bip39(
+pub async fn _unlock_bip39(
     secp: &Secp256k1<All>,
     seed: &[u8],
     mnemonic_passphrase: &str,
@@ -214,7 +223,7 @@ pub fn _copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     }
 }
 
-pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+pub fn _copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut bip39_seed = zeroize::Zeroizing::new(vec![0u8; 64]);
     match unsafe { bitbox02_sys::keystore_copy_bip39_seed(bip39_seed.as_mut_ptr()) } {
         true => Ok(bip39_seed),
@@ -436,66 +445,6 @@ mod tests {
                 test.expected_root_fingerprint
             );
         }
-    }
-
-    #[test]
-    fn test_unlock_bip39() {
-        mock_memory();
-        _lock();
-
-        let seed = hex::decode("1111111111111111222222222222222233333333333333334444444444444444")
-            .unwrap();
-
-        let mock_salt_root =
-            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
-                .unwrap();
-        crate::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
-
-        let secp = secp256k1::Secp256k1::new();
-
-        assert!(root_fingerprint().is_err());
-        assert!(_encrypt_and_store_seed(&seed, "password").is_ok());
-        assert!(root_fingerprint().is_err());
-        // Incorrect seed passed
-        assert!(
-            block_on(unlock_bip39(
-                &secp,
-                b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "foo",
-                async || {}
-            ))
-            .is_err()
-        );
-        // Correct seed passed.
-        crate::securechip::fake_event_counter_reset();
-        assert!(block_on(unlock_bip39(&secp, &seed, "foo", async || {})).is_ok());
-        assert_eq!(crate::securechip::fake_event_counter(), 1);
-        assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
-
-        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
-
-        assert_eq!(
-            copy_bip39_seed().unwrap().as_slice(),
-            expected_bip39_seed.as_slice()
-        );
-
-        // Check that the retained bip39 seed was encrypted with the expected encryption key.
-        let decrypted = {
-            let retained_bip39_seed_encrypted: &[u8] = unsafe {
-                let mut len = 0usize;
-                let ptr = bitbox02_sys::keystore_test_get_retained_bip39_seed_encrypted(&mut len);
-                core::slice::from_raw_parts(ptr, len)
-            };
-            let expected_retained_bip39_seed_secret =
-                hex::decode("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29")
-                    .unwrap();
-            bitbox_aes::decrypt_with_hmac(
-                &expected_retained_bip39_seed_secret,
-                retained_bip39_seed_encrypted,
-            )
-            .unwrap()
-        };
-        assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
     }
 
     #[test]

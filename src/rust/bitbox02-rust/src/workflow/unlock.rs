@@ -15,7 +15,6 @@
 use crate::general::abort;
 use crate::hal::Ui;
 use crate::workflow::{confirm, password};
-use bitbox02::keystore;
 
 pub use password::CanCancel;
 
@@ -137,8 +136,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
 
     let ((), result) = futures_lite::future::zip(
         super::unlock_animation::animate(),
-        keystore::unlock_bip39(
-            crate::secp256k1::SECP256K1,
+        crate::keystore::unlock_bip39(
             seed,
             &mnemonic_passphrase,
             // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
@@ -224,7 +222,7 @@ mod tests {
         assert!(!crate::keystore::is_locked());
 
         assert_eq!(
-            bitbox02::keystore::copy_bip39_seed().unwrap().as_slice(),
+            crate::keystore::copy_bip39_seed().unwrap().as_slice(),
             hex::decode("cff4b263e5b0eb299e5fd35fcd09988f6b14e5b464f8d18fb84b152f889dd2a30550f4c2b346cae825ffedd4a87fc63fc12a9433de5125b6c7fdbc5eab0c590b")
                 .unwrap(),
         );

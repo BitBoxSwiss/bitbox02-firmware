@@ -46,9 +46,26 @@ pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     keystore::_unlock(password)
 }
 
+/// Unlocks the bip39 seed. The input seed must be the keystore seed (i.e. must match the output
+/// of `keystore_copy_seed()`).
+/// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
+/// passphrase is needed or provided.
+pub async fn unlock_bip39(
+    seed: &[u8],
+    mnemonic_passphrase: &str,
+    yield_now: impl AsyncFn(),
+) -> Result<(), Error> {
+    keystore::_unlock_bip39(SECP256K1, seed, mnemonic_passphrase, yield_now).await
+}
+
 /// Returns a copy of the retained seed. Errors if the keystore is locked.
 pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     keystore::_copy_seed()
+}
+
+/// Returns a copy of the retained bip39 seed. Errors if the keystore is locked.
+pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    keystore::_copy_bip39_seed()
 }
 
 /// Restores a seed. This also unlocks the keystore with this seed.
@@ -63,7 +80,7 @@ pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
 }
 
 fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
-    let bip39_seed = keystore::copy_bip39_seed()?;
+    let bip39_seed = copy_bip39_seed()?;
     let xprv: bip32::Xprv =
         bitcoin::bip32::Xpriv::new_master(bitcoin::NetworkKind::Main, &bip39_seed)
             .map_err(|_| ())?
@@ -359,7 +376,7 @@ pub fn secp256k1_schnorr_sign(
 /// Get the seed to be used for u2f
 #[cfg(feature = "app-u2f")]
 pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let bip39_seed = keystore::copy_bip39_seed()?;
+    let bip39_seed = copy_bip39_seed()?;
 
     let mut engine = HmacEngine::<bitcoin::hashes::sha256::Hash>::new(&bip39_seed);
     // Null-terminator for backwards compatibility from the time when this was coded in C.
@@ -472,15 +489,7 @@ mod tests {
             .unwrap();
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(
-            block_on(keystore::unlock_bip39(
-                &secp256k1::Secp256k1::new(),
-                &seed,
-                "foo",
-                async || {}
-            ))
-            .is_ok()
-        );
+        assert!(block_on(unlock_bip39(&seed, "foo", async || {})).is_ok());
         assert!(!is_locked());
         lock();
         assert!(is_locked());
@@ -550,6 +559,60 @@ mod tests {
         assert!(!bitbox02::memory::is_seeded());
         assert!(copy_seed().is_err());
         assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+    }
+
+    #[test]
+    fn test_unlock_bip39() {
+        mock_memory();
+        lock();
+
+        let seed = hex::decode("1111111111111111222222222222222233333333333333334444444444444444")
+            .unwrap();
+
+        let mock_salt_root =
+            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
+                .unwrap();
+        bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+
+        assert!(root_fingerprint().is_err());
+        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(root_fingerprint().is_err());
+        // Incorrect seed passed
+        assert!(
+            block_on(unlock_bip39(
+                b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "foo",
+                async || {}
+            ))
+            .is_err()
+        );
+        // Correct seed passed.
+        bitbox02::securechip::fake_event_counter_reset();
+        assert!(block_on(unlock_bip39(&seed, "foo", async || {})).is_ok());
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+        assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
+
+        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
+
+        assert_eq!(
+            copy_bip39_seed().unwrap().as_slice(),
+            expected_bip39_seed.as_slice()
+        );
+
+        // Check that the retained bip39 seed was encrypted with the expected encryption key.
+        let decrypted = {
+            let retained_bip39_seed_encrypted: &[u8] =
+                keystore::test_get_retained_bip39_seed_encrypted();
+            let expected_retained_bip39_seed_secret =
+                hex::decode("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29")
+                    .unwrap();
+            bitbox_aes::decrypt_with_hmac(
+                &expected_retained_bip39_seed_secret,
+                retained_bip39_seed_encrypted,
+            )
+            .unwrap()
+        };
+        assert_eq!(decrypted.as_slice(), expected_bip39_seed.as_slice());
     }
 
     #[test]
@@ -921,15 +984,7 @@ mod tests {
             lock();
             let seed = &seed[..test.seed_len];
 
-            assert!(
-                block_on(keystore::unlock_bip39(
-                    SECP256K1,
-                    seed,
-                    test.mnemonic_passphrase,
-                    async || {}
-                ))
-                .is_err()
-            );
+            assert!(block_on(unlock_bip39(seed, test.mnemonic_passphrase, async || {})).is_err());
 
             bitbox02::securechip::fake_event_counter_reset();
             assert!(encrypt_and_store_seed(seed, "foo").is_ok());
@@ -938,15 +993,7 @@ mod tests {
             assert!(is_locked());
 
             bitbox02::securechip::fake_event_counter_reset();
-            assert!(
-                block_on(keystore::unlock_bip39(
-                    SECP256K1,
-                    seed,
-                    test.mnemonic_passphrase,
-                    async || {}
-                ))
-                .is_ok()
-            );
+            assert!(block_on(unlock_bip39(seed, test.mnemonic_passphrase, async || {})).is_ok());
             assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
 
             assert!(!is_locked());

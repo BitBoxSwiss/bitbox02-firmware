@@ -1294,9 +1294,10 @@ mod tests {
     use super::*;
     use crate::bip32::parse_xpub;
     use crate::hal::testing::TestingHal;
+    use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
+    use bitbox02::testing::mock_memory;
     use hex_lit::hex;
     use pb::btc_payment_request_request::{Memo, memo};
     use util::bb02_async::block_on;

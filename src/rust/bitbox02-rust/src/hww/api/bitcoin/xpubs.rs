@@ -68,7 +68,8 @@ pub async fn process_xpubs(request: &pb::BtcXpubsRequest) -> Result<Response, Er
 mod tests {
     use super::*;
 
-    use bitbox02::testing::{mock_memory, mock_unlocked, mock_unlocked_using_mnemonic};
+    use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
+    use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 

@@ -425,15 +425,32 @@ pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut
     }
 }
 
+#[cfg(feature = "testing")]
+pub mod testing {
+    /// This mocks an unlocked keystore with the given bip39 recovery words and bip39 passphrase.
+    pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
+        let seed = crate::bip39::mnemonic_to_seed(mnemonic).unwrap();
+        bitbox02::keystore::mock_unlocked(&seed);
+        util::bb02_async::block_on(super::unlock_bip39(&seed, passphrase, async || {})).unwrap();
+    }
+
+    pub const TEST_MNEMONIC: &str = "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay";
+
+    /// This mocks an unlocked keystore with a fixed bip39 seed based on these bip39 recovery words:
+    /// `purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay`
+    pub fn mock_unlocked() {
+        mock_unlocked_using_mnemonic(TEST_MNEMONIC, "")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use hex_lit::hex;
 
-    use bitbox02::testing::{
-        TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
-    };
+    use bitbox02::testing::mock_memory;
+    use testing::{TEST_MNEMONIC, mock_unlocked, mock_unlocked_using_mnemonic};
     use util::bb02_async::block_on;
 
     use bitcoin::secp256k1;

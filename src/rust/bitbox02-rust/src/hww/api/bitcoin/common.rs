@@ -318,7 +318,7 @@ fn encode_segwit_addr(
 mod tests {
     use super::*;
 
-    use bitbox02::testing::mock_unlocked_using_mnemonic;
+    use crate::keystore::testing::mock_unlocked_using_mnemonic;
     use util::bip32::HARDENED;
 
     #[test]

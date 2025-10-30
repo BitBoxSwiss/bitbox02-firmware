@@ -75,7 +75,8 @@ impl ValidatedScriptConfigWithKeypath<'_> {
 mod tests {
     use super::*;
     use crate::bip32::parse_xpub;
-    use bitbox02::testing::{mock_memory, mock_unlocked};
+    use crate::keystore::testing::mock_unlocked;
+    use bitbox02::testing::mock_memory;
 
     #[test]
     fn test_self_transfer_representation_simple_type() {

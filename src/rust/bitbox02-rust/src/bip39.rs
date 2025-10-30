@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 
 /// `idx` must be smaller than BIP39_WORDLIST_LEN.
 pub fn get_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
@@ -23,6 +24,14 @@ pub fn get_word(idx: u16) -> Result<zeroize::Zeroizing<String>, ()> {
             .ok_or(())?
             .to_string(),
     ))
+}
+
+/// Decode a BIP39 mnemonic.
+pub fn mnemonic_to_seed(mnemonic: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let mnemonic =
+        bip39::Mnemonic::parse_in_normalized(bip39::Language::English, mnemonic).map_err(|_| ())?;
+    let (seed, seed_len) = mnemonic.to_entropy_array();
+    Ok(zeroize::Zeroizing::new(seed[..seed_len].to_vec()))
 }
 
 // C API
@@ -92,5 +101,38 @@ mod tests {
         assert_eq!(get_word(0).unwrap().as_ref() as &str, "abandon");
         assert_eq!(get_word(2047).unwrap().as_ref() as &str, "zoo");
         assert_eq!(get_word(563).unwrap().as_ref() as &str, "edit");
+    }
+
+    #[test]
+    fn test_mnemonic_to_seed() {
+        assert!(mnemonic_to_seed("invalid").is_err());
+
+        // Zero seed
+        assert_eq!(
+            mnemonic_to_seed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about").unwrap().as_ref() as &[u8],
+            &[0u8; 16],
+        );
+
+        // 12 words
+        assert_eq!(
+            mnemonic_to_seed(
+                "trust cradle viable innocent stand equal little small junior frost laundry room"
+            )
+            .unwrap()
+            .as_ref() as &[u8],
+            b"\xe9\xa6\x3f\xcd\x3a\x4d\x48\x98\x20\xa6\x63\x79\x2b\xad\xf6\xdd",
+        );
+
+        // 18 words
+        assert_eq!(
+            mnemonic_to_seed("pupil parent toe bright slam plastic spy suspect verb battle nominee loan call crystal upset razor luggage join").unwrap().as_ref() as &[u8],
+            b"\xad\xf4\x07\x8e\x0e\x0c\xb1\x4c\x34\xd6\xd6\xf2\x82\x6a\x57\xc1\x82\x06\x6a\xbb\xcd\x95\x84\xcf",
+        );
+
+        // 24 words
+        assert_eq!(
+            mnemonic_to_seed("purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay").unwrap().as_ref() as &[u8],
+            b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
+        );
     }
 }

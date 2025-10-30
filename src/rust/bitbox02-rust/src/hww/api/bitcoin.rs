@@ -333,12 +333,11 @@ mod tests {
 
     use crate::bip32::parse_xpub;
     use crate::hal::testing::TestingHal;
+    use crate::keystore::testing::{TEST_MNEMONIC, mock_unlocked, mock_unlocked_using_mnemonic};
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use alloc::vec::Vec;
-    use bitbox02::testing::{
-        TEST_MNEMONIC, mock_memory, mock_unlocked, mock_unlocked_using_mnemonic,
-    };
+    use bitbox02::testing::mock_memory;
     use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;

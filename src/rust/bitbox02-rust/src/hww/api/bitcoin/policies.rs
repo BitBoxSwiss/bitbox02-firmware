@@ -769,7 +769,7 @@ mod tests {
     use super::*;
 
     use crate::bip32::parse_xpub;
-    use bitbox02::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
+    use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
 
     const SOME_XPUB_1: &str = "tpubDFj9SBQssRHA5EB1ox58mcgF9sB61br9RGz6UrBukcNKmFe4fPgskZ4wigxQ1jSUzLdjnvvDHL8Z6L3ey5Ev5FNNqrDrePxwXsNHiLZhBTc";
     const SOME_XPUB_2: &str = "tpubDCmDXtvJLH9yHLNLnGVRoXBvvacvWskjV4hq4WAmGXcRbfa5uaiybZ7kjGRAFbLaoiw1LcwV56H88avibGh7GC7nqqz2Jcs1dWu33cRKYm4";

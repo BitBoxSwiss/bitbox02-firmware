@@ -115,7 +115,7 @@ pub async fn from_mnemonic(
     }
 
     let mnemonic = mnemonic::get(hal).await?;
-    let seed = match bitbox02::keystore::bip39_mnemonic_to_seed(&mnemonic) {
+    let seed = match crate::bip39::mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
         Err(()) => {
             hal.ui().status("Recovery words\ninvalid", false).await;

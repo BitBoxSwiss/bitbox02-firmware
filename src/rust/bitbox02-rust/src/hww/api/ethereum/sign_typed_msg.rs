@@ -600,8 +600,8 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
+    use crate::keystore::testing::mock_unlocked;
     use crate::workflow::testing::Screen;
-    use bitbox02::testing::mock_unlocked;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 

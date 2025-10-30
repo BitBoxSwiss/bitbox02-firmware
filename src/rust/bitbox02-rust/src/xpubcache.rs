@@ -143,7 +143,7 @@ mod tests {
     use super::*;
 
     use crate::bip32;
-    use bitbox02::testing::mock_unlocked;
+    use crate::keystore::testing::mock_unlocked;
     use util::bip32::HARDENED;
 
     #[test]

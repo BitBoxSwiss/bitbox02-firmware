@@ -190,7 +190,8 @@ mod tests {
     use super::*;
 
     use crate::bip32::parse_xpub;
-    use bitbox02::testing::{mock_memory, mock_unlocked_using_mnemonic};
+    use crate::keystore::testing::mock_unlocked_using_mnemonic;
+    use bitbox02::testing::mock_memory;
     use util::bip32::HARDENED;
 
     use pb::btc_script_config::{Multisig, multisig::ScriptType};

@@ -219,7 +219,5 @@ pub fn _encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error>
 
 #[cfg(feature = "testing")]
 pub fn mock_unlocked(seed: &[u8]) {
-    unsafe {
-        bitbox02_sys::keystore_mock_unlocked(seed.as_ptr(), seed.len() as _, core::ptr::null())
-    }
+    unsafe { bitbox02_sys::keystore_mock_unlocked(seed.as_ptr(), seed.len() as _) }
 }

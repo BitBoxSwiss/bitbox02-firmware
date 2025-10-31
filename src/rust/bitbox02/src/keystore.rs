@@ -129,22 +129,6 @@ pub fn test_get_retained_bip39_seed_encrypted() -> &'static [u8] {
     }
 }
 
-pub fn _create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
-    match unsafe {
-        bitbox02_sys::keystore_create_and_store_seed(
-            crate::util::str_to_cstr_vec(password)
-                .unwrap()
-                .as_ptr()
-                .cast(),
-            host_entropy.as_ptr(),
-            host_entropy.len() as _,
-        )
-    } {
-        keystore_error_t::KEYSTORE_OK => Ok(()),
-        err => Err(err.into()),
-    }
-}
-
 pub fn _copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
     let mut seed_len: usize = 0;

@@ -381,43 +381,6 @@ keystore_error_t keystore_encrypt_and_store_seed(
     return KEYSTORE_OK;
 }
 
-keystore_error_t keystore_create_and_store_seed(
-    const char* password,
-    const uint8_t* host_entropy,
-    size_t host_entropy_size)
-{
-    if (host_entropy_size != 16 && host_entropy_size != 32) {
-        return KEYSTORE_ERR_SEED_SIZE;
-    }
-    if (KEYSTORE_MAX_SEED_LENGTH != RANDOM_NUM_SIZE) {
-        Abort("keystore create: size mismatch");
-    }
-    uint8_t seed[KEYSTORE_MAX_SEED_LENGTH];
-    UTIL_CLEANUP_32(seed);
-    random_32_bytes(seed);
-
-    // Mix in Host entropy.
-    for (size_t i = 0; i < host_entropy_size; i++) {
-        seed[i] ^= host_entropy[i];
-    }
-
-    // Mix in entropy derived from the user password.
-    uint8_t password_salted_hashed[KEYSTORE_MAX_SEED_LENGTH] = {0};
-    UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
-            "keystore_seed_generation",
-            password_salted_hashed)) {
-        return KEYSTORE_ERR_SALT;
-    }
-
-    for (size_t i = 0; i < host_entropy_size; i++) {
-        seed[i] ^= password_salted_hashed[i];
-    }
-    return keystore_encrypt_and_store_seed(seed, host_entropy_size, password);
-}
-
 // Checks if the retained seed matches the passed seed.
 static bool _check_retained_seed(const uint8_t* seed, size_t seed_length)
 {

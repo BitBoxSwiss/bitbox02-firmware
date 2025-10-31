@@ -72,19 +72,6 @@ USE_RESULT bool keystore_copy_bip39_seed(uint8_t* bip32_seed_out);
 USE_RESULT keystore_error_t
 keystore_encrypt_and_store_seed(const uint8_t* seed, size_t seed_length, const char* password);
 
-/**
-   Generates the seed, mixes it with host_entropy, and stores it encrypted with the
-   password. The size of the host entropy determines the size of the seed. Can be either 16 or 32
-   bytes, resulting in 12 or 24 BIP39 recovery words.
-   This also unlocks the keystore with the new seed.
-   @param[in] host_entropy bytes of entropy to be mixed in.
-   @param[in] host_entropy_size must be 16 or 32.
-*/
-USE_RESULT keystore_error_t keystore_create_and_store_seed(
-    const char* password,
-    const uint8_t* host_entropy,
-    size_t host_entropy_size);
-
 /** Unlocks the keystore seed or checks the password:
  * If the keystore is locked, it decrypts and loads the seed, unlocking the keystore:
  * 1) loads the stored seed and tries to decrypt using password.

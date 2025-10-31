@@ -99,7 +99,29 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
 /// bytes, resulting in 12 or 24 BIP39 recovery words.
 /// This also unlocks the keystore with the new seed.
 pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
-    keystore::_create_and_store_seed(password, host_entropy)
+    let seed_len = host_entropy.len();
+    if !matches!(seed_len, 16 | 32) {
+        return Err(Error::SeedSize);
+    }
+
+    let mut seed_vec = bitbox02::random::random_32_bytes();
+    let seed = &mut seed_vec[..seed_len];
+
+    // Mix in host entropy.
+    for (i, &entropy_byte) in host_entropy.iter().enumerate() {
+        seed[i] ^= entropy_byte;
+    }
+
+    // Mix in entropy derived from the user password.
+    let password_salted_hashed =
+        crate::salt::hash_data(password.as_bytes(), "keystore_seed_generation")
+            .map_err(|_| Error::Salt)?;
+
+    for (i, &hash_byte) in password_salted_hashed.iter().take(seed_len).enumerate() {
+        seed[i] ^= hash_byte;
+    }
+
+    encrypt_and_store_seed(seed, password)
 }
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.

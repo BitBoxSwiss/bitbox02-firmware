@@ -22,6 +22,7 @@
 #include "memory/smarteeprom.h"
 #include "system.h"
 #include "uart.h"
+#include <rust/rust.h>
 #include <screen.h>
 
 #ifndef TESTING
@@ -64,7 +65,7 @@ void reset_ble(void)
 
 void reset_reset(bool status)
 {
-    keystore_lock();
+    rust_keystore_lock();
 #if !defined(TESTING)
     bool sc_result_reset_keys = false;
     for (int retries = 0; retries < 5; retries++) {

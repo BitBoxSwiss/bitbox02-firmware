@@ -78,8 +78,7 @@ bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out)
             "keystore_retained_seed_access_in",
             "keystore_retained_seed_access_out",
             rust_util_bytes_mut(
-                retained_seed_encryption_key,
-                sizeof(retained_seed_encryption_key)))) {
+                retained_seed_encryption_key, sizeof(retained_seed_encryption_key)))) {
         return false;
     }
     size_t len = _retained_seed_encrypted_len - 48;
@@ -112,8 +111,7 @@ bool keystore_copy_bip39_seed(uint8_t* bip39_seed_out)
             "keystore_retained_bip39_seed_access_in",
             "keystore_retained_bip39_seed_access_out",
             rust_util_bytes_mut(
-                retained_bip39_seed_encryption_key,
-                sizeof(retained_bip39_seed_encryption_key)))) {
+                retained_bip39_seed_encryption_key, sizeof(retained_bip39_seed_encryption_key)))) {
         return false;
     }
     size_t len = _retained_bip39_seed_encrypted_len - 48;
@@ -295,8 +293,7 @@ USE_RESULT static bool _retain_bip39_seed(const uint8_t* bip39_seed)
             "keystore_retained_bip39_seed_access_in",
             "keystore_retained_bip39_seed_access_out",
             rust_util_bytes_mut(
-                retained_bip39_seed_encryption_key,
-                sizeof(retained_bip39_seed_encryption_key)))) {
+                retained_bip39_seed_encryption_key, sizeof(retained_bip39_seed_encryption_key)))) {
         return false;
     }
     size_t len = sizeof(_retained_bip39_seed_encrypted);

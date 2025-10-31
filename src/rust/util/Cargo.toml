@@ -23,14 +23,15 @@ license = "Apache-2.0"
 [dependencies]
 num-bigint = { workspace = true, default-features = false }
 rtt-target = { version = "0.6.1", optional = true }
-cortex-m = { version = "0.7.7", features = ["critical-section-single-core"], optional = true }
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 hex = {workspace = true}
 sha2 = { workspace = true, optional = true }
 p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"], optional = true }
 bitcoin = {workspace = true}
+critical-section = { version = "1.2.0", default-features = false, features = [] }
 
 [features]
-rtt = ["dep:rtt-target", "dep:cortex-m"]
-testing = []
-c-unit-testing = []
+rtt = ["dep:rtt-target"]
+testing = ["critical-section/std"]
+c-unit-testing = ["critical-section/std"]
 firmware = []

@@ -38,9 +38,8 @@ extern crate util;
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen and over RTT. If we compile with
 // `panic=abort` this code will never get executed.
-#[cfg(not(test))]
-#[cfg(not(feature = "testing"))]
 #[cfg_attr(feature = "bootloader", allow(unused_variables))]
+#[cfg(not(any(test, feature = "testing", feature = "c-unit-testing")))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     #[cfg(feature = "firmware")]

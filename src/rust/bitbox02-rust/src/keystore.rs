@@ -24,6 +24,7 @@ pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
 
 use util::bip32::HARDENED;
+use util::cell::SyncCell;
 
 use crate::secp256k1::SECP256K1;
 
@@ -32,9 +33,12 @@ use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 /// Length of a compressed secp256k1 pubkey.
 const EC_PUBLIC_KEY_LEN: usize = 33;
 
+static ROOT_FINGERPRINT: SyncCell<Option<[u8; 4]>> = SyncCell::new(None);
+
 /// Locks the keystore (resets to state before `unlock()`).
 pub fn lock() {
     keystore::_lock();
+    ROOT_FINGERPRINT.write(None)
 }
 
 /// Returns false if the keystore is unlocked (unlock() followed by unlock_bip39()), true otherwise.
@@ -55,7 +59,23 @@ pub async fn unlock_bip39(
     mnemonic_passphrase: &str,
     yield_now: impl AsyncFn(),
 ) -> Result<(), Error> {
-    keystore::_unlock_bip39(SECP256K1, seed, mnemonic_passphrase, yield_now).await
+    keystore::unlock_bip39_check(seed)?;
+
+    let (bip39_seed, root_fingerprint) =
+        crate::bip39::derive_seed(seed, mnemonic_passphrase, &yield_now).await;
+
+    let (bip39_seed_2, root_fingerprint_2) =
+        crate::bip39::derive_seed(seed, mnemonic_passphrase, &yield_now).await;
+
+    if bip39_seed != bip39_seed_2 || root_fingerprint != root_fingerprint_2 {
+        return Err(Error::Memory);
+    }
+
+    keystore::unlock_bip39_finalize(bip39_seed.as_slice().try_into().unwrap())?;
+
+    // Store root fingerprint.
+    ROOT_FINGERPRINT.write(Some(root_fingerprint));
+    Ok(())
 }
 
 /// Returns a copy of the retained seed. Errors if the keystore is locked.
@@ -183,7 +203,10 @@ pub fn get_xpubs_twice(keypaths: &[&[u32]]) -> Result<Vec<bip32::Xpub>, ()> {
 /// according to:
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
 pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
-    keystore::root_fingerprint()
+    if is_locked() {
+        return Err(());
+    }
+    ROOT_FINGERPRINT.read().ok_or(()).map(|fp| fp.to_vec())
 }
 
 /// Stretches the given encryption_key using the securechip. The resulting key is used to encrypt

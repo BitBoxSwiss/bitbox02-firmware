@@ -32,6 +32,40 @@ pub fn ecdsa_anti_exfil_host_commit(secp: &Secp256k1<All>, rand32: &[u8]) -> Res
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn anti_exfil_host_verify(
+    secp: &Secp256k1<All>,
+    signature: &bitcoin::secp256k1::ecdsa::Signature,
+    msg: &[u8; 32],
+    pubkey: &bitcoin::secp256k1::PublicKey,
+    host_nonce: &[u8; 32],
+    signer_commitment: &[u8; 33],
+) -> Result<(), ()> {
+    let mut opening = core::mem::MaybeUninit::<bitbox02_sys::secp256k1_ecdsa_s2c_opening>::uninit();
+    let parse_res = unsafe {
+        bitbox02_sys::secp256k1_ecdsa_s2c_opening_parse(
+            secp.ctx().as_ptr().cast(),
+            opening.as_mut_ptr(),
+            signer_commitment.as_ptr(),
+        )
+    };
+    if parse_res != 1 {
+        return Err(());
+    }
+    let opening = unsafe { opening.assume_init() };
+    let verify_res = unsafe {
+        bitbox02_sys::secp256k1_anti_exfil_host_verify(
+            secp.ctx().as_ptr().cast(),
+            signature.as_c_ptr() as *const bitbox02_sys::secp256k1_ecdsa_signature,
+            msg.as_ptr(),
+            pubkey.as_c_ptr() as *const bitbox02_sys::secp256k1_pubkey,
+            host_nonce.as_ptr(),
+            &opening,
+        )
+    };
+    if verify_res == 1 { Ok(()) } else { Err(()) }
+}
+
 pub fn dleq_prove(
     secp: &Secp256k1<All>,
     sk: &[u8; 32],

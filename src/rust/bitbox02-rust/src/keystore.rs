@@ -1208,6 +1208,67 @@ mod tests {
     }
 
     #[test]
+    fn test_secp256k1_antiklepto_protocol() {
+        mock_unlocked();
+
+        let mut keypath = [84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0];
+        let mut msg = [0x23u8; 32];
+        let mut host_nonce = [0x55u8; 32];
+
+        for index in 0..3 {
+            keypath[4] = index;
+            msg[0] = index as u8;
+            host_nonce[0] = index as u8;
+
+            // Protocol steps are described in secp256k1/include/secp256k1_ecdsa_s2c.h under
+            // "ECDSA Anti-Klepto Protocol".
+
+            // Protocol step 1.
+            let host_commitment_vec =
+                bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce).unwrap();
+            let host_commitment: [u8; 32] = host_commitment_vec.try_into().unwrap();
+
+            // Get pubkey at keypath.
+            let private_key = secp256k1_get_private_key(&keypath).unwrap();
+            let private_key_bytes: [u8; 32] = private_key.as_slice().try_into().unwrap();
+            let secret_key = secp256k1::SecretKey::from_slice(&private_key_bytes).unwrap();
+            let public_key = secret_key.public_key(SECP256K1);
+
+            // Commit - protocol step 2.
+            let signer_commitment =
+                secp256k1_nonce_commit(&private_key_bytes, &msg, &host_commitment).unwrap();
+            // Protocol step 3: host_nonce sent from host to signer to be used in step 4.
+            // Sign - protocol step 4.
+            let sign_result = secp256k1_sign(&private_key_bytes, &msg, &host_nonce).unwrap();
+
+            let signature =
+                secp256k1::ecdsa::Signature::from_compact(&sign_result.signature).unwrap();
+            // Protocol step 5: host verification.
+            bitbox02::secp256k1::anti_exfil_host_verify(
+                SECP256K1,
+                &signature,
+                &msg,
+                &public_key,
+                &host_nonce,
+                &signer_commitment,
+            )
+            .unwrap();
+
+            let message = secp256k1::Message::from_digest_slice(&msg).unwrap();
+            let recoverable_sig = secp256k1::ecdsa::RecoverableSignature::from_compact(
+                &sign_result.signature,
+                secp256k1::ecdsa::RecoveryId::from_i32(sign_result.recid as i32).unwrap(),
+            )
+            .unwrap();
+            assert!(
+                SECP256K1
+                    .verify_ecdsa(&message, &recoverable_sig.to_standard(), &public_key)
+                    .is_ok()
+            );
+        }
+    }
+
+    #[test]
     fn test_secp256k1_schnorr_sign() {
         mock_unlocked_using_mnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",

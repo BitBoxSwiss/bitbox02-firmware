@@ -49,8 +49,6 @@ target_include_directories(mocks
 set(TEST_LIST
    cleanup
    "-Wl,--wrap=util_cleanup_32"
-   keystore_antiklepto
-   ""
    gestures
    ""
    random

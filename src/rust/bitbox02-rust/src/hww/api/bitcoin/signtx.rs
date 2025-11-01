@@ -2695,8 +2695,8 @@ mod tests {
         let host_nonce = hex!("abababababababababababababababababababababababababababababababab");
         // The host nonce commitment value does not impact this test, but an invalid commitment
         // would fail the antiklepto signature check on the host. The host check is skipped here and
-        // tested in test_keystore_antiklepto.c. That the host nonce was included in the sig is
-        // tested by the siganture fixture test below.x
+        // tested in keystore::tests::test_secp256k1_antiklepto_protocol. That the host nonce was included in the sig is
+        // tested by the siganture fixture test below.
         let host_nonce_commitment = pb::AntiKleptoHostNonceCommitment {
             commitment: bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce)
                 .unwrap(),

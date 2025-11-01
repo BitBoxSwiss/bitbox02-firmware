@@ -255,6 +255,11 @@ pub fn stretch_retained_seed_encryption_key(
     Ok(zeroize::Zeroizing::new(stretched.to_vec()))
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_keystore_lock() {
+    lock()
+}
+
 /// # Safety
 ///
 /// `encryption_key` must refer to a 32-byte buffer and `out` must have space for 32 bytes.

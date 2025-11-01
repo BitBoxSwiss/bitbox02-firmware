@@ -336,7 +336,7 @@ keystore_error_t keystore_encrypt_and_store_seed(
     if (memory_is_initialized()) {
         return KEYSTORE_ERR_MEMORY;
     }
-    keystore_lock();
+    rust_keystore_lock();
     if (!_validate_seed_length(seed_length)) {
         return KEYSTORE_ERR_SEED_SIZE;
     }

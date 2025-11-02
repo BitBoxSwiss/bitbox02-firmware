@@ -40,10 +40,12 @@ pub enum Error {
     Memory,
     // Securechip error with the error code from securechip.c. 0 if the error is unspecified.
     SecureChip(i32),
+    SeedSize,
     Salt,
     Hash,
-    SeedSize,
     Encrypt,
+    Decrypt,
+    StretchRetainedSeedKey,
 }
 
 impl core::convert::From<keystore_error_t> for Error {
@@ -52,11 +54,15 @@ impl core::convert::From<keystore_error_t> for Error {
             keystore_error_t::KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED => Error::MaxAttemptsExceeded,
             keystore_error_t::KEYSTORE_ERR_UNSEEDED => Error::Unseeded,
             keystore_error_t::KEYSTORE_ERR_MEMORY => Error::Memory,
-            keystore_error_t::KEYSTORE_ERR_SEED_SIZE => Error::SeedSize,
             keystore_error_t::KEYSTORE_ERR_SECURECHIP => Error::SecureChip(0),
+            keystore_error_t::KEYSTORE_ERR_SEED_SIZE => Error::SeedSize,
             keystore_error_t::KEYSTORE_ERR_SALT => Error::Salt,
             keystore_error_t::KEYSTORE_ERR_HASH => Error::Hash,
             keystore_error_t::KEYSTORE_ERR_ENCRYPT => Error::Encrypt,
+            keystore_error_t::KEYSTORE_ERR_DECRYPT => Error::Decrypt,
+            keystore_error_t::KEYSTORE_ERR_STRETCH_RETAINED_SEED_KEY => {
+                Error::StretchRetainedSeedKey
+            }
             _ => panic!("cannot convert error"),
         }
     }

@@ -14,7 +14,6 @@
 
 extern crate alloc;
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use bitcoin::secp256k1::{All, Secp256k1};
@@ -109,28 +108,11 @@ pub fn unlock_bip39_check(seed: &[u8]) -> Result<(), Error> {
     }
 }
 
-pub fn unlock_bip39_finalize(bip39_seed: &[u8; 64]) -> Result<(), Error> {
-    if unsafe { bitbox02_sys::keystore_unlock_bip39_finalize(bip39_seed.as_ptr()) } {
-        Ok(())
-    } else {
-        Err(Error::CannotUnlockBIP39)
-    }
-}
-
 #[cfg(feature = "testing")]
 pub fn test_get_retained_seed_encrypted() -> &'static [u8] {
     unsafe {
         let mut len = 0usize;
         let ptr = bitbox02_sys::keystore_test_get_retained_seed_encrypted(&mut len);
-        core::slice::from_raw_parts(ptr, len)
-    }
-}
-
-#[cfg(feature = "testing")]
-pub fn test_get_retained_bip39_seed_encrypted() -> &'static [u8] {
-    unsafe {
-        let mut len = 0usize;
-        let ptr = bitbox02_sys::keystore_test_get_retained_bip39_seed_encrypted(&mut len);
         core::slice::from_raw_parts(ptr, len)
     }
 }
@@ -143,14 +125,6 @@ pub fn _copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
             seed.truncate(seed_len);
             Ok(seed)
         }
-        false => Err(()),
-    }
-}
-
-pub fn _copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mut bip39_seed = zeroize::Zeroizing::new(vec![0u8; 64]);
-    match unsafe { bitbox02_sys::keystore_copy_bip39_seed(bip39_seed.as_mut_ptr()) } {
-        true => Ok(bip39_seed),
         false => Err(()),
     }
 }

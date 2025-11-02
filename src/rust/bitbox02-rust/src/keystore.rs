@@ -33,12 +33,84 @@ use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 /// Length of a compressed secp256k1 pubkey.
 const EC_PUBLIC_KEY_LEN: usize = 33;
 
+/// aes256cbc-hmac cipher adds 16 bytes IV, 16 bytes padding, 32 bytes hmac.
+const ENCRYPTION_OVERHEAD: usize = 64;
+
+#[derive(Copy, Clone)]
+struct ReadOnlyBuffer {
+    // 64 is the biggest retained buffer (bip39 seed) we will store, and 64 is added for the
+    // aes256cbc-hmac overhead.
+    data: [u8; 64 + ENCRYPTION_OVERHEAD],
+    len: usize,
+}
+
+impl ReadOnlyBuffer {
+    fn from_slice(data: &[u8]) -> Self {
+        let mut result = ReadOnlyBuffer {
+            data: [0; 64 + ENCRYPTION_OVERHEAD],
+            len: data.len(),
+        };
+        result.data[..data.len()].copy_from_slice(data);
+        result
+    }
+
+    fn as_slice(&self) -> &[u8] {
+        &self.data[..self.len]
+    }
+}
+
+/// Helper struct for retaining the seed and bip39 seed.
+#[derive(Copy, Clone)]
+struct RetainedEncryptedBuffer {
+    // Stores a random key which, after stretching, is used to encrypt the retained (bip39) seed.
+    unstretched_encryption_key: [u8; 32],
+    // Stores the encrypted (bip39) seed using aes256cbc.
+    encrypted_seed: ReadOnlyBuffer,
+    purpose: &'static str,
+}
+
+impl RetainedEncryptedBuffer {
+    fn from_buffer(
+        random: &mut impl crate::hal::Random,
+        data: &[u8],
+        purpose: &'static str,
+    ) -> Result<Self, Error> {
+        let rand: [u8; 32] = random.random_32_bytes().as_slice().try_into().unwrap();
+        let encryption_key = stretch_retained_seed_encryption_key(
+            &rand,
+            &format!("{}_in", purpose),
+            &format!("{}_out", purpose),
+        )?;
+        let iv: [u8; 16] = random.random_32_bytes()[..16].try_into().unwrap();
+        let encrypted = bitbox_aes::encrypt_with_hmac(&iv, &encryption_key, data);
+        Ok(RetainedEncryptedBuffer {
+            unstretched_encryption_key: rand,
+            encrypted_seed: ReadOnlyBuffer::from_slice(&encrypted),
+            purpose,
+        })
+    }
+
+    fn decrypt(&self) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+        let encryption_key = stretch_retained_seed_encryption_key(
+            &self.unstretched_encryption_key,
+            &format!("{}_in", self.purpose),
+            &format!("{}_out", self.purpose),
+        )?;
+        bitbox_aes::decrypt_with_hmac(&encryption_key, self.encrypted_seed.as_slice())
+            .map_err(|_| Error::Decrypt)
+    }
+}
+
+// Stores the encrypted BIP-39 seed after bip39-unlock.
+static RETAINED_BIP39_SEED: SyncCell<Option<RetainedEncryptedBuffer>> = SyncCell::new(None);
+
 static ROOT_FINGERPRINT: SyncCell<Option<[u8; 4]>> = SyncCell::new(None);
 
 /// Locks the keystore (resets to state before `unlock()`).
 pub fn lock() {
     keystore::_lock();
-    ROOT_FINGERPRINT.write(None)
+    ROOT_FINGERPRINT.write(None);
+    RETAINED_BIP39_SEED.write(None);
 }
 
 /// Returns false if the keystore is unlocked (unlock() followed by unlock_bip39()), true otherwise.
@@ -72,6 +144,7 @@ pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
 /// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
 /// passphrase is needed or provided.
 pub async fn unlock_bip39(
+    random: &mut impl crate::hal::Random,
     seed: &[u8],
     mnemonic_passphrase: &str,
     yield_now: impl AsyncFn(),
@@ -88,7 +161,11 @@ pub async fn unlock_bip39(
         return Err(Error::Memory);
     }
 
-    keystore::unlock_bip39_finalize(bip39_seed.as_slice().try_into().unwrap())?;
+    RETAINED_BIP39_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
+        random,
+        bip39_seed.as_slice(),
+        "keystore_retained_bip39_seed_access",
+    )?));
 
     // Store root fingerprint.
     ROOT_FINGERPRINT.write(Some(root_fingerprint));
@@ -102,7 +179,11 @@ pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 
 /// Returns a copy of the retained bip39 seed. Errors if the keystore is locked.
 pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    keystore::_copy_bip39_seed()
+    RETAINED_BIP39_SEED
+        .read()
+        .ok_or(())?
+        .decrypt()
+        .map_err(|_| ())
 }
 
 /// Restores a seed. This also unlocks the keystore with this seed.
@@ -279,6 +360,11 @@ pub fn stretch_retained_seed_encryption_key(
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_lock() {
     lock()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_keystore_is_unlocked_bip39() -> bool {
+    RETAINED_BIP39_SEED.read().is_some()
 }
 
 /// # Safety
@@ -512,7 +598,13 @@ pub mod testing {
     pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
         let seed = crate::bip39::mnemonic_to_seed(mnemonic).unwrap();
         bitbox02::keystore::mock_unlocked(&seed);
-        util::bb02_async::block_on(super::unlock_bip39(&seed, passphrase, async || {})).unwrap();
+        util::bb02_async::block_on(super::unlock_bip39(
+            &mut crate::hal::testing::TestingRandom::new(),
+            &seed,
+            passphrase,
+            async || {},
+        ))
+        .unwrap();
     }
 
     pub const TEST_MNEMONIC: &str = "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay";
@@ -651,6 +743,7 @@ mod tests {
 
     #[test]
     fn test_lock() {
+        let mut random = crate::hal::testing::TestingRandom::new();
         lock();
         assert!(is_locked());
 
@@ -658,7 +751,7 @@ mod tests {
             .unwrap();
         assert!(encrypt_and_store_seed(&seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(block_on(unlock_bip39(&seed, "foo", async || {})).is_ok());
+        assert!(block_on(unlock_bip39(&mut random, &seed, "foo", async || {})).is_ok());
         assert!(!is_locked());
         lock();
         assert!(is_locked());
@@ -749,6 +842,7 @@ mod tests {
         // Incorrect seed passed
         assert!(
             block_on(unlock_bip39(
+                &mut crate::hal::testing::TestingRandom::new(),
                 b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "foo",
                 async || {}
@@ -756,8 +850,14 @@ mod tests {
             .is_err()
         );
         // Correct seed passed.
+        let mut random = crate::hal::testing::TestingRandom::new();
+        // Mock random value used for creating the unstretched bip39 seed encryption key.
+        random.mock_next(hex!(
+            "9b44c7048893faaf6e2d7625d13d8f1cab0765fd61f159d9713e08155d06717c"
+        ));
+
         bitbox02::securechip::fake_event_counter_reset();
-        assert!(block_on(unlock_bip39(&seed, "foo", async || {})).is_ok());
+        assert!(block_on(unlock_bip39(&mut random, &seed, "foo", async || {})).is_ok());
         assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
@@ -770,14 +870,16 @@ mod tests {
 
         // Check that the retained bip39 seed was encrypted with the expected encryption key.
         let decrypted = {
-            let retained_bip39_seed_encrypted: &[u8] =
-                keystore::test_get_retained_bip39_seed_encrypted();
             let expected_retained_bip39_seed_secret =
                 hex::decode("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29")
                     .unwrap();
             bitbox_aes::decrypt_with_hmac(
                 &expected_retained_bip39_seed_secret,
-                retained_bip39_seed_encrypted,
+                RETAINED_BIP39_SEED
+                    .read()
+                    .unwrap()
+                    .encrypted_seed
+                    .as_slice(),
             )
             .unwrap()
         };
@@ -1153,7 +1255,15 @@ mod tests {
             lock();
             let seed = &seed[..test.seed_len];
 
-            assert!(block_on(unlock_bip39(seed, test.mnemonic_passphrase, async || {})).is_err());
+            assert!(
+                block_on(unlock_bip39(
+                    &mut crate::hal::testing::TestingRandom::new(),
+                    seed,
+                    test.mnemonic_passphrase,
+                    async || {}
+                ))
+                .is_err()
+            );
 
             bitbox02::securechip::fake_event_counter_reset();
             assert!(encrypt_and_store_seed(seed, "foo").is_ok());
@@ -1162,7 +1272,15 @@ mod tests {
             assert!(is_locked());
 
             bitbox02::securechip::fake_event_counter_reset();
-            assert!(block_on(unlock_bip39(seed, test.mnemonic_passphrase, async || {})).is_ok());
+            assert!(
+                block_on(unlock_bip39(
+                    &mut crate::hal::testing::TestingRandom::new(),
+                    seed,
+                    test.mnemonic_passphrase,
+                    async || {}
+                ))
+                .is_ok()
+            );
             assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
 
             assert!(!is_locked());

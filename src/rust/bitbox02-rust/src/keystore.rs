@@ -121,7 +121,8 @@ pub fn lock() {
 
 /// Returns false if the keystore is unlocked (unlock() followed by unlock_bip39()), true otherwise.
 pub fn is_locked() -> bool {
-    keystore::_is_locked()
+    let unlocked = RETAINED_SEED.read().is_some() && RETAINED_BIP39_SEED.read().is_some();
+    !unlocked
 }
 
 fn verify_seed(encryption_key: &[u8], expected_seed: &[u8]) -> bool {
@@ -412,13 +413,13 @@ pub extern "C" fn rust_keystore_lock() {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_is_unlocked_device() -> bool {
-    RETAINED_SEED.read().is_some()
+pub extern "C" fn rust_keystore_is_locked() -> bool {
+    is_locked()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_is_unlocked_bip39() -> bool {
-    RETAINED_BIP39_SEED.read().is_some()
+pub extern "C" fn rust_keystore_is_unlocked_device() -> bool {
+    RETAINED_SEED.read().is_some()
 }
 
 #[unsafe(no_mangle)]

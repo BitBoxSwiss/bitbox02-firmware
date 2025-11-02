@@ -26,10 +26,6 @@ use bitbox02_sys::keystore_error_t;
 const EC_PUBLIC_KEY_LEN: usize = 33;
 pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usize;
 
-pub fn _is_locked() -> bool {
-    unsafe { bitbox02_sys::keystore_is_locked() }
-}
-
 #[derive(Debug)]
 pub enum Error {
     CannotUnlockBIP39,

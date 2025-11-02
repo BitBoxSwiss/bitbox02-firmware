@@ -75,7 +75,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_bip39_mnemonic_to_seed",
     "keystore_encrypt_and_store_seed",
     "keystore_get_bip39_word",
-    "keystore_is_locked",
     "keystore_secp256k1_nonce_commit",
     "keystore_secp256k1_sign",
     "keystore_unlock",

@@ -82,12 +82,6 @@ USE_RESULT keystore_error_t keystore_unlock(
     size_t* seed_len_out);
 
 /**
- * @return false if the keystore is unlocked (keystore_unlock() followed by
- * keystore_unlock_bip39()), true otherwise.
- */
-USE_RESULT bool keystore_is_locked(void);
-
-/**
  * Retrieves the BIP39 word by index. `word_out` should be of at least 9 bytes long.
  */
 USE_RESULT bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size);

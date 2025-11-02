@@ -106,7 +106,7 @@ static size_t _api_info(uint8_t* buf)
     current++;
 
     // 1 byte locked status
-    *current = keystore_is_locked() ? 0x00 : 0x01;
+    *current = rust_keystore_is_locked() ? 0x00 : 0x01;
     current++;
 
     // 1 byte initialized status

@@ -29,10 +29,6 @@
 #include <rust/rust.h>
 #include <secp256k1_ecdsa_s2c.h>
 
-// A hash of the unencrypted retained seed, used for comparing seeds without knowing their
-// plaintext.
-static uint8_t _retained_seed_hash[32] = {0};
-
 // Unlocking the keystore take longer than the 500ms watchdog we have setup. Reset the watchdog
 // counter to (~7s) to avoid incorrectly assuming we lost communication with the app.
 #define LONG_TIMEOUT (-70)
@@ -99,29 +95,12 @@ static keystore_error_t _get_and_decrypt_seed(
     return KEYSTORE_OK;
 }
 
-static keystore_error_t _hash_seed(const uint8_t* seed, size_t seed_len, uint8_t* out)
-{
-    uint8_t salted_key[32] = {0};
-    if (!salt_hash_data(NULL, 0, "keystore_retain_seed_hash", salted_key)) {
-        return KEYSTORE_ERR_SALT;
-    }
-
-    rust_hmac_sha256(salted_key, sizeof(salted_key), seed, seed_len, out);
-    return KEYSTORE_OK;
-}
-
 USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed_len)
 {
     if (!rust_keystore_retain_seed(rust_util_bytes(seed, seed_len))) {
         return KEYSTORE_ERR_STRETCH_RETAINED_SEED_KEY;
     }
-
-    return _hash_seed(seed, seed_len, _retained_seed_hash);
-}
-
-static void _delete_retained_seeds(void)
-{
-    util_zero(_retained_seed_hash, sizeof(_retained_seed_hash));
+    return KEYSTORE_OK;
 }
 
 keystore_error_t keystore_encrypt_and_store_seed(
@@ -177,23 +156,6 @@ keystore_error_t keystore_encrypt_and_store_seed(
     return KEYSTORE_OK;
 }
 
-// Checks if the retained seed matches the passed seed.
-static bool _check_retained_seed(const uint8_t* seed, size_t seed_length)
-{
-    if (!rust_keystore_is_unlocked_device()) {
-        return false;
-    }
-    uint8_t seed_hashed[32] = {0};
-    UTIL_CLEANUP_32(seed_hashed);
-    if (_hash_seed(seed, seed_length, seed_hashed) != KEYSTORE_OK) {
-        return false;
-    }
-    if (!MEMEQ(seed_hashed, _retained_seed_hash, sizeof(_retained_seed_hash))) {
-        return false;
-    }
-    return true;
-}
-
 keystore_error_t keystore_unlock(
     const char* password,
     uint8_t* remaining_attempts_out,
@@ -229,7 +191,7 @@ keystore_error_t keystore_unlock(
     if (result == KEYSTORE_OK) {
         if (rust_keystore_is_unlocked_device()) {
             // Already unlocked. Fail if the seed changed under our feet (should never happen).
-            if (!_check_retained_seed(seed, seed_len)) {
+            if (!rust_keystore_check_retained_seed(rust_util_bytes(seed, seed_len))) {
                 Abort("Seed has suddenly changed. This should never happen.");
             }
         } else {
@@ -256,24 +218,6 @@ keystore_error_t keystore_unlock(
 
     *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
     return result;
-}
-
-bool keystore_unlock_bip39_check(const uint8_t* seed, size_t seed_length)
-{
-    if (!rust_keystore_is_unlocked_device()) {
-        return false;
-    }
-
-    if (!_check_retained_seed(seed, seed_length)) {
-        return false;
-    }
-
-    return true;
-}
-
-void keystore_lock(void)
-{
-    _delete_retained_seeds();
 }
 
 bool keystore_is_locked(void)
@@ -324,14 +268,3 @@ bool keystore_secp256k1_sign(
     }
     return true;
 }
-
-#ifdef TESTING
-void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len)
-{
-    if (seed != NULL) {
-        if (_retain_seed(seed, seed_len) != KEYSTORE_OK) {
-            Abort("couldn't retain seed");
-        }
-    }
-}
-#endif

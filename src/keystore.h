@@ -82,20 +82,6 @@ USE_RESULT keystore_error_t keystore_unlock(
     size_t* seed_len_out);
 
 /**
- * Checks if bip39 unlocking can be performed. It can be performed if `keystore_unlock()`
- * successfully and the input seed matches the keystore seed (i.e. must match the output
- * of `keystore_copy_seed()`).
- * @param[in] seed the input seed to BIP39.
- * @param[in] seed_length the size of the seed
- */
-USE_RESULT bool keystore_unlock_bip39_check(const uint8_t* seed, size_t seed_length);
-
-/**
- * Locks the keystore (resets to state before `keystore_unlock()`).
- */
-void keystore_lock(void);
-
-/**
  * @return false if the keystore is unlocked (keystore_unlock() followed by
  * keystore_unlock_bip39()), true otherwise.
  */
@@ -158,12 +144,5 @@ USE_RESULT bool keystore_secp256k1_sign(
     const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,
     int* recid_out);
-
-#ifdef TESTING
-/**
- * convenience to mock the keystore state (locked, seed) in tests.
- */
-void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len);
-#endif
 
 #endif

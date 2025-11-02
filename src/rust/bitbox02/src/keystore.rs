@@ -96,18 +96,6 @@ pub fn _unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     }
 }
 
-pub fn _lock() {
-    unsafe { bitbox02_sys::keystore_lock() }
-}
-
-pub fn unlock_bip39_check(seed: &[u8]) -> Result<(), Error> {
-    if unsafe { bitbox02_sys::keystore_unlock_bip39_check(seed.as_ptr(), seed.len()) } {
-        Ok(())
-    } else {
-        Err(Error::CannotUnlockBIP39)
-    }
-}
-
 pub struct SignResult {
     pub signature: [u8; 64],
     pub recid: u8,
@@ -174,9 +162,4 @@ pub fn _encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error>
         keystore_error_t::KEYSTORE_OK => Ok(()),
         err => Err(err.into()),
     }
-}
-
-#[cfg(feature = "testing")]
-pub fn mock_unlocked(seed: &[u8]) {
-    unsafe { bitbox02_sys::keystore_mock_unlocked(seed.as_ptr(), seed.len() as _) }
 }

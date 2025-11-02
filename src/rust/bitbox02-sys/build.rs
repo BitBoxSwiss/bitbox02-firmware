@@ -86,7 +86,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_test_get_retained_seed_encrypted",
     "keystore_test_get_retained_bip39_seed_encrypted",
     "label_create",
-    "localtime",
+    "gmtime",
     "memory_set_salt_root",
     "memory_add_noise_remote_static_pubkey",
     "memory_bootloader_hash",

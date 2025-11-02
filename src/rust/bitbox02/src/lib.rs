@@ -175,12 +175,12 @@ impl Tm {
 pub fn get_datetime(timestamp: u32) -> Result<Tm, ()> {
     Ok(Tm {
         tm: unsafe {
-            let localtime = bitbox02_sys::localtime(&(timestamp as bitbox02_sys::time_t));
-            if localtime.is_null() {
+            let gmtime = bitbox02_sys::gmtime(&(timestamp as bitbox02_sys::time_t));
+            if gmtime.is_null() {
                 return Err(());
             }
 
-            *localtime
+            *gmtime
         },
     })
 }

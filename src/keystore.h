@@ -45,16 +45,6 @@ typedef enum {
 } keystore_error_t;
 
 /**
- * Copies the retained seed into the given buffer. The caller must
- * zero the seed with util_zero once it is no longer needed.
- * @param[out] seed_out The seed bytes copied from the retained seed.
- * The buffer should be KEYSTORE_MAX_SEED_LENGTH bytes long.
- * @param[out] length_out The seed length.
- * @return true if the seed was still retained.
- */
-USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out);
-
-/**
  * Restores a seed. This also unlocks the keystore with this seed.
  * @param[in] seed The seed that is to be restored.
  * @param[in] seed_length The length of the seed (max. 32 bytes).
@@ -174,8 +164,6 @@ USE_RESULT bool keystore_secp256k1_sign(
  * convenience to mock the keystore state (locked, seed) in tests.
  */
 void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len);
-
-const uint8_t* keystore_test_get_retained_seed_encrypted(size_t* len_out);
 #endif
 
 #endif

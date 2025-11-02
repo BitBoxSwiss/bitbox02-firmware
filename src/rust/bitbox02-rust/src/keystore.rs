@@ -101,6 +101,8 @@ impl RetainedEncryptedBuffer {
     }
 }
 
+// Stores the encrypted seed after unlock.
+static RETAINED_SEED: SyncCell<Option<RetainedEncryptedBuffer>> = SyncCell::new(None);
 // Stores the encrypted BIP-39 seed after bip39-unlock.
 static RETAINED_BIP39_SEED: SyncCell<Option<RetainedEncryptedBuffer>> = SyncCell::new(None);
 
@@ -110,6 +112,7 @@ static ROOT_FINGERPRINT: SyncCell<Option<[u8; 4]>> = SyncCell::new(None);
 pub fn lock() {
     keystore::_lock();
     ROOT_FINGERPRINT.write(None);
+    RETAINED_SEED.write(None);
     RETAINED_BIP39_SEED.write(None);
 }
 
@@ -133,6 +136,28 @@ fn verify_seed(encryption_key: &[u8], expected_seed: &[u8]) -> bool {
     };
 
     decrypted.as_slice() == expected_seed
+}
+
+fn retain_seed(seed: &[u8]) -> Result<(), Error> {
+    // TODO: temporary inline mocked value for testing until we are able to pass through the HAL
+    // instance properly.
+    #[cfg(feature = "testing")]
+    let mut random = {
+        let mut r = crate::hal::testing::TestingRandom::new();
+        r.mock_next(hex_lit::hex!(
+            "fe0976011452a72212e4b8bd572b5be30141a356f11337d29d35ea8ff997befc"
+        ));
+        r
+    };
+    #[cfg(not(feature = "testing"))]
+    let mut random = crate::hal::BitBox02Random;
+
+    RETAINED_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
+        &mut random,
+        seed,
+        "keystore_retained_seed_access",
+    )?));
+    Ok(())
 }
 
 pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
@@ -174,7 +199,7 @@ pub async fn unlock_bip39(
 
 /// Returns a copy of the retained seed. Errors if the keystore is locked.
 pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    keystore::_copy_seed()
+    RETAINED_SEED.read().ok_or(())?.decrypt().map_err(|_| ())
 }
 
 /// Returns a copy of the retained bip39 seed. Errors if the keystore is locked.
@@ -363,39 +388,18 @@ pub extern "C" fn rust_keystore_lock() {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn rust_keystore_is_unlocked_device() -> bool {
+    RETAINED_SEED.read().is_some()
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_is_unlocked_bip39() -> bool {
     RETAINED_BIP39_SEED.read().is_some()
 }
 
-/// # Safety
-///
-/// `encryption_key` must refer to a 32-byte buffer and `out` must have space for 32 bytes.
-/// `purpose_in` and `purpose_out` must be null-terminated C strings.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rust_keystore_stretch_retained_seed_encryption_key(
-    encryption_key: util::bytes::Bytes,
-    purpose_in: *const core::ffi::c_char,
-    purpose_out: *const core::ffi::c_char,
-    mut out: util::bytes::BytesMut,
-) -> bool {
-    let encryption_key: [u8; 32] = match encryption_key.as_ref().try_into() {
-        Ok(key) => key,
-        Err(_) => return false,
-    };
-    let purpose_in = unsafe { bitbox02::util::str_from_null_terminated_ptr(purpose_in) };
-    let purpose_out = unsafe { bitbox02::util::str_from_null_terminated_ptr(purpose_out) };
-    let (purpose_in, purpose_out) = match (purpose_in, purpose_out) {
-        (Ok(purpose_in), Ok(purpose_out)) => (purpose_in, purpose_out),
-        _ => return false,
-    };
-
-    match stretch_retained_seed_encryption_key(&encryption_key, purpose_in, purpose_out) {
-        Ok(stretched) => {
-            out.as_mut().copy_from_slice(stretched.as_slice());
-            true
-        }
-        Err(_) => false,
-    }
+pub extern "C" fn rust_keystore_retain_seed(seed: util::bytes::Bytes) -> bool {
+    retain_seed(seed.as_ref()).is_ok()
 }
 
 #[unsafe(no_mangle)]
@@ -791,12 +795,14 @@ mod tests {
 
         // Also check that the retained seed was encrypted with the expected encryption key.
         let decrypted = {
-            let retained_seed_encrypted: &[u8] = keystore::test_get_retained_seed_encrypted();
             let expected_retained_seed_secret =
                 hex::decode("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7")
                     .unwrap();
-            bitbox_aes::decrypt_with_hmac(&expected_retained_seed_secret, retained_seed_encrypted)
-                .unwrap()
+            bitbox_aes::decrypt_with_hmac(
+                &expected_retained_seed_secret,
+                RETAINED_SEED.read().unwrap().encrypted_seed.as_slice(),
+            )
+            .unwrap()
         };
         assert_eq!(decrypted.as_slice(), seed.as_slice());
 
@@ -1083,37 +1089,6 @@ mod tests {
 
         let expected = hex!("b6b20683810aee16b5603ae95d14eaae5ae2c8d9df9b66e1b67c698e627bb208");
         assert_eq!(stretched.as_slice(), expected.as_slice());
-    }
-
-    #[test]
-    fn test_rust_keystore_stretch_retained_seed_encryption_key_success() {
-        mock_memory();
-        let salt_root =
-            hex::decode("0000000000000000111111111111111122222222222222223333333333333333")
-                .unwrap();
-        bitbox02::memory::set_salt_root(salt_root.as_slice().try_into().unwrap()).unwrap();
-
-        let encryption_key_vec =
-            hex::decode("00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00")
-                .unwrap();
-
-        let mut out = [0u8; 32];
-        let purpose_in = c"keystore_retained_seed_access_in";
-        let purpose_out = c"keystore_retained_seed_access_out";
-
-        let success = unsafe {
-            rust_keystore_stretch_retained_seed_encryption_key(
-                util::bytes::rust_util_bytes(encryption_key_vec.as_ptr(), encryption_key_vec.len()),
-                purpose_in.as_ptr(),
-                purpose_out.as_ptr(),
-                util::bytes::rust_util_bytes_mut(out.as_mut_ptr(), out.len()),
-            )
-        };
-        assert!(success);
-        let expected =
-            hex::decode("b6b20683810aee16b5603ae95d14eaae5ae2c8d9df9b66e1b67c698e627bb208")
-                .unwrap();
-        assert_eq!(out, expected.as_slice());
     }
 
     #[test]

@@ -108,27 +108,6 @@ pub fn unlock_bip39_check(seed: &[u8]) -> Result<(), Error> {
     }
 }
 
-#[cfg(feature = "testing")]
-pub fn test_get_retained_seed_encrypted() -> &'static [u8] {
-    unsafe {
-        let mut len = 0usize;
-        let ptr = bitbox02_sys::keystore_test_get_retained_seed_encrypted(&mut len);
-        core::slice::from_raw_parts(ptr, len)
-    }
-}
-
-pub fn _copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
-    let mut seed_len: usize = 0;
-    match unsafe { bitbox02_sys::keystore_copy_seed(seed.as_mut_ptr(), &mut seed_len) } {
-        true => {
-            seed.truncate(seed_len);
-            Ok(seed)
-        }
-        false => Err(()),
-    }
-}
-
 pub struct SignResult {
     pub signature: [u8; 64],
     pub recid: u8,

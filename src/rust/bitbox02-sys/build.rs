@@ -51,6 +51,9 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "confirm_params_t",
     "trinary_input_string_params_t",
     "securechip_error_t",
+    "secp256k1_ecdsa_s2c_opening",
+    "secp256k1_ecdsa_signature",
+    "secp256k1_pubkey",
 ];
 
 const ALLOWLIST_FNS: &[&str] = &[
@@ -141,6 +144,8 @@ const ALLOWLIST_FNS: &[&str] = &[
     "sd_write_bin",
     "sdcard_create",
     "secp256k1_ecdsa_anti_exfil_host_commit",
+    "secp256k1_ecdsa_s2c_opening_parse",
+    "secp256k1_anti_exfil_host_verify",
     "securechip_attestation_sign",
     "securechip_kdf",
     "securechip_model",

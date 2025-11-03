@@ -46,6 +46,23 @@ pub fn is_locked() -> bool {
     keystore::_is_locked()
 }
 
+fn verify_seed(encryption_key: &[u8], expected_seed: &[u8]) -> bool {
+    if encryption_key.len() != 32 {
+        return false;
+    }
+
+    let cipher = match bitbox02::memory::get_encrypted_seed_and_hmac() {
+        Ok(cipher) => cipher,
+        Err(_) => return false,
+    };
+    let decrypted = match bitbox_aes::decrypt_with_hmac(encryption_key, &cipher) {
+        Ok(decrypted) => decrypted,
+        Err(_) => return false,
+    };
+
+    decrypted.as_slice() == expected_seed
+}
+
 pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     keystore::_unlock(password)
 }
@@ -289,6 +306,14 @@ pub unsafe extern "C" fn rust_keystore_stretch_retained_seed_encryption_key(
         }
         Err(_) => false,
     }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_keystore_verify_seed(
+    encryption_key: util::bytes::Bytes,
+    expected_seed: util::bytes::Bytes,
+) -> bool {
+    verify_seed(encryption_key.as_ref(), expected_seed.as_ref())
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

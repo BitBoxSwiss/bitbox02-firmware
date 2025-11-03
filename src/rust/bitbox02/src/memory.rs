@@ -98,7 +98,6 @@ pub fn get_attestation_pubkey_and_certificate(
     }
 }
 
-#[cfg(feature = "testing")]
 pub fn get_encrypted_seed_and_hmac() -> Result<alloc::vec::Vec<u8>, ()> {
     let mut out = vec![0u8; 96];
     let mut len = 0u8;

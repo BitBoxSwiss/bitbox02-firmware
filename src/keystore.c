@@ -192,39 +192,6 @@ static keystore_error_t _get_and_decrypt_seed(
     return KEYSTORE_OK;
 }
 
-static bool _verify_seed(
-    const uint8_t* encryption_key,
-    const uint8_t* expected_seed,
-    size_t expected_seed_len)
-{
-    uint8_t encrypted_seed_and_hmac[96];
-    UTIL_CLEANUP_32(encrypted_seed_and_hmac);
-    uint8_t encrypted_len;
-    if (!memory_get_encrypted_seed_and_hmac(encrypted_seed_and_hmac, &encrypted_len)) {
-        return false;
-    }
-    if (encrypted_len < 49) {
-        Abort("_verify_seed: underflow / zero size");
-    }
-    size_t decrypted_len = encrypted_len - 48;
-    uint8_t decrypted[decrypted_len];
-    bool password_correct = cipher_aes_hmac_decrypt(
-        encrypted_seed_and_hmac, encrypted_len, decrypted, &decrypted_len, encryption_key);
-    if (!password_correct) {
-        return false;
-    }
-    if (expected_seed_len != decrypted_len) {
-        util_zero(decrypted, sizeof(decrypted));
-        return false;
-    }
-    if (!MEMEQ(expected_seed, decrypted, expected_seed_len)) {
-        util_zero(decrypted, sizeof(decrypted));
-        return false;
-    }
-    util_zero(decrypted, sizeof(decrypted));
-    return true;
-}
-
 static keystore_error_t _hash_seed(const uint8_t* seed, size_t seed_len, uint8_t* out)
 {
     uint8_t salted_key[32] = {0};
@@ -362,7 +329,9 @@ keystore_error_t keystore_encrypt_and_store_seed(
     if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len_u8)) {
         return KEYSTORE_ERR_MEMORY;
     }
-    if (!_verify_seed(secret, seed, seed_length)) {
+    if (!rust_keystore_verify_seed(
+            rust_util_bytes(secret, sizeof(secret)),
+            rust_util_bytes(seed, seed_length))) {
         if (!memory_reset_hww()) {
             return KEYSTORE_ERR_MEMORY;
         }

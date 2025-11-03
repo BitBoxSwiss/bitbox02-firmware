@@ -1283,7 +1283,6 @@ mod tests {
         };
 
         // Test without tweak
-        bitbox02::random::fake_reset();
 
         bitbox02::securechip::fake_event_counter_reset();
         let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
@@ -1300,7 +1299,6 @@ mod tests {
         );
 
         // Test with tweak
-        bitbox02::random::fake_reset();
         let tweak = secp256k1::Scalar::from_be_bytes(hex!(
             "a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c"
         ))

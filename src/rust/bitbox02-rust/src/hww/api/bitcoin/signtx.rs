@@ -1195,6 +1195,7 @@ async fn _process(
 
             next_response.next.has_signature = true;
             next_response.next.signature = crate::keystore::secp256k1_schnorr_sign(
+                hal.random(),
                 &tx_input.keypath,
                 &sighash,
                 if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {
@@ -2155,7 +2156,6 @@ mod tests {
             }));
 
         mock_unlocked();
-        bitbox02::random::fake_reset();
         let mut init_request = transaction.borrow().init_request();
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {
@@ -2172,7 +2172,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "472ef2aa293d5697649a5364d40567d6eaf508fca9e51321c5a48de42c32b4bbc2d0cee4ab6fea1f3b137a1cbca2abe72aa945c50e95e02fa8ac354fddf2ca10"
+                        "74fa05435a838a76ab34105f783d8d69136977b85df4644dec6afc85bba669ddb7c127d7a5a6d3cb406843b6e4366a276872228bb9efa4e3c22cfd07be3198b5"
                     )
                 );
             }
@@ -3350,7 +3350,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        bitbox02::random::fake_reset();
         // For the policy registration below.
         mock_memory();
 
@@ -3388,7 +3387,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "f4b760fa7f1ca8a00149bf439c07dcd3aafe4c98111607cece4b80066f7ef2e4406d18831990def0bf4a5b5647dc426ef1f749524adf0a6896844cd90b796031"
+                        "63bb140c52b30f8625219dac0951cad4a6c1c2c5c6a014be40fd46a80ab77207780626f7d568e885f26484bbc3624714a26234a0da5236775cbfae5ed7a6ad8d"
                     )
                 );
             }

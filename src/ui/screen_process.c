@@ -16,7 +16,9 @@
 #include "screen_stack.h"
 #include <hardfault.h>
 #include <touch/gestures.h>
+#include <ui/canvas.h>
 #include <ui/components/waiting.h>
+#include <ui/oled/oled.h>
 #include <ui/screen_process.h>
 #include <ui/screen_saver.h>
 #include <ui/ugui/ugui.h>
@@ -25,11 +27,11 @@ static uint8_t screen_frame_cnt = 0;
 
 void ui_screen_render_component(component_t* component)
 {
-    screen_clear();
     component->position.left = 0;
     component->position.top = 0;
     component->f->render(component);
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
 }
 
 static component_t* _get_waiting_screen(void)

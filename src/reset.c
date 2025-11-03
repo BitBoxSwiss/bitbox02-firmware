@@ -24,12 +24,14 @@
 #include "uart.h"
 #include <rust/rust.h>
 #include <screen.h>
+#include <ui/canvas.h>
 
 #ifndef TESTING
 #include "securechip/securechip.h"
 #include <driver_init.h>
 #include <hal_delay.h>
 #include <ui/components/status.h>
+#include <ui/oled/oled.h>
 #include <ui/ugui/ugui.h>
 #endif
 
@@ -42,9 +44,10 @@ static void _show_reset_label(bool status)
 {
     const char* msg = "Device reset";
     component_t* comp = status_create(msg, status, NULL, NULL);
-    screen_clear();
+    canvas_clear();
     comp->f->render(comp);
-    UG_SendBuffer();
+    canvas_commit();
+    oled_present();
     comp->f->cleanup(comp);
     delay_ms(3000);
 }

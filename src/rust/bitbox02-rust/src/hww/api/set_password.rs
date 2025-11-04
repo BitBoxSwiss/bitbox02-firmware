@@ -36,7 +36,7 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
     let password = password::enter_twice(hal).await?;
-    if let Err(err) = keystore::create_and_store_seed(&password, entropy) {
+    if let Err(err) = keystore::create_and_store_seed(hal.random(), &password, entropy) {
         hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }

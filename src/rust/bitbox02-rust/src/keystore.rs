@@ -431,6 +431,7 @@ pub fn secp256k1_nonce_commit(
 /// Sign a message using the private key at the keypath, which is optionally tweaked with the given
 /// tweak.
 pub fn secp256k1_schnorr_sign(
+    random: &mut impl crate::hal::Random,
     keypath: &[u32],
     msg: &[u8; 32],
     tweak: Option<&[u8; 32]>,
@@ -448,10 +449,11 @@ pub fn secp256k1_schnorr_sign(
             .map_err(|_| ())?;
     }
 
+    let aux_rand = random.random_32_bytes();
     let sig = SECP256K1.sign_schnorr_with_aux_rand(
         &bitcoin::secp256k1::Message::from_digest(*msg),
         &keypair,
-        &bitbox02::random::random_32_bytes(),
+        &aux_rand,
     );
     Ok(sig.serialize())
 }
@@ -522,6 +524,7 @@ pub mod testing {
 mod tests {
     use super::*;
 
+    use crate::hal::{Random, testing::TestingRandom};
     use hex_lit::hex;
 
     use bitbox02::testing::mock_memory;
@@ -1308,10 +1311,10 @@ mod tests {
         };
 
         // Test without tweak
-        bitbox02::random::fake_reset();
 
         bitbox02::securechip::fake_event_counter_reset();
-        let sig = secp256k1_schnorr_sign(&keypath, &msg, None).unwrap();
+        let mut random = crate::hal::testing::TestingRandom::new();
+        let sig = secp256k1_schnorr_sign(&mut random, &keypath, &msg, None).unwrap();
         assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
 
         assert!(
@@ -1325,13 +1328,14 @@ mod tests {
         );
 
         // Test with tweak
-        bitbox02::random::fake_reset();
         let tweak = secp256k1::Scalar::from_be_bytes(hex!(
             "a39fb163dbd9b5e0840af3cc1ee41d5b31245c5dd8d6bdc3d026d09b8964997c"
         ))
         .unwrap();
         let (tweaked_pubkey, _) = expected_pubkey.add_tweak(SECP256K1, &tweak).unwrap();
-        let sig = secp256k1_schnorr_sign(&keypath, &msg, Some(&tweak.to_be_bytes())).unwrap();
+        let mut random = crate::hal::testing::TestingRandom::new();
+        let sig = secp256k1_schnorr_sign(&mut random, &keypath, &msg, Some(&tweak.to_be_bytes()))
+            .unwrap();
         assert!(
             SECP256K1
                 .verify_schnorr(

@@ -115,13 +115,17 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
 /// password. The size of the host entropy determines the size of the seed. Can be either 16 or 32
 /// bytes, resulting in 12 or 24 BIP39 recovery words.
 /// This also unlocks the keystore with the new seed.
-pub fn create_and_store_seed(password: &str, host_entropy: &[u8]) -> Result<(), Error> {
+pub fn create_and_store_seed(
+    random: &mut impl crate::hal::Random,
+    password: &str,
+    host_entropy: &[u8],
+) -> Result<(), Error> {
     let seed_len = host_entropy.len();
     if !matches!(seed_len, 16 | 32) {
         return Err(Error::SeedSize);
     }
 
-    let mut seed_vec = bitbox02::random::random_32_bytes();
+    let mut seed_vec = random.random_32_bytes();
     let seed = &mut seed_vec[..seed_len];
 
     // Mix in host entropy.
@@ -575,19 +579,18 @@ mod tests {
             hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
                 .unwrap();
 
+        let mut random = crate::hal::testing::TestingRandom::new();
+
         // Invalid seed lengths
         for size in [8, 24, 40] {
             assert!(matches!(
-                create_and_store_seed("password", &host_entropy[..size]),
+                create_and_store_seed(&mut random, "password", &host_entropy[..size]),
                 Err(Error::SeedSize)
             ));
         }
 
         // Hack to get the random bytes that will be used.
-        let seed_random = {
-            bitbox02::random::fake_reset();
-            bitbox02::random::random_32_bytes()
-        };
+        let seed_random = [0x34; 32];
 
         // Derived from mock_salt_root and "password".
         let password_salted_hashed =
@@ -608,7 +611,9 @@ mod tests {
             bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
             lock();
 
-            assert!(create_and_store_seed("password", &host_entropy[..size]).is_ok());
+            let mut random = crate::hal::testing::TestingRandom::new();
+            random.mock_next(seed_random);
+            assert!(create_and_store_seed(&mut random, "password", &host_entropy[..size]).is_ok());
             assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.

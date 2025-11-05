@@ -497,3 +497,31 @@ where
         _p: PhantomData,
     }
 }
+
+pub fn orientation_arrows<'a, F>(on_done: F) -> Component<'a>
+where
+    // Callback must outlive component.
+    F: FnMut(bool) + 'a,
+{
+    unsafe extern "C" fn c_on_done<F2>(upside_down: bool, param: *mut c_void)
+    where
+        F2: FnOnce(bool),
+    {
+        // The callback is dropped afterwards. This is safe because
+        // this C callback is guaranteed to be called only once.
+        let on_done = unsafe { Box::from_raw(param as *mut F2) };
+        on_done(upside_down);
+    }
+    let component = unsafe {
+        bitbox02_sys::orientation_arrows_create(
+            Some(c_on_done::<F>),
+            Box::into_raw(Box::new(on_done)) as *mut _, // passed to c_on_done as `param`.
+        )
+    };
+    Component {
+        component,
+        is_pushed: false,
+        on_drop: None,
+        _p: PhantomData,
+    }
+}

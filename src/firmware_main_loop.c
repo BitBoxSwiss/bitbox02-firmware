@@ -32,7 +32,7 @@
 #include "usb/usb.h"
 #include "usb/usb_frame.h"
 #include "usb/usb_processing.h"
-#include "workflow/orientation_screen.h"
+#include <platform/platform_init.h>
 #include <rust/rust.h>
 #include <ui/fonts/monogram_5X9.h>
 #include <utils_ringbuffer.h>
@@ -44,6 +44,27 @@
 
 // Must be power of 2
 #define UART_OUT_BUF_LEN 2048
+
+static void _orientation_screen_poll(struct ringbuffer* uart_write_queue)
+{
+    static bool orientation_set = false;
+    bool _orientation;
+    if (!orientation_set && rust_workflow_orientation_screen_poll(&_orientation)) {
+        orientation_set = true;
+        // hww handler in usb_process must be setup before we can allow ble connections
+        if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+            size_t len;
+            da14531_handler_current_product = (const uint8_t*)platform_product(&len);
+            da14531_handler_current_product_len = len;
+            util_log("%s %d", da14531_handler_current_product, da14531_handler_current_product_len);
+            da14531_set_product(
+                da14531_handler_current_product,
+                da14531_handler_current_product_len,
+                uart_write_queue);
+        }
+        usb_start();
+    }
+}
 
 void firmware_main_loop(void)
 {
@@ -63,7 +84,7 @@ void firmware_main_loop(void)
     da14531_set_name(buf, strlen(buf), &uart_write_queue);
 
     // This starts the async orientation screen workflow, which is processed by the loop below.
-    orientation_screen(&uart_write_queue);
+    rust_workflow_spawn_orientation_screen();
 
     const uint8_t* hww_data = NULL;
     uint8_t hww_frame[USB_REPORT_SIZE] = {0};
@@ -178,5 +199,7 @@ void firmware_main_loop(void)
 
         rust_workflow_spin();
         rust_async_usb_spin();
+
+        _orientation_screen_poll(&uart_write_queue);
     }
 }

@@ -12,20 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DA14531_HANDLER_H
-#define DA14531_HANDLER_H
+#ifndef DELAY_H
+#define DELAY_H
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#include "da14531_protocol.h"
-#include <platform/platform_config.h>
-#include <utils_ringbuffer.h>
+typedef struct {
+    size_t id;
+} delay_t;
 
-extern const uint8_t* da14531_handler_current_product;
-extern uint16_t da14531_handler_current_product_len;
+// Creates a non-blocking delay. Check with delay_is_elapsed if it has elapsed.
+// Limited to 10 concurrent delays, will abort if it fails to allocate one
+void delay_init_ms(delay_t* self, uint32_t ms);
 
-#if FACTORYSETUP == 1
-bool da14531_handler_bond_db_set(void);
-#endif
+// returns true if time has passed. After it has returned true once it must not be called again
+bool delay_is_elapsed(const delay_t* self);
 
-void da14531_handler(struct da14531_protocol_frame* frame, struct ringbuffer* queue);
-
+// Cancel delay if you don't intend to check it until it elapses
+void delay_cancel(const delay_t* self);
 #endif

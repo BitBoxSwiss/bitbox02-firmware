@@ -39,7 +39,7 @@ extern crate util;
 // handler will print the available information on the screen and over RTT. If we compile with
 // `panic=abort` this code will never get executed.
 #[cfg_attr(feature = "bootloader", allow(unused_variables))]
-#[cfg(not(any(test, feature = "testing", feature = "c-unit-testing")))]
+#[cfg(not(any(feature = "testing", feature = "c-unit-testing")))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     #[cfg(feature = "firmware")]

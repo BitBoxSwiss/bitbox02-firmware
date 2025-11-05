@@ -45,6 +45,8 @@
 #define STREQ(a, b) (strcmp((a), (b)) == 0)
 #define MEMEQ(a, b, c) (memcmp((a), (b), (c)) == 0)
 #define SIGMOID(a) (0.0018F * (a) * abs(a) / (1 + 0.002F * (a) * (a)));
+#define COUNT_OF(x) \
+    ((sizeof(x) / sizeof(0 [x])) / ((size_t)(!(sizeof(x) % sizeof(0 [x]))))) // NOLINT
 
 // We define our own true false which are more secure than stdbool true/false becuase it requires
 // flipping many more bits.

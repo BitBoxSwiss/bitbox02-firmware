@@ -22,11 +22,11 @@
 #include <hardfault.h>
 
 #if !defined(BOOTLOADER)
-#include <hww.h>
-#ifndef TESTING
-#include <hal_timer.h>
+    #include <hww.h>
+    #ifndef TESTING
+        #include <hal_timer.h>
 extern struct timer_descriptor TIMER_0;
-#endif
+    #endif
 
 #endif
 #include <queue.h>

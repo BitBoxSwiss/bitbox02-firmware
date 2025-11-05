@@ -51,7 +51,7 @@ typedef enum {
 // The Counter0/Counter1 values are overwritten at setup via atcab_write_config_counter().
 // Individual slot locking is performed at setup via atcab_lock_data_slot().
 #if (ATCA_ECC_CONFIG_SIZE != 128)
-#error "Unexpected configuration size"
+    #error "Unexpected configuration size"
 #endif
 // clang-format off
 static uint8_t _configuration[ATCA_ECC_CONFIG_SIZE] = {
@@ -510,7 +510,7 @@ static ATCA_STATUS _update_kdf_key(void)
     UTIL_CLEANUP_32(nonce_contribution);
     _interface_functions->random_32_bytes(nonce_contribution);
 #if NONCE_NUMIN_SIZE > 32
-#error "size mismatch"
+    #error "size mismatch"
 #endif
 
     ATCA_STATUS result = _authorize_key();
@@ -695,9 +695,9 @@ static bool _read_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
     uint8_t nonce_contribution[32] = {0};
     UTIL_CLEANUP_32(nonce_contribution);
     _interface_functions->random_32_bytes(nonce_contribution);
-#if NONCE_NUMIN_SIZE > 32
-#error "size mismatch"
-#endif
+    #if NONCE_NUMIN_SIZE > 32
+        #error "size mismatch"
+    #endif
 
     ATCA_STATUS result = _authorize_key();
     if (result != ATCA_SUCCESS) {
@@ -718,9 +718,9 @@ static bool _write_data_slot_block(uint8_t* bytes, uint16_t slot, uint8_t block)
     uint8_t nonce_contribution[32] = {0};
     UTIL_CLEANUP_32(nonce_contribution);
     _interface_functions->random_32_bytes(nonce_contribution);
-#if NONCE_NUMIN_SIZE > 32
-#error "size mismatch"
-#endif
+    #if NONCE_NUMIN_SIZE > 32
+        #error "size mismatch"
+    #endif
 
     ATCA_STATUS result = _authorize_key();
     if (result != ATCA_SUCCESS) {

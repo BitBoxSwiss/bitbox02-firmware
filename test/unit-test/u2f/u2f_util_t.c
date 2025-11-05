@@ -48,10 +48,10 @@ static void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* 
 }
 
 #ifdef __APPLE__
-#ifndef CLOCK_MONOTONIC
-// Implement something compatible w/ linux clock_gettime()
-#include <mach/mach_time.h>
-#define CLOCK_MONOTONIC 0
+    #ifndef CLOCK_MONOTONIC
+        // Implement something compatible w/ linux clock_gettime()
+        #include <mach/mach_time.h>
+        #define CLOCK_MONOTONIC 0
 static void clock_gettime(int which, struct timespec* ts)
 {
     static mach_timebase_info_data_t __clock_gettime_inf;
@@ -66,7 +66,7 @@ static void clock_gettime(int which, struct timespec* ts)
     ts->tv_sec = nano * 1e-9;
     ts->tv_nsec = nano - (ts->tv_sec * 1e9);
 }
-#endif
+    #endif
 #endif // __APPLE__
 
 float U2Fob_deltaTime(uint64_t* state)

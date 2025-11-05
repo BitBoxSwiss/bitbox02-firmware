@@ -15,7 +15,7 @@
 #include "usb_frame.h"
 #include "queue.h"
 #if APP_U2F == 1
-#include "u2f/u2f_packet.h"
+    #include "u2f/u2f_packet.h"
 #endif
 #include "usb/u2f/u2f_hid.h"
 #include "usb/usb_packet.h"

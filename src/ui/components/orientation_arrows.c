@@ -24,9 +24,9 @@
 #include <string.h>
 
 #if !defined(TESTING)
-#include <qtouch.h>
+    #include <qtouch.h>
 #else
-#include <fake_qtouch.h>
+    #include <fake_qtouch.h>
 #endif
 
 #define SCALE 2 // Divide `count` by scale to slow down motion

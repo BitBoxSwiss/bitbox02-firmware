@@ -17,31 +17,31 @@
 
 #if APP_U2F == 1
 
-#ifndef TESTING
-#include "usb_protocol.h"
-#endif
+    #ifndef TESTING
+        #include "usb_protocol.h"
+    #endif
 
-#define USB_DESC_U2F_EP_IN (3 | USB_EP_DIR_IN)
-#define USB_DESC_U2F_EP_OUT (4 | USB_EP_DIR_OUT)
+    #define USB_DESC_U2F_EP_IN (3 | USB_EP_DIR_IN)
+    #define USB_DESC_U2F_EP_OUT (4 | USB_EP_DIR_OUT)
 
-#define USB_DESC_U2F_REPORT_LEN 34
-#define USB_DESC_U2F_REPORT                                        \
-    0x06, 0xd0, 0xf1, /* USAGE_PAGE (Reserved 0xFIDO) */           \
-        0x09, 0x01, /* USAGE (HID Generic Device) */               \
-        0xa1, 0x01, /* COLLECTION (Application) */ /* In Report */ \
-        0x09, 0x20, /* USAGE (Input Report Data) */                \
-        0x15, 0x00, /* LOGICAL_MINIMUM (0) */                      \
-        0x26, 0xff, 0x00, /* LOGICAL_MAXIMUM (255) */              \
-        0x75, 0x08, /* REPORT_SIZE (8) */                          \
-        0x95, 0x40, /* REPORT_COUNT (64)  */                       \
-        0x81, 0x02, /* INPUT (Data,Var,Abs) */ /* Out Report */    \
-        0x09, 0x21, /* USAGE (Output Report Data) */               \
-        0x15, 0x00, /* LOGICAL_MINIMUM (0) */                      \
-        0x26, 0xff, 0x00, /* LOGICAL_MAXIMUM (255) */              \
-        0x75, 0x08, /* REPORT_SIZE (8) */                          \
-        0x95, 0x40, /* REPORT_COUNT (64) */                        \
-        0x91, 0x02, /* OUTPUT (Data,Var,Abs) */                    \
-        0xc0 /* END_COLLECTION */
+    #define USB_DESC_U2F_REPORT_LEN 34
+    #define USB_DESC_U2F_REPORT                                        \
+        0x06, 0xd0, 0xf1, /* USAGE_PAGE (Reserved 0xFIDO) */           \
+            0x09, 0x01, /* USAGE (HID Generic Device) */               \
+            0xa1, 0x01, /* COLLECTION (Application) */ /* In Report */ \
+            0x09, 0x20, /* USAGE (Input Report Data) */                \
+            0x15, 0x00, /* LOGICAL_MINIMUM (0) */                      \
+            0x26, 0xff, 0x00, /* LOGICAL_MAXIMUM (255) */              \
+            0x75, 0x08, /* REPORT_SIZE (8) */                          \
+            0x95, 0x40, /* REPORT_COUNT (64)  */                       \
+            0x81, 0x02, /* INPUT (Data,Var,Abs) */ /* Out Report */    \
+            0x09, 0x21, /* USAGE (Output Report Data) */               \
+            0x15, 0x00, /* LOGICAL_MINIMUM (0) */                      \
+            0x26, 0xff, 0x00, /* LOGICAL_MAXIMUM (255) */              \
+            0x75, 0x08, /* REPORT_SIZE (8) */                          \
+            0x95, 0x40, /* REPORT_COUNT (64) */                        \
+            0x91, 0x02, /* OUTPUT (Data,Var,Abs) */                    \
+            0xc0 /* END_COLLECTION */
 #endif
 
 #define USB_DESC_IFACE_U2F                                                  \

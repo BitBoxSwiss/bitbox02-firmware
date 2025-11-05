@@ -13,8 +13,8 @@
 #include <string.h>
 #include <time.h>
 #ifdef __linux__
-#include <linux/hidraw.h>
-#include <sys/ioctl.h>
+    #include <linux/hidraw.h>
+    #include <sys/ioctl.h>
 #endif
 
 #include "random.h"

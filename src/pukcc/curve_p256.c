@@ -19,7 +19,7 @@
 #define CURVE_TEST_MSG "abcd"
 
 #if (CURVE_TEST_MSG_LEN > PUKCC_ECC_TEST_MSG_MAX_LEN)
-#error "macro mismatch"
+    #error "macro mismatch"
 #endif
 
 // clang-format off

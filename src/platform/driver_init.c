@@ -301,7 +301,7 @@ static void _usb_set_pins(void)
  */
 #if (CONF_GCLK_USB_FREQUENCY > (48000000 + 48000000 / 400)) || \
     (CONF_GCLK_USB_FREQUENCY < (48000000 - 48000000 / 400))
-#warning USB clock should be 48MHz ~ 0.25% clock, check your configuration!
+    #warning USB clock should be 48MHz ~ 0.25% clock, check your configuration!
 #endif
 
 /**

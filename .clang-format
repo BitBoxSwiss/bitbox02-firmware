@@ -13,6 +13,7 @@ IndentCaseLabels: false
 PenaltyReturnTypeOnItsOwnLine: 1000
 SpacesBeforeTrailingComments: 1
 IncludeBlocks: Preserve
+IndentPPDirectives: BeforeHash
 # cmocka must come after some std includes
 IncludeCategories:
   - Regex:           '^(<|")cmocka'

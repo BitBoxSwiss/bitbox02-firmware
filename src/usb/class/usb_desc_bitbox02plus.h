@@ -20,44 +20,46 @@
 #include <bootloader/bootloader_version.h>
 #include <version.h>
 #ifndef TESTING
-#include "usb_protocol.h"
-#include "usb_protocol_hid.h"
-#include <usb_u2f_desc.h>
+    #include "usb_protocol.h"
+    #include "usb_protocol_hid.h"
+    #include <usb_u2f_desc.h>
 #endif
 
 #if defined(BOOTLOADER)
-#if PRODUCT_BITBOX_PLUS_BTCONLY == 1
-#define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    52, /* bLength */                                                                           \
-        0x03, /* bDescriptorType */                                                             \
-        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
-        'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, 'l', 0, 'y', 0, \
-        ' ', 0, 'b', 0, 'l', 0,
-#else
-#define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    46, /* bLength */                                                                           \
-        0x03, /* bDescriptorType */                                                             \
-        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
-        'v', 0, 'a', 0, ' ', 0, 'M', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0, ' ', 0, 'b', 0, 'l', 0,
-#endif
+    #if PRODUCT_BITBOX_PLUS_BTCONLY == 1
+        #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                             \
+            52, /* bLength */                                                                   \
+                0x03, /* bDescriptorType */                                                     \
+                'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, \
+                'o', 0, 'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, \
+                'l', 0, 'y', 0, ' ', 0, 'b', 0, 'l', 0,
+    #else
+        #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                             \
+            46, /* bLength */                                                                   \
+                0x03, /* bDescriptorType */                                                     \
+                'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, \
+                'o', 0, 'v', 0, 'a', 0, ' ', 0, 'M', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0, ' ', 0, \
+                'b', 0, 'l', 0,
+    #endif
 #elif FACTORYSETUP == 1
-#define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    44, /* bLength */                                                                           \
-        0x03, /* bDescriptorType */                                                             \
-        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
-        'v', 0, 'a', 0, ' ', 0, 'F', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, 'r', 0, 'y', 0,
+    #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                  \
+        44, /* bLength */                                                                        \
+            0x03, /* bDescriptorType */                                                          \
+            'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', \
+            0, 'v', 0, 'a', 0, ' ', 0, 'F', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, 'r', 0, 'y', 0,
 #elif PRODUCT_BITBOX_BTCONLY == 1
-#define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    46, /* bLength */                                                                           \
-        0x03, /* bDescriptorType */                                                             \
-        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
-        'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, 'l', 0, 'y', 0,
+    #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                  \
+        46, /* bLength */                                                                        \
+            0x03, /* bDescriptorType */                                                          \
+            'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', \
+            0, 'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, 'l', 0,   \
+            'y', 0,
 #else
-#define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                     \
-    40, /* bLength */                                                                           \
-        0x03, /* bDescriptorType */                                                             \
-        'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', 0, \
-        'v', 0, 'a', 0, ' ', 0, 'M', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0,
+    #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                  \
+        40, /* bLength */                                                                        \
+            0x03, /* bDescriptorType */                                                          \
+            'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', \
+            0, 'v', 0, 'a', 0, ' ', 0, 'M', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0,
 #endif
 
 #define USB_STR_DESC_BB02PLUS           \
@@ -90,11 +92,11 @@
 // (= supported endpoints) - is that the one that needs to change?
 //  ** If add more endpoints, adjust USB_DESC_BB02PLUS_D_MAX_EP_N  **
 #if APP_U2F == 0
-#define USB_DESC_BB02PLUS_FS \
-    USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_STR_DESC_BB02PLUS
+    #define USB_DESC_BB02PLUS_FS \
+        USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_STR_DESC_BB02PLUS
 #else
-#define USB_DESC_BB02PLUS_FS \
-    USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_U2F, USB_STR_DESC_BB02PLUS
+    #define USB_DESC_BB02PLUS_FS \
+        USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_U2F, USB_STR_DESC_BB02PLUS
 #endif
 
 #endif

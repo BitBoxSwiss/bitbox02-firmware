@@ -28,14 +28,14 @@ platform. */
    Optimization level 4 currently only has an effect ARM platforms where more than one
    curve is enabled. */
 #ifndef uECC_OPTIMIZATION_LEVEL
-#define uECC_OPTIMIZATION_LEVEL 2
+    #define uECC_OPTIMIZATION_LEVEL 2
 #endif
 
 /* uECC_SQUARE_FUNC - If enabled (defined as nonzero), this will cause a specific function to be
 used for (scalar) squaring instead of the generic multiplication function. This can make things
 faster somewhat faster, but increases the code size. */
 #ifndef uECC_SQUARE_FUNC
-#define uECC_SQUARE_FUNC 0
+    #define uECC_SQUARE_FUNC 0
 #endif
 
 /* uECC_VLI_NATIVE_LITTLE_ENDIAN - If enabled (defined as nonzero), this will switch to native
@@ -47,32 +47,32 @@ Note that this will *only* work on native little-endian processors and it will t
 arrays passed into the public API as word arrays, therefore requiring the provided byte arrays
 to be word aligned on architectures that do not support unaligned accesses. */
 #ifndef uECC_VLI_NATIVE_LITTLE_ENDIAN
-#define uECC_VLI_NATIVE_LITTLE_ENDIAN 0
+    #define uECC_VLI_NATIVE_LITTLE_ENDIAN 0
 #endif
 
 /* Curve support selection. Set to 0 to remove that curve.
 If enable another curve, must add `half_n` (half the order n) constant to curve-specific.inc file.
 `half_n` is used for normalizing the signature (lower-S) according to bitcoin best practices. */
 #ifndef uECC_SUPPORTS_secp160r1
-#define uECC_SUPPORTS_secp160r1 0
+    #define uECC_SUPPORTS_secp160r1 0
 #endif
 #ifndef uECC_SUPPORTS_secp192r1
-#define uECC_SUPPORTS_secp192r1 0
+    #define uECC_SUPPORTS_secp192r1 0
 #endif
 #ifndef uECC_SUPPORTS_secp224r1
-#define uECC_SUPPORTS_secp224r1 0
+    #define uECC_SUPPORTS_secp224r1 0
 #endif
 #ifndef uECC_SUPPORTS_secp256r1
-#define uECC_SUPPORTS_secp256r1 1
+    #define uECC_SUPPORTS_secp256r1 1
 #endif
 #ifndef uECC_SUPPORTS_secp256k1
-#define uECC_SUPPORTS_secp256k1 1
+    #define uECC_SUPPORTS_secp256k1 1
 #endif
 
 /* Specifies whether compressed point format is supported.
    Set to 0 to disable point compression/decompression functions. */
 #ifndef uECC_SUPPORT_COMPRESSED_POINT
-#define uECC_SUPPORT_COMPRESSED_POINT 1
+    #define uECC_SUPPORT_COMPRESSED_POINT 1
 #endif
 
 struct uECC_Curve_t;

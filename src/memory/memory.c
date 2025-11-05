@@ -27,9 +27,9 @@
 #include <rust/rust.h>
 
 #ifndef TESTING
-#include <hal_delay.h>
+    #include <hal_delay.h>
 #else
-#include <fake_memory.h>
+    #include <fake_memory.h>
 #endif
 
 #include <assert.h>
@@ -46,10 +46,10 @@ const char* MEMORY_DEFAULT_DEVICE_NAME = "My BitBox";
 // Everything defaults to 0xFF (erased state).
 
 #if (FLASH_APPDATA_START % CHUNK_SIZE)
-#error "Chunk start not aligned with erase granularity"
+    #error "Chunk start not aligned with erase granularity"
 #endif
 #if (FLASH_APPDATA_LEN % CHUNK_SIZE)
-#error "Chunk end not aligned with erase granularity"
+    #error "Chunk end not aligned with erase granularity"
 #endif
 
 #pragma GCC diagnostic push
@@ -123,8 +123,8 @@ typedef union {
 static_assert(sizeof(((chunk_2_t*)0)->fields) <= (size_t)CHUNK_SIZE, "chunk too large");
 
 #if FLASH_APPDATA_LEN / CHUNK_SIZE != 8
-#error \
-    "We expect 8 chunks in app data. This check is to ensure that chunk_7_t below is the last chunk, so it is not erased during reset."
+    #error \
+        "We expect 8 chunks in app data. This check is to ensure that chunk_7_t below is the last chunk, so it is not erased during reset."
 #endif
 
 // CHUNK_7: A chunk that survives device resets (is not erased during `memory_reset_hww()`).

@@ -14,24 +14,24 @@
 
 #include "usb.h"
 #ifndef TESTING
-#include "hid_hww.h"
-#include "usb_desc.h"
-#include "usb_desc_bitbox02plus.h"
-#include "usb_size.h"
-#include "usbdc.h"
-#include <da14531/da14531.h>
-#include <da14531/da14531_handler.h>
-#include <memory/memory_shared.h>
-#if APP_U2F == 1
-#include "u2f.h"
-#include <usb/class/hid/u2f/hid_u2f.h>
-#endif
+    #include "hid_hww.h"
+    #include "usb_desc.h"
+    #include "usb_desc_bitbox02plus.h"
+    #include "usb_size.h"
+    #include "usbdc.h"
+    #include <da14531/da14531.h>
+    #include <da14531/da14531_handler.h>
+    #include <memory/memory_shared.h>
+    #if APP_U2F == 1
+        #include "u2f.h"
+        #include <usb/class/hid/u2f/hid_u2f.h>
+    #endif
 #endif
 
 #ifndef TESTING
-#include <hal_timer.h>
-#include <u2f/u2f_packet.h>
-#include <usb/usb_packet.h>
+    #include <hal_timer.h>
+    #include <u2f/u2f_packet.h>
+    #include <usb/usb_packet.h>
 extern struct timer_descriptor TIMER_0;
 #endif
 
@@ -49,9 +49,9 @@ static struct usbd_descriptors _descriptor_bitbox02plus[] = {
     {_descriptor_bytes_bitbox02plus,
      _descriptor_bytes_bitbox02plus + sizeof(_descriptor_bytes_bitbox02plus)}};
 static void _hww_endpoint_available(void);
-#if APP_U2F == 1
+    #if APP_U2F == 1
 static void _u2f_endpoint_available(void);
-#endif
+    #endif
 
 /* ==== HWW ==== */
 static void _hww_endpoint_available(void)
@@ -62,7 +62,7 @@ static void _hww_endpoint_available(void)
     hid_hww_setup();
 }
 
-#if APP_U2F == 1
+    #if APP_U2F == 1
 /* ==== U2F ==== */
 static void _u2f_endpoint_available(void)
 {
@@ -71,7 +71,7 @@ static void _u2f_endpoint_available(void)
     };
     hid_u2f_setup();
 }
-#endif
+    #endif
 #endif
 
 #if !defined(TESTING) && APP_U2F == 1
@@ -106,12 +106,12 @@ int32_t usb_start(void)
     if (ret != 0) {
         return ret;
     }
-#if APP_U2F == 1
+    #if APP_U2F == 1
     ret = hid_u2f_init(_u2f_endpoint_available);
     if (ret != 0) {
         return ret;
     }
-#endif
+    #endif
     switch (memory_get_platform()) {
     case MEMORY_PLATFORM_BITBOX02_PLUS:
         usbdc_start(_descriptor_bitbox02plus);

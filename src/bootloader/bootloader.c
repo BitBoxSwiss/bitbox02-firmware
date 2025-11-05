@@ -37,16 +37,16 @@
 #include <util.h>
 
 #if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
-#include <memory/memory_spi.h>
-#include <qtouch/qtouch.h>
+    #include <memory/memory_spi.h>
+    #include <qtouch/qtouch.h>
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
-#include <communication_mode.h>
-#include <da14531/da14531.h>
-#include <da14531/da14531_protocol.h>
-#include <uart.h>
-#include <utils_ringbuffer.h>
+    #include <communication_mode.h>
+    #include <da14531/da14531.h>
+    #include <da14531/da14531_protocol.h>
+    #include <uart.h>
+    #include <utils_ringbuffer.h>
 #endif
 
 #include <assert.h>
@@ -108,7 +108,7 @@ COMPILER_PACK_RESET()
 #define FIRMWARE_MAX_NUM_CHUNKS \
     (FLASH_APP_LEN / FIRMWARE_CHUNK_LEN) // app len must be a multiple of chunk len
 #if (FIRMWARE_MAX_NUM_CHUNKS > UINT8_MAX)
-#error "incompatible variable type"
+    #error "incompatible variable type"
 #endif
 
 // Be sure to not overflow boot data area
@@ -120,7 +120,7 @@ static_assert(sizeof(((boot_data_t*)0)->fields) <= FLASH_BOOTDATA_LEN, "boot_dat
         BOOT_SIG_LEN * BOOT_NUM_ROOT_SIGNING_KEYS + 4 /* firmware data version */ + \
         BOOT_SIG_LEN * BOOT_NUM_FIRMWARE_SIGNING_KEYS >                             \
     FIRMWARE_CHUNK_LEN)
-#error "incompatible bootloader data macro"
+    #error "incompatible bootloader data macro"
 #endif
 
 static bool _loading_ready = false;
@@ -142,7 +142,7 @@ static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
     0x00, 0xb8, 0xaf, 0x3a, 0x79, 0xf8, 0xc6, 0x56, 0x4a, 0x9b, 0x02, 0xe1, 0x8a, 0xb8, 0x21, 0xae,
 };
 #if FLASH_APP_LEN != 884736
-#error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
+    #error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
@@ -272,7 +272,7 @@ static void _binary_exec(void)
     int i;
 
 #if (FLASH_APP_START & 0x007F)
-#error "app start address not aligned"
+    #error "app start address not aligned"
 #else
     void* app_start_addr = (void*)FLASH_APP_START;
 #endif
@@ -1023,7 +1023,7 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     } else {
         UG_PutString(0, SCREEN_HEIGHT - 9, "    No firmware found", false);
     }
-#if PLATFORM_BITBOX02PLUS == 1
+    #if PLATFORM_BITBOX02PLUS == 1
     struct da14531_firmware_version version;
     bool res = memory_spi_get_active_ble_firmware_version(&version);
     if (res) {
@@ -1031,7 +1031,7 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
         snprintf(buf, sizeof(buf), "ble: %d (%s)", version.version, util_dbg_hex(version.hash, 4));
         UG_PutString(0, SCREEN_HEIGHT - 18, buf, false);
     }
-#endif
+    #endif
     uint16_t ypos = SCREEN_HEIGHT / 2 - 4;
     uint16_t xpos = SCREEN_WIDTH - 10;
     if (firmware_verified != sectrue_u32) {

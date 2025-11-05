@@ -36,7 +36,7 @@
 #include <version.h>
 
 #ifndef TESTING
-#include <hal_timer.h>
+    #include <hal_timer.h>
 extern struct timer_descriptor TIMER_0;
 #endif
 
@@ -52,7 +52,7 @@ typedef struct {
 #define HMAC_SHA256_LEN 32
 
 #if (U2F_EC_KEY_SIZE != SHA256_LEN) || (U2F_EC_KEY_SIZE != U2F_NONCE_LENGTH)
-#error "Incorrect macro values for u2f"
+    #error "Incorrect macro values for u2f"
 #endif
 
 typedef enum {

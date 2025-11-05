@@ -22,8 +22,8 @@
 #include <usb/usb.h>
 
 #if defined(TESTING)
-#include <stdio.h>
-#include <stdlib.h>
+    #include <stdio.h>
+    #include <stdlib.h>
 #endif
 
 #ifndef TESTING
@@ -47,11 +47,11 @@ void Abort(const char* msg)
     util_log("%s", msg);
     screen_print_debug(msg, 0);
     usb_stop();
-#if defined(BOOTLOADER)
+    #if defined(BOOTLOADER)
     bootloader_close_interfaces();
-#else
+    #else
     system_close_interfaces();
-#endif
+    #endif
     // Break the program if we are debugging
     ASSERT(false);
     while (1) {

@@ -330,8 +330,7 @@ keystore_error_t keystore_encrypt_and_store_seed(
         return KEYSTORE_ERR_MEMORY;
     }
     if (!rust_keystore_verify_seed(
-            rust_util_bytes(secret, sizeof(secret)),
-            rust_util_bytes(seed, seed_length))) {
+            rust_util_bytes(secret, sizeof(secret)), rust_util_bytes(seed, seed_length))) {
         if (!memory_reset_hww()) {
             return KEYSTORE_ERR_MEMORY;
         }

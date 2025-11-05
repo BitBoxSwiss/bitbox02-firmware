@@ -38,9 +38,9 @@
 // causes a noticable delay at boot, so we don't enable it for production firmwares. We also enable
 // it in debug builds.
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || !defined(NDEBUG)
-#define VERIFY_METADATA 1
+    #define VERIFY_METADATA 1
 #else
-#define VERIFY_METADATA 0
+    #define VERIFY_METADATA 0
 #endif
 
 // Number of times the first kdf slot can be used over the lifetime of the device.
@@ -455,7 +455,7 @@ static const uint8_t _counter_password_metadata[] = {
 #endif
 
 #if SMALL_MONOTONIC_COUNTER_MAX_USE > 255
-#error Max unlock attempts does not fit in one byte
+    #error Max unlock attempts does not fit in one byte
 #endif
 // The intial/reset buffer for the small monotonic counter. Initial value: 0, threshold:
 // `SMALL_MONOTONIC_COUNTER_MAX_USE`. Table "Common data structures" -> "Counter":

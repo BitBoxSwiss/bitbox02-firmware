@@ -16,8 +16,8 @@
 #include "orientation_screen.h"
 
 #ifndef TESTING
-#include <hal_timer.h>
-#include <platform/driver_init.h>
+    #include <hal_timer.h>
+    #include <platform/driver_init.h>
 #endif
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
@@ -32,24 +32,25 @@
 #include <version.h>
 
 #ifndef TESTING
-#define IDLE_PERIOD_MS 1300
+    #define IDLE_PERIOD_MS 1300
 
-// Currently we have one firmware for both BB02 and BB02_PLUS, and only the
-// PRODUCT_BITBOX_MULTI/BTCONLY definitions apply. The PRODUCT_BITBOX_PLUS_MULTI/BTCONLY defs
-// currently only apply in the bootloader, which we don't need here.
-#if PRODUCT_BITBOX_MULTI == 1
-#define PRODUCT_STRING_SUFFIX "multi"
-#elif PRODUCT_BITBOX_BTCONLY == 1
-#define PRODUCT_STRING_SUFFIX "btconly"
-#elif PRODUCT_BITBOX02_FACTORYSETUP == 1
-// Dummy, not actually needed, but this file is currently needlessly compiled for factorysetup.
-#define PRODUCT_STRING_SUFFIX "factory"
-#else
-#error "unknown edition"
-#endif
+    // Currently we have one firmware for both BB02 and BB02_PLUS, and only the
+    // PRODUCT_BITBOX_MULTI/BTCONLY definitions apply. The PRODUCT_BITBOX_PLUS_MULTI/BTCONLY defs
+    // currently only apply in the bootloader, which we don't need here.
+    #if PRODUCT_BITBOX_MULTI == 1
+        #define PRODUCT_STRING_SUFFIX "multi"
+    #elif PRODUCT_BITBOX_BTCONLY == 1
+        #define PRODUCT_STRING_SUFFIX "btconly"
+    #elif PRODUCT_BITBOX02_FACTORYSETUP == 1
+        // Dummy, not actually needed, but this file is currently needlessly compiled for
+        // factorysetup.
+        #define PRODUCT_STRING_SUFFIX "factory"
+    #else
+        #error "unknown edition"
+    #endif
 
-#define DEVICE_MODE \
-    "{\"p\":\"bb02p-" PRODUCT_STRING_SUFFIX "\",\"v\":\"" DIGITAL_BITBOX_VERSION "\"}"
+    #define DEVICE_MODE \
+        "{\"p\":\"bb02p-" PRODUCT_STRING_SUFFIX "\",\"v\":\"" DIGITAL_BITBOX_VERSION "\"}"
 
 static struct timer_task _idle_timer_task = {0};
 

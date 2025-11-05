@@ -52,11 +52,11 @@
 #include <util.h>
 
 #if defined(TESTING)
-#include <fake_memory.h>
+    #include <fake_memory.h>
 #endif
 
 #if !defined(TESTING)
-#include <hal_delay.h>
+    #include <hal_delay.h>
 #else
 void delay_us(const uint16_t us);
 void delay_ms(const uint16_t ms);

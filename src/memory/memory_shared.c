@@ -28,7 +28,7 @@
 #include "random.h"
 
 #ifdef TESTING
-#include <fake_memory.h>
+    #include <fake_memory.h>
 #endif
 
 static void _clean_chunk(uint8_t** chunk_bytes)

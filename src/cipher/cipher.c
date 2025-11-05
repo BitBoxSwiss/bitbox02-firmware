@@ -18,7 +18,7 @@
 #include <rust/rust.h>
 
 #ifdef TESTING
-#include <fake_cipher.h>
+    #include <fake_cipher.h>
 #endif
 
 bool cipher_aes_hmac_encrypt(

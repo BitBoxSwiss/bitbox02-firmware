@@ -18,10 +18,10 @@
 #include <string.h>
 
 #ifndef TESTING
-#include "driver_init.h"
-#include "sd_mmc.h"
-#include "sd_mmc/sd_mmc_ext.h"
-#include "sd_mmc/sd_mmc_start.h"
+    #include "driver_init.h"
+    #include "sd_mmc.h"
+    #include "sd_mmc/sd_mmc_ext.h"
+    #include "sd_mmc/sd_mmc_start.h"
 #endif
 
 #include "flags.h"
@@ -35,7 +35,7 @@
 // max number of files returned by sd_list/sd_list_subdir.
 #define LIST_MAX 200u
 #if LIST_MAX < 1
-#error LIST_MAX must be at least 1
+    #error LIST_MAX must be at least 1
 #endif
 
 static const char* ROOTDIR = "0:/bitbox02";
@@ -326,7 +326,7 @@ bool sd_card_inserted(void)
         }
     }
     sd_mmc_pause_clock();
-#if !defined(NDEBUG)
+    #if !defined(NDEBUG)
     switch (err) {
     case SD_MMC_OK:
         break;
@@ -340,7 +340,7 @@ bool sd_card_inserted(void)
         util_log("sd_mmc_check returned %d", err);
         break;
     }
-#endif
+    #endif
     return err == SD_MMC_OK;
 #endif
 }

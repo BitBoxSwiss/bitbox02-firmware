@@ -14,10 +14,10 @@
 
 #ifndef TESTING
 
-#include "i2c_ecc.h"
-#include "driver_init.h"
-#include "util.h"
-#include <string.h>
+    #include "i2c_ecc.h"
+    #include "driver_init.h"
+    #include "util.h"
+    #include <string.h>
 
 uint8_t i2c_ecc_read(uint8_t* rxdata, uint32_t rxlen)
 {

@@ -24,10 +24,10 @@
 #define USB_DESC_HWW_EP_IN (1 | USB_EP_DIR_IN)
 #define USB_DESC_HWW_EP_OUT (2 | USB_EP_DIR_OUT)
 #if APP_U2F == 1
-#define USB_DESC_IFACE_NUM_U2F 1
-#define USB_DESC_NUM_IFACES 2
+    #define USB_DESC_IFACE_NUM_U2F 1
+    #define USB_DESC_NUM_IFACES 2
 #else
-#define USB_DESC_NUM_IFACES 1
+    #define USB_DESC_NUM_IFACES 1
 #endif
 #define USB_DESC_IFACE_NUM_HWW 0
 #define USB_DESC_IFACE_LEN 32
@@ -58,26 +58,26 @@
 #define USB_DESC_ISERIALNUM 3
 
 #ifdef BOOTLOADER
-#define USB_DESC_ISERIALNUM_STR_DESC                                                    \
-    (2 + BOOTLOADER_VERSION_LEN * 2 + BOOTLOADER_VERSION_APPEND_LEN * 2), /* bLength */ \
-        0x03, /* bDescriptorType */                                                     \
-        BOOTLOADER_VERSION_W16 BOOTLOADER_VERSION_APPEND_W16
+    #define USB_DESC_ISERIALNUM_STR_DESC                                                    \
+        (2 + BOOTLOADER_VERSION_LEN * 2 + BOOTLOADER_VERSION_APPEND_LEN * 2), /* bLength */ \
+            0x03, /* bDescriptorType */                                                     \
+            BOOTLOADER_VERSION_W16 BOOTLOADER_VERSION_APPEND_W16
 #else
-#define USB_DESC_ISERIALNUM_STR_DESC                    \
-    (2 + DIGITAL_BITBOX_VERSION_LEN * 2), /* bLength */ \
-        0x03, /* bDescriptorType */                     \
-        DIGITAL_BITBOX_VERSION_W16
+    #define USB_DESC_ISERIALNUM_STR_DESC                    \
+        (2 + DIGITAL_BITBOX_VERSION_LEN * 2), /* bLength */ \
+            0x03, /* bDescriptorType */                     \
+            DIGITAL_BITBOX_VERSION_W16
 #endif
 
 #if defined(BOOTLOADER_DEVDEVICE) && defined(BOOTLOADER_VERSION_HAS_METADATA)
-#define BOOTLOADER_VERSION_APPEND_LEN 4
-#define BOOTLOADER_VERSION_APPEND_W16 '.', 0, 'd', 0, 'e', 0, 'v', 0,
+    #define BOOTLOADER_VERSION_APPEND_LEN 4
+    #define BOOTLOADER_VERSION_APPEND_W16 '.', 0, 'd', 0, 'e', 0, 'v', 0,
 #elif defined(BOOTLOADER_DEVDEVICE)
-#define BOOTLOADER_VERSION_APPEND_LEN 4
-#define BOOTLOADER_VERSION_APPEND_W16 '+', 0, 'd', 0, 'e', 0, 'v', 0,
+    #define BOOTLOADER_VERSION_APPEND_LEN 4
+    #define BOOTLOADER_VERSION_APPEND_W16 '+', 0, 'd', 0, 'e', 0, 'v', 0,
 #else
-#define BOOTLOADER_VERSION_APPEND_LEN 0
-#define BOOTLOADER_VERSION_APPEND_W16
+    #define BOOTLOADER_VERSION_APPEND_LEN 0
+    #define BOOTLOADER_VERSION_APPEND_W16
 #endif
 
 #define USB_DESC_IFACE_HWW                                                  \

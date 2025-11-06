@@ -16,11 +16,11 @@
 #define _FLAGS_H_
 
 #ifdef TESTING
-#define FLASH_ADDR (0x00000000U)
-#define FLASH_SIZE (0x00100000U)
-#define FLASH_PAGE_SIZE (512U)
+    #define FLASH_ADDR (0x00000000U)
+    #define FLASH_SIZE (0x00100000U)
+    #define FLASH_PAGE_SIZE (512U)
 #else
-#include <samd51j20a.h>
+    #include <samd51j20a.h>
 #endif
 
 #include "memory/smarteeprom.h"
@@ -107,22 +107,22 @@
 
 // Check MPU conditions
 #if (FLASH_APP_START % FLASH_ERASE_MIN_LEN)
-#error "Appdata start must be aligned to the minimum erase granularity"
+    #error "Appdata start must be aligned to the minimum erase granularity"
 #endif
 #if (FLASH_BOOTDATA_START % FLASH_ERASE_MIN_LEN)
-#error "Bootdata start must be aligned to the minimum erase granularity"
+    #error "Bootdata start must be aligned to the minimum erase granularity"
 #endif
 #if (FLASH_BOOTDATA_START % FLASH_BOOTDATA_LEN)
-#error "Bootdata start must be a multiple of bootdata length for the MPU setup"
+    #error "Bootdata start must be a multiple of bootdata length for the MPU setup"
 #endif
 #if (FLASH_APPDATA_START % FLASH_ERASE_MIN_LEN)
-#error "Appdata start must be aligned to the minimum erase granularity"
+    #error "Appdata start must be aligned to the minimum erase granularity"
 #endif
 #if (FLASH_APPDATA_START % (FLASH_APPDATA_LEN / 2))
-#error "Appdata region 0 start must be a multiple of app region 0 data length for the MPU setup"
+    #error "Appdata region 0 start must be a multiple of app region 0 data length for the MPU setup"
 #endif
 #if ((FLASH_APPDATA_START + FLASH_APPDATA_LEN / 2) % (FLASH_APPDATA_LEN / 2))
-#error "Appdata region 1 start must be a multiple of app region 1 data length for the MPU setup"
+    #error "Appdata region 1 start must be a multiple of app region 1 data length for the MPU setup"
 #endif
 
 #endif

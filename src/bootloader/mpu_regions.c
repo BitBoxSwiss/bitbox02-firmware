@@ -16,13 +16,13 @@
 
 #ifndef TESTING
 
-#include <flags.h>
-#include <memory/mpu.h>
+    #include <flags.h>
+    #include <memory/mpu.h>
 
-#include <core_cm4.h>
-#include <samd51j20a.h>
+    #include <core_cm4.h>
+    #include <samd51j20a.h>
 
-#include <stdint.h>
+    #include <stdint.h>
 
 static void _set_mpu_regions(void)
 {

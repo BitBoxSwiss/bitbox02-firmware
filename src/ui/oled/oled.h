@@ -61,7 +61,7 @@
 #include <stdint.h>
 
 #ifndef _OLED_H_
-#define _OLED_H_
+    #define _OLED_H_
 
 /**
  * Initialize the hardware interface and the OLED controller.

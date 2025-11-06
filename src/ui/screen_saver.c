@@ -17,7 +17,7 @@
 #include <hardfault.h>
 #include <ui/components/screensaver.h>
 #ifndef TESTING
-#include <ui/oled/oled.h>
+    #include <ui/oled/oled.h>
 #endif
 
 #include <stdbool.h>

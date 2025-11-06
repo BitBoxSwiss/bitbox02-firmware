@@ -27,26 +27,26 @@
 #include <usb/usb_processing.h>
 
 #if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
-#include <qtouch.h>
+    #include <qtouch.h>
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
-#include <communication_mode.h>
-#include <da14531/da14531.h>
-#include <da14531/da14531_handler.h>
-#include <da14531/da14531_protocol.h>
-#include <memory/memory.h>
-#include <memory/memory_shared.h>
-#include <uart.h>
-#include <utils_ringbuffer.h>
+    #include <communication_mode.h>
+    #include <da14531/da14531.h>
+    #include <da14531/da14531_handler.h>
+    #include <da14531/da14531_protocol.h>
+    #include <memory/memory.h>
+    #include <memory/memory_shared.h>
+    #include <uart.h>
+    #include <utils_ringbuffer.h>
 
-#if PRODUCT_BITBOX_PLUS_MULTI == 1
-#define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"" BOOTLOADER_VERSION "\"}"
-#elif PRODUCT_BITBOX_PLUS_BTCONLY == 1
-#define DEVICE_MODE "{\"p\":\"bb02p-bl-btconly\",\"v\":\"" BOOTLOADER_VERSION "\"}"
-#else
-#error "unknown product"
-#endif
+    #if PRODUCT_BITBOX_PLUS_MULTI == 1
+        #define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"" BOOTLOADER_VERSION "\"}"
+    #elif PRODUCT_BITBOX_PLUS_BTCONLY == 1
+        #define DEVICE_MODE "{\"p\":\"bb02p-bl-btconly\",\"v\":\"" BOOTLOADER_VERSION "\"}"
+    #else
+        #error "unknown product"
+    #endif
 #endif // PLATFORM_BITBOX02PLUS == 1
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
@@ -63,8 +63,8 @@ uint32_t __stack_chk_guard = 0;
 extern volatile bool measurement_done_touch;
 int bootloader_pairing_request = false;
 uint8_t bootloader_pairing_code_bytes[4] = {0};
-// Must be power of 2, must fit bond_db
-#define UART_OUT_BUF_LEN 2048
+    // Must be power of 2, must fit bond_db
+    #define UART_OUT_BUF_LEN 2048
 struct ringbuffer uart_write_queue;
 uint8_t uart_write_buf[UART_OUT_BUF_LEN];
 #endif

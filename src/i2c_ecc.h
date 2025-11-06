@@ -17,32 +17,32 @@
 
 #ifndef TESTING
 
-#include <stdint.h>
+    #include <stdint.h>
 
-// Chip commands
-#define I2C_ECC_CHIP_RESET 0x00
-#define I2C_ECC_CHIP_SLEEP 0x01
-#define I2C_ECC_CHIP_IDLE 0x02
-#define I2C_ECC_CHIP_CMD 0x03
+    // Chip commands
+    #define I2C_ECC_CHIP_RESET 0x00
+    #define I2C_ECC_CHIP_SLEEP 0x01
+    #define I2C_ECC_CHIP_IDLE 0x02
+    #define I2C_ECC_CHIP_CMD 0x03
 
-// Settings
-#define I2C_ECC_ADDR 0xC0
-#define I2C_ECC_TWLO 70u // tWLO min 60 us
-#define I2C_ECC_TWHI 1550u // tWHI min 1500 us
-#define I2C_ECC_RETRIES 25u
-#define I2C_ECC_RETRY_DELAY 2u
+    // Settings
+    #define I2C_ECC_ADDR 0xC0
+    #define I2C_ECC_TWLO 70u // tWLO min 60 us
+    #define I2C_ECC_TWHI 1550u // tWHI min 1500 us
+    #define I2C_ECC_RETRIES 25u
+    #define I2C_ECC_RETRY_DELAY 2u
 
-// Status codes
-#define I2C_ECC_SUCCESS 0x00 // Command successful
-#define I2C_ECC_ERR_VERIFY 0x01 // Checkmac or verify error
-#define I2C_ECC_ERR_PARSE 0x03 // Command parse error
-#define I2C_ECC_ERR_ECC 0x05 // ECC fault
-#define I2C_ECC_ERR_SELFTEST 0x07 // Self-test error
-#define I2C_ECC_ERR_EXECUTION 0x0F // Command execution error
-#define I2C_ECC_WAKE 0x11 // Received a proper wake token.
-#define I2C_ECC_ERR_I2C 0xCC // I2C communication error
-#define I2C_ECC_ERR_WATCHDOG 0xEE // Watchdog about to expire
-#define I2C_ECC_ERR_CRC 0xFF // CRC or other communications error
+    // Status codes
+    #define I2C_ECC_SUCCESS 0x00 // Command successful
+    #define I2C_ECC_ERR_VERIFY 0x01 // Checkmac or verify error
+    #define I2C_ECC_ERR_PARSE 0x03 // Command parse error
+    #define I2C_ECC_ERR_ECC 0x05 // ECC fault
+    #define I2C_ECC_ERR_SELFTEST 0x07 // Self-test error
+    #define I2C_ECC_ERR_EXECUTION 0x0F // Command execution error
+    #define I2C_ECC_WAKE 0x11 // Received a proper wake token.
+    #define I2C_ECC_ERR_I2C 0xCC // I2C communication error
+    #define I2C_ECC_ERR_WATCHDOG 0xEE // Watchdog about to expire
+    #define I2C_ECC_ERR_CRC 0xFF // CRC or other communications error
 
 // the following functions are not to be used directly, and serve as the
 // communication backend for securechip/securechip.c.

@@ -26,7 +26,7 @@
 #include <utils_assert.h>
 
 #ifndef TESTING
-#include <hal_delay.h>
+    #include <hal_delay.h>
 #endif
 
 static UG_GUI guioled; // Global GUI structure for OLED screen

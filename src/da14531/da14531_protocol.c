@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <utils_assert.h>
 #ifndef TESTING
-#include "dap.h"
+    #include "dap.h"
 #endif
 
 #include <hardfault.h>

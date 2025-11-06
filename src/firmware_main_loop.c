@@ -37,9 +37,9 @@
 #include <ui/fonts/monogram_5X9.h>
 #include <utils_ringbuffer.h>
 #if APP_U2F == 1
-#include "u2f.h"
-#include "u2f/u2f_packet.h"
-#include "usb/class/hid/u2f/hid_u2f.h"
+    #include "u2f.h"
+    #include "u2f/u2f_packet.h"
+    #include "usb/class/hid/u2f/hid_u2f.h"
 #endif
 
 // Must be power of 2

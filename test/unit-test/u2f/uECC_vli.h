@@ -9,7 +9,7 @@
 /* Functions for raw large-integer manipulation. These are only available
    if uECC.c is compiled with uECC_ENABLE_VLI_API defined to 1. */
 #ifndef uECC_ENABLE_VLI_API
-#define uECC_ENABLE_VLI_API 0
+    #define uECC_ENABLE_VLI_API 0
 #endif
 
 #ifdef __cplusplus
@@ -135,10 +135,10 @@ void uECC_vli_modInv(
     const uECC_word_t* mod,
     wordcount_t num_words);
 
-#if uECC_SUPPORT_COMPRESSED_POINT
+    #if uECC_SUPPORT_COMPRESSED_POINT
 /* Calculates a = sqrt(a) (mod curve->p) */
 void uECC_vli_mod_sqrt(uECC_word_t* a, uECC_Curve curve);
-#endif
+    #endif
 
 /* Converts an integer in uECC native format to big-endian bytes. */
 void uECC_vli_nativeToBytes(uint8_t* bytes, int num_bytes, const uECC_word_t* native);

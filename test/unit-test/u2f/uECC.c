@@ -5,13 +5,13 @@
 #include <string.h>
 
 #ifndef uECC_RNG_MAX_TRIES
-#define uECC_RNG_MAX_TRIES 64
+    #define uECC_RNG_MAX_TRIES 64
 #endif
 
 #if uECC_ENABLE_VLI_API
-#define uECC_VLI_API
+    #define uECC_VLI_API
 #else
-#define uECC_VLI_API static
+    #define uECC_VLI_API static
 #endif
 
 #define CONCATX(a, ...) a##__VA_ARGS__
@@ -85,53 +85,53 @@
 #include "platform-specific.inc"
 
 #if (uECC_WORD_SIZE == 1)
-#if uECC_SUPPORTS_secp160r1
-#define uECC_MAX_WORDS 21 /* Due to the size of curve_n. */
-#endif
-#if uECC_SUPPORTS_secp192r1
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 24
-#endif
-#if uECC_SUPPORTS_secp224r1
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 28
-#endif
-#if (uECC_SUPPORTS_secp256r1 || uECC_SUPPORTS_secp256k1)
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 32
-#endif
+    #if uECC_SUPPORTS_secp160r1
+        #define uECC_MAX_WORDS 21 /* Due to the size of curve_n. */
+    #endif
+    #if uECC_SUPPORTS_secp192r1
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 24
+    #endif
+    #if uECC_SUPPORTS_secp224r1
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 28
+    #endif
+    #if (uECC_SUPPORTS_secp256r1 || uECC_SUPPORTS_secp256k1)
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 32
+    #endif
 #elif (uECC_WORD_SIZE == 4)
-#if uECC_SUPPORTS_secp160r1
-#define uECC_MAX_WORDS 6 /* Due to the size of curve_n. */
-#endif
-#if uECC_SUPPORTS_secp192r1
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 6
-#endif
-#if uECC_SUPPORTS_secp224r1
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 7
-#endif
-#if (uECC_SUPPORTS_secp256r1 || uECC_SUPPORTS_secp256k1)
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 8
-#endif
+    #if uECC_SUPPORTS_secp160r1
+        #define uECC_MAX_WORDS 6 /* Due to the size of curve_n. */
+    #endif
+    #if uECC_SUPPORTS_secp192r1
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 6
+    #endif
+    #if uECC_SUPPORTS_secp224r1
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 7
+    #endif
+    #if (uECC_SUPPORTS_secp256r1 || uECC_SUPPORTS_secp256k1)
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 8
+    #endif
 #elif (uECC_WORD_SIZE == 8)
-#if uECC_SUPPORTS_secp160r1
-#define uECC_MAX_WORDS 3
-#endif
-#if uECC_SUPPORTS_secp192r1
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 3
-#endif
-#if uECC_SUPPORTS_secp224r1
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 4
-#endif
-#if (uECC_SUPPORTS_secp256r1 || uECC_SUPPORTS_secp256k1)
-#undef uECC_MAX_WORDS
-#define uECC_MAX_WORDS 4
-#endif
+    #if uECC_SUPPORTS_secp160r1
+        #define uECC_MAX_WORDS 3
+    #endif
+    #if uECC_SUPPORTS_secp192r1
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 3
+    #endif
+    #if uECC_SUPPORTS_secp224r1
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 4
+    #endif
+    #if (uECC_SUPPORTS_secp256r1 || uECC_SUPPORTS_secp256k1)
+        #undef uECC_MAX_WORDS
+        #define uECC_MAX_WORDS 4
+    #endif
 #endif /* uECC_WORD_SIZE */
 
 #define BITS_TO_WORDS(num_bits) ((num_bits + ((uECC_WORD_SIZE * 8) - 1)) / (uECC_WORD_SIZE * 8))
@@ -174,11 +174,11 @@ static cmpresult_t uECC_vli_cmp_unsafe(
 #if (                                                               \
     uECC_PLATFORM == uECC_arm || uECC_PLATFORM == uECC_arm_thumb || \
     uECC_PLATFORM == uECC_arm_thumb2)
-#include "asm_arm.inc"
+    #include "asm_arm.inc"
 #endif
 
 #if (uECC_PLATFORM == uECC_avr)
-#include "asm_avr.inc"
+    #include "asm_avr.inc"
 #endif
 
 #if defined(default_RNG_defined) && default_RNG_defined
@@ -388,7 +388,7 @@ uECC_VLI_API uECC_word_t uECC_vli_sub(
      ((uECC_WORD_SIZE == 1) || (uECC_WORD_SIZE == 8)))
 static void muladd(uECC_word_t a, uECC_word_t b, uECC_word_t* r0, uECC_word_t* r1, uECC_word_t* r2)
 {
-#if uECC_WORD_SIZE == 8 && !SUPPORTS_INT128
+    #if uECC_WORD_SIZE == 8 && !SUPPORTS_INT128
     uint64_t a0 = a & 0xffffffffull;
     uint64_t a1 = a >> 32;
     uint64_t b0 = b & 0xffffffffull;
@@ -413,14 +413,14 @@ static void muladd(uECC_word_t a, uECC_word_t b, uECC_word_t* r0, uECC_word_t* r
     *r0 += p0;
     *r1 += (p1 + (*r0 < p0));
     *r2 += ((*r1 < p1) || (*r1 == p1 && *r0 < p0));
-#else
+    #else
     uECC_dword_t p = (uECC_dword_t)a * b;
     uECC_dword_t r01 = ((uECC_dword_t)(*r1) << uECC_WORD_BITS) | *r0;
     r01 += p;
     *r2 += (r01 < p);
     *r1 = r01 >> uECC_WORD_BITS;
     *r0 = (uECC_word_t)r01;
-#endif
+    #endif
 }
 #endif /* muladd needed */
 
@@ -461,10 +461,10 @@ uECC_VLI_API void uECC_vli_mult(
 
 #if uECC_SQUARE_FUNC
 
-#if !defined(asm_square) || !asm_square
+    #if !defined(asm_square) || !asm_square
 static void mul2add(uECC_word_t a, uECC_word_t b, uECC_word_t* r0, uECC_word_t* r1, uECC_word_t* r2)
 {
-#if uECC_WORD_SIZE == 8 && !SUPPORTS_INT128
+        #if uECC_WORD_SIZE == 8 && !SUPPORTS_INT128
     uint64_t a0 = a & 0xffffffffull;
     uint64_t a1 = a >> 32;
     uint64_t b0 = b & 0xffffffffull;
@@ -494,7 +494,7 @@ static void mul2add(uECC_word_t a, uECC_word_t b, uECC_word_t* r0, uECC_word_t* 
     *r0 += p0;
     *r1 += (p1 + (*r0 < p0));
     *r2 += ((*r1 < p1) || (*r1 == p1 && *r0 < p0));
-#else
+        #else
     uECC_dword_t p = (uECC_dword_t)a * b;
     uECC_dword_t r01 = ((uECC_dword_t)(*r1) << uECC_WORD_BITS) | *r0;
     *r2 += (p >> (uECC_WORD_BITS * 2 - 1));
@@ -503,7 +503,7 @@ static void mul2add(uECC_word_t a, uECC_word_t b, uECC_word_t* r0, uECC_word_t* 
     *r2 += (r01 < p);
     *r1 = r01 >> uECC_WORD_BITS;
     *r0 = (uECC_word_t)r01;
-#endif
+        #endif
 }
 
 uECC_VLI_API void uECC_vli_square(
@@ -534,11 +534,11 @@ uECC_VLI_API void uECC_vli_square(
 
     result[num_words * 2 - 1] = r0;
 }
-#endif /* !asm_square */
+    #endif /* !asm_square */
 
 #else /* uECC_SQUARE_FUNC */
 
-#if uECC_ENABLE_VLI_API
+    #if uECC_ENABLE_VLI_API
 uECC_VLI_API void uECC_vli_square(
     uECC_word_t* result,
     const uECC_word_t* left,
@@ -546,7 +546,7 @@ uECC_VLI_API void uECC_vli_square(
 {
     uECC_vli_mult(result, left, left, num_words);
 }
-#endif /* uECC_ENABLE_VLI_API */
+    #endif /* uECC_ENABLE_VLI_API */
 
 #endif /* uECC_SQUARE_FUNC */
 
@@ -659,7 +659,7 @@ uECC_VLI_API void uECC_vli_modMult_fast(
 
 #if uECC_SQUARE_FUNC
 
-#if uECC_ENABLE_VLI_API
+    #if uECC_ENABLE_VLI_API
 /* Computes result = left^2 % mod. */
 uECC_VLI_API void uECC_vli_modSquare(
     uECC_word_t* result,
@@ -671,7 +671,7 @@ uECC_VLI_API void uECC_vli_modSquare(
     uECC_vli_square(product, left, num_words);
     uECC_vli_mmod(result, product, mod, num_words);
 }
-#endif /* uECC_ENABLE_VLI_API */
+    #endif /* uECC_ENABLE_VLI_API */
 
 uECC_VLI_API void uECC_vli_modSquare_fast(
     uECC_word_t* result,
@@ -680,16 +680,16 @@ uECC_VLI_API void uECC_vli_modSquare_fast(
 {
     uECC_word_t product[2 * uECC_MAX_WORDS];
     uECC_vli_square(product, left, curve->num_words);
-#if (uECC_OPTIMIZATION_LEVEL > 0)
+    #if (uECC_OPTIMIZATION_LEVEL > 0)
     curve->mmod_fast(result, product);
-#else
+    #else
     uECC_vli_mmod(result, product, curve->p, curve->num_words);
-#endif
+    #endif
 }
 
 #else /* uECC_SQUARE_FUNC */
 
-#if uECC_ENABLE_VLI_API
+    #if uECC_ENABLE_VLI_API
 uECC_VLI_API void uECC_vli_modSquare(
     uECC_word_t* result,
     const uECC_word_t* left,
@@ -698,7 +698,7 @@ uECC_VLI_API void uECC_vli_modSquare(
 {
     uECC_vli_modMult(result, left, left, mod, num_words);
 }
-#endif /* uECC_ENABLE_VLI_API */
+    #endif /* uECC_ENABLE_VLI_API */
 
 uECC_VLI_API void uECC_vli_modSquare_fast(
     uECC_word_t* result,
@@ -1129,26 +1129,26 @@ void uECC_compress(const uint8_t* public_key, uint8_t* compressed, uECC_Curve cu
     for (i = 0; i < curve->num_bytes; ++i) {
         compressed[i + 1] = public_key[i];
     }
-#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+    #if uECC_VLI_NATIVE_LITTLE_ENDIAN
     compressed[0] = 2 + (public_key[curve->num_bytes] & 0x01);
-#else
+    #else
     compressed[0] = 2 + (public_key[curve->num_bytes * 2 - 1] & 0x01);
-#endif
+    #endif
 }
 
 void uECC_decompress(const uint8_t* compressed, uint8_t* public_key, uECC_Curve curve)
 {
-#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+    #if uECC_VLI_NATIVE_LITTLE_ENDIAN
     uECC_word_t* point = (uECC_word_t*)public_key;
-#else
+    #else
     uECC_word_t point[uECC_MAX_WORDS * 2];
-#endif
+    #endif
     uECC_word_t* y = point + curve->num_words;
-#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+    #if uECC_VLI_NATIVE_LITTLE_ENDIAN
     bcopy(public_key, compressed + 1, curve->num_bytes);
-#else
+    #else
     uECC_vli_bytesToNative(point, compressed + 1, curve->num_bytes);
-#endif
+    #endif
     curve->x_side(y, point, curve);
     curve->mod_sqrt(y, curve);
 
@@ -1156,10 +1156,10 @@ void uECC_decompress(const uint8_t* compressed, uint8_t* public_key, uECC_Curve 
         uECC_vli_sub(y, curve->p, y, curve->num_words);
     }
 
-#if uECC_VLI_NATIVE_LITTLE_ENDIAN == 0
+    #if uECC_VLI_NATIVE_LITTLE_ENDIAN == 0
     uECC_vli_nativeToBytes(public_key, curve->num_bytes, point);
     uECC_vli_nativeToBytes(public_key + curve->num_bytes, curve->num_bytes, y);
-#endif
+    #endif
 }
 #endif /* uECC_SUPPORT_COMPRESSED_POINT */
 
@@ -1724,20 +1724,20 @@ const uECC_word_t* uECC_curve_b(uECC_Curve curve)
     return curve->b;
 }
 
-#if uECC_SUPPORT_COMPRESSED_POINT
+    #if uECC_SUPPORT_COMPRESSED_POINT
 void uECC_vli_mod_sqrt(uECC_word_t* a, uECC_Curve curve)
 {
     curve->mod_sqrt(a, curve);
 }
-#endif
+    #endif
 
 void uECC_vli_mmod_fast(uECC_word_t* result, uECC_word_t* product, uECC_Curve curve)
 {
-#if (uECC_OPTIMIZATION_LEVEL > 0)
+    #if (uECC_OPTIMIZATION_LEVEL > 0)
     curve->mmod_fast(result, product);
-#else
+    #else
     uECC_vli_mmod(result, product, curve->p, curve->num_words);
-#endif
+    #endif
 }
 
 void uECC_point_mult(

@@ -26,11 +26,11 @@
 #include <screen.h>
 
 #ifndef TESTING
-#include "securechip/securechip.h"
-#include <driver_init.h>
-#include <hal_delay.h>
-#include <ui/components/status.h>
-#include <ui/ugui/ugui.h>
+    #include "securechip/securechip.h"
+    #include <driver_init.h>
+    #include <hal_delay.h>
+    #include <ui/components/status.h>
+    #include <ui/ugui/ugui.h>
 #endif
 
 #if !defined(TESTING)
@@ -77,7 +77,7 @@ void reset_reset(bool status)
     if (!sc_result_reset_keys) {
         Abort("Could not reset secure chip.");
     }
-#if APP_U2F == 1
+    #if APP_U2F == 1
     bool sc_result_u2f_counter_set = false;
     for (int retries = 0; retries < 5; retries++) {
         sc_result_u2f_counter_set = securechip_u2f_counter_set(0);
@@ -88,7 +88,7 @@ void reset_reset(bool status)
     if (!sc_result_u2f_counter_set) {
         Abort("Could not initialize U2F counter.");
     }
-#endif
+    #endif
 #endif
     if (!memory_reset_hww()) {
         Abort("Could not reset memory.");

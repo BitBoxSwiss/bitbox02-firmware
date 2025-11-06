@@ -18,18 +18,18 @@
 #include <driver_init.h>
 #include <ui/oled/oled.h>
 #if !defined(BOOTLOADER)
-#include "sd_mmc/sd_mmc_start.h"
+    #include "sd_mmc/sd_mmc_start.h"
 #endif
 #include "util.h"
 
 #if !(defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1)
-#include "uart.h"
+    #include "uart.h"
 #endif
 
 #if defined(BOOTLOADER)
-#define PREFIX "boot"
+    #define PREFIX "boot"
 #else
-#define PREFIX "fw"
+    #define PREFIX "fw"
 #endif
 
 void platform_init(void)

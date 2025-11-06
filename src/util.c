@@ -28,15 +28,15 @@ void util_zero(volatile void* dst, size_t len)
     // Rust doesn't have a volatile qualifier becuase volatile refers to the act of writing/reading
     // not the data type.
 #if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
     rust_util_zero(rust_util_bytes_mut(dst, len));
-#pragma clang diagnostic pop
+    #pragma clang diagnostic pop
 #else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
     rust_util_zero(rust_util_bytes_mut(dst, len));
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #endif
 }
 

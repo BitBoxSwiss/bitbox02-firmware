@@ -19,10 +19,10 @@
 #include <string.h>
 
 #ifndef TESTING
-#include "qtouch.h"
-#include <driver_init.h>
+    #include "qtouch.h"
+    #include <driver_init.h>
 #else
-#include "fake_qtouch.h"
+    #include "fake_qtouch.h"
 #endif
 
 #include "gestures.h"

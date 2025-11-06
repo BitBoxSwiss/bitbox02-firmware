@@ -19,9 +19,9 @@
 #include <stdint.h>
 
 #if !defined(TESTING)
-#include "usb_protocol.h"
-#include "usb_protocol_hid.h"
-#include "usbdc.h"
+    #include "usb_protocol.h"
+    #include "usb_protocol_hid.h"
+    #include "usbdc.h"
 #else
 struct usbdc_handler;
 struct usbdf_handler;

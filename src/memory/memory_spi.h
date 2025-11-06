@@ -30,10 +30,10 @@
 #define MEMORY_SPI_BLE_FIRMWARE_2_ADDR MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE
 
 #if (MEMORY_SPI_BLE_FIRMWARE_1_ADDR % MEMORY_SPI_ERASE_GRANULARITY)
-#error "Address must be aligned to an erase sector"
+    #error "Address must be aligned to an erase sector"
 #endif
 #if (MEMORY_SPI_BLE_FIRMWARE_2_ADDR % MEMORY_SPI_ERASE_GRANULARITY)
-#error "Address must be aligned to an erase sector"
+    #error "Address must be aligned to an erase sector"
 #endif
 
 /**

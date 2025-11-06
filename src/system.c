@@ -19,8 +19,8 @@
 #include <memory/memory_shared.h>
 #include <screen.h>
 #ifndef TESTING
-#include "uart.h"
-#include <driver_init.h>
+    #include "uart.h"
+    #include <driver_init.h>
 #endif
 
 static void _ble_clear_product(void)

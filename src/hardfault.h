@@ -16,7 +16,7 @@
 #define _HARDFAULT_H_
 
 #ifdef TESTING
-#include <stdio.h>
+    #include <stdio.h>
 void Dummy_Handler(void);
 
 void HardFault_Handler(void) __attribute__((weak));

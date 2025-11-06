@@ -21,14 +21,14 @@
 #include <ui/component.h>
 
 #ifndef TESTING
-#include "qtouch.h"
-#define TOUCH_NUM_BUTTONS DEF_NUM_CHANNELS
-#define TOUCH_NUM_SLIDERS DEF_NUM_SCROLLERS
-#define MAX_SLIDER_POS (DEF_SCROLLER_RESOLUTION - 1)
+    #include "qtouch.h"
+    #define TOUCH_NUM_BUTTONS DEF_NUM_CHANNELS
+    #define TOUCH_NUM_SLIDERS DEF_NUM_SCROLLERS
+    #define MAX_SLIDER_POS (DEF_SCROLLER_RESOLUTION - 1)
 #else
-#define TOUCH_NUM_BUTTONS (8)
-#define TOUCH_NUM_SLIDERS (2)
-#define MAX_SLIDER_POS (255)
+    #define TOUCH_NUM_BUTTONS (8)
+    #define TOUCH_NUM_SLIDERS (2)
+    #define MAX_SLIDER_POS (255)
 #endif
 #define SLIDER_POSITION_ONE_THIRD (MAX_SLIDER_POS / 3)
 #define SLIDER_POSITION_TWO_THIRD (MAX_SLIDER_POS / 3 * 2)

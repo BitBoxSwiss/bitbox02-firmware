@@ -18,25 +18,25 @@
 #define _DRIVER_INIT_H_
 
 #ifndef TESTING
-#include "CryptoLib_Headers_pb.h"
-#include <bitbox02_pins.h>
-#include <hal_atomic.h>
-#include <hal_delay.h>
-#include <hal_flash.h>
-#include <hal_i2c_m_sync.h>
-#include <hal_init.h>
-#include <hal_io.h>
-#include <hal_mci_sync.h>
-#include <hal_pac.h>
-#include <hal_rand_sync.h>
-#include <hal_sha_sync.h>
-#include <hal_sleep.h>
-#include <hal_timer.h>
-#include <hal_usart_async.h>
-#include <hal_usb_device.h>
-#include <hpl_rtc_base.h>
-#include <sd_mmc.h>
-#include <spi_lite.h>
+    #include "CryptoLib_Headers_pb.h"
+    #include <bitbox02_pins.h>
+    #include <hal_atomic.h>
+    #include <hal_delay.h>
+    #include <hal_flash.h>
+    #include <hal_i2c_m_sync.h>
+    #include <hal_init.h>
+    #include <hal_io.h>
+    #include <hal_mci_sync.h>
+    #include <hal_pac.h>
+    #include <hal_rand_sync.h>
+    #include <hal_sha_sync.h>
+    #include <hal_sleep.h>
+    #include <hal_timer.h>
+    #include <hal_usart_async.h>
+    #include <hal_usb_device.h>
+    #include <hpl_rtc_base.h>
+    #include <sd_mmc.h>
+    #include <spi_lite.h>
 #endif
 #include <utils.h>
 #include <utils_assert.h>

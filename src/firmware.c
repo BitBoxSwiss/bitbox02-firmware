@@ -30,7 +30,7 @@
 #include <ui/oled/oled.h>
 
 #if APP_U2F == 1
-#include <u2f.h>
+    #include <u2f.h>
 #endif
 
 uint32_t __stack_chk_guard = 0;

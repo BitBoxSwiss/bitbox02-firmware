@@ -15,7 +15,7 @@
 #include "hid.h"
 #include "usb_desc.h"
 #if !defined(TESTING)
-#include "usb_protocol.h"
+    #include "usb_protocol.h"
 #endif
 #include <string.h>
 

@@ -82,16 +82,16 @@
  */
 
 #ifndef LITTLE_ENDIAN
-#define LITTLE_ENDIAN 1234
-#define BIG_ENDIAN 4321
+    #define LITTLE_ENDIAN 1234
+    #define BIG_ENDIAN 4321
 #endif
 
 #ifndef BYTE_ORDER
-#define BYTE_ORDER LITTLE_ENDIAN
+    #define BYTE_ORDER LITTLE_ENDIAN
 #endif
 
 #if !defined(BYTE_ORDER) || (BYTE_ORDER != LITTLE_ENDIAN && BYTE_ORDER != BIG_ENDIAN)
-#error Define BYTE_ORDER to be equal to either LITTLE_ENDIAN or BIG_ENDIAN
+    #error Define BYTE_ORDER to be equal to either LITTLE_ENDIAN or BIG_ENDIAN
 #endif
 
 typedef uint8_t sha2_byte; /* Exactly 1 byte */
@@ -105,19 +105,19 @@ typedef uint64_t sha2_word64; /* Exactly 8 bytes */
 
 /*** ENDIAN REVERSAL MACROS *******************************************/
 #if BYTE_ORDER == LITTLE_ENDIAN
-#define REVERSE32(w, x)                                                  \
-    {                                                                    \
-        sha2_word32 tmp = (w);                                           \
-        tmp = (tmp >> 16) | (tmp << 16);                                 \
-        (x) = ((tmp & 0xff00ff00UL) >> 8) | ((tmp & 0x00ff00ffUL) << 8); \
-    }
-#define REVERSE64(w, x)                                                                      \
-    {                                                                                        \
-        sha2_word64 tmp = (w);                                                               \
-        tmp = (tmp >> 32) | (tmp << 32);                                                     \
-        tmp = ((tmp & 0xff00ff00ff00ff00ULL) >> 8) | ((tmp & 0x00ff00ff00ff00ffULL) << 8);   \
-        (x) = ((tmp & 0xffff0000ffff0000ULL) >> 16) | ((tmp & 0x0000ffff0000ffffULL) << 16); \
-    }
+    #define REVERSE32(w, x)                                                  \
+        {                                                                    \
+            sha2_word32 tmp = (w);                                           \
+            tmp = (tmp >> 16) | (tmp << 16);                                 \
+            (x) = ((tmp & 0xff00ff00UL) >> 8) | ((tmp & 0x00ff00ffUL) << 8); \
+        }
+    #define REVERSE64(w, x)                                                                      \
+        {                                                                                        \
+            sha2_word64 tmp = (w);                                                               \
+            tmp = (tmp >> 32) | (tmp << 32);                                                     \
+            tmp = ((tmp & 0xff00ff00ff00ff00ULL) >> 8) | ((tmp & 0x00ff00ff00ff00ffULL) << 8);   \
+            (x) = ((tmp & 0xffff0000ffff0000ULL) >> 16) | ((tmp & 0x0000ffff0000ffffULL) << 16); \
+        }
 #endif /* BYTE_ORDER == LITTLE_ENDIAN */
 
 /*
@@ -257,35 +257,35 @@ void sha256_Init(SHA256_CTX* context)
 
 /* Unrolled SHA-256 round macros: */
 
-#if BYTE_ORDER == LITTLE_ENDIAN
+    #if BYTE_ORDER == LITTLE_ENDIAN
 
-#define ROUND256_0_TO_15(a, b, c, d, e, f, g, h)                      \
-    REVERSE32(*data++, W256[j]);                                      \
-    T1 = (h) + Sigma1_256(e) + Ch((e), (f), (g)) + K256[j] + W256[j]; \
-    (d) += T1;                                                        \
-    (h) = T1 + Sigma0_256(a) + Maj((a), (b), (c));                    \
-    j++
+        #define ROUND256_0_TO_15(a, b, c, d, e, f, g, h)                      \
+            REVERSE32(*data++, W256[j]);                                      \
+            T1 = (h) + Sigma1_256(e) + Ch((e), (f), (g)) + K256[j] + W256[j]; \
+            (d) += T1;                                                        \
+            (h) = T1 + Sigma0_256(a) + Maj((a), (b), (c));                    \
+            j++
 
-#else /* BYTE_ORDER == LITTLE_ENDIAN */
+    #else /* BYTE_ORDER == LITTLE_ENDIAN */
 
-#define ROUND256_0_TO_15(a, b, c, d, e, f, g, h)                                  \
-    T1 = (h) + Sigma1_256(e) + Ch((e), (f), (g)) + K256[j] + (W256[j] = *data++); \
-    (d) += T1;                                                                    \
-    (h) = T1 + Sigma0_256(a) + Maj((a), (b), (c));                                \
-    j++
+        #define ROUND256_0_TO_15(a, b, c, d, e, f, g, h)                                  \
+            T1 = (h) + Sigma1_256(e) + Ch((e), (f), (g)) + K256[j] + (W256[j] = *data++); \
+            (d) += T1;                                                                    \
+            (h) = T1 + Sigma0_256(a) + Maj((a), (b), (c));                                \
+            j++
 
-#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+    #endif /* BYTE_ORDER == LITTLE_ENDIAN */
 
-#define ROUND256(a, b, c, d, e, f, g, h)                     \
-    s0 = W256[(j + 1) & 0x0f];                               \
-    s0 = sigma0_256(s0);                                     \
-    s1 = W256[(j + 14) & 0x0f];                              \
-    s1 = sigma1_256(s1);                                     \
-    T1 = (h) + Sigma1_256(e) + Ch((e), (f), (g)) + K256[j] + \
-         (W256[j & 0x0f] += s1 + W256[(j + 9) & 0x0f] + s0); \
-    (d) += T1;                                               \
-    (h) = T1 + Sigma0_256(a) + Maj((a), (b), (c));           \
-    j++
+    #define ROUND256(a, b, c, d, e, f, g, h)                     \
+        s0 = W256[(j + 1) & 0x0f];                               \
+        s0 = sigma0_256(s0);                                     \
+        s1 = W256[(j + 14) & 0x0f];                              \
+        s1 = sigma1_256(s1);                                     \
+        T1 = (h) + Sigma1_256(e) + Ch((e), (f), (g)) + K256[j] + \
+             (W256[j & 0x0f] += s1 + W256[(j + 9) & 0x0f] + s0); \
+        (d) += T1;                                               \
+        (h) = T1 + Sigma0_256(a) + Maj((a), (b), (c));           \
+        j++
 
 void sha256_Transform(SHA256_CTX* context, const sha2_word32* data)
 {
@@ -366,15 +366,15 @@ void sha256_Transform(SHA256_CTX* context, const sha2_word32* data)
 
     j = 0;
     do {
-#if BYTE_ORDER == LITTLE_ENDIAN
+    #if BYTE_ORDER == LITTLE_ENDIAN
         /* Copy data while converting to host byte order */
         REVERSE32(*data++, W256[j]);
         /* Apply the SHA-256 compression function to update a..h */
         T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] + W256[j];
-#else /* BYTE_ORDER == LITTLE_ENDIAN */
+    #else /* BYTE_ORDER == LITTLE_ENDIAN */
         /* Apply the SHA-256 compression function to update a..h with copy */
         T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] + (W256[j] = *data++);
-#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+    #endif /* BYTE_ORDER == LITTLE_ENDIAN */
         T2 = Sigma0_256(a) + Maj(a, b, c);
         h = g;
         g = f;
@@ -556,34 +556,34 @@ void sha512_Init(SHA512_CTX* context)
 
 #ifdef SHA2_UNROLL_TRANSFORM
 
-/* Unrolled SHA-512 round macros: */
-#if BYTE_ORDER == LITTLE_ENDIAN
+    /* Unrolled SHA-512 round macros: */
+    #if BYTE_ORDER == LITTLE_ENDIAN
 
-#define ROUND512_0_TO_15(a, b, c, d, e, f, g, h)                      \
-    REVERSE64(*data++, W512[j]);                                      \
-    T1 = (h) + Sigma1_512(e) + Ch((e), (f), (g)) + K512[j] + W512[j]; \
-    (d) += T1, (h) = T1 + Sigma0_512(a) + Maj((a), (b), (c)), j++
+        #define ROUND512_0_TO_15(a, b, c, d, e, f, g, h)                      \
+            REVERSE64(*data++, W512[j]);                                      \
+            T1 = (h) + Sigma1_512(e) + Ch((e), (f), (g)) + K512[j] + W512[j]; \
+            (d) += T1, (h) = T1 + Sigma0_512(a) + Maj((a), (b), (c)), j++
 
-#else /* BYTE_ORDER == LITTLE_ENDIAN */
+    #else /* BYTE_ORDER == LITTLE_ENDIAN */
 
-#define ROUND512_0_TO_15(a, b, c, d, e, f, g, h)                                  \
-    T1 = (h) + Sigma1_512(e) + Ch((e), (f), (g)) + K512[j] + (W512[j] = *data++); \
-    (d) += T1;                                                                    \
-    (h) = T1 + Sigma0_512(a) + Maj((a), (b), (c));                                \
-    j++
+        #define ROUND512_0_TO_15(a, b, c, d, e, f, g, h)                                  \
+            T1 = (h) + Sigma1_512(e) + Ch((e), (f), (g)) + K512[j] + (W512[j] = *data++); \
+            (d) += T1;                                                                    \
+            (h) = T1 + Sigma0_512(a) + Maj((a), (b), (c));                                \
+            j++
 
-#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+    #endif /* BYTE_ORDER == LITTLE_ENDIAN */
 
-#define ROUND512(a, b, c, d, e, f, g, h)                     \
-    s0 = W512[(j + 1) & 0x0f];                               \
-    s0 = sigma0_512(s0);                                     \
-    s1 = W512[(j + 14) & 0x0f];                              \
-    s1 = sigma1_512(s1);                                     \
-    T1 = (h) + Sigma1_512(e) + Ch((e), (f), (g)) + K512[j] + \
-         (W512[j & 0x0f] += s1 + W512[(j + 9) & 0x0f] + s0); \
-    (d) += T1;                                               \
-    (h) = T1 + Sigma0_512(a) + Maj((a), (b), (c));           \
-    j++
+    #define ROUND512(a, b, c, d, e, f, g, h)                     \
+        s0 = W512[(j + 1) & 0x0f];                               \
+        s0 = sigma0_512(s0);                                     \
+        s1 = W512[(j + 14) & 0x0f];                              \
+        s1 = sigma1_512(s1);                                     \
+        T1 = (h) + Sigma1_512(e) + Ch((e), (f), (g)) + K512[j] + \
+             (W512[j & 0x0f] += s1 + W512[(j + 9) & 0x0f] + s0); \
+        (d) += T1;                                               \
+        (h) = T1 + Sigma0_512(a) + Maj((a), (b), (c));           \
+        j++
 
 void sha512_Transform(SHA512_CTX* context, const sha2_word64* data)
 {
@@ -659,15 +659,15 @@ void sha512_Transform(SHA512_CTX* context, const sha2_word64* data)
 
     j = 0;
     do {
-#if BYTE_ORDER == LITTLE_ENDIAN
+    #if BYTE_ORDER == LITTLE_ENDIAN
         /* Convert TO host byte order */
         REVERSE64(*data++, W512[j]);
         /* Apply the SHA-512 compression function to update a..h */
         T1 = h + Sigma1_512(e) + Ch(e, f, g) + K512[j] + W512[j];
-#else /* BYTE_ORDER == LITTLE_ENDIAN */
+    #else /* BYTE_ORDER == LITTLE_ENDIAN */
         /* Apply the SHA-512 compression function to update a..h with copy */
         T1 = h + Sigma1_512(e) + Ch(e, f, g) + K512[j] + (W512[j] = *data++);
-#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+    #endif /* BYTE_ORDER == LITTLE_ENDIAN */
         T2 = Sigma0_512(a) + Maj(a, b, c);
         h = g;
         g = f;

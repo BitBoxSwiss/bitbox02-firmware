@@ -17,10 +17,10 @@
 #include <util.h>
 
 #ifndef TESTING
-#include <hal_atomic.h>
+    #include <hal_atomic.h>
 #else
-#define CRITICAL_SECTION_ENTER()
-#define CRITICAL_SECTION_LEAVE()
+    #define CRITICAL_SECTION_ENTER()
+    #define CRITICAL_SECTION_LEAVE()
 #endif
 
 #include "hardfault.h"

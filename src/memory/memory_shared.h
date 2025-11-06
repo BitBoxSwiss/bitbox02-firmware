@@ -22,7 +22,7 @@
 #include <flags.h>
 
 #if (FLASH_SHARED_DATA_LEN != CHUNK_SIZE)
-#error "Shared data chunk not correct length"
+    #error "Shared data chunk not correct length"
 #endif
 
 #define BOOT_NUM_FIRMWARE_SIGNING_KEYS 3u

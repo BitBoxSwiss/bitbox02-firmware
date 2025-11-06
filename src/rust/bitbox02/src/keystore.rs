@@ -75,7 +75,7 @@ pub fn _unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let mut seed_len: usize = 0;
     match unsafe {
         bitbox02_sys::keystore_unlock(
-            crate::util::str_to_cstr_vec(password)
+            crate::util::str_to_cstr_vec_zeroizing(password)
                 .unwrap()
                 .as_ptr()
                 .cast(),

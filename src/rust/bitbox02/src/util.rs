@@ -42,7 +42,7 @@ pub fn truncate_str(s: &str, len: usize) -> &str {
 }
 
 /// Converts a Rust string to a null terminated C string by appending a null
-/// terminator.  Returns `Err(())` if the input already contians a null byte.
+/// terminator.  Returns `Err(())` if the input already contains a null byte.
 pub fn str_to_cstr_vec(input: &str) -> Result<Vec<core::ffi::c_char>, ()> {
     let cstr = alloc::ffi::CString::new(input)
         .or(Err(()))?
@@ -51,6 +51,23 @@ pub fn str_to_cstr_vec(input: &str) -> Result<Vec<core::ffi::c_char>, ()> {
     // which is platform specific (unsigned on some platforms, signed on others).
     // Implemented without unsafe on purpose.
     Ok(cstr.into_iter().map(|c| c as _).collect())
+}
+
+/// Converts a Rust string to a null terminated C string by appending a null
+/// terminator.  Returns `Err(())` if the input already contains a null byte.
+pub fn str_to_cstr_vec_zeroizing(
+    input: &str,
+) -> Result<zeroize::Zeroizing<Vec<core::ffi::c_char>>, ()> {
+    let bytes = input.as_bytes();
+    if bytes.contains(&0) {
+        return Err(());
+    }
+    let mut result: zeroize::Zeroizing<Vec<core::ffi::c_char>> =
+        zeroize::Zeroizing::new(vec![0; bytes.len() + 1]);
+    for (i, b) in bytes.iter().enumerate() {
+        result[i] = *b as _;
+    }
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -133,5 +150,19 @@ mod tests {
                 .collect::<Vec<core::ffi::c_char>>())
         );
         assert_eq!(str_to_cstr_vec("te\0st"), Err(()));
+    }
+
+    #[test]
+    fn test_str_to_cstr_vec_zeroizing() {
+        assert_eq!(str_to_cstr_vec_zeroizing("").unwrap().as_slice(), &[0]);
+        assert_eq!(
+            str_to_cstr_vec_zeroizing("test").unwrap(),
+            b"test\0"
+                .iter()
+                .map(|c| *c as _)
+                .collect::<Vec<core::ffi::c_char>>()
+                .into(),
+        );
+        assert_eq!(str_to_cstr_vec_zeroizing("te\0st"), Err(()));
     }
 }

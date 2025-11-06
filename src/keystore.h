@@ -50,9 +50,6 @@ typedef enum {
  * @param[in] seed_length The length of the seed (max. 32 bytes).
  * @param[in] password The password with which we encrypt the seed.
  */
-USE_RESULT keystore_error_t
-keystore_encrypt_and_store_seed(const uint8_t* seed, size_t seed_length, const char* password);
-
 /** Unlocks the keystore seed or checks the password:
  * If the keystore is locked, it decrypts and loads the seed, unlocking the keystore:
  * 1) loads the stored seed and tries to decrypt using password.

@@ -85,6 +85,31 @@ pub fn monotonic_increments_remaining() -> Result<u32, ()> {
     }
 }
 
+pub fn init_new_password(password: &str) -> Result<(), Error> {
+    let password = crate::util::str_to_cstr_vec_zeroizing(password)
+        .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
+    let status = unsafe { bitbox02_sys::securechip_init_new_password(password.as_ptr().cast()) };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(Error::from_status(status))
+    }
+}
+
+pub fn stretch_password(password: &str) -> Result<Zeroizing<Vec<u8>>, Error> {
+    let password = crate::util::str_to_cstr_vec_zeroizing(password)
+        .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
+    let mut stretched = Zeroizing::new(vec![0u8; 32]);
+    let status = unsafe {
+        bitbox02_sys::securechip_stretch_password(password.as_ptr().cast(), stretched.as_mut_ptr())
+    };
+    if status == 0 {
+        Ok(stretched)
+    } else {
+        Err(Error::from_status(status))
+    }
+}
+
 /// Perform the secure chip KDF with the message in `msg` and return the zeroizing 32-byte result.
 pub fn kdf(msg: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
     let mut result = Zeroizing::new(vec![0u8; 32]);

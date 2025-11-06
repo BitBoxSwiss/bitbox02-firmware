@@ -151,6 +151,25 @@ pub fn get_seed_birthdate() -> u32 {
     }
 }
 
+pub fn set_encrypted_seed_and_hmac(data: &[u8]) -> Result<(), ()> {
+    if data.len() > u8::MAX as usize {
+        return Err(());
+    }
+    match unsafe {
+        bitbox02_sys::memory_set_encrypted_seed_and_hmac(data.as_ptr(), data.len() as u8)
+    } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
+pub fn reset_hww() -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_reset_hww() } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), MemoryError> {
     if hash.len() != 32 {
         return Err(MemoryError::MEMORY_ERR_INVALID_INPUT);

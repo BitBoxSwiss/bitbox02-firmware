@@ -36,6 +36,10 @@ const EC_PUBLIC_KEY_LEN: usize = 33;
 /// aes256cbc-hmac cipher adds 16 bytes IV, 16 bytes padding, 32 bytes hmac.
 const ENCRYPTION_OVERHEAD: usize = 64;
 
+// Unlocking the keystore takes longer than the default 500 ms watchdog. Bump the watchdog timeout
+// to roughly seven seconds so we don't assume communication was lost mid-unlock.
+const LONG_TIMEOUT: i16 = -70;
+
 #[derive(Copy, Clone)]
 struct ReadOnlyBuffer {
     // 64 is the biggest retained buffer (bip39 seed) we will store, and 64 is added for the
@@ -174,6 +178,44 @@ fn retain_seed(seed: &[u8]) -> Result<(), Error> {
     Ok(())
 }
 
+/// Restores a seed. This also unlocks the keystore with this seed.
+/// `password` is the password with which we encrypt the seed.
+pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
+    if bitbox02::memory::is_initialized() {
+        return Err(Error::Memory);
+    }
+
+    if !matches!(seed.len(), 16 | 24 | 32) {
+        return Err(Error::SeedSize);
+    }
+
+    lock();
+
+    bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
+
+    securechip::init_new_password(password)?;
+
+    let secret = securechip::stretch_password(password)?;
+
+    let iv: [u8; 16] = bitbox02::random::random_32_bytes()[..16]
+        .try_into()
+        .unwrap();
+    let encrypted = bitbox_aes::encrypt_with_hmac(&iv, &secret, seed);
+
+    if encrypted.len() > u8::MAX as usize {
+        panic!("encrypted seed length overflow");
+    }
+
+    bitbox02::memory::set_encrypted_seed_and_hmac(&encrypted).map_err(|_| Error::Memory)?;
+
+    if !verify_seed(&secret, seed) {
+        bitbox02::memory::reset_hww().map_err(|_| Error::Memory)?;
+        return Err(Error::Memory);
+    }
+
+    retain_seed(seed)
+}
+
 // Checks if the retained seed matches the passed seed.
 fn check_retained_seed(seed: &[u8]) -> Result<(), ()> {
     if RETAINED_SEED.read().is_none() {
@@ -234,12 +276,6 @@ pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
         .ok_or(())?
         .decrypt()
         .map_err(|_| ())
-}
-
-/// Restores a seed. This also unlocks the keystore with this seed.
-/// `password` is the password with which we encrypt the seed.
-pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
-    keystore::_encrypt_and_store_seed(seed, password)
 }
 
 /// Generates the seed, mixes it with host_entropy, and stores it encrypted with the
@@ -427,14 +463,6 @@ pub extern "C" fn rust_keystore_check_retained_seed(seed: util::bytes::Bytes) ->
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_retain_seed(seed: util::bytes::Bytes) -> bool {
     retain_seed(seed.as_ref()).is_ok()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_verify_seed(
-    encryption_key: util::bytes::Bytes,
-    expected_seed: util::bytes::Bytes,
-) -> bool {
-    verify_seed(encryption_key.as_ref(), expected_seed.as_ref())
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

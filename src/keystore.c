@@ -19,7 +19,6 @@
 #include "keystore.h"
 #include "memory/bitbox02_smarteeprom.h"
 #include "memory/memory.h"
-#include "random.h"
 #include "reset.h"
 #include "salt.h"
 #include "securechip/securechip.h"
@@ -100,59 +99,6 @@ USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed
     if (!rust_keystore_retain_seed(rust_util_bytes(seed, seed_len))) {
         return KEYSTORE_ERR_STRETCH_RETAINED_SEED_KEY;
     }
-    return KEYSTORE_OK;
-}
-
-keystore_error_t keystore_encrypt_and_store_seed(
-    const uint8_t* seed,
-    size_t seed_length,
-    const char* password)
-{
-    if (memory_is_initialized()) {
-        return KEYSTORE_ERR_MEMORY;
-    }
-    rust_keystore_lock();
-    if (!_validate_seed_length(seed_length)) {
-        return KEYSTORE_ERR_SEED_SIZE;
-    }
-
-    usb_processing_timeout_reset(LONG_TIMEOUT);
-
-    if (securechip_init_new_password(password)) {
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-    uint8_t secret[32] = {0};
-    UTIL_CLEANUP_32(secret);
-    if (securechip_stretch_password(password, secret)) {
-        return KEYSTORE_ERR_SECURECHIP;
-    }
-
-    size_t encrypted_seed_len = seed_length + 64;
-    uint8_t encrypted_seed[encrypted_seed_len];
-    UTIL_CLEANUP_32(encrypted_seed);
-    if (!cipher_aes_hmac_encrypt(seed, seed_length, encrypted_seed, &encrypted_seed_len, secret)) {
-        return KEYSTORE_ERR_ENCRYPT;
-    }
-    if (encrypted_seed_len > 255) { // sanity check, can't happen
-        Abort("keystore_encrypt_and_store_seed");
-    }
-    uint8_t encrypted_seed_len_u8 = (uint8_t)encrypted_seed_len;
-    if (!memory_set_encrypted_seed_and_hmac(encrypted_seed, encrypted_seed_len_u8)) {
-        return KEYSTORE_ERR_MEMORY;
-    }
-    if (!rust_keystore_verify_seed(
-            rust_util_bytes(secret, sizeof(secret)), rust_util_bytes(seed, seed_length))) {
-        if (!memory_reset_hww()) {
-            return KEYSTORE_ERR_MEMORY;
-        }
-        return KEYSTORE_ERR_MEMORY;
-    }
-
-    keystore_error_t retain_seed_result = _retain_seed(seed, seed_length);
-    if (retain_seed_result != KEYSTORE_OK) {
-        return retain_seed_result;
-    }
-
     return KEYSTORE_OK;
 }
 

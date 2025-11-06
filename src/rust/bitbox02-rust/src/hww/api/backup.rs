@@ -235,7 +235,7 @@ mod tests {
 
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
-        crate::keystore::encrypt_and_store_seed(&seed, "password").unwrap();
+        crate::keystore::encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").unwrap();
         bitbox02::memory::set_initialized().unwrap();
 
         let mut password_entered: bool = false;

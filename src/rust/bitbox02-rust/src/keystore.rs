@@ -19,6 +19,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
+use crate::hal::Random;
 pub use bitbox02::keystore::Error;
 pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
@@ -180,7 +181,11 @@ fn retain_seed(seed: &[u8]) -> Result<(), Error> {
 
 /// Restores a seed. This also unlocks the keystore with this seed.
 /// `password` is the password with which we encrypt the seed.
-pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
+pub fn encrypt_and_store_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    password: &str,
+) -> Result<(), Error> {
     if bitbox02::memory::is_initialized() {
         return Err(Error::Memory);
     }
@@ -197,9 +202,7 @@ pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> 
 
     let secret = securechip::stretch_password(password)?;
 
-    let iv: [u8; 16] = bitbox02::random::random_32_bytes()[..16]
-        .try_into()
-        .unwrap();
+    let iv: [u8; 16] = hal.random().random_32_bytes()[..16].try_into().unwrap();
     let encrypted = bitbox_aes::encrypt_with_hmac(&iv, &secret, seed);
 
     if encrypted.len() > u8::MAX as usize {
@@ -283,7 +286,7 @@ pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 /// bytes, resulting in 12 or 24 BIP39 recovery words.
 /// This also unlocks the keystore with the new seed.
 pub fn create_and_store_seed(
-    random: &mut impl crate::hal::Random,
+    hal: &mut impl crate::hal::Hal,
     password: &str,
     host_entropy: &[u8],
 ) -> Result<(), Error> {
@@ -292,7 +295,7 @@ pub fn create_and_store_seed(
         return Err(Error::SeedSize);
     }
 
-    let mut seed_vec = random.random_32_bytes();
+    let mut seed_vec = hal.random().random_32_bytes();
     let seed = &mut seed_vec[..seed_len];
 
     // Mix in host entropy.
@@ -309,7 +312,7 @@ pub fn create_and_store_seed(
         seed[i] ^= hash_byte;
     }
 
-    encrypt_and_store_seed(seed, password)
+    encrypt_and_store_seed(hal, seed, password)
 }
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
@@ -679,7 +682,7 @@ pub mod testing {
 mod tests {
     use super::*;
 
-    use crate::hal::{Random, testing::TestingRandom};
+    use crate::hal::testing::{TestingHal, TestingRandom};
     use hex_lit::hex;
 
     use bitbox02::testing::mock_memory;
@@ -725,7 +728,7 @@ mod tests {
         mock_memory();
         lock();
         assert!(matches!(
-            encrypt_and_store_seed(&[0; 31], "foo"),
+            encrypt_and_store_seed(&mut TestingHal::new(), &[0; 31], "foo"),
             Err(Error::SeedSize)
         ));
     }
@@ -740,12 +743,12 @@ mod tests {
             hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
                 .unwrap();
 
-        let mut random = crate::hal::testing::TestingRandom::new();
+        let mut hal = TestingHal::new();
 
         // Invalid seed lengths
         for size in [8, 24, 40] {
             assert!(matches!(
-                create_and_store_seed(&mut random, "password", &host_entropy[..size]),
+                create_and_store_seed(&mut hal, "password", &host_entropy[..size]),
                 Err(Error::SeedSize)
             ));
         }
@@ -772,9 +775,9 @@ mod tests {
             bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
             lock();
 
-            let mut random = crate::hal::testing::TestingRandom::new();
-            random.mock_next(seed_random);
-            assert!(create_and_store_seed(&mut random, "password", &host_entropy[..size]).is_ok());
+            let mut hal = TestingHal::new();
+            hal.random.mock_next(seed_random);
+            assert!(create_and_store_seed(&mut hal, "password", &host_entropy[..size]).is_ok());
             assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.
@@ -804,9 +807,9 @@ mod tests {
             .unwrap();
         let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
             .unwrap();
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         // Create new (different) seed.
-        assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed2, "password").is_ok());
         assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
     }
 
@@ -818,7 +821,7 @@ mod tests {
 
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(block_on(unlock_bip39(&mut random, &seed, "foo", async || {})).is_ok());
         assert!(!is_locked());
@@ -841,7 +844,7 @@ mod tests {
                 .unwrap();
         bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         lock();
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
@@ -908,7 +911,7 @@ mod tests {
         bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
         assert!(root_fingerprint().is_err());
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         assert!(root_fingerprint().is_err());
         // Incorrect seed passed
         assert!(
@@ -1306,7 +1309,7 @@ mod tests {
             );
 
             bitbox02::securechip::fake_event_counter_reset();
-            assert!(encrypt_and_store_seed(seed, "foo").is_ok());
+            assert!(encrypt_and_store_seed(&mut TestingHal::new(), seed, "foo").is_ok());
             assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
             assert!(is_locked());
@@ -1522,7 +1525,10 @@ mod tests {
 
             // Can repeat until initialized - initialized means backup has been created.
             for _ in 0..2 {
-                assert!(encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
+                assert!(
+                    encrypt_and_store_seed(&mut TestingHal::new(), &seed[..seed_size], "foo")
+                        .is_ok()
+                );
             }
             // Also unlocks, so we can get the retained seed.
             assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
@@ -1548,7 +1554,7 @@ mod tests {
             // Can't store new seed once initialized.
             bitbox02::memory::set_initialized().unwrap();
             assert!(matches!(
-                encrypt_and_store_seed(&seed[..seed_size], "foo"),
+                encrypt_and_store_seed(&mut TestingHal::new(), &seed[..seed_size], "foo"),
                 Err(Error::Memory)
             ));
         }

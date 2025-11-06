@@ -66,7 +66,7 @@ pub async fn from_file(
 
     let password = password::enter_twice(hal).await?;
     let seed = data.get_seed();
-    if let Err(err) = crate::keystore::encrypt_and_store_seed(seed, &password) {
+    if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, seed, &password) {
         hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;
@@ -142,7 +142,7 @@ pub async fn from_mnemonic(
         }
     };
 
-    if let Err(err) = crate::keystore::encrypt_and_store_seed(&seed, &password) {
+    if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, &seed, &password) {
         hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;

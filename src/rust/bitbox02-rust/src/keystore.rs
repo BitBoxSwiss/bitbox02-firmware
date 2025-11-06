@@ -392,10 +392,7 @@ pub fn stretch_retained_seed_encryption_key(
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let salted_in = crate::salt::hash_data(encryption_key, purpose_in).map_err(|_| Error::Salt)?;
 
-    let kdf = securechip::kdf(salted_in.as_slice()).map_err(|err| match err {
-        securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
-        securechip::Error::Status(status) => Error::SecureChip(status),
-    })?;
+    let kdf = securechip::kdf(salted_in.as_slice())?;
 
     let salted_out =
         crate::salt::hash_data(encryption_key, purpose_out).map_err(|_| Error::Salt)?;

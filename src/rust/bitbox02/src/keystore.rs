@@ -43,6 +43,15 @@ pub enum Error {
     StretchRetainedSeedKey,
 }
 
+impl core::convert::From<crate::securechip::Error> for Error {
+    fn from(error: crate::securechip::Error) -> Self {
+        match error {
+            crate::securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
+            crate::securechip::Error::Status(status) => Error::SecureChip(status),
+        }
+    }
+}
+
 impl core::convert::From<keystore_error_t> for Error {
     fn from(error: keystore_error_t) -> Self {
         match error {

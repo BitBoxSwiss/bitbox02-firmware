@@ -693,6 +693,16 @@ mod tests {
     }
 
     #[test]
+    fn test_encrypt_and_store_seed_invalid_size() {
+        mock_memory();
+        lock();
+        assert!(matches!(
+            encrypt_and_store_seed(&[0; 31], "foo"),
+            Err(Error::SeedSize)
+        ));
+    }
+
+    #[test]
     fn test_create_and_store_seed() {
         let mock_salt_root =
             hex::decode("3333333333333333444444444444444411111111111111112222222222222222")

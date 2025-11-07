@@ -170,6 +170,36 @@ pub fn reset_hww() -> Result<(), ()> {
     }
 }
 
+#[cfg(feature = "testing")]
+pub fn smarteeprom_get_unlock_attempts() -> u8 {
+    unsafe { bitbox02_sys::bitbox02_smarteeprom_get_unlock_attempts() }
+}
+
+#[cfg(feature = "testing")]
+pub fn smarteeprom_increment_unlock_attempts() {
+    unsafe {
+        bitbox02_sys::bitbox02_smarteeprom_increment_unlock_attempts();
+    }
+}
+
+#[cfg(feature = "testing")]
+pub fn smarteeprom_reset_unlock_attempts() {
+    unsafe {
+        bitbox02_sys::bitbox02_smarteeprom_reset_unlock_attempts();
+    }
+}
+
+/// Testing helper to set the recorded number of unlock attempts to a precise value.
+/// Panics if `attempts` exceeds the maximum supported by the firmware.
+#[cfg(feature = "testing")]
+pub fn set_unlock_attempts_for_testing(attempts: u8) {
+    assert!(attempts <= MAX_UNLOCK_ATTEMPTS);
+    smarteeprom_reset_unlock_attempts();
+    for _ in 0..attempts {
+        smarteeprom_increment_unlock_attempts();
+    }
+}
+
 pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), MemoryError> {
     if hash.len() != 32 {
         return Err(MemoryError::MEMORY_ERR_INVALID_INPUT);

@@ -933,6 +933,38 @@ mod tests {
         assert!(matches!(unlock("password"), Err(Error::Unseeded)));
     }
 
+    /// Ensures that if the recorded unlock attempts already reached the maximum before calling
+    /// `unlock()`, the keystore immediately returns `MaxAttemptsExceeded` without performing any
+    /// secure chip operations.
+    #[test]
+    fn test_unlock_preexisting_lockout() {
+        mock_memory();
+        lock();
+
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+        let mock_salt_root =
+            hex!("3333333333333333444444444444444411111111111111112222222222222222");
+        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        lock();
+        assert!(is_locked());
+
+        bitbox02::memory::set_unlock_attempts_for_testing(bitbox02::memory::MAX_UNLOCK_ATTEMPTS);
+        assert_eq!(
+            bitbox02::memory::smarteeprom_get_unlock_attempts(),
+            bitbox02::memory::MAX_UNLOCK_ATTEMPTS
+        );
+
+        assert!(matches!(
+            unlock("password"),
+            Err(Error::MaxAttemptsExceeded)
+        ));
+        assert!(is_locked());
+        assert!(copy_seed().is_err());
+        assert!(!bitbox02::memory::is_seeded());
+    }
+
     /// Ensures the failed-attempt counter resets once a correct password is entered while the
     /// keystore is locked, so a later wrong attempt after relocking still sees the full allowance.
     #[test]

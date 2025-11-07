@@ -58,6 +58,10 @@ const ALLOWLIST_TYPES: &[&str] = &[
 
 const ALLOWLIST_FNS: &[&str] = &[
     "bip32_derive_xpub",
+    "bitbox02_smarteeprom_init",
+    "bitbox02_smarteeprom_get_unlock_attempts",
+    "bitbox02_smarteeprom_increment_unlock_attempts",
+    "bitbox02_smarteeprom_reset_unlock_attempts",
     "bitbox_secp256k1_dleq_prove",
     "bitbox_secp256k1_dleq_verify",
     "bitbox02_smarteeprom_init",

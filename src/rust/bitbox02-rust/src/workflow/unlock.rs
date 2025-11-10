@@ -190,15 +190,15 @@ mod tests {
     use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 
+    use hex_lit::hex;
+
     #[test]
     fn test_unlock_success() {
         mock_memory();
 
         // Set up an initialized wallet with password
         crate::keystore::encrypt_and_store_seed(
-            hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
-                .unwrap()
-                .as_slice(),
+            &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
             "password",
         )
         .unwrap();
@@ -224,8 +224,59 @@ mod tests {
 
         assert_eq!(
             crate::keystore::copy_bip39_seed().unwrap().as_slice(),
-            hex::decode("cff4b263e5b0eb299e5fd35fcd09988f6b14e5b464f8d18fb84b152f889dd2a30550f4c2b346cae825ffedd4a87fc63fc12a9433de5125b6c7fdbc5eab0c590b")
-                .unwrap(),
+            &hex!(
+                "cff4b263e5b0eb299e5fd35fcd09988f6b14e5b464f8d18fb84b152f889dd2a30550f4c2b346cae825ffedd4a87fc63fc12a9433de5125b6c7fdbc5eab0c590b"
+            ),
+        );
+
+        drop(mock_hal); // to remove mutable borrow of `password_entered`
+        assert!(password_entered);
+    }
+
+    #[test]
+    fn test_unlock_keystore_wrong_password() {
+        mock_memory();
+
+        // Set up an initialized wallet with password
+        crate::keystore::encrypt_and_store_seed(
+            &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
+            "password",
+        )
+        .unwrap();
+
+        bitbox02::memory::set_initialized().unwrap();
+
+        // Lock the keystore to simulate the normal locked state
+        crate::keystore::lock();
+
+        let mut password_entered = false;
+
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.set_enter_string(Box::new(|_params| {
+            password_entered = true;
+            Ok("wrong password".into())
+        }));
+
+        bitbox02::securechip::fake_event_counter_reset();
+        assert!(matches!(
+            block_on(unlock_keystore(
+                &mut mock_hal,
+                "title",
+                password::CanCancel::No,
+            )),
+            Err(UnlockError::IncorrectPassword),
+        ));
+        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+
+        // Checks that the device is locked.
+        assert!(crate::keystore::copy_seed().is_err());
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![Screen::Status {
+                title: "Wrong password\n9 tries remain".into(),
+                success: false,
+            },],
         );
 
         drop(mock_hal); // to remove mutable borrow of `password_entered`

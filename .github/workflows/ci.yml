@@ -24,4 +24,5 @@ jobs:
     with:
       container-version: ${{ needs.dev-container.outputs.container-version }}
       container-repo: ${{ needs.dev-container.outputs.container-repo }}
+      base-sha: ${{ github.event.before }}
     secrets: inherit

@@ -131,39 +131,38 @@ keystore_error_t keystore_unlock(
     size_t seed_len;
     keystore_error_t result =
         _get_and_decrypt_seed(password, seed, &seed_len, securechip_result_out);
-    if (result != KEYSTORE_OK && result != KEYSTORE_ERR_INCORRECT_PASSWORD) {
+    if (result != KEYSTORE_OK) {
+        // Compute remaining attempts
+        failed_attempts = bitbox02_smarteeprom_get_unlock_attempts();
+
+        if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
+            *remaining_attempts_out = 0;
+            reset_reset(false);
+            return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
+        }
+
+        *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
         return result;
     }
-    if (result == KEYSTORE_OK) {
-        if (rust_keystore_is_unlocked_device()) {
-            // Already unlocked. Fail if the seed changed under our feet (should never happen).
-            if (!rust_keystore_check_retained_seed(rust_util_bytes(seed, seed_len))) {
-                Abort("Seed has suddenly changed. This should never happen.");
-            }
-        } else {
-            keystore_error_t retain_seed_result = _retain_seed(seed, seed_len);
-            if (retain_seed_result != KEYSTORE_OK) {
-                return retain_seed_result;
-            }
-        }
-        bitbox02_smarteeprom_reset_unlock_attempts();
 
-        if (seed_out != NULL && seed_len_out != NULL) {
-            memcpy(seed_out, seed, seed_len);
-            *seed_len_out = seed_len;
+    if (rust_keystore_is_unlocked_device()) {
+        // Already unlocked. Fail if the seed changed under our feet (should never happen).
+        if (!rust_keystore_check_retained_seed(rust_util_bytes(seed, seed_len))) {
+            Abort("Seed has suddenly changed. This should never happen.");
+        }
+    } else {
+        keystore_error_t retain_seed_result = _retain_seed(seed, seed_len);
+        if (retain_seed_result != KEYSTORE_OK) {
+            return retain_seed_result;
         }
     }
-    // Compute remaining attempts
-    failed_attempts = bitbox02_smarteeprom_get_unlock_attempts();
+    bitbox02_smarteeprom_reset_unlock_attempts();
 
-    if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
-        *remaining_attempts_out = 0;
-        reset_reset(false);
-        return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
+    if (seed_out != NULL && seed_len_out != NULL) {
+        memcpy(seed_out, seed, seed_len);
+        *seed_len_out = seed_len;
     }
-
-    *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
-    return result;
+    return KEYSTORE_OK;
 }
 
 bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)

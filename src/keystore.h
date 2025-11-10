@@ -58,7 +58,7 @@ typedef enum {
  * check the password).
  * @param[in] password keystore password, used to decrypt the seed.
  * If it is false, the keystore is not unlocked.
- * @param[out] remaining_attempts_out will have the number of remaining attempts.
+ * @param[out] On any error, remaining_attempts_out will have the number of remaining attempts.
  * If zero, the keystore is locked until the device is reset.
  * @param[out] securechip_result_out, if not NULL, will contain the error code from
  * @param[out] seed_out The seed bytes copied from the retained seed.

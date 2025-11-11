@@ -58,8 +58,6 @@ typedef enum {
  * check the password).
  * @param[in] password keystore password, used to decrypt the seed.
  * If it is false, the keystore is not unlocked.
- * @param[out] On any error, remaining_attempts_out will have the number of remaining attempts.
- * If zero, the keystore is locked until the device is reset.
  * @param[out] securechip_result_out, if not NULL, will contain the error code from
  * @param[out] seed_out The seed bytes copied from the retained seed.
  * The buffer should be KEYSTORE_MAX_SEED_LENGTH bytes long. The caller must
@@ -73,7 +71,6 @@ typedef enum {
  */
 USE_RESULT keystore_error_t keystore_unlock(
     const char* password,
-    uint8_t* remaining_attempts_out,
     int* securechip_result_out,
     uint8_t* seed_out,
     size_t* seed_len_out);

@@ -104,7 +104,6 @@ USE_RESULT static keystore_error_t _retain_seed(const uint8_t* seed, size_t seed
 
 keystore_error_t keystore_unlock(
     const char* password,
-    uint8_t* remaining_attempts_out,
     int* securechip_result_out,
     uint8_t* seed_out,
     size_t* seed_len_out)
@@ -119,7 +118,6 @@ keystore_error_t keystore_unlock(
          * is made. So we should never enter this branch...
          * This is just an extraordinary measure for added resilience.
          */
-        *remaining_attempts_out = 0;
         reset_reset(false);
         return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
     }
@@ -132,16 +130,13 @@ keystore_error_t keystore_unlock(
     keystore_error_t result =
         _get_and_decrypt_seed(password, seed, &seed_len, securechip_result_out);
     if (result != KEYSTORE_OK) {
-        // Compute remaining attempts
         failed_attempts = bitbox02_smarteeprom_get_unlock_attempts();
 
         if (failed_attempts >= MAX_UNLOCK_ATTEMPTS) {
-            *remaining_attempts_out = 0;
             reset_reset(false);
             return KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED;
         }
 
-        *remaining_attempts_out = MAX_UNLOCK_ATTEMPTS - failed_attempts;
         return result;
     }
 

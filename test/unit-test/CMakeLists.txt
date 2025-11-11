@@ -19,61 +19,52 @@
 # both linux and macos
 find_package(PkgConfig REQUIRED)
 
-# Unit testing uses CMocka
-pkg_check_modules(CMOCKA REQUIRED cmocka)
-
-# u2f tests with hardware uses hidapi-hidraw
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  pkg_check_modules(HIDAPI REQUIRED hidapi)
-else()
-  pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw)
-endif()
-
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-bad-function-cast")
-
-add_library(mocks STATIC EXCLUDE_FROM_ALL
-    framework/src/mock_gestures.c
-    framework/src/mock_screen_stack.c
-    framework/src/mock_qtouch.c
-)
-target_link_libraries(mocks PUBLIC c-unit-tests_rust_c ${CMOCKA_LDFLAGS})
-target_include_directories(mocks
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/framework/include
-    ${CMOCKA_INCLUDE_DIRS}
-)
-
-#-----------------------------------------------------------------------------
-# Tests
-
-set(TEST_LIST
-   cleanup
-   "-Wl,--wrap=util_cleanup_32"
-   gestures
-   ""
-   random
-   "-Wl,--wrap=rand,--wrap=rust_sha256"
-   ui_components
-   ""
-   ui_util
-   ""
-   ui_component_gestures
-   ""
-   memory
-   "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
-   memory_functional
-   ""
-   cipher
-   "-Wl,--wrap=cipher_fake_iv"
-   util
-   ""
-   ugui
-   ""
-)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   message("No linker for Mach-O supports --wrap, will not generate unit-tests")
 else()
+  pkg_check_modules(CMOCKA REQUIRED cmocka)
+  add_library(mocks STATIC EXCLUDE_FROM_ALL
+      framework/src/mock_gestures.c
+      framework/src/mock_screen_stack.c
+      framework/src/mock_qtouch.c
+  )
+  target_link_libraries(mocks PUBLIC c-unit-tests_rust_c ${CMOCKA_LDFLAGS})
+  target_include_directories(mocks
+      PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/framework/include
+      ${CMOCKA_INCLUDE_DIRS}
+  )
+
+  #-----------------------------------------------------------------------------
+  # Tests
+
+  set(TEST_LIST
+     cleanup
+     "-Wl,--wrap=util_cleanup_32"
+     gestures
+     ""
+     random
+     "-Wl,--wrap=rand,--wrap=rust_sha256"
+     ui_components
+     ""
+     ui_util
+     ""
+     ui_component_gestures
+     ""
+     memory
+     "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
+     memory_functional
+     ""
+     cipher
+     "-Wl,--wrap=cipher_fake_iv"
+     util
+     ""
+     ugui
+     ""
+  )
+
   list(LENGTH TEST_LIST TEST_LIST_LEN)
   math(EXPR TEST_LIST_LEN ${TEST_LIST_LEN}-1)
   foreach(I RANGE 0 ${TEST_LIST_LEN} 2)
@@ -99,6 +90,12 @@ else()
     )
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()
+endif()
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  pkg_check_modules(HIDAPI REQUIRED hidapi)
+else()
+  pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw)
 endif()
 
 add_library(u2f-util

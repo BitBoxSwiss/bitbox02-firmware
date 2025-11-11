@@ -170,7 +170,6 @@ pub fn reset_hww() -> Result<(), ()> {
     }
 }
 
-#[cfg(feature = "testing")]
 pub fn smarteeprom_get_unlock_attempts() -> u8 {
     unsafe { bitbox02_sys::bitbox02_smarteeprom_get_unlock_attempts() }
 }

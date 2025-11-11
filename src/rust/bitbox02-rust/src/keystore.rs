@@ -235,6 +235,13 @@ pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     keystore::_unlock(password)
 }
 
+/// Returns the number of remaining unlock attempts (calls to `unlock()`) that are allowed before
+/// the device resets itself.
+pub fn get_remaining_unlock_attempts() -> u8 {
+    let failed_attempts: u8 = bitbox02::memory::smarteeprom_get_unlock_attempts();
+    bitbox02::memory::MAX_UNLOCK_ATTEMPTS.saturating_sub(failed_attempts)
+}
+
 /// Unlocks the bip39 seed. The input seed must be the keystore seed (i.e. must match the output
 /// of `keystore_copy_seed()`).
 /// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
@@ -873,6 +880,10 @@ mod tests {
                 Err(Error::IncorrectPassword { remaining_attempts }) if remaining_attempts
                     == bitbox02::memory::MAX_UNLOCK_ATTEMPTS  - i
             ));
+            assert_eq!(
+                get_remaining_unlock_attempts(),
+                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - i
+            );
             // Still seeded.
             assert!(bitbox02::memory::is_seeded());
             // Wrong password does not lock the keystore again if already unlocked.
@@ -910,6 +921,11 @@ mod tests {
                 Err(Error::IncorrectPassword { remaining_attempts })
                     if remaining_attempts == bitbox02::memory::MAX_UNLOCK_ATTEMPTS - attempt
             ));
+
+            assert_eq!(
+                get_remaining_unlock_attempts(),
+                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - attempt
+            );
             assert!(is_locked());
             assert!(copy_seed().is_err());
             assert!(bitbox02::memory::is_seeded());
@@ -943,6 +959,7 @@ mod tests {
         assert!(is_locked());
 
         bitbox02::memory::set_unlock_attempts_for_testing(bitbox02::memory::MAX_UNLOCK_ATTEMPTS);
+        assert_eq!(get_remaining_unlock_attempts(), 0);
         assert_eq!(
             bitbox02::memory::smarteeprom_get_unlock_attempts(),
             bitbox02::memory::MAX_UNLOCK_ATTEMPTS
@@ -978,6 +995,10 @@ mod tests {
                 Err(Error::IncorrectPassword { remaining_attempts })
                     if remaining_attempts == bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
             ));
+            assert_eq!(
+                get_remaining_unlock_attempts(),
+                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
+            );
         };
 
         wrong_attempt();
@@ -1018,6 +1039,10 @@ mod tests {
                 Err(Error::IncorrectPassword { remaining_attempts })
                     if remaining_attempts == bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
             ));
+            assert_eq!(
+                get_remaining_unlock_attempts(),
+                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
+            );
         };
 
         wrong_attempt();
@@ -1668,6 +1693,7 @@ mod tests {
                     remaining_attempts: 9
                 })
             ));
+            assert_eq!(get_remaining_unlock_attempts(), 9);
 
             // Correct password. First time: unlock. After unlock, it becomes a password check.
             for _ in 0..3 {

@@ -737,12 +737,11 @@ mod tests {
     #[test]
     fn test_create_and_store_seed() {
         let mock_salt_root =
-            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
-                .unwrap();
+            hex!("3333333333333333444444444444444411111111111111112222222222222222");
 
-        let host_entropy =
-            hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
-                .unwrap();
+        let host_entropy = hex!(
+            "25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe"
+        );
 
         let mut hal = TestingHal::new();
 
@@ -759,8 +758,7 @@ mod tests {
 
         // Derived from mock_salt_root and "password".
         let password_salted_hashed =
-            hex::decode("e8c70a20d9108fbb9454b1b8e2d7373e78cbaf9de025ab2d4f4d3c7a6711694c")
-                .unwrap();
+            hex!("e8c70a20d9108fbb9454b1b8e2d7373e78cbaf9de025ab2d4f4d3c7a6711694c");
 
         // expected_seed = seed_random ^ host_entropy ^ password_salted_hashed
         let expected_seed: Vec<u8> = seed_random
@@ -773,7 +771,7 @@ mod tests {
         for size in [16, 32] {
             mock_memory();
             bitbox02::random::fake_reset();
-            bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+            bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
             lock();
 
             let mut hal = TestingHal::new();
@@ -788,8 +786,7 @@ mod tests {
             // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
             // See also: mock_securechip.c
             let expected_encryption_key =
-                hex::decode("e56de448f5f1d29cdcc0e0099007309afe4d5a3ef2349e99dcc41840ad98409e")
-                    .unwrap();
+                hex!("e56de448f5f1d29cdcc0e0099007309afe4d5a3ef2349e99dcc41840ad98409e");
             let decrypted =
                 bitbox_aes::decrypt_with_hmac(&expected_encryption_key, &cipher).unwrap();
             assert_eq!(decrypted.as_slice(), &expected_seed[..size]);
@@ -804,10 +801,8 @@ mod tests {
         mock_memory();
         lock();
 
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
-        let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
-            .unwrap();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+        let seed2 = hex!("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d");
         assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         // Create new (different) seed.
         assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed2, "password").is_ok());
@@ -820,8 +815,7 @@ mod tests {
         lock();
         assert!(is_locked());
 
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(block_on(unlock_bip39(&mut random, &seed, "foo", async || {})).is_ok());
@@ -837,13 +831,11 @@ mod tests {
 
         assert!(matches!(unlock("password"), Err(Error::Unseeded)));
 
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
 
         let mock_salt_root =
-            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
-                .unwrap();
-        bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+            hex!("3333333333333333444444444444444411111111111111112222222222222222");
+        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
 
         assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         lock();
@@ -865,8 +857,7 @@ mod tests {
         // Also check that the retained seed was encrypted with the expected encryption key.
         let decrypted = {
             let expected_retained_seed_secret =
-                hex::decode("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7")
-                    .unwrap();
+                hex!("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7");
             bitbox_aes::decrypt_with_hmac(
                 &expected_retained_seed_secret,
                 RETAINED_SEED.read().unwrap().encrypted_seed.as_slice(),
@@ -903,13 +894,11 @@ mod tests {
         mock_memory();
         lock();
 
-        let seed = hex::decode("1111111111111111222222222222222233333333333333334444444444444444")
-            .unwrap();
+        let seed = hex!("1111111111111111222222222222222233333333333333334444444444444444");
 
         let mock_salt_root =
-            hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
-                .unwrap();
-        bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
+            hex!("3333333333333333444444444444444411111111111111112222222222222222");
+        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
 
         assert!(root_fingerprint().is_err());
         assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
@@ -936,7 +925,9 @@ mod tests {
         assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
-        let expected_bip39_seed = hex::decode("2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a").unwrap();
+        let expected_bip39_seed = hex!(
+            "2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a"
+        );
 
         assert_eq!(
             copy_bip39_seed().unwrap().as_slice(),
@@ -946,8 +937,7 @@ mod tests {
         // Check that the retained bip39 seed was encrypted with the expected encryption key.
         let decrypted = {
             let expected_retained_bip39_seed_secret =
-                hex::decode("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29")
-                    .unwrap();
+                hex!("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29");
             bitbox_aes::decrypt_with_hmac(
                 &expected_retained_bip39_seed_secret,
                 RETAINED_BIP39_SEED
@@ -1348,21 +1338,16 @@ mod tests {
 
     #[test]
     fn test_secp256k1_sign() {
-        let private_key =
-            hex::decode("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c")
-                .unwrap();
+        let private_key = hex!("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c");
         let msg = [0x88u8; 32];
         let host_nonce = [0x56u8; 32];
 
-        let sign_result =
-            secp256k1_sign(&private_key.try_into().unwrap(), &msg, &host_nonce).unwrap();
+        let sign_result = secp256k1_sign(&private_key, &msg, &host_nonce).unwrap();
 
         // Verify signature against expected pubkey.
 
         let expected_pubkey = {
-            let pubkey =
-                hex::decode("023ffb4a4e41444d40e4e1e4c6cc329bcba2be50d0ef380aea19d490c373be58fb")
-                    .unwrap();
+            let pubkey = hex!("023ffb4a4e41444d40e4e1e4c6cc329bcba2be50d0ef380aea19d490c373be58fb");
             secp256k1::PublicKey::from_slice(&pubkey).unwrap()
         };
         let msg = secp256k1::Message::from_digest_slice(&msg).unwrap();
@@ -1387,15 +1372,12 @@ mod tests {
 
     #[test]
     fn test_secp256k1_nonce_commit() {
-        let private_key =
-            hex::decode("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c")
-                .unwrap();
+        let private_key = hex!("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c");
         let msg = [0x88u8; 32];
         let host_commitment = [0xabu8; 32];
 
         let client_commitment =
-            secp256k1_nonce_commit(&private_key.try_into().unwrap(), &msg, &host_commitment)
-                .unwrap();
+            secp256k1_nonce_commit(&private_key, &msg, &host_commitment).unwrap();
         assert_eq!(
             hex::encode(client_commitment),
             "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",
@@ -1517,8 +1499,7 @@ mod tests {
     // Functional test to store seeds, lock/unlock, retrieve seed.
     #[test]
     fn test_seeds() {
-        let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
-            .unwrap();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
 
         for seed_size in [16, 24, 32] {
             mock_memory();

@@ -14,15 +14,10 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
-
 use bitcoin::secp256k1::{All, Secp256k1};
-
-use bitbox02_sys::keystore_error_t;
 
 /// Length of a compressed secp256k1 pubkey.
 const EC_PUBLIC_KEY_LEN: usize = 33;
-pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usize;
 
 #[derive(Debug)]
 pub enum Error {
@@ -44,54 +39,12 @@ pub enum Error {
 impl core::convert::From<crate::securechip::Error> for Error {
     fn from(error: crate::securechip::Error) -> Self {
         match error {
+            crate::securechip::Error::SecureChip(
+                crate::securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD,
+            ) => Error::IncorrectPassword,
             crate::securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
             crate::securechip::Error::Status(status) => Error::SecureChip(status),
         }
-    }
-}
-
-impl core::convert::From<keystore_error_t> for Error {
-    fn from(error: keystore_error_t) -> Self {
-        match error {
-            keystore_error_t::KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED => Error::MaxAttemptsExceeded,
-            keystore_error_t::KEYSTORE_ERR_UNSEEDED => Error::Unseeded,
-            keystore_error_t::KEYSTORE_ERR_MEMORY => Error::Memory,
-            keystore_error_t::KEYSTORE_ERR_SECURECHIP => Error::SecureChip(0),
-            keystore_error_t::KEYSTORE_ERR_SEED_SIZE => Error::SeedSize,
-            keystore_error_t::KEYSTORE_ERR_SALT => Error::Salt,
-            keystore_error_t::KEYSTORE_ERR_HASH => Error::Hash,
-            keystore_error_t::KEYSTORE_ERR_ENCRYPT => Error::Encrypt,
-            keystore_error_t::KEYSTORE_ERR_DECRYPT => Error::Decrypt,
-            keystore_error_t::KEYSTORE_ERR_STRETCH_RETAINED_SEED_KEY => {
-                Error::StretchRetainedSeedKey
-            }
-            _ => panic!("cannot convert error"),
-        }
-    }
-}
-
-pub fn _unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let mut securechip_result: i32 = 0;
-    let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
-    let mut seed_len: usize = 0;
-    match unsafe {
-        bitbox02_sys::keystore_unlock(
-            crate::util::str_to_cstr_vec_zeroizing(password)
-                .unwrap()
-                .as_ptr()
-                .cast(),
-            &mut securechip_result,
-            seed.as_mut_ptr(),
-            &mut seed_len,
-        )
-    } {
-        keystore_error_t::KEYSTORE_OK => {
-            seed.truncate(seed_len);
-            Ok(seed)
-        }
-        keystore_error_t::KEYSTORE_ERR_INCORRECT_PASSWORD => Err(Error::IncorrectPassword),
-        keystore_error_t::KEYSTORE_ERR_SECURECHIP => Err(Error::SecureChip(securechip_result)),
-        err => Err(err.into()),
     }
 }
 

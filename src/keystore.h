@@ -23,57 +23,10 @@
 
 #include <secp256k1.h>
 
-#define KEYSTORE_MAX_SEED_LENGTH (32)
 #define KEYSTORE_U2F_SEED_LENGTH SHA256_LEN
 
 // Max. length of an xpub string, including the null terminator.
 #define XPUB_ENCODED_LEN 113
-
-typedef enum {
-    KEYSTORE_OK,
-    KEYSTORE_ERR_INCORRECT_PASSWORD,
-    KEYSTORE_ERR_MAX_ATTEMPTS_EXCEEDED,
-    KEYSTORE_ERR_UNSEEDED,
-    KEYSTORE_ERR_MEMORY,
-    KEYSTORE_ERR_SECURECHIP,
-    KEYSTORE_ERR_SEED_SIZE,
-    KEYSTORE_ERR_SALT,
-    KEYSTORE_ERR_HASH,
-    KEYSTORE_ERR_ENCRYPT,
-    KEYSTORE_ERR_DECRYPT,
-    KEYSTORE_ERR_STRETCH_RETAINED_SEED_KEY,
-} keystore_error_t;
-
-/**
- * Restores a seed. This also unlocks the keystore with this seed.
- * @param[in] seed The seed that is to be restored.
- * @param[in] seed_length The length of the seed (max. 32 bytes).
- * @param[in] password The password with which we encrypt the seed.
- */
-/** Unlocks the keystore seed or checks the password:
- * If the keystore is locked, it decrypts and loads the seed, unlocking the keystore:
- * 1) loads the stored seed and tries to decrypt using password.
- * 2) if successful, the bip39 seed should be derived using keystore_unlock_bip39().
- * If the keystore is already unlocked, this function does *not* change the state (can be used to
- * check the password).
- * @param[in] password keystore password, used to decrypt the seed.
- * If it is false, the keystore is not unlocked.
- * @param[out] securechip_result_out, if not NULL, will contain the error code from
- * @param[out] seed_out The seed bytes copied from the retained seed.
- * The buffer should be KEYSTORE_MAX_SEED_LENGTH bytes long. The caller must
- * zero the seed once it is no longer needed.
- * @param[out] seed_len_out The seed length.
- * `securechip_kdf()` if there was a secure chip error, and 0 otherwise.
- * @return
- * - KEYSTORE_OK if they keystore was successfully unlocked
- * - KEYSTORE_ERR_* if unsuccessful.
- * Only call this if memory_is_seeded() returns true.
- */
-USE_RESULT keystore_error_t keystore_unlock(
-    const char* password,
-    int* securechip_result_out,
-    uint8_t* seed_out,
-    size_t* seed_len_out);
 
 /**
  * Retrieves the BIP39 word by index. `word_out` should be of at least 9 bytes long.

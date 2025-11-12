@@ -231,8 +231,60 @@ fn check_retained_seed(seed: &[u8]) -> Result<(), ()> {
     Ok(())
 }
 
+fn get_and_decrypt_seed(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    let encrypted = bitbox02::memory::get_encrypted_seed_and_hmac().map_err(|_| Error::Memory)?;
+    // Our Optiga securechip implementation fails password stretching if the password is
+    // wrong, so it already returns an error here. The ATECC stretches the password without checking
+    // if the password is correct, and we determine if it is correct in the seed decryption
+    // step below.
+    let secret = securechip::stretch_password(password)?;
+    let seed = match bitbox_aes::decrypt_with_hmac(&secret, &encrypted) {
+        Ok(seed) => seed,
+        Err(()) => return Err(Error::IncorrectPassword),
+    };
+
+    if !matches!(seed.len(), 16 | 24 | 32) {
+        return Err(Error::SeedSize);
+    }
+    Ok(seed)
+}
+
 pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    keystore::_unlock(password)
+    if !bitbox02::memory::is_seeded() {
+        return Err(Error::Unseeded);
+    }
+    if get_remaining_unlock_attempts() == 0 {
+        //
+        //  We reset the device as soon as the MAX_UNLOCK_ATTEMPTSth attempt
+        //  is made. So we should never enter this branch...
+        //  This is just an extraordinary measure for added resilience.
+        //
+        bitbox02::reset(false);
+        return Err(Error::MaxAttemptsExceeded);
+    }
+    bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
+    bitbox02::memory::smarteeprom_increment_unlock_attempts();
+    let seed = match get_and_decrypt_seed(password) {
+        Ok(seed) => seed,
+        err @ Err(_) => {
+            if get_remaining_unlock_attempts() == 0 {
+                bitbox02::reset(false);
+                return Err(Error::MaxAttemptsExceeded);
+            }
+            return err;
+        }
+    };
+
+    if RETAINED_SEED.read().is_some() {
+        // Already unlocked. Fail if the seed changed under our feet (should never happen).
+        if check_retained_seed(&seed).is_err() {
+            panic!("Seed has suddenly changed. This should never happen.");
+        }
+    } else {
+        retain_seed(&seed)?;
+    }
+    bitbox02::memory::smarteeprom_reset_unlock_attempts();
+    Ok(seed)
 }
 
 /// Returns the number of remaining unlock attempts (calls to `unlock()`) that are allowed before
@@ -459,21 +511,6 @@ pub extern "C" fn rust_keystore_lock() {
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_is_locked() -> bool {
     is_locked()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_is_unlocked_device() -> bool {
-    RETAINED_SEED.read().is_some()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_check_retained_seed(seed: util::bytes::Bytes) -> bool {
-    check_retained_seed(seed.as_ref()).is_ok()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_retain_seed(seed: util::bytes::Bytes) -> bool {
-    retain_seed(seed.as_ref()).is_ok()
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

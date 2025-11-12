@@ -213,7 +213,8 @@ pub fn encrypt_and_store_seed(
 
     hal.securechip().init_new_password(password)?;
 
-    let secret = securechip::stretch_password(password)?;
+    let secret = hal.securechip().stretch_password(password)?;
+
     let iv_rand = hal.random().random_32_bytes();
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
     let encrypted = bitbox_aes::encrypt_with_hmac(iv, &secret, seed);
@@ -243,13 +244,16 @@ fn check_retained_seed(seed: &[u8]) -> Result<(), ()> {
     Ok(())
 }
 
-fn get_and_decrypt_seed(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+fn get_and_decrypt_seed(
+    hal: &mut impl crate::hal::Hal,
+    password: &str,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let encrypted = bitbox02::memory::get_encrypted_seed_and_hmac().map_err(|_| Error::Memory)?;
     // Our Optiga securechip implementation fails password stretching if the password is
     // wrong, so it already returns an error here. The ATECC stretches the password without checking
     // if the password is correct, and we determine if it is correct in the seed decryption
     // step below.
-    let secret = securechip::stretch_password(password)?;
+    let secret = hal.securechip().stretch_password(password)?;
     let seed = match bitbox_aes::decrypt_with_hmac(&secret, &encrypted) {
         Ok(seed) => seed,
         Err(()) => return Err(Error::IncorrectPassword),
@@ -279,7 +283,7 @@ pub fn unlock(
     }
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
     bitbox02::memory::smarteeprom_increment_unlock_attempts();
-    let seed = match get_and_decrypt_seed(password) {
+    let seed = match get_and_decrypt_seed(hal, password) {
         Ok(seed) => seed,
         err @ Err(_) => {
             if get_remaining_unlock_attempts() == 0 {

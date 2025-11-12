@@ -76,8 +76,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "fake_securechip_event_counter",
     "gmtime",
     "keystore_bip39_mnemonic_to_seed",
-    "keystore_copy_bip39_seed",
-    "keystore_copy_seed",
     "keystore_encrypt_and_store_seed",
     "keystore_get_bip39_word",
     "keystore_secp256k1_nonce_commit",

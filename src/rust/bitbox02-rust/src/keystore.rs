@@ -19,7 +19,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use crate::hal::Random;
+use crate::hal::{Random, SecureChip};
 pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
 
@@ -211,7 +211,7 @@ pub fn encrypt_and_store_seed(
 
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
 
-    securechip::init_new_password(password)?;
+    hal.securechip().init_new_password(password)?;
 
     let secret = securechip::stretch_password(password)?;
     let iv_rand = hal.random().random_32_bytes();
@@ -1510,9 +1510,11 @@ mod tests {
             lock();
             let seed = &seed[..test.seed_len];
 
+            let mut mock_hal = crate::hal::testing::TestingHal::new();
+
             assert!(
                 block_on(unlock_bip39(
-                    &mut crate::hal::testing::TestingRandom::new(),
+                    &mut mock_hal.random,
                     seed,
                     test.mnemonic_passphrase,
                     async || {}
@@ -1520,23 +1522,23 @@ mod tests {
                 .is_err()
             );
 
-            bitbox02::securechip::fake_event_counter_reset();
-            assert!(encrypt_and_store_seed(&mut TestingHal::new(), seed, "foo").is_ok());
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
+            mock_hal.securechip.event_counter_reset();
+            assert!(encrypt_and_store_seed(&mut mock_hal, seed, "foo").is_ok());
+            assert_eq!(mock_hal.securechip.get_event_counter(), 7);
 
             assert!(is_locked());
 
-            bitbox02::securechip::fake_event_counter_reset();
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 block_on(unlock_bip39(
-                    &mut crate::hal::testing::TestingRandom::new(),
+                    &mut mock_hal.random,
                     seed,
                     test.mnemonic_passphrase,
                     async || {}
                 ))
                 .is_ok()
             );
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
             assert!(!is_locked());
             assert_eq!(
@@ -1545,9 +1547,9 @@ mod tests {
             );
             let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
 
-            bitbox02::securechip::fake_event_counter_reset();
+            mock_hal.securechip.event_counter_reset();
             let xpub = get_xpub_once(keypath).unwrap();
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
             assert_eq!(
                 xpub.serialize_str(crate::bip32::XPubType::Xpub).unwrap(),

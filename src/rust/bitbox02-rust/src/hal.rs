@@ -40,6 +40,10 @@ pub trait Random {
 
 pub trait SecureChip {
     fn init_new_password(&mut self, password: &str) -> Result<(), bitbox02::securechip::Error>;
+    fn stretch_password(
+        &mut self,
+        password: &str,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -107,6 +111,13 @@ pub struct BitBox02SecureChip;
 impl SecureChip for BitBox02SecureChip {
     fn init_new_password(&mut self, password: &str) -> Result<(), bitbox02::securechip::Error> {
         bitbox02::securechip::init_new_password(password)
+    }
+
+    fn stretch_password(
+        &mut self,
+        password: &str,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+        bitbox02::securechip::stretch_password(password)
     }
 }
 
@@ -274,6 +285,21 @@ pub mod testing {
         ) -> Result<(), bitbox02::securechip::Error> {
             self.event_counter += 1;
             Ok(())
+        }
+
+        fn stretch_password(
+            &mut self,
+            password: &str,
+        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+            self.event_counter += 5;
+
+            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
+            let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
+            engine.input(password.as_bytes());
+            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+            Ok(zeroize::Zeroizing::new(
+                hmac_result.to_byte_array().to_vec(),
+            ))
         }
     }
 

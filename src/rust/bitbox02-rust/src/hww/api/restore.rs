@@ -189,7 +189,7 @@ mod tests {
             Ok("password".into())
         }));
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
             block_on(from_mnemonic(
                 &mut mock_hal,
@@ -200,7 +200,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 8);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 8);
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
         assert!(!crate::keystore::is_locked());

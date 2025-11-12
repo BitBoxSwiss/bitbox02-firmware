@@ -97,13 +97,13 @@ mod tests {
             panic!("unexpected call to enter password")
         }));
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
             block_on(process(&mut mock_hal)),
             Ok(Response::Success(pb::Success {}))
         );
         // 1 operation for one copy_seed() to get the seed to display it.
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -151,12 +151,12 @@ mod tests {
             Ok("password".into())
         }));
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
             block_on(process(&mut mock_hal)),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 5);
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -206,9 +206,9 @@ mod tests {
             .ui
             .set_enter_string(Box::new(|_params| Ok("wrong password".into())));
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(block_on(process(&mut mock_hal)), Err(Error::Generic));
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 5);
 
         assert_eq!(
             mock_hal.ui.screens,

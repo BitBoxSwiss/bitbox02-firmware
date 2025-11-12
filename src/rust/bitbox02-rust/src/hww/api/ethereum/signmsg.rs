@@ -67,7 +67,7 @@ pub async fn process(
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
-                keystore::secp256k1_get_private_key(&request.keypath)?
+                keystore::secp256k1_get_private_key(hal, &request.keypath)?
                     .as_slice()
                     .try_into()
                     .unwrap(),
@@ -87,7 +87,7 @@ pub async fn process(
     };
 
     let sign_result = keystore::secp256k1_sign(
-        keystore::secp256k1_get_private_key(&request.keypath)?
+        keystore::secp256k1_get_private_key(hal, &request.keypath)?
             .as_slice()
             .try_into()
             .unwrap(),

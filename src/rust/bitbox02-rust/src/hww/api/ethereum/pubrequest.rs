@@ -45,7 +45,7 @@ async fn process_address(
     if !super::keypath::is_valid_keypath_address(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let pubkey = crate::keystore::get_xpub_twice(&request.keypath)
+    let pubkey = crate::keystore::get_xpub_twice(hal, &request.keypath)
         .or(Err(Error::InvalidInput))?
         .pubkey_uncompressed()?;
     let address = super::address::from_pubkey(&pubkey);
@@ -70,7 +70,10 @@ async fn process_address(
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
-fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
+fn process_xpub(
+    hal: &mut impl crate::hal::Hal,
+    request: &pb::EthPubRequest,
+) -> Result<Response, Error> {
     if request.display {
         // No xpub user verification for now.
         return Err(Error::InvalidInput);
@@ -79,7 +82,7 @@ fn process_xpub(request: &pb::EthPubRequest) -> Result<Response, Error> {
     if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let xpub = keystore::get_xpub_twice(&request.keypath)
+    let xpub = keystore::get_xpub_twice(hal, &request.keypath)
         .or(Err(Error::InvalidInput))?
         .serialize_str(bip32::XPubType::Xpub)?;
 
@@ -93,7 +96,7 @@ pub async fn process(
     let output_type = OutputType::try_from(request.output_type)?;
     match output_type {
         OutputType::Address => process_address(hal, request).await,
-        OutputType::Xpub => process_xpub(request),
+        OutputType::Xpub => process_xpub(hal, request),
     }
 }
 

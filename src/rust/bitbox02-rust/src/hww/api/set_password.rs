@@ -40,7 +40,8 @@ pub async fn process(
         hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
-    unlock::unlock_bip39(hal, &keystore::copy_seed()?).await;
+    let seed = keystore::copy_seed(hal)?;
+    unlock::unlock_bip39(hal, &seed).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -81,10 +82,11 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 9);
+        assert!(!keystore::is_locked());
+        assert!(keystore::copy_seed(&mut mock_hal).unwrap().len() == 32);
+
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
-        assert!(!keystore::is_locked());
-        assert!(keystore::copy_seed().unwrap().len() == 32);
     }
 
     /// Shorter host entropy results in shorter seed.
@@ -106,7 +108,7 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert!(!keystore::is_locked());
-        assert!(keystore::copy_seed().unwrap().len() == 16);
+        assert!(keystore::copy_seed(&mut mock_hal).unwrap().len() == 16);
     }
 
     /// Invalid host entropy size.

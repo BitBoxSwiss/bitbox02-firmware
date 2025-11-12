@@ -197,8 +197,11 @@ mod tests {
     fn test_unlock_success() {
         mock_memory();
 
+        let mut mock_hal = TestingHal::new();
+
         // Set up an initialized wallet with password
         crate::keystore::encrypt_and_store_seed(
+            &mut mock_hal,
             &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
             "password",
         )
@@ -211,7 +214,6 @@ mod tests {
 
         let mut password_entered = false;
 
-        let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
             Ok("password".into())
@@ -237,9 +239,11 @@ mod tests {
     #[test]
     fn test_unlock_keystore_wrong_password() {
         mock_memory();
+        let mut mock_hal = TestingHal::new();
 
         // Set up an initialized wallet with password
         crate::keystore::encrypt_and_store_seed(
+            &mut mock_hal,
             &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
             "password",
         )
@@ -252,7 +256,6 @@ mod tests {
 
         let mut password_entered = false;
 
-        let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
             Ok("wrong password".into())

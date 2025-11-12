@@ -82,6 +82,7 @@ mod tests {
     fn test_process_uninitialized() {
         mock_memory();
         crate::keystore::encrypt_and_store_seed(
+            &mut TestingHal::new(),
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),
@@ -132,6 +133,7 @@ mod tests {
     fn test_process_initialized() {
         mock_memory();
         crate::keystore::encrypt_and_store_seed(
+            &mut TestingHal::new(),
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),
@@ -189,6 +191,7 @@ mod tests {
     fn test_process_initialized_wrong_password() {
         mock_memory();
         crate::keystore::encrypt_and_store_seed(
+            &mut TestingHal::new(),
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),

@@ -44,6 +44,7 @@ pub mod secp256k1;
 pub mod securechip;
 pub mod spi_mem;
 pub mod ui;
+pub mod usb_processing;
 
 use core::ffi::c_int;
 use core::time::Duration;

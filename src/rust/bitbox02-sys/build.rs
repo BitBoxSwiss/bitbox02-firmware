@@ -76,7 +76,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "fake_securechip_event_counter",
     "gmtime",
     "keystore_bip39_mnemonic_to_seed",
-    "keystore_encrypt_and_store_seed",
     "keystore_get_bip39_word",
     "keystore_secp256k1_nonce_commit",
     "keystore_secp256k1_sign",
@@ -97,6 +96,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_get_salt_root",
     "memory_get_securechip_type",
     "memory_get_seed_birthdate",
+    "memory_reset_hww",
     "memory_is_initialized",
     "memory_is_mnemonic_passphrase_enabled",
     "memory_is_seeded",
@@ -107,6 +107,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_set_initialized",
     "memory_set_mnemonic_passphrase_enabled",
     "memory_set_salt_root",
+    "memory_set_encrypted_seed_and_hmac",
     "memory_set_seed_birthdate",
     "memory_setup",
     "memory_spi_get_active_ble_firmware_version",
@@ -141,8 +142,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "secp256k1_ecdsa_s2c_opening_parse",
     "securechip_attestation_sign",
     "securechip_kdf",
+    "securechip_init_new_password",
     "securechip_model",
     "securechip_monotonic_increments_remaining",
+    "securechip_stretch_password",
     "securechip_u2f_counter_set",
     "smarteeprom_bb02_config",
     "smarteeprom_disable",
@@ -162,6 +165,8 @@ const ALLOWLIST_FNS: &[&str] = &[
     "ui_screen_stack_push",
     "unlock_animation_create",
     "util_format_datetime",
+    "communication_mode_ble_enabled",
+    "usb_processing_timeout_reset",
 ];
 
 const RUSTIFIED_ENUMS: &[&str] = &[

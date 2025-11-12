@@ -28,6 +28,7 @@
 #include <secp256k1_ecdsa_adaptor.h>
 #include <secp256k1_ecdsa_s2c.h>
 #include <securechip/securechip.h>
+#include <usb/usb_processing.h>
 #include <system.h>
 #include <time.h>
 #include <ui/components/confirm.h>

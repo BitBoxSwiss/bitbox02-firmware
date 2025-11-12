@@ -18,8 +18,6 @@ use alloc::vec::Vec;
 
 use bitcoin::secp256k1::{All, Secp256k1};
 
-use core::convert::TryInto;
-
 use bitbox02_sys::keystore_error_t;
 
 /// Length of a compressed secp256k1 pubkey.
@@ -41,6 +39,15 @@ pub enum Error {
     Encrypt,
     Decrypt,
     StretchRetainedSeedKey,
+}
+
+impl core::convert::From<crate::securechip::Error> for Error {
+    fn from(error: crate::securechip::Error) -> Self {
+        match error {
+            crate::securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
+            crate::securechip::Error::Status(status) => Error::SecureChip(status),
+        }
+    }
 }
 
 impl core::convert::From<keystore_error_t> for Error {
@@ -141,21 +148,5 @@ pub fn _secp256k1_nonce_commit(
     } {
         true => Ok(signer_commitment),
         false => Err(()),
-    }
-}
-
-pub fn _encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
-    match unsafe {
-        bitbox02_sys::keystore_encrypt_and_store_seed(
-            seed.as_ptr(),
-            seed.len(),
-            crate::util::str_to_cstr_vec(password)
-                .unwrap()
-                .as_ptr()
-                .cast(),
-        )
-    } {
-        keystore_error_t::KEYSTORE_OK => Ok(()),
-        err => Err(err.into()),
     }
 }

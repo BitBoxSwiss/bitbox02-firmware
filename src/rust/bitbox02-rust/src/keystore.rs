@@ -19,6 +19,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
+use crate::hal::Random;
 pub use bitbox02::keystore::Error;
 pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
@@ -35,6 +36,10 @@ const EC_PUBLIC_KEY_LEN: usize = 33;
 
 /// aes256cbc-hmac cipher adds 16 bytes IV, 16 bytes padding, 32 bytes hmac.
 const ENCRYPTION_OVERHEAD: usize = 64;
+
+// Unlocking the keystore takes longer than the default 500 ms watchdog. Bump the watchdog timeout
+// to roughly seven seconds so we don't assume communication was lost mid-unlock.
+const LONG_TIMEOUT: i16 = -70;
 
 #[derive(Copy, Clone)]
 struct ReadOnlyBuffer {
@@ -174,6 +179,46 @@ fn retain_seed(seed: &[u8]) -> Result<(), Error> {
     Ok(())
 }
 
+/// Restores a seed. This also unlocks the keystore with this seed.
+/// `password` is the password with which we encrypt the seed.
+pub fn encrypt_and_store_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    password: &str,
+) -> Result<(), Error> {
+    if bitbox02::memory::is_initialized() {
+        return Err(Error::Memory);
+    }
+
+    if !matches!(seed.len(), 16 | 24 | 32) {
+        return Err(Error::SeedSize);
+    }
+
+    lock();
+
+    bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
+
+    securechip::init_new_password(password)?;
+
+    let secret = securechip::stretch_password(password)?;
+
+    let iv: [u8; 16] = hal.random().random_32_bytes()[..16].try_into().unwrap();
+    let encrypted = bitbox_aes::encrypt_with_hmac(&iv, &secret, seed);
+
+    if encrypted.len() > u8::MAX as usize {
+        panic!("encrypted seed length overflow");
+    }
+
+    bitbox02::memory::set_encrypted_seed_and_hmac(&encrypted).map_err(|_| Error::Memory)?;
+
+    if !verify_seed(&secret, seed) {
+        bitbox02::memory::reset_hww().map_err(|_| Error::Memory)?;
+        return Err(Error::Memory);
+    }
+
+    retain_seed(seed)
+}
+
 // Checks if the retained seed matches the passed seed.
 fn check_retained_seed(seed: &[u8]) -> Result<(), ()> {
     if RETAINED_SEED.read().is_none() {
@@ -236,18 +281,12 @@ pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
         .map_err(|_| ())
 }
 
-/// Restores a seed. This also unlocks the keystore with this seed.
-/// `password` is the password with which we encrypt the seed.
-pub fn encrypt_and_store_seed(seed: &[u8], password: &str) -> Result<(), Error> {
-    keystore::_encrypt_and_store_seed(seed, password)
-}
-
 /// Generates the seed, mixes it with host_entropy, and stores it encrypted with the
 /// password. The size of the host entropy determines the size of the seed. Can be either 16 or 32
 /// bytes, resulting in 12 or 24 BIP39 recovery words.
 /// This also unlocks the keystore with the new seed.
 pub fn create_and_store_seed(
-    random: &mut impl crate::hal::Random,
+    hal: &mut impl crate::hal::Hal,
     password: &str,
     host_entropy: &[u8],
 ) -> Result<(), Error> {
@@ -256,7 +295,7 @@ pub fn create_and_store_seed(
         return Err(Error::SeedSize);
     }
 
-    let mut seed_vec = random.random_32_bytes();
+    let mut seed_vec = hal.random().random_32_bytes();
     let seed = &mut seed_vec[..seed_len];
 
     // Mix in host entropy.
@@ -273,7 +312,7 @@ pub fn create_and_store_seed(
         seed[i] ^= hash_byte;
     }
 
-    encrypt_and_store_seed(seed, password)
+    encrypt_and_store_seed(hal, seed, password)
 }
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
@@ -392,10 +431,7 @@ pub fn stretch_retained_seed_encryption_key(
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let salted_in = crate::salt::hash_data(encryption_key, purpose_in).map_err(|_| Error::Salt)?;
 
-    let kdf = securechip::kdf(salted_in.as_slice()).map_err(|err| match err {
-        securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
-        securechip::Error::Status(status) => Error::SecureChip(status),
-    })?;
+    let kdf = securechip::kdf(salted_in.as_slice())?;
 
     let salted_out =
         crate::salt::hash_data(encryption_key, purpose_out).map_err(|_| Error::Salt)?;
@@ -430,14 +466,6 @@ pub extern "C" fn rust_keystore_check_retained_seed(seed: util::bytes::Bytes) ->
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_retain_seed(seed: util::bytes::Bytes) -> bool {
     retain_seed(seed.as_ref()).is_ok()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_verify_seed(
-    encryption_key: util::bytes::Bytes,
-    expected_seed: util::bytes::Bytes,
-) -> bool {
-    verify_seed(encryption_key.as_ref(), expected_seed.as_ref())
 }
 
 fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
@@ -654,7 +682,7 @@ pub mod testing {
 mod tests {
     use super::*;
 
-    use crate::hal::{Random, testing::TestingRandom};
+    use crate::hal::testing::{TestingHal, TestingRandom};
     use hex_lit::hex;
 
     use bitbox02::testing::mock_memory;
@@ -696,6 +724,16 @@ mod tests {
     }
 
     #[test]
+    fn test_encrypt_and_store_seed_invalid_size() {
+        mock_memory();
+        lock();
+        assert!(matches!(
+            encrypt_and_store_seed(&mut TestingHal::new(), &[0; 31], "foo"),
+            Err(Error::SeedSize)
+        ));
+    }
+
+    #[test]
     fn test_create_and_store_seed() {
         let mock_salt_root =
             hex::decode("3333333333333333444444444444444411111111111111112222222222222222")
@@ -705,12 +743,12 @@ mod tests {
             hex::decode("25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe25569b9a11f9db6560459e8e48b4727a4c935300143d978989ed55db1d1b9cbe")
                 .unwrap();
 
-        let mut random = crate::hal::testing::TestingRandom::new();
+        let mut hal = TestingHal::new();
 
         // Invalid seed lengths
         for size in [8, 24, 40] {
             assert!(matches!(
-                create_and_store_seed(&mut random, "password", &host_entropy[..size]),
+                create_and_store_seed(&mut hal, "password", &host_entropy[..size]),
                 Err(Error::SeedSize)
             ));
         }
@@ -737,9 +775,9 @@ mod tests {
             bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
             lock();
 
-            let mut random = crate::hal::testing::TestingRandom::new();
-            random.mock_next(seed_random);
-            assert!(create_and_store_seed(&mut random, "password", &host_entropy[..size]).is_ok());
+            let mut hal = TestingHal::new();
+            hal.random.mock_next(seed_random);
+            assert!(create_and_store_seed(&mut hal, "password", &host_entropy[..size]).is_ok());
             assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.
@@ -769,9 +807,9 @@ mod tests {
             .unwrap();
         let seed2 = hex::decode("c28135734876aff9ccf4f1d60df8d19a0a38fd02085883f65fc608eb769a635d")
             .unwrap();
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         // Create new (different) seed.
-        assert!(encrypt_and_store_seed(&seed2, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed2, "password").is_ok());
         assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
     }
 
@@ -783,7 +821,7 @@ mod tests {
 
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(block_on(unlock_bip39(&mut random, &seed, "foo", async || {})).is_ok());
         assert!(!is_locked());
@@ -806,7 +844,7 @@ mod tests {
                 .unwrap();
         bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         lock();
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
@@ -873,7 +911,7 @@ mod tests {
         bitbox02::memory::set_salt_root(mock_salt_root.as_slice().try_into().unwrap()).unwrap();
 
         assert!(root_fingerprint().is_err());
-        assert!(encrypt_and_store_seed(&seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         assert!(root_fingerprint().is_err());
         // Incorrect seed passed
         assert!(
@@ -1271,7 +1309,7 @@ mod tests {
             );
 
             bitbox02::securechip::fake_event_counter_reset();
-            assert!(encrypt_and_store_seed(seed, "foo").is_ok());
+            assert!(encrypt_and_store_seed(&mut TestingHal::new(), seed, "foo").is_ok());
             assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
 
             assert!(is_locked());
@@ -1487,7 +1525,10 @@ mod tests {
 
             // Can repeat until initialized - initialized means backup has been created.
             for _ in 0..2 {
-                assert!(encrypt_and_store_seed(&seed[..seed_size], "foo").is_ok());
+                assert!(
+                    encrypt_and_store_seed(&mut TestingHal::new(), &seed[..seed_size], "foo")
+                        .is_ok()
+                );
             }
             // Also unlocks, so we can get the retained seed.
             assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
@@ -1513,7 +1554,7 @@ mod tests {
             // Can't store new seed once initialized.
             bitbox02::memory::set_initialized().unwrap();
             assert!(matches!(
-                encrypt_and_store_seed(&seed[..seed_size], "foo"),
+                encrypt_and_store_seed(&mut TestingHal::new(), &seed[..seed_size], "foo"),
                 Err(Error::Memory)
             ));
         }

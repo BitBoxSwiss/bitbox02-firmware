@@ -45,25 +45,6 @@ typedef enum {
 } keystore_error_t;
 
 /**
- * Copies the retained seed into the given buffer. The caller must
- * zero the seed with util_zero once it is no longer needed.
- * @param[out] seed_out The seed bytes copied from the retained seed.
- * The buffer should be KEYSTORE_MAX_SEED_LENGTH bytes long.
- * @param[out] length_out The seed length.
- * @return true if the seed was still retained.
- */
-USE_RESULT bool keystore_copy_seed(uint8_t* seed_out, size_t* length_out);
-
-/**
- * Copies the retained bip39 seed into the given buffer. The caller must
- * zero the seed once it is no longer needed.
- * @param[out] bip39_seed_out The seed bytes copied from the retained bip39 seed.
- * The buffer must be 64 bytes long.
- * @return true if the bip39 seed is available.
- */
-USE_RESULT bool keystore_copy_bip39_seed(uint8_t* bip32_seed_out);
-
-/**
  * Restores a seed. This also unlocks the keystore with this seed.
  * @param[in] seed The seed that is to be restored.
  * @param[in] seed_length The length of the seed (max. 32 bytes).
@@ -99,32 +80,6 @@ USE_RESULT keystore_error_t keystore_unlock(
     int* securechip_result_out,
     uint8_t* seed_out,
     size_t* seed_len_out);
-
-/**
- * Checks if bip39 unlocking can be performed. It can be performed if `keystore_unlock()`
- * successfully and the input seed matches the keystore seed (i.e. must match the output
- * of `keystore_copy_seed()`).
- * @param[in] seed the input seed to BIP39.
- * @param[in] seed_length the size of the seed
- */
-USE_RESULT bool keystore_unlock_bip39_check(const uint8_t* seed, size_t seed_length);
-
-/**
- * Retains the given bip39 seed and marks the keystore as unlocked.
- * @param[in] bip39_seed 64 byte bip39 seed.
- */
-USE_RESULT bool keystore_unlock_bip39_finalize(const uint8_t* bip39_seed);
-
-/**
- * Locks the keystore (resets to state before `keystore_unlock()`).
- */
-void keystore_lock(void);
-
-/**
- * @return false if the keystore is unlocked (keystore_unlock() followed by
- * keystore_unlock_bip39()), true otherwise.
- */
-USE_RESULT bool keystore_is_locked(void);
 
 /**
  * Retrieves the BIP39 word by index. `word_out` should be of at least 9 bytes long.
@@ -183,15 +138,5 @@ USE_RESULT bool keystore_secp256k1_sign(
     const uint8_t* host_nonce32,
     uint8_t* sig_compact_out,
     int* recid_out);
-
-#ifdef TESTING
-/**
- * convenience to mock the keystore state (locked, seed) in tests.
- */
-void keystore_mock_unlocked(const uint8_t* seed, size_t seed_len);
-
-const uint8_t* keystore_test_get_retained_seed_encrypted(size_t* len_out);
-const uint8_t* keystore_test_get_retained_bip39_seed_encrypted(size_t* len_out);
-#endif
 
 #endif

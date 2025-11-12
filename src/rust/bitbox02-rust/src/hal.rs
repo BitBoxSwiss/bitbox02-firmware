@@ -128,27 +128,40 @@ impl Hal for BitBox02Hal {
 #[cfg(feature = "testing")]
 pub mod testing {
     use alloc::boxed::Box;
-    use alloc::collections::BTreeMap;
+    use alloc::collections::{BTreeMap, VecDeque};
     use alloc::string::String;
     use alloc::vec::Vec;
 
     use bitcoin::hashes::{Hash, sha256};
 
     pub struct TestingRandom {
+        mock_next_values: VecDeque<[u8; 32]>,
         counter: u32,
     }
 
     impl TestingRandom {
         pub fn new() -> Self {
-            Self { counter: 0 }
+            Self {
+                mock_next_values: VecDeque::new(),
+                counter: 0,
+            }
+        }
+
+        pub fn mock_next(&mut self, value: [u8; 32]) {
+            self.mock_next_values.push_back(value)
         }
     }
 
     impl super::Random for TestingRandom {
         fn random_32_bytes(&mut self) -> Box<zeroize::Zeroizing<[u8; 32]>> {
             self.counter += 1;
-            let hash = sha256::Hash::hash(&self.counter.to_be_bytes());
-            Box::new(zeroize::Zeroizing::new(hash.to_byte_array()))
+            let value = if let Some(value) = self.mock_next_values.pop_front() {
+                value
+            } else {
+                let hash = sha256::Hash::hash(&self.counter.to_be_bytes());
+                hash.to_byte_array()
+            };
+            Box::new(zeroize::Zeroizing::new(value))
         }
     }
 

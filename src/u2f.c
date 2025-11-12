@@ -185,7 +185,7 @@ static void _stop_refresh_webpage_screen(void)
  */
 static bool _unlock_if_locked(void)
 {
-    if (keystore_is_locked()) {
+    if (rust_keystore_is_locked()) {
         rust_workflow_spawn_unlock();
         return false;
     }

@@ -115,6 +115,34 @@ jobs:
       - name: run ATECC608 unit tests
         run: (cd tools/atecc608; go test ./...)
 
+  # cmocka isn't compatible with Mach-O, so no point in running the C tests.
+  rust-unit-tests-macos:
+    runs-on: macos-14
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Install system dependencies
+        run: brew install cbindgen bindgen hidapi
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "21.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rust-src-dir: src/rust
+
+      - name: Run rust unit-tests
+        run: make run-rust-unit-tests
+
   leakcheck:
     runs-on: ubuntu-22.04
     container: ${{ inputs.container-repo }}:${{ inputs.container-version }}

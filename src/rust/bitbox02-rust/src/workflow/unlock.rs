@@ -137,6 +137,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     let ((), result) = futures_lite::future::zip(
         super::unlock_animation::animate(),
         crate::keystore::unlock_bip39(
+            hal.random(),
             seed,
             &mnemonic_passphrase,
             // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the

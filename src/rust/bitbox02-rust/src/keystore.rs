@@ -20,7 +20,6 @@ use alloc::vec::Vec;
 
 use crate::bip32;
 use crate::hal::Random;
-pub use bitbox02::keystore::Error;
 pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
 
@@ -40,6 +39,35 @@ const ENCRYPTION_OVERHEAD: usize = 64;
 // Unlocking the keystore takes longer than the default 500 ms watchdog. Bump the watchdog timeout
 // to roughly seven seconds so we don't assume communication was lost mid-unlock.
 const LONG_TIMEOUT: i16 = -70;
+
+#[derive(Debug)]
+pub enum Error {
+    CannotUnlockBIP39,
+    IncorrectPassword,
+    MaxAttemptsExceeded,
+    Unseeded,
+    Memory,
+    // Securechip error with the error code from securechip.c. 0 if the error is unspecified.
+    SecureChip(i32),
+    SeedSize,
+    Salt,
+    Hash,
+    Encrypt,
+    Decrypt,
+    StretchRetainedSeedKey,
+}
+
+impl core::convert::From<bitbox02::securechip::Error> for Error {
+    fn from(error: bitbox02::securechip::Error) -> Self {
+        match error {
+            bitbox02::securechip::Error::SecureChip(
+                bitbox02::securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD,
+            ) => Error::IncorrectPassword,
+            bitbox02::securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
+            bitbox02::securechip::Error::Status(status) => Error::SecureChip(status),
+        }
+    }
+}
 
 #[derive(Copy, Clone)]
 struct ReadOnlyBuffer {

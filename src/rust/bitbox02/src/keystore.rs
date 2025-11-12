@@ -19,35 +19,6 @@ use bitcoin::secp256k1::{All, Secp256k1};
 /// Length of a compressed secp256k1 pubkey.
 const EC_PUBLIC_KEY_LEN: usize = 33;
 
-#[derive(Debug)]
-pub enum Error {
-    CannotUnlockBIP39,
-    IncorrectPassword,
-    MaxAttemptsExceeded,
-    Unseeded,
-    Memory,
-    // Securechip error with the error code from securechip.c. 0 if the error is unspecified.
-    SecureChip(i32),
-    SeedSize,
-    Salt,
-    Hash,
-    Encrypt,
-    Decrypt,
-    StretchRetainedSeedKey,
-}
-
-impl core::convert::From<crate::securechip::Error> for Error {
-    fn from(error: crate::securechip::Error) -> Self {
-        match error {
-            crate::securechip::Error::SecureChip(
-                crate::securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD,
-            ) => Error::IncorrectPassword,
-            crate::securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
-            crate::securechip::Error::Status(status) => Error::SecureChip(status),
-        }
-    }
-}
-
 pub struct SignResult {
     pub signature: [u8; 64],
     pub recid: u8,

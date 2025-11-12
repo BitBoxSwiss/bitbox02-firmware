@@ -157,22 +157,9 @@ fn hash_seed(seed: &[u8]) -> Result<[u8; 32], Error> {
     Ok(Hmac::<sha256::Hash>::from_engine(engine).to_byte_array())
 }
 
-fn retain_seed(seed: &[u8]) -> Result<(), Error> {
-    // TODO: temporary inline mocked value for testing until we are able to pass through the HAL
-    // instance properly.
-    #[cfg(feature = "testing")]
-    let mut random = {
-        let mut r = crate::hal::testing::TestingRandom::new();
-        r.mock_next(hex_lit::hex!(
-            "fe0976011452a72212e4b8bd572b5be30141a356f11337d29d35ea8ff997befc"
-        ));
-        r
-    };
-    #[cfg(not(feature = "testing"))]
-    let mut random = crate::hal::BitBox02Random;
-
+fn retain_seed(random: &mut impl crate::hal::Random, seed: &[u8]) -> Result<(), Error> {
     RETAINED_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
-        &mut random,
+        random,
         seed,
         "keystore_retained_seed_access",
     )?));
@@ -217,7 +204,7 @@ pub fn encrypt_and_store_seed(
         return Err(Error::Memory);
     }
 
-    retain_seed(seed)
+    retain_seed(hal.random(), seed)
 }
 
 // Checks if the retained seed matches the passed seed.
@@ -249,7 +236,10 @@ fn get_and_decrypt_seed(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, E
     Ok(seed)
 }
 
-pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+pub fn unlock(
+    hal: &mut impl crate::hal::Hal,
+    password: &str,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     if !bitbox02::memory::is_seeded() {
         return Err(Error::Unseeded);
     }
@@ -281,7 +271,7 @@ pub fn unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
             panic!("Seed has suddenly changed. This should never happen.");
         }
     } else {
-        retain_seed(&seed)?;
+        retain_seed(hal.random(), &seed)?;
     }
     bitbox02::memory::smarteeprom_reset_unlock_attempts();
     Ok(seed)
@@ -703,10 +693,11 @@ pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut
 pub mod testing {
     /// This mocks an unlocked keystore with the given bip39 recovery words and bip39 passphrase.
     pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
+        let mut mock_hal = crate::hal::testing::TestingRandom::new();
         let seed = crate::bip39::mnemonic_to_seed(mnemonic).unwrap();
-        super::retain_seed(&seed).unwrap();
+        super::retain_seed(&mut mock_hal, &seed).unwrap();
         util::bb02_async::block_on(super::unlock_bip39(
-            &mut crate::hal::testing::TestingRandom::new(),
+            &mut mock_hal,
             &seed,
             passphrase,
             async || {},
@@ -873,7 +864,12 @@ mod tests {
         mock_memory();
         lock();
 
-        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+        let mut mock_hal = TestingHal::new();
+
+        assert!(matches!(
+            unlock(&mut mock_hal, "password"),
+            Err(Error::Unseeded)
+        ));
 
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
 
@@ -881,12 +877,17 @@ mod tests {
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
         bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
 
-        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
+
+        // Mock random value used for creating the unstretched seed.
+        mock_hal.random.mock_next(hex_lit::hex!(
+            "fe0976011452a72212e4b8bd572b5be30141a356f11337d29d35ea8ff997befc"
+        ));
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
         bitbox02::securechip::fake_event_counter_reset();
-        assert_eq!(unlock("password").unwrap().as_slice(), seed);
+        assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
         assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
 
         // Loop to check that unlocking works while unlocked.
@@ -894,7 +895,7 @@ mod tests {
             // Further calls perform a password check.The password check does not do the retention
             // so it ends up needing one secure chip operation less.
             bitbox02::securechip::fake_event_counter_reset();
-            assert_eq!(unlock("password").unwrap().as_slice(), seed);
+            assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
             assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
         }
 
@@ -913,7 +914,7 @@ mod tests {
         // First 9 wrong attempts.
         for i in 1..bitbox02::memory::MAX_UNLOCK_ATTEMPTS {
             assert!(matches!(
-                unlock("invalid password"),
+                unlock(&mut mock_hal, "invalid password"),
                 Err(Error::IncorrectPassword)
             ));
             assert_eq!(
@@ -927,13 +928,16 @@ mod tests {
         }
         // Last attempt, triggers reset.
         assert!(matches!(
-            unlock("invalid password"),
+            unlock(&mut mock_hal, "invalid password"),
             Err(Error::MaxAttemptsExceeded),
         ));
         // Last wrong attempt locks & resets. There is no more seed.
         assert!(!bitbox02::memory::is_seeded());
         assert!(copy_seed().is_err());
-        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+        assert!(matches!(
+            unlock(&mut mock_hal, "password"),
+            Err(Error::Unseeded)
+        ));
     }
 
     #[test]
@@ -941,19 +945,21 @@ mod tests {
         mock_memory();
         lock();
 
+        let mut mock_hal = TestingHal::new();
+
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
         bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
 
-        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
         assert!(is_locked());
         assert!(copy_seed().is_err());
 
         for attempt in 1..bitbox02::memory::MAX_UNLOCK_ATTEMPTS {
             assert!(matches!(
-                unlock("invalid password"),
+                unlock(&mut mock_hal, "invalid password"),
                 Err(Error::IncorrectPassword),
             ));
 
@@ -967,13 +973,16 @@ mod tests {
         }
 
         assert!(matches!(
-            unlock("invalid password"),
+            unlock(&mut mock_hal, "invalid password"),
             Err(Error::MaxAttemptsExceeded)
         ));
         assert!(is_locked());
         assert!(copy_seed().is_err());
         assert!(!bitbox02::memory::is_seeded());
-        assert!(matches!(unlock("password"), Err(Error::Unseeded)));
+        assert!(matches!(
+            unlock(&mut mock_hal, "password"),
+            Err(Error::Unseeded)
+        ));
     }
 
     /// Ensures that if the recorded unlock attempts already reached the maximum before calling
@@ -984,12 +993,14 @@ mod tests {
         mock_memory();
         lock();
 
+        let mut mock_hal = TestingHal::new();
+
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
         bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
 
-        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
         assert!(is_locked());
 
@@ -1001,7 +1012,7 @@ mod tests {
         );
 
         assert!(matches!(
-            unlock("password"),
+            unlock(&mut mock_hal, "password"),
             Err(Error::MaxAttemptsExceeded)
         ));
         assert!(is_locked());
@@ -1016,32 +1027,37 @@ mod tests {
         mock_memory();
         lock();
 
+        let mut mock_hal = TestingHal::new();
+
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
         bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
 
-        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
 
-        let wrong_attempt = || {
-            assert!(matches!(unlock("wrong"), Err(Error::IncorrectPassword)));
+        fn wrong_attempt(hal: &mut impl crate::hal::Hal) {
+            assert!(matches!(
+                unlock(hal, "wrong"),
+                Err(Error::IncorrectPassword)
+            ));
             assert_eq!(
                 get_remaining_unlock_attempts(),
                 bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
             );
-        };
+        }
 
-        wrong_attempt();
+        wrong_attempt(&mut mock_hal);
         assert!(copy_seed().is_err());
 
-        assert_eq!(unlock("password").unwrap().as_slice(), seed);
+        assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
         assert!(copy_seed().is_ok());
 
         lock();
         assert!(copy_seed().is_err());
 
-        wrong_attempt();
+        wrong_attempt(&mut mock_hal);
         assert!(copy_seed().is_err());
         assert!(bitbox02::memory::is_seeded());
     }
@@ -1053,32 +1069,37 @@ mod tests {
         mock_memory();
         lock();
 
+        let mut mock_hal = TestingHal::new();
+
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
         bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
 
-        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
 
-        assert_eq!(unlock("password").unwrap().as_slice(), seed);
+        assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
         assert!(copy_seed().is_ok());
 
-        let wrong_attempt = || {
-            assert!(matches!(unlock("wrong"), Err(Error::IncorrectPassword)));
+        fn wrong_attempt(hal: &mut impl crate::hal::Hal) {
+            assert!(matches!(
+                unlock(hal, "wrong"),
+                Err(Error::IncorrectPassword)
+            ));
             assert_eq!(
                 get_remaining_unlock_attempts(),
                 bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
             );
-        };
+        }
 
-        wrong_attempt();
+        wrong_attempt(&mut mock_hal);
         assert!(copy_seed().is_ok());
 
-        assert_eq!(unlock("password").unwrap().as_slice(), seed);
+        assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
         assert!(copy_seed().is_ok());
 
-        wrong_attempt();
+        wrong_attempt(&mut mock_hal);
         assert!(copy_seed().is_ok());
         assert!(bitbox02::memory::is_seeded());
     }
@@ -1699,12 +1720,11 @@ mod tests {
             mock_memory();
             lock();
 
+            let mut mock_hal = TestingHal::new();
+
             // Can repeat until initialized - initialized means backup has been created.
             for _ in 0..2 {
-                assert!(
-                    encrypt_and_store_seed(&mut TestingHal::new(), &seed[..seed_size], "foo")
-                        .is_ok()
-                );
+                assert!(encrypt_and_store_seed(&mut mock_hal, &seed[..seed_size], "foo").is_ok());
             }
             // Also unlocks, so we can get the retained seed.
             assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
@@ -1714,19 +1734,25 @@ mod tests {
             assert!(copy_seed().is_err());
 
             // Wrong password.
-            assert!(matches!(unlock("bar"), Err(Error::IncorrectPassword)));
+            assert!(matches!(
+                unlock(&mut mock_hal, "bar"),
+                Err(Error::IncorrectPassword)
+            ));
             assert_eq!(get_remaining_unlock_attempts(), 9);
 
             // Correct password. First time: unlock. After unlock, it becomes a password check.
             for _ in 0..3 {
-                assert_eq!(unlock("foo").unwrap().as_slice(), &seed[..seed_size]);
+                assert_eq!(
+                    unlock(&mut mock_hal, "foo").unwrap().as_slice(),
+                    &seed[..seed_size]
+                );
             }
             assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
 
             // Can't store new seed once initialized.
             bitbox02::memory::set_initialized().unwrap();
             assert!(matches!(
-                encrypt_and_store_seed(&mut TestingHal::new(), &seed[..seed_size], "foo"),
+                encrypt_and_store_seed(&mut mock_hal, &seed[..seed_size], "foo"),
                 Err(Error::Memory)
             ));
         }

@@ -25,10 +25,8 @@
 #include <ui/components/ui_images.h>
 #include <ui/fonts/monogram_5X9.h>
 
-// These are set from interrupt context in the orientation workflow :/ therefore they need to be
-// volatile
-volatile const uint8_t* da14531_handler_current_product = NULL;
-volatile uint16_t da14531_handler_current_product_len = 0;
+const uint8_t* da14531_handler_current_product = NULL;
+uint16_t da14531_handler_current_product_len = 0;
 
 struct da14531_ctrl_frame {
     enum da14531_protocol_packet_type type;

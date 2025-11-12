@@ -104,8 +104,9 @@ int main(void)
 
     // Set product to bootloader string, this is necessary if we have rebooted from firmware. Must
     // be done after usb_processing is initalized to avoid getting request from the app to early.
-    da14531_handler_current_product = (const uint8_t*)DEVICE_MODE;
-    da14531_handler_current_product_len = sizeof(DEVICE_MODE) - 1;
+    size_t product_len;
+    da14531_handler_current_product = (const uint8_t*)platform_product(&product_len);
+    da14531_handler_current_product_len = product_len;
     da14531_set_product(
         da14531_handler_current_product, da14531_handler_current_product_len, &uart_write_queue);
 

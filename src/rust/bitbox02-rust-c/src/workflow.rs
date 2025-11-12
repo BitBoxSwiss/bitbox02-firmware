@@ -24,7 +24,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02_rust::workflow::confirm;
+use bitbox02_rust::workflow::{confirm, orientation_screen};
 use core::task::Poll;
 use util::bb02_async::{Task, spin};
 
@@ -41,6 +41,8 @@ static mut CONFIRM_BODY: Option<String> = None;
 static mut CONFIRM_PARAMS: Option<confirm::Params> = None;
 static mut CONFIRM_STATE: TaskState<'static, Result<(), confirm::UserAbort>> = TaskState::Nothing;
 static mut BITBOX02_HAL: bitbox02_rust::hal::BitBox02Hal = bitbox02_rust::hal::BitBox02Hal::new();
+
+static mut ORIENTATION_SCREEN_STATE: TaskState<'static, bool> = TaskState::Nothing;
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
@@ -72,6 +74,14 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
 }
 
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_workflow_spawn_orientation_screen() {
+    unsafe {
+        ORIENTATION_SCREEN_STATE =
+            TaskState::Running(Box::pin(orientation_screen::orientation_screen()));
+    }
+}
+
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spin() {
     unsafe {
         match UNLOCK_STATE {
@@ -88,6 +98,15 @@ pub unsafe extern "C" fn rust_workflow_spin() {
                 let result = spin(task);
                 if let Poll::Ready(result) = result {
                     CONFIRM_STATE = TaskState::ResultAvailable(result);
+                }
+            }
+            _ => (),
+        }
+        match ORIENTATION_SCREEN_STATE {
+            TaskState::Running(ref mut task) => {
+                let result = spin(task);
+                if let Poll::Ready(result) = result {
+                    ORIENTATION_SCREEN_STATE = TaskState::ResultAvailable(result);
                 }
             }
             _ => (),
@@ -131,6 +150,21 @@ pub unsafe extern "C" fn rust_workflow_confirm_poll(result_out: &mut bool) -> bo
     }
 }
 
+/// Returns true if there was a result.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_workflow_orientation_screen_poll(result_out: &mut bool) -> bool {
+    unsafe {
+        match ORIENTATION_SCREEN_STATE {
+            TaskState::ResultAvailable(result) => {
+                ORIENTATION_SCREEN_STATE = TaskState::Nothing;
+                *result_out = result;
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_abort_current() {
     unsafe {
@@ -140,5 +174,7 @@ pub unsafe extern "C" fn rust_workflow_abort_current() {
         CONFIRM_BODY = None;
         CONFIRM_PARAMS = None;
         CONFIRM_STATE = TaskState::Nothing;
+
+        ORIENTATION_SCREEN_STATE = TaskState::Nothing;
     }
 }

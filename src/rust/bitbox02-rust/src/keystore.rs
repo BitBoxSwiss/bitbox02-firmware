@@ -892,17 +892,17 @@ mod tests {
         ));
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 6);
 
         // Loop to check that unlocking works while unlocked.
         for _ in 0..2 {
             // Further calls perform a password check.The password check does not do the retention
             // so it ends up needing one secure chip operation less.
-            bitbox02::securechip::fake_event_counter_reset();
+            mock_hal.securechip.event_counter_reset();
             assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 5);
         }
 
         // Also check that the retained seed was encrypted with the expected encryption key.

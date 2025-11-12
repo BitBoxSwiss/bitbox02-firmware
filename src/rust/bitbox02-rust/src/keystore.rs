@@ -86,8 +86,9 @@ impl RetainedEncryptedBuffer {
             &format!("{}_in", purpose),
             &format!("{}_out", purpose),
         )?;
-        let iv: [u8; 16] = random.random_32_bytes()[..16].try_into().unwrap();
-        let encrypted = bitbox_aes::encrypt_with_hmac(&iv, &encryption_key, data);
+        let iv_rand = random.random_32_bytes();
+        let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
+        let encrypted = bitbox_aes::encrypt_with_hmac(iv, &encryption_key, data);
         Ok(RetainedEncryptedBuffer {
             unstretched_encryption_key: rand,
             encrypted_seed: ReadOnlyBuffer::from_slice(&encrypted),
@@ -201,9 +202,9 @@ pub fn encrypt_and_store_seed(
     securechip::init_new_password(password)?;
 
     let secret = securechip::stretch_password(password)?;
-
-    let iv: [u8; 16] = hal.random().random_32_bytes()[..16].try_into().unwrap();
-    let encrypted = bitbox_aes::encrypt_with_hmac(&iv, &secret, seed);
+    let iv_rand = hal.random().random_32_bytes();
+    let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
+    let encrypted = bitbox_aes::encrypt_with_hmac(iv, &secret, seed);
 
     if encrypted.len() > u8::MAX as usize {
         panic!("encrypted seed length overflow");

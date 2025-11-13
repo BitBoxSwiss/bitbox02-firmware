@@ -117,7 +117,7 @@ jobs:
 
   # cmocka isn't compatible with Mach-O, so no point in running the C tests.
   rust-unit-tests-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
@@ -135,7 +135,7 @@ jobs:
           version: "21.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install rust
+      - name: install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rust-src-dir: src/rust
@@ -238,7 +238,55 @@ jobs:
             build*/bin/*.bin
             build*/bin/*.elf
             build*/bin/*.map
-            build*/bin/simulator
+            build*/bin/simulator*
+
+  # Build simulators for macos aarch64
+  build-macos:
+    strategy:
+      matrix:
+        target:
+          - simulator
+          - simulator-graphical
+    runs-on: macos-15
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          # Github action is broken: https://github.com/actions/checkout/issues/1638
+          # Remove the below line when the issue is resolved
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - name: Install system dependencies
+        run: brew install cbindgen bindgen hidapi
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "21.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rust-src-dir: src/rust
+          components: rust-src
+
+      - name: Build ${{ matrix.target }}
+        run: make -j$(($(nproc)+1)) ${{ matrix.target }}
+
+      - name: Print hashes
+        run: sha256sum build*/bin/*
+
+      - name: Upload artifact
+        if: github.event_name == 'push' && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.target}}-apple-aarch64-darwin-${{github.sha}}.bin
+          path: |
+            build*/bin/simulator*
 
   doc:
     runs-on: ubuntu-22.04

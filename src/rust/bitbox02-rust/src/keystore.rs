@@ -51,10 +51,7 @@ pub enum Error {
     SecureChip(i32),
     SeedSize,
     Salt,
-    Hash,
-    Encrypt,
     Decrypt,
-    StretchRetainedSeedKey,
 }
 
 impl core::convert::From<bitbox02::securechip::Error> for Error {

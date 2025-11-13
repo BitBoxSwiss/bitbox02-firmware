@@ -202,7 +202,6 @@ const RUSTIFIED_ENUMS: &[&str] = &[
 
 // BITBOX02_SOURCES are only used for native builds (simulator). Avoid cross-target specific files.
 const BITBOX02_SOURCES: &[&str] = &[
-    "src/cipher/cipher.c",
     "src/communication_mode.c",
     "src/da14531/crc.c",
     "src/da14531/da14531_handler.c",
@@ -435,7 +434,6 @@ pub fn main() -> Result<(), &'static str> {
     };
 
     let source_includes = &[
-        "test/hardware-fakes/src/fake_cipher.c",
         "test/hardware-fakes/src/fake_component.c",
         "test/hardware-fakes/src/fake_diskio.c",
         "test/hardware-fakes/src/fake_memory.c",

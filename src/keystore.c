@@ -14,7 +14,6 @@
 
 #include <string.h>
 
-#include "cipher/cipher.h"
 #include "hardfault.h"
 #include "keystore.h"
 #include "memory/bitbox02_smarteeprom.h"

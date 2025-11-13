@@ -27,7 +27,7 @@ pub const MAX_SEED_LENGTH: usize = bitbox02_sys::KEYSTORE_MAX_SEED_LENGTH as usi
 #[derive(Debug)]
 pub enum Error {
     CannotUnlockBIP39,
-    IncorrectPassword { remaining_attempts: u8 },
+    IncorrectPassword,
     MaxAttemptsExceeded,
     Unseeded,
     Memory,
@@ -71,7 +71,6 @@ impl core::convert::From<keystore_error_t> for Error {
 }
 
 pub fn _unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let mut remaining_attempts: u8 = 0;
     let mut securechip_result: i32 = 0;
     let mut seed = zeroize::Zeroizing::new([0u8; MAX_SEED_LENGTH].to_vec());
     let mut seed_len: usize = 0;
@@ -81,7 +80,6 @@ pub fn _unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
                 .unwrap()
                 .as_ptr()
                 .cast(),
-            &mut remaining_attempts,
             &mut securechip_result,
             seed.as_mut_ptr(),
             &mut seed_len,
@@ -91,9 +89,7 @@ pub fn _unlock(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
             seed.truncate(seed_len);
             Ok(seed)
         }
-        keystore_error_t::KEYSTORE_ERR_INCORRECT_PASSWORD => {
-            Err(Error::IncorrectPassword { remaining_attempts })
-        }
+        keystore_error_t::KEYSTORE_ERR_INCORRECT_PASSWORD => Err(Error::IncorrectPassword),
         keystore_error_t::KEYSTORE_ERR_SECURECHIP => Err(Error::SecureChip(securechip_result)),
         err => Err(err.into()),
     }

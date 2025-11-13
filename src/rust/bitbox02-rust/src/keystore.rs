@@ -19,7 +19,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use crate::hal::Random;
+use crate::hal::{Random, SecureChip};
 pub use bitbox02::keystore::SignResult;
 use bitbox02::{keystore, securechip};
 
@@ -211,9 +211,10 @@ pub fn encrypt_and_store_seed(
 
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
 
-    securechip::init_new_password(password)?;
+    hal.securechip().init_new_password(password)?;
 
-    let secret = securechip::stretch_password(password)?;
+    let secret = hal.securechip().stretch_password(password)?;
+
     let iv_rand = hal.random().random_32_bytes();
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
     let encrypted = bitbox_aes::encrypt_with_hmac(iv, &secret, seed);
@@ -243,13 +244,16 @@ fn check_retained_seed(seed: &[u8]) -> Result<(), ()> {
     Ok(())
 }
 
-fn get_and_decrypt_seed(password: &str) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+fn get_and_decrypt_seed(
+    hal: &mut impl crate::hal::Hal,
+    password: &str,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let encrypted = bitbox02::memory::get_encrypted_seed_and_hmac().map_err(|_| Error::Memory)?;
     // Our Optiga securechip implementation fails password stretching if the password is
     // wrong, so it already returns an error here. The ATECC stretches the password without checking
     // if the password is correct, and we determine if it is correct in the seed decryption
     // step below.
-    let secret = securechip::stretch_password(password)?;
+    let secret = hal.securechip().stretch_password(password)?;
     let seed = match bitbox_aes::decrypt_with_hmac(&secret, &encrypted) {
         Ok(seed) => seed,
         Err(()) => return Err(Error::IncorrectPassword),
@@ -279,7 +283,7 @@ pub fn unlock(
     }
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
     bitbox02::memory::smarteeprom_increment_unlock_attempts();
-    let seed = match get_and_decrypt_seed(password) {
+    let seed = match get_and_decrypt_seed(hal, password) {
         Ok(seed) => seed,
         err @ Err(_) => {
             if get_remaining_unlock_attempts() == 0 {
@@ -892,17 +896,17 @@ mod tests {
         ));
 
         // First call: unlock. The first one does a seed rentention (1 securechip event).
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 6);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 6);
 
         // Loop to check that unlocking works while unlocked.
         for _ in 0..2 {
             // Further calls perform a password check.The password check does not do the retention
             // so it ends up needing one secure chip operation less.
-            bitbox02::securechip::fake_event_counter_reset();
+            mock_hal.securechip.event_counter_reset();
             assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 5);
         }
 
         // Also check that the retained seed was encrypted with the expected encryption key.
@@ -1510,9 +1514,11 @@ mod tests {
             lock();
             let seed = &seed[..test.seed_len];
 
+            let mut mock_hal = crate::hal::testing::TestingHal::new();
+
             assert!(
                 block_on(unlock_bip39(
-                    &mut crate::hal::testing::TestingRandom::new(),
+                    &mut mock_hal.random,
                     seed,
                     test.mnemonic_passphrase,
                     async || {}
@@ -1520,23 +1526,23 @@ mod tests {
                 .is_err()
             );
 
-            bitbox02::securechip::fake_event_counter_reset();
-            assert!(encrypt_and_store_seed(&mut TestingHal::new(), seed, "foo").is_ok());
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
+            mock_hal.securechip.event_counter_reset();
+            assert!(encrypt_and_store_seed(&mut mock_hal, seed, "foo").is_ok());
+            assert_eq!(mock_hal.securechip.get_event_counter(), 7);
 
             assert!(is_locked());
 
-            bitbox02::securechip::fake_event_counter_reset();
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 block_on(unlock_bip39(
-                    &mut crate::hal::testing::TestingRandom::new(),
+                    &mut mock_hal.random,
                     seed,
                     test.mnemonic_passphrase,
                     async || {}
                 ))
                 .is_ok()
             );
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
             assert!(!is_locked());
             assert_eq!(
@@ -1545,9 +1551,9 @@ mod tests {
             );
             let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
 
-            bitbox02::securechip::fake_event_counter_reset();
+            mock_hal.securechip.event_counter_reset();
             let xpub = get_xpub_once(keypath).unwrap();
-            assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
             assert_eq!(
                 xpub.serialize_str(crate::bip32::XPubType::Xpub).unwrap(),

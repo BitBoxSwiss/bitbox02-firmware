@@ -187,7 +187,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
             block_on(create(
                 &mut mock_hal,
@@ -198,7 +198,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 1);
         assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
         assert_eq!(
             mock_hal.ui.screens,
@@ -246,7 +246,7 @@ mod tests {
             password_entered = true;
             Ok("password".into())
         }));
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
             block_on(create(
                 &mut mock_hal,
@@ -257,7 +257,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 5);
         assert_eq!(
             mock_hal.ui.screens,
             vec![

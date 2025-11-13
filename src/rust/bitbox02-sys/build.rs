@@ -27,7 +27,6 @@ const ALLOWLIST_VARS: &[&str] = &[
     "font_monogram_5X9",
     "font_password_11X12",
     "INPUT_STRING_MAX_SIZE",
-    "KEYSTORE_MAX_SEED_LENGTH",
     "MAX_LABEL_SIZE",
     "MAX_PK_SCRIPT_SIZE",
     "MAX_UNLOCK_ATTEMPTS",
@@ -92,7 +91,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_get_bip39_word",
     "keystore_secp256k1_nonce_commit",
     "keystore_secp256k1_sign",
-    "keystore_unlock",
     "label_create",
     "memory_add_noise_remote_static_pubkey",
     "memory_ble_enable",
@@ -192,7 +190,6 @@ const ALLOWLIST_FNS: &[&str] = &[
 
 const RUSTIFIED_ENUMS: &[&str] = &[
     "event_types",
-    "keystore_error_t",
     "keystore_secp256k1_pubkey_format",
     "memory_result_t",
     "multisig_script_type_t",
@@ -205,7 +202,6 @@ const RUSTIFIED_ENUMS: &[&str] = &[
 
 // BITBOX02_SOURCES are only used for native builds (simulator). Avoid cross-target specific files.
 const BITBOX02_SOURCES: &[&str] = &[
-    "src/cipher/cipher.c",
     "src/communication_mode.c",
     "src/da14531/crc.c",
     "src/da14531/da14531_handler.c",
@@ -438,7 +434,6 @@ pub fn main() -> Result<(), &'static str> {
     };
 
     let source_includes = &[
-        "test/hardware-fakes/src/fake_cipher.c",
         "test/hardware-fakes/src/fake_component.c",
         "test/hardware-fakes/src/fake_diskio.c",
         "test/hardware-fakes/src/fake_memory.c",

@@ -174,14 +174,12 @@ pub fn smarteeprom_get_unlock_attempts() -> u8 {
     unsafe { bitbox02_sys::bitbox02_smarteeprom_get_unlock_attempts() }
 }
 
-#[cfg(feature = "testing")]
 pub fn smarteeprom_increment_unlock_attempts() {
     unsafe {
         bitbox02_sys::bitbox02_smarteeprom_increment_unlock_attempts();
     }
 }
 
-#[cfg(feature = "testing")]
 pub fn smarteeprom_reset_unlock_attempts() {
     unsafe {
         bitbox02_sys::bitbox02_smarteeprom_reset_unlock_attempts();

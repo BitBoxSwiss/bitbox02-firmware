@@ -51,6 +51,8 @@ void screen_print_debug(const char* message, int duration)
     UG_SendBuffer();
 #ifndef TESTING
     if (duration > 0) delay_ms(duration);
+#else
+    (void)duration;
 #endif
 }
 

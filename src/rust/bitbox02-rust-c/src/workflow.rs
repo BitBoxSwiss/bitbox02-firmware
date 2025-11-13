@@ -19,6 +19,7 @@
 // TODO: figure out how to deal with the static muts below.
 // https://doc.rust-lang.org/nightly/edition-guide/rust-2024/static-mut-references.html
 #![allow(static_mut_refs)]
+#![allow(clippy::missing_safety_doc)]
 
 extern crate alloc;
 

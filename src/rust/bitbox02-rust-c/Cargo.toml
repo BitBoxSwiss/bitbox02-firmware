@@ -90,6 +90,14 @@ testing = ["bitbox02-rust/testing", "bitbox02/testing"]
 # Active when the Rust code is compiled to be linked into the C unit tests and simulator.
 c-unit-testing = ["bitbox02-rust/c-unit-testing", "bitbox02/c-unit-testing", "util/c-unit-testing"]
 
+simulator-graphical = [
+  "app-bitcoin",
+  "app-litecoin",
+  "app-ethereum",
+  "app-cardano",
+  "firmware",
+]
+
 app-ethereum = [
   # enable this feature in the deps
   "bitbox02-rust/app-ethereum",

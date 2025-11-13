@@ -11,20 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-/// Reset the USB processing timeout to the given value.
-pub fn timeout_reset(value: i16) {
-    unsafe {
-        bitbox02_sys::usb_processing_timeout_reset(value);
+pub fn pull_hww() -> Option<[u8; 64]> {
+    let hww_data = unsafe { bitbox02_sys::queue_pull(bitbox02_sys::queue_hww_queue()) };
+    if hww_data.is_null() {
+        return None;
     }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn init() {
-    unsafe { bitbox02_sys::usb_processing_init() }
-}
-
-#[cfg(feature = "simulator-graphical")]
-pub fn process_hww() {
-    unsafe { bitbox02_sys::usb_processing_process(bitbox02_sys::usb_processing_hww()) }
+    let mut data: [u8; 64] = [0; 64];
+    unsafe { core::ptr::copy_nonoverlapping(hww_data, data.as_mut_ptr(), 64) }
+    Some(data)
 }

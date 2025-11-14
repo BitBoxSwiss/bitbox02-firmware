@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option_no_screensaver;
+use crate::bb02_async::screensaver_without;
 
 pub use bitbox02::ui::{ConfirmParams as Params, Font};
 
@@ -20,16 +20,20 @@ pub struct UserAbort;
 
 /// Returns true if the user accepts, false if the user rejects.
 pub async fn confirm(params: &Params<'_>) -> Result<(), UserAbort> {
-    let result = core::cell::RefCell::new(None as Option<Result<(), UserAbort>>);
+    let (sender, receiver) = async_channel::bounded(1);
 
     // The component will set the result when the user accepted/rejected.
-    let mut component = bitbox02::ui::confirm_create(params, |accepted| {
-        *result.borrow_mut() = if accepted {
-            Some(Ok(()))
-        } else {
-            Some(Err(UserAbort))
-        };
+    let mut component = bitbox02::ui::confirm_create(params, move |accepted| {
+        sender
+            .try_send(if accepted { Ok(()) } else { Err(UserAbort) })
+            .unwrap();
     });
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    screensaver_without(async move {
+        match receiver.recv().await {
+            Ok(result) => result,
+            Err(_) => panic!("sender dropped..."),
+        }
+    })
+    .await
 }

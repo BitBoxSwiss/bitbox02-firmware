@@ -1,0 +1,15 @@
+[package]
+name = "bitbox02-executor"
+# Based on async-executor
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-task = {version="4.7.1", default-features=false}
+concurrent-queue = {version="2.5.0", default-features=false}
+critical-section = "1.2.0"
+fastrand = { version = "2.3.0", default-features = false, features=["alloc"] }
+futures-lite = {workspace = true}
+pin-project-lite = "0.2.16"
+slab = { version = "0.4.11", default-features = false }
+bitbox02-reactor = {path = "../bitbox02-reactor"}

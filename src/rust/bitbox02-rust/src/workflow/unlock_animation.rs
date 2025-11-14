@@ -12,16 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option_no_screensaver;
-use core::cell::RefCell;
+use crate::bb02_async::screensaver_without;
 
 /// Performs the unlock animation. Its duration is determined by the component render rate, see
 /// unlock_animation.c
 pub async fn animate() {
-    let result = RefCell::new(None as Option<()>);
-    let mut component = bitbox02::ui::unlock_animation_create(|| {
-        *result.borrow_mut() = Some(());
+    let (sender, receiver) = async_channel::bounded(1);
+    let mut component = bitbox02::ui::unlock_animation_create(move || {
+        sender.try_send(()).unwrap();
     });
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    screensaver_without(async move {
+        match receiver.recv().await {
+            Ok(()) => (),
+            Err(_) => panic!("sender dropped"),
+        }
+    })
+    .await;
 }

@@ -225,6 +225,35 @@ fn main_loop() -> ! {
     }
 }
 
+use core::sync::atomic::{AtomicBool, Ordering};
+
+use async_channel::Receiver;
+use bitbox02_executor::StaticExecutor;
+
+static EXECUTOR: StaticExecutor = StaticExecutor::new();
+
+pub fn tick() {
+    static FIRST: AtomicBool = AtomicBool::new(true);
+    if FIRST.load(Ordering::Relaxed) {
+        FIRST.store(false, Ordering::Relaxed);
+        let task = EXECUTOR.spawn(async {
+            util::log::log!("hello world");
+        });
+    }
+    EXECUTOR.try_tick();
+    //util::bb02_async::block_on(EXECUTOR.run(task));
+}
+
+// Spawns a task and returns the receiving end of a one shot channel
+pub fn spawn<T>(fut: impl Future<Output = T> + 'static) -> Receiver<T>
+where
+    T: 'static,
+{
+    let (sender, receiver) = async_channel::bounded(1);
+    EXECUTOR.spawn(async move { sender.send(fut.await).await });
+    receiver
+}
+
 //
 // C interface
 //
@@ -242,4 +271,8 @@ pub extern "C" fn rust_noise_generate_static_private_key(
 #[cfg(not(feature = "c-unit-testing"))]
 pub extern "C" fn rust_main_loop() -> ! {
     main_loop()
+}
+
+pub extern "C" fn rust_async_executor_tick() {
+    tick();
 }

@@ -1,0 +1,7 @@
+[package]
+name = "bitbox02-reactor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embedded-io-async = { version = "0.7.0", default-features = false, features = ["alloc"] }

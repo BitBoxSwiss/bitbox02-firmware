@@ -62,6 +62,10 @@ impl Drop for Component<'_> {
     }
 }
 
+// Pinky promise to only access the c-ptr from the main thread
+unsafe impl Send for Component<'_> {}
+unsafe impl Sync for Component<'_> {}
+
 /// Creates a trinary input component.
 /// `result` - will be asynchronously set to `Some(<password>)` once the user confirms.
 pub fn trinary_input_string_create<'a, F>(

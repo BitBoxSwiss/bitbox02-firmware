@@ -34,6 +34,9 @@ digest = { workspace = true, optional = true }
 bitcoin = { workspace = true, optional = true }
 bip39 = { workspace = true }
 zeroize = { workspace = true }
+critical-section = {workspace = true}
+async-channel = {workspace = true}
+grounded = "0.2.0"
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
@@ -125,4 +128,4 @@ app-cardano = [
   "bitbox02-rust/app-cardano",
 ]
 
-rtt = [ "util/rtt" ]
+rtt = [ "util/rtt", "bitbox02-rust/rtt" ]

@@ -1,20 +1,20 @@
-[source.crates-io]
-replace-with = "vendored-sources"
-
-[source."git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"]
-git = "https://github.com/probe-rs/rtt-target.git"
-rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
-replace-with = "vendored-sources"
-
-[source."git+https://github.com/BitBoxSwiss/rust-bip32-ed25519?tag=v0.2.1"]
-git = "https://github.com/BitBoxSwiss/rust-bip32-ed25519"
-tag = "v0.2.1"
-replace-with = "vendored-sources"
-
-[source."git+https://github.com/BitBoxSwiss/rust-bip39.git?branch=bitbox-20250922"]
-git = "https://github.com/BitBoxSwiss/rust-bip39.git"
-branch = "bitbox-20250922"
-replace-with = "vendored-sources"
-
-[source.vendored-sources]
-directory = "../../external/vendor"
+#[source.crates-io]
+#replace-with = "vendored-sources"
+#
+#[source."git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"]
+#git = "https://github.com/probe-rs/rtt-target.git"
+#rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
+#replace-with = "vendored-sources"
+#
+#[source."git+https://github.com/BitBoxSwiss/rust-bip32-ed25519?tag=v0.2.1"]
+#git = "https://github.com/BitBoxSwiss/rust-bip32-ed25519"
+#tag = "v0.2.1"
+#replace-with = "vendored-sources"
+#
+#[source."git+https://github.com/BitBoxSwiss/rust-bip39.git?branch=bitbox-20250922"]
+#git = "https://github.com/BitBoxSwiss/rust-bip39.git"
+#branch = "bitbox-20250922"
+#replace-with = "vendored-sources"
+#
+#[source.vendored-sources]
+#directory = "../../external/vendor"

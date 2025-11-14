@@ -54,6 +54,7 @@ pub trait SecureChip {
         signature: &mut [u8; 64],
     ) -> Result<(), ()>;
     fn monotonic_increments_remaining(&mut self) -> Result<u32, ()>;
+    fn model(&mut self) -> Result<bitbox02::securechip::Model, ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -147,6 +148,10 @@ impl SecureChip for BitBox02SecureChip {
 
     fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
         bitbox02::securechip::monotonic_increments_remaining()
+    }
+
+    fn model(&mut self) -> Result<bitbox02::securechip::Model, ()> {
+        bitbox02::securechip::model()
     }
 }
 
@@ -361,6 +366,10 @@ pub mod testing {
 
         fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
             Ok(1)
+        }
+
+        fn model(&mut self) -> Result<bitbox02::securechip::Model, ()> {
+            Ok(bitbox02::securechip::Model::ATECC_ATECC608B)
         }
     }
 

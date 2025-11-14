@@ -39,7 +39,7 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         version: crate::version::FIRMWARE_VERSION_SHORT.into(),
         mnemonic_passphrase_enabled: memory::is_mnemonic_passphrase_enabled(),
         monotonic_increments_remaining: hal.securechip().monotonic_increments_remaining()?,
-        securechip_model: match securechip::model()? {
+        securechip_model: match hal.securechip().model()? {
             securechip::Model::ATECC_ATECC608A => "ATECC608A".into(),
             securechip::Model::ATECC_ATECC608B => "ATECC608B".into(),
             securechip::Model::OPTIGA_TRUST_M_V3 => "OPTIGA_TRUST_M_V3".into(),

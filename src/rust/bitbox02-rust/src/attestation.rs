@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::hal::SecureChip;
 use sha2::{Digest, Sha256};
 
 pub struct Data {
@@ -22,7 +23,7 @@ pub struct Data {
     pub challenge_signature: [u8; 64],
 }
 
-pub fn perform(host_challenge: [u8; 32]) -> Result<Data, ()> {
+pub fn perform(hal: &mut impl crate::hal::Hal, host_challenge: [u8; 32]) -> Result<Data, ()> {
     let mut result = Data {
         bootloader_hash: [0; 32],
         device_pubkey: [0; 64],
@@ -37,6 +38,7 @@ pub fn perform(host_challenge: [u8; 32]) -> Result<Data, ()> {
     )?;
     let hash: [u8; 32] = Sha256::digest(host_challenge).into();
     result.bootloader_hash = bitbox02::memory::get_attestation_bootloader_hash();
-    bitbox02::securechip::attestation_sign(&hash, &mut result.challenge_signature)?;
+    hal.securechip()
+        .attestation_sign(&hash, &mut result.challenge_signature)?;
     Ok(result)
 }

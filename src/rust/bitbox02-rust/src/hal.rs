@@ -48,6 +48,11 @@ pub trait SecureChip {
         &mut self,
         msg: &[u8],
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
+    fn attestation_sign(
+        &mut self,
+        challenge: &[u8; 32],
+        signature: &mut [u8; 64],
+    ) -> Result<(), ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -129,6 +134,14 @@ impl SecureChip for BitBox02SecureChip {
         msg: &[u8],
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
         bitbox02::securechip::kdf(msg)
+    }
+
+    fn attestation_sign(
+        &mut self,
+        challenge: &[u8; 32],
+        signature: &mut [u8; 64],
+    ) -> Result<(), ()> {
+        bitbox02::securechip::attestation_sign(challenge, signature)
     }
 }
 
@@ -330,6 +343,15 @@ pub mod testing {
             Ok(zeroize::Zeroizing::new(
                 hmac_result.to_byte_array().to_vec(),
             ))
+        }
+
+        fn attestation_sign(
+            &mut self,
+            _challenge: &[u8; 32],
+            _signature: &mut [u8; 64],
+        ) -> Result<(), ()> {
+            self.event_counter += 1;
+            todo!()
         }
     }
 

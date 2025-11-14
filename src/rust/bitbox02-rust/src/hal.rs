@@ -53,6 +53,7 @@ pub trait SecureChip {
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()>;
+    fn monotonic_increments_remaining(&mut self) -> Result<u32, ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -142,6 +143,10 @@ impl SecureChip for BitBox02SecureChip {
         signature: &mut [u8; 64],
     ) -> Result<(), ()> {
         bitbox02::securechip::attestation_sign(challenge, signature)
+    }
+
+    fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
+        bitbox02::securechip::monotonic_increments_remaining()
     }
 }
 
@@ -352,6 +357,10 @@ pub mod testing {
         ) -> Result<(), ()> {
             self.event_counter += 1;
             todo!()
+        }
+
+        fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
+            Ok(1)
         }
     }
 

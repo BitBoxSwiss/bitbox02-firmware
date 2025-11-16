@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Improve experience of moving back and forth when entering password characters
 
 ### v9.25.0
 - BitBox02 Nova: improved password stretching algorithm

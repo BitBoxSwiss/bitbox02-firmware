@@ -82,7 +82,7 @@ bool da14531_handler_bond_db_set(void)
 }
 #endif
 
-static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
+static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
 {
     switch (frame->cmd) {
     case CTRL_CMD_DEVICE_NAME: {
@@ -158,7 +158,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
             &frame->cmd_data[0],
             sizeof(_ble_pairing_callback_data.key));
         _ble_pairing_callback_data.queue = queue;
-        uint32_t pairing_code_int = (*(uint32_t*)&frame->cmd_data[0]) % 1000000;
+        uint32_t pairing_code_int = (*(const uint32_t*)&frame->cmd_data[0]) % 1000000;
         char pairing_code[7] = {0};
         snprintf(pairing_code, sizeof(pairing_code), "%06lu", (long unsigned int)pairing_code_int);
         // util_log("da14531: show/confirm pairing code: %s", pairing_code);
@@ -275,21 +275,21 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
     }
 }
 
-static void _hww_handler(struct da14531_protocol_frame* frame, struct ringbuffer* queue)
+static void _hww_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue)
 {
     // util_log(" in: %s", util_dbg_hex(frame->payload, 64));
     (void)queue;
     ASSERT(frame->payload_length == 64);
-    usb_packet_process((USB_FRAME*)&frame->payload[0]);
+    usb_packet_process((const USB_FRAME*)&frame->payload[0]);
 }
 
 // Handler must not use the frame pointer after it has returned
-void da14531_handler(struct da14531_protocol_frame* frame, struct ringbuffer* queue)
+void da14531_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue)
 {
     // util_log("handler called");
     switch (frame->type) {
     case DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA:
-        _ctrl_handler((struct da14531_ctrl_frame*)frame, queue);
+        _ctrl_handler((const struct da14531_ctrl_frame*)frame, queue);
         break;
     case DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA:
         _hww_handler(frame, queue);

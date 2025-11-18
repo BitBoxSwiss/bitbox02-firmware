@@ -189,6 +189,7 @@ const ALLOWLIST_FNS: &[&str] = &[
 const RUSTIFIED_ENUMS: &[&str] = &[
     "event_types",
     "keystore_secp256k1_pubkey_format",
+    "memory_password_stretch_algo_t",
     "memory_result_t",
     "multisig_script_type_t",
     "output_type_t",

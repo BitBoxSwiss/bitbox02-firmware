@@ -10,6 +10,7 @@
 
 #include <hardfault.h>
 #include <memory/bitbox02_smarteeprom.h>
+#include <memory/memory.h>
 #include <optiga_crypt.h>
 #include <optiga_util.h>
 #include <rust/rust.h>
@@ -980,8 +981,12 @@ cleanup: {
 }
 }
 
-int optiga_init_new_password(const char* password)
+int optiga_init_new_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo)
 {
+    (void)password_stretch_algo;
+
     // Set new hmac key.
     uint8_t new_hmac_key[32] = {0};
     _ifs->random_32_bytes(new_hmac_key);
@@ -1042,7 +1047,9 @@ bool optiga_reset_keys(void)
     // OID_PASSWORD keys. A password is needed because updating the OID_PASSWORD key requires
     // auth using the OID_PASSWORD_SECRET key, but any password is fine for the purpose of resetting
     // the keys.
-    return optiga_init_new_password("") == 0;
+
+    // We reset using V1, the latest algorithm. It covers resetting everything from V0 as well.
+    return optiga_init_new_password("", MEMORY_PASSWORD_STRETCH_ALGO_V1) == 0;
 }
 
 static int _optiga_verify_password(const char* password, uint8_t* password_secret_out)
@@ -1334,8 +1341,13 @@ static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     return 0;
 }
 
-int optiga_stretch_password(const char* password, uint8_t* stretched_out)
+int optiga_stretch_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
 {
+    (void)password_stretch_algo;
+
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!salt_hash_data(

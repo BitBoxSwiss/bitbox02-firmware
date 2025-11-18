@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
+#include <memory/memory.h>
 #include <optiga/optiga.h>
 #include <optiga/optiga_ops.h>
 
@@ -594,7 +595,8 @@ static void test_optiga_stretch_password_success(void** state)
     memcpy(_oid_counter_password_buf, counter_reset_buf, sizeof(_oid_counter_password_buf));
 
     uint8_t stretched_out[32] = {0};
-    assert_int_equal(optiga_stretch_password("pw", stretched_out), 0);
+    assert_int_equal(
+        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out), 0);
     assert_memory_equal(stretched_out, _expected_stretched_out, sizeof(_expected_stretched_out));
     // Successful password verification resets the small monotonic counter/threshold.
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 0);
@@ -615,27 +617,35 @@ static void test_optiga_stretch_password_attempt_counter(void** state)
 
     uint8_t stretched_out[32] = {0};
 
-    assert_int_equal(optiga_stretch_password("wrong", stretched_out), SC_ERR_INCORRECT_PASSWORD);
+    assert_int_equal(
+        optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+        SC_ERR_INCORRECT_PASSWORD);
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 1);
     assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
 
-    assert_int_equal(optiga_stretch_password("wrong", stretched_out), SC_ERR_INCORRECT_PASSWORD);
+    assert_int_equal(
+        optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+        SC_ERR_INCORRECT_PASSWORD);
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 2);
     assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
 
-    assert_int_equal(optiga_stretch_password("pw", stretched_out), 0);
+    assert_int_equal(
+        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out), 0);
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 0);
     assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
 
     for (int i = 0; i < SMALL_MONOTONIC_COUNTER_MAX_USE; i++) {
         assert_int_equal(
-            optiga_stretch_password("wrong", stretched_out), SC_ERR_INCORRECT_PASSWORD);
+            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+            SC_ERR_INCORRECT_PASSWORD);
     }
     assert_int_equal(
         optiga_common_get_uint32(&_oid_counter_password_buf[0]), SMALL_MONOTONIC_COUNTER_MAX_USE);
 
     // After exhausting all allowed attempts, a correct password fails as well.
-    assert_int_equal(optiga_stretch_password("pw", stretched_out), SC_ERR_INCORRECT_PASSWORD);
+    assert_int_equal(
+        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+        SC_ERR_INCORRECT_PASSWORD);
     assert_int_equal(
         optiga_common_get_uint32(&_oid_counter_password_buf[0]), SMALL_MONOTONIC_COUNTER_MAX_USE);
 }

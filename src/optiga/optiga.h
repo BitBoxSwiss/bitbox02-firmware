@@ -9,6 +9,7 @@
 #include "compiler_util.h"
 #include "securechip/securechip.h"
 #include <memory/bitbox02_smarteeprom.h>
+#include <memory/memory.h>
 #include <platform/platform_config.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -59,8 +60,13 @@
 
 USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out);
-USE_RESULT int optiga_init_new_password(const char* password);
-USE_RESULT int optiga_stretch_password(const char* password, uint8_t* stretched_out);
+USE_RESULT int optiga_init_new_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo);
+USE_RESULT int optiga_stretch_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out);
 USE_RESULT bool optiga_reset_keys(void);
 USE_RESULT bool optiga_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);

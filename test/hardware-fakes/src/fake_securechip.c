@@ -19,13 +19,20 @@ int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     return 0;
 }
 
-int securechip_init_new_password(const char* password)
+int securechip_init_new_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo)
 {
     (void)password;
+    (void)password_stretch_algo;
     return 0;
 }
-int securechip_stretch_password(const char* password, uint8_t* stretched_out)
+int securechip_stretch_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
 {
+    (void)password_stretch_algo;
     uint8_t key[9] = "unit-test";
     rust_hmac_sha256(key, sizeof(key), (const uint8_t*)password, strlen(password), stretched_out);
     return 0;

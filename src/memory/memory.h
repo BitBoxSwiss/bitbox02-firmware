@@ -17,6 +17,14 @@
 // How many multisig configurations (accounts) can be registered.
 #define MEMORY_MULTISIG_NUM_ENTRIES 25
 
+typedef enum {
+    // Legacy/initial value for BitBox02 and BitBox02 Nova using the initial stretch algo in
+    // ATECC/Optiga.
+    MEMORY_PASSWORD_STRETCH_ALGO_V0,
+    // Currently used only by Optiga.
+    MEMORY_PASSWORD_STRETCH_ALGO_V1,
+} memory_password_stretch_algo_t;
+
 typedef struct {
     void (*const random_32_bytes)(uint8_t* buf_out);
 } memory_interface_functions_t;
@@ -124,18 +132,22 @@ USE_RESULT bool memory_reset_failed_unlock_attempts(void);
 
 USE_RESULT bool memory_set_encrypted_seed_and_hmac(
     const uint8_t* encrypted_seed_and_hmac,
-    uint8_t len);
+    uint8_t len,
+    memory_password_stretch_algo_t password_stretch_algo);
 
 /**
  * Retrieves the encrypted seed and hmac.
  " param[out] encrypted_seed_and_hmac_out must have size 96.
  " param[out] len_out will contain the length of the encrypted seed.
+ " param[out] password_stretch_algo_out will contain the identifier of the password stretching
+ * algorithm that was used in the encryption.
  * memory_is_seeded() must return true prior to calling this
  * function, otherwise the result is undefined.
  */
 USE_RESULT bool memory_get_encrypted_seed_and_hmac(
     uint8_t* encrypted_seed_and_hmac_out,
-    uint8_t* len_out);
+    uint8_t* len_out,
+    memory_password_stretch_algo_t* password_stretch_algo_out);
 
 void memory_get_io_protection_key(uint8_t* key_out);
 void memory_get_authorization_key(uint8_t* key_out);

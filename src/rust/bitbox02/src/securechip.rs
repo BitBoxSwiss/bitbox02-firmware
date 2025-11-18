@@ -8,6 +8,8 @@ use zeroize::Zeroizing;
 pub use bitbox02_sys::securechip_error_t as SecureChipError;
 pub use bitbox02_sys::securechip_model_t as Model;
 
+use crate::memory::PasswordStretchAlgo;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     SecureChip(SecureChipError),
@@ -15,13 +17,14 @@ pub enum Error {
 }
 
 // Keep in sync with securechip.h's securechip_error_t.
-const SECURECHIP_ERRORS: [SecureChipError; 15] = [
+const SECURECHIP_ERRORS: [SecureChipError; 16] = [
     // Errors common to any securechip implementation
     SecureChipError::SC_ERR_IFS,
     SecureChipError::SC_ERR_INVALID_ARGS,
     SecureChipError::SC_ERR_CONFIG_MISMATCH,
     SecureChipError::SC_ERR_SALT,
     SecureChipError::SC_ERR_INCORRECT_PASSWORD,
+    SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
     // Errors specific to the ATECC
     SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG,
     SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_DATA,
@@ -80,10 +83,15 @@ pub fn reset_keys() -> Result<(), ()> {
     }
 }
 
-pub fn init_new_password(password: &str) -> Result<(), Error> {
+pub fn init_new_password(
+    password: &str,
+    password_stretch_algo: PasswordStretchAlgo,
+) -> Result<(), Error> {
     let password = crate::util::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
-    let status = unsafe { bitbox02_sys::securechip_init_new_password(password.as_ptr().cast()) };
+    let status = unsafe {
+        bitbox02_sys::securechip_init_new_password(password.as_ptr().cast(), password_stretch_algo)
+    };
     if status == 0 {
         Ok(())
     } else {
@@ -91,12 +99,19 @@ pub fn init_new_password(password: &str) -> Result<(), Error> {
     }
 }
 
-pub fn stretch_password(password: &str) -> Result<Zeroizing<Vec<u8>>, Error> {
+pub fn stretch_password(
+    password: &str,
+    password_stretch_algo: PasswordStretchAlgo,
+) -> Result<Zeroizing<Vec<u8>>, Error> {
     let password = crate::util::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
     let mut stretched = Zeroizing::new(vec![0u8; 32]);
     let status = unsafe {
-        bitbox02_sys::securechip_stretch_password(password.as_ptr().cast(), stretched.as_mut_ptr())
+        bitbox02_sys::securechip_stretch_password(
+            password.as_ptr().cast(),
+            password_stretch_algo,
+            stretched.as_mut_ptr(),
+        )
     };
     if status == 0 {
         Ok(stretched)

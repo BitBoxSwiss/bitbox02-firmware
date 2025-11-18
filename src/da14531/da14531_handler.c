@@ -72,7 +72,7 @@ bool da14531_handler_bond_db_set(void)
 }
 #endif
 
-static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
+static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
 {
     switch (frame->cmd) {
     case CTRL_CMD_DEVICE_NAME: {
@@ -267,7 +267,7 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
     }
 }
 
-static void _hww_handler(struct da14531_protocol_frame* frame, struct ringbuffer* queue)
+static void _hww_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue)
 {
     // util_log(" in: %s", util_dbg_hex(frame->payload, 64));
     (void)queue;
@@ -281,12 +281,12 @@ static void _hww_handler(struct da14531_protocol_frame* frame, struct ringbuffer
 }
 
 // Handler must not use the frame pointer after it has returned
-void da14531_handler(struct da14531_protocol_frame* frame, struct ringbuffer* queue)
+void da14531_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue)
 {
     // util_log("handler called");
     switch (frame->type) {
     case DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA:
-        _ctrl_handler((struct da14531_ctrl_frame*)frame, queue);
+        _ctrl_handler((const struct da14531_ctrl_frame*)frame, queue);
         break;
     case DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA:
         _hww_handler(frame, queue);

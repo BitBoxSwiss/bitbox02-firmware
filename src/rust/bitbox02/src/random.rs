@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(target_arch = "arm")]
+#[cfg(not(feature = "testing"))]
 pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     unsafe { bitbox02_sys::random_32_bytes_mcu(out.as_mut_ptr()) }
 }
 
-#[cfg(not(target_arch = "arm"))]
+#[cfg(feature = "testing")]
 pub fn mcu_32_bytes(out: &mut [u8; 32]) {
     unsafe extern "C" {
         fn rand() -> core::ffi::c_int;

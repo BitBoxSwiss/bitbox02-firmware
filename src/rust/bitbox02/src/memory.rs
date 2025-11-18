@@ -518,6 +518,23 @@ mod tests {
     }
 
     #[test]
+    fn test_encrypted_seed_and_hmac_roundtrip() {
+        mock_memory();
+
+        assert!(!is_seeded());
+        let seed_data: Vec<u8> = (0..96).map(|i| i as u8).collect();
+        set_encrypted_seed_and_hmac(&seed_data).unwrap();
+        assert!(is_seeded());
+
+        let stored = get_encrypted_seed_and_hmac().unwrap();
+        assert_eq!(stored, seed_data);
+
+        let oversized = vec![0u8; 97];
+        assert!(set_encrypted_seed_and_hmac(&oversized).is_err());
+        assert_eq!(get_encrypted_seed_and_hmac().unwrap(), stored);
+    }
+
+    #[test]
     fn test_memory_attestation() {
         mock_memory();
 

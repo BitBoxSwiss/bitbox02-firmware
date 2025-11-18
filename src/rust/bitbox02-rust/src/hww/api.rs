@@ -28,6 +28,7 @@ mod cardano;
 mod backup;
 mod bip85;
 mod bluetooth;
+mod change_password;
 mod device_info;
 mod electrum;
 mod reset;
@@ -138,7 +139,7 @@ fn can_call(request: &Request) -> bool {
         Request::SetPassword(_) | Request::RestoreBackup(_) | Request::RestoreFromMnemonic(_) => {
             matches!(state, State::Uninitialized | State::Seeded)
         }
-        Request::CreateBackup(_) | Request::ShowMnemonic(_) => {
+        Request::CreateBackup(_) | Request::ShowMnemonic(_) | Request::ChangePassword(_) => {
             matches!(state, State::Seeded | State::InitializedAndUnlocked)
         }
         Request::Fingerprint(_)
@@ -167,6 +168,7 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         Request::DeviceInfo(_) => device_info::process(),
         Request::DeviceName(request) => set_device_name::process(hal, request).await,
         Request::SetPassword(request) => set_password::process(hal, request).await,
+        Request::ChangePassword(_) => change_password::process(hal).await,
         Request::Reset(_) => reset::process(hal).await,
         Request::SetMnemonicPassphraseEnabled(request) => {
             set_mnemonic_passphrase_enabled::process(hal, request).await

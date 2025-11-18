@@ -192,21 +192,21 @@ fn retain_seed(random: &mut impl crate::hal::Random, seed: &[u8]) -> Result<(), 
     Ok(())
 }
 
-/// Restores a seed. This also unlocks the keystore with this seed.
-/// `password` is the password with which we encrypt the seed.
-pub fn encrypt_and_store_seed(
+// Internal helper to encrypt a seed with a password and store it on flash
+// For setting password (initilization) we clear memory first, to guarantee clean RAM
+// For changing password we do not clear memory to retain the BIP39 seed
+// so that the passphrase does not have to be re-entered
+fn encrypt_and_store_seed_internal(
     hal: &mut impl crate::hal::Hal,
     seed: &[u8],
     password: &str,
 ) -> Result<(), Error> {
-    if bitbox02::memory::is_initialized() {
-        return Err(Error::Memory);
-    }
-
+    // Check that the seed is valid
     if !matches!(seed.len(), 16 | 24 | 32) {
         return Err(Error::SeedSize);
     }
 
+    // Lock to ensure clean RAM
     lock();
 
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
@@ -231,6 +231,48 @@ pub fn encrypt_and_store_seed(
     }
 
     retain_seed(hal.random(), seed)
+}
+
+/// Restores a seed. This also unlocks the keystore with this seed.
+/// `password` is the password with which we encrypt the seed.
+pub fn encrypt_and_store_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    password: &str,
+) -> Result<(), Error> {
+    if bitbox02::memory::is_initialized() {
+        return Err(Error::Memory);
+    }
+    // We are in setup phase, so we clear memory first to guarantee clean RAM
+    encrypt_and_store_seed_internal(hal, seed, password)
+}
+
+/// Re-encrypts the seed with a (new) password
+pub fn re_encrypt_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    new_password: &str,
+) -> Result<(), Error> {
+    if !bitbox02::memory::is_initialized() {
+        return Err(Error::Unseeded);
+    }
+
+    // Store the bip39 seed before re-encryption because:
+    // 1. The secure chip's internal keys are regenerated with the new password
+    // 2. encrypt_and_store_seed_internal calls lock() which clears RAM including BIP39 seed
+    // 3. We want to avoid forcing the user to re-enter their BIP39 passphrase
+    let bip39_seed = copy_bip39_seed().map_err(|_| Error::CannotUnlockBIP39)?;
+
+    encrypt_and_store_seed_internal(hal, seed, new_password)?;
+
+    // Re-retain the bip39 seed
+    RETAINED_BIP39_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
+        hal.random(),
+        bip39_seed.as_slice(),
+        "keystore_retained_bip39_seed_access",
+    )?));
+
+    Ok(())
 }
 
 // Checks if the retained seed matches the passed seed.

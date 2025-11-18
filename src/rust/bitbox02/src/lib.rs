@@ -34,17 +34,22 @@ use alloc::string::String;
 #[cfg(any(feature = "testing", feature = "simulator-graphical"))]
 pub mod testing;
 
+pub mod communication_mode;
+pub mod da14531;
+pub mod da14531_handler;
+pub mod da14531_protocol;
 pub mod delay;
 #[cfg(feature = "simulator-graphical")]
 pub mod event;
-#[cfg(feature = "simulator-graphical")]
+pub mod hid_hww;
+pub mod hid_u2f;
 pub mod hww;
 pub mod keystore;
 pub mod memory;
-#[cfg(feature = "simulator-graphical")]
+pub mod platform;
 pub mod queue;
 pub mod random;
-#[cfg(feature = "simulator-graphical")]
+pub mod ringbuffer;
 pub mod screen;
 pub mod screen_saver;
 pub mod sd;
@@ -53,8 +58,13 @@ pub mod securechip;
 #[cfg(feature = "simulator-graphical")]
 pub mod smarteeprom;
 pub mod spi_mem;
+#[cfg(feature = "app-u2f")]
+pub mod u2f;
+#[cfg(feature = "app-u2f")]
+pub mod u2f_packet;
+pub mod uart;
 pub mod ui;
-#[cfg(feature = "simulator-graphical")]
+pub mod usb;
 pub mod usb_packet;
 pub mod usb_processing;
 

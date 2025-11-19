@@ -298,25 +298,104 @@ pub fn set_salt_root(salt_root: &[u8; 32]) -> Result<(), ()> {
 }
 
 #[cfg(test)]
+fn fake_memory_factoryreset() {
+    unsafe { bitbox02_sys::fake_memory_factoryreset() }
+}
+
+#[cfg(test)]
+fn memory_bootloader_hash() -> [u8; 32] {
+    let mut out = [0u8; 32];
+    unsafe { bitbox02_sys::memory_bootloader_hash(out.as_mut_ptr()) };
+    out
+}
+
+#[cfg(test)]
+fn set_bootloader_hash_fake(hash: &[u8; 32]) {
+    unsafe { bitbox02_sys::memory_set_bootloader_hash_fake(hash.as_ptr()) }
+}
+
+#[cfg(any(feature = "testing", feature = "simulator-graphical"))]
+pub(crate) fn memory_setup(random_fn: unsafe extern "C" fn(*mut u8)) -> bool {
+    unsafe {
+        static mut MEMORY_IFS: bitbox02_sys::memory_interface_functions_t =
+            bitbox02_sys::memory_interface_functions_t {
+                random_32_bytes: None,
+            };
+        MEMORY_IFS.random_32_bytes = Some(random_fn);
+        bitbox02_sys::memory_setup(core::ptr::addr_of!(MEMORY_IFS))
+    }
+}
+
+#[cfg(test)]
+fn set_attestation_device_pubkey(pubkey: &[u8; 64]) -> bool {
+    unsafe { bitbox02_sys::memory_set_attestation_device_pubkey(pubkey.as_ptr()) }
+}
+
+#[cfg(test)]
+fn set_attestation_certificate(
+    pubkey: &[u8; 64],
+    certificate: &[u8; 64],
+    root_identifier: &[u8; 32],
+) -> bool {
+    unsafe {
+        bitbox02_sys::memory_set_attestation_certificate(
+            pubkey.as_ptr(),
+            certificate.as_ptr(),
+            root_identifier.as_ptr(),
+        )
+    }
+}
+
+#[cfg(test)]
+fn get_io_protection_key(out: &mut [u8; 32]) {
+    unsafe { bitbox02_sys::memory_get_io_protection_key(out.as_mut_ptr()) }
+}
+
+#[cfg(test)]
+fn get_authorization_key(out: &mut [u8; 32]) {
+    unsafe { bitbox02_sys::memory_get_authorization_key(out.as_mut_ptr()) }
+}
+
+#[cfg(test)]
+fn get_encryption_key(out: &mut [u8; 32]) {
+    unsafe { bitbox02_sys::memory_get_encryption_key(out.as_mut_ptr()) }
+}
+
+#[cfg(test)]
+fn bootloader_set_flags(auto_enter: u8, upside_down: bool) -> bool {
+    unsafe {
+        bitbox02_sys::memory_bootloader_set_flags(
+            bitbox02_sys::auto_enter_t { value: auto_enter },
+            bitbox02_sys::upside_down_t { value: upside_down },
+        )
+    }
+}
+
+#[cfg(test)]
+fn set_attestation_bootloader_hash(hash: &[u8; 32]) -> bool {
+    unsafe { bitbox02_sys::memory_set_attestation_bootloader_hash(hash.as_ptr()) }
+}
+
+#[cfg(all(test, feature = "testing"))]
 mod tests {
     use super::*;
-
+    use crate::random;
+    use crate::testing::mock_memory;
+    use alloc::{format, string::String, vec, vec::Vec};
+    use core::{
+        ptr, slice,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
     use hex_lit::hex;
 
     #[test]
-    fn test_get_attestation_bootloader_hash() {
-        let expected: [u8; 32] =
-            hex!("713df0d58c717d4031787cdc8fa35b902582be6ab6a22e09de4477d30e2230fc");
-        assert_eq!(get_attestation_bootloader_hash(), expected);
-    }
-
-    #[test]
     fn test_get_salt_root_roundtrip() {
+        mock_memory();
         let original = get_salt_root().unwrap();
 
         let expected = hex!("00112233445566778899aabbccddeefffeeddccbbaa998877665544332211000");
 
-        set_salt_root(expected.as_slice().try_into().unwrap()).unwrap();
+        set_salt_root(&expected).unwrap();
         let salt_root = get_salt_root().unwrap();
         assert_eq!(salt_root.as_slice(), &expected);
 
@@ -325,5 +404,257 @@ mod tests {
         assert!(get_salt_root().is_err());
 
         set_salt_root(original.as_slice().try_into().unwrap()).unwrap();
+    }
+
+    static RAND_FIXTURES: [[u8; 32]; 7] = [
+        // salt root
+        hex!("bdb9ca4975e59e1b61d9141c5e79688cba7b3989b52b782de2e7e49b07ec8fae"),
+        // io_protection_key
+        hex!("28309e5a2e3bcf4aac94c0e59010fa3492e10839efb5b66192ad18f66a80510b"),
+        // io_protection_key_split
+        hex!("ae5be44d8b71a6041a7e9733e55f8c88b79dd552107624e0a916c10d8755e04e"),
+        // authorization_key
+        hex!("62c741d9ce7832e856ec06f6351cefcd9e7c5ca607938abb709770a5f2dbebcb"),
+        // authorization_key_split
+        hex!("20742d5a582f1f25b6e9d1c1e8b1effb40cfac855667ea7f49968af7f7eb5c19"),
+        // encryption_key
+        hex!("ed183784cbd297f9c2c241d0dd7cd16d62366c44b833ddf2c012fb4b49e1e8f3"),
+        // encryption_key_split
+        hex!("19f60ee825e752150d308817348c0fa6b3fe4f604c85c17e2eb97ada604a476f"),
+    ];
+    static RAND_FIXTURE_INDEX: AtomicUsize = AtomicUsize::new(0);
+
+    unsafe extern "C" fn memory_setup_rand_mock_test_functional(buf_out: *mut u8) {
+        let index = RAND_FIXTURE_INDEX.fetch_add(1, Ordering::SeqCst);
+        let fixture = RAND_FIXTURES.get(index).expect("unexpected RNG request");
+        unsafe { ptr::copy_nonoverlapping(fixture.as_ptr(), buf_out, fixture.len()) };
+    }
+
+    unsafe extern "C" fn mcu_random_adapter(buf_out: *mut u8) {
+        let slice = unsafe { slice::from_raw_parts_mut(buf_out, 32) };
+        let array: &mut [u8; 32] = slice.try_into().unwrap();
+        random::mcu_32_bytes(array);
+    }
+
+    #[test]
+    fn test_memory_multisig() {
+        mock_memory();
+
+        let hashes: [[u8; 32]; 6] = [
+            *b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            *b"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            *b"cccccccccccccccccccccccccccccccc",
+            *b"dddddddddddddddddddddddddddddddd",
+            *b"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            *b"ffffffffffffffffffffffffffffffff",
+        ];
+        let names = ["name1", "name2", "name3", "name4", "name5", "name6"];
+
+        assert!(multisig_get_by_hash(&hashes[0]).is_none());
+
+        // set
+        assert!(multisig_set_by_hash(&hashes[0], names[0]).is_ok());
+        assert!(multisig_set_by_hash(&hashes[1], names[1]).is_ok());
+        // overwrite with the same is possible
+        assert!(multisig_set_by_hash(&hashes[1], names[1]).is_ok());
+
+        // get
+        assert!(multisig_get_by_hash(&hashes[0]).is_some());
+        assert_eq!(multisig_get_by_hash(&hashes[0]).as_deref(), Some(names[0]));
+        assert_eq!(multisig_get_by_hash(&hashes[1]).as_deref(), Some(names[1]));
+
+        // rename
+        let name0_renamed = "name 1 renamed";
+        assert!(multisig_set_by_hash(&hashes[0], name0_renamed).is_ok());
+        assert_eq!(
+            multisig_get_by_hash(&hashes[0]).as_deref(),
+            Some(name0_renamed)
+        );
+
+        // rename to a name which already exists fails (duplicate name).
+        let err = multisig_set_by_hash(&hashes[0], names[1]).unwrap_err();
+        assert_eq!(err, MemoryError::MEMORY_ERR_DUPLICATE_NAME);
+        // was in fact not renamed
+        assert_eq!(
+            multisig_get_by_hash(&hashes[0]).as_deref(),
+            Some(name0_renamed)
+        );
+    }
+
+    #[test]
+    fn test_memory_multisig_invalid() {
+        mock_memory();
+
+        // invalid hash
+        let invalid_hash = [0xFFu8; 32];
+        let err = multisig_set_by_hash(&invalid_hash, "foo").unwrap_err();
+        assert_eq!(err, MemoryError::MEMORY_ERR_INVALID_INPUT);
+
+        // invalid name
+        let valid_hash = *b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let err = multisig_set_by_hash(&valid_hash, "").unwrap_err();
+        assert_eq!(err, MemoryError::MEMORY_ERR_INVALID_INPUT);
+    }
+
+    #[test]
+    fn test_memory_multisig_full() {
+        mock_memory();
+
+        // Only 25 slots available.
+        let limit = bitbox02_sys::MEMORY_MULTISIG_NUM_ENTRIES as usize;
+        let mut hashes = vec![[0u8; 32]; limit + 1];
+        let mut names: Vec<String> = Vec::with_capacity(limit + 1);
+        for (i, hash) in hashes.iter_mut().enumerate() {
+            hash.fill((i + i) as u8);
+            names.push(format!("name{i}"));
+        }
+
+        for i in 0..limit {
+            assert!(multisig_set_by_hash(&hashes[i], &names[i]).is_ok());
+        }
+
+        let err = multisig_set_by_hash(&hashes[limit], &names[limit]).unwrap_err();
+        assert_eq!(err, MemoryError::MEMORY_ERR_FULL);
+    }
+
+    #[test]
+    fn test_encrypted_seed_and_hmac_roundtrip() {
+        mock_memory();
+
+        assert!(!is_seeded());
+        let seed_data: Vec<u8> = (0..96).map(|i| i as u8).collect();
+        set_encrypted_seed_and_hmac(&seed_data).unwrap();
+        assert!(is_seeded());
+
+        let stored = get_encrypted_seed_and_hmac().unwrap();
+        assert_eq!(stored, seed_data);
+
+        let oversized = vec![0u8; 97];
+        assert!(set_encrypted_seed_and_hmac(&oversized).is_err());
+        assert_eq!(get_encrypted_seed_and_hmac().unwrap(), stored);
+    }
+
+    #[test]
+    fn test_memory_attestation() {
+        mock_memory();
+
+        let expected_pubkey = [0x55u8; 64];
+        let expected_certificate = [0x66u8; 64];
+        let expected_root_pubkey_identifier = [0x77u8; 32];
+        let mut pubkey = [0u8; 64];
+        let mut certificate = [0u8; 64];
+        let mut root_identifier = [0u8; 32];
+
+        // Setup not done yet.
+        assert!(
+            get_attestation_pubkey_and_certificate(
+                &mut pubkey,
+                &mut certificate,
+                &mut root_identifier
+            )
+            .is_err()
+        );
+
+        assert!(set_attestation_device_pubkey(&expected_pubkey));
+
+        // Setup not done yet.
+        assert!(
+            get_attestation_pubkey_and_certificate(
+                &mut pubkey,
+                &mut certificate,
+                &mut root_identifier
+            )
+            .is_err()
+        );
+
+        let wrong_pubkey = [0x11u8; 64];
+        // Pubkey has to match the previously stored pubkey.
+        assert!(!set_attestation_certificate(
+            &wrong_pubkey,
+            &expected_certificate,
+            &expected_root_pubkey_identifier,
+        ));
+
+        assert!(set_attestation_certificate(
+            &expected_pubkey,
+            &expected_certificate,
+            &expected_root_pubkey_identifier,
+        ));
+
+        // Setup done.
+        get_attestation_pubkey_and_certificate(&mut pubkey, &mut certificate, &mut root_identifier)
+            .unwrap();
+        assert_eq!(pubkey, expected_pubkey);
+        assert_eq!(certificate, expected_certificate);
+        assert_eq!(root_identifier, expected_root_pubkey_identifier);
+    }
+
+    // Test a series of write/read operations.
+    #[test]
+    fn test_memory_setup_functional() {
+        fake_memory_factoryreset();
+        RAND_FIXTURE_INDEX.store(0, Ordering::SeqCst);
+        assert!(memory_setup(memory_setup_rand_mock_test_functional));
+
+        let mut io_protection_key = [0u8; 32];
+        let mut authorization_key = [0u8; 32];
+        let mut encryption_key = [0u8; 32];
+
+        get_io_protection_key(&mut io_protection_key);
+        get_authorization_key(&mut authorization_key);
+        get_encryption_key(&mut encryption_key);
+
+        let expected_io_protection_key =
+            hex!("866b7a17a54a694eb6ea57d6754f76bc257cdd6bffc392813bbbd9fbedd5b145");
+        let expected_authorization_key =
+            hex!("42b36c8396572dcde005d737ddad0036deb3f02351f460c43901fa520530b7d2");
+        let expected_encryption_key =
+            hex!("f4ee396cee35c5eccff2c9c7e9f0decbd1c82324f4b61c8ceeab819129abaf9c");
+
+        assert_eq!(io_protection_key, expected_io_protection_key);
+        assert_eq!(authorization_key, expected_authorization_key);
+        assert_eq!(encryption_key, expected_encryption_key);
+
+        assert!(memory_setup(memory_setup_rand_mock_test_functional));
+
+        // Run again, shouldn't do anything. Other operations modifying the same memory chunk
+        // shouldn't change the secure chip keys.
+        assert!(bootloader_set_flags(bitbox02_sys::secfalse_u8 as u8, true));
+
+        get_io_protection_key(&mut io_protection_key);
+        get_authorization_key(&mut authorization_key);
+        get_encryption_key(&mut encryption_key);
+
+        assert_eq!(io_protection_key, expected_io_protection_key);
+        assert_eq!(authorization_key, expected_authorization_key);
+        assert_eq!(encryption_key, expected_encryption_key);
+    }
+
+    #[test]
+    fn test_attestation_bootloader_hash() {
+        fake_memory_factoryreset();
+        assert!(memory_setup(mcu_random_adapter));
+
+        let mock1 = hex!("0322b3191aab5bc415c5bafac5333445175be2faa8333ac3abee4cd17e49082a");
+        let mock2 = hex!("6cad6abc3fd447a58d7a262d7606a040e49e82b00648623625883e9fc0faa8ad");
+
+        set_bootloader_hash_fake(&mock1);
+
+        let hash = memory_bootloader_hash();
+        assert_eq!(hash, mock1);
+        assert_eq!(get_attestation_bootloader_hash(), mock1);
+
+        assert!(set_attestation_bootloader_hash(&mock1));
+        assert_eq!(get_attestation_bootloader_hash(), mock1);
+
+        set_bootloader_hash_fake(&mock2);
+        let hash = memory_bootloader_hash();
+        assert_eq!(hash, mock2);
+
+        assert_eq!(get_attestation_bootloader_hash(), mock1);
+
+        reset_hww().unwrap();
+
+        assert_eq!(get_attestation_bootloader_hash(), mock1);
     }
 }

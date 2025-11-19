@@ -19,18 +19,13 @@ unsafe extern "C" fn c_mock_random_32_bytes(buf_out: *mut u8) {
     s.copy_from_slice(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 }
 
-static MEMORY_IFS: bitbox02_sys::memory_interface_functions_t =
-    bitbox02_sys::memory_interface_functions_t {
-        random_32_bytes: Some(c_mock_random_32_bytes),
-    };
-
 /// This sets up memory in RAM for use in unit tests. As there is only one RAM volume, access only serially.
 /// The memory is initialized to be like after factory setup, i.e. 0xFF everywhere followed by `memory_setup()`.
 pub fn mock_memory() {
     unsafe {
         bitbox02_sys::fake_memory_factoryreset();
 
-        assert!(bitbox02_sys::memory_setup(&MEMORY_IFS));
+        assert!(crate::memory::memory_setup(c_mock_random_32_bytes));
 
         if bitbox02_sys::smarteeprom_is_enabled() {
             bitbox02_sys::smarteeprom_disable();

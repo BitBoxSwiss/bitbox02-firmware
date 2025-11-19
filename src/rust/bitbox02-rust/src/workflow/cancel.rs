@@ -44,7 +44,7 @@ pub fn set_result<R>(result_cell: &ResultCell<R>, result: R) {
 ///   `set_result`.
 pub async fn with_cancel<R>(
     title: &str,
-    component: &mut bitbox02::ui::Component<'_>,
+    component: &mut bitbox02::ui::Component,
     result_cell: &ResultCell<R>,
 ) -> Result<R, Error> {
     component.screen_stack_push();

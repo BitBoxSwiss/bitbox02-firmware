@@ -15,11 +15,11 @@
 
 use bitbox02_rust::async_usb::{on_next_request, spawn, waiting_for_next_request};
 use bitbox02_rust::hww::process_packet;
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_async_usb_spin() {
-    bitbox02_rust::async_usb::spin();
-}
+//
+//#[unsafe(no_mangle)]
+//pub extern "C" fn rust_async_usb_spin() {
+//    bitbox02_rust::async_usb::spin();
+//}
 
 #[repr(C)]
 pub enum UsbResponse {

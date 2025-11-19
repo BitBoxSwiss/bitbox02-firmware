@@ -54,6 +54,7 @@ futures-lite = { version = "2.6.1", default-features = false }
 hex_lit = { version = "0.1.1", default-features = false }
 critical-section = {version = "1.2"}
 async-channel = { version = "2.5.0", default-features = false, features = ["portable-atomic"] }
+grounded = "0.2.0"
 
 [patch.crates-io]
 rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }

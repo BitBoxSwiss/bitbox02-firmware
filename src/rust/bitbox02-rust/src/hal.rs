@@ -113,6 +113,10 @@ impl BitBox02Hal {
     }
 }
 
+impl grounded::const_init::ConstInit for BitBox02Hal {
+    const VAL: Self = Self::new();
+}
+
 impl Hal for BitBox02Hal {
     fn ui(&mut self) -> &mut impl Ui {
         &mut self.ui

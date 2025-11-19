@@ -182,6 +182,7 @@ dependencies = [
  "ed25519-dalek",
  "erc20_params",
  "futures-lite",
+ "grounded",
  "hex",
  "hex_lit",
  "hmac",

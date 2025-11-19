@@ -36,7 +36,7 @@ bip39 = { workspace = true }
 zeroize = { workspace = true }
 critical-section = {workspace = true}
 async-channel = {workspace = true}
-grounded = "0.2.0"
+grounded = {workspace = true}
 
 [features]
 # Only one of the "target-" should be activated, which in turn defines/activates the dependent features.

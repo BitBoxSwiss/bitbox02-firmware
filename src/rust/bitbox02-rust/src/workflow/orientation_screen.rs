@@ -13,17 +13,12 @@
 // limitations under the License.
 
 use bitbox02::delay::delay_for;
+use bitbox02::ui::orientation_arrows;
 use core::time::Duration;
 use util::bb02_async::option;
 
 pub async fn choose_orientation() -> bool {
-    let result = core::cell::RefCell::new(None as Option<bool>);
-    let mut orientation_arrows = bitbox02::ui::orientation_arrows(|upside_down| {
-        *result.borrow_mut() = Some(upside_down);
-    });
-    orientation_arrows.screen_stack_push();
-    // Wait until orientation has been chosen
-    option(&result).await
+    orientation_arrows().await
 }
 
 pub async fn orientation_screen() -> bool {

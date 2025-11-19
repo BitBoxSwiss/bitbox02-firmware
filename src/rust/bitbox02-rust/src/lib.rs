@@ -24,6 +24,17 @@
 // When compiling for testing we allow certain warnings.
 #![cfg_attr(test, allow(unused_imports, dead_code))]
 
+use alloc::boxed::Box;
+use bitbox02::ringbuffer::RingBuffer;
+use bitbox02::uart::USART_0_BUFFER_SIZE;
+use bitbox02::usb::USB_REPORT_SIZE;
+use core::sync::atomic::{AtomicBool, Ordering};
+use core::task::Poll;
+use util::log::log;
+
+use async_channel::Receiver;
+use bitbox02_executor::StaticExecutor;
+
 mod pb {
     include!("./shiftcrypto.bitbox02.rs");
 }
@@ -59,18 +70,14 @@ extern crate alloc;
 #[cfg(test)]
 extern crate bitbox_aes;
 
-use alloc::boxed::Box;
-use bitbox02::ringbuffer::RingBuffer;
-use bitbox02::uart::USART_0_BUFFER_SIZE;
-use bitbox02::usb::USB_REPORT_SIZE;
-use core::task::Poll;
-use util::log::log;
-
 #[cfg_attr(feature = "c-unit-testing", allow(unused))]
 const UART_OUT_BUF_LEN: u32 = 2048;
 
+static EXECUTOR: StaticExecutor = StaticExecutor::new();
+
 #[cfg_attr(feature = "c-unit-testing", allow(unused))]
 fn main_loop() -> ! {
+    static ORIENTATION_CHOSEN: AtomicBool = AtomicBool::new(false);
     // Set the size of uart_read_buf to the size of the ringbuffer in the UART driver so we can read
     // out all bytes
     let mut uart_read_buf = [0u8; USART_0_BUFFER_SIZE as usize];
@@ -85,8 +92,18 @@ fn main_loop() -> ! {
     bitbox02::da14531::set_name(&device_name, &mut uart_write_queue);
 
     // This starts the async orientation screen workflow, which is processed by the loop below.
-    let mut orientation_task: Option<util::bb02_async::Task<'static, bool>> =
-        Some(Box::pin(workflow::orientation_screen::orientation_screen()));
+    EXECUTOR
+        .spawn(async {
+            workflow::orientation_screen::orientation_screen().await;
+            ORIENTATION_CHOSEN.store(true, Ordering::Relaxed);
+        })
+        .detach();
+
+    EXECUTOR
+        .spawn(async {
+            util::log::log!("hello world");
+        })
+        .detach();
 
     let mut hww_data = None;
     let mut hww_frame = [0u8; USB_REPORT_SIZE as usize];
@@ -206,42 +223,21 @@ fn main_loop() -> ! {
 
         /* And finally, run the high-level event processing. */
         //unsafe { bitbox02_rust_c::workflow::rust_workflow_spin() }
-        async_usb::spin();
+        //async_usb::spin();
 
-        if let Some(ref mut task) = orientation_task {
-            if let Poll::Ready(_orientation) = util::bb02_async::spin(task) {
-                // hww handler in usb_process must be setup before we can allow ble connections
-                if let Ok(bitbox02::memory::Platform::BitBox02Plus) =
-                    bitbox02::memory::get_platform()
-                {
-                    let (product, product_len) = bitbox02::platform::product();
-                    bitbox02::da14531_handler::set_product(product, product_len);
-                    bitbox02::da14531::set_product(product, &mut uart_write_queue)
-                }
-                bitbox02::usb::start();
-                orientation_task = None;
+        // Run async exuecutor
+        EXECUTOR.try_tick();
+
+        if ORIENTATION_CHOSEN.swap(false, Ordering::Relaxed) {
+            // hww handler in usb_process must be setup before we can allow ble connections
+            if let Ok(bitbox02::memory::Platform::BitBox02Plus) = bitbox02::memory::get_platform() {
+                let (product, product_len) = bitbox02::platform::product();
+                bitbox02::da14531_handler::set_product(product, product_len);
+                bitbox02::da14531::set_product(product, &mut uart_write_queue)
             }
+            bitbox02::usb::start();
         }
     }
-}
-
-use core::sync::atomic::{AtomicBool, Ordering};
-
-use async_channel::Receiver;
-use bitbox02_executor::StaticExecutor;
-
-static EXECUTOR: StaticExecutor = StaticExecutor::new();
-
-pub fn tick() {
-    static FIRST: AtomicBool = AtomicBool::new(true);
-    if FIRST.load(Ordering::Relaxed) {
-        FIRST.store(false, Ordering::Relaxed);
-        let task = EXECUTOR.spawn(async {
-            util::log::log!("hello world");
-        });
-    }
-    EXECUTOR.try_tick();
-    //util::bb02_async::block_on(EXECUTOR.run(task));
 }
 
 // Spawns a task and returns the receiving end of a one shot channel
@@ -250,7 +246,9 @@ where
     T: 'static,
 {
     let (sender, receiver) = async_channel::bounded(1);
-    EXECUTOR.spawn(async move { sender.send(fut.await).await });
+    EXECUTOR
+        .spawn(async move { sender.send(fut.await).await })
+        .detach();
     receiver
 }
 
@@ -271,8 +269,4 @@ pub extern "C" fn rust_noise_generate_static_private_key(
 #[cfg(not(feature = "c-unit-testing"))]
 pub extern "C" fn rust_main_loop() -> ! {
     main_loop()
-}
-
-pub extern "C" fn rust_async_executor_tick() {
-    tick();
 }

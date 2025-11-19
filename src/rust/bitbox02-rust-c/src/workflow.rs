@@ -23,15 +23,10 @@
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02_rust::workflow::confirm;
-use core::task::Poll;
-//use util::bb02_async::{Task, spin};
-//use async_state::Task;
 use async_channel::{Receiver, TryRecvError};
+use bitbox02_rust::workflow::confirm;
 use core::ffi::CStr;
-use critical_section::Mutex;
 use grounded::uninit::GroundedCell;
 
 enum TaskState<O> {
@@ -42,14 +37,11 @@ enum TaskState<O> {
 static UNLOCK_STATE: GroundedCell<TaskState<Result<(), ()>>> = GroundedCell::uninit();
 static CONFIRM_STATE: GroundedCell<TaskState<Result<(), confirm::UserAbort>>> =
     GroundedCell::uninit();
-static BITBOX02_HAL: GroundedCell<bitbox02_rust::hal::BitBox02Hal> = GroundedCell::uninit();
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
+    static BITBOX02_HAL: GroundedCell<bitbox02_rust::hal::BitBox02Hal> = GroundedCell::const_init();
     unsafe {
-        BITBOX02_HAL
-            .get()
-            .write(bitbox02_rust::hal::BitBox02Hal::new());
         UNLOCK_STATE
             .get()
             .write(TaskState::Running(bitbox02_rust::spawn(

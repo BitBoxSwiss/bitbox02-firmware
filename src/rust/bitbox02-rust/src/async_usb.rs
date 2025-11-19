@@ -19,7 +19,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::Poll;
-use util::bb02_async::{Task, option, spin as spin_task};
+use util::bb02_async::{Task, option};
 
 type UsbOut = Vec<u8>;
 type UsbIn = Vec<u8>;
@@ -135,46 +135,46 @@ pub fn on_next_request(usb_in: &[u8]) {
     }
 }
 
-/// Spin the currently running task, if there is one. Otherwise do
-/// nothing. This is supposed to be called from the mainloop.
-///
-/// If this spin finishes the task, the state is moved to
-/// `ResultAvailable`, which contains the result.
-pub fn spin() {
-    // Pop task before polling, so that USB_TASK_STATE does not stay borrowed during the poll.
-    let mut popped_task = match *USB_TASK_STATE.0.borrow_mut() {
-        // Illegal state, `None` is only valid during the poll.
-        UsbTaskState::Running(None, _) => panic!("task not found"),
-        // Get the task out, putting `None` in. This allows us to release the mutable borrow on the
-        // state.
-        UsbTaskState::Running(ref mut task @ Some(_), _) => task.take(),
-        // Nothing to do.
-        _ => None,
-    };
-    if let Some(ref mut task) = popped_task {
-        let spin_result = spin_task(task);
-        if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
-            // The task was cancelled while it was running, so there is nothing to do with the
-            // result.
-            return;
-        }
-        match spin_result {
-            Poll::Ready(result) => {
-                *USB_TASK_STATE.0.borrow_mut() = UsbTaskState::ResultAvailable(result);
-            }
-            Poll::Pending => {
-                // Not done yet, put the task back for execution.
-                if let UsbTaskState::Running(ref mut task @ None, _) =
-                    *USB_TASK_STATE.0.borrow_mut()
-                {
-                    *task = popped_task;
-                } else {
-                    panic!("spin: illegal executor state");
-                }
-            }
-        }
-    }
-}
+// /// Spin the currently running task, if there is one. Otherwise do
+// /// nothing. This is supposed to be called from the mainloop.
+// ///
+// /// If this spin finishes the task, the state is moved to
+// /// `ResultAvailable`, which contains the result.
+// pub fn spin() {
+//     // Pop task before polling, so that USB_TASK_STATE does not stay borrowed during the poll.
+//     let mut popped_task = match *USB_TASK_STATE.0.borrow_mut() {
+//         // Illegal state, `None` is only valid during the poll.
+//         UsbTaskState::Running(None, _) => panic!("task not found"),
+//         // Get the task out, putting `None` in. This allows us to release the mutable borrow on the
+//         // state.
+//         UsbTaskState::Running(ref mut task @ Some(_), _) => task.take(),
+//         // Nothing to do.
+//         _ => None,
+//     };
+//     if let Some(ref mut task) = popped_task {
+//         let spin_result = spin_task(task);
+//         if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
+//             // The task was cancelled while it was running, so there is nothing to do with the
+//             // result.
+//             return;
+//         }
+//         match spin_result {
+//             Poll::Ready(result) => {
+//                 *USB_TASK_STATE.0.borrow_mut() = UsbTaskState::ResultAvailable(result);
+//             }
+//             Poll::Pending => {
+//                 // Not done yet, put the task back for execution.
+//                 if let UsbTaskState::Running(ref mut task @ None, _) =
+//                     *USB_TASK_STATE.0.borrow_mut()
+//                 {
+//                     *task = popped_task;
+//                 } else {
+//                     panic!("spin: illegal executor state");
+//                 }
+//             }
+//         }
+//     }
+// }
 
 #[derive(PartialEq, Debug)]
 pub enum CopyResponseErr {

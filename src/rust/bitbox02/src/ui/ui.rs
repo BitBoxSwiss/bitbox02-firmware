@@ -25,18 +25,16 @@ use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use core::marker::PhantomData;
+use core::marker::PhantomPinned;
 
 /// Wraps the C component_t to be used in Rust.
-pub struct Component<'a> {
+pub struct Component {
     component: *mut bitbox02_sys::component_t,
     is_pushed: bool,
     on_drop: Option<Box<dyn FnMut()>>,
-    // This is used to have the result callbacks outlive the component.
-    _p: PhantomData<&'a ()>,
 }
 
-impl Component<'_> {
+impl Component {
     pub fn screen_stack_push(&mut self) {
         if self.is_pushed {
             panic!("component pushed twice");
@@ -48,7 +46,7 @@ impl Component<'_> {
     }
 }
 
-impl Drop for Component<'_> {
+impl Drop for Component {
     fn drop(&mut self) {
         if !self.is_pushed {
             panic!("component not pushed");
@@ -63,19 +61,19 @@ impl Drop for Component<'_> {
 }
 
 // Pinky promise to only access the c-ptr from the main thread
-unsafe impl Send for Component<'_> {}
-unsafe impl Sync for Component<'_> {}
+unsafe impl Send for Component {}
+unsafe impl Sync for Component {}
 
 /// Creates a trinary input component.
 /// `result` - will be asynchronously set to `Some(<password>)` once the user confirms.
-pub fn trinary_input_string_create<'a, F>(
+pub fn trinary_input_string_create<F>(
     params: &TrinaryInputStringParams,
     confirm_callback: F,
-    cancel_callback: Option<ContinueCancelCb<'a>>,
-) -> Component<'a>
+    cancel_callback: Option<ContinueCancelCb>,
+) -> Component
 where
     // Callback must outlive component.
-    F: FnMut(zeroize::Zeroizing<String>) + 'a,
+    F: FnMut(zeroize::Zeroizing<String>),
 {
     unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, user_data: *mut c_void)
     where
@@ -124,16 +122,15 @@ where
                 drop(Box::from_raw(cancel_user_data as *mut ContinueCancelCb));
             }
         })),
-        _p: PhantomData,
     }
 }
 
 /// Creates a user confirmation dialog screen.
 /// `result` - will be asynchronously set to `Some(bool)` once the user accets or rejects.
-pub fn confirm_create<'a, F>(params: &ConfirmParams, result_callback: F) -> Component<'a>
+pub fn confirm_create<F>(params: &ConfirmParams, result_callback: F) -> Component
 where
     // Callback must outlive component.
-    F: FnMut(bool) + 'a,
+    F: FnMut(bool),
 {
     unsafe extern "C" fn c_callback<F2>(result: bool, user_data: *mut c_void)
     where
@@ -160,7 +157,6 @@ where
         component,
         is_pushed: false,
         on_drop: None,
-        _p: PhantomData,
     }
 }
 
@@ -170,10 +166,10 @@ pub fn screen_process() {
     }
 }
 
-pub fn status_create<'a, F>(text: &str, status_success: bool, callback: F) -> Component<'a>
+pub fn status_create<F>(text: &str, status_success: bool, callback: F) -> Component
 where
     // Callback must outlive component.
-    F: FnMut() + 'a,
+    F: FnMut(),
 {
     unsafe extern "C" fn c_callback<F2>(user_data: *mut c_void)
     where
@@ -197,14 +193,13 @@ where
         component,
         is_pushed: false,
         on_drop: None,
-        _p: PhantomData,
     }
 }
 
-pub fn sdcard_create<'a, F>(callback: F) -> Component<'a>
+pub fn sdcard_create<F>(callback: F) -> Component
 where
     // Callback must outlive component.
-    F: FnMut(bool) + 'a,
+    F: FnMut(bool),
 {
     unsafe extern "C" fn c_callback<F2>(sd_done: bool, user_data: *mut c_void)
     where
@@ -227,11 +222,10 @@ where
         component,
         is_pushed: false,
         on_drop: None,
-        _p: PhantomData,
     }
 }
 
-pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
+pub fn menu_create(params: MenuParams<'_>) -> Component {
     unsafe extern "C" fn c_select_word_cb(word_idx: u8, user_data: *mut c_void) {
         let callback = user_data as *mut SelectWordCb;
         unsafe { (*callback)(word_idx) };
@@ -316,7 +310,6 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
                 drop(Box::from_raw(cancel_user_data as *mut ContinueCancelCb));
             }
         })),
-        _p: PhantomData,
     }
 }
 
@@ -326,7 +319,7 @@ pub fn trinary_choice_create<'a>(
     label_middle: Option<&'a str>,
     label_right: Option<&'a str>,
     chosen_callback: TrinaryChoiceCb,
-) -> Component<'a> {
+) -> Component {
     unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, user_data: *mut c_void) {
         let callback = user_data as *mut TrinaryChoiceCb;
         unsafe { (*callback)(choice) };
@@ -365,15 +358,14 @@ pub fn trinary_choice_create<'a>(
             // Drop all callbacks.
             drop(Box::from_raw(chosen_user_data as *mut TrinaryChoiceCb));
         })),
-        _p: PhantomData,
     }
 }
 
-pub fn confirm_transaction_address_create<'a, 'b>(
+pub fn confirm_transaction_address_create<'a>(
     amount: &'a str,
     address: &'a str,
-    callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+    callback: AcceptRejectCb,
+) -> Component {
     unsafe extern "C" fn c_callback(result: bool, user_data: *mut c_void) {
         let callback = user_data as *mut AcceptRejectCb;
         unsafe { (*callback)(result) };
@@ -395,16 +387,15 @@ pub fn confirm_transaction_address_create<'a, 'b>(
             // Drop all callbacks.
             drop(Box::from_raw(user_data as *mut AcceptRejectCb));
         })),
-        _p: PhantomData,
     }
 }
 
-pub fn confirm_transaction_fee_create<'a, 'b>(
+pub fn confirm_transaction_fee_create<'a>(
     amount: &'a str,
     fee: &'a str,
     longtouch: bool,
-    callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+    callback: AcceptRejectCb,
+) -> Component {
     unsafe extern "C" fn c_callback(result: bool, user_data: *mut c_void) {
         let callback = user_data as *mut AcceptRejectCb;
         unsafe { (*callback)(result) };
@@ -427,7 +418,6 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
             // Drop all callbacks.
             drop(Box::from_raw(user_data as *mut AcceptRejectCb));
         })),
-        _p: PhantomData,
     }
 }
 
@@ -446,7 +436,7 @@ pub fn screen_stack_pop_all() {
     }
 }
 
-pub fn progress_create<'a>(title: &str) -> Component<'a> {
+pub fn progress_create<'a>(title: &str) -> Component {
     let component = unsafe {
         bitbox02_sys::progress_create(
             crate::util::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
@@ -457,7 +447,6 @@ pub fn progress_create<'a>(title: &str) -> Component<'a> {
         component,
         is_pushed: false,
         on_drop: None,
-        _p: PhantomData,
     }
 }
 
@@ -465,19 +454,18 @@ pub fn progress_set(component: &mut Component, progress: f32) {
     unsafe { bitbox02_sys::progress_set(component.component, progress) }
 }
 
-pub fn empty_create<'a>() -> Component<'a> {
+pub fn empty_create<'a>() -> Component {
     Component {
         component: unsafe { bitbox02_sys::empty_create() },
         is_pushed: false,
         on_drop: None,
-        _p: PhantomData,
     }
 }
 
-pub fn unlock_animation_create<'a, F>(on_done: F) -> Component<'a>
+pub fn unlock_animation_create<'a, F>(on_done: F) -> Component
 where
     // Callback must outlive component.
-    F: FnMut() + 'a,
+    F: FnMut(),
 {
     unsafe extern "C" fn c_on_done<F2>(param: *mut c_void)
     where
@@ -498,34 +486,68 @@ where
         component,
         is_pushed: false,
         on_drop: None,
-        _p: PhantomData,
     }
 }
 
-pub fn orientation_arrows<'a, F>(on_done: F) -> Component<'a>
-where
-    // Callback must outlive component.
-    F: FnMut(bool) + 'a,
-{
-    unsafe extern "C" fn c_on_done<F2>(upside_down: bool, param: *mut c_void)
-    where
-        F2: FnOnce(bool),
-    {
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let on_done = unsafe { Box::from_raw(param as *mut F2) };
-        on_done(upside_down);
+pub struct OrientationArrows {
+    component: Option<Component>,
+    result: Option<bool>,
+    waker: Option<Waker>,
+    _phantom: PhantomPinned,
+}
+
+use core::pin::Pin;
+use core::task::{Context, Poll, Waker};
+
+impl<'a> Future for OrientationArrows {
+    type Output = bool;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.component.is_none() {
+            unsafe extern "C" fn c_on_done(upside_down: bool, param: *mut c_void) {
+                // SAFETY: the *mut pointer was created when the object was pinned and thus
+                // immovable.
+                unsafe {
+                    let orientation_arrows = param as *mut OrientationArrows;
+                    (*orientation_arrows).result = Some(upside_down);
+                    (*orientation_arrows).waker.as_ref().unwrap().wake_by_ref();
+                }
+            }
+            let this = unsafe { Pin::into_inner_unchecked(self) };
+            let component = unsafe {
+                bitbox02_sys::orientation_arrows_create(
+                    Some(c_on_done),
+                    &mut *this as *mut _ as *mut _, // passed to c_on_done as `param`.
+                )
+            };
+            let mut component = Component {
+                component,
+                is_pushed: false,
+                on_drop: None,
+            };
+            component.screen_stack_push();
+            this.component = Some(component);
+            this.waker = Some(Waker::clone(cx.waker()));
+            Poll::Pending
+        } else if let Some(result) = self.result {
+            Poll::Ready(result)
+        } else {
+            Poll::Pending
+        }
     }
-    let component = unsafe {
-        bitbox02_sys::orientation_arrows_create(
-            Some(c_on_done::<F>),
-            Box::into_raw(Box::new(on_done)) as *mut _, // passed to c_on_done as `param`.
-        )
-    };
-    Component {
-        component,
-        is_pushed: false,
-        on_drop: None,
-        _p: PhantomData,
+}
+
+impl OrientationArrows {
+    pub fn new() -> OrientationArrows {
+        OrientationArrows {
+            component: None,
+            result: None,
+            waker: None,
+            _phantom: Default::default(),
+        }
     }
+}
+
+pub fn orientation_arrows() -> OrientationArrows {
+    OrientationArrows::new()
 }

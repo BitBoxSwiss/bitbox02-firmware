@@ -61,6 +61,7 @@ bitcoin_hashes = { version = "0.14.0", default-features = false, features = ["sm
 futures-lite = { workspace = true }
 hex_lit = { workspace = true, features = ["rust_v_1_46"] }
 async-channel = {workspace = true}
+grounded = {workspace = true}
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.

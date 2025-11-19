@@ -153,7 +153,7 @@ static void _process_packet(const in_buffer_t* in_req, hww_packet_rsp_t* out_rsp
     // Some tasks have an 'early return' path that is not blocking. We spin the task once so we can
     // return immediately in if there is an early return, so the client does not have to wait ~200ms
     // for a response that can be made available immediately.
-    rust_async_usb_spin();
+    // rust_async_usb_spin();
     // Respond with NOT_READY if the async task needs more time, or ACK with the payload if the task
     // already completed (in this case, USB stack is unlocked again).
     _maybe_write_response(out_rsp);

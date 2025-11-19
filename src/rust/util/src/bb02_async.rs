@@ -23,13 +23,13 @@ use core::task::{Context, Poll};
 /// 'static, or a future with non-'static input param references.
 pub type Task<'a, O> = Pin<Box<dyn core::future::Future<Output = O> + 'a>>;
 
-/// A primitive poll invocation for a task, with no waking functionality.
-pub fn spin<O>(task: &mut Task<O>) -> Poll<O> {
-    // TODO: statically allocate the context.
-    let waker = crate::waker_fn::waker_fn(|| {});
-    let context = &mut Context::from_waker(&waker);
-    task.as_mut().poll(context)
-}
+///// A primitive poll invocation for a task, with no waking functionality.
+//pub fn spin<O>(task: &mut Task<O>) -> Poll<O> {
+//    // TODO: statically allocate the context.
+//    let waker = crate::waker_fn::waker_fn(|| {});
+//    let context = &mut Context::from_waker(&waker);
+//    task.as_mut().poll(context)
+//}
 
 /// Implements the Option future, see `option()`.
 pub struct AsyncOption<'a, O>(&'a RefCell<Option<O>>);

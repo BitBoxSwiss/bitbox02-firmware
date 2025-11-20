@@ -15,16 +15,5 @@
 use crate::bb02_async::screensaver_without;
 
 pub async fn status(title: &str, status_success: bool) {
-    let (sender, receiver) = async_channel::bounded(1);
-    let mut component = bitbox02::ui::status_create(title, status_success, || {
-        sender.try_send(()).unwrap();
-    });
-    component.screen_stack_push();
-    screensaver_without(async {
-        match receiver.recv().await {
-            Ok(()) => (),
-            Err(_) => panic!("sender dropped"),
-        }
-    })
-    .await;
+    screensaver_without(bitbox02::ui::status(title, status_success)).await
 }

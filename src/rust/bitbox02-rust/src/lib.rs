@@ -187,7 +187,6 @@ fn main_loop() -> ! {
                 &mut hww_data,
                 &mut uart_write_queue,
             ) {
-                log!("got frame, calling handler");
                 bitbox02::da14531_handler::handler(frame, &mut uart_write_queue);
             }
         }

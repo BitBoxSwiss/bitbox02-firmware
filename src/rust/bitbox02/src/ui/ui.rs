@@ -21,6 +21,7 @@ pub use super::types::{
 use core::ffi::{c_char, c_void};
 
 extern crate alloc;
+use crate::util::str_to_cstr_vec;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::sync::Arc;
@@ -28,7 +29,6 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
-use critical_section::Mutex;
 
 use core::marker::PhantomPinned;
 
@@ -65,87 +65,116 @@ impl Drop for Component {
     }
 }
 
-// Pinky promise to only access the c-ptr from the main thread
-unsafe impl Send for Component {}
-unsafe impl Sync for Component {}
+pub async fn trinary_input_string<'a>(
+    params: &TrinaryInputStringParams<'a>,
+    can_cancel: bool,
+    preset: &str,
+) -> Result<zeroize::Zeroizing<String>, ()> {
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<Result<zeroize::Zeroizing<String>, ()>>,
+    }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
 
-/// Creates a trinary input component.
-/// `result` - will be asynchronously set to `Some(<password>)` once the user confirms.
-pub fn trinary_input_string_create<F>(
-    params: &TrinaryInputStringParams,
-    confirm_callback: F,
-    cancel_callback: Option<ContinueCancelCb>,
-) -> Component
-where
-    // Callback must outlive component.
-    F: FnMut(zeroize::Zeroizing<String>),
-{
-    unsafe extern "C" fn c_confirm_callback<F2>(password: *const c_char, user_data: *mut c_void)
-    where
-        F2: FnMut(zeroize::Zeroizing<String>),
-    {
+    unsafe extern "C" fn cancel_cb(user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(Err(()));
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
+    }
+
+    unsafe extern "C" fn confirm_cb(password: *const c_char, user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
         let pw: zeroize::Zeroizing<String> = zeroize::Zeroizing::new(
             unsafe { crate::util::str_from_null_terminated_ptr(password) }
                 .unwrap()
                 .into(),
         );
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
-        callback(pw);
+        shared_state.result = Some(Ok(pw));
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
     }
 
-    unsafe extern "C" fn c_cancel_callback(user_data: *mut c_void) {
-        let callback = user_data as *mut ContinueCancelCb;
-        unsafe { (*callback)() };
-    }
-
-    let (cancel_cb, cancel_user_data) = match cancel_callback {
-        None => (None, core::ptr::null_mut()),
-        Some(cb) => (
-            Some(c_cancel_callback as _),
-            Box::into_raw(Box::new(cb)) as *mut c_void,
-        ),
+    let (actual_cancel_cb, cancel_shared_state) = if can_cancel {
+        (
+            Some(cancel_cb as unsafe extern "C" fn(*mut c_void)),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _,
+        )
+    } else {
+        (None, core::ptr::null_mut())
     };
+
     let mut title_scratch = Vec::new();
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create(
             &params.to_c_params(&mut title_scratch).data, // title copied in C
-            Some(c_confirm_callback::<F>),
-            // passed to c_confirm_callback as `user_data`.
-            Box::into_raw(Box::new(confirm_callback)) as *mut _,
-            cancel_cb,
-            cancel_user_data,
+            Some(confirm_cb),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to confirm_cb as `user_data`.
+            actual_cancel_cb,
+            cancel_shared_state, // passed to cancel_cb as `user_data`.
         )
     };
-    Component {
+    if !preset.is_empty() {
+        unsafe {
+            bitbox02_sys::trinary_input_string_set_input(
+                component,
+                crate::util::str_to_cstr_vec(preset).unwrap().as_ptr(),
+            )
+        }
+    }
+
+    let mut component = Component {
         component,
         is_pushed: false,
-        on_drop: Some(Box::new(move || unsafe {
-            // Drop all callbacks.
-            if !cancel_user_data.is_null() {
-                drop(Box::from_raw(cancel_user_data as *mut ContinueCancelCb));
+        on_drop: None,
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result.clone() {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
             }
-        })),
-    }
+        }
+    })
+    .await
 }
 
-/// Creates a user confirmation dialog screen.
-/// `result` - will be asynchronously set to `Some(bool)` once the user accets or rejects.
-pub fn confirm_create<F>(params: &ConfirmParams, result_callback: F) -> Component
-where
-    // Callback must outlive component.
-    F: FnMut(bool),
-{
-    unsafe extern "C" fn c_callback<F2>(result: bool, user_data: *mut c_void)
-    where
-        F2: FnMut(bool),
-    {
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
-        callback(result);
+pub async fn confirm<'a>(params: &ConfirmParams<'a>) -> bool {
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<bool>,
     }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+
+    unsafe extern "C" fn callback(result: bool, user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(result);
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
+    }
+
     let mut title_scratch = Vec::new();
     let mut body_scratch = Vec::new();
     let component = unsafe {
@@ -153,16 +182,33 @@ where
             &params
                 .to_c_params(&mut title_scratch, &mut body_scratch)
                 .data,
-            Some(c_callback::<F>),
-            // passed to the C callback as `user_data`
-            Box::into_raw(Box::new(result_callback)) as *mut _,
+            Some(callback),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to callback as `user_data`.
         )
     };
-    Component {
+
+    let mut component = Component {
         component,
         is_pushed: false,
         on_drop: None,
-    }
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
 }
 
 pub fn screen_process() {
@@ -171,107 +217,146 @@ pub fn screen_process() {
     }
 }
 
-pub fn status_create<F>(text: &str, status_success: bool, callback: F) -> Component
-where
-    // Callback must outlive component.
-    F: FnMut(),
-{
-    unsafe extern "C" fn c_callback<F2>(user_data: *mut c_void)
-    where
-        F2: FnMut(),
-    {
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
-        callback();
+pub async fn status(text: &str, status_success: bool) {
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<()>,
+    }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+
+    unsafe extern "C" fn callback(user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(());
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
     }
 
     let component = unsafe {
         bitbox02_sys::status_create(
-            crate::util::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
+            str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
             status_success,
-            Some(c_callback::<F>),
-            Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `user_data`.
+            Some(callback),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to callback as `user_data`.
         )
     };
-    Component {
+
+    let mut component = Component {
         component,
         is_pushed: false,
         on_drop: None,
-    }
-}
+    };
+    component.screen_stack_push();
 
-pub struct SdCard {
-    component: Option<Component>,
-    result: Option<bool>,
-    waker: Option<Waker>,
-    _phantom: PhantomPinned,
-}
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
 
-impl SdCard {
-    pub fn new() -> Self {
-        SdCard {
-            component: None,
-            result: None,
-            waker: None,
-            _phantom: PhantomPinned,
-        }
-    }
-}
-
-pub fn sdcard() -> SdCard {
-    SdCard::new()
-}
-
-impl Future for SdCard {
-    type Output = bool;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.component.is_none() {
-            unsafe extern "C" fn c_on_done(sd_done: bool, user_data: *mut c_void) {
-                // SAFETY: the *mut pointer was created when the object was pinned and thus
-                // immovable.
-                unsafe {
-                    let sdcard = user_data as *mut SdCard;
-                    (*sdcard).result = Some(sd_done);
-                    (*sdcard).waker.as_ref().unwrap().wake_by_ref();
-                }
+            if let Some(result) = shared_state.result {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
             }
-
-            let this = unsafe { Pin::into_inner_unchecked(self) };
-            let component = unsafe {
-                bitbox02_sys::sdcard_create(
-                    Some(c_on_done),
-                    // passed to the C callback as `user_data`
-                    &mut *this as *mut _ as *mut _, // passed to c_on_done as `param`.
-                )
-            };
-            let mut component = Component {
-                component,
-                is_pushed: false,
-                on_drop: None,
-            };
-            component.screen_stack_push();
-            this.component = Some(component);
-            this.waker = Some(Waker::clone(cx.waker()));
-            Poll::Pending
-        } else if let Some(result) = self.result {
-            Poll::Ready(result)
-        } else {
-            Poll::Pending
         }
-    }
+    })
+    .await
 }
 
-pub fn menu_create(params: MenuParams<'_>) -> Component {
-    unsafe extern "C" fn c_select_word_cb(word_idx: u8, user_data: *mut c_void) {
-        let callback = user_data as *mut SelectWordCb;
-        unsafe { (*callback)(word_idx) };
+pub async fn sdcard() -> bool {
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<bool>,
+    }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+
+    unsafe extern "C" fn callback(result: bool, user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(result);
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
     }
 
-    unsafe extern "C" fn c_continue_cancel_cb(user_data: *mut c_void) {
-        let callback = user_data as *mut ContinueCancelCb;
-        unsafe { (*callback)() };
+    let component = unsafe {
+        bitbox02_sys::sdcard_create(
+            Some(callback),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to callback as `user_data`.
+        )
+    };
+
+    let mut component = Component {
+        component,
+        is_pushed: false,
+        on_drop: None,
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
+}
+
+pub async fn menu_create(params: MenuParams<'_>) -> Result<u8, ()> {
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<Result<u8, ()>>,
+    }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+
+    unsafe extern "C" fn select_word_cb(word_idx: u8, user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(Ok(word_idx));
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
+    }
+
+    unsafe extern "C" fn continue_on_last_cb(user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(Ok(0));
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
+    }
+
+    unsafe extern "C" fn cancel_cb(user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(Err(()));
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
     }
 
     // We want to turn &[&str] into a C char**.
@@ -288,27 +373,27 @@ pub fn menu_create(params: MenuParams<'_>) -> Component {
     let c_words: Vec<*const core::ffi::c_char> =
         words.iter().map(|word| word.as_ptr() as _).collect();
 
-    let (select_word_cb, select_word_user_data) = match params.select_word_cb {
-        None => (None, core::ptr::null_mut()),
-        Some(cb) => (
-            Some(c_select_word_cb as _),
-            Box::into_raw(Box::new(cb)) as *mut c_void,
+    let (select_word_cb, select_word_user_data) = match params.select_word {
+        false => (None, core::ptr::null_mut()),
+        true => (
+            Some(select_word_cb as _),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to select_word_cb as `user_data`.
         ),
     };
 
-    let (continue_on_last_cb, continue_on_last_user_data) = match params.continue_on_last_cb {
-        None => (None, core::ptr::null_mut()),
-        Some(cb) => (
-            Some(c_continue_cancel_cb as _),
-            Box::into_raw(Box::new(cb)) as *mut c_void,
+    let (continue_on_last_cb, continue_on_last_user_data) = match params.continue_on_last {
+        false => (None, core::ptr::null_mut()),
+        true => (
+            Some(continue_on_last_cb as _),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to select_word_cb as `user_data`.
         ),
     };
 
-    let (cancel_cb, cancel_user_data) = match params.cancel_cb {
-        None => (None, core::ptr::null_mut()),
-        Some(cb) => (
-            Some(c_continue_cancel_cb as _),
-            Box::into_raw(Box::new(cb)) as *mut c_void,
+    let (cancel_cb, cancel_user_data) = match params.cancel {
+        false => (None, core::ptr::null_mut()),
+        true => (
+            Some(cancel_cb as _),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to select_word_cb as `user_data`.
         ),
     };
     let title = params
@@ -331,132 +416,101 @@ pub fn menu_create(params: MenuParams<'_>) -> Component {
             core::ptr::null_mut(),
         )
     };
-    Component {
+    let mut component = Component {
         component,
         is_pushed: false,
-        on_drop: Some(Box::new(move || unsafe {
-            // Drop all callbacks.
-            if !select_word_user_data.is_null() {
-                drop(Box::from_raw(select_word_user_data as *mut SelectWordCb));
-            }
-            if !continue_on_last_user_data.is_null() {
-                drop(Box::from_raw(
-                    continue_on_last_user_data as *mut ContinueCancelCb,
-                ));
-            }
-            if !cancel_user_data.is_null() {
-                drop(Box::from_raw(cancel_user_data as *mut ContinueCancelCb));
-            }
-        })),
-    }
-}
+        on_drop: None,
+    };
+    component.screen_stack_push();
 
-pub struct TrinaryChoiceUi {
-    component: Option<Component>,
-    message: String,
-    label_left: Option<String>,
-    label_middle: Option<String>,
-    label_right: Option<String>,
-    result: Option<TrinaryChoice>,
-    waker: Option<Waker>,
-    _phantom: PhantomPinned,
-}
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
 
-impl TrinaryChoiceUi {
-    pub fn new(
-        message: &str,
-        label_left: Option<&str>,
-        label_middle: Option<&str>,
-        label_right: Option<&str>,
-    ) -> TrinaryChoiceUi {
-        TrinaryChoiceUi {
-            component: None,
-            message: message.into(),
-            label_left: label_left.map(|s| s.into()),
-            label_middle: label_middle.map(|s| s.into()),
-            label_right: label_right.map(|s| s.into()),
-            result: None,
-            waker: None,
-            _phantom: PhantomPinned,
+            if let Some(result) = shared_state.result.clone() {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
         }
-    }
+    })
+    .await
 }
 
-pub fn trinary_choice(
+pub async fn trinary_choice(
     message: &str,
     label_left: Option<&str>,
     label_middle: Option<&str>,
     label_right: Option<&str>,
-) -> TrinaryChoiceUi {
-    TrinaryChoiceUi::new(message, label_left, label_middle, label_right)
-}
+) -> TrinaryChoice {
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<TrinaryChoice>,
+    }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
 
-impl Future for TrinaryChoiceUi {
-    type Output = TrinaryChoice;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.component.is_none() {
-            unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, user_data: *mut c_void) {
-                // SAFETY: the *mut pointer was created when the object was pinned and thus
-                // immovable.
-                unsafe {
-                    let trinary_choice = user_data as *mut TrinaryChoiceUi;
-                    (*trinary_choice).result = Some(choice);
-                    (*trinary_choice).waker.as_ref().unwrap().wake_by_ref();
-                }
-            }
-            let this = unsafe { Pin::into_inner_unchecked(self) };
-
-            let label_left = this
-                .label_left
-                .as_ref()
-                .map(|label| crate::util::str_to_cstr_vec(label).unwrap());
-            let label_middle = this
-                .label_middle
-                .as_ref()
-                .map(|label| crate::util::str_to_cstr_vec(label).unwrap());
-            let label_right = this
-                .label_right
-                .as_ref()
-                .map(|label| crate::util::str_to_cstr_vec(label).unwrap());
-
-            let component = unsafe {
-                bitbox02_sys::trinary_choice_create(
-                    crate::util::str_to_cstr_vec(&this.message)
-                        .unwrap()
-                        .as_ptr(), // copied in C
-                    // copied in C
-                    label_left
-                        .as_ref()
-                        .map_or_else(core::ptr::null, |label| label.as_ptr()),
-                    // copied in C
-                    label_middle
-                        .as_ref()
-                        .map_or_else(core::ptr::null, |label| label.as_ptr()),
-                    // copied in C
-                    label_right
-                        .as_ref()
-                        .map_or_else(core::ptr::null, |label| label.as_ptr()),
-                    Some(c_chosen_cb),
-                    &mut *this as *mut _ as *mut _, // passed to c_chosen_cb as `user_data`.
-                    core::ptr::null_mut(),          // parent component, there is no parent.
-                )
-            };
-            let mut component = Component {
-                component,
-                is_pushed: false,
-                on_drop: None,
-            };
-            component.screen_stack_push();
-            this.component = Some(component);
-            this.waker = Some(Waker::clone(cx.waker()));
-            Poll::Pending
-        } else if let Some(result) = self.result {
-            Poll::Ready(result)
-        } else {
-            Poll::Pending
+    unsafe extern "C" fn callback(choice: TrinaryChoice, user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(choice);
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
         }
     }
+
+    let component = unsafe {
+        bitbox02_sys::trinary_choice_create(
+            str_to_cstr_vec(&message).unwrap().as_ptr(), // copied in C
+            // copied in C
+            label_left
+                .as_ref()
+                .map(|label| str_to_cstr_vec(label).unwrap())
+                .map_or_else(core::ptr::null, |label| label.as_ptr()),
+            // copied in C
+            label_middle
+                .as_ref()
+                .map(|label| str_to_cstr_vec(label).unwrap())
+                .map_or_else(core::ptr::null, |label| label.as_ptr()),
+            // copied in C
+            label_right
+                .as_ref()
+                .map(|label| str_to_cstr_vec(label).unwrap())
+                .map_or_else(core::ptr::null, |label| label.as_ptr()),
+            Some(callback),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to callback as `user_data`.
+            core::ptr::null_mut(), // parent component, there is no parent.
+        )
+    };
+
+    let mut component = Component {
+        component,
+        is_pushed: false,
+        on_drop: None,
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
 }
 
 pub fn confirm_transaction_address_create<'a>(
@@ -519,15 +573,6 @@ pub fn confirm_transaction_fee_create<'a>(
     }
 }
 
-pub fn trinary_input_string_set_input(component: &mut Component, word: &str) {
-    unsafe {
-        bitbox02_sys::trinary_input_string_set_input(
-            component.component,
-            crate::util::str_to_cstr_vec(word).unwrap().as_ptr(),
-        )
-    }
-}
-
 pub fn screen_stack_pop_all() {
     unsafe {
         bitbox02_sys::ui_screen_stack_pop_all();
@@ -560,31 +605,55 @@ pub fn empty_create<'a>() -> Component {
     }
 }
 
-pub fn unlock_animation_create<'a, F>(on_done: F) -> Component
-where
-    // Callback must outlive component.
-    F: FnMut(),
-{
-    unsafe extern "C" fn c_on_done<F2>(param: *mut c_void)
-    where
-        F2: FnMut(),
-    {
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let mut on_done = unsafe { Box::from_raw(param as *mut F2) };
-        on_done();
+pub async fn unlock_animation() {
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<()>,
     }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+
+    unsafe extern "C" fn callback(user_data: *mut c_void) {
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let mut shared_state = shared_state.borrow_mut();
+        shared_state.result = Some(());
+        if let Some(waker) = shared_state.waker.as_ref() {
+            waker.wake_by_ref();
+        }
+    }
+
     let component = unsafe {
         bitbox02_sys::unlock_animation_create(
-            Some(c_on_done::<F>),
-            Box::into_raw(Box::new(on_done)) as *mut _, // passed to c_on_done as `param`.
+            Some(callback),
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to callback as `user_data`.
         )
     };
-    Component {
+
+    let mut component = Component {
         component,
         is_pushed: false,
         on_drop: None,
-    }
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
 }
 
 pub async fn choose_orientation() -> bool {
@@ -600,7 +669,7 @@ pub async fn choose_orientation() -> bool {
 
     unsafe extern "C" fn callback(upside_down: bool, user_data: *mut c_void) {
         let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
-        let shared_state = &mut *shared_state.borrow_mut();
+        let mut shared_state = shared_state.borrow_mut();
         shared_state.result = Some(upside_down);
         if let Some(waker) = shared_state.waker.as_ref() {
             waker.wake_by_ref();
@@ -624,7 +693,7 @@ pub async fn choose_orientation() -> bool {
     core::future::poll_fn({
         let shared_state = Arc::clone(&shared_state);
         move |cx| {
-            let shared_state = &mut *shared_state.borrow_mut();
+            let mut shared_state = shared_state.borrow_mut();
 
             if let Some(result) = shared_state.result {
                 Poll::Ready(result)

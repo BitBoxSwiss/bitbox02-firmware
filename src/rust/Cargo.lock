@@ -126,6 +126,7 @@ dependencies = [
  "bitbox02-rust",
  "bitbox02-sys",
  "bitcoin",
+ "critical-section",
  "hex",
  "hex_lit",
  "util",

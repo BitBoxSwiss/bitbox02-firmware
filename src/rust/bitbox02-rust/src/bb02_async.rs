@@ -16,7 +16,8 @@ use core::cell::RefCell;
 
 /// Disables the screensaver while waiting for an option to contain a value. Afterwards, it returns that value
 pub async fn option_no_screensaver<O>(opt: &RefCell<Option<O>>) -> O {
-    screensaver_without(async { util::bb02_async::option(opt).await }).await
+    //screensaver_without(async { util::bb02_async::option(opt).await }).await
+    todo!()
 }
 
 pub async fn screensaver_without<T>(fut: impl Future<Output = T>) -> T {

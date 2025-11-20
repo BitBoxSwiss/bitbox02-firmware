@@ -23,14 +23,6 @@ use core::task::{Context, Poll};
 /// 'static, or a future with non-'static input param references.
 pub type Task<'a, O> = Pin<Box<dyn core::future::Future<Output = O> + 'a>>;
 
-///// A primitive poll invocation for a task, with no waking functionality.
-//pub fn spin<O>(task: &mut Task<O>) -> Poll<O> {
-//    // TODO: statically allocate the context.
-//    let waker = crate::waker_fn::waker_fn(|| {});
-//    let context = &mut Context::from_waker(&waker);
-//    task.as_mut().poll(context)
-//}
-
 /// Implements the Option future, see `option()`.
 pub struct AsyncOption<'a, O>(&'a RefCell<Option<O>>);
 
@@ -48,15 +40,4 @@ impl<O> core::future::Future for AsyncOption<'_, O> {
 /// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
 pub fn option<O>(option: &RefCell<Option<O>>) -> AsyncOption<'_, O> {
     AsyncOption(option)
-}
-
-/// Polls a future until the result is available.
-#[cfg(feature = "testing")]
-pub fn block_on<O>(task: impl core::future::Future<Output = O>) -> O {
-    let mut task: crate::bb02_async::Task<O> = alloc::boxed::Box::pin(task);
-    loop {
-        if let Poll::Ready(result) = spin(&mut task) {
-            return result;
-        }
-    }
 }

@@ -24,12 +24,12 @@
 // When compiling for testing we allow certain warnings.
 #![cfg_attr(test, allow(unused_imports, dead_code))]
 
-use alloc::boxed::Box;
+//use alloc::boxed::Box;
 use bitbox02::ringbuffer::RingBuffer;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb::USB_REPORT_SIZE;
 use core::sync::atomic::{AtomicBool, Ordering};
-use core::task::Poll;
+//use core::task::Poll;
 use util::log::log;
 
 use async_channel::Receiver;

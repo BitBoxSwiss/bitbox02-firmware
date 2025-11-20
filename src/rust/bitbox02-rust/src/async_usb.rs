@@ -15,11 +15,13 @@
 //! This module provides the executor for tasks that are spawned with an API request and deliver a
 //! USB response. Terminology: host = computer, device = BitBox02.
 
-use alloc::boxed::Box;
+//use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::RefCell;
-use core::task::Poll;
-use util::bb02_async::{Task, option};
+//use core::task::Poll;
+//use util::bb02_async::{Task, option};
+use async_channel::{Receiver, TryRecvError};
+use util::bb02_async::option;
 
 type UsbOut = Vec<u8>;
 type UsbIn = Vec<u8>;
@@ -55,7 +57,7 @@ static NEXT_REQUEST: SafeNextRequest = SafeNextRequest(RefCell::new(None));
 /// Describes the global state of an api query. The documentation of
 /// the variants apply to the HWW stack, but have analogous meaning in
 /// the U2F stack.
-enum UsbTaskState<'a> {
+enum UsbTaskState {
     /// Waiting for a new query, nothing to do.
     Nothing,
     /// A query came in which launched a task, which is now running (e.g. user is entering a
@@ -68,7 +70,7 @@ enum UsbTaskState<'a> {
     ///
     /// The second element manages waiting for another request while processing a request, allowing
     /// multi-request workflows.
-    Running(Option<Task<'a, UsbOut>>, WaitingForNextRequestState),
+    Running(Option<Receiver<UsbOut>>, WaitingForNextRequestState),
     /// The task has finished and written the result, so the USB response is available. We are now
     /// waiting for the host to fetch it (HWW_REQ_RETRY). For short-circuited or non-async api
     /// calls, the result might be returned immediately in response to HWW_REQ_NEW.
@@ -76,7 +78,7 @@ enum UsbTaskState<'a> {
 }
 
 /// A safer version of UsbTaskState. RefCell so we cannot accidentally borrow illegally.
-struct SafeUsbTaskState(RefCell<UsbTaskState<'static>>);
+struct SafeUsbTaskState(RefCell<UsbTaskState>);
 
 /// Safety: this implements Sync even though it is not thread safe. This is okay, as we
 /// run only in a single thread in the BitBox02.
@@ -97,9 +99,10 @@ where
     let mut state = USB_TASK_STATE.0.borrow_mut();
     match *state {
         UsbTaskState::Nothing => {
-            let task: Task<UsbOut> = Box::pin(workflow(usb_in.to_vec()));
-
-            *state = UsbTaskState::Running(Some(task), WaitingForNextRequestState::Idle);
+            *state = UsbTaskState::Running(
+                Some(crate::spawn(workflow(usb_in.to_vec()))),
+                WaitingForNextRequestState::Idle,
+            );
         }
         // This panic could happen e.g. if someone reconnects to the BitBox while a task is running,
         // before the 500ms timeout cancels the task. The proper way to handle would be to let the

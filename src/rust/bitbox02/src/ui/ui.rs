@@ -24,6 +24,8 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::pin::Pin;
+use core::task::{Context, Poll, Waker};
 
 use core::marker::PhantomPinned;
 
@@ -196,32 +198,65 @@ where
     }
 }
 
-pub fn sdcard_create<F>(callback: F) -> Component
-where
-    // Callback must outlive component.
-    F: FnMut(bool),
-{
-    unsafe extern "C" fn c_callback<F2>(sd_done: bool, user_data: *mut c_void)
-    where
-        F2: FnMut(bool),
-    {
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
-        callback(sd_done);
-    }
+pub struct SdCard {
+    component: Option<Component>,
+    result: Option<bool>,
+    waker: Option<Waker>,
+    _phantom: PhantomPinned,
+}
 
-    let component = unsafe {
-        bitbox02_sys::sdcard_create(
-            Some(c_callback::<F>),
-            // passed to the C callback as `user_data`
-            Box::into_raw(Box::new(callback)) as *mut _,
-        )
-    };
-    Component {
-        component,
-        is_pushed: false,
-        on_drop: None,
+impl SdCard {
+    pub fn new() -> Self {
+        SdCard {
+            component: None,
+            result: None,
+            waker: None,
+            _phantom: PhantomPinned,
+        }
+    }
+}
+
+pub fn sdcard() -> SdCard {
+    SdCard::new()
+}
+
+impl Future for SdCard {
+    type Output = bool;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.component.is_none() {
+            unsafe extern "C" fn c_on_done(sd_done: bool, user_data: *mut c_void) {
+                // SAFETY: the *mut pointer was created when the object was pinned and thus
+                // immovable.
+                unsafe {
+                    let sdcard = user_data as *mut SdCard;
+                    (*sdcard).result = Some(sd_done);
+                    (*sdcard).waker.as_ref().unwrap().wake_by_ref();
+                }
+            }
+
+            let this = unsafe { Pin::into_inner_unchecked(self) };
+            let component = unsafe {
+                bitbox02_sys::sdcard_create(
+                    Some(c_on_done),
+                    // passed to the C callback as `user_data`
+                    &mut *this as *mut _ as *mut _, // passed to c_on_done as `param`.
+                )
+            };
+            let mut component = Component {
+                component,
+                is_pushed: false,
+                on_drop: None,
+            };
+            component.screen_stack_push();
+            this.component = Some(component);
+            this.waker = Some(Waker::clone(cx.waker()));
+            Poll::Pending
+        } else if let Some(result) = self.result {
+            Poll::Ready(result)
+        } else {
+            Poll::Pending
+        }
     }
 }
 
@@ -313,51 +348,111 @@ pub fn menu_create(params: MenuParams<'_>) -> Component {
     }
 }
 
-pub fn trinary_choice_create<'a>(
-    message: &'a str,
-    label_left: Option<&'a str>,
-    label_middle: Option<&'a str>,
-    label_right: Option<&'a str>,
-    chosen_callback: TrinaryChoiceCb,
-) -> Component {
-    unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, user_data: *mut c_void) {
-        let callback = user_data as *mut TrinaryChoiceCb;
-        unsafe { (*callback)(choice) };
+pub struct TrinaryChoiceUi {
+    component: Option<Component>,
+    message: String,
+    label_left: Option<String>,
+    label_middle: Option<String>,
+    label_right: Option<String>,
+    result: Option<TrinaryChoice>,
+    waker: Option<Waker>,
+    _phantom: PhantomPinned,
+}
+
+impl TrinaryChoiceUi {
+    pub fn new(
+        message: &str,
+        label_left: Option<&str>,
+        label_middle: Option<&str>,
+        label_right: Option<&str>,
+    ) -> TrinaryChoiceUi {
+        TrinaryChoiceUi {
+            component: None,
+            message: message.into(),
+            label_left: label_left.map(|s| s.into()),
+            label_middle: label_middle.map(|s| s.into()),
+            label_right: label_right.map(|s| s.into()),
+            result: None,
+            waker: None,
+            _phantom: PhantomPinned,
+        }
     }
+}
 
-    let chosen_user_data = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
+pub fn trinary_choice(
+    message: &str,
+    label_left: Option<&str>,
+    label_middle: Option<&str>,
+    label_right: Option<&str>,
+) -> TrinaryChoiceUi {
+    TrinaryChoiceUi::new(message, label_left, label_middle, label_right)
+}
 
-    let label_left = label_left.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
-    let label_middle = label_middle.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
-    let label_right = label_right.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
+impl Future for TrinaryChoiceUi {
+    type Output = TrinaryChoice;
 
-    let component = unsafe {
-        bitbox02_sys::trinary_choice_create(
-            crate::util::str_to_cstr_vec(message).unwrap().as_ptr(), // copied in C
-            // copied in C
-            label_left
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.component.is_none() {
+            unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, user_data: *mut c_void) {
+                // SAFETY: the *mut pointer was created when the object was pinned and thus
+                // immovable.
+                unsafe {
+                    let trinary_choice = user_data as *mut TrinaryChoiceUi;
+                    (*trinary_choice).result = Some(choice);
+                    (*trinary_choice).waker.as_ref().unwrap().wake_by_ref();
+                }
+            }
+            let this = unsafe { Pin::into_inner_unchecked(self) };
+
+            let label_left = this
+                .label_left
                 .as_ref()
-                .map_or_else(core::ptr::null, |label| label.as_ptr()),
-            // copied in C
-            label_middle
+                .map(|label| crate::util::str_to_cstr_vec(label).unwrap());
+            let label_middle = this
+                .label_middle
                 .as_ref()
-                .map_or_else(core::ptr::null, |label| label.as_ptr()),
-            // copied in C
-            label_right
+                .map(|label| crate::util::str_to_cstr_vec(label).unwrap());
+            let label_right = this
+                .label_right
                 .as_ref()
-                .map_or_else(core::ptr::null, |label| label.as_ptr()),
-            Some(c_chosen_cb as _),
-            chosen_user_data,
-            core::ptr::null_mut(), // parent component, there is no parent.
-        )
-    };
-    Component {
-        component,
-        is_pushed: false,
-        on_drop: Some(Box::new(move || unsafe {
-            // Drop all callbacks.
-            drop(Box::from_raw(chosen_user_data as *mut TrinaryChoiceCb));
-        })),
+                .map(|label| crate::util::str_to_cstr_vec(label).unwrap());
+
+            let component = unsafe {
+                bitbox02_sys::trinary_choice_create(
+                    crate::util::str_to_cstr_vec(&this.message)
+                        .unwrap()
+                        .as_ptr(), // copied in C
+                    // copied in C
+                    label_left
+                        .as_ref()
+                        .map_or_else(core::ptr::null, |label| label.as_ptr()),
+                    // copied in C
+                    label_middle
+                        .as_ref()
+                        .map_or_else(core::ptr::null, |label| label.as_ptr()),
+                    // copied in C
+                    label_right
+                        .as_ref()
+                        .map_or_else(core::ptr::null, |label| label.as_ptr()),
+                    Some(c_chosen_cb),
+                    &mut *this as *mut _ as *mut _, // passed to c_chosen_cb as `user_data`.
+                    core::ptr::null_mut(),          // parent component, there is no parent.
+                )
+            };
+            let mut component = Component {
+                component,
+                is_pushed: false,
+                on_drop: None,
+            };
+            component.screen_stack_push();
+            this.component = Some(component);
+            this.waker = Some(Waker::clone(cx.waker()));
+            Poll::Pending
+        } else if let Some(result) = self.result {
+            Poll::Ready(result)
+        } else {
+            Poll::Pending
+        }
     }
 }
 
@@ -489,65 +584,113 @@ where
     }
 }
 
-pub struct OrientationArrows {
-    component: Option<Component>,
-    result: Option<bool>,
-    waker: Option<Waker>,
-    _phantom: PhantomPinned,
-}
+use alloc::sync::Arc;
+use core::cell::RefCell;
+use critical_section::Mutex;
 
-use core::pin::Pin;
-use core::task::{Context, Poll, Waker};
+// Shared state between task and callback
+type ChooseOrientationState = Arc<Mutex<RefCell<(Option<Waker>, Option<bool>)>>>;
 
-impl<'a> Future for OrientationArrows {
-    type Output = bool;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.component.is_none() {
-            unsafe extern "C" fn c_on_done(upside_down: bool, param: *mut c_void) {
-                // SAFETY: the *mut pointer was created when the object was pinned and thus
-                // immovable.
-                unsafe {
-                    let orientation_arrows = param as *mut OrientationArrows;
-                    (*orientation_arrows).result = Some(upside_down);
-                    (*orientation_arrows).waker.as_ref().unwrap().wake_by_ref();
-                }
+pub async fn choose_orientation() -> bool {
+    // Waker and result is shared to callback
+    let shared_state: ChooseOrientationState = Arc::new(Mutex::new(RefCell::new((None, None))));
+    unsafe extern "C" fn callback(upside_down: bool, user_data: *mut c_void) {
+        let shared_state: ChooseOrientationState = unsafe { Arc::from_raw(user_data as *mut _) };
+        critical_section::with(|cs| {
+            let mut shared_state = shared_state.borrow_ref_mut(cs);
+            shared_state.1 = Some(upside_down);
+            if let Some(waker) = shared_state.0.as_ref() {
+                waker.wake_by_ref();
             }
-            let this = unsafe { Pin::into_inner_unchecked(self) };
-            let component = unsafe {
-                bitbox02_sys::orientation_arrows_create(
-                    Some(c_on_done),
-                    &mut *this as *mut _ as *mut _, // passed to c_on_done as `param`.
-                )
-            };
-            let mut component = Component {
-                component,
-                is_pushed: false,
-                on_drop: None,
-            };
-            component.screen_stack_push();
-            this.component = Some(component);
-            this.waker = Some(Waker::clone(cx.waker()));
-            Poll::Pending
-        } else if let Some(result) = self.result {
-            Poll::Ready(result)
-        } else {
-            Poll::Pending
-        }
+        })
     }
+    let component = unsafe {
+        bitbox02_sys::orientation_arrows_create(
+            Some(callback),
+            Arc::into_raw(shared_state.clone()) as *mut _, // passed to callback as `user_data`.
+        )
+    };
+    let mut component = Component {
+        component,
+        is_pushed: false,
+        on_drop: None,
+    };
+    component.screen_stack_push();
+    core::future::poll_fn({
+        let shared_state = Arc::clone(&shared_state);
+        move |cx| {
+            critical_section::with(|cs| {
+                let state = &mut *shared_state.borrow_ref_mut(cs);
+                let waker = &mut state.0;
+                if waker.is_none() {
+                    waker.replace(Waker::clone(cx.waker()));
+                }
+                if let Some(result) = state.1 {
+                    return Poll::Ready(result);
+                }
+                Poll::Pending
+            })
+        }
+    })
+    .await
 }
 
-impl OrientationArrows {
-    pub fn new() -> OrientationArrows {
-        OrientationArrows {
-            component: None,
-            result: None,
-            waker: None,
-            _phantom: Default::default(),
-        }
-    }
-}
-
-pub fn orientation_arrows() -> OrientationArrows {
-    OrientationArrows::new()
-}
+//pub struct ChooseOrientation {
+//    component: Option<Component>,
+//    result: Option<bool>,
+//    waker: Option<Waker>,
+//    _phantom: PhantomPinned,
+//}
+//
+//impl Future for ChooseOrientation {
+//    type Output = bool;
+//
+//    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+//        if self.component.is_none() {
+//            unsafe extern "C" fn c_on_done(upside_down: bool, user_data: *mut c_void) {
+//                // SAFETY: the *mut pointer was created when the object was pinned and thus
+//                // immovable.
+//                unsafe {
+//                    let orientation_arrows = user_data as *mut ChooseOrientation;
+//                    (*orientation_arrows).result = Some(upside_down);
+//                    (*orientation_arrows).waker.as_ref().unwrap().wake_by_ref();
+//                }
+//            }
+//            let this = unsafe { Pin::into_inner_unchecked(self) };
+//            let component = unsafe {
+//                bitbox02_sys::orientation_arrows_create(
+//                    Some(c_on_done),
+//                    &mut *this as *mut _ as *mut _, // passed to c_on_done as `user_data`.
+//                )
+//            };
+//            let mut component = Component {
+//                component,
+//                is_pushed: false,
+//                on_drop: None,
+//            };
+//            component.screen_stack_push();
+//            this.component = Some(component);
+//            this.waker = Some(Waker::clone(cx.waker()));
+//            Poll::Pending
+//        } else if let Some(result) = self.result {
+//            Poll::Ready(result)
+//        } else {
+//            Poll::Pending
+//        }
+//    }
+//}
+//
+//impl ChooseOrientation {
+//    pub fn new() -> ChooseOrientation {
+//        ChooseOrientation {
+//            component: None,
+//            result: None,
+//            waker: None,
+//            _phantom: PhantomPinned,
+//        }
+//    }
+//}
+//
+//pub fn choose_orientation() -> ChooseOrientation {
+//    ChooseOrientation::new()
+//}

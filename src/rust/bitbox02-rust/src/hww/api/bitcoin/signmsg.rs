@@ -61,7 +61,7 @@ pub async fn process(
     }
 
     // Keypath and script_config are validated in address_simple().
-    let address = super::derive_address_simple(coin, simple_type, keypath)?;
+    let address = super::derive_address_simple(hal, coin, simple_type, keypath)?;
 
     let basic_info = format!("Coin: {}", super::params::get(coin).name);
     let confirm_params = confirm::Params {
@@ -98,7 +98,7 @@ pub async fn process(
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
             let signer_commitment = keystore::secp256k1_nonce_commit(
-                keystore::secp256k1_get_private_key(keypath)?
+                keystore::secp256k1_get_private_key(hal, keypath)?
                     .as_slice()
                     .try_into()
                     .unwrap(),
@@ -118,7 +118,7 @@ pub async fn process(
     };
 
     let sign_result = keystore::secp256k1_sign(
-        keystore::secp256k1_get_private_key(keypath)?
+        keystore::secp256k1_get_private_key(hal, keypath)?
             .as_slice()
             .try_into()
             .unwrap(),

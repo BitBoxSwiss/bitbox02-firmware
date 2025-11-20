@@ -30,7 +30,7 @@ pub async fn check(
         return Err(Error::InvalidInput);
     }
 
-    let seed = crate::keystore::copy_seed()?;
+    let seed = crate::keystore::copy_seed(hal)?;
     let id = backup::id(&seed);
     let (backup_data, metadata) = backup::load(hal, &id).await?;
     if seed.as_slice() != backup_data.get_seed() {
@@ -102,7 +102,7 @@ pub async fn create(
     let seed = if is_initialized {
         unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
     } else {
-        let seed = crate::keystore::copy_seed()?;
+        let seed = crate::keystore::copy_seed(hal)?;
         // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes
         // some delay.
         futures_lite::future::yield_now().await;

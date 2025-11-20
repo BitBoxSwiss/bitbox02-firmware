@@ -126,7 +126,7 @@ async fn xpub(
             })
             .await?
     }
-    let xpub = keystore::get_xpub_twice(keypath)
+    let xpub = keystore::get_xpub_twice(hal, keypath)
         .or(Err(Error::InvalidInput))?
         .serialize_str(xpub_type)?;
     if display {
@@ -150,6 +150,7 @@ async fn xpub(
 }
 
 pub fn derive_address_simple(
+    hal: &mut impl crate::hal::Hal,
     coin: BtcCoin,
     simple_type: SimpleType,
     keypath: &[u32],
@@ -164,6 +165,7 @@ pub fn derive_address_simple(
     )
     .or(Err(Error::InvalidInput))?;
     Ok(common::Payload::from_simple(
+        hal,
         &mut crate::xpubcache::XpubCache::new(crate::xpubcache::Compute::Twice),
         coin_params,
         simple_type,
@@ -180,7 +182,7 @@ async fn address_simple(
     keypath: &[u32],
     display: bool,
 ) -> Result<Response, Error> {
-    let address = derive_address_simple(coin, simple_type, keypath)?;
+    let address = derive_address_simple(hal, coin, simple_type, keypath)?;
     if display {
         let confirm_params = confirm::Params {
             title: params::get(coin).name,
@@ -205,7 +207,7 @@ pub async fn address_multisig(
     keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
         .or(Err(Error::InvalidInput))?;
     let account_keypath = &keypath[..keypath.len() - 2];
-    multisig::validate(multisig, account_keypath)?;
+    multisig::validate(hal, multisig, account_keypath)?;
     let name = match multisig::get_name(coin, multisig, account_keypath)? {
         Some(name) => name,
         None => return Err(Error::InvalidInput),
@@ -247,7 +249,7 @@ async fn address_policy(
     keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
         .or(Err(Error::InvalidInput))?;
 
-    let parsed = policies::parse(policy, coin)?;
+    let parsed = policies::parse(hal, policy, coin)?;
 
     let name = parsed.name(coin_params)?.ok_or(Error::InvalidInput)?;
 
@@ -316,7 +318,7 @@ pub async fn process_api(
             registration::process_register_script_config(hal, request).await
         }
         Request::SignMessage(request) => signmsg::process(hal, request).await,
-        Request::Xpubs(request) => xpubs::process_xpubs(request).await,
+        Request::Xpubs(request) => xpubs::process_xpubs(hal, request).await,
         // These are streamed asynchronously using the `next_request()` primitive in
         // bitcoin/signtx.rs and are not handled directly.
         Request::PrevtxInit(_)
@@ -1074,7 +1076,7 @@ mod tests {
             root_fingerprint: keystore::root_fingerprint().unwrap(),
             keypath: KEYPATH_ACCOUNT_TESTNET.to_vec(),
             xpub: Some(
-                crate::keystore::get_xpub_once(KEYPATH_ACCOUNT_TESTNET)
+                crate::keystore::get_xpub_once(&mut TestingHal::new(), KEYPATH_ACCOUNT_TESTNET)
                     .unwrap()
                     .into(),
             ),
@@ -1083,7 +1085,7 @@ mod tests {
             root_fingerprint: keystore::root_fingerprint().unwrap(),
             keypath: KEYPATH_ACCOUNT_MAINNET.to_vec(),
             xpub: Some(
-                crate::keystore::get_xpub_once(KEYPATH_ACCOUNT_MAINNET)
+                crate::keystore::get_xpub_once(&mut TestingHal::new(), KEYPATH_ACCOUNT_MAINNET)
                     .unwrap()
                     .into(),
             ),

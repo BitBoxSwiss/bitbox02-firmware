@@ -552,7 +552,7 @@ mod tests {
                 ]
             );
 
-            let seed = crate::keystore::copy_seed().unwrap();
+            let seed = crate::keystore::copy_seed(&mut mock_hal).unwrap();
             assert_eq!(seed.len(), host_entropy.len());
             mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             assert!(matches!(
@@ -718,7 +718,7 @@ mod tests {
             );
 
             // Restored seed is the same as the seed that was backed up.
-            assert_eq!(seed, crate::keystore::copy_seed().unwrap());
+            assert_eq!(seed, crate::keystore::copy_seed(&mut mock_hal).unwrap());
         }
     }
 }

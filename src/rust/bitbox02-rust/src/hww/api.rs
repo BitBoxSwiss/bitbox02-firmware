@@ -181,7 +181,7 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         Request::RestoreBackup(request) => restore::from_file(hal, request).await,
         Request::ShowMnemonic(_) => show_mnemonic::process(hal).await,
         Request::RestoreFromMnemonic(request) => restore::from_mnemonic(hal, request).await,
-        Request::ElectrumEncryptionKey(request) => electrum::process(request).await,
+        Request::ElectrumEncryptionKey(request) => electrum::process(hal, request).await,
 
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {

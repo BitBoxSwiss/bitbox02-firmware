@@ -45,10 +45,11 @@ impl<U: Update> Write for HashedWriter<'_, U> {
 
 /// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L176
 fn encode_stake_credential<W: Write>(
+    hal: &mut impl crate::hal::Hal,
     encoder: &mut Encoder<W>,
     keypath: &[u32],
 ) -> Result<(), Error> {
-    let pubkey_hash = pubkey_hash_at_keypath(keypath)?;
+    let pubkey_hash = pubkey_hash_at_keypath(hal, keypath)?;
     encoder.array(2)?.u8(0)?.bytes(&pubkey_hash)?;
     Ok(())
 }
@@ -57,10 +58,11 @@ fn encode_stake_credential<W: Write>(
 ///
 /// See https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L130
 pub fn encode_withdrawal_address(
+    hal: &mut impl crate::hal::Hal,
     params: &params::Params,
     keypath: &[u32],
 ) -> Result<Vec<u8>, Error> {
-    let pubkey_hash = pubkey_hash_at_keypath(keypath)?;
+    let pubkey_hash = pubkey_hash_at_keypath(hal, keypath)?;
     let mut encoded: Vec<u8> = Vec::with_capacity(1 + ADDRESS_HASH_SIZE);
     let address_tag = 0b1110; // reward address using a stake keyhash.
     let header = (address_tag << 4) | params.network_id;
@@ -92,6 +94,7 @@ fn encode_set_header<W: Write>(
 /// - Transaction body encoding spec: https://github.com/input-output-hk/cardano-ledger-specs/blob/d0aa86ded0b973b09b629e5aa62aa1e71364d088/eras/alonzo/test-suite/cddl-files/alonzo.cddl#L50
 /// - Serialization implementation: https://github.com/input-output-hk/cardano-ledger-specs/blob/c6c4be1562e23a3dd48282387c4e48ff918fbab0/eras/shelley-ma/impl/src/Cardano/Ledger/ShelleyMA/TxBody.hs#L208
 pub fn encode_transaction_body<W: Write>(
+    hal: &mut impl crate::hal::Hal,
     tx: &pb::CardanoSignTransactionRequest,
     writer: W,
 ) -> Result<(), Error> {
@@ -165,11 +168,11 @@ pub fn encode_transaction_body<W: Write>(
             match cert.as_ref().ok_or(Error::InvalidInput)? {
                 certificate::Cert::StakeRegistration(pb::Keypath { keypath }) => {
                     encoder.array(2)?.u8(0)?;
-                    encode_stake_credential(&mut encoder, keypath)?;
+                    encode_stake_credential(hal, &mut encoder, keypath)?;
                 }
                 certificate::Cert::StakeDeregistration(pb::Keypath { keypath }) => {
                     encoder.array(2)?.u8(1)?;
-                    encode_stake_credential(&mut encoder, keypath)?;
+                    encode_stake_credential(hal, &mut encoder, keypath)?;
                 }
                 certificate::Cert::StakeDelegation(certificate::StakeDelegation {
                     keypath,
@@ -179,7 +182,7 @@ pub fn encode_transaction_body<W: Write>(
                         return Err(Error::InvalidInput);
                     }
                     encoder.array(3)?.u8(2)?;
-                    encode_stake_credential(&mut encoder, keypath)?;
+                    encode_stake_credential(hal, &mut encoder, keypath)?;
                     encoder.bytes(pool_keyhash)?;
                 }
                 certificate::Cert::VoteDelegation(certificate::VoteDelegation {
@@ -188,7 +191,7 @@ pub fn encode_transaction_body<W: Write>(
                     drep_credhash,
                 }) => {
                     encoder.array(3)?.u8(9)?;
-                    encode_stake_credential(&mut encoder, keypath)?;
+                    encode_stake_credential(hal, &mut encoder, keypath)?;
                     let drep_type =
                         certificate::vote_delegation::CardanoDRepType::try_from(*r#type)?;
                     match drep_type {
@@ -234,7 +237,7 @@ pub fn encode_transaction_body<W: Write>(
     if !tx.withdrawals.is_empty() {
         encoder.u8(5)?.map(tx.withdrawals.len() as _)?;
         for Withdrawal { keypath, value } in tx.withdrawals.iter() {
-            let withdrawal_address = encode_withdrawal_address(params, keypath)?;
+            let withdrawal_address = encode_withdrawal_address(hal, params, keypath)?;
             encoder.bytes(&withdrawal_address)?.u64(*value)?;
         }
     }

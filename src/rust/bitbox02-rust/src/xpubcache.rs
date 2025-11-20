@@ -32,7 +32,11 @@ pub trait Xpub: Sized {
     fn derive(&self, keypath: &[u32], compute: Compute) -> Result<Self, ()>;
 
     /// Derives an xpub from the root xpub using the provided keypath.
-    fn from_keypath(keypath: &[u32], compute: Compute) -> Result<Self, ()>;
+    fn from_keypath(
+        hal: &mut impl crate::hal::Hal,
+        keypath: &[u32],
+        compute: Compute,
+    ) -> Result<Self, ()>;
 }
 
 /// Implements a cache for xpubs. Cached intermediate xpubs are used to derive child xpubs.
@@ -66,7 +70,7 @@ impl<X: Xpub + Clone> XpubCache<X> {
     }
 
     // Retrieves a cached xpub. If the xpub is not cached, derive and cache it first.
-    fn cache_get_set(&mut self, keypath: &[u32]) -> Result<X, ()> {
+    fn cache_get_set(&mut self, hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<X, ()> {
         // Return cached xpub if exists.
         if let Some((_, xpub)) = self
             .xpubs
@@ -83,9 +87,9 @@ impl<X: Xpub + Clone> XpubCache<X> {
         // from an xpub (hardened elements require the xprv).
         const UNHARDENED_LAST: u32 = util::bip32::HARDENED - 1;
         let xpub = if let [prefix @ .., last @ 0..=UNHARDENED_LAST] = keypath {
-            self.get_xpub(prefix)?.derive(&[*last], self.compute)?
+            self.get_xpub(hal, prefix)?.derive(&[*last], self.compute)?
         } else {
-            X::from_keypath(keypath, self.compute)?
+            X::from_keypath(hal, keypath, self.compute)?
         };
         self.xpubs.push((keypath.to_vec(), xpub.clone()));
         Ok(xpub)
@@ -94,7 +98,7 @@ impl<X: Xpub + Clone> XpubCache<X> {
     /// Derive an xpub from the keystore's master key. If a prefix of the keypath is cached, the
     /// cached xpub will be used as basis for derivation. The longest cached prefix (shortest
     /// suffix) is used to minimize the number child derivations necessary afterwards.
-    pub fn get_xpub(&mut self, keypath: &[u32]) -> Result<X, ()> {
+    pub fn get_xpub(&mut self, hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<X, ()> {
         // Check if any prefix of keypath is is marked as cached. Get the longest such prefix.
         let search_result = self
             .keypaths
@@ -106,10 +110,10 @@ impl<X: Xpub + Clone> XpubCache<X> {
             })
             .max_by_key(|(kp, _)| kp.len());
         if let Some((cached_prefix, suffix)) = search_result {
-            let xpub = self.cache_get_set(&cached_prefix.clone())?;
+            let xpub = self.cache_get_set(hal, &cached_prefix.clone())?;
             return xpub.derive(suffix, self.compute);
         }
-        X::from_keypath(keypath, self.compute)
+        X::from_keypath(hal, keypath, self.compute)
     }
 }
 
@@ -128,10 +132,14 @@ impl Xpub for bip32::Xpub {
         }
     }
 
-    fn from_keypath(keypath: &[u32], compute: Compute) -> Result<Self, ()> {
+    fn from_keypath(
+        hal: &mut impl crate::hal::Hal,
+        keypath: &[u32],
+        compute: Compute,
+    ) -> Result<Self, ()> {
         match compute {
-            Compute::Once => keystore::get_xpub_once(keypath),
-            Compute::Twice => keystore::get_xpub_twice(keypath),
+            Compute::Once => keystore::get_xpub_once(hal, keypath),
+            Compute::Twice => keystore::get_xpub_twice(hal, keypath),
         }
     }
 }
@@ -166,7 +174,11 @@ mod tests {
                 Ok(MockXpub(kp))
             }
 
-            fn from_keypath(keypath: &[u32], _compute: Compute) -> Result<Self, ()> {
+            fn from_keypath(
+                _hal: &mut impl crate::hal::Hal,
+                keypath: &[u32],
+                _compute: Compute,
+            ) -> Result<Self, ()> {
                 *ROOT_DERIVATIONS.borrow_mut() += 1;
                 Ok(MockXpub(keypath.to_vec()))
             }
@@ -176,12 +188,26 @@ mod tests {
 
         let mut cache = MockCache::new(crate::xpubcache::Compute::Once);
 
-        assert_eq!(cache.get_xpub(&[]).unwrap().0.as_slice(), &[]);
+        assert_eq!(
+            cache
+                .get_xpub(&mut crate::hal::testing::TestingHal::new(), &[])
+                .unwrap()
+                .0
+                .as_slice(),
+            &[]
+        );
         assert_eq!(*CHILD_DERIVATIONS.borrow(), 0u32);
         assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
         *ROOT_DERIVATIONS.borrow_mut() = 0;
 
-        assert_eq!(cache.get_xpub(&[1, 2, 3]).unwrap().0.as_slice(), &[1, 2, 3]);
+        assert_eq!(
+            cache
+                .get_xpub(&mut crate::hal::testing::TestingHal::new(), &[1, 2, 3])
+                .unwrap()
+                .0
+                .as_slice(),
+            &[1, 2, 3]
+        );
         assert_eq!(*CHILD_DERIVATIONS.borrow(), 0u32);
         assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
         *ROOT_DERIVATIONS.borrow_mut() = 0;
@@ -192,7 +218,10 @@ mod tests {
 
         assert_eq!(
             cache
-                .get_xpub(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2])
+                .get_xpub(
+                    &mut crate::hal::testing::TestingHal::new(),
+                    &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
+                )
                 .unwrap()
                 .0
                 .as_slice(),
@@ -209,7 +238,10 @@ mod tests {
         // Same keypath again is a cache hit at m/84'/0'/0'/1 with one child derivation.
         assert_eq!(
             cache
-                .get_xpub(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2])
+                .get_xpub(
+                    &mut crate::hal::testing::TestingHal::new(),
+                    &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
+                )
                 .unwrap()
                 .0
                 .as_slice(),
@@ -223,7 +255,10 @@ mod tests {
         // call using m/84'/0'/0'/1/2.
         assert_eq!(
             cache
-                .get_xpub(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0])
+                .get_xpub(
+                    &mut crate::hal::testing::TestingHal::new(),
+                    &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+                )
                 .unwrap()
                 .0
                 .as_slice(),
@@ -242,7 +277,10 @@ mod tests {
         mock_unlocked();
         assert_eq!(
             &cache
-                .get_xpub(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2])
+                .get_xpub(
+                    &mut crate::hal::testing::TestingHal::new(),
+                    &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
+                )
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),
@@ -254,7 +292,10 @@ mod tests {
 
         assert_eq!(
             &cache
-                .get_xpub(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0])
+                .get_xpub(
+                    &mut crate::hal::testing::TestingHal::new(),
+                    &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+                )
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),
@@ -263,7 +304,10 @@ mod tests {
 
         assert_eq!(
             &cache
-                .get_xpub(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 3])
+                .get_xpub(
+                    &mut crate::hal::testing::TestingHal::new(),
+                    &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 3]
+                )
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),

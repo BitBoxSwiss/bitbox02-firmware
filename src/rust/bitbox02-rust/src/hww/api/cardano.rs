@@ -33,7 +33,7 @@ pub async fn process_api(
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::Xpubs(request) => xpubs::process(request),
+        Request::Xpubs(request) => xpubs::process(hal, request),
         Request::Address(request) => address::process(hal, request).await,
         Request::SignTransaction(request) => sign_transaction::process(hal, request).await,
     }

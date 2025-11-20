@@ -313,8 +313,11 @@ pub fn decode_payment_address(params: &params::Params, address: &str) -> Result<
 }
 
 /// Returns the hash of the pubkey at the keypath. Returns an error if the keystore is locked.
-pub fn pubkey_hash_at_keypath(keypath: &[u32]) -> Result<[u8; ADDRESS_HASH_SIZE], ()> {
-    let xpub = crate::keystore::ed25519::get_xpub(keypath)?;
+pub fn pubkey_hash_at_keypath(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+) -> Result<[u8; ADDRESS_HASH_SIZE], ()> {
+    let xpub = crate::keystore::ed25519::get_xpub(hal, keypath)?;
     let pubkey_bytes = xpub.pubkey_bytes();
     let mut hasher = Blake2bVar::new(ADDRESS_HASH_SIZE).unwrap();
     hasher.update(pubkey_bytes);
@@ -336,6 +339,7 @@ fn address_header(params: &params::Params, script_config: &Config) -> u8 {
 /// `keypath_prefix` is provided, it is also validated that the address keypaths start with this
 /// prefix.
 pub fn validate_and_encode_payment_address(
+    hal: &mut impl crate::hal::Hal,
     params: &params::Params,
     script_config: &Config,
     bip44_account: Option<u32>,
@@ -350,8 +354,8 @@ pub fn validate_and_encode_payment_address(
                 bip44_account,
             )?;
 
-            let payment_key_hash = pubkey_hash_at_keypath(&config.keypath_payment)?;
-            let stake_key_hash = pubkey_hash_at_keypath(&config.keypath_stake)?;
+            let payment_key_hash = pubkey_hash_at_keypath(hal, &config.keypath_payment)?;
+            let stake_key_hash = pubkey_hash_at_keypath(hal, &config.keypath_stake)?;
 
             let mut bytes: Vec<u8> = Vec::with_capacity(1 + 2 * ADDRESS_HASH_SIZE);
             bytes.push(header);
@@ -381,7 +385,7 @@ pub async fn process(
         .as_ref()
         .ok_or(Error::InvalidInput)?;
 
-    let encoded_address = validate_and_encode_payment_address(params, script_config, None)?;
+    let encoded_address = validate_and_encode_payment_address(hal, params, script_config, None)?;
 
     if request.display {
         hal.ui()
@@ -490,12 +494,18 @@ mod tests {
     fn test_pubkey_hash_at_keypath() {
         crate::keystore::lock();
         assert!(
-            pubkey_hash_at_keypath(&[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0]).is_err()
+            pubkey_hash_at_keypath(
+                &mut crate::hal::testing::TestingHal::new(),
+                &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0]
+            )
+            .is_err()
         );
 
         mock_unlocked();
         assert_eq!(
-            pubkey_hash_at_keypath(&[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0]),
+            pubkey_hash_at_keypath(
+                &mut crate::hal::testing::TestingHal::new(),
+                &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0]),
             Ok(*b"\x5e\xbf\xc2\xcd\xae\xef\x4b\x4f\x1b\xe7\xfc\xc3\x1c\xfe\x94\x5e\xb9\x2d\x28\x67\x43\x49\xbd\x0f\x1a\x4a\x00\x63")
         );
     }

@@ -201,19 +201,21 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 8);
-        drop(mock_hal); // to remove mutable borrow of counter
-        assert_eq!(counter, 2);
+
         assert!(!crate::keystore::is_locked());
         assert!(memory::is_initialized());
         // Seed of hardcoded phrase used in unit tests:
         // boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide
         assert_eq!(
-            hex::encode(crate::keystore::copy_seed().unwrap()),
+            hex::encode(crate::keystore::copy_seed(&mut mock_hal).unwrap()),
             "19f1bcfccf3e9d497cd245cf864ff0d42216625258d4f68d56b571aceb329257"
         );
         assert_eq!(
-            hex::encode(crate::keystore::copy_bip39_seed().unwrap()),
+            hex::encode(crate::keystore::copy_bip39_seed(&mut mock_hal).unwrap()),
             "257724bccc8858cfe565b456b01263a4a6a45184fab4531f5c199649207a74e74c399a01d4f957258c05cee818369b31404c884a4b7a29ff6886bae6700fb56a"
         );
+
+        drop(mock_hal); // to remove mutable borrow of counter
+        assert_eq!(counter, 2);
     }
 }

@@ -81,6 +81,7 @@ pub struct Payload {
 
 impl Payload {
     pub fn from_simple(
+        hal: &mut impl crate::hal::Hal,
         xpub_cache: &mut Bip32XpubCache,
         params: &Params,
         simple_type: SimpleType,
@@ -88,12 +89,12 @@ impl Payload {
     ) -> Result<Self, Error> {
         match simple_type {
             SimpleType::P2wpkh => Ok(Payload {
-                data: xpub_cache.get_xpub(keypath)?.pubkey_hash160(),
+                data: xpub_cache.get_xpub(hal, keypath)?.pubkey_hash160(),
                 output_type: BtcOutputType::P2wpkh,
             }),
             SimpleType::P2wpkhP2sh => {
                 let payload_p2wpkh =
-                    Payload::from_simple(xpub_cache, params, SimpleType::P2wpkh, keypath)?;
+                    Payload::from_simple(hal, xpub_cache, params, SimpleType::P2wpkh, keypath)?;
                 let pkscript_p2wpkh = payload_p2wpkh.pk_script(params)?;
                 Ok(Payload {
                     data: bitcoin::hashes::hash160::Hash::hash(&pkscript_p2wpkh)
@@ -106,7 +107,7 @@ impl Payload {
                 if params.taproot_support {
                     Ok(Payload {
                         data: xpub_cache
-                            .get_xpub(keypath)?
+                            .get_xpub(hal, keypath)?
                             .schnorr_bip86_pubkey()?
                             .to_vec(),
                         output_type: BtcOutputType::P2tr,
@@ -190,6 +191,7 @@ impl Payload {
     /// Computes the payload data from a script config. The payload can then be used generate a
     /// pkScript or an address.
     pub fn from(
+        hal: &mut impl crate::hal::Hal,
         xpub_cache: &mut Bip32XpubCache,
         params: &Params,
         keypath: &[u32],
@@ -197,7 +199,7 @@ impl Payload {
     ) -> Result<Self, Error> {
         match &script_config_account.config {
             ValidatedScriptConfig::SimpleType(simple_type) => {
-                Self::from_simple(xpub_cache, params, *simple_type, keypath)
+                Self::from_simple(hal, xpub_cache, params, *simple_type, keypath)
             }
             ValidatedScriptConfig::Multisig { multisig, .. } => Self::from_multisig(
                 params,
@@ -582,6 +584,7 @@ mod tests {
         // p2wpkh
         assert_eq!(
             Payload::from_simple(
+                &mut crate::hal::testing::TestingHal::new(),
                 &mut xpub_cache,
                 coin_params,
                 SimpleType::P2wpkh,
@@ -596,6 +599,7 @@ mod tests {
         //  p2wpkh-p2sh
         assert_eq!(
             Payload::from_simple(
+                &mut crate::hal::testing::TestingHal::new(),
                 &mut xpub_cache,
                 coin_params,
                 SimpleType::P2wpkhP2sh,
@@ -610,6 +614,7 @@ mod tests {
         // p2tr
         assert_eq!(
             Payload::from_simple(
+                &mut crate::hal::testing::TestingHal::new(),
                 &mut xpub_cache,
                 coin_params,
                 SimpleType::P2tr,

@@ -137,7 +137,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     let ((), result) = futures_lite::future::zip(
         super::unlock_animation::animate(),
         crate::keystore::unlock_bip39(
-            hal.random(),
+            hal,
             seed,
             &mnemonic_passphrase,
             // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
@@ -226,7 +226,9 @@ mod tests {
         assert!(!crate::keystore::is_locked());
 
         assert_eq!(
-            crate::keystore::copy_bip39_seed().unwrap().as_slice(),
+            crate::keystore::copy_bip39_seed(&mut mock_hal)
+                .unwrap()
+                .as_slice(),
             &hex!(
                 "cff4b263e5b0eb299e5fd35fcd09988f6b14e5b464f8d18fb84b152f889dd2a30550f4c2b346cae825ffedd4a87fc63fc12a9433de5125b6c7fdbc5eab0c590b"
             ),
@@ -273,7 +275,7 @@ mod tests {
         assert_eq!(mock_hal.securechip.get_event_counter(), 5);
 
         // Checks that the device is locked.
-        assert!(crate::keystore::copy_seed().is_err());
+        assert!(crate::keystore::copy_seed(&mut mock_hal).is_err());
 
         assert_eq!(
             mock_hal.ui.screens,

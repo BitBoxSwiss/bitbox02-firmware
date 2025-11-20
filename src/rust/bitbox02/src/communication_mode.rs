@@ -12,20 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DA14531_HANDLER_H
-#define DA14531_HANDLER_H
+pub fn ble_disable() {
+    unsafe {
+        bitbox02_sys::communication_mode_ble_disable();
+    }
+}
 
-#include "da14531_protocol.h"
-#include <platform/platform_config.h>
-#include <utils_ringbuffer.h>
-
-extern const uint8_t* da14531_handler_current_product;
-extern uint16_t da14531_handler_current_product_len;
-
-#if FACTORYSETUP == 1
-bool da14531_handler_bond_db_set(void);
-#endif
-
-void da14531_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue);
-
-#endif
+pub fn ble_enabled() -> bool {
+    unsafe { bitbox02_sys::communication_mode_ble_enabled() }
+}

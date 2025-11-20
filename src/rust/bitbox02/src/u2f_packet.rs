@@ -12,20 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DA14531_HANDLER_H
-#define DA14531_HANDLER_H
+pub use bitbox02_sys::USB_FRAME;
 
-#include "da14531_protocol.h"
-#include <platform/platform_config.h>
-#include <utils_ringbuffer.h>
+pub fn init() {
+    unsafe {
+        bitbox02_sys::u2f_packet_init();
+    }
+}
 
-extern const uint8_t* da14531_handler_current_product;
-extern uint16_t da14531_handler_current_product_len;
+pub fn timeout_get(cid: &mut u32) -> bool {
+    unsafe { bitbox02_sys::u2f_packet_timeout_get(cid as *mut _) }
+}
 
-#if FACTORYSETUP == 1
-bool da14531_handler_bond_db_set(void);
-#endif
+pub fn timeout(cid: u32) {
+    unsafe { bitbox02_sys::u2f_packet_timeout(cid) }
+}
 
-void da14531_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue);
-
-#endif
+pub fn process(packet: &[u8; 64]) -> bool {
+    unsafe { bitbox02_sys::u2f_packet_process(packet.as_ptr() as *const _) }
+}

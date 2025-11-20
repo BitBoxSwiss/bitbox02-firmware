@@ -95,6 +95,7 @@ fn main_loop() -> ! {
     EXECUTOR
         .spawn(async {
             workflow::orientation_screen::orientation_screen().await;
+            util::log!("ori chosen");
             ORIENTATION_CHOSEN.store(true, Ordering::Relaxed);
         })
         .detach();
@@ -228,6 +229,7 @@ fn main_loop() -> ! {
         EXECUTOR.try_tick();
 
         if ORIENTATION_CHOSEN.swap(false, Ordering::Relaxed) {
+            util::log!("orientation chosen");
             // hww handler in usb_process must be setup before we can allow ble connections
             if let Ok(bitbox02::memory::Platform::BitBox02Plus) = bitbox02::memory::get_platform() {
                 let (product, product_len) = bitbox02::platform::product();

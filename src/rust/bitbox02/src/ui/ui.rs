@@ -27,10 +27,10 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::cell::RefCell;
-use core::pin::Pin;
-use core::task::{Context, Poll, Waker};
+//use core::pin::Pin;
+use core::task::{Poll, Waker};
 
-use core::marker::PhantomPinned;
+//use core::marker::PhantomPinned;
 
 /// Wraps the C component_t to be used in Rust.
 pub struct Component {
@@ -672,6 +672,7 @@ pub async fn choose_orientation() -> bool {
         let mut shared_state = shared_state.borrow_mut();
         shared_state.result = Some(upside_down);
         if let Some(waker) = shared_state.waker.as_ref() {
+            util::log!("wake by ref");
             waker.wake_by_ref();
         }
     }

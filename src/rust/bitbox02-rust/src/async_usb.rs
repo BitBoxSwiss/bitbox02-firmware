@@ -71,10 +71,10 @@ enum UsbTaskState {
     /// The second element manages waiting for another request while processing a request, allowing
     /// multi-request workflows.
     Running(Option<Receiver<UsbOut>>, WaitingForNextRequestState),
-    /// The task has finished and written the result, so the USB response is available. We are now
-    /// waiting for the host to fetch it (HWW_REQ_RETRY). For short-circuited or non-async api
-    /// calls, the result might be returned immediately in response to HWW_REQ_NEW.
-    ResultAvailable(UsbOut),
+    // /// The task has finished and written the result, so the USB response is available. We are now
+    // /// waiting for the host to fetch it (HWW_REQ_RETRY). For short-circuited or non-async api
+    // /// calls, the result might be returned immediately in response to HWW_REQ_NEW.
+    // ResultAvailable(UsbOut),
 }
 
 /// A safer version of UsbTaskState. RefCell so we cannot accidentally borrow illegally.
@@ -155,13 +155,13 @@ pub fn on_next_request(usb_in: &[u8]) {
 //         _ => None,
 //     };
 //     if let Some(ref mut task) = popped_task {
-//         let spin_result = spin_task(task);
-//         if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
-//             // The task was cancelled while it was running, so there is nothing to do with the
-//             // result.
-//             return;
-//         }
-//         match spin_result {
+//         //let spin_result = spin_task(task);
+//         //if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
+//         //    // The task was cancelled while it was running, so there is nothing to do with the
+//         //    // result.
+//         //    return;
+//         //}
+//         match task.try_recv() {
 //             Poll::Ready(result) => {
 //                 *USB_TASK_STATE.0.borrow_mut() = UsbTaskState::ResultAvailable(result);
 //             }
@@ -195,28 +195,43 @@ pub enum CopyResponseErr {
 /// If there is no task running, returns `Err(CopyResponseErr::NotReady)` if a task is pending and a
 /// response is expected in the future, or `Err(CopyResponseErr::NotRunning)` if no task is running.
 pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
-    let mut state = USB_TASK_STATE.0.borrow_mut();
-    match *state {
-        UsbTaskState::Nothing => Err(CopyResponseErr::NotRunning),
-        UsbTaskState::Running(Some(_), ref mut next_request_state) => {
-            if let WaitingForNextRequestState::SendingResponse(response) = next_request_state {
-                let len = response.len();
-                dst[..len].copy_from_slice(response);
-                *next_request_state = WaitingForNextRequestState::AwaitingRequest;
-                Ok(len)
-            } else {
-                Err(CopyResponseErr::NotReady)
+    let state = &mut *USB_TASK_STATE.0.borrow_mut();
+    match state {
+        UsbTaskState::Running(Some(recv), _) => {
+            match recv.try_recv() {
+                Ok(response) => {
+                    let len = response.len();
+                    dst[..len].copy_from_slice(&response[..]);
+                    *state = UsbTaskState::Nothing;
+                    Ok(len)
+                }
+                Err(TryRecvError::Empty) => Err(CopyResponseErr::NotReady), // No result yet
+                Err(TryRecvError::Closed) => panic!("internal error"),
             }
         }
-        UsbTaskState::Running(_, _) => Err(CopyResponseErr::NotReady),
-        UsbTaskState::ResultAvailable(ref response) => {
-            let len = response.len();
-            dst[..len].copy_from_slice(response);
-            *state = UsbTaskState::Nothing;
-            Ok(len)
-        }
+        _ => Err(CopyResponseErr::NotRunning),
     }
 }
+/*
+    UsbTaskState::Nothing => Err(CopyResponseErr::NotRunning),
+    UsbTaskState::Running(Some(_), ref mut next_request_state) => {
+        if let WaitingForNextRequestState::SendingResponse(response) = next_request_state {
+            let len = response.len();
+            dst[..len].copy_from_slice(response);
+            *next_request_state = WaitingForNextRequestState::AwaitingRequest;
+            Ok(len)
+        } else {
+            Err(CopyResponseErr::NotReady)
+        }
+    }
+    UsbTaskState::Running(_, _) => Err(CopyResponseErr::NotReady),
+    UsbTaskState::ResultAvailable(ref response) => {
+        let len = response.len();
+        dst[..len].copy_from_slice(response);
+        *state = UsbTaskState::Nothing;
+        Ok(len)
+    }
+*/
 
 /// Cancel and drop a running task. Returns true if a task was cancelled, false if no task was
 /// running.

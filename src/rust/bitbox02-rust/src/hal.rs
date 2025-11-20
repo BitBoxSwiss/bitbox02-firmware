@@ -38,11 +38,20 @@ pub trait Random {
     fn random_32_bytes(&mut self) -> Box<zeroize::Zeroizing<[u8; 32]>>;
 }
 
+pub trait SecureChip {
+    fn init_new_password(&mut self, password: &str) -> Result<(), bitbox02::securechip::Error>;
+    fn stretch_password(
+        &mut self,
+        password: &str,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
+}
+
 /// Hardware abstraction layer for BitBox devices.
 pub trait Hal {
     fn ui(&mut self) -> &mut impl Ui;
     fn sd(&mut self) -> &mut impl Sd;
     fn random(&mut self) -> &mut impl Random;
+    fn securechip(&mut self) -> &mut impl SecureChip;
 }
 
 pub struct BitBox02Sd;
@@ -97,10 +106,26 @@ impl Random for BitBox02Random {
     }
 }
 
+pub struct BitBox02SecureChip;
+
+impl SecureChip for BitBox02SecureChip {
+    fn init_new_password(&mut self, password: &str) -> Result<(), bitbox02::securechip::Error> {
+        bitbox02::securechip::init_new_password(password)
+    }
+
+    fn stretch_password(
+        &mut self,
+        password: &str,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+        bitbox02::securechip::stretch_password(password)
+    }
+}
+
 pub struct BitBox02Hal {
     ui: RealWorkflows,
     sd: BitBox02Sd,
     random: BitBox02Random,
+    securechip: BitBox02SecureChip,
 }
 
 impl BitBox02Hal {
@@ -109,6 +134,7 @@ impl BitBox02Hal {
             ui: crate::workflow::RealWorkflows,
             sd: BitBox02Sd,
             random: BitBox02Random,
+            securechip: BitBox02SecureChip,
         }
     }
 }
@@ -122,6 +148,9 @@ impl Hal for BitBox02Hal {
     }
     fn random(&mut self) -> &mut impl Random {
         &mut self.random
+    }
+    fn securechip(&mut self) -> &mut impl SecureChip {
+        &mut self.securechip
     }
 }
 
@@ -223,10 +252,62 @@ pub mod testing {
         }
     }
 
+    pub struct TestingSecureChip {
+        // Count how man seceurity events happen. The numbers were obtained by reading the security
+        // event counter slot (0xE0C5) on a real device. We can use this to assert how many events
+        // were used in unit tests. The number is relevant due to Optiga's throttling mechanism.
+        event_counter: u32,
+    }
+
+    impl TestingSecureChip {
+        pub fn new() -> Self {
+            TestingSecureChip { event_counter: 0 }
+        }
+
+        /// Resets the event counter.
+        pub fn event_counter_reset(&mut self) {
+            self.event_counter = 0;
+            // TODO: remove once all unit tests use the SecureChip HAL.
+            bitbox02::securechip::fake_event_counter_reset()
+        }
+
+        /// Retrieves the event counter.
+        pub fn get_event_counter(&self) -> u32 {
+            // TODO: remove fake_event_counter() once all unit tests use the SecureChip HAL.
+            bitbox02::securechip::fake_event_counter() + self.event_counter
+        }
+    }
+
+    impl super::SecureChip for TestingSecureChip {
+        fn init_new_password(
+            &mut self,
+            _password: &str,
+        ) -> Result<(), bitbox02::securechip::Error> {
+            self.event_counter += 1;
+            Ok(())
+        }
+
+        fn stretch_password(
+            &mut self,
+            password: &str,
+        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+            self.event_counter += 5;
+
+            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
+            let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
+            engine.input(password.as_bytes());
+            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+            Ok(zeroize::Zeroizing::new(
+                hmac_result.to_byte_array().to_vec(),
+            ))
+        }
+    }
+
     pub struct TestingHal<'a> {
         pub ui: crate::workflow::testing::TestingWorkflows<'a>,
         pub sd: TestingSd,
         pub random: TestingRandom,
+        pub securechip: TestingSecureChip,
     }
 
     impl TestingHal<'_> {
@@ -235,6 +316,7 @@ pub mod testing {
                 ui: crate::workflow::testing::TestingWorkflows::new(),
                 sd: TestingSd::new(),
                 random: TestingRandom::new(),
+                securechip: TestingSecureChip::new(),
             }
         }
     }
@@ -248,6 +330,9 @@ pub mod testing {
         }
         fn random(&mut self) -> &mut impl super::Random {
             &mut self.random
+        }
+        fn securechip(&mut self) -> &mut impl super::SecureChip {
+            &mut self.securechip
         }
     }
 

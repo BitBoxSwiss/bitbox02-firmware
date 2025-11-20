@@ -218,10 +218,10 @@ mod tests {
             password_entered = true;
             Ok("password".into())
         }));
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(block_on(unlock(&mut mock_hal)), Ok(()));
         // 6 for keystore unlock, 1 for keystore bip39 unlock.
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 7);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 7);
 
         assert!(!crate::keystore::is_locked());
 
@@ -261,7 +261,7 @@ mod tests {
             Ok("wrong password".into())
         }));
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert!(matches!(
             block_on(unlock_keystore(
                 &mut mock_hal,
@@ -270,7 +270,7 @@ mod tests {
             )),
             Err(UnlockError::IncorrectPassword),
         ));
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 5);
 
         // Checks that the device is locked.
         assert!(crate::keystore::copy_seed().is_err());

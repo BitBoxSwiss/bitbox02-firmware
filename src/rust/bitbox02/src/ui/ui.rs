@@ -588,15 +588,21 @@ where
 }
 
 pub async fn choose_orientation() -> bool {
-    // Waker and result is shared with callback
-    type SharedState = (Option<Waker>, Option<bool>);
-    let shared_state: Arc<RefCell<SharedState>> = Arc::new(RefCell::new((None, None)));
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<bool>,
+    }
+    let shared_state = Arc::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
 
     unsafe extern "C" fn callback(upside_down: bool, user_data: *mut c_void) {
         let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
         let shared_state = &mut *shared_state.borrow_mut();
-        shared_state.1 = Some(upside_down);
-        if let Some(waker) = shared_state.0.as_ref() {
+        shared_state.result = Some(upside_down);
+        if let Some(waker) = shared_state.waker.as_ref() {
             waker.wake_by_ref();
         }
     }
@@ -618,19 +624,15 @@ pub async fn choose_orientation() -> bool {
     core::future::poll_fn({
         let shared_state = Arc::clone(&shared_state);
         move |cx| {
-            let state = &mut *shared_state.borrow_mut();
+            let shared_state = &mut *shared_state.borrow_mut();
 
-            // If it is the first time we are called, set the waker
-            let waker = &mut state.0;
-            if waker.is_none() {
-                waker.replace(Waker::clone(cx.waker()));
+            if let Some(result) = shared_state.result {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
             }
-
-            // If callback has set the result, return ready
-            if let Some(result) = state.1 {
-                return Poll::Ready(result);
-            }
-            Poll::Pending
         }
     })
     .await

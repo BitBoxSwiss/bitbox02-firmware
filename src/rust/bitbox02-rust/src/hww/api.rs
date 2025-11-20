@@ -139,7 +139,7 @@ fn can_call(request: &Request) -> bool {
         Request::SetPassword(_) | Request::RestoreBackup(_) | Request::RestoreFromMnemonic(_) => {
             matches!(state, State::Uninitialized | State::Seeded)
         }
-        Request::CreateBackup(_) | Request::ShowMnemonic(_) | Request::ChangePassword(_) => {
+        Request::CreateBackup(_) | Request::ShowMnemonic(_) => {
             matches!(state, State::Seeded | State::InitializedAndUnlocked)
         }
         Request::Fingerprint(_)
@@ -152,7 +152,8 @@ fn can_call(request: &Request) -> bool {
         | Request::Eth(_)
         | Request::Reset(_)
         | Request::Cardano(_)
-        | Request::Bip85(_) => {
+        | Request::Bip85(_)
+        | Request::ChangePassword(_) => {
             matches!(state, State::InitializedAndUnlocked)
         }
         // These are streamed asynchronously using the `next_request()` primitive in

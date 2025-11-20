@@ -212,22 +212,16 @@ class BitBox02(BitBoxCommonAPI):
             raise
         return True
 
-    def change_password(self) -> bool:
+    def change_password(self) -> None:
         """
-        Returns True if the user changes password successfully by
-        unlocking with old password and entering and confirming new password.
-        Returns False otherwise.
+        Changes the device password. The user must unlock with the old password
+        and enter and confirm the new password.
+        Raises a Bitbox02Exception on failure.
         """
         # pylint: disable=no-member
         request = hww.Request()
         request.change_password.CopyFrom(bitbox02_system.ChangePasswordRequest())
-        try:
-            self._msg_query(request, expected_response="success")
-        except Bitbox02Exception as err:
-            if err.code == ERR_GENERIC:
-                return False
-            raise
-        return True
+        self._msg_query(request, expected_response="success")
 
     def create_backup(self) -> bool:
         """

@@ -5,22 +5,26 @@ use pb::response::Response;
 
 use crate::hal::Ui;
 use crate::keystore;
-use crate::workflow::{password, unlock};
+use crate::workflow::{confirm, password, unlock};
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
-    // Must be initialized
-    if !bitbox02::memory::is_initialized() {
-        return Err(Error::Generic);
-    }
-
+    // Process confirmation and instruction for user
+    hal.ui()
+        .confirm(&confirm::Params {
+            title: "",
+            body: "Proceed to\nchange password?",
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
     // Unlock with old password
     let seed = unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?;
     // Enter and confirm new password
     let new_password = password::enter_twice(hal).await?;
 
     // Re-encrypt seed with new password
-    if keystore::re_encrypt_seed(hal, &seed, &new_password).is_err() {
-        hal.ui().status("Could not change\npassword", false).await;
+    if let Err(err) = keystore::re_encrypt_seed(hal, &seed, &new_password) {
+        hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
 
@@ -73,7 +77,7 @@ mod tests {
             }
         }));
         // reset the chip counter
-        bitbox02::securechip::fake_event_counter_reset();
+        hal.securechip.event_counter_reset();
         // call process
         let result = block_on(process(&mut hal));
         // assert success
@@ -82,14 +86,21 @@ mod tests {
         let screens = hal.ui.screens.clone();
         assert_eq!(
             screens,
-            vec![Screen::Status {
-                title: "Success".into(),
-                success: true,
-            }]
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Proceed to\nchange password?".into(),
+                    longtouch: false,
+                },
+                Screen::Status {
+                    title: "Success".into(),
+                    success: true,
+                }
+            ]
         );
-        drop(hal);
 
-        let securechip_events = bitbox02::securechip::fake_event_counter();
+        let securechip_events = hal.securechip.get_event_counter();
+        drop(hal);
         // We expect 14 secure chip events. This is intentionally brittle to catch
         // unintended changes in the number of securechip operations during password change.
         // If this fails after a legitimate change, update the expected count.
@@ -113,18 +124,6 @@ mod tests {
         );
     }
 
-    // Test that we fail if the device is not initialized
-    #[test]
-    fn test_process_device_not_initialized() {
-        mock_memory();
-        let mut hal = TestingHal::new();
-        assert!(!bitbox02::memory::is_initialized());
-        bitbox02::securechip::fake_event_counter_reset();
-        assert_eq!(block_on(process(&mut hal)), Err(Error::Generic));
-        assert!(hal.ui.screens.is_empty());
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 0);
-    }
-
     // Test that we fail if the unlock fails
     #[test]
     fn test_process_unlock_failure() {
@@ -146,19 +145,26 @@ mod tests {
             Ok("wrong_password".into())
         }));
 
-        bitbox02::securechip::fake_event_counter_reset();
+        hal.securechip.event_counter_reset();
         let result = block_on(process(&mut hal));
 
         assert_eq!(result, Err(Error::Generic));
         assert_eq!(
             hal.ui.screens,
-            vec![Screen::Status {
-                title: "Wrong password\n9 tries remain".into(),
-                success: false,
-            }]
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Proceed to\nchange password?".into(),
+                    longtouch: false,
+                },
+                Screen::Status {
+                    title: "Wrong password\n9 tries remain".into(),
+                    success: false,
+                }
+            ]
         );
         // We expect 5 secure chip events (sensitive to code changes)
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 5);
+        assert_eq!(hal.securechip.get_event_counter(), 5);
 
         drop(hal);
         assert_eq!(prompt_counter, 1);

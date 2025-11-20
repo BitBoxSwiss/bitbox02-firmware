@@ -66,3 +66,6 @@ message SetDeviceNameRequest {
 message SetPasswordRequest {
     bytes entropy = 1;
 }
+
+message ChangePasswordRequest{
+}

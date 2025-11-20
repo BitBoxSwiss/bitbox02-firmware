@@ -1519,6 +1519,14 @@ class SendMessage:
         else:
             print("Device NOT reset")
 
+    def _change_password_workflow(self) -> None:
+        """Initiate the change password workflow."""
+        try:
+            self._device.change_password()
+            print("Change password workflow completed")
+        except UserAbortException:
+            eprint("Aborted by user")
+
     def _menu_notinit(self) -> None:
         """TODO: Document
 
@@ -1581,6 +1589,7 @@ class SendMessage:
             ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
             ("Toggle bluetooth", self._bluetooth_toggle_enabled),
             ("Reset Device", self._reset_device),
+            ("Change Password", self._change_password_workflow),
         )
         choice = ask_user(choices)
         if isinstance(choice, bool):

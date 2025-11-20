@@ -192,21 +192,30 @@ fn retain_seed(random: &mut impl crate::hal::Random, seed: &[u8]) -> Result<(), 
     Ok(())
 }
 
-/// Restores a seed. This also unlocks the keystore with this seed.
-/// `password` is the password with which we encrypt the seed.
-pub fn encrypt_and_store_seed(
+fn retain_bip39_seed(random: &mut impl crate::hal::Random, bip39_seed: &[u8]) -> Result<(), Error> {
+    RETAINED_BIP39_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
+        random,
+        bip39_seed,
+        "keystore_retained_bip39_seed_access",
+    )?));
+    Ok(())
+}
+
+// Internal helper to encrypt a seed with a password and store it on flash
+// For setting password (initilization) we clear memory first, to guarantee clean RAM
+// For changing password we do not clear memory to retain the BIP39 seed
+// so that the passphrase does not have to be re-entered
+fn encrypt_and_store_seed_internal(
     hal: &mut impl crate::hal::Hal,
     seed: &[u8],
     password: &str,
 ) -> Result<(), Error> {
-    if bitbox02::memory::is_initialized() {
-        return Err(Error::Memory);
-    }
-
+    // Check that the seed is valid
     if !matches!(seed.len(), 16 | 24 | 32) {
         return Err(Error::SeedSize);
     }
 
+    // Lock to ensure clean RAM
     lock();
 
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
@@ -231,6 +240,43 @@ pub fn encrypt_and_store_seed(
     }
 
     retain_seed(hal.random(), seed)
+}
+
+/// Restores a seed. This also unlocks the keystore with this seed.
+/// `password` is the password with which we encrypt the seed.
+pub fn encrypt_and_store_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    password: &str,
+) -> Result<(), Error> {
+    if bitbox02::memory::is_initialized() {
+        return Err(Error::Memory);
+    }
+    encrypt_and_store_seed_internal(hal, seed, password)
+}
+
+/// Re-encrypts the seed with a (new) password
+pub fn re_encrypt_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    new_password: &str,
+) -> Result<(), Error> {
+    if !bitbox02::memory::is_seeded() {
+        return Err(Error::Unseeded);
+    }
+
+    // Store the bip39 seed before re-encryption because:
+    // 1. The secure chip's internal keys are regenerated with the new password
+    // 2. encrypt_and_store_seed_internal calls lock() which clears RAM including BIP39 seed
+    // 3. We want to avoid forcing the user to re-enter their BIP39 passphrase
+    let bip39_seed = copy_bip39_seed().map_err(|_| Error::Memory)?;
+
+    encrypt_and_store_seed_internal(hal, seed, new_password)?;
+
+    // Re-retain the bip39 seed
+    retain_bip39_seed(hal.random(), bip39_seed.as_slice())?;
+
+    Ok(())
 }
 
 // Checks if the retained seed matches the passed seed.
@@ -335,11 +381,7 @@ pub async fn unlock_bip39(
         return Err(Error::Memory);
     }
 
-    RETAINED_BIP39_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
-        random,
-        bip39_seed.as_slice(),
-        "keystore_retained_bip39_seed_access",
-    )?));
+    retain_bip39_seed(random, bip39_seed.as_slice())?;
 
     // Store root fingerprint.
     ROOT_FINGERPRINT.write(Some(root_fingerprint));
@@ -836,6 +878,193 @@ mod tests {
                 bitbox_aes::decrypt_with_hmac(&expected_encryption_key, &cipher).unwrap();
             assert_eq!(decrypted.as_slice(), &expected_seed[..size]);
         }
+    }
+
+    #[test]
+    fn test_re_encrypt_seed() {
+        mock_memory();
+        lock();
+
+        let mut mock_hal = TestingHal::new();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+
+        // Try to re-encrypt without seeding first
+        assert!(matches!(
+            re_encrypt_seed(&mut mock_hal, &seed, "new_password"),
+            Err(Error::Unseeded)
+        ));
+    }
+
+    #[test]
+    fn test_re_encrypt_seed_changes_password() {
+        mock_memory();
+        lock();
+
+        let mut mock_hal = TestingHal::new();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+
+        // Step 1: Set up device with initial password
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "old_password").is_ok());
+
+        // Step 2: Unlock with initial password and set up BIP39
+        let unlocked_seed = unlock(&mut mock_hal, "old_password").unwrap();
+        assert_eq!(unlocked_seed.as_slice(), seed.as_slice());
+
+        let mut random = crate::hal::testing::TestingRandom::new();
+        assert!(block_on(unlock_bip39(&mut random, &seed, "", async || {})).is_ok());
+
+        // Step 3: Re-encrypt with new password
+        assert!(re_encrypt_seed(&mut mock_hal, &seed, "new_password").is_ok());
+
+        // Step 4: Lock and verify old password no longer works
+        lock();
+        assert!(matches!(
+            unlock(&mut mock_hal, "old_password"),
+            Err(Error::IncorrectPassword)
+        ));
+
+        // Step 5: Verify new password works
+        let unlocked_seed_new = unlock(&mut mock_hal, "new_password").unwrap();
+        assert_eq!(unlocked_seed_new.as_slice(), seed.as_slice());
+    }
+
+    #[test]
+    fn test_re_encrypt_seed_preserves_seed() {
+        mock_memory();
+        lock();
+
+        let mut mock_hal = TestingHal::new();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+
+        // Initial setup
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password1").is_ok());
+        let seed_copy1 = copy_seed().unwrap();
+
+        // Re-encrypt multiple times
+        for (i, new_password) in ["password2", "password3", "password4"].iter().enumerate() {
+            // Need to be unlocked with BIP39 before re-encrypting
+            if i > 0 {
+                let prev_password = match i {
+                    1 => "password2",
+                    2 => "password3",
+                    _ => unreachable!(),
+                };
+                lock();
+                unlock(&mut mock_hal, prev_password).unwrap();
+            }
+
+            let mut random = crate::hal::testing::TestingRandom::new();
+            assert!(block_on(unlock_bip39(&mut random, &seed, "", async || {})).is_ok());
+            assert!(re_encrypt_seed(&mut mock_hal, &seed, new_password).is_ok());
+
+            // Seed should remain the same
+            assert_eq!(copy_seed().unwrap().as_slice(), seed_copy1.as_slice());
+        }
+    }
+
+    #[test]
+    fn test_re_encrypt_seed_preserves_bip39_seed() {
+        mock_memory();
+        lock();
+
+        let mut mock_hal = TestingHal::new();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+        let passphrase = "my_secret_passphrase";
+
+        // Initial setup with password
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "old_password").is_ok());
+        unlock(&mut mock_hal, "old_password").unwrap();
+
+        // Unlock BIP39 with passphrase
+        let mut random = crate::hal::testing::TestingRandom::new();
+        assert!(block_on(unlock_bip39(&mut random, &seed, passphrase, async || {})).is_ok());
+
+        // Store the BIP39 seed before password change
+        let bip39_seed_before = copy_bip39_seed().unwrap();
+
+        // Re-encrypt with new password
+        assert!(re_encrypt_seed(&mut mock_hal, &seed, "new_password").is_ok());
+
+        // BIP39 seed should still be available (not cleared by lock() inside re_encrypt_seed)
+        let bip39_seed_after = copy_bip39_seed().unwrap();
+        assert_eq!(bip39_seed_before.as_slice(), bip39_seed_after.as_slice());
+
+        // Lock and unlock with new password
+        lock();
+        unlock(&mut mock_hal, "new_password").unwrap();
+
+        // BIP39 should be locked now (we'd need to call unlock_bip39 again)
+        assert!(copy_bip39_seed().is_err());
+    }
+
+    #[test]
+    fn test_re_encrypt_seed_invalid_seed_size() {
+        mock_memory();
+        lock();
+
+        let mut mock_hal = TestingHal::new();
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+
+        // Initial setup
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
+        unlock(&mut mock_hal, "password").unwrap();
+
+        let mut random = crate::hal::testing::TestingRandom::new();
+        assert!(block_on(unlock_bip39(&mut random, &seed, "", async || {})).is_ok());
+
+        // Try to re-encrypt with invalid seed size
+        assert!(matches!(
+            re_encrypt_seed(&mut mock_hal, &[0u8; 31], "new_password"),
+            Err(Error::SeedSize)
+        ));
+    }
+
+    #[test]
+    fn test_retain_bip39_seed() {
+        mock_memory();
+        lock();
+
+        let mut random = crate::hal::testing::TestingRandom::new();
+        let bip39_seed = hex!(
+            "2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a"
+        );
+
+        // Before retention, should not be available
+        assert!(copy_bip39_seed().is_err());
+
+        // Retain the BIP39 seed
+        assert!(retain_bip39_seed(&mut random, &bip39_seed).is_ok());
+
+        // Should now be available
+        let retrieved = copy_bip39_seed().unwrap();
+        assert_eq!(retrieved.as_slice(), bip39_seed.as_slice());
+    }
+
+    #[test]
+    fn test_retain_bip39_seed_overwrites_previous() {
+        mock_memory();
+        lock();
+        let mut random = crate::hal::testing::TestingRandom::new();
+        let bip39_seed1 = hex!(
+            "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+        );
+        let bip39_seed2 = hex!(
+            "2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+        );
+
+        // Retain first seed
+        assert!(retain_bip39_seed(&mut random, &bip39_seed1).is_ok());
+        assert_eq!(
+            copy_bip39_seed().unwrap().as_slice(),
+            bip39_seed1.as_slice()
+        );
+
+        // Retain second seed (should overwrite)
+        assert!(retain_bip39_seed(&mut random, &bip39_seed2).is_ok());
+        assert_eq!(
+            copy_bip39_seed().unwrap().as_slice(),
+            bip39_seed2.as_slice()
+        );
     }
 
     // This tests that you can create a keystore, unlock it, and then do this again. This is an

@@ -28,6 +28,7 @@ mod cardano;
 mod backup;
 mod bip85;
 mod bluetooth;
+mod change_password;
 mod device_info;
 mod electrum;
 mod reset;
@@ -151,7 +152,8 @@ fn can_call(request: &Request) -> bool {
         | Request::Eth(_)
         | Request::Reset(_)
         | Request::Cardano(_)
-        | Request::Bip85(_) => {
+        | Request::Bip85(_)
+        | Request::ChangePassword(_) => {
             matches!(state, State::InitializedAndUnlocked)
         }
         // These are streamed asynchronously using the `next_request()` primitive in
@@ -167,6 +169,7 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         Request::DeviceInfo(_) => device_info::process(),
         Request::DeviceName(request) => set_device_name::process(hal, request).await,
         Request::SetPassword(request) => set_password::process(hal, request).await,
+        Request::ChangePassword(_) => change_password::process(hal).await,
         Request::Reset(_) => reset::process(hal).await,
         Request::SetMnemonicPassphraseEnabled(request) => {
             set_mnemonic_passphrase_enabled::process(hal, request).await

@@ -212,6 +212,17 @@ class BitBox02(BitBoxCommonAPI):
             raise
         return True
 
+    def change_password(self) -> None:
+        """
+        Returns True if the user changes password successfully by
+        unlocking with old password and entering and confirming new password.
+        Raises a Bitbox02Exception on failure.
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.change_password.CopyFrom(bitbox02_system.ChangePasswordRequest())
+        self._msg_query(request, expected_response="success")
+
     def create_backup(self) -> bool:
         """
         Returns True if the backup was created successfully.

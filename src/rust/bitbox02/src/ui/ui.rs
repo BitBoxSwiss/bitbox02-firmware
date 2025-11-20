@@ -23,9 +23,12 @@ use core::ffi::{c_char, c_void};
 extern crate alloc;
 use alloc::boxed::Box;
 use alloc::string::String;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::cell::RefCell;
 use core::pin::Pin;
 use core::task::{Context, Poll, Waker};
+use critical_section::Mutex;
 
 use core::marker::PhantomPinned;
 
@@ -584,113 +587,51 @@ where
     }
 }
 
-use alloc::sync::Arc;
-use core::cell::RefCell;
-use critical_section::Mutex;
-
-// Shared state between task and callback
-type ChooseOrientationState = Arc<Mutex<RefCell<(Option<Waker>, Option<bool>)>>>;
-
 pub async fn choose_orientation() -> bool {
-    // Waker and result is shared to callback
-    let shared_state: ChooseOrientationState = Arc::new(Mutex::new(RefCell::new((None, None))));
+    // Waker and result is shared with callback
+    type SharedState = (Option<Waker>, Option<bool>);
+    let shared_state: Arc<RefCell<SharedState>> = Arc::new(RefCell::new((None, None)));
+
     unsafe extern "C" fn callback(upside_down: bool, user_data: *mut c_void) {
-        let shared_state: ChooseOrientationState = unsafe { Arc::from_raw(user_data as *mut _) };
-        critical_section::with(|cs| {
-            let mut shared_state = shared_state.borrow_ref_mut(cs);
-            shared_state.1 = Some(upside_down);
-            if let Some(waker) = shared_state.0.as_ref() {
-                waker.wake_by_ref();
-            }
-        })
+        let shared_state: Arc<RefCell<SharedState>> = unsafe { Arc::from_raw(user_data as *mut _) };
+        let shared_state = &mut *shared_state.borrow_mut();
+        shared_state.1 = Some(upside_down);
+        if let Some(waker) = shared_state.0.as_ref() {
+            waker.wake_by_ref();
+        }
     }
+
     let component = unsafe {
         bitbox02_sys::orientation_arrows_create(
             Some(callback),
-            Arc::into_raw(shared_state.clone()) as *mut _, // passed to callback as `user_data`.
+            Arc::into_raw(Arc::clone(&shared_state)) as *mut _, // passed to callback as `user_data`.
         )
     };
+
     let mut component = Component {
         component,
         is_pushed: false,
         on_drop: None,
     };
     component.screen_stack_push();
+
     core::future::poll_fn({
         let shared_state = Arc::clone(&shared_state);
         move |cx| {
-            critical_section::with(|cs| {
-                let state = &mut *shared_state.borrow_ref_mut(cs);
-                let waker = &mut state.0;
-                if waker.is_none() {
-                    waker.replace(Waker::clone(cx.waker()));
-                }
-                if let Some(result) = state.1 {
-                    return Poll::Ready(result);
-                }
-                Poll::Pending
-            })
+            let state = &mut *shared_state.borrow_mut();
+
+            // If it is the first time we are called, set the waker
+            let waker = &mut state.0;
+            if waker.is_none() {
+                waker.replace(Waker::clone(cx.waker()));
+            }
+
+            // If callback has set the result, return ready
+            if let Some(result) = state.1 {
+                return Poll::Ready(result);
+            }
+            Poll::Pending
         }
     })
     .await
 }
-
-//pub struct ChooseOrientation {
-//    component: Option<Component>,
-//    result: Option<bool>,
-//    waker: Option<Waker>,
-//    _phantom: PhantomPinned,
-//}
-//
-//impl Future for ChooseOrientation {
-//    type Output = bool;
-//
-//    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-//        if self.component.is_none() {
-//            unsafe extern "C" fn c_on_done(upside_down: bool, user_data: *mut c_void) {
-//                // SAFETY: the *mut pointer was created when the object was pinned and thus
-//                // immovable.
-//                unsafe {
-//                    let orientation_arrows = user_data as *mut ChooseOrientation;
-//                    (*orientation_arrows).result = Some(upside_down);
-//                    (*orientation_arrows).waker.as_ref().unwrap().wake_by_ref();
-//                }
-//            }
-//            let this = unsafe { Pin::into_inner_unchecked(self) };
-//            let component = unsafe {
-//                bitbox02_sys::orientation_arrows_create(
-//                    Some(c_on_done),
-//                    &mut *this as *mut _ as *mut _, // passed to c_on_done as `user_data`.
-//                )
-//            };
-//            let mut component = Component {
-//                component,
-//                is_pushed: false,
-//                on_drop: None,
-//            };
-//            component.screen_stack_push();
-//            this.component = Some(component);
-//            this.waker = Some(Waker::clone(cx.waker()));
-//            Poll::Pending
-//        } else if let Some(result) = self.result {
-//            Poll::Ready(result)
-//        } else {
-//            Poll::Pending
-//        }
-//    }
-//}
-//
-//impl ChooseOrientation {
-//    pub fn new() -> ChooseOrientation {
-//        ChooseOrientation {
-//            component: None,
-//            result: None,
-//            waker: None,
-//            _phantom: PhantomPinned,
-//        }
-//    }
-//}
-//
-//pub fn choose_orientation() -> ChooseOrientation {
-//    ChooseOrientation::new()
-//}

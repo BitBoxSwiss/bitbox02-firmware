@@ -1,16 +1,13 @@
 #![no_std]
 use core::cell::RefCell;
 use core::fmt;
-use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
-use core::task::{Context, Poll, Waker};
+use core::task::{Poll, Waker};
 
 use async_task::Runnable;
 use concurrent_queue::ConcurrentQueue;
 use critical_section::Mutex;
 use futures_lite::{future, prelude::*};
-use pin_project_lite::pin_project;
-use slab::Slab;
 
 mod static_executors;
 
@@ -19,53 +16,33 @@ pub use async_task::{FallibleTask, Task};
 pub use static_executors::*;
 
 extern crate alloc;
-use alloc::{sync::Arc, vec::Vec};
+use alloc::vec::Vec;
 
 /// The state of a executor.
 struct State {
     /// The global queue.
     queue: ConcurrentQueue<Runnable>,
 
-    /// Local queues created by runners.
-    local_queues: Mutex<RefCell<Vec<Arc<ConcurrentQueue<Runnable>>>>>,
-
     /// Set to `true` when a sleeping ticker is notified or no tickers are sleeping.
     notified: AtomicBool,
 
     /// A list of sleeping tickers.
     sleepers: Mutex<RefCell<Sleepers>>,
-
-    /// Currently active tasks.
-    active: Mutex<RefCell<Slab<Waker>>>,
 }
 
 impl State {
     /// Creates state for a new executor.
     const fn new() -> State {
         State {
-            queue: ConcurrentQueue::unbounded(),
-            local_queues: Mutex::new(RefCell::new(Vec::new())),
+            queue: ConcurrentQueue::unbounded(), // should it be bounded? -> new() cannot be const.
             notified: AtomicBool::new(true),
             sleepers: Mutex::new(RefCell::new(Sleepers {
                 count: 0,
                 wakers: Vec::new(),
                 free_ids: Vec::new(),
             })),
-            active: Mutex::new(RefCell::new(Slab::new())),
         }
     }
-
-    // fn pin(&self) -> Pin<&Self> {
-    //     Pin::new(self)
-    // }
-
-    // /// Returns a reference to currently active tasks.
-    // fn active(self: Pin<&Self>) -> MutexGuard<'_, Slab<Waker>> {
-    //     self.get_ref()
-    //         .active
-    //         .lock()
-    //         .unwrap_or_else(PoisonError::into_inner)
-    // }
 
     /// Notifies a sleeping ticker.
     #[inline]
@@ -105,14 +82,13 @@ impl State {
     }
 
     pub async fn run<T>(&self, future: impl Future<Output = T>) -> T {
-        let mut runner = Runner::new(self);
-        let mut rng = fastrand::Rng::with_seed(0x4d595df4d0f33173);
+        let mut ticker = Ticker::new(self);
 
         // A future that runs tasks forever.
         let run_forever = async {
             loop {
                 for _ in 0..200 {
-                    let runnable = runner.runnable(&mut rng).await;
+                    let runnable = ticker.runnable().await;
                     runnable.run();
                 }
                 future::yield_now().await;
@@ -318,156 +294,8 @@ impl Drop for Ticker<'_> {
     }
 }
 
-/// A worker in a work-stealing executor.
-///
-/// This is just a ticker that also has an associated local queue for improved cache locality.
-struct Runner<'a> {
-    /// The executor state.
-    state: &'a State,
-
-    /// Inner ticker.
-    ticker: Ticker<'a>,
-
-    /// The local queue.
-    local: Arc<ConcurrentQueue<Runnable>>,
-
-    /// Bumped every time a runnable task is found.
-    ticks: usize,
-}
-
-impl Runner<'_> {
-    /// Creates a runner and registers it in the executor state.
-    fn new(state: &State) -> Runner<'_> {
-        let runner = Runner {
-            state,
-            ticker: Ticker::new(state),
-            local: Arc::new(ConcurrentQueue::bounded(512)),
-            ticks: 0,
-        };
-        critical_section::with(|cs| {
-            state
-                .local_queues
-                .borrow_ref_mut(cs)
-                .push(runner.local.clone());
-        });
-        runner
-    }
-
-    /// Waits for the next runnable task to run.
-    async fn runnable(&mut self, _rng: &mut fastrand::Rng) -> Runnable {
-        let runnable = self
-            .ticker
-            .runnable_with(|| {
-                // Try the local queue.
-                if let Ok(r) = self.local.pop() {
-                    return Some(r);
-                }
-
-                // Try stealing from the global queue.
-                if let Ok(r) = self.state.queue.pop() {
-                    steal(&self.state.queue, &self.local);
-                    return Some(r);
-                }
-
-                // TODO(nd): Does work stealing make sense in single core??
-                // // Try stealing from other runners.
-                // if let Ok(local_queues) = self.state.local_queues.try_read() {
-                //     // Pick a random starting point in the iterator list and rotate the list.
-                //     let n = local_queues.len();
-                //     let start = rng.usize(..n);
-                //     let iter = local_queues
-                //         .iter()
-                //         .chain(local_queues.iter())
-                //         .skip(start)
-                //         .take(n);
-
-                //     // Remove this runner's local queue.
-                //     let iter = iter.filter(|local| !Arc::ptr_eq(local, &self.local));
-
-                //     // Try stealing from each local queue in the list.
-                //     for local in iter {
-                //         steal(local, &self.local);
-                //         if let Ok(r) = self.local.pop() {
-                //             return Some(r);
-                //         }
-                //     }
-                // }
-
-                None
-            })
-            .await;
-
-        // Bump the tick counter.
-        self.ticks = self.ticks.wrapping_add(1);
-
-        if self.ticks.is_multiple_of(64) {
-            // Steal tasks from the global queue to ensure fair task scheduling.
-            steal(&self.state.queue, &self.local);
-        }
-
-        runnable
-    }
-}
-
-impl Drop for Runner<'_> {
-    fn drop(&mut self) {
-        // Remove the local queue.
-        critical_section::with(|cs| {
-            self.state
-                .local_queues
-                .borrow_ref_mut(cs)
-                .retain(|local| !Arc::ptr_eq(local, &self.local));
-        });
-
-        // Re-schedule remaining tasks in the local queue.
-        while let Ok(r) = self.local.pop() {
-            r.schedule();
-        }
-    }
-}
-
-/// Steals some items from one queue into another.
-fn steal<T>(src: &ConcurrentQueue<T>, dest: &ConcurrentQueue<T>) {
-    // Half of `src`'s length rounded up.
-    let mut count = src.len().div_ceil(2);
-
-    if count > 0 {
-        // Don't steal more than fits into the queue.
-        if let Some(cap) = dest.capacity() {
-            count = count.min(cap - dest.len());
-        }
-
-        // Steal tasks.
-        for _ in 0..count {
-            if let Ok(t) = src.pop() {
-                assert!(dest.push(t).is_ok());
-            } else {
-                break;
-            }
-        }
-    }
-}
-
-/// Debug implementation for `Executor` and `LocalExecutor`.
+/// Debug implementation for `StaticExecutor`.
 fn debug_state(state: &State, name: &str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// Debug wrapper for the number of active tasks.
-    struct ActiveTasks<'a>(&'a Mutex<RefCell<Slab<Waker>>>);
-
-    impl fmt::Debug for ActiveTasks<'_> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            critical_section::with(|cs| fmt::Debug::fmt(&self.0.borrow_ref(cs).len(), f))
-        }
-    }
-
-    /// Debug wrapper for the local runners.
-    struct LocalRunners<'a>(&'a Mutex<RefCell<Vec<Arc<ConcurrentQueue<Runnable>>>>>);
-
-    impl fmt::Debug for LocalRunners<'_> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            critical_section::with(|cs| fmt::Debug::fmt(&self.0.borrow_ref(cs).len(), f))
-        }
-    }
-
     /// Debug wrapper for the sleepers.
     struct SleepCount<'a>(&'a Mutex<RefCell<Sleepers>>);
 
@@ -478,60 +306,7 @@ fn debug_state(state: &State, name: &str, f: &mut fmt::Formatter<'_>) -> fmt::Re
     }
 
     f.debug_struct(name)
-        .field("active", &ActiveTasks(&state.active))
         .field("global_tasks", &state.queue.len())
-        .field("local_runners", &LocalRunners(&state.local_queues))
         .field("sleepers", &SleepCount(&state.sleepers))
         .finish()
 }
-
-/// Runs a closure when dropped.
-struct CallOnDrop<F: FnMut()>(F);
-
-impl<F: FnMut()> Drop for CallOnDrop<F> {
-    fn drop(&mut self) {
-        (self.0)();
-    }
-}
-
-pin_project! {
-    /// A wrapper around a future, running a closure when dropped.
-    struct AsyncCallOnDrop<Fut, Cleanup: FnMut()> {
-        #[pin]
-        future: Fut,
-        cleanup: CallOnDrop<Cleanup>,
-    }
-}
-
-// impl<Fut, Cleanup: FnMut()> AsyncCallOnDrop<Fut, Cleanup> {
-//     fn new(future: Fut, cleanup: Cleanup) -> Self {
-//         Self {
-//             future,
-//             cleanup: CallOnDrop(cleanup),
-//         }
-//     }
-// }
-
-impl<Fut: Future, Cleanup: FnMut()> Future for AsyncCallOnDrop<Fut, Cleanup> {
-    type Output = Fut::Output;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        self.project().future.poll(cx)
-    }
-}
-
-// /// Polls a future until the result is available.
-// pub fn block_on<O>(task: impl core::future::Future<Output = O>) -> O {
-//     futures_lite::pin!(task);
-//
-//     //let runnable = Runnable{};
-//     //let waker = runnable.waker()
-//     ////let waker = Waker::from(bitbox02_reactor::Waker);
-//     //let cx = &mut Context::from_waker(waker)
-//     //loop {
-//     //    match task.as_mut().poll(cx) {
-//     //        Poll::Ready(output) => return output,
-//     //        Poll::Pending => (), // TODO: Should "wait for events" and not busy loop
-//     //    }
-//     //}
-// }

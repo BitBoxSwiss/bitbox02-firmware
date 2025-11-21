@@ -184,6 +184,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 
 [[package]]
+name = "async-task"
+version = "4.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b75356056920673b02621b35afd0f7dda9306d03c79a30f5c56c44cf256e3de"
+
+[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -298,6 +304,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox02-executor"
+version = "0.1.0"
+dependencies = [
+ "async-task",
+ "concurrent-queue",
+ "critical-section",
+ "futures-lite",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "bitbox02-noise"
 version = "0.1.0"
 dependencies = [
@@ -315,6 +332,7 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox02",
+ "bitbox02-executor",
  "bitbox02-noise",
  "bitcoin",
  "bitcoin_hashes",

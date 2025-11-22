@@ -45,6 +45,7 @@ static uint8_t _report_descriptor[] = {USB_DESC_U2F_REPORT};
 static volatile bool _send_busy = false;
 static volatile bool _has_data = false;
 static volatile bool _request_in_flight = false;
+static uint8_t _write_buf[64];
 
 /**
  * The USB device core request handler callback for the U2F interface.
@@ -87,7 +88,8 @@ bool hid_u2f_write_poll(const uint8_t* data)
     if (_send_busy) {
         return false;
     }
-    if (hid_write(&_func_data, data, USB_HID_REPORT_OUT_SIZE) == ERR_NONE) {
+    memcpy(_write_buf, data, USB_HID_REPORT_OUT_SIZE);
+    if (hid_write(&_func_data, _write_buf, USB_HID_REPORT_OUT_SIZE) == ERR_NONE) {
         _send_busy = true;
         return true;
     }

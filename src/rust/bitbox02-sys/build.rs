@@ -21,6 +21,8 @@ const ALLOWLIST_VARS: &[&str] = &[
     "BASE58_CHECKSUM_LEN",
     "BIP32_SERIALIZED_LEN",
     "BIP39_WORDLIST_LEN",
+    "da14531_handler_current_product_len",
+    "da14531_handler_current_product",
     "EC_PUBLIC_KEY_LEN",
     "font_font_a_11X10",
     "font_font_a_9X9",
@@ -46,6 +48,8 @@ const ALLOWLIST_VARS: &[&str] = &[
     "secfalse_u8",
     "SD_MAX_FILE_SIZE",
     "SLIDER_POSITION_TWO_THIRD",
+    "USART_0_BUFFER_SIZE",
+    "USB_REPORT_SIZE",
     "XPUB_ENCODED_LEN",
 ];
 
@@ -54,9 +58,11 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "buffer_t",
     "component_t",
     "confirm_params_t",
+    "da14531_protocol_frame",
     "delay_t",
     "event_slider_data_t",
     "event_types",
+    "ringbuffer",
     "secp256k1_ecdsa_s2c_opening",
     "secp256k1_ecdsa_signature",
     "secp256k1_pubkey",
@@ -66,19 +72,26 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "upside_down_t",
 ];
 
+const OPAQUE_TYPES: &[&str] = &["da14531_protocol_frame"];
+
 const ALLOWLIST_FNS: &[&str] = &[
     "bip32_derive_xpub",
-    "bitbox02_smarteeprom_init",
-    "bitbox02_smarteeprom_get_unlock_attempts",
-    "bitbox02_smarteeprom_increment_unlock_attempts",
-    "bitbox02_smarteeprom_reset_unlock_attempts",
     "bitbox_secp256k1_dleq_prove",
     "bitbox_secp256k1_dleq_verify",
+    "bitbox02_smarteeprom_get_unlock_attempts",
+    "bitbox02_smarteeprom_increment_unlock_attempts",
     "bitbox02_smarteeprom_init",
+    "bitbox02_smarteeprom_reset_unlock_attempts",
+    "communication_mode_ble_disable",
     "communication_mode_ble_enabled",
     "confirm_create",
     "confirm_transaction_address_create",
     "confirm_transaction_fee_create",
+    "da14531_handler",
+    "da14531_power_down",
+    "da14531_protocol_poll",
+    "da14531_set_name",
+    "da14531_set_product",
     "delay_cancel",
     "delay_init_ms",
     "delay_is_elapsed",
@@ -90,6 +103,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "fake_securechip_event_counter_reset",
     "fake_securechip_event_counter",
     "gmtime",
+    "hid_hww_read",
+    "hid_hww_write_poll",
+    "hid_u2f_read",
+    "hid_u2f_write_poll",
     "hww_setup",
     "keystore_bip39_mnemonic_to_seed",
     "keystore_get_bip39_word",
@@ -136,17 +153,21 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_spi_get_active_ble_firmware_version",
     "menu_create",
     "orientation_arrows_create",
+    "platform_product",
     "printf",
     "progress_create",
     "progress_set",
     "queue_hww_queue",
     "queue_pull",
+    "queue_u2f_queue",
     "random_32_bytes_mcu",
     "random_32_bytes",
     "random_fake_reset",
     "reboot_to_bootloader",
     "reset_ble",
     "reset_reset",
+    "ringbuffer_init",
+    "ringbuffer_num",
     "screen_clear",
     "screen_init",
     "screen_print_debug",
@@ -184,6 +205,12 @@ const ALLOWLIST_FNS: &[&str] = &[
     "trinary_choice_create",
     "trinary_input_string_create",
     "trinary_input_string_set_input",
+    "u2f_packet_init",
+    "u2f_packet_process",
+    "u2f_packet_timeout_get",
+    "u2f_packet_timeout",
+    "u2f_process",
+    "uart_poll",
     "UG_ClearBuffer",
     "UG_FontSelect",
     "UG_PutString",
@@ -195,8 +222,12 @@ const ALLOWLIST_FNS: &[&str] = &[
     "usb_packet_process",
     "usb_processing_hww",
     "usb_processing_init",
+    "usb_processing_locked",
     "usb_processing_process",
     "usb_processing_timeout_reset",
+    "usb_processing_u2f",
+    "usb_processing_unlock",
+    "usb_start",
     "util_format_datetime",
 ];
 
@@ -417,6 +448,7 @@ pub fn main() -> Result<(), &'static str> {
         .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
         .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
         .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
+        .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
         .arg("wrapper.h")
         .arg("--")
         .args(&definitions)

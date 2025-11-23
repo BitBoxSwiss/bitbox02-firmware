@@ -148,13 +148,16 @@ static void _alphabet_selected(component_t* component, const char* alphabet)
         memset(data->elements, 0, sizeof(data->elements));
         data->character_chosen_cb(component, alphabet[0]);
         data->in_progress = false;
-        // Clear navigation stack when a character is chosen
+        /* Clear navigation stack when a character is chosen */
         _navigation_stack_clear(data);
     } else {
-        /* Before selecting a sub-alphabet, push current full alphabet to stack */
+        /* Select a sub-alphabet. */
+
+        /* Push current state to navigation stack before going deeper */
         _navigation_stack_push(data, data->current_full_alphabet);
         
-        /* Select a sub-alphabet. */
+        /* Store the new alphabet and navigate to it */
+        snprintf(data->current_full_alphabet, sizeof(data->current_full_alphabet), "%s", alphabet);
         trinary_input_char_set_alphabet(component, alphabet, data->horiz_space);
         data->in_progress = true;
     }
@@ -282,13 +285,6 @@ void trinary_input_char_set_alphabet(
     UG_S16 horiz_space)
 {
     data_t* data = (data_t*)component->data;
-    
-    // Clear navigation stack when alphabet is set externally (new input session)
-    // This happens when switching keyboard modes or starting fresh input
-    if (!data->in_progress) {
-        _navigation_stack_clear(data);
-    }
-    
     data->horiz_space = horiz_space;
     // copy so that alphabet_input can overlap with left_alphabet, middle_alphabet, right_alphabet
     // overwritten below.

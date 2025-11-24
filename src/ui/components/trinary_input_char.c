@@ -59,7 +59,7 @@ typedef struct {
     char left_alphabet[MAX_CHARS + 1];
     char middle_alphabet[MAX_CHARS + 1];
     char right_alphabet[MAX_CHARS + 1];
-    
+
     // Keep track of the current full alphabet for navigation stack
     char current_full_alphabet[MAX_CHARS + 1];
 
@@ -91,7 +91,7 @@ static void _navigation_stack_push(data_t* data, const char* current_alphabet)
         }
         data->navigation_stack_size = MAX_NAVIGATION_DEPTH - 1;
     }
-    
+
     // Add current alphabet to stack
     navigation_stack_entry_t* entry = &data->navigation_stack[data->navigation_stack_size];
     snprintf(entry->alphabet, sizeof(entry->alphabet), "%s", current_alphabet);
@@ -108,7 +108,7 @@ static bool _navigation_stack_pop(data_t* data, char* out_alphabet, UG_S16* out_
     if (data->navigation_stack_size == 0) {
         return false;
     }
-    
+
     data->navigation_stack_size--;
     navigation_stack_entry_t* entry = &data->navigation_stack[data->navigation_stack_size];
     snprintf(out_alphabet, MAX_CHARS + 1, "%s", entry->alphabet);
@@ -155,7 +155,7 @@ static void _alphabet_selected(component_t* component, const char* alphabet)
 
         /* Push current state to navigation stack before going deeper */
         _navigation_stack_push(data, data->current_full_alphabet);
-        
+
         /* Store the new alphabet and navigate to it */
         snprintf(data->current_full_alphabet, sizeof(data->current_full_alphabet), "%s", alphabet);
         trinary_input_char_set_alphabet(component, alphabet, data->horiz_space);
@@ -426,17 +426,17 @@ component_t* trinary_input_char_create(
 bool trinary_input_char_go_back(component_t* component)
 {
     data_t* data = (data_t*)component->data;
-    
+
     char previous_alphabet[MAX_CHARS + 1];
     UG_S16 previous_horiz_space;
-    
+
     if (_navigation_stack_pop(data, previous_alphabet, &previous_horiz_space)) {
         // Successfully popped from stack, restore previous alphabet
         trinary_input_char_set_alphabet(component, previous_alphabet, previous_horiz_space);
         data->in_progress = data->navigation_stack_size > 0; // Still in progress if stack not empty
         return true;
     }
-    
+
     // Stack was empty, can't go back further
     data->in_progress = false;
     return false;

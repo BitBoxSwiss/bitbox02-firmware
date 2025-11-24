@@ -72,8 +72,9 @@ void da14531_set_product(
     }
 }
 
-void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart_out)
+void da14531_set_name(const char* name, struct ringbuffer* uart_out)
 {
+    size_t name_len = strlen(name);
     uint8_t payload[64] = {0};
     payload[0] = CTRL_CMD_DEVICE_NAME;
     memcpy(&payload[1], name, MIN(name_len, sizeof(payload) - 1));

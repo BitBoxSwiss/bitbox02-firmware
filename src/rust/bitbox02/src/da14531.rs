@@ -16,9 +16,7 @@ use crate::ringbuffer::RingBuffer;
 
 pub fn set_name(name: &str, queue: &mut RingBuffer) {
     let name = crate::util::str_to_cstr_vec(name).unwrap();
-    unsafe {
-        bitbox02_sys::da14531_set_name(name.as_ptr(), name.len(), &mut queue.inner as *mut _)
-    };
+    unsafe { bitbox02_sys::da14531_set_name(name.as_ptr(), &mut queue.inner as *mut _) };
 }
 
 pub fn set_product(product: &str, queue: &mut RingBuffer) {

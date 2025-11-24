@@ -34,8 +34,9 @@ pub fn poll(
             &mut uart_write_queue.inner as *mut _,
         )
     };
-    assert!(data.is_null());
-    *hww_data = None;
+    if data.is_null() {
+        *hww_data = None;
+    }
     if frame.is_null() {
         None
     } else {

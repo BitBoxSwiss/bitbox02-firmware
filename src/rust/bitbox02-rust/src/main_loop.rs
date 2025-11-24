@@ -115,9 +115,6 @@ fn main_loop() -> ! {
 
         // Do UART Output
         if bitbox02::communication_mode::ble_enabled() {
-            if hww_data.is_some() {
-                log!("have hww data to send {:?}", hww_data);
-            }
             if let Some(frame) = bitbox02::da14531_protocol::poll(
                 &mut uart_read_buf,
                 &mut uart_read_buf_len,
@@ -159,7 +156,10 @@ fn main_loop() -> ! {
         bitbox02::screen::process();
 
         /* And finally, run the high-level event processing. */
-        //unsafe { bitbox02_rust_c::workflow::rust_workflow_spin() }
+        #[cfg(feature = "app-u2f")]
+        unsafe {
+            crate::workflow::u2f_c_api::rust_workflow_spin()
+        }
         crate::async_usb::spin();
 
         if let Some(ref mut task) = orientation_task {

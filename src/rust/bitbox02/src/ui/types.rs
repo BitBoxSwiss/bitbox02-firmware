@@ -150,9 +150,9 @@ pub type ContinueCancelCb<'a> = Box<dyn FnMut() + 'a>;
 pub struct MenuParams<'a> {
     pub words: &'a [&'a str],
     pub title: Option<&'a str>,
-    pub select_word_cb: Option<SelectWordCb<'a>>,
-    pub continue_on_last_cb: Option<ContinueCancelCb<'a>>,
-    pub cancel_cb: Option<ContinueCancelCb<'a>>,
+    pub select_word: bool,
+    pub continue_on_last: bool,
+    pub cancel: bool,
 }
 
 pub type TrinaryChoiceCb<'a> = Box<dyn FnMut(TrinaryChoice) + 'a>;

@@ -60,6 +60,8 @@ bip39 = { workspace = true }
 bitcoin_hashes = { version = "0.14.0", default-features = false, features = ["small-hash"] }
 futures-lite = { workspace = true }
 hex_lit = { workspace = true, features = ["rust_v_1_46"] }
+async-channel = { version = "2.5.0", default-features = false, features = ["portable-atomic"] }
+grounded = { version = "0.2.0", default-features = false, features = ["critical-section"] }
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.

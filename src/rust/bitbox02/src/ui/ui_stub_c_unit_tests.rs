@@ -19,18 +19,15 @@ pub use super::types::{
     TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
-use core::marker::PhantomData;
-
 extern crate alloc;
 
 use alloc::string::String;
 
-pub struct Component<'a> {
+pub struct Component {
     is_pushed: bool,
-    _p: PhantomData<&'a ()>,
 }
 
-impl<'a> Component<'a> {
+impl Component {
     pub fn screen_stack_push(&mut self) {
         if self.is_pushed {
             panic!("component pushed twice");
@@ -39,7 +36,7 @@ impl<'a> Component<'a> {
     }
 }
 
-impl<'a> Drop for Component<'a> {
+impl Drop for Component {
     fn drop(&mut self) {
         if !self.is_pushed {
             panic!("component not pushed");
@@ -47,115 +44,68 @@ impl<'a> Drop for Component<'a> {
     }
 }
 
-pub fn trinary_input_string_create<'a, F>(
-    params: &TrinaryInputStringParams,
-    mut confirm_callback: F,
-    _cancel_callback: Option<ContinueCancelCb<'a>>,
-) -> Component<'a>
-where
-    F: FnMut(zeroize::Zeroizing<String>) + 'a,
-{
+pub async fn trinary_input_string(
+    params: &TrinaryInputStringParams<'_>,
+    _can_cancel: bool,
+    _preset: &str,
+) -> Result<zeroize::Zeroizing<String>, ()> {
     crate::print_stdout(&format!(
         "ENTER SCREEN START\nTITLE: {}\nENTER SCREEN END\n",
         params.title
     ));
 
-    confirm_callback(zeroize::Zeroizing::new("".into()));
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    Ok(zeroize::Zeroizing::new("".into()))
 }
 
-pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>
-where
-    F: FnMut(bool) + 'a,
-{
+pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
     crate::print_stdout(&format!(
         "CONFIRM SCREEN START\nTITLE: {}\nBODY: {}\nCONFIRM SCREEN END\n",
         params.title, params.body
     ));
 
-    result_callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    true
 }
 
 pub fn screen_process() {}
 
-pub fn status_create<'a, F>(text: &str, _status_success: bool, mut callback: F) -> Component<'a>
-where
-    F: FnMut() + 'a,
-{
+pub async fn status(text: &str, _status_success: bool) {
     crate::print_stdout(&format!(
         "STATUS SCREEN START\nTITLE: {}\nSTATUS SCREEN END\n",
         text,
     ));
-    callback();
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
 }
 
-pub fn sdcard_create<'a, F>(mut callback: F) -> Component<'a>
-where
-    F: FnMut(bool) + 'a,
-{
-    callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+pub async fn sdcard() -> bool {
+    true
 }
 
-pub fn menu_create(_params: MenuParams<'_>) -> Component<'_> {
+pub async fn menu_create(_params: MenuParams<'_>) -> Result<u8, ()> {
     panic!("not implemented");
 }
 
-pub fn trinary_choice_create<'a>(
-    _message: &'a str,
-    _label_left: Option<&'a str>,
-    _label_middle: Option<&'a str>,
-    _label_right: Option<&'a str>,
-    _chosen_callback: TrinaryChoiceCb,
-) -> Component<'a> {
+pub async fn trinary_choice(
+    _message: &str,
+    _label_left: Option<&str>,
+    _label_middle: Option<&str>,
+    _label_right: Option<&str>,
+) -> TrinaryChoice {
     panic!("not implemented")
 }
 
-pub fn confirm_transaction_address_create<'a, 'b>(
-    _amount: &'a str,
-    _address: &'a str,
-    mut callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+pub async fn confirm_transaction_address_create(_amount: &str, _address: &str) -> bool {
     crate::print_stdout(&format!(
         "CONFIRM TRANSACTION ADDRESS SCREEN START\nAMOUNT: {}\nADDRESS: {}\nCONFIRM TRANSACTION ADDRESS SCREEN END\n",
         _amount, _address
     ));
-    callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    true
 }
 
-pub fn confirm_transaction_fee_create<'a, 'b>(
-    _amount: &'a str,
-    _fee: &'a str,
-    _longtouch: bool,
-    mut callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+pub async fn confirm_transaction_fee_create(_amount: &str, _fee: &str, _longtouch: bool) -> bool {
     crate::print_stdout(&format!(
         "CONFIRM TRANSACTION FEE SCREEN START\nAMOUNT: {}\nFEE: {}\nCONFIRM TRANSACTION FEE SCREEN END\n",
         _amount, _fee
     ));
-    callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    true
 }
 
 pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {
@@ -164,32 +114,17 @@ pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {
 
 pub fn screen_stack_pop_all() {}
 
-pub fn progress_create<'a>(_title: &str) -> Component<'a> {
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+pub fn progress_create(_title: &str) -> Component {
+    Component { is_pushed: false }
 }
 
 pub fn progress_set(_component: &mut Component, _progress: f32) {}
 
-pub fn empty_create<'a>() -> Component<'a> {
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+pub fn empty_create() -> Component {
+    Component { is_pushed: false }
 }
 
-pub fn unlock_animation_create<'a, F>(mut on_done: F) -> Component<'a>
-where
-    F: FnMut() + 'a,
-{
-    on_done();
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
-}
+pub async fn unlock_animation() {}
 
 pub async fn choose_orientation() -> bool {
     false

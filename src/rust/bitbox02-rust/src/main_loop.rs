@@ -14,6 +14,7 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
 
+use async_channel::Receiver;
 use bitbox02::ringbuffer::RingBuffer;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb::USB_REPORT_SIZE;
@@ -169,10 +170,6 @@ fn main_loop() -> ! {
         bitbox02::screen::process();
 
         /* And finally, run the high-level event processing. */
-        #[cfg(feature = "app-u2f")]
-        unsafe {
-            crate::workflow::u2f_c_api::rust_workflow_spin()
-        }
         crate::async_usb::spin();
 
         // Run async exuecutor
@@ -189,6 +186,18 @@ fn main_loop() -> ! {
             bitbox02::usb::start();
         }
     }
+}
+
+// Spawns a task and returns the receiving end of a one shot channel
+pub fn spawn<T>(fut: impl Future<Output = T> + 'static) -> Receiver<T>
+where
+    T: 'static,
+{
+    let (sender, receiver) = async_channel::bounded(1);
+    EXECUTOR
+        .spawn(async move { sender.send(fut.await).await })
+        .detach();
+    receiver
 }
 
 //

@@ -67,7 +67,6 @@ static void send_usb_message_socket(void)
 static void simulate_firmware_execution(const uint8_t* input)
 {
     usb_packet_process((const USB_FRAME*)input);
-    rust_workflow_spin();
     rust_async_usb_spin();
     usb_processing_process(usb_processing_hww());
 }

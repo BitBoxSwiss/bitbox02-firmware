@@ -43,7 +43,8 @@ pub mod hal;
 pub mod hash;
 pub mod hww;
 pub mod keystore;
-mod main_loop;
+#[cfg(feature = "firmware")]
+pub mod main_loop;
 pub mod salt;
 pub mod secp256k1;
 #[cfg(feature = "app-u2f")]

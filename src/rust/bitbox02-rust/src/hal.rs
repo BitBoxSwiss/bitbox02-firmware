@@ -154,6 +154,10 @@ impl Hal for BitBox02Hal {
     }
 }
 
+impl grounded::const_init::ConstInit for BitBox02Hal {
+    const VAL: Self = Self::new();
+}
+
 #[cfg(feature = "testing")]
 pub mod testing {
     use alloc::boxed::Box;

@@ -52,7 +52,7 @@ void da14531_set_product(
     volatile uint16_t product_len,
     struct ringbuffer* uart_out);
 
-void da14531_set_name(const char* name, size_t name_len, struct ringbuffer* uart_out);
+void da14531_set_name(const char* name, struct ringbuffer* uart_out);
 
 void da14531_get_connection_state(struct ringbuffer* uart_out);
 

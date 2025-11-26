@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::cell::RefCell;
-
-/// Disables the screensaver while waiting for an option to contain a value. Afterwards, it returns that value
-pub async fn option_no_screensaver<O>(opt: &RefCell<Option<O>>) -> O {
+pub async fn screensaver_without<T>(fut: impl Future<Output = T>) -> T {
     bitbox02::screen_saver::screen_saver_disable();
-    let result = util::bb02_async::option(opt).await;
+    let result = fut.await;
     bitbox02::screen_saver::screen_saver_enable();
     result
 }

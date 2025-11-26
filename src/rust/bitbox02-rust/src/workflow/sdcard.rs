@@ -12,20 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option_no_screensaver;
-use core::cell::RefCell;
+use crate::bb02_async::screensaver_without;
 
 pub struct UserAbort;
 
 pub async fn sdcard() -> Result<(), UserAbort> {
-    let result = RefCell::new(None as Option<Result<(), UserAbort>>);
-    let mut component = bitbox02::ui::sdcard_create(|sd_done| {
-        *result.borrow_mut() = if sd_done {
-            Some(Ok(()))
-        } else {
-            Some(Err(UserAbort))
-        };
-    });
-    component.screen_stack_push();
-    option_no_screensaver(&result).await
+    let fut = bitbox02::ui::sdcard();
+    if screensaver_without(fut).await {
+        Ok(())
+    } else {
+        Err(UserAbort)
+    }
 }

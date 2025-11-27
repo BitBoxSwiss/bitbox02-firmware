@@ -21,3 +21,21 @@ pub fn ble_disable() {
 pub fn ble_enabled() -> bool {
     unsafe { bitbox02_sys::communication_mode_ble_enabled() }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Ensures a BLE-capable platform and verifies that calling `ble_disable()`
+    // makes `ble_enabled()` return false.
+    #[test]
+    fn ble_disable_disables_ble() {
+        unsafe {
+            bitbox02_sys::fake_memory_factoryreset();
+            assert!(bitbox02_sys::fake_memory_nova());
+        }
+        assert!(ble_enabled());
+        ble_disable();
+        assert!(!ble_enabled());
+    }
+}

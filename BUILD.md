@@ -385,6 +385,10 @@ docker exec -u 0 -it bitbox02-firmware-dev bash -c 'apt update && apt install -y
 
 There is a Python api library in `py/bitbox02`.
 
+> [!IMPORTANT]  
+> The Python scripts and editable installs require **pip ≥ 25**. Older pip versions will fail.  
+> For setup and usage instructions, see [`py/README.md`](py/README.md).
+
 ### BitBox02 CLI client
 
 Run `pip install -r py/requirements.txt` to install the deps (virtualenv recommended).

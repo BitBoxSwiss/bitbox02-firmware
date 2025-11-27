@@ -4,8 +4,21 @@ pub use ::rtt_target;
 
 /// Macro to log over RTT if `rtt` feature is set, otherwise noop
 #[macro_export]
+#[cfg(all(feature = "rtt", target_os = "none"))]
 macro_rules! log {
-    ($($arg:tt)*) => { #[cfg(feature="rtt")] {$crate::log::rtt_target::rprintln!($($arg)*) }};
+    ($($arg:tt)*) => { {$crate::log::rtt_target::rprintln!($($arg)*) }};
+}
+
+#[macro_export]
+#[cfg(all(not(feature = "rtt"), target_os = "none"))]
+macro_rules! log {
+    ($($arg:tt)*) => {};
+}
+
+#[macro_export]
+#[cfg(not(target_os = "none"))]
+macro_rules! log {
+    ($($arg:tt)*) => {std::println!($($arg)*) };
 }
 
 // Make log macro usable in crate

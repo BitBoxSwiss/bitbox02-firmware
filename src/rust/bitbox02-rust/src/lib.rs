@@ -13,7 +13,14 @@
 // limitations under the License.
 
 // Since we are targeting embedded we exclude the standard library by default
-#![no_std]
+#![cfg_attr(
+    not(any(
+        feature = "testing",
+        feature = "c-unit-testing",
+        feature = "simulator-graphical"
+    )),
+    no_std
+)]
 // When compiling for testing we allow certain warnings.
 #![cfg_attr(test, allow(unused_imports, dead_code))]
 
@@ -36,6 +43,8 @@ pub mod hal;
 pub mod hash;
 pub mod hww;
 pub mod keystore;
+#[cfg(feature = "firmware")]
+pub mod main_loop;
 pub mod salt;
 pub mod secp256k1;
 #[cfg(feature = "app-u2f")]

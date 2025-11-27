@@ -208,3 +208,13 @@ class SetPasswordRequest(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["entropy", b"entropy"]) -> None: ...
 
 global___SetPasswordRequest = SetPasswordRequest
+
+@typing.final
+class ChangePasswordRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___ChangePasswordRequest = ChangePasswordRequest

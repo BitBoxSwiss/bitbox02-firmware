@@ -40,8 +40,17 @@ typedef struct {
 // excluding null terminator
 #define MAX_CHARS 33
 
+// Maximum depth for navigation stack
+#define MAX_NAVIGATION_DEPTH 8
+
 // Each of the three groups can occupy roughly a third of the width.
 static const UG_S16 _group_width = SCREEN_WIDTH / 3;
+
+// Stack entry for navigation history
+typedef struct {
+    char alphabet[MAX_CHARS + 1];
+    UG_S16 horiz_space;
+} navigation_stack_entry_t;
 
 typedef struct {
     void (*character_chosen_cb)(component_t*, char);
@@ -50,6 +59,9 @@ typedef struct {
     char left_alphabet[MAX_CHARS + 1];
     char middle_alphabet[MAX_CHARS + 1];
     char right_alphabet[MAX_CHARS + 1];
+
+    // Keep track of the current full alphabet for navigation stack
+    char current_full_alphabet[MAX_CHARS + 1];
 
     // Character render elements.
     _element_t elements[MAX_CHARS];
@@ -60,8 +72,58 @@ typedef struct {
     // Horizontal space between characters in a group.
     UG_S16 horiz_space;
 
+    // Navigation stack to support going back to previous alphabet
+    navigation_stack_entry_t navigation_stack[MAX_NAVIGATION_DEPTH];
+    size_t navigation_stack_size;
+
     const UG_FONT* font;
 } data_t;
+
+/**
+ * Push current alphabet onto navigation stack before navigating to a sub-alphabet.
+ */
+static void _navigation_stack_push(data_t* data, const char* current_alphabet)
+{
+    if (data->navigation_stack_size >= MAX_NAVIGATION_DEPTH) {
+        // Stack is full, shift all entries down and add new one at the top
+        for (size_t i = 0; i < MAX_NAVIGATION_DEPTH - 1; i++) {
+            data->navigation_stack[i] = data->navigation_stack[i + 1];
+        }
+        data->navigation_stack_size = MAX_NAVIGATION_DEPTH - 1;
+    }
+
+    // Add current alphabet to stack
+    navigation_stack_entry_t* entry = &data->navigation_stack[data->navigation_stack_size];
+    snprintf(entry->alphabet, sizeof(entry->alphabet), "%s", current_alphabet);
+    entry->horiz_space = data->horiz_space;
+    data->navigation_stack_size++;
+}
+
+/**
+ * Pop previous alphabet from navigation stack and return it.
+ * Returns false if stack is empty.
+ */
+static bool _navigation_stack_pop(data_t* data, char* out_alphabet, UG_S16* out_horiz_space)
+{
+    if (data->navigation_stack_size == 0) {
+        return false;
+    }
+
+    data->navigation_stack_size--;
+    navigation_stack_entry_t* entry = &data->navigation_stack[data->navigation_stack_size];
+    snprintf(out_alphabet, MAX_CHARS + 1, "%s", entry->alphabet);
+    *out_horiz_space = entry->horiz_space;
+    return true;
+}
+
+/**
+ * Clear the navigation stack.
+ */
+static void _navigation_stack_clear(data_t* data)
+{
+    data->navigation_stack_size = 0;
+    memset(data->navigation_stack, 0, sizeof(data->navigation_stack));
+}
 
 /**
  * Called when a selection on one of the alphabet options has been made.
@@ -86,8 +148,16 @@ static void _alphabet_selected(component_t* component, const char* alphabet)
         memset(data->elements, 0, sizeof(data->elements));
         data->character_chosen_cb(component, alphabet[0]);
         data->in_progress = false;
+        /* Clear navigation stack when a character is chosen */
+        _navigation_stack_clear(data);
     } else {
         /* Select a sub-alphabet. */
+
+        /* Push current state to navigation stack before going deeper */
+        _navigation_stack_push(data, data->current_full_alphabet);
+
+        /* Store the new alphabet and navigate to it */
+        snprintf(data->current_full_alphabet, sizeof(data->current_full_alphabet), "%s", alphabet);
         trinary_input_char_set_alphabet(component, alphabet, data->horiz_space);
         data->in_progress = true;
     }
@@ -222,6 +292,9 @@ void trinary_input_char_set_alphabet(
     snprintf(alphabet, sizeof(alphabet), "%s", alphabet_input);
     size_t len = strlens(alphabet);
 
+    // Store the current full alphabet
+    snprintf(data->current_full_alphabet, sizeof(data->current_full_alphabet), "%s", alphabet);
+
     // Switch to larger font for fewer characters
     if (len < 12) {
         data->font = &font_password_11X12;
@@ -344,8 +417,29 @@ component_t* trinary_input_char_create(
     component->dimension.height = SCREEN_HEIGHT;
 
     data->character_chosen_cb = character_chosen_cb;
+    // Initialize navigation stack
+    _navigation_stack_clear(data);
 
     return component;
+}
+
+bool trinary_input_char_go_back(component_t* component)
+{
+    data_t* data = (data_t*)component->data;
+
+    char previous_alphabet[MAX_CHARS + 1];
+    UG_S16 previous_horiz_space;
+
+    if (_navigation_stack_pop(data, previous_alphabet, &previous_horiz_space)) {
+        // Successfully popped from stack, restore previous alphabet
+        trinary_input_char_set_alphabet(component, previous_alphabet, previous_horiz_space);
+        data->in_progress = data->navigation_stack_size > 0; // Still in progress if stack not empty
+        return true;
+    }
+
+    // Stack was empty, can't go back further
+    data->in_progress = false;
+    return false;
 }
 
 bool trinary_input_char_in_progress(component_t* component)

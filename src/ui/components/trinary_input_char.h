@@ -49,6 +49,12 @@ void trinary_input_char_set_alphabet(
 bool trinary_input_char_in_progress(component_t* component);
 
 /**
+ * Go back to the previous alphabet in the navigation stack.
+ * @return true if successfully went back, false if navigation stack was empty.
+ */
+bool trinary_input_char_go_back(component_t* component);
+
+/**
  * @return whether the alphabet provided is the empty set.
  */
 bool trinary_input_char_alphabet_is_empty(component_t* component);

@@ -268,6 +268,7 @@ fn is_taproot(script_config_account: &ValidatedScriptConfigWithKeypath) -> bool 
 ///
 /// See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
 fn sighash_script(
+    hal: &mut impl crate::hal::Hal,
     xpub_cache: &mut Bip32XpubCache,
     script_config_account: &ValidatedScriptConfigWithKeypath,
     keypath: &[u32],
@@ -281,7 +282,7 @@ fn sighash_script(
                 SimpleType::P2wpkhP2sh | SimpleType::P2wpkh => {
                     // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
                     // > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
-                    let pubkey_hash160 = xpub_cache.get_xpub(keypath)?.pubkey_hash160();
+                    let pubkey_hash160 = xpub_cache.get_xpub(hal, keypath)?.pubkey_hash160();
                     let mut result = Vec::<u8>::new();
                     result.extend_from_slice(b"\x76\xa9\x14");
                     result.extend_from_slice(&pubkey_hash160);
@@ -381,6 +382,7 @@ async fn handle_prevtx(
 }
 
 fn validate_script_config<'a>(
+    hal: &mut impl crate::hal::Hal,
     script_config: &'a pb::BtcScriptConfigWithKeypath,
     coin_params: &super::params::Params,
 ) -> Result<ValidatedScriptConfigWithKeypath<'a>, Error> {
@@ -392,7 +394,7 @@ fn validate_script_config<'a>(
                 }),
             keypath,
         } => {
-            super::multisig::validate(multisig, keypath)?;
+            super::multisig::validate(hal, multisig, keypath)?;
             let name = super::multisig::get_name(coin_params.coin, multisig, keypath)?
                 .ok_or(Error::InvalidInput)?;
             Ok(ValidatedScriptConfigWithKeypath {
@@ -407,7 +409,7 @@ fn validate_script_config<'a>(
                 }),
             keypath,
         } => {
-            let parsed_policy = super::policies::parse(policy, coin_params.coin)?;
+            let parsed_policy = super::policies::parse(hal, policy, coin_params.coin)?;
             let name = parsed_policy
                 .name(coin_params)?
                 .ok_or(Error::InvalidInput)?;
@@ -444,12 +446,13 @@ fn validate_script_config<'a>(
 }
 
 fn validate_script_configs<'a>(
+    hal: &mut impl crate::hal::Hal,
     coin_params: &super::params::Params,
     script_configs: &'a [pb::BtcScriptConfigWithKeypath],
 ) -> Result<Vec<ValidatedScriptConfigWithKeypath<'a>>, Error> {
     let validated: Vec<ValidatedScriptConfigWithKeypath> = script_configs
         .iter()
-        .map(|config| validate_script_config(config, coin_params))
+        .map(|config| validate_script_config(hal, config, coin_params))
         .collect::<Result<Vec<ValidatedScriptConfigWithKeypath>, Error>>()?;
     Ok(validated)
 }
@@ -463,7 +466,7 @@ async fn validate_input_script_configs<'a>(
         return Err(Error::InvalidInput);
     }
 
-    let script_configs = validate_script_configs(coin_params, script_configs)?;
+    let script_configs = validate_script_configs(hal, coin_params, script_configs)?;
 
     // If there are multiple script configs, only SimpleType (single sig, no additional inputs)
     // configs are allowed, so e.g. mixing p2wpkh and pw2wpkh-p2sh is okay, but mixing p2wpkh with
@@ -684,7 +687,7 @@ async fn _process(
     let validated_script_configs =
         validate_input_script_configs(hal, coin_params, &request.script_configs).await?;
     let validated_output_script_configs =
-        validate_script_configs(coin_params, &request.output_script_configs)?;
+        validate_script_configs(hal, coin_params, &request.output_script_configs)?;
 
     let mut xpub_cache = Bip32XpubCache::new(Compute::Once);
     setup_xpub_cache(&mut xpub_cache, &request.script_configs);
@@ -766,6 +769,7 @@ async fn _process(
         // https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
         // accumulate `sha_scriptpubkeys`
         let pk_script = common::Payload::from(
+            hal,
             &mut xpub_cache,
             coin_params,
             &tx_input.keypath,
@@ -789,7 +793,7 @@ async fn _process(
         if let Some(ref mut silent_payment) = silent_payment {
             let keypair = bitcoin::key::UntweakedKeypair::from_seckey_slice(
                 SECP256K1,
-                &crate::keystore::secp256k1_get_private_key(&tx_input.keypath)?,
+                &crate::keystore::secp256k1_get_private_key(hal, &tx_input.keypath)?,
             )
             .unwrap();
             // For Taproot, only key path spends are allowed in silent payments, and we need to
@@ -888,6 +892,7 @@ async fn _process(
             )?;
 
             common::Payload::from(
+                hal,
                 &mut xpub_cache,
                 coin_params,
                 &tx_output.keypath,
@@ -1159,7 +1164,7 @@ async fn _process(
                 ValidatedScriptConfig::SimpleType(SimpleType::P2tr) => {
                     // This is a BIP-86 spend, so we tweak the private key by the hash of the public
                     // key only, as there is no Taproot merkle root.
-                    let xpub = xpub_cache.get_xpub(&tx_input.keypath)?;
+                    let xpub = xpub_cache.get_xpub(hal, &tx_input.keypath)?;
                     let pubkey = bitcoin::PublicKey::from_slice(xpub.public_key())
                         .map_err(|_| Error::Generic)?;
                     TaprootSpendInfo::KeySpend(bitcoin::TapTweakHash::from_key_and_tweak(
@@ -1173,7 +1178,7 @@ async fn _process(
                     // first tweak the private key to match the Taproot output key. For leaf
                     // scripts, we do not tweak.
 
-                    parsed_policy.taproot_spend_info(&mut xpub_cache, &tx_input.keypath)?
+                    parsed_policy.taproot_spend_info(hal, &mut xpub_cache, &tx_input.keypath)?
                 }
                 _ => return Err(Error::Generic),
             };
@@ -1195,7 +1200,7 @@ async fn _process(
 
             next_response.next.has_signature = true;
             next_response.next.signature = crate::keystore::secp256k1_schnorr_sign(
-                hal.random(),
+                hal,
                 &tx_input.keypath,
                 &sighash,
                 if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {
@@ -1216,6 +1221,7 @@ async fn _process(
                 outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
                 outpoint_index: tx_input.prev_out_index,
                 sighash_script: &sighash_script(
+                    hal,
                     &mut xpub_cache,
                     script_config_account,
                     &tx_input.keypath,
@@ -1227,7 +1233,7 @@ async fn _process(
                 sighash_flags: SIGHASH_ALL,
             });
 
-            let private_key = crate::keystore::secp256k1_get_private_key(&tx_input.keypath)?;
+            let private_key = crate::keystore::secp256k1_get_private_key(hal, &tx_input.keypath)?;
             // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
             let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
                 Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
@@ -1830,7 +1836,7 @@ mod tests {
             let multisig = pb::btc_script_config::Multisig {
                 threshold: 1,
                 xpubs: vec![
-                    crate::keystore::get_xpub_once(keypath).unwrap().into(),
+                    crate::keystore::get_xpub_once(&mut TestingHal::new(), keypath).unwrap().into(),
                     parse_xpub("xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLKX8Q8keZPd67kRGmrD1WJj").unwrap(),
                 ],
                 our_xpub_index: 0,
@@ -1847,7 +1853,10 @@ mod tests {
             .unwrap();
             bitbox02::memory::multisig_set_by_hash(&hash, "test name").unwrap();
 
-            assert!(super::super::multisig::validate(&multisig, keypath).is_ok());
+            assert!(
+                super::super::multisig::validate(&mut TestingHal::new(), &multisig, keypath)
+                    .is_ok()
+            );
 
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs = vec![
@@ -3209,6 +3218,8 @@ mod tests {
 
     #[test]
     fn test_policy() {
+        let mut mock_hal = TestingHal::new();
+
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
         // Check that previous transactions are streamed, as not all inputs are taproot.
         static mut PREVTX_REQUESTED: bool = false;
@@ -3237,7 +3248,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub_once(keypath_account).unwrap().into()),
+                    xpub: Some(crate::keystore::get_xpub_once(&mut mock_hal, keypath_account).unwrap().into()),
                 },
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
@@ -3250,8 +3261,6 @@ mod tests {
         // Register policy.
         let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
         bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
-
-        let mut mock_hal = TestingHal::new();
 
         let result = block_on(process(
             &mut mock_hal,
@@ -3361,7 +3370,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub_once(keypath_account).unwrap().into()),
+                    xpub: Some(crate::keystore::get_xpub_once(&mut TestingHal::new(),keypath_account).unwrap().into()),
                 },
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
@@ -3430,7 +3439,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub_once(keypath_account).unwrap().into()),
+                    xpub: Some(crate::keystore::get_xpub_once(&mut TestingHal::new(),keypath_account).unwrap().into()),
                 },
             ],
         };
@@ -3539,7 +3548,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub_once(keypath_account).unwrap().into()),
+                    xpub: Some(crate::keystore::get_xpub_once(&mut TestingHal::new(),keypath_account).unwrap().into()),
                 },
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
@@ -3596,7 +3605,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub_once(keypath_account).unwrap().into()),
+                    xpub: Some(crate::keystore::get_xpub_once(&mut TestingHal::new(),keypath_account).unwrap().into()),
                 },
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
@@ -3645,7 +3654,7 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub_once(keypath_account).unwrap().into()),
+                    xpub: Some(crate::keystore::get_xpub_once(&mut TestingHal::new(),keypath_account).unwrap().into()),
                 },
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],

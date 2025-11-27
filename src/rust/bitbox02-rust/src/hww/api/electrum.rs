@@ -29,6 +29,7 @@ const ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO: u32 = 1112098098 + HARDENED;
 /// Note: the result of this is only meant to be used for encryption by Electrum.
 /// The resulting xpub must not be used to derive addresses or to receive coins.
 pub async fn process(
+    hal: &mut impl crate::hal::Hal,
     pb::ElectrumEncryptionKeyRequest { keypath }: &pb::ElectrumEncryptionKeyRequest,
 ) -> Result<Response, Error> {
     if *keypath
@@ -39,7 +40,7 @@ pub async fn process(
     {
         return Err(Error::InvalidInput);
     }
-    let xpub = keystore::get_xpub_twice(keypath)
+    let xpub = keystore::get_xpub_twice(hal, keypath)
         .or(Err(Error::InvalidInput))?
         .serialize_str(bip32::XPubType::Xpub)?;
 
@@ -62,7 +63,7 @@ mod tests {
 
         // All good.
         assert_eq!(
-            block_on(process(&pb::ElectrumEncryptionKeyRequest {
+            block_on(process(&mut crate::hal::testing::TestingHal::new(),&pb::ElectrumEncryptionKeyRequest {
                 keypath: vec![
                     ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
                     ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO
@@ -77,21 +78,27 @@ mod tests {
 
         // Invalid keypath.
         assert_eq!(
-            block_on(process(&pb::ElectrumEncryptionKeyRequest {
-                keypath: vec![ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0]
-            })),
+            block_on(process(
+                &mut crate::hal::testing::TestingHal::new(),
+                &pb::ElectrumEncryptionKeyRequest {
+                    keypath: vec![ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0]
+                }
+            )),
             Err(Error::InvalidInput),
         );
 
         // Invalid keypath (wrong length).
         assert_eq!(
-            block_on(process(&pb::ElectrumEncryptionKeyRequest {
-                keypath: vec![
-                    ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
-                    ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO,
-                    0
-                ]
-            })),
+            block_on(process(
+                &mut crate::hal::testing::TestingHal::new(),
+                &pb::ElectrumEncryptionKeyRequest {
+                    keypath: vec![
+                        ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
+                        ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO,
+                        0
+                    ]
+                }
+            )),
             Err(Error::InvalidInput),
         );
     }

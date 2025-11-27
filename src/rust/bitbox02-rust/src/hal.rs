@@ -44,6 +44,10 @@ pub trait SecureChip {
         &mut self,
         password: &str,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
+    fn kdf(
+        &mut self,
+        msg: &[u8],
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -119,6 +123,13 @@ impl SecureChip for BitBox02SecureChip {
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
         bitbox02::securechip::stretch_password(password)
     }
+
+    fn kdf(
+        &mut self,
+        msg: &[u8],
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+        bitbox02::securechip::kdf(msg)
+    }
 }
 
 pub struct BitBox02Hal {
@@ -162,6 +173,8 @@ pub mod testing {
     use alloc::vec::Vec;
 
     use bitcoin::hashes::{Hash, sha256};
+
+    use hex_lit::hex;
 
     pub struct TestingRandom {
         mock_next_values: VecDeque<[u8; 32]>,
@@ -296,6 +309,23 @@ pub mod testing {
             use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
             let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
             engine.input(password.as_bytes());
+            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+            Ok(zeroize::Zeroizing::new(
+                hmac_result.to_byte_array().to_vec(),
+            ))
+        }
+
+        fn kdf(
+            &mut self,
+            msg: &[u8],
+        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+            self.event_counter += 1;
+
+            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
+            let mut engine = HmacEngine::<sha256::Hash>::new(&hex!(
+                "d2e1e6b18b6c6b08433edbc1d168c1a0043774a4221877e79ed56684be5ac01b"
+            ));
+            engine.input(msg);
             let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
             Ok(zeroize::Zeroizing::new(
                 hmac_result.to_byte_array().to_vec(),

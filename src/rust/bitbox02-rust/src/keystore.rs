@@ -20,8 +20,8 @@ use alloc::vec::Vec;
 
 use crate::bip32;
 use crate::hal::{Random, SecureChip};
+use bitbox02::keystore;
 pub use bitbox02::keystore::SignResult;
-use bitbox02::{keystore, securechip};
 
 use util::bip32::HARDENED;
 use util::cell::SyncCell;
@@ -102,17 +102,23 @@ struct RetainedEncryptedBuffer {
 
 impl RetainedEncryptedBuffer {
     fn from_buffer(
-        random: &mut impl crate::hal::Random,
+        hal: &mut impl crate::hal::Hal,
         data: &[u8],
         purpose: &'static str,
     ) -> Result<Self, Error> {
-        let rand: [u8; 32] = random.random_32_bytes().as_slice().try_into().unwrap();
+        let rand: [u8; 32] = hal
+            .random()
+            .random_32_bytes()
+            .as_slice()
+            .try_into()
+            .unwrap();
         let encryption_key = stretch_retained_seed_encryption_key(
+            hal,
             &rand,
             &format!("{}_in", purpose),
             &format!("{}_out", purpose),
         )?;
-        let iv_rand = random.random_32_bytes();
+        let iv_rand = hal.random().random_32_bytes();
         let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
         let encrypted = bitbox_aes::encrypt_with_hmac(iv, &encryption_key, data);
         Ok(RetainedEncryptedBuffer {
@@ -122,8 +128,12 @@ impl RetainedEncryptedBuffer {
         })
     }
 
-    fn decrypt(&self) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    fn decrypt(
+        &self,
+        hal: &mut impl crate::hal::Hal,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         let encryption_key = stretch_retained_seed_encryption_key(
+            hal,
             &self.unstretched_encryption_key,
             &format!("{}_in", self.purpose),
             &format!("{}_out", self.purpose),
@@ -183,9 +193,9 @@ fn hash_seed(seed: &[u8]) -> Result<[u8; 32], Error> {
     Ok(Hmac::<sha256::Hash>::from_engine(engine).to_byte_array())
 }
 
-fn retain_seed(random: &mut impl crate::hal::Random, seed: &[u8]) -> Result<(), Error> {
+fn retain_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), Error> {
     RETAINED_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
-        random,
+        hal,
         seed,
         "keystore_retained_seed_access",
     )?));
@@ -193,9 +203,9 @@ fn retain_seed(random: &mut impl crate::hal::Random, seed: &[u8]) -> Result<(), 
     Ok(())
 }
 
-fn retain_bip39_seed(random: &mut impl crate::hal::Random, bip39_seed: &[u8]) -> Result<(), Error> {
+fn retain_bip39_seed(hal: &mut impl crate::hal::Hal, bip39_seed: &[u8]) -> Result<(), Error> {
     RETAINED_BIP39_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
-        random,
+        hal,
         bip39_seed,
         "keystore_retained_bip39_seed_access",
     )?));
@@ -237,7 +247,7 @@ fn encrypt_and_store_seed_internal(
         return Err(Error::Memory);
     }
 
-    retain_seed(hal.random(), seed)
+    retain_seed(hal, seed)
 }
 
 /// Restores a seed. This also unlocks the keystore with this seed.
@@ -267,13 +277,13 @@ pub fn re_encrypt_seed(
     // 1. The secure chip's internal keys are regenerated with the new password
     // 2. encrypt_and_store_seed_internal calls lock() which clears BIP39 seed and root fingerprint
     // 3. We want to avoid forcing the user to re-enter their BIP39 passphrase
-    let bip39_seed = copy_bip39_seed().map_err(|_| Error::InvalidState)?;
+    let bip39_seed = copy_bip39_seed(hal).map_err(|_| Error::InvalidState)?;
     let root_fingerprint = ROOT_FINGERPRINT.read().ok_or(Error::InvalidState)?;
 
     encrypt_and_store_seed_internal(hal, seed, new_password)?;
 
     // Re-retain the bip39 seed and root fingerprint
-    retain_bip39_seed(hal.random(), bip39_seed.as_slice())?;
+    retain_bip39_seed(hal, bip39_seed.as_slice())?;
     ROOT_FINGERPRINT.write(Some(root_fingerprint));
 
     Ok(())
@@ -346,7 +356,7 @@ pub fn unlock(
             panic!("Seed has suddenly changed. This should never happen.");
         }
     } else {
-        retain_seed(hal.random(), &seed)?;
+        retain_seed(hal, &seed)?;
     }
     bitbox02::memory::smarteeprom_reset_unlock_attempts();
     Ok(seed)
@@ -364,7 +374,7 @@ pub fn get_remaining_unlock_attempts() -> u8 {
 /// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
 /// passphrase is needed or provided.
 pub async fn unlock_bip39(
-    random: &mut impl crate::hal::Random,
+    hal: &mut impl crate::hal::Hal,
     seed: &[u8],
     mnemonic_passphrase: &str,
     yield_now: impl AsyncFn(),
@@ -381,7 +391,7 @@ pub async fn unlock_bip39(
         return Err(Error::Memory);
     }
 
-    retain_bip39_seed(random, bip39_seed.as_slice())?;
+    retain_bip39_seed(hal, bip39_seed.as_slice())?;
 
     // Store root fingerprint.
     ROOT_FINGERPRINT.write(Some(root_fingerprint));
@@ -389,16 +399,16 @@ pub async fn unlock_bip39(
 }
 
 /// Returns a copy of the retained seed. Errors if the keystore is locked.
-pub fn copy_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    RETAINED_SEED.read().ok_or(())?.decrypt().map_err(|_| ())
+pub fn copy_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    RETAINED_SEED.read().ok_or(())?.decrypt(hal).map_err(|_| ())
 }
 
 /// Returns a copy of the retained bip39 seed. Errors if the keystore is locked.
-pub fn copy_bip39_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+pub fn copy_bip39_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     RETAINED_BIP39_SEED
         .read()
         .ok_or(())?
-        .decrypt()
+        .decrypt(hal)
         .map_err(|_| ())
 }
 
@@ -437,12 +447,14 @@ pub fn create_and_store_seed(
 }
 
 /// Returns the keystore's seed encoded as a BIP-39 mnemonic.
-pub fn get_bip39_mnemonic() -> Result<zeroize::Zeroizing<String>, ()> {
-    crate::bip39::mnemonic_from_seed(&copy_seed()?)
+pub fn get_bip39_mnemonic(
+    hal: &mut impl crate::hal::Hal,
+) -> Result<zeroize::Zeroizing<String>, ()> {
+    crate::bip39::mnemonic_from_seed(&copy_seed(hal)?)
 }
 
-fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
-    let bip39_seed = copy_bip39_seed()?;
+fn get_xprv(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<bip32::Xprv, ()> {
+    let bip39_seed = copy_bip39_seed(hal)?;
     let xprv: bip32::Xprv =
         bitcoin::bip32::Xpriv::new_master(bitcoin::NetworkKind::Main, &bip39_seed)
             .map_err(|_| ())?
@@ -455,17 +467,23 @@ fn get_xprv(keypath: &[u32]) -> Result<bip32::Xprv, ()> {
 }
 
 /// Get the private key at the keypath.
-pub fn secp256k1_get_private_key(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let xprv = get_xprv(keypath)?;
+pub fn secp256k1_get_private_key(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let xprv = get_xprv(hal, keypath)?;
     Ok(zeroize::Zeroizing::new(
         xprv.xprv.private_key.secret_bytes().to_vec(),
     ))
 }
 
 /// Get the private key at the keypath, computed twice to mitigate the risk of bitflips.
-pub fn secp256k1_get_private_key_twice(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let privkey = secp256k1_get_private_key(keypath)?;
-    if privkey == secp256k1_get_private_key(keypath)? {
+pub fn secp256k1_get_private_key_twice(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let privkey = secp256k1_get_private_key(hal, keypath)?;
+    if privkey == secp256k1_get_private_key(hal, keypath)? {
         Ok(privkey)
     } else {
         Err(())
@@ -475,8 +493,8 @@ pub fn secp256k1_get_private_key_twice(keypath: &[u32]) -> Result<zeroize::Zeroi
 /// Can be used only if the keystore is unlocked. Returns the derived xpub,
 /// using bip32 derivation. Derivation is done from the xprv master, so hardened
 /// derivation is allowed.
-pub fn get_xpub_once(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
-    let xpriv = get_xprv(keypath)?;
+pub fn get_xpub_once(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<bip32::Xpub, ()> {
+    let xpriv = get_xprv(hal, keypath)?;
     let xpub = bitcoin::bip32::Xpub::from_priv(SECP256K1, &xpriv.xprv);
     Ok(bip32::Xpub::from(xpub))
 }
@@ -484,9 +502,9 @@ pub fn get_xpub_once(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
 /// Can be used only if the keystore is unlocked. Returns the derived xpub,
 /// using bip32 derivation. Derivation is done from the xprv master, so hardened
 /// derivation is allowed.
-pub fn get_xpub_twice(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
-    let res1 = get_xpub_once(keypath)?;
-    let res2 = get_xpub_once(keypath)?;
+pub fn get_xpub_twice(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<bip32::Xpub, ()> {
+    let res1 = get_xpub_once(hal, keypath)?;
+    let res2 = get_xpub_once(hal, keypath)?;
     if res1 != res2 {
         return Err(());
     }
@@ -495,7 +513,10 @@ pub fn get_xpub_twice(keypath: &[u32]) -> Result<bip32::Xpub, ()> {
 
 /// Gets multiple xpubs at once. This is better than multiple calls to `get_xpub_twice()` as it only
 /// uses two secure chip operations in total, instead of two per xpub.
-pub fn get_xpubs_twice(keypaths: &[&[u32]]) -> Result<Vec<bip32::Xpub>, ()> {
+pub fn get_xpubs_twice(
+    hal: &mut impl crate::hal::Hal,
+    keypaths: &[&[u32]],
+) -> Result<Vec<bip32::Xpub>, ()> {
     if is_locked() {
         return Err(());
     }
@@ -504,8 +525,8 @@ pub fn get_xpubs_twice(keypaths: &[&[u32]]) -> Result<Vec<bip32::Xpub>, ()> {
     }
     // We get the root xprv as a starting point (twice to mitigate bitflips), afterwards we don't
     // need the securechip anymore.
-    let xprv = get_xprv(&[])?;
-    let xprv2 = get_xprv(&[])?;
+    let xprv = get_xprv(hal, &[])?;
+    let xprv2 = get_xprv(hal, &[])?;
 
     let mut out = Vec::with_capacity(keypaths.len());
     for keypath in keypaths {
@@ -546,13 +567,14 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
 /// Stretches the given encryption_key using the securechip. The resulting key is used to encrypt
 /// the retained seed or bip39 seed.
 pub fn stretch_retained_seed_encryption_key(
+    hal: &mut impl crate::hal::Hal,
     encryption_key: &[u8; 32],
     purpose_in: &str,
     purpose_out: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
     let salted_in = crate::salt::hash_data(encryption_key, purpose_in).map_err(|_| Error::Salt)?;
 
-    let kdf = securechip::kdf(salted_in.as_slice())?;
+    let kdf = hal.securechip().kdf(salted_in.as_slice())?;
 
     let salted_out =
         crate::salt::hash_data(encryption_key, purpose_out).map_err(|_| Error::Salt)?;
@@ -574,8 +596,11 @@ pub extern "C" fn rust_keystore_is_locked() -> bool {
     is_locked()
 }
 
-fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let priv_key = secp256k1_get_private_key_twice(keypath)?;
+fn bip85_entropy(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let priv_key = secp256k1_get_private_key_twice(hal, keypath)?;
 
     let mut engine = HmacEngine::<sha512::Hash>::new(b"bip-entropy-from-k");
     engine.input(&priv_key);
@@ -588,7 +613,11 @@ fn bip85_entropy(keypath: &[u32]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
 /// `words` must be 12, 18 or 24.
 /// `index` must be smaller than `bip32::HARDENED`.
-pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>, ()> {
+pub fn bip85_bip39(
+    hal: &mut impl crate::hal::Hal,
+    words: u32,
+    index: u32,
+) -> Result<zeroize::Zeroizing<String>, ()> {
     if index >= HARDENED {
         return Err(());
     }
@@ -608,7 +637,7 @@ pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>,
         index + HARDENED,
     ];
 
-    let entropy = bip85_entropy(&keypath)?;
+    let entropy = bip85_entropy(hal, &keypath)?;
     crate::bip39::mnemonic_from_seed(&entropy[..seed_size])
 }
 
@@ -617,7 +646,10 @@ pub fn bip85_bip39(words: u32, index: u32) -> Result<zeroize::Zeroizing<String>,
 /// 'LN'). https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39
 /// Restricted to 16 byte output entropy.
 /// `index` must be smaller than `bip32::HARDENED`.
-pub fn bip85_ln(index: u32) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+pub fn bip85_ln(
+    hal: &mut impl crate::hal::Hal,
+    index: u32,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
     if index >= HARDENED {
         return Err(());
     }
@@ -629,7 +661,7 @@ pub fn bip85_ln(index: u32) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
         index + HARDENED,
     ];
 
-    let mut entropy = bip85_entropy(&keypath)?;
+    let mut entropy = bip85_entropy(hal, &keypath)?;
     entropy.truncate(16);
     Ok(entropy)
 }
@@ -689,12 +721,12 @@ pub fn secp256k1_nonce_commit(
 /// Sign a message using the private key at the keypath, which is optionally tweaked with the given
 /// tweak.
 pub fn secp256k1_schnorr_sign(
-    random: &mut impl crate::hal::Random,
+    hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
     msg: &[u8; 32],
     tweak: Option<&[u8; 32]>,
 ) -> Result<[u8; 64], ()> {
-    let private_key = secp256k1_get_private_key(keypath)?;
+    let private_key = secp256k1_get_private_key(hal, keypath)?;
     let mut keypair =
         bitcoin::secp256k1::Keypair::from_seckey_slice(SECP256K1, &private_key).map_err(|_| ())?;
 
@@ -707,7 +739,7 @@ pub fn secp256k1_schnorr_sign(
             .map_err(|_| ())?;
     }
 
-    let aux_rand = random.random_32_bytes();
+    let aux_rand = hal.random().random_32_bytes();
     let sig = SECP256K1.sign_schnorr_with_aux_rand(
         &bitcoin::secp256k1::Message::from_digest(*msg),
         &keypair,
@@ -718,8 +750,8 @@ pub fn secp256k1_schnorr_sign(
 
 /// Get the seed to be used for u2f
 #[cfg(feature = "app-u2f")]
-pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let bip39_seed = copy_bip39_seed()?;
+pub fn get_u2f_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let bip39_seed = copy_bip39_seed(hal)?;
 
     let mut engine = HmacEngine::<bitcoin::hashes::sha256::Hash>::new(&bip39_seed);
     // Null-terminator for backwards compatibility from the time when this was coded in C.
@@ -732,7 +764,7 @@ pub fn get_u2f_seed() -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
 #[cfg(feature = "app-u2f")]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut) -> bool {
-    match get_u2f_seed() {
+    match get_u2f_seed(&mut crate::hal::BitBox02Hal::new()) {
         Ok(seed) => {
             seed_out.as_mut().copy_from_slice(&seed);
             true
@@ -745,7 +777,7 @@ pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut
 pub mod testing {
     /// This mocks an unlocked keystore with the given bip39 recovery words and bip39 passphrase.
     pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
-        let mut mock_hal = crate::hal::testing::TestingRandom::new();
+        let mut mock_hal = crate::hal::testing::TestingHal::new();
         let seed = crate::bip39::mnemonic_to_seed(mnemonic).unwrap();
         super::retain_seed(&mut mock_hal, &seed).unwrap();
         util::bb02_async::block_on(super::unlock_bip39(
@@ -770,7 +802,7 @@ pub mod testing {
 mod tests {
     use super::*;
 
-    use crate::hal::testing::{TestingHal, TestingRandom};
+    use crate::hal::testing::TestingHal;
     use hex_lit::hex;
 
     use bitbox02::testing::mock_memory;
@@ -781,13 +813,14 @@ mod tests {
 
     #[test]
     fn test_copy_seed() {
+        let mut mock_hal = TestingHal::new();
         // 12 words
         mock_unlocked_using_mnemonic(
             "trust cradle viable innocent stand equal little small junior frost laundry room",
             "",
         );
         assert_eq!(
-            copy_seed().unwrap().as_slice(),
+            copy_seed(&mut mock_hal).unwrap().as_slice(),
             b"\xe9\xa6\x3f\xcd\x3a\x4d\x48\x98\x20\xa6\x63\x79\x2b\xad\xf6\xdd",
         );
 
@@ -797,7 +830,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            copy_seed().unwrap().as_slice(),
+            copy_seed(&mut mock_hal).unwrap().as_slice(),
             b"\xad\xf4\x07\x8e\x0e\x0c\xb1\x4c\x34\xd6\xd6\xf2\x82\x6a\x57\xc1\x82\x06\x6a\xbb\xcd\x95\x84\xcf",
         );
 
@@ -806,7 +839,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            copy_seed().unwrap().as_slice(),
+            copy_seed(&mut mock_hal).unwrap().as_slice(),
             b"\xae\x45\xd4\x02\x3a\xfa\x4a\x48\x68\x77\x51\x69\xfe\xa5\xf5\xe4\x97\xf7\xa1\xa4\xd6\x22\x9a\xd0\x23\x9e\x68\x9b\x48\x2e\xd3\x5e",
         );
     }
@@ -864,7 +897,10 @@ mod tests {
             let mut hal = TestingHal::new();
             hal.random.mock_next(seed_random);
             assert!(create_and_store_seed(&mut hal, "password", &host_entropy[..size]).is_ok());
-            assert_eq!(copy_seed().unwrap().as_slice(), &expected_seed[..size]);
+            assert_eq!(
+                copy_seed(&mut hal).unwrap().as_slice(),
+                &expected_seed[..size]
+            );
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.
             let cipher = bitbox02::memory::get_encrypted_seed_and_hmac().unwrap();
@@ -910,8 +946,7 @@ mod tests {
         let unlocked_seed = unlock(&mut mock_hal, "old_password").unwrap();
         assert_eq!(unlocked_seed.as_slice(), seed.as_slice());
 
-        let mut random = crate::hal::testing::TestingRandom::new();
-        assert!(block_on(unlock_bip39(&mut random, &seed, "", async || {})).is_ok());
+        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "", async || {})).is_ok());
 
         // Step 3: Re-encrypt with new password
         assert!(re_encrypt_seed(&mut mock_hal, &seed, "new_password").is_ok());
@@ -939,11 +974,10 @@ mod tests {
         // Initial setup
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password1").is_ok());
 
-        let mut random = crate::hal::testing::TestingRandom::new();
-        assert!(block_on(unlock_bip39(&mut random, &seed, "", async || {})).is_ok());
+        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "", async || {})).is_ok());
 
-        let seed_reference = copy_seed().unwrap();
-        let bip39_seed_reference = copy_bip39_seed().unwrap();
+        let seed_reference = copy_seed(&mut mock_hal).unwrap();
+        let bip39_seed_reference = copy_bip39_seed(&mut mock_hal).unwrap();
         let root_fingerprint_reference = root_fingerprint().unwrap();
 
         // Re-encrypt multiple times
@@ -952,9 +986,12 @@ mod tests {
             assert!(re_encrypt_seed(&mut mock_hal, &seed_reference, new_password).is_ok());
 
             // Verify everything is still there and correct
-            assert_eq!(copy_seed().unwrap().as_slice(), seed_reference.as_slice());
             assert_eq!(
-                copy_bip39_seed().unwrap().as_slice(),
+                copy_seed(&mut mock_hal).unwrap().as_slice(),
+                seed_reference.as_slice()
+            );
+            assert_eq!(
+                copy_bip39_seed(&mut mock_hal).unwrap().as_slice(),
                 bip39_seed_reference.as_slice()
             );
             assert_eq!(root_fingerprint().unwrap(), root_fingerprint_reference);
@@ -973,8 +1010,7 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         unlock(&mut mock_hal, "password").unwrap();
 
-        let mut random = crate::hal::testing::TestingRandom::new();
-        assert!(block_on(unlock_bip39(&mut random, &seed, "", async || {})).is_ok());
+        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "", async || {})).is_ok());
 
         // Try to re-encrypt with invalid seed size
         assert!(matches!(
@@ -988,19 +1024,19 @@ mod tests {
         mock_memory();
         lock();
 
-        let mut random = crate::hal::testing::TestingRandom::new();
+        let mut mock_hal = TestingHal::new();
         let bip39_seed = hex!(
             "2b3c63de86f0f2b13cc6a36c1ba2314fbc1b40c77ab9cb64e96ba4d5c62fc204748ca6626a9f035e7d431bce8c9210ec0bdffc2e7db873dee56c8ac2153eee9a"
         );
 
         // Before retention, should not be available
-        assert!(copy_bip39_seed().is_err());
+        assert!(copy_bip39_seed(&mut mock_hal).is_err());
 
         // Retain the BIP39 seed
-        assert!(retain_bip39_seed(&mut random, &bip39_seed).is_ok());
+        assert!(retain_bip39_seed(&mut mock_hal, &bip39_seed).is_ok());
 
         // Should now be available
-        let retrieved = copy_bip39_seed().unwrap();
+        let retrieved = copy_bip39_seed(&mut mock_hal).unwrap();
         assert_eq!(retrieved.as_slice(), bip39_seed.as_slice());
     }
 
@@ -1008,7 +1044,7 @@ mod tests {
     fn test_retain_bip39_seed_overwrites_previous() {
         mock_memory();
         lock();
-        let mut random = crate::hal::testing::TestingRandom::new();
+        let mut mock_hal = TestingHal::new();
         let bip39_seed1 = hex!(
             "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
         );
@@ -1017,16 +1053,16 @@ mod tests {
         );
 
         // Retain first seed
-        assert!(retain_bip39_seed(&mut random, &bip39_seed1).is_ok());
+        assert!(retain_bip39_seed(&mut mock_hal, &bip39_seed1).is_ok());
         assert_eq!(
-            copy_bip39_seed().unwrap().as_slice(),
+            copy_bip39_seed(&mut mock_hal).unwrap().as_slice(),
             bip39_seed1.as_slice()
         );
 
         // Retain second seed (should overwrite)
-        assert!(retain_bip39_seed(&mut random, &bip39_seed2).is_ok());
+        assert!(retain_bip39_seed(&mut mock_hal, &bip39_seed2).is_ok());
         assert_eq!(
-            copy_bip39_seed().unwrap().as_slice(),
+            copy_bip39_seed(&mut mock_hal).unwrap().as_slice(),
             bip39_seed2.as_slice()
         );
     }
@@ -1044,19 +1080,22 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
         // Create new (different) seed.
         assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed2, "password").is_ok());
-        assert_eq!(copy_seed().unwrap().as_slice(), &seed2);
+        assert_eq!(
+            copy_seed(&mut TestingHal::new()).unwrap().as_slice(),
+            &seed2
+        );
     }
 
     #[test]
     fn test_lock() {
-        let mut random = crate::hal::testing::TestingRandom::new();
+        let mut mock_hal = TestingHal::new();
         lock();
         assert!(is_locked());
 
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
-        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(block_on(unlock_bip39(&mut random, &seed, "foo", async || {})).is_ok());
+        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "foo", async || {})).is_ok());
         assert!(!is_locked());
         lock();
         assert!(is_locked());
@@ -1127,7 +1166,7 @@ mod tests {
             // Still seeded.
             assert!(bitbox02::memory::is_seeded());
             // Wrong password does not lock the keystore again if already unlocked.
-            assert!(copy_seed().is_ok());
+            assert!(copy_seed(&mut mock_hal).is_ok());
         }
         // Last attempt, triggers reset.
         assert!(matches!(
@@ -1136,7 +1175,7 @@ mod tests {
         ));
         // Last wrong attempt locks & resets. There is no more seed.
         assert!(!bitbox02::memory::is_seeded());
-        assert!(copy_seed().is_err());
+        assert!(copy_seed(&mut mock_hal).is_err());
         assert!(matches!(
             unlock(&mut mock_hal, "password"),
             Err(Error::Unseeded)
@@ -1158,7 +1197,7 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
         assert!(is_locked());
-        assert!(copy_seed().is_err());
+        assert!(copy_seed(&mut mock_hal).is_err());
 
         for attempt in 1..bitbox02::memory::MAX_UNLOCK_ATTEMPTS {
             assert!(matches!(
@@ -1171,7 +1210,7 @@ mod tests {
                 bitbox02::memory::MAX_UNLOCK_ATTEMPTS - attempt
             );
             assert!(is_locked());
-            assert!(copy_seed().is_err());
+            assert!(copy_seed(&mut mock_hal).is_err());
             assert!(bitbox02::memory::is_seeded());
         }
 
@@ -1180,7 +1219,7 @@ mod tests {
             Err(Error::MaxAttemptsExceeded)
         ));
         assert!(is_locked());
-        assert!(copy_seed().is_err());
+        assert!(copy_seed(&mut mock_hal).is_err());
         assert!(!bitbox02::memory::is_seeded());
         assert!(matches!(
             unlock(&mut mock_hal, "password"),
@@ -1219,7 +1258,7 @@ mod tests {
             Err(Error::MaxAttemptsExceeded)
         ));
         assert!(is_locked());
-        assert!(copy_seed().is_err());
+        assert!(copy_seed(&mut mock_hal).is_err());
         assert!(!bitbox02::memory::is_seeded());
     }
 
@@ -1252,16 +1291,16 @@ mod tests {
         }
 
         wrong_attempt(&mut mock_hal);
-        assert!(copy_seed().is_err());
+        assert!(copy_seed(&mut mock_hal).is_err());
 
         assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
-        assert!(copy_seed().is_ok());
+        assert!(copy_seed(&mut mock_hal).is_ok());
 
         lock();
-        assert!(copy_seed().is_err());
+        assert!(copy_seed(&mut mock_hal).is_err());
 
         wrong_attempt(&mut mock_hal);
-        assert!(copy_seed().is_err());
+        assert!(copy_seed(&mut mock_hal).is_err());
         assert!(bitbox02::memory::is_seeded());
     }
 
@@ -1283,7 +1322,7 @@ mod tests {
         lock();
 
         assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
-        assert!(copy_seed().is_ok());
+        assert!(copy_seed(&mut mock_hal).is_ok());
 
         fn wrong_attempt(hal: &mut impl crate::hal::Hal) {
             assert!(matches!(
@@ -1297,13 +1336,13 @@ mod tests {
         }
 
         wrong_attempt(&mut mock_hal);
-        assert!(copy_seed().is_ok());
+        assert!(copy_seed(&mut mock_hal).is_ok());
 
         assert_eq!(unlock(&mut mock_hal, "password").unwrap().as_slice(), seed);
-        assert!(copy_seed().is_ok());
+        assert!(copy_seed(&mut mock_hal).is_ok());
 
         wrong_attempt(&mut mock_hal);
-        assert!(copy_seed().is_ok());
+        assert!(copy_seed(&mut mock_hal).is_ok());
         assert!(bitbox02::memory::is_seeded());
     }
 
@@ -1324,7 +1363,7 @@ mod tests {
         // Incorrect seed passed
         assert!(
             block_on(unlock_bip39(
-                &mut crate::hal::testing::TestingRandom::new(),
+                &mut TestingHal::new(),
                 b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "foo",
                 async || {}
@@ -1332,15 +1371,15 @@ mod tests {
             .is_err()
         );
         // Correct seed passed.
-        let mut random = crate::hal::testing::TestingRandom::new();
+        let mut mock_hal = TestingHal::new();
         // Mock random value used for creating the unstretched bip39 seed encryption key.
-        random.mock_next(hex!(
+        mock_hal.random.mock_next(hex!(
             "9b44c7048893faaf6e2d7625d13d8f1cab0765fd61f159d9713e08155d06717c"
         ));
 
-        bitbox02::securechip::fake_event_counter_reset();
-        assert!(block_on(unlock_bip39(&mut random, &seed, "foo", async || {})).is_ok());
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+        mock_hal.securechip.event_counter_reset();
+        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "foo", async || {})).is_ok());
+        assert_eq!(mock_hal.securechip.get_event_counter(), 1);
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
         let expected_bip39_seed = hex!(
@@ -1348,7 +1387,7 @@ mod tests {
         );
 
         assert_eq!(
-            copy_bip39_seed().unwrap().as_slice(),
+            copy_bip39_seed(&mut mock_hal).unwrap().as_slice(),
             expected_bip39_seed.as_slice()
         );
 
@@ -1372,49 +1411,62 @@ mod tests {
     #[test]
     fn test_secp256k1_get_private_key() {
         lock();
+
+        let mut mock_hal = TestingHal::new();
+
         let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
-        assert!(secp256k1_get_private_key(keypath).is_err());
+        assert!(secp256k1_get_private_key(&mut mock_hal, keypath).is_err());
 
         mock_unlocked_using_mnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             "",
         );
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            secp256k1_get_private_key(keypath).unwrap().as_slice(),
+            secp256k1_get_private_key(&mut mock_hal, keypath)
+                .unwrap()
+                .as_slice(),
             hex!("4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"),
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 1);
     }
 
     #[test]
     fn test_secp256k1_get_private_key_twice() {
         lock();
+
+        let mut mock_hal = TestingHal::new();
+
         let keypath = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
-        assert!(secp256k1_get_private_key_twice(keypath).is_err());
+        assert!(secp256k1_get_private_key_twice(&mut mock_hal, keypath).is_err());
 
         mock_unlocked_using_mnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             "",
         );
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            secp256k1_get_private_key_twice(keypath).unwrap().as_slice(),
+            secp256k1_get_private_key_twice(&mut mock_hal, keypath)
+                .unwrap()
+                .as_slice(),
             hex!("4604b4b710fe91f584fff084e1a9159fe4f8408fff380596a604948474ce4fa3"),
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 2);
     }
 
     #[test]
     fn test_get_bip39_mnemonic() {
         lock();
-        assert!(get_bip39_mnemonic().is_err());
+        assert!(get_bip39_mnemonic(&mut TestingHal::new()).is_err());
 
         mock_unlocked();
 
-        assert_eq!(get_bip39_mnemonic().unwrap().as_str(), TEST_MNEMONIC);
+        assert_eq!(
+            get_bip39_mnemonic(&mut TestingHal::new()).unwrap().as_str(),
+            TEST_MNEMONIC
+        );
     }
 
     #[test]
@@ -1423,8 +1475,10 @@ mod tests {
         // Also test with unhardened and non-zero elements.
         let keypath_5 = &[44 + HARDENED, 1 + HARDENED, 10 + HARDENED, 1, 100];
 
+        let mut mock_hal = TestingHal::new();
+
         lock();
-        assert!(get_xpub_twice(keypath).is_err());
+        assert!(get_xpub_twice(&mut mock_hal, keypath).is_err());
 
         // 24 words
         mock_unlocked_using_mnemonic(
@@ -1432,27 +1486,27 @@ mod tests {
             "",
         );
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
 
         assert_eq!(
-            get_xpub_twice(&[])
+            get_xpub_twice(&mut mock_hal, &[])
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),
             "xpub661MyMwAqRbcEhX8d9WJh78SZrxusAzWFoykz4n5CF75uYRzixw5FZPUSoWyhaaJ1bpiPFdzdHSQqJN38PcTkyrLmxT4J2JDYfoGJQ4ioE2",
         );
 
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 2);
 
         assert_eq!(
-            get_xpub_twice(keypath)
+            get_xpub_twice(&mut mock_hal, keypath)
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),
             "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
         );
         assert_eq!(
-            get_xpub_twice(keypath_5)
+            get_xpub_twice(&mut mock_hal, keypath_5)
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),
@@ -1465,7 +1519,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub_twice(keypath)
+            get_xpub_twice(&mut mock_hal, keypath)
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),
@@ -1478,7 +1532,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub_twice(keypath)
+            get_xpub_twice(&mut mock_hal, keypath)
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
                 .unwrap(),
@@ -1489,7 +1543,8 @@ mod tests {
     #[test]
     fn test_get_xpubs_twice() {
         lock();
-        assert!(get_xpubs_twice(&[]).is_err());
+
+        assert!(get_xpubs_twice(&mut TestingHal::new(), &[]).is_err());
 
         mock_unlocked_using_mnemonic(
             "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
@@ -1497,30 +1552,35 @@ mod tests {
         );
 
         // Helper to convert to strings.
-        let get = |keypaths| -> Vec<String> {
-            get_xpubs_twice(keypaths)
+        fn get(hal: &mut impl crate::hal::Hal, keypaths: &[&[u32]]) -> Vec<String> {
+            get_xpubs_twice(hal, keypaths)
                 .unwrap()
                 .iter()
                 .map(|xpub| xpub.serialize_str(bip32::XPubType::Xpub).unwrap())
                 .collect()
-        };
+        }
 
-        bitbox02::securechip::fake_event_counter_reset();
-        assert!(get_xpubs_twice(&[]).unwrap().is_empty());
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 0);
+        let mut mock_hal = TestingHal::new();
 
-        bitbox02::securechip::fake_event_counter_reset();
+        mock_hal.securechip.event_counter_reset();
+        assert!(get_xpubs_twice(&mut mock_hal, &[]).unwrap().is_empty());
+        assert_eq!(mock_hal.securechip.get_event_counter(), 0);
+
+        mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            get(&[
-                &[84 + HARDENED, HARDENED, HARDENED],
-                &[86 + HARDENED, HARDENED, HARDENED],
-            ]),
+            get(
+                &mut mock_hal,
+                &[
+                    &[84 + HARDENED, HARDENED, HARDENED],
+                    &[86 + HARDENED, HARDENED, HARDENED],
+                ]
+            ),
             vec![
                 "xpub6CNbmcHwZDudAvCAZVE5kejUoFD63mbkRbRMA2HoF9oNWsCofni87gJKp31qZJ9FsCMQR2vK9AS51mT8dgUMGsHW6SfaAKb4eSzpqJn7zwK",
                 "xpub6CGwpj8iQNuzSeeEKF4yuQt32fpLqfHj7sUfFH4uW34DoctWPksxAdjNYC9KwYgwA149B7SDdcLH1aFmucRcjBL4U6piN7HgaiFCBsToamH",
             ],
         );
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 2);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 2);
     }
 
     #[test]
@@ -1558,6 +1618,7 @@ mod tests {
             hex!("00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00");
 
         let stretched = stretch_retained_seed_encryption_key(
+            &mut TestingHal::new(),
             &encryption_key,
             "keystore_retained_seed_access_in",
             "keystore_retained_seed_access_out",
@@ -1574,15 +1635,19 @@ mod tests {
         bitbox02::memory::set_salt_root(&[0xffu8; 32]).unwrap();
 
         let encryption_key = [0u8; 32];
-        let result =
-            stretch_retained_seed_encryption_key(&encryption_key, "purpose_in", "purpose_out");
+        let result = stretch_retained_seed_encryption_key(
+            &mut TestingHal::new(),
+            &encryption_key,
+            "purpose_in",
+            "purpose_out",
+        );
         assert!(matches!(result, Err(Error::Salt)));
     }
 
     #[test]
     fn test_bip85_bip39() {
         lock();
-        assert!(bip85_bip39(12, 0).is_err());
+        assert!(bip85_bip39(&mut TestingHal::new(), 12, 0).is_err());
 
         // Test fixtures generated using:
         // `docker build -t bip85 .`
@@ -1599,36 +1664,38 @@ mod tests {
         );
 
         assert_eq!(
-            bip85_bip39(12, 0).unwrap().as_ref() as &str,
+            bip85_bip39(&mut TestingHal::new(), 12, 0).unwrap().as_ref() as &str,
             "slender whip place siren tissue chaos ankle door only assume tent shallow",
         );
         assert_eq!(
-            bip85_bip39(12, 1).unwrap().as_ref() as &str,
+            bip85_bip39(&mut TestingHal::new(), 12, 1).unwrap().as_ref() as &str,
             "income soft level reunion height pony crane use unfold win keen satisfy",
         );
         assert_eq!(
-            bip85_bip39(12, HARDENED - 1).unwrap().as_ref() as &str,
+            bip85_bip39(&mut TestingHal::new(), 12, HARDENED - 1)
+                .unwrap()
+                .as_ref() as &str,
             "carry build nerve market domain energy mistake script puzzle replace mixture idea",
         );
         assert_eq!(
-            bip85_bip39(18, 0).unwrap().as_ref() as &str,
+            bip85_bip39(&mut TestingHal::new(), 18, 0).unwrap().as_ref() as &str,
             "enact peasant tragic habit expand jar senior melody coin acid logic upper soccer later earn napkin planet stereo",
         );
         assert_eq!(
-            bip85_bip39(24, 0).unwrap().as_ref() as &str,
+            bip85_bip39(&mut TestingHal::new(), 24, 0).unwrap().as_ref() as &str,
             "cabbage wink october add anchor mean tray surprise gasp tomorrow garbage habit beyond merge where arrive beef gentle animal office drop panel chest size",
         );
 
         // Invalid number of words.
-        assert!(bip85_bip39(10, 0).is_err());
+        assert!(bip85_bip39(&mut TestingHal::new(), 10, 0).is_err());
         // Index too high.
-        assert!(bip85_bip39(12, HARDENED).is_err());
+        assert!(bip85_bip39(&mut TestingHal::new(), 12, HARDENED).is_err());
     }
 
     #[test]
     fn test_bip85_ln() {
         lock();
-        assert!(bip85_ln(0).is_err());
+        assert!(bip85_ln(&mut TestingHal::new(), 0).is_err());
 
         mock_unlocked_using_mnemonic(
             "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
@@ -1636,20 +1703,22 @@ mod tests {
         );
 
         assert_eq!(
-            bip85_ln(0).unwrap().as_slice(),
+            bip85_ln(&mut TestingHal::new(), 0).unwrap().as_slice(),
             hex!("3a5f3b888aab88e2a9ab991b60a03ed8"),
         );
         assert_eq!(
-            bip85_ln(1).unwrap().as_slice(),
+            bip85_ln(&mut TestingHal::new(), 1).unwrap().as_slice(),
             hex!("e7d9ce75f8cb17570e665417b47fa0be"),
         );
         assert_eq!(
-            bip85_ln(HARDENED - 1).unwrap().as_slice(),
+            bip85_ln(&mut TestingHal::new(), HARDENED - 1)
+                .unwrap()
+                .as_slice(),
             hex!("1f3b75ea252749700a1e453469148ca6"),
         );
 
         // Index too high.
-        assert!(bip85_ln(HARDENED).is_err());
+        assert!(bip85_ln(&mut TestingHal::new(), HARDENED).is_err());
     }
 
     #[test]
@@ -1707,11 +1776,11 @@ mod tests {
             lock();
             let seed = &seed[..test.seed_len];
 
-            let mut mock_hal = crate::hal::testing::TestingHal::new();
+            let mut mock_hal = TestingHal::new();
 
             assert!(
                 block_on(unlock_bip39(
-                    &mut mock_hal.random,
+                    &mut mock_hal,
                     seed,
                     test.mnemonic_passphrase,
                     async || {}
@@ -1728,7 +1797,7 @@ mod tests {
             mock_hal.securechip.event_counter_reset();
             assert!(
                 block_on(unlock_bip39(
-                    &mut mock_hal.random,
+                    &mut mock_hal,
                     seed,
                     test.mnemonic_passphrase,
                     async || {}
@@ -1739,20 +1808,23 @@ mod tests {
 
             assert!(!is_locked());
             assert_eq!(
-                get_bip39_mnemonic().unwrap().as_str(),
+                get_bip39_mnemonic(&mut mock_hal).unwrap().as_str(),
                 test.expected_mnemonic,
             );
             let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
 
             mock_hal.securechip.event_counter_reset();
-            let xpub = get_xpub_once(keypath).unwrap();
+            let xpub = get_xpub_once(&mut mock_hal, keypath).unwrap();
             assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
             assert_eq!(
                 xpub.serialize_str(crate::bip32::XPubType::Xpub).unwrap(),
                 test.expected_xpub,
             );
-            assert_eq!(get_u2f_seed().unwrap().as_slice(), test.expected_u2f_seed);
+            assert_eq!(
+                get_u2f_seed(&mut mock_hal).unwrap().as_slice(),
+                test.expected_u2f_seed
+            );
         }
     }
 
@@ -1826,7 +1898,7 @@ mod tests {
             let host_commitment: [u8; 32] = host_commitment_vec.try_into().unwrap();
 
             // Get pubkey at keypath.
-            let private_key = secp256k1_get_private_key(&keypath).unwrap();
+            let private_key = secp256k1_get_private_key(&mut TestingHal::new(), &keypath).unwrap();
             let private_key_bytes: [u8; 32] = private_key.as_slice().try_into().unwrap();
             let secret_key = secp256k1::SecretKey::from_slice(&private_key_bytes).unwrap();
             let public_key = secret_key.public_key(SECP256K1);
@@ -1881,10 +1953,10 @@ mod tests {
 
         // Test without tweak
 
-        bitbox02::securechip::fake_event_counter_reset();
-        let mut random = crate::hal::testing::TestingRandom::new();
-        let sig = secp256k1_schnorr_sign(&mut random, &keypath, &msg, None).unwrap();
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 1);
+        let mut mock_hal = TestingHal::new();
+        mock_hal.securechip.event_counter_reset();
+        let sig = secp256k1_schnorr_sign(&mut mock_hal, &keypath, &msg, None).unwrap();
+        assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
         assert!(
             SECP256K1
@@ -1902,8 +1974,8 @@ mod tests {
         ))
         .unwrap();
         let (tweaked_pubkey, _) = expected_pubkey.add_tweak(SECP256K1, &tweak).unwrap();
-        let mut random = crate::hal::testing::TestingRandom::new();
-        let sig = secp256k1_schnorr_sign(&mut random, &keypath, &msg, Some(&tweak.to_be_bytes()))
+        let mut mock_hal = TestingHal::new();
+        let sig = secp256k1_schnorr_sign(&mut mock_hal, &keypath, &msg, Some(&tweak.to_be_bytes()))
             .unwrap();
         assert!(
             SECP256K1
@@ -1932,11 +2004,14 @@ mod tests {
                 assert!(encrypt_and_store_seed(&mut mock_hal, &seed[..seed_size], "foo").is_ok());
             }
             // Also unlocks, so we can get the retained seed.
-            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+            assert_eq!(
+                copy_seed(&mut mock_hal).unwrap().as_slice(),
+                &seed[..seed_size]
+            );
 
             lock();
             // Can't get seed before unlock.
-            assert!(copy_seed().is_err());
+            assert!(copy_seed(&mut mock_hal).is_err());
 
             // Wrong password.
             assert!(matches!(
@@ -1952,7 +2027,10 @@ mod tests {
                     &seed[..seed_size]
                 );
             }
-            assert_eq!(copy_seed().unwrap().as_slice(), &seed[..seed_size]);
+            assert_eq!(
+                copy_seed(&mut mock_hal).unwrap().as_slice(),
+                &seed[..seed_size]
+            );
 
             // Can't store new seed once initialized.
             bitbox02::memory::set_initialized().unwrap();

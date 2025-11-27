@@ -86,7 +86,7 @@ async fn api_unlock(hal: &mut impl crate::hal::Hal) -> Vec<u8> {
 ///
 /// On success, returns < 0 | bootloader_hash 32 | device_pubkey 64 |
 /// certificate 64 | root_pubkey_identifier 32 | challenge_signature 64>
-fn api_attestation(usb_in: &[u8]) -> Vec<u8> {
+fn api_attestation(hal: &mut impl crate::hal::Hal, usb_in: &[u8]) -> Vec<u8> {
     use core::convert::TryInto;
 
     let usb_in: [u8; 32] = match usb_in.try_into() {
@@ -94,7 +94,7 @@ fn api_attestation(usb_in: &[u8]) -> Vec<u8> {
         Err(_) => return [OP_STATUS_FAILURE].to_vec(),
     };
 
-    let result = match crate::attestation::perform(usb_in) {
+    let result = match crate::attestation::perform(hal, usb_in) {
         Ok(result) => result,
         Err(()) => return [OP_STATUS_FAILURE].to_vec(),
     };
@@ -119,7 +119,7 @@ async fn _process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> Vec
 
     match usb_in.split_first() {
         Some((&OP_UNLOCK, b"")) => return api_unlock(hal).await,
-        Some((&OP_ATTESTATION, rest)) => return api_attestation(rest),
+        Some((&OP_ATTESTATION, rest)) => return api_attestation(hal, rest),
         _ => (),
     }
 

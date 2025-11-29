@@ -19,7 +19,7 @@ use alloc::vec::Vec;
 use pb::response::Response;
 
 use crate::backup;
-use crate::hal::{Sd, Ui};
+use crate::hal::{Memory, Sd, Ui};
 use crate::workflow::{confirm, unlock};
 
 pub async fn check(
@@ -97,7 +97,7 @@ pub async fn create(
     )
     .await?;
 
-    let is_initialized = bitbox02::memory::is_initialized();
+    let is_initialized = hal.memory().is_initialized();
 
     let seed = if is_initialized {
         unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
@@ -110,7 +110,7 @@ pub async fn create(
     };
 
     let seed_birthdate = if !is_initialized {
-        if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
+        if hal.memory().set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);
         }
         timestamp
@@ -121,22 +121,15 @@ pub async fn create(
     } else {
         0
     };
-    match backup::create(
-        hal,
-        &seed,
-        &bitbox02::memory::get_device_name(),
-        timestamp,
-        seed_birthdate,
-    )
-    .await
-    {
+    let device_name = hal.memory().get_device_name();
+    match backup::create(hal, &seed, &device_name, timestamp, seed_birthdate).await {
         Ok(()) => {
             // The backup was created, so reporting an error here
             // could have bad consequences like replacing the sd card,
             // not safely disposing of the old one.  The issue fixes
             // itself after replugging and going through the backup
             // process again.
-            let _ = bitbox02::memory::set_initialized();
+            let _ = hal.memory().set_initialized();
 
             hal.ui().status("Backup created", true).await;
             Ok(Response::Success(pb::Success {}))
@@ -199,7 +192,7 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 1);
-        assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
+        assert_eq!(EXPECTED_TIMESTMAP, mock_hal.memory.get_seed_birthdate());
         assert_eq!(
             mock_hal.ui.screens,
             vec![
@@ -233,14 +226,13 @@ mod tests {
 
         mock_memory();
 
+        let mut mock_hal = TestingHal::new();
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
-        crate::keystore::encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").unwrap();
-        bitbox02::memory::set_initialized().unwrap();
+        crate::keystore::encrypt_and_store_seed(&mut mock_hal, &seed, "password").unwrap();
+        mock_hal.memory.set_initialized().unwrap();
 
         let mut password_entered: bool = false;
-
-        let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
@@ -370,7 +362,7 @@ mod tests {
             "",
         );
 
-        bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
+        mock_hal.memory.set_device_name(DEVICE_NAME_1).unwrap();
         assert!(
             block_on(create(
                 &mut mock_hal,
@@ -394,12 +386,18 @@ mod tests {
         );
 
         // Create another backup.
+
+        // Mock a reset, otherwise we can't make another backup, as it would ask for a password
+        // because the above backup creation set the initialized flag.
+        mock_hal.memory.reset_hww().unwrap();
+
         mock_memory();
         mock_unlocked_using_mnemonic(
             "goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven",
             "",
         );
-        bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
+
+        mock_hal.memory.set_device_name(DEVICE_NAME_2).unwrap();
         assert!(
             block_on(create(
                 &mut mock_hal,

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::general::abort;
-use crate::hal::{SecureChip, Ui};
+use crate::hal::{Memory, SecureChip, Ui};
 
 /// Resets the device:
 /// - Updates secure chip KDF keys.
@@ -58,7 +58,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
         }
     }
 
-    if bitbox02::memory::reset_hww().is_err() {
+    if hal.memory().reset_hww().is_err() {
         abort("Could not reset memory.");
     }
 
@@ -70,7 +70,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
 
     // The ble chip needs to be restarted to load the new secrets.
     if matches!(
-        bitbox02::memory::get_platform(),
+        hal.memory().get_platform(),
         Ok(bitbox02::memory::Platform::BitBox02Plus)
     ) {
         bitbox02::reset_ble();
@@ -95,13 +95,14 @@ mod tests {
     fn test_reset_success() {
         mock_memory();
 
+        let mut hal = TestingHal::new();
+
         keystore::lock();
         mock_unlocked();
-        bitbox02::memory::set_device_name("Custom name").unwrap();
+        hal.memory.set_device_name("Custom name").unwrap();
         assert!(!keystore::is_locked());
         assert!(bitbox02::smarteeprom::is_enabled());
 
-        let mut hal = TestingHal::new();
         // Make the reset keys call fail once, to test that it is retried.
         hal.securechip.mock_reset_keys_fails();
 
@@ -118,7 +119,7 @@ mod tests {
         assert!(keystore::is_locked());
 
         // Memory has been reset to factory defaults.
-        assert_eq!(bitbox02::memory::get_device_name().as_str(), "My BitBox");
+        assert_eq!(hal.memory.get_device_name().as_str(), "My BitBox");
 
         // SmartEEPROM was disabled as part of the reset.
         assert!(!bitbox02::smarteeprom::is_enabled());

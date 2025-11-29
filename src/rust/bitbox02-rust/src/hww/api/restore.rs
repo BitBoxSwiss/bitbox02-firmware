@@ -19,8 +19,7 @@ use pb::response::Response;
 
 #[cfg(feature = "app-u2f")]
 use crate::hal::SecureChip;
-use crate::hal::Ui;
-
+use crate::hal::{Memory, Ui};
 use crate::workflow::{confirm, mnemonic, password, unlock};
 
 pub async fn from_file(
@@ -77,7 +76,7 @@ pub async fn from_file(
     }
 
     // Ignore error here. Missing birthdate should not abort an otherwise successful restore.
-    let _ = bitbox02::memory::set_seed_birthdate(data.0.birthdate);
+    let _ = hal.memory().set_seed_birthdate(data.0.birthdate);
 
     #[cfg(feature = "app-u2f")]
     {
@@ -86,10 +85,10 @@ pub async fn from_file(
         let _ = hal.securechip().u2f_counter_set(request.timestamp);
     }
 
-    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
+    hal.memory().set_initialized().or(Err(Error::Memory))?;
 
     // Ignore non-critical error.
-    let _ = bitbox02::memory::set_device_name(&metadata.name);
+    let _ = hal.memory().set_device_name(&metadata.name);
 
     unlock::unlock_bip39(hal, seed).await;
     Ok(Response::Success(pb::Success {}))
@@ -159,7 +158,7 @@ pub async fn from_mnemonic(
         let _ = hal.securechip().u2f_counter_set(timestamp);
     }
 
-    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
+    hal.memory().set_initialized().or(Err(Error::Memory))?;
 
     unlock::unlock_bip39(hal, &seed).await;
     Ok(Response::Success(pb::Success {}))
@@ -206,7 +205,7 @@ mod tests {
         assert_eq!(mock_hal.securechip.get_event_counter(), 8);
 
         assert!(!crate::keystore::is_locked());
-        assert!(memory::is_initialized());
+        assert!(mock_hal.memory.is_initialized());
         // Seed of hardcoded phrase used in unit tests:
         // boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide
         assert_eq!(

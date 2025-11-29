@@ -38,7 +38,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 mod tests {
     use super::*;
 
-    use crate::hal::testing::TestingHal;
+    use crate::hal::{Memory, testing::TestingHal};
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
@@ -47,10 +47,10 @@ mod tests {
     #[test]
     pub fn test_reset() {
         mock_memory();
-        bitbox02::memory::set_device_name("test device name").unwrap();
 
         // User aborted confirmation.
         let mut mock_hal = TestingHal::new();
+        mock_hal.memory.set_device_name("test device name").unwrap();
         mock_hal.ui.abort_nth(0);
         assert_eq!(block_on(process(&mut mock_hal)), Err(Error::Generic));
         assert_eq!(
@@ -62,12 +62,13 @@ mod tests {
             }],
         );
         assert_eq!(
-            bitbox02::memory::get_device_name().as_str(),
+            mock_hal.memory.get_device_name().as_str(),
             "test device name",
         );
 
         // All good.
         let mut mock_hal = TestingHal::new();
+        mock_hal.memory.set_device_name("test device name").unwrap();
         assert_eq!(
             block_on(process(&mut mock_hal)),
             Ok(Response::Success(pb::Success {}))
@@ -86,6 +87,6 @@ mod tests {
                 }
             ],
         );
-        assert_eq!(bitbox02::memory::get_device_name().as_str(), "My BitBox");
+        assert_eq!(mock_hal.memory.get_device_name().as_str(), "My BitBox");
     }
 }

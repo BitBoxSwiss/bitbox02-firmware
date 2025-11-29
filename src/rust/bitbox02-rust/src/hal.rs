@@ -57,12 +57,18 @@ pub trait SecureChip {
     fn model(&mut self) -> Result<bitbox02::securechip::Model, ()>;
 }
 
+pub trait Memory {
+    fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
+    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
+}
+
 /// Hardware abstraction layer for BitBox devices.
 pub trait Hal {
     fn ui(&mut self) -> &mut impl Ui;
     fn sd(&mut self) -> &mut impl Sd;
     fn random(&mut self) -> &mut impl Random;
     fn securechip(&mut self) -> &mut impl SecureChip;
+    fn memory(&mut self) -> &mut impl Memory;
 }
 
 pub struct BitBox02Sd;
@@ -155,11 +161,24 @@ impl SecureChip for BitBox02SecureChip {
     }
 }
 
+pub struct BitBox02Memory;
+
+impl Memory for BitBox02Memory {
+    fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()> {
+        bitbox02::memory::get_securechip_type()
+    }
+
+    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+        bitbox02::memory::get_platform()
+    }
+}
+
 pub struct BitBox02Hal {
     ui: RealWorkflows,
     sd: BitBox02Sd,
     random: BitBox02Random,
     securechip: BitBox02SecureChip,
+    memory: BitBox02Memory,
 }
 
 impl BitBox02Hal {
@@ -169,6 +188,7 @@ impl BitBox02Hal {
             sd: BitBox02Sd,
             random: BitBox02Random,
             securechip: BitBox02SecureChip,
+            memory: BitBox02Memory,
         }
     }
 }
@@ -186,6 +206,9 @@ impl Hal for BitBox02Hal {
     fn securechip(&mut self) -> &mut impl SecureChip {
         &mut self.securechip
     }
+    fn memory(&mut self) -> &mut impl Memory {
+        &mut self.memory
+    }
 }
 
 #[cfg(feature = "testing")]
@@ -197,6 +220,7 @@ pub mod testing {
 
     use bitcoin::hashes::{Hash, sha256};
 
+    use bitbox02::memory::SecurechipType;
     use hex_lit::hex;
 
     pub struct TestingRandom {
@@ -295,6 +319,11 @@ pub mod testing {
         event_counter: u32,
     }
 
+    pub struct TestingMemory {
+        securechip_type: SecurechipType,
+        platform: bitbox02::memory::Platform,
+    }
+
     impl TestingSecureChip {
         pub fn new() -> Self {
             TestingSecureChip { event_counter: 0 }
@@ -373,11 +402,39 @@ pub mod testing {
         }
     }
 
+    impl TestingMemory {
+        pub fn new() -> Self {
+            Self {
+                securechip_type: SecurechipType::Atecc,
+                platform: bitbox02::memory::Platform::BitBox02,
+            }
+        }
+
+        pub fn set_securechip_type(&mut self, securechip_type: SecurechipType) {
+            self.securechip_type = securechip_type;
+        }
+
+        pub fn set_platform(&mut self, platform: bitbox02::memory::Platform) {
+            self.platform = platform;
+        }
+    }
+
+    impl super::Memory for TestingMemory {
+        fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
+            Ok(self.securechip_type)
+        }
+
+        fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+            Ok(self.platform)
+        }
+    }
+
     pub struct TestingHal<'a> {
         pub ui: crate::workflow::testing::TestingWorkflows<'a>,
         pub sd: TestingSd,
         pub random: TestingRandom,
         pub securechip: TestingSecureChip,
+        pub memory: TestingMemory,
     }
 
     impl TestingHal<'_> {
@@ -387,6 +444,7 @@ pub mod testing {
                 sd: TestingSd::new(),
                 random: TestingRandom::new(),
                 securechip: TestingSecureChip::new(),
+                memory: TestingMemory::new(),
             }
         }
     }
@@ -403,6 +461,9 @@ pub mod testing {
         }
         fn securechip(&mut self) -> &mut impl super::SecureChip {
             &mut self.securechip
+        }
+        fn memory(&mut self) -> &mut impl super::Memory {
+            &mut self.memory
         }
     }
 

@@ -229,6 +229,7 @@ pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Platform {
     BitBox02,
     BitBox02Plus,

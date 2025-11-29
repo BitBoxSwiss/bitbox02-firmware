@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::general::abort;
-use crate::hal::{SecureChip, Ui};
+use crate::hal::{Memory, SecureChip, Ui};
 
 /// Resets the device:
 /// - Updates secure chip KDF keys.
@@ -70,7 +70,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
 
     // The ble chip needs to be restarted to load the new secrets.
     if matches!(
-        bitbox02::memory::get_platform(),
+        hal.memory().get_platform(),
         Ok(bitbox02::memory::Platform::BitBox02Plus)
     ) {
         bitbox02::reset_ble();

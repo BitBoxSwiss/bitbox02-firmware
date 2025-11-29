@@ -59,6 +59,7 @@ pub trait SecureChip {
 
 pub trait Memory {
     fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
+    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -165,6 +166,10 @@ pub struct BitBox02Memory;
 impl Memory for BitBox02Memory {
     fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()> {
         bitbox02::memory::get_securechip_type()
+    }
+
+    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+        bitbox02::memory::get_platform()
     }
 }
 
@@ -316,6 +321,7 @@ pub mod testing {
 
     pub struct TestingMemory {
         securechip_type: SecurechipType,
+        platform: bitbox02::memory::Platform,
     }
 
     impl TestingSecureChip {
@@ -400,17 +406,26 @@ pub mod testing {
         pub fn new() -> Self {
             Self {
                 securechip_type: SecurechipType::Atecc,
+                platform: bitbox02::memory::Platform::BitBox02,
             }
         }
 
         pub fn set_securechip_type(&mut self, securechip_type: SecurechipType) {
             self.securechip_type = securechip_type;
         }
+
+        pub fn set_platform(&mut self, platform: bitbox02::memory::Platform) {
+            self.platform = platform;
+        }
     }
 
     impl super::Memory for TestingMemory {
         fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
             Ok(self.securechip_type)
+        }
+
+        fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+            Ok(self.platform)
         }
     }
 

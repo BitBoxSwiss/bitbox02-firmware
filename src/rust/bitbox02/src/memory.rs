@@ -242,6 +242,7 @@ pub fn get_platform() -> Result<Platform, ()> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum SecurechipType {
     Atecc,
     Optiga,

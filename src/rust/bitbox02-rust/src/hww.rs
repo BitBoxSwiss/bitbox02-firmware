@@ -593,11 +593,17 @@ mod tests {
             .unwrap();
             assert_eq!(
                 mock_hal.ui.screens,
-                vec![Screen::Confirm {
-                    title: "RESET".into(),
-                    body: "Proceed to\nfactory reset?".into(),
-                    longtouch: true,
-                }]
+                vec![
+                    Screen::Confirm {
+                        title: "RESET".into(),
+                        body: "Proceed to\nfactory reset?".into(),
+                        longtouch: true,
+                    },
+                    Screen::Status {
+                        title: "Device reset".into(),
+                        success: true,
+                    }
+                ]
             );
 
             mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();

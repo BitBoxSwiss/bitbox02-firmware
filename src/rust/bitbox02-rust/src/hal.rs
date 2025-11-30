@@ -55,6 +55,9 @@ pub trait SecureChip {
     ) -> Result<(), ()>;
     fn monotonic_increments_remaining(&mut self) -> Result<u32, ()>;
     fn model(&mut self) -> Result<bitbox02::securechip::Model, ()>;
+    fn reset_keys(&mut self) -> Result<(), ()>;
+    #[cfg(feature = "app-u2f")]
+    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -152,6 +155,15 @@ impl SecureChip for BitBox02SecureChip {
 
     fn model(&mut self) -> Result<bitbox02::securechip::Model, ()> {
         bitbox02::securechip::model()
+    }
+
+    fn reset_keys(&mut self) -> Result<(), ()> {
+        bitbox02::securechip::reset_keys()
+    }
+
+    #[cfg(feature = "app-u2f")]
+    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
+        bitbox02::securechip::u2f_counter_set(counter)
     }
 }
 
@@ -289,15 +301,23 @@ pub mod testing {
     }
 
     pub struct TestingSecureChip {
-        // Count how man seceurity events happen. The numbers were obtained by reading the security
+        // Count how man security events happen. The numbers were obtained by reading the security
         // event counter slot (0xE0C5) on a real device. We can use this to assert how many events
         // were used in unit tests. The number is relevant due to Optiga's throttling mechanism.
         event_counter: u32,
+        reset_keys_fail_once: bool,
+        #[cfg(feature = "app-u2f")]
+        u2f_counter: u32,
     }
 
     impl TestingSecureChip {
         pub fn new() -> Self {
-            TestingSecureChip { event_counter: 0 }
+            TestingSecureChip {
+                event_counter: 0,
+                reset_keys_fail_once: false,
+                #[cfg(feature = "app-u2f")]
+                u2f_counter: 0,
+            }
         }
 
         /// Resets the event counter.
@@ -311,6 +331,16 @@ pub mod testing {
         pub fn get_event_counter(&self) -> u32 {
             // TODO: remove fake_event_counter() once all unit tests use the SecureChip HAL.
             bitbox02::securechip::fake_event_counter() + self.event_counter
+        }
+
+        /// Make the next `reset_keys()` call return an error once. Subsequent calls succeed.
+        pub fn mock_reset_keys_fails(&mut self) {
+            self.reset_keys_fail_once = true;
+        }
+
+        #[cfg(feature = "app-u2f")]
+        pub fn get_u2f_counter(&self) -> u32 {
+            self.u2f_counter
         }
     }
 
@@ -370,6 +400,22 @@ pub mod testing {
 
         fn model(&mut self) -> Result<bitbox02::securechip::Model, ()> {
             Ok(bitbox02::securechip::Model::ATECC_ATECC608B)
+        }
+
+        fn reset_keys(&mut self) -> Result<(), ()> {
+            if self.reset_keys_fail_once {
+                self.reset_keys_fail_once = false;
+                Err(())
+            } else {
+                self.event_counter += 1;
+                Ok(())
+            }
+        }
+
+        #[cfg(feature = "app-u2f")]
+        fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
+            self.u2f_counter = counter;
+            Ok(())
         }
     }
 

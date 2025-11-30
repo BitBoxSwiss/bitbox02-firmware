@@ -112,12 +112,12 @@ mod tests {
         // create new hal instance to call unlock
         let mut hal_verify = TestingHal::new();
         assert!(matches!(
-            keystore::unlock(&mut hal_verify, old_password),
+            block_on(keystore::unlock(&mut hal_verify, old_password)),
             Err(keystore::Error::IncorrectPassword)
         ));
         // check that the new password is valid
         assert_eq!(
-            keystore::unlock(&mut hal_verify, new_password)
+            block_on(keystore::unlock(&mut hal_verify, new_password))
                 .unwrap()
                 .as_slice(),
             seed.as_slice()
@@ -171,7 +171,7 @@ mod tests {
         // check that the old password is still valid
         let mut hal_verify = TestingHal::new();
         assert_eq!(
-            keystore::unlock(&mut hal_verify, correct_password)
+            block_on(keystore::unlock(&mut hal_verify, correct_password))
                 .unwrap()
                 .as_slice(),
             seed.as_slice()
@@ -220,7 +220,7 @@ mod tests {
         // check that the old password is still valid
         let mut hal_verify = TestingHal::new();
         assert_eq!(
-            keystore::unlock(&mut hal_verify, old_password)
+            block_on(keystore::unlock(&mut hal_verify, old_password))
                 .unwrap()
                 .as_slice(),
             seed.as_slice()

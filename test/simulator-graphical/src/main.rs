@@ -50,6 +50,7 @@ use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 use bitbox02::ui::ugui::UG_COLOR;
+use bitbox02_rust::hal::{Hal, Memory};
 
 static BG: &[u8; 325362] = include_bytes!("../bg.png");
 
@@ -168,13 +169,9 @@ fn init_hww(preseed: bool) -> bool {
     if preseed {
         let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
         let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
-        bitbox02_rust::keystore::encrypt_and_store_seed(
-            &mut bitbox02_rust::hal::BitBox02Hal::new(),
-            &seed,
-            "",
-        )
-        .unwrap();
-        bitbox02::memory::set_initialized().unwrap();
+        let mut hal = bitbox02_rust::hal::BitBox02Hal::new();
+        bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
+        hal.memory().set_initialized().unwrap();
     }
 
     bitbox02::smarteeprom::bb02_config();

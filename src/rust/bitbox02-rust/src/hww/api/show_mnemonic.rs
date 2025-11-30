@@ -19,7 +19,7 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::{confirm, unlock};
 
 /// Handle the ShowMnemonic API call. This shows the seed encoded as
@@ -28,7 +28,7 @@ use crate::workflow::{confirm, unlock};
 /// wrote it down correctly.
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let mnemonic_sentence = {
-        let seed = if bitbox02::memory::is_initialized() {
+        let seed = if hal.memory().is_initialized() {
             unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
         } else {
             crate::keystore::copy_seed(hal)?
@@ -59,7 +59,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 
     hal.ui().show_and_confirm_mnemonic(&words).await?;
 
-    bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
+    hal.memory().set_initialized().or(Err(Error::Memory))?;
 
     hal.ui().status("Backup created", true).await;
     Ok(Response::Success(pb::Success {}))
@@ -90,9 +90,8 @@ mod tests {
         )
         .unwrap();
 
-        assert!(!bitbox02::memory::is_initialized());
-
         let mut mock_hal = TestingHal::new();
+        assert!(!mock_hal.memory.is_initialized());
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             panic!("unexpected call to enter password")
         }));
@@ -141,11 +140,11 @@ mod tests {
         )
         .unwrap();
 
-        bitbox02::memory::set_initialized().unwrap();
+        let mut mock_hal = TestingHal::new();
+        mock_hal.memory.set_initialized().unwrap();
 
         let mut password_entered: bool = false;
 
-        let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
             Ok("password".into())
@@ -199,9 +198,8 @@ mod tests {
         )
         .unwrap();
 
-        bitbox02::memory::set_initialized().unwrap();
-
         let mut mock_hal = TestingHal::new();
+        mock_hal.memory.set_initialized().unwrap();
         mock_hal
             .ui
             .set_enter_string(Box::new(|_params| Ok("wrong password".into())));

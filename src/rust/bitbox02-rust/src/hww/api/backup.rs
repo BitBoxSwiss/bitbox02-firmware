@@ -19,7 +19,7 @@ use alloc::vec::Vec;
 use pb::response::Response;
 
 use crate::backup;
-use crate::hal::{Sd, Ui};
+use crate::hal::{Memory, Sd, Ui};
 use crate::workflow::{confirm, unlock};
 
 pub async fn check(
@@ -97,7 +97,7 @@ pub async fn create(
     )
     .await?;
 
-    let is_initialized = bitbox02::memory::is_initialized();
+    let is_initialized = hal.memory().is_initialized();
 
     let seed = if is_initialized {
         unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
@@ -136,7 +136,7 @@ pub async fn create(
             // not safely disposing of the old one.  The issue fixes
             // itself after replugging and going through the backup
             // process again.
-            let _ = bitbox02::memory::set_initialized();
+            let _ = hal.memory().set_initialized();
 
             hal.ui().status("Backup created", true).await;
             Ok(Response::Success(pb::Success {}))
@@ -236,11 +236,10 @@ mod tests {
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
         crate::keystore::encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").unwrap();
-        bitbox02::memory::set_initialized().unwrap();
+        let mut mock_hal = TestingHal::new();
+        mock_hal.memory.set_initialized().unwrap();
 
         let mut password_entered: bool = false;
-
-        let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
@@ -394,11 +393,17 @@ mod tests {
         );
 
         // Create another backup.
+
+        // Mock a reset, otherwise we can't make another backup, as it would ask for a password
+        // because the above backup creation set the initialized flag.
+        mock_hal.memory = crate::hal::testing::TestingMemory::new();
+
         mock_memory();
         mock_unlocked_using_mnemonic(
             "goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven",
             "",
         );
+
         bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
         assert!(
             block_on(create(

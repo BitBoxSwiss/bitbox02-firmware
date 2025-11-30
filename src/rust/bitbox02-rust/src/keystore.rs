@@ -19,7 +19,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use crate::hal::{Random, SecureChip};
+use crate::hal::{Memory, Random, SecureChip};
 use bitbox02::keystore;
 pub use bitbox02::keystore::SignResult;
 
@@ -257,7 +257,7 @@ pub fn encrypt_and_store_seed(
     seed: &[u8],
     password: &str,
 ) -> Result<(), Error> {
-    if bitbox02::memory::is_initialized() {
+    if hal.memory().is_initialized() {
         return Err(Error::Memory);
     }
     encrypt_and_store_seed_internal(hal, seed, password)
@@ -802,7 +802,7 @@ pub mod testing {
 mod tests {
     use super::*;
 
-    use crate::hal::testing::TestingHal;
+    use crate::hal::{Memory, testing::TestingHal};
     use hex_lit::hex;
 
     use bitbox02::testing::mock_memory;
@@ -2058,7 +2058,7 @@ mod tests {
             );
 
             // Can't store new seed once initialized.
-            bitbox02::memory::set_initialized().unwrap();
+            mock_hal.memory.set_initialized().unwrap();
             assert!(matches!(
                 encrypt_and_store_seed(&mut mock_hal, &seed[..seed_size], "foo"),
                 Err(Error::Memory)

@@ -35,7 +35,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 mod tests {
     use super::*;
 
-    use crate::hal::testing::TestingHal;
+    use crate::hal::{Memory, testing::TestingHal};
     use crate::workflow::{testing::Screen, unlock};
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
@@ -54,7 +54,7 @@ mod tests {
         let mut hal = TestingHal::new();
         keystore::encrypt_and_store_seed(&mut hal, &seed, old_password).unwrap();
         block_on(unlock::unlock_bip39(&mut hal, &seed));
-        bitbox02::memory::set_initialized().unwrap();
+        hal.memory.set_initialized().unwrap();
 
         // Allow exactly 3 prompts
         let mut prompt_counter = 0u32;
@@ -135,7 +135,7 @@ mod tests {
         let mut hal = TestingHal::new();
         keystore::encrypt_and_store_seed(&mut hal, &seed, correct_password).unwrap();
         block_on(unlock::unlock_bip39(&mut hal, &seed));
-        bitbox02::memory::set_initialized().unwrap();
+        hal.memory.set_initialized().unwrap();
         keystore::lock();
 
         let mut prompt_counter = 0u32;
@@ -191,7 +191,7 @@ mod tests {
         let mut hal = TestingHal::new();
         keystore::encrypt_and_store_seed(&mut hal, &seed, old_password).unwrap();
         block_on(unlock::unlock_bip39(&mut hal, &seed));
-        bitbox02::memory::set_initialized().unwrap();
+        hal.memory.set_initialized().unwrap();
         keystore::lock();
 
         let mut prompt_counter = 0u32;

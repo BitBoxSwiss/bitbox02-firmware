@@ -63,6 +63,8 @@ pub trait SecureChip {
 pub trait Memory {
     fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
+    fn is_initialized(&mut self) -> bool;
+    fn set_initialized(&mut self) -> Result<(), ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -182,6 +184,14 @@ impl Memory for BitBox02Memory {
 
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
         bitbox02::memory::get_platform()
+    }
+
+    fn is_initialized(&mut self) -> bool {
+        bitbox02::memory::is_initialized()
+    }
+
+    fn set_initialized(&mut self) -> Result<(), ()> {
+        bitbox02::memory::set_initialized()
     }
 }
 
@@ -337,6 +347,7 @@ pub mod testing {
     pub struct TestingMemory {
         securechip_type: SecurechipType,
         platform: bitbox02::memory::Platform,
+        initialized: bool,
     }
 
     impl TestingSecureChip {
@@ -453,6 +464,7 @@ pub mod testing {
             Self {
                 securechip_type: SecurechipType::Atecc,
                 platform: bitbox02::memory::Platform::BitBox02,
+                initialized: false,
             }
         }
 
@@ -472,6 +484,15 @@ pub mod testing {
 
         fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
             Ok(self.platform)
+        }
+
+        fn is_initialized(&mut self) -> bool {
+            self.initialized
+        }
+
+        fn set_initialized(&mut self) -> Result<(), ()> {
+            self.initialized = true;
+            Ok(())
         }
     }
 

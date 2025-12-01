@@ -121,15 +121,8 @@ pub async fn create(
     } else {
         0
     };
-    match backup::create(
-        hal,
-        &seed,
-        &bitbox02::memory::get_device_name(),
-        timestamp,
-        seed_birthdate,
-    )
-    .await
-    {
+    let device_name = hal.memory().get_device_name();
+    match backup::create(hal, &seed, &device_name, timestamp, seed_birthdate).await {
         Ok(()) => {
             // The backup was created, so reporting an error here
             // could have bad consequences like replacing the sd card,
@@ -233,10 +226,10 @@ mod tests {
 
         mock_memory();
 
+        let mut mock_hal = TestingHal::new();
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
-        crate::keystore::encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").unwrap();
-        let mut mock_hal = TestingHal::new();
+        crate::keystore::encrypt_and_store_seed(&mut mock_hal, &seed, "password").unwrap();
         mock_hal.memory.set_initialized().unwrap();
 
         let mut password_entered: bool = false;
@@ -369,7 +362,7 @@ mod tests {
             "",
         );
 
-        bitbox02::memory::set_device_name(DEVICE_NAME_1).unwrap();
+        mock_hal.memory.set_device_name(DEVICE_NAME_1).unwrap();
         assert!(
             block_on(create(
                 &mut mock_hal,
@@ -404,7 +397,7 @@ mod tests {
             "",
         );
 
-        bitbox02::memory::set_device_name(DEVICE_NAME_2).unwrap();
+        mock_hal.memory.set_device_name(DEVICE_NAME_2).unwrap();
         assert!(
             block_on(create(
                 &mut mock_hal,

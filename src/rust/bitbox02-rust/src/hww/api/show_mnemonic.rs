@@ -131,8 +131,9 @@ mod tests {
     #[test]
     fn test_process_initialized() {
         mock_memory();
+        let mut mock_hal = TestingHal::new();
         crate::keystore::encrypt_and_store_seed(
-            &mut TestingHal::new(),
+            &mut mock_hal,
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),
@@ -140,7 +141,6 @@ mod tests {
         )
         .unwrap();
 
-        let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_initialized().unwrap();
 
         let mut password_entered: bool = false;
@@ -189,8 +189,11 @@ mod tests {
     #[test]
     fn test_process_initialized_wrong_password() {
         mock_memory();
+
+        let mut mock_hal = TestingHal::new();
+
         crate::keystore::encrypt_and_store_seed(
-            &mut TestingHal::new(),
+            &mut mock_hal,
             hex::decode("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c")
                 .unwrap()
                 .as_slice(),
@@ -198,7 +201,6 @@ mod tests {
         )
         .unwrap();
 
-        let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_initialized().unwrap();
         mock_hal
             .ui

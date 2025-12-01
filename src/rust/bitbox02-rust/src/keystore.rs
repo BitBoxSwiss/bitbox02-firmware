@@ -249,7 +249,7 @@ fn encrypt_and_store_seed_internal(
         .map_err(|_| Error::Memory)?;
 
     if !verify_seed(hal, &secret, seed) {
-        bitbox02::memory::reset_hww().map_err(|_| Error::Memory)?;
+        hal.memory().reset_hww().map_err(|_| Error::Memory)?;
         return Err(Error::Memory);
     }
 

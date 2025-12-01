@@ -493,10 +493,9 @@ mod tests {
             crate::keystore::lock();
             mock_memory();
 
-            bitbox02::memory::set_device_name("test device name").unwrap();
-
             let mut make_request = init_noise();
             let mut mock_hal = TestingHal::new();
+            mock_hal.memory.set_device_name("test device name").unwrap();
             mock_hal.sd.inserted = Some(true);
             mock_hal
                 .ui
@@ -606,9 +605,6 @@ mod tests {
                 ]
             );
 
-            // After factory reset, the device memory is reinitialized.
-            // TODO: can remove this once memory resetting is also in the memory HAL.
-            mock_hal.memory = crate::hal::testing::TestingMemory::new();
             mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
             assert!(matches!(
                 crate::pb::Response::decode(

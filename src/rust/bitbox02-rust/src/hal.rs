@@ -63,11 +63,14 @@ pub trait SecureChip {
 pub trait Memory {
     fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
+    fn get_device_name(&mut self) -> String;
+    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error>;
     fn is_seeded(&mut self) -> bool;
     fn is_initialized(&mut self) -> bool;
     fn set_initialized(&mut self) -> Result<(), ()>;
     fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()>;
     fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()>;
+    fn reset_hww(&mut self) -> Result<(), ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -189,6 +192,14 @@ impl Memory for BitBox02Memory {
         bitbox02::memory::get_platform()
     }
 
+    fn get_device_name(&mut self) -> String {
+        bitbox02::memory::get_device_name()
+    }
+
+    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
+        bitbox02::memory::set_device_name(name)
+    }
+
     fn is_seeded(&mut self) -> bool {
         bitbox02::memory::is_seeded()
     }
@@ -207,6 +218,10 @@ impl Memory for BitBox02Memory {
 
     fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
         bitbox02::memory::set_encrypted_seed_and_hmac(data)
+    }
+
+    fn reset_hww(&mut self) -> Result<(), ()> {
+        bitbox02::memory::reset_hww()
     }
 }
 
@@ -363,6 +378,9 @@ pub mod testing {
         securechip_type: SecurechipType,
         platform: bitbox02::memory::Platform,
         initialized: bool,
+        is_seeded: bool,
+        encrypted_seed_and_hmac: Option<Vec<u8>>,
+        device_name: Option<String>,
     }
 
     impl TestingSecureChip {
@@ -480,6 +498,9 @@ pub mod testing {
                 securechip_type: SecurechipType::Atecc,
                 platform: bitbox02::memory::Platform::BitBox02,
                 initialized: false,
+                is_seeded: false,
+                encrypted_seed_and_hmac: None,
+                device_name: None,
             }
         }
 
@@ -501,8 +522,19 @@ pub mod testing {
             Ok(self.platform)
         }
 
+        fn get_device_name(&mut self) -> String {
+            self.device_name
+                .clone()
+                .unwrap_or_else(|| "My BitBox".into())
+        }
+
+        fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
+            self.device_name = Some(name.into());
+            Ok(())
+        }
+
         fn is_seeded(&mut self) -> bool {
-            bitbox02::memory::is_seeded()
+            self.is_seeded
         }
 
         fn is_initialized(&mut self) -> bool {
@@ -515,13 +547,25 @@ pub mod testing {
         }
 
         fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()> {
-            // TODO: replace with a fake, not wrapping C.
-            bitbox02::memory::get_encrypted_seed_and_hmac()
+            self.encrypted_seed_and_hmac.clone().ok_or(())
         }
 
         fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
-            // TODO: replace with a fake, not wrapping C.
-            bitbox02::memory::set_encrypted_seed_and_hmac(data)
+            // 96 is the max space allocated in BitBox02's memory for this.
+            if data.len() > 96 {
+                return Err(());
+            }
+            self.encrypted_seed_and_hmac = Some(data.to_vec());
+            self.is_seeded = true;
+            Ok(())
+        }
+
+        fn reset_hww(&mut self) -> Result<(), ()> {
+            self.initialized = false;
+            self.is_seeded = false;
+            self.encrypted_seed_and_hmac = None;
+            self.device_name = None;
+            Ok(())
         }
     }
 

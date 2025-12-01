@@ -99,29 +99,27 @@ mod tests {
             ]
         );
 
-        let securechip_events = hal.securechip.get_event_counter();
-        drop(hal);
         // We expect 14 secure chip events. This is intentionally brittle to catch
         // unintended changes in the number of securechip operations during password change.
         // If this fails after a legitimate change, update the expected count.
-        assert_eq!(securechip_events, 14);
-        assert_eq!(prompt_counter, 3);
+        assert_eq!(hal.securechip.get_event_counter(), 14);
 
         // check that the old password is no longer valid
         keystore::lock();
-        // create new hal instance to call unlock
-        let mut hal_verify = TestingHal::new();
         assert!(matches!(
-            block_on(keystore::unlock(&mut hal_verify, old_password)),
+            block_on(keystore::unlock(&mut hal, old_password)),
             Err(keystore::Error::IncorrectPassword)
         ));
         // check that the new password is valid
         assert_eq!(
-            block_on(keystore::unlock(&mut hal_verify, new_password))
+            block_on(keystore::unlock(&mut hal, new_password))
                 .unwrap()
                 .as_slice(),
             seed.as_slice()
         );
+
+        drop(hal);
+        assert_eq!(prompt_counter, 3);
     }
 
     // Test that we fail if the unlock fails
@@ -166,16 +164,16 @@ mod tests {
         // We expect 5 secure chip events (sensitive to code changes)
         assert_eq!(hal.securechip.get_event_counter(), 5);
 
-        drop(hal);
-        assert_eq!(prompt_counter, 1);
         // check that the old password is still valid
-        let mut hal_verify = TestingHal::new();
         assert_eq!(
-            block_on(keystore::unlock(&mut hal_verify, correct_password))
+            block_on(keystore::unlock(&mut hal, correct_password))
                 .unwrap()
                 .as_slice(),
             seed.as_slice()
         );
+
+        drop(hal);
+        assert_eq!(prompt_counter, 1);
     }
 
     // Test that we fail if the confirm password mismatch
@@ -214,16 +212,15 @@ mod tests {
             }
         }));
         let result = block_on(process(&mut hal));
-        drop(hal);
 
         assert_eq!(result, Err(Error::Generic));
         // check that the old password is still valid
-        let mut hal_verify = TestingHal::new();
         assert_eq!(
-            block_on(keystore::unlock(&mut hal_verify, old_password))
+            block_on(keystore::unlock(&mut hal, old_password))
                 .unwrap()
                 .as_slice(),
             seed.as_slice()
         );
+        drop(hal);
     }
 }

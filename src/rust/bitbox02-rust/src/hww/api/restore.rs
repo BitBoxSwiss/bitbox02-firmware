@@ -86,7 +86,7 @@ pub async fn from_file(
     hal.memory().set_initialized().or(Err(Error::Memory))?;
 
     // Ignore non-critical error.
-    let _ = bitbox02::memory::set_device_name(&metadata.name);
+    let _ = hal.memory().set_device_name(&metadata.name);
 
     unlock::unlock_bip39(hal, seed).await;
     Ok(Response::Success(pb::Success {}))

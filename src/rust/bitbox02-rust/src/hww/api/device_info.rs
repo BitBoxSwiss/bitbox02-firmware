@@ -33,7 +33,7 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         memory::Platform::BitBox02 => None,
     };
     Ok(Response::DeviceInfo(pb::DeviceInfoResponse {
-        name: memory::get_device_name(),
+        name: hal.memory().get_device_name(),
         initialized: hal.memory().is_initialized(),
         version: crate::version::FIRMWARE_VERSION_SHORT.into(),
         mnemonic_passphrase_enabled: memory::is_mnemonic_passphrase_enabled(),

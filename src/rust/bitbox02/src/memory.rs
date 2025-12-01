@@ -406,6 +406,172 @@ mod tests {
         set_salt_root(original.as_slice().try_into().unwrap()).unwrap();
     }
 
+    #[test]
+    fn test_get_set_device_name() {
+        mock_memory();
+
+        let original = get_device_name();
+        assert_eq!(original, "My BitBox");
+
+        let new_name = "Test device name";
+
+        set_device_name(new_name).unwrap();
+        assert_eq!(get_device_name(), new_name);
+
+        // A name with the maximum allowed length is accepted.
+        let max_len_name = "DeviceName_ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxy";
+        assert_eq!(max_len_name.len(), DEVICE_NAME_MAX_LEN);
+        set_device_name(max_len_name).unwrap();
+        assert_eq!(get_device_name(), max_len_name);
+
+        // Longer names are truncated to the maximum length.
+        let long_name = format!("{max_len_name}foobar");
+        set_device_name(&long_name).unwrap();
+        let stored = get_device_name();
+        assert_eq!(stored, max_len_name);
+
+        // Invalid names are rejected and must not change the stored value.
+        let invalid_names = [
+            "",         // empty
+            " name",    // leading space
+            "name ",    // trailing space
+            "foo\nbar", // control character
+            "Ä",        // non-ASCII
+            "漢字",     // non-ASCII
+        ];
+
+        for invalid in invalid_names {
+            assert!(set_device_name(invalid).is_err());
+            assert_eq!(get_device_name(), stored);
+        }
+    }
+
+    #[test]
+    fn test_is_set_initialized() {
+        mock_memory();
+
+        assert!(!is_initialized());
+        assert!(!is_seeded());
+        assert!(set_initialized().is_err());
+
+        let seed_data: Vec<u8> = (0..96).map(|i| i as u8).collect();
+        set_encrypted_seed_and_hmac(&seed_data).unwrap();
+        assert!(is_seeded());
+        assert!(!is_initialized());
+
+        set_initialized().unwrap();
+        assert!(is_initialized());
+    }
+
+    #[test]
+    fn test_mnemonic_passphrase_enabled_roundtrip() {
+        mock_memory();
+
+        assert!(!is_mnemonic_passphrase_enabled());
+
+        set_mnemonic_passphrase_enabled(true).unwrap();
+        assert!(is_mnemonic_passphrase_enabled());
+
+        set_mnemonic_passphrase_enabled(false).unwrap();
+        assert!(!is_mnemonic_passphrase_enabled());
+    }
+
+    #[test]
+    fn test_seed_birthdate_roundtrip() {
+        mock_memory();
+
+        assert_eq!(get_seed_birthdate(), 0);
+
+        let timestamp: u32 = 0xABCDEF11;
+        set_seed_birthdate(timestamp).unwrap();
+        assert_eq!(get_seed_birthdate(), timestamp);
+    }
+
+    #[test]
+    fn test_ble_metadata_roundtrip() {
+        mock_memory();
+
+        let new_metadata = BleMetadata {
+            allowed_firmware_hash: [0x11u8; 32],
+            active_index: 1,
+            firmware_sizes: [1024u16, 2048u16],
+            firmware_checksums: [0xAAu8, 0xBBu8],
+        };
+
+        set_ble_metadata(&new_metadata).unwrap();
+        let readback = get_ble_metadata();
+
+        assert_eq!(
+            readback.allowed_firmware_hash,
+            new_metadata.allowed_firmware_hash
+        );
+        assert_eq!(readback.active_index, new_metadata.active_index);
+        assert_eq!(readback.firmware_sizes, new_metadata.firmware_sizes);
+        assert_eq!(readback.firmware_checksums, new_metadata.firmware_checksums);
+    }
+
+    #[test]
+    fn test_ble_enable_and_enabled() {
+        mock_memory();
+
+        // Default after factory setup is BLE enabled.
+        assert!(ble_enabled());
+
+        ble_enable(false).unwrap();
+        assert!(!ble_enabled());
+
+        ble_enable(true).unwrap();
+        assert!(ble_enabled());
+    }
+
+    #[test]
+    fn test_noise_static_key_and_remote_pubkeys() {
+        mock_memory();
+
+        let static_key = get_noise_static_private_key().unwrap();
+        assert!(static_key.iter().any(|&b| b != 0xff));
+
+        let pubkeys: [[u8; 32]; 6] = [
+            [0x11u8; 32],
+            [0x22u8; 32],
+            [0x33u8; 32],
+            [0x44u8; 32],
+            [0x55u8; 32],
+            [0x66u8; 32],
+        ];
+
+        // Initially, none of the pubkeys are stored.
+        for key in pubkeys.iter() {
+            assert!(!check_noise_remote_static_pubkey(key));
+        }
+
+        // Add the first five pubkeys. All added ones must be found, the rest not.
+        for i in 0..5 {
+            add_noise_remote_static_pubkey(&pubkeys[i]).unwrap();
+            for key in pubkeys.iter().take(i + 1) {
+                assert!(check_noise_remote_static_pubkey(key));
+            }
+            for key in pubkeys.iter().skip(i + 1) {
+                assert!(!check_noise_remote_static_pubkey(key));
+            }
+        }
+
+        // Adding a sixth pubkey should evict the oldest one and keep the
+        // latest five.
+        add_noise_remote_static_pubkey(&pubkeys[5]).unwrap();
+        assert!(!check_noise_remote_static_pubkey(&pubkeys[0]));
+        for key in pubkeys.iter().skip(1) {
+            assert!(check_noise_remote_static_pubkey(key));
+        }
+
+        // Adding an already stored pubkey is a no-op.
+        add_noise_remote_static_pubkey(&pubkeys[5]).unwrap();
+        assert!(!check_noise_remote_static_pubkey(&pubkeys[0]));
+        for key in pubkeys.iter().skip(1) {
+            assert!(check_noise_remote_static_pubkey(key));
+        }
+    }
+
     static RAND_FIXTURES: [[u8; 32]; 7] = [
         // salt root
         hex!("bdb9ca4975e59e1b61d9141c5e79688cba7b3989b52b782de2e7e49b07ec8fae"),

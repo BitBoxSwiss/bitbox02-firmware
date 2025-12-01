@@ -331,7 +331,7 @@ mod tests {
         );
 
         assert!(!crate::keystore::is_locked());
-        assert!(bitbox02::memory::is_seeded());
+        assert!(mock_hal.memory.is_seeded());
         assert!(!mock_hal.memory.is_initialized());
 
         let reboot_request = crate::pb::Request {

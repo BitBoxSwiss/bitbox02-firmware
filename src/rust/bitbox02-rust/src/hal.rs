@@ -63,6 +63,7 @@ pub trait SecureChip {
 pub trait Memory {
     fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
+    fn is_seeded(&mut self) -> bool;
     fn is_initialized(&mut self) -> bool;
     fn set_initialized(&mut self) -> Result<(), ()>;
 }
@@ -184,6 +185,10 @@ impl Memory for BitBox02Memory {
 
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
         bitbox02::memory::get_platform()
+    }
+
+    fn is_seeded(&mut self) -> bool {
+        bitbox02::memory::is_seeded()
     }
 
     fn is_initialized(&mut self) -> bool {
@@ -484,6 +489,10 @@ pub mod testing {
 
         fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
             Ok(self.platform)
+        }
+
+        fn is_seeded(&mut self) -> bool {
+            bitbox02::memory::is_seeded()
         }
 
         fn is_initialized(&mut self) -> bool {

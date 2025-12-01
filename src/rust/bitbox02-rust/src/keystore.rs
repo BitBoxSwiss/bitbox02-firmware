@@ -269,7 +269,7 @@ pub fn re_encrypt_seed(
     seed: &[u8],
     new_password: &str,
 ) -> Result<(), Error> {
-    if !bitbox02::memory::is_seeded() {
+    if !hal.memory().is_seeded() {
         return Err(Error::Unseeded);
     }
 
@@ -325,7 +325,7 @@ pub async fn unlock(
     hal: &mut impl crate::hal::Hal,
     password: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    if !bitbox02::memory::is_seeded() {
+    if !hal.memory().is_seeded() {
         return Err(Error::Unseeded);
     }
     if get_remaining_unlock_attempts() == 0 {
@@ -1174,7 +1174,7 @@ mod tests {
                 bitbox02::memory::MAX_UNLOCK_ATTEMPTS - i
             );
             // Still seeded.
-            assert!(bitbox02::memory::is_seeded());
+            assert!(mock_hal.memory.is_seeded());
             // Wrong password does not lock the keystore again if already unlocked.
             assert!(copy_seed(&mut mock_hal).is_ok());
         }
@@ -1184,7 +1184,7 @@ mod tests {
             Err(Error::MaxAttemptsExceeded),
         ));
         // Last wrong attempt locks & resets. There is no more seed.
-        assert!(!bitbox02::memory::is_seeded());
+        assert!(!mock_hal.memory.is_seeded());
         assert!(copy_seed(&mut mock_hal).is_err());
         assert!(matches!(
             block_on(unlock(&mut mock_hal, "password")),
@@ -1221,7 +1221,7 @@ mod tests {
             );
             assert!(is_locked());
             assert!(copy_seed(&mut mock_hal).is_err());
-            assert!(bitbox02::memory::is_seeded());
+            assert!(mock_hal.memory.is_seeded());
         }
 
         assert!(matches!(
@@ -1230,7 +1230,7 @@ mod tests {
         ));
         assert!(is_locked());
         assert!(copy_seed(&mut mock_hal).is_err());
-        assert!(!bitbox02::memory::is_seeded());
+        assert!(!mock_hal.memory.is_seeded());
         assert!(matches!(
             block_on(unlock(&mut mock_hal, "password")),
             Err(Error::Unseeded)
@@ -1269,7 +1269,7 @@ mod tests {
         ));
         assert!(is_locked());
         assert!(copy_seed(&mut mock_hal).is_err());
-        assert!(!bitbox02::memory::is_seeded());
+        assert!(!mock_hal.memory.is_seeded());
     }
 
     /// Ensures the failed-attempt counter resets once a correct password is entered while the
@@ -1316,7 +1316,7 @@ mod tests {
 
         wrong_attempt(&mut mock_hal);
         assert!(copy_seed(&mut mock_hal).is_err());
-        assert!(bitbox02::memory::is_seeded());
+        assert!(mock_hal.memory.is_seeded());
     }
 
     /// Ensures the failed-attempt counter resets when the keystore stays unlocked throughout, so
@@ -1368,7 +1368,7 @@ mod tests {
 
         wrong_attempt(&mut mock_hal);
         assert!(copy_seed(&mut mock_hal).is_ok());
-        assert!(bitbox02::memory::is_seeded());
+        assert!(mock_hal.memory.is_seeded());
     }
 
     #[test]

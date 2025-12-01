@@ -116,7 +116,7 @@ fn can_call(hal: &mut impl crate::hal::Hal, request: &Request) -> bool {
         } else {
             State::InitializedAndUnlocked
         }
-    } else if bitbox02::memory::is_seeded() {
+    } else if hal.memory().is_seeded() {
         State::Seeded
     } else {
         State::Uninitialized

@@ -67,6 +67,8 @@ pub trait Memory {
     fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error>;
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool;
     fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()>;
+    fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()>;
+    fn get_seed_birthdate(&mut self) -> u32;
     fn is_seeded(&mut self) -> bool;
     fn is_initialized(&mut self) -> bool;
     fn set_initialized(&mut self) -> Result<(), ()>;
@@ -208,6 +210,14 @@ impl Memory for BitBox02Memory {
 
     fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()> {
         bitbox02::memory::set_mnemonic_passphrase_enabled(enabled)
+    }
+
+    fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()> {
+        bitbox02::memory::set_seed_birthdate(timestamp)
+    }
+
+    fn get_seed_birthdate(&mut self) -> u32 {
+        bitbox02::memory::get_seed_birthdate()
     }
 
     fn is_seeded(&mut self) -> bool {
@@ -390,6 +400,7 @@ pub mod testing {
         initialized: bool,
         is_seeded: bool,
         mnemonic_passphrase_enabled: bool,
+        seed_birthdate: u32,
         encrypted_seed_and_hmac: Option<Vec<u8>>,
         device_name: Option<String>,
     }
@@ -511,6 +522,7 @@ pub mod testing {
                 initialized: false,
                 is_seeded: false,
                 mnemonic_passphrase_enabled: false,
+                seed_birthdate: 0,
                 encrypted_seed_and_hmac: None,
                 device_name: None,
             }
@@ -554,6 +566,15 @@ pub mod testing {
             Ok(())
         }
 
+        fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()> {
+            self.seed_birthdate = timestamp;
+            Ok(())
+        }
+
+        fn get_seed_birthdate(&mut self) -> u32 {
+            self.seed_birthdate
+        }
+
         fn is_seeded(&mut self) -> bool {
             self.is_seeded
         }
@@ -585,6 +606,7 @@ pub mod testing {
             self.initialized = false;
             self.is_seeded = false;
             self.mnemonic_passphrase_enabled = false;
+            self.seed_birthdate = 0;
             self.encrypted_seed_and_hmac = None;
             self.device_name = None;
             Ok(())

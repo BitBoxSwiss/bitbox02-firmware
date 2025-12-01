@@ -74,7 +74,7 @@ pub async fn from_file(
     }
 
     // Ignore error here. Missing birthdate should not abort an otherwise successful restore.
-    let _ = bitbox02::memory::set_seed_birthdate(data.0.birthdate);
+    let _ = hal.memory().set_seed_birthdate(data.0.birthdate);
 
     #[cfg(feature = "app-u2f")]
     {

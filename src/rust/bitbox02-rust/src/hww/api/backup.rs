@@ -110,7 +110,7 @@ pub async fn create(
     };
 
     let seed_birthdate = if !is_initialized {
-        if bitbox02::memory::set_seed_birthdate(timestamp).is_err() {
+        if hal.memory().set_seed_birthdate(timestamp).is_err() {
             return Err(Error::Memory);
         }
         timestamp
@@ -192,7 +192,7 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 1);
-        assert_eq!(EXPECTED_TIMESTMAP, bitbox02::memory::get_seed_birthdate());
+        assert_eq!(EXPECTED_TIMESTMAP, mock_hal.memory.get_seed_birthdate());
         assert_eq!(
             mock_hal.ui.screens,
             vec![

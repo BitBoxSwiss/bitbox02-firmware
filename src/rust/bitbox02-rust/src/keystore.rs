@@ -167,12 +167,16 @@ pub fn is_locked() -> bool {
     !unlocked
 }
 
-fn verify_seed(encryption_key: &[u8], expected_seed: &[u8]) -> bool {
+fn verify_seed(
+    hal: &mut impl crate::hal::Hal,
+    encryption_key: &[u8],
+    expected_seed: &[u8],
+) -> bool {
     if encryption_key.len() != 32 {
         return false;
     }
 
-    let cipher = match bitbox02::memory::get_encrypted_seed_and_hmac() {
+    let cipher = match hal.memory().get_encrypted_seed_and_hmac() {
         Ok(cipher) => cipher,
         Err(_) => return false,
     };
@@ -240,9 +244,11 @@ fn encrypt_and_store_seed_internal(
         panic!("encrypted seed length overflow");
     }
 
-    bitbox02::memory::set_encrypted_seed_and_hmac(&encrypted).map_err(|_| Error::Memory)?;
+    hal.memory()
+        .set_encrypted_seed_and_hmac(&encrypted)
+        .map_err(|_| Error::Memory)?;
 
-    if !verify_seed(&secret, seed) {
+    if !verify_seed(hal, &secret, seed) {
         bitbox02::memory::reset_hww().map_err(|_| Error::Memory)?;
         return Err(Error::Memory);
     }
@@ -304,7 +310,10 @@ fn get_and_decrypt_seed(
     hal: &mut impl crate::hal::Hal,
     password: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let encrypted = bitbox02::memory::get_encrypted_seed_and_hmac().map_err(|_| Error::Memory)?;
+    let encrypted = hal
+        .memory()
+        .get_encrypted_seed_and_hmac()
+        .map_err(|_| Error::Memory)?;
     // Our Optiga securechip implementation fails password stretching if the password is
     // wrong, so it already returns an error here. The ATECC stretches the password without checking
     // if the password is correct, and we determine if it is correct in the seed decryption
@@ -802,7 +811,7 @@ pub mod testing {
 mod tests {
     use super::*;
 
-    use crate::hal::{Memory, testing::TestingHal};
+    use crate::hal::testing::TestingHal;
     use hex_lit::hex;
 
     use bitbox02::testing::mock_memory;
@@ -903,7 +912,7 @@ mod tests {
             );
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.
-            let cipher = bitbox02::memory::get_encrypted_seed_and_hmac().unwrap();
+            let cipher = hal.memory.get_encrypted_seed_and_hmac().unwrap();
 
             // Same as Python:
             // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()

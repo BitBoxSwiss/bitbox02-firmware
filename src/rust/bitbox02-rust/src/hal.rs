@@ -66,6 +66,8 @@ pub trait Memory {
     fn is_seeded(&mut self) -> bool;
     fn is_initialized(&mut self) -> bool;
     fn set_initialized(&mut self) -> Result<(), ()>;
+    fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()>;
+    fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -197,6 +199,14 @@ impl Memory for BitBox02Memory {
 
     fn set_initialized(&mut self) -> Result<(), ()> {
         bitbox02::memory::set_initialized()
+    }
+
+    fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()> {
+        bitbox02::memory::get_encrypted_seed_and_hmac()
+    }
+
+    fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
+        bitbox02::memory::set_encrypted_seed_and_hmac(data)
     }
 }
 
@@ -502,6 +512,16 @@ pub mod testing {
         fn set_initialized(&mut self) -> Result<(), ()> {
             self.initialized = true;
             Ok(())
+        }
+
+        fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()> {
+            // TODO: replace with a fake, not wrapping C.
+            bitbox02::memory::get_encrypted_seed_and_hmac()
+        }
+
+        fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
+            // TODO: replace with a fake, not wrapping C.
+            bitbox02::memory::set_encrypted_seed_and_hmac(data)
         }
     }
 

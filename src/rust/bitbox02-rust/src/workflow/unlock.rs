@@ -114,7 +114,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     let mut mnemonic_passphrase = zeroize::Zeroizing::new("".into());
 
     // If setting activated, get the passphrase from the user.
-    if bitbox02::memory::is_mnemonic_passphrase_enabled() {
+    if hal.memory().is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
             mnemonic_passphrase = password::enter(

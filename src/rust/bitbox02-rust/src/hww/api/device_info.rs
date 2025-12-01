@@ -36,7 +36,7 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         name: hal.memory().get_device_name(),
         initialized: hal.memory().is_initialized(),
         version: crate::version::FIRMWARE_VERSION_SHORT.into(),
-        mnemonic_passphrase_enabled: memory::is_mnemonic_passphrase_enabled(),
+        mnemonic_passphrase_enabled: hal.memory().is_mnemonic_passphrase_enabled(),
         monotonic_increments_remaining: hal.securechip().monotonic_increments_remaining()?,
         securechip_model: match hal.securechip().model()? {
             securechip::Model::ATECC_ATECC608A => "ATECC608A".into(),

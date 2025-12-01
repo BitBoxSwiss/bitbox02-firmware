@@ -65,6 +65,8 @@ pub trait Memory {
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
     fn get_device_name(&mut self) -> String;
     fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error>;
+    fn is_mnemonic_passphrase_enabled(&mut self) -> bool;
+    fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()>;
     fn is_seeded(&mut self) -> bool;
     fn is_initialized(&mut self) -> bool;
     fn set_initialized(&mut self) -> Result<(), ()>;
@@ -198,6 +200,14 @@ impl Memory for BitBox02Memory {
 
     fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
         bitbox02::memory::set_device_name(name)
+    }
+
+    fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
+        bitbox02::memory::is_mnemonic_passphrase_enabled()
+    }
+
+    fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()> {
+        bitbox02::memory::set_mnemonic_passphrase_enabled(enabled)
     }
 
     fn is_seeded(&mut self) -> bool {
@@ -379,6 +389,7 @@ pub mod testing {
         platform: bitbox02::memory::Platform,
         initialized: bool,
         is_seeded: bool,
+        mnemonic_passphrase_enabled: bool,
         encrypted_seed_and_hmac: Option<Vec<u8>>,
         device_name: Option<String>,
     }
@@ -499,6 +510,7 @@ pub mod testing {
                 platform: bitbox02::memory::Platform::BitBox02,
                 initialized: false,
                 is_seeded: false,
+                mnemonic_passphrase_enabled: false,
                 encrypted_seed_and_hmac: None,
                 device_name: None,
             }
@@ -533,6 +545,15 @@ pub mod testing {
             Ok(())
         }
 
+        fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
+            self.mnemonic_passphrase_enabled
+        }
+
+        fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()> {
+            self.mnemonic_passphrase_enabled = enabled;
+            Ok(())
+        }
+
         fn is_seeded(&mut self) -> bool {
             self.is_seeded
         }
@@ -563,6 +584,7 @@ pub mod testing {
         fn reset_hww(&mut self) -> Result<(), ()> {
             self.initialized = false;
             self.is_seeded = false;
+            self.mnemonic_passphrase_enabled = false;
             self.encrypted_seed_and_hmac = None;
             self.device_name = None;
             Ok(())

@@ -40,7 +40,7 @@ CONTAINER_NAME="$PROJECT_NAME-$CONTAINER_NAME_SUFFIX"
 dockerdev () {
     local repo_path="$DIR/.."
 
-    if ! $RUNTIME images --filter "reference=${CONTAINER_IMAGE}" | grep -q "${CONTAINER_IMAGE} *${CONTAINER_VERSION}"; then
+    if ! $RUNTIME images --filter "reference=${CONTAINER_IMAGE}" --format table | grep -q "${CONTAINER_IMAGE} *${CONTAINER_VERSION}"; then
         echo "No '${CONTAINER_IMAGE}:${CONTAINER_VERSION}' ${RUNTIME} image found! Maybe you need to run
               '${RUNTIME} pull ${CONTAINER_IMAGE}:${CONTAINER_VERSION}'?" >&2
         exit 1

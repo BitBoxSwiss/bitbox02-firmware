@@ -366,7 +366,11 @@ static void _back(void* user_data)
     component_t* self = (component_t*)user_data;
     data_t* data = (data_t*)self->data;
     if (trinary_input_char_in_progress(data->trinary_char_component)) {
-        _set_alphabet(self, false);
+        // Try to go back in navigation stack first
+        if (!trinary_input_char_go_back(data->trinary_char_component)) {
+            // If stack was empty, reset to full alphabet
+            _set_alphabet(self, false);
+        }
         return;
     }
     if (data->string_index == 0) {

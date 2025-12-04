@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(feature = "testing"), no_std)]
 pub mod ascii;
 pub mod bb02_async;
 pub mod bip32;

@@ -112,9 +112,9 @@ int main(void)
 
     // Set device name, the MCU and BLE chip will probably not have the same name after a reset of
     // only the MCU.
-    char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    char buf[MEMORY_DEVICE_NAME_MAX_LEN + 1] = {0};
     memory_random_name(buf);
-    da14531_set_name(buf, strlen(buf), &uart_write_queue);
+    da14531_set_name(buf, &uart_write_queue);
 
     // Ask for the current conection state
     da14531_get_connection_state(&uart_write_queue);

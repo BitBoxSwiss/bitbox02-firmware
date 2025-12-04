@@ -12,20 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DA14531_HANDLER_H
-#define DA14531_HANDLER_H
+use crate::ringbuffer::RingBuffer;
+use bitbox02_sys::da14531_protocol_frame;
 
-#include "da14531_protocol.h"
-#include <platform/platform_config.h>
-#include <utils_ringbuffer.h>
+pub fn handler(frame: &'static da14531_protocol_frame, uart_write_queue: &mut RingBuffer) {
+    unsafe {
+        bitbox02_sys::da14531_handler(frame as *const _, &mut uart_write_queue.inner);
+    }
+}
 
-extern const uint8_t* da14531_handler_current_product;
-extern uint16_t da14531_handler_current_product_len;
-
-#if FACTORYSETUP == 1
-bool da14531_handler_bond_db_set(void);
-#endif
-
-void da14531_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue);
-
-#endif
+pub fn set_product(product: &'static str, len: u16) {
+    unsafe {
+        bitbox02_sys::da14531_handler_current_product = product.as_bytes().as_ptr();
+        bitbox02_sys::da14531_handler_current_product_len = len;
+    }
+}

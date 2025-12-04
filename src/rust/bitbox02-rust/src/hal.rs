@@ -60,12 +60,30 @@ pub trait SecureChip {
     fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;
 }
 
+pub trait Memory {
+    fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
+    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
+    fn get_device_name(&mut self) -> String;
+    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error>;
+    fn is_mnemonic_passphrase_enabled(&mut self) -> bool;
+    fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()>;
+    fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()>;
+    fn get_seed_birthdate(&mut self) -> u32;
+    fn is_seeded(&mut self) -> bool;
+    fn is_initialized(&mut self) -> bool;
+    fn set_initialized(&mut self) -> Result<(), ()>;
+    fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()>;
+    fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()>;
+    fn reset_hww(&mut self) -> Result<(), ()>;
+}
+
 /// Hardware abstraction layer for BitBox devices.
 pub trait Hal {
     fn ui(&mut self) -> &mut impl Ui;
     fn sd(&mut self) -> &mut impl Sd;
     fn random(&mut self) -> &mut impl Random;
     fn securechip(&mut self) -> &mut impl SecureChip;
+    fn memory(&mut self) -> &mut impl Memory;
 }
 
 pub struct BitBox02Sd;
@@ -167,11 +185,72 @@ impl SecureChip for BitBox02SecureChip {
     }
 }
 
+pub struct BitBox02Memory;
+
+impl Memory for BitBox02Memory {
+    fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()> {
+        bitbox02::memory::get_securechip_type()
+    }
+
+    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+        bitbox02::memory::get_platform()
+    }
+
+    fn get_device_name(&mut self) -> String {
+        bitbox02::memory::get_device_name()
+    }
+
+    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
+        bitbox02::memory::set_device_name(name)
+    }
+
+    fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
+        bitbox02::memory::is_mnemonic_passphrase_enabled()
+    }
+
+    fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()> {
+        bitbox02::memory::set_mnemonic_passphrase_enabled(enabled)
+    }
+
+    fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()> {
+        bitbox02::memory::set_seed_birthdate(timestamp)
+    }
+
+    fn get_seed_birthdate(&mut self) -> u32 {
+        bitbox02::memory::get_seed_birthdate()
+    }
+
+    fn is_seeded(&mut self) -> bool {
+        bitbox02::memory::is_seeded()
+    }
+
+    fn is_initialized(&mut self) -> bool {
+        bitbox02::memory::is_initialized()
+    }
+
+    fn set_initialized(&mut self) -> Result<(), ()> {
+        bitbox02::memory::set_initialized()
+    }
+
+    fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()> {
+        bitbox02::memory::get_encrypted_seed_and_hmac()
+    }
+
+    fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
+        bitbox02::memory::set_encrypted_seed_and_hmac(data)
+    }
+
+    fn reset_hww(&mut self) -> Result<(), ()> {
+        bitbox02::memory::reset_hww()
+    }
+}
+
 pub struct BitBox02Hal {
     ui: RealWorkflows,
     sd: BitBox02Sd,
     random: BitBox02Random,
     securechip: BitBox02SecureChip,
+    memory: BitBox02Memory,
 }
 
 impl BitBox02Hal {
@@ -181,6 +260,7 @@ impl BitBox02Hal {
             sd: BitBox02Sd,
             random: BitBox02Random,
             securechip: BitBox02SecureChip,
+            memory: BitBox02Memory,
         }
     }
 }
@@ -198,6 +278,9 @@ impl Hal for BitBox02Hal {
     fn securechip(&mut self) -> &mut impl SecureChip {
         &mut self.securechip
     }
+    fn memory(&mut self) -> &mut impl Memory {
+        &mut self.memory
+    }
 }
 
 #[cfg(feature = "testing")]
@@ -209,6 +292,7 @@ pub mod testing {
 
     use bitcoin::hashes::{Hash, sha256};
 
+    use bitbox02::memory::SecurechipType;
     use hex_lit::hex;
 
     pub struct TestingRandom {
@@ -308,6 +392,17 @@ pub mod testing {
         reset_keys_fail_once: bool,
         #[cfg(feature = "app-u2f")]
         u2f_counter: u32,
+    }
+
+    pub struct TestingMemory {
+        securechip_type: SecurechipType,
+        platform: bitbox02::memory::Platform,
+        initialized: bool,
+        is_seeded: bool,
+        mnemonic_passphrase_enabled: bool,
+        seed_birthdate: u32,
+        encrypted_seed_and_hmac: Option<Vec<u8>>,
+        device_name: Option<String>,
     }
 
     impl TestingSecureChip {
@@ -419,11 +514,111 @@ pub mod testing {
         }
     }
 
+    impl TestingMemory {
+        pub fn new() -> Self {
+            Self {
+                securechip_type: SecurechipType::Atecc,
+                platform: bitbox02::memory::Platform::BitBox02,
+                initialized: false,
+                is_seeded: false,
+                mnemonic_passphrase_enabled: false,
+                seed_birthdate: 0,
+                encrypted_seed_and_hmac: None,
+                device_name: None,
+            }
+        }
+
+        pub fn set_securechip_type(&mut self, securechip_type: SecurechipType) {
+            self.securechip_type = securechip_type;
+        }
+
+        pub fn set_platform(&mut self, platform: bitbox02::memory::Platform) {
+            self.platform = platform;
+        }
+    }
+
+    impl super::Memory for TestingMemory {
+        fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
+            Ok(self.securechip_type)
+        }
+
+        fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+            Ok(self.platform)
+        }
+
+        fn get_device_name(&mut self) -> String {
+            self.device_name
+                .clone()
+                .unwrap_or_else(|| "My BitBox".into())
+        }
+
+        fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
+            self.device_name = Some(name.into());
+            Ok(())
+        }
+
+        fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
+            self.mnemonic_passphrase_enabled
+        }
+
+        fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()> {
+            self.mnemonic_passphrase_enabled = enabled;
+            Ok(())
+        }
+
+        fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()> {
+            self.seed_birthdate = timestamp;
+            Ok(())
+        }
+
+        fn get_seed_birthdate(&mut self) -> u32 {
+            self.seed_birthdate
+        }
+
+        fn is_seeded(&mut self) -> bool {
+            self.is_seeded
+        }
+
+        fn is_initialized(&mut self) -> bool {
+            self.initialized
+        }
+
+        fn set_initialized(&mut self) -> Result<(), ()> {
+            self.initialized = true;
+            Ok(())
+        }
+
+        fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()> {
+            self.encrypted_seed_and_hmac.clone().ok_or(())
+        }
+
+        fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
+            // 96 is the max space allocated in BitBox02's memory for this.
+            if data.len() > 96 {
+                return Err(());
+            }
+            self.encrypted_seed_and_hmac = Some(data.to_vec());
+            self.is_seeded = true;
+            Ok(())
+        }
+
+        fn reset_hww(&mut self) -> Result<(), ()> {
+            self.initialized = false;
+            self.is_seeded = false;
+            self.mnemonic_passphrase_enabled = false;
+            self.seed_birthdate = 0;
+            self.encrypted_seed_and_hmac = None;
+            self.device_name = None;
+            Ok(())
+        }
+    }
+
     pub struct TestingHal<'a> {
         pub ui: crate::workflow::testing::TestingWorkflows<'a>,
         pub sd: TestingSd,
         pub random: TestingRandom,
         pub securechip: TestingSecureChip,
+        pub memory: TestingMemory,
     }
 
     impl TestingHal<'_> {
@@ -433,6 +628,7 @@ pub mod testing {
                 sd: TestingSd::new(),
                 random: TestingRandom::new(),
                 securechip: TestingSecureChip::new(),
+                memory: TestingMemory::new(),
             }
         }
     }
@@ -449,6 +645,9 @@ pub mod testing {
         }
         fn securechip(&mut self) -> &mut impl super::SecureChip {
             &mut self.securechip
+        }
+        fn memory(&mut self) -> &mut impl super::Memory {
+            &mut self.memory
         }
     }
 

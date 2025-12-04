@@ -14,6 +14,9 @@
 
 use super::{Workflows, confirm, trinary_input_string};
 
+use crate::hal::Memory;
+use bitbox02::memory::SecurechipType;
+
 pub use trinary_input_string::{CanCancel, Error};
 
 use alloc::string::String;
@@ -64,9 +67,13 @@ pub async fn enter(
         longtouch: true,
         default_to_digits: match password_type {
             PasswordType::DevicePassword => {
-                match bitbox02::memory::get_securechip_type().map_err(|_| EnterError::Memory)? {
-                    bitbox02::memory::SecurechipType::Atecc => false,
-                    bitbox02::memory::SecurechipType::Optiga => true,
+                match hal
+                    .memory()
+                    .get_securechip_type()
+                    .map_err(|_| EnterError::Memory)?
+                {
+                    SecurechipType::Atecc => false,
+                    SecurechipType::Optiga => true,
                 }
             }
             PasswordType::Bip39Passphrase => false,
@@ -147,4 +154,74 @@ pub async fn enter_twice(
     }
     hal.ui().status("Success", true).await;
     Ok(password)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::hal::testing::TestingHal;
+    use alloc::boxed::Box;
+    use util::bb02_async::block_on;
+
+    #[test]
+    fn test_enter_default_to_digits_atecc() {
+        let mut hal = TestingHal::new();
+        hal.memory.set_securechip_type(SecurechipType::Atecc);
+        hal.ui.set_enter_string(Box::new(|params| {
+            assert!(!params.default_to_digits);
+            Ok("pw".into())
+        }));
+
+        let password = block_on(enter(
+            &mut hal,
+            "Enter password",
+            PasswordType::DevicePassword,
+            CanCancel::No,
+        ))
+        .unwrap();
+
+        assert_eq!(password.as_str(), "pw");
+    }
+
+    #[test]
+    fn test_enter_default_to_digits_optiga() {
+        let mut hal = TestingHal::new();
+        hal.memory.set_securechip_type(SecurechipType::Optiga);
+        hal.ui.set_enter_string(Box::new(|params| {
+            assert!(params.default_to_digits);
+            Ok("pw".into())
+        }));
+
+        let password = block_on(enter(
+            &mut hal,
+            "Enter password",
+            PasswordType::DevicePassword,
+            CanCancel::No,
+        ))
+        .unwrap();
+
+        assert_eq!(password.as_str(), "pw");
+    }
+
+    #[test]
+    fn test_enter_cancelled() {
+        let mut hal = TestingHal::new();
+        hal.memory.set_securechip_type(SecurechipType::Atecc);
+        hal.ui.set_enter_string(Box::new(|_params| {
+            Err(trinary_input_string::Error::Cancelled)
+        }));
+
+        let result = block_on(enter(
+            &mut hal,
+            "Enter password",
+            PasswordType::DevicePassword,
+            CanCancel::Yes,
+        ));
+
+        assert!(matches!(result, Err(EnterError::Cancelled)));
+        assert!(
+            hal.ui
+                .contains_confirm("", "Do you really\nwant to cancel?")
+        );
+    }
 }

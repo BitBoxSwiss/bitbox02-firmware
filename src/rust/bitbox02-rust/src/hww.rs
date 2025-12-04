@@ -15,6 +15,7 @@
 pub mod api;
 pub mod noise;
 
+use crate::hal::Memory;
 use alloc::vec::Vec;
 
 const OP_UNLOCK: u8 = b'u';
@@ -113,7 +114,7 @@ async fn _process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> Vec
     // Update the waiting screen from "See the BitBoxApp" to the logo, now that the host is
     // connected. When the device is initialized, we delay this until the unlock call, otherwise
     // there would be a flicker where the logo would be shown before the host invokes unlock.
-    if !bitbox02::memory::is_initialized() || usb_in.as_slice() == [OP_UNLOCK] {
+    if !hal.memory().is_initialized() || usb_in.as_slice() == [OP_UNLOCK] {
         bitbox02::ui::screen_process_waiting_switch_to_logo();
     }
 
@@ -330,8 +331,8 @@ mod tests {
         );
 
         assert!(!crate::keystore::is_locked());
-        assert!(bitbox02::memory::is_seeded());
-        assert!(!bitbox02::memory::is_initialized());
+        assert!(mock_hal.memory.is_seeded());
+        assert!(!mock_hal.memory.is_initialized());
 
         let reboot_request = crate::pb::Request {
             request: Some(crate::pb::request::Request::Reboot(
@@ -392,9 +393,8 @@ mod tests {
         )
         .unwrap();
         assert!(!crate::keystore::is_locked());
-        assert!(!bitbox02::memory::is_initialized());
-        let mut mock_hal = TestingHal::new();
-        mock_hal.sd.inserted = Some(true);
+        assert!(!mock_hal.memory.is_initialized());
+        mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
         make_request(
             &mut mock_hal,
             (crate::pb::Request {
@@ -423,7 +423,7 @@ mod tests {
                 }
             ]
         );
-        assert!(bitbox02::memory::is_initialized());
+        assert!(mock_hal.memory.is_initialized());
 
         let reboot_request = crate::pb::Request {
             request: Some(crate::pb::request::Request::Reboot(
@@ -435,7 +435,7 @@ mod tests {
 
         // Can't reboot when initialized but locked.
         crate::keystore::lock();
-        let mut mock_hal = TestingHal::new();
+        mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
         let response_encoded =
             make_request(&mut mock_hal, &reboot_request.encode_to_vec()).unwrap();
         let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
@@ -448,7 +448,7 @@ mod tests {
         );
 
         // Unlock.
-        let mut mock_hal = TestingHal::new();
+        mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
         mock_hal
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
@@ -460,8 +460,8 @@ mod tests {
 
         // Since in the previous request the msg was encrypted but not decrypted (query was
         // rejected), the noise states are out of sync and we need to make a new channel.
+        mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
         let mut make_request = init_noise();
-        let mut mock_hal = TestingHal::new();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
         }));
@@ -493,10 +493,9 @@ mod tests {
             crate::keystore::lock();
             mock_memory();
 
-            bitbox02::memory::set_device_name("test device name").unwrap();
-
             let mut make_request = init_noise();
             let mut mock_hal = TestingHal::new();
+            mock_hal.memory.set_device_name("test device name").unwrap();
             mock_hal.sd.inserted = Some(true);
             mock_hal
                 .ui

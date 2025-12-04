@@ -48,7 +48,7 @@ use pb::request::Request;
 use pb::response::Response;
 use prost::Message;
 
-use crate::hal::Sd;
+use crate::hal::{Memory, Sd};
 
 /// Encodes a protobuf Response message.
 pub fn encode(response: Response) -> Vec<u8> {
@@ -94,7 +94,7 @@ async fn process_api_btc(
 }
 
 /// Checks if the device is ready to accept/handle an api endpoint.
-fn can_call(request: &Request) -> bool {
+fn can_call(hal: &mut impl crate::hal::Hal, request: &Request) -> bool {
     // We have four main states:
     // Creating a wallet on an uninitialized device goes from Uninitialized to Seeded, and when the
     // backup is created to `Initialized*`.
@@ -110,13 +110,13 @@ fn can_call(request: &Request) -> bool {
         // InitializedAndUnlocked (seed backuped up on SD card, keystore unlocked).
         InitializedAndUnlocked,
     }
-    let state: State = if bitbox02::memory::is_initialized() {
+    let state: State = if hal.memory().is_initialized() {
         if crate::keystore::is_locked() {
             State::InitializedAndLocked
         } else {
             State::InitializedAndUnlocked
         }
-    } else if bitbox02::memory::is_seeded() {
+    } else if hal.memory().is_seeded() {
         State::Seeded
     } else {
         State::Uninitialized
@@ -227,7 +227,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal, input: Vec<u8>) -> Vec<u8> 
         Ok(request) => request,
         Err(err) => return encode(make_error(err)),
     };
-    if !can_call(&request) {
+    if !can_call(hal, &request) {
         return encode(make_error(Error::InvalidState));
     }
 

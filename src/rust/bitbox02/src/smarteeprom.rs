@@ -11,10 +11,22 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#[cfg(feature = "simulator-graphical")]
 pub fn bb02_config() {
     unsafe { bitbox02_sys::smarteeprom_bb02_config() };
 }
 
+#[cfg(feature = "simulator-graphical")]
 pub fn init() {
     unsafe { bitbox02_sys::bitbox02_smarteeprom_init() };
+}
+
+pub fn disable() {
+    unsafe { bitbox02_sys::smarteeprom_disable() };
+}
+
+#[cfg(feature = "testing")]
+pub fn is_enabled() -> bool {
+    unsafe { bitbox02_sys::smarteeprom_is_enabled() }
 }

@@ -19,35 +19,13 @@
 #include "keystore.h"
 #include "memory/memory.h"
 #include "memory/memory_shared.h"
-#include "memory/smarteeprom.h"
 #include "system.h"
 #include "uart.h"
 #include <rust/rust.h>
 #include <screen.h>
 
 #ifndef TESTING
-    #include "securechip/securechip.h"
     #include <driver_init.h>
-    #include <hal_delay.h>
-    #include <ui/components/status.h>
-    #include <ui/ugui/ugui.h>
-#endif
-
-#if !defined(TESTING)
-/*
- * Shows a centered "Device reset" label.
- * Waits for 3000ms, then exit.
- */
-static void _show_reset_label(bool status)
-{
-    const char* msg = "Device reset";
-    component_t* comp = status_create(msg, status, NULL, NULL);
-    screen_clear();
-    comp->f->render(comp);
-    UG_SendBuffer();
-    comp->f->cleanup(comp);
-    delay_ms(3000);
-}
 #endif
 
 void reset_ble(void)
@@ -60,51 +38,5 @@ void reset_ble(void)
     while (ringbuffer_num(&uart_queue)) {
         uart_poll(NULL, 0, NULL, &uart_queue);
     }
-#endif
-}
-
-void reset_reset(bool status)
-{
-    rust_keystore_lock();
-#if !defined(TESTING)
-    bool sc_result_reset_keys = false;
-    for (int retries = 0; retries < 5; retries++) {
-        sc_result_reset_keys = securechip_reset_keys();
-        if (sc_result_reset_keys) {
-            break;
-        }
-    }
-    if (!sc_result_reset_keys) {
-        Abort("Could not reset secure chip.");
-    }
-    #if APP_U2F == 1
-    bool sc_result_u2f_counter_set = false;
-    for (int retries = 0; retries < 5; retries++) {
-        sc_result_u2f_counter_set = securechip_u2f_counter_set(0);
-        if (sc_result_u2f_counter_set) {
-            break;
-        }
-    }
-    if (!sc_result_u2f_counter_set) {
-        Abort("Could not initialize U2F counter.");
-    }
-    #endif
-#endif
-    if (!memory_reset_hww()) {
-        Abort("Could not reset memory.");
-    }
-#if !defined(TESTING)
-    /* Disable SmartEEPROM, so it will be erased on next reboot. */
-    smarteeprom_disable();
-    _show_reset_label(status);
-
-    // The ble chip needs to be restarted to load the new secrets.
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
-        reset_ble();
-    }
-
-    reboot();
-#else
-    (void)status;
 #endif
 }

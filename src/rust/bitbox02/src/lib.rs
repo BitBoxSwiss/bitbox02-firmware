@@ -50,7 +50,6 @@ pub mod screen_saver;
 pub mod sd;
 pub mod secp256k1;
 pub mod securechip;
-#[cfg(feature = "simulator-graphical")]
 pub mod smarteeprom;
 pub mod spi_mem;
 pub mod ui;
@@ -127,12 +126,13 @@ pub fn screen_print_debug(msg: &str, duration: i32) {
     }
 }
 
-pub fn reset(status: bool) {
-    unsafe { bitbox02_sys::reset_reset(status) }
-}
-
 pub fn reset_ble() {
     unsafe { bitbox02_sys::reset_ble() }
+}
+
+#[cfg(not(feature = "testing"))]
+pub fn reboot() {
+    unsafe { bitbox02_sys::reboot() }
 }
 
 pub struct Tm {

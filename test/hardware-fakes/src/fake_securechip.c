@@ -25,7 +25,7 @@ static const uint8_t _kdfkey[32] =
     "\xd2\xe1\xe6\xb1\x8b\x6c\x6b\x08\x43\x3e\xdb\xc1\xd1\x68\xc1\xa0\x04\x37\x74\xa4\x22\x18\x77"
     "\xe7\x9e\xd5\x66\x84\xbe\x5a\xc0\x1b";
 
-// Count how man seceurity events happen. The numbers were obtained by reading the security event
+// Count how man security events happen. The numbers were obtained by reading the security event
 // counter slot (0xE0C5) on a real device. We can use this to assert how many events were used in
 // unit tests. The number is relevant due to Optiga's throttling mechanism.
 static uint32_t _event_counter = 0;
@@ -50,6 +50,13 @@ int securechip_stretch_password(const char* password, uint8_t* stretched_out)
     rust_hmac_sha256(key, sizeof(key), (const uint8_t*)password, strlen(password), stretched_out);
     return 0;
 }
+
+bool securechip_reset_keys(void)
+{
+    _event_counter += 1;
+    return true;
+}
+
 bool securechip_u2f_counter_set(uint32_t counter)
 {
     _event_counter += 0;

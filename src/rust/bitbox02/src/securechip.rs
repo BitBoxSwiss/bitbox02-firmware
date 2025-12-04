@@ -85,6 +85,13 @@ pub fn monotonic_increments_remaining() -> Result<u32, ()> {
     }
 }
 
+pub fn reset_keys() -> Result<(), ()> {
+    match unsafe { bitbox02_sys::securechip_reset_keys() } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 pub fn init_new_password(password: &str) -> Result<(), Error> {
     let password = crate::util::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;

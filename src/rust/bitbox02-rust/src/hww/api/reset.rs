@@ -17,8 +17,7 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::hal::Ui;
-use crate::workflow::confirm;
+use crate::workflow::{Workflows, confirm};
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let params = confirm::Params {
@@ -30,7 +29,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 
     hal.ui().confirm(&params).await.or(Err(Error::Generic))?;
 
-    bitbox02::reset(true);
+    crate::reset::reset(hal, true).await;
 
     Ok(Response::Success(pb::Success {}))
 }
@@ -75,11 +74,17 @@ mod tests {
         );
         assert_eq!(
             mock_hal.ui.screens,
-            vec![Screen::Confirm {
-                title: "RESET".into(),
-                body: "Proceed to\nfactory reset?".into(),
-                longtouch: true,
-            }],
+            vec![
+                Screen::Confirm {
+                    title: "RESET".into(),
+                    body: "Proceed to\nfactory reset?".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Device reset".into(),
+                    success: true,
+                }
+            ],
         );
         assert_eq!(bitbox02::memory::get_device_name().as_str(), "My BitBox");
     }

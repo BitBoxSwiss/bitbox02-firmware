@@ -17,7 +17,10 @@ use crate::pb;
 
 use pb::response::Response;
 
+#[cfg(feature = "app-u2f")]
+use crate::hal::SecureChip;
 use crate::hal::Ui;
+
 use crate::workflow::{confirm, mnemonic, password, unlock};
 
 pub async fn from_file(
@@ -80,7 +83,7 @@ pub async fn from_file(
     {
         // Ignore error - the U2f counter not being set can lead to problems with U2F, but it should
         // not fail the recovery, so the user can access their coins.
-        let _ = bitbox02::securechip::u2f_counter_set(request.timestamp);
+        let _ = hal.securechip().u2f_counter_set(request.timestamp);
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;
@@ -153,7 +156,7 @@ pub async fn from_mnemonic(
     {
         // Ignore error - the U2f counter not being set can lead to problems with U2F, but it should
         // not fail the recovery, so the user can access their coins.
-        let _ = bitbox02::securechip::u2f_counter_set(timestamp);
+        let _ = hal.securechip().u2f_counter_set(timestamp);
     }
 
     bitbox02::memory::set_initialized().or(Err(Error::Memory))?;

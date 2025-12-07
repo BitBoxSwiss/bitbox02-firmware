@@ -1351,7 +1351,7 @@ int optiga_init_new_password(const char* password)
             strlen(password),
             "optiga_password",
             password_salted_hashed)) {
-        return 1;
+        return SC_ERR_SALT;
     }
 
     res = _set_password(
@@ -1383,7 +1383,7 @@ static int _optiga_verify_password(const char* password, uint8_t* password_secre
             strlen(password),
             "optiga_password",
             password_salted_hashed)) {
-        return 1;
+        return SC_ERR_SALT;
     }
 
     optiga_lib_status_t res =

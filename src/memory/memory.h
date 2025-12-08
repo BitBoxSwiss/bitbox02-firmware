@@ -18,6 +18,14 @@
 #define MEMORY_MULTISIG_NUM_ENTRIES 25
 
 typedef enum {
+    // Legacy/initial value, corresponds to the original Optiga factorysetup config.
+    MEMORY_OPTIGA_CONFIG_V0,
+    // Updated config V1, which configures the `OID_HMAC_WRITEPROTECTED` and
+    // `OID_COUNTER_HMAC_WRITEPROTECTED` slots.
+    MEMORY_OPTIGA_CONFIG_V1,
+} memory_optiga_config_version_t;
+
+typedef enum {
     // Legacy/initial value for BitBox02 and BitBox02 Nova using the initial stretch algo in
     // ATECC/Optiga.
     MEMORY_PASSWORD_STRETCH_ALGO_V0,
@@ -271,5 +279,8 @@ USE_RESULT bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
  * Enable or disable BLE during boot
  */
 USE_RESULT bool memory_ble_enable(bool enable);
+
+USE_RESULT bool memory_get_optiga_config_version(memory_optiga_config_version_t* version_out);
+USE_RESULT bool memory_set_optiga_config_version(memory_optiga_config_version_t version);
 
 #endif // _MEMORY_H_

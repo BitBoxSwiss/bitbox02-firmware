@@ -58,7 +58,9 @@ typedef struct __attribute__((__packed__)) {
 typedef union {
     struct __attribute__((__packed__)) {
         secbool_u8 factory_setup_done;
-        uint8_t reserved[3];
+        // see `memory_optiga_config_version_t`.
+        uint8_t optiga_config_version;
+        uint8_t reserved[2];
         uint8_t io_protection_key[32];
         uint8_t authorization_key[32];
         uint8_t encryption_key[32];
@@ -951,4 +953,41 @@ bool memory_ble_enable(bool enable)
         chunk.fields.ble_enabled = MEMORY_BLE_DISABLED;
     }
     return _write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes);
+}
+
+bool memory_get_optiga_config_version(memory_optiga_config_version_t* version_out)
+{
+    chunk_0_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_0_PERMANENT, chunk.bytes);
+    switch (chunk.fields.optiga_config_version) {
+    case 0xFF:
+        *version_out = MEMORY_OPTIGA_CONFIG_V0;
+        return true;
+    case 0x00:
+        *version_out = MEMORY_OPTIGA_CONFIG_V1;
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool memory_set_optiga_config_version(memory_optiga_config_version_t version)
+{
+    chunk_0_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_0_PERMANENT, chunk.bytes);
+
+    switch (version) {
+    case MEMORY_OPTIGA_CONFIG_V0:
+        chunk.fields.optiga_config_version = 0xFF;
+        break;
+    case MEMORY_OPTIGA_CONFIG_V1:
+        chunk.fields.optiga_config_version = 0x00;
+        break;
+    default:
+        return false;
+    }
+
+    return _write_chunk(CHUNK_0_PERMANENT, chunk.bytes);
 }

@@ -23,6 +23,7 @@ typedef enum {
     SC_ERR_INCORRECT_PASSWORD = -6,
     // The password stretch algo is not supported
     SC_ERR_INVALID_PASSWORD_STRETCH_ALGO = -7,
+    SC_ERR_MEMORY = -8,
 
     // Errors specific to the ATECC
     SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG = -100,

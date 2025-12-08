@@ -1019,24 +1019,6 @@ static int _configure_object_counter_hmac_writeprotected(void)
         sizeof(_counter_hmac_writeprotected_metadata));
 }
 
-static int _update_config(void)
-{
-    optiga_lib_status_t res;
-
-    res = _configure_object_hmac_writeprotected();
-    if (res != OPTIGA_LIB_SUCCESS) {
-        return res;
-    }
-
-    res = _configure_object_counter_hmac_writeprotected();
-    if (res != OPTIGA_LIB_SUCCESS) {
-        return res;
-    }
-
-    return 0;
-}
-
-#if VERIFY_METADATA == 1
 static int _verify_metadata(
     uint16_t oid,
     const uint8_t* expected_metadata,
@@ -1082,7 +1064,82 @@ static int _verify_metadata(
     }
     return 0;
 }
+
+// Updates Optiga config to V1 if not already done.
+static int _maybe_update_config_v1(void)
+{
+#ifdef TESTING
+    // We don't yet unit-test the config update.
+    return 0;
 #endif
+
+    memory_optiga_config_version_t config_version;
+    if (!memory_get_optiga_config_version(&config_version)) {
+        return SC_ERR_MEMORY;
+    }
+
+    if (config_version >= MEMORY_OPTIGA_CONFIG_V1) {
+        if (FINAL_LCSO_STATE_V1 >= LCSO_STATE_OPERATIONAL) {
+            // Already configured
+            util_log("optiga: config v1 already configured");
+            return 0;
+        }
+        util_log(
+            "optiga: config v1 configured, but re-doing it because LCSO state is not operational");
+    }
+
+    optiga_lib_status_t res;
+
+    res = _configure_object_hmac_writeprotected();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    res = _configure_object_counter_hmac_writeprotected();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    // Verify metadata tags are setup as expected.
+
+    {
+        const uint8_t check_tags[] = {0xC0, 0xE8, 0xD0, 0xD1, 0xD3};
+        res = _verify_metadata(
+            OID_HMAC_WRITEPROTECTED,
+            _hmac_writeprotected_metadata,
+            sizeof(_hmac_writeprotected_metadata),
+            check_tags,
+            sizeof(check_tags));
+        if (res) {
+            util_log("verify config failed (hmac_writeprotected): %i", res);
+            return res;
+        }
+        util_log("verify config OK (hmac_writeprotected)");
+    }
+
+    {
+        const uint8_t check_tags[] = {0xC0, 0xD0, 0xD1, 0xD3};
+        res = _verify_metadata(
+            OID_COUNTER_HMAC_WRITEPROTECTED,
+            _counter_hmac_writeprotected_metadata,
+            sizeof(_counter_hmac_writeprotected_metadata),
+            check_tags,
+            sizeof(check_tags));
+        if (res) {
+            util_log("verify config failed (counter_hmac_writeprotected): %i", res);
+            return res;
+        }
+        util_log("verify config OK (counter_hmac_writeprotected)");
+    }
+
+    if (FINAL_LCSO_STATE_V1 >= LCSO_STATE_OPERATIONAL) {
+        if (!memory_set_optiga_config_version(MEMORY_OPTIGA_CONFIG_V1)) {
+            return SC_ERR_MEMORY;
+        }
+    }
+
+    return 0;
+}
 
 static int _set_password(
     const uint8_t* password_secret,
@@ -1411,7 +1468,7 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
     }
 
     // Apply config updates.
-    res = _update_config();
+    res = _maybe_update_config_v1();
     if (res) {
         util_log("factory setup failed");
         return res;

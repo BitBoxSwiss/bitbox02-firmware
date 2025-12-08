@@ -12,6 +12,7 @@ pub const MULTISIG_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_MULTISIG_NAME_MAX_
 
 pub use bitbox02_sys::memory_ble_metadata_t as BleMetadata;
 
+pub use bitbox02_sys::memory_optiga_config_version_t as OptigaConfigVersion;
 pub use bitbox02_sys::memory_password_stretch_algo_t as PasswordStretchAlgo;
 pub use bitbox02_sys::memory_result_t as MemoryError;
 
@@ -365,6 +366,25 @@ fn bootloader_set_flags(auto_enter: u8, upside_down: bool) -> bool {
 #[cfg(test)]
 fn set_attestation_bootloader_hash(hash: &[u8; 32]) -> bool {
     unsafe { bitbox02_sys::memory_set_attestation_bootloader_hash(hash.as_ptr()) }
+}
+
+#[cfg(test)]
+fn get_optiga_config_version() -> Result<OptigaConfigVersion, ()> {
+    let mut version = core::mem::MaybeUninit::uninit();
+    unsafe {
+        match bitbox02_sys::memory_get_optiga_config_version(version.as_mut_ptr()) {
+            true => Ok(version.assume_init()),
+            false => Err(()),
+        }
+    }
+}
+
+#[cfg(test)]
+fn set_optiga_config_version(version: OptigaConfigVersion) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_set_optiga_config_version(version) } {
+        true => Ok(()),
+        false => Err(()),
+    }
 }
 
 #[cfg(all(test, feature = "testing"))]
@@ -825,5 +845,22 @@ mod tests {
         reset_hww().unwrap();
 
         assert_eq!(get_attestation_bootloader_hash(), mock1);
+    }
+
+    #[test]
+    fn test_optiga_config_version_roundtrip() {
+        mock_memory();
+
+        assert!(matches!(
+            get_optiga_config_version(),
+            Ok(OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V0),
+        ));
+
+        set_optiga_config_version(OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1).unwrap();
+
+        assert!(matches!(
+            get_optiga_config_version(),
+            Ok(OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1),
+        ));
     }
 }

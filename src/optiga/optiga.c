@@ -78,6 +78,7 @@ static const securechip_interface_functions_t* _ifs = NULL;
 // Set the object LcsO flag to Operational. After this, the metadata cannot be changed anymore.
 // During development, set this to `LCSO_STATE_CREATION`.
 #define FINAL_LCSO_STATE_V0 LCSO_STATE_OPERATIONAL
+#define FINAL_LCSO_STATE_V1 LCSO_STATE_OPERATIONAL
 
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || VERIFY_METADATA == 1
 static const uint8_t _platform_binding_metadata[] = {
@@ -403,6 +404,85 @@ static const uint8_t _counter_password_metadata[] = {
 
 #endif
 
+static const uint8_t _hmac_writeprotected_metadata[] = {
+    // Metadata tag in the data object
+    0x20,
+    // Number of bytes that follow
+    27,
+    // Set LcsO. Refer to macro to see the value or some more notes.
+    0xC0,
+    0x01,
+    FINAL_LCSO_STATE_V1,
+    // Data object type: PRESSEC
+    // See table "Data Object Types":
+    // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkaf9aa284_1397_4161_8761_8c44fbbfa69d
+    0xE8,
+    0x01,
+    0x21,
+    // Allow writes, auth referencing 0xF1D3 (`OID_PASSWORD`), enforce shielded connection.
+    0xD0,
+    0x07,
+    0x23,
+    0xF1,
+    0xD3,
+    // &&
+    0xFD,
+    0x20,
+    0xE1,
+    0x40,
+    // Disallow reads
+    0xD1,
+    0x01,
+    0xFF,
+    // Attach execution to counter at 0xE122 (`OID_COUNTER_HMAC_WRITEPROTECTED`) and enforce
+    // shielded connection.
+    0xD3,
+    0x07,
+    0x40,
+    0xE1,
+    0x22,
+    // &&
+    0xFD,
+    // Execute: enforce shielded connection.
+    // See Table 'Access Condition Identifier and Operators" -> "Conf":
+    // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkc15dfea4_2cc2_46ae_a53b_1e6ea9487f34
+    0x20,
+    0xE1,
+    0x40,
+};
+
+static const uint8_t _counter_hmac_writeprotected_metadata[] = {
+    // Metadata tag in the data object
+    0x20,
+    // Number of bytes that follow
+    20,
+    // Set LcsO. Refer to macro to see the value or some more notes.
+    0xC0,
+    0x01,
+    FINAL_LCSO_STATE_V1,
+    // Allow writes, auth referencing 0xF1D3 (`OID_PASSWORD`), enforce shielded connection.
+    0xD0,
+    0x07,
+    0x23,
+    0xF1,
+    0xD3,
+    // &&
+    0xFD,
+    0x20,
+    0xE1,
+    0x40,
+    // Allow reads, enforce shielded connection
+    0xD1,
+    0x03,
+    0x20,
+    0xE1,
+    0x40,
+    // Allow exe
+    0xD3,
+    0x01,
+    0x00,
+};
+
 static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth_secret_len)
 {
     optiga_lib_status_t res;
@@ -487,7 +567,6 @@ static int _write_arbitrary_data(const arbitrary_data_t* data)
 }
 #endif
 
-#if VERIFY_METADATA == 1
 // In a metadata object (0x20 <len> <tag> <tag len> <tag data> ...),
 // extract tag data for a specific tag.
 // Returns false if the metadata is invalid or the tag is not present, or if the tag data is larger
@@ -541,9 +620,7 @@ static bool _read_metadata_tag(
     // Tag not found
     return false;
 }
-#endif
 
-#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 // Read the LcsO status from a metadata object. Returns false if the metadata is invalid or LcsO is
 // not present.
 static bool _read_lcso(const uint8_t* metadata, size_t metadata_len, uint8_t* lcso_out)
@@ -581,6 +658,7 @@ static int _read_lcso_of_object(uint16_t optiga_oid, uint8_t* lcso_out, bool unp
     return 0;
 }
 
+#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 // Setup shielded communication.
 // Writes the shared secret to the chip 0xE140 data object and sets the metadata.
 // See solution reference manual 2.3.4 "Use case: Pair OPTIGA™ Trust M with host (pre-shared secret
@@ -900,6 +978,63 @@ static int _factory_setup(void)
     return 0;
 }
 #endif // FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
+
+static int _configure_object_hmac_writeprotected(void)
+{
+    const uint16_t oid = OID_HMAC_WRITEPROTECTED;
+
+    uint8_t lcso = 0;
+    optiga_lib_status_t res = _read_lcso_of_object(oid, &lcso, false);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (lcso >= LCSO_STATE_OPERATIONAL) {
+        util_log("_configure_object_hmac_writeprotected: already setup");
+        return 0;
+    }
+    util_log("_configure_object_hmac_writeprotected: setting up");
+    return optiga_ops_util_write_metadata_sync(
+        _util, oid, _hmac_writeprotected_metadata, sizeof(_hmac_writeprotected_metadata));
+}
+
+static int _configure_object_counter_hmac_writeprotected(void)
+{
+    const uint16_t oid = OID_COUNTER_HMAC_WRITEPROTECTED;
+
+    uint8_t lcso = 0;
+    optiga_lib_status_t res = _read_lcso_of_object(oid, &lcso, false);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (lcso >= LCSO_STATE_OPERATIONAL) {
+        util_log("_configure_object_counter_hmac_writeprotected: already setup");
+        return 0;
+    }
+    util_log("_configure_object_counter_hmac_writeprotected: setting up");
+
+    return optiga_ops_util_write_metadata_sync(
+        _util,
+        oid,
+        _counter_hmac_writeprotected_metadata,
+        sizeof(_counter_hmac_writeprotected_metadata));
+}
+
+static int _update_config(void)
+{
+    optiga_lib_status_t res;
+
+    res = _configure_object_hmac_writeprotected();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    res = _configure_object_counter_hmac_writeprotected();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    return 0;
+}
 
 #if VERIFY_METADATA == 1
 static int _verify_metadata(
@@ -1272,6 +1407,13 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
 
     res = optiga_ops_util_open_application_sync(_util, 0);
     if (res) {
+        return res;
+    }
+
+    // Apply config updates.
+    res = _update_config();
+    if (res) {
+        util_log("factory setup failed");
         return res;
     }
 

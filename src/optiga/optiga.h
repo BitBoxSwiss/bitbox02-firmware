@@ -28,6 +28,13 @@
 // HMAC key slot, read prohibited, write allowed. 32 random bytes are written to it at factory setup
 // and with each device reset.
 #define OID_HMAC 0xF1D0
+// Like the HMAC slot, but writing to it needs authorization by `OID_PASSWORD`, and it is attached
+// to monotonic counter `OID_COUNTER_HMAC_WRITEPROTECTED`.
+#define OID_HMAC_WRITEPROTECTED 0xF1D4
+// Monotonic counter with a small limit.  Every password stretch increments the counter. A correct
+// password resets the counter. When the threshold `SMALL_MONOTONIC_COUNTER_MAX_USE` is reached,
+// further password stretches return an error.
+#define OID_COUNTER_HMAC_WRITEPROTECTED 0xE122
 // Arbitrary data object, stores up to 140 bytes. Used to store the U2F counter.
 #define OID_ARBITRARY_DATA 0xF1D1
 // ECC slot used for creating the device attestation key and signing with it. Read/write

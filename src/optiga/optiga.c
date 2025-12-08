@@ -1173,6 +1173,62 @@ cleanup: {
 }
 }
 
+static int _kdf_hmac(uint16_t optiga_oid, const uint8_t* msg, size_t len, uint8_t* mac_out)
+{
+    if (len != 32) {
+        return SC_ERR_INVALID_ARGS;
+    }
+
+    optiga_lib_status_t res;
+    // The equivalient of python `mac_out = hmac.new(key, msg[:len], hashlib.sha256).digest()`
+
+    uint32_t mac_out_len = 32;
+
+    res = optiga_ops_crypt_hmac_sync(
+        _crypt, OPTIGA_HMAC_SHA_256, optiga_oid, msg, len, mac_out, &mac_out_len);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        util_log("kdf fail err=%x", res);
+        return res;
+    }
+    if (mac_out_len != 32) {
+        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
+    }
+
+    return 0;
+}
+
+static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
+{
+    if (len != 32) {
+        return SC_ERR_INVALID_ARGS;
+    }
+    optiga_lib_status_t res;
+
+    uint8_t mac_out[16] = {0};
+    uint32_t mac_out_len = sizeof(mac_out);
+
+    res = optiga_ops_crypt_symmetric_encrypt_sync(
+        _crypt,
+        OPTIGA_SYMMETRIC_CMAC,
+        OID_AES_SYMKEY,
+        msg,
+        len,
+        NULL,
+        0,
+        NULL,
+        0,
+        mac_out,
+        &mac_out_len);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (mac_out_len != sizeof(mac_out)) {
+        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
+    }
+    rust_sha256(mac_out, mac_out_len, kdf_out);
+    return 0;
+}
+
 int optiga_init_new_password(
     const char* password,
     memory_password_stretch_algo_t password_stretch_algo)
@@ -1484,65 +1540,9 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
     return 0;
 }
 
-static int _kdf_hmac(uint16_t optiga_oid, const uint8_t* msg, size_t len, uint8_t* mac_out)
-{
-    if (len != 32) {
-        return SC_ERR_INVALID_ARGS;
-    }
-
-    optiga_lib_status_t res;
-    // The equivalient of python `mac_out = hmac.new(key, msg[:len], hashlib.sha256).digest()`
-
-    uint32_t mac_out_len = 32;
-
-    res = optiga_ops_crypt_hmac_sync(
-        _crypt, OPTIGA_HMAC_SHA_256, optiga_oid, msg, len, mac_out, &mac_out_len);
-    if (res != OPTIGA_LIB_SUCCESS) {
-        util_log("kdf fail err=%x", res);
-        return res;
-    }
-    if (mac_out_len != 32) {
-        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
-    }
-
-    return 0;
-}
-
 int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
 {
     return _kdf_hmac(OID_HMAC, msg, len, mac_out);
-}
-
-static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
-{
-    if (len != 32) {
-        return SC_ERR_INVALID_ARGS;
-    }
-    optiga_lib_status_t res;
-
-    uint8_t mac_out[16] = {0};
-    uint32_t mac_out_len = sizeof(mac_out);
-
-    res = optiga_ops_crypt_symmetric_encrypt_sync(
-        _crypt,
-        OPTIGA_SYMMETRIC_CMAC,
-        OID_AES_SYMKEY,
-        msg,
-        len,
-        NULL,
-        0,
-        NULL,
-        0,
-        mac_out,
-        &mac_out_len);
-    if (res != OPTIGA_LIB_SUCCESS) {
-        return res;
-    }
-    if (mac_out_len != sizeof(mac_out)) {
-        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
-    }
-    rust_sha256(mac_out, mac_out_len, kdf_out);
-    return 0;
 }
 
 int optiga_stretch_password(

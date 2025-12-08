@@ -47,7 +47,7 @@ static const uint8_t _auth_code_random_fixed[32] = {
     0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
 };
 
-// Expected stretched_out for password "pw" given the above fakes.
+// Expected stretched_out for password "pw" for the V0 algorithm given the above fakes.
 //
 // Repro script (mirrors optiga_stretch_password() with the unit test fakes):
 // ```python
@@ -85,7 +85,7 @@ static const uint8_t _auth_code_random_fixed[32] = {
 // stretched = hmac_sha256(out_salt, stretched)
 // print(stretched.hex())
 // ```
-static const uint8_t _expected_stretched_out[32] = {
+static const uint8_t _expected_stretched_out_v0[32] = {
     0xC4, 0x1F, 0x87, 0xB7, 0xC9, 0xF3, 0x16, 0x9C, 0x14, 0xF3, 0xF2, 0x62, 0x87, 0x09, 0x3C, 0x31,
     0x18, 0x19, 0x06, 0x77, 0x76, 0xF6, 0x16, 0x3B, 0x8A, 0x0F, 0xDF, 0x3D, 0xFB, 0x8B, 0x8E, 0xBB,
 };
@@ -582,7 +582,7 @@ optiga_lib_status_t optiga_ops_crypt_ecdsa_sign_sync(
 //------------------------------------------------------------------------------
 // Tests
 
-static void test_optiga_stretch_password_success(void** state)
+static void test_optiga_stretch_password_v0_success(void** state)
 {
     (void)state;
     _reset_fakes();
@@ -597,13 +597,14 @@ static void test_optiga_stretch_password_success(void** state)
     uint8_t stretched_out[32] = {0};
     assert_int_equal(
         optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out), 0);
-    assert_memory_equal(stretched_out, _expected_stretched_out, sizeof(_expected_stretched_out));
+    assert_memory_equal(
+        stretched_out, _expected_stretched_out_v0, sizeof(_expected_stretched_out_v0));
     // Successful password verification resets the small monotonic counter/threshold.
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 0);
     assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
 }
 
-static void test_optiga_stretch_password_attempt_counter(void** state)
+static void test_optiga_stretch_password_v0_attempt_counter(void** state)
 {
     (void)state;
     _reset_fakes();
@@ -653,8 +654,8 @@ static void test_optiga_stretch_password_attempt_counter(void** state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_optiga_stretch_password_success),
-        cmocka_unit_test(test_optiga_stretch_password_attempt_counter),
+        cmocka_unit_test(test_optiga_stretch_password_v0_success),
+        cmocka_unit_test(test_optiga_stretch_password_v0_attempt_counter),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -1300,7 +1300,7 @@ bool optiga_reset_keys(void)
     return optiga_init_new_password("", MEMORY_PASSWORD_STRETCH_ALGO_V1) == 0;
 }
 
-static int _optiga_verify_password(const char* password, uint8_t* password_secret_out)
+static int _optiga_verify_password_v0(const char* password, uint8_t* password_secret_out)
 {
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
@@ -1545,13 +1545,8 @@ int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
     return _kdf_hmac(OID_HMAC, msg, len, mac_out);
 }
 
-int optiga_stretch_password(
-    const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
-    uint8_t* stretched_out)
+static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
 {
-    (void)password_stretch_algo;
-
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!salt_hash_data(
@@ -1583,7 +1578,7 @@ int optiga_stretch_password(
     // Verify password incrementing the small monotonic counter.
     // We do this after the above KDF stretch so the big monotonic counter is also incremented.
     uint8_t password_secret[32] = {0};
-    int res = _optiga_verify_password(password, password_secret);
+    int res = _optiga_verify_password_v0(password, password_secret);
     if (res) {
         if (res == 0x802F) {
             return SC_ERR_INCORRECT_PASSWORD;
@@ -1603,6 +1598,31 @@ int optiga_stretch_password(
     rust_hmac_sha256(
         password_salted_hashed, sizeof(password_salted_hashed), stretched_out, 32, stretched_out);
     return 0;
+}
+
+static int _stretch_password_v1(const char* password, uint8_t* stretched_out)
+{
+    // TODO implement
+    (void)password;
+    (void)stretched_out;
+    return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+}
+
+int optiga_stretch_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
+{
+    switch (password_stretch_algo) {
+    case MEMORY_PASSWORD_STRETCH_ALGO_V0:
+        util_log("stretching password using algo v0");
+        return _stretch_password_v0(password, stretched_out);
+    case MEMORY_PASSWORD_STRETCH_ALGO_V1:
+        util_log("stretching password using algo v1");
+        return _stretch_password_v1(password, stretched_out);
+    default:
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
 }
 
 bool optiga_gen_attestation_key(uint8_t* pubkey_out)

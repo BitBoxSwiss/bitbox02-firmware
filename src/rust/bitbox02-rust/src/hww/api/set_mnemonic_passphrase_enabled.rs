@@ -17,7 +17,7 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::confirm;
 
 pub async fn process(
@@ -33,7 +33,11 @@ pub async fn process(
 
     hal.ui().confirm(&params).await?;
 
-    if bitbox02::memory::set_mnemonic_passphrase_enabled(enabled).is_err() {
+    if hal
+        .memory()
+        .set_mnemonic_passphrase_enabled(enabled)
+        .is_err()
+    {
         return Err(Error::Memory);
     }
 
@@ -72,9 +76,9 @@ mod tests {
             }],
         );
 
-        assert!(bitbox02::memory::is_mnemonic_passphrase_enabled());
+        assert!(mock_hal.memory.is_mnemonic_passphrase_enabled());
         // Disable:
-        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.screens.clear();
         assert_eq!(
             block_on(process(
                 &mut mock_hal,
@@ -90,7 +94,7 @@ mod tests {
                 longtouch: true,
             }],
         );
-        assert!(!bitbox02::memory::is_mnemonic_passphrase_enabled());
+        assert!(!mock_hal.memory.is_mnemonic_passphrase_enabled());
 
         // User aborted confirmation.
         let mut mock_hal = TestingHal::new();

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::general::abort;
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::{confirm, password};
 
 pub use password::CanCancel;
@@ -114,7 +114,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     let mut mnemonic_passphrase = zeroize::Zeroizing::new("".into());
 
     // If setting activated, get the passphrase from the user.
-    if bitbox02::memory::is_mnemonic_passphrase_enabled() {
+    if hal.memory().is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
             mnemonic_passphrase = password::enter(
@@ -164,7 +164,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
 ///
 /// Returns Ok on success, Err if the device cannot be unlocked because it was not initialized.
 pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
-    if !bitbox02::memory::is_initialized() {
+    if !hal.memory().is_initialized() {
         return Err(());
     }
     if !crate::keystore::is_locked() {
@@ -207,7 +207,7 @@ mod tests {
         )
         .unwrap();
 
-        bitbox02::memory::set_initialized().unwrap();
+        mock_hal.memory.set_initialized().unwrap();
 
         // Lock the keystore to simulate the normal locked state
         crate::keystore::lock();
@@ -251,7 +251,7 @@ mod tests {
         )
         .unwrap();
 
-        bitbox02::memory::set_initialized().unwrap();
+        mock_hal.memory.set_initialized().unwrap();
 
         // Lock the keystore to simulate the normal locked state
         crate::keystore::lock();

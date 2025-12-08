@@ -17,7 +17,7 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::confirm;
 
 pub async fn process(
@@ -37,7 +37,7 @@ pub async fn process(
 
     hal.ui().confirm(&params).await?;
 
-    bitbox02::memory::set_device_name(name)?;
+    hal.memory().set_device_name(name)?;
 
     Ok(Response::Success(pb::Success {}))
 }
@@ -76,7 +76,7 @@ mod tests {
                 longtouch: false,
             }]
         );
-        assert_eq!(SOME_NAME, &bitbox02::memory::get_device_name());
+        assert_eq!(SOME_NAME, mock_hal.memory.get_device_name());
 
         // User aborted confirmation.
         let mut mock_hal = TestingHal::new();

@@ -229,6 +229,7 @@ pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Platform {
     BitBox02,
     BitBox02Plus,
@@ -242,6 +243,7 @@ pub fn get_platform() -> Result<Platform, ()> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum SecurechipType {
     Atecc,
     Optiga,

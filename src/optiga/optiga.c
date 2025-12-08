@@ -1484,7 +1484,7 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
     return 0;
 }
 
-int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
+static int _kdf_hmac(uint16_t optiga_oid, const uint8_t* msg, size_t len, uint8_t* mac_out)
 {
     if (len != 32) {
         return SC_ERR_INVALID_ARGS;
@@ -1496,7 +1496,7 @@ int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
     uint32_t mac_out_len = 32;
 
     res = optiga_ops_crypt_hmac_sync(
-        _crypt, OPTIGA_HMAC_SHA_256, OID_HMAC, msg, len, mac_out, &mac_out_len);
+        _crypt, OPTIGA_HMAC_SHA_256, optiga_oid, msg, len, mac_out, &mac_out_len);
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("kdf fail err=%x", res);
         return res;
@@ -1506,6 +1506,11 @@ int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
     }
 
     return 0;
+}
+
+int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
+{
+    return _kdf_hmac(OID_HMAC, msg, len, mac_out);
 }
 
 static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)

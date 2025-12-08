@@ -164,7 +164,7 @@ mod tests {
             ]
         );
         // We expect 5 secure chip events (sensitive to code changes)
-        assert_eq!(hal.securechip.get_event_counter(), 5);
+        assert_eq!(hal.securechip.get_event_counter(), 4);
 
         // check that the old password is still valid
         assert_eq!(

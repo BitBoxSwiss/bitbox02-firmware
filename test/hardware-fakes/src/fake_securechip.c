@@ -23,6 +23,11 @@ int securechip_init_new_password(
     const char* password,
     memory_password_stretch_algo_t password_stretch_algo)
 {
+    if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V1) {
+        // New passwords must use the latest algo.
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
+
     (void)password;
     (void)password_stretch_algo;
     return 0;

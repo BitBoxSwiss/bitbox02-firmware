@@ -190,7 +190,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(mock_hal.securechip.get_event_counter(), 8);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 9);
 
         assert!(!crate::keystore::is_locked());
         assert!(mock_hal.memory.is_initialized());

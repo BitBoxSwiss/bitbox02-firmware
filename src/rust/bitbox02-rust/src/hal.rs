@@ -512,16 +512,19 @@ pub mod testing {
             _password: &str,
             _password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
         ) -> Result<(), bitbox02::securechip::Error> {
-            self.event_counter += 1;
+            self.event_counter += 3;
             Ok(())
         }
 
         fn stretch_password(
             &mut self,
             password: &str,
-            _password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
         ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
-            self.event_counter += 5;
+            self.event_counter += match password_stretch_algo {
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => 5,
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => 4,
+            };
 
             use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
             let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
@@ -573,7 +576,7 @@ pub mod testing {
                 self.reset_keys_fail_once = false;
                 Err(())
             } else {
-                self.event_counter += 1;
+                self.event_counter += 3;
                 Ok(())
             }
         }
@@ -588,7 +591,7 @@ pub mod testing {
     impl TestingMemory {
         pub fn new() -> Self {
             Self {
-                securechip_type: SecurechipType::Atecc,
+                securechip_type: SecurechipType::Optiga,
                 platform: bitbox02::memory::Platform::BitBox02,
                 initialized: false,
                 is_seeded: false,

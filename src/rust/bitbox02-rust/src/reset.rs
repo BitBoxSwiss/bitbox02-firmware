@@ -101,7 +101,7 @@ mod tests {
         block_on(reset(&mut hal, true));
         // Secure chip operations happened as expected: reset_keys() was retried once, but only the
         // successful call increments the event counter.
-        assert_eq!(hal.securechip.get_event_counter(), 1);
+        assert_eq!(hal.securechip.get_event_counter(), 3);
 
         // Keystore is locked again.
         assert!(keystore::is_locked());

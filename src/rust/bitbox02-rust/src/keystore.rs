@@ -219,8 +219,7 @@ fn default_password_stretch_algo(
             Ok(bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0)
         }
         bitbox02::memory::SecurechipType::Optiga => {
-            // TODO: flip to V1 once implemented
-            Ok(bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0)
+            Ok(bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1)
         }
     }
 }
@@ -880,7 +879,7 @@ mod tests {
 
             assert_eq!(
                 password_stretch_algo,
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
             );
             // Same as Python:
             // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
@@ -1112,7 +1111,7 @@ mod tests {
                 .as_slice(),
             seed
         );
-        assert_eq!(mock_hal.securechip.get_event_counter(), 6);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 5);
 
         // Loop to check that unlocking works while unlocked.
         for _ in 0..2 {
@@ -1125,7 +1124,7 @@ mod tests {
                     .as_slice(),
                 seed
             );
-            assert_eq!(mock_hal.securechip.get_event_counter(), 5);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 4);
         }
 
         // Also check that the retained seed was encrypted with the expected encryption key.
@@ -1786,7 +1785,7 @@ mod tests {
 
             mock_hal.securechip.event_counter_reset();
             assert!(encrypt_and_store_seed(&mut mock_hal, seed, "foo").is_ok());
-            assert_eq!(mock_hal.securechip.get_event_counter(), 7);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 8);
 
             assert!(is_locked());
 

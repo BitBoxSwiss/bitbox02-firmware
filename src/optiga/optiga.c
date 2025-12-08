@@ -77,7 +77,7 @@ static const securechip_interface_functions_t* _ifs = NULL;
 
 // Set the object LcsO flag to Operational. After this, the metadata cannot be changed anymore.
 // During development, set this to `LCSO_STATE_CREATION`.
-#define FINAL_LCSO_STATE LCSO_STATE_OPERATIONAL
+#define FINAL_LCSO_STATE_V0 LCSO_STATE_OPERATIONAL
 
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || VERIFY_METADATA == 1
 static const uint8_t _platform_binding_metadata[] = {
@@ -88,7 +88,7 @@ static const uint8_t _platform_binding_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Change/Write access. This allows updating the binding secret when LcsO < op.
     0xD0,
     0x03,
@@ -117,7 +117,7 @@ static const uint8_t _aes_symkey_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Set key usage to "Enc".
     // See Table "Metadata associated with data and key objects" -> 0xE1
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link8051b344_ff66_4d6b_bcfd_d21bb87d05d4
@@ -162,7 +162,7 @@ static const uint8_t _hmac_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Data object type: PRESSEC
     // See table "Data Object Types":
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkaf9aa284_1397_4161_8761_8c44fbbfa69d
@@ -197,7 +197,7 @@ static const uint8_t _arbitrary_data_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Data object type: BSTR.
     // See table "Data Object Types":
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkaf9aa284_1397_4161_8761_8c44fbbfa69d
@@ -230,7 +230,7 @@ static const uint8_t _attestation_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Key usage associated with key container: Sign
     // See table "Metadata associated with data and key objects":
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link8051b344_ff66_4d6b_bcfd_d21bb87d05d4
@@ -268,7 +268,7 @@ static const uint8_t _counter_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Change/Write access. This allows updating the counter when LcsO < op.
     0xD0,
     0x03,
@@ -295,7 +295,7 @@ static const uint8_t _password_secret_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Allow writes, enforce shielded connection.
     0xD0,
     0x03,
@@ -333,7 +333,7 @@ static const uint8_t _password_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Allow writes, auth referencing 0xF1D2 (`OID_PASSWORD_SECRET`), enforce shielded connection.
     0xD0,
     0x07,
@@ -377,7 +377,7 @@ static const uint8_t _counter_password_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Allow writes, auth referencing 0xF1D2 (`OID_PASSWORD_SECRET`), enforce shielded connection.
     0xD0,
     0x07,

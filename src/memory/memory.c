@@ -371,7 +371,6 @@ bool memory_reset_hww(void)
     }
 
     // Initialize hww memory
-
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
@@ -405,7 +404,7 @@ bool memory_reset_hww(void)
         chunk_shared.fields.ble_identity_address[0] |= 0xc;
 
         memset(&chunk_shared.fields.ble_bond_db, 0xff, sizeof(chunk_shared.fields.ble_bond_db));
-        res |= _write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes);
+        res = _write_to_address(FLASH_SHARED_DATA_START, 0, chunk_shared.bytes) && res;
     }
 
     return res;

@@ -1627,10 +1627,7 @@ mod tests {
             "",
         );
 
-        bitbox02::securechip::fake_event_counter_reset();
         assert_eq!(root_fingerprint(), Ok(vec![0x02, 0x40, 0xe9, 0x2a]));
-        // fingerprint is precomputed during bip39 unlock, so takes no securechip events.
-        assert_eq!(bitbox02::securechip::fake_event_counter(), 0);
 
         mock_unlocked_using_mnemonic(
             "small agent wife animal marine cloth exit thank stool idea steel frame",

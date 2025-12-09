@@ -418,14 +418,11 @@ pub mod testing {
         /// Resets the event counter.
         pub fn event_counter_reset(&mut self) {
             self.event_counter = 0;
-            // TODO: remove once all unit tests use the SecureChip HAL.
-            bitbox02::securechip::fake_event_counter_reset()
         }
 
         /// Retrieves the event counter.
         pub fn get_event_counter(&self) -> u32 {
-            // TODO: remove fake_event_counter() once all unit tests use the SecureChip HAL.
-            bitbox02::securechip::fake_event_counter() + self.event_counter
+            self.event_counter
         }
 
         /// Make the next `reset_keys()` call return an error once. Subsequent calls succeed.

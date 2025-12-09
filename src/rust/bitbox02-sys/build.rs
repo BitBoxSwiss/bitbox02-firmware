@@ -87,8 +87,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "emit_event",
     "empty_create",
     "fake_memory_factoryreset",
-    "fake_securechip_event_counter_reset",
-    "fake_securechip_event_counter",
     "gmtime",
     "hww_setup",
     "keystore_bip39_mnemonic_to_seed",

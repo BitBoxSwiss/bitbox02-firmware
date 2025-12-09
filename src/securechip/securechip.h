@@ -178,11 +178,4 @@ typedef enum {
  */
 USE_RESULT bool securechip_model(securechip_model_t* model_out);
 
-#ifdef TESTING
-// Resets the event counter.
-void fake_securechip_event_counter_reset(void);
-// Retrieves the event counter.
-uint32_t fake_securechip_event_counter(void);
-#endif
-
 #endif

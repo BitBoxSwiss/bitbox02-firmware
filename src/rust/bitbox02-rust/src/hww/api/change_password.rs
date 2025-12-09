@@ -104,7 +104,7 @@ mod tests {
         // We expect 14 secure chip events. This is intentionally brittle to catch
         // unintended changes in the number of securechip operations during password change.
         // If this fails after a legitimate change, update the expected count.
-        assert_eq!(hal.securechip.get_event_counter(), 14);
+        assert_eq!(hal.securechip.get_event_counter(), 10);
 
         // check that the old password is no longer valid
         keystore::lock();

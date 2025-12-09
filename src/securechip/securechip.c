@@ -13,7 +13,8 @@ typedef struct {
     int (*kdf)(const uint8_t* msg, size_t msg_len, uint8_t* kdf_out);
     int (*init_new_password)(
         const char* password,
-        memory_password_stretch_algo_t password_stretch_algo);
+        memory_password_stretch_algo_t password_stretch_algo,
+        uint8_t* stretched_out);
     int (*stretch_password)(
         const char* password,
         memory_password_stretch_algo_t password_stretch_algo,
@@ -100,10 +101,11 @@ int securechip_kdf(const uint8_t* msg, size_t msg_len, uint8_t* mac_out)
 
 int securechip_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo)
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
 {
     ABORT_IF_NULL(init_new_password);
-    return _fns.init_new_password(password, password_stretch_algo);
+    return _fns.init_new_password(password, password_stretch_algo, stretched_out);
 }
 
 int securechip_stretch_password(

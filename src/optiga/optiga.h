@@ -69,7 +69,8 @@ USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out);
 USE_RESULT int optiga_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo);
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out);
 USE_RESULT int optiga_stretch_password(
     const char* password,
     memory_password_stretch_algo_t password_stretch_algo,

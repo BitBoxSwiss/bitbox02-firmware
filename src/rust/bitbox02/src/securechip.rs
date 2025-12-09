@@ -86,14 +86,19 @@ pub fn reset_keys() -> Result<(), ()> {
 pub fn init_new_password(
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
-) -> Result<(), Error> {
+) -> Result<Zeroizing<Vec<u8>>, Error> {
     let password = crate::util::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
+    let mut stretched = Zeroizing::new(vec![0u8; 32]);
     let status = unsafe {
-        bitbox02_sys::securechip_init_new_password(password.as_ptr().cast(), password_stretch_algo)
+        bitbox02_sys::securechip_init_new_password(
+            password.as_ptr().cast(),
+            password_stretch_algo,
+            stretched.as_mut_ptr(),
+        )
     };
     if status == 0 {
-        Ok(())
+        Ok(stretched)
     } else {
         Err(Error::from_status(status))
     }

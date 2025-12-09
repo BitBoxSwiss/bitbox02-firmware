@@ -31,7 +31,7 @@ pub trait SecureChip {
         &mut self,
         password: &str,
         password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-    ) -> Result<(), bitbox02::securechip::Error>;
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
     fn stretch_password(
         &mut self,
         password: &str,
@@ -155,7 +155,7 @@ impl SecureChip for BitBox02SecureChip {
         &mut self,
         password: &str,
         password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-    ) -> Result<(), bitbox02::securechip::Error> {
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
         bitbox02::securechip::init_new_password(password, password_stretch_algo)
     }
 
@@ -509,11 +509,18 @@ pub mod testing {
     impl super::SecureChip for TestingSecureChip {
         fn init_new_password(
             &mut self,
-            _password: &str,
+            password: &str,
             _password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-        ) -> Result<(), bitbox02::securechip::Error> {
+        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
             self.event_counter += 3;
-            Ok(())
+
+            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
+            let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
+            engine.input(password.as_bytes());
+            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+            Ok(zeroize::Zeroizing::new(
+                hmac_result.to_byte_array().to_vec(),
+            ))
         }
 
         fn stretch_password(

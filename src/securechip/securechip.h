@@ -98,7 +98,8 @@ USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
  */
 USE_RESULT int securechip_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo);
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out);
 
 /**
  * Stretch password using secrets in the secure chip.

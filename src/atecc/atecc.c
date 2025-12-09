@@ -575,7 +575,8 @@ int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 
 int atecc_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo)
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
 {
     (void)password;
     if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V0) {
@@ -584,7 +585,7 @@ int atecc_init_new_password(
     if (!atecc_reset_keys()) {
         return SC_ATECC_ERR_RESET_KEYS;
     }
-    return 0;
+    return atecc_stretch_password(password, password_stretch_algo, stretched_out);
 }
 
 int atecc_stretch_password(

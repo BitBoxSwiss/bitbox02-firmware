@@ -242,12 +242,9 @@ fn encrypt_and_store_seed_internal(
 
     let password_stretch_algo = default_password_stretch_algo(hal)?;
 
-    hal.securechip()
-        .init_new_password(password, password_stretch_algo)?;
-
     let secret = hal
         .securechip()
-        .stretch_password(password, password_stretch_algo)?;
+        .init_new_password(password, password_stretch_algo)?;
 
     let iv_rand = hal.random().random_32_bytes();
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
@@ -1785,7 +1782,7 @@ mod tests {
 
             mock_hal.securechip.event_counter_reset();
             assert!(encrypt_and_store_seed(&mut mock_hal, seed, "foo").is_ok());
-            assert_eq!(mock_hal.securechip.get_event_counter(), 8);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 4);
 
             assert!(is_locked());
 

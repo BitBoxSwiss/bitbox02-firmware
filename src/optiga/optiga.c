@@ -1320,9 +1320,31 @@ static int _v1_get_auth_password(
     return 0;
 }
 
+static int _v1_combine(
+    const char* password,
+    const uint8_t* auth_password,
+    const uint8_t* password_secret,
+    uint8_t* stretched_out)
+{
+    rust_hmac_sha256(password_secret, 32, auth_password, 32, stretched_out);
+
+    uint8_t password_salted_hashed[32] = {0};
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "optiga_password_stretch_out",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+    rust_hmac_sha256(
+        password_salted_hashed, sizeof(password_salted_hashed), stretched_out, 32, stretched_out);
+    return 0;
+}
+
 int optiga_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo)
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
 {
     if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V1) {
         // New passwords must use the latest algo.
@@ -1383,7 +1405,7 @@ int optiga_init_new_password(
         return res;
     }
 
-    return 0;
+    return _v1_combine(password, auth_password, password_secret, stretched_out);
 }
 
 bool optiga_reset_keys(void)
@@ -1394,7 +1416,8 @@ bool optiga_reset_keys(void)
     // for the purpose of resetting the keys.
 
     // We reset using V1, the latest algorithm. It covers resetting everything from V0 as well.
-    return optiga_init_new_password("", MEMORY_PASSWORD_STRETCH_ALGO_V1) == 0;
+    uint8_t stretched[32];
+    return optiga_init_new_password("", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched) == 0;
 }
 
 static int _optiga_verify_password_v0(const char* password, uint8_t* password_secret_out)
@@ -1769,19 +1792,7 @@ static int _stretch_password_v1(const char* password, uint8_t* stretched_out)
         return res;
     }
 
-    rust_hmac_sha256(password_secret, sizeof(password_secret), stretched_out, 32, stretched_out);
-
-    uint8_t password_salted_hashed[32] = {0};
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
-            "optiga_password_stretch_out",
-            password_salted_hashed)) {
-        return SC_ERR_SALT;
-    }
-    rust_hmac_sha256(
-        password_salted_hashed, sizeof(password_salted_hashed), stretched_out, 32, stretched_out);
-    return 0;
+    return _v1_combine(password, auth_password, password_secret, stretched_out);
 }
 
 int optiga_stretch_password(

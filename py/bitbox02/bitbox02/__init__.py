@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 """
 This file re-exports all symbols from the nested bitbox02 subpackage.
 

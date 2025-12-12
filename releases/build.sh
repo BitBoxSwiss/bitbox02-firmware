@@ -1,4 +1,5 @@
 #!/bin/bash -e
+# SPDX-License-Identifier: Apache-2.0
 
 # To maintainers: keep this script straight forward to follow and
 # review.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Re-export rtt_target so that it is available to the macro user
 #[cfg(all(feature = "rtt", target_os = "none"))]
 pub use ::rtt_target;

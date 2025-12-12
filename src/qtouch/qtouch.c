@@ -462,7 +462,7 @@ void qtouch_process(void)
         /* if the Acquistion request was successful then clear the request flag */
         if (TOUCH_SUCCESS == touch_ret) {
             /* Clear the Measure request flag */
-            p_qtm_control->binding_layer_flags &= (uint8_t) ~(1U << time_to_measure_touch);
+            p_qtm_control->binding_layer_flags &= (uint8_t)~(1U << time_to_measure_touch);
         }
     }
 
@@ -481,7 +481,7 @@ void qtouch_process(void)
         }
 
         /* Reset the flags for node_level_post_processing */
-        p_qtm_control->binding_layer_flags &= (uint8_t) ~(1U << node_pp_request);
+        p_qtm_control->binding_layer_flags &= (uint8_t)~(1U << node_pp_request);
 
         if (p_qtm_control->binding_layer_flags & (1U << reburst_request)) {
             p_qtm_control->binding_layer_flags |= (1U << time_to_measure_touch);

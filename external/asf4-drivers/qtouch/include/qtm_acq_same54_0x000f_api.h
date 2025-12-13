@@ -80,14 +80,14 @@ typedef enum tag_gain_t { GAIN_1, GAIN_2, GAIN_4, GAIN_8, GAIN_16 } gain_t;
  *
  */
 typedef enum tag_prsc_div_sel_t {
-	PRSC_DIV_SEL_1,
 	PRSC_DIV_SEL_2,
 	PRSC_DIV_SEL_4,
 	PRSC_DIV_SEL_8,
 	PRSC_DIV_SEL_16,
 	PRSC_DIV_SEL_32,
 	PRSC_DIV_SEL_64,
-	PRSC_DIV_SEL_128
+	PRSC_DIV_SEL_128,
+	PRSC_DIV_SEL_256
 } prsc_div_sel_t;
 
 /**

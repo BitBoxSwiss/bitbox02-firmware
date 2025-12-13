@@ -34,14 +34,17 @@
 
 #define MAX_REGISTRATIONS 7
 #define MAX_HISTORY 30
+// Measured in qtouch measurmenent periodicity
+#define KEY_REPEAT_PERIOD 20
 
-/** The minimum amount of sliding difference required, so that the gesture is detected as slide. */
-static const uint8_t SLIDE_DETECTION_DIFF = MAX_SLIDER_POS * 0.04; // Percent of slider range
+/** The minimum amount of sliding difference required, so that the gesture is
+ * detected as slide. */
+static const uint8_t SLIDE_DETECTION_DIFF = 16;
 /**
  * The maximum amount of sliding that the user's finger is allowed to move
  * for its gesture to be still considered a tap.
  */
-static const uint8_t TAP_SLIDE_TOLERANCE = MAX_SLIDER_POS * 0.1; // Percent of slider range
+static const uint8_t TAP_SLIDE_TOLERANCE = 30;
 
 extern volatile bool measurement_done_touch;
 
@@ -111,7 +114,7 @@ static void _slider_state_update(gestures_detection_state_t* state, uint16_t pos
     state->max_slide_travel = MAX(distance_from_start, state->max_slide_travel);
 
     state->slider_status = ACTIVE;
-    if (abs(state->position_current - state->position_start) > SLIDE_DETECTION_DIFF) {
+    if (distance_from_start > SLIDE_DETECTION_DIFF) {
         state->gesture_type = SLIDE;
     }
     state->duration++;
@@ -151,7 +154,8 @@ typedef bool (*gesture_detect_fn)(uint8_t location);
 static bool _is_continuous_tap(uint8_t location)
 {
     return _state[location].max_slide_travel < TAP_SLIDE_TOLERANCE &&
-           _state[location].slider_status == ACTIVE;
+           _state[location].slider_status == ACTIVE &&
+           _state[location].duration % KEY_REPEAT_PERIOD == 0;
 }
 
 static bool _is_tap_release(uint8_t location)

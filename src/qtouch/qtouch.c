@@ -516,7 +516,6 @@ void qtouch_process_scroller_positions(scroller_control_t* scrollers)
         // shift up all calculations to increase precision
         uint32_t fp_offset = 2;
         uint32_t raw_pos = 0;
-        uint32_t weight_sum = 0;
         uint32_t sum = 0;
         // offset weights with "half distance" to avoid "centroid at the edge" problem. i.e. that
         // the weight of the zeroth node is 0 and therefore it only weakly influences the result.
@@ -529,9 +528,10 @@ void qtouch_process_scroller_positions(scroller_control_t* scrollers)
                 (i << (config->resolution + fp_offset)) / (config->number_of_keys - 1) +
                 half_distance;
             raw_pos += delta * weight;
-            weight_sum += weight;
         }
-        raw_pos /= sum;
+        if (sum > 0) {
+            raw_pos /= sum;
+        }
         raw_pos -= min(raw_pos, half_distance);
         raw_pos >>= fp_offset;
 

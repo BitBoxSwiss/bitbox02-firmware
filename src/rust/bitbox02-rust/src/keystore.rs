@@ -40,6 +40,10 @@ const ENCRYPTION_OVERHEAD: usize = 64;
 // to roughly seven seconds so we don't assume communication was lost mid-unlock.
 const LONG_TIMEOUT: i16 = -70;
 
+// Must match MAX_UNLOCK_ATTEMPTS in bitbox02_smarteeprom.h and
+// SMALL_MONOTONIC_COUNTER_MAX_USE in optiga.c.
+const MAX_UNLOCK_ATTEMPTS: u8 = 10;
+
 #[derive(Debug)]
 pub enum Error {
     InvalidState,
@@ -337,7 +341,7 @@ pub async fn unlock(
     if !hal.memory().is_seeded() {
         return Err(Error::Unseeded);
     }
-    if get_remaining_unlock_attempts() == 0 {
+    if get_remaining_unlock_attempts(hal) == 0 {
         //
         //  We reset the device as soon as the MAX_UNLOCK_ATTEMPTSth attempt
         //  is made. So we should never enter this branch...
@@ -347,11 +351,11 @@ pub async fn unlock(
         return Err(Error::MaxAttemptsExceeded);
     }
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
-    bitbox02::memory::smarteeprom_increment_unlock_attempts();
+    hal.memory().increment_unlock_attempts();
     let seed = match get_and_decrypt_seed(hal, password) {
         Ok(seed) => seed,
         err @ Err(_) => {
-            if get_remaining_unlock_attempts() == 0 {
+            if get_remaining_unlock_attempts(hal) == 0 {
                 crate::reset::reset(hal, false).await;
                 return Err(Error::MaxAttemptsExceeded);
             }
@@ -367,15 +371,15 @@ pub async fn unlock(
     } else {
         retain_seed(hal, &seed)?;
     }
-    bitbox02::memory::smarteeprom_reset_unlock_attempts();
+    hal.memory().reset_unlock_attempts();
     Ok(seed)
 }
 
 /// Returns the number of remaining unlock attempts (calls to `unlock()`) that are allowed before
 /// the device resets itself.
-pub fn get_remaining_unlock_attempts() -> u8 {
-    let failed_attempts: u8 = bitbox02::memory::smarteeprom_get_unlock_attempts();
-    bitbox02::memory::MAX_UNLOCK_ATTEMPTS.saturating_sub(failed_attempts)
+pub fn get_remaining_unlock_attempts(hal: &mut impl crate::hal::Hal) -> u8 {
+    let failed_attempts: u8 = hal.memory().get_unlock_attempts();
+    MAX_UNLOCK_ATTEMPTS.saturating_sub(failed_attempts)
 }
 
 /// Unlocks the bip39 seed. The input seed must be the keystore seed (i.e. must match the output
@@ -1173,14 +1177,14 @@ mod tests {
         assert_eq!(decrypted.as_slice(), seed.as_slice());
 
         // First 9 wrong attempts.
-        for i in 1..bitbox02::memory::MAX_UNLOCK_ATTEMPTS {
+        for i in 1..MAX_UNLOCK_ATTEMPTS {
             assert!(matches!(
                 block_on(unlock(&mut mock_hal, "invalid password")),
                 Err(Error::IncorrectPassword)
             ));
             assert_eq!(
-                get_remaining_unlock_attempts(),
-                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - i
+                get_remaining_unlock_attempts(&mut mock_hal),
+                MAX_UNLOCK_ATTEMPTS - i
             );
             // Still seeded.
             assert!(mock_hal.memory.is_seeded());
@@ -1218,15 +1222,15 @@ mod tests {
         assert!(is_locked());
         assert!(copy_seed(&mut mock_hal).is_err());
 
-        for attempt in 1..bitbox02::memory::MAX_UNLOCK_ATTEMPTS {
+        for attempt in 1..MAX_UNLOCK_ATTEMPTS {
             assert!(matches!(
                 block_on(unlock(&mut mock_hal, "invalid password")),
                 Err(Error::IncorrectPassword),
             ));
 
             assert_eq!(
-                get_remaining_unlock_attempts(),
-                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - attempt
+                get_remaining_unlock_attempts(&mut mock_hal),
+                MAX_UNLOCK_ATTEMPTS - attempt
             );
             assert!(is_locked());
             assert!(copy_seed(&mut mock_hal).is_err());
@@ -1265,12 +1269,12 @@ mod tests {
         lock();
         assert!(is_locked());
 
-        bitbox02::memory::set_unlock_attempts_for_testing(bitbox02::memory::MAX_UNLOCK_ATTEMPTS);
-        assert_eq!(get_remaining_unlock_attempts(), 0);
-        assert_eq!(
-            bitbox02::memory::smarteeprom_get_unlock_attempts(),
-            bitbox02::memory::MAX_UNLOCK_ATTEMPTS
-        );
+        mock_hal
+            .memory
+            .set_unlock_attempts_for_testing(MAX_UNLOCK_ATTEMPTS);
+
+        assert_eq!(get_remaining_unlock_attempts(&mut mock_hal), 0);
+        assert_eq!(mock_hal.memory.get_unlock_attempts(), MAX_UNLOCK_ATTEMPTS);
 
         assert!(matches!(
             block_on(unlock(&mut mock_hal, "password")),
@@ -1303,10 +1307,7 @@ mod tests {
                 block_on(unlock(hal, "wrong")),
                 Err(Error::IncorrectPassword)
             ));
-            assert_eq!(
-                get_remaining_unlock_attempts(),
-                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
-            );
+            assert_eq!(get_remaining_unlock_attempts(hal), MAX_UNLOCK_ATTEMPTS - 1);
         }
 
         wrong_attempt(&mut mock_hal);
@@ -1358,10 +1359,7 @@ mod tests {
                 block_on(unlock(hal, "wrong")),
                 Err(Error::IncorrectPassword)
             ));
-            assert_eq!(
-                get_remaining_unlock_attempts(),
-                bitbox02::memory::MAX_UNLOCK_ATTEMPTS - 1
-            );
+            assert_eq!(get_remaining_unlock_attempts(hal), MAX_UNLOCK_ATTEMPTS - 1);
         }
 
         wrong_attempt(&mut mock_hal);
@@ -2049,7 +2047,7 @@ mod tests {
                 block_on(unlock(&mut mock_hal, "bar")),
                 Err(Error::IncorrectPassword)
             ));
-            assert_eq!(get_remaining_unlock_attempts(), 9);
+            assert_eq!(get_remaining_unlock_attempts(&mut mock_hal), 9);
 
             // Correct password. First time: unlock. After unlock, it becomes a password check.
             for _ in 0..3 {

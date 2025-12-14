@@ -17,8 +17,6 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-pub const MAX_UNLOCK_ATTEMPTS: u8 = bitbox02_sys::MAX_UNLOCK_ATTEMPTS as u8;
-
 // deduct one for the null terminator.
 pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
 
@@ -183,17 +181,6 @@ pub fn smarteeprom_increment_unlock_attempts() {
 pub fn smarteeprom_reset_unlock_attempts() {
     unsafe {
         bitbox02_sys::bitbox02_smarteeprom_reset_unlock_attempts();
-    }
-}
-
-/// Testing helper to set the recorded number of unlock attempts to a precise value.
-/// Panics if `attempts` exceeds the maximum supported by the firmware.
-#[cfg(feature = "testing")]
-pub fn set_unlock_attempts_for_testing(attempts: u8) {
-    assert!(attempts <= MAX_UNLOCK_ATTEMPTS);
-    smarteeprom_reset_unlock_attempts();
-    for _ in 0..attempts {
-        smarteeprom_increment_unlock_attempts();
     }
 }
 

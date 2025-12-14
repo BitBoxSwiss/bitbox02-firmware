@@ -92,7 +92,7 @@ pub async fn unlock_keystore(
     match crate::keystore::unlock(hal, &password).await {
         Ok(seed) => Ok(seed),
         Err(crate::keystore::Error::IncorrectPassword) => {
-            let msg = match crate::keystore::get_remaining_unlock_attempts() {
+            let msg = match crate::keystore::get_remaining_unlock_attempts(hal) {
                 1 => "Wrong password\n1 try remains".into(),
                 n => format!("Wrong password\n{} tries remain", n),
             };

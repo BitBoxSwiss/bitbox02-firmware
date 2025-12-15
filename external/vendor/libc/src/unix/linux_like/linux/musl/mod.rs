@@ -136,10 +136,18 @@ s! {
         pub aio_offset: off_t,
         __next: *mut c_void,
         __prev: *mut c_void,
-        #[cfg(target_pointer_width = "32")]
-        __dummy4: [c_char; 24],
-        #[cfg(target_pointer_width = "64")]
-        __dummy4: [c_char; 16],
+        __dummy4: [c_char; 32 - 2 * size_of::<*const ()>()],
+    }
+
+    #[repr(align(8))]
+    pub struct fanotify_event_metadata {
+        pub event_len: c_uint,
+        pub vers: c_uchar,
+        pub reserved: c_uchar,
+        pub metadata_len: c_ushort,
+        pub mask: c_ulonglong,
+        pub fd: c_int,
+        pub pid: c_int,
     }
 
     // FIXME(1.0): This should not implement `PartialEq`
@@ -157,10 +165,10 @@ s! {
     // FIXME(union): C implementation uses unions
     pub struct siginfo_t {
         pub si_signo: c_int,
-        #[cfg(not(target_arch = "mips"))]
+        #[cfg(not(any(target_arch = "mips", target_arch = "mips64")))]
         pub si_errno: c_int,
         pub si_code: c_int,
-        #[cfg(target_arch = "mips")]
+        #[cfg(any(target_arch = "mips", target_arch = "mips64"))]
         pub si_errno: c_int,
         #[doc(hidden)]
         #[deprecated(
@@ -212,6 +220,8 @@ s! {
         __f_reserved: [c_int; 6],
     }
 
+    // PowerPC implementations are special, see the subfolders
+    #[cfg(not(any(target_arch = "powerpc", target_arch = "powerpc64")))]
     pub struct termios {
         pub c_iflag: crate::tcflag_t,
         pub c_oflag: crate::tcflag_t,
@@ -379,8 +389,8 @@ s! {
         pub tcpi_snd_wnd: u32,
     }
 
-    // MIPS implementation is special (see mips arch folders)
-    #[cfg(not(target_arch = "mips"))]
+    // MIPS/s390x implementation is special (see arch folders)
+    #[cfg(not(any(target_arch = "mips", target_arch = "mips64", target_arch = "s390x")))]
     pub struct statfs {
         pub f_type: c_ulong,
         pub f_bsize: c_ulong,
@@ -396,8 +406,8 @@ s! {
         pub f_spare: [c_ulong; 4],
     }
 
-    // MIPS implementation is special (see mips arch folders)
-    #[cfg(not(target_arch = "mips"))]
+    // MIPS/s390x implementation is special (see arch folders)
+    #[cfg(not(any(target_arch = "mips", target_arch = "mips64", target_arch = "s390x")))]
     pub struct statfs64 {
         pub f_type: c_ulong,
         pub f_bsize: c_ulong,
@@ -599,7 +609,10 @@ pub const ACCOUNTING: c_short = 9;
 
 pub const SFD_CLOEXEC: c_int = 0x080000;
 
+#[cfg(not(any(target_arch = "powerpc", target_arch = "powerpc64")))]
 pub const NCCS: usize = 32;
+#[cfg(any(target_arch = "powerpc", target_arch = "powerpc64"))]
+pub const NCCS: usize = 19;
 
 pub const O_TRUNC: c_int = 512;
 pub const O_NOATIME: c_int = 0o1000000;
@@ -670,6 +683,7 @@ pub const __SIZEOF_PTHREAD_MUTEXATTR_T: usize = 4;
 pub const __SIZEOF_PTHREAD_RWLOCKATTR_T: usize = 8;
 pub const __SIZEOF_PTHREAD_BARRIERATTR_T: usize = 4;
 
+// FIXME(musl): Value is 1024 for all architectures since 1.2.4
 #[cfg(not(target_arch = "loongarch64"))]
 pub const CPU_SETSIZE: c_int = 128;
 #[cfg(target_arch = "loongarch64")]
@@ -908,7 +922,7 @@ extern "C" {
     pub fn dirname(path: *mut c_char) -> *mut c_char;
     pub fn basename(path: *mut c_char) -> *mut c_char;
 
-    // Addded in `musl` 1.1.20
+    // Added in `musl` 1.1.20
     pub fn getrandom(buf: *mut c_void, buflen: size_t, flags: c_uint) -> ssize_t;
 
     // Added in `musl` 1.1.24

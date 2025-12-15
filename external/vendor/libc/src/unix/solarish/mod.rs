@@ -1,5 +1,3 @@
-use core::mem::size_of;
-
 use crate::prelude::*;
 
 pub type caddr_t = *mut c_char;
@@ -57,7 +55,7 @@ pub type lgrp_view_t = c_uint;
 pub type posix_spawnattr_t = *mut c_void;
 pub type posix_spawn_file_actions_t = *mut c_void;
 
-#[cfg_attr(feature = "extra_traits", derive(Debug))]
+#[derive(Debug)]
 pub enum timezone {}
 impl Copy for timezone {}
 impl Clone for timezone {
@@ -66,7 +64,7 @@ impl Clone for timezone {
     }
 }
 
-#[cfg_attr(feature = "extra_traits", derive(Debug))]
+#[derive(Debug)]
 pub enum ucred_t {}
 impl Copy for ucred_t {}
 impl Clone for ucred_t {
@@ -2392,14 +2390,12 @@ const NEWDEV: c_int = 1;
 // sys/sendfile.h
 pub const SFV_FD_SELF: c_int = -2;
 
-const_fn! {
-    {const} fn _CMSG_HDR_ALIGN(p: usize) -> usize {
-        (p + _CMSG_HDR_ALIGNMENT - 1) & !(_CMSG_HDR_ALIGNMENT - 1)
-    }
+const fn _CMSG_HDR_ALIGN(p: usize) -> usize {
+    (p + _CMSG_HDR_ALIGNMENT - 1) & !(_CMSG_HDR_ALIGNMENT - 1)
+}
 
-    {const} fn _CMSG_DATA_ALIGN(p: usize) -> usize {
-        (p + _CMSG_DATA_ALIGNMENT - 1) & !(_CMSG_DATA_ALIGNMENT - 1)
-    }
+const fn _CMSG_DATA_ALIGN(p: usize) -> usize {
+    (p + _CMSG_DATA_ALIGNMENT - 1) & !(_CMSG_DATA_ALIGNMENT - 1)
 }
 
 f! {
@@ -2407,8 +2403,8 @@ f! {
         _CMSG_DATA_ALIGN(cmsg.offset(1) as usize) as *mut c_uchar
     }
 
-    pub {const} fn CMSG_LEN(length: c_uint) -> c_uint {
-        _CMSG_DATA_ALIGN(mem::size_of::<cmsghdr>()) as c_uint + length
+    pub const fn CMSG_LEN(length: c_uint) -> c_uint {
+        _CMSG_DATA_ALIGN(size_of::<cmsghdr>()) as c_uint + length
     }
 
     pub fn CMSG_FIRSTHDR(mhdr: *const crate::msghdr) -> *mut cmsghdr {
@@ -2433,25 +2429,25 @@ f! {
         }
     }
 
-    pub {const} fn CMSG_SPACE(length: c_uint) -> c_uint {
+    pub const fn CMSG_SPACE(length: c_uint) -> c_uint {
         _CMSG_HDR_ALIGN(size_of::<cmsghdr>() as usize + length as usize) as c_uint
     }
 
     pub fn FD_CLR(fd: c_int, set: *mut fd_set) -> () {
-        let bits = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let bits = size_of_val(&(*set).fds_bits[0]) * 8;
         let fd = fd as usize;
         (*set).fds_bits[fd / bits] &= !(1 << (fd % bits));
         return;
     }
 
     pub fn FD_ISSET(fd: c_int, set: *const fd_set) -> bool {
-        let bits = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let bits = size_of_val(&(*set).fds_bits[0]) * 8;
         let fd = fd as usize;
         return ((*set).fds_bits[fd / bits] & (1 << (fd % bits))) != 0;
     }
 
     pub fn FD_SET(fd: c_int, set: *mut fd_set) -> () {
-        let bits = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let bits = size_of_val(&(*set).fds_bits[0]) * 8;
         let fd = fd as usize;
         (*set).fds_bits[fd / bits] |= 1 << (fd % bits);
         return;
@@ -2473,39 +2469,39 @@ safe_f! {
         unsafe { crate::sysconf(_SC_SIGRT_MIN) as c_int }
     }
 
-    pub {const} fn WIFEXITED(status: c_int) -> bool {
+    pub const fn WIFEXITED(status: c_int) -> bool {
         (status & 0xFF) == 0
     }
 
-    pub {const} fn WEXITSTATUS(status: c_int) -> c_int {
+    pub const fn WEXITSTATUS(status: c_int) -> c_int {
         (status >> 8) & 0xFF
     }
 
-    pub {const} fn WTERMSIG(status: c_int) -> c_int {
+    pub const fn WTERMSIG(status: c_int) -> c_int {
         status & 0x7F
     }
 
-    pub {const} fn WIFCONTINUED(status: c_int) -> bool {
+    pub const fn WIFCONTINUED(status: c_int) -> bool {
         (status & 0xffff) == 0xffff
     }
 
-    pub {const} fn WSTOPSIG(status: c_int) -> c_int {
+    pub const fn WSTOPSIG(status: c_int) -> c_int {
         (status & 0xff00) >> 8
     }
 
-    pub {const} fn WIFSIGNALED(status: c_int) -> bool {
+    pub const fn WIFSIGNALED(status: c_int) -> bool {
         ((status & 0xff) > 0) && (status & 0xff00 == 0)
     }
 
-    pub {const} fn WIFSTOPPED(status: c_int) -> bool {
+    pub const fn WIFSTOPPED(status: c_int) -> bool {
         ((status & 0xff) == 0x7f) && ((status & 0xff00) != 0)
     }
 
-    pub {const} fn WCOREDUMP(status: c_int) -> bool {
+    pub const fn WCOREDUMP(status: c_int) -> bool {
         (status & 0x80) != 0
     }
 
-    pub {const} fn MR_GET_TYPE(flags: c_uint) -> c_uint {
+    pub const fn MR_GET_TYPE(flags: c_uint) -> c_uint {
         flags & 0x0000ffff
     }
 }
@@ -3132,6 +3128,21 @@ extern "C" {
     pub fn arc4random_uniform(upper_bound: u32) -> u32;
 
     pub fn secure_getenv(name: *const c_char) -> *mut c_char;
+
+    #[cfg_attr(target_os = "solaris", link_name = "__strftime_xpg7")]
+    pub fn strftime(
+        s: *mut c_char,
+        maxsize: size_t,
+        format: *const c_char,
+        timeptr: *const crate::tm,
+    ) -> size_t;
+    pub fn strftime_l(
+        s: *mut c_char,
+        maxsize: size_t,
+        format: *const c_char,
+        timeptr: *const crate::tm,
+        loc: crate::locale_t,
+    ) -> size_t;
 }
 
 #[link(name = "sendfile")]

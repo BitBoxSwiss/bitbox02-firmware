@@ -9,7 +9,7 @@ pub type key_t = c_int;
 pub type id_t = c_uint;
 
 missing! {
-    #[cfg_attr(feature = "extra_traits", derive(Debug))]
+    #[derive(Debug)]
     pub enum timezone {}
 }
 
@@ -234,7 +234,11 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(any(target_env = "gnu", target_os = "android"))] {
+    if #[cfg(any(
+        target_env = "gnu",
+        target_os = "android",
+        all(target_env = "musl", musl_v1_2_3)
+    ))] {
         s! {
             pub struct statx {
                 pub stx_mask: crate::__u32,
@@ -274,14 +278,7 @@ cfg_if! {
 
 s_no_extra_traits! {
     #[cfg_attr(
-        any(
-            all(
-                target_arch = "x86",
-                not(target_env = "musl"),
-                not(target_os = "android")
-            ),
-            target_arch = "x86_64"
-        ),
+        any(target_arch = "x86_64", all(target_arch = "x86", target_env = "gnu")),
         repr(packed)
     )]
     pub struct epoll_event {
@@ -630,6 +627,7 @@ pub const MS_SYNCHRONOUS: c_ulong = 0x10;
 pub const MS_REMOUNT: c_ulong = 0x20;
 pub const MS_MANDLOCK: c_ulong = 0x40;
 pub const MS_DIRSYNC: c_ulong = 0x80;
+pub const MS_NOSYMFOLLOW: c_ulong = 0x100;
 pub const MS_NOATIME: c_ulong = 0x0400;
 pub const MS_NODIRATIME: c_ulong = 0x0800;
 pub const MS_BIND: c_ulong = 0x1000;
@@ -1269,7 +1267,11 @@ pub const SI_USER: c_int = 0;
 pub const SI_KERNEL: c_int = 0x80;
 pub const SI_QUEUE: c_int = -1;
 cfg_if! {
-    if #[cfg(not(any(target_arch = "mips", target_arch = "mips32r6")))] {
+    if #[cfg(not(any(
+        target_arch = "mips",
+        target_arch = "mips32r6",
+        target_arch = "mips64"
+    )))] {
         pub const SI_TIMER: c_int = -2;
         pub const SI_MESGQ: c_int = -3;
         pub const SI_ASYNCIO: c_int = -4;
@@ -1659,7 +1661,11 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(any(target_env = "gnu", target_os = "android"))] {
+    if #[cfg(any(
+        target_env = "gnu",
+        target_os = "android",
+        all(target_env = "musl", musl_v1_2_3)
+    ))] {
         pub const AT_STATX_SYNC_TYPE: c_int = 0x6000;
         pub const AT_STATX_SYNC_AS_STAT: c_int = 0x0000;
         pub const AT_STATX_FORCE_SYNC: c_int = 0x2000;
@@ -1740,13 +1746,10 @@ cfg_if! {
 
         /// Build an ioctl number, analogous to the C macro of the same name.
         const fn _IOC(dir: u32, ty: u32, nr: u32, size: usize) -> Ioctl {
-            // FIXME(ctest) the `garando_syntax` crate (used by ctest in the CI test suite)
-            // cannot currently parse these `debug_assert!`s
-            //
-            // debug_assert!(dir <= _IOC_DIRMASK);
-            // debug_assert!(ty <= _IOC_TYPEMASK);
-            // debug_assert!(nr <= _IOC_NRMASK);
-            // debug_assert!(size <= (_IOC_SIZEMASK as usize));
+            core::debug_assert!(dir <= _IOC_DIRMASK);
+            core::debug_assert!(ty <= _IOC_TYPEMASK);
+            core::debug_assert!(nr <= _IOC_NRMASK);
+            core::debug_assert!(size <= (_IOC_SIZEMASK as usize));
 
             ((dir << _IOC_DIRSHIFT)
                 | (ty << _IOC_TYPESHIFT)
@@ -1761,17 +1764,17 @@ cfg_if! {
 
         /// Build an ioctl number for an read-only ioctl.
         pub const fn _IOR<T>(ty: u32, nr: u32) -> Ioctl {
-            _IOC(_IOC_READ, ty, nr, mem::size_of::<T>())
+            _IOC(_IOC_READ, ty, nr, size_of::<T>())
         }
 
         /// Build an ioctl number for an write-only ioctl.
         pub const fn _IOW<T>(ty: u32, nr: u32) -> Ioctl {
-            _IOC(_IOC_WRITE, ty, nr, mem::size_of::<T>())
+            _IOC(_IOC_WRITE, ty, nr, size_of::<T>())
         }
 
         /// Build an ioctl number for a read-write ioctl.
         pub const fn _IOWR<T>(ty: u32, nr: u32) -> Ioctl {
-            _IOC(_IOC_READ | _IOC_WRITE, ty, nr, mem::size_of::<T>())
+            _IOC(_IOC_READ | _IOC_WRITE, ty, nr, size_of::<T>())
         }
 
         extern "C" {
@@ -1781,49 +1784,47 @@ cfg_if! {
     }
 }
 
-const_fn! {
-    {const} fn CMSG_ALIGN(len: usize) -> usize {
-        (len + mem::size_of::<usize>() - 1) & !(mem::size_of::<usize>() - 1)
-    }
+const fn CMSG_ALIGN(len: usize) -> usize {
+    (len + size_of::<usize>() - 1) & !(size_of::<usize>() - 1)
 }
 
 f! {
-    pub fn CMSG_FIRSTHDR(mhdr: *const msghdr) -> *mut cmsghdr {
-        if (*mhdr).msg_controllen as usize >= mem::size_of::<cmsghdr>() {
-            (*mhdr).msg_control.cast::<cmsghdr>()
+    pub fn CMSG_FIRSTHDR(mhdr: *const crate::msghdr) -> *mut crate::cmsghdr {
+        if (*mhdr).msg_controllen as usize >= size_of::<crate::cmsghdr>() {
+            (*mhdr).msg_control.cast::<crate::cmsghdr>()
         } else {
-            core::ptr::null_mut::<cmsghdr>()
+            core::ptr::null_mut::<crate::cmsghdr>()
         }
     }
 
-    pub fn CMSG_DATA(cmsg: *const cmsghdr) -> *mut c_uchar {
+    pub fn CMSG_DATA(cmsg: *const crate::cmsghdr) -> *mut c_uchar {
         cmsg.offset(1) as *mut c_uchar
     }
 
-    pub {const} fn CMSG_SPACE(length: c_uint) -> c_uint {
-        (CMSG_ALIGN(length as usize) + CMSG_ALIGN(mem::size_of::<cmsghdr>())) as c_uint
+    pub const fn CMSG_SPACE(length: c_uint) -> c_uint {
+        (CMSG_ALIGN(length as usize) + CMSG_ALIGN(size_of::<crate::cmsghdr>())) as c_uint
     }
 
-    pub {const} fn CMSG_LEN(length: c_uint) -> c_uint {
-        CMSG_ALIGN(mem::size_of::<cmsghdr>()) as c_uint + length
+    pub const fn CMSG_LEN(length: c_uint) -> c_uint {
+        CMSG_ALIGN(size_of::<crate::cmsghdr>()) as c_uint + length
     }
 
     pub fn FD_CLR(fd: c_int, set: *mut fd_set) -> () {
         let fd = fd as usize;
-        let size = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let size = size_of_val(&(*set).fds_bits[0]) * 8;
         (*set).fds_bits[fd / size] &= !(1 << (fd % size));
         return;
     }
 
     pub fn FD_ISSET(fd: c_int, set: *const fd_set) -> bool {
         let fd = fd as usize;
-        let size = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let size = size_of_val(&(*set).fds_bits[0]) * 8;
         return ((*set).fds_bits[fd / size] & (1 << (fd % size))) != 0;
     }
 
     pub fn FD_SET(fd: c_int, set: *mut fd_set) -> () {
         let fd = fd as usize;
-        let size = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let size = size_of_val(&(*set).fds_bits[0]) * 8;
         (*set).fds_bits[fd / size] |= 1 << (fd % size);
         return;
     }
@@ -1844,68 +1845,68 @@ safe_f! {
         unsafe { __libc_current_sigrtmin() }
     }
 
-    pub {const} fn WIFSTOPPED(status: c_int) -> bool {
+    pub const fn WIFSTOPPED(status: c_int) -> bool {
         (status & 0xff) == 0x7f
     }
 
-    pub {const} fn WSTOPSIG(status: c_int) -> c_int {
+    pub const fn WSTOPSIG(status: c_int) -> c_int {
         (status >> 8) & 0xff
     }
 
-    pub {const} fn WIFCONTINUED(status: c_int) -> bool {
+    pub const fn WIFCONTINUED(status: c_int) -> bool {
         status == 0xffff
     }
 
-    pub {const} fn WIFSIGNALED(status: c_int) -> bool {
+    pub const fn WIFSIGNALED(status: c_int) -> bool {
         ((status & 0x7f) + 1) as i8 >= 2
     }
 
-    pub {const} fn WTERMSIG(status: c_int) -> c_int {
+    pub const fn WTERMSIG(status: c_int) -> c_int {
         status & 0x7f
     }
 
-    pub {const} fn WIFEXITED(status: c_int) -> bool {
+    pub const fn WIFEXITED(status: c_int) -> bool {
         (status & 0x7f) == 0
     }
 
-    pub {const} fn WEXITSTATUS(status: c_int) -> c_int {
+    pub const fn WEXITSTATUS(status: c_int) -> c_int {
         (status >> 8) & 0xff
     }
 
-    pub {const} fn WCOREDUMP(status: c_int) -> bool {
+    pub const fn WCOREDUMP(status: c_int) -> bool {
         (status & 0x80) != 0
     }
 
-    pub {const} fn W_EXITCODE(ret: c_int, sig: c_int) -> c_int {
+    pub const fn W_EXITCODE(ret: c_int, sig: c_int) -> c_int {
         (ret << 8) | sig
     }
 
-    pub {const} fn W_STOPCODE(sig: c_int) -> c_int {
+    pub const fn W_STOPCODE(sig: c_int) -> c_int {
         (sig << 8) | 0x7f
     }
 
-    pub {const} fn QCMD(cmd: c_int, type_: c_int) -> c_int {
+    pub const fn QCMD(cmd: c_int, type_: c_int) -> c_int {
         (cmd << 8) | (type_ & 0x00ff)
     }
 
-    pub {const} fn IPOPT_COPIED(o: u8) -> u8 {
+    pub const fn IPOPT_COPIED(o: u8) -> u8 {
         o & IPOPT_COPY
     }
 
-    pub {const} fn IPOPT_CLASS(o: u8) -> u8 {
+    pub const fn IPOPT_CLASS(o: u8) -> u8 {
         o & IPOPT_CLASS_MASK
     }
 
-    pub {const} fn IPOPT_NUMBER(o: u8) -> u8 {
+    pub const fn IPOPT_NUMBER(o: u8) -> u8 {
         o & IPOPT_NUMBER_MASK
     }
 
-    pub {const} fn IPTOS_ECN(x: u8) -> u8 {
+    pub const fn IPTOS_ECN(x: u8) -> u8 {
         x & crate::IPTOS_ECN_MASK
     }
 
     #[allow(ellipsis_inclusive_range_patterns)]
-    pub {const} fn KERNEL_VERSION(a: u32, b: u32, c: u32) -> u32 {
+    pub const fn KERNEL_VERSION(a: u32, b: u32, c: u32) -> u32 {
         ((a << 16) + (b << 8)) + if c > 255 { 255 } else { c }
     }
 }
@@ -2177,7 +2178,11 @@ cfg_if! {
 
 // The statx syscall, available on some libcs.
 cfg_if! {
-    if #[cfg(any(target_env = "gnu", target_os = "android"))] {
+    if #[cfg(any(
+        target_env = "gnu",
+        target_os = "android",
+        all(target_env = "musl", musl_v1_2_3)
+    ))] {
         extern "C" {
             pub fn statx(
                 dirfd: c_int,

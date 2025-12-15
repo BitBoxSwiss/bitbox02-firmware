@@ -4,8 +4,8 @@
 // https://docs.rs/gimli/0.25.0/src/gimli/read/cfi.rs.html
 
 use core::mem;
-use gimli::{constants, NativeEndian};
 use gimli::{EndianSlice, Error, Pointer, Reader};
+use gimli::{NativeEndian, constants};
 
 use crate::abi::*;
 use crate::arch::*;
@@ -185,10 +185,10 @@ unsafe fn rust_eh_personality(
             EHAction::Cleanup(lpad) | EHAction::Catch(lpad) | EHAction::Filter(lpad) => {
                 _Unwind_SetGR(
                     unwind_ctx,
-                    Arch::UNWIND_DATA_REG.0 .0 as _,
+                    Arch::UNWIND_DATA_REG.0.0 as _,
                     exception as usize,
                 );
-                _Unwind_SetGR(unwind_ctx, Arch::UNWIND_DATA_REG.1 .0 as _, 0);
+                _Unwind_SetGR(unwind_ctx, Arch::UNWIND_DATA_REG.1.0 as _, 0);
                 _Unwind_SetIP(unwind_ctx, lpad);
                 UnwindReasonCode::INSTALL_CONTEXT
             }

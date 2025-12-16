@@ -42,6 +42,11 @@ static const uint8_t _kdf_hmac_key_fixed[32] = {
     0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0,
 };
 
+static const uint8_t _kdf_hmac_writeprotected_key_fixed[32] = {
+    0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0,
+    0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0,
+};
+
 static const uint8_t _auth_code_random_fixed[32] = {
     0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
     0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
@@ -90,6 +95,48 @@ static const uint8_t _expected_stretched_out_v0[32] = {
     0x18, 0x19, 0x06, 0x77, 0x76, 0xF6, 0x16, 0x3B, 0x8A, 0x0F, 0xDF, 0x3D, 0xFB, 0x8B, 0x8E, 0xBB,
 };
 
+// Expected stretched_out for password "pw" for the V1 algorithm given the above fakes.
+//
+// Repro script (mirrors optiga_stretch_password() with the unit test fakes):
+// ```python
+// import hashlib, hmac
+//
+// def sha256(b: bytes) -> bytes:
+//     return hashlib.sha256(b).digest()
+//
+// def hmac_sha256(key: bytes, msg: bytes) -> bytes:
+//     return hmac.new(key, msg, hashlib.sha256).digest()
+//
+// def salt_hash_data(data: bytes, purpose: bytes, salt_root: bytes) -> bytes:
+//     return sha256(salt_root + purpose + data)
+//
+// def kdf_internal(msg: bytes, cmac_key: bytes) -> bytes:
+//     # optiga_ops_crypt_symmetric_encrypt_sync fake: HMAC-SHA256(cmac_key, msg)[:16]
+//     return sha256(hmac_sha256(cmac_key, msg)[:16])
+//
+// def kdf_hmac(msg: bytes, hmac_key: bytes) -> bytes:
+//     # optiga_ops_crypt_hmac_sync fake: HMAC-SHA256(hmac_key, msg)
+//     return hmac_sha256(hmac_key, msg)
+//
+// salt_root = bytes([0x42]) * 32
+// cmac_key = bytes([0xA0]) * 32
+// hmac_writeprotected_key = bytes([0xC0]) * 32
+// password_secret = bytes([0x99]) * 32
+// password = b"pw"
+//
+// kdf_in = salt_hash_data(password, b"optiga_password_stretch_in", salt_root)
+// stretched = kdf_internal(kdf_in, cmac_key)
+// stretched = kdf_hmac(stretched, hmac_writeprotected_key)
+// stretched = hmac_sha256(password_secret, stretched)
+// out_salt = salt_hash_data(password, b"optiga_password_stretch_out", salt_root)
+// stretched = hmac_sha256(out_salt, stretched)
+// print(stretched.hex())
+// ```
+static const uint8_t _expected_stretched_out_v1[32] = {
+    0XC5, 0X9E, 0XC3, 0XC3, 0XB1, 0XC4, 0X5F, 0X7E, 0X76, 0X39, 0XA6, 0X29, 0XF5, 0XB3, 0X4D, 0X1E,
+    0X4D, 0XC5, 0X08, 0XF3, 0XB5, 0XB9, 0X57, 0X7D, 0XD9, 0XDD, 0X57, 0XEE, 0XCF, 0X49, 0X67, 0X51,
+};
+
 //------------------------------------------------------------------------------
 // Minimal securechip interface fakes.
 
@@ -98,16 +145,25 @@ static void _dummy_get_key(uint8_t* key_out)
     memset(key_out, 0, 32);
 }
 
-static void _fixed_random_32_bytes(uint8_t* buf)
+static void _mock_random_32_bytes(uint8_t* buf)
 {
-    memcpy(buf, _password_secret_fixed, 32);
+    // There are only three calls to this at the moment, all in init_new_password.
+    static int mock_random_ctr = 0;
+    if (mock_random_ctr == 0) {
+        memcpy(buf, _kdf_hmac_key_fixed, 32);
+    } else if (mock_random_ctr == 1) {
+        memcpy(buf, _password_secret_fixed, 32);
+    } else if (mock_random_ctr == 2) {
+        memcpy(buf, _kdf_hmac_writeprotected_key_fixed, 32);
+    }
+    mock_random_ctr = (mock_random_ctr + 1) % 3;
 }
 
 static const securechip_interface_functions_t _ifs = {
     .get_auth_key = _dummy_get_key,
     .get_io_protection_key = _dummy_get_key,
     .get_encryption_key = _dummy_get_key,
-    .random_32_bytes = _fixed_random_32_bytes,
+    .random_32_bytes = _mock_random_32_bytes,
 };
 
 //------------------------------------------------------------------------------
@@ -144,6 +200,7 @@ static uint8_t _oid_password[32];
 static bool _oid_password_set;
 
 static uint8_t _oid_counter_password_buf[8];
+static uint8_t _oid_counter_hmac_writeprotected_buf[8];
 
 static bool _authorized_password;
 static bool _authorized_password_secret;
@@ -161,6 +218,8 @@ static uint32_t _get_counter(uint16_t oid)
     switch (oid) {
     case OID_COUNTER_PASSWORD:
         return optiga_common_get_uint32(&_oid_counter_password_buf[0]);
+    case OID_COUNTER_HMAC_WRITEPROTECTED:
+        return optiga_common_get_uint32(&_oid_counter_hmac_writeprotected_buf[0]);
     default:
         fail();
         return 0;
@@ -172,6 +231,8 @@ static uint32_t _get_threshold(uint16_t oid)
     switch (oid) {
     case OID_COUNTER_PASSWORD:
         return optiga_common_get_uint32(&_oid_counter_password_buf[4]);
+    case OID_COUNTER_HMAC_WRITEPROTECTED:
+        return optiga_common_get_uint32(&_oid_counter_hmac_writeprotected_buf[4]);
     default:
         fail();
         return 0;
@@ -367,6 +428,36 @@ optiga_lib_status_t optiga_ops_util_write_data_sync(
         memcpy(_oid_counter_password_buf, buffer, sizeof(_oid_counter_password_buf));
         return OPTIGA_UTIL_SUCCESS;
     }
+    if (optiga_oid == OID_HMAC) {
+        if (length != 32) {
+            return OPTIGA_UTIL_ERROR_INVALID_INPUT;
+        }
+        assert_memory_equal(buffer, _kdf_hmac_key_fixed, 32);
+        return OPTIGA_UTIL_SUCCESS;
+    }
+    if (optiga_oid == OID_HMAC_WRITEPROTECTED) {
+        if (!_authorized_password) {
+            return OPTIGA_UTIL_ERROR;
+        }
+        if (length != 32) {
+            return OPTIGA_UTIL_ERROR_INVALID_INPUT;
+        }
+        assert_memory_equal(buffer, _kdf_hmac_writeprotected_key_fixed, 32);
+        return OPTIGA_UTIL_SUCCESS;
+    }
+    if (optiga_oid == OID_COUNTER_HMAC_WRITEPROTECTED) {
+        if (!_authorized_password) {
+            return OPTIGA_UTIL_ERROR;
+        }
+        if (length != sizeof(_oid_counter_hmac_writeprotected_buf)) {
+            return OPTIGA_UTIL_ERROR_INVALID_INPUT;
+        }
+        memcpy(
+            _oid_counter_hmac_writeprotected_buf,
+            buffer,
+            sizeof(_oid_counter_hmac_writeprotected_buf));
+        return OPTIGA_UTIL_SUCCESS;
+    }
     // Accept other writes without emulating full semantics (counter reset, hmac key, etc.).
     (void)buffer;
     (void)length;
@@ -469,8 +560,10 @@ optiga_lib_status_t optiga_ops_crypt_symmetric_generate_key_sync(
     (void)key_type;
     (void)key_usage;
     (void)export_symmetric_key;
-    (void)symmetric_key;
-    return OPTIGA_CRYPT_ERROR;
+    assert_int_equal(*(optiga_key_id_t*)symmetric_key, OID_AES_SYMKEY);
+
+    // We keep using the fixed cmac key in the tests.
+    return OPTIGA_CRYPT_SUCCESS;
 }
 
 optiga_lib_status_t optiga_ops_crypt_random_sync(
@@ -532,12 +625,32 @@ optiga_lib_status_t optiga_ops_crypt_hmac_sync(
 {
     (void)me;
     (void)type;
-    assert_int_equal(secret, OID_HMAC);
+    const uint8_t* key;
+    switch (secret) {
+    case OID_HMAC:
+        key = _kdf_hmac_key_fixed;
+        break;
+    case OID_HMAC_WRITEPROTECTED:
+        key = _kdf_hmac_writeprotected_key_fixed;
+
+        // Emulate the small monotonic counter that is attached to using the hmac_writeprotected
+        // slot. Stored as {counter_be_u32, threshold_be_u32}.
+        uint32_t counter = _get_counter(OID_COUNTER_HMAC_WRITEPROTECTED);
+        uint32_t threshold = _get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED);
+        if (counter >= threshold) {
+            return 0x802F;
+        }
+        counter++;
+        optiga_common_set_uint32(&_oid_counter_hmac_writeprotected_buf[0], counter);
+        break;
+    default:
+        fail_msg("unexpected slot id");
+        return OPTIGA_CRYPT_ERROR;
+    }
     if (*mac_length < 32) {
         return OPTIGA_CRYPT_ERROR_MEMORY_INSUFFICIENT;
     }
-    rust_hmac_sha256(
-        _kdf_hmac_key_fixed, sizeof(_kdf_hmac_key_fixed), input_data, input_data_length, mac);
+    rust_hmac_sha256(key, 32, input_data, input_data_length, mac);
     *mac_length = 32;
     return OPTIGA_CRYPT_SUCCESS;
 }
@@ -651,11 +764,132 @@ static void test_optiga_stretch_password_v0_attempt_counter(void** state)
         optiga_common_get_uint32(&_oid_counter_password_buf[0]), SMALL_MONOTONIC_COUNTER_MAX_USE);
 }
 
+// Test that after initializing a new password, exhausting all allowed attempts locks means a
+// correct password fails as well.
+// Attempts after init are special because the PASSWORD_COUNTER init/threshold are offset by 1.
+static void test_optiga_password_v1_stretch_exhaust_fails_after_init(void** state)
+{
+    (void)state;
+    _reset_fakes();
+    assert_int_equal(optiga_setup(&_ifs), 0);
+
+    uint8_t stretched[32] = {0};
+    assert_int_equal(optiga_init_new_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
+    assert_memory_equal(stretched, _expected_stretched_out_v1, sizeof(_expected_stretched_out_v1));
+
+    // Counter & threshold of password counter. After init, it is at 1, but the threshold is
+    // increased by 1, so the number of attempts is still 10.
+    assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 1);
+    assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE + 1);
+    // Counter & threshold of hmac_writeprotected counter.
+    assert_int_equal(_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
+    assert_int_equal(
+        _get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED), SMALL_MONOTONIC_COUNTER_MAX_USE);
+
+    // Exhaust all attempts.
+    for (int i = 1; i <= SMALL_MONOTONIC_COUNTER_MAX_USE; i++) {
+        assert_int_equal(
+            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+            SC_ERR_INCORRECT_PASSWORD);
+
+        // Counter & threshold of password counter.
+        assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 1 + i);
+        assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE + 1);
+        // Counter & threshold of hmac_writeprotected counter.
+        assert_int_equal(_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
+        assert_int_equal(
+            _get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED), SMALL_MONOTONIC_COUNTER_MAX_USE);
+    }
+
+    // Even a correct password doesn't work.
+    memset(stretched, 0x00, sizeof(stretched));
+    assert_int_equal(
+        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+        SC_ERR_INCORRECT_PASSWORD);
+    uint8_t zero[32] = {0};
+    assert_memory_equal(stretched, zero, sizeof(stretched));
+}
+
+// Test that after initializing a new password, one can make a few failed stretch attempts, and that
+// doing a correct attempt resets the counters.
+static void test_optiga_password_v1(void** state)
+{
+    (void)state;
+    _reset_fakes();
+    assert_int_equal(optiga_setup(&_ifs), 0);
+
+    uint8_t stretched[32] = {0};
+    assert_int_equal(optiga_init_new_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
+    assert_memory_equal(stretched, _expected_stretched_out_v1, sizeof(_expected_stretched_out_v1));
+
+    // Counter & threshold of password counter. After init, it is at 1, but the threshold is
+    // increased by 1, so the number of attempts is still 10.
+    assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 1);
+    assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE + 1);
+    // Counter & threshold of hmac_writeprotected counter.
+    assert_int_equal(_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
+    assert_int_equal(
+        _get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED), SMALL_MONOTONIC_COUNTER_MAX_USE);
+
+    // A few failed attempts:
+    for (int i = 1; i <= 2; i++) {
+        assert_int_equal(
+            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+            SC_ERR_INCORRECT_PASSWORD);
+
+        // Counter & threshold of password counter.
+        assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 1 + i);
+        assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE + 1);
+        // Counter & threshold of hmac_writeprotected counter.
+        assert_int_equal(_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
+        assert_int_equal(
+            _get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED), SMALL_MONOTONIC_COUNTER_MAX_USE);
+    }
+
+    // Correct attempt gets the right stretched value and resets counters.
+    memset(stretched, 0x00, sizeof(stretched));
+    assert_int_equal(optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
+    assert_memory_equal(stretched, _expected_stretched_out_v1, sizeof(_expected_stretched_out_v1));
+    // Counter & threshold of password counter.
+    assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 0);
+    assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
+    // Counter & threshold of hmac_writeprotected counter.
+    assert_int_equal(_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
+    assert_int_equal(
+        _get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED), SMALL_MONOTONIC_COUNTER_MAX_USE);
+
+    // Exhaust all attempts. The PASSWORD_COUNTER during this is different to above as the
+    // counter/threshold was reset to 0/MAX after the correct stretch attempt.
+    for (int i = 1; i <= SMALL_MONOTONIC_COUNTER_MAX_USE; i++) {
+        assert_int_equal(
+            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+            SC_ERR_INCORRECT_PASSWORD);
+
+        // Counter & threshold of password counter.
+        assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), i);
+        assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
+        // Counter & threshold of hmac_writeprotected counter.
+        assert_int_equal(_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
+        assert_int_equal(
+            _get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED), SMALL_MONOTONIC_COUNTER_MAX_USE);
+    }
+
+    // Even a correct password doesn't work anymore.
+    memset(stretched, 0x00, sizeof(stretched));
+    assert_int_equal(
+        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+        SC_ERR_INCORRECT_PASSWORD);
+    uint8_t zero[32] = {0};
+    assert_memory_equal(stretched, zero, sizeof(stretched));
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_optiga_stretch_password_v0_success),
         cmocka_unit_test(test_optiga_stretch_password_v0_attempt_counter),
+        cmocka_unit_test(test_optiga_password_v1_stretch_exhaust_fails_after_init),
+        cmocka_unit_test(test_optiga_password_v1),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

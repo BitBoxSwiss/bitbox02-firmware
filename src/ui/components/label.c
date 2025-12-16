@@ -34,9 +34,14 @@ typedef struct {
     bool slider_is_touched;
     bool slider_was_touched;
     uint16_t slider_position;
-    float slider_position_diff;
+    // float slider_position_diff;
     int16_t text_position;
-    int16_t text_position_last;
+    int16_t text_position_acc;
+    // int16_t text_render_counter;
+    //  int16_t text_position_last;
+    // int16_t text_inertia;
+    int16_t text_velocity;
+    uint16_t text_velocity_counter;
     uint8_t xoffset;
     uint8_t yoffset;
 } data_t;
@@ -96,15 +101,42 @@ static void _render(component_t* component)
     data_t* data = (data_t*)component->data;
     // Slider indicators
     if (data->scrollable) {
-        int x = data->slider_position * (SCREEN_WIDTH - 1) / MAX_SLIDER_POS;
+        int x = data->slider_position / 2;
         int y = SCREEN_HEIGHT - 1;
         if (!data->slider_was_touched) {
-            data->text_position = component->dimension.width / 2 + SCREEN_WIDTH * 1 / 6;
-            data->text_position_last = data->text_position;
+            data->text_position = component->dimension.width / 2 + SCREEN_WIDTH / 6;
+            // data->text_position_last = data->text_position;
             ui_util_component_render_subcomponents(component);
         } else if (data->slider_is_touched) {
             UG_DrawLine(MIN(SCREEN_WIDTH, x + 3), y, MAX(0, x - 3), y, screen_front_color);
         }
+        // The input sensor has twice the resolution of the screen
+        // text_position_acc is used to accumulate movement until there is enough to trigger a
+        // repositioning of the text
+        if (abs(data->text_position_acc) > 1) {
+            data->text_position += data->text_position_acc / 2;
+            data->text_position_acc = 0;
+        }
+
+        if (!data->slider_is_touched) {
+            if (data->text_velocity != 0) {
+                data->text_position_acc += data->text_velocity / 10;
+                if (data->text_velocity > 0) {
+                    data->text_velocity = MAX(data->text_velocity - 3, 0);
+                } else {
+                    data->text_velocity = MIN(data->text_velocity + 3, 0);
+                }
+                // data->text_velocity_counter++;
+            } else {
+                // data->text_render_counter = 0;
+                // data->text_velocity_counter = 0;
+            }
+        }
+        // Stop label from moving out of screen
+        int16_t margin = SCREEN_WIDTH / 5;
+        data->text_position =
+            MIN(component->dimension.width / 2 + margin,
+                MAX(-margin - component->dimension.width / 2 + SCREEN_WIDTH, data->text_position));
     }
     // Label
     UG_FontSetVSpace(2);
@@ -144,21 +176,20 @@ static void _on_event(const event_t* event, component_t* component)
     if (data->scrollable) {
         switch (event->id) {
         case EVENT_SLIDE: {
-            // Variable scroll speed
-            int16_t margin = SCREEN_WIDTH / 5;
-            data->slider_position_diff += SIGMOID(event->data.velocity);
-            data->text_position = data->text_position_last + (int16_t)data->slider_position_diff;
-            data->text_position = MIN(
-                component->dimension.width / 2 + margin,
-                MAX(-margin - component->dimension.width / 2 + SCREEN_WIDTH, data->text_position));
-            data->slider_position = event->data.position;
+            if (event->data.position != data->slider_position) {
+                int16_t movement = event->data.position - data->slider_position;
+                data->slider_position = event->data.position;
+                data->text_position_acc += movement;
+                data->text_velocity = event->data.velocity;
+                // data->text_inertia = movement * 5;
+            }
             data->slider_is_touched = true;
             data->slider_was_touched = true;
             break;
         }
         case EVENT_SLIDE_RELEASED:
-            data->text_position_last = data->text_position;
-            data->slider_position_diff = 0;
+            // data->text_position_last = data->text_position;
+            // data->slider_position_diff = 0;
             data->slider_is_touched = false;
             break;
 

@@ -223,7 +223,7 @@ typedef struct {
 #define DEF_SCROLLER_UNTOUCH_THRESHOLD 20 // Scroller active threshold
 #define DEF_SCROLLER_DEADBAND \
     10 // everything below deadband is locked to 0 and above max-deadband is locked to max
-#define DEF_SCROLLER_HYSTERESIS 16 // Position needs to move at least this much
+#define DEF_SCROLLER_HYSTERESIS 12 // Position needs to move at least this much
 #define DEF_SCROLLER_TOUCH_DRIFT_IN 2 // number of counts in touch before being active
 
 #ifdef __cplusplus

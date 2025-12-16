@@ -170,6 +170,7 @@ set(SECURECHIP-SOURCES
   ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal_os_lock.c
   ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal_os_timer.c
   ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal_os_memory.c
+  ${CMAKE_SOURCE_DIR}/src/optiga/optiga_ops.c
   ${CMAKE_SOURCE_DIR}/src/optiga/optiga.c
 )
 set(SECURECHIP-SOURCES ${SECURECHIP-SOURCES} PARENT_SCOPE)

@@ -14,11 +14,12 @@
 
 #include "optiga.h"
 
+#include "optiga_ops.h"
+
 #include "pal/pal_i2c.h"
 #include "pal/pal_os_datastore.h"
 #include "pal/pal_os_timer.h"
 
-#include <hal_delay.h>
 #include <hardfault.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <optiga_crypt.h>
@@ -48,51 +49,10 @@
 // indication of 600000 updates. See Solution Reference Manual Figure 32.
 #define MONOTONIC_COUNTER_MAX_USE (590000)
 
-// Number of times the password can be entered incorrectly before further password stretching fails.
-// The counter is reset when the correct password is entered.
-#define SMALL_MONOTONIC_COUNTER_MAX_USE (MAX_UNLOCK_ATTEMPTS)
-
 // Maximum size of metadata. See "Metadata Update Identifier":
 // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linka946a953_def2_41cf_850a_74fb7899fe11
 // Two extra bytes for the `0x20 <len>` header bytes.
 #define METADATA_MAX_SIZE (44 + 2)
-
-// The Data Object IDs we use.
-
-// Stores a shared secret used for a shielded connection. Is is used to encrypt
-// communications. Read/write disabled.
-#define OID_PLATFORM_BINDING 0xE140
-// CMAC key slot, read/write prohibited. Used to perform KDF using CMAC. Key is regenerated at
-// factory setup and with each device reset. Monotonic counter `OID_COUNTER` attached.
-#define OID_AES_SYMKEY 0xE200
-// HMAC key slot, read prohibited, write allowed. 32 random bytes are written to it at factory setup
-// and with each device reset.
-#define OID_HMAC 0xF1D0
-// Arbitrary data object, stores up to 140 bytes. Used to store the U2F counter.
-#define OID_ARBITRARY_DATA 0xF1D1
-// ECC slot used for creating the device attestation key and signing with it. Read/write
-// disabled. The Key is internally generated at factory setup and used to sign the device
-// attestation host challenge.
-#define OID_ATTESTATION 0xE0F1
-// Monotonic counter, initialized at 0 and attached to `OID_AES_SYMKEY` - every CMAC generation
-// increments the counter. When the threshold `MONOTONIC_COUNTER_MAX_USE` is reached, further CMAC
-// computations return an error.
-#define OID_COUNTER 0xE120
-
-// The three objects below (`OID_PASSWORD_SECRET`, `OID_PASSWORD`, `OID_COUNTER_PASSWORD`) deal with
-// implementing the small monotonic counter that limits the number of unlocks to a small number.
-
-// A random shared key which authorizes updating `OID_PASSWORD` and `OID_COUNTER_PASSWORD`.
-// It is also part of the password stretching.
-#define OID_PASSWORD_SECRET 0xF1D2
-// A hmac digest of the device password.
-// Authorizes reading `OID_PASSWORD`. Monotonic counter `OID_COUNTER_PASSWORD`  attached to
-// authorization, which limits the number of unlock attempts to a small number.
-#define OID_PASSWORD 0xF1D3
-// Monotonic counter with a small limit.  Every password stretch increments the counter. A correct
-// password resets the counter. When the threshold `SMALL_MONOTONIC_COUNTER_MAX_USE` is reached,
-// further password stretches return an error.
-#define OID_COUNTER_PASSWORD 0xE121
 
 // See Solution Reference Manual Table 79 "Data structure arbitrary data object".
 #define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
@@ -465,268 +425,13 @@ static const uint8_t _counter_password_metadata[] = {
 // Ints are encoded as uint32 big endian.
 static const uint8_t _counter_password_reset_buf[8] =
     {0, 0, 0, 0, 0, 0, 0, SMALL_MONOTONIC_COUNTER_MAX_USE};
-
-//
-// Sync wrappers around optiga util/crypt functions
-//
-
-// The OPTIGA library is asynchronous and will schedule a callback when the command is done. The
-// callback will set this shared variable to the result of the command.
-static volatile optiga_lib_status_t _optiga_lib_status;
-
-static void _optiga_lib_callback(void* callback_ctx, optiga_lib_status_t event)
-{
-    (void)callback_ctx;
-    _optiga_lib_status = event;
-}
-
-// Helper that is used in the main thread to busy wait for the callback to update the shared
-// variable.
-// It first checks the return status of the command, then busy waits, and then checks the
-// asynchronous return status.
-// Will return from caller if command failed.
-// `return_status` will be updated with the actual return status
-// Return statuses are documented in optiga_lib_return_codes.h
-#define _WAIT(return_status, optiga_lib_status)          \
-    do {                                                 \
-        if ((return_status) != OPTIGA_UTIL_SUCCESS) {    \
-            return (return_status);                      \
-        }                                                \
-        while (OPTIGA_LIB_BUSY == (optiga_lib_status)) { \
-        }                                                \
-        if (OPTIGA_LIB_SUCCESS != (optiga_lib_status)) { \
-            return (optiga_lib_status);                  \
-        }                                                \
-        (return_status) = (optiga_lib_status);           \
-    } while (0)
-
-static optiga_lib_status_t _optiga_util_read_data_sync(
-    optiga_util_t* me,
-    uint16_t optiga_oid,
-    uint16_t offset,
-    uint8_t* buffer,
-    uint16_t* length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_util_read_data(me, optiga_oid, offset, buffer, length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_util_write_data_sync(
-    optiga_util_t* me,
-    uint16_t optiga_oid,
-    uint8_t write_type,
-    uint16_t offset,
-    const uint8_t* buffer,
-    uint16_t length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res =
-        optiga_util_write_data(me, optiga_oid, write_type, offset, buffer, length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || VERIFY_METADATA == 1
-static optiga_lib_status_t _optiga_util_read_metadata_sync(
-    optiga_util_t* me,
-    uint16_t optiga_oid,
-    uint8_t* buffer,
-    uint16_t* length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_util_read_metadata(me, optiga_oid, buffer, length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-#endif
-
-#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
-static optiga_lib_status_t _optiga_util_write_metadata_sync(
-    optiga_util_t* me,
-    uint16_t optiga_oid,
-    const uint8_t* buffer,
-    uint8_t length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_util_write_metadata(me, optiga_oid, buffer, length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-#endif
-
-static optiga_lib_status_t _optiga_util_open_application_sync(
-    optiga_util_t* me,
-    bool_t perform_restore)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_util_open_application(me, perform_restore);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
-static optiga_lib_status_t _optiga_util_close_application_sync(
-    optiga_util_t* me,
-    bool_t perform_hibernate)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_util_close_application(me, perform_hibernate);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-#endif
-
-static optiga_lib_status_t _optiga_crypt_hmac_sync(
-    optiga_crypt_t* me,
-    optiga_hmac_type_t type,
-    uint16_t secret,
-    const uint8_t* input_data,
-    uint32_t input_data_length,
-    uint8_t* mac,
-    uint32_t* mac_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res =
-        optiga_crypt_hmac(me, type, secret, input_data, input_data_length, mac, mac_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_ecc_generate_keypair_sync(
-    optiga_crypt_t* me,
-    optiga_ecc_curve_t curve_id,
-    uint8_t key_usage,
-    bool_t export_private_key,
-    void* private_key,
-    uint8_t* public_key,
-    uint16_t* public_key_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_ecc_generate_keypair(
-        me, curve_id, key_usage, export_private_key, private_key, public_key, public_key_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_ecdsa_sign_sync(
-    optiga_crypt_t* me,
-    const uint8_t* digest,
-    uint8_t digest_length,
-    optiga_key_id_t private_key,
-    uint8_t* signature,
-    uint16_t* signature_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_ecdsa_sign(
-        me, digest, digest_length, private_key, signature, signature_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_symmetric_encrypt_sync(
-    optiga_crypt_t* me,
-    optiga_symmetric_encryption_mode_t encryption_mode,
-    optiga_key_id_t symmetric_key_oid,
-    const uint8_t* plain_data,
-    uint32_t plain_data_length,
-    const uint8_t* iv,
-    uint16_t iv_length,
-    const uint8_t* associated_data,
-    uint16_t associated_data_length,
-    uint8_t* encrypted_data,
-    uint32_t* encrypted_data_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_symmetric_encrypt(
-        me,
-        encryption_mode,
-        symmetric_key_oid,
-        plain_data,
-        plain_data_length,
-        iv,
-        iv_length,
-        associated_data,
-        associated_data_length,
-        encrypted_data,
-        encrypted_data_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_random_sync(
-    optiga_crypt_t* me,
-    optiga_rng_type_t rng_type,
-    uint8_t* random_data,
-    uint16_t random_data_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_random(me, rng_type, random_data, random_data_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_symmetric_generate_key_sync(
-    optiga_crypt_t* me,
-    optiga_symmetric_key_type_t key_type,
-    uint8_t key_usage,
-    bool_t export_symmetric_key,
-    void* symmetric_key)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_symmetric_generate_key(
-        me, key_type, key_usage, export_symmetric_key, symmetric_key);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_generate_auth_code_sync(
-    optiga_crypt_t* me,
-    optiga_rng_type_t rng_type,
-    const uint8_t* optional_data,
-    uint16_t optional_data_length,
-    uint8_t* random_data,
-    uint16_t random_data_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_generate_auth_code(
-        me, rng_type, optional_data, optional_data_length, random_data, random_data_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_clear_auto_state_sync(optiga_crypt_t* me, uint16_t secret)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_clear_auto_state(me, secret);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
-static optiga_lib_status_t _optiga_crypt_hmac_verify_sync(
-    optiga_crypt_t* me,
-    optiga_hmac_type_t type,
-    uint16_t secret,
-    const uint8_t* input_data,
-    uint32_t input_data_length,
-    const uint8_t* hmac,
-    uint32_t hmac_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_hmac_verify(
-        me, type, secret, input_data, input_data_length, hmac, hmac_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
 static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth_secret_len)
 {
     optiga_lib_status_t res;
 
     uint8_t random_data[32] = {0};
 
-    res = _optiga_crypt_generate_auth_code_sync(
+    res = optiga_ops_crypt_generate_auth_code_sync(
         _crypt, OPTIGA_RNG_TYPE_TRNG, NULL, 0, random_data, sizeof(random_data));
     if (res != OPTIGA_CRYPT_SUCCESS) {
         util_log("generate auth code failed: %x", res);
@@ -735,7 +440,7 @@ static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth
 
     uint8_t hmac[32] = {0};
     rust_hmac_sha256(auth_secret, auth_secret_len, random_data, sizeof(random_data), hmac);
-    res = _optiga_crypt_hmac_verify_sync(
+    res = optiga_ops_crypt_hmac_verify_sync(
         _crypt,
         OPTIGA_HMAC_SHA_256,
         oid_auth,
@@ -756,7 +461,7 @@ static bool _read_arbitrary_data(arbitrary_data_t* data_out)
     memset(data_out->bytes, 0x00, sizeof(data_out->bytes));
     uint16_t len = sizeof(data_out->bytes);
     optiga_lib_status_t res =
-        _optiga_util_read_data_sync(_util, OID_ARBITRARY_DATA, 0, data_out->bytes, &len);
+        optiga_ops_util_read_data_sync(_util, OID_ARBITRARY_DATA, 0, data_out->bytes, &len);
     if (res != OPTIGA_UTIL_SUCCESS) {
         util_log("could not read arbitrary data: %x", res);
         return false;
@@ -776,7 +481,7 @@ static bool _read_arbitrary_data(arbitrary_data_t* data_out)
 #if APP_U2F == 1 || FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 static int _write_arbitrary_data(const arbitrary_data_t* data)
 {
-    optiga_lib_status_t res = _optiga_util_write_data_sync(
+    optiga_lib_status_t res = optiga_ops_util_write_data_sync(
         _util,
         OID_ARBITRARY_DATA,
         OPTIGA_UTIL_ERASE_AND_WRITE,
@@ -873,7 +578,7 @@ static int _read_lcso_of_object(uint16_t optiga_oid, uint8_t* lcso_out, bool unp
         OPTIGA_UTIL_SET_COMMS_PROTECTION_LEVEL(_util, OPTIGA_COMMS_NO_PROTECTION);
     }
     optiga_lib_status_t res =
-        _optiga_util_read_metadata_sync(_util, optiga_oid, metadata, &metadata_size);
+        optiga_ops_util_read_metadata_sync(_util, optiga_oid, metadata, &metadata_size);
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("fail: read binding secret metadata: %x", res);
         return res;
@@ -920,7 +625,7 @@ static int _setup_shielded_communication(void)
     // slot. Shielded communication is disabled as it is not set up yet and not required for
     // updating the platform binding object.
     OPTIGA_UTIL_SET_COMMS_PROTECTION_LEVEL(_util, OPTIGA_COMMS_NO_PROTECTION);
-    res = _optiga_util_write_data_sync(
+    res = optiga_ops_util_write_data_sync(
         _util,
         oid,
         OPTIGA_UTIL_ERASE_AND_WRITE,
@@ -935,7 +640,7 @@ static int _setup_shielded_communication(void)
     // Shielded communication is disabled as it is not set up yet and not required for updating the
     // platform binding object.
     OPTIGA_UTIL_SET_COMMS_PROTECTION_LEVEL(_util, OPTIGA_COMMS_NO_PROTECTION);
-    res = _optiga_util_write_metadata_sync(
+    res = optiga_ops_util_write_metadata_sync(
         _util, oid, _platform_binding_metadata, sizeof(_platform_binding_metadata));
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("fail: write metadata of platform binding: %x", res);
@@ -959,7 +664,7 @@ static int _configure_object_aes_symkey(void)
         return 0;
     }
     util_log("_configure_object_aes_symkey: setting up");
-    return _optiga_util_write_metadata_sync(
+    return optiga_ops_util_write_metadata_sync(
         _util, oid, _aes_symkey_metadata, sizeof(_aes_symkey_metadata));
 }
 
@@ -977,7 +682,7 @@ static int _configure_object_hmac(void)
         return 0;
     }
     util_log("_configure_object_hmac: setting up");
-    return _optiga_util_write_metadata_sync(_util, oid, _hmac_metadata, sizeof(_hmac_metadata));
+    return optiga_ops_util_write_metadata_sync(_util, oid, _hmac_metadata, sizeof(_hmac_metadata));
 }
 
 static int _configure_object_arbitrary_data(void)
@@ -995,7 +700,7 @@ static int _configure_object_arbitrary_data(void)
     }
     util_log("_configure_object_arbitrary_data: setting up");
 
-    res = _optiga_util_write_metadata_sync(
+    res = optiga_ops_util_write_metadata_sync(
         _util, oid, _arbitrary_data_metadata, sizeof(_arbitrary_data_metadata));
     if (res != OPTIGA_LIB_SUCCESS) {
         return res;
@@ -1034,13 +739,13 @@ static int _configure_object_counter(void)
     // Ints are encoded as uint32 big endian.
     uint8_t counter_buf[8] = {0};
     optiga_common_set_uint32(&counter_buf[4], MONOTONIC_COUNTER_MAX_USE);
-    res = _optiga_util_write_data_sync(
+    res = optiga_ops_util_write_data_sync(
         _util, oid, OPTIGA_UTIL_ERASE_AND_WRITE, 0, counter_buf, sizeof(counter_buf));
     if (res != OPTIGA_LIB_SUCCESS) {
         return res;
     }
 
-    return _optiga_util_write_metadata_sync(
+    return optiga_ops_util_write_metadata_sync(
         _util, oid, _counter_metadata, sizeof(_counter_metadata));
 }
 
@@ -1059,7 +764,7 @@ static int _configure_object_attestation(void)
     }
     util_log("_configure_attestation: setting up");
 
-    return _optiga_util_write_metadata_sync(
+    return optiga_ops_util_write_metadata_sync(
         _util, oid, _attestation_metadata, sizeof(_attestation_metadata));
 }
 
@@ -1077,7 +782,7 @@ static int _configure_object_password_secret(void)
         return 0;
     }
     util_log("_configure_object_password_secret: setting up");
-    return _optiga_util_write_metadata_sync(
+    return optiga_ops_util_write_metadata_sync(
         _util, oid, _password_secret_metadata, sizeof(_password_secret_metadata));
 }
 
@@ -1095,7 +800,7 @@ static int _configure_object_password(void)
         return 0;
     }
     util_log("_configure_object_password: setting up");
-    return _optiga_util_write_metadata_sync(
+    return optiga_ops_util_write_metadata_sync(
         _util, oid, _password_metadata, sizeof(_password_metadata));
 }
 
@@ -1114,7 +819,7 @@ static int _configure_object_counter_password(void)
     }
     util_log("_configure_object_counter_password: setting up");
 
-    return _optiga_util_write_metadata_sync(
+    return optiga_ops_util_write_metadata_sync(
         _util, oid, _counter_password_metadata, sizeof(_counter_password_metadata));
 }
 
@@ -1176,16 +881,9 @@ static int _factory_setup(void)
 {
     optiga_lib_status_t res;
 
-    _util = optiga_util_create(OPTIGA_INSTANCE_ID_0, _optiga_lib_callback, NULL);
-    if (NULL == _util) {
-        util_log("couldn't create optiga util");
-        return SC_OPTIGA_ERR_CREATE;
-    }
-
-    _crypt = optiga_crypt_create(OPTIGA_INSTANCE_ID_0, _optiga_lib_callback, NULL);
-    if (NULL == _crypt) {
-        util_log("couldn't create optiga crypt");
-        return SC_OPTIGA_ERR_CREATE;
+    res = optiga_ops_create(&_util, &_crypt);
+    if (res) {
+        return res;
     }
 
     OPTIGA_UTIL_SET_COMMS_PROTOCOL_VERSION(_util, OPTIGA_COMMS_PROTOCOL_VERSION_PRE_SHARED_SECRET);
@@ -1193,7 +891,7 @@ static int _factory_setup(void)
         _crypt, OPTIGA_COMMS_PROTOCOL_VERSION_PRE_SHARED_SECRET);
 
     OPTIGA_UTIL_SET_COMMS_PROTECTION_LEVEL(_util, OPTIGA_COMMS_NO_PROTECTION);
-    res = _optiga_util_open_application_sync(_util, 0);
+    res = optiga_ops_util_open_application_sync(_util, 0);
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("failed to open util application: %x", res);
         return res;
@@ -1204,7 +902,7 @@ static int _factory_setup(void)
         return res;
     }
 
-    res = _optiga_util_close_application_sync(_util, 0);
+    res = optiga_ops_util_close_application_sync(_util, 0);
     if (res != OPTIGA_LIB_SUCCESS) {
         return res;
     }
@@ -1235,7 +933,7 @@ static int _verify_metadata(
     uint16_t actual_metadata_len = sizeof(actual_metadata);
 
     optiga_lib_status_t res =
-        _optiga_util_read_metadata_sync(_util, oid, actual_metadata, &actual_metadata_len);
+        optiga_ops_util_read_metadata_sync(_util, oid, actual_metadata, &actual_metadata_len);
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("fail: read binding secret metadata: %x", res);
         return res;
@@ -1282,13 +980,13 @@ static int _set_password(
         goto cleanup;
     }
 
-    res = _optiga_util_write_data_sync(
+    res = optiga_ops_util_write_data_sync(
         _util, OID_PASSWORD, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, data, data_len);
     if (res != OPTIGA_UTIL_SUCCESS) {
         goto cleanup;
     }
 
-    res = _optiga_util_write_data_sync(
+    res = optiga_ops_util_write_data_sync(
         _util,
         OID_COUNTER_PASSWORD,
         OPTIGA_UTIL_ERASE_AND_WRITE,
@@ -1301,7 +999,7 @@ static int _set_password(
 
 cleanup: {
     optiga_lib_status_t res_clear =
-        _optiga_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
+        optiga_ops_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
     if (res != OPTIGA_UTIL_SUCCESS) {
         return res;
     }
@@ -1314,7 +1012,7 @@ int optiga_init_new_password(const char* password)
     // Set new hmac key.
     uint8_t new_hmac_key[32] = {0};
     _ifs->random_32_bytes(new_hmac_key);
-    optiga_lib_status_t res = _optiga_util_write_data_sync(
+    optiga_lib_status_t res = optiga_ops_util_write_data_sync(
         _util, OID_HMAC, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, new_hmac_key, sizeof(new_hmac_key));
     if (res != OPTIGA_UTIL_SUCCESS) {
         util_log("failed updating the hmac key: %x", res);
@@ -1323,7 +1021,7 @@ int optiga_init_new_password(const char* password)
 
     // Set new symmetric key.
     optiga_key_id_t keyid = OPTIGA_KEY_ID_SECRET_BASED;
-    res = _optiga_crypt_symmetric_generate_key_sync(
+    res = optiga_ops_crypt_symmetric_generate_key_sync(
         _crypt, OPTIGA_SYMMETRIC_AES_256, OPTIGA_KEY_USAGE_ENCRYPTION, false, &keyid);
     if (res != OPTIGA_UTIL_SUCCESS) {
         util_log("failed updating the sym key: %x", res);
@@ -1333,7 +1031,7 @@ int optiga_init_new_password(const char* password)
     uint8_t password_secret[32] = {0};
     _ifs->random_32_bytes(password_secret);
 
-    res = _optiga_util_write_data_sync(
+    res = optiga_ops_util_write_data_sync(
         _util,
         OID_PASSWORD_SECRET,
         OPTIGA_UTIL_ERASE_AND_WRITE,
@@ -1393,7 +1091,7 @@ static int _optiga_verify_password(const char* password, uint8_t* password_secre
     }
 
     uint16_t password_secret_size = 32;
-    res = _optiga_util_read_data_sync(
+    res = optiga_ops_util_read_data_sync(
         _util, OID_PASSWORD_SECRET, 0, password_secret_out, &password_secret_size);
     if (res != OPTIGA_LIB_SUCCESS) {
         goto cleanup;
@@ -1408,7 +1106,7 @@ static int _optiga_verify_password(const char* password, uint8_t* password_secre
         goto cleanup;
     }
 
-    res = _optiga_util_write_data_sync(
+    res = optiga_ops_util_write_data_sync(
         _util,
         OID_COUNTER_PASSWORD,
         OPTIGA_UTIL_ERASE_AND_WRITE,
@@ -1420,9 +1118,9 @@ static int _optiga_verify_password(const char* password, uint8_t* password_secre
     }
 
 cleanup: {
-    optiga_lib_status_t res_clear1 = _optiga_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD);
+    optiga_lib_status_t res_clear1 = optiga_ops_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD);
     optiga_lib_status_t res_clear2 =
-        _optiga_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
+        optiga_ops_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
     if (res != OPTIGA_UTIL_SUCCESS) {
         return res;
     }
@@ -1579,14 +1277,9 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
     }
 #endif
 
-    _util = optiga_util_create(OPTIGA_INSTANCE_ID_0, _optiga_lib_callback, NULL);
-    if (NULL == _util) {
-        return SC_OPTIGA_ERR_CREATE;
-    }
-
-    _crypt = optiga_crypt_create(OPTIGA_INSTANCE_ID_0, _optiga_lib_callback, NULL);
-    if (NULL == _crypt) {
-        return SC_OPTIGA_ERR_CREATE;
+    res = optiga_ops_create(&_util, &_crypt);
+    if (res) {
+        return res;
     }
 
     OPTIGA_UTIL_SET_COMMS_PROTOCOL_VERSION(_util, OPTIGA_COMMS_PROTOCOL_VERSION_PRE_SHARED_SECRET);
@@ -1603,7 +1296,7 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
         return SC_ERR_CONFIG_MISMATCH;
     }
 
-    res = _optiga_util_open_application_sync(_util, 0);
+    res = optiga_ops_util_open_application_sync(_util, 0);
     if (res) {
         return res;
     }
@@ -1629,7 +1322,7 @@ int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
 
     uint32_t mac_out_len = 32;
 
-    res = _optiga_crypt_hmac_sync(
+    res = optiga_ops_crypt_hmac_sync(
         _crypt, OPTIGA_HMAC_SHA_256, OID_HMAC, msg, len, mac_out, &mac_out_len);
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("kdf fail err=%x", res);
@@ -1652,7 +1345,7 @@ static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     uint8_t mac_out[16] = {0};
     uint32_t mac_out_len = sizeof(mac_out);
 
-    res = _optiga_crypt_symmetric_encrypt_sync(
+    res = optiga_ops_crypt_symmetric_encrypt_sync(
         _crypt,
         OPTIGA_SYMMETRIC_CMAC,
         OID_AES_SYMKEY,
@@ -1734,7 +1427,7 @@ bool optiga_gen_attestation_key(uint8_t* pubkey_out)
     optiga_key_id_t slot = OPTIGA_KEY_ID_E0F1;
     uint8_t pubkey_der[68] = {0};
     uint16_t pubkey_der_size = sizeof(pubkey_der);
-    optiga_lib_status_t res = _optiga_crypt_ecc_generate_keypair_sync(
+    optiga_lib_status_t res = optiga_ops_crypt_ecc_generate_keypair_sync(
         _crypt,
         OPTIGA_ECC_CURVE_NIST_P_256,
         OPTIGA_KEY_USAGE_SIGN,
@@ -1760,7 +1453,7 @@ bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out)
 {
     uint8_t sig_der[70] = {0};
     uint16_t sig_der_size = sizeof(sig_der);
-    optiga_lib_status_t res = _optiga_crypt_ecdsa_sign_sync(
+    optiga_lib_status_t res = optiga_ops_crypt_ecdsa_sign_sync(
         _crypt, challenge, 32, OPTIGA_KEY_ID_E0F1, sig_der, &sig_der_size);
     if (res != OPTIGA_CRYPT_SUCCESS) {
         util_log("sign failed: %x", res);
@@ -1777,7 +1470,7 @@ bool optiga_monotonic_increments_remaining(uint32_t* remaining_out)
 {
     uint8_t buf[4] = {0};
     uint16_t size = sizeof(buf);
-    optiga_lib_status_t res = _optiga_util_read_data_sync(_util, OID_COUNTER, 0, buf, &size);
+    optiga_lib_status_t res = optiga_ops_util_read_data_sync(_util, OID_COUNTER, 0, buf, &size);
     if (res != OPTIGA_LIB_SUCCESS) {
         return false;
     }
@@ -1793,7 +1486,8 @@ bool optiga_monotonic_increments_remaining(uint32_t* remaining_out)
 // rand_out must be 32 bytes
 bool optiga_random(uint8_t* rand_out)
 {
-    optiga_lib_status_t res = _optiga_crypt_random_sync(_crypt, OPTIGA_RNG_TYPE_TRNG, rand_out, 32);
+    optiga_lib_status_t res =
+        optiga_ops_crypt_random_sync(_crypt, OPTIGA_RNG_TYPE_TRNG, rand_out, 32);
     if (res != OPTIGA_CRYPT_SUCCESS) {
         util_log("optiga_random failed: %x", res);
         return false;

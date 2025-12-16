@@ -18,7 +18,6 @@
 #include "pal/pal_os_datastore.h"
 #include "pal/pal_os_timer.h"
 
-#include <hal_delay.h>
 #include <hardfault.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <optiga_crypt.h>

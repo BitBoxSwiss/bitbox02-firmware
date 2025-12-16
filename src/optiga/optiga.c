@@ -1433,30 +1433,11 @@ cleanup: {
 }
 }
 
-static int _verify_config(void)
+#if VERIFY_METADATA == 1
+static int _verify_metadata_config(void)
 {
     int res;
 
-    OPTIGA_UTIL_SET_COMMS_PROTOCOL_VERSION(_util, OPTIGA_COMMS_PROTOCOL_VERSION_PRE_SHARED_SECRET);
-    OPTIGA_CRYPT_SET_COMMS_PROTOCOL_VERSION(
-        _crypt, OPTIGA_COMMS_PROTOCOL_VERSION_PRE_SHARED_SECRET);
-
-    // Verify shielded connection is active.
-    if (_crypt->protection_level != OPTIGA_COMMS_FULL_PROTECTION) {
-        util_log("crypt protection level expected to be FULL");
-        return SC_ERR_CONFIG_MISMATCH;
-    }
-    if (_util->protection_level != OPTIGA_COMMS_FULL_PROTECTION) {
-        util_log("util protection level expected to be FULL");
-        return SC_ERR_CONFIG_MISMATCH;
-    }
-
-    res = _optiga_util_open_application_sync(_util, 0);
-    if (res) {
-        return res;
-    }
-
-#if VERIFY_METADATA == 1
     // Verify metadata tags are setup as expected.
     {
         const uint8_t check_tags[] = {0xC0, 0xD0, 0xD1, 0xD3, 0xE8};
@@ -1571,9 +1552,9 @@ static int _verify_config(void)
             return res;
         }
     }
-#endif
     return 0;
 }
+#endif
 
 int optiga_setup(const securechip_interface_functions_t* ifs)
 {
@@ -1588,8 +1569,10 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
     // event loop
     pal_timer_init();
 
+    int res;
+
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
-    int res = _factory_setup();
+    res = _factory_setup();
     if (res) {
         util_log("factory setup failed");
         return res;
@@ -1606,7 +1589,33 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
         return SC_OPTIGA_ERR_CREATE;
     }
 
-    return _verify_config();
+    OPTIGA_UTIL_SET_COMMS_PROTOCOL_VERSION(_util, OPTIGA_COMMS_PROTOCOL_VERSION_PRE_SHARED_SECRET);
+    OPTIGA_CRYPT_SET_COMMS_PROTOCOL_VERSION(
+        _crypt, OPTIGA_COMMS_PROTOCOL_VERSION_PRE_SHARED_SECRET);
+
+    // Verify shielded connection is active.
+    if (_crypt->protection_level != OPTIGA_COMMS_FULL_PROTECTION) {
+        util_log("crypt protection level expected to be FULL");
+        return SC_ERR_CONFIG_MISMATCH;
+    }
+    if (_util->protection_level != OPTIGA_COMMS_FULL_PROTECTION) {
+        util_log("util protection level expected to be FULL");
+        return SC_ERR_CONFIG_MISMATCH;
+    }
+
+    res = _optiga_util_open_application_sync(_util, 0);
+    if (res) {
+        return res;
+    }
+
+#if VERIFY_METADATA == 1
+    res = _verify_metadata_config();
+    if (res) {
+        return res;
+    }
+#endif
+
+    return 0;
 }
 
 int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)

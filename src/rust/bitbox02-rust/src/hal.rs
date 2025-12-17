@@ -510,12 +510,20 @@ pub mod testing {
         fn init_new_password(
             &mut self,
             password: &str,
-            _password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
         ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
             self.event_counter += 3;
 
+            let key: &'static [u8] = match password_stretch_algo {
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
+                    b"unit-test-v0"
+                }
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
+                    b"unit-test"
+                }
+            };
             use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
-            let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
+            let mut engine = HmacEngine::<sha256::Hash>::new(key);
             engine.input(password.as_bytes());
             let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
             Ok(zeroize::Zeroizing::new(
@@ -533,8 +541,17 @@ pub mod testing {
                 bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => 4,
             };
 
+            let key: &'static [u8] = match password_stretch_algo {
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
+                    b"unit-test-v0"
+                }
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
+                    b"unit-test"
+                }
+            };
+
             use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
-            let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
+            let mut engine = HmacEngine::<sha256::Hash>::new(key);
             engine.input(password.as_bytes());
             let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
             Ok(zeroize::Zeroizing::new(

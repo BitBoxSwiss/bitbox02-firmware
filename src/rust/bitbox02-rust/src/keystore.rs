@@ -207,7 +207,7 @@ fn retain_bip39_seed(hal: &mut impl crate::hal::Hal, bip39_seed: &[u8]) -> Resul
 }
 
 /// Returns the stretching algo that will be used when setting new passwords.
-fn default_password_stretch_algo(
+pub fn default_password_stretch_algo(
     hal: &mut impl crate::hal::Hal,
 ) -> Result<bitbox02::memory::PasswordStretchAlgo, Error> {
     match hal
@@ -305,6 +305,26 @@ pub fn re_encrypt_seed(
     Ok(())
 }
 
+/// Re-encrypts the seed with the newest (default) password stretching algorithm if it is not
+/// already using it. The seed is retained after this function finishes, regardless of whether a
+/// migration was performed.
+fn migrate_password_algo_and_retain_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    password: &str,
+) -> Result<(), Error> {
+    let default_algo = default_password_stretch_algo(hal)?;
+    let (_, stored_algo) = hal
+        .memory()
+        .get_encrypted_seed_and_hmac()
+        .map_err(|_| Error::Memory)?;
+    if stored_algo != default_algo {
+        encrypt_and_store_seed_internal(hal, seed, password)
+    } else {
+        retain_seed(hal, seed)
+    }
+}
+
 // Checks if the retained seed matches the passed seed.
 fn check_retained_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), ()> {
     if RETAINED_SEED.read().is_none() {
@@ -377,7 +397,7 @@ pub async fn unlock(
             panic!("Seed has suddenly changed. This should never happen.");
         }
     } else {
-        retain_seed(hal, &seed)?;
+        migrate_password_algo_and_retain_seed(hal, &seed, password)?;
     }
     hal.memory().reset_unlock_attempts();
     Ok(seed)
@@ -1336,6 +1356,87 @@ mod tests {
         wrong_attempt(&mut mock_hal);
         assert!(copy_seed(&mut mock_hal).is_ok());
         assert!(mock_hal.memory.is_seeded());
+    }
+
+    #[test]
+    fn test_unlock_migrate_password_algo() {
+        mock_memory();
+        lock();
+
+        let mut mock_hal = TestingHal::new();
+
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+
+        let mock_salt_root =
+            hex!("3333333333333333444444444444444411111111111111112222222222222222");
+        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+
+        let password = "password";
+
+        assert!(matches!(
+            mock_hal.memory.get_securechip_type().unwrap(),
+            bitbox02::memory::SecurechipType::Optiga
+        ));
+
+        // Setup a seed encrypted with algo V0.
+        {
+            let encrypted = {
+                let secret = mock_hal
+                    .securechip
+                    .stretch_password(
+                        password,
+                        bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
+                    )
+                    .unwrap();
+                let iv: &[u8; 16] = &[0xaau8; 16];
+
+                bitbox_aes::encrypt_with_hmac(iv, &secret, &seed)
+            };
+
+            mock_hal
+                .memory
+                .set_encrypted_seed_and_hmac(
+                    &encrypted,
+                    bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
+                )
+                .unwrap();
+        }
+
+        // Unlock will migrate from V0 to V1.
+        mock_hal.securechip.event_counter_reset();
+        assert_eq!(
+            block_on(unlock(&mut mock_hal, password))
+                .unwrap()
+                .as_slice(),
+            seed
+        );
+        assert_eq!(mock_hal.securechip.get_event_counter(), 9);
+
+        // Check the seed was retained again after migration.
+        assert_eq!(copy_seed(&mut mock_hal).unwrap().as_slice(), seed);
+        // Check the seed now uses the new algo.
+        let (_, stored_algo) = mock_hal.memory.get_encrypted_seed_and_hmac().unwrap();
+        assert_eq!(
+            stored_algo,
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
+        );
+
+        // Password check still works
+        assert_eq!(
+            block_on(unlock(&mut mock_hal, "password"))
+                .unwrap()
+                .as_slice(),
+            seed
+        );
+
+        // Unlocking from scratch still works
+        lock();
+        assert_eq!(
+            block_on(unlock(&mut mock_hal, "password"))
+                .unwrap()
+                .as_slice(),
+            seed
+        );
     }
 
     #[test]

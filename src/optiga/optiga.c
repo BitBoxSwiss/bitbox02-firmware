@@ -414,17 +414,6 @@ static const uint8_t _counter_password_metadata[] = {
 
 #endif
 
-#if SMALL_MONOTONIC_COUNTER_MAX_USE > 255
-    #error Max unlock attempts does not fit in one byte
-#endif
-// The intial/reset buffer for the small monotonic counter. Initial value: 0, threshold:
-// `SMALL_MONOTONIC_COUNTER_MAX_USE`. Table "Common data structures" -> "Counter":
-// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link24b48059_db81_40f5_8b65_7afca4918ab1
-// Bytes 0-3 are the initial counter value, set to 0.
-// Bytes 4-7 are the threshold.
-// Ints are encoded as uint32 big endian.
-static const uint8_t _counter_password_reset_buf[8] =
-    {0, 0, 0, 0, 0, 0, 0, SMALL_MONOTONIC_COUNTER_MAX_USE};
 static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth_secret_len)
 {
     optiga_lib_status_t res;
@@ -453,6 +442,20 @@ static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth
         return res;
     }
     return 0;
+}
+
+static int _reset_counter(uint16_t oid, uint32_t limit)
+{
+    // Configure the monotonic counter.
+    // Table "Common data structures" -> "Counter":
+    // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link24b48059_db81_40f5_8b65_7afca4918ab1
+    // Bytes 0-3 are the initial counter value, set to 0.
+    // Bytes 4-7 are the threshold.
+    // Ints are encoded as uint32 big endian.
+    uint8_t counter_buf[8] = {0};
+    optiga_common_set_uint32(&counter_buf[4], limit);
+    return optiga_ops_util_write_data_sync(
+        _util, oid, OPTIGA_UTIL_ERASE_AND_WRITE, 0, counter_buf, sizeof(counter_buf));
 }
 
 #if APP_U2F == 1 || FACTORYSETUP == 1
@@ -731,19 +734,7 @@ static int _configure_object_counter(void)
     }
     util_log("_configure_object_counter: setting up");
 
-    // Configure the monotonic counter.
-    // Table "Common data structures" -> "Counter":
-    // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link24b48059_db81_40f5_8b65_7afca4918ab1
-    // Bytes 0-3 are the initial counter value, set to 0.
-    // Bytes 4-7 are the threshold.
-    // Ints are encoded as uint32 big endian.
-    uint8_t counter_buf[8] = {0};
-    optiga_common_set_uint32(&counter_buf[4], MONOTONIC_COUNTER_MAX_USE);
-    res = optiga_ops_util_write_data_sync(
-        _util, oid, OPTIGA_UTIL_ERASE_AND_WRITE, 0, counter_buf, sizeof(counter_buf));
-    if (res != OPTIGA_LIB_SUCCESS) {
-        return res;
-    }
+    _reset_counter(oid, MONOTONIC_COUNTER_MAX_USE);
 
     return optiga_ops_util_write_metadata_sync(
         _util, oid, _counter_metadata, sizeof(_counter_metadata));
@@ -986,13 +977,7 @@ static int _set_password(
         goto cleanup;
     }
 
-    res = optiga_ops_util_write_data_sync(
-        _util,
-        OID_COUNTER_PASSWORD,
-        OPTIGA_UTIL_ERASE_AND_WRITE,
-        0,
-        _counter_password_reset_buf,
-        sizeof(_counter_password_reset_buf));
+    res = _reset_counter(OID_COUNTER_PASSWORD, SMALL_MONOTONIC_COUNTER_MAX_USE);
     if (res != OPTIGA_LIB_SUCCESS) {
         goto cleanup;
     }
@@ -1106,13 +1091,7 @@ static int _optiga_verify_password(const char* password, uint8_t* password_secre
         goto cleanup;
     }
 
-    res = optiga_ops_util_write_data_sync(
-        _util,
-        OID_COUNTER_PASSWORD,
-        OPTIGA_UTIL_ERASE_AND_WRITE,
-        0,
-        _counter_password_reset_buf,
-        sizeof(_counter_password_reset_buf));
+    res = _reset_counter(OID_COUNTER_PASSWORD, SMALL_MONOTONIC_COUNTER_MAX_USE);
     if (res != OPTIGA_LIB_SUCCESS) {
         goto cleanup;
     }

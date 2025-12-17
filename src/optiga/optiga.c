@@ -47,8 +47,8 @@
 #define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
 
 // This number of KDF iterations on the external kdf slot when stretching the device
-// password.
-#define KDF_NUM_ITERATIONS (2)
+// password using the V0 algorithm.
+#define KDF_NUM_ITERATIONS_V0 (2)
 
 // Struct stored in the arbitrary data object.
 #pragma GCC diagnostic push
@@ -1567,7 +1567,7 @@ static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
         return securechip_result;
     }
     // Second KDF does not use the counter and we call it multiple times.
-    for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
+    for (int i = 0; i < KDF_NUM_ITERATIONS_V0; i++) {
         memcpy(kdf_in, stretched_out, 32);
         securechip_result = optiga_kdf_external(kdf_in, 32, stretched_out);
         if (securechip_result) {

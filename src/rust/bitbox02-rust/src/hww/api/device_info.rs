@@ -20,6 +20,20 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         }
         memory::Platform::BitBox02 => None,
     };
+    // We display the stretching algo that is used on a seeded device, or the algo that would be
+    // used for a new seed on an unseeded device.
+    let password_stretching_algo = if hal.memory().is_seeded() {
+        let (_, password_stretching_algo) = hal
+            .memory()
+            .get_encrypted_seed_and_hmac()
+            .map_err(|_| Error::Memory)?;
+        password_stretching_algo
+    } else {
+        crate::keystore::default_password_stretch_algo(hal).map_err(|err| match err {
+            crate::keystore::Error::Memory => Error::Memory,
+            _ => Error::Generic,
+        })?
+    };
     Ok(Response::DeviceInfo(pb::DeviceInfoResponse {
         name: hal.memory().get_device_name(),
         initialized: hal.memory().is_initialized(),
@@ -32,5 +46,9 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
             securechip::Model::OPTIGA_TRUST_M_V3 => "OPTIGA_TRUST_M_V3".into(),
         },
         bluetooth,
+        password_stretching_algo: match password_stretching_algo {
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => "V0".into(),
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => "V1".into(),
+        },
     }))
 }

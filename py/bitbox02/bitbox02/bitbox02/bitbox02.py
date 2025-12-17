@@ -171,6 +171,8 @@ class BitBox02(BitBoxCommonAPI):
             }
         else:
             result["bluetooth"] = None
+        if self.version >= semver.VersionInfo(9, 25, 0):
+            result["password_stretching_algo"] = response.device_info.password_stretching_algo
 
         return result
 

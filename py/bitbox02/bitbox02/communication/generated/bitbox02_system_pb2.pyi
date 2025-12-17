@@ -87,13 +87,18 @@ class DeviceInfoResponse(google.protobuf.message.Message):
     MONOTONIC_INCREMENTS_REMAINING_FIELD_NUMBER: builtins.int
     SECURECHIP_MODEL_FIELD_NUMBER: builtins.int
     BLUETOOTH_FIELD_NUMBER: builtins.int
+    PASSWORD_STRETCHING_ALGO_FIELD_NUMBER: builtins.int
     name: builtins.str
     initialized: builtins.bool
     version: builtins.str
     mnemonic_passphrase_enabled: builtins.bool
     monotonic_increments_remaining: builtins.int
     securechip_model: builtins.str
-    """From v9.6.0: "ATECC608A" or "ATECC608B"."""
+    """From v9.6.0: "ATECC608A" or "ATECC608B" or "OPTIGA_TRUST_M_V3"."""
+    password_stretching_algo: builtins.str
+    """From v9.25.0. This together with `securechip_model` determines the password stretching
+    algorithm.
+    """
     @property
     def bluetooth(self) -> global___DeviceInfoResponse.Bluetooth:
         """Only present in Bluetooth-enabled devices."""
@@ -108,9 +113,10 @@ class DeviceInfoResponse(google.protobuf.message.Message):
         monotonic_increments_remaining: builtins.int = ...,
         securechip_model: builtins.str = ...,
         bluetooth: global___DeviceInfoResponse.Bluetooth | None = ...,
+        password_stretching_algo: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_bluetooth", b"_bluetooth", "bluetooth", b"bluetooth"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_bluetooth", b"_bluetooth", "bluetooth", b"bluetooth", "initialized", b"initialized", "mnemonic_passphrase_enabled", b"mnemonic_passphrase_enabled", "monotonic_increments_remaining", b"monotonic_increments_remaining", "name", b"name", "securechip_model", b"securechip_model", "version", b"version"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_bluetooth", b"_bluetooth", "bluetooth", b"bluetooth", "initialized", b"initialized", "mnemonic_passphrase_enabled", b"mnemonic_passphrase_enabled", "monotonic_increments_remaining", b"monotonic_increments_remaining", "name", b"name", "password_stretching_algo", b"password_stretching_algo", "securechip_model", b"securechip_model", "version", b"version"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_bluetooth", b"_bluetooth"]) -> typing.Literal["bluetooth"] | None: ...
 
 global___DeviceInfoResponse = DeviceInfoResponse

@@ -69,10 +69,46 @@ impl core::convert::From<password::EnterError> for UnlockError {
     }
 }
 
+async fn maybe_confirm_remaining_unlock_attempts(
+    hal: &mut impl crate::hal::Hal,
+    can_cancel: password::CanCancel,
+) -> Result<(), confirm::UserAbort> {
+    let remaining = crate::keystore::get_remaining_unlock_attempts(hal);
+    if remaining >= crate::keystore::MAX_UNLOCK_ATTEMPTS {
+        return Ok(());
+    }
+
+    // Note that `remaining` can in fact be zero, if one disconnects the BitBox after the password
+    // of the last attempt was entered, but before the device was reset (if it was a wrong password)
+    // or before the attempts counter was reset (if it was a correct password). In this edge case,
+    // the user indeed has no more attempts remaining, and the device will reset regardless of which
+    // password is entered. This might be confusing UX if it happened, but it's an extreme edge
+    // case, so we purposefully don't deal with this here.
+
+    let body: alloc::string::String = if remaining == 1 {
+        "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong.".into()
+    } else {
+        format!("You have {}\npassword attempts\nleft.", remaining)
+    };
+
+    hal.ui()
+        .confirm(&confirm::Params {
+            title: "WARNING",
+            body: &body,
+            accept_is_nextarrow: true,
+            longtouch: remaining == 1,
+            accept_only: matches!(can_cancel, password::CanCancel::No),
+            ..Default::default()
+        })
+        .await
+}
+
 /// Prompts the user for the device password, and returns `Ok` if the
 /// keystore was successfully unlocked, or `Err` if the password was
-/// incorrect. In that case, a status is displayed with how many
-/// attempts are remaining until the device resets.
+/// incorrect.
+///
+/// If there were failed password attempts already, a warning is shown before the password is
+/// entered.
 ///
 /// If they keystore is already unlocked, this function does not
 /// change the state and just checks the password.
@@ -81,6 +117,10 @@ pub async fn unlock_keystore(
     title: &str,
     can_cancel: password::CanCancel,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, UnlockError> {
+    maybe_confirm_remaining_unlock_attempts(hal, can_cancel)
+        .await
+        .map_err(|_| UnlockError::UserAbort)?;
+
     let password = password::enter(
         hal,
         title,
@@ -92,11 +132,7 @@ pub async fn unlock_keystore(
     match crate::keystore::unlock(hal, &password).await {
         Ok(seed) => Ok(seed),
         Err(crate::keystore::Error::IncorrectPassword) => {
-            let msg = match crate::keystore::get_remaining_unlock_attempts(hal) {
-                1 => "Wrong password\n1 try remains".into(),
-                n => format!("Wrong password\n{} tries remain", n),
-            };
-            hal.ui().status(&msg, false).await;
+            hal.ui().status("Wrong password", false).await;
             Err(UnlockError::IncorrectPassword)
         }
         Err(err) => {
@@ -188,15 +224,12 @@ mod tests {
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 
     use hex_lit::hex;
 
     #[test]
     fn test_unlock_success() {
-        mock_memory();
-
         let mut mock_hal = TestingHal::new();
 
         // Set up an initialized wallet with password
@@ -240,7 +273,6 @@ mod tests {
 
     #[test]
     fn test_unlock_keystore_wrong_password() {
-        mock_memory();
         let mut mock_hal = TestingHal::new();
 
         // Set up an initialized wallet with password
@@ -280,12 +312,97 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens,
             vec![Screen::Status {
-                title: "Wrong password\n9 tries remain".into(),
+                title: "Wrong password".into(),
                 success: false,
             },],
         );
 
         drop(mock_hal); // to remove mutable borrow of `password_entered`
         assert!(password_entered);
+    }
+
+    #[test]
+    fn test_unlock_keystore_warning_before_password() {
+        let mut mock_hal = TestingHal::new();
+
+        // Set up an initialized wallet with password
+        crate::keystore::encrypt_and_store_seed(
+            &mut mock_hal,
+            &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
+            "password",
+        )
+        .unwrap();
+
+        mock_hal.memory.set_initialized().unwrap();
+
+        // Lock the keystore to simulate the normal locked state
+        crate::keystore::lock();
+
+        mock_hal.memory.set_unlock_attempts_for_testing(1);
+
+        let mut password_entered = false;
+
+        mock_hal.ui.set_enter_string(Box::new(|_params| {
+            password_entered = true;
+            Ok("wrong password".into())
+        }));
+
+        assert!(matches!(
+            block_on(unlock_keystore(
+                &mut mock_hal,
+                "title",
+                password::CanCancel::No,
+            )),
+            Err(UnlockError::IncorrectPassword),
+        ));
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "WARNING".into(),
+                    body: "You have 9\npassword attempts\nleft.".into(),
+                    longtouch: false,
+                },
+                Screen::Status {
+                    title: "Wrong password".into(),
+                    success: false,
+                },
+            ],
+        );
+
+        drop(mock_hal); // to remove mutable borrow of `password_entered`
+        assert!(password_entered);
+    }
+
+    #[test]
+    fn test_unlock_keystore_last_attempt_warning() {
+        let mut mock_hal = TestingHal::new();
+
+        mock_hal
+            .memory
+            .set_unlock_attempts_for_testing(crate::keystore::MAX_UNLOCK_ATTEMPTS - 1);
+
+        mock_hal.ui.abort_nth(0);
+
+        assert!(matches!(
+            block_on(unlock_keystore(
+                &mut mock_hal,
+                "title",
+                password::CanCancel::No,
+            )),
+            Err(UnlockError::UserAbort),
+        ));
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![Screen::Confirm {
+                title: "WARNING".into(),
+                body:
+                    "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong."
+                        .into(),
+                longtouch: true,
+            }],
+        );
     }
 }

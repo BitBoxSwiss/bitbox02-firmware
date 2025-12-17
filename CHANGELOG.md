@@ -10,6 +10,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Fix bug that BLE was turned off when iOS device is unlocked
 - simulator-graphical: a new simulator with a graphical user interface
 - Add ability to change the device password after initial setup
+- Show remaining unlock attempts before unlocking instead of after a failed attempt
 
 ### v9.24.0
 - Change title when entering recovery words to `1 of 24`, `2 of 24`, etc.

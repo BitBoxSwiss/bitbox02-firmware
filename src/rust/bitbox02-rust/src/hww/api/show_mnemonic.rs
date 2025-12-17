@@ -213,7 +213,7 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens,
             vec![Screen::Status {
-                title: "Wrong password\n9 tries remain".into(),
+                title: "Wrong password".into(),
                 success: false,
             }]
         );

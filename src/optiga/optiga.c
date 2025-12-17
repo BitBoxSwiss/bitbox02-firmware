@@ -1147,12 +1147,14 @@ static int _set_password(
     const uint8_t* auth_password,
     size_t auth_password_len)
 {
+    uint8_t auth_password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(auth_password_salted_hashed);
+
     optiga_lib_status_t res = _authorize(OID_PASSWORD_SECRET, password_secret, password_secret_len);
     if (res != OPTIGA_UTIL_SUCCESS) {
         goto cleanup;
     }
 
-    uint8_t auth_password_salted_hashed[32] = {0};
     if (!salt_hash_data(
             auth_password, auth_password_len, "optiga_password", auth_password_salted_hashed)) {
         res = SC_ERR_SALT;
@@ -1249,6 +1251,7 @@ static int _set_hmac_writeprotected(
     size_t auth_password_len)
 {
     uint8_t auth_password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(auth_password_salted_hashed);
     if (!salt_hash_data(
             auth_password, auth_password_len, "optiga_password", auth_password_salted_hashed)) {
         return SC_ERR_SALT;
@@ -1329,6 +1332,7 @@ static int _v1_combine(
     rust_hmac_sha256(password_secret, 32, auth_password, 32, stretched_out);
 
     uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
     if (!salt_hash_data(
             (const uint8_t*)password,
             strlen(password),
@@ -1353,6 +1357,7 @@ int optiga_init_new_password(
 
     // Set new hmac key.
     uint8_t new_hmac_key[32] = {0};
+    UTIL_CLEANUP_32(new_hmac_key);
     _ifs->random_32_bytes(new_hmac_key);
     optiga_lib_status_t res = optiga_ops_util_write_data_sync(
         _util, OID_HMAC, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, new_hmac_key, sizeof(new_hmac_key));
@@ -1371,6 +1376,7 @@ int optiga_init_new_password(
     }
 
     uint8_t password_secret[32] = {0};
+    UTIL_CLEANUP_32(password_secret);
     _ifs->random_32_bytes(password_secret);
 
     res = optiga_ops_util_write_data_sync(
@@ -1385,9 +1391,11 @@ int optiga_init_new_password(
     }
 
     uint8_t new_hmac_writeprotected_key[32] = {0};
+    UTIL_CLEANUP_32(new_hmac_writeprotected_key);
     _ifs->random_32_bytes(new_hmac_writeprotected_key);
 
     uint8_t auth_password[32] = {0};
+    UTIL_CLEANUP_32(auth_password);
     res = _v1_get_auth_password(password, new_hmac_writeprotected_key, auth_password);
     if (res) {
         return res;
@@ -1476,6 +1484,7 @@ cleanup: {
 static int _optiga_verify_password_v1(const uint8_t* auth_password, uint8_t* password_secret_out)
 {
     uint8_t auth_password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(auth_password_salted_hashed);
     if (!salt_hash_data(auth_password, 32, "optiga_password", auth_password_salted_hashed)) {
         return SC_ERR_SALT;
     }
@@ -1751,6 +1760,7 @@ static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
     // Verify password incrementing the small monotonic counter.
     // We do this after the above KDF stretch so the big monotonic counter is also incremented.
     uint8_t password_secret[32] = {0};
+    UTIL_CLEANUP_32(password_secret);
     int res = _optiga_verify_password_v0(password, password_secret);
     if (res) {
         if (res == 0x802F) {
@@ -1776,6 +1786,7 @@ static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
 static int _stretch_password_v1(const char* password, uint8_t* stretched_out)
 {
     uint8_t auth_password[32] = {0};
+    UTIL_CLEANUP_32(auth_password);
     // Get auth password. This increments the small monotonic counter in
     // `OID_COUNTER_HMAC_WRITEPROTECTED` and the large monotonic counter.
     int res = _v1_get_auth_password(password, NULL, auth_password);
@@ -1784,6 +1795,7 @@ static int _stretch_password_v1(const char* password, uint8_t* stretched_out)
     }
     // Verify password incrementing the small monotonic counter in `OID_COUNTER_PASSWORD`.
     uint8_t password_secret[32] = {0};
+    UTIL_CLEANUP_32(password_secret);
     res = _optiga_verify_password_v1(auth_password, password_secret);
     if (res) {
         if (res == 0x802F) {

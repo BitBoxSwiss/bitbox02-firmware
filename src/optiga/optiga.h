@@ -26,6 +26,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <rust/rust.h> // for MAX_UNLOCK_ATTEMPTS
+
 // The Data Object IDs we use.
 
 // Stores a shared secret used for a shielded connection. Is is used to encrypt

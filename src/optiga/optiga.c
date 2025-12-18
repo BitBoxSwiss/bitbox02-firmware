@@ -49,12 +49,6 @@
 // indication of 600000 updates. See Solution Reference Manual Figure 32.
 #define MONOTONIC_COUNTER_MAX_USE (590000)
 
-// Number of times the password can be entered incorrectly before further password stretching fails.
-// The counter is reset when the correct password is entered.
-// Must match MAX_UNLOCK_ATTEMPTS in bitbox02_smarteeprom.h and
-// MAX_UNLOCK_ATTEMPTS in rust keystore.rs.
-#define SMALL_MONOTONIC_COUNTER_MAX_USE (MAX_UNLOCK_ATTEMPTS)
-
 // Maximum size of metadata. See "Metadata Update Identifier":
 // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linka946a953_def2_41cf_850a_74fb7899fe11
 // Two extra bytes for the `0x20 <len>` header bytes.

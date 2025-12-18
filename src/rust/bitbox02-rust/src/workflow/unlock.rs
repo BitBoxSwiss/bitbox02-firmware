@@ -103,15 +103,14 @@ async fn maybe_confirm_remaining_unlock_attempts(
         .await
 }
 
-/// Prompts the user for the device password, and returns `Ok` if the
-/// keystore was successfully unlocked, or `Err` if the password was
-/// incorrect.
+/// Prompts the user for the device password, and returns `Ok` if the keystore was successfully
+/// unlocked, or `Err` if the password was incorrect.
 ///
 /// If there were failed password attempts already, a warning is shown before the password is
 /// entered.
 ///
-/// If they keystore is already unlocked, this function does not
-/// change the state and just checks the password.
+/// If the keystore is already unlocked, this function does not change the state and just checks the
+/// password.
 pub async fn unlock_keystore(
     hal: &mut impl crate::hal::Hal,
     title: &str,

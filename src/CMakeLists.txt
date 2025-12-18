@@ -569,6 +569,10 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
+    # Link the Rust static library before its C dependencies. Static library resolution is
+    # left-to-right.
+    target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
+
     target_link_libraries(${elf} PRIVATE secp256k1)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
@@ -577,8 +581,6 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE --specs=nano.specs)
     target_compile_options(${elf} PRIVATE --specs=nosys.specs)
     target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
-
-    target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
 
     # Optiga config must be defined both when compiling the optiga lib, and also when compiling our
     # sources. We can verify this include is indeed used by our sources - when you point it to a

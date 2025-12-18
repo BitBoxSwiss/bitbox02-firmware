@@ -77,10 +77,6 @@ typedef struct {
 
     // Velocity is generally 10x movement per period
     int32_t velocity;
-    // int32_t velocity_sum;
-    // uint16_t velocity_index;
-    //  Stores the velocities.
-    // int16_t velocity_values[MAX_HISTORY];
     // The gesture type (tap, slide). FUTURE: remove this?
     enum gesture_type_t gesture_type;
     // The status of the slider.
@@ -116,10 +112,6 @@ static void _slider_state_update(gestures_detection_state_t* state, uint16_t pos
 
     // EMA of velocity
     state->velocity = (ALPHA * velocity + ONE_MINUS_ALPHA * state->velocity) / Q_FACTOR;
-    // int16_t velocity_removed = state->velocity_values[state->velocity_index];
-    // state->velocity_sum = state->velocity_sum - velocity_removed + velocity_current;
-    // state->velocity_values[state->velocity_index] = velocity_current;
-    // state->velocity_index = (state->velocity_index + 1) % MAX_HISTORY;
     uint16_t distance_from_start = abs((int)position - (int)state->position_start);
     state->max_slide_travel = MAX(distance_from_start, state->max_slide_travel);
 

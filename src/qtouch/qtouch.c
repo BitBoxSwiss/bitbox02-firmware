@@ -425,10 +425,15 @@ uint16_t qtouch_get_scroller_position(uint16_t scroller)
 // EMA is applied to the node readings to filter out noise. Fixed point is used to make it
 // less resource intense than floating points.
 //
-// Exponential Moving Average with N=3, ALPHA=2/(N+1)
-#define Q_FACTOR 1024
-#define ALPHA 512
-#define ONE_MINUS_ALPHA (Q_FACTOR - ALPHA)
+// Exponential Moving Average for nodes
+#define NODE_Q_FACTOR 1024
+#define NODE_ALPHA 768
+#define NODE_ONE_MINUS_ALPHA (NODE_Q_FACTOR - NODE_ALPHA)
+
+// Exponential Moving Average for scrollers
+#define POS_Q_FACTOR 1024
+#define POS_ALPHA 512
+#define POS_ONE_MINUS_ALPHA (POS_Q_FACTOR - POS_ALPHA)
 
 void qtouch_process_scroller_positions(scroller_control_t* scrollers)
 {
@@ -456,16 +461,16 @@ void qtouch_process_scroller_positions(scroller_control_t* scrollers)
             // amplitudes need to have similar max amplitudes.
 
             // Increase some nodes with 50%
-            if (node == 1 || node == 3 || node == 4 || node == 5 || node == 7) {
+            if (node == 0 || node == 1 || node == 3 || node == 4 || node == 7) {
                 delta += delta >> 1;
             }
             // Increase some nodes with 25%
-            if (node == 0 || node == 5 || node == 6) {
+            if (node == 2 || node == 5 || node == 6) {
                 delta += delta >> 2;
             }
 
             // Apply EMA
-            delta = (delta * ALPHA + data->deltas[i] * ONE_MINUS_ALPHA) / Q_FACTOR;
+            delta = (delta * NODE_ALPHA + data->deltas[i] * NODE_ONE_MINUS_ALPHA) / NODE_Q_FACTOR;
 
             data->deltas[i] = delta;
 
@@ -535,14 +540,19 @@ void qtouch_process_scroller_positions(scroller_control_t* scrollers)
         raw_pos -= min(raw_pos, half_distance);
         raw_pos >>= fp_offset;
 
-        if (active) {
-            int32_t pos = data->position;
+        // Initial value when scroller becomes active is the raw position
+        if (active && !data->active) {
+            data->position = raw_pos;
+        }
+
+        // Subsequent positions are EMA'd
+        if (active || data->active) {
+            int32_t pos =
+                (POS_ALPHA * raw_pos + POS_ONE_MINUS_ALPHA * data->position) / POS_Q_FACTOR;
 
             if (data->active) {
-                int32_t raw_pos_delta = raw_pos - pos;
-                if (raw_pos_delta < -data->hyst_left || raw_pos_delta > data->hyst_right) {
-                    pos = raw_pos;
-
+                int32_t delta = pos - data->position;
+                if (delta < -data->hyst_left || delta > data->hyst_right) {
                     /* handle hysterisis, when finger changes direction */
                     if (pos < data->position) {
                         data->hyst_left = 0;
@@ -552,9 +562,9 @@ void qtouch_process_scroller_positions(scroller_control_t* scrollers)
                         data->hyst_left = config->hysteresis;
                         data->hyst_right = 0;
                     }
+                } else {
+                    pos = data->position;
                 }
-            } else {
-                pos = raw_pos;
             }
 
             /* Handle deadband (close to 0 and close to max resolution) */

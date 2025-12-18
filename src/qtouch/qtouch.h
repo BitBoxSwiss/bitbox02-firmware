@@ -118,9 +118,9 @@ typedef struct {
 #define NODE_1_PARAMS \
     {X_NONE, Y_LINE(27), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_128}
 #define NODE_2_PARAMS \
-    {X_NONE, Y_LINE(28), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_2, GAIN_8), FILTER_LEVEL_128}
+    {X_NONE, Y_LINE(28), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_128}
 #define NODE_3_PARAMS \
-    {X_NONE, Y_LINE(29), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
+    {X_NONE, Y_LINE(29), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_128}
 #define NODE_4_PARAMS \
     {X_NONE, Y_LINE(30), 0, PRSC_DIV_SEL_4, NODE_GAIN(GAIN_1, GAIN_8), FILTER_LEVEL_64}
 #define NODE_5_PARAMS \
@@ -142,14 +142,14 @@ typedef struct {
 /* Defines Key Sensor setting
  * {Sensor Threshold, Sensor Hysterisis, Sensor AKS}
  */
-#define KEY_0_PARAMS {15, HYST_25, AKS_GROUP_1}
-#define KEY_1_PARAMS {15, HYST_25, AKS_GROUP_1}
-#define KEY_2_PARAMS {15, HYST_25, AKS_GROUP_1}
-#define KEY_3_PARAMS {15, HYST_25, AKS_GROUP_1}
-#define KEY_4_PARAMS {12, HYST_25, AKS_GROUP_2}
-#define KEY_5_PARAMS {15, HYST_25, AKS_GROUP_2}
-#define KEY_6_PARAMS {16, HYST_25, AKS_GROUP_2}
-#define KEY_7_PARAMS {12, HYST_25, AKS_GROUP_2}
+#define KEY_0_PARAMS {22, HYST_12_5, AKS_GROUP_1}
+#define KEY_1_PARAMS {15, HYST_12_5, AKS_GROUP_1}
+#define KEY_2_PARAMS {15, HYST_12_5, AKS_GROUP_1}
+#define KEY_3_PARAMS {11, HYST_12_5, AKS_GROUP_1}
+#define KEY_4_PARAMS {11, HYST_12_5, AKS_GROUP_2}
+#define KEY_5_PARAMS {15, HYST_12_5, AKS_GROUP_2}
+#define KEY_6_PARAMS {17, HYST_12_5, AKS_GROUP_2}
+#define KEY_7_PARAMS {10, HYST_12_5, AKS_GROUP_2}
 
 /* De-bounce counter for additional measurements to confirm touch detection
  * Range: 0 to 255.
@@ -214,15 +214,16 @@ typedef struct {
  * This allows low noise button readings while keeping
  * fast responsiveness.
  */
+
 #define DEF_NUM_SCROLLERS 2 // Number of scrollers (sliders or wheels)
 #define DEF_SCROLLER_NUM_CHANNELS 4 // Number of channels per scroller
 #define DEF_SCROLLER_OFFSET_0 4 // Index of first button in scroller
 #define DEF_SCROLLER_OFFSET_1 0 // Index of first button in scroller
 #define DEF_SCROLLER_RESOLUTION 8 // Scroller resolution in bits
-#define DEF_SCROLLER_TOUCH_THRESHOLD 35 // Scroller active threshold
-#define DEF_SCROLLER_UNTOUCH_THRESHOLD 20 // Scroller active threshold
+#define DEF_SCROLLER_TOUCH_THRESHOLD 30 // Scroller active threshold
+#define DEF_SCROLLER_UNTOUCH_THRESHOLD 26 // Scroller active threshold
 #define DEF_SCROLLER_DEADBAND \
-    10 // everything below deadband is locked to 0 and above max-deadband is locked to max
+    6 // everything below deadband is locked to 0 and above max-deadband is locked to max
 #define DEF_SCROLLER_HYSTERESIS 12 // Position needs to move at least this much
 #define DEF_SCROLLER_TOUCH_DRIFT_IN 2 // number of counts in touch before being active
 

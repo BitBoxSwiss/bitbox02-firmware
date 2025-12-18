@@ -117,20 +117,14 @@ static void _render(component_t* component)
             data->text_position += data->text_position_acc / 2;
             data->text_position_acc = 0;
         }
-
-        if (!data->slider_is_touched) {
-            if (data->text_velocity != 0) {
-                data->text_position_acc += data->text_velocity / 10;
-                if (data->text_velocity > 0) {
-                    data->text_velocity = MAX(data->text_velocity - 3, 0);
-                } else {
-                    data->text_velocity = MIN(data->text_velocity + 3, 0);
-                }
-                // data->text_velocity_counter++;
+        static int32_t render_counter = 0;
+        if (!data->slider_is_touched && render_counter++ % 2 == 0 && data->text_velocity != 0) {
+            if (data->text_velocity > 0) {
+                data->text_velocity = MAX(data->text_velocity - 3, 0);
             } else {
-                // data->text_render_counter = 0;
-                // data->text_velocity_counter = 0;
+                data->text_velocity = MIN(data->text_velocity + 3, 0);
             }
+            data->text_position_acc += data->text_velocity / 10;
         }
         // Stop label from moving out of screen
         int16_t margin = SCREEN_WIDTH / 5;
@@ -187,9 +181,9 @@ static void _on_event(const event_t* event, component_t* component)
             data->slider_was_touched = true;
             break;
         }
+        case EVENT_SHORT_TAP:
+        case EVENT_LONG_TAP:
         case EVENT_SLIDE_RELEASED:
-            // data->text_position_last = data->text_position;
-            // data->slider_position_diff = 0;
             data->slider_is_touched = false;
             break;
 

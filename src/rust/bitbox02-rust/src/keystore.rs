@@ -192,9 +192,9 @@ fn verify_seed(
     decrypted.as_slice() == expected_seed
 }
 
-fn hash_seed(seed: &[u8]) -> Result<[u8; 32], Error> {
+fn hash_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<[u8; 32], Error> {
     let salted_key =
-        crate::salt::hash_data(&[], "keystore_retain_seed_hash").map_err(|_| Error::Salt)?;
+        crate::salt::hash_data(hal, &[], "keystore_retain_seed_hash").map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_key.as_slice());
     engine.input(seed);
@@ -207,7 +207,7 @@ fn retain_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), Error>
         seed,
         "keystore_retained_seed_access",
     )?));
-    RETAINED_SEED_HASH.write(Some(hash_seed(seed)?));
+    RETAINED_SEED_HASH.write(Some(hash_seed(hal, seed)?));
     Ok(())
 }
 
@@ -300,11 +300,11 @@ pub fn re_encrypt_seed(
 }
 
 // Checks if the retained seed matches the passed seed.
-fn check_retained_seed(seed: &[u8]) -> Result<(), ()> {
+fn check_retained_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), ()> {
     if RETAINED_SEED.read().is_none() {
         return Err(());
     }
-    if hash_seed(seed).map_err(|_| ())? != RETAINED_SEED_HASH.read().ok_or(())? {
+    if hash_seed(hal, seed).map_err(|_| ())? != RETAINED_SEED_HASH.read().ok_or(())? {
         return Err(());
     }
     Ok(())
@@ -365,7 +365,7 @@ pub async fn unlock(
 
     if RETAINED_SEED.read().is_some() {
         // Already unlocked. Fail if the seed changed under our feet (should never happen).
-        if check_retained_seed(&seed).is_err() {
+        if check_retained_seed(hal, &seed).is_err() {
             panic!("Seed has suddenly changed. This should never happen.");
         }
     } else {
@@ -392,7 +392,7 @@ pub async fn unlock_bip39(
     mnemonic_passphrase: &str,
     yield_now: impl AsyncFn(),
 ) -> Result<(), Error> {
-    check_retained_seed(seed).map_err(|_| Error::CannotUnlockBIP39)?;
+    check_retained_seed(hal, seed).map_err(|_| Error::CannotUnlockBIP39)?;
 
     let (bip39_seed, root_fingerprint) =
         crate::bip39::derive_seed(seed, mnemonic_passphrase, &yield_now).await;
@@ -449,7 +449,7 @@ pub fn create_and_store_seed(
 
     // Mix in entropy derived from the user password.
     let password_salted_hashed =
-        crate::salt::hash_data(password.as_bytes(), "keystore_seed_generation")
+        crate::salt::hash_data(hal, password.as_bytes(), "keystore_seed_generation")
             .map_err(|_| Error::Salt)?;
 
     for (i, &hash_byte) in password_salted_hashed.iter().take(seed_len).enumerate() {
@@ -585,12 +585,13 @@ pub fn stretch_retained_seed_encryption_key(
     purpose_in: &str,
     purpose_out: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let salted_in = crate::salt::hash_data(encryption_key, purpose_in).map_err(|_| Error::Salt)?;
+    let salted_in =
+        crate::salt::hash_data(hal, encryption_key, purpose_in).map_err(|_| Error::Salt)?;
 
     let kdf = hal.securechip().kdf(salted_in.as_slice())?;
 
     let salted_out =
-        crate::salt::hash_data(encryption_key, purpose_out).map_err(|_| Error::Salt)?;
+        crate::salt::hash_data(hal, encryption_key, purpose_out).map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_out.as_slice());
     engine.input(kdf.as_slice());
@@ -902,12 +903,9 @@ mod tests {
             .collect();
 
         for size in [16, 32] {
-            mock_memory();
-            bitbox02::random::fake_reset();
-            bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
-            lock();
-
             let mut hal = TestingHal::new();
+            hal.memory.set_salt_root(&mock_salt_root);
+
             hal.random.mock_next(seed_random);
             assert!(create_and_store_seed(&mut hal, "password", &host_entropy[..size]).is_ok());
             assert_eq!(
@@ -1130,7 +1128,7 @@ mod tests {
 
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
-        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&mock_salt_root);
 
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
@@ -1215,7 +1213,7 @@ mod tests {
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
-        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&mock_salt_root);
 
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
@@ -1263,7 +1261,7 @@ mod tests {
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
-        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&mock_salt_root);
 
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
@@ -1297,7 +1295,7 @@ mod tests {
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
-        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&mock_salt_root);
 
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
@@ -1341,7 +1339,7 @@ mod tests {
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
-        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&mock_salt_root);
 
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
@@ -1382,20 +1380,21 @@ mod tests {
     fn test_unlock_bip39() {
         mock_memory();
         lock();
+        let mut mock_hal = TestingHal::new();
 
         let seed = hex!("1111111111111111222222222222222233333333333333334444444444444444");
 
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
-        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&mock_salt_root);
 
         assert!(root_fingerprint().is_err());
-        assert!(encrypt_and_store_seed(&mut TestingHal::new(), &seed, "password").is_ok());
+        assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         assert!(root_fingerprint().is_err());
         // Incorrect seed passed
         assert!(
             block_on(unlock_bip39(
-                &mut TestingHal::new(),
+                &mut mock_hal,
                 b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "foo",
                 async || {}
@@ -1403,7 +1402,7 @@ mod tests {
             .is_err()
         );
         // Correct seed passed.
-        let mut mock_hal = TestingHal::new();
+
         // Mock random value used for creating the unstretched bip39 seed encryption key.
         mock_hal.random.mock_next(hex!(
             "9b44c7048893faaf6e2d7625d13d8f1cab0765fd61f159d9713e08155d06717c"
@@ -1640,14 +1639,15 @@ mod tests {
     #[test]
     fn test_stretch_retained_seed_encryption_key_success() {
         mock_memory();
+        let mut mock_hal = TestingHal::new();
         let salt_root = hex!("0000000000000000111111111111111122222222222222223333333333333333");
-        bitbox02::memory::set_salt_root(&salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&salt_root);
 
         let encryption_key =
             hex!("00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00");
 
         let stretched = stretch_retained_seed_encryption_key(
-            &mut TestingHal::new(),
+            &mut mock_hal,
             &encryption_key,
             "keystore_retained_seed_access_in",
             "keystore_retained_seed_access_out",
@@ -1661,11 +1661,12 @@ mod tests {
     #[test]
     fn test_stretch_retained_seed_encryption_key_salt_error() {
         mock_memory();
-        bitbox02::memory::set_salt_root(&[0xffu8; 32]).unwrap();
+        let mut mock_hal = TestingHal::new();
+        mock_hal.memory.set_salt_root(&[0xffu8; 32]);
 
         let encryption_key = [0u8; 32];
         let result = stretch_retained_seed_encryption_key(
-            &mut TestingHal::new(),
+            &mut mock_hal,
             &encryption_key,
             "purpose_in",
             "purpose_out",

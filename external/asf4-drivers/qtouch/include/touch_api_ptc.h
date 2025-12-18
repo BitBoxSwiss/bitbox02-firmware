@@ -32,30 +32,32 @@ extern "C" {
 
 #include "hal_timer.h"
 
-#include "qtm_common_components_api.h"
-#include "qtm_binding_layer_0x0005_api.h"
 #include "qtm_acq_samd51_0x000f_api.h"
+#include "qtm_common_components_api.h"
 #include "qtm_touch_key_0x0002_api.h"
-#include "qtm_scroller_0x000b_api.h"
 
 /*----------------------------------------------------------------------------
  *   prototypes
  *----------------------------------------------------------------------------*/
 /* Application Helper API's */
 uint16_t qtouch_get_sensor_node_signal(uint16_t sensor_node);
-uint16_t qtouch_get_sensor_node_reference(uint16_t sensor_node);
+void qtouch_update_sensor_node_signal(uint16_t sensor_node, uint16_t new_signal);
 uint16_t qtouch_get_sensor_node_signal_filtered(uint16_t sensor_node);
+uint16_t qtouch_get_sensor_node_reference(uint16_t sensor_node);
+void qtouch_update_sensor_node_reference(uint16_t sensor_node, uint16_t new_reference);
 uint16_t qtouch_get_sensor_cc_val(uint16_t sensor_node);
+void qtouch_update_sensor_cc_val(uint16_t sensor_node, uint16_t new_cc_value);
 uint8_t qtouch_get_sensor_state(uint16_t sensor_node);
+void qtouch_update_sensor_state(uint16_t sensor_node, uint8_t new_state);
+void qtouch_calibrate_node(uint16_t sensor_node);
+uint8_t qtouch_get_scroller_state(uint16_t sensor_node);
 bool qtouch_is_scroller_active(uint16_t sensor_node);
 uint16_t qtouch_get_scroller_position(uint16_t sensor_node);
 
 void qtouch_timer_handler(void);
 void qtouch_init(void);
 void qtouch_process(void);
-void qtouch_force_calibrate(void);
 
-void qtimer_task_cb(const struct timer_task *const timer_task);
 void qtouch_timer_config(void);
 
 #ifdef __cplusplus

@@ -78,6 +78,7 @@ pub trait Memory {
     fn get_unlock_attempts(&mut self) -> u8;
     fn increment_unlock_attempts(&mut self);
     fn reset_unlock_attempts(&mut self);
+    fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -256,6 +257,10 @@ impl Memory for BitBox02Memory {
     fn reset_unlock_attempts(&mut self) {
         bitbox02::memory::smarteeprom_reset_unlock_attempts()
     }
+
+    fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+        bitbox02::memory::get_salt_root()
+    }
 }
 
 pub struct BitBox02Hal {
@@ -417,6 +422,7 @@ pub mod testing {
         encrypted_seed_and_hmac: Option<Vec<u8>>,
         device_name: Option<String>,
         unlock_attempts: u8,
+        salt_root: [u8; 32],
     }
 
     impl TestingSecureChip {
@@ -537,6 +543,7 @@ pub mod testing {
                 encrypted_seed_and_hmac: None,
                 device_name: None,
                 unlock_attempts: 0,
+                salt_root: *b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             }
         }
 
@@ -550,6 +557,10 @@ pub mod testing {
 
         pub fn set_unlock_attempts_for_testing(&mut self, attempts: u8) {
             self.unlock_attempts = attempts;
+        }
+
+        pub fn set_salt_root(&mut self, salt_root: &[u8; 32]) {
+            self.salt_root = *salt_root;
         }
     }
 
@@ -638,6 +649,14 @@ pub mod testing {
 
         fn reset_unlock_attempts(&mut self) {
             self.unlock_attempts = 0;
+        }
+
+        fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+            if self.salt_root.iter().all(|&b| b == 0xff) {
+                Err(())
+            } else {
+                Ok(zeroize::Zeroizing::new(self.salt_root.to_vec()))
+            }
         }
     }
 

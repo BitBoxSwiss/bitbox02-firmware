@@ -17,6 +17,7 @@ use bitcoin::secp256k1::ffi::CPtr;
 use bitcoin::secp256k1::{All, Secp256k1};
 
 use alloc::vec::Vec;
+use core::mem::MaybeUninit;
 
 /// Length of a compressed secp256k1 pubkey.
 pub const EC_PUBLIC_KEY_LEN: usize = 33;
@@ -32,24 +33,37 @@ pub fn _secp256k1_sign(
     msg: &[u8; 32],
     host_nonce: &[u8; 32],
 ) -> Result<SignResult, ()> {
-    let mut signature = [0u8; 64];
+    let mut sig = MaybeUninit::<bitbox02_sys::secp256k1_ecdsa_signature>::uninit();
     let mut recid: core::ffi::c_int = 0;
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_sign(
+    if unsafe {
+        bitbox02_sys::secp256k1_anti_exfil_sign(
             secp.ctx().as_ptr().cast(),
-            private_key.as_ptr(),
+            sig.as_mut_ptr(),
             msg.as_ptr(),
+            private_key.as_ptr(),
             host_nonce.as_ptr(),
-            signature.as_mut_ptr(),
             &mut recid,
         )
-    } {
-        true => Ok(SignResult {
-            signature,
-            recid: recid.try_into().unwrap(),
-        }),
-        false => Err(()),
+    } != 1
+    {
+        return Err(());
     }
+
+    let mut signature = [0u8; 64];
+    if unsafe {
+        bitbox02_sys::secp256k1_ecdsa_signature_serialize_compact(
+            secp.ctx().as_ptr().cast(),
+            signature.as_mut_ptr(),
+            sig.as_ptr(),
+        )
+    } != 1
+    {
+        return Err(());
+    }
+    Ok(SignResult {
+        signature,
+        recid: recid.try_into().unwrap(),
+    })
 }
 
 pub fn _secp256k1_nonce_commit(
@@ -58,19 +72,32 @@ pub fn _secp256k1_nonce_commit(
     msg: &[u8; 32],
     host_commitment: &[u8; 32],
 ) -> Result<[u8; EC_PUBLIC_KEY_LEN], ()> {
-    let mut signer_commitment = [0u8; EC_PUBLIC_KEY_LEN];
-    match unsafe {
-        bitbox02_sys::keystore_secp256k1_nonce_commit(
+    let mut signer_commitment = MaybeUninit::<bitbox02_sys::secp256k1_ecdsa_s2c_opening>::uninit();
+    if unsafe {
+        bitbox02_sys::secp256k1_ecdsa_anti_exfil_signer_commit(
             secp.ctx().as_ptr().cast(),
-            private_key.as_ptr(),
-            msg.as_ptr(),
-            host_commitment.as_ptr(),
             signer_commitment.as_mut_ptr(),
+            msg.as_ptr(),
+            private_key.as_ptr(),
+            host_commitment.as_ptr(),
         )
-    } {
-        true => Ok(signer_commitment),
-        false => Err(()),
+    } != 1
+    {
+        return Err(());
     }
+
+    let mut out = [0u8; EC_PUBLIC_KEY_LEN];
+    if unsafe {
+        bitbox02_sys::secp256k1_ecdsa_s2c_opening_serialize(
+            secp.ctx().as_ptr().cast(),
+            out.as_mut_ptr(),
+            signer_commitment.as_ptr(),
+        )
+    } != 1
+    {
+        return Err(());
+    }
+    Ok(out)
 }
 
 pub fn ecdsa_anti_exfil_host_commit(secp: &Secp256k1<All>, rand32: &[u8]) -> Result<Vec<u8>, ()> {

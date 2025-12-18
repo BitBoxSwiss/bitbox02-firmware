@@ -75,6 +75,9 @@ pub trait Memory {
     fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()>;
     fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()>;
     fn reset_hww(&mut self) -> Result<(), ()>;
+    fn get_unlock_attempts(&mut self) -> u8;
+    fn increment_unlock_attempts(&mut self);
+    fn reset_unlock_attempts(&mut self);
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -243,6 +246,16 @@ impl Memory for BitBox02Memory {
     fn reset_hww(&mut self) -> Result<(), ()> {
         bitbox02::memory::reset_hww()
     }
+
+    fn get_unlock_attempts(&mut self) -> u8 {
+        bitbox02::memory::smarteeprom_get_unlock_attempts()
+    }
+    fn increment_unlock_attempts(&mut self) {
+        bitbox02::memory::smarteeprom_increment_unlock_attempts()
+    }
+    fn reset_unlock_attempts(&mut self) {
+        bitbox02::memory::smarteeprom_reset_unlock_attempts()
+    }
 }
 
 pub struct BitBox02Hal {
@@ -403,6 +416,7 @@ pub mod testing {
         seed_birthdate: u32,
         encrypted_seed_and_hmac: Option<Vec<u8>>,
         device_name: Option<String>,
+        unlock_attempts: u8,
     }
 
     impl TestingSecureChip {
@@ -522,6 +536,7 @@ pub mod testing {
                 seed_birthdate: 0,
                 encrypted_seed_and_hmac: None,
                 device_name: None,
+                unlock_attempts: 0,
             }
         }
 
@@ -531,6 +546,10 @@ pub mod testing {
 
         pub fn set_platform(&mut self, platform: bitbox02::memory::Platform) {
             self.platform = platform;
+        }
+
+        pub fn set_unlock_attempts_for_testing(&mut self, attempts: u8) {
+            self.unlock_attempts = attempts;
         }
     }
 
@@ -607,6 +626,18 @@ pub mod testing {
             self.encrypted_seed_and_hmac = None;
             self.device_name = None;
             Ok(())
+        }
+
+        fn get_unlock_attempts(&mut self) -> u8 {
+            self.unlock_attempts
+        }
+
+        fn increment_unlock_attempts(&mut self) {
+            self.unlock_attempts += 1;
+        }
+
+        fn reset_unlock_attempts(&mut self) {
+            self.unlock_attempts = 0;
         }
     }
 

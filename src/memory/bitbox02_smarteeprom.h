@@ -20,6 +20,9 @@
 /**
  * After this many failed unlock attempts, the keystore becomes locked until a
  * device reset.
+ *
+ * Must match MAX_UNLOCK_ATTEMPTS in rust keystore.rs and
+ * SMALL_MONOTONIC_COUNTER_MAX_USE in optiga.c.
  */
 #define MAX_UNLOCK_ATTEMPTS (10)
 

@@ -24,13 +24,7 @@
 #include "util.h"
 #include <usb/usb_processing.h>
 
-#include <rust/rust.h>
 #include <secp256k1_ecdsa_s2c.h>
-
-bool keystore_get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)
-{
-    return rust_get_bip39_word(idx, rust_util_bytes_mut((uint8_t*)word_out, word_out_size));
-}
 
 bool keystore_secp256k1_nonce_commit(
     const secp256k1_context* ctx,

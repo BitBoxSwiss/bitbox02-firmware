@@ -46,7 +46,6 @@ const ALLOWLIST_VARS: &[&str] = &[
     "secfalse_u8",
     "SD_MAX_FILE_SIZE",
     "SLIDER_POSITION_TWO_THIRD",
-    "XPUB_ENCODED_LEN",
 ];
 
 const ALLOWLIST_TYPES: &[&str] = &[

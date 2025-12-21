@@ -21,17 +21,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-#if defined(TESTING)
-    #define STATUS_DEFAULT_DELAY 100 // counts
-#else
-    #define STATUS_DEFAULT_DELAY 500 // counts
-#endif
-
 typedef struct {
     bool status;
-    int counter;
-    void (*callback)(void* user_data);
-    void* user_data;
 } status_data_t;
 
 static void _render(component_t* component)
@@ -42,14 +33,6 @@ static void _render(component_t* component)
         image_checkmark(SCREEN_WIDTH / 6 * 5, SCREEN_HEIGHT / 2 - height / 2, height);
     } else {
         image_cross(SCREEN_WIDTH / 6 * 5, SCREEN_HEIGHT / 2 - height / 2, height);
-    }
-    if (data->callback != NULL) {
-        if (data->counter == STATUS_DEFAULT_DELAY) {
-            data->callback(data->user_data);
-            data->callback = NULL;
-            data->counter = 0;
-        }
-        data->counter++;
     }
     ui_util_component_render_subcomponents(component);
 }
@@ -64,11 +47,7 @@ static const component_functions_t _component_functions = {
 
 /********************************** Create Instance **********************************/
 
-component_t* status_create(
-    const char* text,
-    bool status_success,
-    void (*callback)(void* user_data),
-    void* user_data)
+component_t* status_create(const char* text, bool status_success)
 {
     component_t* status = malloc(sizeof(component_t));
     if (!status) {
@@ -82,8 +61,6 @@ component_t* status_create(
     memset(status, 0, sizeof(component_t));
 
     data->status = status_success;
-    data->callback = callback;
-    data->user_data = user_data;
     status->data = data;
     status->f = &_component_functions;
     status->dimension.width = SCREEN_WIDTH;

@@ -70,10 +70,7 @@ where
 
 pub fn screen_process() {}
 
-pub fn status_create<'a, F>(_text: &str, _status_success: bool, _callback: F) -> Component<'a>
-where
-    F: FnMut() + 'a,
-{
+pub fn status_create<'a>(_text: &str, _status_success: bool) -> Component<'a> {
     panic!("not used");
 }
 

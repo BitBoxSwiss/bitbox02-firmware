@@ -152,7 +152,7 @@ static void test_ui_components_keyboard_switch(void** state)
 
 static void test_ui_components_status(void** state)
 {
-    component_t* status = status_create("Password created", true, NULL, NULL);
+    component_t* status = status_create("Password created", true);
     assert_non_null(status);
     assert_ui_component_functions(status);
     status->f->cleanup(status);

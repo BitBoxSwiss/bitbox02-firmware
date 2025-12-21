@@ -85,15 +85,11 @@ where
 
 pub fn screen_process() {}
 
-pub fn status_create<'a, F>(text: &str, _status_success: bool, mut callback: F) -> Component<'a>
-where
-    F: FnMut() + 'a,
-{
+pub fn status_create<'a>(text: &str, _status_success: bool) -> Component<'a> {
     crate::print_stdout(&format!(
         "STATUS SCREEN START\nTITLE: {}\nSTATUS SCREEN END\n",
         text,
     ));
-    callback();
     Component {
         is_pushed: false,
         _p: PhantomData,

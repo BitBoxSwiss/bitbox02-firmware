@@ -38,11 +38,6 @@
 // indication of 600000 updates. See Solution Reference Manual Figure 32.
 #define MONOTONIC_COUNTER_MAX_USE (590000)
 
-// Maximum size of metadata. See "Metadata Update Identifier":
-// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linka946a953_def2_41cf_850a_74fb7899fe11
-// Two extra bytes for the `0x20 <len>` header bytes.
-#define METADATA_MAX_SIZE (44 + 2)
-
 // See Solution Reference Manual Table 79 "Data structure arbitrary data object".
 #define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
 
@@ -67,18 +62,7 @@ static optiga_crypt_t* _crypt;
 
 static const securechip_interface_functions_t* _ifs = NULL;
 
-// Values of life cycle states.
-// See Table "Life Cycle Status":
-// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link05d4c12a_5c94_4a05_a05d_102c53684d3d
-#define LCSO_STATE_CREATION (0x01)
-#define LCSO_STATE_OPERATIONAL (0x07)
-
 #define TAG_LCSO 0xC0
-
-// Set the object LcsO flag to Operational. After this, the metadata cannot be changed anymore.
-// During development, set this to `LCSO_STATE_CREATION`.
-#define FINAL_LCSO_STATE_V0 LCSO_STATE_OPERATIONAL
-#define FINAL_LCSO_STATE_V1 LCSO_STATE_OPERATIONAL
 
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || VERIFY_METADATA == 1
 static const uint8_t _platform_binding_metadata[] = {
@@ -1068,11 +1052,6 @@ static int _verify_metadata(
 // Updates Optiga config to V1 if not already done.
 static int _maybe_update_config_v1(void)
 {
-#ifdef TESTING
-    // We don't yet unit-test the config update.
-    return 0;
-#endif
-
     memory_optiga_config_version_t config_version;
     if (!memory_get_optiga_config_version(&config_version)) {
         return SC_ERR_MEMORY;

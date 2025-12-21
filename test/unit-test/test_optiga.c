@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <cmocka.h>
 
+#include <fake_memory.h>
 #include <memory/memory.h>
 #include <optiga/optiga.h>
 #include <optiga/optiga_ops.h>
@@ -137,6 +138,11 @@ static const uint8_t _expected_stretched_out_v1[32] = {
     0X4D, 0XC5, 0X08, 0XF3, 0XB5, 0XB9, 0X57, 0X7D, 0XD9, 0XDD, 0X57, 0XEE, 0XCF, 0X49, 0X67, 0X51,
 };
 
+static uint8_t _hmac_writeprotected_metadata[METADATA_MAX_SIZE] = {0};
+static uint16_t _hmac_writeprotected_metadata_len = 0;
+static uint8_t _counter_hmac_writeprotected_metadata[METADATA_MAX_SIZE] = {0};
+static uint16_t _counter_hmac_writeprotected_metadata_len = 0;
+
 //------------------------------------------------------------------------------
 // Minimal securechip interface fakes.
 
@@ -205,12 +211,39 @@ static uint8_t _oid_counter_hmac_writeprotected_buf[8];
 static bool _authorized_password;
 static bool _authorized_password_secret;
 
-static void _reset_fakes(void)
+static void _setup_test(void)
 {
+    fake_memory_factoryreset();
+    memory_optiga_config_version_t config_version;
+    assert_true(memory_get_optiga_config_version(&config_version));
+    assert_int_equal(config_version, MEMORY_OPTIGA_CONFIG_V0);
+
     memset(_oid_password, 0, sizeof(_oid_password));
     _oid_password_set = false;
     _authorized_password = false;
     _authorized_password_secret = false;
+
+    // Initial metadata mock is minimal and only contains the LCSO state, as we read that out first
+    // to determine if these slot needs to be configured.
+    uint8_t metadata[5] = {
+        // Metadata tag in the data object
+        0x20,
+        // Number of bytes that follow
+        0x03,
+        0xC0,
+        0x01,
+        // Forces a config update, as it is not OPERATIONAL.
+        LCSO_STATE_CREATION,
+    };
+    memcpy(_hmac_writeprotected_metadata, metadata, sizeof(metadata));
+    _hmac_writeprotected_metadata_len = sizeof(metadata);
+    memcpy(_counter_hmac_writeprotected_metadata, metadata, sizeof(metadata));
+    _counter_hmac_writeprotected_metadata_len = sizeof(metadata);
+
+    assert_int_equal(optiga_setup(&_ifs), 0);
+    // After setup, the config is updated.
+    assert_true(memory_get_optiga_config_version(&config_version));
+    assert_int_equal(config_version, MEMORY_OPTIGA_CONFIG_V1);
 }
 
 static uint32_t _get_counter(uint16_t oid)
@@ -342,10 +375,21 @@ optiga_lib_status_t optiga_ops_util_read_metadata_sync(
     uint16_t* length)
 {
     (void)me;
-    (void)optiga_oid;
-    (void)buffer;
-    (void)length;
-    return OPTIGA_UTIL_ERROR;
+    switch (optiga_oid) {
+    case OID_HMAC_WRITEPROTECTED:
+        memcpy(buffer, _hmac_writeprotected_metadata, _hmac_writeprotected_metadata_len);
+        *length = _hmac_writeprotected_metadata_len;
+        return OPTIGA_UTIL_SUCCESS;
+    case OID_COUNTER_HMAC_WRITEPROTECTED:
+        memcpy(
+            buffer,
+            _counter_hmac_writeprotected_metadata,
+            _counter_hmac_writeprotected_metadata_len);
+        *length = _counter_hmac_writeprotected_metadata_len;
+        return OPTIGA_UTIL_SUCCESS;
+    default:
+        return OPTIGA_UTIL_ERROR;
+    }
 }
 
 optiga_lib_status_t optiga_ops_util_write_metadata_sync(
@@ -355,10 +399,18 @@ optiga_lib_status_t optiga_ops_util_write_metadata_sync(
     uint8_t length)
 {
     (void)me;
-    (void)optiga_oid;
-    (void)buffer;
-    (void)length;
-    return OPTIGA_UTIL_ERROR;
+    switch (optiga_oid) {
+    case OID_HMAC_WRITEPROTECTED:
+        memcpy(_hmac_writeprotected_metadata, buffer, length);
+        _hmac_writeprotected_metadata_len = length;
+        return OPTIGA_UTIL_SUCCESS;
+    case OID_COUNTER_HMAC_WRITEPROTECTED:
+        memcpy(_counter_hmac_writeprotected_metadata, buffer, length);
+        _counter_hmac_writeprotected_metadata_len = length;
+        return OPTIGA_UTIL_SUCCESS;
+    default:
+        return OPTIGA_UTIL_ERROR;
+    }
 }
 
 optiga_lib_status_t optiga_ops_util_read_data_sync(
@@ -698,8 +750,7 @@ optiga_lib_status_t optiga_ops_crypt_ecdsa_sign_sync(
 static void test_optiga_stretch_password_v0_success(void** state)
 {
     (void)state;
-    _reset_fakes();
-    assert_int_equal(optiga_setup(&_ifs), 0);
+    _setup_test();
 
     // Seed the OID_PASSWORD and OID_PASSWORD_COUNTER objects as if they were provisioned earlier.
     assert_true(salt_hash_data((const uint8_t*)"pw", 2, "optiga_password", _oid_password));
@@ -720,8 +771,7 @@ static void test_optiga_stretch_password_v0_success(void** state)
 static void test_optiga_stretch_password_v0_attempt_counter(void** state)
 {
     (void)state;
-    _reset_fakes();
-    assert_int_equal(optiga_setup(&_ifs), 0);
+    _setup_test();
 
     // Seed the OID_PASSWORD and OID_PASSWORD_COUNTER objects as if they were provisioned earlier.
     assert_true(salt_hash_data((const uint8_t*)"pw", 2, "optiga_password", _oid_password));
@@ -770,8 +820,7 @@ static void test_optiga_stretch_password_v0_attempt_counter(void** state)
 static void test_optiga_password_v1_stretch_exhaust_fails_after_init(void** state)
 {
     (void)state;
-    _reset_fakes();
-    assert_int_equal(optiga_setup(&_ifs), 0);
+    _setup_test();
 
     uint8_t stretched[32] = {0};
     assert_int_equal(optiga_init_new_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
@@ -815,8 +864,7 @@ static void test_optiga_password_v1_stretch_exhaust_fails_after_init(void** stat
 static void test_optiga_password_v1(void** state)
 {
     (void)state;
-    _reset_fakes();
-    assert_int_equal(optiga_setup(&_ifs), 0);
+    _setup_test();
 
     uint8_t stretched[32] = {0};
     assert_int_equal(optiga_init_new_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);

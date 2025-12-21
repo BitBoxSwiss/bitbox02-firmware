@@ -65,6 +65,22 @@
 // The counter is reset when the correct password is entered.
 #define SMALL_MONOTONIC_COUNTER_MAX_USE (MAX_UNLOCK_ATTEMPTS)
 
+// Values of life cycle states.
+// See Table "Life Cycle Status":
+// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link05d4c12a_5c94_4a05_a05d_102c53684d3d
+#define LCSO_STATE_CREATION (0x01)
+#define LCSO_STATE_OPERATIONAL (0x07)
+
+// Set the object LcsO flag to Operational. After this, the metadata cannot be changed anymore.
+// During development, set this to `LCSO_STATE_CREATION`.
+#define FINAL_LCSO_STATE_V0 LCSO_STATE_OPERATIONAL
+#define FINAL_LCSO_STATE_V1 LCSO_STATE_OPERATIONAL
+
+// Maximum size of metadata. See "Metadata Update Identifier":
+// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linka946a953_def2_41cf_850a_74fb7899fe11
+// Two extra bytes for the `0x20 <len>` header bytes.
+#define METADATA_MAX_SIZE (44 + 2)
+
 USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out);
 USE_RESULT int optiga_init_new_password(

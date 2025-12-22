@@ -21,7 +21,6 @@ const ALLOWLIST_VARS: &[&str] = &[
     "BASE58_CHECKSUM_LEN",
     "BIP32_SERIALIZED_LEN",
     "BIP39_WORDLIST_LEN",
-    "EC_PUBLIC_KEY_LEN",
     "font_font_a_11X10",
     "font_font_a_9X9",
     "font_monogram_5X9",

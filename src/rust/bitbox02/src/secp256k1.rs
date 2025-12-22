@@ -14,13 +14,11 @@
 
 use bitcoin::secp256k1::ffi::CPtr;
 
+pub use bitcoin::secp256k1::constants::PUBLIC_KEY_SIZE;
 use bitcoin::secp256k1::{All, Secp256k1};
 
 use alloc::vec::Vec;
 use core::mem::MaybeUninit;
-
-/// Length of a compressed secp256k1 pubkey.
-pub const EC_PUBLIC_KEY_LEN: usize = 33;
 
 pub struct SignResult {
     pub signature: [u8; 64],
@@ -71,7 +69,7 @@ pub fn _secp256k1_nonce_commit(
     private_key: &[u8; 32],
     msg: &[u8; 32],
     host_commitment: &[u8; 32],
-) -> Result<[u8; EC_PUBLIC_KEY_LEN], ()> {
+) -> Result<[u8; PUBLIC_KEY_SIZE], ()> {
     let mut signer_commitment = MaybeUninit::<bitbox02_sys::secp256k1_ecdsa_s2c_opening>::uninit();
     if unsafe {
         bitbox02_sys::secp256k1_ecdsa_anti_exfil_signer_commit(
@@ -86,7 +84,7 @@ pub fn _secp256k1_nonce_commit(
         return Err(());
     }
 
-    let mut out = [0u8; EC_PUBLIC_KEY_LEN];
+    let mut out = [0u8; PUBLIC_KEY_SIZE];
     if unsafe {
         bitbox02_sys::secp256k1_ecdsa_s2c_opening_serialize(
             secp.ctx().as_ptr().cast(),

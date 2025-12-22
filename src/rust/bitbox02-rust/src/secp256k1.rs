@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub use bitcoin::secp256k1::constants::PUBLIC_KEY_SIZE;
 use bitcoin::secp256k1::{All, Secp256k1};
+
 use core::cell::OnceCell;
 use core::ops::Deref;
 
@@ -45,9 +47,6 @@ impl Deref for GlobalContext {
         })
     }
 }
-
-/// Length of a compressed secp256k1 pubkey.
-const EC_PUBLIC_KEY_LEN: usize = 33;
 
 /// Sign message with private key using the given private key.
 ///
@@ -91,13 +90,13 @@ pub fn secp256k1_sign(
 ///   host_nonce is passed to `secp256k1_sign()`. See `secp256k1_ecdsa_anti_exfil_host_commit()`.
 ///
 /// # Returns
-/// * `Ok([u8; EC_PUBLIC_KEY_LEN])` - EC_PUBLIC_KEY_LEN bytes compressed signer nonce pubkey on success
+/// * `Ok([u8; PUBLIC_KEY_SIZE])` - PUBLIC_KEY_SIZE bytes compressed signer nonce pubkey on success
 /// * `Err(())` on failure
 pub fn secp256k1_nonce_commit(
     private_key: &[u8; 32],
     msg: &[u8; 32],
     host_commitment: &[u8; 32],
-) -> Result<[u8; EC_PUBLIC_KEY_LEN], ()> {
+) -> Result<[u8; PUBLIC_KEY_SIZE], ()> {
     bitbox02::secp256k1::_secp256k1_nonce_commit(SECP256K1, private_key, msg, host_commitment)
 }
 

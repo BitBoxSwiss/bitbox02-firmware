@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "da14531/da14531_protocol.h"
-#include "crc.h"
 #include "da14531/da14531_binary.h"
 #include "platform_config.h"
 #include "uart.h"
@@ -295,9 +294,7 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
         uint16_t crc_frame = *(uint16_t*)&self->frame[3 + len];
 
         // Recalculate CRC
-        crc_t crc = crc_init();
-        crc = crc_update(crc, &self->frame[0], 3 + len);
-        crc = crc_finalize(crc);
+        uint16_t crc = rust_da14531_crc(rust_util_bytes(&self->frame[0], 3 + len));
 
         self->state = SERIAL_LINK_STATE_READING;
         self->frame_len = 0;
@@ -314,22 +311,6 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
     return NULL;
 }
 
-static void _serial_link_format_byte(uint8_t data, uint8_t* buf, uint16_t buf_len, uint16_t* idx)
-{
-    ASSERT(*idx + 2 <= buf_len);
-    (void)buf_len;
-    switch (data) {
-    case SL_SOF:
-    case SL_ESCAPE:
-        buf[(*idx)++] = SL_ESCAPE;
-        buf[(*idx)++] = data ^ SL_XOR;
-        break;
-    default:
-        buf[(*idx)++] = data;
-        break;
-    }
-}
-
 uint16_t da14531_protocol_format(
     uint8_t* buf,
     uint16_t buf_len,
@@ -337,38 +318,10 @@ uint16_t da14531_protocol_format(
     const uint8_t* payload,
     uint16_t payload_len)
 {
-    uint16_t idx = 0;
-    crc_t crc = crc_init();
-
-    ASSERT(idx < buf_len);
-    buf[idx++] = SL_SOF;
-
-    crc = crc_update(crc, &type, 1);
-    _serial_link_format_byte(type, buf, buf_len, &idx);
-
-    uint8_t len = payload_len & 0xff;
-    crc = crc_update(crc, &len, 1);
-    _serial_link_format_byte(len, buf, buf_len, &idx);
-
-    len = (payload_len >> 8) & 0xff;
-    crc = crc_update(crc, &len, 1);
-    _serial_link_format_byte(len, buf, buf_len, &idx);
-
-    for (int i = 0; i < payload_len; i++) {
-        _serial_link_format_byte(payload[i], buf, buf_len, &idx);
-    }
-
-    crc = crc_update(crc, &payload[0], payload_len);
-    crc = crc_finalize(crc);
-
-    // crc_t is the "fastest" type that holds u16, so can be longer than 2 bytes
-    for (unsigned int i = 0; i < sizeof(uint16_t); i++) {
-        _serial_link_format_byte(crc & 0xff, buf, buf_len, &idx);
-        crc >>= 8;
-    }
-    ASSERT(idx < buf_len);
-    buf[idx++] = SL_SOF;
-    return idx;
+    return rust_da14531_protocol_format(
+        rust_util_bytes_mut(buf, buf_len),
+        (ProtocolPacketType)type,
+        rust_util_bytes(payload, payload_len));
 }
 
 struct da14531_protocol_frame* da14531_protocol_poll(

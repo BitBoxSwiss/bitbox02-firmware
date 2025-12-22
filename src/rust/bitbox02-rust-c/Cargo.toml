@@ -14,6 +14,7 @@ bitbox02 = { path = "../bitbox02", optional = true }
 bitbox02-noise = { path = "../bitbox02-noise", optional = true }
 cortex-m = { workspace = true }
 util = { path = "../util" }
+bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
 der =  { version = "0.7.9", default-features = false, optional = true }
 hex = { workspace = true }
 sha2 = { workspace = true, optional = true }

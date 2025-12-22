@@ -286,6 +286,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-framed-serial-link"
+version = "0.1.0"
+dependencies = [
+ "crc",
+ "util",
+]
+
+[[package]]
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
@@ -346,6 +354,7 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-aes",
+ "bitbox-framed-serial-link",
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",

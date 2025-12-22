@@ -74,18 +74,14 @@ def main() -> int:
         "the signatures are not being verified."
     )
 
-    firmware_padded = firmware + b"\xFF" * (MAX_FIRMWARE_SIZE - len(firmware))
+    firmware_padded = firmware + b"\xff" * (MAX_FIRMWARE_SIZE - len(firmware))
 
-    print(
-        "The hash of the unsigned firmware binary is (compare with reproducible build):"
-    )
+    print("The hash of the unsigned firmware binary is (compare with reproducible build):")
     print(hashlib.sha256(firmware).hexdigest())
     version = sigdata[SIGNING_PUBKEYS_DATA_LEN:][:VERSION_LEN]
     print("The monotonic firmware version is:", struct.unpack("<I", version)[0])
     print("The hash of the firmware as verified/shown by the bootloader is:")
-    print(
-        hashlib.sha256(hashlib.sha256(version + firmware_padded).digest()).hexdigest()
-    )
+    print(hashlib.sha256(hashlib.sha256(version + firmware_padded).digest()).hexdigest())
 
     return 0
 

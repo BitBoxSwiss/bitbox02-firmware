@@ -33,9 +33,7 @@ def main():
     """Main function"""
     parser = argparse.ArgumentParser()
     parser.add_argument("pbmfile")
-    parser.add_argument(
-        "--name", help="Name to give to the resulting variable", nargs="?"
-    )
+    parser.add_argument("--name", help="Name to give to the resulting variable", nargs="?")
     args = parser.parse_args()
 
     with open(args.pbmfile) as file:

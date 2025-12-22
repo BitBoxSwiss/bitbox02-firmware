@@ -28,6 +28,9 @@ extern crate bitbox_aes;
 ))]
 extern crate bitbox02_rust;
 
+// Expose C interface defined in bitbox-framed-serial-link
+extern crate bitbox_framed_serial_link;
+
 // Expose C interface defined in util
 extern crate util;
 

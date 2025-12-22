@@ -16,7 +16,6 @@
 #include "driver_init.h"
 #include "flags.h"
 #include "hardfault.h"
-#include "keystore.h"
 #include "memory/memory.h"
 #include "memory/mpu.h"
 #include "memory/smarteeprom.h"

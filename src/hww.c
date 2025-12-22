@@ -15,7 +15,6 @@
 #include "hww.h"
 
 #include <hardfault.h>
-#include <keystore.h>
 #include <memory/memory.h>
 #include <version.h>
 

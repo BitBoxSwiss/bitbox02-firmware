@@ -17,7 +17,6 @@
 #include <string.h>
 
 #include <hardfault.h>
-#include <keystore.h>
 #include <memory/memory.h>
 #include <random.h>
 #include <rust/rust.h>
@@ -264,11 +263,11 @@ USE_RESULT static bool _keyhandle_gen(
     // Concatenate AppId and Nonce as input for the first HMAC round
     memcpy(hmac_in, appId, U2F_APPID_SIZE);
     memcpy(hmac_in + U2F_APPID_SIZE, nonce, U2F_NONCE_LENGTH);
-    rust_hmac_sha256(seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), privkey);
+    rust_hmac_sha256(seed, sizeof(seed), hmac_in, sizeof(hmac_in), privkey);
 
     // Concatenate AppId and privkey for the second HMAC round
     memcpy(hmac_in + U2F_APPID_SIZE, privkey, HMAC_SHA256_LEN);
-    rust_hmac_sha256(seed, KEYSTORE_U2F_SEED_LENGTH, hmac_in, sizeof(hmac_in), mac);
+    rust_hmac_sha256(seed, sizeof(seed), hmac_in, sizeof(hmac_in), mac);
     return true;
 }
 

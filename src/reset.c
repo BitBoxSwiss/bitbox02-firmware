@@ -16,7 +16,6 @@
 
 #include "da14531/da14531.h"
 #include "hardfault.h"
-#include "keystore.h"
 #include "memory/memory.h"
 #include "memory/memory_shared.h"
 #include "system.h"

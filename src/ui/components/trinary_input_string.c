@@ -21,7 +21,7 @@
 #include "trinary_input_char.h"
 
 #include <hardfault.h>
-#include <keystore.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <touch/gestures.h>
 #include <ui/event.h>
@@ -60,6 +60,13 @@ static char _digits[] = "0123456789";
 static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?^[\\]@_{|}";
 
 static const UG_FONT* _font = &font_password_11X12;
+
+static void _get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)
+{
+    if (!rust_get_bip39_word(idx, rust_util_bytes_mut((uint8_t*)word_out, word_out_size))) {
+        Abort("_get_bip39_word_stack");
+    }
+}
 
 typedef struct {
     // Can be NULL.
@@ -289,9 +296,7 @@ static void _set_alphabet(component_t* trinary_input_string, bool maybe_autocomp
         char charset[27] = {0};
         for (size_t word_idx = 0; word_idx < data->wordlist_size; word_idx++) {
             char word[10];
-            if (!keystore_get_bip39_word_stack(data->wordlist[word_idx], word, sizeof(word))) {
-                Abort("keystore_get_bip39_word_stack");
-            }
+            _get_bip39_word_stack(data->wordlist[word_idx], word, sizeof(word));
 
             if (STREQ(word, data->string)) {
                 data->can_confirm = true;
@@ -317,10 +322,7 @@ static void _set_alphabet(component_t* trinary_input_string, bool maybe_autocomp
 
         if (maybe_autocomplete && !found_word_not_unique && found_word_idx != data->wordlist_size) {
             char word[10];
-            if (!keystore_get_bip39_word_stack(
-                    data->wordlist[found_word_idx], word, sizeof(word))) {
-                Abort("keystore_get_bip39_word_stack");
-            }
+            _get_bip39_word_stack(data->wordlist[found_word_idx], word, sizeof(word));
 
             data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);
             // We autocompleted, so we don't offer any more letters to choose. The charset above
@@ -523,9 +525,7 @@ void trinary_input_string_set_input(component_t* trinary_input_string, const cha
     }
     for (size_t i = 0; i < data->wordlist_size; i++) {
         char bip39_word[10];
-        if (!keystore_get_bip39_word_stack(data->wordlist[i], bip39_word, sizeof(bip39_word))) {
-            Abort("keystore_get_bip39_word_stack");
-        }
+        _get_bip39_word_stack(data->wordlist[i], bip39_word, sizeof(bip39_word));
 
         if (STREQ(bip39_word, word)) {
             data->string_index = snprintf(data->string, sizeof(data->string), "%s", word);

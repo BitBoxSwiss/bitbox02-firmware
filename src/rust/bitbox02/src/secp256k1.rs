@@ -14,9 +14,89 @@
 
 use bitcoin::secp256k1::ffi::CPtr;
 
+pub use bitcoin::secp256k1::constants::PUBLIC_KEY_SIZE;
 use bitcoin::secp256k1::{All, Secp256k1};
 
 use alloc::vec::Vec;
+use core::mem::MaybeUninit;
+
+pub struct SignResult {
+    pub signature: [u8; 64],
+    pub recid: u8,
+}
+
+pub fn _secp256k1_sign(
+    secp: &Secp256k1<All>,
+    private_key: &[u8; 32],
+    msg: &[u8; 32],
+    host_nonce: &[u8; 32],
+) -> Result<SignResult, ()> {
+    let mut sig = MaybeUninit::<bitbox02_sys::secp256k1_ecdsa_signature>::uninit();
+    let mut recid: core::ffi::c_int = 0;
+    if unsafe {
+        bitbox02_sys::secp256k1_anti_exfil_sign(
+            secp.ctx().as_ptr().cast(),
+            sig.as_mut_ptr(),
+            msg.as_ptr(),
+            private_key.as_ptr(),
+            host_nonce.as_ptr(),
+            &mut recid,
+        )
+    } != 1
+    {
+        return Err(());
+    }
+
+    let mut signature = [0u8; 64];
+    if unsafe {
+        bitbox02_sys::secp256k1_ecdsa_signature_serialize_compact(
+            secp.ctx().as_ptr().cast(),
+            signature.as_mut_ptr(),
+            sig.as_ptr(),
+        )
+    } != 1
+    {
+        return Err(());
+    }
+    Ok(SignResult {
+        signature,
+        recid: recid.try_into().unwrap(),
+    })
+}
+
+pub fn _secp256k1_nonce_commit(
+    secp: &Secp256k1<All>,
+    private_key: &[u8; 32],
+    msg: &[u8; 32],
+    host_commitment: &[u8; 32],
+) -> Result<[u8; PUBLIC_KEY_SIZE], ()> {
+    let mut signer_commitment = MaybeUninit::<bitbox02_sys::secp256k1_ecdsa_s2c_opening>::uninit();
+    if unsafe {
+        bitbox02_sys::secp256k1_ecdsa_anti_exfil_signer_commit(
+            secp.ctx().as_ptr().cast(),
+            signer_commitment.as_mut_ptr(),
+            msg.as_ptr(),
+            private_key.as_ptr(),
+            host_commitment.as_ptr(),
+        )
+    } != 1
+    {
+        return Err(());
+    }
+
+    let mut out = [0u8; PUBLIC_KEY_SIZE];
+    if unsafe {
+        bitbox02_sys::secp256k1_ecdsa_s2c_opening_serialize(
+            secp.ctx().as_ptr().cast(),
+            out.as_mut_ptr(),
+            signer_commitment.as_ptr(),
+        )
+    } != 1
+    {
+        return Err(());
+    }
+    Ok(out)
+}
 
 pub fn ecdsa_anti_exfil_host_commit(secp: &Secp256k1<All>, rand32: &[u8]) -> Result<Vec<u8>, ()> {
     let mut out = [0u8; 32];

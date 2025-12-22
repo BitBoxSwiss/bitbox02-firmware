@@ -328,7 +328,7 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
 
 static void _serial_link_format_byte(uint8_t data, uint8_t* buf, uint16_t buf_len, uint16_t* idx)
 {
-    ASSERT(*idx + 2 < buf_len);
+    ASSERT(*idx + 2 <= buf_len);
     (void)buf_len;
     switch (data) {
     case SL_SOF:
@@ -352,7 +352,7 @@ uint16_t da14531_protocol_format(
     uint16_t idx = 0;
     crc_t crc = crc_init();
 
-    ASSERT(idx + 1 < buf_len);
+    ASSERT(idx < buf_len);
     buf[idx++] = SL_SOF;
 
     crc = crc_update(crc, &type, 1);
@@ -378,7 +378,7 @@ uint16_t da14531_protocol_format(
         _serial_link_format_byte(crc & 0xff, buf, buf_len, &idx);
         crc >>= 8;
     }
-    ASSERT(idx + 1 < buf_len);
+    ASSERT(idx < buf_len);
     buf[idx++] = SL_SOF;
     return idx;
 }
@@ -393,7 +393,7 @@ struct da14531_protocol_frame* da14531_protocol_poll(
         uint8_t tmp[12 + 64 * 2];
         int len = da14531_protocol_format(
             &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA, *hww_data, 64);
-        ASSERT(len < (int)sizeof(tmp));
+        ASSERT(len <= (int)sizeof(tmp));
         // If it won't fit, try again later
         if (ringbuffer_num(out_queue) + len > out_queue->size) {
             util_log("ringbuffer full");

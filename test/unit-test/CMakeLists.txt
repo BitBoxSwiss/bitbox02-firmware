@@ -45,8 +45,6 @@ else()
      ""
      memory
      "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
-     da14531
-     ""
      util
      ""
      ugui
@@ -75,7 +73,6 @@ else()
     )
     target_include_directories(${EXE} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
     )
     if(TEST_NAME STREQUAL "optiga")
       target_sources(${EXE} PRIVATE

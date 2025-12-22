@@ -166,27 +166,11 @@ pub fn screen_process() {
     }
 }
 
-pub fn status_create<'a, F>(text: &str, status_success: bool, callback: F) -> Component<'a>
-where
-    // Callback must outlive component.
-    F: FnMut() + 'a,
-{
-    unsafe extern "C" fn c_callback<F2>(user_data: *mut c_void)
-    where
-        F2: FnMut(),
-    {
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
-        callback();
-    }
-
+pub fn status_create<'a>(text: &str, status_success: bool) -> Component<'a> {
     let component = unsafe {
         bitbox02_sys::status_create(
             crate::util::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
             status_success,
-            Some(c_callback::<F>),
-            Box::into_raw(Box::new(callback)) as *mut _, // passed to c_callback as `user_data`.
         )
     };
     Component {

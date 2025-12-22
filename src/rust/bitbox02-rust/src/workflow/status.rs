@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bb02_async::option_no_screensaver;
-use core::cell::RefCell;
+use bitbox02::delay::delay_for;
+use core::time::Duration;
 
 pub async fn status(title: &str, status_success: bool) {
-    let result = RefCell::new(None);
-    let mut component = bitbox02::ui::status_create(title, status_success, || {
-        *result.borrow_mut() = Some(());
-    });
+    let mut component = bitbox02::ui::status_create(title, status_success);
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    delay_for(Duration::from_millis(2000)).await;
 }

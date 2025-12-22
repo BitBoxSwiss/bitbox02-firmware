@@ -70,7 +70,7 @@ impl Deref for GlobalContext {
 ///
 /// # Returns
 /// * `Ok(SignResult)` containing signature in compact format and recoverable id on success
-/// * `Err(())` if the keystore is locked
+/// * `Err(())` on error.
 pub fn secp256k1_sign(
     private_key: &[u8; 32],
     msg: &[u8; 32],

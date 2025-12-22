@@ -19,7 +19,7 @@ use alloc::vec::Vec;
 use pb::response::Response;
 
 use crate::backup;
-use crate::hal::{Memory, Sd, Ui};
+use crate::hal::{Memory, Sd, Time, Ui};
 use crate::workflow::{confirm, unlock};
 
 pub async fn check(
@@ -79,11 +79,14 @@ pub async fn create(
         timezone_offset,
     }: &pb::CreateBackupRequest,
 ) -> Result<Response, Error> {
+    let formatted_datetime = hal
+        .time()
+        .format_datetime(timestamp, timezone_offset, true)
+        .map_err(|_| Error::InvalidInput)?;
     hal.ui()
         .confirm(&confirm::Params {
             title: "Is today?",
-            body: &bitbox02::format_datetime(timestamp, timezone_offset, true)
-                .map_err(|_| Error::InvalidInput)?,
+            body: &formatted_datetime,
             ..Default::default()
         })
         .await?;

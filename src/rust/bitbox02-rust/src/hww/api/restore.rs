@@ -17,9 +17,9 @@ use crate::pb;
 
 use pb::response::Response;
 
-#[cfg(feature = "app-u2f")]
-use crate::hal::SecureChip;
 use crate::hal::{Memory, Ui};
+#[cfg(feature = "app-u2f")]
+use crate::hal::{SecureChip, Time};
 use crate::workflow::{confirm, mnemonic, password, unlock};
 
 pub async fn from_file(
@@ -54,9 +54,10 @@ pub async fn from_file(
 
     #[cfg(feature = "app-u2f")]
     {
-        let datetime_string =
-            bitbox02::format_datetime(request.timestamp, request.timezone_offset, false)
-                .map_err(|_| Error::InvalidInput)?;
+        let datetime_string = hal
+            .time()
+            .format_datetime(request.timestamp, request.timezone_offset, false)
+            .map_err(|_| Error::InvalidInput)?;
         let params = confirm::Params {
             title: "Is now?",
             body: &datetime_string,
@@ -104,7 +105,9 @@ pub async fn from_mnemonic(
 ) -> Result<Response, Error> {
     #[cfg(feature = "app-u2f")]
     {
-        let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false)
+        let datetime_string = hal
+            .time()
+            .format_datetime(timestamp, timezone_offset, false)
             .map_err(|_| Error::InvalidInput)?;
         hal.ui()
             .confirm(&confirm::Params {

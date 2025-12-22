@@ -16,7 +16,7 @@ use prost::Message;
 
 use crate::pb_backup;
 
-use crate::hal::Sd;
+use crate::hal::{Sd, Time};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -239,7 +239,10 @@ pub async fn create(
         .or(Err(Error::SdList))?;
 
     let filename_datetime = {
-        let tm = bitbox02::get_datetime(backup_create_timestamp).map_err(|_| Error::Generic)?;
+        let tm = hal
+            .time()
+            .get_datetime(backup_create_timestamp)
+            .map_err(|_| Error::Generic)?;
         format!(
             "{}_{}T{}-{}-{}Z",
             tm.weekday(),

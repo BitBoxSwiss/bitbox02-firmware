@@ -81,6 +81,16 @@ pub trait Memory {
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
 }
 
+pub trait Time {
+    fn get_datetime(&mut self, timestamp: u32) -> Result<bitbox02::Tm, ()>;
+    fn format_datetime(
+        &mut self,
+        timestamp: u32,
+        timezone_offset: i32,
+        date_only: bool,
+    ) -> Result<String, ()>;
+}
+
 /// Hardware abstraction layer for BitBox devices.
 pub trait Hal {
     fn ui(&mut self) -> &mut impl Ui;
@@ -88,6 +98,7 @@ pub trait Hal {
     fn random(&mut self) -> &mut impl Random;
     fn securechip(&mut self) -> &mut impl SecureChip;
     fn memory(&mut self) -> &mut impl Memory;
+    fn time(&mut self) -> &mut impl Time;
 }
 
 pub struct BitBox02Sd;
@@ -263,12 +274,30 @@ impl Memory for BitBox02Memory {
     }
 }
 
+pub struct BitBox02Time;
+
+impl Time for BitBox02Time {
+    fn get_datetime(&mut self, timestamp: u32) -> Result<bitbox02::Tm, ()> {
+        bitbox02::get_datetime(timestamp)
+    }
+
+    fn format_datetime(
+        &mut self,
+        timestamp: u32,
+        timezone_offset: i32,
+        date_only: bool,
+    ) -> Result<String, ()> {
+        bitbox02::format_datetime(timestamp, timezone_offset, date_only)
+    }
+}
+
 pub struct BitBox02Hal {
     ui: RealWorkflows,
     sd: BitBox02Sd,
     random: BitBox02Random,
     securechip: BitBox02SecureChip,
     memory: BitBox02Memory,
+    time: BitBox02Time,
 }
 
 impl BitBox02Hal {
@@ -279,6 +308,7 @@ impl BitBox02Hal {
             random: BitBox02Random,
             securechip: BitBox02SecureChip,
             memory: BitBox02Memory,
+            time: BitBox02Time,
         }
     }
 }
@@ -298,6 +328,9 @@ impl Hal for BitBox02Hal {
     }
     fn memory(&mut self) -> &mut impl Memory {
         &mut self.memory
+    }
+    fn time(&mut self) -> &mut impl Time {
+        &mut self.time
     }
 }
 
@@ -660,12 +693,30 @@ pub mod testing {
         }
     }
 
+    pub struct TestingTime;
+
+    impl super::Time for TestingTime {
+        fn get_datetime(&mut self, timestamp: u32) -> Result<bitbox02::Tm, ()> {
+            bitbox02::get_datetime(timestamp)
+        }
+
+        fn format_datetime(
+            &mut self,
+            timestamp: u32,
+            timezone_offset: i32,
+            date_only: bool,
+        ) -> Result<String, ()> {
+            bitbox02::format_datetime(timestamp, timezone_offset, date_only)
+        }
+    }
+
     pub struct TestingHal<'a> {
         pub ui: crate::workflow::testing::TestingWorkflows<'a>,
         pub sd: TestingSd,
         pub random: TestingRandom,
         pub securechip: TestingSecureChip,
         pub memory: TestingMemory,
+        pub time: TestingTime,
     }
 
     impl TestingHal<'_> {
@@ -676,6 +727,7 @@ pub mod testing {
                 random: TestingRandom::new(),
                 securechip: TestingSecureChip::new(),
                 memory: TestingMemory::new(),
+                time: TestingTime,
             }
         }
     }
@@ -695,6 +747,9 @@ pub mod testing {
         }
         fn memory(&mut self) -> &mut impl super::Memory {
             &mut self.memory
+        }
+        fn time(&mut self) -> &mut impl super::Time {
+            &mut self.time
         }
     }
 

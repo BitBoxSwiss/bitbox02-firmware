@@ -156,7 +156,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Status {
-                    title: "Wrong password\n9 tries remain".into(),
+                    title: "Wrong password".into(),
                     success: false,
                 }
             ]

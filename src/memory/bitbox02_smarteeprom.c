@@ -17,6 +17,8 @@
 #include "hardfault.h"
 #include "memory/smarteeprom.h"
 
+#include <rust/rust.h> // for MAX_UNLOCK_ATTEMPTS
+
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>

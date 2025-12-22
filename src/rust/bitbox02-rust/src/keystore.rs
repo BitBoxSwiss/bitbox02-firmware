@@ -40,9 +40,8 @@ const ENCRYPTION_OVERHEAD: usize = 64;
 // to roughly seven seconds so we don't assume communication was lost mid-unlock.
 const LONG_TIMEOUT: i16 = -70;
 
-// Must match MAX_UNLOCK_ATTEMPTS in bitbox02_smarteeprom.h and
-// SMALL_MONOTONIC_COUNTER_MAX_USE in optiga.c.
-const MAX_UNLOCK_ATTEMPTS: u8 = 10;
+// After this many failed unlock attempts, the keystore becomes locked until a device reset.
+pub const MAX_UNLOCK_ATTEMPTS: u8 = 10;
 
 #[derive(Debug)]
 pub enum Error {

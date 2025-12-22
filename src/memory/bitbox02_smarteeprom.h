@@ -18,15 +18,6 @@
 #include <stdint.h>
 
 /**
- * After this many failed unlock attempts, the keystore becomes locked until a
- * device reset.
- *
- * Must match MAX_UNLOCK_ATTEMPTS in rust keystore.rs and
- * SMALL_MONOTONIC_COUNTER_MAX_USE in optiga.c.
- */
-#define MAX_UNLOCK_ATTEMPTS (10)
-
-/**
  * Reads and validates the last recorded number of unlock attempts.
  */
 uint8_t bitbox02_smarteeprom_get_unlock_attempts(void);

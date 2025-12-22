@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.65"
 name = "object"
-version = "0.37.1"
+version = "0.37.3"
 build = "build.rs"
 include = [
     "/build.rs",
@@ -189,6 +189,21 @@ version = "0.8.1"
 optional = true
 
 [dependencies.wasmparser]
-version = "0.234.0"
+version = "0.236.0"
 optional = true
 default-features = false
+
+[lints.clippy]
+collapsible_else_if = "allow"
+collapsible_if = "allow"
+collapsible_match = "allow"
+comparison_chain = "allow"
+field_reassign_with_default = "allow"
+manual_flatten = "allow"
+match_like_matches_macro = "allow"
+needless_lifetimes = "allow"
+result_unit_err = "allow"
+should_implement_trait = "allow"
+single_match = "allow"
+type_complexity = "allow"
+uninlined_format_args = "allow"

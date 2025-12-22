@@ -15,8 +15,8 @@ use gimli::{BaseAddresses, EhFrame, FrameDescriptionEntry};
 #[cfg(feature = "fde-custom")]
 pub mod custom_eh_frame_finder {
     pub use super::custom::{
-        set_custom_eh_frame_finder, EhFrameFinder, FrameInfo, FrameInfoKind,
-        SetCustomEhFrameFinderError,
+        EhFrameFinder, FrameInfo, FrameInfoKind, SetCustomEhFrameFinderError,
+        set_custom_eh_frame_finder,
     };
 }
 

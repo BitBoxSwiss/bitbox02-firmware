@@ -33,7 +33,7 @@ impl super::FDEFinder for PhdrFinder {
 
 #[cfg(feature = "fde-phdr-aux")]
 fn search_aux_phdr(pc: usize) -> Option<FDESearchResult> {
-    use libc::{getauxval, AT_PHDR, AT_PHNUM, PT_PHDR};
+    use libc::{AT_PHDR, AT_PHNUM, PT_PHDR, getauxval};
 
     unsafe {
         let phdr = getauxval(AT_PHDR) as *const Elf_Phdr;
@@ -128,28 +128,24 @@ fn search_phdr(phdrs: &[Elf_Phdr], base: usize, pc: usize) -> Option<FDESearchRe
         }
 
         // Parse .eh_frame_hdr section.
-        let eh_frame_hdr = EhFrameHdr::new(
-            get_unlimited_slice(eh_frame_hdr as usize as _),
-            NativeEndian,
-        )
-        .parse(&bases, mem::size_of::<usize>() as _)
-        .ok()?;
+        let eh_frame_hdr = EhFrameHdr::new(get_unlimited_slice(eh_frame_hdr as _), NativeEndian)
+            .parse(&bases, mem::size_of::<usize>() as _)
+            .ok()?;
 
         let eh_frame = deref_pointer(eh_frame_hdr.eh_frame_ptr());
         bases = bases.set_eh_frame(eh_frame as _);
         let eh_frame = EhFrame::new(get_unlimited_slice(eh_frame as usize as _), NativeEndian);
 
         // Use binary search table for address if available.
-        if let Some(table) = eh_frame_hdr.table() {
-            if let Ok(fde) =
+        if let Some(table) = eh_frame_hdr.table()
+            && let Ok(fde) =
                 table.fde_for_address(&eh_frame, &bases, pc as _, EhFrame::cie_from_offset)
-            {
-                return Some(FDESearchResult {
-                    fde,
-                    bases,
-                    eh_frame,
-                });
-            }
+        {
+            return Some(FDESearchResult {
+                fde,
+                bases,
+                eh_frame,
+            });
         }
 
         // Otherwise do the linear search.

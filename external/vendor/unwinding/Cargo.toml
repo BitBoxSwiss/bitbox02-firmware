@@ -13,7 +13,7 @@
 edition = "2024"
 rust-version = "1.88"
 name = "unwinding"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["Gary Guo <gary@garyguo.net>"]
 build = false
 autolib = false
@@ -31,8 +31,6 @@ features = ["panic-handler"]
 
 [features]
 alloc = []
-compiler_builtins = ["dep:compiler_builtins"]
-core = ["dep:core"]
 default = [
     "unwinder",
     "dwarf-expr",
@@ -64,9 +62,8 @@ personality = []
 personality-dummy = []
 print = ["libc"]
 rustc-dep-of-std = [
-    "core",
+    "dep:core",
     "gimli/rustc-dep-of-std",
-    "compiler_builtins",
 ]
 spin = ["dep:spin"]
 system-alloc = []
@@ -79,10 +76,6 @@ path = "src/lib.rs"
 [[test]]
 name = "compile_tests"
 path = "tests/compile_tests.rs"
-
-[dependencies.compiler_builtins]
-version = "0.1.2"
-optional = true
 
 [dependencies.core]
 version = "1.0.0"

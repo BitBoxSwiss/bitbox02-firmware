@@ -1,6 +1,6 @@
 [package]
 name = "object"
-version = "0.37.1"
+version = "0.37.3"
 edition = "2018"
 keywords = ["object", "elf", "mach-o", "pe", "coff"]
 license = "Apache-2.0 OR MIT"
@@ -27,7 +27,7 @@ features = ['doc']
 crc32fast = { version = "1.2", default-features = false, optional = true }
 flate2 = { version = "1", optional = true }
 indexmap = { version = "2.0", default-features = false, optional = true }
-wasmparser = { version = "0.234.0", default-features = false, optional = true }
+wasmparser = { version = "0.236.0", default-features = false, optional = true }
 memchr = { version = "2.4.1", default-features = false }
 hashbrown = { version = "0.15.0", features = ["default-hasher"], default-features = false, optional = true }
 ruzstd = { version = "0.8.1", optional = true }
@@ -112,6 +112,24 @@ unstable-all = ["all", "unstable"]
 # Internal feature, only used when building as part of libstd, not part of the
 # stable interface of this crate.
 rustc-dep-of-std = ['core', 'alloc', 'memchr/rustc-dep-of-std']
+
+[lints.clippy]
+# Style.
+collapsible_else_if = "allow"
+collapsible_if = "allow"
+collapsible_match = "allow"
+comparison_chain = "allow"
+field_reassign_with_default = "allow"
+manual_flatten = "allow"
+match_like_matches_macro = "allow"
+needless_lifetimes = "allow"
+single_match = "allow"
+type_complexity = "allow"
+uninlined_format_args = "allow"
+# Occurs due to fallible iteration.
+should_implement_trait = "allow"
+# Unit errors are converted to other types by callers.
+result_unit_err = "allow"
 
 [workspace]
 members = ["crates/*"]

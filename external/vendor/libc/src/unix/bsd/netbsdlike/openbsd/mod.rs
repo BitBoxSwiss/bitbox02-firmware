@@ -1041,6 +1041,12 @@ pub const AT_SYMLINK_NOFOLLOW: c_int = 0x02;
 pub const AT_SYMLINK_FOLLOW: c_int = 0x04;
 pub const AT_REMOVEDIR: c_int = 0x08;
 
+pub const AT_NULL: c_int = 0;
+pub const AT_IGNORE: c_int = 1;
+pub const AT_PAGESZ: c_int = 6;
+pub const AT_HWCAP: c_int = 25;
+pub const AT_HWCAP2: c_int = 26;
+
 #[deprecated(since = "0.2.64", note = "Not stable across OS versions")]
 pub const RLIM_NLIMITS: c_int = 9;
 
@@ -1219,6 +1225,8 @@ pub const _PC_SYMLINK_MAX: c_int = 19;
 pub const _PC_SYNC_IO: c_int = 20;
 pub const _PC_TIMESTAMP_RESOLUTION: c_int = 21;
 
+pub const _CS_PATH: c_int = 1;
+
 pub const _SC_CLK_TCK: c_int = 3;
 pub const _SC_SEM_NSEMS_MAX: c_int = 31;
 pub const _SC_SEM_VALUE_MAX: c_int = 32;
@@ -1328,9 +1336,9 @@ pub const SCHED_RR: c_int = 3;
 
 pub const ST_NOSUID: c_ulong = 2;
 
-pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = 0 as *mut _;
-pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = 0 as *mut _;
-pub const PTHREAD_RWLOCK_INITIALIZER: pthread_rwlock_t = 0 as *mut _;
+pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = ptr::null_mut();
+pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = ptr::null_mut();
+pub const PTHREAD_RWLOCK_INITIALIZER: pthread_rwlock_t = ptr::null_mut();
 
 pub const PTHREAD_MUTEX_ERRORCHECK: c_int = 1;
 pub const PTHREAD_MUTEX_RECURSIVE: c_int = 2;
@@ -1633,7 +1641,7 @@ pub const NTFS_MFLAG_ALLNAMES: c_int = 0x2;
 pub const TMPFS_ARGS_VERSION: c_int = 1;
 
 const SI_MAXSZ: size_t = 128;
-const SI_PAD: size_t = (SI_MAXSZ / mem::size_of::<c_int>()) - 3;
+const SI_PAD: size_t = (SI_MAXSZ / size_of::<c_int>()) - 3;
 
 pub const MAP_STACK: c_int = 0x4000;
 pub const MAP_CONCEAL: c_int = 0x8000;
@@ -1737,6 +1745,23 @@ pub const PF_W: u32 = 0x2;
 pub const PF_R: u32 = 0x4;
 pub const PF_MASKOS: u32 = 0x0ff00000;
 pub const PF_MASKPROC: u32 = 0xf0000000;
+
+// sys/ioccom.h
+pub const fn IOCPARM_LEN(x: u32) -> u32 {
+    (x >> 16) & crate::IOCPARM_MASK
+}
+
+pub const fn IOCBASECMD(x: u32) -> u32 {
+    x & (!(crate::IOCPARM_MASK << 16))
+}
+
+pub const fn IOCGROUP(x: u32) -> u32 {
+    (x >> 8) & 0xff
+}
+
+pub const fn _IOC(inout: c_ulong, group: c_ulong, num: c_ulong, len: c_ulong) -> c_ulong {
+    (inout) | (((len) & crate::IOCPARM_MASK as c_ulong) << 16) | ((group) << 8) | (num)
+}
 
 // sys/mount.h
 pub const MNT_NOPERM: c_int = 0x00000020;
@@ -1851,27 +1876,24 @@ pub const RTAX_STATIC: c_int = 13;
 pub const RTAX_SEARCH: c_int = 14;
 pub const RTAX_MAX: c_int = 15;
 
-const_fn! {
-    {const} fn _ALIGN(p: usize) -> usize {
-        (p + _ALIGNBYTES) & !_ALIGNBYTES
-    }
+const fn _ALIGN(p: usize) -> usize {
+    (p + _ALIGNBYTES) & !_ALIGNBYTES
 }
 
 f! {
     pub fn CMSG_DATA(cmsg: *const cmsghdr) -> *mut c_uchar {
-        (cmsg as *mut c_uchar).offset(_ALIGN(mem::size_of::<cmsghdr>()) as isize)
+        (cmsg as *mut c_uchar).offset(_ALIGN(size_of::<cmsghdr>()) as isize)
     }
 
-    pub {const} fn CMSG_LEN(length: c_uint) -> c_uint {
-        _ALIGN(mem::size_of::<cmsghdr>()) as c_uint + length
+    pub const fn CMSG_LEN(length: c_uint) -> c_uint {
+        _ALIGN(size_of::<cmsghdr>()) as c_uint + length
     }
 
     pub fn CMSG_NXTHDR(mhdr: *const crate::msghdr, cmsg: *const cmsghdr) -> *mut cmsghdr {
         if cmsg.is_null() {
             return crate::CMSG_FIRSTHDR(mhdr);
         }
-        let next =
-            cmsg as usize + _ALIGN((*cmsg).cmsg_len as usize) + _ALIGN(mem::size_of::<cmsghdr>());
+        let next = cmsg as usize + _ALIGN((*cmsg).cmsg_len as usize) + _ALIGN(size_of::<cmsghdr>());
         let max = (*mhdr).msg_control as usize + (*mhdr).msg_controllen as usize;
         if next > max {
             core::ptr::null_mut::<cmsghdr>()
@@ -1880,29 +1902,29 @@ f! {
         }
     }
 
-    pub {const} fn CMSG_SPACE(length: c_uint) -> c_uint {
-        (_ALIGN(mem::size_of::<cmsghdr>()) + _ALIGN(length as usize)) as c_uint
+    pub const fn CMSG_SPACE(length: c_uint) -> c_uint {
+        (_ALIGN(size_of::<cmsghdr>()) + _ALIGN(length as usize)) as c_uint
     }
 }
 
 safe_f! {
-    pub {const} fn WSTOPSIG(status: c_int) -> c_int {
+    pub const fn WSTOPSIG(status: c_int) -> c_int {
         status >> 8
     }
 
-    pub {const} fn WIFSIGNALED(status: c_int) -> bool {
+    pub const fn WIFSIGNALED(status: c_int) -> bool {
         (status & 0o177) != 0o177 && (status & 0o177) != 0
     }
 
-    pub {const} fn WIFSTOPPED(status: c_int) -> bool {
+    pub const fn WIFSTOPPED(status: c_int) -> bool {
         (status & 0xff) == 0o177
     }
 
-    pub {const} fn WIFCONTINUED(status: c_int) -> bool {
+    pub const fn WIFCONTINUED(status: c_int) -> bool {
         (status & 0o177777) == 0o177777
     }
 
-    pub {const} fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
+    pub const fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
         let major = major as crate::dev_t;
         let minor = minor as crate::dev_t;
         let mut dev = 0;
@@ -1912,11 +1934,11 @@ safe_f! {
         dev
     }
 
-    pub {const} fn major(dev: crate::dev_t) -> c_uint {
+    pub const fn major(dev: crate::dev_t) -> c_uint {
         ((dev as c_uint) >> 8) & 0xff
     }
 
-    pub {const} fn minor(dev: crate::dev_t) -> c_uint {
+    pub const fn minor(dev: crate::dev_t) -> c_uint {
         let dev = dev as c_uint;
         let mut res = 0;
         res |= (dev) & 0xff;
@@ -2077,6 +2099,8 @@ extern "C" {
     pub fn fstatfs(fd: c_int, buf: *mut statfs) -> c_int;
     pub fn getmntinfo(mntbufp: *mut *mut crate::statfs, flags: c_int) -> c_int;
     pub fn getfsstat(buf: *mut statfs, bufsize: size_t, flags: c_int) -> c_int;
+
+    pub fn elf_aux_info(aux: c_int, buf: *mut c_void, buflen: c_int) -> c_int;
 }
 
 #[link(name = "execinfo")]

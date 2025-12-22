@@ -197,7 +197,6 @@ s! {
 }
 
 s_no_extra_traits! {
-    #[allow(missing_debug_implementations)]
     #[repr(align(16))]
     pub struct max_align_t {
         priv_: [i64; 4],
@@ -325,6 +324,7 @@ pub const SA_ONSTACK: c_int = 1;
 pub const SA_SIGINFO: c_int = 0x200;
 pub const SA_NOCLDWAIT: c_int = 0x100;
 
+pub const SIGEMT: c_int = 7;
 pub const SIGTTIN: c_int = 21;
 pub const SIGTTOU: c_int = 22;
 pub const SIGXCPU: c_int = 24;

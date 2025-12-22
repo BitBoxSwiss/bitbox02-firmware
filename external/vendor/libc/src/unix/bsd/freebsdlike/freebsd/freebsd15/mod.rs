@@ -50,6 +50,7 @@ s! {
         _priv: [c_ulong; 8],
     }
 
+    #[non_exhaustive]
     pub struct kinfo_proc {
         /// Size of this structure.
         pub ki_structsize: c_int,
@@ -226,6 +227,8 @@ s! {
         // This is normally "struct pwddesc".
         /// Pointer to process paths info.
         pub ki_pd: *mut c_void,
+        /// Address of the ext err msg place
+        pub ki_uerrmsg: *mut c_void,
         pub ki_spareptrs: [*mut c_void; crate::KI_NSPARE_PTR],
         pub ki_sparelongs: [c_long; crate::KI_NSPARE_LONG],
         /// PS_* flags.
@@ -445,7 +448,7 @@ pub const KF_TYPE_EVENTFD: c_int = 13;
 
 /// max length of devicename
 pub const SPECNAMELEN: c_int = 255;
-pub const KI_NSPARE_PTR: usize = 5;
+pub const KI_NSPARE_PTR: usize = 4;
 
 /// domainset policies
 pub const DOMAINSET_POLICY_INVALID: c_int = 0;
@@ -457,7 +460,7 @@ pub const DOMAINSET_POLICY_INTERLEAVE: c_int = 4;
 pub const MINCORE_SUPER: c_int = 0x60;
 
 safe_f! {
-    pub {const} fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
+    pub const fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
         let major = major as crate::dev_t;
         let minor = minor as crate::dev_t;
         let mut dev = 0;
@@ -468,11 +471,11 @@ safe_f! {
         dev
     }
 
-    pub {const} fn major(dev: crate::dev_t) -> c_int {
+    pub const fn major(dev: crate::dev_t) -> c_int {
         (((dev >> 32) & 0xffffff00) | ((dev >> 8) & 0xff)) as c_int
     }
 
-    pub {const} fn minor(dev: crate::dev_t) -> c_int {
+    pub const fn minor(dev: crate::dev_t) -> c_int {
         (((dev >> 24) & 0xff00) | (dev & 0xffff00ff)) as c_int
     }
 }
@@ -508,6 +511,14 @@ extern "C" {
 
     pub fn dirname(path: *mut c_char) -> *mut c_char;
     pub fn basename(path: *mut c_char) -> *mut c_char;
+
+    pub fn qsort_r(
+        base: *mut c_void,
+        num: size_t,
+        size: size_t,
+        compar: Option<unsafe extern "C" fn(*const c_void, *const c_void, *mut c_void) -> c_int>,
+        arg: *mut c_void,
+    );
 }
 
 #[link(name = "kvm")]

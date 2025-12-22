@@ -712,10 +712,15 @@ pub const SHT_GROUP: u32 = 17;
 pub const SHT_SYMTAB_SHNDX: u32 = 18;
 /// Relocation entries; only offsets.
 pub const SHT_RELR: u32 = 19;
+/// Experimental CREL relocations. LLVM will change the value and
+/// break compatibility in the future.
+pub const SHT_CREL: u32 = 0x40000014;
 /// Start of OS-specific section types.
 pub const SHT_LOOS: u32 = 0x6000_0000;
 /// LLVM-style dependent libraries.
 pub const SHT_LLVM_DEPENDENT_LIBRARIES: u32 = 0x6fff4c04;
+/// GNU SFrame stack trace format.
+pub const SHT_GNU_SFRAME: u32 = 0x6fff_fff4;
 /// Object attributes.
 pub const SHT_GNU_ATTRIBUTES: u32 = 0x6fff_fff5;
 /// GNU-style hash table.
@@ -1306,6 +1311,8 @@ pub const PT_GNU_STACK: u32 = 0x6474_e551;
 pub const PT_GNU_RELRO: u32 = 0x6474_e552;
 /// Segment containing `.note.gnu.property` section.
 pub const PT_GNU_PROPERTY: u32 = 0x6474_e553;
+/// GNU SFrame stack trace format.
+pub const PT_GNU_SFRAME: u32 = 0x6474_e554;
 /// End of OS-specific segment types.
 pub const PT_HIOS: u32 = 0x6fff_ffff;
 /// Start of processor-specific segment types.
@@ -5825,6 +5832,7 @@ pub const EF_RISCV_FLOAT_ABI_DOUBLE: u32 = 0x0004;
 pub const EF_RISCV_FLOAT_ABI_QUAD: u32 = 0x0006;
 pub const EF_RISCV_RVE: u32 = 0x0008;
 pub const EF_RISCV_TSO: u32 = 0x0010;
+pub const EF_RISCV_RV64ILP32: u32 = 0x0020;
 
 // RISC-V values for `SectionHeader*::sh_type`.
 /// RISC-V attributes section.

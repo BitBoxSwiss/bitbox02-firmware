@@ -16,7 +16,7 @@ pub type id_t = u32;
 pub type sem_t = *mut sem;
 pub type key_t = c_long;
 
-#[cfg_attr(feature = "extra_traits", derive(Debug))]
+#[derive(Debug)]
 pub enum timezone {}
 impl Copy for timezone {}
 impl Clone for timezone {
@@ -24,7 +24,7 @@ impl Clone for timezone {
         *self
     }
 }
-#[cfg_attr(feature = "extra_traits", derive(Debug))]
+#[derive(Debug)]
 pub enum sem {}
 impl Copy for sem {}
 impl Clone for sem {
@@ -440,6 +440,34 @@ pub const MNT_NODEV: c_int = 0x00000010;
 pub const MNT_LOCAL: c_int = 0x00001000;
 pub const MNT_QUOTA: c_int = 0x00002000;
 
+// sys/ioccom.h in NetBSD and OpenBSD
+pub const IOCPARM_MASK: u32 = 0x1fff;
+
+pub const IOC_VOID: c_ulong = 0x20000000;
+pub const IOC_OUT: c_ulong = 0x40000000;
+pub const IOC_IN: c_ulong = 0x80000000;
+pub const IOC_INOUT: c_ulong = IOC_IN | IOC_OUT;
+pub const IOC_DIRMASK: c_ulong = 0xe0000000;
+
+pub const fn _IO(g: c_ulong, n: c_ulong) -> c_ulong {
+    _IOC(IOC_VOID, g, n, 0)
+}
+
+/// Build an ioctl number for an read-only ioctl.
+pub const fn _IOR<T>(g: c_ulong, n: c_ulong) -> c_ulong {
+    _IOC(IOC_OUT, g, n, mem::size_of::<T>() as c_ulong)
+}
+
+/// Build an ioctl number for an write-only ioctl.
+pub const fn _IOW<T>(g: c_ulong, n: c_ulong) -> c_ulong {
+    _IOC(IOC_IN, g, n, mem::size_of::<T>() as c_ulong)
+}
+
+/// Build an ioctl number for a read-write ioctl.
+pub const fn _IOWR<T>(g: c_ulong, n: c_ulong) -> c_ulong {
+    _IOC(IOC_INOUT, g, n, mem::size_of::<T>() as c_ulong)
+}
+
 pub const AF_UNSPEC: c_int = 0;
 pub const AF_LOCAL: c_int = 1;
 pub const AF_UNIX: c_int = AF_LOCAL;
@@ -623,7 +651,7 @@ pub const B230400: speed_t = 230400;
 pub const EXTA: speed_t = 19200;
 pub const EXTB: speed_t = 38400;
 
-pub const SEM_FAILED: *mut sem_t = 0 as *mut sem_t;
+pub const SEM_FAILED: *mut sem_t = ptr::null_mut();
 
 pub const CRTSCTS: crate::tcflag_t = 0x00010000;
 pub const CRTS_IFLOW: crate::tcflag_t = CRTSCTS;

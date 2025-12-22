@@ -1,6 +1,5 @@
 #![doc = include_str!("../README.md")]
-// lang_items is an internal feature. `internal_features` lint is added recently
-// so also allow unknown lints to prevent warning in older nightly versions.
+// We use `non_exhaustive_omitted_patterns_lint` which is a nightly lint.
 #![allow(unknown_lints)]
 #![cfg_attr(
     any(

@@ -1,5 +1,135 @@
 # Changelog
 
+## [0.2.177](https://github.com/rust-lang/libc/compare/0.2.176...0.2.177) - 2025-10-09
+
+### Added
+
+- Apple: Add `TIOCGETA`, `TIOCSETA`, `TIOCSETAW`, `TIOCSETAF` constants ([#4736](https://github.com/rust-lang/libc/pull/4736))
+- Apple: Add `pthread_cond_timedwait_relative_np` ([#4719](https://github.com/rust-lang/libc/pull/4719))
+- BSDs: Add `_CS_PATH` constant ([#4738](https://github.com/rust-lang/libc/pull/4738))
+- Linux-like: Add `SIGEMT` for mips* and sparc* architectures ([#4730](https://github.com/rust-lang/libc/pull/4730))
+- OpenBSD: Add `elf_aux_info` ([#4729](https://github.com/rust-lang/libc/pull/4729))
+- Redox: Add more sysconf constants ([#4728](https://github.com/rust-lang/libc/pull/4728))
+- Windows: Add `wcsnlen` ([#4721](https://github.com/rust-lang/libc/pull/4721))
+
+### Changed
+
+- WASIP2: Invert conditional to include p2 APIs ([#4733](https://github.com/rust-lang/libc/pull/4733))
+
+## [0.2.176](https://github.com/rust-lang/libc/compare/0.2.175...0.2.176) - 2025-09-23
+
+### Support
+
+- The default FreeBSD version has been raised from 11 to 12. This matches `rustc` since 1.78. ([#2406](https://github.com/rust-lang/libc/pull/2406))
+- `Debug` is now always implemented, rather than being gated behind the `extra_traits` feature. ([#4624](https://github.com/rust-lang/libc/pull/4624))
+
+### Added
+
+- AIX: Restore some non-POSIX functions guarded by the `_KERNEL` macro. ([#4607](https://github.com/rust-lang/libc/pull/4607))
+- FreeBSD 14: Add `st_fileref` to `struct stat` ([#4642](https://github.com/rust-lang/libc/pull/4642))
+- Haiku: Add the `accept4` POSIX call ([#4586](https://github.com/rust-lang/libc/pull/4586))
+- Introduce a wrapper for representing padding ([#4632](https://github.com/rust-lang/libc/pull/4632))
+- Linux: Add `EM_RISCV` ([#4659](https://github.com/rust-lang/libc/pull/4659))
+- Linux: Add `MS_NOSYMFOLLOW` ([#4389](https://github.com/rust-lang/libc/pull/4389))
+- Linux: Add `backtrace_symbols(_fd)` ([#4668](https://github.com/rust-lang/libc/pull/4668))
+- Linux: Add missing `SOL_PACKET` optnames ([#4669](https://github.com/rust-lang/libc/pull/4669))
+- Musl s390x: Add `SYS_mseal` ([#4549](https://github.com/rust-lang/libc/pull/4549))
+- NuttX: Add `__errno` ([#4687](https://github.com/rust-lang/libc/pull/4687))
+- Redox: Add `dirfd`, `VDISABLE`, and resource consts ([#4660](https://github.com/rust-lang/libc/pull/4660))
+- Redox: Add more `resource.h`, `fcntl.h` constants ([#4666](https://github.com/rust-lang/libc/pull/4666))
+- Redox: Enable `strftime` and `mkostemp[s]` ([#4629](https://github.com/rust-lang/libc/pull/4629))
+- Unix, Windows: Add `qsort_r` (Unix), and `qsort(_s)` (Windows) ([#4677](https://github.com/rust-lang/libc/pull/4677))
+- Unix: Add `dlvsym` for Linux-gnu, FreeBSD, and NetBSD ([#4671](https://github.com/rust-lang/libc/pull/4671))
+- Unix: Add `sigqueue` ([#4620](https://github.com/rust-lang/libc/pull/4620))
+
+### Changed
+
+- FreeBSD 15: Mark `kinfo_proc` as non-exhaustive ([#4553](https://github.com/rust-lang/libc/pull/4553))
+- FreeBSD: Set the ELF symbol version for `readdir_r` ([#4694](https://github.com/rust-lang/libc/pull/4694))
+- Linux: Correct the config for whether or not `epoll_event` is packed ([#4639](https://github.com/rust-lang/libc/pull/4639))
+- Tests: Replace the old `ctest` with the much more reliable new implementation ([#4655](https://github.com/rust-lang/libc/pull/4655) and many related PRs)
+
+### Fixed
+
+- AIX: Fix the type of the 4th arguement of `getgrnam_r` ([#4656](https://github.com/rust-lang/libc/pull/4656
+- FreeBSD: Limit `P_IDLEPROC` to FreeBSD 15 ([#4640](https://github.com/rust-lang/libc/pull/4640))
+- FreeBSD: Limit `mcontext_t::mc_tlsbase` to FreeBSD 15 ([#4640](https://github.com/rust-lang/libc/pull/464))
+- FreeBSD: Update gating of `mcontext_t.mc_tlsbase` ([#4703](https://github.com/rust-lang/libc/pull/4703))
+- Musl s390x: Correct the definition of `statfs[64]` ([#4549](https://github.com/rust-lang/libc/pull/4549))
+- Musl s390x: Make `fpreg_t` a union ([#4549](https://github.com/rust-lang/libc/pull/4549))
+- Redox: Fix the types of `gid_t` and `uid_t` ([#4689](https://github.com/rust-lang/libc/pull/4689))
+- Redox: Fix the value of `MAP_FIXED` ([#4684](https://github.com/rust-lang/libc/pull/4684))
+
+### Deprecated
+
+- Apple: Correct the `deprecated` attribute for `iconv` ([`a97a0b53`](https://github.com/rust-lang/libc/commit/a97a0b53fb7faf5f99cd720ab12b1b8a5bf9f950))
+- FreeBSD: Deprecate `TIOCMGDTRWAIT` and `TIOCMSDTRWAIT` ([#4685](https://github.com/rust-lang/libc/pull/4685))
+
+### Removed
+
+- FreeBSD: Remove `JAIL_{GET,SET}_MASK`, `_MC_FLAG_MASK` ([#4691](https://github.com/rust-lang/libc/pull/4691))
+
+## [0.2.175](https://github.com/rust-lang/libc/compare/0.2.174...0.2.175) - 2025-08-10
+
+### Added
+
+- AIX: Add `getpeereid` ([#4524](https://github.com/rust-lang/libc/pull/4524))
+- AIX: Add `struct ld_info` and friends ([#4578](https://github.com/rust-lang/libc/pull/4578))
+- AIX: Retore `struct winsize` ([#4577](https://github.com/rust-lang/libc/pull/4577))
+- Android: Add UDP socket option constants ([#4619](https://github.com/rust-lang/libc/pull/4619))
+- Android: Add `CLONE_CLEAR_SIGHAND` and `CLONE_INTO_CGROUP` ([#4502](https://github.com/rust-lang/libc/pull/4502))
+- Android: Add more `prctl` constants ([#4531](https://github.com/rust-lang/libc/pull/4531))
+- FreeBSD Add further TCP stack-related constants ([#4196](https://github.com/rust-lang/libc/pull/4196))
+- FreeBSD x86-64: Add `mcontext_t.mc_tlsbase ` ([#4503](https://github.com/rust-lang/libc/pull/4503))
+- FreeBSD15: Add `kinfo_proc.ki_uerrmsg` ([#4552](https://github.com/rust-lang/libc/pull/4552))
+- FreeBSD: Add `in_conninfo` ([#4482](https://github.com/rust-lang/libc/pull/4482))
+- FreeBSD: Add `xinpgen` and related types ([#4482](https://github.com/rust-lang/libc/pull/4482))
+- FreeBSD: Add `xktls_session` ([#4482](https://github.com/rust-lang/libc/pull/4482))
+- Haiku: Add functionality from `libbsd` ([#4221](https://github.com/rust-lang/libc/pull/4221))
+- Linux: Add `SECBIT_*` ([#4480](https://github.com/rust-lang/libc/pull/4480))
+- NetBSD, OpenBSD: Export `ioctl` request generator macros ([#4460](https://github.com/rust-lang/libc/pull/4460))
+- NetBSD: Add `ptsname_r` ([#4608](https://github.com/rust-lang/libc/pull/4608))
+- RISCV32: Add time-related syscalls ([#4612](https://github.com/rust-lang/libc/pull/4612))
+- Solarish: Add `strftime*` ([#4453](https://github.com/rust-lang/libc/pull/4453))
+- linux: Add `EXEC_RESTRICT_*` and `EXEC_DENY_*` ([#4545](https://github.com/rust-lang/libc/pull/4545))
+
+### Changed
+
+- AIX: Add `const` to signatures to be consistent with other platforms ([#4563](https://github.com/rust-lang/libc/pull/4563))
+
+### Fixed
+
+- AIX: Fix the type of `struct statvfs.f_fsid` ([#4576](https://github.com/rust-lang/libc/pull/4576))
+- AIX: Fix the type of constants for the `ioctl` `request` argument ([#4582](https://github.com/rust-lang/libc/pull/4582))
+- AIX: Fix the types of `stat{,64}.st_*tim` ([#4597](https://github.com/rust-lang/libc/pull/4597))
+- AIX: Use unique `errno` values ([#4507](https://github.com/rust-lang/libc/pull/4507))
+- Build: Fix an incorrect `target_os` -> `target_arch` check ([#4550](https://github.com/rust-lang/libc/pull/4550))
+- FreeBSD: Fix the type of `xktls_session_onedir.ifnet` ([#4552](https://github.com/rust-lang/libc/pull/4552))
+- Mips64 musl: Fix the type of `nlink_t` ([#4509](https://github.com/rust-lang/libc/pull/4509))
+- Mips64 musl: Use a special MIPS definition of `stack_t` ([#4528](https://github.com/rust-lang/libc/pull/4528))
+- Mips64: Fix `SI_TIMER`, `SI_MESGQ` and `SI_ASYNCIO` definitions ([#4529](https://github.com/rust-lang/libc/pull/4529))
+- Musl Mips64: Swap the order of `si_errno` and `si_code` in `siginfo_t` ([#4530](https://github.com/rust-lang/libc/pull/4530))
+- Musl Mips64: Use a special MIPS definition of `statfs` ([#4527](https://github.com/rust-lang/libc/pull/4527))
+- Musl: Fix the definition of `fanotify_event_metadata` ([#4510](https://github.com/rust-lang/libc/pull/4510))
+- NetBSD: Correct `enum fae_action` to be `#[repr(C)]` ([#60a8cfd5](https://github.com/rust-lang/libc/commit/60a8cfd564f83164d45b9533ff7a0d7371878f2a))
+- PSP: Correct `char` -> `c_char` ([eaab4fc3](https://github.com/rust-lang/libc/commit/eaab4fc3f05dc646a953d4fd5ba46dfa1f8bd6f6))
+- PowerPC musl: Fix `termios` definitions ([#4518](https://github.com/rust-lang/libc/pull/4518))
+- PowerPC musl: Fix the definition of `EDEADLK` ([#4517](https://github.com/rust-lang/libc/pull/4517))
+- PowerPC musl: Fix the definition of `NCCS` ([#4513](https://github.com/rust-lang/libc/pull/4513))
+- PowerPC musl: Fix the definitions of `MAP_LOCKED` and `MAP_NORESERVE` ([#4516](https://github.com/rust-lang/libc/pull/4516))
+- PowerPC64 musl: Fix the definition of `shmid_ds` ([#4519](https://github.com/rust-lang/libc/pull/4519))
+
+### Deprecated
+
+- Linux: `MAP_32BIT` is only defined on x86 on non-x86 architectures ([#4511](https://github.com/rust-lang/libc/pull/4511))
+
+### Removed
+
+- AIX: Remove duplicate constant definitions `FIND` and `ENTER` ([#4588](https://github.com/rust-lang/libc/pull/4588))
+- s390x musl: Remove `O_FSYNC` ([#4515](https://github.com/rust-lang/libc/pull/4515))
+- s390x musl: Remove `RTLD_DEEPBIND` ([#4515](https://github.com/rust-lang/libc/pull/4515))
+
+
 ## [0.2.174](https://github.com/rust-lang/libc/compare/0.2.173...0.2.174) - 2025-06-17
 
 ### Added

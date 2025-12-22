@@ -1,17 +1,4 @@
-# Copyright 2019 Shift Cryptosecurity AG
-# Copyright 2020 Shift Crypto AG
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 # If you are building for a foreign target and you get segfaults, try the latest version of qemu
 # $ docker pull tonistiigi/binfmt:latest
@@ -148,8 +135,8 @@ RUN rustup target add thumbv7em-none-eabi
 RUN rustup component add rustfmt
 RUN rustup component add clippy
 RUN rustup component add rust-src
-RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.29.0 --locked
-RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.72.0 --locked
+RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.29.2 --locked
+RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.72.1 --locked
 
 # Until cargo vendor supports vendoring dependencies of the rust std libs we
 # need a copy of this file next to the toml file. It also has to be world

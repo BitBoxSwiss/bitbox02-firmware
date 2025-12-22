@@ -120,10 +120,85 @@ impl<'a> Object<'a> {
         name
     }
 
+    pub(crate) fn elf_section_flags(&self, section: &Section<'_>) -> SectionFlags {
+        let sh_flags = match section.kind {
+            SectionKind::Text => elf::SHF_ALLOC | elf::SHF_EXECINSTR,
+            SectionKind::Data | SectionKind::ReadOnlyDataWithRel => elf::SHF_ALLOC | elf::SHF_WRITE,
+            SectionKind::Tls => elf::SHF_ALLOC | elf::SHF_WRITE | elf::SHF_TLS,
+            SectionKind::UninitializedData => elf::SHF_ALLOC | elf::SHF_WRITE,
+            SectionKind::UninitializedTls => elf::SHF_ALLOC | elf::SHF_WRITE | elf::SHF_TLS,
+            SectionKind::ReadOnlyData => elf::SHF_ALLOC,
+            SectionKind::ReadOnlyString => elf::SHF_ALLOC | elf::SHF_STRINGS | elf::SHF_MERGE,
+            SectionKind::OtherString | SectionKind::DebugString => {
+                elf::SHF_STRINGS | elf::SHF_MERGE
+            }
+            SectionKind::Other
+            | SectionKind::Debug
+            | SectionKind::Metadata
+            | SectionKind::Linker
+            | SectionKind::Note
+            | SectionKind::Elf(_) => 0,
+            SectionKind::Unknown | SectionKind::Common | SectionKind::TlsVariables => {
+                return SectionFlags::None;
+            }
+        }
+        .into();
+        SectionFlags::Elf { sh_flags }
+    }
+
+    pub(crate) fn elf_symbol_flags(&self, symbol: &Symbol) -> SymbolFlags<SectionId, SymbolId> {
+        let st_type = match symbol.kind {
+            SymbolKind::Text => {
+                if symbol.is_undefined() {
+                    elf::STT_NOTYPE
+                } else {
+                    elf::STT_FUNC
+                }
+            }
+            SymbolKind::Data => {
+                if symbol.is_undefined() {
+                    elf::STT_NOTYPE
+                } else if symbol.is_common() {
+                    elf::STT_COMMON
+                } else {
+                    elf::STT_OBJECT
+                }
+            }
+            SymbolKind::Section => elf::STT_SECTION,
+            SymbolKind::File => elf::STT_FILE,
+            SymbolKind::Tls => elf::STT_TLS,
+            SymbolKind::Label => elf::STT_NOTYPE,
+            SymbolKind::Unknown => {
+                if symbol.is_undefined() {
+                    elf::STT_NOTYPE
+                } else {
+                    return SymbolFlags::None;
+                }
+            }
+        };
+        let st_bind = if symbol.weak {
+            elf::STB_WEAK
+        } else if symbol.is_undefined() {
+            elf::STB_GLOBAL
+        } else if symbol.is_local() {
+            elf::STB_LOCAL
+        } else {
+            elf::STB_GLOBAL
+        };
+        let st_info = (st_bind << 4) + st_type;
+        let st_other = if symbol.scope == SymbolScope::Linkage {
+            elf::STV_HIDDEN
+        } else {
+            elf::STV_DEFAULT
+        };
+        SymbolFlags::Elf { st_info, st_other }
+    }
+
     fn elf_has_relocation_addend(&self) -> Result<bool> {
         Ok(match self.architecture {
             Architecture::Aarch64 => true,
             Architecture::Aarch64_Ilp32 => true,
+            Architecture::Alpha => true,
             Architecture::Arm => false,
             Architecture::Avr => true,
             Architecture::Bpf => false,
@@ -133,6 +208,7 @@ impl<'a> Object<'a> {
             Architecture::I386 => false,
             Architecture::X86_64 => true,
             Architecture::X86_64_X32 => true,
+            Architecture::Hppa => false,
             Architecture::Hexagon => true,
             Architecture::LoongArch32 => true,
             Architecture::LoongArch64 => true,
@@ -194,6 +270,16 @@ impl<'a> Object<'a> {
                 (K::Absolute, E::Generic, 32) => elf::R_AARCH64_P32_ABS32,
                 _ => return unsupported_reloc(),
             },
+            Architecture::Alpha => match (kind, encoding, size) {
+                // Absolute
+                (K::Absolute, _, 32) => elf::R_ALPHA_REFLONG,
+                (K::Absolute, _, 64) => elf::R_ALPHA_REFQUAD,
+                // Relative to the PC
+                (K::Relative, _, 16) => elf::R_ALPHA_SREL16,
+                (K::Relative, _, 32) => elf::R_ALPHA_SREL32,
+                (K::Relative, _, 64) => elf::R_ALPHA_SREL64,
+                _ => return unsupported_reloc(),
+            },
             Architecture::Arm => match (kind, encoding, size) {
                 (K::Absolute, _, 32) => elf::R_ARM_ABS32,
                 _ => return unsupported_reloc(),
@@ -247,6 +333,11 @@ impl<'a> Object<'a> {
                 (K::Relative, _, 16) => elf::R_X86_64_PC16,
                 (K::Absolute, _, 8) => elf::R_X86_64_8,
                 (K::Relative, _, 8) => elf::R_X86_64_PC8,
+                _ => return unsupported_reloc(),
+            },
+            Architecture::Hppa => match (kind, encoding, size) {
+                (K::Absolute, _, 32) => elf::R_PARISC_DIR32,
+                (K::Relative, _, 32) => elf::R_PARISC_PCREL32,
                 _ => return unsupported_reloc(),
             },
             Architecture::Hexagon => match (kind, encoding, size) {
@@ -563,6 +654,7 @@ impl<'a> Object<'a> {
         let e_machine = match (self.architecture, self.sub_architecture) {
             (Architecture::Aarch64, None) => elf::EM_AARCH64,
             (Architecture::Aarch64_Ilp32, None) => elf::EM_AARCH64,
+            (Architecture::Alpha, None) => elf::EM_ALPHA,
             (Architecture::Arm, None) => elf::EM_ARM,
             (Architecture::Avr, None) => elf::EM_AVR,
             (Architecture::Bpf, None) => elf::EM_BPF,
@@ -572,6 +664,7 @@ impl<'a> Object<'a> {
             (Architecture::I386, None) => elf::EM_386,
             (Architecture::X86_64, None) => elf::EM_X86_64,
             (Architecture::X86_64_X32, None) => elf::EM_X86_64,
+            (Architecture::Hppa, None) => elf::EM_PARISC,
             (Architecture::Hexagon, None) => elf::EM_HEXAGON,
             (Architecture::LoongArch32, None) => elf::EM_LOONGARCH,
             (Architecture::LoongArch64, None) => elf::EM_LOONGARCH,
@@ -639,59 +732,12 @@ impl<'a> Object<'a> {
         // Write symbols.
         writer.write_null_symbol();
         let mut write_symbol = |index: usize, symbol: &Symbol| -> Result<()> {
-            let st_info = if let SymbolFlags::Elf { st_info, .. } = symbol.flags {
-                st_info
-            } else {
-                let st_type = match symbol.kind {
-                    SymbolKind::Text => {
-                        if symbol.is_undefined() {
-                            elf::STT_NOTYPE
-                        } else {
-                            elf::STT_FUNC
-                        }
-                    }
-                    SymbolKind::Data => {
-                        if symbol.is_undefined() {
-                            elf::STT_NOTYPE
-                        } else if symbol.is_common() {
-                            elf::STT_COMMON
-                        } else {
-                            elf::STT_OBJECT
-                        }
-                    }
-                    SymbolKind::Section => elf::STT_SECTION,
-                    SymbolKind::File => elf::STT_FILE,
-                    SymbolKind::Tls => elf::STT_TLS,
-                    SymbolKind::Label => elf::STT_NOTYPE,
-                    SymbolKind::Unknown => {
-                        if symbol.is_undefined() {
-                            elf::STT_NOTYPE
-                        } else {
-                            return Err(Error(format!(
-                                "unimplemented symbol `{}` kind {:?}",
-                                symbol.name().unwrap_or(""),
-                                symbol.kind
-                            )));
-                        }
-                    }
-                };
-                let st_bind = if symbol.weak {
-                    elf::STB_WEAK
-                } else if symbol.is_undefined() {
-                    elf::STB_GLOBAL
-                } else if symbol.is_local() {
-                    elf::STB_LOCAL
-                } else {
-                    elf::STB_GLOBAL
-                };
-                (st_bind << 4) + st_type
-            };
-            let st_other = if let SymbolFlags::Elf { st_other, .. } = symbol.flags {
-                st_other
-            } else if symbol.scope == SymbolScope::Linkage {
-                elf::STV_HIDDEN
-            } else {
-                elf::STV_DEFAULT
+            let SymbolFlags::Elf { st_info, st_other } = self.symbol_flags(symbol) else {
+                return Err(Error(format!(
+                    "unimplemented symbol `{}` kind {:?}",
+                    symbol.name().unwrap_or(""),
+                    symbol.kind
+                )));
             };
             let (st_shndx, section) = match symbol.section {
                 SymbolSection::None => {
@@ -774,39 +820,12 @@ impl<'a> Object<'a> {
                 SectionKind::Elf(sh_type) => sh_type,
                 _ => elf::SHT_PROGBITS,
             };
-            let sh_flags = if let SectionFlags::Elf { sh_flags } = section.flags {
-                sh_flags
-            } else {
-                match section.kind {
-                    SectionKind::Text => elf::SHF_ALLOC | elf::SHF_EXECINSTR,
-                    SectionKind::Data | SectionKind::ReadOnlyDataWithRel => {
-                        elf::SHF_ALLOC | elf::SHF_WRITE
-                    }
-                    SectionKind::Tls => elf::SHF_ALLOC | elf::SHF_WRITE | elf::SHF_TLS,
-                    SectionKind::UninitializedData => elf::SHF_ALLOC | elf::SHF_WRITE,
-                    SectionKind::UninitializedTls => elf::SHF_ALLOC | elf::SHF_WRITE | elf::SHF_TLS,
-                    SectionKind::ReadOnlyData => elf::SHF_ALLOC,
-                    SectionKind::ReadOnlyString => {
-                        elf::SHF_ALLOC | elf::SHF_STRINGS | elf::SHF_MERGE
-                    }
-                    SectionKind::OtherString | SectionKind::DebugString => {
-                        elf::SHF_STRINGS | elf::SHF_MERGE
-                    }
-                    SectionKind::Other
-                    | SectionKind::Debug
-                    | SectionKind::Metadata
-                    | SectionKind::Linker
-                    | SectionKind::Note
-                    | SectionKind::Elf(_) => 0,
-                    SectionKind::Unknown | SectionKind::Common | SectionKind::TlsVariables => {
-                        return Err(Error(format!(
-                            "unimplemented section `{}` kind {:?}",
-                            section.name().unwrap_or(""),
-                            section.kind
-                        )));
-                    }
-                }
-                .into()
+            let SectionFlags::Elf { sh_flags } = self.section_flags(section) else {
+                return Err(Error(format!(
+                    "unimplemented section `{}` kind {:?}",
+                    section.name().unwrap_or(""),
+                    section.kind
+                )));
             };
             // TODO: not sure if this is correct, maybe user should determine this
             let sh_entsize = match section.kind {

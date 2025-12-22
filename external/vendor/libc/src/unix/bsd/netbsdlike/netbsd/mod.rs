@@ -39,6 +39,7 @@ pub type Elf64_Xword = u64;
 pub type iconv_t = *mut c_void;
 
 e! {
+    #[repr(C)]
     pub enum fae_action {
         FAE_OPEN,
         FAE_DUP2,
@@ -1612,6 +1613,8 @@ pub const _PC_2_SYMLINKS: c_int = 13;
 pub const _PC_ACL_EXTENDED: c_int = 14;
 pub const _PC_MIN_HOLE_SIZE: c_int = 15;
 
+pub const _CS_PATH: c_int = 1;
+
 pub const _SC_SYNCHRONIZED_IO: c_int = 31;
 pub const _SC_IOV_MAX: c_int = 32;
 pub const _SC_MAPPED_FILES: c_int = 33;
@@ -1711,6 +1714,29 @@ pub const MNT_ACLS: c_int = MNT_POSIX1EACLS;
 pub const MNT_WAIT: c_int = 1;
 pub const MNT_NOWAIT: c_int = 2;
 pub const MNT_LAZY: c_int = 3;
+
+// sys/ioccom.h
+pub const IOCPARM_SHIFT: u32 = 16;
+pub const IOCGROUP_SHIFT: u32 = 8;
+
+pub const fn IOCPARM_LEN(x: u32) -> u32 {
+    (x >> IOCPARM_SHIFT) & crate::IOCPARM_MASK
+}
+
+pub const fn IOCBASECMD(x: u32) -> u32 {
+    x & (!(crate::IOCPARM_MASK << IOCPARM_SHIFT))
+}
+
+pub const fn IOCGROUP(x: u32) -> u32 {
+    (x >> IOCGROUP_SHIFT) & 0xff
+}
+
+pub const fn _IOC(inout: c_ulong, group: c_ulong, num: c_ulong, len: c_ulong) -> c_ulong {
+    (inout)
+        | (((len) & crate::IOCPARM_MASK as c_ulong) << IOCPARM_SHIFT)
+        | ((group) << IOCGROUP_SHIFT)
+        | (num)
+}
 
 //<sys/timex.h>
 pub const CLOCK_PROCESS_CPUTIME_ID: crate::clockid_t = 2;
@@ -2277,27 +2303,24 @@ pub const TFD_NONBLOCK: i32 = crate::O_NONBLOCK;
 pub const TFD_TIMER_ABSTIME: i32 = crate::O_WRONLY;
 pub const TFD_TIMER_CANCEL_ON_SET: i32 = crate::O_RDWR;
 
-const_fn! {
-    {const} fn _ALIGN(p: usize) -> usize {
-        (p + _ALIGNBYTES) & !_ALIGNBYTES
-    }
+const fn _ALIGN(p: usize) -> usize {
+    (p + _ALIGNBYTES) & !_ALIGNBYTES
 }
 
 f! {
     pub fn CMSG_DATA(cmsg: *const cmsghdr) -> *mut c_uchar {
-        (cmsg as *mut c_uchar).add(_ALIGN(mem::size_of::<cmsghdr>()))
+        (cmsg as *mut c_uchar).add(_ALIGN(size_of::<cmsghdr>()))
     }
 
-    pub {const} fn CMSG_LEN(length: c_uint) -> c_uint {
-        _ALIGN(mem::size_of::<cmsghdr>()) as c_uint + length
+    pub const fn CMSG_LEN(length: c_uint) -> c_uint {
+        _ALIGN(size_of::<cmsghdr>()) as c_uint + length
     }
 
     pub fn CMSG_NXTHDR(mhdr: *const crate::msghdr, cmsg: *const cmsghdr) -> *mut cmsghdr {
         if cmsg.is_null() {
             return crate::CMSG_FIRSTHDR(mhdr);
         }
-        let next =
-            cmsg as usize + _ALIGN((*cmsg).cmsg_len as usize) + _ALIGN(mem::size_of::<cmsghdr>());
+        let next = cmsg as usize + _ALIGN((*cmsg).cmsg_len as usize) + _ALIGN(size_of::<cmsghdr>());
         let max = (*mhdr).msg_control as usize + (*mhdr).msg_controllen as usize;
         if next > max {
             core::ptr::null_mut::<cmsghdr>()
@@ -2306,8 +2329,8 @@ f! {
         }
     }
 
-    pub {const} fn CMSG_SPACE(length: c_uint) -> c_uint {
-        (_ALIGN(mem::size_of::<cmsghdr>()) + _ALIGN(length as usize)) as c_uint
+    pub const fn CMSG_SPACE(length: c_uint) -> c_uint {
+        (_ALIGN(size_of::<cmsghdr>()) + _ALIGN(length as usize)) as c_uint
     }
 
     // dirfd() is a macro on netbsd to access
@@ -2319,7 +2342,7 @@ f! {
 
     pub fn SOCKCREDSIZE(ngrps: usize) -> usize {
         let ngrps = if ngrps > 0 { ngrps - 1 } else { 0 };
-        mem::size_of::<sockcred>() + mem::size_of::<crate::gid_t>() * ngrps
+        size_of::<sockcred>() + size_of::<crate::gid_t>() * ngrps
     }
 
     pub fn PROT_MPROTECT(x: c_int) -> c_int {
@@ -2332,23 +2355,23 @@ f! {
 }
 
 safe_f! {
-    pub {const} fn WSTOPSIG(status: c_int) -> c_int {
+    pub const fn WSTOPSIG(status: c_int) -> c_int {
         status >> 8
     }
 
-    pub {const} fn WIFSIGNALED(status: c_int) -> bool {
+    pub const fn WIFSIGNALED(status: c_int) -> bool {
         (status & 0o177) != 0o177 && (status & 0o177) != 0
     }
 
-    pub {const} fn WIFSTOPPED(status: c_int) -> bool {
+    pub const fn WIFSTOPPED(status: c_int) -> bool {
         (status & 0o177) == 0o177
     }
 
-    pub {const} fn WIFCONTINUED(status: c_int) -> bool {
+    pub const fn WIFCONTINUED(status: c_int) -> bool {
         status == 0xffff
     }
 
-    pub {const} fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
+    pub const fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
         let major = major as crate::dev_t;
         let minor = minor as crate::dev_t;
         let mut dev = 0;
@@ -2358,11 +2381,11 @@ safe_f! {
         dev
     }
 
-    pub {const} fn major(dev: crate::dev_t) -> c_int {
+    pub const fn major(dev: crate::dev_t) -> c_int {
         (((dev as u32) & 0x000fff00) >> 8) as c_int
     }
 
-    pub {const} fn minor(dev: crate::dev_t) -> c_int {
+    pub const fn minor(dev: crate::dev_t) -> c_int {
         let mut res = 0;
         res |= ((dev as u32) & 0xfff00000) >> 12;
         res |= (dev as u32) & 0x000000ff;
@@ -2473,6 +2496,8 @@ extern "C" {
         termp: *mut crate::termios,
         winp: *mut crate::winsize,
     ) -> crate::pid_t;
+
+    pub fn ptsname_r(fd: c_int, buf: *mut c_char, buflen: size_t) -> c_int;
 
     #[link_name = "__lutimes50"]
     pub fn lutimes(file: *const c_char, times: *const crate::timeval) -> c_int;
@@ -2662,6 +2687,11 @@ extern "C" {
         new_value: *const crate::itimerspec,
         old_value: *mut crate::itimerspec,
     ) -> c_int;
+    pub fn dlvsym(
+        handle: *mut c_void,
+        symbol: *const c_char,
+        version: *const c_char,
+    ) -> *mut c_void;
 
     // Added in `NetBSD` 7.0
     pub fn explicit_memset(b: *mut c_void, c: c_int, len: size_t);
@@ -2731,6 +2761,14 @@ extern "C" {
         new_value: *const itimerspec,
         old_value: *mut itimerspec,
     ) -> c_int;
+
+    pub fn qsort_r(
+        base: *mut c_void,
+        num: size_t,
+        size: size_t,
+        compar: Option<unsafe extern "C" fn(*const c_void, *const c_void, *mut c_void) -> c_int>,
+        arg: *mut c_void,
+    );
 }
 
 #[link(name = "rt")]

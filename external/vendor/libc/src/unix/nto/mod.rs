@@ -72,7 +72,7 @@ pub type sem_t = sync_t;
 
 pub type nl_item = c_int;
 
-#[cfg_attr(feature = "extra_traits", derive(Debug))]
+#[derive(Debug)]
 pub enum timezone {}
 impl Copy for timezone {}
 impl Clone for timezone {
@@ -2310,7 +2310,7 @@ pub const BIOCSHDRCMPLT: c_int = -2147204491;
 pub const BIOCSRTIMEOUT: c_int = -2146418067;
 pub const BIOCVERSION: c_int = 1074020977;
 
-pub const BPF_ALIGNMENT: usize = mem::size_of::<c_long>();
+pub const BPF_ALIGNMENT: usize = size_of::<c_long>();
 pub const CHAR_BIT: usize = 8;
 pub const CODESET: crate::nl_item = 1;
 pub const CRNCYSTR: crate::nl_item = 55;
@@ -2481,7 +2481,7 @@ pub const SIGEV_NONE: c_int = 0;
 pub const SIGEV_SIGNAL: c_int = 129;
 pub const SIGEV_THREAD: c_int = 135;
 pub const SO_USELOOPBACK: c_int = 0x0040;
-pub const _SS_ALIGNSIZE: usize = mem::size_of::<i64>();
+pub const _SS_ALIGNSIZE: usize = size_of::<i64>();
 pub const _SS_MAXSIZE: usize = 128;
 pub const _SS_PAD1SIZE: usize = _SS_ALIGNSIZE - 2;
 pub const _SS_PAD2SIZE: usize = _SS_MAXSIZE - 2 - _SS_PAD1SIZE - _SS_ALIGNSIZE;
@@ -2607,19 +2607,17 @@ pub const PTHREAD_RWLOCK_INITIALIZER: pthread_rwlock_t = pthread_rwlock_t {
     __spare: 0,
 };
 
-const_fn! {
-    {const} fn _CMSG_ALIGN(len: usize) -> usize {
-        len + mem::size_of::<usize>() - 1 & !(mem::size_of::<usize>() - 1)
-    }
+const fn _CMSG_ALIGN(len: usize) -> usize {
+    len + size_of::<usize>() - 1 & !(size_of::<usize>() - 1)
+}
 
-    {const} fn _ALIGN(p: usize, b: usize) -> usize {
-        (p + b - 1) & !(b - 1)
-    }
+const fn _ALIGN(p: usize, b: usize) -> usize {
+    (p + b - 1) & !(b - 1)
 }
 
 f! {
     pub fn CMSG_FIRSTHDR(mhdr: *const msghdr) -> *mut cmsghdr {
-        if (*mhdr).msg_controllen as usize >= mem::size_of::<cmsghdr>() {
+        if (*mhdr).msg_controllen as usize >= size_of::<cmsghdr>() {
             (*mhdr).msg_control as *mut cmsghdr
         } else {
             core::ptr::null_mut::<cmsghdr>()
@@ -2628,7 +2626,7 @@ f! {
 
     pub fn CMSG_NXTHDR(mhdr: *const crate::msghdr, cmsg: *const cmsghdr) -> *mut cmsghdr {
         let msg = _CMSG_ALIGN((*cmsg).cmsg_len as usize);
-        let next = cmsg as usize + msg + _CMSG_ALIGN(mem::size_of::<cmsghdr>());
+        let next = cmsg as usize + msg + _CMSG_ALIGN(size_of::<cmsghdr>());
         if next > (*mhdr).msg_control as usize + (*mhdr).msg_controllen as usize {
             core::ptr::null_mut::<cmsghdr>()
         } else {
@@ -2637,33 +2635,33 @@ f! {
     }
 
     pub fn CMSG_DATA(cmsg: *const cmsghdr) -> *mut c_uchar {
-        (cmsg as *mut c_uchar).offset(_CMSG_ALIGN(mem::size_of::<cmsghdr>()) as isize)
+        (cmsg as *mut c_uchar).offset(_CMSG_ALIGN(size_of::<cmsghdr>()) as isize)
     }
 
-    pub {const} fn CMSG_LEN(length: c_uint) -> c_uint {
-        _CMSG_ALIGN(mem::size_of::<cmsghdr>()) as c_uint + length
+    pub const fn CMSG_LEN(length: c_uint) -> c_uint {
+        _CMSG_ALIGN(size_of::<cmsghdr>()) as c_uint + length
     }
 
-    pub {const} fn CMSG_SPACE(length: c_uint) -> c_uint {
-        (_CMSG_ALIGN(mem::size_of::<cmsghdr>()) + _CMSG_ALIGN(length as usize)) as c_uint
+    pub const fn CMSG_SPACE(length: c_uint) -> c_uint {
+        (_CMSG_ALIGN(size_of::<cmsghdr>()) + _CMSG_ALIGN(length as usize)) as c_uint
     }
 
     pub fn FD_CLR(fd: c_int, set: *mut fd_set) -> () {
         let fd = fd as usize;
-        let size = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let size = size_of_val(&(*set).fds_bits[0]) * 8;
         (*set).fds_bits[fd / size] &= !(1 << (fd % size));
         return;
     }
 
     pub fn FD_ISSET(fd: c_int, set: *const fd_set) -> bool {
         let fd = fd as usize;
-        let size = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let size = size_of_val(&(*set).fds_bits[0]) * 8;
         return ((*set).fds_bits[fd / size] & (1 << (fd % size))) != 0;
     }
 
     pub fn FD_SET(fd: c_int, set: *mut fd_set) -> () {
         let fd = fd as usize;
-        let size = mem::size_of_val(&(*set).fds_bits[0]) * 8;
+        let size = size_of_val(&(*set).fds_bits[0]) * 8;
         (*set).fds_bits[fd / size] |= 1 << (fd % size);
         return;
     }
@@ -2682,7 +2680,7 @@ f! {
     }
 
     pub fn _DEXTRA_VALID(_x: *const crate::dirent_extra, _d: *const dirent) -> bool {
-        let sz = _x as usize - _d as usize + mem::size_of::<crate::dirent_extra>();
+        let sz = _x as usize - _d as usize + size_of::<crate::dirent_extra>();
         let rsz = (*_d).d_reclen as usize;
 
         if sz > rsz || sz + (*_x).d_datalen as usize > rsz {
@@ -2694,63 +2692,63 @@ f! {
 
     pub fn _DEXTRA_NEXT(_x: *const crate::dirent_extra) -> *mut crate::dirent_extra {
         _ALIGN(
-            _x as usize + mem::size_of::<crate::dirent_extra>() + (*_x).d_datalen as usize,
+            _x as usize + size_of::<crate::dirent_extra>() + (*_x).d_datalen as usize,
             8,
         ) as *mut crate::dirent_extra
     }
 
     pub fn SOCKCREDSIZE(ngrps: usize) -> usize {
         let ngrps = if ngrps > 0 { ngrps - 1 } else { 0 };
-        mem::size_of::<sockcred>() + mem::size_of::<crate::gid_t>() * ngrps
+        size_of::<sockcred>() + size_of::<crate::gid_t>() * ngrps
     }
 }
 
 safe_f! {
-    pub {const} fn WIFSTOPPED(status: c_int) -> bool {
+    pub const fn WIFSTOPPED(status: c_int) -> bool {
         (status & 0xff) == 0x7f
     }
 
-    pub {const} fn WSTOPSIG(status: c_int) -> c_int {
+    pub const fn WSTOPSIG(status: c_int) -> c_int {
         (status >> 8) & 0xff
     }
 
-    pub {const} fn WIFCONTINUED(status: c_int) -> bool {
+    pub const fn WIFCONTINUED(status: c_int) -> bool {
         status == 0xffff
     }
 
-    pub {const} fn WIFSIGNALED(status: c_int) -> bool {
+    pub const fn WIFSIGNALED(status: c_int) -> bool {
         ((status & 0x7f) + 1) as i8 >= 2
     }
 
-    pub {const} fn WTERMSIG(status: c_int) -> c_int {
+    pub const fn WTERMSIG(status: c_int) -> c_int {
         status & 0x7f
     }
 
-    pub {const} fn WIFEXITED(status: c_int) -> bool {
+    pub const fn WIFEXITED(status: c_int) -> bool {
         (status & 0x7f) == 0
     }
 
-    pub {const} fn WEXITSTATUS(status: c_int) -> c_int {
+    pub const fn WEXITSTATUS(status: c_int) -> c_int {
         (status >> 8) & 0xff
     }
 
-    pub {const} fn WCOREDUMP(status: c_int) -> bool {
+    pub const fn WCOREDUMP(status: c_int) -> bool {
         (status & 0x80) != 0
     }
 
-    pub {const} fn IPTOS_ECN(x: u8) -> u8 {
+    pub const fn IPTOS_ECN(x: u8) -> u8 {
         x & crate::IPTOS_ECN_MASK
     }
 
-    pub {const} fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
+    pub const fn makedev(major: c_uint, minor: c_uint) -> crate::dev_t {
         ((major << 10) | (minor)) as crate::dev_t
     }
 
-    pub {const} fn major(dev: crate::dev_t) -> c_uint {
+    pub const fn major(dev: crate::dev_t) -> c_uint {
         ((dev as c_uint) >> 10) & 0x3f
     }
 
-    pub {const} fn minor(dev: crate::dev_t) -> c_uint {
+    pub const fn minor(dev: crate::dev_t) -> c_uint {
         (dev as c_uint) & 0x3ff
     }
 }

@@ -60,6 +60,7 @@ static void _on_event(const event_t* event, component_t* component)
 {
     button_data_t* data = (button_data_t*)component->data;
     if (event->id == EVENT_SHORT_TAP && event->data.source == data->location) {
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         if (data->span_over_slider) {
             data->callback(component);
         } else if (

@@ -189,7 +189,7 @@ static void _render(component_t* component)
 static void _cleanup(component_t* component)
 {
     menu_data_t* data = (menu_data_t*)component->data;
-    free(data->labels);
+    free((void*)data->labels);
     // component and component data are cleaned up in ui_util_component_cleanup.
     ui_util_component_cleanup(component);
 }
@@ -230,7 +230,7 @@ component_t* menu_create(
     void* cancel_cb_param,
     component_t* parent)
 {
-    component_t** labels = malloc(sizeof(component_t*) * length);
+    component_t** labels = (component_t**)malloc(sizeof(component_t*) * length);
     if (!labels) {
         Abort("Error: malloc menu labels");
     }

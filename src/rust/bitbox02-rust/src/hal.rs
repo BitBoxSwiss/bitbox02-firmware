@@ -79,6 +79,13 @@ pub trait Memory {
     fn increment_unlock_attempts(&mut self);
     fn reset_unlock_attempts(&mut self);
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
+    fn get_attestation_pubkey_and_certificate(
+        &mut self,
+        pubkey_out: &mut [u8; 64],
+        certificate_out: &mut [u8; 64],
+        root_pubkey_identifier_out: &mut [u8; 32],
+    ) -> Result<(), ()>;
+    fn get_attestation_bootloader_hash(&mut self) -> [u8; 32];
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -261,6 +268,23 @@ impl Memory for BitBox02Memory {
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
         bitbox02::memory::get_salt_root()
     }
+
+    fn get_attestation_pubkey_and_certificate(
+        &mut self,
+        pubkey_out: &mut [u8; 64],
+        certificate_out: &mut [u8; 64],
+        root_pubkey_identifier_out: &mut [u8; 32],
+    ) -> Result<(), ()> {
+        bitbox02::memory::get_attestation_pubkey_and_certificate(
+            pubkey_out,
+            certificate_out,
+            root_pubkey_identifier_out,
+        )
+    }
+
+    fn get_attestation_bootloader_hash(&mut self) -> [u8; 32] {
+        bitbox02::memory::get_attestation_bootloader_hash()
+    }
 }
 
 pub struct BitBox02Hal {
@@ -410,6 +434,8 @@ pub mod testing {
         reset_keys_fail_once: bool,
         #[cfg(feature = "app-u2f")]
         u2f_counter: u32,
+        mock_attestation_signature: [u8; 64],
+        last_attestation_challenge: Option<[u8; 32]>,
     }
 
     pub struct TestingMemory {
@@ -423,6 +449,10 @@ pub mod testing {
         device_name: Option<String>,
         unlock_attempts: u8,
         salt_root: [u8; 32],
+        attestation_device_pubkey: Option<[u8; 64]>,
+        attestation_certificate: Option<[u8; 64]>,
+        attestation_root_pubkey_identifier: Option<[u8; 32]>,
+        attestation_bootloader_hash: [u8; 32],
     }
 
     impl TestingSecureChip {
@@ -432,6 +462,8 @@ pub mod testing {
                 reset_keys_fail_once: false,
                 #[cfg(feature = "app-u2f")]
                 u2f_counter: 0,
+                mock_attestation_signature: [0u8; 64],
+                last_attestation_challenge: None,
             }
         }
 
@@ -453,6 +485,14 @@ pub mod testing {
         #[cfg(feature = "app-u2f")]
         pub fn get_u2f_counter(&self) -> u32 {
             self.u2f_counter
+        }
+
+        pub fn set_mock_attestation_signature(&mut self, sig: &[u8; 64]) {
+            self.mock_attestation_signature = *sig;
+        }
+
+        pub fn last_attestation_challenge(&self) -> Option<[u8; 32]> {
+            self.last_attestation_challenge
         }
     }
 
@@ -499,11 +539,13 @@ pub mod testing {
 
         fn attestation_sign(
             &mut self,
-            _challenge: &[u8; 32],
-            _signature: &mut [u8; 64],
+            challenge: &[u8; 32],
+            signature: &mut [u8; 64],
         ) -> Result<(), ()> {
             self.event_counter += 1;
-            todo!()
+            self.last_attestation_challenge = Some(*challenge);
+            *signature = self.mock_attestation_signature;
+            Ok(())
         }
 
         fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
@@ -544,6 +586,10 @@ pub mod testing {
                 device_name: None,
                 unlock_attempts: 0,
                 salt_root: *b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                attestation_device_pubkey: None,
+                attestation_certificate: None,
+                attestation_root_pubkey_identifier: None,
+                attestation_bootloader_hash: [0; 32],
             }
         }
 
@@ -561,6 +607,21 @@ pub mod testing {
 
         pub fn set_salt_root(&mut self, salt_root: &[u8; 32]) {
             self.salt_root = *salt_root;
+        }
+
+        pub fn set_attestation_certificate(
+            &mut self,
+            pubkey: &[u8; 64],
+            certificate: &[u8; 64],
+            root_pubkey_identifier: &[u8; 32],
+        ) {
+            self.attestation_device_pubkey = Some(*pubkey);
+            self.attestation_certificate = Some(*certificate);
+            self.attestation_root_pubkey_identifier = Some(*root_pubkey_identifier);
+        }
+
+        pub fn set_attestation_bootloader_hash(&mut self, hash: &[u8; 32]) {
+            self.attestation_bootloader_hash = *hash;
         }
     }
 
@@ -657,6 +718,31 @@ pub mod testing {
             } else {
                 Ok(zeroize::Zeroizing::new(self.salt_root.to_vec()))
             }
+        }
+
+        fn get_attestation_pubkey_and_certificate(
+            &mut self,
+            pubkey_out: &mut [u8; 64],
+            certificate_out: &mut [u8; 64],
+            root_pubkey_identifier_out: &mut [u8; 32],
+        ) -> Result<(), ()> {
+            match (
+                self.attestation_device_pubkey,
+                self.attestation_certificate,
+                self.attestation_root_pubkey_identifier,
+            ) {
+                (Some(pubkey), Some(certificate), Some(root_id)) => {
+                    *pubkey_out = pubkey;
+                    *certificate_out = certificate;
+                    *root_pubkey_identifier_out = root_id;
+                    Ok(())
+                }
+                _ => Err(()),
+            }
+        }
+
+        fn get_attestation_bootloader_hash(&mut self) -> [u8; 32] {
+            self.attestation_bootloader_hash
         }
     }
 

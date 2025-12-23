@@ -7,6 +7,8 @@
 #include "memory/memory_shared.h"
 #include "screen.h"
 #include "ui/screen_stack.h"
+#include "usb/class/usb_size.h"
+#include "usb/usb_frame.h"
 #include "usb/usb_packet.h"
 #include "utils_ringbuffer.h"
 #include <ui/components/confirm.h>
@@ -267,7 +269,10 @@ static void _hww_handler(struct da14531_protocol_frame* frame, struct ringbuffer
 {
     // util_log(" in: %s", util_dbg_hex(frame->payload, 64));
     (void)queue;
-    ASSERT(frame->payload_length == 64);
+    if (frame->payload_length != USB_REPORT_SIZE) {
+        util_log("da14531: invalid hww payload length %u, dropped frame", frame->payload_length);
+        return;
+    }
     usb_packet_process((USB_FRAME*)&frame->payload[0]);
 }
 

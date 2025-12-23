@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 """Helpers for doing U2F with bitbox02"""
 
 from typing import Tuple

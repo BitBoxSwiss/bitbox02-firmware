@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 SOURCES=bb02_logo.png bb02_btc_logo.png bb02_multi_logo.png
 
 %.pbm: %.png

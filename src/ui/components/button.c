@@ -1,16 +1,4 @@
-// Copyright 2019 Shift Cryptosecurity AG
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 #include "button.h"
 #include "ui_images.h"
@@ -60,6 +48,7 @@ static void _on_event(const event_t* event, component_t* component)
 {
     button_data_t* data = (button_data_t*)component->data;
     if (event->id == EVENT_SHORT_TAP && event->data.source == data->location) {
+        // NOLINTNEXTLINE(bugprone-branch-clone)
         if (data->span_over_slider) {
             data->callback(component);
         } else if (

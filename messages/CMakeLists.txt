@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 set(PROTO_FILES
   hww.proto
   backup.proto

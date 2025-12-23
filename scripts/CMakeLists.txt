@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 if(PYTHONINTERP_FOUND)
   # This template flashes with an offset
   foreach(target ${FIRMWARES})

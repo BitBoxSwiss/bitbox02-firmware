@@ -287,7 +287,7 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
         }
 
         // bytes with index 1-2 are the length
-        uint16_t len = *((uint16_t*)&self->frame[1]);
+        uint16_t len = (uint16_t)self->frame[1] | ((uint16_t)self->frame[2] << 8);
 
         if (len > self->frame_len - 5) {
             util_log("da14531: ERROR, invalid len %d, dropped frame", len);
@@ -302,7 +302,8 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
 
         // CRC in frame
         // bytes with index n-2 and n-1 are the crc
-        uint16_t crc_frame = *(uint16_t*)&self->frame[3 + len];
+        uint16_t crc_frame =
+            (uint16_t)self->frame[3 + len] | ((uint16_t)self->frame[3 + len + 1] << 8);
 
         // Recalculate CRC
         crc_t crc = crc_init();

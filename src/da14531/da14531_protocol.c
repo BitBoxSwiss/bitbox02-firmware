@@ -18,6 +18,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 enum firmware_loader_state {
     FIRMWARE_LOADER_STATE_IDLE,
@@ -287,7 +288,8 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
         }
 
         // bytes with index 1-2 are the length
-        uint16_t len = *((uint16_t*)&self->frame[1]);
+        uint16_t len;
+        memcpy(&len, &self->frame[1], sizeof(len));
 
         if (len > self->frame_len - 5) {
             util_log("da14531: ERROR, invalid len %d, dropped frame", len);
@@ -302,7 +304,8 @@ static struct da14531_protocol_frame* _serial_link_in_poll(
 
         // CRC in frame
         // bytes with index n-2 and n-1 are the crc
-        uint16_t crc_frame = *(uint16_t*)&self->frame[3 + len];
+        uint16_t crc_frame;
+        memcpy(&crc_frame, &self->frame[3 + len], sizeof(crc_frame));
 
         // Recalculate CRC
         crc_t crc = crc_init();

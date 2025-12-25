@@ -485,12 +485,12 @@ static void _test_memory_set_seed_birthdate(void** state)
     will_return(__wrap_memory_read_chunk_fake, empty_chunk);
 
     EMPTYCHUNK(expected_chunk);
-    uint32_t* timestamp = (uint32_t*)&expected_chunk[_addr_seed_birthdate];
-    *timestamp = 0xabcdef11;
+    uint32_t timestamp = 0xabcdef11;
+    memcpy(&expected_chunk[_addr_seed_birthdate], &timestamp, sizeof(timestamp));
     expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
     expect_memory(__wrap_memory_write_chunk_fake, chunk, expected_chunk, CHUNK_SIZE);
     will_return(__wrap_memory_write_chunk_fake, true);
-    assert_true(memory_set_seed_birthdate(*timestamp));
+    assert_true(memory_set_seed_birthdate(timestamp));
 }
 
 static void _test_memory_set_attestation_device_pubkey(void** state)

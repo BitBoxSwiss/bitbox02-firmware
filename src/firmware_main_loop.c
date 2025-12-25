@@ -74,12 +74,12 @@ void firmware_main_loop(void)
     rust_workflow_spawn_orientation_screen();
 
     const uint8_t* hww_data = NULL;
-    uint8_t hww_frame[USB_REPORT_SIZE] = {0};
+    USB_FRAME hww_frame = {0};
 
 #if APP_U2F == 1
     u2f_packet_init();
     const uint8_t* u2f_data = NULL;
-    uint8_t u2f_frame[USB_REPORT_SIZE] = {0};
+    USB_FRAME u2f_frame = {0};
 #endif
 
     if (!memory_ble_enabled()) {
@@ -119,8 +119,8 @@ void firmware_main_loop(void)
         }
 #endif
         // Do USB Input
-        if (!hww_data && hid_hww_read(&hww_frame[0])) {
-            if (usb_packet_process((const USB_FRAME*)hww_frame)) {
+        if (!hww_data && hid_hww_read((uint8_t*)&hww_frame)) {
+            if (usb_packet_process(&hww_frame)) {
                 if (rust_communication_mode_ble_enabled()) {
                     // Enqueue a power down command to the da14531
                     da14531_power_down(&uart_write_queue);
@@ -136,9 +136,9 @@ void firmware_main_loop(void)
             }
         }
 #if APP_U2F == 1
-        if (!u2f_data && hid_u2f_read(&u2f_frame[0])) {
-            util_log("u2f data %s", util_dbg_hex((void*)u2f_frame, 16));
-            u2f_packet_process((const USB_FRAME*)u2f_frame);
+        if (!u2f_data && hid_u2f_read((uint8_t*)&u2f_frame)) {
+            util_log("u2f data %s", util_dbg_hex((void*)&u2f_frame, 16));
+            u2f_packet_process(&u2f_frame);
         }
 #endif
 

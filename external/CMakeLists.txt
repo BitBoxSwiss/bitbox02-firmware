@@ -73,7 +73,7 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/usb/device/usbdc.c
     )
 
-    target_compile_options(asf4-drivers-min PRIVATE -Wno-cast-qual -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-bad-function-cast -Wno-strict-prototypes -Wno-old-style-definition)
+    target_compile_options(asf4-drivers-min PRIVATE -Wno-cast-qual -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-bad-function-cast -Wno-strict-prototypes -Wno-old-style-definition -Wno-cast-align)
 
     if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         target_compile_definitions(asf4-drivers-min PUBLIC DEBUG USE_SIMPLE_ASSERT)
@@ -82,7 +82,7 @@ if(CMAKE_CROSSCOMPILING)
   target_link_libraries(asf4-drivers-min samd51a-ds)
   set_property(TARGET asf4-drivers-min PROPERTY INTERFACE_LINK_LIBRARIES "")
   target_compile_options(asf4-drivers-min PRIVATE -Wno-cast-qual
-      -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations)
+      -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-cast-align)
 
   target_include_directories(asf4-drivers-min SYSTEM
     PUBLIC

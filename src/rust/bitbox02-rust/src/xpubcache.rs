@@ -136,30 +136,33 @@ pub type Bip32XpubCache = XpubCache<bip32::Xpub>;
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
     use super::*;
 
     use crate::bip32;
     use crate::keystore::testing::mock_unlocked;
+    use core::cell::RefCell;
     use util::bip32::HARDENED;
 
     #[test]
     fn test_xpub_cache() {
         // Mock xpubs by storing the keypath only, so we can unit test access patterns.
-        #[derive(Clone)]
-        struct MockXpub(Vec<u32>);
+        std::thread_local! {
+            static CHILD_DERIVATIONS: RefCell<u32> = const { RefCell::new(0) };
+            static ROOT_DERIVATIONS: RefCell<u32> = const { RefCell::new(0) };
+        }
 
-        static CHILD_DERIVATIONS: bitbox02::testing::UnsafeSyncRefCell<u32> =
-            bitbox02::testing::UnsafeSyncRefCell::new(0);
-        static ROOT_DERIVATIONS: bitbox02::testing::UnsafeSyncRefCell<u32> =
-            bitbox02::testing::UnsafeSyncRefCell::new(0);
+        #[derive(Clone)]
+        struct MockXpub {
+            keypath: Vec<u32>,
+        }
 
         impl Xpub for MockXpub {
             fn derive(&self, keypath: &[u32], _compute: Compute) -> Result<Self, ()> {
-                let mut kp = Vec::new();
-                kp.extend_from_slice(&self.0);
+                let mut kp = self.keypath.clone();
                 kp.extend_from_slice(keypath);
-                *CHILD_DERIVATIONS.borrow_mut() += keypath.len() as u32;
-                Ok(MockXpub(kp))
+                CHILD_DERIVATIONS.with(|count| *count.borrow_mut() += keypath.len() as u32);
+                Ok(Self { keypath: kp })
             }
 
             fn from_keypath(
@@ -167,8 +170,10 @@ mod tests {
                 keypath: &[u32],
                 _compute: Compute,
             ) -> Result<Self, ()> {
-                *ROOT_DERIVATIONS.borrow_mut() += 1;
-                Ok(MockXpub(keypath.to_vec()))
+                ROOT_DERIVATIONS.with(|count| *count.borrow_mut() += 1);
+                Ok(Self {
+                    keypath: keypath.to_vec(),
+                })
             }
         }
 
@@ -180,25 +185,25 @@ mod tests {
             cache
                 .get_xpub(&mut crate::hal::testing::TestingHal::new(), &[])
                 .unwrap()
-                .0
+                .keypath
                 .as_slice(),
             &[]
         );
-        assert_eq!(*CHILD_DERIVATIONS.borrow(), 0u32);
-        assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
-        *ROOT_DERIVATIONS.borrow_mut() = 0;
+        assert_eq!(CHILD_DERIVATIONS.with(|count| *count.borrow()), 0u32);
+        assert_eq!(ROOT_DERIVATIONS.with(|count| *count.borrow()), 1u32);
+        ROOT_DERIVATIONS.with(|count| *count.borrow_mut() = 0);
 
         assert_eq!(
             cache
                 .get_xpub(&mut crate::hal::testing::TestingHal::new(), &[1, 2, 3])
                 .unwrap()
-                .0
+                .keypath
                 .as_slice(),
             &[1, 2, 3]
         );
-        assert_eq!(*CHILD_DERIVATIONS.borrow(), 0u32);
-        assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
-        *ROOT_DERIVATIONS.borrow_mut() = 0;
+        assert_eq!(CHILD_DERIVATIONS.with(|count| *count.borrow()), 0u32);
+        assert_eq!(ROOT_DERIVATIONS.with(|count| *count.borrow()), 1u32);
+        ROOT_DERIVATIONS.with(|count| *count.borrow_mut() = 0);
 
         // Cache some keypaths.
         cache.add_keypath(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED]);
@@ -211,17 +216,17 @@ mod tests {
                     &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
                 )
                 .unwrap()
-                .0
+                .keypath
                 .as_slice(),
             &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
         );
         // Two child derivations:
         // 1: m/84'/0'/0' -> m/84'/0'/0'/1
         // 2: m/84'/0'/0'/1 -> m/84'/0'/0'/1/2
-        assert_eq!(*CHILD_DERIVATIONS.borrow(), 2u32);
-        *CHILD_DERIVATIONS.borrow_mut() = 0;
-        assert_eq!(*ROOT_DERIVATIONS.borrow(), 1u32);
-        *ROOT_DERIVATIONS.borrow_mut() = 0;
+        assert_eq!(CHILD_DERIVATIONS.with(|count| *count.borrow()), 2u32);
+        CHILD_DERIVATIONS.with(|count| *count.borrow_mut() = 0);
+        assert_eq!(ROOT_DERIVATIONS.with(|count| *count.borrow()), 1u32);
+        ROOT_DERIVATIONS.with(|count| *count.borrow_mut() = 0);
 
         // Same keypath again is a cache hit at m/84'/0'/0'/1 with one child derivation.
         assert_eq!(
@@ -231,13 +236,13 @@ mod tests {
                     &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
                 )
                 .unwrap()
-                .0
+                .keypath
                 .as_slice(),
             &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 2]
         );
-        assert_eq!(*CHILD_DERIVATIONS.borrow(), 1u32);
-        *CHILD_DERIVATIONS.borrow_mut() = 0;
-        assert_eq!(*ROOT_DERIVATIONS.borrow(), 0u32);
+        assert_eq!(CHILD_DERIVATIONS.with(|count| *count.borrow()), 1u32);
+        CHILD_DERIVATIONS.with(|count| *count.borrow_mut() = 0);
+        assert_eq!(ROOT_DERIVATIONS.with(|count| *count.borrow()), 0u32);
 
         // m/84'/0'/0'/0/0 is a cache hit at m/84'/0'/0', which was cached because of the above we
         // call using m/84'/0'/0'/1/2.
@@ -248,12 +253,12 @@ mod tests {
                     &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
                 )
                 .unwrap()
-                .0
+                .keypath
                 .as_slice(),
             &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
         );
-        assert_eq!(*CHILD_DERIVATIONS.borrow(), 2u32);
-        assert_eq!(*ROOT_DERIVATIONS.borrow(), 0u32);
+        assert_eq!(CHILD_DERIVATIONS.with(|count| *count.borrow()), 2u32);
+        assert_eq!(ROOT_DERIVATIONS.with(|count| *count.borrow()), 0u32);
     }
 
     #[test]

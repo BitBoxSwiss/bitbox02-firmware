@@ -355,7 +355,6 @@ pub async fn get(
                     preset,
                 )
                 .await
-                .into()
         };
 
         match user_entry {
@@ -420,15 +419,14 @@ mod tests {
     use super::*;
 
     use alloc::boxed::Box;
-    use bitbox02::testing::{Data, mock};
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
         for i in 0..BIP39_WORDLIST_LEN {
-            let word = bitbox02::keystore::get_bip39_word(i).unwrap();
+            let word = crate::bip39::get_word(i).unwrap();
             let mut m = mnemonic.to_vec();
             m.push(&word);
-            if bitbox02::keystore::bip39_mnemonic_to_seed(&m.join(" ")).is_ok() {
+            if crate::bip39::mnemonic_to_seed(&m.join(" ")).is_ok() {
                 result.push(word);
             }
         }

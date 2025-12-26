@@ -8,7 +8,7 @@ use pb::response::Response;
 #[cfg(feature = "app-u2f")]
 use crate::hal::SecureChip;
 use crate::hal::{Memory, Ui};
-use crate::workflow::{confirm, mnemonic, password, unlock};
+use crate::workflow::{confirm, password, unlock};
 
 pub async fn from_file(
     hal: &mut impl crate::hal::Hal,
@@ -104,7 +104,7 @@ pub async fn from_mnemonic(
             .await?;
     }
 
-    let mnemonic = mnemonic::get(hal).await?;
+    let mnemonic = hal.ui().get_mnemonic().await?;
     let seed = match crate::bip39::mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
         Err(()) => {

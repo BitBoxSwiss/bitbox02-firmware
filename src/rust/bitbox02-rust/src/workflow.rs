@@ -83,6 +83,17 @@ pub trait Workflows {
     {
         mnemonic::show_and_confirm_mnemonic(self, words).await
     }
+
+    /// Retrieve a BIP39 mnemonic sentence of 12 or 24 words from the user.
+    ///
+    /// This function is defined in the HAL so unit tests can easily mock it. Real implementations
+    /// should leave the default implementation.
+    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, cancel::Error>
+    where
+        Self: Sized,
+    {
+        mnemonic::get(self).await
+    }
 }
 
 pub struct RealWorkflows;

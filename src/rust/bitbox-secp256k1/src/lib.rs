@@ -44,6 +44,7 @@ mod ffi {
             opening: *const secp256k1_ecdsa_s2c_opening,
         ) -> c_int;
 
+        #[cfg(feature = "testing")]
         pub fn secp256k1_ecdsa_anti_exfil_host_commit(
             ctx: *const Context,
             rand_commitment32: *mut c_uchar,
@@ -238,6 +239,7 @@ pub fn secp256k1_nonce_commit(
     Ok(out)
 }
 
+#[cfg(feature = "testing")]
 pub fn ecdsa_anti_exfil_host_commit(secp: &Secp256k1<All>, rand32: &[u8]) -> Result<Vec<u8>, ()> {
     let mut out = [0u8; 32];
     match unsafe {

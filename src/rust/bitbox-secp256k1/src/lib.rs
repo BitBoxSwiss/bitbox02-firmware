@@ -72,12 +72,6 @@ mod ffi {
             opening: *const secp256k1_ecdsa_s2c_opening,
         ) -> c_int;
 
-        pub fn secp256k1_ecdsa_signature_serialize_compact(
-            ctx: *const Context,
-            output64: *mut c_uchar,
-            sig: *const Signature,
-        ) -> c_int;
-
         pub fn bitbox_secp256k1_dleq_prove(
             ctx: *const Context,
             s: *mut c_uchar,
@@ -176,17 +170,8 @@ pub fn secp256k1_sign(
         return Err(());
     }
 
-    let mut signature = [0u8; 64];
-    if unsafe {
-        ffi::secp256k1_ecdsa_signature_serialize_compact(
-            SECP256K1.ctx().as_ptr(),
-            signature.as_mut_ptr(),
-            sig.as_ptr(),
-        )
-    } != 1
-    {
-        return Err(());
-    }
+    let sig = bitcoin::secp256k1::ecdsa::Signature::from(unsafe { sig.assume_init() });
+    let signature = sig.serialize_compact();
     Ok(SignResult {
         signature,
         recid: recid.try_into().unwrap(),

@@ -15,7 +15,6 @@ doctest = false
 bitcoin = { workspace = true }
 
 [dev-dependencies]
-hex = { workspace = true }
 hex_lit = { workspace = true, features = ["rust_v_1_46"] }
 
 [build-dependencies]

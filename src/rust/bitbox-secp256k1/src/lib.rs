@@ -334,23 +334,25 @@ mod tests {
     #[test]
     fn test_dleq() {
         let secp = Secp256k1::new();
-        let seckey_bytes = b"\x07\x7e\xb7\x5a\x52\xec\xa2\x4c\xde\xdf\x05\x8c\x92\xf1\xca\x8b\x9d\x48\x41\x77\x1f\xd6\xba\xa3\xd2\x78\x85\xfb\x5b\x49\xfb\xa2";
-        let seckey = SecretKey::from_slice(seckey_bytes).unwrap();
+        let seckey_bytes = hex!("077eb75a52eca24cdedf058c92f1ca8b9d4841771fd6baa3d27885fb5b49fba2");
+        let seckey = SecretKey::from_slice(&seckey_bytes).unwrap();
 
         let pubkey = seckey.public_key(&secp);
 
-        let other_base_bytes = b"\x03\x89\x14\x0f\x7b\xb8\x52\xf0\x20\xf1\x54\xe5\x59\x08\xfe\x36\x99\xdc\x9f\x65\x15\x3e\x68\x15\x27\xf0\xd5\x5a\xab\xed\x93\x7f\x4b";
-        let other_base = PublicKey::from_slice(other_base_bytes).unwrap();
+        let other_base_bytes =
+            hex!("0389140f7bb852f020f154e55908fe3699dc9f65153e681527f0d55aabed937f4b");
+        let other_base = PublicKey::from_slice(&other_base_bytes).unwrap();
 
         let other_pubkey = other_base;
         let other_pubkey = other_pubkey.mul_tweak(&secp, &seckey.into()).unwrap();
-        let proof = dleq_prove(&secp, seckey_bytes, &other_base, &pubkey, &other_pubkey).unwrap();
+        let proof = dleq_prove(&secp, &seckey_bytes, &other_base, &pubkey, &other_pubkey).unwrap();
         // Check against fixture so potential upstream changes in the DLEQ implementation get
         // caught.  Incompatible changes can break BitBox client libraries that rely on this
         // specific DLEQ implementation.
         assert_eq!(
-            hex::encode(&proof),
-            "6c885f825f6ce7565bc6d0bfda90506b11e2682dfe943f5a85badf1c8a96edc5f5e03f5ee2c58bf979646fbada920f9f1c5bd92805fb5b01534b42d26a550f79",
+            proof,
+            hex!("6c885f825f6ce7565bc6d0bfda90506b11e2682dfe943f5a85badf1c8a96edc5f5e03f5ee2c58bf979646fbada920f9f1c5bd92805fb5b01534b42d26a550f79")
+                .to_vec(),
         );
         dleq_verify(
             &secp,
@@ -405,8 +407,8 @@ mod tests {
         let client_commitment =
             secp256k1_nonce_commit(&private_key, &msg, &host_commitment).unwrap();
         assert_eq!(
-            hex::encode(client_commitment),
-            "0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e",
+            client_commitment,
+            hex!("0381e4136251c87f2947b735159c6dd644a7b58d35b437e20c878e5129f1320e5e"),
         );
     }
 }

@@ -12,12 +12,9 @@ license = "Apache-2.0"
 bitbox02-sys = {path="../bitbox02-sys"}
 util = {path = "../util"}
 zeroize = { workspace = true }
-bitcoin = { workspace = true }
 bip39 = { workspace = true }
-hex = { workspace = true }
 
 [dev-dependencies]
-hex = { workspace = true }
 bitbox-aes = { path = "../bitbox-aes" }
 bitbox02-rust = { path = "../bitbox02-rust" }
 hex_lit = { workspace = true }

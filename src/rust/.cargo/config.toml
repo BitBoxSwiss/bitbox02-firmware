@@ -18,3 +18,10 @@ replace-with = "vendored-sources"
 
 [source.vendored-sources]
 directory = "../../external/vendor"
+
+[build]
+# Use our own copy of libsecp256k1-zpk instead of the one bundled with secp256k1-sys, also in `cargo
+# test` and other cargo-based builds. This is replicated in src/CMakeLists.txt,
+# test/simulator-graphical*/CMakeLists.txt for CMake-based builds.
+# See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
+rustflags = ["--cfg", "rust_secp_no_symbol_renaming"]

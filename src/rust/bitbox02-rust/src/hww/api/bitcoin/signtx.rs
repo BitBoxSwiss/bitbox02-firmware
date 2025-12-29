@@ -2697,7 +2697,7 @@ mod tests {
         // tested in keystore::tests::test_secp256k1_antiklepto_protocol. That the host nonce was included in the sig is
         // tested by the signature fixture test below.
         let host_nonce_commitment = pb::AntiKleptoHostNonceCommitment {
-            commitment: bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce)
+            commitment: bitbox_secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce)
                 .unwrap(),
         };
         transaction.borrow_mut().inputs[1].host_nonce = Some(host_nonce.to_vec());

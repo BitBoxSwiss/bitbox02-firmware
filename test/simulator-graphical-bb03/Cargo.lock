@@ -332,13 +332,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-secp256k1"
+version = "0.1.0"
+dependencies = [
+ "bitcoin",
+ "cc",
+]
+
+[[package]]
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox02-sys",
- "bitcoin",
- "hex",
  "util",
  "zeroize",
 ]
@@ -360,6 +366,7 @@ dependencies = [
  "bip32-ed25519",
  "bip39",
  "bitbox-aes",
+ "bitbox-secp256k1",
  "bitbox02",
  "bitbox02-noise",
  "bitcoin",
@@ -2874,7 +2881,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 name = "streaming-silent-payments"
 version = "0.1.0"
 dependencies = [
- "bitbox02",
+ "bitbox-secp256k1",
  "bitcoin",
 ]
 

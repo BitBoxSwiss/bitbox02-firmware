@@ -220,6 +220,7 @@ endif()
 
 # Use libsecp256k1 that we link ourselves.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
+# This is replicated in .cargo/config.toml because RUSTFLAGS here override the rustflags there.
 string(JOIN " " RUSTFLAGS "${RUSTFLAGS}" "--cfg=rust_secp_no_symbol_renaming")
 
 if(CMAKE_CROSSCOMPILING)
@@ -266,7 +267,7 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-  set(RUSTFLAGS_TESTS "${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lsecp256k1 -lstatic=fatfs")
+  set(RUSTFLAGS_TESTS "${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lstatic=fatfs")
 
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a
@@ -293,7 +294,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     DEPENDS
       ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
     )
-  add_dependencies(rust-test secp256k1 generate-protobufs fatfs)
+  add_dependencies(rust-test generate-protobufs fatfs)
 
   add_custom_target(rust-clippy
     COMMAND
@@ -556,7 +557,6 @@ if(CMAKE_CROSSCOMPILING)
     # left-to-right.
     target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
 
-    target_link_libraries(${elf} PRIVATE secp256k1)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
     # Select the smaller version of libc called nano.

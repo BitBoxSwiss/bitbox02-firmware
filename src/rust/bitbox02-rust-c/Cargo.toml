@@ -44,6 +44,7 @@ target-factory-setup = [
   # enable these features
   "firmware",
   "platform-bitbox02",
+  "dep:bitcoin",
 ]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
 target-c-unit-tests = [

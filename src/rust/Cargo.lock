@@ -112,7 +112,6 @@ version = "0.1.0"
 dependencies = [
  "bitcoin",
  "cc",
- "hex",
  "hex_lit",
 ]
 

@@ -167,6 +167,15 @@ impl Workflows for TestingWorkflows<'_> {
         });
         Ok(())
     }
+
+    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, cancel::Error>
+    where
+        Self: Sized,
+    {
+        let words = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
+
+        Ok(zeroize::Zeroizing::new(words.into()))
+    }
 }
 
 impl<'a> TestingWorkflows<'a> {

@@ -111,6 +111,7 @@ add_library(u2f-util
   u2f/uECC.c
   u2f/u2f_util_t.c
 )
+target_compile_options(u2f-util PRIVATE -Wno-cast-align)
 target_include_directories(u2f-util
   SYSTEM PUBLIC
   ${HIDAPI_INCLUDE_DIRS}

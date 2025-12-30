@@ -284,6 +284,13 @@ string(APPEND CMAKE_C_FLAGS " -Wold-style-definition -Wswitch-default -Wattribut
 string(APPEND CMAKE_C_FLAGS " -Wdeprecated-declarations -Wcast-qual -Wstrict-prototypes")
 string(APPEND CMAKE_C_FLAGS " -Wundef -Wmissing-include-dirs")
 
+# Strict alignment checks for pointer casts (GCC only).
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  string(APPEND CMAKE_C_FLAGS " -Wcast-align=strict")
+elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  string(APPEND CMAKE_C_FLAGS " -Wcast-align")
+endif()
+
 # Disable builtin warning
 string(APPEND CMAKE_C_FLAGS " -Wno-cast-function-type")
 

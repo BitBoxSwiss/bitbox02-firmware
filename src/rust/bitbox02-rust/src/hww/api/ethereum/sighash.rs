@@ -4052,4 +4052,79 @@ mod tests {
             assert_eq!(compute_legacy(&test.params).unwrap(), test.expected_sighash);
         }
     }
+
+    #[test]
+    fn test_simple_producer_empty() {
+        let mut producer = SimpleProducer::new(&[]);
+        assert_eq!(producer.len(), 0);
+
+        let chunk = util::bb02_async::block_on(producer.next());
+        assert_eq!(chunk, Some(vec![]));
+
+        let chunk2 = util::bb02_async::block_on(producer.next());
+        assert_eq!(chunk2, None);
+    }
+
+    #[test]
+    fn test_simple_producer_single_byte() {
+        let mut producer = SimpleProducer::new(&[0x42]);
+        assert_eq!(producer.len(), 1);
+        assert_eq!(producer.first_byte(), 0x42);
+
+        let chunk = util::bb02_async::block_on(producer.next());
+        assert_eq!(chunk, Some(vec![0x42]));
+
+        let chunk2 = util::bb02_async::block_on(producer.next());
+        assert_eq!(chunk2, None);
+    }
+
+    #[test]
+    fn test_simple_producer_4096_bytes() {
+        let data = vec![0xAB; 4096];
+        let mut producer = SimpleProducer::new(&data);
+        assert_eq!(producer.len(), 4096);
+        assert_eq!(producer.first_byte(), 0xAB);
+
+        let chunk = util::bb02_async::block_on(producer.next());
+        assert_eq!(chunk, Some(data.clone()));
+
+        let chunk2 = util::bb02_async::block_on(producer.next());
+        assert_eq!(chunk2, None);
+    }
+
+    #[test]
+    fn test_simple_producer_10kb() {
+        let data = vec![0xCD; 10000];
+        let mut producer = SimpleProducer::new(&data);
+        assert_eq!(producer.len(), 10000);
+        assert_eq!(producer.first_byte(), 0xCD);
+
+        let chunk = util::bb02_async::block_on(producer.next());
+        assert_eq!(chunk, Some(data));
+    }
+
+    #[test]
+    fn test_chunking_producer_1_byte() {
+        let producer = ChunkingProducer::new(1);
+        assert_eq!(producer.len(), 1);
+    }
+
+    #[test]
+    fn test_chunking_producer_4096_bytes() {
+        let producer = ChunkingProducer::new(4096);
+        assert_eq!(producer.len(), 4096);
+    }
+
+    #[test]
+    fn test_chunking_producer_4097_bytes() {
+        let producer = ChunkingProducer::new(4097);
+        assert_eq!(producer.len(), 4097);
+    }
+
+    #[test]
+    fn test_chunking_producer_10000_bytes() {
+        let producer = ChunkingProducer::new(10000);
+        assert_eq!(producer.len(), 10000);
+    }
+
 }

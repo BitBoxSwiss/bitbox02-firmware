@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::Workflows;
 pub use super::cancel::Error as CancelError;
 use super::cancel::{cancel, set_result, with_cancel};
 use super::confirm;
@@ -214,7 +213,7 @@ fn lastword_choices_strings(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<St
 /// Returns `Ok(Some(word))` if the user chooses a word.
 /// Returns `Err(CancelError::Cancelled)` if the user cancels.
 async fn get_24th_word(
-    hal: &mut impl crate::hal::Hal,
+    hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
 ) -> Result<Option<zeroize::Zeroizing<String>>, CancelError> {
@@ -225,7 +224,7 @@ async fn get_24th_word(
         choices.len() - 1
     };
     loop {
-        match hal.ui().menu(&as_str_vec(&choices), Some(title)).await {
+        match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
             Err(menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
                 let params = confirm::Params {
@@ -233,7 +232,7 @@ async fn get_24th_word(
                     body: "Invalid. Check\nrecovery words.\nRestart?",
                     ..Default::default()
                 };
-                if let Ok(()) = hal.ui().confirm(&params).await {
+                if let Ok(()) = hal_ui.confirm(&params).await {
                     return Ok(None);
                 }
             }
@@ -241,8 +240,7 @@ async fn get_24th_word(
                 // Confirm word picked from menu again, as a typo here would be extremely annoying.
                 // Double checking is also safer, as the user might not even realize they made a typo.
                 let word = choices[choice_idx as usize].clone();
-                if let Ok(()) = hal
-                    .ui()
+                if let Ok(()) = hal_ui
                     .confirm(&confirm::Params {
                         title,
                         body: &word,
@@ -263,7 +261,7 @@ async fn get_24th_word(
 /// Returns `Ok(word)` if the user chooses a word.
 /// Returns `Err(CancelError::Cancelled)` if the user cancels.
 async fn get_12th_18th_word(
-    hal: &mut impl crate::hal::Hal,
+    hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
@@ -271,8 +269,7 @@ async fn get_12th_18th_word(
     // these.
     loop {
         let choices = lastword_choices(entered_words);
-        let word = hal
-            .ui()
+        let word = hal_ui
             .enter_string(
                 &trinary_input_string::Params {
                     title,
@@ -286,8 +283,7 @@ async fn get_12th_18th_word(
 
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
-        if let Ok(()) = hal
-            .ui()
+        if let Ok(()) = hal_ui
             .confirm(&confirm::Params {
                 title,
                 body: &word,
@@ -300,12 +296,11 @@ async fn get_12th_18th_word(
     }
 }
 
-/// Retrieve a BIP39 mnemonic sentence of 12, 18 or 24 words from the user.
+/// Retrieve a BIP39 mnemonic sentence of 12 or 24 words from the user.
 pub async fn get(
-    hal: &mut impl crate::hal::Hal,
+    hal_ui: &mut impl crate::hal::Ui,
 ) -> Result<zeroize::Zeroizing<String>, CancelError> {
-    let num_words: usize = match hal
-        .ui()
+    let num_words: usize = match hal_ui
         .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
@@ -314,7 +309,7 @@ pub async fn get(
         TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
     };
 
-    hal.ui()
+    hal_ui
         .status(&format!("Enter {} words", num_words), true)
         .await;
 
@@ -340,16 +335,16 @@ pub async fn get(
             // throws, for example.
             if num_words == 24 {
                 // With 24 words there are only 8 valid candidates. We presnet them as a menu.
-                match get_24th_word(hal, &title, &as_str_vec(&entered_words[..word_idx])).await {
+                match get_24th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await {
                     Ok(None) => return Err(CancelError::Cancelled),
                     Ok(Some(r)) => Ok(r),
                     Err(e) => Err(e),
                 }
             } else {
-                get_12th_18th_word(hal, &title, &as_str_vec(&entered_words[..word_idx])).await
+                get_12th_18th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await
             }
         } else {
-            hal.ui()
+            hal_ui
                 .enter_string(
                     &trinary_input_string::Params {
                         title: &title,
@@ -360,7 +355,6 @@ pub async fn get(
                     preset,
                 )
                 .await
-                .into()
         };
 
         match user_entry {
@@ -378,8 +372,7 @@ pub async fn get(
                 } else {
                     // In all other words, we give the choice between editing the previous word and
                     // cancelling.
-                    match hal
-                        .ui()
+                    match hal_ui
                         .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
                         .await
                     {
@@ -402,7 +395,7 @@ pub async fn get(
                             ..Default::default()
                         };
 
-                        if let Err(confirm::UserAbort) = hal.ui().confirm(&params).await {
+                        if let Err(confirm::UserAbort) = hal_ui.confirm(&params).await {
                             // Cancel cancelled.
                             continue;
                         }
@@ -426,15 +419,14 @@ mod tests {
     use super::*;
 
     use alloc::boxed::Box;
-    use bitbox02::testing::{Data, mock};
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
         for i in 0..BIP39_WORDLIST_LEN {
-            let word = bitbox02::keystore::get_bip39_word(i).unwrap();
+            let word = crate::bip39::get_word(i).unwrap();
             let mut m = mnemonic.to_vec();
             m.push(&word);
-            if bitbox02::keystore::bip39_mnemonic_to_seed(&m.join(" ")).is_ok() {
+            if crate::bip39::mnemonic_to_seed(&m.join(" ")).is_ok() {
                 result.push(word);
             }
         }

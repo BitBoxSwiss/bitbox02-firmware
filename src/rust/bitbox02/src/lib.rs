@@ -26,7 +26,6 @@ pub mod delay;
 pub mod event;
 #[cfg(feature = "simulator-graphical")]
 pub mod hww;
-pub mod keystore;
 pub mod memory;
 #[cfg(feature = "simulator-graphical")]
 pub mod queue;

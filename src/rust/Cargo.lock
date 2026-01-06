@@ -108,7 +108,6 @@ dependencies = [
  "bitcoin",
  "hex",
  "hex_lit",
- "time",
  "util",
  "zeroize",
 ]
@@ -1113,6 +1112,7 @@ dependencies = [
  "p256",
  "rtt-target",
  "sha2",
+ "time",
  "zeroize",
 ]
 

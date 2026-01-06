@@ -43,8 +43,8 @@ pub mod ui;
 pub mod usb_packet;
 pub mod usb_processing;
 
-use core::ffi::c_int;
 use core::time::Duration;
+use time::{OffsetDateTime, UtcOffset, Weekday};
 
 pub use bitbox02_sys::buffer_t;
 
@@ -122,72 +122,54 @@ pub fn reboot() {
 }
 
 pub struct Tm {
-    tm: bitbox02_sys::tm,
-}
-
-fn range(low: c_int, item: c_int, high: c_int) -> c_int {
-    core::cmp::max(low, core::cmp::min(item, high))
+    datetime: OffsetDateTime,
 }
 
 impl Tm {
     /// Returns the weekday, one of "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
     pub fn weekday(&self) -> String {
-        // Same as '%a' in strftime:
-        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#435
-        let wday = self.tm.tm_wday;
-        if !(0..=6).contains(&wday) {
-            return "?".into();
+        match self.datetime.weekday() {
+            Weekday::Sunday => "Sun",
+            Weekday::Monday => "Mon",
+            Weekday::Tuesday => "Tue",
+            Weekday::Wednesday => "Wed",
+            Weekday::Thursday => "Thu",
+            Weekday::Friday => "Fri",
+            Weekday::Saturday => "Sat",
         }
-        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][wday as usize].into()
+        .into()
     }
 
     /// Returns 'year-month-day', e.g. 2024-07-16, equivalent of '%Y-%m-%d' in strftime.
     pub fn date(&self) -> String {
-        // Same as strftime:
-        // %Y - https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L712
-        // %m - https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L600
-        // %d - https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L498
+        let date = self.datetime.date();
         format!(
             "{}-{:02}-{:02}",
-            1900 + self.tm.tm_year,
-            range(0, self.tm.tm_mon, 11) + 1,
-            range(1, self.tm.tm_mday, 31)
+            date.year(),
+            date.month() as u8,
+            date.day(),
         )
     }
 
     /// Returns the zero-padded hour from 00-23, e.g. "07".
     pub fn hour(&self) -> String {
-        // Same as '%H' in strftime:
-        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#582
-        format!("{:02}", range(0, self.tm.tm_hour, 23))
+        format!("{:02}", self.datetime.hour())
     }
 
     /// Returns the zero-padded minute from 00-59, e.g. "07".
     pub fn minute(&self) -> String {
-        // Same as '%M' in strftime:
-        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L605
-        format!("{:02}", range(0, self.tm.tm_min, 59))
+        format!("{:02}", self.datetime.minute())
     }
 
     /// Returns the zero-padded second from 00-60, e.g. "07".
     pub fn second(&self) -> String {
-        // Same as '%S' in strftime:
-        // https://github.com/arnoldrobbins/strftime/blob/2011b7e82365d25220b8949e252eb5f28c0994cd/strftime.c#L645
-        format!("{:02}", range(0, self.tm.tm_sec, 60))
+        format!("{:02}", self.datetime.second())
     }
 }
 
 pub fn get_datetime(timestamp: u32) -> Result<Tm, ()> {
-    Ok(Tm {
-        tm: unsafe {
-            let gmtime = bitbox02_sys::gmtime(&(timestamp as bitbox02_sys::time_t));
-            if gmtime.is_null() {
-                return Err(());
-            }
-
-            *gmtime
-        },
-    })
+    let datetime = OffsetDateTime::from_unix_timestamp(timestamp as i64).map_err(|_| ())?;
+    Ok(Tm { datetime })
 }
 
 /// Formats the timestamp in the local timezone.
@@ -205,8 +187,13 @@ pub fn format_datetime(
     if !(MAX_WEST_UTC_OFFSET..=MAX_EAST_UTC_OFFSET).contains(&timezone_offset) {
         return Err(());
     }
-    let ts = ((timestamp as i64) + (timezone_offset as i64)) as u32;
-    let tm = get_datetime(ts)?;
+
+    let offset = UtcOffset::from_whole_seconds(timezone_offset).map_err(|_| ())?;
+    let datetime = OffsetDateTime::from_unix_timestamp(timestamp as i64)
+        .map_err(|_| ())?
+        .checked_to_offset(offset)
+        .ok_or(())?;
+    let tm = Tm { datetime };
     Ok(if date_only {
         format!("{} {}", tm.weekday(), tm.date())
     } else {

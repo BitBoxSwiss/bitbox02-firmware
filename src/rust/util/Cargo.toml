@@ -16,6 +16,7 @@ sha2 = { workspace = true, optional = true }
 p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"], optional = true }
 bitcoin = {workspace = true}
 critical-section = { version = "1.2.0", default-features = false, features = [] }
+zeroize = { workspace = true }
 
 [dev-dependencies]
 hex_lit = { workspace = true }

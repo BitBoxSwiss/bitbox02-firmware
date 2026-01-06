@@ -65,10 +65,10 @@ impl<'a> ConfirmParams<'a> {
         // truncate and append '...'.
         const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
         *title_scatch =
-            crate::util::str_to_cstr_vec(crate::util::truncate_str(self.title, TRUNCATE_SIZE))
+            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.title, TRUNCATE_SIZE))
                 .unwrap();
         *body_scratch =
-            crate::util::str_to_cstr_vec(crate::util::truncate_str(self.body, TRUNCATE_SIZE))
+            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.body, TRUNCATE_SIZE))
                 .unwrap();
         Survive::new(bitbox02_sys::confirm_params_t {
             title: title_scatch.as_ptr().cast(),
@@ -109,7 +109,7 @@ impl<'a> TrinaryInputStringParams<'a> {
         const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
 
         *title_scratch =
-            crate::util::str_to_cstr_vec(crate::util::truncate_str(self.title, TRUNCATE_SIZE))
+            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.title, TRUNCATE_SIZE))
                 .unwrap();
 
         Survive::new(bitbox02_sys::trinary_input_string_params_t {

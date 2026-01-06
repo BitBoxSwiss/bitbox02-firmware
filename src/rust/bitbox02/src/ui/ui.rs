@@ -65,7 +65,7 @@ where
         F2: FnMut(zeroize::Zeroizing<String>),
     {
         let pw: zeroize::Zeroizing<String> = zeroize::Zeroizing::new(
-            unsafe { crate::util::str_from_null_terminated_ptr(password) }
+            unsafe { util::strings::str_from_null_terminated_ptr(password) }
                 .unwrap()
                 .into(),
         );
@@ -156,7 +156,7 @@ pub fn screen_process() {
 pub fn status_create<'a>(text: &str, status_success: bool) -> Component<'a> {
     let component = unsafe {
         bitbox02_sys::status_create(
-            crate::util::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
+            util::strings::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
             status_success,
         )
     };
@@ -216,7 +216,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     let words: Vec<Vec<core::ffi::c_char>> = params
         .words
         .iter()
-        .map(|word| crate::util::str_to_cstr_vec(word).unwrap())
+        .map(|word| util::strings::str_to_cstr_vec(word).unwrap())
         .collect();
     // Step two: collect pointers. This var also has to be valid until menu_create() finishes, or
     // the pointer will be invalid.
@@ -248,7 +248,7 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
     };
     let title = params
         .title
-        .map(|title| crate::util::str_to_cstr_vec(title).unwrap());
+        .map(|title| util::strings::str_to_cstr_vec(title).unwrap());
     let component = unsafe {
         bitbox02_sys::menu_create(
             c_words.as_ptr(),
@@ -301,13 +301,13 @@ pub fn trinary_choice_create<'a>(
 
     let chosen_user_data = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
 
-    let label_left = label_left.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
-    let label_middle = label_middle.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
-    let label_right = label_right.map(|label| crate::util::str_to_cstr_vec(label).unwrap());
+    let label_left = label_left.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
+    let label_middle = label_middle.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
+    let label_right = label_right.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
 
     let component = unsafe {
         bitbox02_sys::trinary_choice_create(
-            crate::util::str_to_cstr_vec(message).unwrap().as_ptr(), // copied in C
+            util::strings::str_to_cstr_vec(message).unwrap().as_ptr(), // copied in C
             // copied in C
             label_left
                 .as_ref()
@@ -349,8 +349,8 @@ pub fn confirm_transaction_address_create<'a, 'b>(
     let user_data = Box::into_raw(Box::new(callback)) as *mut c_void;
     let component = unsafe {
         bitbox02_sys::confirm_transaction_address_create(
-            crate::util::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
-            crate::util::str_to_cstr_vec(address).unwrap().as_ptr(), // copied in C
+            util::strings::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
+            util::strings::str_to_cstr_vec(address).unwrap().as_ptr(), // copied in C
             Some(c_callback as _),
             user_data,
         )
@@ -380,8 +380,8 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
     let user_data = Box::into_raw(Box::new(callback)) as *mut c_void;
     let component = unsafe {
         bitbox02_sys::confirm_transaction_fee_create(
-            crate::util::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
-            crate::util::str_to_cstr_vec(fee).unwrap().as_ptr(),    // copied in C
+            util::strings::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
+            util::strings::str_to_cstr_vec(fee).unwrap().as_ptr(),    // copied in C
             longtouch,
             Some(c_callback as _),
             user_data,
@@ -402,7 +402,7 @@ pub fn trinary_input_string_set_input(component: &mut Component, word: &str) {
     unsafe {
         bitbox02_sys::trinary_input_string_set_input(
             component.component,
-            crate::util::str_to_cstr_vec(word).unwrap().as_ptr(),
+            util::strings::str_to_cstr_vec(word).unwrap().as_ptr(),
         )
     }
 }
@@ -416,7 +416,7 @@ pub fn screen_stack_pop_all() {
 pub fn progress_create<'a>(title: &str) -> Component<'a> {
     let component = unsafe {
         bitbox02_sys::progress_create(
-            crate::util::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
+            util::strings::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
         )
     };
 

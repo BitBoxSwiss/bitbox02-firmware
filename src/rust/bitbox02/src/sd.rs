@@ -4,8 +4,8 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::util::str_to_cstr_vec;
 use bitbox02_sys::SD_MAX_FILE_SIZE;
+use util::strings::str_to_cstr_vec;
 
 #[cfg(any(feature = "testing", feature = "simulator-graphical"))]
 pub fn format() -> bool {
@@ -42,7 +42,7 @@ pub fn list_subdir(subdir: Option<&str>) -> Result<Vec<String>, ()> {
         true => (0..list.0.num_files)
             .map(|i| unsafe {
                 let ptr = *list.0.files.add(i);
-                crate::util::str_from_null_terminated_ptr(ptr).map(String::from)
+                util::strings::str_from_null_terminated_ptr(ptr).map(String::from)
             })
             .collect(),
         false => Err(()),

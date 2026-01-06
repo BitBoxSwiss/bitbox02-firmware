@@ -87,7 +87,7 @@ pub fn init_new_password(
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Zeroizing<Vec<u8>>, Error> {
-    let password = crate::util::str_to_cstr_vec_zeroizing(password)
+    let password = util::strings::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
     let mut stretched = Zeroizing::new(vec![0u8; 32]);
     let status = unsafe {
@@ -108,7 +108,7 @@ pub fn stretch_password(
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Zeroizing<Vec<u8>>, Error> {
-    let password = crate::util::str_to_cstr_vec_zeroizing(password)
+    let password = util::strings::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
     let mut stretched = Zeroizing::new(vec![0u8; 32]);
     let status = unsafe {

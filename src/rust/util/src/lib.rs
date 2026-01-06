@@ -9,6 +9,7 @@ pub mod cell;
 pub mod decimal;
 pub mod log;
 pub mod name;
+pub mod strings;
 mod waker_fn;
 
 #[cfg(feature = "p256")]

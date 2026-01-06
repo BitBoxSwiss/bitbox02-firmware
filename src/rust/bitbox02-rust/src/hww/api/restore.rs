@@ -43,7 +43,7 @@ pub async fn from_file(
     #[cfg(feature = "app-u2f")]
     {
         let datetime_string =
-            bitbox02::format_datetime(request.timestamp, request.timezone_offset, false)
+            util::datetime::format_datetime(request.timestamp, request.timezone_offset, false)
                 .map_err(|_| Error::InvalidInput)?;
         let params = confirm::Params {
             title: "Is now?",
@@ -92,7 +92,7 @@ pub async fn from_mnemonic(
 ) -> Result<Response, Error> {
     #[cfg(feature = "app-u2f")]
     {
-        let datetime_string = bitbox02::format_datetime(timestamp, timezone_offset, false)
+        let datetime_string = util::datetime::format_datetime(timestamp, timezone_offset, false)
             .map_err(|_| Error::InvalidInput)?;
         hal.ui()
             .confirm(&confirm::Params {

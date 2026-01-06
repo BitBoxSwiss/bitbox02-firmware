@@ -15,7 +15,6 @@ zeroize = { workspace = true }
 bitcoin = { workspace = true }
 bip39 = { workspace = true }
 hex = { workspace = true }
-time = { version = "0.3.44", default-features = false }
 
 [dev-dependencies]
 hex = { workspace = true }

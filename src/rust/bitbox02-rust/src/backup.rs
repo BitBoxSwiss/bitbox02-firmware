@@ -227,7 +227,8 @@ pub async fn create(
         .or(Err(Error::SdList))?;
 
     let filename_datetime = {
-        let tm = bitbox02::get_datetime(backup_create_timestamp).map_err(|_| Error::Generic)?;
+        let tm =
+            util::datetime::get_datetime(backup_create_timestamp).map_err(|_| Error::Generic)?;
         format!(
             "{}_{}T{}-{}-{}Z",
             tm.weekday(),

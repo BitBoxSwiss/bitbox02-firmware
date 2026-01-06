@@ -7,6 +7,7 @@ members = [
     "bitbox02-rust",
     "util",
     "bitbox02-noise",
+    "bitbox-datetime",
     "bitbox02",
     "bitbox02-sys",
     "erc20_params",

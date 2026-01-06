@@ -98,6 +98,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-datetime"
+version = "0.1.0"
+
+[[package]]
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
@@ -129,6 +133,7 @@ dependencies = [
  "bip32-ed25519",
  "bip39",
  "bitbox-aes",
+ "bitbox-datetime",
  "bitbox02",
  "bitbox02-noise",
  "bitcoin",

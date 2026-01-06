@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
+bitbox-datetime = { path = "../bitbox-datetime" }
 util = { path = "../util" }
 erc20_params = { path = "../erc20_params", optional = true }
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }

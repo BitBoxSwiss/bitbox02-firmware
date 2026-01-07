@@ -91,7 +91,7 @@ mod tests {
             util::bytes::rust_util_bytes_mut(word.as_mut_ptr(), 8)
         }));
         assert_eq!(
-            bitbox02::util::str_from_null_terminated(&word).unwrap(),
+            util::strings::str_from_null_terminated(&word).unwrap(),
             "abandon"
         );
         let mut word = [1u8; 10];
@@ -99,7 +99,7 @@ mod tests {
             util::bytes::rust_util_bytes_mut(word.as_mut_ptr(), word.len())
         }));
         assert_eq!(
-            bitbox02::util::str_from_null_terminated(&word).unwrap(),
+            util::strings::str_from_null_terminated(&word).unwrap(),
             "zoo"
         );
         let mut word = [1u8; 10];
@@ -107,7 +107,7 @@ mod tests {
             util::bytes::rust_util_bytes_mut(word.as_mut_ptr(), word.len())
         }));
         assert_eq!(
-            bitbox02::util::str_from_null_terminated(&word).unwrap(),
+            util::strings::str_from_null_terminated(&word).unwrap(),
             "edit"
         );
     }

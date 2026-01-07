@@ -48,15 +48,15 @@ use core::time::Duration;
 
 pub use bitbox02_sys::buffer_t;
 
-#[macro_use]
-pub mod util;
-
 pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
     unsafe {
         bitbox02_sys::UG_PutString(
             x,
             y,
-            crate::util::str_to_cstr_vec(input).unwrap().as_ptr().cast(),
+            util::strings::str_to_cstr_vec(input)
+                .unwrap()
+                .as_ptr()
+                .cast(),
             inverted,
         );
     }
@@ -106,7 +106,7 @@ pub fn delay(duration: Duration) {
 pub fn screen_print_debug(msg: &str, duration: i32) {
     unsafe {
         bitbox02_sys::screen_print_debug(
-            crate::util::str_to_cstr_vec(msg).unwrap().as_ptr().cast(),
+            util::strings::str_to_cstr_vec(msg).unwrap().as_ptr().cast(),
             duration,
         )
     }
@@ -234,15 +234,20 @@ pub fn reboot_to_bootloader() -> ! {
 #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
 pub fn print_stdout(msg: &str) {
     unsafe {
-        bitbox02_sys::printf(crate::util::str_to_cstr_vec(msg).unwrap().as_ptr().cast());
+        bitbox02_sys::printf(util::strings::str_to_cstr_vec(msg).unwrap().as_ptr().cast());
     }
 }
 
 #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
 pub fn println_stdout(msg: &str) {
     unsafe {
-        bitbox02_sys::printf(crate::util::str_to_cstr_vec(msg).unwrap().as_ptr().cast());
-        bitbox02_sys::printf(crate::util::str_to_cstr_vec("\n").unwrap().as_ptr().cast());
+        bitbox02_sys::printf(util::strings::str_to_cstr_vec(msg).unwrap().as_ptr().cast());
+        bitbox02_sys::printf(
+            util::strings::str_to_cstr_vec("\n")
+                .unwrap()
+                .as_ptr()
+                .cast(),
+        );
     }
 }
 

@@ -37,7 +37,7 @@ pub unsafe extern "C" fn rust_salt_hash_data(
     purpose: *const c_char,
     mut hash_out: BytesMut,
 ) -> bool {
-    let purpose_str = match unsafe { bitbox02::util::str_from_null_terminated_ptr(purpose) } {
+    let purpose_str = match unsafe { util::strings::str_from_null_terminated_ptr(purpose) } {
         Ok(purpose) => purpose,
         Err(()) => return false,
     };

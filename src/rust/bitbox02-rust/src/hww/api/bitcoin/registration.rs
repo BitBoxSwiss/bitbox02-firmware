@@ -84,7 +84,7 @@ async fn get_name(
         // We truncate the user input string to fit into the maximum allowed multisig
         // account name length. This is not very nice, but it has to do until we have some
         // sort of indication in the input component.
-        bitbox02::util::truncate_str(name.as_str(), bitbox02::memory::MULTISIG_NAME_MAX_LEN).into()
+        util::strings::truncate_str(name.as_str(), bitbox02::memory::MULTISIG_NAME_MAX_LEN).into()
     } else {
         request.name.clone()
     };

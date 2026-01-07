@@ -22,7 +22,7 @@ pub struct Error;
 pub fn get_device_name() -> String {
     let mut name = [0u8; DEVICE_NAME_MAX_LEN + 1];
     unsafe { bitbox02_sys::memory_get_device_name(name.as_mut_ptr().cast()) }
-    crate::util::str_from_null_terminated(&name[..])
+    util::strings::str_from_null_terminated(&name[..])
         .unwrap()
         .into()
 }
@@ -30,7 +30,7 @@ pub fn get_device_name() -> String {
 pub fn set_device_name(name: &str) -> Result<(), Error> {
     match unsafe {
         bitbox02_sys::memory_set_device_name(
-            crate::util::str_to_cstr_vec(name)
+            util::strings::str_to_cstr_vec(name)
                 .or(Err(Error))?
                 .as_ptr()
                 .cast(),
@@ -194,7 +194,7 @@ pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), MemoryError> 
     match unsafe {
         bitbox02_sys::memory_multisig_set_by_hash(
             hash.as_ptr(),
-            crate::util::str_to_cstr_vec(name)
+            util::strings::str_to_cstr_vec(name)
                 .or(Err(MemoryError::MEMORY_ERR_INVALID_INPUT))?
                 .as_ptr()
                 .cast(),
@@ -211,7 +211,7 @@ pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
         bitbox02_sys::memory_multisig_get_by_hash(hash.as_ptr(), name.as_mut_ptr().cast())
     } {
         true => Some(
-            crate::util::str_from_null_terminated(&name[..])
+            util::strings::str_from_null_terminated(&name[..])
                 .unwrap()
                 .into(),
         ),

@@ -1073,6 +1073,7 @@ dependencies = [
  "p256",
  "rtt-target",
  "sha2",
+ "zeroize",
 ]
 
 [[package]]

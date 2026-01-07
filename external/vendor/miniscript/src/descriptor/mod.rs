@@ -21,17 +21,19 @@ use bitcoin::{
 };
 use sync::Arc;
 
-use self::checksum::verify_checksum;
+use crate::expression::FromTree as _;
 use crate::miniscript::decode::Terminal;
+use crate::miniscript::limits::MAX_PUBKEYS_PER_MULTISIG;
 use crate::miniscript::{satisfy, Legacy, Miniscript, Segwitv0};
 use crate::plan::{AssetProvider, Plan};
 use crate::prelude::*;
 use crate::{
-    expression, hash256, BareCtx, Error, ForEachKey, FromStrKey, MiniscriptKey, Satisfier,
-    ToPublicKey, TranslateErr, TranslatePk, Translator,
+    expression, hash256, BareCtx, Error, ForEachKey, FromStrKey, MiniscriptKey, ParseError,
+    Satisfier, Threshold, ToPublicKey, TranslateErr, Translator,
 };
 
 mod bare;
+mod iter;
 mod segwitv0;
 mod sh;
 mod sortedmulti;
@@ -39,27 +41,25 @@ mod tr;
 
 // Descriptor Exports
 pub use self::bare::{Bare, Pkh};
+pub use self::iter::PkIter;
 pub use self::segwitv0::{Wpkh, Wsh, WshInner};
 pub use self::sh::{Sh, ShInner};
 pub use self::sortedmulti::SortedMultiVec;
-pub use self::tr::{TapTree, Tr};
+pub use self::tr::{
+    TapTree, TapTreeDepthError, TapTreeIter, TapTreeIterItem, Tr, TrSpendInfo, TrSpendInfoIter,
+    TrSpendInfoIterItem,
+};
 
 pub mod checksum;
 mod key;
+mod key_map;
 
 pub use self::key::{
-    ConversionError, DefiniteDescriptorKey, DerivPaths, DescriptorKeyParseError,
-    DescriptorMultiXKey, DescriptorPublicKey, DescriptorSecretKey, DescriptorXKey, InnerXKey,
-    SinglePriv, SinglePub, SinglePubKey, Wildcard,
+    DefiniteDescriptorKey, DerivPaths, DescriptorKeyParseError, DescriptorMultiXKey,
+    DescriptorPublicKey, DescriptorSecretKey, DescriptorXKey, InnerXKey, MalformedKeyDataKind,
+    NonDefiniteKeyError, SinglePriv, SinglePub, SinglePubKey, Wildcard, XKeyNetwork,
 };
-
-/// Alias type for a map of public key to secret key
-///
-/// This map is returned whenever a descriptor that contains secrets is parsed using
-/// [`Descriptor::parse_descriptor`], since the descriptor will always only contain
-/// public keys. This map allows looking up the corresponding secret key given a
-/// public key from the descriptor.
-pub type KeyMap = BTreeMap<DescriptorPublicKey, DescriptorSecretKey>;
+pub use self::key_map::KeyMap;
 
 /// Script descriptor
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -218,27 +218,90 @@ impl<Pk: MiniscriptKey> Descriptor<Pk> {
     /// Create a new sh sortedmulti descriptor with threshold `k`
     /// and Vec of `pks`.
     /// Errors when miniscript exceeds resource limits under p2sh context
-    pub fn new_sh_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
-        Ok(Descriptor::Sh(Sh::new_sortedmulti(k, pks)?))
+    pub fn new_sh_sortedmulti(
+        thresh: Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>,
+    ) -> Result<Self, Error> {
+        Ok(Descriptor::Sh(Sh::new_sortedmulti(thresh)?))
     }
 
     /// Create a new sh wrapped wsh sortedmulti descriptor from threshold
     /// `k` and Vec of `pks`
     /// Errors when miniscript exceeds resource limits under segwit context
-    pub fn new_sh_wsh_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
-        Ok(Descriptor::Sh(Sh::new_wsh_sortedmulti(k, pks)?))
+    pub fn new_sh_wsh_sortedmulti(
+        thresh: Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>,
+    ) -> Result<Self, Error> {
+        Ok(Descriptor::Sh(Sh::new_wsh_sortedmulti(thresh)?))
     }
 
     /// Create a new wsh sorted multi descriptor
     /// Errors when miniscript exceeds resource limits under p2sh context
-    pub fn new_wsh_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
-        Ok(Descriptor::Wsh(Wsh::new_sortedmulti(k, pks)?))
+    pub fn new_wsh_sortedmulti(
+        thresh: Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>,
+    ) -> Result<Self, Error> {
+        Ok(Descriptor::Wsh(Wsh::new_sortedmulti(thresh)?))
     }
 
     /// Create new tr descriptor
     /// Errors when miniscript exceeds resource limits under Tap context
     pub fn new_tr(key: Pk, script: Option<tr::TapTree<Pk>>) -> Result<Self, Error> {
         Ok(Descriptor::Tr(Tr::new(key, script)?))
+    }
+
+    /// An iterator over all the keys referenced in the descriptor.
+    pub fn iter_pk(&self) -> PkIter<'_, Pk> {
+        match *self {
+            Descriptor::Bare(ref bare) => PkIter::from_miniscript_bare(bare.as_inner()),
+            Descriptor::Pkh(ref pk) => PkIter::from_key(pk.as_inner().clone()),
+            Descriptor::Wpkh(ref pk) => PkIter::from_key(pk.as_inner().clone()),
+            Descriptor::Sh(ref sh) => match *sh.as_inner() {
+                ShInner::Wsh(ref wsh) => match wsh.as_inner() {
+                    WshInner::SortedMulti(ref sorted) => PkIter::from_sortedmulti(sorted.pks()),
+                    WshInner::Ms(ref ms) => PkIter::from_miniscript_segwit(ms),
+                },
+                ShInner::Wpkh(ref pk) => PkIter::from_key(pk.as_inner().clone()),
+                ShInner::SortedMulti(ref sorted) => PkIter::from_sortedmulti(sorted.pks()),
+                ShInner::Ms(ref ms) => PkIter::from_miniscript_legacy(ms),
+            },
+            Descriptor::Wsh(ref wsh) => match wsh.as_inner() {
+                WshInner::SortedMulti(ref sorted) => PkIter::from_sortedmulti(sorted.pks()),
+                WshInner::Ms(ref ms) => PkIter::from_miniscript_segwit(ms),
+            },
+            Descriptor::Tr(ref tr) => PkIter::from_tr(tr),
+        }
+    }
+
+    /// For a Taproot descriptor, returns the internal key.
+    pub fn internal_key(&self) -> Option<&Pk> {
+        if let Descriptor::Tr(ref tr) = self {
+            Some(tr.internal_key())
+        } else {
+            None
+        }
+    }
+
+    /// For a Taproot descriptor, returns the [`TapTree`] describing the Taproot tree.
+    ///
+    /// To obtain the individual leaves of the tree, call [`TapTree::leaves`] on the
+    /// returned value.
+    pub fn tap_tree(&self) -> Option<&TapTree<Pk>> {
+        if let Descriptor::Tr(ref tr) = self {
+            tr.tap_tree()
+        } else {
+            None
+        }
+    }
+
+    /// For a Taproot descriptor, returns an iterator over the scripts in the Taptree.
+    ///
+    /// If the descriptor is not a Taproot descriptor, **or** if the descriptor is a
+    /// Taproot descriptor containing only a keyspend, returns an empty iterator.
+    pub fn tap_tree_iter(&self) -> tr::TapTreeIter<'_, Pk> {
+        if let Descriptor::Tr(ref tr) = self {
+            if let Some(tree) = tr.tap_tree() {
+                return tree.leaves();
+            }
+        }
+        tr::TapTreeIter::empty()
     }
 
     /// Get the [DescriptorType] of [Descriptor]
@@ -358,6 +421,25 @@ impl<Pk: MiniscriptKey> Descriptor<Pk> {
             Descriptor::Tr(ref tr) => tr.max_satisfaction_weight()?,
         };
         Ok(weight)
+    }
+
+    /// Converts a descriptor using one kind of keys to another kind of key.
+    pub fn translate_pk<T>(
+        &self,
+        t: &mut T,
+    ) -> Result<Descriptor<T::TargetPk>, TranslateErr<T::Error>>
+    where
+        T: Translator<Pk>,
+    {
+        let desc = match *self {
+            Descriptor::Bare(ref bare) => Descriptor::Bare(bare.translate_pk(t)?),
+            Descriptor::Pkh(ref pk) => Descriptor::Pkh(pk.translate_pk(t)?),
+            Descriptor::Wpkh(ref pk) => Descriptor::Wpkh(pk.translate_pk(t)?),
+            Descriptor::Sh(ref sh) => Descriptor::Sh(sh.translate_pk(t)?),
+            Descriptor::Wsh(ref wsh) => Descriptor::Wsh(wsh.translate_pk(t)?),
+            Descriptor::Tr(ref tr) => Descriptor::Tr(tr.translate_pk(t)?),
+        };
+        Ok(desc)
     }
 }
 
@@ -496,6 +578,7 @@ impl Descriptor<DefiniteDescriptorKey> {
     /// Returns a plan if the provided assets are sufficient to produce a non-malleable satisfaction
     ///
     /// If the assets aren't sufficient for generating a Plan, the descriptor is returned
+    #[allow(clippy::result_large_err)] // our "error type" is the original descriptor
     pub fn plan<P>(self, provider: &P) -> Result<Plan, Self>
     where
         P: AssetProvider<DefiniteDescriptorKey>,
@@ -524,6 +607,7 @@ impl Descriptor<DefiniteDescriptorKey> {
     /// Returns a plan if the provided assets are sufficient to produce a malleable satisfaction
     ///
     /// If the assets aren't sufficient for generating a Plan, the descriptor is returned
+    #[allow(clippy::result_large_err)] // our "error type" is the original descriptor
     pub fn plan_mall<P>(self, provider: &P) -> Result<Plan, Self>
     where
         P: AssetProvider<DefiniteDescriptorKey>,
@@ -551,30 +635,6 @@ impl Descriptor<DefiniteDescriptorKey> {
     }
 }
 
-impl<P, Q> TranslatePk<P, Q> for Descriptor<P>
-where
-    P: MiniscriptKey,
-    Q: MiniscriptKey,
-{
-    type Output = Descriptor<Q>;
-
-    /// Converts a descriptor using abstract keys to one using specific keys.
-    fn translate_pk<T, E>(&self, t: &mut T) -> Result<Self::Output, TranslateErr<E>>
-    where
-        T: Translator<P, Q, E>,
-    {
-        let desc = match *self {
-            Descriptor::Bare(ref bare) => Descriptor::Bare(bare.translate_pk(t)?),
-            Descriptor::Pkh(ref pk) => Descriptor::Pkh(pk.translate_pk(t)?),
-            Descriptor::Wpkh(ref pk) => Descriptor::Wpkh(pk.translate_pk(t)?),
-            Descriptor::Sh(ref sh) => Descriptor::Sh(sh.translate_pk(t)?),
-            Descriptor::Wsh(ref wsh) => Descriptor::Wsh(wsh.translate_pk(t)?),
-            Descriptor::Tr(ref tr) => Descriptor::Tr(tr.translate_pk(t)?),
-        };
-        Ok(desc)
-    }
-}
-
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Descriptor<Pk> {
     fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, pred: F) -> bool {
         match *self {
@@ -589,10 +649,6 @@ impl<Pk: MiniscriptKey> ForEachKey<Pk> for Descriptor<Pk> {
 }
 
 impl Descriptor<DescriptorPublicKey> {
-    /// Whether or not the descriptor has any wildcards
-    #[deprecated(note = "use has_wildcards instead")]
-    pub fn is_deriveable(&self) -> bool { self.has_wildcard() }
-
     /// Whether or not the descriptor has any wildcards i.e. `/*`.
     pub fn has_wildcard(&self) -> bool { self.for_any_key(|key| key.has_wildcard()) }
 
@@ -601,30 +657,25 @@ impl Descriptor<DescriptorPublicKey> {
     ///
     /// # Errors
     /// - If index ≥ 2^31
+    /// - If the descriptor contains multi-path derivations
     pub fn at_derivation_index(
         &self,
         index: u32,
-    ) -> Result<Descriptor<DefiniteDescriptorKey>, ConversionError> {
+    ) -> Result<Descriptor<DefiniteDescriptorKey>, NonDefiniteKeyError> {
         struct Derivator(u32);
 
-        impl Translator<DescriptorPublicKey, DefiniteDescriptorKey, ConversionError> for Derivator {
-            fn pk(
-                &mut self,
-                pk: &DescriptorPublicKey,
-            ) -> Result<DefiniteDescriptorKey, ConversionError> {
+        impl Translator<DescriptorPublicKey> for Derivator {
+            type TargetPk = DefiniteDescriptorKey;
+            type Error = NonDefiniteKeyError;
+
+            fn pk(&mut self, pk: &DescriptorPublicKey) -> Result<Self::TargetPk, Self::Error> {
                 pk.clone().at_derivation_index(self.0)
             }
 
-            translate_hash_clone!(DescriptorPublicKey, DescriptorPublicKey, ConversionError);
+            translate_hash_clone!(DescriptorPublicKey);
         }
         self.translate_pk(&mut Derivator(index))
             .map_err(|e| e.expect_translator_err("No Context errors while translating"))
-    }
-
-    #[deprecated(note = "use at_derivation_index instead")]
-    /// Deprecated name for [`Self::at_derivation_index`].
-    pub fn derive(&self, index: u32) -> Result<Descriptor<DefiniteDescriptorKey>, ConversionError> {
-        self.at_derivation_index(index)
     }
 
     /// Convert all the public keys in the descriptor to [`bitcoin::PublicKey`] by deriving them or
@@ -640,7 +691,7 @@ impl Descriptor<DescriptorPublicKey> {
     ///     .expect("Valid ranged descriptor");
     /// # let index = 42;
     /// # let secp = Secp256k1::verification_only();
-    /// let derived_descriptor = descriptor.at_derivation_index(index).unwrap().derived_descriptor(&secp).unwrap();
+    /// let derived_descriptor = descriptor.at_derivation_index(index).unwrap().derived_descriptor(&secp);
     /// # assert_eq!(descriptor.derived_descriptor(&secp, index).unwrap(), derived_descriptor);
     /// ```
     ///
@@ -648,17 +699,18 @@ impl Descriptor<DescriptorPublicKey> {
     /// See [`at_derivation_index`] and `[derived_descriptor`] for more documentation.
     ///
     /// [`at_derivation_index`]: Self::at_derivation_index
-    /// [`derived_descriptor`]: crate::DerivedDescriptor::derived_descriptor
+    /// [`derived_descriptor`]: Self::derived_descriptor
     ///
     /// # Errors
     ///
-    /// This function will return an error if hardened derivation is attempted.
+    /// This function will return an error for multi-path descriptors
+    /// or if hardened derivation is attempted,
     pub fn derived_descriptor<C: secp256k1::Verification>(
         &self,
         secp: &secp256k1::Secp256k1<C>,
         index: u32,
-    ) -> Result<Descriptor<bitcoin::PublicKey>, ConversionError> {
-        self.at_derivation_index(index)?.derived_descriptor(secp)
+    ) -> Result<Descriptor<bitcoin::PublicKey>, NonDefiniteKeyError> {
+        Ok(self.at_derivation_index(index)?.derived_descriptor(secp))
     }
 
     /// Parse a descriptor that may contain secret keys
@@ -674,69 +726,64 @@ impl Descriptor<DescriptorPublicKey> {
             key_map: &mut KeyMap,
             secp: &secp256k1::Secp256k1<C>,
         ) -> Result<DescriptorPublicKey, Error> {
-            let (public_key, secret_key) = match DescriptorSecretKey::from_str(s) {
-                Ok(sk) => (
-                    sk.to_public(secp)
-                        .map_err(|e| Error::Unexpected(e.to_string()))?,
-                    Some(sk),
-                ),
-                Err(_) => (
-                    DescriptorPublicKey::from_str(s)
-                        .map_err(|e| Error::Unexpected(e.to_string()))?,
-                    None,
-                ),
-            };
-
-            if let Some(secret_key) = secret_key {
-                key_map.insert(public_key.clone(), secret_key);
+            match DescriptorSecretKey::from_str(s) {
+                Ok(sk) => {
+                    let pk = key_map
+                        .insert(secp, sk)
+                        .map_err(|e| Error::Unexpected(e.to_string()))?;
+                    Ok(pk)
+                }
+                Err(_) => {
+                    // try to parse as a public key if parsing as a secret key failed
+                    let pk = s
+                        .parse()
+                        .map_err(|e| Error::Parse(ParseError::box_from_str(e)))?;
+                    Ok(pk)
+                }
             }
-
-            Ok(public_key)
         }
 
-        let mut keymap_pk = KeyMapWrapper(BTreeMap::new(), secp);
+        let mut keymap_pk = KeyMapWrapper(KeyMap::new(), secp);
 
         struct KeyMapWrapper<'a, C: secp256k1::Signing>(KeyMap, &'a secp256k1::Secp256k1<C>);
 
-        impl<'a, C: secp256k1::Signing> Translator<String, DescriptorPublicKey, Error>
-            for KeyMapWrapper<'a, C>
-        {
+        impl<C: secp256k1::Signing> Translator<String> for KeyMapWrapper<'_, C> {
+            type TargetPk = DescriptorPublicKey;
+            type Error = Error;
+
             fn pk(&mut self, pk: &String) -> Result<DescriptorPublicKey, Error> {
                 parse_key(pk, &mut self.0, self.1)
             }
 
             fn sha256(&mut self, sha256: &String) -> Result<sha256::Hash, Error> {
-                let hash =
-                    sha256::Hash::from_str(sha256).map_err(|e| Error::Unexpected(e.to_string()))?;
-                Ok(hash)
+                sha256
+                    .parse()
+                    .map_err(|e| Error::Parse(ParseError::box_from_str(e)))
             }
 
             fn hash256(&mut self, hash256: &String) -> Result<hash256::Hash, Error> {
-                let hash = hash256::Hash::from_str(hash256)
-                    .map_err(|e| Error::Unexpected(e.to_string()))?;
-                Ok(hash)
+                hash256
+                    .parse()
+                    .map_err(|e| Error::Parse(ParseError::box_from_str(e)))
             }
 
             fn ripemd160(&mut self, ripemd160: &String) -> Result<ripemd160::Hash, Error> {
-                let hash = ripemd160::Hash::from_str(ripemd160)
-                    .map_err(|e| Error::Unexpected(e.to_string()))?;
-                Ok(hash)
+                ripemd160
+                    .parse()
+                    .map_err(|e| Error::Parse(ParseError::box_from_str(e)))
             }
 
             fn hash160(&mut self, hash160: &String) -> Result<hash160::Hash, Error> {
-                let hash = hash160::Hash::from_str(hash160)
-                    .map_err(|e| Error::Unexpected(e.to_string()))?;
-                Ok(hash)
+                hash160
+                    .parse()
+                    .map_err(|e| Error::Parse(ParseError::box_from_str(e)))
             }
         }
 
         let descriptor = Descriptor::<String>::from_str(s)?;
-        let descriptor = descriptor.translate_pk(&mut keymap_pk).map_err(|e| {
-            Error::Unexpected(
-                e.expect_translator_err("No Outer context errors")
-                    .to_string(),
-            )
-        })?;
+        let descriptor = descriptor
+            .translate_pk(&mut keymap_pk)
+            .map_err(TranslateErr::flatten)?;
 
         Ok((descriptor, keymap_pk.0))
     }
@@ -745,29 +792,35 @@ impl Descriptor<DescriptorPublicKey> {
     pub fn to_string_with_secret(&self, key_map: &KeyMap) -> String {
         struct KeyMapLookUp<'a>(&'a KeyMap);
 
-        impl<'a> Translator<DescriptorPublicKey, String, ()> for KeyMapLookUp<'a> {
-            fn pk(&mut self, pk: &DescriptorPublicKey) -> Result<String, ()> {
+        impl Translator<DescriptorPublicKey> for KeyMapLookUp<'_> {
+            type TargetPk = String;
+            type Error = core::convert::Infallible;
+
+            fn pk(&mut self, pk: &DescriptorPublicKey) -> Result<String, Self::Error> {
                 key_to_string(pk, self.0)
             }
 
-            fn sha256(&mut self, sha256: &sha256::Hash) -> Result<String, ()> {
+            fn sha256(&mut self, sha256: &sha256::Hash) -> Result<String, Self::Error> {
                 Ok(sha256.to_string())
             }
 
-            fn hash256(&mut self, hash256: &hash256::Hash) -> Result<String, ()> {
+            fn hash256(&mut self, hash256: &hash256::Hash) -> Result<String, Self::Error> {
                 Ok(hash256.to_string())
             }
 
-            fn ripemd160(&mut self, ripemd160: &ripemd160::Hash) -> Result<String, ()> {
+            fn ripemd160(&mut self, ripemd160: &ripemd160::Hash) -> Result<String, Self::Error> {
                 Ok(ripemd160.to_string())
             }
 
-            fn hash160(&mut self, hash160: &hash160::Hash) -> Result<String, ()> {
+            fn hash160(&mut self, hash160: &hash160::Hash) -> Result<String, Self::Error> {
                 Ok(hash160.to_string())
             }
         }
 
-        fn key_to_string(pk: &DescriptorPublicKey, key_map: &KeyMap) -> Result<String, ()> {
+        fn key_to_string(
+            pk: &DescriptorPublicKey,
+            key_map: &KeyMap,
+        ) -> Result<String, core::convert::Infallible> {
             Ok(match key_map.get(pk) {
                 Some(secret) => secret.to_string(),
                 None => pk.to_string(),
@@ -793,7 +846,7 @@ impl Descriptor<DescriptorPublicKey> {
         secp: &secp256k1::Secp256k1<C>,
         script_pubkey: &Script,
         range: Range<u32>,
-    ) -> Result<Option<(u32, Descriptor<bitcoin::PublicKey>)>, ConversionError> {
+    ) -> Result<Option<(u32, Descriptor<bitcoin::PublicKey>)>, NonDefiniteKeyError> {
         let range = if self.has_wildcard() { range } else { 0..1 };
 
         for i in range {
@@ -842,7 +895,10 @@ impl Descriptor<DescriptorPublicKey> {
 
         // Now, transform the multipath key of each descriptor into a single-key using each index.
         struct IndexChoser(usize);
-        impl Translator<DescriptorPublicKey, DescriptorPublicKey, Error> for IndexChoser {
+        impl Translator<DescriptorPublicKey> for IndexChoser {
+            type TargetPk = DescriptorPublicKey;
+            type Error = Error;
+
             fn pk(&mut self, pk: &DescriptorPublicKey) -> Result<DescriptorPublicKey, Error> {
                 match pk {
                     DescriptorPublicKey::Single(..) | DescriptorPublicKey::XPub(..) => {
@@ -856,7 +912,7 @@ impl Descriptor<DescriptorPublicKey> {
                         .ok_or(Error::MultipathDescLenMismatch),
                 }
             }
-            translate_hash_clone!(DescriptorPublicKey, DescriptorPublicKey, Error);
+            translate_hash_clone!(DescriptorPublicKey);
         }
 
         for (i, desc) in descriptors.iter_mut().enumerate() {
@@ -867,6 +923,33 @@ impl Descriptor<DescriptorPublicKey> {
         }
 
         Ok(descriptors)
+    }
+
+    /// Check the network consistency of all extended keys in this descriptor.
+    ///
+    /// Returns `XKeyNetwork::NoXKeys` if no extended keys are present,
+    /// `XKeyNetwork::Mixed` if extended keys have conflicting network prefixes,
+    /// or `XKeyNetwork::Single(network)` if all extended keys have the same network.
+    ///
+    /// This can be used to prevent accidentally using testnet keys on mainnet
+    /// and vice versa, which could lead to funds being sent to unspendable addresses.
+    pub fn xkey_network(&self) -> XKeyNetwork {
+        let mut first_network = None;
+
+        for key in self.iter_pk() {
+            if let Some(network) = key.xkey_network() {
+                match first_network {
+                    None => first_network = Some(network),
+                    Some(ref n) if *n != network => return XKeyNetwork::Mixed,
+                    _ => continue,
+                }
+            }
+        }
+
+        match first_network {
+            Some(network) => XKeyNetwork::Single(network),
+            None => XKeyNetwork::NoXKeys,
+        }
     }
 }
 
@@ -886,7 +969,7 @@ impl Descriptor<DefiniteDescriptorKey> {
     /// let secp = secp256k1::Secp256k1::verification_only();
     /// let descriptor = Descriptor::<DescriptorPublicKey>::from_str("tr(xpub6BgBgsespWvERF3LHQu6CnqdvfEvtMcQjYrcRzx53QJjSxarj2afYWcLteoGVky7D3UKDP9QyrLprQ3VCECoY49yfdDEHGCtMMj92pReUsQ/0/*)")
     ///     .expect("Valid ranged descriptor");
-    /// let result = descriptor.at_derivation_index(0).unwrap().derived_descriptor(&secp).expect("Non-hardened derivation");
+    /// let result = descriptor.at_derivation_index(0).unwrap().derived_descriptor(&secp);
     /// assert_eq!(result.to_string(), "tr(03cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115)#6qm9h8ym");
     /// ```
     ///
@@ -896,35 +979,61 @@ impl Descriptor<DefiniteDescriptorKey> {
     pub fn derived_descriptor<C: secp256k1::Verification>(
         &self,
         secp: &secp256k1::Secp256k1<C>,
-    ) -> Result<Descriptor<bitcoin::PublicKey>, ConversionError> {
+    ) -> Descriptor<bitcoin::PublicKey> {
         struct Derivator<'a, C: secp256k1::Verification>(&'a secp256k1::Secp256k1<C>);
 
-        impl<'a, C: secp256k1::Verification>
-            Translator<DefiniteDescriptorKey, bitcoin::PublicKey, ConversionError>
-            for Derivator<'a, C>
-        {
-            fn pk(
-                &mut self,
-                pk: &DefiniteDescriptorKey,
-            ) -> Result<bitcoin::PublicKey, ConversionError> {
-                pk.derive_public_key(self.0)
+        impl<C: secp256k1::Verification> Translator<DefiniteDescriptorKey> for Derivator<'_, C> {
+            type TargetPk = bitcoin::PublicKey;
+            type Error = core::convert::Infallible;
+
+            fn pk(&mut self, pk: &DefiniteDescriptorKey) -> Result<Self::TargetPk, Self::Error> {
+                Ok(pk.derive_public_key(self.0))
             }
 
-            translate_hash_clone!(DefiniteDescriptorKey, bitcoin::PublicKey, ConversionError);
+            translate_hash_clone!(DefiniteDescriptorKey);
         }
 
         let derived = self.translate_pk(&mut Derivator(secp));
         match derived {
-            Ok(derived) => Ok(derived),
-            Err(e) => Err(e.expect_translator_err("No Context errors when deriving keys")),
+            Ok(derived) => derived,
+            // Impossible to hit, since deriving keys does not change any Miniscript-relevant
+            // properties of the key.
+            Err(e) => panic!("Context errors when deriving keys: {}", e.into_outer_err()),
+        }
+    }
+
+    /// Check the network consistency of all extended keys in this descriptor.
+    ///
+    /// Returns `XKeyNetwork::NoXKeys` if no extended keys are present,
+    /// `XKeyNetwork::Mixed` if extended keys have conflicting network prefixes,
+    /// or `XKeyNetwork::Single(network)` if all extended keys have the same network.
+    ///
+    /// This can be used to prevent accidentally using testnet keys on mainnet
+    /// and vice versa, which could lead to funds being sent to unspendable addresses.
+    pub fn xkey_network(&self) -> XKeyNetwork {
+        let mut first_network = None;
+
+        for key in self.iter_pk() {
+            if let Some(network) = key.as_descriptor_public_key().xkey_network() {
+                match first_network {
+                    None => first_network = Some(network),
+                    Some(ref n) if *n != network => return XKeyNetwork::Mixed,
+                    _ => continue,
+                }
+            }
+        }
+
+        match first_network {
+            Some(network) => XKeyNetwork::Single(network),
+            None => XKeyNetwork::NoXKeys,
         }
     }
 }
 
 impl<Pk: FromStrKey> crate::expression::FromTree for Descriptor<Pk> {
     /// Parse an expression tree into a descriptor.
-    fn from_tree(top: &expression::Tree) -> Result<Descriptor<Pk>, Error> {
-        Ok(match (top.name, top.args.len() as u32) {
+    fn from_tree(top: expression::TreeIterItem) -> Result<Descriptor<Pk>, Error> {
+        Ok(match (top.name(), top.n_children()) {
             ("pkh", 1) => Descriptor::Pkh(Pkh::from_tree(top)?),
             ("wpkh", 1) => Descriptor::Wpkh(Wpkh::from_tree(top)?),
             ("sh", 1) => Descriptor::Sh(Sh::from_tree(top)?),
@@ -938,18 +1047,18 @@ impl<Pk: FromStrKey> crate::expression::FromTree for Descriptor<Pk> {
 impl<Pk: FromStrKey> FromStr for Descriptor<Pk> {
     type Err = Error;
     fn from_str(s: &str) -> Result<Descriptor<Pk>, Error> {
-        // tr tree parsing has special code
-        // Tr::from_str will check the checksum
-        // match "tr(" to handle more extensibly
-        let desc = if s.starts_with("tr(") {
-            Ok(Descriptor::Tr(Tr::from_str(s)?))
-        } else {
-            let desc_str = verify_checksum(s)?;
-            let top = expression::Tree::from_str(desc_str)?;
-            expression::FromTree::from_tree(&top)
-        }?;
-
-        Ok(desc)
+        let top = expression::Tree::from_str(s)?;
+        let ret = Self::from_tree(top.root())?;
+        if let Descriptor::Tr(ref inner) = ret {
+            // FIXME preserve weird/broken behavior from 12.x.
+            // See https://github.com/rust-bitcoin/rust-miniscript/issues/734
+            ret.sanity_check()?;
+            for item in inner.leaves() {
+                item.miniscript()
+                    .ext_check(&crate::miniscript::analyzable::ExtParams::sane())?;
+            }
+        }
+        Ok(ret)
     }
 }
 
@@ -1003,14 +1112,12 @@ mod tests {
     use bitcoin::blockdata::opcodes::all::{OP_CLTV, OP_CSV};
     use bitcoin::blockdata::script::Instruction;
     use bitcoin::blockdata::{opcodes, script};
-    use bitcoin::hashes::hex::FromHex;
     use bitcoin::hashes::Hash;
     use bitcoin::script::PushBytes;
     use bitcoin::sighash::EcdsaSighashType;
-    use bitcoin::{bip32, PublicKey, Sequence};
+    use bitcoin::{bip32, PublicKey, Sequence, XOnlyPublicKey};
 
-    use super::checksum::desc_checksum;
-    use super::*;
+    use super::{checksum, *};
     use crate::hex_script;
     #[cfg(feature = "compiler")]
     use crate::policy;
@@ -1022,10 +1129,25 @@ mod tests {
         let desc = Descriptor::<String>::from_str(s).unwrap();
         let output = desc.to_string();
         let normalize_aliases = s.replace("c:pk_k(", "pk(").replace("c:pk_h(", "pkh(");
-        assert_eq!(
-            format!("{}#{}", &normalize_aliases, desc_checksum(&normalize_aliases).unwrap()),
-            output
-        );
+
+        let mut checksum_eng = checksum::Engine::new();
+        checksum_eng.input(&normalize_aliases).unwrap();
+        assert_eq!(format!("{}#{}", &normalize_aliases, checksum_eng.checksum()), output);
+    }
+
+    #[test]
+    fn display_prefers_u() {
+        // The fragments u:0 and l:0 are identical in terms of Script and
+        // in terms of the in-memory representation -- OrI(False, False).
+        // Test that the way we display the ambiguous fragment doesn't
+        // change, in case somebody somehow is depending on it.
+        let desc = StdDescriptor::from_str("sh(u:0)").unwrap();
+        assert_eq!("sh(u:0)#ncq3yf9h", desc.to_string());
+
+        // This is a regression test for https://github.com/rust-bitcoin/rust-miniscript/pull/735
+        // which was found at the same time. It's just a bug plain and simple.
+        let desc = StdDescriptor::from_str("sh(and_n(u:0,1))").unwrap();
+        assert_eq!("sh(and_n(u:0,1))#5j5tw8nm", desc.to_string());
     }
 
     #[test]
@@ -1046,7 +1168,7 @@ mod tests {
             StdDescriptor::from_str("sh(sortedmulti)")
                 .unwrap_err()
                 .to_string(),
-            "expected threshold, found terminal",
+            "sortedmulti must have at least 1 children, but found 0"
         ); //issue 202
         assert_eq!(
             StdDescriptor::from_str(&format!("sh(sortedmulti(2,{}))", &TEST_PK[3..69]))
@@ -1464,17 +1586,20 @@ mod tests {
             "tr({},{{pk({}),{{pk({}),or_d(pk({}),pkh({}))}}}})",
             p1, p2, p3, p4, p5
         ))
-        .unwrap()
-        .to_string();
+        .unwrap();
 
         // p5.to_pubkeyhash() = 516ca378e588a7ed71336147e2a72848b20aca1a
         assert_eq!(
-            descriptor,
+            descriptor.to_string(),
             format!(
                 "tr({},{{pk({}),{{pk({}),or_d(pk({}),pkh({}))}}}})#tvu28c0s",
                 p1, p2, p3, p4, p5
             )
-        )
+        );
+        assert_eq!(
+            descriptor.spend_info().merkle_root().unwrap().to_string(),
+            "e1597abcb76f7cbc0792cf04a9c2d4f39caed1ede0afef772064126f28c69b09"
+        );
     }
 
     #[test]
@@ -1487,6 +1612,21 @@ mod tests {
             key.script_pubkey().to_hex_string(),
             "51209c19294f03757da3dc235a5960631e3c55751632f5889b06b7a053bdc0bcfbcb"
         )
+    }
+
+    #[test]
+    fn tr_named_branch() {
+        use crate::{ParseError, ParseTreeError};
+
+        assert!(matches!(
+            StdDescriptor::from_str(
+                "tr(0202d44008000010100000000084F0000000dd0dd00000000000201dceddd00d00,abc{0,0})"
+            ),
+            Err(Error::Parse(ParseError::Tree(ParseTreeError::IncorrectName {
+                expected: "",
+                ..
+            }))),
+        ));
     }
 
     #[test]
@@ -1572,7 +1712,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             *descriptor.script_code().unwrap().as_bytes(),
-            Vec::<u8>::from_hex("76a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac").unwrap()[..]
+            hex::decode_to_vec("76a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac").unwrap()[..]
         );
 
         // P2SH-P2WPKH (from bip143 test vectors)
@@ -1582,7 +1722,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             *descriptor.script_code().unwrap().as_bytes(),
-            Vec::<u8>::from_hex("76a91479091972186c449eb1ded22b78e40d009bdf008988ac").unwrap()[..]
+            hex::decode_to_vec("76a91479091972186c449eb1ded22b78e40d009bdf008988ac").unwrap()[..]
         );
 
         // P2WSH (from bitcoind's `createmultisig`)
@@ -1594,7 +1734,7 @@ mod tests {
             *descriptor
                 .script_code().unwrap()
                 .as_bytes(),
-            Vec::<u8>::from_hex("522103789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd2103dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a6162652ae").unwrap()[..]
+            hex::decode_to_vec("522103789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd2103dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a6162652ae").unwrap()[..]
         );
 
         // P2SH-P2WSH (from bitcoind's `createmultisig`)
@@ -1603,7 +1743,7 @@ mod tests {
             *descriptor
                 .script_code().unwrap()
                 .as_bytes(),
-            Vec::<u8>::from_hex("522103789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd2103dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a6162652ae")
+            hex::decode_to_vec("522103789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd2103dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a6162652ae")
                 .unwrap()[..]
         );
     }
@@ -1731,14 +1871,12 @@ mod tests {
                 .at_derivation_index(index)
                 .unwrap()
                 .derived_descriptor(&secp_ctx)
-                .unwrap()
                 .address(bitcoin::Network::Bitcoin)
                 .unwrap();
             let addr_two = desc_two
                 .at_derivation_index(index)
                 .unwrap()
                 .derived_descriptor(&secp_ctx)
-                .unwrap()
                 .address(bitcoin::Network::Bitcoin)
                 .unwrap();
             let addr_expected = bitcoin::Address::from_str(raw_addr_expected)
@@ -1780,9 +1918,10 @@ mod tests {
         // https://github.com/bitcoin/bitcoin/blob/7ae86b3c6845873ca96650fc69beb4ae5285c801/src/test/descriptor_tests.cpp#L355-L360
         macro_rules! check_invalid_checksum {
             ($secp: ident,$($desc: expr),*) => {
+                use crate::{ParseError, ParseTreeError};
                 $(
                     match Descriptor::parse_descriptor($secp, $desc) {
-                        Err(Error::BadDescriptor(_)) => {},
+                        Err(Error::Parse(ParseError::Tree(ParseTreeError::Checksum(_)))) => {},
                         Err(e) => panic!("Expected bad checksum for {}, got '{}'", $desc, e),
                         _ => panic!("Invalid checksum treated as valid: {}", $desc),
                     };
@@ -2004,6 +2143,48 @@ pk(03f28773c2d975288bc7d1d205c3748651b075fbc6610e58cddeeddf8f19405aa8))";
     }
 
     #[test]
+    fn regression_736() {
+        Descriptor::<DescriptorPublicKey>::from_str(
+            "tr(0000000000000000000000000000000000000000000000000000000000000002,)",
+        )
+        .unwrap_err();
+    }
+
+    #[test]
+    fn regression_734() {
+        Descriptor::<DescriptorPublicKey>::from_str(
+            "wsh(or_i(pk(0202baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a66a),1))",
+        )
+        .unwrap();
+        Descriptor::<DescriptorPublicKey>::from_str(
+            "sh(or_i(pk(0202baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a66a),1))",
+        )
+        .unwrap();
+        Descriptor::<DescriptorPublicKey>::from_str(
+            "tr(02baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0a66a,1)",
+        )
+        .unwrap_err();
+    }
+
+    #[test]
+    fn tr_lift() {
+        use crate::policy::Liftable as _;
+
+        // Taproot structure is erased but key order preserved..
+        let desc = Descriptor::<String>::from_str("tr(ROOT,{pk(A1),{pk(B1),pk(B2)}})").unwrap();
+        let lift = desc.lift().unwrap();
+        assert_eq!(lift.to_string(), "or(pk(ROOT),or(pk(A1),pk(B1),pk(B2)))",);
+        let desc = Descriptor::<String>::from_str("tr(ROOT,{{pk(A1),pk(B1)},pk(B2)})").unwrap();
+        let lift = desc.lift().unwrap();
+        assert_eq!(lift.to_string(), "or(pk(ROOT),or(pk(A1),pk(B1),pk(B2)))",);
+
+        // And normalization happens
+        let desc = Descriptor::<String>::from_str("tr(ROOT,{0,{0,0}})").unwrap();
+        let lift = desc.lift().unwrap();
+        assert_eq!(lift.to_string(), "or(pk(ROOT),UNSATISFIABLE)",);
+    }
+
+    #[test]
     fn test_context_pks() {
         let comp_key = bitcoin::PublicKey::from_str(
             "02015e4cb53458bf813db8c79968e76e10d13ed6426a23fa71c2f41ba021c2a7ab",
@@ -2051,5 +2232,468 @@ pk(03f28773c2d975288bc7d1d205c3748651b075fbc6610e58cddeeddf8f19405aa8))";
         Desc::from_str(&format!("tr({},pk({}))", x_only_key, comp_key)).unwrap();
         Desc::from_str(&format!("tr({},pk({}))", x_only_key, uncomp_key)).unwrap_err();
         Desc::from_str(&format!("tr({},pk({}))", x_only_key, x_only_key)).unwrap();
+    }
+
+    #[test]
+    fn regression_806() {
+        let secp = secp256k1::Secp256k1::signing_only();
+        type Desc = Descriptor<DescriptorPublicKey>;
+        // OK
+        Desc::from_str("pkh(111111111111111111111111111111110000008375319363688624584A111111)")
+            .unwrap_err();
+        // ERR: crashes in translate_pk
+        Desc::parse_descriptor(
+            &secp,
+            "pkh(111111111111111111111111111111110000008375319363688624584A111111)",
+        )
+        .unwrap_err();
+    }
+
+    #[test]
+    fn convert_public_key_descriptor_to_definite_key() {
+        let descriptor_str = "wsh(or_d(pk(021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b),pk(0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6)))";
+        let full_pk_descriptor: Descriptor<PublicKey> =
+            Descriptor::from_str(descriptor_str).unwrap();
+
+        struct TranslateFullPk;
+
+        impl Translator<bitcoin::PublicKey> for TranslateFullPk {
+            type TargetPk = DefiniteDescriptorKey;
+            type Error = core::convert::Infallible;
+
+            fn pk(
+                &mut self,
+                pk: &bitcoin::PublicKey,
+            ) -> Result<DefiniteDescriptorKey, Self::Error> {
+                Ok(DefiniteDescriptorKey::new(DescriptorPublicKey::from(*pk))
+                    .expect("DescriptorPublicKey from PublicKey has no wildcards"))
+            }
+
+            translate_hash_clone!(bitcoin::PublicKey, DefiniteDescriptorKey, Self::Error);
+        }
+
+        let converted_descriptor = full_pk_descriptor
+            .translate_pk(&mut TranslateFullPk)
+            .expect("infallible");
+
+        assert_eq!(full_pk_descriptor.to_string(), converted_descriptor.to_string());
+
+        let xonly_descriptor_str = "tr(1d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b,pk(02c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6))";
+        let xonly_pk_descriptor: Descriptor<XOnlyPublicKey> =
+            Descriptor::from_str(xonly_descriptor_str).unwrap();
+
+        struct TranslateXOnlyPk;
+
+        impl Translator<XOnlyPublicKey> for TranslateXOnlyPk {
+            type TargetPk = DefiniteDescriptorKey;
+            type Error = core::convert::Infallible;
+
+            fn pk(&mut self, pk: &XOnlyPublicKey) -> Result<DefiniteDescriptorKey, Self::Error> {
+                Ok(DefiniteDescriptorKey::new(DescriptorPublicKey::from(*pk))
+                    .expect("DescriptorPublicKey from XOnlyPublicKey has no wildcards"))
+            }
+
+            translate_hash_clone!(XOnlyPublicKey, DefiniteDescriptorKey, Self::Error);
+        }
+
+        let xonly_converted_descriptor = xonly_pk_descriptor
+            .translate_pk(&mut TranslateXOnlyPk)
+            .expect("infallible");
+
+        assert_eq!(xonly_pk_descriptor.to_string(), xonly_converted_descriptor.to_string());
+    }
+
+    #[test]
+    fn test_iter_pk() {
+        // Test Bare descriptor
+        let bare_desc = Descriptor::<PublicKey>::from_str(
+            "pk(020000000000000000000000000000000000000000000000000000000000000002)",
+        )
+        .unwrap();
+        let keys: Vec<_> = bare_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 1);
+        assert_eq!(
+            keys[0].to_string(),
+            "020000000000000000000000000000000000000000000000000000000000000002"
+        );
+
+        // Test Pkh descriptor
+        let pkh_desc = Descriptor::<PublicKey>::from_str(
+            "pkh(020000000000000000000000000000000000000000000000000000000000000002)",
+        )
+        .unwrap();
+        let keys: Vec<_> = pkh_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 1);
+        assert_eq!(
+            keys[0].to_string(),
+            "020000000000000000000000000000000000000000000000000000000000000002"
+        );
+
+        // Test Wpkh descriptor
+        let wpkh_desc = Descriptor::<PublicKey>::from_str(
+            "wpkh(020000000000000000000000000000000000000000000000000000000000000002)",
+        )
+        .unwrap();
+        let keys: Vec<_> = wpkh_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 1);
+        assert_eq!(
+            keys[0].to_string(),
+            "020000000000000000000000000000000000000000000000000000000000000002"
+        );
+
+        // Test Sh descriptor with a miniscript
+        let sh_desc = Descriptor::<PublicKey>::from_str(
+            "sh(or_d(pk(021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b),pk(0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6)))"
+        ).unwrap();
+        let keys: Vec<_> = sh_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 2);
+        assert_eq!(
+            keys[0].to_string(),
+            "021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b"
+        );
+        assert_eq!(
+            keys[1].to_string(),
+            "0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6"
+        );
+
+        // Test Sh-Wpkh descriptor
+        let shwpkh_desc = Descriptor::<PublicKey>::from_str(
+            "sh(wpkh(020000000000000000000000000000000000000000000000000000000000000002))",
+        )
+        .unwrap();
+        let keys: Vec<_> = shwpkh_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 1);
+        assert_eq!(
+            keys[0].to_string(),
+            "020000000000000000000000000000000000000000000000000000000000000002"
+        );
+
+        // Test Sh-Wsh descriptor
+        let shwsh_desc = Descriptor::<PublicKey>::from_str(
+            "sh(wsh(or_d(pk(021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b),pk(0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6))))"
+        ).unwrap();
+        let keys: Vec<_> = shwsh_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 2);
+        assert_eq!(
+            keys[0].to_string(),
+            "021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b"
+        );
+        assert_eq!(
+            keys[1].to_string(),
+            "0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6"
+        );
+
+        // Test Wsh descriptor
+        let wsh_desc = Descriptor::<PublicKey>::from_str(
+            "wsh(or_d(pk(021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b),pk(0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6)))"
+        ).unwrap();
+        let keys: Vec<_> = wsh_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 2);
+        assert_eq!(
+            keys[0].to_string(),
+            "021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b"
+        );
+        assert_eq!(
+            keys[1].to_string(),
+            "0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6"
+        );
+
+        // Test SortedMulti descriptors
+        let sortedmulti_desc = Descriptor::<PublicKey>::from_str(
+            "sh(sortedmulti(2,021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b,0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6,03fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556))"
+        ).unwrap();
+        let keys: Vec<_> = sortedmulti_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 3);
+        // Keys are sorted in the output
+        assert!(keys.iter().any(|k| k.to_string()
+            == "021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b"));
+        assert!(keys.iter().any(|k| k.to_string()
+            == "0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6"));
+        assert!(keys.iter().any(|k| k.to_string()
+            == "03fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556"));
+
+        // Test Taproot descriptor with only key path
+        let tr_key_only_desc = Descriptor::<PublicKey>::from_str(
+            "tr(020000000000000000000000000000000000000000000000000000000000000002)",
+        )
+        .unwrap();
+        let keys: Vec<_> = tr_key_only_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 1);
+        assert_eq!(
+            keys[0].to_string(),
+            "020000000000000000000000000000000000000000000000000000000000000002"
+        );
+
+        // Test Taproot descriptor with script path
+        // The internal key should be yielded first
+        let internal_key = "020000000000000000000000000000000000000000000000000000000000000002";
+        let script_key1 = "021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b";
+        let script_key2 = "0302c8bbbb393f32c843149ce36d56405595aaabab2d0e1f4ca5f9de67dd7419f6";
+
+        let tr_with_script_desc = Descriptor::<PublicKey>::from_str(&format!(
+            "tr({},{{pk({}),pk({})}})",
+            internal_key, script_key1, script_key2,
+        ))
+        .unwrap();
+
+        let keys: Vec<_> = tr_with_script_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 3);
+
+        // Verify internal key is first
+        assert_eq!(keys[0].to_string(), internal_key);
+
+        // Verify other keys are present (order after internal key is not guaranteed)
+        assert!(keys[1..].iter().any(|k| k.to_string() == script_key1));
+        assert!(keys[1..].iter().any(|k| k.to_string() == script_key2));
+
+        // Test Taproot descriptor with complex script tree
+        let tr_complex_desc = Descriptor::<PublicKey>::from_str(&format!(
+            "tr({},{{pk({}),{{pk({}),or_d(pk({}),pk({}))}}}})",
+            internal_key,
+            script_key1,
+            script_key2,
+            "03fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556",
+            "0250863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b2352"
+        ))
+        .unwrap();
+
+        let keys: Vec<_> = tr_complex_desc.iter_pk().collect();
+        assert_eq!(keys.len(), 5);
+
+        // Verify internal key is first
+        assert_eq!(keys[0].to_string(), internal_key);
+
+        // Verify all other keys are present
+        assert!(keys[1..].iter().any(|k| k.to_string() == script_key1));
+        assert!(keys[1..].iter().any(|k| k.to_string() == script_key2));
+        assert!(keys[1..].iter().any(|k| k.to_string()
+            == "03fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556"));
+        assert!(keys[1..].iter().any(|k| k.to_string()
+            == "0250863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b2352"));
+    }
+
+    // Helper function to provide unique test keys for multi-key scenarios
+    fn test_keys() -> (Vec<&'static str>, Vec<&'static str>, Vec<&'static str>) {
+        // Unique mainnet xpubs
+        let mainnet_xpubs = vec![
+            "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8",
+            "xpub6ASuArnXKPbfEwhqN6e3mwBcDTgzisQN1wXN9BJcM47sSikHjJf3UFHKkNAWbWMiGj7Wf5uMash7SyYq527Hqck2AxYysAA7xmALppuCkwQ",
+            "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB",
+            "xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH",
+        ];
+
+        // Unique testnet tpubs
+        let testnet_tpubs = vec![
+            "tpubDBrgjcxBxnXyL575sHdkpKohWu5qHKoQ7TJXKNrYznh5fVEGBv89hA8ENW7A8MFVpFUSvgLqc4Nj1WZcpePX6rrxviVtPowvMuGF5rdT2Vi",
+            "tpubD6NzVbkrYhZ4WQdzxL7NmJN7b85ePo4p6RSj9QQHF7te2RR9iUeVSGgnGkoUsB9LBRosgvNbjRv9bcsJgzgBd7QKuxDm23ZewkTRzNSLEDr",
+            "tpubD6NzVbkrYhZ4YqYr3amYH15zjxHvBkUUeadieW8AxTZC7aY2L8aPSk3tpW6yW1QnWzXAB7zoiaNMfwXPPz9S68ZCV4yWvkVXjdeksLskCed",
+            "tpubDCvNhURocXGZsLNqWcqD3syHTqPXrMSTwi8feKVwAcpi29oYKsDD3Vex7x2TDneKMVN23RbLprfxB69v94iYqdaYHsVz3kPR37NQXeqouVz",
+        ];
+
+        // Unique single public keys
+        let single_keys = vec![
+            "021d4ea7132d4e1a362ee5efd8d0b59dd4d1fe8906eefa7dd812b05a46b73d829b",
+            "025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee6357",
+            "022f01e5e15cca351daff3843fb70f3c2f0a1bdd05e5af888a67784ef3e10a2a01",
+            "023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb",
+        ];
+
+        (mainnet_xpubs, testnet_tpubs, single_keys)
+    }
+
+    #[test]
+    fn test_descriptor_pubkey_xkey_network() {
+        use core::str::FromStr;
+
+        use bitcoin::NetworkKind;
+
+        use crate::descriptor::{DescriptorPublicKey, XKeyNetwork};
+
+        let (mainnet_xpubs, testnet_tpubs, single_keys) = test_keys();
+
+        // Basic single key scenarios
+        let basic_tests = vec![
+            // Single mainnet xpub
+            (format!("wpkh({})", mainnet_xpubs[0]), XKeyNetwork::Single(NetworkKind::Main)),
+            // Single testnet tpub
+            (format!("wpkh({})", testnet_tpubs[0]), XKeyNetwork::Single(NetworkKind::Test)),
+            // Single public key (no extended keys)
+            (format!("wpkh({})", single_keys[0]), XKeyNetwork::NoXKeys),
+        ];
+
+        for (desc_str, expected) in basic_tests {
+            let desc = Descriptor::<DescriptorPublicKey>::from_str(&desc_str).unwrap();
+            assert_eq!(desc.xkey_network(), expected, "Failed for basic descriptor: {}", desc_str);
+        }
+
+        // Multi-key descriptor combinations with unique keys
+        let multi_key_tests = vec![
+            // Mixed networks: mainnet + testnet
+            (
+                format!("wsh(multi(2,{},{}))", mainnet_xpubs[0], testnet_tpubs[0]),
+                XKeyNetwork::Mixed,
+            ),
+            // Consistent mainnet keys
+            (
+                format!("wsh(multi(2,{},{}))", mainnet_xpubs[0], mainnet_xpubs[1]),
+                XKeyNetwork::Single(NetworkKind::Main),
+            ),
+            // Consistent testnet multisig
+            (
+                format!(
+                    "wsh(multi(2,{},{},{}))",
+                    testnet_tpubs[0], testnet_tpubs[1], testnet_tpubs[2]
+                ),
+                XKeyNetwork::Single(NetworkKind::Test),
+            ),
+            // Sorted multisig with mixed key types
+            (
+                format!(
+                    "wsh(sortedmulti(2,{},{},{}))",
+                    mainnet_xpubs[0], testnet_tpubs[0], single_keys[0]
+                ),
+                XKeyNetwork::Mixed,
+            ),
+            // 3-of-4 multisig with all mainnet keys
+            (
+                format!(
+                    "wsh(multi(3,{},{},{},{}))",
+                    mainnet_xpubs[0], mainnet_xpubs[1], mainnet_xpubs[2], mainnet_xpubs[3]
+                ),
+                XKeyNetwork::Single(NetworkKind::Main),
+            ),
+        ];
+
+        for (desc_str, expected) in multi_key_tests {
+            let desc = Descriptor::<DescriptorPublicKey>::from_str(&desc_str).unwrap();
+            assert_eq!(
+                desc.xkey_network(),
+                expected,
+                "Failed for multi-key descriptor: {}",
+                desc_str
+            );
+        }
+
+        // Threshold and logical operator tests
+        let threshold_tests = vec![
+            // Threshold with mixed key types
+            (
+                format!(
+                    "wsh(thresh(2,c:pk_k({}),sc:pk_k({}),sc:pk_k({})))",
+                    single_keys[0], mainnet_xpubs[0], testnet_tpubs[0]
+                ),
+                XKeyNetwork::Mixed,
+            ),
+            // OR with mixed networks
+            (
+                format!("wsh(or_d(pk({}),pk({})))", mainnet_xpubs[0], testnet_tpubs[0]),
+                XKeyNetwork::Mixed,
+            ),
+            // AND with consistent mainnet keys
+            (
+                format!("wsh(and_v(v:pk({}),pk({})))", mainnet_xpubs[0], mainnet_xpubs[1]),
+                XKeyNetwork::Single(NetworkKind::Main),
+            ),
+            // Complex threshold with all testnet keys
+            (
+                format!(
+                    "wsh(thresh(3,c:pk_k({}),sc:pk_k({}),sc:pk_k({}),sc:pk_k({})))",
+                    testnet_tpubs[0], testnet_tpubs[1], testnet_tpubs[2], testnet_tpubs[3]
+                ),
+                XKeyNetwork::Single(NetworkKind::Test),
+            ),
+        ];
+
+        for (desc_str, expected) in threshold_tests {
+            let desc = Descriptor::<DescriptorPublicKey>::from_str(&desc_str).unwrap();
+            assert_eq!(
+                desc.xkey_network(),
+                expected,
+                "Failed for threshold descriptor: {}",
+                desc_str
+            );
+        }
+
+        // Taproot and complex miniscript tests
+        let complex_tests = vec![
+            // Taproot with mixed networks
+            (format!("tr({},pk({}))", mainnet_xpubs[0], testnet_tpubs[0]), XKeyNetwork::Mixed),
+            // Taproot with consistent mainnet keys
+            (format!("tr({},pk({}))", mainnet_xpubs[0], mainnet_xpubs[1]), XKeyNetwork::Single(NetworkKind::Main)),
+            // HTLC-like pattern with mixed networks
+            (format!("wsh(andor(pk({}),sha256(1111111111111111111111111111111111111111111111111111111111111111),and_v(v:pkh({}),older(144))))", mainnet_xpubs[0], testnet_tpubs[0]), XKeyNetwork::Mixed),
+            // Multi-path spending with testnet keys
+            (format!("wsh(or_d(multi(2,{},{}),and_v(v:pk({}),older(1000))))", testnet_tpubs[0], testnet_tpubs[1], testnet_tpubs[2]), XKeyNetwork::Single(NetworkKind::Test)),
+            // Nested conditions with only single keys
+            (format!("wsh(thresh(3,c:pk_k({}),sc:pk_k({}),sc:pk_k({}),sc:pk_k({})))", single_keys[0], single_keys[1], single_keys[2], single_keys[3]), XKeyNetwork::NoXKeys),
+            // Complex pattern with mainnet keys
+            (format!("wsh(or_d(multi(2,{},{}),and_v(v:pk({}),older(1000))))", mainnet_xpubs[0], mainnet_xpubs[1], mainnet_xpubs[2]), XKeyNetwork::Single(NetworkKind::Main)),
+        ];
+
+        for (desc_str, expected) in complex_tests {
+            let desc = Descriptor::<DescriptorPublicKey>::from_str(&desc_str).unwrap();
+            assert_eq!(
+                desc.xkey_network(),
+                expected,
+                "Failed for complex descriptor: {}",
+                desc_str
+            );
+        }
+    }
+
+    #[test]
+    fn test_definite_descriptor_key_xkey_network() {
+        use core::str::FromStr;
+
+        use bitcoin::NetworkKind;
+
+        use crate::descriptor::{DefiniteDescriptorKey, XKeyNetwork};
+
+        let (mainnet_xpubs, testnet_tpubs, single_keys) = test_keys();
+
+        // DefiniteDescriptorKey tests (no wildcards, specific derivation paths)
+        let definite_key_tests = vec![
+            // Basic single key scenarios
+            (format!("wpkh({})", mainnet_xpubs[0]), XKeyNetwork::Single(NetworkKind::Main)),
+            (format!("wpkh({})", testnet_tpubs[0]), XKeyNetwork::Single(NetworkKind::Test)),
+            (format!("wpkh({})", single_keys[0]), XKeyNetwork::NoXKeys),
+            // Multi-key scenarios with specific derivation paths
+            (
+                format!("wsh(multi(2,{},{}))", mainnet_xpubs[0], testnet_tpubs[0]),
+                XKeyNetwork::Mixed,
+            ),
+            (
+                format!("wsh(multi(2,{}/0,{}/1))", testnet_tpubs[0], testnet_tpubs[1]),
+                XKeyNetwork::Single(NetworkKind::Test),
+            ),
+            (
+                format!("wsh(multi(2,{}/0,{}/1))", mainnet_xpubs[0], mainnet_xpubs[1]),
+                XKeyNetwork::Single(NetworkKind::Main),
+            ),
+            // Sorted multisig with specific paths
+            (
+                format!(
+                    "wsh(sortedmulti(2,{}/0,{}/1,{}))",
+                    mainnet_xpubs[0], testnet_tpubs[0], single_keys[0]
+                ),
+                XKeyNetwork::Mixed,
+            ),
+            // Taproot scenarios
+            (format!("tr({})", mainnet_xpubs[0]), XKeyNetwork::Single(NetworkKind::Main)),
+            (
+                format!("tr({},pk({}/0))", mainnet_xpubs[0], testnet_tpubs[0]),
+                XKeyNetwork::Mixed,
+            ),
+        ];
+
+        for (desc_str, expected) in definite_key_tests {
+            let desc = Descriptor::<DefiniteDescriptorKey>::from_str(&desc_str).unwrap();
+            assert_eq!(
+                desc.xkey_network(),
+                expected,
+                "Failed for DefiniteDescriptorKey: {}",
+                desc_str
+            );
+        }
     }
 }

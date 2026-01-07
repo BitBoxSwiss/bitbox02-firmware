@@ -77,14 +77,8 @@
 // Experimental features we need.
 #![cfg_attr(bench, feature(test))]
 // Coding conventions
+#![warn(missing_docs)]
 #![deny(unsafe_code)]
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-#![deny(dead_code)]
-#![deny(unused_imports)]
-#![deny(missing_docs)]
 // Clippy lints that we have disabled
 #![allow(clippy::iter_kv_map)] // https://github.com/rust-lang/rust-clippy/issues/11752
 #![allow(clippy::manual_range_contains)] // I hate this lint -asp
@@ -95,10 +89,7 @@ compile_error!(
     "rust-miniscript currently only supports architectures with pointers wider than 16 bits"
 );
 
-#[cfg(not(any(feature = "std", feature = "no-std")))]
-compile_error!("at least one of the `std` or `no-std` features must be enabled");
-
-pub use bitcoin;
+pub use {bitcoin, hex};
 
 #[cfg(not(feature = "std"))]
 #[macro_use]
@@ -108,7 +99,7 @@ extern crate alloc;
 extern crate core;
 
 #[cfg(feature = "serde")]
-pub use actual_serde as serde;
+pub use serde;
 
 #[cfg(bench)]
 extern crate test;
@@ -119,8 +110,11 @@ mod macros;
 #[macro_use]
 mod pub_macros;
 
+#[cfg(bench)]
+mod benchmarks;
 mod blanket_traits;
 pub mod descriptor;
+mod error;
 pub mod expression;
 pub mod interpreter;
 pub mod iter;
@@ -135,16 +129,13 @@ mod test_utils;
 mod util;
 
 use core::{fmt, hash, str};
-#[cfg(feature = "std")]
-use std::error;
 
 use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
-use bitcoin::hex::DisplayHex;
-use bitcoin::{script, Opcode};
 
 pub use crate::blanket_traits::FromStrKey;
 pub use crate::descriptor::{DefiniteDescriptorKey, Descriptor, DescriptorPublicKey};
-pub use crate::expression::ParseThresholdError;
+pub use crate::error::ParseError;
+pub use crate::expression::{ParseNumError, ParseThresholdError, ParseTreeError};
 pub use crate::interpreter::Interpreter;
 pub use crate::miniscript::analyzable::{AnalysisError, ExtParams};
 pub use crate::miniscript::context::{BareCtx, Legacy, ScriptContext, Segwitv0, SigType, Tap};
@@ -302,25 +293,38 @@ impl ToPublicKey for bitcoin::secp256k1::XOnlyPublicKey {
 
 /// Describes an object that can translate various keys and hashes from one key to the type
 /// associated with the other key. Used by the [`TranslatePk`] trait to do the actual translations.
-pub trait Translator<P, Q, E>
-where
-    P: MiniscriptKey,
-    Q: MiniscriptKey,
-{
-    /// Translates public keys P -> Q.
-    fn pk(&mut self, pk: &P) -> Result<Q, E>;
+pub trait Translator<P: MiniscriptKey> {
+    /// The public key (and associated hash types that this translator converts to.
+    type TargetPk: MiniscriptKey;
+    /// An error that may occur during translation.
+    type Error;
 
-    /// Provides the translation from P::Sha256 -> Q::Sha256
-    fn sha256(&mut self, sha256: &P::Sha256) -> Result<Q::Sha256, E>;
+    /// Translates keys.
+    fn pk(&mut self, pk: &P) -> Result<Self::TargetPk, Self::Error>;
 
-    /// Provides the translation from P::Hash256 -> Q::Hash256
-    fn hash256(&mut self, hash256: &P::Hash256) -> Result<Q::Hash256, E>;
+    /// Translates SHA256 hashes.
+    fn sha256(
+        &mut self,
+        sha256: &P::Sha256,
+    ) -> Result<<Self::TargetPk as MiniscriptKey>::Sha256, Self::Error>;
 
-    /// Translates ripemd160 hashes from P::Ripemd160 -> Q::Ripemd160
-    fn ripemd160(&mut self, ripemd160: &P::Ripemd160) -> Result<Q::Ripemd160, E>;
+    /// Translates HASH256 hashes.
+    fn hash256(
+        &mut self,
+        hash256: &P::Hash256,
+    ) -> Result<<Self::TargetPk as MiniscriptKey>::Hash256, Self::Error>;
 
-    /// Translates hash160 hashes from P::Hash160 -> Q::Hash160
-    fn hash160(&mut self, hash160: &P::Hash160) -> Result<Q::Hash160, E>;
+    /// Translates RIPEMD160 hashes.
+    fn ripemd160(
+        &mut self,
+        ripemd160: &P::Ripemd160,
+    ) -> Result<<Self::TargetPk as MiniscriptKey>::Ripemd160, Self::Error>;
+
+    /// Translates HASH160 hashes.
+    fn hash160(
+        &mut self,
+        hash160: &P::Hash160,
+    ) -> Result<<Self::TargetPk as MiniscriptKey>::Hash160, Self::Error>;
 }
 
 /// An enum for representing translation errors
@@ -350,10 +354,36 @@ impl<E> TranslateErr<E> {
     ///
     /// This function will panic if the Error is OutError.
     pub fn expect_translator_err(self, msg: &str) -> E {
-        if let Self::TranslatorErr(v) = self {
-            v
-        } else {
-            panic!("{}", msg)
+        match self {
+            Self::TranslatorErr(v) => v,
+            Self::OuterError(ref e) => {
+                panic!("Unexpected Miniscript error when translating: {}\nMessage: {}", e, msg)
+            }
+        }
+    }
+}
+
+impl TranslateErr<core::convert::Infallible> {
+    /// Remove the impossible "translator error" case and return a context error.
+    ///
+    /// When the translator error type is [`core::convert::Infallible`], which is
+    /// impossible to construct, allows unwrapping the outer error without any
+    /// panic paths.
+    pub fn into_outer_err(self) -> Error {
+        match self {
+            Self::TranslatorErr(impossible) => match impossible {},
+            Self::OuterError(e) => e,
+        }
+    }
+}
+
+impl TranslateErr<Error> {
+    /// If we are doing a translation where our "outer error" is the generic
+    /// Miniscript error, eliminate the `TranslateErr` type which is just noise.
+    pub fn flatten(self) -> Error {
+        match self {
+            Self::TranslatorErr(e) => e,
+            Self::OuterError(e) => e,
         }
     }
 }
@@ -374,30 +404,13 @@ impl<E: fmt::Debug> fmt::Debug for TranslateErr<E> {
 
 /// Converts a descriptor using abstract keys to one using specific keys. Uses translator `t` to do
 /// the actual translation function calls.
+#[deprecated(since = "TBD", note = "This trait no longer needs to be imported.")]
 pub trait TranslatePk<P, Q>
 where
     P: MiniscriptKey,
     Q: MiniscriptKey,
 {
-    /// The associated output type. This must be `Self<Q>`.
-    type Output;
-
-    /// Translates a struct from one generic to another where the translations
-    /// for Pk are provided by the given [`Translator`].
-    fn translate_pk<T, E>(&self, translator: &mut T) -> Result<Self::Output, TranslateErr<E>>
-    where
-        T: Translator<P, Q, E>;
 }
-
-/// Either a key or keyhash, but both contain Pk
-// pub struct ForEach<'a, Pk: MiniscriptKey>(&'a Pk);
-
-// impl<'a, Pk: MiniscriptKey<Hash = Pk>> ForEach<'a, Pk> {
-//     /// Convenience method to avoid distinguishing between keys and hashes when these are the same type
-//     pub fn as_key(&self) -> &'a Pk {
-//         self.0
-//     }
-// }
 
 /// Trait describing the ability to iterate over every key
 pub trait ForEachKey<Pk: MiniscriptKey> {
@@ -419,37 +432,18 @@ pub trait ForEachKey<Pk: MiniscriptKey> {
 
 /// Miniscript
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Error {
-    /// Opcode appeared which is not part of the script subset
-    InvalidOpcode(Opcode),
-    /// Some opcode occurred followed by `OP_VERIFY` when it had
-    /// a `VERIFY` version that should have been used instead
-    NonMinimalVerify(String),
-    /// Push was illegal in some context
-    InvalidPush(Vec<u8>),
-    /// rust-bitcoin script error
-    Script(script::Error),
+    /// Error when lexing a bitcoin Script.
+    ScriptLexer(crate::miniscript::lex::Error),
     /// rust-bitcoin address error
     AddrError(bitcoin::address::ParseError),
     /// rust-bitcoin p2sh address error
     AddrP2shError(bitcoin::address::P2shError),
-    /// A `CHECKMULTISIG` opcode was preceded by a number > 20
-    CmsTooManyKeys(u32),
-    /// A tapscript multi_a cannot support more than Weight::MAX_BLOCK/32 keys
-    MultiATooManyKeys(u64),
-    /// Encountered unprintable character in descriptor
-    Unprintable(u8),
-    /// expected character while parsing descriptor; didn't find one
-    ExpectedChar(char),
     /// While parsing backward, hit beginning of script
     UnexpectedStart,
     /// Got something we were not expecting
     Unexpected(String),
-    /// Name of a fragment contained `:` multiple times
-    MultiColon(String),
-    /// Name of a fragment contained `@` but we were not parsing an OR
-    AtOutsideOr(String),
     /// Encountered a wrapping character that we don't recognize
     UnknownWrapper(char),
     /// Parsed a miniscript and the result was not of type T
@@ -462,19 +456,19 @@ pub enum Error {
     CouldNotSatisfy,
     /// Typechecking failed
     TypeCheck(String),
-    /// General error in creating descriptor
-    BadDescriptor(String),
     /// Forward-secp related errors
     Secp(bitcoin::secp256k1::Error),
     #[cfg(feature = "compiler")]
     /// Compiler related errors
     CompilerError(crate::policy::compiler::CompilerError),
     /// Errors related to policy
-    PolicyError(policy::concrete::PolicyError),
+    ConcretePolicy(policy::concrete::PolicyError),
     /// Errors related to lifting
     LiftError(policy::LiftError),
     /// Forward script context related errors
     ContextError(miniscript::context::ScriptContextError),
+    /// Tried to construct a Taproot tree which was too deep.
+    TapTreeDepthError(crate::descriptor::TapTreeDepthError),
     /// Recursion depth exceeded when parsing policy/miniscript from string
     MaxRecursiveDepthExceeded,
     /// Anything but c:pk(key) (P2PK), c:pk_h(key) (P2PKH), and thresh_m(k,...)
@@ -487,7 +481,7 @@ pub enum Error {
     /// Bare descriptors don't have any addresses
     BareDescriptorAddr,
     /// PubKey invalid under current context
-    PubKeyCtxError(miniscript::decode::KeyParseError, &'static str),
+    PubKeyCtxError(miniscript::decode::KeyError, &'static str),
     /// No script code for Tr descriptors
     TrNoScriptCode,
     /// At least two BIP389 key expressions in the descriptor contain tuples of
@@ -501,6 +495,13 @@ pub enum Error {
     Threshold(ThresholdError),
     /// Invalid threshold.
     ParseThreshold(ParseThresholdError),
+    /// Invalid expression tree.
+    Parse(ParseError),
+}
+
+#[doc(hidden)] // will be removed when we remove Error
+impl From<ParseThresholdError> for Error {
+    fn from(e: ParseThresholdError) -> Self { Self::ParseThreshold(e) }
 }
 
 // https://github.com/sipa/miniscript/pull/5 for discussion on this number
@@ -509,33 +510,23 @@ const MAX_RECURSION_DEPTH: u32 = 402;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::InvalidOpcode(op) => write!(f, "invalid opcode {}", op),
-            Error::NonMinimalVerify(ref tok) => write!(f, "{} VERIFY", tok),
-            Error::InvalidPush(ref push) => {
-                write!(f, "invalid push {:x}", push.as_hex())
-            },
-            Error::Script(ref e) => fmt::Display::fmt(e, f),
+            Error::ScriptLexer(ref e) => e.fmt(f),
             Error::AddrError(ref e) => fmt::Display::fmt(e, f),
             Error::AddrP2shError(ref e) => fmt::Display::fmt(e, f),
-            Error::CmsTooManyKeys(n) => write!(f, "checkmultisig with {} keys", n),
-            Error::Unprintable(x) => write!(f, "unprintable character 0x{:02x}", x),
-            Error::ExpectedChar(c) => write!(f, "expected {}", c),
             Error::UnexpectedStart => f.write_str("unexpected start of script"),
             Error::Unexpected(ref s) => write!(f, "unexpected «{}»", s),
-            Error::MultiColon(ref s) => write!(f, "«{}» has multiple instances of «:»", s),
-            Error::AtOutsideOr(ref s) => write!(f, "«{}» contains «@» in non-or() context", s),
             Error::UnknownWrapper(ch) => write!(f, "unknown wrapper «{}:»", ch),
             Error::NonTopLevel(ref s) => write!(f, "non-T miniscript: {}", s),
             Error::Trailing(ref s) => write!(f, "trailing tokens: {}", s),
             Error::MissingSig(ref pk) => write!(f, "missing signature for key {:?}", pk),
             Error::CouldNotSatisfy => f.write_str("could not satisfy"),
             Error::TypeCheck(ref e) => write!(f, "typecheck: {}", e),
-            Error::BadDescriptor(ref e) => write!(f, "Invalid descriptor: {}", e),
             Error::Secp(ref e) => fmt::Display::fmt(e, f),
             Error::ContextError(ref e) => fmt::Display::fmt(e, f),
+            Error::TapTreeDepthError(ref e) => fmt::Display::fmt(e, f),
             #[cfg(feature = "compiler")]
             Error::CompilerError(ref e) => fmt::Display::fmt(e, f),
-            Error::PolicyError(ref e) => fmt::Display::fmt(e, f),
+            Error::ConcretePolicy(ref e) => fmt::Display::fmt(e, f),
             Error::LiftError(ref e) => fmt::Display::fmt(e, f),
             Error::MaxRecursiveDepthExceeded => write!(
                 f,
@@ -554,64 +545,61 @@ impl fmt::Display for Error {
             Error::PubKeyCtxError(ref pk, ref ctx) => {
                 write!(f, "Pubkey error: {} under {} scriptcontext", pk, ctx)
             }
-            Error::MultiATooManyKeys(k) => write!(f, "MultiA too many keys {}", k),
             Error::TrNoScriptCode => write!(f, "No script code for Tr descriptors"),
             Error::MultipathDescLenMismatch => write!(f, "At least two BIP389 key expressions in the descriptor contain tuples of derivation indexes of different lengths"),
             Error::AbsoluteLockTime(ref e) => e.fmt(f),
             Error::RelativeLockTime(ref e) => e.fmt(f),
             Error::Threshold(ref e) => e.fmt(f),
             Error::ParseThreshold(ref e) => e.fmt(f),
+            Error::Parse(ref e) => e.fmt(f),
         }
     }
 }
 
 #[cfg(feature = "std")]
-impl error::Error for Error {
-    fn cause(&self) -> Option<&dyn error::Error> {
+impl std::error::Error for Error {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
         use self::Error::*;
 
         match self {
-            InvalidOpcode(_)
-            | NonMinimalVerify(_)
-            | InvalidPush(_)
-            | CmsTooManyKeys(_)
-            | MultiATooManyKeys(_)
-            | Unprintable(_)
-            | ExpectedChar(_)
-            | UnexpectedStart
+            UnexpectedStart
             | Unexpected(_)
-            | MultiColon(_)
-            | AtOutsideOr(_)
             | UnknownWrapper(_)
             | NonTopLevel(_)
             | Trailing(_)
             | MissingSig(_)
             | CouldNotSatisfy
             | TypeCheck(_)
-            | BadDescriptor(_)
             | MaxRecursiveDepthExceeded
             | NonStandardBareScript
             | ImpossibleSatisfaction
             | BareDescriptorAddr
             | TrNoScriptCode
             | MultipathDescLenMismatch => None,
-            Script(e) => Some(e),
+            ScriptLexer(e) => Some(e),
             AddrError(e) => Some(e),
             AddrP2shError(e) => Some(e),
             Secp(e) => Some(e),
             #[cfg(feature = "compiler")]
             CompilerError(e) => Some(e),
-            PolicyError(e) => Some(e),
+            ConcretePolicy(e) => Some(e),
             LiftError(e) => Some(e),
             ContextError(e) => Some(e),
+            TapTreeDepthError(e) => Some(e),
             AnalysisError(e) => Some(e),
             PubKeyCtxError(e, _) => Some(e),
             AbsoluteLockTime(e) => Some(e),
             RelativeLockTime(e) => Some(e),
             Threshold(e) => Some(e),
             ParseThreshold(e) => Some(e),
+            Parse(e) => Some(e),
         }
     }
+}
+
+#[doc(hidden)]
+impl From<miniscript::lex::Error> for Error {
+    fn from(e: miniscript::lex::Error) -> Error { Error::ScriptLexer(e) }
 }
 
 #[doc(hidden)]
@@ -622,6 +610,11 @@ impl From<miniscript::types::Error> for Error {
 #[doc(hidden)]
 impl From<policy::LiftError> for Error {
     fn from(e: policy::LiftError) -> Error { Error::LiftError(e) }
+}
+
+#[doc(hidden)]
+impl From<crate::descriptor::TapTreeDepthError> for Error {
+    fn from(e: crate::descriptor::TapTreeDepthError) -> Error { Error::TapTreeDepthError(e) }
 }
 
 #[doc(hidden)]
@@ -655,13 +648,6 @@ impl From<crate::policy::compiler::CompilerError> for Error {
     fn from(e: crate::policy::compiler::CompilerError) -> Error { Error::CompilerError(e) }
 }
 
-#[doc(hidden)]
-impl From<policy::concrete::PolicyError> for Error {
-    fn from(e: policy::concrete::PolicyError) -> Error { Error::PolicyError(e) }
-}
-
-fn errstr(s: &str) -> Error { Error::Unexpected(s.to_owned()) }
-
 /// The size of an encoding of a number in Script
 pub fn script_num_size(n: usize) -> usize {
     match n {
@@ -693,10 +679,7 @@ fn push_opcode_size(script_size: usize) -> usize {
 
 /// Helper function used by tests
 #[cfg(test)]
-fn hex_script(s: &str) -> bitcoin::ScriptBuf {
-    let v: Vec<u8> = bitcoin::hashes::hex::FromHex::from_hex(s).unwrap();
-    bitcoin::ScriptBuf::from(v)
-}
+fn hex_script(s: &str) -> bitcoin::ScriptBuf { bitcoin::ScriptBuf::from_hex(s).unwrap() }
 
 #[cfg(test)]
 mod tests {
@@ -794,7 +777,7 @@ mod prelude {
     pub use alloc::{
         borrow::{Borrow, Cow, ToOwned},
         boxed::Box,
-        collections::{vec_deque::VecDeque, BTreeMap, BTreeSet, BinaryHeap},
+        collections::{btree_map, vec_deque::VecDeque, BTreeMap, BTreeSet, BinaryHeap},
         rc, slice,
         string::{String, ToString},
         sync,
@@ -804,7 +787,9 @@ mod prelude {
     pub use std::{
         borrow::{Borrow, Cow, ToOwned},
         boxed::Box,
-        collections::{vec_deque::VecDeque, BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet},
+        collections::{
+            btree_map, vec_deque::VecDeque, BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet,
+        },
         rc, slice,
         string::{String, ToString},
         sync,

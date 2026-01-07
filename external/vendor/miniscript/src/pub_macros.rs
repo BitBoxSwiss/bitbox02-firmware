@@ -27,9 +27,12 @@
 ///
 /// // If we also wanted to provide mapping of other associated types(sha256, older etc),
 /// // we would use the general Translator Trait.
-/// impl Translator<String, bitcoin::PublicKey, ()> for StrPkTranslator {
+/// impl Translator<String> for StrPkTranslator {
+///     type TargetPk = bitcoin::PublicKey;
+///     type Error = ();
+///
 ///     // Provides the translation public keys P -> Q
-///     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, ()> {
+///     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Self::Error> {
 ///         self.pk_map.get(pk).copied().ok_or(()) // Dummy Err
 ///     }
 ///
@@ -44,6 +47,12 @@
 /// ```
 #[macro_export]
 macro_rules! translate_hash_fail {
+    ($source: ty) => {
+        // The target and error type must always be these values; but we let
+        // the user specify them explicitly for compatibility with the version
+        // of this macro that existed before 13.x.
+        translate_hash_fail!($source, Self::TargetPk, Self::Error);
+    };
     ($source: ty, $target:ty, $error_ty: ty) => {
         fn sha256(
             &mut self,
@@ -85,6 +94,12 @@ macro_rules! translate_hash_fail {
 /// See also [`crate::translate_hash_fail`]
 #[macro_export]
 macro_rules! translate_hash_clone {
+    ($source: ty) => {
+        // The target and error type must always be these values; but we let
+        // the user specify them explicitly for compatibility with the version
+        // of this macro that existed before 13.x.
+        translate_hash_clone!($source, Self::TargetPk, Self::Error);
+    };
     ($source: ty, $target:ty, $error_ty: ty) => {
         fn sha256(
             &mut self,

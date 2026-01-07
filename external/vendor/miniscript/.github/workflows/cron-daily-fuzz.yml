@@ -19,11 +19,19 @@ jobs:
         # over that limit with fuzzing because of the hour run time.
         fuzz_target: [
 compile_descriptor,
+compile_taproot,
+miniscript_satisfy,
 parse_descriptor,
+parse_descriptor_definite,
+parse_descriptor_priv,
 parse_descriptor_secret,
+regression_compiler,
+regression_descriptor_parse,
+regression_taptree,
 roundtrip_concrete,
 roundtrip_descriptor,
 roundtrip_miniscript_script,
+roundtrip_miniscript_script_tap,
 roundtrip_miniscript_str,
 roundtrip_semantic,
         ]
@@ -45,7 +53,7 @@ roundtrip_semantic,
       - name: fuzz
         run: cd fuzz && ./fuzz.sh "${{ matrix.fuzz_target }}"
       - run: echo "${{ matrix.fuzz_target }}" >executed_${{ matrix.fuzz_target }}
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: executed_${{ matrix.fuzz_target }}
           path: executed_${{ matrix.fuzz_target }}
@@ -56,7 +64,7 @@ roundtrip_semantic,
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
       - name: Display structure of downloaded files
         run: ls -R
       - run: find executed_* -type f -exec cat {} + | sort > executed

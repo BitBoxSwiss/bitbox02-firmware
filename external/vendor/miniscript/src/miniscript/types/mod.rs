@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CC0-1.0
 
 //! Miniscript Types
+//!
 //! Contains structures representing Miniscript types and utility functions
 //! Contains all the type checking rules for correctness and malleability
 //! Implemented as per rules on bitcoin.sipa.be/miniscript
@@ -87,19 +88,19 @@ impl fmt::Display for Error {
             ),
             ErrorKind::SwapNonOne => write!(
                 f,
-                "fragment «{}» attempts to use `SWAP` to prefix something
+                "fragment «{}» attempts to use `SWAP` to prefix something \
                  which does not take exactly one input",
                 self.fragment_string,
             ),
             ErrorKind::NonZeroZero => write!(
                 f,
-                "fragment «{}» attempts to use use the `j:` wrapper around a
+                "fragment «{}» attempts to use use the `j:` wrapper around a \
                  fragment which might be satisfied by an input of size zero",
                 self.fragment_string,
             ),
             ErrorKind::LeftNotUnit => write!(
                 f,
-                "fragment «{}» requires its left child be a unit (outputs
+                "fragment «{}» requires its left child be a unit (outputs \
                  exactly 1 given a satisfying input)",
                 self.fragment_string,
             ),
@@ -155,6 +156,43 @@ pub struct Type {
     pub corr: Correctness,
     /// Malleability properties
     pub mall: Malleability,
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(match self.corr.base {
+            Base::B => "B",
+            Base::K => "K",
+            Base::V => "V",
+            Base::W => "W",
+        })?;
+        f.write_str("/")?;
+        f.write_str(match self.corr.input {
+            Input::Zero => "z",
+            Input::One => "o",
+            Input::OneNonZero => "on",
+            Input::Any => "",
+            Input::AnyNonZero => "n",
+        })?;
+        if self.corr.dissatisfiable {
+            f.write_str("d")?;
+        }
+        if self.corr.unit {
+            f.write_str("u")?;
+        }
+        f.write_str(match self.mall.dissat {
+            Dissat::None => "f",
+            Dissat::Unique => "e",
+            Dissat::Unknown => "",
+        })?;
+        if self.mall.safe {
+            f.write_str("s")?;
+        }
+        if self.mall.non_malleable {
+            f.write_str("m")?;
+        }
+        Ok(())
+    }
 }
 
 impl Type {

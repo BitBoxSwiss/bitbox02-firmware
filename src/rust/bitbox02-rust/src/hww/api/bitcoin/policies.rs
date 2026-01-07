@@ -14,8 +14,6 @@ use core::str::FromStr;
 
 use util::bip32::HARDENED;
 
-use miniscript::TranslatePk;
-
 use crate::bip32;
 use crate::hal::Ui;
 use crate::workflow::confirm;
@@ -142,7 +140,10 @@ struct WalletPolicyPkTranslator<'a> {
     address_index: u32,
 }
 
-impl miniscript::Translator<String, bitcoin::PublicKey, Error> for WalletPolicyPkTranslator<'_> {
+impl miniscript::Translator<String> for WalletPolicyPkTranslator<'_> {
+    type TargetPk = bitcoin::PublicKey;
+    type Error = Error;
+
     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Error> {
         let (key_index, multipath_index_left, multipath_index_right) =
             parse_wallet_policy_pk(pk).or(Err(Error::InvalidInput))?;
@@ -210,10 +211,14 @@ impl Tr<bitcoin::PublicKey> {
     /// Note that we assume that each pubkey is unique according to BIP-388 and validated by
     /// `validate_keys()`, so the leaf is unique.
     fn get_leaf_hash_by_pubkey(&self, pk: &[u8; 33]) -> Option<TapLeafHash> {
-        for (_, ms) in self.inner.iter_scripts() {
-            if ms.iter_pk().any(|pk2| *pk == pk2.inner.serialize()) {
+        for leaf in self.inner.leaves() {
+            if leaf
+                .miniscript()
+                .iter_pk()
+                .any(|pk2| *pk == pk2.inner.serialize())
+            {
                 return Some(TapLeafHash::from_script(
-                    &ms.encode(),
+                    &leaf.miniscript().encode(),
                     LeafVersion::TapScript,
                 ));
             }
@@ -228,8 +233,11 @@ impl Tr<String> {
     ///
     /// Example: `tr(A,{pk(B),pk(C)}` iterates over A,B,C.
     fn iter_pk(&self) -> impl Iterator<Item = String> + '_ {
-        core::iter::once(self.inner.internal_key().clone())
-            .chain(self.inner.iter_scripts().flat_map(|(_, ms)| ms.iter_pk()))
+        core::iter::once(self.inner.internal_key().clone()).chain(
+            self.inner
+                .leaves()
+                .flat_map(|leaf| leaf.miniscript().iter_pk()),
+        )
     }
 }
 
@@ -538,7 +546,7 @@ impl ParsedPolicy<'_> {
     /// If the keypath points to the Taproot internal key, we return the necessary Taproot tweak to
     /// spend using the Taproot key path.
     ///
-    /// If th keypath points to a key used in a tap leaf script, we return the tap leaf hash (as
+    /// If the keypath points to a key used in a tap leaf script, we return the tap leaf hash (as
     /// defined in BIP341), which is needed to in the sighash computation in the context of a
     /// Taproot leaf script.
     ///
@@ -558,8 +566,12 @@ impl ParsedPolicy<'_> {
                     xpub.public_key() == tr.inner.internal_key().inner.serialize();
 
                 if is_keypath_spend {
+                    let spend_info = tr.inner.spend_info();
                     Ok(TaprootSpendInfo::KeySpend(
-                        tr.inner.spend_info().tap_tweak(),
+                        bitcoin::TapTweakHash::from_key_and_tweak(
+                            spend_info.internal_key(),
+                            spend_info.merkle_root(),
+                        ),
                     ))
                 } else {
                     let leaf_hash = tr
@@ -619,7 +631,11 @@ impl ParsedPolicy<'_> {
 
                 let chain_code: [u8; 32] = {
                     let mut hasher = Sha256::new();
-                    for pk in tr.inner.iter_scripts().flat_map(|(_, ms)| ms.iter_pk()) {
+                    for pk in tr
+                        .inner
+                        .leaves()
+                        .flat_map(|leaf| leaf.miniscript().iter_pk())
+                    {
                         let (key_index, _, _) =
                             parse_wallet_policy_pk(&pk).map_err(|_| Error::InvalidInput)?;
                         let key_info =
@@ -767,6 +783,8 @@ mod tests {
 
     use crate::bip32::parse_xpub;
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
+    use bitcoin::hashes::Hash as _;
+    use hex_lit::hex;
 
     const SOME_XPUB_1: &str = "tpubDFj9SBQssRHA5EB1ox58mcgF9sB61br9RGz6UrBukcNKmFe4fPgskZ4wigxQ1jSUzLdjnvvDHL8Z6L3ey5Ev5FNNqrDrePxwXsNHiLZhBTc";
     const SOME_XPUB_2: &str = "tpubDCmDXtvJLH9yHLNLnGVRoXBvvacvWskjV4hq4WAmGXcRbfa5uaiybZ7kjGRAFbLaoiw1LcwV56H88avibGh7GC7nqqz2Jcs1dWu33cRKYm4";
@@ -1612,6 +1630,118 @@ mod tests {
                     expected_change,
                 );
             }
+        }
+    }
+
+    #[test]
+    fn test_get_leaf_hash_by_pubkey() {
+        mock_unlocked();
+
+        let coin = BtcCoin::Tbtc;
+        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let policy = make_policy(
+            "tr(@0/**,{pk(@1/**),pk(@2/**)})",
+            &[
+                our_key.clone(),
+                make_key(SOME_XPUB_1),
+                make_key(SOME_XPUB_2),
+            ],
+        );
+        let derived = parse(&mut crate::hal::testing::TestingHal::new(), &policy, coin)
+            .unwrap()
+            .derive(false, 0)
+            .unwrap();
+
+        let Descriptor::Tr(tr) = derived else {
+            panic!("expected tr");
+        };
+
+        // Internal key not present in any leaf script.
+        let internal_key_bytes: [u8; 33] = tr.inner.internal_key().inner.serialize();
+        assert_eq!(tr.get_leaf_hash_by_pubkey(&internal_key_bytes), None);
+
+        // Leaf key is found and returns the corresponding leaf hash.
+        let leaf_pk_1: [u8; 33] =
+            hex!("023ee32ffae188018a33b181b443dc7d7b5ca0d64b1609b7caf5ee9cf260b0cab9");
+        let leaf_hash_1: [u8; 32] =
+            hex!("1cc0a4cb1521ffd7aa07e1a30076d57a6daa78289e98545cd69189a56d7a3fba");
+        let leaf_pk_2: [u8; 33] =
+            hex!("03e7adfc8fc14231853d23c9851ea36f32fe330307540009191eacb65292693304");
+        let leaf_hash_2: [u8; 32] =
+            hex!("bd50326268960afb06207a0683f5c3161d295eba424dc28a89e72278d8926b40");
+
+        assert_eq!(
+            tr.get_leaf_hash_by_pubkey(&leaf_pk_1)
+                .unwrap()
+                .to_byte_array(),
+            leaf_hash_1
+        );
+        assert_eq!(
+            tr.get_leaf_hash_by_pubkey(&leaf_pk_2)
+                .unwrap()
+                .to_byte_array(),
+            leaf_hash_2
+        );
+
+        // Unknown pubkey returns None.
+        let mut unknown_pk = leaf_pk_1;
+        unknown_pk[32] ^= 1;
+        assert_eq!(tr.get_leaf_hash_by_pubkey(&unknown_pk), None);
+    }
+
+    #[test]
+    fn test_taproot_spend_info() {
+        mock_unlocked();
+
+        let coin = BtcCoin::Tbtc;
+        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let policy = make_policy(
+            "tr(@0/<0;1>/*,pk(@0/<2;3>/*))",
+            core::slice::from_ref(&our_key),
+        );
+
+        let mut hal = crate::hal::testing::TestingHal::new();
+        let parsed_policy = parse(&mut hal, &policy, coin).unwrap();
+
+        const ADDRESS_INDEX: u32 = 5;
+        let mut xpub_cache = Bip32XpubCache::new(crate::xpubcache::Compute::Once);
+
+        // Internal key results in a key path spend.
+        let keypath_internal: Vec<u32> = KEYPATH_ACCOUNT
+            .iter()
+            .copied()
+            .chain([0, ADDRESS_INDEX])
+            .collect();
+        match parsed_policy
+            .taproot_spend_info(&mut hal, &mut xpub_cache, keypath_internal.as_slice())
+            .unwrap()
+        {
+            TaprootSpendInfo::KeySpend(tweak) => {
+                assert_eq!(
+                    tweak.to_byte_array(),
+                    hex!("369416353930adfe3345578e43fc31a8c222905d9d134f3511ea4f3a4ac041a5"),
+                );
+            }
+            _ => panic!("expected key spend"),
+        }
+
+        // Leaf key results in a script path spend.
+        let keypath_leaf: Vec<u32> = KEYPATH_ACCOUNT
+            .iter()
+            .copied()
+            .chain([2, ADDRESS_INDEX])
+            .collect();
+        match parsed_policy
+            .taproot_spend_info(&mut hal, &mut xpub_cache, keypath_leaf.as_slice())
+            .unwrap()
+        {
+            TaprootSpendInfo::ScriptSpend(leaf_hash) => {
+                assert_eq!(
+                    leaf_hash.to_byte_array(),
+                    hex!("00c525c5b70a01ab5fab849dd5a156ea906c75073d15fc5f2f98227b2bb0f5e9"),
+                );
+            }
+            _ => panic!("expected script spend"),
         }
     }
 

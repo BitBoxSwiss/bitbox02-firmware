@@ -21,6 +21,7 @@ pub mod semantic;
 pub use self::concrete::Policy as Concrete;
 pub use self::semantic::Policy as Semantic;
 use crate::descriptor::Descriptor;
+use crate::iter::TreeLike as _;
 use crate::miniscript::{Miniscript, ScriptContext};
 use crate::sync::Arc;
 #[cfg(all(not(feature = "std"), not(test)))]
@@ -111,68 +112,64 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Liftable<Pk> for Miniscript<Pk, Ctx>
         // check whether the root miniscript can have a spending path that is
         // a combination of heightlock and timelock
         self.lift_check()?;
-        self.as_inner().lift()
-    }
-}
 
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Liftable<Pk> for Terminal<Pk, Ctx> {
-    fn lift(&self) -> Result<Semantic<Pk>, Error> {
-        let ret = match *self {
-            Terminal::PkK(ref pk) | Terminal::PkH(ref pk) => Semantic::Key(pk.clone()),
-            Terminal::RawPkH(ref _pkh) => {
-                return Err(Error::LiftError(LiftError::RawDescriptorLift))
-            }
-            Terminal::After(t) => Semantic::After(t),
-            Terminal::Older(t) => Semantic::Older(t),
-            Terminal::Sha256(ref h) => Semantic::Sha256(h.clone()),
-            Terminal::Hash256(ref h) => Semantic::Hash256(h.clone()),
-            Terminal::Ripemd160(ref h) => Semantic::Ripemd160(h.clone()),
-            Terminal::Hash160(ref h) => Semantic::Hash160(h.clone()),
-            Terminal::False => Semantic::Unsatisfiable,
-            Terminal::True => Semantic::Trivial,
-            Terminal::Alt(ref sub)
-            | Terminal::Swap(ref sub)
-            | Terminal::Check(ref sub)
-            | Terminal::DupIf(ref sub)
-            | Terminal::Verify(ref sub)
-            | Terminal::NonZero(ref sub)
-            | Terminal::ZeroNotEqual(ref sub) => sub.node.lift()?,
-            Terminal::AndV(ref left, ref right) | Terminal::AndB(ref left, ref right) => {
-                Semantic::Thresh(Threshold::and(
-                    Arc::new(left.node.lift()?),
-                    Arc::new(right.node.lift()?),
-                ))
-            }
-            Terminal::AndOr(ref a, ref b, ref c) => Semantic::Thresh(Threshold::or(
-                Arc::new(Semantic::Thresh(Threshold::and(
-                    Arc::new(a.node.lift()?),
-                    Arc::new(b.node.lift()?),
+        let mut stack = vec![];
+        for item in self.rtl_post_order_iter() {
+            let new_term = match item.node.node {
+                Terminal::PkK(ref pk) | Terminal::PkH(ref pk) => {
+                    Arc::new(Semantic::Key(pk.clone()))
+                }
+                Terminal::RawPkH(ref _pkh) => {
+                    return Err(Error::LiftError(LiftError::RawDescriptorLift))
+                }
+                Terminal::After(t) => Arc::new(Semantic::After(t)),
+                Terminal::Older(t) => Arc::new(Semantic::Older(t)),
+                Terminal::Sha256(ref h) => Arc::new(Semantic::Sha256(h.clone())),
+                Terminal::Hash256(ref h) => Arc::new(Semantic::Hash256(h.clone())),
+                Terminal::Ripemd160(ref h) => Arc::new(Semantic::Ripemd160(h.clone())),
+                Terminal::Hash160(ref h) => Arc::new(Semantic::Hash160(h.clone())),
+                Terminal::False => Arc::new(Semantic::Unsatisfiable),
+                Terminal::True => Arc::new(Semantic::Trivial),
+                Terminal::Alt(..)
+                | Terminal::Swap(..)
+                | Terminal::Check(..)
+                | Terminal::DupIf(..)
+                | Terminal::Verify(..)
+                | Terminal::NonZero(..)
+                | Terminal::ZeroNotEqual(..) => stack.pop().unwrap(),
+                Terminal::AndV(..) | Terminal::AndB(..) => Arc::new(Semantic::Thresh(
+                    Threshold::and(stack.pop().unwrap(), stack.pop().unwrap()),
+                )),
+                Terminal::AndOr(..) => Arc::new(Semantic::Thresh(Threshold::or(
+                    Arc::new(Semantic::Thresh(Threshold::and(
+                        stack.pop().unwrap(),
+                        stack.pop().unwrap(),
+                    ))),
+                    stack.pop().unwrap(),
                 ))),
-                Arc::new(c.node.lift()?),
-            )),
-            Terminal::OrB(ref left, ref right)
-            | Terminal::OrD(ref left, ref right)
-            | Terminal::OrC(ref left, ref right)
-            | Terminal::OrI(ref left, ref right) => Semantic::Thresh(Threshold::or(
-                Arc::new(left.node.lift()?),
-                Arc::new(right.node.lift()?),
-            )),
-            Terminal::Thresh(ref thresh) => thresh
-                .translate_ref(|sub| sub.lift().map(Arc::new))
-                .map(Semantic::Thresh)?,
-            Terminal::Multi(ref thresh) => Semantic::Thresh(
-                thresh
-                    .map_ref(|key| Arc::new(Semantic::Key(key.clone())))
-                    .forget_maximum(),
-            ),
-            Terminal::MultiA(ref thresh) => Semantic::Thresh(
-                thresh
-                    .map_ref(|key| Arc::new(Semantic::Key(key.clone())))
-                    .forget_maximum(),
-            ),
+                Terminal::OrB(..) | Terminal::OrD(..) | Terminal::OrC(..) | Terminal::OrI(..) => {
+                    Arc::new(Semantic::Thresh(Threshold::or(
+                        stack.pop().unwrap(),
+                        stack.pop().unwrap(),
+                    )))
+                }
+                Terminal::Thresh(ref thresh) => {
+                    Arc::new(Semantic::Thresh(thresh.map_ref(|_| stack.pop().unwrap())))
+                }
+                Terminal::Multi(ref thresh) => Arc::new(Semantic::Thresh(
+                    thresh
+                        .map_ref(|key| Arc::new(Semantic::Key(key.clone())))
+                        .forget_maximum(),
+                )),
+                Terminal::MultiA(ref thresh) => Arc::new(Semantic::Thresh(
+                    thresh
+                        .map_ref(|key| Arc::new(Semantic::Key(key.clone())))
+                        .forget_maximum(),
+                )),
+            };
+            stack.push(new_term)
         }
-        .normalized();
-        Ok(ret)
+        Ok(Arc::try_unwrap(stack.pop().unwrap()).unwrap().normalized())
     }
 }
 
@@ -197,7 +194,7 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Concrete<Pk> {
     fn lift(&self) -> Result<Semantic<Pk>, Error> {
         // do not lift if there is a possible satisfaction
         // involving combination of timelocks and heightlocks
-        self.check_timelocks()?;
+        self.check_timelocks().map_err(Error::ConcretePolicy)?;
         let ret = match *self {
             Concrete::Unsatisfiable => Semantic::Unsatisfiable,
             Concrete::Trivial => Semantic::Trivial,
@@ -278,13 +275,13 @@ mod tests {
     #[test]
     fn policy_rtt_tests() {
         concrete_policy_rtt("pk()");
-        concrete_policy_rtt("or(1@pk(),1@pk())");
-        concrete_policy_rtt("or(99@pk(),1@pk())");
-        concrete_policy_rtt("and(pk(),or(99@pk(),1@older(12960)))");
+        concrete_policy_rtt("or(1@pk(X),1@pk(Y))");
+        concrete_policy_rtt("or(99@pk(X),1@pk(Y))");
+        concrete_policy_rtt("and(pk(X),or(99@pk(Y),1@older(12960)))");
 
         semantic_policy_rtt("pk()");
-        semantic_policy_rtt("or(pk(),pk())");
-        semantic_policy_rtt("and(pk(),pk())");
+        semantic_policy_rtt("or(pk(X),pk(Y))");
+        semantic_policy_rtt("and(pk(X),pk(Y))");
 
         //fuzzer crashes
         assert!(ConcretePol::from_str("thresh()").is_err());
@@ -311,11 +308,11 @@ mod tests {
         );
         assert_eq!(
             ConcretePol::from_str("and(pk())").unwrap_err().to_string(),
-            "And policy fragment must take 2 arguments"
+            "and must have 2 children, but found 1"
         );
         assert_eq!(
             ConcretePol::from_str("or(pk())").unwrap_err().to_string(),
-            "Or policy fragment must take 2 arguments"
+            "or must have 2 children, but found 1"
         );
         // these weird "unexpected" wrapping of errors will go away in a later PR
         // which rewrites the expression parser
@@ -323,14 +320,14 @@ mod tests {
             ConcretePol::from_str("thresh(3,after(0),pk(),pk())")
                 .unwrap_err()
                 .to_string(),
-            "unexpected «absolute locktimes in Miniscript have a minimum value of 1»",
+            "absolute locktimes in Miniscript have a minimum value of 1",
         );
 
         assert_eq!(
             ConcretePol::from_str("thresh(2,older(2147483650),pk(),pk())")
                 .unwrap_err()
                 .to_string(),
-            "unexpected «locktime value 2147483650 is not a valid BIP68 relative locktime»"
+            "locktime value 2147483650 is not a valid BIP68 relative locktime"
         );
     }
 
@@ -378,7 +375,7 @@ mod tests {
             let descriptor = policy.compile_tr(Some(unspendable_key.clone())).unwrap();
 
             let ms_compilation: Miniscript<String, Tap> = ms_str!("multi_a(2,A,B,C,D)");
-            let tree: TapTree<String> = TapTree::Leaf(Arc::new(ms_compilation));
+            let tree: TapTree<String> = TapTree::leaf(ms_compilation);
             let expected_descriptor =
                 Descriptor::new_tr(unspendable_key.clone(), Some(tree)).unwrap();
             assert_eq!(descriptor, expected_descriptor);
@@ -389,14 +386,12 @@ mod tests {
             let policy: Concrete<String> = policy_str!("or(and(pk(A),pk(B)),and(pk(C),pk(D)))");
             let descriptor = policy.compile_tr(Some(unspendable_key.clone())).unwrap();
 
-            let left_ms_compilation: Arc<Miniscript<String, Tap>> =
-                Arc::new(ms_str!("and_v(v:pk(C),pk(D))"));
-            let right_ms_compilation: Arc<Miniscript<String, Tap>> =
-                Arc::new(ms_str!("and_v(v:pk(A),pk(B))"));
+            let left_ms_compilation: Miniscript<String, Tap> = ms_str!("and_v(v:pk(C),pk(D))");
+            let right_ms_compilation: Miniscript<String, Tap> = ms_str!("and_v(v:pk(A),pk(B))");
 
-            let left = TapTree::Leaf(left_ms_compilation);
-            let right = TapTree::Leaf(right_ms_compilation);
-            let tree = TapTree::combine(left, right);
+            let left = TapTree::leaf(left_ms_compilation);
+            let right = TapTree::leaf(right_ms_compilation);
+            let tree = TapTree::combine(left, right).unwrap();
 
             let expected_descriptor =
                 Descriptor::new_tr(unspendable_key.clone(), Some(tree)).unwrap();
@@ -457,24 +452,29 @@ mod tests {
                 .into_iter()
                 .map(|x| {
                     let leaf_policy: Concrete<String> = policy_str!("{}", x);
-                    TapTree::Leaf(Arc::from(leaf_policy.compile::<Tap>().unwrap()))
+                    TapTree::leaf(leaf_policy.compile::<Tap>().unwrap())
                 })
                 .collect::<Vec<_>>();
 
             // Arrange leaf compilations (acc. to probabilities) using huffman encoding into a TapTree
             let tree = TapTree::combine(
-                TapTree::combine(node_compilations[4].clone(), node_compilations[5].clone()),
+                TapTree::combine(node_compilations[4].clone(), node_compilations[5].clone())
+                    .unwrap(),
                 TapTree::combine(
                     TapTree::combine(
                         TapTree::combine(
                             node_compilations[0].clone(),
                             node_compilations[1].clone(),
-                        ),
+                        )
+                        .unwrap(),
                         node_compilations[3].clone(),
-                    ),
+                    )
+                    .unwrap(),
                     node_compilations[6].clone(),
-                ),
-            );
+                )
+                .unwrap(),
+            )
+            .unwrap();
 
             let expected_descriptor = Descriptor::new_tr("E".to_string(), Some(tree)).unwrap();
             assert_eq!(descriptor, expected_descriptor);
@@ -540,29 +540,5 @@ mod tests {
             );
             assert_eq!(desc, expected_desc);
         }
-    }
-}
-
-#[cfg(all(bench, feature = "compiler"))]
-mod benches {
-    use core::str::FromStr;
-
-    use test::{black_box, Bencher};
-
-    use super::{Concrete, Error};
-    use crate::descriptor::Descriptor;
-    use crate::prelude::*;
-    type TapDesc = Result<Descriptor<String>, Error>;
-
-    #[bench]
-    pub fn compile_large_tap(bh: &mut Bencher) {
-        let pol = Concrete::<String>::from_str(
-            "thresh(20,pk(A),pk(B),pk(C),pk(D),pk(E),pk(F),pk(G),pk(H),pk(I),pk(J),pk(K),pk(L),pk(M),pk(N),pk(O),pk(P),pk(Q),pk(R),pk(S),pk(T),pk(U),pk(V),pk(W),pk(X),pk(Y),pk(Z))",
-        )
-        .expect("parsing");
-        bh.iter(|| {
-            let pt: TapDesc = pol.compile_tr_private_experimental(Some("UNSPEND".to_string()));
-            black_box(pt).unwrap();
-        });
     }
 }

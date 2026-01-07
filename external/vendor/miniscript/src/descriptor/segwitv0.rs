@@ -10,19 +10,19 @@ use core::fmt;
 
 use bitcoin::{Address, Network, ScriptBuf, Weight};
 
-use super::checksum::verify_checksum;
 use super::SortedMultiVec;
 use crate::descriptor::{write_descriptor, DefiniteDescriptorKey};
 use crate::expression::{self, FromTree};
 use crate::miniscript::context::{ScriptContext, ScriptContextError};
+use crate::miniscript::limits::MAX_PUBKEYS_PER_MULTISIG;
 use crate::miniscript::satisfy::{Placeholder, Satisfaction, Witness};
 use crate::plan::AssetProvider;
 use crate::policy::{semantic, Liftable};
 use crate::prelude::*;
 use crate::util::varint_len;
 use crate::{
-    Error, ForEachKey, FromStrKey, Miniscript, MiniscriptKey, Satisfier, Segwitv0, ToPublicKey,
-    TranslateErr, TranslatePk, Translator,
+    Error, ForEachKey, FromStrKey, Miniscript, MiniscriptKey, Satisfier, Segwitv0, Threshold,
+    ToPublicKey, TranslateErr, Translator,
 };
 /// A Segwitv0 wsh descriptor
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -46,10 +46,10 @@ impl<Pk: MiniscriptKey> Wsh<Pk> {
     }
 
     /// Create a new sortedmulti wsh descriptor
-    pub fn new_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
+    pub fn new_sortedmulti(thresh: Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>) -> Result<Self, Error> {
         // The context checks will be carried out inside new function for
         // sortedMultiVec
-        Ok(Self { inner: WshInner::SortedMulti(SortedMultiVec::new(k, pks)?) })
+        Ok(Self { inner: WshInner::SortedMulti(SortedMultiVec::new(thresh)?) })
     }
 
     /// Get the descriptor without the checksum
@@ -127,6 +127,18 @@ impl<Pk: MiniscriptKey> Wsh<Pk> {
             script_size +
             varint_len(max_sat_elems) +
             max_sat_size)
+    }
+
+    /// Converts the keys in a script from one type to another.
+    pub fn translate_pk<T>(&self, t: &mut T) -> Result<Wsh<T::TargetPk>, TranslateErr<T::Error>>
+    where
+        T: Translator<Pk>,
+    {
+        let inner = match self.inner {
+            WshInner::SortedMulti(ref smv) => WshInner::SortedMulti(smv.translate_pk(t)?),
+            WshInner::Ms(ref ms) => WshInner::Ms(ms.translate_pk(t)?),
+        };
+        Ok(Wsh { inner })
     }
 }
 
@@ -236,22 +248,18 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Wsh<Pk> {
 }
 
 impl<Pk: FromStrKey> crate::expression::FromTree for Wsh<Pk> {
-    fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
-        if top.name == "wsh" && top.args.len() == 1 {
-            let top = &top.args[0];
-            if top.name == "sortedmulti" {
-                return Ok(Wsh { inner: WshInner::SortedMulti(SortedMultiVec::from_tree(top)?) });
-            }
-            let sub = Miniscript::from_tree(top)?;
-            Segwitv0::top_level_checks(&sub)?;
-            Ok(Wsh { inner: WshInner::Ms(sub) })
-        } else {
-            Err(Error::Unexpected(format!(
-                "{}({} args) while parsing wsh descriptor",
-                top.name,
-                top.args.len(),
-            )))
+    fn from_tree(top: expression::TreeIterItem) -> Result<Self, Error> {
+        let top = top
+            .verify_toplevel("wsh", 1..=1)
+            .map_err(From::from)
+            .map_err(Error::Parse)?;
+
+        if top.name() == "sortedmulti" {
+            return Ok(Wsh { inner: WshInner::SortedMulti(SortedMultiVec::from_tree(top)?) });
         }
+        let sub = Miniscript::from_tree(top)?;
+        Segwitv0::top_level_checks(&sub)?;
+        Ok(Wsh { inner: WshInner::Ms(sub) })
     }
 }
 
@@ -276,9 +284,8 @@ impl<Pk: MiniscriptKey> fmt::Display for Wsh<Pk> {
 impl<Pk: FromStrKey> core::str::FromStr for Wsh<Pk> {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let desc_str = verify_checksum(s)?;
-        let top = expression::Tree::from_str(desc_str)?;
-        Wsh::<Pk>::from_tree(&top)
+        let top = expression::Tree::from_str(s)?;
+        Wsh::<Pk>::from_tree(top.root())
     }
 }
 
@@ -288,25 +295,6 @@ impl<Pk: MiniscriptKey> ForEachKey<Pk> for Wsh<Pk> {
             WshInner::SortedMulti(ref smv) => smv.for_each_key(pred),
             WshInner::Ms(ref ms) => ms.for_each_key(pred),
         }
-    }
-}
-
-impl<P, Q> TranslatePk<P, Q> for Wsh<P>
-where
-    P: MiniscriptKey,
-    Q: MiniscriptKey,
-{
-    type Output = Wsh<Q>;
-
-    fn translate_pk<T, E>(&self, t: &mut T) -> Result<Self::Output, TranslateErr<E>>
-    where
-        T: Translator<P, Q, E>,
-    {
-        let inner = match self.inner {
-            WshInner::SortedMulti(ref smv) => WshInner::SortedMulti(smv.translate_pk(t)?),
-            WshInner::Ms(ref ms) => WshInner::Ms(ms.translate_pk(t)?),
-        };
-        Ok(Wsh { inner })
     }
 }
 
@@ -370,6 +358,18 @@ impl<Pk: MiniscriptKey> Wpkh<Pk> {
         note = "Use max_weight_to_satisfy instead. The method to count bytes was redesigned and the results will differ from max_weight_to_satisfy. For more details check rust-bitcoin/rust-miniscript#476."
     )]
     pub fn max_satisfaction_weight(&self) -> usize { 4 + 1 + 73 + Segwitv0::pk_len(&self.pk) }
+
+    /// Converts the keys in a script from one type to another.
+    pub fn translate_pk<T>(&self, t: &mut T) -> Result<Wpkh<T::TargetPk>, TranslateErr<T::Error>>
+    where
+        T: Translator<Pk>,
+    {
+        let res = Wpkh::new(t.pk(&self.pk)?);
+        match res {
+            Ok(pk) => Ok(pk),
+            Err(e) => Err(TranslateErr::OuterError(Error::from(e))),
+        }
+    }
 }
 
 impl<Pk: MiniscriptKey + ToPublicKey> Wpkh<Pk> {
@@ -484,47 +484,22 @@ impl<Pk: MiniscriptKey> Liftable<Pk> for Wpkh<Pk> {
 }
 
 impl<Pk: FromStrKey> crate::expression::FromTree for Wpkh<Pk> {
-    fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
-        if top.name == "wpkh" && top.args.len() == 1 {
-            Ok(Wpkh::new(expression::terminal(&top.args[0], |pk| Pk::from_str(pk))?)?)
-        } else {
-            Err(Error::Unexpected(format!(
-                "{}({} args) while parsing wpkh descriptor",
-                top.name,
-                top.args.len(),
-            )))
-        }
+    fn from_tree(top: expression::TreeIterItem) -> Result<Self, Error> {
+        let pk = top
+            .verify_terminal_parent("wpkh", "public key")
+            .map_err(Error::Parse)?;
+        Wpkh::new(pk).map_err(Error::ContextError)
     }
 }
 
 impl<Pk: FromStrKey> core::str::FromStr for Wpkh<Pk> {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let desc_str = verify_checksum(s)?;
-        let top = expression::Tree::from_str(desc_str)?;
-        Self::from_tree(&top)
+        let top = expression::Tree::from_str(s)?;
+        Self::from_tree(top.root())
     }
 }
 
 impl<Pk: MiniscriptKey> ForEachKey<Pk> for Wpkh<Pk> {
     fn for_each_key<'a, F: FnMut(&'a Pk) -> bool>(&'a self, mut pred: F) -> bool { pred(&self.pk) }
-}
-
-impl<P, Q> TranslatePk<P, Q> for Wpkh<P>
-where
-    P: MiniscriptKey,
-    Q: MiniscriptKey,
-{
-    type Output = Wpkh<Q>;
-
-    fn translate_pk<T, E>(&self, t: &mut T) -> Result<Self::Output, TranslateErr<E>>
-    where
-        T: Translator<P, Q, E>,
-    {
-        let res = Wpkh::new(t.pk(&self.pk)?);
-        match res {
-            Ok(pk) => Ok(pk),
-            Err(e) => Err(TranslateErr::OuterError(Error::from(e))),
-        }
-    }
 }

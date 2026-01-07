@@ -47,8 +47,8 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         },
         bluetooth,
         password_stretching_algo: match password_stretching_algo {
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => "V0".into(),
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => "V1".into(),
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => "V1".into(),
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => "V2".into(),
         },
     }))
 }

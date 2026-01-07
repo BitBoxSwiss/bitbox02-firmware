@@ -809,6 +809,40 @@ class BitBox02(BitBoxCommonAPI):
             )
         return eth_response
 
+    def _handle_eth_chunking(
+        self, initial_response: eth.ETHResponse, transaction_data: bytes
+    ) -> eth.ETHResponse:
+        """
+        Handle chunk request/response loop for ETH transactions with large data.
+        Returns the final response after all chunks have been sent.
+        """
+        # pylint: disable=no-member
+        response = initial_response
+
+        while response.WhichOneof("response") == "data_chunk_request":
+            chunk_request = response.data_chunk_request
+            offset = chunk_request.offset
+            length = chunk_request.length
+
+            if self.debug:
+                print(f"Chunk request: offset={offset}, length={length}")
+
+            if offset > len(transaction_data) or offset + length > len(transaction_data):
+                raise Exception(
+                    f"Invalid chunk request: offset={offset}, length={length}, data_len={len(transaction_data)}"
+                )
+
+            chunk = transaction_data[offset : offset + length]
+
+            if self.debug:
+                print(f"Sending chunk: {len(chunk)} bytes")
+
+            request = eth.ETHRequest()
+            request.data_chunk.CopyFrom(eth.ETHSignDataResponseChunkRequest(chunk=chunk))
+            response = self._eth_msg_query(request)
+
+        return response
+
     def _eth_coin(self, chain_id: int) -> "eth.ETHCoin.V":
         """Returns the deprecated `coin` enum value for a given chain_id. Only ETH, Ropsten and Rinkeby are converted, as these were the only supported networks up to v9.10.0. With v9.10.0, the chain ID is passed directly, and the `coin` field is ignored."""
         if self.version < semver.VersionInfo(9, 10, 0):
@@ -868,9 +902,18 @@ class BitBox02(BitBoxCommonAPI):
             else:
                 request.sign.host_nonce_commitment.commitment = antiklepto_host_commit(host_nonce)
 
-            signer_commitment = self._eth_msg_query(
-                request, expected_response="antiklepto_signer_commitment"
-            ).antiklepto_signer_commitment.commitment
+            response = self._eth_msg_query(request)
+
+            # Handle chunk requests if streaming
+            while response.WhichOneof("response") == "data_chunk_request":
+                response = self._handle_eth_chunking(response, data)
+
+            if response.WhichOneof("response") != "antiklepto_signer_commitment":
+                raise Exception(
+                    f"Unexpected response: {response.WhichOneof('response')}, expected: antiklepto_signer_commitment"
+                )
+
+            signer_commitment = response.antiklepto_signer_commitment.commitment
 
             request = eth.ETHRequest()
             request.antiklepto_signature.CopyFrom(
@@ -884,6 +927,9 @@ class BitBox02(BitBoxCommonAPI):
                 print("Antiklepto nonce verification PASSED")
 
             return signature
+
+        # Streaming threshold: use chunking for data larger than this
+        streaming_threshold = 6144
 
         if is_eip1559:
             self._require_atleast(semver.VersionInfo(9, 16, 0))
@@ -905,6 +951,9 @@ class BitBox02(BitBoxCommonAPI):
                 raise Exception(
                     f"chainID argument ({chain_id}) does not match chainID encoded in transaction ({decoded_chain_id_int})"
                 )
+
+            use_streaming = len(data) > streaming_threshold
+
             request = eth.ETHRequest()
             # pylint: disable=no-member
             request.sign_eip1559.CopyFrom(
@@ -917,13 +966,17 @@ class BitBox02(BitBoxCommonAPI):
                     gas_limit=gas_limit,
                     recipient=recipient,
                     value=value,
-                    data=data,
+                    data=b"" if use_streaming else data,
                     address_case=address_case,
+                    data_length=len(data) if use_streaming else 0,
                 )
             )
             return handle_antiklepto(request)
 
         nonce, gas_price, gas_limit, recipient, value, data, _, _, _ = rlp.decode(transaction)
+
+        use_streaming = len(data) > streaming_threshold
+
         request = eth.ETHRequest()
         # pylint: disable=no-member
         request.sign.CopyFrom(
@@ -936,8 +989,9 @@ class BitBox02(BitBoxCommonAPI):
                 gas_limit=gas_limit,
                 recipient=recipient,
                 value=value,
-                data=data,
+                data=b"" if use_streaming else data,
                 address_case=address_case,
+                data_length=len(data) if use_streaming else 0,
             )
         )
 
@@ -945,7 +999,19 @@ class BitBox02(BitBoxCommonAPI):
         if supports_antiklepto:
             return handle_antiklepto(request)
 
-        return self._eth_msg_query(request, expected_response="sign").sign.signature
+        # Non-antiklepto path: handle chunking if needed
+        response = self._eth_msg_query(request)
+        if use_streaming and response.WhichOneof("response") == "data_chunk_request":
+            response = self._handle_eth_chunking(response, data)
+            if response.WhichOneof("response") != "sign":
+                raise Exception(
+                    f"Unexpected response after chunking: {response.WhichOneof('response')}, expected: sign"
+                )
+        elif response.WhichOneof("response") != "sign":
+            raise Exception(
+                f"Unexpected response: {response.WhichOneof('response')}, expected: sign"
+            )
+        return response.sign.signature
 
     def eth_sign_msg(self, msg: bytes, keypath: Sequence[int], chain_id: int = 1) -> bytes:
         """

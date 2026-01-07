@@ -10,16 +10,19 @@ use core::ops::DerefMut;
 
 use alloc::vec::Vec;
 
+use super::Error;
+
 /// An async producer/generator of a bytes array. This is used to be able to accumulate the RLP hash
 /// of the `data` field, which can be very large and has to be streamed in chunks in that case.
 pub trait DataProducer {
+    type Error;
     /// Returns the length of the data.
     fn len(&self) -> usize;
     /// Returns the first byte of the data.
     fn first_byte(&self) -> u8;
-    /// Produces a chunk of the data. Returns `Some` if data was available, and `None` when there
-    /// are no more chunks.
-    async fn next(&mut self) -> Option<Vec<u8>>;
+    /// Produces a chunk of the data. Returns `Ok(Some(data))` if data was available,
+    /// `Ok(None)` when there are no more chunks, or `Err` on failure.
+    async fn next(&mut self) -> Result<Option<Vec<u8>>, Self::Error>;
 }
 
 /// Produces a byte slice in one shot.
@@ -32,6 +35,8 @@ impl<'a> SimpleProducer<'a> {
 }
 
 impl<'a> DataProducer for SimpleProducer<'a> {
+    type Error = Error;
+
     fn len(&self) -> usize {
         self.0.len()
     }
@@ -40,12 +45,78 @@ impl<'a> DataProducer for SimpleProducer<'a> {
         self.0[0]
     }
 
-    async fn next(&mut self) -> Option<Vec<u8>> {
+    async fn next(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
         if !self.1 {
             self.1 = true;
-            Some(self.0.to_vec())
+            Ok(Some(self.0.to_vec()))
         } else {
-            None
+            Ok(None)
+        }
+    }
+}
+
+pub struct ChunkingProducer {
+    total_length: usize,
+    offset: usize,
+    first_byte_cached: Option<u8>,
+}
+
+impl ChunkingProducer {
+    pub fn new(total_length: usize) -> Self {
+        Self {
+            total_length,
+            offset: 0,
+            first_byte_cached: None,
+        }
+    }
+}
+
+impl DataProducer for ChunkingProducer {
+    type Error = Error;
+
+    fn len(&self) -> usize {
+        self.total_length
+    }
+
+    fn first_byte(&self) -> u8 {
+        self.first_byte_cached.unwrap()
+    }
+
+    async fn next(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
+        if self.offset >= self.total_length {
+            return Ok(None);
+        }
+
+        const CHUNK_SIZE: u32 = 4096;
+        let remaining = self.total_length - self.offset;
+        let chunk_length = core::cmp::min(CHUNK_SIZE as usize, remaining) as u32;
+
+        let response = super::next_request(super::pb::eth_response::Response::DataChunkRequest(
+            super::pb::EthSignDataRequestChunkResponse {
+                offset: self.offset as u32,
+                length: chunk_length,
+            },
+        ))
+        .await?;
+
+        match response {
+            super::pb::eth_request::Request::DataChunk(
+                super::pb::EthSignDataResponseChunkRequest { chunk },
+            ) => {
+                // Error: chunk size mismatch
+                if chunk.len() != chunk_length as usize {
+                    return Err(Error::InvalidInput);
+                }
+
+                if self.offset == 0 && !chunk.is_empty() {
+                    self.first_byte_cached = Some(chunk[0]);
+                }
+
+                self.offset += chunk.len();
+                Ok(Some(chunk))
+            }
+            // Error: wrong response type
+            _ => Err(Error::InvalidInput),
         }
     }
 }
@@ -75,7 +146,10 @@ trait Write {
     // Writes the given data to the writer.
     fn write(&mut self, data: &[u8]);
     // Same as `write`, but it writes all the data produced by the async data producer.
-    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(&mut self, producer: T);
+    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(
+        &mut self,
+        producer: T,
+    ) -> Result<(), D::Error>;
 }
 
 struct Hasher(Keccak256);
@@ -85,10 +159,14 @@ impl Write for Hasher {
         self.0.update(data);
     }
 
-    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(&mut self, mut producer: T) {
-        while let Some(data) = producer.next().await {
+    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(
+        &mut self,
+        mut producer: T,
+    ) -> Result<(), D::Error> {
+        while let Some(data) = producer.next().await? {
             self.0.update(&data);
         }
+        Ok(())
     }
 }
 
@@ -99,8 +177,12 @@ impl Write for Counter {
         self.0 += data.len() as u32;
     }
 
-    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(&mut self, producer: T) {
+    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(
+        &mut self,
+        producer: T,
+    ) -> Result<(), D::Error> {
         self.0 += producer.len() as u32;
+        Ok(())
     }
 }
 
@@ -130,13 +212,13 @@ fn hash_element<W: Write>(writer: &mut W, bytes: &[u8]) {
 async fn hash_producer<W: Write, D: DataProducer, T: DerefMut<Target = D>>(
     writer: &mut W,
     producer: T,
-) {
+) -> Result<(), D::Error> {
     // hash header
     let len = producer.len();
     if len != 1 || producer.first_byte() > 0x7f {
         hash_header(writer, 0x80, 0xb7, len as _);
     }
-    writer.write_producer(producer).await;
+    writer.write_producer(producer).await
 }
 
 fn hash_u64<W: Write>(writer: &mut W, value: u64) {
@@ -151,25 +233,26 @@ fn hash_u64<W: Write>(writer: &mut W, value: u64) {
 async fn hash_params_legacy<W: Write, D: DataProducer>(
     writer: &mut W,
     params: &ParamsLegacy<'_, D>,
-) {
+) -> Result<(), D::Error> {
     hash_element(writer, params.nonce);
     hash_element(writer, params.gas_price);
     hash_element(writer, params.gas_limit);
     hash_element(writer, params.recipient);
     hash_element(writer, params.value);
-    hash_producer(writer, params.data.borrow_mut()).await;
+    hash_producer(writer, params.data.borrow_mut()).await?;
     {
         // EIP155, encodes <chainID><0><0>
         hash_u64(writer, params.chain_id);
         hash_u64(writer, 0);
         hash_u64(writer, 0);
     }
+    Ok(())
 }
 
 async fn hash_params_eip1559<W: Write, D: DataProducer>(
     writer: &mut W,
     params: &ParamsEIP1559<'_, D>,
-) {
+) -> Result<(), D::Error> {
     hash_u64(writer, params.chain_id);
     hash_element(writer, params.nonce);
     hash_element(writer, params.max_priority_fee_per_gas);
@@ -177,8 +260,9 @@ async fn hash_params_eip1559<W: Write, D: DataProducer>(
     hash_element(writer, params.gas_limit);
     hash_element(writer, params.recipient);
     hash_element(writer, params.value);
-    hash_producer(writer, params.data.borrow_mut()).await;
+    hash_producer(writer, params.data.borrow_mut()).await?;
     hash_header(writer, RLP_SMALL_TAG, RLP_LARGE_TAG, 0); // access list not currently supported and hashed as empty list
+    Ok(())
 }
 
 /// Computes the sighash of an Ethereum transaction, using the chain_id as described in EIP155.
@@ -186,29 +270,31 @@ async fn hash_params_eip1559<W: Write, D: DataProducer>(
 /// not allowed to have leading zeros (unchecked).
 ///
 /// See https://github.com/ethereum/wiki/wiki/RLP
-pub async fn compute_legacy<D: DataProducer>(params: &ParamsLegacy<'_, D>) -> Result<[u8; 32], ()> {
+pub async fn compute_legacy<D: DataProducer<Error = Error>>(
+    params: &ParamsLegacy<'_, D>,
+) -> Result<[u8; 32], Error> {
     // We hash [nonce, gas price, gas limit, recipient, value, data], RLP encoded.
     // The list length prefix is (0xc0 + length of the encoding of all elements).
 
     // 1) calculate length
     let mut counter = Counter(0);
-    hash_params_legacy(&mut counter, params).await;
+    hash_params_legacy(&mut counter, params).await?;
 
     if counter.0 > 0xffff {
         // Don't support bigger than this for now.
-        return Err(());
+        return Err(Error::InvalidInput);
     }
 
     // 2) hash len and encoded tx elements
     let mut hasher = Hasher(Keccak256::new());
     hash_header(&mut hasher, RLP_SMALL_TAG, RLP_LARGE_TAG, counter.0 as u16);
-    hash_params_legacy(&mut hasher, params).await;
+    hash_params_legacy(&mut hasher, params).await?;
     Ok(hasher.0.finalize().into())
 }
 
-pub async fn compute_eip1559<D: DataProducer>(
+pub async fn compute_eip1559<D: DataProducer<Error = Error>>(
     params: &ParamsEIP1559<'_, D>,
-) -> Result<[u8; 32], ()> {
+) -> Result<[u8; 32], Error> {
     // https://eips.ethereum.org/EIPS/eip-1559
     // We hash [chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas limit, recipient, value, data, access list]
     // RLP encoded. Prefixed with 0x02 for EIP1559 transaction type
@@ -216,18 +302,18 @@ pub async fn compute_eip1559<D: DataProducer>(
 
     // 1) calculate length
     let mut counter = Counter(0);
-    hash_params_eip1559(&mut counter, params).await;
+    hash_params_eip1559(&mut counter, params).await?;
 
     if counter.0 > 0xffff {
         // Don't support bigger than this for now.
-        return Err(());
+        return Err(Error::InvalidInput);
     }
 
     // 2) hash len and encoded tx elements
     let mut hasher = Hasher(Keccak256::new());
     hasher.write(&[0x02]); // prefix the rlp encoding with transaction type before hashing
     hash_header(&mut hasher, RLP_SMALL_TAG, RLP_LARGE_TAG, counter.0 as u16);
-    hash_params_eip1559(&mut hasher, params).await;
+    hash_params_eip1559(&mut hasher, params).await?;
     Ok(hasher.0.finalize().into())
 }
 

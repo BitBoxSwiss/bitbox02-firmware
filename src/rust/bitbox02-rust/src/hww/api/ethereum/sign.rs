@@ -156,34 +156,69 @@ fn parse_fee<'a>(request: &Transaction<'_>, params: &'a Params) -> Amount<'a> {
 }
 
 async fn hash_legacy(chain_id: u64, request: &pb::EthSignRequest) -> Result<[u8; 32], Error> {
-    let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
-        nonce: &request.nonce,
-        gas_price: &request.gas_price,
-        gas_limit: &request.gas_limit,
-        recipient: &request.recipient,
-        value: &request.value,
-        data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
-        chain_id,
-    })
-    .await
-    .map_err(|_| Error::InvalidInput)?;
-    Ok(hash)
+    if request.data_length > 0 {
+        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+            nonce: &request.nonce,
+            gas_price: &request.gas_price,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
+                request.data_length as usize,
+            )),
+            chain_id,
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    } else {
+        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+            nonce: &request.nonce,
+            gas_price: &request.gas_price,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
+            chain_id,
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    }
 }
 
 async fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], Error> {
-    let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
-        chain_id: request.chain_id,
-        nonce: &request.nonce,
-        max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
-        max_fee_per_gas: &request.max_fee_per_gas,
-        gas_limit: &request.gas_limit,
-        recipient: &request.recipient,
-        value: &request.value,
-        data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
-    })
-    .await
-    .map_err(|_| Error::InvalidInput)?;
-    Ok(hash)
+    if request.data_length > 0 {
+        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
+            chain_id: request.chain_id,
+            nonce: &request.nonce,
+            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
+            max_fee_per_gas: &request.max_fee_per_gas,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
+                request.data_length as usize,
+            )),
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    } else {
+        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
+            chain_id: request.chain_id,
+            nonce: &request.nonce,
+            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
+            max_fee_per_gas: &request.max_fee_per_gas,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    }
 }
 
 /// Verifies an ERC20 transfer.
@@ -239,11 +274,20 @@ async fn verify_standard_transaction(
 ) -> Result<(), Error> {
     let recipient = parse_recipient(request.recipient())?;
 
-    if !request.data().is_empty() {
+    let data_length = match request {
+        Transaction::Legacy(legacy) => legacy.data_length,
+        Transaction::Eip1559(eip1559) => eip1559.data_length,
+    };
+
+    if !request.data().is_empty() || data_length > 0 {
         hal.ui()
             .confirm(&confirm::Params {
                 title: "Unknown\ncontract",
-                body: "You will be shown\nthe raw\ntransaction data.",
+                body: if data_length > 0 {
+                    "You are signing a\ncontract interaction\nwith large data."
+                } else {
+                    "You will be shown\nthe raw\ntransaction data."
+                },
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -257,16 +301,29 @@ async fn verify_standard_transaction(
             })
             .await?;
 
-        hal.ui()
-            .confirm(&confirm::Params {
-                title: "Transaction\ndata",
-                body: &hex::encode(request.data()),
-                scrollable: true,
-                display_size: request.data().len(),
-                accept_is_nextarrow: true,
-                ..Default::default()
-            })
-            .await?;
+        if data_length > 0 {
+            // Streaming mode: data is too large to display, show size instead
+            hal.ui()
+                .confirm(&confirm::Params {
+                    title: "Transaction\ndata",
+                    body: &alloc::format!("{} bytes\n(too large to\ndisplay)", data_length),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+        } else {
+            // Traditional mode: show hex data
+            hal.ui()
+                .confirm(&confirm::Params {
+                    title: "Transaction\ndata",
+                    body: &hex::encode(request.data()),
+                    scrollable: true,
+                    display_size: request.data().len(),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+        }
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);

@@ -153,6 +153,7 @@ fn init_hww(preseed: bool) -> bool {
     info!("Sd card setup: success");
 
     bitbox02::testing::mock_memory();
+    bitbox02::memory::fake_nova();
     info!("Memory setup: success");
 
     if preseed {

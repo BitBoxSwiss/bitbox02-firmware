@@ -70,6 +70,7 @@ bool fake_memory_nova(void)
 {
     chunk_shared_t* shared_ptr = (chunk_shared_t*)&_memory_shared_data[0];
     shared_ptr->fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    shared_ptr->fields.securechip_type = MEMORY_SECURECHIP_TYPE_OPTIGA;
 
     memory_ble_metadata_t ble_metadata = {0};
     memcpy(ble_metadata.allowed_firmware_hash, ALLOWED_HASH, sizeof(ALLOWED_HASH) - 1);

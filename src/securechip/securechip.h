@@ -4,6 +4,7 @@
 #define _SECURECHIP_H_
 
 #include "compiler_util.h"
+#include <memory/memory.h>
 #include <platform/platform_config.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -20,6 +21,9 @@ typedef enum {
     // securechip is consistent and the caller does not need to distinguish between the chips at the
     // callsite.
     SC_ERR_INCORRECT_PASSWORD = -6,
+    // The password stretch algo is not supported
+    SC_ERR_INVALID_PASSWORD_STRETCH_ALGO = -7,
+    SC_ERR_MEMORY = -8,
 
     // Errors specific to the ATECC
     SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG = -100,
@@ -85,23 +89,31 @@ USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
  * Prepare the securechip for a new password: re-initialize keys used in the derivation,
  * set up monotonic counters, etc.
  * @param[in] password The user password.
+ * @param[in] password_stretch_algo the password stretching algorithm that should be used.
+ * @param[out] stretched_out the stretched password. Same as calling `securechip_stretch_password()`
+ * with the same stretching algo, but more efficient in terms of securechip operations.
  * @return For ATECC: values of `atecc_error_t` if negative, values of `ATCA_STATUS` if positive, 0
  * on success. For Optiga: values of `optiga_error_t` if negative, values of
  * optiga_lib_return_codes.h if positive, 0 on success.
  */
-USE_RESULT int securechip_init_new_password(const char* password);
+USE_RESULT int securechip_init_new_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out);
 
 /**
  * Stretch password using secrets in the secure chip.
  * Calling this function increments the monotonic counter.
- * @param[in] msg Use this msg as input
- * @param[in] len Must be <= 127.
- * @param[out] kdf_out Must have size 32. Result of the kdf will be stored here.
- * Cannot be the same as `msg`.
+ * @param[in] password The user password.
+ * @param[in] password_stretch_algo the password stretching algorithm that should be used.
+ * @param[out] stretched_out the stretched password.
  * @return 0 on success. Values of `securechip_error_t` if negative. If positive, values of
  * `ATCA_STATUS` for ATECC, values of optiga_lib_return_codes.h for Optiga.
  */
-USE_RESULT int securechip_stretch_password(const char* password, uint8_t* stretched_out);
+USE_RESULT int securechip_stretch_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out);
 
 /**
  * Reset the securechip objects involved in the password stretching.

@@ -237,7 +237,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(mock_hal.securechip.get_event_counter(), 5);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 4);
         assert_eq!(
             mock_hal.ui.screens,
             vec![

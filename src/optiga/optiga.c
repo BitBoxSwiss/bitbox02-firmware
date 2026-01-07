@@ -10,6 +10,7 @@
 
 #include <hardfault.h>
 #include <memory/bitbox02_smarteeprom.h>
+#include <memory/memory.h>
 #include <optiga_crypt.h>
 #include <optiga_util.h>
 #include <rust/rust.h>
@@ -37,17 +38,12 @@
 // indication of 600000 updates. See Solution Reference Manual Figure 32.
 #define MONOTONIC_COUNTER_MAX_USE (590000)
 
-// Maximum size of metadata. See "Metadata Update Identifier":
-// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linka946a953_def2_41cf_850a_74fb7899fe11
-// Two extra bytes for the `0x20 <len>` header bytes.
-#define METADATA_MAX_SIZE (44 + 2)
-
 // See Solution Reference Manual Table 79 "Data structure arbitrary data object".
 #define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
 
 // This number of KDF iterations on the external kdf slot when stretching the device
-// password.
-#define KDF_NUM_ITERATIONS (2)
+// password using the V0 algorithm.
+#define KDF_NUM_ITERATIONS_V0 (2)
 
 // Struct stored in the arbitrary data object.
 #pragma GCC diagnostic push
@@ -66,17 +62,7 @@ static optiga_crypt_t* _crypt;
 
 static const securechip_interface_functions_t* _ifs = NULL;
 
-// Values of life cycle states.
-// See Table "Life Cycle Status":
-// https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link05d4c12a_5c94_4a05_a05d_102c53684d3d
-#define LCSO_STATE_CREATION (0x01)
-#define LCSO_STATE_OPERATIONAL (0x07)
-
 #define TAG_LCSO 0xC0
-
-// Set the object LcsO flag to Operational. After this, the metadata cannot be changed anymore.
-// During development, set this to `LCSO_STATE_CREATION`.
-#define FINAL_LCSO_STATE LCSO_STATE_OPERATIONAL
 
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1 || VERIFY_METADATA == 1
 static const uint8_t _platform_binding_metadata[] = {
@@ -87,7 +73,7 @@ static const uint8_t _platform_binding_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Change/Write access. This allows updating the binding secret when LcsO < op.
     0xD0,
     0x03,
@@ -116,7 +102,7 @@ static const uint8_t _aes_symkey_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Set key usage to "Enc".
     // See Table "Metadata associated with data and key objects" -> 0xE1
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link8051b344_ff66_4d6b_bcfd_d21bb87d05d4
@@ -161,7 +147,7 @@ static const uint8_t _hmac_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Data object type: PRESSEC
     // See table "Data Object Types":
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkaf9aa284_1397_4161_8761_8c44fbbfa69d
@@ -196,7 +182,7 @@ static const uint8_t _arbitrary_data_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Data object type: BSTR.
     // See table "Data Object Types":
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkaf9aa284_1397_4161_8761_8c44fbbfa69d
@@ -229,7 +215,7 @@ static const uint8_t _attestation_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Key usage associated with key container: Sign
     // See table "Metadata associated with data and key objects":
     // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#link8051b344_ff66_4d6b_bcfd_d21bb87d05d4
@@ -267,7 +253,7 @@ static const uint8_t _counter_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Change/Write access. This allows updating the counter when LcsO < op.
     0xD0,
     0x03,
@@ -294,7 +280,7 @@ static const uint8_t _password_secret_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Allow writes, enforce shielded connection.
     0xD0,
     0x03,
@@ -332,7 +318,7 @@ static const uint8_t _password_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Allow writes, auth referencing 0xF1D2 (`OID_PASSWORD_SECRET`), enforce shielded connection.
     0xD0,
     0x07,
@@ -376,7 +362,7 @@ static const uint8_t _counter_password_metadata[] = {
     // Set LcsO. Refer to macro to see the value or some more notes.
     0xC0,
     0x01,
-    FINAL_LCSO_STATE,
+    FINAL_LCSO_STATE_V0,
     // Allow writes, auth referencing 0xF1D2 (`OID_PASSWORD_SECRET`), enforce shielded connection.
     0xD0,
     0x07,
@@ -401,6 +387,85 @@ static const uint8_t _counter_password_metadata[] = {
 };
 
 #endif
+
+static const uint8_t _hmac_writeprotected_metadata[] = {
+    // Metadata tag in the data object
+    0x20,
+    // Number of bytes that follow
+    27,
+    // Set LcsO. Refer to macro to see the value or some more notes.
+    0xC0,
+    0x01,
+    FINAL_LCSO_STATE_V1,
+    // Data object type: PRESSEC
+    // See table "Data Object Types":
+    // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkaf9aa284_1397_4161_8761_8c44fbbfa69d
+    0xE8,
+    0x01,
+    0x21,
+    // Allow writes, auth referencing 0xF1D3 (`OID_PASSWORD`), enforce shielded connection.
+    0xD0,
+    0x07,
+    0x23,
+    0xF1,
+    0xD3,
+    // &&
+    0xFD,
+    0x20,
+    0xE1,
+    0x40,
+    // Disallow reads
+    0xD1,
+    0x01,
+    0xFF,
+    // Attach execution to counter at 0xE122 (`OID_COUNTER_HMAC_WRITEPROTECTED`) and enforce
+    // shielded connection.
+    0xD3,
+    0x07,
+    0x40,
+    0xE1,
+    0x22,
+    // &&
+    0xFD,
+    // Execute: enforce shielded connection.
+    // See Table 'Access Condition Identifier and Operators" -> "Conf":
+    // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linkc15dfea4_2cc2_46ae_a53b_1e6ea9487f34
+    0x20,
+    0xE1,
+    0x40,
+};
+
+static const uint8_t _counter_hmac_writeprotected_metadata[] = {
+    // Metadata tag in the data object
+    0x20,
+    // Number of bytes that follow
+    20,
+    // Set LcsO. Refer to macro to see the value or some more notes.
+    0xC0,
+    0x01,
+    FINAL_LCSO_STATE_V1,
+    // Allow writes, auth referencing 0xF1D3 (`OID_PASSWORD`), enforce shielded connection.
+    0xD0,
+    0x07,
+    0x23,
+    0xF1,
+    0xD3,
+    // &&
+    0xFD,
+    0x20,
+    0xE1,
+    0x40,
+    // Allow reads, enforce shielded connection
+    0xD1,
+    0x03,
+    0x20,
+    0xE1,
+    0x40,
+    // Allow exe
+    0xD3,
+    0x01,
+    0x00,
+};
 
 static int _authorize(uint16_t oid_auth, const uint8_t* auth_secret, size_t auth_secret_len)
 {
@@ -486,7 +551,6 @@ static int _write_arbitrary_data(const arbitrary_data_t* data)
 }
 #endif
 
-#if VERIFY_METADATA == 1
 // In a metadata object (0x20 <len> <tag> <tag len> <tag data> ...),
 // extract tag data for a specific tag.
 // Returns false if the metadata is invalid or the tag is not present, or if the tag data is larger
@@ -540,9 +604,7 @@ static bool _read_metadata_tag(
     // Tag not found
     return false;
 }
-#endif
 
-#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 // Read the LcsO status from a metadata object. Returns false if the metadata is invalid or LcsO is
 // not present.
 static bool _read_lcso(const uint8_t* metadata, size_t metadata_len, uint8_t* lcso_out)
@@ -580,6 +642,7 @@ static int _read_lcso_of_object(uint16_t optiga_oid, uint8_t* lcso_out, bool unp
     return 0;
 }
 
+#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 // Setup shielded communication.
 // Writes the shared secret to the chip 0xE140 data object and sets the metadata.
 // See solution reference manual 2.3.4 "Use case: Pair OPTIGA™ Trust M with host (pre-shared secret
@@ -900,7 +963,46 @@ static int _factory_setup(void)
 }
 #endif // FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 
-#if VERIFY_METADATA == 1
+static int _configure_object_hmac_writeprotected(void)
+{
+    const uint16_t oid = OID_HMAC_WRITEPROTECTED;
+
+    uint8_t lcso = 0;
+    optiga_lib_status_t res = _read_lcso_of_object(oid, &lcso, false);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (lcso >= LCSO_STATE_OPERATIONAL) {
+        util_log("_configure_object_hmac_writeprotected: already setup");
+        return 0;
+    }
+    util_log("_configure_object_hmac_writeprotected: setting up");
+    return optiga_ops_util_write_metadata_sync(
+        _util, oid, _hmac_writeprotected_metadata, sizeof(_hmac_writeprotected_metadata));
+}
+
+static int _configure_object_counter_hmac_writeprotected(void)
+{
+    const uint16_t oid = OID_COUNTER_HMAC_WRITEPROTECTED;
+
+    uint8_t lcso = 0;
+    optiga_lib_status_t res = _read_lcso_of_object(oid, &lcso, false);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (lcso >= LCSO_STATE_OPERATIONAL) {
+        util_log("_configure_object_counter_hmac_writeprotected: already setup");
+        return 0;
+    }
+    util_log("_configure_object_counter_hmac_writeprotected: setting up");
+
+    return optiga_ops_util_write_metadata_sync(
+        _util,
+        oid,
+        _counter_hmac_writeprotected_metadata,
+        sizeof(_counter_hmac_writeprotected_metadata));
+}
+
 static int _verify_metadata(
     uint16_t oid,
     const uint8_t* expected_metadata,
@@ -946,26 +1048,112 @@ static int _verify_metadata(
     }
     return 0;
 }
-#endif
+
+// Updates Optiga config to V1 if not already done.
+static int _maybe_update_config_v1(void)
+{
+    memory_optiga_config_version_t config_version;
+    if (!memory_get_optiga_config_version(&config_version)) {
+        return SC_ERR_MEMORY;
+    }
+
+    if (config_version >= MEMORY_OPTIGA_CONFIG_V1) {
+        if (FINAL_LCSO_STATE_V1 >= LCSO_STATE_OPERATIONAL) {
+            // Already configured
+            util_log("optiga: config v1 already configured");
+            return 0;
+        }
+        util_log(
+            "optiga: config v1 configured, but re-doing it because LCSO state is not operational");
+    }
+
+    optiga_lib_status_t res;
+
+    res = _configure_object_hmac_writeprotected();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    res = _configure_object_counter_hmac_writeprotected();
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+
+    // Verify metadata tags are setup as expected.
+
+    {
+        const uint8_t check_tags[] = {0xC0, 0xE8, 0xD0, 0xD1, 0xD3};
+        res = _verify_metadata(
+            OID_HMAC_WRITEPROTECTED,
+            _hmac_writeprotected_metadata,
+            sizeof(_hmac_writeprotected_metadata),
+            check_tags,
+            sizeof(check_tags));
+        if (res) {
+            util_log("verify config failed (hmac_writeprotected): %i", res);
+            return res;
+        }
+        util_log("verify config OK (hmac_writeprotected)");
+    }
+
+    {
+        const uint8_t check_tags[] = {0xC0, 0xD0, 0xD1, 0xD3};
+        res = _verify_metadata(
+            OID_COUNTER_HMAC_WRITEPROTECTED,
+            _counter_hmac_writeprotected_metadata,
+            sizeof(_counter_hmac_writeprotected_metadata),
+            check_tags,
+            sizeof(check_tags));
+        if (res) {
+            util_log("verify config failed (counter_hmac_writeprotected): %i", res);
+            return res;
+        }
+        util_log("verify config OK (counter_hmac_writeprotected)");
+    }
+
+    if (FINAL_LCSO_STATE_V1 >= LCSO_STATE_OPERATIONAL) {
+        if (!memory_set_optiga_config_version(MEMORY_OPTIGA_CONFIG_V1)) {
+            return SC_ERR_MEMORY;
+        }
+    }
+
+    return 0;
+}
 
 static int _set_password(
     const uint8_t* password_secret,
     size_t password_secret_len,
-    const uint8_t* data,
-    size_t data_len)
+    const uint8_t* auth_password,
+    size_t auth_password_len)
 {
+    uint8_t auth_password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(auth_password_salted_hashed);
+
     optiga_lib_status_t res = _authorize(OID_PASSWORD_SECRET, password_secret, password_secret_len);
     if (res != OPTIGA_UTIL_SUCCESS) {
         goto cleanup;
     }
 
+    if (!salt_hash_data(
+            auth_password, auth_password_len, "optiga_password", auth_password_salted_hashed)) {
+        res = SC_ERR_SALT;
+        goto cleanup;
+    }
+
     res = optiga_ops_util_write_data_sync(
-        _util, OID_PASSWORD, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, data, data_len);
+        _util,
+        OID_PASSWORD,
+        OPTIGA_UTIL_ERASE_AND_WRITE,
+        0x00,
+        auth_password_salted_hashed,
+        sizeof(auth_password_salted_hashed));
     if (res != OPTIGA_UTIL_SUCCESS) {
         goto cleanup;
     }
 
-    res = _reset_counter(OID_COUNTER_PASSWORD, SMALL_MONOTONIC_COUNTER_MAX_USE);
+    // We add one extra to the counter threshold, as afterwards, we will
+    // write to the write-protected hmac slot, which increments the counter.
+    res = _reset_counter(OID_COUNTER_PASSWORD, SMALL_MONOTONIC_COUNTER_MAX_USE + 1);
     if (res != OPTIGA_LIB_SUCCESS) {
         goto cleanup;
     }
@@ -980,10 +1168,175 @@ cleanup: {
 }
 }
 
-int optiga_init_new_password(const char* password)
+static int _kdf_hmac(uint16_t optiga_oid, const uint8_t* msg, size_t len, uint8_t* mac_out)
 {
+    if (len != 32) {
+        return SC_ERR_INVALID_ARGS;
+    }
+
+    optiga_lib_status_t res;
+    // The equivalient of python `mac_out = hmac.new(key, msg[:len], hashlib.sha256).digest()`
+
+    uint32_t mac_out_len = 32;
+
+    res = optiga_ops_crypt_hmac_sync(
+        _crypt, OPTIGA_HMAC_SHA_256, optiga_oid, msg, len, mac_out, &mac_out_len);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        util_log("kdf fail err=%x", res);
+        return res;
+    }
+    if (mac_out_len != 32) {
+        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
+    }
+
+    return 0;
+}
+
+static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
+{
+    if (len != 32) {
+        return SC_ERR_INVALID_ARGS;
+    }
+    optiga_lib_status_t res;
+
+    uint8_t mac_out[16] = {0};
+    uint32_t mac_out_len = sizeof(mac_out);
+
+    res = optiga_ops_crypt_symmetric_encrypt_sync(
+        _crypt,
+        OPTIGA_SYMMETRIC_CMAC,
+        OID_AES_SYMKEY,
+        msg,
+        len,
+        NULL,
+        0,
+        NULL,
+        0,
+        mac_out,
+        &mac_out_len);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
+    if (mac_out_len != sizeof(mac_out)) {
+        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
+    }
+    rust_sha256(mac_out, mac_out_len, kdf_out);
+    return 0;
+}
+
+static int _set_hmac_writeprotected(
+    const uint8_t* hmac_key,
+    const uint8_t* auth_password,
+    size_t auth_password_len)
+{
+    uint8_t auth_password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(auth_password_salted_hashed);
+    if (!salt_hash_data(
+            auth_password, auth_password_len, "optiga_password", auth_password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+
+    optiga_lib_status_t res =
+        _authorize(OID_PASSWORD, auth_password_salted_hashed, sizeof(auth_password_salted_hashed));
+    if (res) {
+        goto cleanup;
+    }
+
+    res = optiga_ops_util_write_data_sync(
+        _util, OID_HMAC_WRITEPROTECTED, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, hmac_key, 32);
+    if (res) {
+        util_log("failed updating the hmac-writeprotected key: %x", res);
+        goto cleanup;
+    }
+
+    res = _reset_counter(OID_COUNTER_HMAC_WRITEPROTECTED, SMALL_MONOTONIC_COUNTER_MAX_USE);
+    if (res) {
+        goto cleanup;
+    }
+
+cleanup: {
+    optiga_lib_status_t res_clear = optiga_ops_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD);
+    return res ? res : res_clear;
+}
+}
+
+static int _v1_get_auth_password(
+    const char* password,
+    const uint8_t* hmac_key,
+    uint8_t* stretched_password_out)
+{
+    uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "optiga_password_stretch_in",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+
+    uint8_t kdf_in[32] = {0};
+    UTIL_CLEANUP_32(kdf_in);
+    memcpy(kdf_in, password_salted_hashed, 32);
+
+    // First KDF on internal key increments the large monotonic counter. Call only once!
+    int securechip_result = _kdf_internal(kdf_in, 32, stretched_password_out);
+    if (securechip_result) {
+        return securechip_result;
+    }
+    // Second KDF increments the small monotonic counter in `OID_HMAC_WRITEPROTECTED`. Call only
+    // once!
+    memcpy(kdf_in, stretched_password_out, 32);
+    if (hmac_key != NULL) {
+        rust_hmac_sha256(hmac_key, 32, kdf_in, 32, stretched_password_out);
+    } else {
+        securechip_result = _kdf_hmac(OID_HMAC_WRITEPROTECTED, kdf_in, 32, stretched_password_out);
+        if (securechip_result) {
+            if (securechip_result == 0x802F) {
+                return SC_ERR_INCORRECT_PASSWORD;
+            }
+            return securechip_result;
+        }
+    }
+
+    return 0;
+}
+
+static int _v1_combine(
+    const char* password,
+    const uint8_t* auth_password,
+    const uint8_t* password_secret,
+    uint8_t* stretched_out)
+{
+    rust_hmac_sha256(password_secret, 32, auth_password, 32, stretched_out);
+
+    uint8_t password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(password_salted_hashed);
+    if (!salt_hash_data(
+            (const uint8_t*)password,
+            strlen(password),
+            "optiga_password_stretch_out",
+            password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+    rust_hmac_sha256(
+        password_salted_hashed, sizeof(password_salted_hashed), stretched_out, 32, stretched_out);
+    return 0;
+}
+
+int optiga_init_new_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
+{
+    if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V1) {
+        // New passwords must use the latest algo.
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
+
     // Set new hmac key.
     uint8_t new_hmac_key[32] = {0};
+    UTIL_CLEANUP_32(new_hmac_key);
     _ifs->random_32_bytes(new_hmac_key);
     optiga_lib_status_t res = optiga_ops_util_write_data_sync(
         _util, OID_HMAC, OPTIGA_UTIL_ERASE_AND_WRITE, 0x00, new_hmac_key, sizeof(new_hmac_key));
@@ -1002,6 +1355,7 @@ int optiga_init_new_password(const char* password)
     }
 
     uint8_t password_secret[32] = {0};
+    UTIL_CLEANUP_32(password_secret);
     _ifs->random_32_bytes(password_secret);
 
     res = optiga_ops_util_write_data_sync(
@@ -1015,37 +1369,45 @@ int optiga_init_new_password(const char* password)
         return res;
     }
 
-    uint8_t password_salted_hashed[32] = {0};
-    UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
-            "optiga_password",
-            password_salted_hashed)) {
-        return SC_ERR_SALT;
-    }
+    uint8_t new_hmac_writeprotected_key[32] = {0};
+    UTIL_CLEANUP_32(new_hmac_writeprotected_key);
+    _ifs->random_32_bytes(new_hmac_writeprotected_key);
 
-    res = _set_password(
-        password_secret,
-        sizeof(password_secret),
-        password_salted_hashed,
-        sizeof(password_salted_hashed));
+    uint8_t auth_password[32] = {0};
+    UTIL_CLEANUP_32(auth_password);
+    res = _v1_get_auth_password(password, new_hmac_writeprotected_key, auth_password);
     if (res) {
         return res;
     }
-    return 0;
+
+    res = _set_password(
+        password_secret, sizeof(password_secret), auth_password, sizeof(auth_password));
+    if (res) {
+        return res;
+    }
+
+    res =
+        _set_hmac_writeprotected(new_hmac_writeprotected_key, auth_password, sizeof(auth_password));
+    if (res) {
+        return res;
+    }
+
+    return _v1_combine(password, auth_password, password_secret, stretched_out);
 }
 
 bool optiga_reset_keys(void)
 {
-    // This resets the OID_AES_SYMKEY and OID_HMAC keys, as well as the OID_PASSWORD_SECRET and
-    // OID_PASSWORD keys. A password is needed because updating the OID_PASSWORD key requires
-    // auth using the OID_PASSWORD_SECRET key, but any password is fine for the purpose of resetting
-    // the keys.
-    return optiga_init_new_password("") == 0;
+    // This resets the OID_AES_SYMKEY and OID_HMAC/OID_HMAC_WRITEPROTECTED keys, as well as the
+    // OID_PASSWORD_SECRET and OID_PASSWORD keys. A password is needed because updating the
+    // OID_PASSWORD key requires auth using the OID_PASSWORD_SECRET key, but any password is fine
+    // for the purpose of resetting the keys.
+
+    // We reset using V1, the latest algorithm. It covers resetting everything from V0 as well.
+    uint8_t stretched[32];
+    return optiga_init_new_password("", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched) == 0;
 }
 
-static int _optiga_verify_password(const char* password, uint8_t* password_secret_out)
+static int _optiga_verify_password_v0(const char* password, uint8_t* password_secret_out)
 {
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
@@ -1089,6 +1451,60 @@ cleanup: {
     optiga_lib_status_t res_clear2 =
         optiga_ops_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
     if (res != OPTIGA_UTIL_SUCCESS) {
+        return res;
+    }
+    if (res_clear1) {
+        return res_clear1;
+    }
+    return res_clear2;
+}
+}
+
+static int _optiga_verify_password_v1(const uint8_t* auth_password, uint8_t* password_secret_out)
+{
+    uint8_t auth_password_salted_hashed[32] = {0};
+    UTIL_CLEANUP_32(auth_password_salted_hashed);
+    if (!salt_hash_data(auth_password, 32, "optiga_password", auth_password_salted_hashed)) {
+        return SC_ERR_SALT;
+    }
+
+    optiga_lib_status_t res =
+        _authorize(OID_PASSWORD, auth_password_salted_hashed, sizeof(auth_password_salted_hashed));
+    if (res) {
+        goto cleanup;
+    }
+
+    uint16_t password_secret_size = 32;
+    res = optiga_ops_util_read_data_sync(
+        _util, OID_PASSWORD_SECRET, 0, password_secret_out, &password_secret_size);
+    if (res) {
+        goto cleanup;
+    }
+    if (password_secret_size != 32) {
+        res = SC_OPTIGA_ERR_UNEXPECTED_LEN;
+        goto cleanup;
+    }
+
+    res = _authorize(OID_PASSWORD_SECRET, password_secret_out, password_secret_size);
+    if (res) {
+        goto cleanup;
+    }
+
+    res = _reset_counter(OID_COUNTER_PASSWORD, SMALL_MONOTONIC_COUNTER_MAX_USE);
+    if (res) {
+        goto cleanup;
+    }
+
+    res = _reset_counter(OID_COUNTER_HMAC_WRITEPROTECTED, SMALL_MONOTONIC_COUNTER_MAX_USE);
+    if (res) {
+        goto cleanup;
+    }
+
+cleanup: {
+    optiga_lib_status_t res_clear1 = optiga_ops_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD);
+    optiga_lib_status_t res_clear2 =
+        optiga_ops_crypt_clear_auto_state_sync(_crypt, OID_PASSWORD_SECRET);
+    if (res) {
         return res;
     }
     if (res_clear1) {
@@ -1268,6 +1684,13 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
         return res;
     }
 
+    // Apply config updates.
+    res = _maybe_update_config_v1();
+    if (res) {
+        util_log("factory setup failed");
+        return res;
+    }
+
 #if VERIFY_METADATA == 1
     res = _verify_metadata_config();
     if (res) {
@@ -1280,61 +1703,10 @@ int optiga_setup(const securechip_interface_functions_t* ifs)
 
 int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out)
 {
-    if (len != 32) {
-        return SC_ERR_INVALID_ARGS;
-    }
-
-    optiga_lib_status_t res;
-    // The equivalient of python `mac_out = hmac.new(key, msg[:len], hashlib.sha256).digest()`
-
-    uint32_t mac_out_len = 32;
-
-    res = optiga_ops_crypt_hmac_sync(
-        _crypt, OPTIGA_HMAC_SHA_256, OID_HMAC, msg, len, mac_out, &mac_out_len);
-    if (res != OPTIGA_LIB_SUCCESS) {
-        util_log("kdf fail err=%x", res);
-        return res;
-    }
-    if (mac_out_len != 32) {
-        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
-    }
-
-    return 0;
+    return _kdf_hmac(OID_HMAC, msg, len, mac_out);
 }
 
-static int _kdf_internal(const uint8_t* msg, size_t len, uint8_t* kdf_out)
-{
-    if (len != 32) {
-        return SC_ERR_INVALID_ARGS;
-    }
-    optiga_lib_status_t res;
-
-    uint8_t mac_out[16] = {0};
-    uint32_t mac_out_len = sizeof(mac_out);
-
-    res = optiga_ops_crypt_symmetric_encrypt_sync(
-        _crypt,
-        OPTIGA_SYMMETRIC_CMAC,
-        OID_AES_SYMKEY,
-        msg,
-        len,
-        NULL,
-        0,
-        NULL,
-        0,
-        mac_out,
-        &mac_out_len);
-    if (res != OPTIGA_LIB_SUCCESS) {
-        return res;
-    }
-    if (mac_out_len != sizeof(mac_out)) {
-        return SC_OPTIGA_ERR_UNEXPECTED_LEN;
-    }
-    rust_sha256(mac_out, mac_out_len, kdf_out);
-    return 0;
-}
-
-int optiga_stretch_password(const char* password, uint8_t* stretched_out)
+static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
 {
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
@@ -1350,13 +1722,13 @@ int optiga_stretch_password(const char* password, uint8_t* stretched_out)
     UTIL_CLEANUP_32(kdf_in);
     memcpy(kdf_in, password_salted_hashed, 32);
 
-    // First KDF on internal key increments the monotonic counter. Call only once!
+    // First KDF on internal key increments the large monotonic counter. Call only once!
     int securechip_result = _kdf_internal(kdf_in, 32, stretched_out);
     if (securechip_result) {
         return securechip_result;
     }
-    // Second KDF does not use the counter and we call it multiple times.
-    for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
+    // Second KDF does not use any counters and we call it multiple times.
+    for (int i = 0; i < KDF_NUM_ITERATIONS_V0; i++) {
         memcpy(kdf_in, stretched_out, 32);
         securechip_result = optiga_kdf_external(kdf_in, 32, stretched_out);
         if (securechip_result) {
@@ -1367,7 +1739,8 @@ int optiga_stretch_password(const char* password, uint8_t* stretched_out)
     // Verify password incrementing the small monotonic counter.
     // We do this after the above KDF stretch so the big monotonic counter is also incremented.
     uint8_t password_secret[32] = {0};
-    int res = _optiga_verify_password(password, password_secret);
+    UTIL_CLEANUP_32(password_secret);
+    int res = _optiga_verify_password_v0(password, password_secret);
     if (res) {
         if (res == 0x802F) {
             return SC_ERR_INCORRECT_PASSWORD;
@@ -1387,6 +1760,47 @@ int optiga_stretch_password(const char* password, uint8_t* stretched_out)
     rust_hmac_sha256(
         password_salted_hashed, sizeof(password_salted_hashed), stretched_out, 32, stretched_out);
     return 0;
+}
+
+static int _stretch_password_v1(const char* password, uint8_t* stretched_out)
+{
+    uint8_t auth_password[32] = {0};
+    UTIL_CLEANUP_32(auth_password);
+    // Get auth password. This increments the small monotonic counter in
+    // `OID_COUNTER_HMAC_WRITEPROTECTED` and the large monotonic counter.
+    int res = _v1_get_auth_password(password, NULL, auth_password);
+    if (res) {
+        return res;
+    }
+    // Verify password incrementing the small monotonic counter in `OID_COUNTER_PASSWORD`.
+    uint8_t password_secret[32] = {0};
+    UTIL_CLEANUP_32(password_secret);
+    res = _optiga_verify_password_v1(auth_password, password_secret);
+    if (res) {
+        if (res == 0x802F) {
+            return SC_ERR_INCORRECT_PASSWORD;
+        }
+        return res;
+    }
+
+    return _v1_combine(password, auth_password, password_secret, stretched_out);
+}
+
+int optiga_stretch_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
+{
+    switch (password_stretch_algo) {
+    case MEMORY_PASSWORD_STRETCH_ALGO_V0:
+        util_log("stretching password using algo v0");
+        return _stretch_password_v0(password, stretched_out);
+    case MEMORY_PASSWORD_STRETCH_ALGO_V1:
+        util_log("stretching password using algo v1");
+        return _stretch_password_v1(password, stretched_out);
+    default:
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
 }
 
 bool optiga_gen_attestation_key(uint8_t* pubkey_out)

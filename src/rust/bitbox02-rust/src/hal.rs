@@ -27,10 +27,15 @@ pub trait Random {
 }
 
 pub trait SecureChip {
-    fn init_new_password(&mut self, password: &str) -> Result<(), bitbox02::securechip::Error>;
+    fn init_new_password(
+        &mut self,
+        password: &str,
+        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
     fn stretch_password(
         &mut self,
         password: &str,
+        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
     fn kdf(
         &mut self,
@@ -60,8 +65,14 @@ pub trait Memory {
     fn is_seeded(&mut self) -> bool;
     fn is_initialized(&mut self) -> bool;
     fn set_initialized(&mut self) -> Result<(), ()>;
-    fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()>;
-    fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()>;
+    fn get_encrypted_seed_and_hmac(
+        &mut self,
+    ) -> Result<(alloc::vec::Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()>;
+    fn set_encrypted_seed_and_hmac(
+        &mut self,
+        data: &[u8],
+        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+    ) -> Result<(), ()>;
     fn reset_hww(&mut self) -> Result<(), ()>;
     fn get_unlock_attempts(&mut self) -> u8;
     fn increment_unlock_attempts(&mut self);
@@ -140,15 +151,20 @@ impl Random for BitBox02Random {
 pub struct BitBox02SecureChip;
 
 impl SecureChip for BitBox02SecureChip {
-    fn init_new_password(&mut self, password: &str) -> Result<(), bitbox02::securechip::Error> {
-        bitbox02::securechip::init_new_password(password)
+    fn init_new_password(
+        &mut self,
+        password: &str,
+        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+        bitbox02::securechip::init_new_password(password, password_stretch_algo)
     }
 
     fn stretch_password(
         &mut self,
         password: &str,
+        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
-        bitbox02::securechip::stretch_password(password)
+        bitbox02::securechip::stretch_password(password, password_stretch_algo)
     }
 
     fn kdf(
@@ -231,12 +247,18 @@ impl Memory for BitBox02Memory {
         bitbox02::memory::set_initialized()
     }
 
-    fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()> {
+    fn get_encrypted_seed_and_hmac(
+        &mut self,
+    ) -> Result<(alloc::vec::Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()> {
         bitbox02::memory::get_encrypted_seed_and_hmac()
     }
 
-    fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
-        bitbox02::memory::set_encrypted_seed_and_hmac(data)
+    fn set_encrypted_seed_and_hmac(
+        &mut self,
+        data: &[u8],
+        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+    ) -> Result<(), ()> {
+        bitbox02::memory::set_encrypted_seed_and_hmac(data, password_stretch_algo)
     }
 
     fn reset_hww(&mut self) -> Result<(), ()> {
@@ -433,7 +455,7 @@ pub mod testing {
         is_seeded: bool,
         mnemonic_passphrase_enabled: bool,
         seed_birthdate: u32,
-        encrypted_seed_and_hmac: Option<Vec<u8>>,
+        encrypted_seed_and_hmac: Option<(Vec<u8>, bitbox02::memory::PasswordStretchAlgo)>,
         device_name: Option<String>,
         unlock_attempts: u8,
         salt_root: [u8; 32],
@@ -487,20 +509,49 @@ pub mod testing {
     impl super::SecureChip for TestingSecureChip {
         fn init_new_password(
             &mut self,
-            _password: &str,
-        ) -> Result<(), bitbox02::securechip::Error> {
-            self.event_counter += 1;
-            Ok(())
+            password: &str,
+            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+            self.event_counter += 3;
+
+            let key: &'static [u8] = match password_stretch_algo {
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
+                    b"unit-test-v0"
+                }
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
+                    b"unit-test"
+                }
+            };
+            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
+            let mut engine = HmacEngine::<sha256::Hash>::new(key);
+            engine.input(password.as_bytes());
+            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+            Ok(zeroize::Zeroizing::new(
+                hmac_result.to_byte_array().to_vec(),
+            ))
         }
 
         fn stretch_password(
             &mut self,
             password: &str,
+            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
         ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
-            self.event_counter += 5;
+            self.event_counter += match password_stretch_algo {
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => 5,
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => 4,
+            };
+
+            let key: &'static [u8] = match password_stretch_algo {
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
+                    b"unit-test-v0"
+                }
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
+                    b"unit-test"
+                }
+            };
 
             use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
-            let mut engine = HmacEngine::<sha256::Hash>::new(b"unit-test");
+            let mut engine = HmacEngine::<sha256::Hash>::new(key);
             engine.input(password.as_bytes());
             let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
             Ok(zeroize::Zeroizing::new(
@@ -549,7 +600,7 @@ pub mod testing {
                 self.reset_keys_fail_once = false;
                 Err(())
             } else {
-                self.event_counter += 1;
+                self.event_counter += 3;
                 Ok(())
             }
         }
@@ -564,7 +615,7 @@ pub mod testing {
     impl TestingMemory {
         pub fn new() -> Self {
             Self {
-                securechip_type: SecurechipType::Atecc,
+                securechip_type: SecurechipType::Optiga,
                 platform: bitbox02::memory::Platform::BitBox02,
                 initialized: false,
                 is_seeded: false,
@@ -664,16 +715,22 @@ pub mod testing {
             Ok(())
         }
 
-        fn get_encrypted_seed_and_hmac(&mut self) -> Result<alloc::vec::Vec<u8>, ()> {
+        fn get_encrypted_seed_and_hmac(
+            &mut self,
+        ) -> Result<(alloc::vec::Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()> {
             self.encrypted_seed_and_hmac.clone().ok_or(())
         }
 
-        fn set_encrypted_seed_and_hmac(&mut self, data: &[u8]) -> Result<(), ()> {
+        fn set_encrypted_seed_and_hmac(
+            &mut self,
+            data: &[u8],
+            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        ) -> Result<(), ()> {
             // 96 is the max space allocated in BitBox02's memory for this.
             if data.len() > 96 {
                 return Err(());
             }
-            self.encrypted_seed_and_hmac = Some(data.to_vec());
+            self.encrypted_seed_and_hmac = Some((data.to_vec(), password_stretch_algo));
             self.is_seeded = true;
             Ok(())
         }

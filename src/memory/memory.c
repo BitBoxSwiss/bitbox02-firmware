@@ -58,7 +58,9 @@ typedef struct __attribute__((__packed__)) {
 typedef union {
     struct __attribute__((__packed__)) {
         secbool_u8 factory_setup_done;
-        uint8_t reserved[3];
+        // see `memory_optiga_config_version_t`.
+        uint8_t optiga_config_version;
+        uint8_t reserved[2];
         uint8_t io_protection_key[32];
         uint8_t authorization_key[32];
         uint8_t encryption_key[32];
@@ -75,7 +77,8 @@ typedef union {
     struct __attribute__((__packed__)) {
         uint8_t bitmask; // inverse bitmask, BITMASK_* bits
         uint8_t failed_unlock_attempts; // starts at 0xFF (0 failed attempts), counting downwards
-        uint8_t reserved[2];
+        uint8_t password_stretch_algo; // see `memory_password_stretch_algo_t`.
+        uint8_t reserved[1];
         uint8_t noise_static_private_key[32]; // CURVE25519
         uint8_t noise_remote_static_pubkeys[5][NOISE_PUBKEY_SIZE]; // 5 pubkey slots
         uint8_t salt_root[32];
@@ -485,7 +488,10 @@ bool memory_reset_failed_unlock_attempts(void)
     return _write_chunk(CHUNK_1, chunk.bytes);
 }
 
-bool memory_set_encrypted_seed_and_hmac(const uint8_t* encrypted_seed_and_hmac, uint8_t len)
+bool memory_set_encrypted_seed_and_hmac(
+    const uint8_t* encrypted_seed_and_hmac,
+    uint8_t len,
+    memory_password_stretch_algo_t password_stretch_algo)
 {
     chunk_1_t chunk = {0};
     CLEANUP_CHUNK(chunk);
@@ -494,6 +500,18 @@ bool memory_set_encrypted_seed_and_hmac(const uint8_t* encrypted_seed_and_hmac, 
     }
     _read_chunk(CHUNK_1, chunk_bytes);
     chunk.fields.encrypted_seed_and_hmac_len = len;
+
+    switch (password_stretch_algo) {
+    case MEMORY_PASSWORD_STRETCH_ALGO_V0:
+        chunk.fields.password_stretch_algo = 0xFF;
+        break;
+    case MEMORY_PASSWORD_STRETCH_ALGO_V1:
+        chunk.fields.password_stretch_algo = 0x00;
+        break;
+    default:
+        return false;
+    }
+
     memset(
         chunk.fields.encrypted_seed_and_hmac, 0xFF, sizeof(chunk.fields.encrypted_seed_and_hmac));
     memcpy(chunk.fields.encrypted_seed_and_hmac, encrypted_seed_and_hmac, len);
@@ -504,7 +522,10 @@ bool memory_set_encrypted_seed_and_hmac(const uint8_t* encrypted_seed_and_hmac, 
     return _write_chunk(CHUNK_1, chunk.bytes);
 }
 
-bool memory_get_encrypted_seed_and_hmac(uint8_t* encrypted_seed_and_hmac_out, uint8_t* len_out)
+bool memory_get_encrypted_seed_and_hmac(
+    uint8_t* encrypted_seed_and_hmac_out,
+    uint8_t* len_out,
+    memory_password_stretch_algo_t* password_stretch_algo_out)
 {
     if (!memory_is_seeded()) {
         return false;
@@ -517,6 +538,18 @@ bool memory_get_encrypted_seed_and_hmac(uint8_t* encrypted_seed_and_hmac_out, ui
         chunk.fields.encrypted_seed_and_hmac,
         sizeof(chunk.fields.encrypted_seed_and_hmac));
     *len_out = chunk.fields.encrypted_seed_and_hmac_len;
+
+    switch (chunk.fields.password_stretch_algo) {
+    case 0xFF:
+        *password_stretch_algo_out = MEMORY_PASSWORD_STRETCH_ALGO_V0;
+        break;
+    case 0x00:
+        *password_stretch_algo_out = MEMORY_PASSWORD_STRETCH_ALGO_V1;
+        break;
+    default:
+        return false;
+    }
+
     return true;
 }
 
@@ -920,4 +953,41 @@ bool memory_ble_enable(bool enable)
         chunk.fields.ble_enabled = MEMORY_BLE_DISABLED;
     }
     return _write_to_address(FLASH_SHARED_DATA_START, 0, chunk.bytes);
+}
+
+bool memory_get_optiga_config_version(memory_optiga_config_version_t* version_out)
+{
+    chunk_0_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_0_PERMANENT, chunk.bytes);
+    switch (chunk.fields.optiga_config_version) {
+    case 0xFF:
+        *version_out = MEMORY_OPTIGA_CONFIG_V0;
+        return true;
+    case 0x00:
+        *version_out = MEMORY_OPTIGA_CONFIG_V1;
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool memory_set_optiga_config_version(memory_optiga_config_version_t version)
+{
+    chunk_0_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_0_PERMANENT, chunk.bytes);
+
+    switch (version) {
+    case MEMORY_OPTIGA_CONFIG_V0:
+        chunk.fields.optiga_config_version = 0xFF;
+        break;
+    case MEMORY_OPTIGA_CONFIG_V1:
+        chunk.fields.optiga_config_version = 0x00;
+        break;
+    default:
+        return false;
+    }
+
+    return _write_chunk(CHUNK_0_PERMANENT, chunk.bytes);
 }

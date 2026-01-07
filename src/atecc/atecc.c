@@ -4,6 +4,7 @@
 #include "hardfault.h"
 #include "securechip/securechip.h"
 #include <i2c_ecc.h>
+#include <memory/memory.h>
 #include <rust/rust.h>
 #include <salt.h>
 #include <util.h>
@@ -572,17 +573,30 @@ int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
     return _atecc_kdf(ATECC_SLOT_KDF, msg, len, kdf_out);
 }
 
-int atecc_init_new_password(const char* password)
+int atecc_init_new_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
 {
     (void)password;
+    if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V0) {
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
     if (!atecc_reset_keys()) {
         return SC_ATECC_ERR_RESET_KEYS;
     }
-    return 0;
+    return atecc_stretch_password(password, password_stretch_algo, stretched_out);
 }
 
-int atecc_stretch_password(const char* password, uint8_t* stretched_out)
+int atecc_stretch_password(
+    const char* password,
+    memory_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out)
 {
+    if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V0) {
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
+
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!salt_hash_data(

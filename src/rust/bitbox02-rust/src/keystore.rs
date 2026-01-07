@@ -157,15 +157,19 @@ fn verify_seed(
     hal: &mut impl crate::hal::Hal,
     encryption_key: &[u8],
     expected_seed: &[u8],
+    expected_password_stretch_also: bitbox02::memory::PasswordStretchAlgo,
 ) -> bool {
     if encryption_key.len() != 32 {
         return false;
     }
 
-    let cipher = match hal.memory().get_encrypted_seed_and_hmac() {
+    let (cipher, password_stretch_algo) = match hal.memory().get_encrypted_seed_and_hmac() {
         Ok(cipher) => cipher,
         Err(_) => return false,
     };
+    if password_stretch_algo != expected_password_stretch_also {
+        return false;
+    }
     let decrypted = match bitbox_aes::decrypt_with_hmac(encryption_key, &cipher) {
         Ok(decrypted) => decrypted,
         Err(_) => return false,
@@ -202,6 +206,24 @@ fn retain_bip39_seed(hal: &mut impl crate::hal::Hal, bip39_seed: &[u8]) -> Resul
     Ok(())
 }
 
+/// Returns the stretching algo that will be used when setting new passwords.
+pub fn default_password_stretch_algo(
+    hal: &mut impl crate::hal::Hal,
+) -> Result<bitbox02::memory::PasswordStretchAlgo, Error> {
+    match hal
+        .memory()
+        .get_securechip_type()
+        .map_err(|_| Error::Memory)?
+    {
+        bitbox02::memory::SecurechipType::Atecc => {
+            Ok(bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0)
+        }
+        bitbox02::memory::SecurechipType::Optiga => {
+            Ok(bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1)
+        }
+    }
+}
+
 /// Internal helper to encrypt a seed with a password and store it on flash
 fn encrypt_and_store_seed_internal(
     hal: &mut impl crate::hal::Hal,
@@ -218,9 +240,11 @@ fn encrypt_and_store_seed_internal(
 
     bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
 
-    hal.securechip().init_new_password(password)?;
+    let password_stretch_algo = default_password_stretch_algo(hal)?;
 
-    let secret = hal.securechip().stretch_password(password)?;
+    let secret = hal
+        .securechip()
+        .init_new_password(password, password_stretch_algo)?;
 
     let iv_rand = hal.random().random_32_bytes();
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
@@ -231,10 +255,10 @@ fn encrypt_and_store_seed_internal(
     }
 
     hal.memory()
-        .set_encrypted_seed_and_hmac(&encrypted)
+        .set_encrypted_seed_and_hmac(&encrypted, password_stretch_algo)
         .map_err(|_| Error::Memory)?;
 
-    if !verify_seed(hal, &secret, seed) {
+    if !verify_seed(hal, &secret, seed, password_stretch_algo) {
         hal.memory().reset_hww().map_err(|_| Error::Memory)?;
         return Err(Error::Memory);
     }
@@ -281,6 +305,26 @@ pub fn re_encrypt_seed(
     Ok(())
 }
 
+/// Re-encrypts the seed with the newest (default) password stretching algorithm if it is not
+/// already using it. The seed is retained after this function finishes, regardless of whether a
+/// migration was performed.
+fn migrate_password_algo_and_retain_seed(
+    hal: &mut impl crate::hal::Hal,
+    seed: &[u8],
+    password: &str,
+) -> Result<(), Error> {
+    let default_algo = default_password_stretch_algo(hal)?;
+    let (_, stored_algo) = hal
+        .memory()
+        .get_encrypted_seed_and_hmac()
+        .map_err(|_| Error::Memory)?;
+    if stored_algo != default_algo {
+        encrypt_and_store_seed_internal(hal, seed, password)
+    } else {
+        retain_seed(hal, seed)
+    }
+}
+
 // Checks if the retained seed matches the passed seed.
 fn check_retained_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), ()> {
     if RETAINED_SEED.read().is_none() {
@@ -296,7 +340,7 @@ fn get_and_decrypt_seed(
     hal: &mut impl crate::hal::Hal,
     password: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let encrypted = hal
+    let (encrypted, password_stretch_algo) = hal
         .memory()
         .get_encrypted_seed_and_hmac()
         .map_err(|_| Error::Memory)?;
@@ -304,7 +348,9 @@ fn get_and_decrypt_seed(
     // wrong, so it already returns an error here. The ATECC stretches the password without checking
     // if the password is correct, and we determine if it is correct in the seed decryption
     // step below.
-    let secret = hal.securechip().stretch_password(password)?;
+    let secret = hal
+        .securechip()
+        .stretch_password(password, password_stretch_algo)?;
     let seed = match bitbox_aes::decrypt_with_hmac(&secret, &encrypted) {
         Ok(seed) => seed,
         Err(()) => return Err(Error::IncorrectPassword),
@@ -351,7 +397,7 @@ pub async fn unlock(
             panic!("Seed has suddenly changed. This should never happen.");
         }
     } else {
-        retain_seed(hal, &seed)?;
+        migrate_password_algo_and_retain_seed(hal, &seed, password)?;
     }
     hal.memory().reset_unlock_attempts();
     Ok(seed)
@@ -846,8 +892,12 @@ mod tests {
             );
             // Check the seed has been stored encrypted with the expected encryption key.
             // Decrypt and check seed.
-            let cipher = hal.memory.get_encrypted_seed_and_hmac().unwrap();
+            let (cipher, password_stretch_algo) = hal.memory.get_encrypted_seed_and_hmac().unwrap();
 
+            assert_eq!(
+                password_stretch_algo,
+                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
+            );
             // Same as Python:
             // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
             // See also: mock_securechip.c
@@ -1078,7 +1128,7 @@ mod tests {
                 .as_slice(),
             seed
         );
-        assert_eq!(mock_hal.securechip.get_event_counter(), 6);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 5);
 
         // Loop to check that unlocking works while unlocked.
         for _ in 0..2 {
@@ -1091,7 +1141,7 @@ mod tests {
                     .as_slice(),
                 seed
             );
-            assert_eq!(mock_hal.securechip.get_event_counter(), 5);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 4);
         }
 
         // Also check that the retained seed was encrypted with the expected encryption key.
@@ -1306,6 +1356,87 @@ mod tests {
         wrong_attempt(&mut mock_hal);
         assert!(copy_seed(&mut mock_hal).is_ok());
         assert!(mock_hal.memory.is_seeded());
+    }
+
+    #[test]
+    fn test_unlock_migrate_password_algo() {
+        mock_memory();
+        lock();
+
+        let mut mock_hal = TestingHal::new();
+
+        let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
+
+        let mock_salt_root =
+            hex!("3333333333333333444444444444444411111111111111112222222222222222");
+        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+
+        let password = "password";
+
+        assert!(matches!(
+            mock_hal.memory.get_securechip_type().unwrap(),
+            bitbox02::memory::SecurechipType::Optiga
+        ));
+
+        // Setup a seed encrypted with algo V0.
+        {
+            let encrypted = {
+                let secret = mock_hal
+                    .securechip
+                    .stretch_password(
+                        password,
+                        bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
+                    )
+                    .unwrap();
+                let iv: &[u8; 16] = &[0xaau8; 16];
+
+                bitbox_aes::encrypt_with_hmac(iv, &secret, &seed)
+            };
+
+            mock_hal
+                .memory
+                .set_encrypted_seed_and_hmac(
+                    &encrypted,
+                    bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
+                )
+                .unwrap();
+        }
+
+        // Unlock will migrate from V0 to V1.
+        mock_hal.securechip.event_counter_reset();
+        assert_eq!(
+            block_on(unlock(&mut mock_hal, password))
+                .unwrap()
+                .as_slice(),
+            seed
+        );
+        assert_eq!(mock_hal.securechip.get_event_counter(), 9);
+
+        // Check the seed was retained again after migration.
+        assert_eq!(copy_seed(&mut mock_hal).unwrap().as_slice(), seed);
+        // Check the seed now uses the new algo.
+        let (_, stored_algo) = mock_hal.memory.get_encrypted_seed_and_hmac().unwrap();
+        assert_eq!(
+            stored_algo,
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
+        );
+
+        // Password check still works
+        assert_eq!(
+            block_on(unlock(&mut mock_hal, "password"))
+                .unwrap()
+                .as_slice(),
+            seed
+        );
+
+        // Unlocking from scratch still works
+        lock();
+        assert_eq!(
+            block_on(unlock(&mut mock_hal, "password"))
+                .unwrap()
+                .as_slice(),
+            seed
+        );
     }
 
     #[test]
@@ -1752,7 +1883,7 @@ mod tests {
 
             mock_hal.securechip.event_counter_reset();
             assert!(encrypt_and_store_seed(&mut mock_hal, seed, "foo").is_ok());
-            assert_eq!(mock_hal.securechip.get_event_counter(), 7);
+            assert_eq!(mock_hal.securechip.get_event_counter(), 4);
 
             assert!(is_locked());
 

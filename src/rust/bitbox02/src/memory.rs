@@ -12,6 +12,8 @@ pub const MULTISIG_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_MULTISIG_NAME_MAX_
 
 pub use bitbox02_sys::memory_ble_metadata_t as BleMetadata;
 
+pub use bitbox02_sys::memory_optiga_config_version_t as OptigaConfigVersion;
+pub use bitbox02_sys::memory_password_stretch_algo_t as PasswordStretchAlgo;
 pub use bitbox02_sys::memory_result_t as MemoryError;
 
 #[derive(Debug)]
@@ -83,13 +85,20 @@ pub fn get_attestation_pubkey_and_certificate(
     }
 }
 
-pub fn get_encrypted_seed_and_hmac() -> Result<alloc::vec::Vec<u8>, ()> {
+pub fn get_encrypted_seed_and_hmac() -> Result<(alloc::vec::Vec<u8>, PasswordStretchAlgo), ()> {
     let mut out = vec![0u8; 96];
     let mut len = 0u8;
-    match unsafe { bitbox02_sys::memory_get_encrypted_seed_and_hmac(out.as_mut_ptr(), &mut len) } {
+    let mut password_stretch_algo = PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0;
+    match unsafe {
+        bitbox02_sys::memory_get_encrypted_seed_and_hmac(
+            out.as_mut_ptr(),
+            &mut len,
+            &mut password_stretch_algo,
+        )
+    } {
         true => {
             out.truncate(len as _);
-            Ok(out)
+            Ok((out, password_stretch_algo))
         }
         false => Err(()),
     }
@@ -136,12 +145,19 @@ pub fn get_seed_birthdate() -> u32 {
     }
 }
 
-pub fn set_encrypted_seed_and_hmac(data: &[u8]) -> Result<(), ()> {
+pub fn set_encrypted_seed_and_hmac(
+    data: &[u8],
+    password_stretch_algo: PasswordStretchAlgo,
+) -> Result<(), ()> {
     if data.len() > u8::MAX as usize {
         return Err(());
     }
     match unsafe {
-        bitbox02_sys::memory_set_encrypted_seed_and_hmac(data.as_ptr(), data.len() as u8)
+        bitbox02_sys::memory_set_encrypted_seed_and_hmac(
+            data.as_ptr(),
+            data.len() as u8,
+            password_stretch_algo,
+        )
     } {
         true => Ok(()),
         false => Err(()),
@@ -352,6 +368,25 @@ fn set_attestation_bootloader_hash(hash: &[u8; 32]) -> bool {
     unsafe { bitbox02_sys::memory_set_attestation_bootloader_hash(hash.as_ptr()) }
 }
 
+#[cfg(test)]
+fn get_optiga_config_version() -> Result<OptigaConfigVersion, ()> {
+    let mut version = core::mem::MaybeUninit::uninit();
+    unsafe {
+        match bitbox02_sys::memory_get_optiga_config_version(version.as_mut_ptr()) {
+            true => Ok(version.assume_init()),
+            false => Err(()),
+        }
+    }
+}
+
+#[cfg(test)]
+fn set_optiga_config_version(version: OptigaConfigVersion) -> Result<(), ()> {
+    match unsafe { bitbox02_sys::memory_set_optiga_config_version(version) } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 #[cfg(all(test, feature = "testing"))]
 mod tests {
     use super::*;
@@ -431,7 +466,11 @@ mod tests {
         assert!(set_initialized().is_err());
 
         let seed_data: Vec<u8> = (0..96).map(|i| i as u8).collect();
-        set_encrypted_seed_and_hmac(&seed_data).unwrap();
+        set_encrypted_seed_and_hmac(
+            &seed_data,
+            PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
+        )
+        .unwrap();
         assert!(is_seeded());
         assert!(!is_initialized());
 
@@ -661,19 +700,27 @@ mod tests {
 
     #[test]
     fn test_encrypted_seed_and_hmac_roundtrip() {
-        mock_memory();
+        for algo in [
+            PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
+            PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1,
+        ] {
+            mock_memory();
 
-        assert!(!is_seeded());
-        let seed_data: Vec<u8> = (0..96).map(|i| i as u8).collect();
-        set_encrypted_seed_and_hmac(&seed_data).unwrap();
-        assert!(is_seeded());
+            assert!(!is_seeded());
+            let seed_data: Vec<u8> = (0..96).map(|i| i as u8).collect();
+            set_encrypted_seed_and_hmac(&seed_data, algo).unwrap();
+            assert!(is_seeded());
 
-        let stored = get_encrypted_seed_and_hmac().unwrap();
-        assert_eq!(stored, seed_data);
+            let (stored, stored_algo) = get_encrypted_seed_and_hmac().unwrap();
+            assert_eq!(stored, seed_data);
+            assert_eq!(stored_algo, algo);
 
-        let oversized = vec![0u8; 97];
-        assert!(set_encrypted_seed_and_hmac(&oversized).is_err());
-        assert_eq!(get_encrypted_seed_and_hmac().unwrap(), stored);
+            let oversized = vec![0u8; 97];
+            assert!(set_encrypted_seed_and_hmac(&oversized, algo).is_err());
+            let (stored, stored_algo) = get_encrypted_seed_and_hmac().unwrap();
+            assert_eq!(stored, seed_data);
+            assert_eq!(stored_algo, algo);
+        }
     }
 
     #[test]
@@ -798,5 +845,22 @@ mod tests {
         reset_hww().unwrap();
 
         assert_eq!(get_attestation_bootloader_hash(), mock1);
+    }
+
+    #[test]
+    fn test_optiga_config_version_roundtrip() {
+        mock_memory();
+
+        assert!(matches!(
+            get_optiga_config_version(),
+            Ok(OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V0),
+        ));
+
+        set_optiga_config_version(OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1).unwrap();
+
+        assert!(matches!(
+            get_optiga_config_version(),
+            Ok(OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1),
+        ));
     }
 }

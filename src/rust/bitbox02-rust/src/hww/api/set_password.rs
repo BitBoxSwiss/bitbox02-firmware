@@ -69,7 +69,7 @@ mod tests {
             )),
             Ok(Response::Success(pb::Success {}))
         );
-        assert_eq!(mock_hal.securechip.get_event_counter(), 9);
+        assert_eq!(mock_hal.securechip.get_event_counter(), 6);
         assert!(!keystore::is_locked());
         assert!(keystore::copy_seed(&mut mock_hal).unwrap().len() == 32);
 

@@ -129,12 +129,16 @@ pub struct DeviceInfoResponse {
     pub mnemonic_passphrase_enabled: bool,
     #[prost(uint32, tag = "5")]
     pub monotonic_increments_remaining: u32,
-    /// From v9.6.0: "ATECC608A" or "ATECC608B".
+    /// From v9.6.0: "ATECC608A" or "ATECC608B" or "OPTIGA_TRUST_M_V3".
     #[prost(string, tag = "6")]
     pub securechip_model: ::prost::alloc::string::String,
     /// Only present in Bluetooth-enabled devices.
     #[prost(message, optional, tag = "7")]
     pub bluetooth: ::core::option::Option<device_info_response::Bluetooth>,
+    /// From v9.25.0. This together with `securechip_model` determines the password stretching
+    /// algorithm.
+    #[prost(string, tag = "8")]
+    pub password_stretching_algo: ::prost::alloc::string::String,
 }
 /// Nested message and enum types in `DeviceInfoResponse`.
 pub mod device_info_response {

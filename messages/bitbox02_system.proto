@@ -27,10 +27,13 @@ message DeviceInfoResponse {
   string version = 3;
   bool mnemonic_passphrase_enabled = 4;
   uint32 monotonic_increments_remaining = 5;
-  // From v9.6.0: "ATECC608A" or "ATECC608B".
+  // From v9.6.0: "ATECC608A" or "ATECC608B" or "OPTIGA_TRUST_M_V3".
   string securechip_model = 6;
   // Only present in Bluetooth-enabled devices.
   optional Bluetooth bluetooth = 7;
+  // From v9.25.0. This together with `securechip_model` determines the password stretching
+  // algorithm.
+  string password_stretching_algo = 8;
 }
 
 message InsertRemoveSDCardRequest {

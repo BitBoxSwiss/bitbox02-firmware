@@ -7,21 +7,22 @@
 //!
 
 use crate::prelude::*;
-use crate::sync::Arc;
 
 /// Abstract node of a tree.
 ///
 /// Tracks the arity (out-degree) of a node, which is the only thing that
 /// is needed for iteration purposes.
-pub enum Tree<T> {
+pub enum Tree<T, NT> {
     /// Combinator with no children.
     Nullary,
     /// Combinator with one child.
     Unary(T),
     /// Combinator with two children.
     Binary(T, T),
+    /// Combinator with two children.
+    Ternary(T, T, T),
     /// Combinator with more than two children.
-    Nary(Arc<[T]>),
+    Nary(NT),
 }
 
 /// A trait for any structure which has the shape of a Miniscript tree.
@@ -30,14 +31,27 @@ pub enum Tree<T> {
 /// rather than nodes themselves, because it provides algorithms that
 /// assume copying is cheap.
 ///
-/// To implement this trait, you only need to implement the [`TreeLike::as_node`]
-/// method, which will usually be very mechanical. Everything else is provided.
-/// However, to avoid allocations, it may make sense to also implement
-/// [`TreeLike::n_children`] and [`TreeLike::nth_child`] because the default
-/// implementations will allocate vectors for n-ary nodes.
+/// To implement this trait, you only need to implement the [`TreeLike::as_node`],
+/// [`TreeLike::nary_len`] and `[TreeLike::nary_index'] methods, which should
+/// be very mechanical. Everything else is provided.
 pub trait TreeLike: Clone + Sized {
+    /// An abstraction over the children of n-ary nodes. Typically when
+    /// implementing the trait for `&a T` this will be `&'a [T]`.
+    type NaryChildren: Clone;
+
+    /// Accessor for the length of a [`Self::NaryChildren`].
+    fn nary_len(tc: &Self::NaryChildren) -> usize;
+
+    /// Accessor for a specific child of a [`Self::NaryChildren`].
+    ///
+    /// # Panics
+    ///
+    /// May panic if asked for an element outside of the range
+    /// `0..Self::nary_len(&tc)`.
+    fn nary_index(tc: Self::NaryChildren, idx: usize) -> Self;
+
     /// Interpret the node as an abstract node.
-    fn as_node(&self) -> Tree<Self>;
+    fn as_node(&self) -> Tree<Self, Self::NaryChildren>;
 
     /// Accessor for the number of children this node has.
     fn n_children(&self) -> usize {
@@ -45,7 +59,8 @@ pub trait TreeLike: Clone + Sized {
             Tree::Nullary => 0,
             Tree::Unary(..) => 1,
             Tree::Binary(..) => 2,
-            Tree::Nary(children) => children.len(),
+            Tree::Ternary(..) => 3,
+            Tree::Nary(ref children) => Self::nary_len(children),
         }
     }
 
@@ -58,7 +73,14 @@ pub trait TreeLike: Clone + Sized {
             (0, Tree::Binary(sub, _)) => Some(sub),
             (1, Tree::Binary(_, sub)) => Some(sub),
             (_, Tree::Binary(..)) => None,
-            (n, Tree::Nary(children)) => children.get(n).cloned(),
+            (0, Tree::Ternary(sub, _, _)) => Some(sub),
+            (1, Tree::Ternary(_, sub, _)) => Some(sub),
+            (2, Tree::Ternary(_, _, sub)) => Some(sub),
+            (_, Tree::Ternary(..)) => None,
+            (n, Tree::Nary(children)) if n < Self::nary_len(&children) => {
+                Some(Self::nary_index(children, n))
+            }
+            (_, Tree::Nary(..)) => None,
         }
     }
 
@@ -81,6 +103,14 @@ pub trait TreeLike: Clone + Sized {
     /// appears in the DAG.
     fn post_order_iter(self) -> PostOrderIter<Self> {
         PostOrderIter { index: 0, stack: vec![IterStackItem::unprocessed(self, None)] }
+    }
+
+    /// Obtains an iterator of all the nodes rooted at the DAG, in right-to-left post order.
+    ///
+    /// This ordering is useful for "translation" algorithms which iterate over a
+    /// structure, pushing translated nodes and popping children.
+    fn rtl_post_order_iter(self) -> RtlPostOrderIter<Self> {
+        RtlPostOrderIter { inner: Rtl(self).post_order_iter() }
     }
 }
 
@@ -180,6 +210,53 @@ impl<T: TreeLike> Iterator for PostOrderIter<T> {
     }
 }
 
+/// Adaptor structure to allow iterating in right-to-left order.
+#[derive(Clone, Debug)]
+struct Rtl<T>(pub T);
+
+impl<T: TreeLike> TreeLike for Rtl<T> {
+    type NaryChildren = T::NaryChildren;
+
+    fn nary_len(tc: &Self::NaryChildren) -> usize { T::nary_len(tc) }
+    fn nary_index(tc: Self::NaryChildren, idx: usize) -> Self {
+        let rtl_idx = T::nary_len(&tc) - idx - 1;
+        Rtl(T::nary_index(tc, rtl_idx))
+    }
+
+    fn as_node(&self) -> Tree<Self, Self::NaryChildren> {
+        match self.0.as_node() {
+            Tree::Nullary => Tree::Nullary,
+            Tree::Unary(a) => Tree::Unary(Rtl(a)),
+            Tree::Binary(a, b) => Tree::Binary(Rtl(b), Rtl(a)),
+            Tree::Ternary(a, b, c) => Tree::Ternary(Rtl(c), Rtl(b), Rtl(a)),
+            Tree::Nary(data) => Tree::Nary(data),
+        }
+    }
+}
+
+/// Iterates over a DAG in _right-to-left post order_.
+///
+/// That means nodes are yielded in the order (right child, left child, parent).
+#[derive(Clone, Debug)]
+pub struct RtlPostOrderIter<T> {
+    inner: PostOrderIter<Rtl<T>>,
+}
+
+impl<T: TreeLike> Iterator for RtlPostOrderIter<T> {
+    type Item = PostOrderIterItem<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|mut item| {
+            item.child_indices.reverse();
+            PostOrderIterItem {
+                child_indices: item.child_indices,
+                index: item.index,
+                node: item.node.0,
+            }
+        })
+    }
+}
+
 /// Iterates over a [`TreeLike`] in _pre order_.
 ///
 /// Unlike the post-order iterator, this one does not keep track of indices
@@ -210,8 +287,15 @@ impl<T: TreeLike> Iterator for PreOrderIter<T> {
                 self.stack.push(right);
                 self.stack.push(left);
             }
+            Tree::Ternary(a, b, c) => {
+                self.stack.push(c);
+                self.stack.push(b);
+                self.stack.push(a);
+            }
             Tree::Nary(children) => {
-                self.stack.extend(children.iter().rev().cloned());
+                for i in (0..T::nary_len(&children)).rev() {
+                    self.stack.push(T::nary_index(children.clone(), i));
+                }
             }
         }
         Some(top)

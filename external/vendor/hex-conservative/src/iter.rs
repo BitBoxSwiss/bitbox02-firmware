@@ -8,17 +8,18 @@ use core::str;
 #[cfg(feature = "std")]
 use std::io;
 
-#[cfg(all(feature = "core2", not(feature = "std")))]
-use core2::io;
-
+#[cfg(feature = "alloc")]
+use crate::alloc::vec::Vec;
 use crate::error::{InvalidCharError, OddLengthStringError};
 
-/// Convenience alias for `HexToBytesIter<HexDigitsIter<'a>>`.
-pub type HexSliceToBytesIter<'a> = HexToBytesIter<HexDigitsIter<'a>>;
-
 /// Iterator yielding bytes decoded from an iterator of pairs of hex digits.
-pub struct HexToBytesIter<T: Iterator<Item = [u8; 2]>> {
-    iter: T,
+#[derive(Debug)]
+pub struct HexToBytesIter<I>
+where
+    I: Iterator<Item = [u8; 2]>,
+{
+    iter: I,
+    original_len: usize,
 }
 
 impl<'a> HexToBytesIter<HexDigitsIter<'a>> {
@@ -28,7 +29,8 @@ impl<'a> HexToBytesIter<HexDigitsIter<'a>> {
     ///
     /// If the input string is of odd length.
     #[inline]
-    pub fn new(s: &'a str) -> Result<Self, OddLengthStringError> {
+    #[allow(dead_code)] // Remove this when making HexToBytesIter public.
+    pub(crate) fn new(s: &'a str) -> Result<Self, OddLengthStringError> {
         if s.len() % 2 != 0 {
             Err(OddLengthStringError { len: s.len() })
         } else {
@@ -36,59 +38,138 @@ impl<'a> HexToBytesIter<HexDigitsIter<'a>> {
         }
     }
 
+    #[inline]
     pub(crate) fn new_unchecked(s: &'a str) -> Self {
         Self::from_pairs(HexDigitsIter::new_unchecked(s.as_bytes()))
     }
+
+    /// Writes all the bytes yielded by this `HexToBytesIter` to the provided slice.
+    ///
+    /// Stops writing if this `HexToBytesIter` yields an `InvalidCharError`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the length of this `HexToBytesIter` is not equal to the length of the provided
+    /// slice.
+    pub(crate) fn drain_to_slice(self, buf: &mut [u8]) -> Result<(), InvalidCharError> {
+        assert_eq!(self.len(), buf.len());
+        let mut ptr = buf.as_mut_ptr();
+        for byte in self {
+            // SAFETY: for loop iterates `len` times, and `buf` has length `len`
+            unsafe {
+                core::ptr::write(ptr, byte?);
+                ptr = ptr.add(1);
+            }
+        }
+        Ok(())
+    }
+
+    /// Writes all the bytes yielded by this `HexToBytesIter` to a `Vec<u8>`.
+    ///
+    /// This is equivalent to the combinator chain `iter().map().collect()` but was found by
+    /// benchmarking to be faster.
+    #[cfg(feature = "alloc")]
+    pub(crate) fn drain_to_vec(self) -> Result<Vec<u8>, InvalidCharError> {
+        let len = self.len();
+        let mut ret = Vec::with_capacity(len);
+        let mut ptr = ret.as_mut_ptr();
+        for byte in self {
+            // SAFETY: for loop iterates `len` times, and `ret` has a capacity of at least `len`
+            unsafe {
+                // docs: "`core::ptr::write` is appropriate for initializing uninitialized memory"
+                core::ptr::write(ptr, byte?);
+                ptr = ptr.add(1);
+            }
+        }
+        // SAFETY: `len` elements have been initialized, and `ret` has a capacity of at least `len`
+        unsafe {
+            ret.set_len(len);
+        }
+        Ok(ret)
+    }
 }
 
-impl<T: Iterator<Item = [u8; 2]>> HexToBytesIter<T> {
+impl<I> HexToBytesIter<I>
+where
+    I: Iterator<Item = [u8; 2]> + ExactSizeIterator,
+{
     /// Constructs a custom hex decoding iterator from another iterator.
     #[inline]
-    pub fn from_pairs(iter: T) -> Self { Self { iter } }
+    pub fn from_pairs(iter: I) -> Self { Self { original_len: iter.len(), iter } }
 }
 
-impl<T: Iterator<Item = [u8; 2]>> Iterator for HexToBytesIter<T> {
+impl<I> Iterator for HexToBytesIter<I>
+where
+    I: Iterator<Item = [u8; 2]> + ExactSizeIterator,
+{
     type Item = Result<u8, InvalidCharError>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let [hi, lo] = self.iter.next()?;
-        Some(hex_chars_to_byte(hi, lo))
+        Some(hex_chars_to_byte(hi, lo).map_err(|(c, is_high)| InvalidCharError {
+            invalid: c,
+            pos: if is_high {
+                (self.original_len - self.iter.len() - 1) * 2
+            } else {
+                (self.original_len - self.iter.len() - 1) * 2 + 1
+            },
+        }))
     }
 
     #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let (min, max) = self.iter.size_hint();
-        (min / 2, max.map(|x| x / 2))
-    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.iter.size_hint() }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         let [hi, lo] = self.iter.nth(n)?;
-        Some(hex_chars_to_byte(hi, lo))
+        Some(hex_chars_to_byte(hi, lo).map_err(|(c, is_high)| InvalidCharError {
+            invalid: c,
+            pos: if is_high {
+                (self.original_len - self.iter.len() - 1) * 2
+            } else {
+                (self.original_len - self.iter.len() - 1) * 2 + 1
+            },
+        }))
     }
 }
 
-impl<T: Iterator<Item = [u8; 2]> + DoubleEndedIterator> DoubleEndedIterator for HexToBytesIter<T> {
+impl<I> DoubleEndedIterator for HexToBytesIter<I>
+where
+    I: Iterator<Item = [u8; 2]> + DoubleEndedIterator + ExactSizeIterator,
+{
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         let [hi, lo] = self.iter.next_back()?;
-        Some(hex_chars_to_byte(hi, lo))
+        Some(hex_chars_to_byte(hi, lo).map_err(|(c, is_high)| InvalidCharError {
+            invalid: c,
+            pos: if is_high { self.iter.len() * 2 } else { self.iter.len() * 2 + 1 },
+        }))
     }
 
     #[inline]
     fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
         let [hi, lo] = self.iter.nth_back(n)?;
-        Some(hex_chars_to_byte(hi, lo))
+        Some(hex_chars_to_byte(hi, lo).map_err(|(c, is_high)| InvalidCharError {
+            invalid: c,
+            pos: if is_high { self.iter.len() * 2 } else { self.iter.len() * 2 + 1 },
+        }))
     }
 }
 
-impl<T: Iterator<Item = [u8; 2]> + ExactSizeIterator> ExactSizeIterator for HexToBytesIter<T> {}
+impl<I> ExactSizeIterator for HexToBytesIter<I> where I: Iterator<Item = [u8; 2]> + ExactSizeIterator
+{}
 
-impl<T: Iterator<Item = [u8; 2]> + FusedIterator> FusedIterator for HexToBytesIter<T> {}
+impl<I> FusedIterator for HexToBytesIter<I> where
+    I: Iterator<Item = [u8; 2]> + ExactSizeIterator + FusedIterator
+{
+}
 
-#[cfg(any(feature = "std", feature = "core2"))]
-impl<T: Iterator<Item = [u8; 2]> + FusedIterator> io::Read for HexToBytesIter<T> {
+#[cfg(feature = "std")]
+impl<I> io::Read for HexToBytesIter<I>
+where
+    I: Iterator<Item = [u8; 2]> + ExactSizeIterator + FusedIterator,
+{
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut bytes_read = 0usize;
@@ -98,7 +179,8 @@ impl<T: Iterator<Item = [u8; 2]> + FusedIterator> io::Read for HexToBytesIter<T>
                     *dst = src;
                     bytes_read += 1;
                 }
-                _ => break,
+                Some(Err(e)) => return Err(io::Error::new(io::ErrorKind::InvalidData, e)),
+                None => break,
             }
         }
         Ok(bytes_read)
@@ -110,6 +192,7 @@ impl<T: Iterator<Item = [u8; 2]> + FusedIterator> io::Read for HexToBytesIter<T>
 /// Generally you shouldn't need to refer to this or bother with it and just use
 /// [`HexToBytesIter::new`] consuming the returned value and use `HexSliceToBytesIter` if you need
 /// to refer to the iterator in your types.
+#[derive(Debug)]
 pub struct HexDigitsIter<'a> {
     // Invariant: the length of the chunks is 2.
     // Technically, this is `iter::Map` but we can't use it because fn is anonymous.
@@ -122,7 +205,7 @@ impl<'a> HexDigitsIter<'a> {
     fn new_unchecked(digits: &'a [u8]) -> Self { Self { iter: digits.chunks_exact(2) } }
 }
 
-impl<'a> Iterator for HexDigitsIter<'a> {
+impl Iterator for HexDigitsIter<'_> {
     type Item = [u8; 2];
 
     #[inline]
@@ -139,7 +222,7 @@ impl<'a> Iterator for HexDigitsIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for HexDigitsIter<'a> {
+impl DoubleEndedIterator for HexDigitsIter<'_> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         self.iter.next_back().map(|digits| digits.try_into().expect("HexDigitsIter invariant"))
@@ -151,122 +234,24 @@ impl<'a> DoubleEndedIterator for HexDigitsIter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for HexDigitsIter<'a> {}
+impl ExactSizeIterator for HexDigitsIter<'_> {}
 
-impl<'a> core::iter::FusedIterator for HexDigitsIter<'a> {}
+impl core::iter::FusedIterator for HexDigitsIter<'_> {}
 
 /// `hi` and `lo` are bytes representing hex characters.
-fn hex_chars_to_byte(hi: u8, lo: u8) -> Result<u8, InvalidCharError> {
-    let hih = (hi as char).to_digit(16).ok_or(InvalidCharError { invalid: hi })?;
-    let loh = (lo as char).to_digit(16).ok_or(InvalidCharError { invalid: lo })?;
+///
+/// Returns the valid byte or the invalid input byte and a bool indicating error for `hi` or `lo`.
+fn hex_chars_to_byte(hi: u8, lo: u8) -> Result<u8, (u8, bool)> {
+    let hih = (hi as char).to_digit(16).ok_or((hi, true))?;
+    let loh = (lo as char).to_digit(16).ok_or((lo, false))?;
 
     let ret = (hih << 4) + loh;
     Ok(ret as u8)
 }
 
-/// Iterator over bytes which encodes the bytes and yields hex characters.
-pub struct BytesToHexIter<I: Iterator<Item = u8>> {
-    /// The iterator whose next byte will be encoded to yield hex characters.
-    iter: I,
-    /// The low character of the pair (high, low) of hex characters encoded per byte.
-    low: Option<char>,
-}
-
-impl<I> BytesToHexIter<I>
-where
-    I: Iterator<Item = u8>,
-{
-    /// Constructs a new `BytesToHexIter` from a byte iterator.
-    pub fn new(iter: I) -> BytesToHexIter<I> { Self { iter, low: None } }
-}
-
-impl<I> Iterator for BytesToHexIter<I>
-where
-    I: Iterator<Item = u8>,
-{
-    type Item = char;
-
-    #[inline]
-    fn next(&mut self) -> Option<char> {
-        match self.low {
-            Some(c) => {
-                self.low = None;
-                Some(c)
-            }
-            None => self.iter.next().map(|b| {
-                let (high, low) = byte_to_hex_chars(b);
-                self.low = Some(low);
-                high
-            }),
-        }
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let (min, max) = self.iter.size_hint();
-        match self.low {
-            Some(_) => (min * 2 + 1, max.map(|max| max * 2 + 1)),
-            None => (min * 2, max.map(|max| max * 2)),
-        }
-    }
-}
-
-impl<I> DoubleEndedIterator for BytesToHexIter<I>
-where
-    I: DoubleEndedIterator + Iterator<Item = u8>,
-{
-    #[inline]
-    fn next_back(&mut self) -> Option<char> {
-        match self.low {
-            Some(c) => {
-                self.low = None;
-                Some(c)
-            }
-            None => self.iter.next_back().map(|b| {
-                let (high, low) = byte_to_hex_chars(b);
-                self.low = Some(low);
-                high
-            }),
-        }
-    }
-}
-
-impl<I> ExactSizeIterator for BytesToHexIter<I>
-where
-    I: ExactSizeIterator + Iterator<Item = u8>,
-{
-    #[inline]
-    fn len(&self) -> usize { self.iter.len() * 2 }
-}
-
-impl<I> FusedIterator for BytesToHexIter<I> where I: FusedIterator + Iterator<Item = u8> {}
-
-/// Returns the (high, low) hex characters encoding `b`.
-fn byte_to_hex_chars(b: u8) -> (char, char) {
-    const HEX_TABLE: [u8; 16] = *b"0123456789abcdef";
-
-    let high = HEX_TABLE[usize::from(b >> 4)];
-    let low = HEX_TABLE[usize::from(b & 0b00001111)];
-
-    (char::from(high), char::from(low))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn encode_byte() {
-        let tcs =
-            vec![(0x00, ('0', '0')), (0x0a, ('0', 'a')), (0xad, ('a', 'd')), (0xff, ('f', 'f'))];
-        for (b, (high, low)) in tcs {
-            assert_eq!(byte_to_hex_chars(b), (high, low));
-        }
-        assert_eq!(byte_to_hex_chars(0x00), ('0', '0'));
-        assert_eq!(byte_to_hex_chars(0x0a), ('0', 'a'));
-        assert_eq!(byte_to_hex_chars(0xad), ('a', 'd'));
-        assert_eq!(byte_to_hex_chars(0xff), ('f', 'f'));
-    }
 
     #[test]
     fn decode_iter_forward() {
@@ -275,6 +260,12 @@ mod tests {
 
         for (i, b) in HexToBytesIter::new(hex).unwrap().enumerate() {
             assert_eq!(b.unwrap(), bytes[i]);
+        }
+
+        let mut iter = HexToBytesIter::new(hex).unwrap();
+        for i in (0..=bytes.len()).rev() {
+            assert_eq!(iter.len(), i);
+            let _ = iter.next();
         }
     }
 
@@ -286,41 +277,181 @@ mod tests {
         for (i, b) in HexToBytesIter::new(hex).unwrap().rev().enumerate() {
             assert_eq!(b.unwrap(), bytes[i]);
         }
+
+        let mut iter = HexToBytesIter::new(hex).unwrap().rev();
+        for i in (0..=bytes.len()).rev() {
+            assert_eq!(iter.len(), i);
+            let _ = iter.next();
+        }
     }
 
     #[test]
-    fn encode_iter() {
-        let bytes = [0xde, 0xad, 0xbe, 0xef];
+    fn hex_to_digits_size_hint() {
         let hex = "deadbeef";
-
-        for (i, c) in BytesToHexIter::new(bytes.iter().cloned()).enumerate() {
-            assert_eq!(c, hex.chars().nth(i).unwrap());
-        }
+        let iter = HexDigitsIter::new_unchecked(hex.as_bytes());
+        // HexDigitsIter yields two digits at a time `[u8; 2]`.
+        assert_eq!(iter.size_hint(), (4, Some(4)));
     }
 
     #[test]
-    fn encode_iter_backwards() {
-        let bytes = [0xde, 0xad, 0xbe, 0xef];
-        let hex = "efbeadde";
-
-        for (i, c) in BytesToHexIter::new(bytes.iter().cloned()).rev().enumerate() {
-            assert_eq!(c, hex.chars().nth(i).unwrap());
-        }
+    fn hex_to_bytes_size_hint() {
+        let hex = "deadbeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        assert_eq!(iter.size_hint(), (4, Some(4)));
     }
 
     #[test]
-    fn roundtrip_forward() {
-        let hex = "deadbeefcafebabe";
-        let bytes_iter = HexToBytesIter::new(hex).unwrap().map(|res| res.unwrap());
-        let got = BytesToHexIter::new(bytes_iter).collect::<String>();
-        assert_eq!(got, hex);
+    fn hex_to_bytes_slice_drain() {
+        let hex = "deadbeef";
+        let want = [0xde, 0xad, 0xbe, 0xef];
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [0u8; 4];
+        iter.drain_to_slice(&mut got).unwrap();
+        assert_eq!(got, want);
+
+        let hex = "";
+        let want = [];
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [];
+        iter.drain_to_slice(&mut got).unwrap();
+        assert_eq!(got, want);
     }
 
     #[test]
-    fn roundtrip_backward() {
-        let hex = "deadbeefcafebabe";
-        let bytes_iter = HexToBytesIter::new(hex).unwrap().rev().map(|res| res.unwrap());
-        let got = BytesToHexIter::new(bytes_iter).rev().collect::<String>();
-        assert_eq!(got, hex);
+    #[should_panic]
+    // Don't test panic message because it is from `debug_assert`.
+    #[allow(clippy::should_panic_without_expect)]
+    fn hex_to_bytes_slice_drain_panic_empty() {
+        let hex = "deadbeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [];
+        iter.drain_to_slice(&mut got).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    // Don't test panic message because it is from `debug_assert`.
+    #[allow(clippy::should_panic_without_expect)]
+    fn hex_to_bytes_slice_drain_panic_too_small() {
+        let hex = "deadbeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [0u8; 3];
+        iter.drain_to_slice(&mut got).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    // Don't test panic message because it is from `debug_assert`.
+    #[allow(clippy::should_panic_without_expect)]
+    fn hex_to_bytes_slice_drain_panic_too_big() {
+        let hex = "deadbeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [0u8; 5];
+        iter.drain_to_slice(&mut got).unwrap();
+    }
+
+    #[test]
+    fn hex_to_bytes_slice_drain_first_char_error() {
+        let hex = "geadbeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [0u8; 4];
+        assert_eq!(
+            iter.drain_to_slice(&mut got).unwrap_err(),
+            InvalidCharError { invalid: b'g', pos: 0 }
+        );
+    }
+
+    #[test]
+    fn hex_to_bytes_slice_drain_middle_char_error() {
+        let hex = "deadgeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [0u8; 4];
+        assert_eq!(
+            iter.drain_to_slice(&mut got).unwrap_err(),
+            InvalidCharError { invalid: b'g', pos: 4 }
+        );
+    }
+
+    #[test]
+    fn hex_to_bytes_slice_drain_end_char_error() {
+        let hex = "deadbeeg";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let mut got = [0u8; 4];
+        assert_eq!(
+            iter.drain_to_slice(&mut got).unwrap_err(),
+            InvalidCharError { invalid: b'g', pos: 7 }
+        );
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hex_to_bytes_vec_drain() {
+        let hex = "deadbeef";
+        let want = [0xde, 0xad, 0xbe, 0xef];
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let got = iter.drain_to_vec().unwrap();
+        assert_eq!(got, want);
+
+        let hex = "";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        let got = iter.drain_to_vec().unwrap();
+        assert!(got.is_empty());
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hex_to_bytes_vec_drain_first_char_error() {
+        let hex = "geadbeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        assert_eq!(iter.drain_to_vec().unwrap_err(), InvalidCharError { invalid: b'g', pos: 0 });
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hex_to_bytes_vec_drain_middle_char_error() {
+        let hex = "deadgeef";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        assert_eq!(iter.drain_to_vec().unwrap_err(), InvalidCharError { invalid: b'g', pos: 4 });
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn hex_to_bytes_vec_drain_end_char_error() {
+        let hex = "deadbeeg";
+        let iter = HexToBytesIter::new_unchecked(hex);
+        assert_eq!(iter.drain_to_vec().unwrap_err(), InvalidCharError { invalid: b'g', pos: 7 });
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn hex_to_bytes_iter_read() {
+        use std::io::Read;
+
+        let hex = "deadbeef";
+        let mut iter = HexToBytesIter::new(hex).unwrap();
+        let mut buf = [0u8; 4];
+        let bytes_read = iter.read(&mut buf).unwrap();
+        assert_eq!(bytes_read, 4);
+        assert_eq!(buf, [0xde, 0xad, 0xbe, 0xef]);
+
+        let hex = "deadbeef";
+        let mut iter = HexToBytesIter::new(hex).unwrap();
+        let mut buf = [0u8; 2];
+        let bytes_read = iter.read(&mut buf).unwrap();
+        assert_eq!(bytes_read, 2);
+        assert_eq!(buf, [0xde, 0xad]);
+
+        let hex = "deadbeef";
+        let mut iter = HexToBytesIter::new(hex).unwrap();
+        let mut buf = [0u8; 6];
+        let bytes_read = iter.read(&mut buf).unwrap();
+        assert_eq!(bytes_read, 4);
+        assert_eq!(buf[..4], [0xde, 0xad, 0xbe, 0xef]);
+
+        let hex = "deadbeefXX";
+        let mut iter = HexToBytesIter::new(hex).unwrap();
+        let mut buf = [0u8; 6];
+        let err = iter.read(&mut buf).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
     }
 }

@@ -13,11 +13,11 @@ use core::fmt;
 use bitcoin::script::PushBytes;
 use bitcoin::{script, Address, Network, ScriptBuf, Weight};
 
-use super::checksum::verify_checksum;
 use super::{SortedMultiVec, Wpkh, Wsh};
 use crate::descriptor::{write_descriptor, DefiniteDescriptorKey};
 use crate::expression::{self, FromTree};
 use crate::miniscript::context::ScriptContext;
+use crate::miniscript::limits::MAX_PUBKEYS_PER_MULTISIG;
 use crate::miniscript::satisfy::{Placeholder, Satisfaction};
 use crate::plan::AssetProvider;
 use crate::policy::{semantic, Liftable};
@@ -25,7 +25,7 @@ use crate::prelude::*;
 use crate::util::{varint_len, witness_to_scriptsig};
 use crate::{
     push_opcode_size, Error, ForEachKey, FromStrKey, Legacy, Miniscript, MiniscriptKey, Satisfier,
-    Segwitv0, ToPublicKey, TranslateErr, TranslatePk, Translator,
+    Segwitv0, Threshold, ToPublicKey, TranslateErr, Translator,
 };
 
 /// A Legacy p2sh Descriptor
@@ -82,36 +82,31 @@ impl<Pk: MiniscriptKey> fmt::Display for Sh<Pk> {
 }
 
 impl<Pk: FromStrKey> crate::expression::FromTree for Sh<Pk> {
-    fn from_tree(top: &expression::Tree) -> Result<Self, Error> {
-        if top.name == "sh" && top.args.len() == 1 {
-            let top = &top.args[0];
-            let inner = match top.name {
-                "wsh" => ShInner::Wsh(Wsh::from_tree(top)?),
-                "wpkh" => ShInner::Wpkh(Wpkh::from_tree(top)?),
-                "sortedmulti" => ShInner::SortedMulti(SortedMultiVec::from_tree(top)?),
-                _ => {
-                    let sub = Miniscript::from_tree(top)?;
-                    Legacy::top_level_checks(&sub)?;
-                    ShInner::Ms(sub)
-                }
-            };
-            Ok(Sh { inner })
-        } else {
-            Err(Error::Unexpected(format!(
-                "{}({} args) while parsing sh descriptor",
-                top.name,
-                top.args.len(),
-            )))
-        }
+    fn from_tree(top: expression::TreeIterItem) -> Result<Self, Error> {
+        let top = top
+            .verify_toplevel("sh", 1..=1)
+            .map_err(From::from)
+            .map_err(Error::Parse)?;
+
+        let inner = match top.name() {
+            "wsh" => ShInner::Wsh(Wsh::from_tree(top)?),
+            "wpkh" => ShInner::Wpkh(Wpkh::from_tree(top)?),
+            "sortedmulti" => ShInner::SortedMulti(SortedMultiVec::from_tree(top)?),
+            _ => {
+                let sub = Miniscript::from_tree(top)?;
+                Legacy::top_level_checks(&sub)?;
+                ShInner::Ms(sub)
+            }
+        };
+        Ok(Sh { inner })
     }
 }
 
 impl<Pk: FromStrKey> core::str::FromStr for Sh<Pk> {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let desc_str = verify_checksum(s)?;
-        let top = expression::Tree::from_str(desc_str)?;
-        Self::from_tree(&top)
+        let top = expression::Tree::from_str(s)?;
+        Self::from_tree(top.root())
     }
 }
 
@@ -131,10 +126,10 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
 
     /// Create a new p2sh sortedmulti descriptor with threshold `k`
     /// and Vec of `pks`.
-    pub fn new_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
+    pub fn new_sortedmulti(thresh: Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>) -> Result<Self, Error> {
         // The context checks will be carried out inside new function for
         // sortedMultiVec
-        Ok(Self { inner: ShInner::SortedMulti(SortedMultiVec::new(k, pks)?) })
+        Ok(Self { inner: ShInner::SortedMulti(SortedMultiVec::new(thresh)?) })
     }
 
     /// Create a new p2sh wrapped wsh descriptor with the raw miniscript
@@ -158,10 +153,12 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
 
     /// Create a new p2sh wrapped wsh sortedmulti descriptor from threshold
     /// `k` and Vec of `pks`
-    pub fn new_wsh_sortedmulti(k: usize, pks: Vec<Pk>) -> Result<Self, Error> {
+    pub fn new_wsh_sortedmulti(
+        thresh: Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>,
+    ) -> Result<Self, Error> {
         // The context checks will be carried out inside new function for
         // sortedMultiVec
-        Ok(Self { inner: ShInner::Wsh(Wsh::new_sortedmulti(k, pks)?) })
+        Ok(Self { inner: ShInner::Wsh(Wsh::new_sortedmulti(thresh)?) })
     }
 
     /// Create a new p2sh wrapped wpkh from `Pk`
@@ -258,6 +255,20 @@ impl<Pk: MiniscriptKey> Sh<Pk> {
                 4 * (varint_len(scriptsig_len) + scriptsig_len)
             }
         })
+    }
+
+    /// Converts the keys in a script from one type to another.
+    pub fn translate_pk<T>(&self, t: &mut T) -> Result<Sh<T::TargetPk>, TranslateErr<T::Error>>
+    where
+        T: Translator<Pk>,
+    {
+        let inner = match self.inner {
+            ShInner::Wsh(ref wsh) => ShInner::Wsh(wsh.translate_pk(t)?),
+            ShInner::Wpkh(ref wpkh) => ShInner::Wpkh(wpkh.translate_pk(t)?),
+            ShInner::SortedMulti(ref smv) => ShInner::SortedMulti(smv.translate_pk(t)?),
+            ShInner::Ms(ref ms) => ShInner::Ms(ms.translate_pk(t)?),
+        };
+        Ok(Sh { inner })
     }
 }
 
@@ -442,26 +453,5 @@ impl<Pk: MiniscriptKey> ForEachKey<Pk> for Sh<Pk> {
             ShInner::Wpkh(ref wpkh) => wpkh.for_each_key(pred),
             ShInner::Ms(ref ms) => ms.for_each_key(pred),
         }
-    }
-}
-
-impl<P, Q> TranslatePk<P, Q> for Sh<P>
-where
-    P: MiniscriptKey,
-    Q: MiniscriptKey,
-{
-    type Output = Sh<Q>;
-
-    fn translate_pk<T, E>(&self, t: &mut T) -> Result<Self::Output, TranslateErr<E>>
-    where
-        T: Translator<P, Q, E>,
-    {
-        let inner = match self.inner {
-            ShInner::Wsh(ref wsh) => ShInner::Wsh(wsh.translate_pk(t)?),
-            ShInner::Wpkh(ref wpkh) => ShInner::Wpkh(wpkh.translate_pk(t)?),
-            ShInner::SortedMulti(ref smv) => ShInner::SortedMulti(smv.translate_pk(t)?),
-            ShInner::Ms(ref ms) => ShInner::Ms(ms.translate_pk(t)?),
-        };
-        Ok(Sh { inner })
     }
 }

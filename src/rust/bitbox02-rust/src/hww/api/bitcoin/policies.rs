@@ -14,8 +14,6 @@ use core::str::FromStr;
 
 use util::bip32::HARDENED;
 
-use miniscript::TranslatePk;
-
 use crate::bip32;
 use crate::hal::Ui;
 use crate::workflow::confirm;
@@ -142,7 +140,10 @@ struct WalletPolicyPkTranslator<'a> {
     address_index: u32,
 }
 
-impl miniscript::Translator<String, bitcoin::PublicKey, Error> for WalletPolicyPkTranslator<'_> {
+impl miniscript::Translator<String> for WalletPolicyPkTranslator<'_> {
+    type TargetPk = bitcoin::PublicKey;
+    type Error = Error;
+
     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Error> {
         let (key_index, multipath_index_left, multipath_index_right) =
             parse_wallet_policy_pk(pk).or(Err(Error::InvalidInput))?;
@@ -210,10 +211,14 @@ impl Tr<bitcoin::PublicKey> {
     /// Note that we assume that each pubkey is unique according to BIP-388 and validated by
     /// `validate_keys()`, so the leaf is unique.
     fn get_leaf_hash_by_pubkey(&self, pk: &[u8; 33]) -> Option<TapLeafHash> {
-        for (_, ms) in self.inner.iter_scripts() {
-            if ms.iter_pk().any(|pk2| *pk == pk2.inner.serialize()) {
+        for leaf in self.inner.leaves() {
+            if leaf
+                .miniscript()
+                .iter_pk()
+                .any(|pk2| *pk == pk2.inner.serialize())
+            {
                 return Some(TapLeafHash::from_script(
-                    &ms.encode(),
+                    &leaf.miniscript().encode(),
                     LeafVersion::TapScript,
                 ));
             }
@@ -228,8 +233,11 @@ impl Tr<String> {
     ///
     /// Example: `tr(A,{pk(B),pk(C)}` iterates over A,B,C.
     fn iter_pk(&self) -> impl Iterator<Item = String> + '_ {
-        core::iter::once(self.inner.internal_key().clone())
-            .chain(self.inner.iter_scripts().flat_map(|(_, ms)| ms.iter_pk()))
+        core::iter::once(self.inner.internal_key().clone()).chain(
+            self.inner
+                .leaves()
+                .flat_map(|leaf| leaf.miniscript().iter_pk()),
+        )
     }
 }
 
@@ -538,7 +546,7 @@ impl ParsedPolicy<'_> {
     /// If the keypath points to the Taproot internal key, we return the necessary Taproot tweak to
     /// spend using the Taproot key path.
     ///
-    /// If th keypath points to a key used in a tap leaf script, we return the tap leaf hash (as
+    /// If the keypath points to a key used in a tap leaf script, we return the tap leaf hash (as
     /// defined in BIP341), which is needed to in the sighash computation in the context of a
     /// Taproot leaf script.
     ///
@@ -558,8 +566,12 @@ impl ParsedPolicy<'_> {
                     xpub.public_key() == tr.inner.internal_key().inner.serialize();
 
                 if is_keypath_spend {
+                    let spend_info = tr.inner.spend_info();
                     Ok(TaprootSpendInfo::KeySpend(
-                        tr.inner.spend_info().tap_tweak(),
+                        bitcoin::TapTweakHash::from_key_and_tweak(
+                            spend_info.internal_key(),
+                            spend_info.merkle_root(),
+                        ),
                     ))
                 } else {
                     let leaf_hash = tr
@@ -619,7 +631,11 @@ impl ParsedPolicy<'_> {
 
                 let chain_code: [u8; 32] = {
                     let mut hasher = Sha256::new();
-                    for pk in tr.inner.iter_scripts().flat_map(|(_, ms)| ms.iter_pk()) {
+                    for pk in tr
+                        .inner
+                        .leaves()
+                        .flat_map(|leaf| leaf.miniscript().iter_pk())
+                    {
                         let (key_index, _, _) =
                             parse_wallet_policy_pk(&pk).map_err(|_| Error::InvalidInput)?;
                         let key_info =

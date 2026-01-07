@@ -40,6 +40,15 @@ impl std::error::Error for ThresholdError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> { None }
 }
 
+/// Check whether `k` and `n` are valid for an instance of [`Self`].
+pub fn validate_k_n<const MAX: usize>(k: usize, n: usize) -> Result<(), ThresholdError> {
+    if k == 0 || k > n || (MAX > 0 && n > MAX) {
+        Err(ThresholdError { k, n, max: (MAX > 0).then_some(MAX) })
+    } else {
+        Ok(())
+    }
+}
+
 /// Structure representing a k-of-n threshold collection of some arbitrary
 /// object `T`.
 ///
@@ -54,11 +63,8 @@ pub struct Threshold<T, const MAX: usize> {
 impl<T, const MAX: usize> Threshold<T, MAX> {
     /// Constructs a threshold directly from a threshold value and collection.
     pub fn new(k: usize, inner: Vec<T>) -> Result<Self, ThresholdError> {
-        if k == 0 || k > inner.len() || (MAX > 0 && inner.len() > MAX) {
-            Err(ThresholdError { k, n: inner.len(), max: (MAX > 0).then(|| MAX) })
-        } else {
-            Ok(Threshold { k, inner })
-        }
+        validate_k_n::<MAX>(k, inner.len())?;
+        Ok(Threshold { k, inner })
     }
 
     /// Constructs a threshold from a threshold value and an iterator that yields collection
@@ -68,7 +74,7 @@ impl<T, const MAX: usize> Threshold<T, MAX> {
         // Do an early return if our minimum size exceeds the max.
         if MAX > 0 && min_size > MAX {
             let n = iter.count();
-            return Err(ThresholdError { k, n, max: (MAX > 0).then(|| MAX) });
+            return Err(ThresholdError { k, n, max: (MAX > 0).then_some(MAX) });
         }
 
         let mut inner = Vec::with_capacity(min_size);
@@ -145,8 +151,8 @@ impl<T, const MAX: usize> Threshold<T, MAX> {
     /// Like [`Self::translate_ref`] but passes indices to the closure rather than internal data.
     ///
     /// This is useful in situations where the data to be translated exists outside of the
-    /// threshold itself, and the threshold data is irrelevant. In particular it is commonly
-    /// paired with [`crate::expression::Tree::to_null_threshold`].
+    /// threshold itself, and the threshold data is irrelevant. In particular it is used
+    /// within the `verify_threshold` method for expression trees.
     ///
     /// If the data to be translated comes from a post-order iterator, you may instead want
     /// [`Self::map_from_post_order_iter`].
@@ -211,7 +217,7 @@ impl<T, const MAX: usize> Threshold<T, MAX> {
     pub fn into_data(self) -> Vec<T> { self.inner }
 
     /// Passthrough to an iterator on the underlying vector.
-    pub fn iter(&self) -> core::slice::Iter<T> { self.inner.iter() }
+    pub fn iter(&self) -> core::slice::Iter<'_, T> { self.inner.iter() }
 }
 
 impl<T> Threshold<T, 0> {
@@ -263,7 +269,7 @@ struct ThreshDisplay<'t, 's, T, const MAX: usize> {
     show_k: bool,
 }
 
-impl<'t, 's, T, const MAX: usize> fmt::Display for ThreshDisplay<'t, 's, T, MAX>
+impl<T, const MAX: usize> fmt::Display for ThreshDisplay<'_, '_, T, MAX>
 where
     T: fmt::Display,
 {
@@ -286,7 +292,7 @@ where
     }
 }
 
-impl<'t, 's, T, const MAX: usize> fmt::Debug for ThreshDisplay<'t, 's, T, MAX>
+impl<T, const MAX: usize> fmt::Debug for ThreshDisplay<'_, '_, T, MAX>
 where
     T: fmt::Debug,
 {

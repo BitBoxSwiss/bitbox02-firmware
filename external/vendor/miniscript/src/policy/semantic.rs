@@ -5,19 +5,17 @@
 //! We use the terms "semantic" and "abstract" interchangeably because
 //! "abstract" is a reserved keyword in Rust.
 
-use core::str::FromStr;
 use core::{fmt, str};
 
 use bitcoin::{absolute, relative};
 
-use super::concrete::PolicyError;
 use super::ENTAILMENT_MAX_TERMINALS;
 use crate::iter::{Tree, TreeLike};
 use crate::prelude::*;
 use crate::sync::Arc;
 use crate::{
-    errstr, expression, AbsLockTime, Error, ForEachKey, FromStrKey, MiniscriptKey, RelLockTime,
-    Threshold, Translator,
+    expression, AbsLockTime, Error, ForEachKey, FromStrKey, MiniscriptKey, RelLockTime, Threshold,
+    Translator,
 };
 
 /// Abstract policy which corresponds to the semantics of a miniscript and
@@ -81,14 +79,17 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
     ///
     /// // If we also wanted to provide mapping of other associated types (sha256, older etc),
     /// // we would use the general [`Translator`] trait.
-    /// impl Translator<String, bitcoin::PublicKey, ()> for StrPkTranslator {
-    ///     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, ()> {
+    /// impl Translator<String> for StrPkTranslator {
+    ///     type TargetPk = bitcoin::PublicKey;
+    ///     type Error = ();
+    ///
+    ///     fn pk(&mut self, pk: &String) -> Result<bitcoin::PublicKey, Self::Error> {
     ///         self.pk_map.get(pk).copied().ok_or(()) // Dummy Err
     ///     }
     ///
     ///     // Handy macro for failing if we encounter any other fragment.
     ///     // See also [`translate_hash_clone!`] for cloning instead of failing.
-    ///     translate_hash_fail!(String, bitcoin::PublicKey, ());
+    ///     translate_hash_fail!(String);
     /// }
     ///
     /// let mut pk_map = HashMap::new();
@@ -101,15 +102,14 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
     /// let expected_policy = Policy::from_str(&format!("and(pk({}),pk({}))", alice_pk, bob_pk)).unwrap();
     /// assert_eq!(real_policy, expected_policy);
     /// ```
-    pub fn translate_pk<Q, E, T>(&self, t: &mut T) -> Result<Policy<Q>, E>
+    pub fn translate_pk<T>(&self, t: &mut T) -> Result<Policy<T::TargetPk>, T::Error>
     where
-        T: Translator<Pk, Q, E>,
-        Q: MiniscriptKey,
+        T: Translator<Pk>,
     {
         use Policy::*;
 
         let mut translated = vec![];
-        for data in self.post_order_iter() {
+        for data in self.rtl_post_order_iter() {
             let new_policy = match data.node {
                 Unsatisfiable => Unsatisfiable,
                 Trivial => Trivial,
@@ -120,9 +120,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
                 Hash160(ref h) => t.hash160(h).map(Hash160)?,
                 Older(ref n) => Older(*n),
                 After(ref n) => After(*n),
-                Thresh(ref thresh) => {
-                    Thresh(thresh.map_from_post_order_iter(&data.child_indices, &translated))
-                }
+                Thresh(ref thresh) => Thresh(thresh.map_ref(|_| translated.pop().unwrap())),
             };
             translated.push(Arc::new(new_policy));
         }
@@ -138,17 +136,20 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
     ///
     /// This implementation will run slowly for larger policies but should be
     /// sufficient for most practical policies.
+    ///
+    /// Returns None for very large policies for which entailment cannot
+    /// be practically computed.
     // This algorithm has a naive implementation. It is possible to optimize this
     // by memoizing and maintaining a hashmap.
-    pub fn entails(self, other: Policy<Pk>) -> Result<bool, PolicyError> {
+    pub fn entails(self, other: Policy<Pk>) -> Option<bool> {
         if self.n_terminals() > ENTAILMENT_MAX_TERMINALS {
-            return Err(PolicyError::EntailmentMaxTerminals);
+            return None;
         }
         match (self, other) {
-            (Policy::Unsatisfiable, _) => Ok(true),
-            (Policy::Trivial, Policy::Trivial) => Ok(true),
-            (Policy::Trivial, _) => Ok(false),
-            (_, Policy::Unsatisfiable) => Ok(false),
+            (Policy::Unsatisfiable, _) => Some(true),
+            (Policy::Trivial, Policy::Trivial) => Some(true),
+            (Policy::Trivial, _) => Some(false),
+            (_, Policy::Unsatisfiable) => Some(false),
             (a, b) => {
                 let (a_norm, b_norm) = (a.normalized(), b.normalized());
                 let first_constraint = a_norm.first_constraint();
@@ -160,7 +161,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
                     a_norm.satisfy_constraint(&first_constraint, false),
                     b_norm.satisfy_constraint(&first_constraint, false),
                 );
-                Ok(Policy::entails(a1, b1)? && Policy::entails(a2, b2)?)
+                Some(Policy::entails(a1, b1)? && Policy::entails(a2, b2)?)
             }
         }
     }
@@ -170,11 +171,9 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         use Policy::*;
 
         let mut n_terminals = vec![];
-        for data in self.post_order_iter() {
-            let n_terminals_for_child_n = |n| n_terminals[data.child_indices[n]];
-
+        for data in self.rtl_post_order_iter() {
             let num = match data.node {
-                Thresh(thresh) => (0..thresh.n()).map(n_terminals_for_child_n).sum(),
+                Thresh(thresh) => (0..thresh.n()).map(|_| n_terminals.pop().unwrap()).sum(),
                 Trivial | Unsatisfiable => 0,
                 _leaf => 1,
             };
@@ -277,79 +276,112 @@ impl<Pk: MiniscriptKey> fmt::Display for Policy<Pk> {
 impl<Pk: FromStrKey> str::FromStr for Policy<Pk> {
     type Err = Error;
     fn from_str(s: &str) -> Result<Policy<Pk>, Error> {
-        expression::check_valid_chars(s)?;
-
         let tree = expression::Tree::from_str(s)?;
-        expression::FromTree::from_tree(&tree)
+        expression::FromTree::from_tree(tree.root())
     }
 }
 
 serde_string_impl_pk!(Policy, "a miniscript semantic policy");
 
 impl<Pk: FromStrKey> expression::FromTree for Policy<Pk> {
-    fn from_tree(top: &expression::Tree) -> Result<Policy<Pk>, Error> {
-        match (top.name, top.args.len()) {
-            ("UNSATISFIABLE", 0) => Ok(Policy::Unsatisfiable),
-            ("TRIVIAL", 0) => Ok(Policy::Trivial),
-            ("pk", 1) => expression::terminal(&top.args[0], |pk| Pk::from_str(pk).map(Policy::Key)),
-            ("after", 1) => expression::terminal(&top.args[0], |x| {
-                expression::parse_num(x)
-                    .and_then(|x| AbsLockTime::from_consensus(x).map_err(Error::AbsoluteLockTime))
-                    .map(Policy::After)
-            }),
-            ("older", 1) => expression::terminal(&top.args[0], |x| {
-                expression::parse_num(x)
-                    .and_then(|x| RelLockTime::from_consensus(x).map_err(Error::RelativeLockTime))
-                    .map(Policy::Older)
-            }),
-            ("sha256", 1) => {
-                expression::terminal(&top.args[0], |x| Pk::Sha256::from_str(x).map(Policy::Sha256))
-            }
-            ("hash256", 1) => expression::terminal(&top.args[0], |x| {
-                Pk::Hash256::from_str(x).map(Policy::Hash256)
-            }),
-            ("ripemd160", 1) => expression::terminal(&top.args[0], |x| {
-                Pk::Ripemd160::from_str(x).map(Policy::Ripemd160)
-            }),
-            ("hash160", 1) => expression::terminal(&top.args[0], |x| {
-                Pk::Hash160::from_str(x).map(Policy::Hash160)
-            }),
-            ("and", nsubs) => {
-                if nsubs < 2 {
-                    return Err(Error::PolicyError(PolicyError::InsufficientArgsforAnd));
-                }
-                let mut subs = Vec::with_capacity(nsubs);
-                for arg in &top.args {
-                    subs.push(Arc::new(Policy::from_tree(arg)?));
-                }
-                Ok(Policy::Thresh(Threshold::new(nsubs, subs).map_err(Error::Threshold)?))
-            }
-            ("or", nsubs) => {
-                if nsubs < 2 {
-                    return Err(Error::PolicyError(PolicyError::InsufficientArgsforOr));
-                }
-                let mut subs = Vec::with_capacity(nsubs);
-                for arg in &top.args {
-                    subs.push(Arc::new(Policy::from_tree(arg)?));
-                }
-                Ok(Policy::Thresh(Threshold::new(1, subs).map_err(Error::Threshold)?))
-            }
-            ("thresh", _) => {
-                let thresh = top.to_null_threshold().map_err(Error::ParseThreshold)?;
+    fn from_tree(root: expression::TreeIterItem) -> Result<Policy<Pk>, Error> {
+        root.verify_no_curly_braces()
+            .map_err(From::from)
+            .map_err(Error::Parse)?;
 
-                // thresh(1) and thresh(n) are disallowed in semantic policies
-                if thresh.is_or() || thresh.is_and() {
-                    return Err(errstr(
-                        "Semantic Policy thresh cannot have k = 1 or k = n, use `and`/`or` instead",
-                    ));
+        let mut stack = Vec::with_capacity(128);
+        for node in root.pre_order_iter().rev() {
+            // Before doing anything else, check if this is the inner value of a terminal.
+            // In that case, just skip the node. Conveniently, there are no combinators
+            // in policy that have a single child that these might be confused with (we
+            // require and, or and thresholds to all have >1 child).
+            if let Some(parent) = node.parent() {
+                if parent.n_children() == 1 {
+                    continue;
                 }
-
-                thresh
-                    .translate_by_index(|i| Policy::from_tree(&top.args[1 + i]).map(Arc::new))
-                    .map(Policy::Thresh)
+                if node.is_first_child() && parent.name() == "thresh" {
+                    continue;
+                }
             }
-            _ => Err(errstr(top.name)),
+
+            let new = match node.name() {
+                "UNSATISFIABLE" => {
+                    node.verify_n_children("UNSATISFIABLE", 0..=0)
+                        .map_err(From::from)
+                        .map_err(Error::Parse)?;
+                    Ok(Policy::Unsatisfiable)
+                }
+                "TRIVIAL" => {
+                    node.verify_n_children("TRIVIAL", 0..=0)
+                        .map_err(From::from)
+                        .map_err(Error::Parse)?;
+                    Ok(Policy::Trivial)
+                }
+                "pk" => node
+                    .verify_terminal_parent("pk", "public key")
+                    .map(Policy::Key)
+                    .map_err(Error::Parse),
+                "after" => node.verify_after().map_err(Error::Parse).map(Policy::After),
+                "older" => node.verify_older().map_err(Error::Parse).map(Policy::Older),
+                "sha256" => node
+                    .verify_terminal_parent("sha256", "hash")
+                    .map(Policy::Sha256)
+                    .map_err(Error::Parse),
+                "hash256" => node
+                    .verify_terminal_parent("hash256", "hash")
+                    .map(Policy::Hash256)
+                    .map_err(Error::Parse),
+                "ripemd160" => node
+                    .verify_terminal_parent("ripemd160", "hash")
+                    .map(Policy::Ripemd160)
+                    .map_err(Error::Parse),
+                "hash160" => node
+                    .verify_terminal_parent("hash160", "hash")
+                    .map(Policy::Hash160)
+                    .map_err(Error::Parse),
+                "and" => {
+                    node.verify_n_children("and", 2..)
+                        .map_err(From::from)
+                        .map_err(Error::Parse)?;
+
+                    let child_iter = (0..node.n_children()).map(|_| stack.pop().unwrap());
+                    let thresh = Threshold::from_iter(node.n_children(), child_iter)
+                        .map_err(Error::Threshold)?;
+                    Ok(Policy::Thresh(thresh))
+                }
+                "or" => {
+                    node.verify_n_children("or", 2..)
+                        .map_err(From::from)
+                        .map_err(Error::Parse)?;
+                    let child_iter = (0..node.n_children()).map(|_| stack.pop().unwrap());
+                    let thresh = Threshold::from_iter(1, child_iter).map_err(Error::Threshold)?;
+                    Ok(Policy::Thresh(thresh))
+                }
+                "thresh" => {
+                    let thresh = node.verify_threshold(|_| Ok::<_, Error>(stack.pop().unwrap()))?;
+
+                    // thresh(1) and thresh(n) are disallowed in semantic policies
+                    if thresh.is_or() {
+                        return Err(Error::ParseThreshold(crate::ParseThresholdError::IllegalOr));
+                    }
+                    if thresh.is_and() {
+                        return Err(Error::ParseThreshold(crate::ParseThresholdError::IllegalAnd));
+                    }
+
+                    Ok(Policy::Thresh(thresh))
+                }
+                x => {
+                    Err(Error::Parse(crate::ParseError::Tree(crate::ParseTreeError::UnknownName {
+                        name: x.to_owned(),
+                    })))
+                }
+            }?;
+
+            stack.push(Arc::new(new));
         }
+
+        assert_eq!(stack.len(), 1);
+        Ok(Arc::try_unwrap(stack.pop().unwrap()).unwrap())
     }
 }
 
@@ -483,7 +515,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         use Policy::*;
 
         let mut at_age = vec![];
-        for data in Arc::new(self).post_order_iter() {
+        for data in Arc::new(self).rtl_post_order_iter() {
             let new_policy = match data.node.as_ref() {
                 Older(ref t) => {
                     if relative::LockTime::from(*t).is_implied_by(age) {
@@ -492,14 +524,12 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
                         Some(Unsatisfiable)
                     }
                 }
-                Thresh(ref thresh) => {
-                    Some(Thresh(thresh.map_from_post_order_iter(&data.child_indices, &at_age)))
-                }
+                Thresh(ref thresh) => Some(Thresh(thresh.map_ref(|_| at_age.pop().unwrap()))),
                 _ => None,
             };
             match new_policy {
                 Some(new_policy) => at_age.push(Arc::new(new_policy)),
-                None => at_age.push(Arc::clone(&data.node)),
+                None => at_age.push(Arc::clone(data.node)),
             }
         }
         // Unwrap is ok because we know we processed at least one node.
@@ -515,7 +545,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         use Policy::*;
 
         let mut at_age = vec![];
-        for data in Arc::new(self).post_order_iter() {
+        for data in Arc::new(self).rtl_post_order_iter() {
             let new_policy = match data.node.as_ref() {
                 After(t) => {
                     if absolute::LockTime::from(*t).is_implied_by(n) {
@@ -524,14 +554,12 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
                         Some(Unsatisfiable)
                     }
                 }
-                Thresh(ref thresh) => {
-                    Some(Thresh(thresh.map_from_post_order_iter(&data.child_indices, &at_age)))
-                }
+                Thresh(ref thresh) => Some(Thresh(thresh.map_ref(|_| at_age.pop().unwrap()))),
                 _ => None,
             };
             match new_policy {
                 Some(new_policy) => at_age.push(Arc::new(new_policy)),
-                None => at_age.push(Arc::clone(&data.node)),
+                None => at_age.push(Arc::clone(data.node)),
             }
         }
         // Unwrap is ok because we know we processed at least one node.
@@ -559,9 +587,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         use Policy::*;
 
         let mut minimum_n_keys = vec![];
-        for data in Arc::new(self).post_order_iter() {
-            let minimum_n_keys_for_child_n = |n| minimum_n_keys[data.child_indices[n]];
-
+        for data in self.rtl_post_order_iter() {
             let minimum_n_key = match data.node {
                 Unsatisfiable => None,
                 Trivial | After(..) | Older(..) | Sha256(..) | Hash256(..) | Ripemd160(..)
@@ -569,7 +595,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
                 Key(..) => Some(1),
                 Thresh(ref thresh) => {
                     let mut sublens = (0..thresh.n())
-                        .filter_map(minimum_n_keys_for_child_n)
+                        .filter_map(|_| minimum_n_keys.pop().unwrap())
                         .collect::<Vec<usize>>();
                     if sublens.len() < thresh.k() {
                         // Not enough branches are satisfiable
@@ -597,11 +623,10 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
         use Policy::*;
 
         let mut sorted = vec![];
-        for data in Arc::new(self).post_order_iter() {
+        for data in Arc::new(self).rtl_post_order_iter() {
             let new_policy = match data.node.as_ref() {
                 Thresh(ref thresh) => {
-                    let mut new_thresh =
-                        thresh.map_from_post_order_iter(&data.child_indices, &sorted);
+                    let mut new_thresh = thresh.map_ref(|_| sorted.pop().unwrap());
                     new_thresh.data_mut().sort();
                     Some(Thresh(new_thresh))
                 }
@@ -609,7 +634,7 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
             };
             match new_policy {
                 Some(new_policy) => sorted.push(Arc::new(new_policy)),
-                None => sorted.push(Arc::clone(&data.node)),
+                None => sorted.push(Arc::clone(data.node)),
             }
         }
         // Unwrap is ok because we know we processed at least one node.
@@ -620,31 +645,43 @@ impl<Pk: MiniscriptKey> Policy<Pk> {
 }
 
 impl<'a, Pk: MiniscriptKey> TreeLike for &'a Policy<Pk> {
-    fn as_node(&self) -> Tree<Self> {
+    type NaryChildren = &'a [Arc<Policy<Pk>>];
+
+    fn nary_len(tc: &Self::NaryChildren) -> usize { tc.len() }
+    fn nary_index(tc: Self::NaryChildren, idx: usize) -> Self { &tc[idx] }
+
+    fn as_node(&self) -> Tree<Self, Self::NaryChildren> {
         use Policy::*;
 
         match *self {
             Unsatisfiable | Trivial | Key(_) | After(_) | Older(_) | Sha256(_) | Hash256(_)
             | Ripemd160(_) | Hash160(_) => Tree::Nullary,
-            Thresh(ref thresh) => Tree::Nary(thresh.iter().map(Arc::as_ref).collect()),
+            Thresh(ref thresh) => Tree::Nary(thresh.data()),
         }
     }
 }
 
-impl<Pk: MiniscriptKey> TreeLike for Arc<Policy<Pk>> {
-    fn as_node(&self) -> Tree<Self> {
+impl<'a, Pk: MiniscriptKey> TreeLike for &'a Arc<Policy<Pk>> {
+    type NaryChildren = &'a [Arc<Policy<Pk>>];
+
+    fn nary_len(tc: &Self::NaryChildren) -> usize { tc.len() }
+    fn nary_index(tc: Self::NaryChildren, idx: usize) -> Self { &tc[idx] }
+
+    fn as_node(&self) -> Tree<Self, Self::NaryChildren> {
         use Policy::*;
 
-        match self.as_ref() {
+        match ***self {
             Unsatisfiable | Trivial | Key(_) | After(_) | Older(_) | Sha256(_) | Hash256(_)
             | Ripemd160(_) | Hash160(_) => Tree::Nullary,
-            Thresh(ref thresh) => Tree::Nary(thresh.iter().map(Arc::clone).collect()),
+            Thresh(ref thresh) => Tree::Nary(thresh.data()),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::str::FromStr as _;
+
     use bitcoin::PublicKey;
 
     use super::*;

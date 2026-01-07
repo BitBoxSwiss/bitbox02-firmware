@@ -8,6 +8,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 
+### v9.25.1
+- simulator: fix performance regression
+
 ### v9.25.0
 - BitBox02 Nova: improved password stretching algorithm
 - Fix bug that BLE was turned off when iOS device is unlocked

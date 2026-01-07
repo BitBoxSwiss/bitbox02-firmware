@@ -50,6 +50,69 @@ impl<'a> DataProducer for SimpleProducer<'a> {
     }
 }
 
+pub struct ChunkingProducer {
+    total_length: usize,
+    offset: usize,
+    first_byte_cached: Option<u8>,
+}
+
+impl ChunkingProducer {
+    pub fn new(total_length: usize) -> Self {
+        Self {
+            total_length,
+            offset: 0,
+            first_byte_cached: None,
+        }
+    }
+}
+
+impl DataProducer for ChunkingProducer {
+    fn len(&self) -> usize {
+        self.total_length
+    }
+
+    fn first_byte(&self) -> u8 {
+        self.first_byte_cached.unwrap()
+    }
+
+    async fn next(&mut self) -> Option<Vec<u8>> {
+        if self.offset >= self.total_length {
+            return None;
+        }
+
+        const CHUNK_SIZE: u32 = 4096;
+        let remaining = self.total_length - self.offset;
+        let chunk_length = core::cmp::min(CHUNK_SIZE as usize, remaining) as u32;
+
+        let response = super::next_request(
+            super::pb::eth_response::Response::DataChunkRequest(
+                super::pb::EthSignDataRequestChunkResponse {
+                    offset: self.offset as u32,
+                    length: chunk_length,
+                }
+            )
+        ).await.ok()?;
+
+        match response {
+            super::pb::eth_request::Request::DataChunk(
+                super::pb::EthSignDataResponseChunkRequest { chunk }
+            ) => {
+                if chunk.len() != chunk_length as usize {
+                    return None;
+                }
+
+                if self.offset == 0 && !chunk.is_empty() {
+                    self.first_byte_cached = Some(chunk[0]);
+                }
+
+                self.offset += chunk.len();
+                Some(chunk)
+            }
+            _ => None,
+        }
+    }
+}
+
 pub struct ParamsLegacy<'a, D: DataProducer> {
     pub nonce: &'a [u8],
     pub gas_price: &'a [u8],

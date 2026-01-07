@@ -3110,6 +3110,7 @@ dependencies = [
  "hex",
  "num-bigint",
  "sha2",
+ "zeroize",
 ]
 
 [[package]]

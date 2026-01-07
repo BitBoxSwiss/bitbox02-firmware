@@ -36,6 +36,7 @@ from bitbox02.communication import (
 
 import u2f
 import u2f.bitbox02
+import rlp
 
 
 def eprint(*args: Any, **kwargs: Any) -> None:
@@ -1078,7 +1079,7 @@ class SendMessage:
         # pylint: disable=line-too-long
 
         inp = input(
-            "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field; 6=BSC; 7=unknown network; 8=eip1559; 9=Arbitrum: "
+            "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field; 6=BSC; 7=unknown network; 8=eip1559; 9=Arbitrum; 10=streaming (10KB data): "
         ).strip()
 
         chain_id = 1  # mainnet
@@ -1121,6 +1122,19 @@ class SendMessage:
             tx = binascii.unhexlify(
                 "02f0010184773594008502540be40082520894d61054f4456d0555dc2dd82b77f7ad6074836149865af3107a400080808080"
             )
+        elif inp == "10":
+            nonce = b"\x01"
+            gas_price = b"\x04\xa8\x17\xc8\x00"  # 20 gwei
+            gas_limit = b"\x0f\x42\x40"  # 1,000,000
+            recipient = b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+            value = b""  # Empty for zero value (no leading zeros allowed)
+            data = bytes([i % 256 for i in range(10000)])
+            v = b"\x25"  # chain_id=1
+            r = b"\x01" * 32
+            s = b"\x01" * 32
+            tx = rlp.encode([nonce, gas_price, gas_limit, recipient, value, data, v, r, s])
+            if self._debug:
+                print(f"Streaming test transaction: {len(data)} bytes of data")
         else:
             print("None selected")
             return

@@ -87,6 +87,12 @@ impl Transaction<'_> {
             }
         }
     }
+    fn data_length(&self) -> u32 {
+        match self {
+            Transaction::Legacy(legacy) => legacy.data_length,
+            Transaction::Eip1559(eip1559) => eip1559.data_length,
+        }
+    }
 }
 
 /// Converts `recipient` to an array of 20 chars. If `recipient` is
@@ -156,34 +162,69 @@ fn parse_fee<'a>(request: &Transaction<'_>, params: &'a Params) -> Amount<'a> {
 }
 
 async fn hash_legacy(chain_id: u64, request: &pb::EthSignRequest) -> Result<[u8; 32], Error> {
-    let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
-        nonce: &request.nonce,
-        gas_price: &request.gas_price,
-        gas_limit: &request.gas_limit,
-        recipient: &request.recipient,
-        value: &request.value,
-        data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
-        chain_id,
-    })
-    .await
-    .map_err(|_| Error::InvalidInput)?;
-    Ok(hash)
+    if request.data_length > 0 {
+        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+            nonce: &request.nonce,
+            gas_price: &request.gas_price,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
+                request.data_length,
+            )),
+            chain_id,
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    } else {
+        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+            nonce: &request.nonce,
+            gas_price: &request.gas_price,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
+            chain_id,
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    }
 }
 
 async fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], Error> {
-    let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
-        chain_id: request.chain_id,
-        nonce: &request.nonce,
-        max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
-        max_fee_per_gas: &request.max_fee_per_gas,
-        gas_limit: &request.gas_limit,
-        recipient: &request.recipient,
-        value: &request.value,
-        data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
-    })
-    .await
-    .map_err(|_| Error::InvalidInput)?;
-    Ok(hash)
+    if request.data_length > 0 {
+        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
+            chain_id: request.chain_id,
+            nonce: &request.nonce,
+            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
+            max_fee_per_gas: &request.max_fee_per_gas,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
+                request.data_length,
+            )),
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    } else {
+        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
+            chain_id: request.chain_id,
+            nonce: &request.nonce,
+            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
+            max_fee_per_gas: &request.max_fee_per_gas,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    }
 }
 
 /// Verifies an ERC20 transfer.
@@ -239,11 +280,17 @@ async fn verify_standard_transaction(
 ) -> Result<(), Error> {
     let recipient = parse_recipient(request.recipient())?;
 
-    if !request.data().is_empty() {
+    let data_length = request.data_length();
+
+    if !request.data().is_empty() || data_length > 0 {
         hal.ui()
             .confirm(&confirm::Params {
                 title: "Unknown\ncontract",
-                body: "You will be shown\nthe raw\ntransaction data.",
+                body: if data_length > 0 {
+                    "You are signing a\ncontract interaction\nwith large data."
+                } else {
+                    "You will be shown\nthe raw\ntransaction data."
+                },
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -257,16 +304,29 @@ async fn verify_standard_transaction(
             })
             .await?;
 
-        hal.ui()
-            .confirm(&confirm::Params {
-                title: "Transaction\ndata",
-                body: &hex::encode(request.data()),
-                scrollable: true,
-                display_size: request.data().len(),
-                accept_is_nextarrow: true,
-                ..Default::default()
-            })
-            .await?;
+        if data_length > 0 {
+            // Streaming mode: data is too large to display, show size instead
+            hal.ui()
+                .confirm(&confirm::Params {
+                    title: "Transaction\ndata",
+                    body: &alloc::format!("{} bytes\n(too large to\ndisplay)", data_length),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+        } else {
+            // Traditional mode: show hex data
+            hal.ui()
+                .confirm(&confirm::Params {
+                    title: "Transaction\ndata",
+                    body: &hex::encode(request.data()),
+                    scrollable: true,
+                    display_size: request.data().len(),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+        }
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
@@ -315,11 +375,19 @@ pub async fn _process(
     }
 
     // Size limits.
+    const MAX_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
+    const MAX_NONSTREAMING_DATA_LENGTH: usize = 6144;
     if request.nonce().len() > 16
         || request.gas_limit().len() > 16
         || request.value().len() > 32
-        || request.data().len() > 6144
+        || request.data().len() > MAX_NONSTREAMING_DATA_LENGTH
+        || request.data_length() > MAX_STREAMING_DATA_LENGTH
     {
+        return Err(Error::InvalidInput);
+    }
+
+    // Can't use both inline data and streaming at the same time.
+    if request.data_length() > 0 && !request.data().is_empty() {
         return Err(Error::InvalidInput);
     }
 

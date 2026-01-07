@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! # Abstract Syntax Tree
+//! Abstract Syntax Tree
 //!
 //! Defines a variety of data structures for describing Miniscript, a subset of
 //! Bitcoin Script which can be efficiently parsed and serialized from Script,
@@ -12,7 +12,7 @@
 //! components of the AST.
 //!
 
-use core::{fmt, hash, str};
+use core::{hash, str};
 
 use bitcoin::hashes::hash160;
 use bitcoin::script;
@@ -28,6 +28,7 @@ pub mod analyzable;
 pub mod astelem;
 pub(crate) mod context;
 pub mod decode;
+mod display;
 pub mod iter;
 pub mod lex;
 pub mod limits;
@@ -39,11 +40,11 @@ use core::cmp;
 use sync::Arc;
 
 use self::lex::{lex, TokenIter};
+use crate::expression::{FromTree, TreeIterItem};
 pub use crate::miniscript::context::ScriptContext;
 use crate::miniscript::decode::Terminal;
 use crate::{
-    expression, plan, Error, ForEachKey, FromStrKey, MiniscriptKey, ToPublicKey, TranslatePk,
-    Translator,
+    expression, plan, Error, ForEachKey, FromStrKey, MiniscriptKey, ToPublicKey, Translator,
 };
 #[cfg(test)]
 mod ms_tests;
@@ -51,13 +52,14 @@ mod ms_tests;
 mod private {
     use core::marker::PhantomData;
 
-    use super::types::{ExtData, Type};
+    use super::limits::{MAX_PUBKEYS_IN_CHECKSIGADD, MAX_PUBKEYS_PER_MULTISIG};
+    use super::types::{self, ExtData, Type};
+    use crate::iter::TreeLike as _;
     pub use crate::miniscript::context::ScriptContext;
-    use crate::miniscript::types;
-    use crate::{Error, MiniscriptKey, Terminal, MAX_RECURSION_DEPTH};
+    use crate::prelude::sync::Arc;
+    use crate::{AbsLockTime, Error, MiniscriptKey, RelLockTime, Terminal, MAX_RECURSION_DEPTH};
 
     /// The top-level miniscript abstract syntax tree (AST).
-    #[derive(Clone)]
     pub struct Miniscript<Pk: MiniscriptKey, Ctx: ScriptContext> {
         /// A node in the AST.
         pub node: Terminal<Pk, Ctx>,
@@ -68,6 +70,77 @@ mod private {
         /// Context PhantomData. Only accessible inside this crate
         phantom: PhantomData<Ctx>,
     }
+
+    impl<Pk: MiniscriptKey, Ctx: ScriptContext> Clone for Miniscript<Pk, Ctx> {
+        /// We implement clone as a "deep clone" which reconstructs the entire tree.
+        ///
+        /// If users just want to clone Arcs they can use Arc::clone themselves.
+        /// Note that if a Miniscript was constructed using shared Arcs, the result
+        /// of calling `clone` will no longer have shared Arcs. So there is no
+        /// pleasing everyone. But for the two common cases:
+        ///
+        /// * Users don't care about sharing at all, and they can call `Arc::clone`
+        ///   on an `Arc<Miniscript>`.
+        /// * Users want a deep copy which does not share any nodes with the original
+        ///   (for example, because they have keys that have interior mutability),
+        ///   and they can call `Miniscript::clone`.
+        fn clone(&self) -> Self {
+            let mut stack = vec![];
+            for item in self.rtl_post_order_iter() {
+                let new_term = match item.node.node {
+                    Terminal::PkK(ref p) => Terminal::PkK(p.clone()),
+                    Terminal::PkH(ref p) => Terminal::PkH(p.clone()),
+                    Terminal::RawPkH(ref p) => Terminal::RawPkH(*p),
+                    Terminal::After(ref n) => Terminal::After(*n),
+                    Terminal::Older(ref n) => Terminal::Older(*n),
+                    Terminal::Sha256(ref x) => Terminal::Sha256(x.clone()),
+                    Terminal::Hash256(ref x) => Terminal::Hash256(x.clone()),
+                    Terminal::Ripemd160(ref x) => Terminal::Ripemd160(x.clone()),
+                    Terminal::Hash160(ref x) => Terminal::Hash160(x.clone()),
+                    Terminal::True => Terminal::True,
+                    Terminal::False => Terminal::False,
+                    Terminal::Alt(..) => Terminal::Alt(stack.pop().unwrap()),
+                    Terminal::Swap(..) => Terminal::Swap(stack.pop().unwrap()),
+                    Terminal::Check(..) => Terminal::Check(stack.pop().unwrap()),
+                    Terminal::DupIf(..) => Terminal::DupIf(stack.pop().unwrap()),
+                    Terminal::Verify(..) => Terminal::Verify(stack.pop().unwrap()),
+                    Terminal::NonZero(..) => Terminal::NonZero(stack.pop().unwrap()),
+                    Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(stack.pop().unwrap()),
+                    Terminal::AndV(..) => {
+                        Terminal::AndV(stack.pop().unwrap(), stack.pop().unwrap())
+                    }
+                    Terminal::AndB(..) => {
+                        Terminal::AndB(stack.pop().unwrap(), stack.pop().unwrap())
+                    }
+                    Terminal::AndOr(..) => Terminal::AndOr(
+                        stack.pop().unwrap(),
+                        stack.pop().unwrap(),
+                        stack.pop().unwrap(),
+                    ),
+                    Terminal::OrB(..) => Terminal::OrB(stack.pop().unwrap(), stack.pop().unwrap()),
+                    Terminal::OrD(..) => Terminal::OrD(stack.pop().unwrap(), stack.pop().unwrap()),
+                    Terminal::OrC(..) => Terminal::OrC(stack.pop().unwrap(), stack.pop().unwrap()),
+                    Terminal::OrI(..) => Terminal::OrI(stack.pop().unwrap(), stack.pop().unwrap()),
+                    Terminal::Thresh(ref thresh) => {
+                        Terminal::Thresh(thresh.map_ref(|_| stack.pop().unwrap()))
+                    }
+                    Terminal::Multi(ref thresh) => Terminal::Multi(thresh.clone()),
+                    Terminal::MultiA(ref thresh) => Terminal::MultiA(thresh.clone()),
+                };
+
+                stack.push(Arc::new(Miniscript {
+                    node: new_term,
+                    ty: item.node.ty,
+                    ext: item.node.ext,
+                    phantom: PhantomData,
+                }));
+            }
+
+            assert_eq!(stack.len(), 1);
+            Arc::try_unwrap(stack.pop().unwrap()).unwrap()
+        }
+    }
+
     impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
         /// The `1` combinator.
         pub const TRUE: Self = Miniscript {
@@ -85,13 +158,147 @@ mod private {
             phantom: PhantomData,
         };
 
+        /// The `pk` combinator, which is an alias for `c:pk_k`.
+        pub fn pk(pk: Pk) -> Self {
+            let inner = Arc::new(Self::pk_k(pk));
+            Self {
+                ty: types::Type::cast_check(inner.ty).unwrap(),
+                ext: types::extra_props::ExtData::cast_check(inner.ext),
+                node: Terminal::Check(inner),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `pkh` combinator, which is an alias for `c:pk_h`.
+        pub fn pkh(pk: Pk) -> Self {
+            let inner = Arc::new(Self::pk_h(pk));
+            Self {
+                ty: types::Type::cast_check(inner.ty).unwrap(),
+                ext: types::extra_props::ExtData::cast_check(inner.ext),
+                node: Terminal::Check(inner),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `pk_k` combinator.
+        pub fn pk_k(pk: Pk) -> Self {
+            Self {
+                ext: types::extra_props::ExtData::pk_k::<_, Ctx>(&pk),
+                node: Terminal::PkK(pk),
+                ty: types::Type::pk_k(),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `pk_h` combinator.
+        pub fn pk_h(pk: Pk) -> Self {
+            Self {
+                ext: types::extra_props::ExtData::pk_h::<_, Ctx>(Some(&pk)),
+                node: Terminal::PkH(pk),
+                ty: types::Type::pk_h(),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `expr_raw_pkh` combinator.
+        pub fn expr_raw_pkh(hash: bitcoin::hashes::hash160::Hash) -> Self {
+            Self {
+                node: Terminal::RawPkH(hash),
+                ty: types::Type::pk_h(),
+                ext: types::extra_props::ExtData::pk_h::<Pk, Ctx>(None),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `after` combinator.
+        pub fn after(time: AbsLockTime) -> Self {
+            Self {
+                node: Terminal::After(time),
+                ty: types::Type::time(),
+                ext: types::extra_props::ExtData::after(time),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `older` combinator.
+        pub fn older(time: RelLockTime) -> Self {
+            Self {
+                node: Terminal::Older(time),
+                ty: types::Type::time(),
+                ext: types::extra_props::ExtData::older(time),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `sha256` combinator.
+        pub const fn sha256(hash: Pk::Sha256) -> Self {
+            Self {
+                node: Terminal::Sha256(hash),
+                ty: types::Type::hash(),
+                ext: types::extra_props::ExtData::sha256(),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `hash256` combinator.
+        pub const fn hash256(hash: Pk::Hash256) -> Self {
+            Self {
+                node: Terminal::Hash256(hash),
+                ty: types::Type::hash(),
+                ext: types::extra_props::ExtData::hash256(),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `ripemd160` combinator.
+        pub const fn ripemd160(hash: Pk::Ripemd160) -> Self {
+            Self {
+                node: Terminal::Ripemd160(hash),
+                ty: types::Type::hash(),
+                ext: types::extra_props::ExtData::ripemd160(),
+                phantom: PhantomData,
+            }
+        }
+
+        /// The `hash160` combinator.
+        pub const fn hash160(hash: Pk::Hash160) -> Self {
+            Self {
+                node: Terminal::Hash160(hash),
+                ty: types::Type::hash(),
+                ext: types::extra_props::ExtData::hash160(),
+                phantom: PhantomData,
+            }
+        }
+
+        // non-const because Thresh::n is not because Vec::len is not (needs Rust 1.87)
+        /// The `multi` combinator.
+        pub fn multi(thresh: crate::Threshold<Pk, MAX_PUBKEYS_PER_MULTISIG>) -> Self {
+            Self {
+                ty: types::Type::multi(),
+                ext: types::extra_props::ExtData::multi(&thresh),
+                node: Terminal::Multi(thresh),
+                phantom: PhantomData,
+            }
+        }
+
+        // non-const because Thresh::n is not because Vec::len is not
+        /// The `multi` combinator.
+        pub fn multi_a(thresh: crate::Threshold<Pk, MAX_PUBKEYS_IN_CHECKSIGADD>) -> Self {
+            Self {
+                ty: types::Type::multi_a(),
+                ext: types::extra_props::ExtData::multi_a(thresh.k(), thresh.n()),
+                node: Terminal::MultiA(thresh),
+                phantom: PhantomData,
+            }
+        }
+
         /// Add type information(Type and Extdata) to Miniscript based on
         /// `AstElem` fragment. Dependent on display and clone because of Error
         /// Display code of type_check.
         pub fn from_ast(t: Terminal<Pk, Ctx>) -> Result<Miniscript<Pk, Ctx>, Error> {
             let res = Miniscript {
                 ty: Type::type_check(&t)?,
-                ext: ExtData::type_check(&t)?,
+                ext: ExtData::type_check(&t),
                 node: t,
                 phantom: PhantomData,
             };
@@ -102,7 +309,7 @@ mod private {
             if (res.ext.tree_height as u32) > MAX_RECURSION_DEPTH {
                 return Err(Error::MaxRecursiveDepthExceeded);
             }
-            Ctx::check_global_consensus_validity(&res)?;
+            Ctx::check_global_validity(&res)?;
             Ok(res)
         }
 
@@ -196,8 +403,8 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     /// impossible to satisfy
     pub fn max_satisfaction_witness_elements(&self) -> Result<usize, Error> {
         self.ext
-            .stack_elem_count_sat
-            .map(|x| x + 1)
+            .sat_data
+            .map(|data| data.max_witness_stack_count + 1)
             .ok_or(Error::ImpossibleSatisfaction)
     }
 
@@ -217,6 +424,14 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
         Ctx::max_satisfaction_size(self).ok_or(Error::ImpossibleSatisfaction)
     }
 
+    /// Helper function to produce Taproot leaf hashes
+    fn leaf_hash_internal(&self) -> TapLeafHash
+    where
+        Pk: ToPublicKey,
+    {
+        TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript)
+    }
+
     /// Attempt to produce non-malleable satisfying witness for the
     /// witness script represented by the parse tree
     pub fn satisfy<S: satisfy::Satisfier<Pk>>(&self, satisfier: S) -> Result<Vec<Vec<u8>>, Error>
@@ -224,9 +439,12 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
         Pk: ToPublicKey,
     {
         // Only satisfactions for default versions (0xc0) are allowed.
-        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
-        let satisfaction =
-            satisfy::Satisfaction::satisfy(&self.node, &satisfier, self.ty.mall.safe, &leaf_hash);
+        let satisfaction = satisfy::Satisfaction::satisfy(
+            &self.node,
+            &satisfier,
+            self.ty.mall.safe,
+            &self.leaf_hash_internal(),
+        );
         self._satisfy(satisfaction)
     }
 
@@ -239,12 +457,11 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     where
         Pk: ToPublicKey,
     {
-        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
         let satisfaction = satisfy::Satisfaction::satisfy_mall(
             &self.node,
             &satisfier,
             self.ty.mall.safe,
-            &leaf_hash,
+            &self.leaf_hash_internal(),
         );
         self._satisfy(satisfaction)
     }
@@ -254,10 +471,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
         Pk: ToPublicKey,
     {
         match satisfaction.stack {
-            satisfy::Witness::Stack(stack) => {
-                Ctx::check_witness(&stack)?;
-                Ok(stack)
-            }
+            satisfy::Witness::Stack(stack) => Ok(stack),
             satisfy::Witness::Unavailable | satisfy::Witness::Impossible => {
                 Err(Error::CouldNotSatisfy)
             }
@@ -272,8 +486,12 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     where
         Pk: ToPublicKey,
     {
-        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
-        satisfy::Satisfaction::build_template(&self.node, provider, self.ty.mall.safe, &leaf_hash)
+        satisfy::Satisfaction::build_template(
+            &self.node,
+            provider,
+            self.ty.mall.safe,
+            &self.leaf_hash_internal(),
+        )
     }
 
     /// Attempt to produce a malleable witness template given the assets available
@@ -284,43 +502,42 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     where
         Pk: ToPublicKey,
     {
-        let leaf_hash = TapLeafHash::from_script(&self.encode(), LeafVersion::TapScript);
         satisfy::Satisfaction::build_template_mall(
             &self.node,
             provider,
             self.ty.mall.safe,
-            &leaf_hash,
+            &self.leaf_hash_internal(),
         )
     }
 }
 
+impl Miniscript<<Tap as ScriptContext>::Key, Tap> {
+    /// Returns the leaf hash used within a Taproot signature for this script.
+    ///
+    /// Note that this method is only implemented for Taproot Miniscripts.
+    pub fn leaf_hash(&self) -> TapLeafHash { self.leaf_hash_internal() }
+}
+
 impl<Ctx: ScriptContext> Miniscript<Ctx::Key, Ctx> {
-    /// Attempt to parse an insane(scripts don't clear sanity checks)
-    /// script into a Miniscript representation.
-    /// Use this to parse scripts with repeated pubkeys, timelock mixing, malleable
-    /// scripts without sig or scripts that can exceed resource limits.
-    /// Some of the analysis guarantees of miniscript are lost when dealing with
-    /// insane scripts. In general, in a multi-party setting users should only
-    /// accept sane scripts.
-    pub fn parse_insane(script: &script::Script) -> Result<Miniscript<Ctx::Key, Ctx>, Error> {
-        Miniscript::parse_with_ext(script, &ExtParams::insane())
+    /// Attempt to decode a Miniscript from Script, checking only for consensus compatibility,
+    /// and no other checks.
+    ///
+    /// It may make sense to use this method when parsing Script that is already
+    /// embedded in the chain. While it is inadvisable to use insane Miniscripts,
+    /// once it's on the chain you don't have much choice anymore.
+    pub fn decode_consensus(script: &script::Script) -> Result<Miniscript<Ctx::Key, Ctx>, Error> {
+        Miniscript::decode_with_ext(script, &ExtParams::allow_all())
     }
 
-    /// Attempt to parse an miniscript with extra features that not yet specified in the spec.
-    /// Users should not use this function unless they scripts can/will change in the future.
-    /// Currently, this function supports the following features:
-    ///     - Parsing all insane scripts
-    ///     - Parsing miniscripts with raw pubkey hashes
-    ///
-    /// Allowed extra features can be specified by the ext [`ExtParams`] argument.
-    pub fn parse_with_ext(
+    /// Attempt to decode a Miniscript from Script, specifying which validation parameters to apply.
+    pub fn decode_with_ext(
         script: &script::Script,
         ext: &ExtParams,
     ) -> Result<Miniscript<Ctx::Key, Ctx>, Error> {
         let tokens = lex(script)?;
         let mut iter = TokenIter::new(tokens);
 
-        let top = decode::parse(&mut iter)?;
+        let top = decode::decode(&mut iter)?;
         Ctx::check_global_validity(&top)?;
         let type_check = types::Type::type_check(&top.node)?;
         if type_check.corr.base != types::Base::B {
@@ -337,7 +554,7 @@ impl<Ctx: ScriptContext> Miniscript<Ctx::Key, Ctx> {
     /// Attempt to parse a Script into Miniscript representation.
     ///
     /// This function will fail parsing for scripts that do not clear the
-    /// [`Miniscript::sanity_check`] checks. Use [`Miniscript::parse_insane`] to
+    /// [`Miniscript::sanity_check`] checks. Use [`Miniscript::decode_consensus`] to
     /// parse such scripts.
     ///
     /// ## Decode/Parse a miniscript from script hex
@@ -345,30 +562,29 @@ impl<Ctx: ScriptContext> Miniscript<Ctx::Key, Ctx> {
     /// ```rust
     /// use miniscript::{Miniscript, Segwitv0, Tap};
     /// use miniscript::bitcoin::secp256k1::XOnlyPublicKey;
-    /// use miniscript::bitcoin::hashes::hex::FromHex;
     ///
     /// type Segwitv0Script = Miniscript<bitcoin::PublicKey, Segwitv0>;
     /// type TapScript = Miniscript<XOnlyPublicKey, Tap>;
     ///
     /// // parse x-only miniscript in Taproot context
-    /// let tapscript_ms = TapScript::parse(&bitcoin::ScriptBuf::from_hex(
+    /// let tapscript_ms = TapScript::decode(&bitcoin::ScriptBuf::from_hex(
     ///     "202788ee41e76f4f3af603da5bc8fa22997bc0344bb0f95666ba6aaff0242baa99ac",
     /// ).expect("Even length hex"))
     ///     .expect("Xonly keys are valid only in taproot context");
     /// // tapscript fails decoding when we use them with compressed keys
-    /// let err = TapScript::parse(&bitcoin::ScriptBuf::from_hex(
+    /// let err = TapScript::decode(&bitcoin::ScriptBuf::from_hex(
     ///     "21022788ee41e76f4f3af603da5bc8fa22997bc0344bb0f95666ba6aaff0242baa99ac",
     /// ).expect("Even length hex"))
     ///     .expect_err("Compressed keys cannot be used in Taproot context");
     /// // Segwitv0 succeeds decoding with full keys.
-    /// Segwitv0Script::parse(&bitcoin::ScriptBuf::from_hex(
+    /// Segwitv0Script::decode(&bitcoin::ScriptBuf::from_hex(
     ///     "21022788ee41e76f4f3af603da5bc8fa22997bc0344bb0f95666ba6aaff0242baa99ac",
     /// ).expect("Even length hex"))
     ///     .expect("Compressed keys are allowed in Segwit context");
     ///
     /// ```
-    pub fn parse(script: &script::Script) -> Result<Miniscript<Ctx::Key, Ctx>, Error> {
-        let ms = Self::parse_with_ext(script, &ExtParams::sane())?;
+    pub fn decode(script: &script::Script) -> Result<Miniscript<Ctx::Key, Ctx>, Error> {
+        let ms = Self::decode_with_ext(script, &ExtParams::sane())?;
         Ok(ms)
     }
 }
@@ -378,7 +594,7 @@ impl<Ctx: ScriptContext> Miniscript<Ctx::Key, Ctx> {
 /// The type information and extra properties are implied by the AST.
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> PartialOrd for Miniscript<Pk, Ctx> {
     fn partial_cmp(&self, other: &Miniscript<Pk, Ctx>) -> Option<cmp::Ordering> {
-        Some(self.node.cmp(&other.node))
+        Some(self.cmp(other))
     }
 }
 
@@ -406,14 +622,6 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Eq for Miniscript<Pk, Ctx> {}
 /// The type information and extra properties are implied by the AST.
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> hash::Hash for Miniscript<Pk, Ctx> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) { self.node.hash(state); }
-}
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Debug for Miniscript<Pk, Ctx> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{:?}", self.node) }
-}
-
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> fmt::Display for Miniscript<Pk, Ctx> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.node) }
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> ForEachKey<Pk> for Miniscript<Pk, Ctx> {
@@ -449,38 +657,29 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> ForEachKey<Pk> for Miniscript<Pk, Ct
     }
 }
 
-impl<Pk, Q, Ctx> TranslatePk<Pk, Q> for Miniscript<Pk, Ctx>
-where
-    Pk: MiniscriptKey,
-    Q: MiniscriptKey,
-    Ctx: ScriptContext,
-{
-    type Output = Miniscript<Q, Ctx>;
-
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     /// Translates a struct from one generic to another where the translation
     /// for Pk is provided by [`Translator`]
-    fn translate_pk<T, E>(&self, t: &mut T) -> Result<Self::Output, TranslateErr<E>>
+    pub fn translate_pk<T>(
+        &self,
+        t: &mut T,
+    ) -> Result<Miniscript<T::TargetPk, Ctx>, TranslateErr<T::Error>>
     where
-        T: Translator<Pk, Q, E>,
+        T: Translator<Pk>,
     {
         self.translate_pk_ctx(t)
     }
-}
 
-impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
-    pub(super) fn translate_pk_ctx<Q, CtxQ, T, FuncError>(
+    pub(super) fn translate_pk_ctx<CtxQ, T>(
         &self,
         t: &mut T,
-    ) -> Result<Miniscript<Q, CtxQ>, TranslateErr<FuncError>>
+    ) -> Result<Miniscript<T::TargetPk, CtxQ>, TranslateErr<T::Error>>
     where
-        Q: MiniscriptKey,
         CtxQ: ScriptContext,
-        T: Translator<Pk, Q, FuncError>,
+        T: Translator<Pk>,
     {
         let mut translated = vec![];
-        for data in Arc::new(self.clone()).post_order_iter() {
-            let child_n = |n| Arc::clone(&translated[data.child_indices[n]]);
-
+        for data in self.rtl_post_order_iter() {
             let new_term = match data.node.node {
                 Terminal::PkK(ref p) => Terminal::PkK(t.pk(p)?),
                 Terminal::PkH(ref p) => Terminal::PkH(t.pk(p)?),
@@ -493,23 +692,39 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
                 Terminal::Hash160(ref x) => Terminal::Hash160(t.hash160(x)?),
                 Terminal::True => Terminal::True,
                 Terminal::False => Terminal::False,
-                Terminal::Alt(..) => Terminal::Alt(child_n(0)),
-                Terminal::Swap(..) => Terminal::Swap(child_n(0)),
-                Terminal::Check(..) => Terminal::Check(child_n(0)),
-                Terminal::DupIf(..) => Terminal::DupIf(child_n(0)),
-                Terminal::Verify(..) => Terminal::Verify(child_n(0)),
-                Terminal::NonZero(..) => Terminal::NonZero(child_n(0)),
-                Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(child_n(0)),
-                Terminal::AndV(..) => Terminal::AndV(child_n(0), child_n(1)),
-                Terminal::AndB(..) => Terminal::AndB(child_n(0), child_n(1)),
-                Terminal::AndOr(..) => Terminal::AndOr(child_n(0), child_n(1), child_n(2)),
-                Terminal::OrB(..) => Terminal::OrB(child_n(0), child_n(1)),
-                Terminal::OrD(..) => Terminal::OrD(child_n(0), child_n(1)),
-                Terminal::OrC(..) => Terminal::OrC(child_n(0), child_n(1)),
-                Terminal::OrI(..) => Terminal::OrI(child_n(0), child_n(1)),
-                Terminal::Thresh(ref thresh) => Terminal::Thresh(
-                    thresh.map_from_post_order_iter(&data.child_indices, &translated),
+                Terminal::Alt(..) => Terminal::Alt(translated.pop().unwrap()),
+                Terminal::Swap(..) => Terminal::Swap(translated.pop().unwrap()),
+                Terminal::Check(..) => Terminal::Check(translated.pop().unwrap()),
+                Terminal::DupIf(..) => Terminal::DupIf(translated.pop().unwrap()),
+                Terminal::Verify(..) => Terminal::Verify(translated.pop().unwrap()),
+                Terminal::NonZero(..) => Terminal::NonZero(translated.pop().unwrap()),
+                Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(translated.pop().unwrap()),
+                Terminal::AndV(..) => {
+                    Terminal::AndV(translated.pop().unwrap(), translated.pop().unwrap())
+                }
+                Terminal::AndB(..) => {
+                    Terminal::AndB(translated.pop().unwrap(), translated.pop().unwrap())
+                }
+                Terminal::AndOr(..) => Terminal::AndOr(
+                    translated.pop().unwrap(),
+                    translated.pop().unwrap(),
+                    translated.pop().unwrap(),
                 ),
+                Terminal::OrB(..) => {
+                    Terminal::OrB(translated.pop().unwrap(), translated.pop().unwrap())
+                }
+                Terminal::OrD(..) => {
+                    Terminal::OrD(translated.pop().unwrap(), translated.pop().unwrap())
+                }
+                Terminal::OrC(..) => {
+                    Terminal::OrC(translated.pop().unwrap(), translated.pop().unwrap())
+                }
+                Terminal::OrI(..) => {
+                    Terminal::OrI(translated.pop().unwrap(), translated.pop().unwrap())
+                }
+                Terminal::Thresh(ref thresh) => {
+                    Terminal::Thresh(thresh.map_ref(|_| translated.pop().unwrap()))
+                }
                 Terminal::Multi(ref thresh) => Terminal::Multi(thresh.translate_ref(|k| t.pk(k))?),
                 Terminal::MultiA(ref thresh) => {
                     Terminal::MultiA(thresh.translate_ref(|k| t.pk(k))?)
@@ -524,116 +739,59 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
 
     /// Substitutes raw public keys hashes with the public keys as provided by map.
     pub fn substitute_raw_pkh(&self, pk_map: &BTreeMap<hash160::Hash, Pk>) -> Miniscript<Pk, Ctx> {
-        let mut translated = vec![];
-        for data in Arc::new(self.clone()).post_order_iter() {
-            let new_term = if let Terminal::RawPkH(ref p) = data.node.node {
-                match pk_map.get(p) {
-                    Some(pk) => Terminal::PkH(pk.clone()),
-                    None => Terminal::RawPkH(*p),
+        let mut stack = vec![];
+        for item in self.rtl_post_order_iter() {
+            let new_term = match item.node.node {
+                Terminal::PkK(ref p) => Terminal::PkK(p.clone()),
+                Terminal::PkH(ref p) => Terminal::PkH(p.clone()),
+                // This algorithm is identical to Clone::clone except for this line.
+                Terminal::RawPkH(ref hash) => match pk_map.get(hash) {
+                    Some(p) => Terminal::PkH(p.clone()),
+                    None => Terminal::RawPkH(*hash),
+                },
+                Terminal::After(ref n) => Terminal::After(*n),
+                Terminal::Older(ref n) => Terminal::Older(*n),
+                Terminal::Sha256(ref x) => Terminal::Sha256(x.clone()),
+                Terminal::Hash256(ref x) => Terminal::Hash256(x.clone()),
+                Terminal::Ripemd160(ref x) => Terminal::Ripemd160(x.clone()),
+                Terminal::Hash160(ref x) => Terminal::Hash160(x.clone()),
+                Terminal::True => Terminal::True,
+                Terminal::False => Terminal::False,
+                Terminal::Alt(..) => Terminal::Alt(stack.pop().unwrap()),
+                Terminal::Swap(..) => Terminal::Swap(stack.pop().unwrap()),
+                Terminal::Check(..) => Terminal::Check(stack.pop().unwrap()),
+                Terminal::DupIf(..) => Terminal::DupIf(stack.pop().unwrap()),
+                Terminal::Verify(..) => Terminal::Verify(stack.pop().unwrap()),
+                Terminal::NonZero(..) => Terminal::NonZero(stack.pop().unwrap()),
+                Terminal::ZeroNotEqual(..) => Terminal::ZeroNotEqual(stack.pop().unwrap()),
+                Terminal::AndV(..) => Terminal::AndV(stack.pop().unwrap(), stack.pop().unwrap()),
+                Terminal::AndB(..) => Terminal::AndB(stack.pop().unwrap(), stack.pop().unwrap()),
+                Terminal::AndOr(..) => Terminal::AndOr(
+                    stack.pop().unwrap(),
+                    stack.pop().unwrap(),
+                    stack.pop().unwrap(),
+                ),
+                Terminal::OrB(..) => Terminal::OrB(stack.pop().unwrap(), stack.pop().unwrap()),
+                Terminal::OrD(..) => Terminal::OrD(stack.pop().unwrap(), stack.pop().unwrap()),
+                Terminal::OrC(..) => Terminal::OrC(stack.pop().unwrap(), stack.pop().unwrap()),
+                Terminal::OrI(..) => Terminal::OrI(stack.pop().unwrap(), stack.pop().unwrap()),
+                Terminal::Thresh(ref thresh) => {
+                    Terminal::Thresh(thresh.map_ref(|_| stack.pop().unwrap()))
                 }
-            } else {
-                data.node.node.clone()
+                Terminal::Multi(ref thresh) => Terminal::Multi(thresh.clone()),
+                Terminal::MultiA(ref thresh) => Terminal::MultiA(thresh.clone()),
             };
 
-            let new_ms = Miniscript::from_ast(new_term).expect("typeck");
-            translated.push(Arc::new(new_ms));
+            stack.push(Arc::new(Miniscript::from_components_unchecked(
+                new_term,
+                item.node.ty,
+                item.node.ext,
+            )));
         }
 
-        Arc::try_unwrap(translated.pop().unwrap()).unwrap()
+        assert_eq!(stack.len(), 1);
+        Arc::try_unwrap(stack.pop().unwrap()).unwrap()
     }
-}
-
-/// Utility function used when parsing a script from an expression tree.
-///
-/// Checks that the name of each fragment has at most one `:`, splits
-/// the name at the `:`, and implements aliases for the old `pk`/`pk_h`
-/// fragments.
-///
-/// Returns the fragment name (right of the `:`) and a list of wrappers
-/// (left of the `:`).
-fn split_expression_name(name: &str) -> Result<(&str, Cow<str>), Error> {
-    let mut aliased_wrap;
-    let frag_name;
-    let frag_wrap;
-    let mut name_split = name.split(':');
-    match (name_split.next(), name_split.next(), name_split.next()) {
-        (None, _, _) => {
-            frag_name = "";
-            frag_wrap = "".into();
-        }
-        (Some(name), None, _) => {
-            if name == "pk" {
-                frag_name = "pk_k";
-                frag_wrap = "c".into();
-            } else if name == "pkh" {
-                frag_name = "pk_h";
-                frag_wrap = "c".into();
-            } else {
-                frag_name = name;
-                frag_wrap = "".into();
-            }
-        }
-        (Some(wrap), Some(name), None) => {
-            if wrap.is_empty() {
-                return Err(Error::Unexpected(name.to_owned()));
-            }
-            if name == "pk" {
-                frag_name = "pk_k";
-                aliased_wrap = wrap.to_owned();
-                aliased_wrap.push('c');
-                frag_wrap = aliased_wrap.into();
-            } else if name == "pkh" {
-                frag_name = "pk_h";
-                aliased_wrap = wrap.to_owned();
-                aliased_wrap.push('c');
-                frag_wrap = aliased_wrap.into();
-            } else {
-                frag_name = name;
-                frag_wrap = wrap.into();
-            }
-        }
-        (Some(_), Some(_), Some(_)) => {
-            return Err(Error::MultiColon(name.to_owned()));
-        }
-    }
-    Ok((frag_name, frag_wrap))
-}
-
-/// Utility function used when parsing a script from an expression tree.
-///
-/// Once a Miniscript fragment has been parsed into a terminal, apply any
-/// wrappers that were included in its name.
-fn wrap_into_miniscript<Pk, Ctx>(
-    term: Terminal<Pk, Ctx>,
-    frag_wrap: Cow<str>,
-) -> Result<Miniscript<Pk, Ctx>, Error>
-where
-    Pk: MiniscriptKey,
-    Ctx: ScriptContext,
-{
-    let mut unwrapped = term;
-    for ch in frag_wrap.chars().rev() {
-        // Check whether the wrapper is valid under the current context
-        let ms = Miniscript::from_ast(unwrapped)?;
-        Ctx::check_global_validity(&ms)?;
-        match ch {
-            'a' => unwrapped = Terminal::Alt(Arc::new(ms)),
-            's' => unwrapped = Terminal::Swap(Arc::new(ms)),
-            'c' => unwrapped = Terminal::Check(Arc::new(ms)),
-            'd' => unwrapped = Terminal::DupIf(Arc::new(ms)),
-            'v' => unwrapped = Terminal::Verify(Arc::new(ms)),
-            'j' => unwrapped = Terminal::NonZero(Arc::new(ms)),
-            'n' => unwrapped = Terminal::ZeroNotEqual(Arc::new(ms)),
-            't' => unwrapped = Terminal::AndV(Arc::new(ms), Arc::new(Miniscript::TRUE)),
-            'u' => unwrapped = Terminal::OrI(Arc::new(ms), Arc::new(Miniscript::FALSE)),
-            'l' => unwrapped = Terminal::OrI(Arc::new(Miniscript::FALSE), Arc::new(ms)),
-            x => return Err(Error::UnknownWrapper(x)),
-        }
-    }
-    // Check whether the unwrapped miniscript is valid under the current context
-    let ms = Miniscript::from_ast(unwrapped)?;
-    Ctx::check_global_validity(&ms)?;
-    Ok(ms)
 }
 
 impl<Pk: FromStrKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
@@ -656,7 +814,7 @@ impl<Pk: FromStrKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     pub fn from_str_ext(s: &str, ext: &ExtParams) -> Result<Miniscript<Pk, Ctx>, Error> {
         // This checks for invalid ASCII chars
         let top = expression::Tree::from_str(s)?;
-        let ms: Miniscript<Pk, Ctx> = expression::FromTree::from_tree(&top)?;
+        let ms: Miniscript<Pk, Ctx> = expression::FromTree::from_tree(top.root())?;
         ms.ext_check(ext)?;
 
         if ms.ty.corr.base != types::Base::B {
@@ -667,18 +825,203 @@ impl<Pk: FromStrKey, Ctx: ScriptContext> Miniscript<Pk, Ctx> {
     }
 }
 
-impl<Pk: FromStrKey, Ctx: ScriptContext> crate::expression::FromTree for Arc<Miniscript<Pk, Ctx>> {
-    fn from_tree(top: &expression::Tree) -> Result<Arc<Miniscript<Pk, Ctx>>, Error> {
-        Ok(Arc::new(expression::FromTree::from_tree(top)?))
+impl<Pk: FromStrKey, Ctx: ScriptContext> FromTree for Arc<Miniscript<Pk, Ctx>> {
+    fn from_tree(root: TreeIterItem) -> Result<Self, Error> {
+        Miniscript::from_tree(root).map(Arc::new)
     }
 }
 
-impl<Pk: FromStrKey, Ctx: ScriptContext> crate::expression::FromTree for Miniscript<Pk, Ctx> {
-    /// Parse an expression tree into a Miniscript. As a general rule, this
-    /// should not be called directly; rather go through the descriptor API.
-    fn from_tree(top: &expression::Tree) -> Result<Miniscript<Pk, Ctx>, Error> {
-        let inner: Terminal<Pk, Ctx> = expression::FromTree::from_tree(top)?;
-        Miniscript::from_ast(inner)
+impl<Pk: FromStrKey, Ctx: ScriptContext> FromTree for Miniscript<Pk, Ctx> {
+    fn from_tree(root: TreeIterItem) -> Result<Self, Error> {
+        #[allow(clippy::type_complexity)]
+        fn binary<Pk: MiniscriptKey, Ctx: ScriptContext>(
+            node: expression::TreeIterItem,
+            stack: &mut Vec<Arc<Miniscript<Pk, Ctx>>>,
+            name: &'static str,
+            termfn: fn(Arc<Miniscript<Pk, Ctx>>, Arc<Miniscript<Pk, Ctx>>) -> Terminal<Pk, Ctx>,
+        ) -> Result<Miniscript<Pk, Ctx>, Error> {
+            node.verify_n_children(name, 2..=2)
+                .map_err(From::from)
+                .map_err(Error::Parse)?;
+            Miniscript::from_ast(termfn(stack.pop().unwrap(), stack.pop().unwrap()))
+        }
+        root.verify_no_curly_braces()
+            .map_err(From::from)
+            .map_err(Error::Parse)?;
+
+        let mut stack = Vec::with_capacity(128);
+        for (n, node) in root.pre_order_iter().enumerate().rev() {
+            // Before doing anything else, check if this is the inner value of a terminal.
+            // In that case, just skip the node. Conveniently, there are no combinators
+            // in Miniscript that have a single child that these might be confused with.
+            // (Well, there are, but they're all serialized as wrappers.)
+            //
+            // We also skip all the children of multi/multi_a and the first child of thresh
+            // (which will be the k value, not a real child).
+            //
+            // We do not do this check on the root node, because its parent might be wsh or
+            // sh or something, and actually these ARE single-child combinators, but we don't
+            // want to skip their children.
+            if n > 0 && node.n_children() == 0 {
+                let parent = node.parent().unwrap();
+                if parent.n_children() == 1 {
+                    continue;
+                }
+
+                let (_, parent_name) = parent
+                    .name_separated(':')
+                    .map_err(From::from)
+                    .map_err(Error::Parse)?;
+
+                if parent_name == "multi" || parent_name == "multi_a" {
+                    continue;
+                }
+                if parent_name == "thresh" && node.is_first_child() {
+                    continue;
+                }
+            }
+
+            let (frag_wrap, frag_name) = node
+                .name_separated(':')
+                .map_err(From::from)
+                .map_err(Error::Parse)?;
+
+            // "pk" and "pkh" are aliases for "c:pk_k" and "c:pk_h" respectively.
+            let new = match frag_name {
+                "expr_raw_pkh" => node
+                    .verify_terminal_parent("expr_raw_pkh", "public key hash")
+                    .map(Miniscript::expr_raw_pkh)
+                    .map_err(Error::Parse),
+                "pk" => node
+                    .verify_terminal_parent("pk", "public key")
+                    .map(Miniscript::pk)
+                    .map_err(Error::Parse),
+                "pkh" => node
+                    .verify_terminal_parent("pkh", "public key")
+                    .map(Miniscript::pkh)
+                    .map_err(Error::Parse),
+                "pk_k" => node
+                    .verify_terminal_parent("pk_k", "public key")
+                    .map(Miniscript::pk_k)
+                    .map_err(Error::Parse),
+                "pk_h" => node
+                    .verify_terminal_parent("pk_h", "public key")
+                    .map(Miniscript::pk_h)
+                    .map_err(Error::Parse),
+                "after" => node
+                    .verify_after()
+                    .map(Miniscript::after)
+                    .map_err(Error::Parse),
+                "older" => node
+                    .verify_older()
+                    .map(Miniscript::older)
+                    .map_err(Error::Parse),
+                "sha256" => node
+                    .verify_terminal_parent("sha256", "hash")
+                    .map(Miniscript::sha256)
+                    .map_err(Error::Parse),
+                "hash256" => node
+                    .verify_terminal_parent("hash256", "hash")
+                    .map(Miniscript::hash256)
+                    .map_err(Error::Parse),
+                "ripemd160" => node
+                    .verify_terminal_parent("ripemd160", "hash")
+                    .map(Miniscript::ripemd160)
+                    .map_err(Error::Parse),
+                "hash160" => node
+                    .verify_terminal_parent("hash160", "hash")
+                    .map(Miniscript::hash160)
+                    .map_err(Error::Parse),
+                "1" => {
+                    node.verify_n_children("1", 0..=0)
+                        .map_err(From::from)
+                        .map_err(Error::Parse)?;
+                    Ok(Miniscript::TRUE)
+                }
+                "0" => {
+                    node.verify_n_children("0", 0..=0)
+                        .map_err(From::from)
+                        .map_err(Error::Parse)?;
+                    Ok(Miniscript::FALSE)
+                }
+                "and_v" => binary(node, &mut stack, "and_v", Terminal::AndV),
+                "and_b" => binary(node, &mut stack, "and_b", Terminal::AndB),
+                "and_n" => binary(node, &mut stack, "and_n", |x, y| {
+                    Terminal::AndOr(x, y, Arc::new(Miniscript::FALSE))
+                }),
+                "andor" => {
+                    node.verify_n_children("andor", 3..=3)
+                        .map_err(From::from)
+                        .map_err(Error::Parse)?;
+                    Miniscript::from_ast(Terminal::AndOr(
+                        stack.pop().unwrap(),
+                        stack.pop().unwrap(),
+                        stack.pop().unwrap(),
+                    ))
+                }
+                "or_b" => binary(node, &mut stack, "or_b", Terminal::OrB),
+                "or_d" => binary(node, &mut stack, "or_d", Terminal::OrD),
+                "or_c" => binary(node, &mut stack, "or_c", Terminal::OrC),
+                "or_i" => binary(node, &mut stack, "or_i", Terminal::OrI),
+                "thresh" => node
+                    .verify_threshold(|_| Ok(stack.pop().unwrap()))
+                    .map(Terminal::Thresh)
+                    .and_then(Miniscript::from_ast),
+                "multi" => node
+                    .verify_threshold(|sub| sub.verify_terminal("public_key").map_err(Error::Parse))
+                    .map(Terminal::Multi)
+                    .and_then(Miniscript::from_ast),
+                "multi_a" => node
+                    .verify_threshold(|sub| sub.verify_terminal("public_key").map_err(Error::Parse))
+                    .map(Terminal::MultiA)
+                    .and_then(Miniscript::from_ast),
+                x => {
+                    Err(Error::Parse(crate::ParseError::Tree(crate::ParseTreeError::UnknownName {
+                        name: x.to_owned(),
+                    })))
+                }
+            }?;
+
+            let mut new = Arc::new(new);
+            if let Some(frag_wrap) = frag_wrap {
+                // ":node()" is not valid syntax
+                if frag_wrap.is_empty() {
+                    return Err(Error::Parse(crate::ParseError::Tree(
+                        crate::ParseTreeError::UnknownName { name: node.name().to_owned() },
+                    )));
+                }
+
+                for ch in frag_wrap.bytes().rev() {
+                    let term = match ch {
+                        b'a' => Terminal::Alt(new),
+                        b's' => Terminal::Swap(new),
+                        b'c' => Terminal::Check(new),
+                        b'd' => Terminal::DupIf(new),
+                        b'v' => Terminal::Verify(new),
+                        b'j' => Terminal::NonZero(new),
+                        b'n' => Terminal::ZeroNotEqual(new),
+                        b't' => Terminal::AndV(new, Arc::new(Miniscript::TRUE)),
+                        b'u' => Terminal::OrI(new, Arc::new(Miniscript::FALSE)),
+                        b'l' => Terminal::OrI(Arc::new(Miniscript::FALSE), new),
+                        x => return Err(Error::UnknownWrapper(x.into())),
+                    };
+                    new = Arc::new(Miniscript::from_ast(term)?);
+                }
+            }
+
+            stack.push(new);
+        }
+
+        assert_eq!(stack.len(), 1);
+        let ret = stack.pop().unwrap();
+        // Iterate through every node to check global validity. It is definitely not sufficient
+        // to check only the root, since this will fail to notice illegal xonly keys at the
+        // leaves. But probably checking every single node is overkill. This may be worth
+        // optimizing.
+        for node in ret.pre_order_iter() {
+            Ctx::check_global_validity(node)?;
+        }
+        Ok(Arc::try_unwrap(ret).unwrap())
     }
 }
 
@@ -722,7 +1065,9 @@ mod tests {
     use crate::policy::Liftable;
     use crate::prelude::*;
     use crate::test_utils::{StrKeyTranslator, StrXOnlyKeyTranslator};
-    use crate::{hex_script, Error, ExtParams, RelLockTime, Satisfier, ToPublicKey, TranslatePk};
+    use crate::{
+        hex_script, BareCtx, Error, ExtParams, Legacy, RelLockTime, Satisfier, ToPublicKey,
+    };
 
     type Segwitv0Script = Miniscript<bitcoin::PublicKey, Segwitv0>;
     type Tapscript = Miniscript<bitcoin::secp256k1::XOnlyPublicKey, Tap>;
@@ -764,6 +1109,7 @@ mod tests {
         }
         let roundtrip = Miniscript::from_str(&display).expect("parse string serialization");
         assert_eq!(roundtrip, script);
+        assert_eq!(roundtrip.clone(), script);
     }
 
     fn string_display_debug_test<Ctx: ScriptContext>(
@@ -808,8 +1154,8 @@ mod tests {
             assert_eq!(format!("{:x}", bitcoin_script), expected);
         }
         // Parse scripts with all extensions
-        let roundtrip = Segwitv0Script::parse_with_ext(&bitcoin_script, &ExtParams::allow_all())
-            .expect("parse string serialization");
+        let roundtrip =
+            Segwitv0Script::decode_consensus(&bitcoin_script).expect("parse string serialization");
         assert_eq!(roundtrip, script);
     }
 
@@ -818,7 +1164,8 @@ mod tests {
         let ser = tree.encode();
         assert_eq!(ser.len(), tree.script_size());
         assert_eq!(ser.to_string(), s);
-        let deser = Segwitv0Script::parse_insane(&ser).expect("deserialize result of serialize");
+        let deser =
+            Segwitv0Script::decode_consensus(&ser).expect("deserialize result of serialize");
         assert_eq!(*tree, deser);
     }
 
@@ -837,7 +1184,7 @@ mod tests {
                 assert_eq!(format!("{:x}", ms.encode()), expected_hex);
                 assert_eq!(ms.ty.mall.non_malleable, non_mal);
                 assert_eq!(ms.ty.mall.safe, need_sig);
-                assert_eq!(ms.ext.ops.op_count().unwrap(), ops);
+                assert_eq!(ms.ext.static_ops + ms.ext.sat_data.unwrap().max_exec_op_count, ops);
             }
             (Err(_), false) => {}
             _ => unreachable!(),
@@ -959,19 +1306,19 @@ mod tests {
     fn verify_parse() {
         let ms = "and_v(v:hash160(20195b5a3d650c17f0f29f91c33f8f6335193d07),or_d(sha256(96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8b17164c47),older(16)))";
         let ms: Segwitv0Script = Miniscript::from_str_insane(ms).unwrap();
-        assert_eq!(ms, Segwitv0Script::parse_insane(&ms.encode()).unwrap());
+        assert_eq!(ms, Segwitv0Script::decode_consensus(&ms.encode()).unwrap());
 
         let ms = "and_v(v:sha256(96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8b17164c47),or_d(sha256(96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8b17164c47),older(16)))";
         let ms: Segwitv0Script = Miniscript::from_str_insane(ms).unwrap();
-        assert_eq!(ms, Segwitv0Script::parse_insane(&ms.encode()).unwrap());
+        assert_eq!(ms, Segwitv0Script::decode_consensus(&ms.encode()).unwrap());
 
         let ms = "and_v(v:ripemd160(20195b5a3d650c17f0f29f91c33f8f6335193d07),or_d(sha256(96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8b17164c47),older(16)))";
         let ms: Segwitv0Script = Miniscript::from_str_insane(ms).unwrap();
-        assert_eq!(ms, Segwitv0Script::parse_insane(&ms.encode()).unwrap());
+        assert_eq!(ms, Segwitv0Script::decode_consensus(&ms.encode()).unwrap());
 
         let ms = "and_v(v:hash256(96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8b17164c47),or_d(sha256(96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8b17164c47),older(16)))";
         let ms: Segwitv0Script = Miniscript::from_str_insane(ms).unwrap();
-        assert_eq!(ms, Segwitv0Script::parse_insane(&ms.encode()).unwrap());
+        assert_eq!(ms, Segwitv0Script::decode_consensus(&ms.encode()).unwrap());
     }
 
     #[test]
@@ -1162,21 +1509,21 @@ mod tests {
     #[test]
     fn deserialize() {
         // Most of these came from fuzzing, hence the increasing lengths
-        assert!(Segwitv0Script::parse_insane(&hex_script("")).is_err()); // empty
-        assert!(Segwitv0Script::parse_insane(&hex_script("00")).is_ok()); // FALSE
-        assert!(Segwitv0Script::parse_insane(&hex_script("51")).is_ok()); // TRUE
-        assert!(Segwitv0Script::parse_insane(&hex_script("69")).is_err()); // VERIFY
-        assert!(Segwitv0Script::parse_insane(&hex_script("0000")).is_err()); //and_v(FALSE,FALSE)
-        assert!(Segwitv0Script::parse_insane(&hex_script("1001")).is_err()); // incomplete push
-        assert!(Segwitv0Script::parse_insane(&hex_script("03990300b2")).is_err()); // non-minimal #
-        assert!(Segwitv0Script::parse_insane(&hex_script("8559b2")).is_err()); // leading bytes
-        assert!(Segwitv0Script::parse_insane(&hex_script("4c0169b2")).is_err()); // non-minimal push
-        assert!(Segwitv0Script::parse_insane(&hex_script("0000af0000ae85")).is_err()); // OR not BOOLOR
+        assert!(Segwitv0Script::decode_consensus(&hex_script("")).is_err()); // empty
+        assert!(Segwitv0Script::decode_consensus(&hex_script("00")).is_ok()); // FALSE
+        assert!(Segwitv0Script::decode_consensus(&hex_script("51")).is_ok()); // TRUE
+        assert!(Segwitv0Script::decode_consensus(&hex_script("69")).is_err()); // VERIFY
+        assert!(Segwitv0Script::decode_consensus(&hex_script("0000")).is_err()); //and_v(FALSE,FALSE)
+        assert!(Segwitv0Script::decode_consensus(&hex_script("1001")).is_err()); // incomplete push
+        assert!(Segwitv0Script::decode_consensus(&hex_script("03990300b2")).is_err()); // non-minimal #
+        assert!(Segwitv0Script::decode_consensus(&hex_script("8559b2")).is_err()); // leading bytes
+        assert!(Segwitv0Script::decode_consensus(&hex_script("4c0169b2")).is_err()); // non-minimal push
+        assert!(Segwitv0Script::decode_consensus(&hex_script("0000af0000ae85")).is_err()); // OR not BOOLOR
 
         // misc fuzzer problems
-        assert!(Segwitv0Script::parse_insane(&hex_script("0000000000af")).is_err());
-        assert!(Segwitv0Script::parse_insane(&hex_script("04009a2970af00")).is_err()); // giant CMS key num
-        assert!(Segwitv0Script::parse_insane(&hex_script(
+        assert!(Segwitv0Script::decode_consensus(&hex_script("0000000000af")).is_err());
+        assert!(Segwitv0Script::decode_consensus(&hex_script("04009a2970af00")).is_err()); // giant CMS key num
+        assert!(Segwitv0Script::decode_consensus(&hex_script(
             "2102ffffffffffffffefefefefefefefefefefef394c0fe5b711179e124008584753ac6900"
         ))
         .is_err());
@@ -1187,7 +1534,7 @@ mod tests {
         assert!(Segwitv0Script::from_str_insane("🌏")
             .unwrap_err()
             .to_string()
-            .contains("unprintable character"));
+            .contains("invalid character"));
     }
 
     #[test]
@@ -1216,22 +1563,22 @@ mod tests {
 
         //---------------- test script <-> miniscript ---------------
         // Test parsing from scripts: x-only fails decoding in segwitv0 ctx
-        Segwitv0Script::parse_insane(&hex_script(
+        Segwitv0Script::decode_consensus(&hex_script(
             "202788ee41e76f4f3af603da5bc8fa22997bc0344bb0f95666ba6aaff0242baa99ac",
         ))
         .unwrap_err();
         // x-only succeeds in tap ctx
-        Tapscript::parse_insane(&hex_script(
+        Tapscript::decode_consensus(&hex_script(
             "202788ee41e76f4f3af603da5bc8fa22997bc0344bb0f95666ba6aaff0242baa99ac",
         ))
         .unwrap();
         // tapscript fails decoding with compressed
-        Tapscript::parse_insane(&hex_script(
+        Tapscript::decode_consensus(&hex_script(
             "21022788ee41e76f4f3af603da5bc8fa22997bc0344bb0f95666ba6aaff0242baa99ac",
         ))
         .unwrap_err();
         // Segwitv0 succeeds decoding with tapscript.
-        Segwitv0Script::parse_insane(&hex_script(
+        Segwitv0Script::decode_consensus(&hex_script(
             "21022788ee41e76f4f3af603da5bc8fa22997bc0344bb0f95666ba6aaff0242baa99ac",
         ))
         .unwrap();
@@ -1267,7 +1614,7 @@ mod tests {
             .unwrap();
         // script rtt test
         assert_eq!(
-            Miniscript::<XOnlyPublicKey, Tap>::parse_insane(&tap_ms.encode()).unwrap(),
+            Miniscript::<XOnlyPublicKey, Tap>::decode_consensus(&tap_ms.encode()).unwrap(),
             tap_ms
         );
         assert_eq!(tap_ms.script_size(), 104);
@@ -1308,15 +1655,19 @@ mod tests {
         .unwrap();
         let ms_trans = ms.translate_pk(&mut StrKeyTranslator::new()).unwrap();
         let enc = ms_trans.encode();
-        let ms = Miniscript::<bitcoin::PublicKey, Segwitv0>::parse_insane(&enc).unwrap();
+        let ms = Miniscript::<bitcoin::PublicKey, Segwitv0>::decode_consensus(&enc).unwrap();
         assert_eq!(ms_trans.encode(), ms.encode());
     }
 
     #[test]
     fn expr_features() {
         // test that parsing raw hash160 does not work with
-        let hash160_str = "e9f171df53e04b270fa6271b42f66b0f4a99c5a2";
-        let ms_str = &format!("c:expr_raw_pkh({})", hash160_str);
+        let pk = bitcoin::PublicKey::from_str(
+            "02c2fd50ceae468857bb7eb32ae9cd4083e6c7e42fbbec179d81134b3e3830586c",
+        )
+        .unwrap();
+        let hash160 = pk.pubkey_hash().to_raw_hash();
+        let ms_str = &format!("c:expr_raw_pkh({})", hash160);
         type SegwitMs = Miniscript<bitcoin::PublicKey, Segwitv0>;
 
         // Test that parsing raw hash160 from string does not work without extra features
@@ -1326,9 +1677,15 @@ mod tests {
 
         let script = ms.encode();
         // The same test, but parsing from script
-        SegwitMs::parse(&script).unwrap_err();
-        SegwitMs::parse_insane(&script).unwrap_err();
-        SegwitMs::parse_with_ext(&script, &ExtParams::allow_all()).unwrap();
+        SegwitMs::decode(&script).unwrap_err();
+        SegwitMs::decode_with_ext(&script, &ExtParams::insane()).unwrap_err();
+        SegwitMs::decode_consensus(&script).unwrap();
+
+        // Try replacing the raw_pkh with a pkh
+        let mut map = BTreeMap::new();
+        map.insert(hash160, pk);
+        let ms_no_raw = ms.substitute_raw_pkh(&map);
+        assert_eq!(ms_no_raw.to_string(), format!("pkh({})", pk),);
     }
 
     #[test]
@@ -1348,6 +1705,62 @@ mod tests {
         let uncompressed = bitcoin::PublicKey::from_str("0400232a2acfc9b43fa89f1b4f608fde335d330d7114f70ea42bfb4a41db368a3e3be6934a4097dd25728438ef73debb1f2ffdb07fec0f18049df13bdc5285dc5b").unwrap();
         t.pk_map.insert(String::from("A"), uncompressed);
         ms.translate_pk(&mut t).unwrap_err();
+    }
+
+    #[test]
+    fn duplicate_keys() {
+        // You cannot parse a Miniscript that has duplicate keys
+        let err = Miniscript::<String, Segwitv0>::from_str("and_v(v:pk(A),pk(A))").unwrap_err();
+        assert!(matches!(err, Error::AnalysisError(crate::AnalysisError::RepeatedPubkeys)));
+
+        // ...though you can parse one with from_str_insane
+        let ok_insane =
+            Miniscript::<String, Segwitv0>::from_str_insane("and_v(v:pk(A),pk(A))").unwrap();
+        // ...but this cannot be sanity checked.
+        assert!(matches!(
+            ok_insane.sanity_check().unwrap_err(),
+            crate::AnalysisError::RepeatedPubkeys
+        ));
+        // ...it can be lifted, though it's unclear whether this is a deliberate
+        // choice or just an accident. It seems weird given that duplicate public
+        // keys are forbidden in several other places.
+        ok_insane.lift().unwrap();
+    }
+
+    #[test]
+    fn mixed_timelocks() {
+        // You cannot parse a Miniscript that mixes timelocks.
+        let err = Miniscript::<String, Segwitv0>::from_str(
+            "and_v(v:and_v(v:older(4194304),pk(A)),and_v(v:older(1),pk(B)))",
+        )
+        .unwrap_err();
+        assert!(matches!(
+            err,
+            Error::AnalysisError(crate::AnalysisError::HeightTimelockCombination)
+        ));
+
+        // Though you can in an or() rather than and()
+        let ok_or = Miniscript::<String, Segwitv0>::from_str(
+            "or_i(and_v(v:older(4194304),pk(A)),and_v(v:older(1),pk(B)))",
+        )
+        .unwrap();
+        ok_or.sanity_check().unwrap();
+        ok_or.lift().unwrap();
+
+        // ...and you can parse one with from_str_insane
+        let ok_insane = Miniscript::<String, Segwitv0>::from_str_insane(
+            "and_v(v:and_v(v:older(4194304),pk(A)),and_v(v:older(1),pk(B)))",
+        )
+        .unwrap();
+        // ...but this cannot be sanity checked or lifted
+        assert_eq!(
+            ok_insane.sanity_check().unwrap_err(),
+            crate::AnalysisError::HeightTimelockCombination
+        );
+        assert!(matches!(
+            ok_insane.lift().unwrap_err(),
+            Error::LiftError(crate::policy::LiftError::HeightTimelockCombination)
+        ));
     }
 
     #[test]
@@ -1458,35 +1871,114 @@ mod tests {
         for _ in 0..10000 {
             script = script.push_opcode(bitcoin::opcodes::all::OP_0NOTEQUAL);
         }
-        Tapscript::parse_insane(&script.into_script()).unwrap_err();
-    }
-}
-
-#[cfg(bench)]
-mod benches {
-    use test::{black_box, Bencher};
-
-    use super::*;
-
-    #[bench]
-    pub fn parse_segwit0(bh: &mut Bencher) {
-        bh.iter(|| {
-            let tree = Miniscript::<String, context::Segwitv0>::from_str_ext(
-                "and_v(v:pk(E),thresh(2,j:and_v(v:sha256(H),t:or_i(v:sha256(H),v:pkh(A))),s:pk(B),s:pk(C),s:pk(D),sjtv:sha256(H)))",
-                &ExtParams::sane(),
-            ).unwrap();
-            black_box(tree);
-        });
+        Tapscript::decode_consensus(&script.into_script()).unwrap_err();
     }
 
-    #[bench]
-    pub fn parse_segwit0_deep(bh: &mut Bencher) {
-        bh.iter(|| {
-            let tree = Miniscript::<String, context::Segwitv0>::from_str_ext(
-                "and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:and_v(v:pk(1),pk(2)),pk(3)),pk(4)),pk(5)),pk(6)),pk(7)),pk(8)),pk(9)),pk(10)),pk(11)),pk(12)),pk(13)),pk(14)),pk(15)),pk(16)),pk(17)),pk(18)),pk(19)),pk(20)),pk(21))",
-                &ExtParams::sane(),
-            ).unwrap();
-            black_box(tree);
-        });
+    #[test]
+    fn test_or_d_exec_stack_count_fix() {
+        // Test for the or_d dissat_data.max_exec_stack_count fix
+        // The old code incorrectly added +1 to the exec stack count for or_d dissatisfaction
+        let ms_str = "or_d(pk(A),pk(B))";
+        let ms = Miniscript::<String, Segwitv0>::from_str_insane(ms_str).unwrap();
+
+        // With the fix, or_d dissatisfaction should not have the extra +1
+        // Both branches have exec_stack_count of 1, so dissat should be max(1,1) = 1, not 2
+        if let Some(dissat_data) = ms.ext.dissat_data {
+            assert_eq!(dissat_data.max_exec_stack_count, 1);
+        } else {
+            panic!("Expected dissat_data to be Some");
+        }
+    }
+
+    #[test]
+    fn test_threshold_exec_stack_count_max_not_sum() {
+        // Test for the threshold max_exec_stack_count fix
+        // The old code incorrectly summed exec stack counts, new code takes max
+        let ms_str = "thresh(2,pk(A),s:pk(B),s:pk(C))";
+        let ms = Miniscript::<String, Segwitv0>::from_str_insane(ms_str).unwrap();
+
+        // Each pk has exec_stack_count of 1, plus an extra stack element for the thresh accumulator.
+        // With the fix, threshold should take max(1,1,1) + 1 = 2, not sum 1+1+1 = 3
+        if let Some(sat_data) = ms.ext.sat_data {
+            assert_eq!(sat_data.max_exec_stack_count, 2);
+        } else {
+            panic!("Expected sat_data to be Some");
+        }
+
+        // Test with a more complex threshold, where the first child has a strictly higher
+        // exec_stack_count. This time, we take the maximum *without* adding +1 for the
+        // accumulator, since on the first child of `thresh` there is no accumulator yet
+        // (its initial value is the output value for the first child).
+        let complex_ms_str = "thresh(1,and_b(pk(A),s:pk(B)),s:pk(C))";
+        let complex_ms = Miniscript::<String, Segwitv0>::from_str_insane(complex_ms_str).unwrap();
+
+        // and_v has exec_stack_count of 2, pk has 1
+        // With the fix: max(2,1) = 2, old code would sum to 3
+        if let Some(sat_data) = complex_ms.ext.sat_data {
+            assert_eq!(sat_data.max_exec_stack_count, 2);
+        } else {
+            panic!("Expected sat_data to be Some");
+        }
+    }
+
+    #[test]
+    fn test_context_global_consensus() {
+        // Test from string tests
+        type LegacyMs = Miniscript<String, Legacy>;
+        type Segwitv0Ms = Miniscript<String, Segwitv0>;
+        type BareMs = Miniscript<String, BareCtx>;
+
+        // multisig script of 20 pubkeys exceeds 520 bytes
+        let pubkey_vec_20: Vec<String> = (0..20).map(|x| x.to_string()).collect();
+        // multisig script of 300 pubkeys exceeds 10,000 bytes
+        let pubkey_vec_300: Vec<String> = (0..300).map(|x| x.to_string()).collect();
+
+        // wrong multi_a for non-tapscript, while exceeding consensus size limit
+        let legacy_multi_a_ms =
+            LegacyMs::from_str(&format!("multi_a(20,{})", pubkey_vec_20.join(",")));
+        let segwit_multi_a_ms =
+            Segwitv0Ms::from_str(&format!("multi_a(300,{})", pubkey_vec_300.join(",")));
+        let bare_multi_a_ms =
+            BareMs::from_str(&format!("multi_a(300,{})", pubkey_vec_300.join(",")));
+
+        // Should panic for wrong multi_a, even if it exceeds the max consensus size
+        assert_eq!(
+            legacy_multi_a_ms.unwrap_err().to_string(),
+            "Multi a(CHECKSIGADD) only allowed post tapscript"
+        );
+        assert_eq!(
+            segwit_multi_a_ms.unwrap_err().to_string(),
+            "Multi a(CHECKSIGADD) only allowed post tapscript"
+        );
+        assert_eq!(
+            bare_multi_a_ms.unwrap_err().to_string(),
+            "Multi a(CHECKSIGADD) only allowed post tapscript"
+        );
+
+        // multisig script of 20 pubkeys exceeds 520 bytes
+        let multi_ms = format!("multi(20,{})", pubkey_vec_20.join(","));
+        // other than legacy, and_v to build 15 nested 20-of-20 multisig script
+        // to exceed 10,000 bytes without violation of threshold limit(max: 20)
+        let and_v_nested_multi_ms =
+            format!("and_v(v:{},", multi_ms).repeat(14) + &multi_ms + "))))))))))))))";
+
+        // correct multi for non-tapscript, but exceeding consensus size limit
+        let legacy_multi_ms = LegacyMs::from_str(&multi_ms);
+        let segwit_multi_ms = Segwitv0Ms::from_str(&and_v_nested_multi_ms);
+        let bare_multi_ms = BareMs::from_str(&and_v_nested_multi_ms);
+
+        // Should panic for exceeding the max consensus size, as multi properly used
+        assert_eq!(
+            legacy_multi_ms.unwrap_err().to_string(),
+            "The Miniscript corresponding Script cannot be larger than 520 bytes, but got 685 bytes."
+        );
+        assert_eq!(
+            segwit_multi_ms.unwrap_err().to_string(),
+            "The Miniscript corresponding Script cannot be larger than 3600 bytes, but got 4110 bytes."
+        );
+        assert_eq!(
+            bare_multi_ms.unwrap_err().to_string(),
+            "The Miniscript corresponding Script cannot be larger than 10000 bytes, but got 10275 bytes."
+        );
     }
 }

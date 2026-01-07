@@ -15,16 +15,11 @@ use crate::miniscript::limits::{
 };
 use crate::miniscript::types;
 use crate::prelude::*;
-use crate::util::witness_to_scriptsig;
 use crate::{hash256, Error, ForEachKey, Miniscript, MiniscriptKey, Terminal};
 
 /// Error for Script Context
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ScriptContextError {
-    /// Script Context does not permit PkH for non-malleability
-    /// It is not possible to estimate the pubkey size at the creation
-    /// time because of uncompressed pubkeys
-    MalleablePkH,
     /// Script Context does not permit OrI for non-malleability
     /// Legacy fragments allow non-minimal IF which results in malleability
     MalleableOrI,
@@ -42,18 +37,22 @@ pub enum ScriptContextError {
     UncompressedKeysNotAllowed,
     /// At least one satisfaction path in the Miniscript fragment has more than
     /// `MAX_STANDARD_P2WSH_STACK_ITEMS` (100) witness elements.
-    MaxWitnessItemssExceeded { actual: usize, limit: usize },
+    MaxWitnessItemsExceeded { actual: usize, limit: usize },
     /// At least one satisfaction path in the Miniscript fragment contains more
     /// than `MAX_OPS_PER_SCRIPT`(201) opcodes.
-    MaxOpCountExceeded,
+    MaxOpCountExceeded { actual: usize, limit: usize },
     /// The Miniscript(under segwit context) corresponding
-    /// Script would be larger than `MAX_STANDARD_P2WSH_SCRIPT_SIZE` bytes.
-    MaxWitnessScriptSizeExceeded,
+    /// Script would be larger than `MAX_STANDARD_P2WSH_SCRIPT_SIZE`,
+    /// `MAX_SCRIPT_SIZE` or `MAX_BLOCK`(`Tap`) bytes.
+    MaxWitnessScriptSizeExceeded { max: usize, got: usize },
     /// The Miniscript (under p2sh context) corresponding Script would be
     /// larger than `MAX_SCRIPT_ELEMENT_SIZE` bytes.
-    MaxRedeemScriptSizeExceeded,
+    MaxRedeemScriptSizeExceeded { max: usize, got: usize },
+    /// The Miniscript(under bare context) corresponding
+    /// Script would be larger than `MAX_SCRIPT_SIZE` bytes.
+    MaxBareScriptSizeExceeded { max: usize, got: usize },
     /// The policy rules of bitcoin core only permit Script size upto 1650 bytes
-    MaxScriptSigSizeExceeded,
+    MaxScriptSigSizeExceeded { actual: usize, limit: usize },
     /// Impossible to satisfy the miniscript under the current context
     ImpossibleSatisfaction,
     /// No Multi Node in Taproot context
@@ -70,17 +69,17 @@ impl error::Error for ScriptContextError {
         use self::ScriptContextError::*;
 
         match self {
-            MalleablePkH
-            | MalleableOrI
+            MalleableOrI
             | MalleableDupIf
             | CompressedOnly(_)
             | XOnlyKeysNotAllowed(_, _)
             | UncompressedKeysNotAllowed
-            | MaxWitnessItemssExceeded { .. }
-            | MaxOpCountExceeded
-            | MaxWitnessScriptSizeExceeded
-            | MaxRedeemScriptSizeExceeded
-            | MaxScriptSigSizeExceeded
+            | MaxWitnessItemsExceeded { .. }
+            | MaxOpCountExceeded { .. }
+            | MaxWitnessScriptSizeExceeded { .. }
+            | MaxRedeemScriptSizeExceeded { .. }
+            | MaxBareScriptSizeExceeded { .. }
+            | MaxScriptSigSizeExceeded { .. }
             | ImpossibleSatisfaction
             | TaprootMultiDisabled
             | StackSizeLimitExceeded { .. }
@@ -92,7 +91,6 @@ impl error::Error for ScriptContextError {
 impl fmt::Display for ScriptContextError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ScriptContextError::MalleablePkH => write!(f, "PkH is malleable under Legacy rules"),
             ScriptContextError::MalleableOrI => write!(f, "OrI is malleable under Legacy rules"),
             ScriptContextError::MalleableDupIf => {
                 write!(f, "DupIf is malleable under Legacy rules")
@@ -106,31 +104,41 @@ impl fmt::Display for ScriptContextError {
             ScriptContextError::UncompressedKeysNotAllowed => {
                 write!(f, "uncompressed keys cannot be used in Taproot descriptors.")
             }
-            ScriptContextError::MaxWitnessItemssExceeded { actual, limit } => write!(
+            ScriptContextError::MaxWitnessItemsExceeded { actual, limit } => write!(
                 f,
-                "At least one spending path in the Miniscript fragment has {} more \
-                 witness items than limit {}.",
+                "At least one satisfaction path in the Miniscript fragment has {} witness items \
+                 (limit: {}).",
                 actual, limit
             ),
-            ScriptContextError::MaxOpCountExceeded => write!(
+            ScriptContextError::MaxOpCountExceeded { actual, limit } => write!(
                 f,
-                "At least one satisfaction path in the Miniscript fragment contains \
-                 more than MAX_OPS_PER_SCRIPT opcodes."
+                "At least one satisfaction path in the Miniscript fragment contains {} opcodes \
+                 (limit: {}).",
+                actual, limit
             ),
-            ScriptContextError::MaxWitnessScriptSizeExceeded => write!(
+            ScriptContextError::MaxWitnessScriptSizeExceeded { max, got } => write!(
                 f,
-                "The Miniscript corresponding Script would be larger than \
-                    MAX_STANDARD_P2WSH_SCRIPT_SIZE bytes."
+                "The Miniscript corresponding Script cannot be larger than \
+                {} bytes, but got {} bytes.",
+                max, got
             ),
-            ScriptContextError::MaxRedeemScriptSizeExceeded => write!(
+            ScriptContextError::MaxRedeemScriptSizeExceeded { max, got } => write!(
                 f,
-                "The Miniscript corresponding Script would be larger than \
-                MAX_SCRIPT_ELEMENT_SIZE bytes."
+                "The Miniscript corresponding Script cannot be larger than \
+                {} bytes, but got {} bytes.",
+                max, got
             ),
-            ScriptContextError::MaxScriptSigSizeExceeded => write!(
+            ScriptContextError::MaxBareScriptSizeExceeded { max, got } => write!(
                 f,
-                "At least one satisfaction in Miniscript would be larger than \
-                MAX_SCRIPTSIG_SIZE scriptsig"
+                "The Miniscript corresponding Script cannot be larger than \
+                {} bytes, but got {} bytes.",
+                max, got
+            ),
+            ScriptContextError::MaxScriptSigSizeExceeded { actual, limit } => write!(
+                f,
+                "At least one satisfaction path in the Miniscript fragment has {} bytes \
+                (limit: {}).",
+                actual, limit
             ),
             ScriptContextError::ImpossibleSatisfaction => {
                 write!(f, "Impossible to satisfy Miniscript under the current context")
@@ -152,7 +160,9 @@ impl fmt::Display for ScriptContextError {
     }
 }
 
-/// The ScriptContext for Miniscript. Additional type information associated with
+/// The ScriptContext for Miniscript.
+///
+/// Additional type information associated with
 /// miniscript that is used for carrying out checks that dependent on the
 /// context under which the script is used.
 /// For example, disallowing uncompressed keys in Segwit context
@@ -177,16 +187,6 @@ where
     fn check_terminal_non_malleable<Pk: MiniscriptKey>(
         _frag: &Terminal<Pk, Self>,
     ) -> Result<(), ScriptContextError>;
-
-    /// Check whether the given satisfaction is valid under the ScriptContext
-    /// For example, segwit satisfactions may fail if the witness len is more
-    /// 3600 or number of stack elements are more than 100.
-    fn check_witness(_witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
-        // Only really need to do this for segwitv0 and legacy
-        // Bare is already restrcited by standardness rules
-        // and would reach these limits.
-        Ok(())
-    }
 
     /// Each context has slightly different rules on what Pks are allowed in descriptors
     /// Legacy/Bare does not allow x_only keys
@@ -314,7 +314,7 @@ where
 
     /// Check top level consensus rules.
     // All the previous check_ were applied at each fragment while parsing script
-    // Because if any of sub-miniscripts failed the reource level check, the entire
+    // Because if any of sub-miniscripts failed the resource level check, the entire
     // miniscript would also be invalid. However, there are certain checks like
     // in Bare context, only c:pk(key) (P2PK),
     // c:pk_h(key) (P2PKH), and thresh_m(k,...) up to n=3 are allowed
@@ -363,8 +363,6 @@ impl ScriptContext for Legacy {
         frag: &Terminal<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
         match *frag {
-            Terminal::PkH(ref _pkh) => Err(ScriptContextError::MalleablePkH),
-            Terminal::RawPkH(ref _pk) => Err(ScriptContextError::MalleablePkH),
             Terminal::OrI(ref _a, ref _b) => Err(ScriptContextError::MalleableOrI),
             Terminal::DupIf(ref _ms) => Err(ScriptContextError::MalleableDupIf),
             _ => Ok(()),
@@ -380,23 +378,11 @@ impl ScriptContext for Legacy {
         }
     }
 
-    fn check_witness(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
-        // In future, we could avoid by having a function to count only
-        // len of script instead of converting it.
-        if witness_to_scriptsig(witness).len() > MAX_SCRIPTSIG_SIZE {
-            return Err(ScriptContextError::MaxScriptSigSizeExceeded);
-        }
-        Ok(())
-    }
-
     fn check_global_consensus_validity<Pk: MiniscriptKey>(
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
-        if ms.ext.pk_cost > MAX_SCRIPT_ELEMENT_SIZE {
-            return Err(ScriptContextError::MaxRedeemScriptSizeExceeded);
-        }
-
-        match ms.node {
+        // 1. Check the node first, throw an error on the language itself
+        let node_checked = match ms.node {
             Terminal::PkK(ref pk) => Self::check_pk(pk),
             Terminal::Multi(ref thresh) => {
                 for pk in thresh.iter() {
@@ -406,16 +392,33 @@ impl ScriptContext for Legacy {
             }
             Terminal::MultiA(..) => Err(ScriptContextError::MultiANotAllowed),
             _ => Ok(()),
+        };
+        // 2. After fragment and param check, validate the script size finally
+        match node_checked {
+            Ok(_) => {
+                if ms.ext.pk_cost > MAX_SCRIPT_ELEMENT_SIZE {
+                    Err(ScriptContextError::MaxRedeemScriptSizeExceeded {
+                        max: MAX_SCRIPT_ELEMENT_SIZE,
+                        got: ms.ext.pk_cost,
+                    })
+                } else {
+                    Ok(())
+                }
+            }
+            Err(_) => node_checked,
         }
     }
 
     fn check_local_consensus_validity<Pk: MiniscriptKey>(
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
-        match ms.ext.ops.op_count() {
-            None => Err(ScriptContextError::MaxOpCountExceeded),
+        match ms.ext.sat_op_count() {
+            None => Err(ScriptContextError::ImpossibleSatisfaction),
             Some(op_count) if op_count > MAX_OPS_PER_SCRIPT => {
-                Err(ScriptContextError::MaxOpCountExceeded)
+                Err(ScriptContextError::MaxOpCountExceeded {
+                    actual: op_count,
+                    limit: MAX_OPS_PER_SCRIPT,
+                })
             }
             _ => Ok(()),
         }
@@ -430,15 +433,17 @@ impl ScriptContext for Legacy {
         match ms.max_satisfaction_size() {
             Err(_e) => Err(ScriptContextError::ImpossibleSatisfaction),
             Ok(size) if size > MAX_SCRIPTSIG_SIZE => {
-                Err(ScriptContextError::MaxScriptSigSizeExceeded)
+                Err(ScriptContextError::MaxScriptSigSizeExceeded {
+                    actual: size,
+                    limit: MAX_SCRIPTSIG_SIZE,
+                })
             }
             _ => Ok(()),
         }
     }
 
     fn max_satisfaction_size<Pk: MiniscriptKey>(ms: &Miniscript<Pk, Self>) -> Option<usize> {
-        // The scriptSig cost is the second element of the tuple
-        ms.ext.max_sat_size.map(|x| x.1)
+        ms.ext.sat_data.map(|data| data.max_script_sig_size)
     }
 
     fn pk_len<Pk: MiniscriptKey>(pk: &Pk) -> usize {
@@ -477,24 +482,11 @@ impl ScriptContext for Segwitv0 {
         }
     }
 
-    fn check_witness(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
-        if witness.len() > MAX_STANDARD_P2WSH_STACK_ITEMS {
-            return Err(ScriptContextError::MaxWitnessItemssExceeded {
-                actual: witness.len(),
-                limit: MAX_STANDARD_P2WSH_STACK_ITEMS,
-            });
-        }
-        Ok(())
-    }
-
     fn check_global_consensus_validity<Pk: MiniscriptKey>(
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
-        if ms.ext.pk_cost > MAX_SCRIPT_SIZE {
-            return Err(ScriptContextError::MaxWitnessScriptSizeExceeded);
-        }
-
-        match ms.node {
+        // 1. Check the node first, throw an error on the language itself
+        let node_checked = match ms.node {
             Terminal::PkK(ref pk) => Self::check_pk(pk),
             Terminal::Multi(ref thresh) => {
                 for pk in thresh.iter() {
@@ -504,16 +496,33 @@ impl ScriptContext for Segwitv0 {
             }
             Terminal::MultiA(..) => Err(ScriptContextError::MultiANotAllowed),
             _ => Ok(()),
+        };
+        // 2. After fragment and param check, validate the script size finally
+        match node_checked {
+            Ok(_) => {
+                if ms.ext.pk_cost > MAX_SCRIPT_SIZE {
+                    Err(ScriptContextError::MaxWitnessScriptSizeExceeded {
+                        max: MAX_SCRIPT_SIZE,
+                        got: ms.ext.pk_cost,
+                    })
+                } else {
+                    Ok(())
+                }
+            }
+            Err(_) => node_checked,
         }
     }
 
     fn check_local_consensus_validity<Pk: MiniscriptKey>(
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
-        match ms.ext.ops.op_count() {
-            None => Err(ScriptContextError::MaxOpCountExceeded),
+        match ms.ext.sat_op_count() {
+            None => Err(ScriptContextError::ImpossibleSatisfaction),
             Some(op_count) if op_count > MAX_OPS_PER_SCRIPT => {
-                Err(ScriptContextError::MaxOpCountExceeded)
+                Err(ScriptContextError::MaxOpCountExceeded {
+                    actual: op_count,
+                    limit: MAX_OPS_PER_SCRIPT,
+                })
             }
             _ => Ok(()),
         }
@@ -523,7 +532,10 @@ impl ScriptContext for Segwitv0 {
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
         if ms.ext.pk_cost > MAX_STANDARD_P2WSH_SCRIPT_SIZE {
-            return Err(ScriptContextError::MaxWitnessScriptSizeExceeded);
+            return Err(ScriptContextError::MaxWitnessScriptSizeExceeded {
+                max: MAX_STANDARD_P2WSH_SCRIPT_SIZE,
+                got: ms.ext.pk_cost,
+            });
         }
         Ok(())
     }
@@ -538,7 +550,7 @@ impl ScriptContext for Segwitv0 {
             // No possible satisfactions
             Err(_e) => Err(ScriptContextError::ImpossibleSatisfaction),
             Ok(max_witness_items) if max_witness_items > MAX_STANDARD_P2WSH_STACK_ITEMS => {
-                Err(ScriptContextError::MaxWitnessItemssExceeded {
+                Err(ScriptContextError::MaxWitnessItemsExceeded {
                     actual: max_witness_items,
                     limit: MAX_STANDARD_P2WSH_STACK_ITEMS,
                 })
@@ -548,8 +560,7 @@ impl ScriptContext for Segwitv0 {
     }
 
     fn max_satisfaction_size<Pk: MiniscriptKey>(ms: &Miniscript<Pk, Self>) -> Option<usize> {
-        // The witness stack cost is the first element of the tuple
-        ms.ext.max_sat_size.map(|x| x.0)
+        ms.ext.sat_data.map(|data| data.max_witness_stack_size)
     }
 
     fn pk_len<Pk: MiniscriptKey>(_pk: &Pk) -> usize { 34 }
@@ -582,30 +593,11 @@ impl ScriptContext for Tap {
         }
     }
 
-    fn check_witness(witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
-        // Note that tapscript has a 1000 limit compared to 100 of segwitv0
-        if witness.len() > MAX_STACK_SIZE {
-            return Err(ScriptContextError::MaxWitnessItemssExceeded {
-                actual: witness.len(),
-                limit: MAX_STACK_SIZE,
-            });
-        }
-        Ok(())
-    }
-
     fn check_global_consensus_validity<Pk: MiniscriptKey>(
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
-        // No script size checks for global consensus rules
-        // Should we really check for block limits here.
-        // When the transaction sizes get close to block limits,
-        // some guarantees are not easy to satisfy because of knapsack
-        // constraints
-        if ms.ext.pk_cost as u64 > Weight::MAX_BLOCK.to_wu() {
-            return Err(ScriptContextError::MaxWitnessScriptSizeExceeded);
-        }
-
-        match ms.node {
+        // 1. Check the node first, throw an error on the language itself
+        let node_checked = match ms.node {
             Terminal::PkK(ref pk) => Self::check_pk(pk),
             Terminal::MultiA(ref thresh) => {
                 for pk in thresh.iter() {
@@ -615,6 +607,25 @@ impl ScriptContext for Tap {
             }
             Terminal::Multi(..) => Err(ScriptContextError::TaprootMultiDisabled),
             _ => Ok(()),
+        };
+        // 2. After fragment and param check, validate the script size finally
+        match node_checked {
+            Ok(_) => {
+                // No script size checks for global consensus rules
+                // Should we really check for block limits here.
+                // When the transaction sizes get close to block limits,
+                // some guarantees are not easy to satisfy because of knapsack
+                // constraints
+                if ms.ext.pk_cost as u64 > Weight::MAX_BLOCK.to_wu() {
+                    Err(ScriptContextError::MaxWitnessScriptSizeExceeded {
+                        max: Weight::MAX_BLOCK.to_wu() as usize,
+                        got: ms.ext.pk_cost,
+                    })
+                } else {
+                    Ok(())
+                }
+            }
+            Err(_) => node_checked,
         }
     }
 
@@ -630,11 +641,10 @@ impl ScriptContext for Tap {
         // will have it's corresponding 64 bytes signature.
         // sigops budget = witness_script.len() + witness.size() + 50
         // Each signature will cover it's own cost(64 > 50) and thus will will never exceed the budget
-        if let (Some(s), Some(h)) = (ms.ext.exec_stack_elem_count_sat, ms.ext.stack_elem_count_sat)
-        {
-            if s + h > MAX_STACK_SIZE {
+        if let Some(data) = ms.ext.sat_data {
+            if data.max_witness_stack_count + data.max_exec_stack_count > MAX_STACK_SIZE {
                 return Err(ScriptContextError::StackSizeLimitExceeded {
-                    actual: s + h,
+                    actual: data.max_witness_stack_count + data.max_exec_stack_count,
                     limit: MAX_STACK_SIZE,
                 });
             }
@@ -656,8 +666,7 @@ impl ScriptContext for Tap {
     }
 
     fn max_satisfaction_size<Pk: MiniscriptKey>(ms: &Miniscript<Pk, Self>) -> Option<usize> {
-        // The witness stack cost is the first element of the tuple
-        ms.ext.max_sat_size.map(|x| x.0)
+        ms.ext.sat_data.map(|data| data.max_witness_stack_size)
     }
 
     fn sig_type() -> SigType { SigType::Schnorr }
@@ -698,10 +707,8 @@ impl ScriptContext for BareCtx {
     fn check_global_consensus_validity<Pk: MiniscriptKey>(
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
-        if ms.ext.pk_cost > MAX_SCRIPT_SIZE {
-            return Err(ScriptContextError::MaxWitnessScriptSizeExceeded);
-        }
-        match ms.node {
+        // 1. Check the node first, throw an error on the language itself
+        let node_checked = match ms.node {
             Terminal::PkK(ref key) => Self::check_pk(key),
             Terminal::Multi(ref thresh) => {
                 for pk in thresh.iter() {
@@ -711,16 +718,33 @@ impl ScriptContext for BareCtx {
             }
             Terminal::MultiA(..) => Err(ScriptContextError::MultiANotAllowed),
             _ => Ok(()),
+        };
+        // 2. After fragment and param check, validate the script size finally
+        match node_checked {
+            Ok(_) => {
+                if ms.ext.pk_cost > MAX_SCRIPT_SIZE {
+                    Err(ScriptContextError::MaxBareScriptSizeExceeded {
+                        max: MAX_SCRIPT_SIZE,
+                        got: ms.ext.pk_cost,
+                    })
+                } else {
+                    Ok(())
+                }
+            }
+            Err(_) => node_checked,
         }
     }
 
     fn check_local_consensus_validity<Pk: MiniscriptKey>(
         ms: &Miniscript<Pk, Self>,
     ) -> Result<(), ScriptContextError> {
-        match ms.ext.ops.op_count() {
-            None => Err(ScriptContextError::MaxOpCountExceeded),
+        match ms.ext.sat_op_count() {
+            None => Err(ScriptContextError::ImpossibleSatisfaction),
             Some(op_count) if op_count > MAX_OPS_PER_SCRIPT => {
-                Err(ScriptContextError::MaxOpCountExceeded)
+                Err(ScriptContextError::MaxOpCountExceeded {
+                    actual: op_count,
+                    limit: MAX_OPS_PER_SCRIPT,
+                })
             }
             _ => Ok(()),
         }
@@ -739,8 +763,9 @@ impl ScriptContext for BareCtx {
     }
 
     fn max_satisfaction_size<Pk: MiniscriptKey>(ms: &Miniscript<Pk, Self>) -> Option<usize> {
-        // The witness stack cost is the first element of the tuple
-        ms.ext.max_sat_size.map(|x| x.1)
+        // For bare outputs the script appears in the scriptpubkey; its cost
+        // is the same as for a legacy scriptsig.
+        ms.ext.sat_data.map(|data| data.max_script_sig_size)
     }
 
     fn pk_len<Pk: MiniscriptKey>(pk: &Pk) -> usize {
@@ -810,13 +835,6 @@ impl ScriptContext for NoChecks {
     fn name_str() -> &'static str {
         // Internally used code
         "NochecksEcdsa"
-    }
-
-    fn check_witness(_witness: &[Vec<u8>]) -> Result<(), ScriptContextError> {
-        // Only really need to do this for segwitv0 and legacy
-        // Bare is already restrcited by standardness rules
-        // and would reach these limits.
-        Ok(())
     }
 
     fn check_global_validity<Pk: MiniscriptKey>(

@@ -41,6 +41,10 @@ impl Ord for OrdF64 {
 /// Detailed error type for compiler.
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum CompilerError {
+    /// `And` fragments only support two args.
+    NonBinaryArgAnd,
+    /// `Or` fragments only support two args.
+    NonBinaryArgOr,
     /// Compiler has non-safe input policy.
     TopLevelNonSafe,
     /// Non-Malleable compilation  does exists for the given sub-policy.
@@ -50,6 +54,16 @@ pub enum CompilerError {
     /// There may exist other miniscripts which are under these limits but the
     /// compiler currently does not find them.
     LimitsExceeded,
+    /// In a Taproot compilation, no "unspendable key" was provided and no in-policy
+    /// key could be used as an internal key.
+    NoInternalKey,
+    /// When compiling to Taproot, policy had too many Tapleaves
+    TooManyTapleaves {
+        /// Number of Tapleaves inferred from the policy.
+        n: usize,
+        /// Maximum allowed number of Tapleaves.
+        max: usize,
+    },
     ///Policy related errors
     PolicyError(policy::concrete::PolicyError),
 }
@@ -57,6 +71,12 @@ pub enum CompilerError {
 impl fmt::Display for CompilerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            CompilerError::NonBinaryArgAnd => {
+                f.write_str("And policy fragment must take 2 arguments")
+            }
+            CompilerError::NonBinaryArgOr => {
+                f.write_str("Or policy fragment must take 2 arguments")
+            }
             CompilerError::TopLevelNonSafe => {
                 f.write_str("Top Level script is not safe on some spendpath")
             }
@@ -66,6 +86,12 @@ impl fmt::Display for CompilerError {
             CompilerError::LimitsExceeded => f.write_str(
                 "At least one spending path has exceeded the standardness or consensus limits",
             ),
+            CompilerError::NoInternalKey => {
+                f.write_str("Taproot compilation had no internal key available")
+            }
+            CompilerError::TooManyTapleaves { n, max } => {
+                write!(f, "Policy had too many Tapleaves (found {}, maximum {})", n, max)
+            }
             CompilerError::PolicyError(ref e) => fmt::Display::fmt(e, f),
         }
     }
@@ -77,7 +103,13 @@ impl error::Error for CompilerError {
         use self::CompilerError::*;
 
         match self {
-            TopLevelNonSafe | ImpossibleNonMalleableCompilation | LimitsExceeded => None,
+            NonBinaryArgAnd
+            | NonBinaryArgOr
+            | TopLevelNonSafe
+            | ImpossibleNonMalleableCompilation
+            | LimitsExceeded
+            | NoInternalKey
+            | TooManyTapleaves { .. } => None,
             PolicyError(e) => Some(e),
         }
     }
@@ -500,11 +532,8 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> AstElemExt<Pk, Ctx> {
 }
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> AstElemExt<Pk, Ctx> {
-    fn terminal(ast: Terminal<Pk, Ctx>) -> AstElemExt<Pk, Ctx> {
-        AstElemExt {
-            comp_ext_data: CompilerExtData::type_check(&ast),
-            ms: Arc::new(Miniscript::from_ast(ast).expect("Terminal creation must always succeed")),
-        }
+    fn terminal(ms: Miniscript<Pk, Ctx>) -> AstElemExt<Pk, Ctx> {
+        AstElemExt { comp_ext_data: CompilerExtData::type_check(ms.as_inner()), ms: Arc::new(ms) }
     }
 
     fn binary(
@@ -520,7 +549,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> AstElemExt<Pk, Ctx> {
         //Types and ExtData are already cached and stored in children. So, we can
         //type_check without cache. For Compiler extra data, we supply a cache.
         let ty = types::Type::type_check(&ast)?;
-        let ext = types::ExtData::type_check(&ast)?;
+        let ext = types::ExtData::type_check(&ast);
         let comp_ext_data = CompilerExtData::type_check_with_child(&ast, lookup_ext);
         Ok(AstElemExt {
             ms: Arc::new(Miniscript::from_components_unchecked(ast, ty, ext)),
@@ -543,7 +572,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> AstElemExt<Pk, Ctx> {
         //Types and ExtData are already cached and stored in children. So, we can
         //type_check without cache. For Compiler extra data, we supply a cache.
         let ty = types::Type::type_check(&ast)?;
-        let ext = types::ExtData::type_check(&ast)?;
+        let ext = types::ExtData::type_check(&ast);
         let comp_ext_data = CompilerExtData::type_check_with_child(&ast, lookup_ext);
         Ok(AstElemExt {
             ms: Arc::new(Miniscript::from_components_unchecked(ast, ty, ext)),
@@ -654,9 +683,10 @@ fn insert_elem<Pk: MiniscriptKey, Ctx: ScriptContext>(
     sat_prob: f64,
     dissat_prob: Option<f64>,
 ) -> bool {
-    // return malleable types directly. If a elem is malleable under current context,
-    // all the casts to it are also going to be malleable
-    if !elem.ms.ty.mall.non_malleable && Ctx::check_terminal_non_malleable(&elem.ms.node).is_ok() {
+    // We check before compiling that non-malleable satisfactions exist, and it appears that
+    // there are no cases when malleable satisfactions beat non-malleable ones (and if there
+    // are, we don't want to use them). Anyway, detect these and early return.
+    if !elem.ms.ty.mall.non_malleable {
         return false;
     }
 
@@ -671,13 +701,10 @@ fn insert_elem<Pk: MiniscriptKey, Ctx: ScriptContext>(
     // Check whether the new element is worse than any existing element. If there
     // is an element which is a subtype of the current element and has better
     // cost, don't consider this element.
-    let is_worse = map
-        .iter()
-        .map(|(existing_key, existing_elem)| {
-            let existing_elem_cost = existing_elem.cost_1d(sat_prob, dissat_prob);
-            existing_key.is_subtype(elem_key) && existing_elem_cost <= elem_cost
-        })
-        .any(|x| x);
+    let is_worse = map.iter().any(|(existing_key, existing_elem)| {
+        let existing_elem_cost = existing_elem.cost_1d(sat_prob, dissat_prob);
+        existing_key.is_subtype(elem_key) && existing_elem_cost <= elem_cost
+    });
     if !is_worse {
         // If the element is not worse any element in the map, remove elements
         // whose subtype is the current element and have worse cost.
@@ -799,29 +826,29 @@ where
 
     match *policy {
         Concrete::Unsatisfiable => {
-            insert_wrap!(AstElemExt::terminal(Terminal::False));
+            insert_wrap!(AstElemExt::terminal(Miniscript::FALSE));
         }
         Concrete::Trivial => {
-            insert_wrap!(AstElemExt::terminal(Terminal::True));
+            insert_wrap!(AstElemExt::terminal(Miniscript::TRUE));
         }
         Concrete::Key(ref pk) => {
-            insert_wrap!(AstElemExt::terminal(Terminal::PkH(pk.clone())));
-            insert_wrap!(AstElemExt::terminal(Terminal::PkK(pk.clone())));
+            insert_wrap!(AstElemExt::terminal(Miniscript::pk_h(pk.clone())));
+            insert_wrap!(AstElemExt::terminal(Miniscript::pk_k(pk.clone())));
         }
-        Concrete::After(n) => insert_wrap!(AstElemExt::terminal(Terminal::After(n))),
-        Concrete::Older(n) => insert_wrap!(AstElemExt::terminal(Terminal::Older(n))),
+        Concrete::After(n) => insert_wrap!(AstElemExt::terminal(Miniscript::after(n))),
+        Concrete::Older(n) => insert_wrap!(AstElemExt::terminal(Miniscript::older(n))),
         Concrete::Sha256(ref hash) => {
-            insert_wrap!(AstElemExt::terminal(Terminal::Sha256(hash.clone())))
+            insert_wrap!(AstElemExt::terminal(Miniscript::sha256(hash.clone())))
         }
         // Satisfaction-cost + script-cost
         Concrete::Hash256(ref hash) => {
-            insert_wrap!(AstElemExt::terminal(Terminal::Hash256(hash.clone())))
+            insert_wrap!(AstElemExt::terminal(Miniscript::hash256(hash.clone())))
         }
         Concrete::Ripemd160(ref hash) => {
-            insert_wrap!(AstElemExt::terminal(Terminal::Ripemd160(hash.clone())))
+            insert_wrap!(AstElemExt::terminal(Miniscript::ripemd160(hash.clone())))
         }
         Concrete::Hash160(ref hash) => {
-            insert_wrap!(AstElemExt::terminal(Terminal::Hash160(hash.clone())))
+            insert_wrap!(AstElemExt::terminal(Miniscript::hash160(hash.clone())))
         }
         Concrete::And(ref subs) => {
             assert_eq!(subs.len(), 2, "and takes 2 args");
@@ -841,7 +868,7 @@ where
             let mut zero_comp = BTreeMap::new();
             zero_comp.insert(
                 CompilationKey::from_type(Type::FALSE, ExtData::FALSE.has_free_verify, dissat_prob),
-                AstElemExt::terminal(Terminal::False),
+                AstElemExt::terminal(Miniscript::FALSE),
             );
             compile_tern!(&mut left, &mut q_zero_right, &mut zero_comp, [1.0, 0.0]);
             compile_tern!(&mut right, &mut q_zero_left, &mut zero_comp, [1.0, 0.0]);
@@ -1028,12 +1055,12 @@ where
                 match Ctx::sig_type() {
                     SigType::Schnorr => {
                         if let Ok(pk_thresh) = pk_thresh.set_maximum() {
-                            insert_wrap!(AstElemExt::terminal(Terminal::MultiA(pk_thresh)))
+                            insert_wrap!(AstElemExt::terminal(Miniscript::multi_a(pk_thresh)))
                         }
                     }
                     SigType::Ecdsa => {
                         if let Ok(pk_thresh) = pk_thresh.set_maximum() {
-                            insert_wrap!(AstElemExt::terminal(Terminal::Multi(pk_thresh)))
+                            insert_wrap!(AstElemExt::terminal(Miniscript::multi(pk_thresh)))
                         }
                     }
                 }
@@ -1511,7 +1538,7 @@ mod tests {
     }
 
     #[test]
-    fn segwit_limits() {
+    fn segwit_limits_1() {
         // Hit the maximum witness script size limit.
         // or(thresh(52, [pubkey; 52]), thresh(52, [pubkey; 52])) results in a 3642-bytes long
         // witness script with only 54 stack elements
@@ -1537,7 +1564,10 @@ mod tests {
             "Compilation succeeded with a witscript size of '{:?}'",
             script_size,
         );
+    }
 
+    #[test]
+    fn segwit_limits_2() {
         // Hit the maximum witness stack elements limit
         let (keys, _) = pubkeys_and_a_sig(100);
         let keys: Vec<Arc<Concrete<bitcoin::PublicKey>>> = keys
@@ -1567,7 +1597,7 @@ mod tests {
         )
         .unwrap();
         let thresh_res: Result<SegwitMiniScript, _> = Concrete::Thresh(thresh).compile();
-        let ops_count = thresh_res.clone().map(|m| m.ext.ops.op_count());
+        let ops_count = thresh_res.clone().map(|m| m.ext.sat_op_count());
         assert_eq!(
             thresh_res,
             Err(CompilerError::LimitsExceeded),
@@ -1583,7 +1613,7 @@ mod tests {
         .unwrap();
 
         let thresh_res = Concrete::Thresh(thresh).compile::<Legacy>();
-        let ops_count = thresh_res.clone().map(|m| m.ext.ops.op_count());
+        let ops_count = thresh_res.clone().map(|m| m.ext.sat_op_count());
         assert_eq!(
             thresh_res,
             Err(CompilerError::LimitsExceeded),
@@ -1624,54 +1654,5 @@ mod tests {
                 assert_eq!(small_thresh_ms, ms_str!("multi_a({},B,C,D)", k));
             }
         }
-    }
-}
-
-#[cfg(bench)]
-mod benches {
-    use std::str::FromStr;
-
-    use test::{black_box, Bencher};
-
-    use super::{CompilerError, Concrete};
-    use crate::miniscript::Tap;
-    use crate::prelude::*;
-    use crate::Miniscript;
-    type TapMsRes = Result<Miniscript<String, Tap>, CompilerError>;
-    #[bench]
-    pub fn compile_basic(bh: &mut Bencher) {
-        let h = (0..64).map(|_| "a").collect::<String>();
-        let pol = Concrete::<String>::from_str(&format!(
-            "and(thresh(2,and(sha256({}),or(sha256({}),pk(A))),pk(B),pk(C),pk(D),sha256({})),pk(E))",
-            h, h, h
-        ))
-        .expect("parsing");
-        bh.iter(|| {
-            let pt: TapMsRes = pol.compile();
-            black_box(pt).unwrap();
-        });
-    }
-
-    #[bench]
-    pub fn compile_large(bh: &mut Bencher) {
-        let h = (0..64).map(|_| "a").collect::<String>();
-        let pol = Concrete::<String>::from_str(
-            &format!("or(pk(L),thresh(9,sha256({}),pk(A),pk(B),and(or(pk(C),pk(D)),pk(E)),after(100),pk(F),pk(G),pk(H),pk(I),and(pk(J),pk(K))))", h)
-        ).expect("parsing");
-        bh.iter(|| {
-            let pt: TapMsRes = pol.compile();
-            black_box(pt).unwrap();
-        });
-    }
-
-    #[bench]
-    pub fn compile_xlarge(bh: &mut Bencher) {
-        let pol = Concrete::<String>::from_str(
-            "or(pk(A),thresh(4,pk(B),older(100),pk(C),and(after(100),or(pk(D),or(pk(E),and(pk(F),thresh(2,pk(G),or(pk(H),and(thresh(5,pk(I),or(pk(J),pk(K)),pk(L),pk(M),pk(N),pk(O),pk(P),pk(Q),pk(R),pk(S),pk(T)),pk(U))),pk(V),or(and(pk(W),pk(X)),pk(Y)),after(100)))))),pk(Z)))"
-        ).expect("parsing");
-        bh.iter(|| {
-            let pt: TapMsRes = pol.compile();
-            black_box(pt).unwrap();
-        });
     }
 }

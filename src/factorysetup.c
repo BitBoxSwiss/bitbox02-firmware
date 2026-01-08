@@ -275,7 +275,8 @@ static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
             return false;
         }
         // util_log("read %s", util_dbg_hex(buffer, read));
-        uint16_t len = *((uint16_t*)buffer);
+        uint16_t len;
+        memcpy(&len, buffer, sizeof(len));
         if (len >= BUFFER_SIZE_DOWN - LENSIZE) {
             screen_sprintf_debug(
                 2000, "Error: read more than buffer size: %d bytes (total read: %d)", len, read);

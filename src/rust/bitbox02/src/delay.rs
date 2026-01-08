@@ -121,6 +121,8 @@ impl Drop for Delay {
     }
 }
 
-pub fn delay_for(duration: Duration) -> Delay {
-    Delay::from_ms(duration.as_millis() as u32)
+pub async fn delay_for(#[allow(unused)] duration: Duration) {
+    // Do not delay in (non-graphical) simulator and Rust unit tests.
+    #[cfg(not(any(feature = "c-unit-testing", feature = "testing")))]
+    Delay::from_ms(duration.as_millis() as u32).await
 }

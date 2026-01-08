@@ -1573,9 +1573,9 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.16.1"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfe949189f46fabb938b3a9a0be30fdd93fd8a09260da863399a8cf3db756ec8"
+checksum = "a1dc47f592c06f33f8e3aea9591776ec7c9f9e4124778ff8a3c3b87159f7e593"
 
 [[package]]
 name = "matchers"
@@ -3110,6 +3110,7 @@ dependencies = [
  "hex",
  "num-bigint",
  "sha2",
+ "zeroize",
 ]
 
 [[package]]

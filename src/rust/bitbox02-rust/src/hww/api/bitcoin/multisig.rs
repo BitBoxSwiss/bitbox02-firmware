@@ -10,7 +10,7 @@ use pb::btc_script_config::{Multisig, multisig::ScriptType};
 
 use crate::bip32;
 
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::confirm;
 
 use alloc::string::String;
@@ -99,20 +99,22 @@ pub fn get_hash(
 /// The keypath is the account-level keypath.
 ///
 /// Returns the name of the registered multisig account if it exists or None otherwise.
-pub fn get_name(coin: BtcCoin, multisig: &Multisig, keypath: &[u32]) -> Result<Option<String>, ()> {
+pub fn get_name(
+    hal: &mut impl crate::hal::Hal,
+    coin: BtcCoin,
+    multisig: &Multisig,
+    keypath: &[u32],
+) -> Result<Option<String>, ()> {
     // First try using sorted xpubs (the default registration since v9.3.0).
-    if let Some(name) =
-        bitbox02::memory::multisig_get_by_hash(&get_hash(coin, multisig, SortXpubs::Yes, keypath)?)
-    {
+    let hash_sorted_vec = get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
+    let hash_sorted: [u8; 32] = hash_sorted_vec.as_slice().try_into().unwrap();
+    if let Some(name) = hal.memory().multisig_get_by_hash(&hash_sorted) {
         return Ok(Some(name));
     }
     // If that did not exist, try with unsorted xpubs for backwards compatibility.
-    Ok(bitbox02::memory::multisig_get_by_hash(&get_hash(
-        coin,
-        multisig,
-        SortXpubs::No,
-        keypath,
-    )?))
+    let hash_unsorted_vec = get_hash(coin, multisig, SortXpubs::No, keypath)?;
+    let hash_unsorted: [u8; 32] = hash_unsorted_vec.as_slice().try_into().unwrap();
+    Ok(hal.memory().multisig_get_by_hash(&hash_unsorted))
 }
 
 /// Confirms a multisig setup with the user during send/receive.

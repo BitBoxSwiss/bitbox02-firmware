@@ -294,6 +294,11 @@ fn fake_memory_factoryreset() {
     unsafe { bitbox02_sys::fake_memory_factoryreset() }
 }
 
+#[cfg(feature = "simulator-graphical")]
+pub fn fake_nova() -> bool {
+    unsafe { bitbox02_sys::fake_memory_nova() }
+}
+
 #[cfg(test)]
 fn memory_bootloader_hash() -> [u8; 32] {
     let mut out = [0u8; 32];

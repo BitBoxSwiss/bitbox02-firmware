@@ -17,7 +17,7 @@ use util::bip32::HARDENED;
 use miniscript::TranslatePk;
 
 use crate::bip32;
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::confirm;
 use crate::xpubcache::Bip32XpubCache;
 
@@ -268,8 +268,12 @@ impl ParsedPolicy<'_> {
     /// Get the name of a registered policy account.
     ///
     /// Returns the name of the registered policy account if it exists or None otherwise.
-    pub fn name(&self, params: &Params) -> Result<Option<String>, ()> {
-        get_name(params.coin, self.policy)
+    pub fn name(
+        &self,
+        hal: &mut impl crate::hal::Hal,
+        params: &Params,
+    ) -> Result<Option<String>, ()> {
+        get_name(hal, params.coin, self.policy)
     }
 
     /// Iterates over the placeholder keys in this descriptor. For tr() descriptors, this covers the
@@ -755,10 +759,14 @@ pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
 /// pre-validated!
 ///
 /// Returns the name of the registered policy account if it exists or None otherwise.
-pub fn get_name(coin: BtcCoin, policy: &Policy) -> Result<Option<String>, ()> {
-    Ok(bitbox02::memory::multisig_get_by_hash(&get_hash(
-        coin, policy,
-    )?))
+pub fn get_name(
+    hal: &mut impl crate::hal::Hal,
+    coin: BtcCoin,
+    policy: &Policy,
+) -> Result<Option<String>, ()> {
+    let hash_vec = get_hash(coin, policy)?;
+    let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+    Ok(hal.memory().multisig_get_by_hash(&hash32))
 }
 
 #[cfg(test)]

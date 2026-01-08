@@ -196,7 +196,7 @@ pub async fn address_multisig(
         .or(Err(Error::InvalidInput))?;
     let account_keypath = &keypath[..keypath.len() - 2];
     multisig::validate(hal, multisig, account_keypath)?;
-    let name = match multisig::get_name(coin, multisig, account_keypath)? {
+    let name = match multisig::get_name(hal, coin, multisig, account_keypath)? {
         Some(name) => name,
         None => return Err(Error::InvalidInput),
     };
@@ -239,7 +239,7 @@ async fn address_policy(
 
     let parsed = policies::parse(hal, policy, coin)?;
 
-    let name = parsed.name(coin_params)?.ok_or(Error::InvalidInput)?;
+    let name = parsed.name(hal, coin_params)?.ok_or(Error::InvalidInput)?;
 
     let title = "Receive to";
 
@@ -300,7 +300,7 @@ pub async fn process_api(
 ) -> Result<pb::btc_response::Response, Error> {
     match request {
         Request::IsScriptConfigRegistered(request) => {
-            registration::process_is_script_config_registered(request)
+            registration::process_is_script_config_registered(hal, request)
         }
         Request::RegisterScriptConfig(request) => {
             registration::process_register_script_config(hal, request).await
@@ -322,7 +322,7 @@ mod tests {
     use super::*;
 
     use crate::bip32::parse_xpub;
-    use crate::hal::testing::TestingHal;
+    use crate::hal::{Memory, testing::TestingHal};
     use crate::keystore::testing::{TEST_MNEMONIC, mock_unlocked, mock_unlocked_using_mnemonic};
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
@@ -997,17 +997,17 @@ mod tests {
                 our_xpub_index: test.our_xpub_index,
                 script_type: test.script_type as _,
             };
-            bitbox02::memory::multisig_set_by_hash(
-                &multisig::get_hash(
-                    test.coin,
-                    &multisig,
-                    multisig::SortXpubs::Yes,
-                    &test.keypath[..test.keypath.len() - 2],
-                )
-                .unwrap(),
-                name,
+            let mut mock_hal = TestingHal::new();
+            let account_keypath = &test.keypath[..test.keypath.len() - 2];
+            let hash_vec = multisig::get_hash(
+                test.coin,
+                &multisig,
+                multisig::SortXpubs::Yes,
+                account_keypath,
             )
             .unwrap();
+            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+            mock_hal.memory.multisig_set_by_hash(&hash32, name).unwrap();
             let req = pb::BtcPubRequest {
                 coin: test.coin as _,
                 keypath: test.keypath.to_vec(),
@@ -1016,8 +1016,6 @@ mod tests {
                     config: Some(Config::Multisig(multisig)),
                 })),
             };
-
-            let mut mock_hal = TestingHal::new();
             assert_eq!(
                 block_on(process_pub(&mut mock_hal, &req)),
                 Ok(Response::Pub(pb::PubResponse {
@@ -1170,14 +1168,12 @@ mod tests {
             };
 
             // Register policy.
-            mock_memory();
             let name = "some name";
-            bitbox02::memory::multisig_set_by_hash(
-                &policies::get_hash(test.coin, &policy).unwrap(),
-                name,
-            )
-            .unwrap();
-
+            let mut mock_hal = TestingHal::new();
+            use core::convert::TryInto;
+            let hash_vec = policies::get_hash(test.coin, &policy).unwrap();
+            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+            mock_hal.memory.multisig_set_by_hash(&hash32, name).unwrap();
             let req = pb::BtcPubRequest {
                 coin: test.coin as _,
                 keypath: test.keypath.to_vec(),
@@ -1187,7 +1183,7 @@ mod tests {
                 })),
             };
             assert_eq!(
-                block_on(process_pub(&mut TestingHal::new(), &req)),
+                block_on(process_pub(&mut mock_hal, &req)),
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),

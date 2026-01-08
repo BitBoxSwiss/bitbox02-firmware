@@ -68,7 +68,6 @@ else()
       mocks
       fatfs
       -Wl,--end-group
-      secp256k1
       ${TEST_LINK_ARGS}
     )
     target_include_directories(${EXE} PRIVATE
@@ -143,7 +142,6 @@ foreach(TEST_NAME ${U2F_TESTS})
     fatfs
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
     u2f-util
-    secp256k1
   )
   add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
 

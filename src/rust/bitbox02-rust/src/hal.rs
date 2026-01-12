@@ -822,10 +822,6 @@ pub mod testing {
             if name.is_empty() {
                 return Err(bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT);
             }
-            let empty_hash = [0xFFu8; 32];
-            if hash == &empty_hash {
-                return Err(bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT);
-            }
             // Check for duplicate name with different hash
             for (existing_hash, existing_name) in &self.multisig_entries {
                 if existing_name == name {

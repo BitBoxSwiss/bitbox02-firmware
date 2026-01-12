@@ -125,9 +125,8 @@ pub async fn process_register_script_config(
                 keypath,
             )
             .await?;
-            let hash_vec = super::multisig::get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
-            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-            match hal.memory().multisig_set_by_hash(&hash32, &name) {
+            let hash = super::multisig::get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
+            match hal.memory().multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
                     hal.ui().status("Multisig account\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
@@ -159,9 +158,8 @@ pub async fn process_register_script_config(
                     super::policies::Mode::Advanced,
                 )
                 .await?;
-            let hash_vec = super::policies::get_hash(coin, policy)?;
-            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-            match hal.memory().multisig_set_by_hash(&hash32, &name) {
+            let hash = super::policies::get_hash(coin, policy)?;
+            match hal.memory().multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
                     hal.ui().status("Policy\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
@@ -209,10 +207,9 @@ mod tests {
                 script_type: ScriptType::P2wsh as _,
             };
 
-            let hash_vec =
+            let hash =
                 super::super::multisig::get_hash(BtcCoin::Btc, &multisig, sort_xpubs, keypath)
                     .unwrap();
-            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
 
             let request = pb::BtcIsScriptConfigRegisteredRequest {
                 registration: Some(pb::BtcScriptConfigRegistration {
@@ -234,7 +231,7 @@ mod tests {
 
             mock_hal
                 .memory
-                .multisig_set_by_hash(&hash32, "some name")
+                .multisig_set_by_hash(&hash, "some name")
                 .unwrap();
 
             assert_eq!(

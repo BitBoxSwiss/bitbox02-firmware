@@ -720,7 +720,7 @@ pub enum Mode {
 }
 
 /// Creates a hash of this policy config, useful for registration and identification.
-pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
+pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<[u8; 32], ()> {
     let mut hasher = Sha256::new();
     {
         // 1. Type of registration: policy.
@@ -752,7 +752,7 @@ pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
             hasher.update(&bip32::Xpub::from(key.xpub.as_ref().unwrap()).serialize(None)?);
         }
     }
-    Ok(hasher.finalize().as_slice().into())
+    Ok(hasher.finalize().into())
 }
 
 /// Get the name of a registered policy account. The policy is not validated, it must be
@@ -764,9 +764,8 @@ pub fn get_name(
     coin: BtcCoin,
     policy: &Policy,
 ) -> Result<Option<String>, ()> {
-    let hash_vec = get_hash(coin, policy)?;
-    let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-    Ok(hal.memory().multisig_get_by_hash(&hash32))
+    let hash = get_hash(coin, policy)?;
+    Ok(hal.memory().multisig_get_by_hash(&hash))
 }
 
 #[cfg(test)]

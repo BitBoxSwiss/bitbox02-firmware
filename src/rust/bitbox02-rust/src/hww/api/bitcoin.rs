@@ -999,15 +999,14 @@ mod tests {
             };
             let mut mock_hal = TestingHal::new();
             let account_keypath = &test.keypath[..test.keypath.len() - 2];
-            let hash_vec = multisig::get_hash(
+            let hash = multisig::get_hash(
                 test.coin,
                 &multisig,
                 multisig::SortXpubs::Yes,
                 account_keypath,
             )
             .unwrap();
-            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-            mock_hal.memory.multisig_set_by_hash(&hash32, name).unwrap();
+            mock_hal.memory.multisig_set_by_hash(&hash, name).unwrap();
             let req = pb::BtcPubRequest {
                 coin: test.coin as _,
                 keypath: test.keypath.to_vec(),
@@ -1171,9 +1170,8 @@ mod tests {
             let name = "some name";
             let mut mock_hal = TestingHal::new();
             use core::convert::TryInto;
-            let hash_vec = policies::get_hash(test.coin, &policy).unwrap();
-            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-            mock_hal.memory.multisig_set_by_hash(&hash32, name).unwrap();
+            let hash = policies::get_hash(test.coin, &policy).unwrap();
+            mock_hal.memory.multisig_set_by_hash(&hash, name).unwrap();
             let req = pb::BtcPubRequest {
                 coin: test.coin as _,
                 keypath: test.keypath.to_vec(),

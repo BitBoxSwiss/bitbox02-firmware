@@ -1835,23 +1835,19 @@ mod tests {
             let mut mock_hal = TestingHal::new();
 
             // Register multisig.
-            let hash_vec = super::super::multisig::get_hash(
+            let hash = super::super::multisig::get_hash(
                 params.coin,
                 &multisig,
                 super::super::multisig::SortXpubs::Yes,
                 keypath,
             )
             .unwrap();
-            let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
             mock_hal
                 .memory
-                .multisig_set_by_hash(&hash32, "test name")
+                .multisig_set_by_hash(&hash, "test name")
                 .unwrap();
 
-            assert!(
-                super::super::multisig::validate(&mut mock_hal, &multisig, keypath)
-                    .is_ok()
-            );
+            assert!(super::super::multisig::validate(&mut mock_hal, &multisig, keypath).is_ok());
 
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs = vec![
@@ -3261,11 +3257,10 @@ mod tests {
         };
 
         // Register policy.
-        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+        let hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
         mock_hal
             .memory
-            .multisig_set_by_hash(&hash32, "test policy account name")
+            .multisig_set_by_hash(&hash, "test policy account name")
             .unwrap();
 
         let result = block_on(process(

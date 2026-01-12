@@ -35,7 +35,7 @@ pub fn get_hash(
     multisig: &Multisig,
     sort_xpubs: SortXpubs,
     keypath: &[u32],
-) -> Result<Vec<u8>, ()> {
+) -> Result<[u8; 32], ()> {
     let mut hasher = Sha256::new();
     {
         // 1. coin
@@ -90,7 +90,7 @@ pub fn get_hash(
             hasher.update(el.to_le_bytes());
         }
     }
-    Ok(hasher.finalize().as_slice().into())
+    Ok(hasher.finalize().into())
 }
 
 /// Get the name of a registered multisig account. The individual params are not validated, they
@@ -106,14 +106,12 @@ pub fn get_name(
     keypath: &[u32],
 ) -> Result<Option<String>, ()> {
     // First try using sorted xpubs (the default registration since v9.3.0).
-    let hash_sorted_vec = get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
-    let hash_sorted: [u8; 32] = hash_sorted_vec.as_slice().try_into().unwrap();
+    let hash_sorted = get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
     if let Some(name) = hal.memory().multisig_get_by_hash(&hash_sorted) {
         return Ok(Some(name));
     }
     // If that did not exist, try with unsorted xpubs for backwards compatibility.
-    let hash_unsorted_vec = get_hash(coin, multisig, SortXpubs::No, keypath)?;
-    let hash_unsorted: [u8; 32] = hash_unsorted_vec.as_slice().try_into().unwrap();
+    let hash_unsorted = get_hash(coin, multisig, SortXpubs::No, keypath)?;
     Ok(hal.memory().multisig_get_by_hash(&hash_unsorted))
 }
 
@@ -366,24 +364,24 @@ mod tests {
         };
 
         assert_eq!(
-            get_hash(BtcCoin::Btc, &multisig, SortXpubs::No, keypath).unwrap(),
             hex::decode("b0267fbb26ba0e74bad825c987949f58ba22aa75f63b539986dd937607bb4dc3")
                 .unwrap(),
+            get_hash(BtcCoin::Btc, &multisig, SortXpubs::No, keypath).unwrap(),
         );
         assert_eq!(
-            get_hash(BtcCoin::Tbtc, &multisig, SortXpubs::No, keypath).unwrap(),
             hex::decode("3800cb87a1e346eb4a61e25c4775e663f613090aa2bf3fddb057462d174b56ef")
                 .unwrap(),
+            get_hash(BtcCoin::Tbtc, &multisig, SortXpubs::No, keypath).unwrap(),
         );
         assert_eq!(
-            get_hash(BtcCoin::Ltc, &multisig, SortXpubs::No, keypath).unwrap(),
             hex::decode("6cf181d3e131eafefd4258084e5e48366a32d59be80a0afb13345589294ccf2d")
                 .unwrap(),
+            get_hash(BtcCoin::Ltc, &multisig, SortXpubs::No, keypath).unwrap(),
         );
         assert_eq!(
-            get_hash(BtcCoin::Tltc, &multisig, SortXpubs::No, keypath).unwrap(),
             hex::decode("0e5ee1d18a74d22cf7e3255a3529b9a453e9b080005ca0bd886f6decf9e4b845")
                 .unwrap(),
+            get_hash(BtcCoin::Tltc, &multisig, SortXpubs::No, keypath).unwrap(),
         );
 
         let multisig_p2wsh_p2sh = Multisig {
@@ -396,9 +394,9 @@ mod tests {
             script_type: ScriptType::P2wshP2sh as _,
         };
         assert_eq!(
-            get_hash(BtcCoin::Btc, &multisig_p2wsh_p2sh, SortXpubs::No, keypath).unwrap(),
             hex::decode("24513114c36f5c1f82d7b30c1431fad248d062dfa133d0f52ca85708b5a3fc2c")
                 .unwrap(),
+            get_hash(BtcCoin::Btc, &multisig_p2wsh_p2sh, SortXpubs::No, keypath).unwrap(),
         );
 
         // Test that the hash is correct, and the same for all xpubs permutations if xpubs sort is
@@ -561,9 +559,9 @@ mod tests {
                 script_type: ScriptType::P2wsh as _,
             };
             assert_eq!(
-                get_hash(BtcCoin::Btc, &multisig, SortXpubs::Yes, keypath).unwrap(),
                 hex::decode("e09011232d85b49a9fd5b83d6bef42ff60a50b69b56218333cb61d93c1567fbe")
                     .unwrap(),
+                get_hash(BtcCoin::Btc, &multisig, SortXpubs::Yes, keypath).unwrap(),
             );
         }
     }

@@ -1310,7 +1310,7 @@ mod tests {
                     1 + HARDENED,
                     0 + HARDENED,
                     3 + HARDENED,
-                    20,
+                    30,
                     5,
                 ],
             )

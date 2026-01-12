@@ -351,7 +351,6 @@ extern uint8_t bootloader_pairing_code_bytes[4];
 
 void bootloader_render_ble_confirm_screen(bool confirmed)
 {
-    qtouch_force_calibrate();
     bootloader_pairing_request = true;
     uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
     char code_str[10] = {0};

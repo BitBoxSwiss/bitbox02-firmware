@@ -12,7 +12,7 @@
     #include "qtouch.h"
     #define TOUCH_NUM_BUTTONS DEF_NUM_CHANNELS
     #define TOUCH_NUM_SLIDERS DEF_NUM_SCROLLERS
-    #define MAX_SLIDER_POS (DEF_SCROLLER_RESOLUTION - 1)
+    #define MAX_SLIDER_POS ((1 << DEF_SCROLLER_RESOLUTION) - 1)
 #else
     #define TOUCH_NUM_BUTTONS (8)
     #define TOUCH_NUM_SLIDERS (2)

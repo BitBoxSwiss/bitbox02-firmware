@@ -6,8 +6,14 @@ set -x
 # Import all keys
 find ./releases/pubkeys -name '*.asc' -exec gpg --quiet --import {} \;
 
-# Verify all sigs.
-find ./releases -name '*.sig' |
-    while read file; do
-        gpg --verify $file $(dirname $file)/assertion.txt 2>/dev/null
+# Verify all sigs. Find all assertion files - both old formats (just assertion.txt until v9.24.0)
+# and new formats (assertion-<product>.txt from v9.25.0)
+find ./releases -name 'assertion*.txt' | while read assertion_file; do
+    assertion_name=$(basename "$assertion_file" .txt)
+    dir=$(dirname "$assertion_file")
+
+    # Find all corresponding signature files
+    find "$dir" -name "${assertion_name}-*.sig" | while read sig_file; do
+        gpg --verify "$sig_file" "$assertion_file" 2>/dev/null
     done
+done

@@ -101,3 +101,7 @@ c-unit-testing = []
 simulator-graphical = []
 
 firmware = []
+
+[dev-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

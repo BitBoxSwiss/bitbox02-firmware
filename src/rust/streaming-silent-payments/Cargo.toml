@@ -12,6 +12,6 @@ bitcoin = { workspace = true }
 bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
 
 [dev-dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
 hex = { workspace = true }
-serde_json = "1.0"
+serde_json = { workspace = true }

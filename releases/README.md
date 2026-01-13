@@ -40,6 +40,15 @@ gpg --import pubkeys/benma.asc
 gpg --verify assertion-benma.sig assertion.txt
 ```
 
+From v9.25.0, the assertion filename contains the product name:
+
+```sh
+cd firmware-v9.25.0/
+# import any missing public keys
+gpg --import pubkeys/benma.asc
+gpg --verify assertion-bitbox02-multi-benma.sig assertion-bitbox02-multi.txt
+```
+
 A valid signature means that the signer confirms that they could reproduce the binary from the
 stated version tag.
 
@@ -82,8 +91,10 @@ Run `./build.sh <version tag> <make command>`, e.g.:
 
 ```sh
 ./build.sh firmware/v4.1.0 "make firmware"
-# or Bitcoin-only:
-./build.sh firmware-btc-only/v4.1.0 "make firmware-btc"
+# or Bitcoin-only, from v9.25.0:
+./build.sh firmware/v9.25.0 "make firmware-btc"
+# or Bitcoin-only, until v9.24.0:
+./build.sh firmware-btc-only/v9.24.0 "make firmware-btc"
 ```
 
 This script is very simple and you can review it or run all the steps inside manually.
@@ -101,13 +112,18 @@ shasum -a 256 temp/build/bin/firmware-btc.bin # bitcoin-only firmware
 
 ### Contributing your signature
 
-Please inspect the `assertion.txt` in the relevant subfolder,
-e.g. [firmware-v4.1.0/assertion.txt](firmware-v4.1.0/assertion.txt). If you agree to its contents
-and verified that the sha256 hash therein matches the one you got, please sign the file using:
+Please inspect the `assertion-bitbox02-multi.txt`/`assertion-bitbox02-btconly.txt` in the relevant
+subfolder, e.g.
+[firmware-v9.25.0/assertion-bitbox02-multi.txt](firmware-v9.25.0/assertion-bitbox02-multi.txt). If
+you agree to its contents and verified that the sha256 hash therein matches the one you got, please
+sign the file using:
 
 ```sh
-cd firmware/v4.1.0 # go to the relevant subfolder
-gpg -o assertion-YOURNAME.sig --detach-sign assertion.txt
+cd firmware/v9.25.0 # go to the relevant subfolder
+# For BitBox02 Multi
+gpg -o assertion-bitbox02-multi-YOURNAME.sig --detach-sign assertion-bitbox02-multi.txt
+# For BitBox02 Bitcoin-only
+gpg -o assertion-bitbox02-btconly-YOURNAME.sig --detach-sign assertion-bitbox02-btconly.txt
 ```
 
 Open a PR adding your signature file to this folder. Also add your pgp pubkey to the

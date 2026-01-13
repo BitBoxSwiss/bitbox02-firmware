@@ -57,19 +57,28 @@ func randbytes(n int) []byte {
 	return res
 }
 
+func generateDataSize(i int) int {
+	// 80% small (0-1024 bytes), 20% large (8KB, 12KB, 15KB, 60KB)
+	if i%5 == 0 {
+		largeSizes := []int{8 * 1024, 12 * 1024, 15 * 1024, 60 * 1024}
+		return largeSizes[rand.Intn(len(largeSizes))]
+	}
+	return rand.Intn(1025)
+}
+
 func main() {
 	rand.Seed(42)
 
 	var tests []TestCase
 
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 100; i++ {
 		recipient := randbytes(20)
 		nonce := uint64(rand.Intn(10000))
 		amount := new(big.Int).SetBytes(randbytes(rand.Intn(16) + 1))
 
 		gasLimit := rand.Uint64()
 		gasPrice := new(big.Int).SetBytes(randbytes(rand.Intn(16) + 1))
-		data := randbytes(rand.Intn(1025))
+		data := randbytes(generateDataSize(i))
 
 		net := nets[rand.Intn(len(nets))]
 

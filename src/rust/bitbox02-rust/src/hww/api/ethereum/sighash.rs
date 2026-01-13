@@ -331,13 +331,13 @@ pub mod tests {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(
             move |response: crate::pb::response::Response| match response {
                 crate::pb::response::Response::Eth(crate::pb::EthResponse {
-                    response: Some(super::super::pb::eth_response::Response::DataChunkRequest(req)),
+                    response: Some(super::super::pb::eth_response::Response::DataRequestChunk(req)),
                 }) => {
                     let offset = req.offset as usize;
                     let length = req.length as usize;
                     let chunk = data[offset..offset + length].to_vec();
                     Ok(crate::pb::request::Request::Eth(crate::pb::EthRequest {
-                        request: Some(super::super::pb::eth_request::Request::DataChunk(
+                        request: Some(super::super::pb::eth_request::Request::DataResponseChunk(
                             super::super::pb::EthSignDataResponseChunkRequest { chunk },
                         )),
                     }))

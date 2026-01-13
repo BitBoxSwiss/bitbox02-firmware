@@ -405,7 +405,10 @@ mod tests {
         assert!(bitwise_recovery(&[1], &[], &[1]).is_err());
         assert!(bitwise_recovery(&[], &[1], &[1]).is_err());
 
-        assert_eq!(bitwise_recovery(&[], &[], &[]).unwrap().as_slice(), &[]);
+        assert_eq!(
+            bitwise_recovery(&[], &[], &[]).unwrap().as_slice(),
+            &[] as &[u8]
+        );
         assert_eq!(
             bitwise_recovery(
                 &[

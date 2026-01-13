@@ -58,6 +58,16 @@ func randbytes(n int) []byte {
 	return res
 }
 
+func generateDataSize(i int) int {
+	// 80% small (0-1024 bytes), 20% large (5KB, 8KB, 12KB, 15KB)
+	if i%5 == 0 {
+		// Large data sizes for testing multi-chunk streaming
+		largeSizes := []int{5 * 1024, 8 * 1024, 12 * 1024, 15 * 1024}
+		return largeSizes[rand.Intn(len(largeSizes))]
+	}
+	return rand.Intn(1025)
+}
+
 func main() {
 	rand.Seed(42)
 
@@ -71,7 +81,7 @@ func main() {
 		recBytes := randbytes(20)
 		recipient := common.BytesToAddress(recBytes)
 		amount := new(big.Int).SetBytes(randbytes(rand.Intn(16) + 1))
-		data := randbytes(rand.Intn(1025))
+		data := randbytes(generateDataSize(i))
 		accessList := types.AccessList{}
 
 		net := nets[rand.Intn(len(nets))]

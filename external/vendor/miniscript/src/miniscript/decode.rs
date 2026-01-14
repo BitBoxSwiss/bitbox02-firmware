@@ -5,17 +5,19 @@
 //! Functionality to parse a Bitcoin Script into a `Miniscript`
 //!
 
-use core::fmt;
+use core::{fmt, mem};
 #[cfg(feature = "std")]
 use std::error;
 
 use bitcoin::hashes::{hash160, ripemd160, sha256, Hash};
 use sync::Arc;
 
+use crate::iter::TreeLike;
 use crate::miniscript::lex::{Token as Tk, TokenIter};
 use crate::miniscript::limits::{MAX_PUBKEYS_IN_CHECKSIGADD, MAX_PUBKEYS_PER_MULTISIG};
 use crate::miniscript::ScriptContext;
 use crate::prelude::*;
+use crate::primitives::threshold;
 #[cfg(doc)]
 use crate::Descriptor;
 use crate::{
@@ -25,47 +27,18 @@ use crate::{
 /// Trait for parsing keys from byte slices
 pub trait ParseableKey: Sized + ToPublicKey + private::Sealed {
     /// Parse a key from slice
-    fn from_slice(sl: &[u8]) -> Result<Self, KeyParseError>;
+    fn from_slice(sl: &[u8]) -> Result<Self, KeyError>;
 }
 
 impl ParseableKey for bitcoin::PublicKey {
-    fn from_slice(sl: &[u8]) -> Result<Self, KeyParseError> {
-        bitcoin::PublicKey::from_slice(sl).map_err(KeyParseError::FullKeyParseError)
+    fn from_slice(sl: &[u8]) -> Result<Self, KeyError> {
+        bitcoin::PublicKey::from_slice(sl).map_err(KeyError::Full)
     }
 }
 
 impl ParseableKey for bitcoin::secp256k1::XOnlyPublicKey {
-    fn from_slice(sl: &[u8]) -> Result<Self, KeyParseError> {
-        bitcoin::secp256k1::XOnlyPublicKey::from_slice(sl)
-            .map_err(KeyParseError::XonlyKeyParseError)
-    }
-}
-
-/// Decoding error while parsing keys
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum KeyParseError {
-    /// Bitcoin PublicKey parse error
-    FullKeyParseError(bitcoin::key::FromSliceError),
-    /// Xonly key parse Error
-    XonlyKeyParseError(bitcoin::secp256k1::Error),
-}
-
-impl fmt::Display for KeyParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            KeyParseError::FullKeyParseError(_e) => write!(f, "FullKey Parse Error"),
-            KeyParseError::XonlyKeyParseError(_e) => write!(f, "XonlyKey Parse Error"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl error::Error for KeyParseError {
-    fn cause(&self) -> Option<&(dyn error::Error + 'static)> {
-        match self {
-            KeyParseError::FullKeyParseError(e) => Some(e),
-            KeyParseError::XonlyKeyParseError(e) => Some(e),
-        }
+    fn from_slice(sl: &[u8]) -> Result<Self, KeyError> {
+        bitcoin::secp256k1::XOnlyPublicKey::from_slice(sl).map_err(KeyError::XOnly)
     }
 }
 
@@ -114,7 +87,6 @@ enum NonTerm {
 ///
 /// The average user should always use the [`Descriptor`] APIs. Advanced users who want deal
 /// with Miniscript ASTs should use the [`Miniscript`] APIs.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Terminal<Pk: MiniscriptKey, Ctx: ScriptContext> {
     /// `1`
     True,
@@ -185,6 +157,120 @@ pub enum Terminal<Pk: MiniscriptKey, Ctx: ScriptContext> {
     MultiA(Threshold<Pk, MAX_PUBKEYS_IN_CHECKSIGADD>),
 }
 
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> Clone for Terminal<Pk, Ctx> {
+    /// We implement clone as a "deep clone" which reconstructs the entire tree.
+    ///
+    /// If users just want to clone Arcs they can use Arc::clone themselves.
+    fn clone(&self) -> Self {
+        match self {
+            Terminal::PkK(ref p) => Terminal::PkK(p.clone()),
+            Terminal::PkH(ref p) => Terminal::PkH(p.clone()),
+            Terminal::RawPkH(ref p) => Terminal::RawPkH(*p),
+            Terminal::After(ref n) => Terminal::After(*n),
+            Terminal::Older(ref n) => Terminal::Older(*n),
+            Terminal::Sha256(ref x) => Terminal::Sha256(x.clone()),
+            Terminal::Hash256(ref x) => Terminal::Hash256(x.clone()),
+            Terminal::Ripemd160(ref x) => Terminal::Ripemd160(x.clone()),
+            Terminal::Hash160(ref x) => Terminal::Hash160(x.clone()),
+            Terminal::True => Terminal::True,
+            Terminal::False => Terminal::False,
+            Terminal::Alt(ref sub) => Terminal::Alt(Arc::new(Miniscript::clone(sub))),
+            Terminal::Swap(ref sub) => Terminal::Swap(Arc::new(Miniscript::clone(sub))),
+            Terminal::Check(ref sub) => Terminal::Check(Arc::new(Miniscript::clone(sub))),
+            Terminal::DupIf(ref sub) => Terminal::DupIf(Arc::new(Miniscript::clone(sub))),
+            Terminal::Verify(ref sub) => Terminal::Verify(Arc::new(Miniscript::clone(sub))),
+            Terminal::NonZero(ref sub) => Terminal::NonZero(Arc::new(Miniscript::clone(sub))),
+            Terminal::ZeroNotEqual(ref sub) => {
+                Terminal::ZeroNotEqual(Arc::new(Miniscript::clone(sub)))
+            }
+            Terminal::AndV(ref left, ref right) => Terminal::AndV(
+                Arc::new(Miniscript::clone(left)),
+                Arc::new(Miniscript::clone(right)),
+            ),
+            Terminal::AndB(ref left, ref right) => Terminal::AndB(
+                Arc::new(Miniscript::clone(left)),
+                Arc::new(Miniscript::clone(right)),
+            ),
+            Terminal::AndOr(ref a, ref b, ref c) => Terminal::AndOr(
+                Arc::new(Miniscript::clone(a)),
+                Arc::new(Miniscript::clone(b)),
+                Arc::new(Miniscript::clone(c)),
+            ),
+            Terminal::OrB(ref left, ref right) => {
+                Terminal::OrB(Arc::new(Miniscript::clone(left)), Arc::new(Miniscript::clone(right)))
+            }
+            Terminal::OrD(ref left, ref right) => {
+                Terminal::OrD(Arc::new(Miniscript::clone(left)), Arc::new(Miniscript::clone(right)))
+            }
+            Terminal::OrC(ref left, ref right) => {
+                Terminal::OrC(Arc::new(Miniscript::clone(left)), Arc::new(Miniscript::clone(right)))
+            }
+            Terminal::OrI(ref left, ref right) => {
+                Terminal::OrI(Arc::new(Miniscript::clone(left)), Arc::new(Miniscript::clone(right)))
+            }
+            Terminal::Thresh(ref thresh) => {
+                Terminal::Thresh(thresh.map_ref(|child| Arc::new(Miniscript::clone(child))))
+            }
+            Terminal::Multi(ref thresh) => Terminal::Multi(thresh.clone()),
+            Terminal::MultiA(ref thresh) => Terminal::MultiA(thresh.clone()),
+        }
+    }
+}
+
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> PartialEq for Terminal<Pk, Ctx> {
+    fn eq(&self, other: &Self) -> bool {
+        for (me, you) in self.pre_order_iter().zip(other.pre_order_iter()) {
+            match (me, you) {
+                (Terminal::PkK(key1), Terminal::PkK(key2)) if key1 != key2 => return false,
+                (Terminal::PkH(key1), Terminal::PkH(key2)) if key1 != key2 => return false,
+                (Terminal::RawPkH(h1), Terminal::RawPkH(h2)) if h1 != h2 => return false,
+                (Terminal::After(t1), Terminal::After(t2)) if t1 != t2 => return false,
+                (Terminal::Older(t1), Terminal::Older(t2)) if t1 != t2 => return false,
+                (Terminal::Sha256(h1), Terminal::Sha256(h2)) if h1 != h2 => return false,
+                (Terminal::Hash256(h1), Terminal::Hash256(h2)) if h1 != h2 => return false,
+                (Terminal::Ripemd160(h1), Terminal::Ripemd160(h2)) if h1 != h2 => return false,
+                (Terminal::Hash160(h1), Terminal::Hash160(h2)) if h1 != h2 => return false,
+                (Terminal::Multi(th1), Terminal::Multi(th2)) if th1 != th2 => return false,
+                (Terminal::MultiA(th1), Terminal::MultiA(th2)) if th1 != th2 => return false,
+                _ => {
+                    if mem::discriminant(me) != mem::discriminant(you) {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
+}
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> Eq for Terminal<Pk, Ctx> {}
+
+impl<Pk: MiniscriptKey, Ctx: ScriptContext> core::hash::Hash for Terminal<Pk, Ctx> {
+    fn hash<H: core::hash::Hasher>(&self, hasher: &mut H) {
+        for term in self.pre_order_iter() {
+            mem::discriminant(term).hash(hasher);
+            match term {
+                Terminal::PkK(key) => key.hash(hasher),
+                Terminal::PkH(key) => key.hash(hasher),
+                Terminal::RawPkH(h) => h.hash(hasher),
+                Terminal::After(t) => t.hash(hasher),
+                Terminal::Older(t) => t.hash(hasher),
+                Terminal::Sha256(h) => h.hash(hasher),
+                Terminal::Hash256(h) => h.hash(hasher),
+                Terminal::Ripemd160(h) => h.hash(hasher),
+                Terminal::Hash160(h) => h.hash(hasher),
+                Terminal::Thresh(th) => {
+                    th.k().hash(hasher);
+                    th.n().hash(hasher);
+                    // The actual children will be hashed when we iterate
+                }
+                Terminal::Multi(th) => th.hash(hasher),
+                Terminal::MultiA(th) => th.hash(hasher),
+                _ => {}
+            }
+        }
+    }
+}
+
 macro_rules! match_token {
     // Base case
     ($tokens:expr => $sub:expr,) => { $sub };
@@ -205,8 +291,11 @@ macro_rules! match_token {
 struct TerminalStack<Pk: MiniscriptKey, Ctx: ScriptContext>(Vec<Miniscript<Pk, Ctx>>);
 
 impl<Pk: MiniscriptKey, Ctx: ScriptContext> TerminalStack<Pk, Ctx> {
-    ///Wrapper around self.0.pop()
+    /// Wrapper around self.0.pop()
     fn pop(&mut self) -> Option<Miniscript<Pk, Ctx>> { self.0.pop() }
+
+    /// Wrapper around self.0.push()
+    fn push(&mut self, ms: Miniscript<Pk, Ctx>) { self.0.push(ms) }
 
     ///reduce, type check and push a 0-arg node
     fn reduce0(&mut self, ms: Terminal<Pk, Ctx>) -> Result<(), Error> {
@@ -242,7 +331,7 @@ impl<Pk: MiniscriptKey, Ctx: ScriptContext> TerminalStack<Pk, Ctx> {
 
 /// Parse a script fragment into an `Miniscript`
 #[allow(unreachable_patterns)]
-pub fn parse<Ctx: ScriptContext>(
+pub fn decode<Ctx: ScriptContext>(
     tokens: &mut TokenIter,
 ) -> Result<Miniscript<Ctx::Key, Ctx>, Error> {
     let mut non_term = Vec::with_capacity(tokens.len());
@@ -258,14 +347,14 @@ pub fn parse<Ctx: ScriptContext>(
                     tokens,
                     // pubkey
                     Tk::Bytes33(pk) => {
-                        let ret = Ctx::Key::from_slice(pk)
+                        let ret = Ctx::Key::from_slice(&pk)
                             .map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?;
-                        term.reduce0(Terminal::PkK(ret))?
+                        term.push(Miniscript::pk_k(ret));
                     },
                     Tk::Bytes65(pk) => {
-                        let ret = Ctx::Key::from_slice(pk)
+                        let ret = Ctx::Key::from_slice(&pk)
                             .map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?;
-                        term.reduce0(Terminal::PkK(ret))?
+                        term.push(Miniscript::pk_k(ret));
                     },
                     // Note this does not collide with hash32 because they always followed by equal
                     // and would be parsed in different branch. If we get a naked Bytes32, it must be
@@ -280,8 +369,8 @@ pub fn parse<Ctx: ScriptContext>(
                     // after bytes32 means bytes32 is in a hashlock
                     // Finally for the first case, K being parsed as a solo expression is a Pk type
                     Tk::Bytes32(pk) => {
-                        let ret = Ctx::Key::from_slice(pk).map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?;
-                        term.reduce0(Terminal::PkK(ret))?
+                        let ret = Ctx::Key::from_slice(&pk).map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?;
+                        term.push(Miniscript::pk_k(ret));
                     },
                     // checksig
                     Tk::CheckSig => {
@@ -298,22 +387,22 @@ pub fn parse<Ctx: ScriptContext>(
                                 Tk::Hash160 => match_token!(
                                     tokens,
                                     Tk::Dup => {
-                                        term.reduce0(Terminal::RawPkH(
-                                            hash160::Hash::from_slice(hash).expect("valid size")
-                                        ))?
+                                        term.push(Miniscript::expr_raw_pkh(
+                                            hash160::Hash::from_byte_array(hash)
+                                        ));
                                     },
                                     Tk::Verify, Tk::Equal, Tk::Num(32), Tk::Size => {
                                         non_term.push(NonTerm::Verify);
-                                        term.reduce0(Terminal::Hash160(
-                                            hash160::Hash::from_slice(hash).expect("valid size")
-                                        ))?
+                                        term.push(Miniscript::hash160(
+                                            hash160::Hash::from_byte_array(hash)
+                                        ));
                                     },
                                 ),
                                 Tk::Ripemd160, Tk::Verify, Tk::Equal, Tk::Num(32), Tk::Size => {
                                     non_term.push(NonTerm::Verify);
-                                    term.reduce0(Terminal::Ripemd160(
-                                        ripemd160::Hash::from_slice(hash).expect("valid size")
-                                    ))?
+                                    term.push(Miniscript::ripemd160(
+                                        ripemd160::Hash::from_byte_array(hash)
+                                    ));
                                 },
                             ),
                             // Tk::Hash20(hash),
@@ -321,15 +410,15 @@ pub fn parse<Ctx: ScriptContext>(
                                 tokens,
                                 Tk::Sha256, Tk::Verify, Tk::Equal, Tk::Num(32), Tk::Size => {
                                     non_term.push(NonTerm::Verify);
-                                    term.reduce0(Terminal::Sha256(
-                                        sha256::Hash::from_slice(hash).expect("valid size")
-                                    ))?
+                                    term.push(Miniscript::sha256(
+                                        sha256::Hash::from_byte_array(hash)
+                                    ));
                                 },
                                 Tk::Hash256, Tk::Verify, Tk::Equal, Tk::Num(32), Tk::Size => {
                                     non_term.push(NonTerm::Verify);
-                                    term.reduce0(Terminal::Hash256(
-                                        hash256::Hash::from_slice(hash).expect("valid size")
-                                    ))?
+                                    term.push(Miniscript::hash256(
+                                        hash256::Hash::from_byte_array(hash)
+                                    ));
                                 },
                             ),
                             Tk::Num(k) => {
@@ -352,9 +441,9 @@ pub fn parse<Ctx: ScriptContext>(
                     },
                     // timelocks
                     Tk::CheckSequenceVerify, Tk::Num(n)
-                        => term.reduce0(Terminal::Older(RelLockTime::from_consensus(n).map_err(Error::RelativeLockTime)?))?,
+                        => term.push(Miniscript::older(RelLockTime::from_consensus(n).map_err(Error::RelativeLockTime)?)),
                     Tk::CheckLockTimeVerify, Tk::Num(n)
-                        => term.reduce0(Terminal::After(AbsLockTime::from_consensus(n).map_err(Error::AbsoluteLockTime)?))?,
+                        => term.push(Miniscript::after(AbsLockTime::from_consensus(n).map_err(Error::AbsoluteLockTime)?)),
                     // hashlocks
                     Tk::Equal => match_token!(
                         tokens,
@@ -364,16 +453,16 @@ pub fn parse<Ctx: ScriptContext>(
                             Tk::Verify,
                             Tk::Equal,
                             Tk::Num(32),
-                            Tk::Size => term.reduce0(Terminal::Sha256(
-                                sha256::Hash::from_slice(hash).expect("valid size")
-                            ))?,
+                            Tk::Size => term.push(Miniscript::sha256(
+                                sha256::Hash::from_byte_array(hash)
+                            )),
                             Tk::Hash256,
                             Tk::Verify,
                             Tk::Equal,
                             Tk::Num(32),
-                            Tk::Size => term.reduce0(Terminal::Hash256(
-                                hash256::Hash::from_slice(hash).expect("valid size")
-                            ))?,
+                            Tk::Size => term.push(Miniscript::hash256(
+                                hash256::Hash::from_byte_array(hash)
+                            )),
                         ),
                         Tk::Hash20(hash) => match_token!(
                             tokens,
@@ -381,16 +470,16 @@ pub fn parse<Ctx: ScriptContext>(
                             Tk::Verify,
                             Tk::Equal,
                             Tk::Num(32),
-                            Tk::Size => term.reduce0(Terminal::Ripemd160(
-                                ripemd160::Hash::from_slice(hash).expect("valid size")
-                            ))?,
+                            Tk::Size => term.push(Miniscript::ripemd160(
+                                ripemd160::Hash::from_byte_array(hash)
+                            )),
                             Tk::Hash160,
                             Tk::Verify,
                             Tk::Equal,
                             Tk::Num(32),
-                            Tk::Size => term.reduce0(Terminal::Hash160(
-                                hash160::Hash::from_slice(hash).expect("valid size")
-                            ))?,
+                            Tk::Size => term.push(Miniscript::hash160(
+                                hash160::Hash::from_byte_array(hash)
+                            )),
                         ),
                         // thresholds
                         Tk::Num(k) => {
@@ -404,8 +493,8 @@ pub fn parse<Ctx: ScriptContext>(
                         },
                     ),
                     // most other fragments
-                    Tk::Num(0) => term.reduce0(Terminal::False)?,
-                    Tk::Num(1) => term.reduce0(Terminal::True)?,
+                    Tk::Num(0) => term.push(Miniscript::FALSE),
+                    Tk::Num(1) => term.push(Miniscript::TRUE),
                     Tk::EndIf => {
                         non_term.push(NonTerm::EndIf);
                         non_term.push(NonTerm::MaybeAndV);
@@ -424,17 +513,15 @@ pub fn parse<Ctx: ScriptContext>(
                     },
                     // CHECKMULTISIG based multisig
                     Tk::CheckMultiSig, Tk::Num(n) => {
-                        // Check size before allocating keys
-                        if n as usize > MAX_PUBKEYS_PER_MULTISIG {
-                            return Err(Error::CmsTooManyKeys(n));
-                        }
+                        threshold::validate_k_n::<MAX_PUBKEYS_PER_MULTISIG>(1, n as usize).map_err(Error::Threshold)?;
+
                         let mut keys = Vec::with_capacity(n as usize);
                         for _ in 0..n {
                             match_token!(
                                 tokens,
-                                Tk::Bytes33(pk) => keys.push(<Ctx::Key>::from_slice(pk)
+                                Tk::Bytes33(pk) => keys.push(<Ctx::Key>::from_slice(&pk)
                                     .map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?),
-                                Tk::Bytes65(pk) => keys.push(<Ctx::Key>::from_slice(pk)
+                                Tk::Bytes65(pk) => keys.push(<Ctx::Key>::from_slice(&pk)
                                     .map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?),
                             );
                         }
@@ -444,31 +531,29 @@ pub fn parse<Ctx: ScriptContext>(
                         );
                         keys.reverse();
                         let thresh = Threshold::new(k as usize, keys).map_err(Error::Threshold)?;
-                        term.reduce0(Terminal::Multi(thresh))?;
+                        term.push(Miniscript::multi(thresh));
                     },
                     // MultiA
                     Tk::NumEqual, Tk::Num(k) => {
-                        // Check size before allocating keys
-                        if k as usize > MAX_PUBKEYS_IN_CHECKSIGADD {
-                            return Err(Error::MultiATooManyKeys(MAX_PUBKEYS_IN_CHECKSIGADD as u64))
-                        }
-                        let mut keys = Vec::with_capacity(k as usize); // atleast k capacity
+                        threshold::validate_k_n::<MAX_PUBKEYS_IN_CHECKSIGADD>(k as usize, k as usize).map_err(Error::Threshold)?;
+
+                        let mut keys = Vec::with_capacity(k as usize); // at least k capacity
                         while tokens.peek() == Some(&Tk::CheckSigAdd) {
                             match_token!(
                                 tokens,
-                                Tk::CheckSigAdd, Tk::Bytes32(pk) => keys.push(<Ctx::Key>::from_slice(pk)
+                                Tk::CheckSigAdd, Tk::Bytes32(pk) => keys.push(<Ctx::Key>::from_slice(&pk)
                                     .map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?),
                             );
                         }
                         // Last key must be with a CheckSig
                         match_token!(
                             tokens,
-                            Tk::CheckSig, Tk::Bytes32(pk) => keys.push(<Ctx::Key>::from_slice(pk)
+                            Tk::CheckSig, Tk::Bytes32(pk) => keys.push(<Ctx::Key>::from_slice(&pk)
                                 .map_err(|e| Error::PubKeyCtxError(e, Ctx::name_str()))?),
                         );
                         keys.reverse();
                         let thresh = Threshold::new(k as usize, keys).map_err(Error::Threshold)?;
-                        term.reduce0(Terminal::MultiA(thresh))?;
+                        term.push(Miniscript::multi_a(thresh));
                     },
                 );
             }
@@ -612,4 +697,32 @@ fn is_and_v(tokens: &mut TokenIter) -> bool {
             | Some(&Tk::ToAltStack)
             | Some(&Tk::Swap)
     )
+}
+
+/// Decoding error while parsing keys
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum KeyError {
+    /// Bitcoin PublicKey parse error
+    Full(bitcoin::key::FromSliceError),
+    /// Xonly key parse Error
+    XOnly(bitcoin::secp256k1::Error),
+}
+
+impl fmt::Display for KeyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Full(e) => e.fmt(f),
+            Self::XOnly(e) => e.fmt(f),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl error::Error for KeyError {
+    fn cause(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Self::Full(e) => Some(e),
+            Self::XOnly(e) => Some(e),
+        }
+    }
 }

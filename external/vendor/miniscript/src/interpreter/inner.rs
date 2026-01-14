@@ -8,7 +8,7 @@ use bitcoin::Witness;
 use super::{stack, BitcoinKey, Error, Stack};
 use crate::miniscript::context::{NoChecks, ScriptContext, SigType};
 use crate::prelude::*;
-use crate::{BareCtx, ExtParams, Legacy, Miniscript, Segwitv0, Tap, ToPublicKey, Translator};
+use crate::{BareCtx, Legacy, Miniscript, Segwitv0, Tap, ToPublicKey, Translator};
 
 /// Attempts to parse a slice as a Bitcoin public key, checking compressedness
 /// if asked to, but otherwise dropping it
@@ -43,8 +43,7 @@ fn script_from_stack_elem<Ctx: ScriptContext>(
 ) -> Result<Miniscript<Ctx::Key, Ctx>, Error> {
     match *elem {
         stack::Element::Push(sl) => {
-            Miniscript::parse_with_ext(bitcoin::Script::from_bytes(sl), &ExtParams::allow_all())
-                .map_err(Error::from)
+            Miniscript::decode_consensus(bitcoin::Script::from_bytes(sl)).map_err(Error::from)
         }
         stack::Element::Satisfied => Ok(Miniscript::TRUE),
         stack::Element::Dissatisfied => Ok(Miniscript::FALSE),
@@ -233,7 +232,7 @@ pub(super) fn from_txdata<'txin>(
                             // so it's easy enough to keep track of all uses.
                             //
                             // In particular, this return value will be put into the `script_code` member of
-                            // the `Interpreter` script; the iterpreter logic does the right thing with it.
+                            // the `Interpreter` script; the interpreter logic does the right thing with it.
                             Some(tap_script),
                         ))
                     } else {
@@ -327,10 +326,7 @@ pub(super) fn from_txdata<'txin>(
     } else {
         if wit_stack.is_empty() {
             // Bare script parsed in BareCtx
-            let miniscript = Miniscript::<bitcoin::PublicKey, BareCtx>::parse_with_ext(
-                spk,
-                &ExtParams::allow_all(),
-            )?;
+            let miniscript = Miniscript::<bitcoin::PublicKey, BareCtx>::decode_consensus(spk)?;
             let miniscript = miniscript.to_no_checks_ms();
             Ok((Inner::Script(miniscript, ScriptType::Bare), ssig_stack, Some(spk.to_owned())))
         } else {
@@ -356,12 +352,15 @@ impl<Ctx: ScriptContext> ToNoChecks for Miniscript<bitcoin::PublicKey, Ctx> {
     fn to_no_checks_ms(&self) -> Miniscript<BitcoinKey, NoChecks> {
         struct TranslateFullPk;
 
-        impl Translator<bitcoin::PublicKey, BitcoinKey, ()> for TranslateFullPk {
-            fn pk(&mut self, pk: &bitcoin::PublicKey) -> Result<BitcoinKey, ()> {
+        impl Translator<bitcoin::PublicKey> for TranslateFullPk {
+            type TargetPk = BitcoinKey;
+            type Error = core::convert::Infallible;
+
+            fn pk(&mut self, pk: &bitcoin::PublicKey) -> Result<BitcoinKey, Self::Error> {
                 Ok(BitcoinKey::Fullkey(*pk))
             }
 
-            translate_hash_clone!(bitcoin::PublicKey, BitcoinKey, ());
+            translate_hash_clone!(bitcoin::PublicKey);
         }
 
         self.translate_pk_ctx(&mut TranslateFullPk)
@@ -371,15 +370,17 @@ impl<Ctx: ScriptContext> ToNoChecks for Miniscript<bitcoin::PublicKey, Ctx> {
 
 impl<Ctx: ScriptContext> ToNoChecks for Miniscript<bitcoin::key::XOnlyPublicKey, Ctx> {
     fn to_no_checks_ms(&self) -> Miniscript<BitcoinKey, NoChecks> {
-        // specify the () error type as this cannot error
         struct TranslateXOnlyPk;
 
-        impl Translator<bitcoin::key::XOnlyPublicKey, BitcoinKey, ()> for TranslateXOnlyPk {
-            fn pk(&mut self, pk: &bitcoin::key::XOnlyPublicKey) -> Result<BitcoinKey, ()> {
+        impl Translator<bitcoin::key::XOnlyPublicKey> for TranslateXOnlyPk {
+            type TargetPk = BitcoinKey;
+            type Error = core::convert::Infallible;
+
+            fn pk(&mut self, pk: &bitcoin::key::XOnlyPublicKey) -> Result<BitcoinKey, Self::Error> {
                 Ok(BitcoinKey::XOnlyPublicKey(*pk))
             }
 
-            translate_hash_clone!(bitcoin::key::XOnlyPublicKey, BitcoinKey, ());
+            translate_hash_clone!(bitcoin::key::XOnlyPublicKey);
         }
         self.translate_pk_ctx(&mut TranslateXOnlyPk)
             .expect("Translation should succeed")
@@ -393,9 +394,9 @@ mod tests {
     use core::str::FromStr;
 
     use bitcoin::blockdata::script;
-    use bitcoin::hashes::hex::FromHex;
     use bitcoin::script::PushBytes;
     use bitcoin::ScriptBuf;
+    use hex;
 
     use super::*;
 
@@ -417,15 +418,14 @@ mod tests {
     impl KeyTestData {
         fn from_key(key: bitcoin::PublicKey) -> KeyTestData {
             // what a funny looking signature..
-            let dummy_sig_vec = Vec::from_hex(
+            let dummy_sig_vec = hex::decode_to_vec(
                 "\
                 302e02153b78ce563f89a0ed9414f5aa28ad0d96d6795f9c63\
                     02153b78ce563f89a0ed9414f5aa28ad0d96d6795f9c65\
             ",
             )
             .unwrap();
-            let mut dummy_sig = [0u8; 48];
-            dummy_sig.copy_from_slice(&dummy_sig_vec[..]);
+            let dummy_sig = <[u8; 48]>::try_from(&dummy_sig_vec[..]).unwrap();
 
             let pkhash = key.to_pubkeyhash(SigType::Ecdsa).into();
             let wpkhash = key.to_pubkeyhash(SigType::Ecdsa).into();
@@ -674,8 +674,7 @@ mod tests {
     }
 
     fn ms_inner_script(ms: &str) -> (Miniscript<BitcoinKey, NoChecks>, bitcoin::ScriptBuf) {
-        let ms = Miniscript::<bitcoin::PublicKey, Segwitv0>::from_str_ext(ms, &ExtParams::insane())
-            .unwrap();
+        let ms = Miniscript::<bitcoin::PublicKey, Segwitv0>::from_str_insane(ms).unwrap();
         let spk = ms.encode();
         let miniscript = ms.to_no_checks_ms();
         (miniscript, spk)

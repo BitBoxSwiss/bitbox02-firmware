@@ -10,10 +10,17 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.63.0"
 name = "miniscript"
-version = "12.2.0"
+version = "13.0.0"
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>, Sanket Kanjalkar <sanket1729@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Miniscript: a subset of Bitcoin Script designed for analysis"
 homepage = "https://github.com/rust-bitcoin/rust-miniscript/"
 readme = "README.md"
@@ -26,8 +33,38 @@ keywords = [
 license = "CC0-1.0"
 repository = "https://github.com/rust-bitcoin/rust-miniscript/"
 
+[features]
+base64 = ["bitcoin/base64"]
+compiler = []
+default = ["std"]
+rand = ["bitcoin/rand"]
+serde = [
+    "dep:serde",
+    "bitcoin/serde",
+]
+std = [
+    "bitcoin/std",
+    "bitcoin/secp-recovery",
+    "bech32/std",
+]
+trace = []
+
+[lib]
+name = "miniscript"
+path = "src/lib.rs"
+
+[[example]]
+name = "big"
+path = "examples/big.rs"
+required-features = [
+    "std",
+    "base64",
+    "compiler",
+]
+
 [[example]]
 name = "htlc"
+path = "examples/htlc.rs"
 required-features = [
     "std",
     "compiler",
@@ -35,54 +72,67 @@ required-features = [
 
 [[example]]
 name = "parse"
+path = "examples/parse.rs"
 required-features = ["std"]
+
+[[example]]
+name = "psbt_sign_finalize"
+path = "examples/psbt_sign_finalize.rs"
+required-features = [
+    "std",
+    "base64",
+]
 
 [[example]]
 name = "sign_multisig"
-required-features = ["std"]
-
-[[example]]
-name = "verify_tx"
-required-features = ["std"]
-
-[[example]]
-name = "xpub_descriptors"
+path = "examples/sign_multisig.rs"
 required-features = ["std"]
 
 [[example]]
 name = "taproot"
+path = "examples/taproot.rs"
 required-features = [
     "compiler",
     "std",
 ]
 
 [[example]]
-name = "psbt_sign_finalize"
-required-features = [
-    "std",
-    "base64",
-]
+name = "taptree_of_horror"
+path = "examples/taptree_of_horror/taptree_of_horror.rs"
+required-features = ["compiler"]
 
 [[example]]
-name = "big"
-required-features = [
-    "std",
-    "base64",
-    "compiler",
-]
+name = "verify_tx"
+path = "examples/verify_tx.rs"
+required-features = ["std"]
 
-[dependencies.actual-serde]
-version = "1.0.103"
-optional = true
-package = "serde"
+[[example]]
+name = "xpub_descriptors"
+path = "examples/xpub_descriptors.rs"
+required-features = ["std"]
+
+[[test]]
+name = "bip-174"
+path = "tests/bip-174.rs"
 
 [dependencies.bech32]
 version = "0.11.0"
+features = ["alloc"]
 default-features = false
 
 [dependencies.bitcoin]
-version = "0.32.0"
+version = "0.32.6"
 default-features = false
+
+[dependencies.hex]
+version = "1.0.0"
+features = ["alloc"]
+default-features = false
+package = "hex-conservative"
+
+[dependencies.serde]
+version = "1.0.103"
+optional = true
 
 [dev-dependencies.bitcoin]
 version = "0.32.0"
@@ -94,20 +144,3 @@ features = ["rand-std"]
 
 [dev-dependencies.serde_test]
 version = "1.0.147"
-
-[features]
-base64 = ["bitcoin/base64"]
-compiler = []
-default = ["std"]
-no-std = ["bech32/alloc"]
-rand = ["bitcoin/rand"]
-serde = [
-    "actual-serde",
-    "bitcoin/serde",
-]
-std = [
-    "bitcoin/std",
-    "bitcoin/secp-recovery",
-    "bech32/std",
-]
-trace = []

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! A spending plan or *plan* for short is a representation of a particular spending path on a
-//! descriptor. This allows us to analayze a choice of spending path without producing any
+//! A spending plan (or *plan*) is a representation of a particular spending path on a
+//! descriptor.
+//!
+//! This allows us to analayze a choice of spending path without producing any
 //! signatures or other witness data for it.
 //!
 //! To make a plan you provide the descriptor with "assets" like which keys you are able to use, hash
@@ -51,13 +53,6 @@ pub trait AssetProvider<Pk: MiniscriptKey> {
     /// and return its size
     fn provider_lookup_tap_leaf_script_sig(&self, _: &Pk, _: &TapLeafHash) -> Option<usize> { None }
 
-    /// Obtain a reference to the control block for a ver and script
-    fn provider_lookup_tap_control_block_map(
-        &self,
-    ) -> Option<&BTreeMap<ControlBlock, (bitcoin::ScriptBuf, LeafVersion)>> {
-        None
-    }
-
     /// Given a raw `Pkh`, lookup corresponding [`bitcoin::PublicKey`]
     fn provider_lookup_raw_pkh_pk(&self, _: &hash160::Hash) -> Option<bitcoin::PublicKey> { None }
 
@@ -67,7 +62,9 @@ pub trait AssetProvider<Pk: MiniscriptKey> {
     }
 
     /// Given a keyhash, look up the EC signature and the associated key.
+    ///
     /// Returns the key if a signature is found.
+    ///
     /// Even if signatures for public key Hashes are not available, the users
     /// can use this map to provide pkh -> pk mapping which can be useful
     /// for dissatisfying pkh.
@@ -76,7 +73,9 @@ pub trait AssetProvider<Pk: MiniscriptKey> {
     }
 
     /// Given a keyhash, look up the schnorr signature and the associated key.
+    ///
     /// Returns the key and sig len if a signature is found.
+    ///
     /// Even if signatures for public key Hashes are not available, the users
     /// can use this map to provide pkh -> pk mapping which can be useful
     /// for dissatisfying pkh.
@@ -123,11 +122,10 @@ macro_rules! impl_log_method {
 }
 
 #[cfg(feature = "std")]
-impl<'a> AssetProvider<DefiniteDescriptorKey> for LoggerAssetProvider<'a> {
+impl AssetProvider<DefiniteDescriptorKey> for LoggerAssetProvider<'_> {
     impl_log_method!(provider_lookup_ecdsa_sig, pk: &DefiniteDescriptorKey, -> bool);
     impl_log_method!(provider_lookup_tap_key_spend_sig, pk: &DefiniteDescriptorKey, -> Option<usize>);
     impl_log_method!(provider_lookup_tap_leaf_script_sig, pk: &DefiniteDescriptorKey, leaf_hash: &TapLeafHash, -> Option<usize>);
-    impl_log_method!(provider_lookup_tap_control_block_map, -> Option<&BTreeMap<ControlBlock, (bitcoin::ScriptBuf, LeafVersion)>>);
     impl_log_method!(provider_lookup_raw_pkh_pk, hash: &hash160::Hash, -> Option<bitcoin::PublicKey>);
     impl_log_method!(provider_lookup_raw_pkh_x_only_pk, hash: &hash160::Hash, -> Option<XOnlyPublicKey>);
     impl_log_method!(provider_lookup_raw_pkh_ecdsa_sig, hash: &hash160::Hash, -> Option<bitcoin::PublicKey>);
@@ -149,8 +147,8 @@ where
         Satisfier::lookup_ecdsa_sig(self, pk).is_some()
     }
 
-    fn provider_lookup_tap_key_spend_sig(&self, _: &Pk) -> Option<usize> {
-        Satisfier::lookup_tap_key_spend_sig(self).map(|s| s.to_vec().len())
+    fn provider_lookup_tap_key_spend_sig(&self, pk: &Pk) -> Option<usize> {
+        Satisfier::lookup_tap_key_spend_sig(self, pk).map(|s| s.to_vec().len())
     }
 
     fn provider_lookup_tap_leaf_script_sig(
@@ -159,12 +157,6 @@ where
         leaf_hash: &TapLeafHash,
     ) -> Option<usize> {
         Satisfier::lookup_tap_leaf_script_sig(self, pk, leaf_hash).map(|s| s.to_vec().len())
-    }
-
-    fn provider_lookup_tap_control_block_map(
-        &self,
-    ) -> Option<&BTreeMap<ControlBlock, (bitcoin::ScriptBuf, LeafVersion)>> {
-        Satisfier::lookup_tap_control_block_map(self)
     }
 
     fn provider_lookup_raw_pkh_pk(&self, hash: &hash160::Hash) -> Option<bitcoin::PublicKey> {
@@ -211,7 +203,9 @@ where
     fn check_after(&self, l: absolute::LockTime) -> bool { Satisfier::check_after(self, l) }
 }
 
-/// Representation of a particular spending path on a descriptor. Contains the witness template
+/// Representation of a particular spending path on a descriptor.
+///
+/// Contains the witness template
 /// and the timelocks needed for satisfying the plan.
 /// Calling `plan` on a Descriptor will return this structure,
 /// containing the cheapest spending path possible (considering the `Assets` given)
@@ -240,7 +234,8 @@ impl Plan {
     /// the script sig weight and the witness weight)
     pub fn satisfaction_weight(&self) -> usize { self.witness_size() + self.scriptsig_size() * 4 }
 
-    /// The size in bytes of the script sig that satisfies this plan
+    /// The size in bytes of the script sig that satisfies this plan, including the size of the
+    /// var-int prefix.
     pub fn scriptsig_size(&self) -> usize {
         match (self.descriptor.desc_type().segwit_version(), self.descriptor.desc_type()) {
             // Entire witness goes in the script_sig
@@ -256,13 +251,15 @@ impl Plan {
         }
     }
 
-    /// The size in bytes of the witness that satisfies this plan
+    /// The size in bytes of the witness that satisfies this plan.
+    ///
+    /// NOTE: Returns 0 if there is no witness. You need to manually take care to count it as 1 byte
+    /// if there's at least one segwit input in the tx. See ["Empty script witnesses are encoded as a zero byte"](https://github.com/bitcoin/bips/blob/d8a56c9f2b521bf4af5d588f217e7618cc44952c/bip-0144.mediawiki#serialization).
     pub fn witness_size(&self) -> usize {
         if self.descriptor.desc_type().segwit_version().is_some() {
             witness_size(self.template.as_ref())
         } else {
-            0 // should be 1 if there's at least one segwit input in the tx, but that's out of
-              // scope as we can't possibly know that just by looking at the descriptor
+            0
         }
     }
 
@@ -289,7 +286,6 @@ impl Plan {
                 stack
                     .into_iter()
                     .fold(Builder::new(), |builder, item| {
-                        use core::convert::TryFrom;
                         let bytes = PushBytesBuf::try_from(item)
                             .expect("All the possible placeholders can be made into PushBytesBuf");
                         builder.push_slice(bytes)
@@ -500,7 +496,9 @@ impl TaprootAvailableLeaves {
 /// The Assets we can use to satisfy a particular spending path
 #[derive(Debug, Default)]
 pub struct Assets {
-    /// Keys the user can sign for, and how. A pair `(fingerprint, derivation_path)` is
+    /// Keys the user can sign for, and how.
+    ///
+    /// A pair `(fingerprint, derivation_path)` is
     /// provided, meaning that the user can sign using the key with `fingerprint`,
     /// derived with either `derivation_path` or a derivation path that extends `derivation_path`
     /// by exactly one child number. For example, if the derivation path `m/0/1` is provided, the
@@ -522,7 +520,7 @@ pub struct Assets {
 
 // Checks if the `pk` is a "direct child" of the `derivation_path` provided.
 // Direct child means that the key derivation path is either the same as the
-// `derivation_path`, or the same extened by exactly one child number.
+// `derivation_path`, or the same extended by exactly one child number.
 // For example, `pk/0/1/2` is a direct child of `m/0/1` and of `m/0/1/2`,
 // but not of `m/0`.
 fn is_key_direct_child_of(
@@ -692,7 +690,7 @@ impl IntoAssets for Assets {
 }
 
 impl Assets {
-    /// Contruct an empty instance
+    /// Construct an empty instance
     pub fn new() -> Self { Self::default() }
 
     /// Add some assets
@@ -986,23 +984,29 @@ mod test {
         // expected weight: 4 (scriptSig len) + 1 (witness len) + 1 (OP_PUSH) + 64 (sig)
         let internal_key_sat_weight = Some(70);
         // expected weight: 4 (scriptSig len) + 1 (witness len) + 1 (OP_PUSH) + 64 (sig)
+        // + 1 (script len)
         // + 34 [script: 1 (OP_PUSHBYTES_32) + 32 (key) + 1 (OP_CHECKSIG)]
+        // + 1 (control block len)
         // + 65 [control block: 1 (control byte) + 32 (internal key) + 32 (hash BC)]
-        let first_leaf_sat_weight = Some(169);
+        let first_leaf_sat_weight = Some(171);
         // expected weight: 4 (scriptSig len) + 1 (witness len) + 1 (OP_PUSH) + 64 (sig)
         // + 1 (OP_ZERO)
+        // + 1 (script len)
         // + 70 [script: 1 (OP_PUSHBYTES_32) + 32 (key) + 1 (OP_CHECKSIG)
         //       + 1 (OP_PUSHBYTES_32) + 32 (key) + 1 (OP_CHECKSIGADD)
         //       + 1 (OP_PUSHNUM1) + 1 (OP_NUMEQUAL)]
+        // + 1 (control block len)
         // + 97 [control block: 1 (control byte) + 32 (internal key) + 32 (hash C) + 32 (hash
         //       A)]
-        let second_leaf_sat_weight = Some(238);
+        let second_leaf_sat_weight = Some(240);
         // expected weight: 4 (scriptSig len) + 1 (witness len) + 1 (OP_PUSH) + 64 (sig)
+        // + 1 (script len)
         // + 36 [script: 1 (OP_PUSHBYTES_32) + 32 (key) + 1 (OP_CHECKSIGVERIFY)
         //       + 1 (OP_PUSHNUM_10) + 1 (OP_CLTV)]
+        // + 1 (control block len)
         // + 97 [control block: 1 (control byte) + 32 (internal key) + 32 (hash B) + 32 (hash
         //       A)]
-        let third_leaf_sat_weight = Some(203);
+        let third_leaf_sat_weight = Some(205);
 
         let tests = vec![
             // Don't give assets

@@ -85,6 +85,12 @@ pub trait Memory {
         root_pubkey_identifier_out: &mut [u8; 32],
     ) -> Result<(), ()>;
     fn get_attestation_bootloader_hash(&mut self) -> [u8; 32];
+    fn multisig_set_by_hash(
+        &mut self,
+        hash: &[u8; 32],
+        name: &str,
+    ) -> Result<(), bitbox02::memory::MemoryError>;
+    fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String>;
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -295,6 +301,18 @@ impl Memory for BitBox02Memory {
     fn get_attestation_bootloader_hash(&mut self) -> [u8; 32] {
         bitbox02::memory::get_attestation_bootloader_hash()
     }
+
+    fn multisig_set_by_hash(
+        &mut self,
+        hash: &[u8; 32],
+        name: &str,
+    ) -> Result<(), bitbox02::memory::MemoryError> {
+        bitbox02::memory::multisig_set_by_hash(hash, name)
+    }
+
+    fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String> {
+        bitbox02::memory::multisig_get_by_hash(hash)
+    }
 }
 
 pub struct BitBox02Hal {
@@ -463,6 +481,7 @@ pub mod testing {
         attestation_certificate: Option<[u8; 64]>,
         attestation_root_pubkey_identifier: Option<[u8; 32]>,
         attestation_bootloader_hash: [u8; 32],
+        multisig_entries: Vec<([u8; 32], String)>,
     }
 
     impl TestingSecureChip {
@@ -612,6 +631,8 @@ pub mod testing {
         }
     }
 
+    // Same as MEMORY_MULTISIG_NUM_ENTRIES in memory.h.
+    const MULTISIG_LIMIT: usize = 25;
     impl TestingMemory {
         pub fn new() -> Self {
             Self {
@@ -629,6 +650,7 @@ pub mod testing {
                 attestation_certificate: None,
                 attestation_root_pubkey_identifier: None,
                 attestation_bootloader_hash: [0; 32],
+                multisig_entries: Vec::new(),
             }
         }
 
@@ -742,6 +764,7 @@ pub mod testing {
             self.seed_birthdate = 0;
             self.encrypted_seed_and_hmac = None;
             self.device_name = None;
+            self.multisig_entries = Vec::new();
             Ok(())
         }
 
@@ -788,6 +811,53 @@ pub mod testing {
 
         fn get_attestation_bootloader_hash(&mut self) -> [u8; 32] {
             self.attestation_bootloader_hash
+        }
+
+        fn multisig_set_by_hash(
+            &mut self,
+            hash: &[u8; 32],
+            name: &str,
+        ) -> Result<(), bitbox02::memory::MemoryError> {
+            // Validate input
+            if name.is_empty() {
+                return Err(bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT);
+            }
+            // Check for duplicate name with different hash
+            for (existing_hash, existing_name) in &self.multisig_entries {
+                if existing_name == name {
+                    if existing_hash != hash {
+                        // Mirror bitbox02::memory multisig_set_by_hash semantics (duplicate-name / full-table),
+                        // even if these branches are not currently exercised in bitbox02-rust tests.
+                        return Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME);
+                    }
+                    // same name, same hash (already stored)
+                    return Ok(());
+                }
+            }
+            // Try to find existing entry with same hash
+            if let Some((_, existing_name)) = self
+                .multisig_entries
+                .iter_mut()
+                .find(|(existing_hash, _)| existing_hash == hash)
+            {
+                // rename: same hash, new name
+                *existing_name = String::from(name);
+                return Ok(());
+            }
+            if self.multisig_entries.len() >= MULTISIG_LIMIT {
+                // See comment above about mirroring bitbox02::memory semantics.
+                return Err(bitbox02::memory::MemoryError::MEMORY_ERR_FULL);
+            }
+            // Insert new entry
+            self.multisig_entries.push((*hash, String::from(name)));
+            Ok(())
+        }
+
+        fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String> {
+            self.multisig_entries
+                .iter()
+                .find(|(existing_hash, _)| existing_hash == hash)
+                .map(|(_, name)| name.clone())
         }
     }
 

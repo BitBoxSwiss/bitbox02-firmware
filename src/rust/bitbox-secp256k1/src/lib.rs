@@ -249,18 +249,18 @@ pub fn anti_exfil_host_verify(
     signer_commitment: &[u8; 33],
 ) -> Result<(), ()> {
     let mut opening = MaybeUninit::<ffi::secp256k1_ecdsa_s2c_opening>::uninit();
-    let parse_res = unsafe {
+    if unsafe {
         ffi::secp256k1_ecdsa_s2c_opening_parse(
             secp.ctx().as_ptr(),
             opening.as_mut_ptr(),
             signer_commitment.as_ptr(),
         )
-    };
-    if parse_res != 1 {
+    } != 1
+    {
         return Err(());
     }
     let opening = unsafe { opening.assume_init() };
-    let verify_res = unsafe {
+    if unsafe {
         ffi::secp256k1_anti_exfil_host_verify(
             secp.ctx().as_ptr(),
             signature.as_c_ptr(),
@@ -269,8 +269,12 @@ pub fn anti_exfil_host_verify(
             host_nonce.as_ptr(),
             &opening,
         )
-    };
-    if verify_res == 1 { Ok(()) } else { Err(()) }
+    } == 1
+    {
+        Ok(())
+    } else {
+        Err(())
+    }
 }
 
 pub fn dleq_prove(
@@ -282,7 +286,7 @@ pub fn dleq_prove(
 ) -> Result<Vec<u8>, ()> {
     let mut s = [0u8; 32];
     let mut e = [0u8; 32];
-    let result = unsafe {
+    if unsafe {
         ffi::bitbox_secp256k1_dleq_prove(
             secp.ctx().as_ptr(),
             s.as_mut_ptr(),
@@ -292,8 +296,8 @@ pub fn dleq_prove(
             p1.as_c_ptr(),
             p2.as_c_ptr(),
         )
-    };
-    if result == 1 {
+    } == 1
+    {
         let mut result = s.to_vec();
         result.extend(&e);
         Ok(result)
@@ -309,7 +313,7 @@ pub fn dleq_verify(
     p1: &bitcoin::secp256k1::PublicKey,
     p2: &bitcoin::secp256k1::PublicKey,
 ) -> Result<(), ()> {
-    let result = unsafe {
+    if unsafe {
         ffi::bitbox_secp256k1_dleq_verify(
             secp.ctx().as_ptr(),
             proof[..32].as_ptr(),
@@ -318,8 +322,12 @@ pub fn dleq_verify(
             gen2.as_c_ptr(),
             p2.as_c_ptr(),
         )
-    };
-    if result == 1 { Ok(()) } else { Err(()) }
+    } == 1
+    {
+        Ok(())
+    } else {
+        Err(())
+    }
 }
 
 #[cfg(test)]

@@ -7,6 +7,8 @@
 #include "memory/memory_shared.h"
 #include "screen.h"
 #include "ui/screen_stack.h"
+#include "usb/class/usb_size.h"
+#include "usb/usb_frame.h"
 #include "usb/usb_packet.h"
 #include "utils_ringbuffer.h"
 #include <ui/components/confirm.h>
@@ -146,7 +148,9 @@ static void _ctrl_handler(struct da14531_ctrl_frame* frame, struct ringbuffer* q
             &frame->cmd_data[0],
             sizeof(_ble_pairing_callback_data.key));
         _ble_pairing_callback_data.queue = queue;
-        uint32_t pairing_code_int = (*(uint32_t*)&frame->cmd_data[0]) % 1000000;
+        uint32_t pairing_code_int;
+        memcpy(&pairing_code_int, &frame->cmd_data[0], sizeof(pairing_code_int));
+        pairing_code_int %= 1000000;
         char pairing_code[7] = {0};
         snprintf(pairing_code, sizeof(pairing_code), "%06lu", (long unsigned int)pairing_code_int);
         // util_log("da14531: show/confirm pairing code: %s", pairing_code);
@@ -267,8 +271,13 @@ static void _hww_handler(struct da14531_protocol_frame* frame, struct ringbuffer
 {
     // util_log(" in: %s", util_dbg_hex(frame->payload, 64));
     (void)queue;
-    ASSERT(frame->payload_length == 64);
-    usb_packet_process((USB_FRAME*)&frame->payload[0]);
+    if (frame->payload_length != USB_REPORT_SIZE) {
+        util_log("da14531: invalid hww payload length %u, dropped frame", frame->payload_length);
+        return;
+    }
+    USB_FRAME usb_frame;
+    memcpy(&usb_frame, &frame->payload[0], sizeof(usb_frame));
+    usb_packet_process(&usb_frame);
 }
 
 // Handler must not use the frame pointer after it has returned

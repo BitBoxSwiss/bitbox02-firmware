@@ -20,7 +20,7 @@
 
 #define BUFSIZE 0x40LU
 
-static uint8_t _buf[BUFSIZE];
+static USB_FRAME _buf;
 static size_t _buf_len;
 static bool _expect_more;
 
@@ -102,9 +102,9 @@ int hid_write(hid_device* dev, const unsigned char* data, size_t length)
         printf("Internal test error: %lu > %lu\n", length - 1, BUFSIZE);
         return 0;
     }
-    memcpy(_buf, data + 1, length - 1);
+    memcpy(&_buf, data + 1, length - 1);
     _buf_len = length - 1;
-    _expect_more = u2f_packet_process((const USB_FRAME*)_buf);
+    _expect_more = u2f_packet_process(&_buf);
     if (!_expect_more) {
         // printf("Got complete packet\n");
         _have_data = true;

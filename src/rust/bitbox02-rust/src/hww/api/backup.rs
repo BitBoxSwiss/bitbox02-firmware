@@ -70,7 +70,7 @@ pub async fn create(
     hal.ui()
         .confirm(&confirm::Params {
             title: "Is today?",
-            body: &bitbox02::format_datetime(timestamp, timezone_offset, true)
+            body: &util::datetime::format_datetime(timestamp, timezone_offset, true)
                 .map_err(|_| Error::InvalidInput)?,
             ..Default::default()
         })

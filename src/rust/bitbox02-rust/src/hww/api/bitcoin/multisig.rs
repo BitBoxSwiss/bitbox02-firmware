@@ -319,6 +319,7 @@ pub fn pkscript(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hex_lit::hex;
 
     use crate::keystore::testing::mock_unlocked_using_mnemonic;
     use bip32::parse_xpub;
@@ -364,24 +365,20 @@ mod tests {
         };
 
         assert_eq!(
-            hex::decode("b0267fbb26ba0e74bad825c987949f58ba22aa75f63b539986dd937607bb4dc3")
-                .unwrap(),
             get_hash(BtcCoin::Btc, &multisig, SortXpubs::No, keypath).unwrap(),
+            hex!("b0267fbb26ba0e74bad825c987949f58ba22aa75f63b539986dd937607bb4dc3"),
         );
         assert_eq!(
-            hex::decode("3800cb87a1e346eb4a61e25c4775e663f613090aa2bf3fddb057462d174b56ef")
-                .unwrap(),
             get_hash(BtcCoin::Tbtc, &multisig, SortXpubs::No, keypath).unwrap(),
+            hex!("3800cb87a1e346eb4a61e25c4775e663f613090aa2bf3fddb057462d174b56ef"),
         );
         assert_eq!(
-            hex::decode("6cf181d3e131eafefd4258084e5e48366a32d59be80a0afb13345589294ccf2d")
-                .unwrap(),
             get_hash(BtcCoin::Ltc, &multisig, SortXpubs::No, keypath).unwrap(),
+            hex!("6cf181d3e131eafefd4258084e5e48366a32d59be80a0afb13345589294ccf2d"),
         );
         assert_eq!(
-            hex::decode("0e5ee1d18a74d22cf7e3255a3529b9a453e9b080005ca0bd886f6decf9e4b845")
-                .unwrap(),
             get_hash(BtcCoin::Tltc, &multisig, SortXpubs::No, keypath).unwrap(),
+            hex!("0e5ee1d18a74d22cf7e3255a3529b9a453e9b080005ca0bd886f6decf9e4b845"),
         );
 
         let multisig_p2wsh_p2sh = Multisig {
@@ -394,9 +391,8 @@ mod tests {
             script_type: ScriptType::P2wshP2sh as _,
         };
         assert_eq!(
-            hex::decode("24513114c36f5c1f82d7b30c1431fad248d062dfa133d0f52ca85708b5a3fc2c")
-                .unwrap(),
             get_hash(BtcCoin::Btc, &multisig_p2wsh_p2sh, SortXpubs::No, keypath).unwrap(),
+            hex!("24513114c36f5c1f82d7b30c1431fad248d062dfa133d0f52ca85708b5a3fc2c"),
         );
 
         // Test that the hash is correct, and the same for all xpubs permutations if xpubs sort is
@@ -559,9 +555,8 @@ mod tests {
                 script_type: ScriptType::P2wsh as _,
             };
             assert_eq!(
-                hex::decode("e09011232d85b49a9fd5b83d6bef42ff60a50b69b56218333cb61d93c1567fbe")
-                    .unwrap(),
                 get_hash(BtcCoin::Btc, &multisig, SortXpubs::Yes, keypath).unwrap(),
+                hex!("e09011232d85b49a9fd5b83d6bef42ff60a50b69b56218333cb61d93c1567fbe"),
             );
         }
     }

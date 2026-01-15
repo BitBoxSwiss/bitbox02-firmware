@@ -13,6 +13,8 @@ mod alloc;
 pub mod async_usb;
 #[cfg(feature = "firmware")]
 mod der;
+#[cfg(feature = "factory-setup")]
+mod secp256k1;
 #[cfg(feature = "firmware")]
 pub mod workflow;
 

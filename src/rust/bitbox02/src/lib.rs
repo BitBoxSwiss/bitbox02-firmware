@@ -34,7 +34,6 @@ pub mod random;
 pub mod screen;
 pub mod screen_saver;
 pub mod sd;
-pub mod secp256k1;
 pub mod securechip;
 pub mod smarteeprom;
 pub mod spi_mem;

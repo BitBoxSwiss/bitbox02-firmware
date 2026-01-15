@@ -21,7 +21,6 @@
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
 #include "utils_ringbuffer.h"
-#include <secp256k1.h>
 #include <ui/oled/oled.h>
 
 #define BUFFER_SIZE_DOWN 1024
@@ -294,14 +293,6 @@ static void _free(uint8_t** buf)
     *buf = NULL;
 }
 
-static void _destroy(secp256k1_context** ctx)
-{
-    if (*ctx) {
-        secp256k1_context_destroy(*ctx);
-        *ctx = NULL;
-    }
-}
-
 /**
  * Computes the hash which is signed by the root key.
  * @param[in] attestation_device_pubkey 64 bytes P-256 pubkey.
@@ -365,27 +356,15 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         const uint8_t* root_pubkey_identifier = input + 1 + pubkey_size + certificate_size;
 
         // Verify sig
-
-        secp256k1_context* __attribute__((__cleanup__(_destroy))) ctx =
-            secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-
-        secp256k1_ecdsa_signature sig = {0};
-        if (!secp256k1_ecdsa_signature_parse_compact(ctx, &sig, certificate)) {
-            result = ERR_INVALID_INPUT;
-            break;
-        }
         uint8_t msg32[32] = {0};
         _attestation_sighash(attestation_device_pubkey, msg32);
         bool matches_a_root_pubkey = false;
         for (size_t pubkey_idx = 0; pubkey_idx < sizeof(_root_pubkey_bytes) / ROOT_PUBKEY_SIZE;
              pubkey_idx++) {
-            secp256k1_pubkey pubkey;
-            if (!secp256k1_ec_pubkey_parse(
-                    ctx, &pubkey, _root_pubkey_bytes[pubkey_idx], ROOT_PUBKEY_SIZE)) {
-                Abort("Invalid root pubkey");
-            }
-
-            if (secp256k1_ecdsa_verify(ctx, &sig, msg32, &pubkey)) {
+            if (rust_secp256k1_verify(
+                    rust_util_bytes(certificate, certificate_size),
+                    rust_util_bytes(msg32, sizeof(msg32)),
+                    rust_util_bytes(_root_pubkey_bytes[pubkey_idx], ROOT_PUBKEY_SIZE))) {
                 matches_a_root_pubkey = true;
                 break;
             }

@@ -1169,7 +1169,6 @@ mod tests {
             // Register policy.
             let name = "some name";
             let mut mock_hal = TestingHal::new();
-            use core::convert::TryInto;
             let hash = policies::get_hash(test.coin, &policy).unwrap();
             mock_hal.memory.multisig_set_by_hash(&hash, name).unwrap();
             let req = pb::BtcPubRequest {

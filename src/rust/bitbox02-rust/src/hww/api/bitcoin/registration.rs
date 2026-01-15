@@ -184,7 +184,7 @@ mod tests {
     use bitbox02::testing::mock_memory;
     use util::bip32::HARDENED;
 
-    use crate::hal::{Memory, testing::TestingHal};
+    use crate::hal::testing::TestingHal;
 
     use pb::btc_script_config::{Multisig, multisig::ScriptType};
 

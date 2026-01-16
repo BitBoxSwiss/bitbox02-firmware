@@ -20,6 +20,7 @@ pub mod backup;
 pub mod bb02_async;
 mod bip32;
 pub mod bip39;
+pub mod communication_mode;
 pub mod hal;
 pub mod hash;
 pub mod hww;

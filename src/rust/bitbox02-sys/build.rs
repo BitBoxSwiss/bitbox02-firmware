@@ -60,7 +60,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "bitbox_secp256k1_dleq_prove",
     "bitbox_secp256k1_dleq_verify",
     "bitbox02_smarteeprom_init",
-    "communication_mode_ble_enabled",
     "confirm_create",
     "confirm_transaction_address_create",
     "confirm_transaction_fee_create",
@@ -205,7 +204,6 @@ const RUSTIFIED_ENUMS: &[&str] = &[
 
 // BITBOX02_SOURCES are only used for native builds (simulator). Avoid cross-target specific files.
 const BITBOX02_SOURCES: &[&str] = &[
-    "src/communication_mode.c",
     "src/da14531/crc.c",
     "src/da14531/da14531_handler.c",
     "src/da14531/da14531_protocol.c",

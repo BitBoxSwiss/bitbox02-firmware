@@ -11,6 +11,7 @@
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
 #include <pukcc/curve_p256.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
@@ -30,7 +31,6 @@
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
-    #include <communication_mode.h>
     #include <da14531/da14531.h>
     #include <da14531/da14531_protocol.h>
     #include <uart.h>
@@ -328,7 +328,7 @@ void bootloader_render_default_screen(void)
     _load_logo();
 #if PLATFORM_BITBOX02PLUS == 1
     UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp", false);
-    if (communication_mode_ble_enabled() &&
+    if (rust_communication_mode_ble_enabled() &&
         da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
         char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
         memory_random_name(buf);

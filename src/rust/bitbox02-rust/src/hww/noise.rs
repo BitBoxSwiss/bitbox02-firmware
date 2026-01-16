@@ -94,7 +94,7 @@ pub(crate) async fn process(
                         memory::check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);
                     // When communicating over BLE, we don't require noise pairing code
                     // confirmation, as BLE already requires pairing with a pairing code.
-                    if bitbox02::communication_mode_ble_enabled() || already_verified {
+                    if crate::communication_mode::ble_enabled(hal) || already_verified {
                         state.set_pairing_verified()?;
                         usb_out.push(0); // let app know we don't require verification
                     } else {

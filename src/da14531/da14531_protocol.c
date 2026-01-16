@@ -6,7 +6,7 @@
 #include "platform_config.h"
 #include "uart.h"
 #include "util.h"
-#include <communication_mode.h>
+#include <rust/rust.h>
 #include <stdlib.h>
 #include <utils_assert.h>
 #ifndef TESTING
@@ -119,7 +119,7 @@ static void _firmware_loader_poll(
     case FIRMWARE_LOADER_STATE_IDLE:
         if (ble_fw == NULL) {
             if (!memory_spi_get_active_ble_firmware(&ble_fw, &ble_fw_size, &ble_fw_checksum)) {
-                communication_mode_ble_disable();
+                rust_communication_mode_ble_disable();
                 util_log("da14531: no valid firmware");
             }
             *buf_in_len = 0;

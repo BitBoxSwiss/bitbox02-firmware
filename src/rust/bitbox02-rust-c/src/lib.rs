@@ -20,6 +20,14 @@ pub mod workflow;
 #[cfg(feature = "firmware")]
 extern crate bitbox_aes;
 
+// Expose C interface defined in bitbox02_rust
+// Enable for firmware and for Nova bootloader (BitBox02 bootloader currently does not need it).
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+extern crate bitbox02_rust;
+
 // Expose C interface defined in util
 extern crate util;
 

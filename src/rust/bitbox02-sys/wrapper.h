@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <communication_mode.h>
 #include <delay.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/memory.h>

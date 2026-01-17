@@ -20,6 +20,9 @@ pub mod workflow;
 #[cfg(feature = "firmware")]
 extern crate bitbox_aes;
 
+// Expose C interface defined in bitbox-framed-serial-link
+extern crate bitbox_framed_serial_link;
+
 // Expose C interface defined in util
 extern crate util;
 

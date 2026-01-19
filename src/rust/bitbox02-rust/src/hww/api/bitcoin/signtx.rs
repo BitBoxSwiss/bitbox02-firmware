@@ -383,7 +383,7 @@ fn validate_script_config<'a>(
             keypath,
         } => {
             super::multisig::validate(hal, multisig, keypath)?;
-            let name = super::multisig::get_name(coin_params.coin, multisig, keypath)?
+            let name = super::multisig::get_name(hal, coin_params.coin, multisig, keypath)?
                 .ok_or(Error::InvalidInput)?;
             Ok(ValidatedScriptConfigWithKeypath {
                 keypath,
@@ -399,7 +399,7 @@ fn validate_script_config<'a>(
         } => {
             let parsed_policy = super::policies::parse(hal, policy, coin_params.coin)?;
             let name = parsed_policy
-                .name(coin_params)?
+                .name(hal, coin_params)?
                 .ok_or(Error::InvalidInput)?;
             Ok(ValidatedScriptConfigWithKeypath {
                 keypath,
@@ -1288,7 +1288,7 @@ pub async fn process(
 mod tests {
     use super::*;
     use crate::bip32::parse_xpub;
-    use crate::hal::testing::TestingHal;
+    use crate::hal::{Memory, testing::TestingHal};
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
@@ -1831,6 +1831,9 @@ mod tests {
                 script_type: pb::btc_script_config::multisig::ScriptType::P2wsh
                     as _,
             };
+
+            let mut mock_hal = TestingHal::new();
+
             // Register multisig.
             let hash = super::super::multisig::get_hash(
                 params.coin,
@@ -1839,12 +1842,12 @@ mod tests {
                 keypath,
             )
             .unwrap();
-            bitbox02::memory::multisig_set_by_hash(&hash, "test name").unwrap();
+            mock_hal
+                .memory
+                .multisig_set_by_hash(&hash, "test name")
+                .unwrap();
 
-            assert!(
-                super::super::multisig::validate(&mut TestingHal::new(), &multisig, keypath)
-                    .is_ok()
-            );
+            assert!(super::super::multisig::validate(&mut mock_hal, &multisig, keypath).is_ok());
 
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs = vec![
@@ -2892,7 +2895,10 @@ mod tests {
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
         let multisig_hash =
             hex!("89751d19e4e26fbeee2fd2c4f56ab7ae5be6dc46482e81241f4accfbc0a1584e");
-        bitbox02::memory::multisig_set_by_hash(&multisig_hash, "test multisig account name")
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&multisig_hash, "test multisig account name")
             .unwrap();
 
         let init_request = {
@@ -2934,8 +2940,6 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-
-        let mut mock_hal = TestingHal::new();
 
         let result = block_on(process(&mut mock_hal, &init_request));
         match result {
@@ -3064,7 +3068,10 @@ mod tests {
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
         let multisig_hash =
             hex!("a0a982a6f5ba9286ee45cd140fd763d43443d685a89bc60772553cc5418fccc4");
-        bitbox02::memory::multisig_set_by_hash(&multisig_hash, "test multisig account name")
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&multisig_hash, "test multisig account name")
             .unwrap();
 
         let init_request = {
@@ -3106,7 +3113,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&mut TestingHal::new(), &init_request));
+        let result = block_on(process(&mut mock_hal, &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3136,7 +3143,10 @@ mod tests {
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
         let multisig_hash =
             hex!("9dfc0652e2a305c8b9949620f98ee14650302e385f23941bc607cc35fd7a7781");
-        bitbox02::memory::multisig_set_by_hash(&multisig_hash, "test multisig account name")
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&multisig_hash, "test multisig account name")
             .unwrap();
 
         let init_request = {
@@ -3189,7 +3199,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&mut TestingHal::new(), &init_request));
+        let result = block_on(process(&mut mock_hal, &init_request));
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3247,8 +3257,11 @@ mod tests {
         };
 
         // Register policy.
-        let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
+        let hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&hash, "test policy account name")
+            .unwrap();
 
         let result = block_on(process(
             &mut mock_hal,
@@ -3369,11 +3382,16 @@ mod tests {
         };
 
         // Register policy.
-        let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
+        let mut mock_hal = TestingHal::new();
+        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
+        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&hash32, "test policy account name")
+            .unwrap();
 
         let result = block_on(process(
-            &mut TestingHal::new(),
+            &mut mock_hal,
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3433,10 +3451,14 @@ mod tests {
         };
 
         // Register policy.
-        let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
-
         let mut mock_hal = TestingHal::new();
+        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
+        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&hash32, "test policy account name")
+            .unwrap();
+
         assert!(
             block_on(process(
                 &mut mock_hal,
@@ -3547,11 +3569,16 @@ mod tests {
         };
 
         // Register policy.
-        let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
+        let mut mock_hal = TestingHal::new();
+        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
+        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&hash32, "test policy account name")
+            .unwrap();
 
         let result = block_on(process(
-            &mut TestingHal::new(),
+            &mut mock_hal,
             &transaction
                 .borrow()
                 .init_request_policy(policy, keypath_account),
@@ -3604,12 +3631,17 @@ mod tests {
         };
 
         // Register policy.
-        let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
+        let mut mock_hal = TestingHal::new();
+        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
+        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&hash32, "test policy account name")
+            .unwrap();
 
         assert_eq!(
             block_on(process(
-                &mut TestingHal::new(),
+                &mut mock_hal,
                 &transaction
                     .borrow()
                     .init_request_policy(policy, wrong_keypath_account)
@@ -3653,12 +3685,17 @@ mod tests {
         };
 
         // Register policy.
-        let policy_hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        bitbox02::memory::multisig_set_by_hash(&policy_hash, "test policy account name").unwrap();
+        let mut mock_hal = TestingHal::new();
+        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
+        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
+        mock_hal
+            .memory
+            .multisig_set_by_hash(&hash32, "test policy account name")
+            .unwrap();
 
         assert_eq!(
             block_on(process(
-                &mut TestingHal::new(),
+                &mut mock_hal,
                 &transaction
                     .borrow()
                     .init_request_policy(policy, keypath_account)

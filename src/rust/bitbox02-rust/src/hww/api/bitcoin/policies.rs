@@ -17,7 +17,7 @@ use util::bip32::HARDENED;
 use miniscript::TranslatePk;
 
 use crate::bip32;
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::confirm;
 use crate::xpubcache::Bip32XpubCache;
 
@@ -268,8 +268,12 @@ impl ParsedPolicy<'_> {
     /// Get the name of a registered policy account.
     ///
     /// Returns the name of the registered policy account if it exists or None otherwise.
-    pub fn name(&self, params: &Params) -> Result<Option<String>, ()> {
-        get_name(params.coin, self.policy)
+    pub fn name(
+        &self,
+        hal: &mut impl crate::hal::Hal,
+        params: &Params,
+    ) -> Result<Option<String>, ()> {
+        get_name(hal, params.coin, self.policy)
     }
 
     /// Iterates over the placeholder keys in this descriptor. For tr() descriptors, this covers the
@@ -716,7 +720,7 @@ pub enum Mode {
 }
 
 /// Creates a hash of this policy config, useful for registration and identification.
-pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
+pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<[u8; 32], ()> {
     let mut hasher = Sha256::new();
     {
         // 1. Type of registration: policy.
@@ -748,17 +752,20 @@ pub fn get_hash(coin: BtcCoin, policy: &Policy) -> Result<Vec<u8>, ()> {
             hasher.update(&bip32::Xpub::from(key.xpub.as_ref().unwrap()).serialize(None)?);
         }
     }
-    Ok(hasher.finalize().as_slice().into())
+    Ok(hasher.finalize().into())
 }
 
 /// Get the name of a registered policy account. The policy is not validated, it must be
 /// pre-validated!
 ///
 /// Returns the name of the registered policy account if it exists or None otherwise.
-pub fn get_name(coin: BtcCoin, policy: &Policy) -> Result<Option<String>, ()> {
-    Ok(bitbox02::memory::multisig_get_by_hash(&get_hash(
-        coin, policy,
-    )?))
+pub fn get_name(
+    hal: &mut impl crate::hal::Hal,
+    coin: BtcCoin,
+    policy: &Policy,
+) -> Result<Option<String>, ()> {
+    let hash = get_hash(coin, policy)?;
+    Ok(hal.memory().multisig_get_by_hash(&hash))
 }
 
 #[cfg(test)]

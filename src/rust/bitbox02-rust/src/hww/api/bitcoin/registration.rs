@@ -13,10 +13,11 @@ use pb::btc_script_config::Config;
 
 use super::multisig::SortXpubs;
 
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::{confirm, trinary_input_string};
 
 pub fn process_is_script_config_registered(
+    hal: &mut impl crate::hal::Hal,
     request: &pb::BtcIsScriptConfigRegisteredRequest,
 ) -> Result<Response, Error> {
     match request.registration.as_ref() {
@@ -31,7 +32,8 @@ pub fn process_is_script_config_registered(
             let coin = BtcCoin::try_from(*coin)?;
             Ok(Response::IsScriptConfigRegistered(
                 pb::BtcIsScriptConfigRegisteredResponse {
-                    is_registered: super::multisig::get_name(coin, multisig, keypath)?.is_some(),
+                    is_registered: super::multisig::get_name(hal, coin, multisig, keypath)?
+                        .is_some(),
                 },
             ))
         }
@@ -46,7 +48,7 @@ pub fn process_is_script_config_registered(
             let coin = BtcCoin::try_from(*coin)?;
             Ok(Response::IsScriptConfigRegistered(
                 pb::BtcIsScriptConfigRegisteredResponse {
-                    is_registered: super::policies::get_name(coin, policy)?.is_some(),
+                    is_registered: super::policies::get_name(hal, coin, policy)?.is_some(),
                 },
             ))
         }
@@ -124,7 +126,7 @@ pub async fn process_register_script_config(
             )
             .await?;
             let hash = super::multisig::get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
-            match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
+            match hal.memory().multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
                     hal.ui().status("Multisig account\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
@@ -157,7 +159,7 @@ pub async fn process_register_script_config(
                 )
                 .await?;
             let hash = super::policies::get_hash(coin, policy)?;
-            match bitbox02::memory::multisig_set_by_hash(&hash, &name) {
+            match hal.memory().multisig_set_by_hash(&hash, &name) {
                 Ok(()) => {
                     hal.ui().status("Policy\nregistered", true).await;
                     Ok(Response::Success(pb::BtcSuccess {}))
@@ -182,12 +184,15 @@ mod tests {
     use bitbox02::testing::mock_memory;
     use util::bip32::HARDENED;
 
+    use crate::hal::testing::TestingHal;
+
     use pb::btc_script_config::{Multisig, multisig::ScriptType};
 
     #[test]
     fn test_process_is_script_config_registered() {
         fn test(sort_xpubs: SortXpubs) {
             mock_memory();
+            let mut mock_hal = TestingHal::new();
 
             let keypath = &[48 + HARDENED, 0 + HARDENED, 10 + HARDENED, 2 + HARDENED];
             // The xpubs in this test are deliberately not ordered correctly to test that ordering
@@ -201,20 +206,22 @@ mod tests {
                 our_xpub_index: 0,
                 script_type: ScriptType::P2wsh as _,
             };
+
             let hash =
-                &super::super::multisig::get_hash(BtcCoin::Btc, &multisig, sort_xpubs, keypath)
+                super::super::multisig::get_hash(BtcCoin::Btc, &multisig, sort_xpubs, keypath)
                     .unwrap();
+
             let request = pb::BtcIsScriptConfigRegisteredRequest {
                 registration: Some(pb::BtcScriptConfigRegistration {
                     coin: BtcCoin::Btc as _,
                     script_config: Some(pb::BtcScriptConfig {
-                        config: Some(Config::Multisig(multisig)),
+                        config: Some(Config::Multisig(multisig)), // `multisig` moved here, no more use after
                     }),
                     keypath: keypath.to_vec(),
                 }),
             };
             assert_eq!(
-                process_is_script_config_registered(&request),
+                process_is_script_config_registered(&mut mock_hal, &request),
                 Ok(Response::IsScriptConfigRegistered(
                     pb::BtcIsScriptConfigRegisteredResponse {
                         is_registered: false,
@@ -222,9 +229,13 @@ mod tests {
                 ))
             );
 
-            bitbox02::memory::multisig_set_by_hash(hash, "some name").unwrap();
+            mock_hal
+                .memory
+                .multisig_set_by_hash(&hash, "some name")
+                .unwrap();
+
             assert_eq!(
-                process_is_script_config_registered(&request),
+                process_is_script_config_registered(&mut mock_hal, &request),
                 Ok(Response::IsScriptConfigRegistered(
                     pb::BtcIsScriptConfigRegisteredResponse {
                         is_registered: true,

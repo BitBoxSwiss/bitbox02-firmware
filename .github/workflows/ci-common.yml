@@ -202,6 +202,7 @@ jobs:
           - firmware-debug
           - simulator
           - simulator-graphical
+          - simulator-graphical-bb03
     runs-on: ubuntu-22.04
     container:
       image: ${{ inputs.container-repo }}:${{ inputs.container-version }}

@@ -4,7 +4,6 @@ use clap::Parser;
 use femtovg::{Canvas, ImageFlags, ImageId, ImageSource, Paint, Path, renderer::OpenGl};
 use image::{DynamicImage, GenericImage, Rgba, RgbaImage};
 
-use std::collections::VecDeque;
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -21,8 +20,8 @@ use std::thread;
 use std::time::Duration;
 
 use winit::application::ApplicationHandler;
-use winit::dpi::{LogicalSize, PhysicalSize};
-use winit::event::WindowEvent;
+use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::raw_window_handle::HasWindowHandle;
 use winit::window::{Window, WindowId};
@@ -41,17 +40,18 @@ use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 use bitbox02::ui::ugui::UG_COLOR;
 use bitbox02_rust::hal::{Hal, Memory};
 
-static BG: &[u8; 325362] = include_bytes!("../bg.png");
+static BG: &[u8] = include_bytes!("../bg.png");
 
 const MARGIN: usize = 20;
-const PADDING_TOP_BOTTOM: usize = 22;
-const PADDING_LEFT: usize = 60;
-const PADDING_RIGHT: usize = 35;
-const SCREEN_WIDTH: usize = bitbox02::screen::SCREEN_WIDTH as usize;
-const SCREEN_HEIGHT: usize = bitbox02::screen::SCREEN_HEIGHT as usize;
-const WINDOW_LOGICAL_WIDTH_ORIGINAL: usize =
-    SCREEN_WIDTH + 2 * MARGIN + PADDING_LEFT + PADDING_RIGHT;
-const WINDOW_LOGICAL_HEIGHT_ORIGINAL: usize = SCREEN_HEIGHT + 2 * MARGIN + 2 * PADDING_TOP_BOTTOM;
+const PADDING_TOP: usize = 50;
+const PADDING_BOTTOM: usize = 95;
+const PADDING_LEFT_RIGHT: usize = 50;
+// TODO put size in product crate
+const SCREEN_WIDTH: usize = 480;
+const SCREEN_HEIGHT: usize = 800;
+const WINDOW_LOGICAL_WIDTH_ORIGINAL: usize = SCREEN_WIDTH + 2 * MARGIN + 2 * PADDING_LEFT_RIGHT;
+const WINDOW_LOGICAL_HEIGHT_ORIGINAL: usize =
+    SCREEN_HEIGHT + 2 * MARGIN + PADDING_TOP + PADDING_BOTTOM;
 
 pub fn handle_stream_reader(
     mut stream: TcpStream,
@@ -170,39 +170,6 @@ fn init_hww(preseed: bool) -> bool {
     true
 }
 
-#[derive(Debug)]
-struct Slider {
-    active: bool,
-    position: u16,
-    position_start: u16,
-    sliding: bool,
-    velocity_history: VecDeque<i32>,
-}
-
-impl Default for Slider {
-    fn default() -> Self {
-        Slider {
-            active: false,
-            position: 0,
-            position_start: 0,
-            sliding: false,
-            velocity_history: VecDeque::new(),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct SliderUpdate {
-    active: bool,
-    position: u16,
-}
-
-impl SliderUpdate {
-    fn new(active: bool, position: u16) -> SliderUpdate {
-        SliderUpdate { active, position }
-    }
-}
-
 struct App {
     window: Option<Rc<Window>>,
     surface: Option<Surface<WindowSurface>>,
@@ -210,11 +177,8 @@ struct App {
     canvas: Option<Canvas<OpenGl>>,
     bg: Option<ImageId>,
     screen: Option<ImageId>,
-    slider_top: Slider,
-    slider_bottom: Slider,
-    pinch: bool,
-    mouse_last_x: i32,
-    mouse_last_y: i32,
+    touch_active: bool,
+    cursor_pos: (i32, i32),
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     orientation_task: Option<util::bb02_async::Task<'static, bool>>,
@@ -229,16 +193,23 @@ impl Default for App {
             canvas: Default::default(),
             bg: Default::default(),
             screen: Default::default(),
-            slider_top: Default::default(),
-            slider_bottom: Default::default(),
-            pinch: false,
-            mouse_last_x: 0,
-            mouse_last_y: 0,
+            touch_active: false,
+            cursor_pos: (0, 0),
             outbound_in: Default::default(),
             inbound_out: Default::default(),
             orientation_task: Default::default(),
         }
     }
+}
+
+fn window_to_logical(window: &Window, position: PhysicalPosition<f64>) -> (i32, i32) {
+    let window_size = window.inner_size();
+    let width_scale_factor = window_size.width as f32 / WINDOW_LOGICAL_WIDTH_ORIGINAL as f32;
+    let height_scale_factor = window_size.height as f32 / WINDOW_LOGICAL_HEIGHT_ORIGINAL as f32;
+    (
+        (position.x as f32 / width_scale_factor) as i32,
+        (position.y as f32 / height_scale_factor) as i32,
+    )
 }
 
 impl App {
@@ -247,11 +218,11 @@ impl App {
         event_loop: &ActiveEventLoop,
         _: Option<String>,
     ) -> Result<WindowId, Box<dyn Error>> {
-        let width = (WINDOW_LOGICAL_WIDTH_ORIGINAL) as u32;
-        let height = (WINDOW_LOGICAL_HEIGHT_ORIGINAL) as u32;
+        let width = WINDOW_LOGICAL_WIDTH_ORIGINAL as u32;
+        let height = WINDOW_LOGICAL_HEIGHT_ORIGINAL as u32;
         let w_attr = Window::default_attributes()
             .with_inner_size(LogicalSize::new(width, height))
-            .with_title("Graphical BitBox02 Simulator");
+            .with_title("Graphical BitBox03 Simulator");
 
         let (window, gl_config) = {
             let template = ConfigTemplateBuilder::new();
@@ -309,9 +280,9 @@ impl App {
 
         let window_id = window.id();
         info!("Created window {window_id:?}");
+
         let bg_orig = image::load_from_memory(BG).unwrap();
         debug!("image: {} {}", bg_orig.width(), bg_orig.height());
-
         let bg_id = canvas
             .create_image(
                 ImageSource::try_from(&bg_orig).unwrap(),
@@ -335,63 +306,24 @@ impl App {
     }
 }
 
-fn emit_slider_event(slider: &mut Slider, updated: SliderUpdate, slider_source: u8) {
-    let diff = updated.position as i16 - slider.position as i16;
-    let updated_data = bitbox02::event::event_slider_data_t {
-        source: slider_source,
-        diff: diff,
-        position: updated.position as u16,
-        velocity: slider.velocity_history.iter().sum(),
-    };
-    if !updated.active && slider.active {
-        debug!("tap {:?}", updated_data);
-        let event = bitbox02::event::event_t {
-            id: bitbox02::event::event_types::EVENT_SHORT_TAP as u8,
-            data: updated_data,
-        };
-        bitbox02::event::emit_event(&event);
-        debug!("slide released {:?}", updated_data);
-        slider.sliding = false;
-        slider.velocity_history.clear();
-        let event = bitbox02::event::event_t {
-            id: bitbox02::event::event_types::EVENT_SLIDE_RELEASED as u8,
-            data: updated_data,
-        };
-        bitbox02::event::emit_event(&event);
-    }
-    if updated.active && !slider.active {
-        debug!("cont {:?}", updated_data);
-        let event = bitbox02::event::event_t {
-            data: updated_data,
-            id: bitbox02::event::event_types::EVENT_CONTINUOUS_TAP as u8,
-        };
-        bitbox02::event::emit_event(&event);
-        slider.position_start = updated.position;
-    }
-    if updated.active
-        && slider.active
-        && (i32::abs(slider.position_start as i32 - updated.position as i32) > 10 || slider.sliding)
-    {
-        debug!("slide {:?}", updated_data);
-        slider.velocity_history.push_back(diff as i32);
-        if slider.velocity_history.len() > 30 {
-            slider.velocity_history.pop_front();
-        }
-        slider.sliding = true;
-        let event = bitbox02::event::event_t {
-            id: bitbox02::event::event_types::EVENT_SLIDE as u8,
-            data: updated_data,
-        };
-        bitbox02::event::emit_event(&event);
-    }
-    slider.active = updated.active;
-    slider.position = updated.position;
-}
-
 #[derive(Debug)]
 enum UserEvent {
     WakeUp,
     NewConnection(mpsc::Sender<[u8; 64]>, mpsc::Receiver<[u8; 64]>),
+}
+
+pub fn screen_coord(x: i32, y: i32) -> Option<(i32, i32)> {
+    let screen_left_boundary = (MARGIN + PADDING_LEFT_RIGHT) as i32;
+    let screen_right_boundary = (MARGIN + PADDING_LEFT_RIGHT + SCREEN_WIDTH) as i32;
+    if x < screen_left_boundary || x >= screen_right_boundary {
+        return None;
+    }
+    let screen_top_boundary = (MARGIN + PADDING_TOP) as i32;
+    let screen_bottom_boundary = (MARGIN + PADDING_TOP + SCREEN_HEIGHT) as i32;
+    if y < screen_top_boundary || y >= screen_bottom_boundary {
+        return None;
+    }
+    Some((x - screen_left_boundary, y - screen_top_boundary))
 }
 
 impl ApplicationHandler<UserEvent> for App {
@@ -402,7 +334,6 @@ impl ApplicationHandler<UserEvent> for App {
                 return;
             }
             WindowEvent::RedrawRequested => {
-                //info!("{event:?}");
                 if let Some(surface) = &mut self.surface
                     && let Some(canvas) = &mut self.canvas
                     && let Some(gl_context) = &mut self.gl_context
@@ -418,7 +349,6 @@ impl ApplicationHandler<UserEvent> for App {
                         window_size.height as f32 / WINDOW_LOGICAL_HEIGHT_ORIGINAL as f32;
                     canvas.set_size(window_size.width, window_size.height, dpi_factor);
 
-                    // fill background
                     let mut bg = Path::new();
                     bg.rect(
                         0f32,
@@ -428,36 +358,43 @@ impl ApplicationHandler<UserEvent> for App {
                     );
                     canvas.fill_path(
                         &bg,
-                        &Paint::color(femtovg::Color::rgba(0xf5, 0xf5, 0xf5, 0xff)),
+                        &Paint::color(femtovg::Color::rgba(0xf4, 0xf2, 0xee, 0xff)),
                     );
 
-                    let bitbox_x = MARGIN as f32 * width_stretch_factor;
-                    let bitbox_y = MARGIN as f32 * height_stretch_factor;
-                    let bitbox_width =
-                        (PADDING_LEFT + SCREEN_WIDTH + PADDING_RIGHT) as f32 * width_stretch_factor;
-                    let bitbox_height =
-                        (2 * PADDING_TOP_BOTTOM + SCREEN_HEIGHT) as f32 * height_stretch_factor;
+                    let device_x = MARGIN as f32 * width_stretch_factor;
+                    let device_y = MARGIN as f32 * height_stretch_factor;
+                    let device_width =
+                        (2 * PADDING_LEFT_RIGHT + SCREEN_WIDTH) as f32 * width_stretch_factor;
+                    let device_height = (PADDING_TOP + SCREEN_HEIGHT + PADDING_BOTTOM) as f32
+                        * height_stretch_factor;
 
-                    let mut bitbox_path = Path::new();
-                    bitbox_path.rect(bitbox_x, bitbox_y, bitbox_width, bitbox_height);
-
+                    let mut device_path = Path::new();
+                    device_path.rect(device_x, device_y, device_width, device_height);
                     canvas.fill_path(
-                        &bitbox_path,
+                        &device_path,
                         &Paint::image(
                             bg_id.clone(),
-                            bitbox_x,
-                            bitbox_y,
-                            bitbox_width,
-                            bitbox_height,
+                            device_x,
+                            device_y,
+                            device_width,
+                            device_height,
                             0f32,
                             1f32,
                         ),
                     );
 
-                    let screen_x = (MARGIN + PADDING_LEFT) as f32 * width_stretch_factor;
-                    let screen_y = (MARGIN + PADDING_TOP_BOTTOM) as f32 * height_stretch_factor;
+                    let screen_x = (MARGIN + PADDING_LEFT_RIGHT) as f32 * width_stretch_factor;
+                    let screen_y = (MARGIN + PADDING_TOP) as f32 * height_stretch_factor;
                     let screen_width = SCREEN_WIDTH as f32 * width_stretch_factor;
                     let screen_height = SCREEN_HEIGHT as f32 * height_stretch_factor;
+
+                    let mut frame_path = Path::new();
+                    frame_path.rect(screen_x, screen_y, screen_width, screen_height);
+                    canvas.fill_path(
+                        &frame_path,
+                        &Paint::color(femtovg::Color::rgba(0x12, 0x14, 0x18, 0xff)),
+                    );
+
                     let mut screen_path = Path::new();
                     screen_path.rect(screen_x, screen_y, screen_width, screen_height);
                     let paint = if MIRROR.load(Ordering::Relaxed) {
@@ -499,112 +436,44 @@ impl ApplicationHandler<UserEvent> for App {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                //debug!("{position:?}");
-                let Some(window) = &mut self.window else {
+                let Some(window) = &self.window else {
                     return;
                 };
-                let (x, y) = (position.x, position.y);
-                let window_size = window.inner_size();
-                let width_scale_factor = (window_size.width) as f32
-                    / (2 * MARGIN + PADDING_LEFT + SCREEN_WIDTH + PADDING_RIGHT) as f32;
+                let (x, y) = window_to_logical(window, position);
+                self.cursor_pos = (x, y);
 
-                let height_scale_factor = (window_size.height) as f32
-                    / (2 * MARGIN + 2 * PADDING_TOP_BOTTOM + SCREEN_HEIGHT) as f32;
-
-                let (x, y) = (
-                    (x as f32 / width_scale_factor) as i32,
-                    (y as f32 / height_scale_factor) as i32,
-                );
-                let xrel = x - self.mouse_last_x;
-                let yrel = y - self.mouse_last_y;
-                // Ignore if mouse didn't move long enough
-                if xrel == 0 && yrel == 0 {
+                if !self.touch_active {
                     return;
                 }
-                debug!("x={x}, y={y}, xrel={xrel}, yrel={yrel}");
-                self.mouse_last_x = x;
-                self.mouse_last_y = y;
 
-                let slider_pos = (x - ((MARGIN + PADDING_LEFT / 2) as i32)) * 255
-                    / (SCREEN_WIDTH + PADDING_LEFT / 2 + PADDING_RIGHT) as i32;
-                debug!("slider_pos = {slider_pos}");
-                if slider_pos >= 0 && slider_pos <= 255 {
-                    // Check top slider hit box
-                    if y >= MARGIN as i32 / 2 && y < MARGIN as i32 {
-                        emit_slider_event(
-                            &mut self.slider_top,
-                            SliderUpdate::new(true, slider_pos as u16),
-                            1,
-                        );
-                    }
-                    // Check if moved out upwards
-                    if y < MARGIN as i32 / 2 && self.slider_top.active {
-                        let prev_pos = self.slider_top.position;
-                        emit_slider_event(
-                            &mut self.slider_top,
-                            SliderUpdate::new(false, prev_pos),
-                            1,
-                        );
-                    }
-
-                    // Check bottom slider hit box
-                    if y >= (MARGIN + 2 * PADDING_TOP_BOTTOM + SCREEN_HEIGHT) as i32
-                        && y < (MARGIN + 2 * PADDING_TOP_BOTTOM + SCREEN_HEIGHT + MARGIN / 2) as i32
-                    {
-                        emit_slider_event(
-                            &mut self.slider_bottom,
-                            SliderUpdate::new(true, slider_pos as u16),
-                            0,
-                        );
-                    }
-                    // Check if moved out downwards
-                    if y > (MARGIN + 2 * PADDING_TOP_BOTTOM + SCREEN_HEIGHT + MARGIN / 2) as i32
-                        && self.slider_bottom.active
-                    {
-                        let prev_pos = self.slider_bottom.position;
-                        emit_slider_event(
-                            &mut self.slider_bottom,
-                            SliderUpdate::new(false, prev_pos),
-                            0,
-                        );
-                    }
-                }
-
-                // Check "pinch hit box"
-                if x > (MARGIN + PADDING_LEFT + SCREEN_WIDTH + PADDING_RIGHT) as i32
-                    && y > (MARGIN + PADDING_TOP_BOTTOM + SCREEN_HEIGHT / 3) as i32
-                    && y < (MARGIN + PADDING_TOP_BOTTOM + SCREEN_HEIGHT * 2 / 3) as i32
-                {
-                    if !self.pinch {
-                        self.pinch = true;
-                        let prev_pos = self.slider_top.position;
-                        emit_slider_event(
-                            &mut self.slider_top,
-                            SliderUpdate::new(false, prev_pos),
-                            1,
-                        );
-                        let prev_pos = self.slider_bottom.position;
-                        emit_slider_event(
-                            &mut self.slider_bottom,
-                            SliderUpdate::new(false, prev_pos),
-                            0,
-                        );
-                        emit_slider_event(&mut self.slider_top, SliderUpdate::new(true, 255), 1);
-                        emit_slider_event(&mut self.slider_bottom, SliderUpdate::new(true, 255), 0);
-                    }
-                } else if self.pinch {
-                    self.pinch = false;
-                    let prev_pos = self.slider_top.position;
-                    emit_slider_event(&mut self.slider_top, SliderUpdate::new(false, prev_pos), 1);
-                    let prev_pos = self.slider_bottom.position;
-                    emit_slider_event(
-                        &mut self.slider_bottom,
-                        SliderUpdate::new(false, prev_pos),
-                        0,
-                    );
+                if let Some((x, y)) = screen_coord(x, y) {
+                    debug!("drag x={x}, y={y}");
                 }
             }
+            WindowEvent::MouseInput { state, button, .. } => {
+                if button != MouseButton::Left {
+                    return;
+                }
+                let (x, y) = self.cursor_pos;
 
+                match state {
+                    ElementState::Pressed => {
+                        if let Some((x, y)) = screen_coord(x, y) {
+                            debug!("pressed x={x}, y={y}");
+                            self.touch_active = true;
+                        }
+                    }
+                    ElementState::Released => {
+                        if !self.touch_active {
+                            return;
+                        }
+                        self.touch_active = false;
+                        if let Some((x, y)) = screen_coord(x, y) {
+                            debug!("released x={x}, y={y}");
+                        }
+                    }
+                }
+            }
             _ => debug!("{event:?}"),
         }
     }
@@ -785,7 +654,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
                         move || handle_stream_writer(stream, outbound_out, counter)
                     });
                 } else {
-                    info!("Busy, won't accept new clients",);
+                    info!("Busy, won't accept new clients");
                 }
             }
         }

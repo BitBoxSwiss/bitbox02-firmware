@@ -488,7 +488,7 @@ if(CMAKE_CROSSCOMPILING)
 
   foreach(bootloader ${DEVDEVICE-BOOTLOADERS} ${BOOTLOADERS-BITBOX02PLUS})
     set(elf ${bootloader}.elf)
-    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_T})
     target_sources(${elf} PRIVATE ${QTOUCH-SOURCES})
   endforeach(bootloader)
 
@@ -557,7 +557,7 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
 
     target_link_libraries(${elf} PRIVATE secp256k1)
-    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_T})
 
     # Select the smaller version of libc called nano.
     target_compile_options(${elf} PRIVATE --specs=nano.specs)

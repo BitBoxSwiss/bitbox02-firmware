@@ -22,14 +22,17 @@
 
 #define MAX_REGISTRATIONS 7
 #define MAX_HISTORY 30
+// Measured in qtouch measurmenent periodicity
+#define KEY_REPEAT_PERIOD 20
 
-/** The minimum amount of sliding difference required, so that the gesture is detected as slide. */
-static const uint8_t SLIDE_DETECTION_DIFF = MAX_SLIDER_POS * 0.04; // Percent of slider range
+/** The minimum amount of sliding difference required, so that the gesture is
+ * detected as slide. */
+static const uint8_t SLIDE_DETECTION_DIFF = 6;
 /**
  * The maximum amount of sliding that the user's finger is allowed to move
  * for its gesture to be still considered a tap.
  */
-static const uint8_t TAP_SLIDE_TOLERANCE = MAX_SLIDER_POS * 0.1; // Percent of slider range
+static const uint8_t TAP_SLIDE_TOLERANCE = 30;
 
 extern volatile bool measurement_done_touch;
 
@@ -59,10 +62,9 @@ typedef struct {
      * since starting the gesture.
      */
     uint16_t max_slide_travel;
-    int32_t velocity_sum;
-    uint16_t velocity_index;
-    // Stores the velocities.
-    int16_t velocity_values[MAX_HISTORY];
+
+    // Velocity is generally 10x movement per period
+    int32_t velocity;
     // The gesture type (tap, slide). FUTURE: remove this?
     enum gesture_type_t gesture_type;
     // The status of the slider.
@@ -78,6 +80,10 @@ static gestures_detection_state_t _state[TOUCH_NUM_SLIDERS] = {0};
 
 /********************************** STATE UPDATE **********************************/
 
+#define Q_FACTOR 1024
+#define ALPHA 686
+#define ONE_MINUS_ALPHA (Q_FACTOR - ALPHA)
+
 /**
  * Updates the state of a slider.
  */
@@ -89,17 +95,16 @@ static void _slider_state_update(gestures_detection_state_t* state, uint16_t pos
         state->max_slide_travel = 0;
         state->gesture_type = TAP;
     }
-    int16_t velocity_current = position - state->position_current;
+    int32_t velocity = (position - state->position_current) * 10;
     state->position_current = position;
-    int16_t velocity_removed = state->velocity_values[state->velocity_index];
-    state->velocity_sum = state->velocity_sum - velocity_removed + velocity_current;
-    state->velocity_values[state->velocity_index] = velocity_current;
-    state->velocity_index = (state->velocity_index + 1) % MAX_HISTORY;
+
+    // EMA of velocity
+    state->velocity = (ALPHA * velocity + ONE_MINUS_ALPHA * state->velocity) / Q_FACTOR;
     uint16_t distance_from_start = abs((int)position - (int)state->position_start);
     state->max_slide_travel = MAX(distance_from_start, state->max_slide_travel);
 
     state->slider_status = ACTIVE;
-    if (abs(state->position_current - state->position_start) > SLIDE_DETECTION_DIFF) {
+    if (distance_from_start > SLIDE_DETECTION_DIFF) {
         state->gesture_type = SLIDE;
     }
     state->duration++;
@@ -139,7 +144,8 @@ typedef bool (*gesture_detect_fn)(uint8_t location);
 static bool _is_continuous_tap(uint8_t location)
 {
     return _state[location].max_slide_travel < TAP_SLIDE_TOLERANCE &&
-           _state[location].slider_status == ACTIVE;
+           _state[location].slider_status == ACTIVE &&
+           _state[location].duration % KEY_REPEAT_PERIOD == 0;
 }
 
 static bool _is_tap_release(uint8_t location)
@@ -176,7 +182,7 @@ static void _gesture_emit_event(uint8_t id, slider_location_t location)
         .source = location,
         .position = _state[location].position_current,
         .diff = _state[location].position_current - _state[location].position_start,
-        .velocity = _state[location].velocity_sum,
+        .velocity = _state[location].velocity,
     };
     event_t event = {.id = id, .data = slider_data};
     emit_event(&event);

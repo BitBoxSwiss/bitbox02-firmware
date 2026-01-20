@@ -2,7 +2,6 @@
 
 #include "firmware_main_loop.h"
 
-#include "communication_mode.h"
 #include "da14531/da14531.h"
 #include "da14531/da14531_handler.h"
 #include "da14531/da14531_protocol.h"
@@ -84,12 +83,12 @@ void firmware_main_loop(void)
 #endif
 
     if (!memory_ble_enabled()) {
-        communication_mode_ble_disable();
+        rust_communication_mode_ble_disable();
     }
 
     while (1) {
         // Do UART I/O
-        if (communication_mode_ble_enabled()) {
+        if (rust_communication_mode_ble_enabled()) {
             if (uart_read_buf_len < sizeof(uart_read_buf) ||
                 ringbuffer_num(&uart_write_queue) > 0) {
                 uart_poll(
@@ -122,7 +121,7 @@ void firmware_main_loop(void)
         // Do USB Input
         if (!hww_data && hid_hww_read(&hww_frame[0])) {
             if (usb_packet_process((const USB_FRAME*)hww_frame)) {
-                if (communication_mode_ble_enabled()) {
+                if (rust_communication_mode_ble_enabled()) {
                     // Enqueue a power down command to the da14531
                     da14531_power_down(&uart_write_queue);
                     // Flush out the power down command. This will be the last UART communication we
@@ -130,7 +129,7 @@ void firmware_main_loop(void)
                     while (ringbuffer_num(&uart_write_queue) > 0) {
                         uart_poll(NULL, 0, NULL, &uart_write_queue);
                     }
-                    communication_mode_ble_disable();
+                    rust_communication_mode_ble_disable();
                 }
             } else {
                 util_log("usb_packet_process: invalid");
@@ -144,7 +143,7 @@ void firmware_main_loop(void)
 #endif
 
         // Do UART Output
-        if (communication_mode_ble_enabled()) {
+        if (rust_communication_mode_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
                 &uart_read_buf[0], &uart_read_buf_len, &hww_data, &uart_write_queue);
 
@@ -154,7 +153,7 @@ void firmware_main_loop(void)
         }
 
         // Do USB Output
-        if (!communication_mode_ble_enabled() && hww_data) {
+        if (!rust_communication_mode_ble_enabled() && hww_data) {
             if (hid_hww_write_poll(hww_data)) {
                 hww_data = NULL;
             }

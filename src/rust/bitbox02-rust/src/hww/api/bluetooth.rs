@@ -156,7 +156,7 @@ async fn process_upgrade(
     if response.is_ok() {
         hal.ui().status("Upgrade\nsuccessful", true).await;
         bitbox02::reset_ble();
-        if bitbox02::communication_mode_ble_enabled() {
+        if crate::communication_mode::ble_enabled(hal) {
             // Since the Bluetooth host will not be there anymore to read this response, this task
             // will not be cleared by the executor. We do it manually to make space for the next
             // task upon reconnection.

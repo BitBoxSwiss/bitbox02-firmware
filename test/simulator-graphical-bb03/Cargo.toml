@@ -1,0 +1,21 @@
+[package]
+name = "simulator-graphical-bb03"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitbox02-rust = { path = "../../src/rust/bitbox02-rust", features = ["simulator-graphical"] }
+bitbox02-rust-c = { path = "../../src/rust/bitbox02-rust-c", features = ["simulator-graphical"] }
+bitbox02 = { path = "../../src/rust/bitbox02", features = ["simulator-graphical"] }
+bitbox-aes = { path = "../../src/rust/bitbox-aes" }
+winit = "0.30.12"
+tracing = { version = "0.1.41", features = ["log"] }
+image = "0.25.8"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+femtovg = "0.19.1"
+glutin = "0.32.3"
+glutin-winit = "0.5.0"
+clap = { version = "4.5.48", features = ["derive"] }
+hex = "0.4.3"
+util = { path = "../../src/rust/util" }
+critical-section = { version = "1.2", features = ["std"] }

@@ -78,7 +78,7 @@ int main(void)
 
     // If did not jump to firmware code, begin UART/USB processing
     const uint8_t* hww_data = NULL;
-    uint8_t hww_frame[USB_REPORT_SIZE] = {0};
+    USB_FRAME hww_frame = {0};
 
 #if PLATFORM_BITBOX02PLUS == 1
     uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
@@ -128,8 +128,8 @@ int main(void)
         if (!hww_data) {
             hww_data = queue_pull(queue_hww_queue());
         }
-        if (!hww_data && hid_hww_read(&hww_frame[0])) {
-            usb_packet_process((const USB_FRAME*)hww_frame);
+        if (!hww_data && hid_hww_read((uint8_t*)&hww_frame)) {
+            usb_packet_process(&hww_frame);
 #if PLATFORM_BITBOX02PLUS == 1
             if (rust_communication_mode_ble_enabled()) {
                 // Enqueue a power down command to the da14531

@@ -6,6 +6,7 @@ pub mod bb02_async;
 pub mod bip32;
 pub mod bytes;
 pub mod cell;
+pub mod datetime;
 pub mod decimal;
 pub mod log;
 pub mod name;

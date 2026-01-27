@@ -93,6 +93,10 @@ pub trait Memory {
     fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String>;
 }
 
+pub trait System {
+    fn reboot_to_bootloader(&mut self) -> !;
+}
+
 /// Hardware abstraction layer for BitBox devices.
 pub trait Hal {
     fn ui(&mut self) -> &mut impl Ui;
@@ -100,6 +104,7 @@ pub trait Hal {
     fn random(&mut self) -> &mut impl Random;
     fn securechip(&mut self) -> &mut impl SecureChip;
     fn memory(&mut self) -> &mut impl Memory;
+    fn system(&mut self) -> &mut impl System;
 }
 
 pub struct BitBox02Sd;
@@ -315,12 +320,21 @@ impl Memory for BitBox02Memory {
     }
 }
 
+pub struct BitBox02System;
+
+impl System for BitBox02System {
+    fn reboot_to_bootloader(&mut self) -> ! {
+        bitbox02::reboot_to_bootloader()
+    }
+}
+
 pub struct BitBox02Hal {
     ui: RealWorkflows,
     sd: BitBox02Sd,
     random: BitBox02Random,
     securechip: BitBox02SecureChip,
     memory: BitBox02Memory,
+    system: BitBox02System,
 }
 
 impl BitBox02Hal {
@@ -331,6 +345,7 @@ impl BitBox02Hal {
             random: BitBox02Random,
             securechip: BitBox02SecureChip,
             memory: BitBox02Memory,
+            system: BitBox02System,
         }
     }
 }
@@ -350,6 +365,9 @@ impl Hal for BitBox02Hal {
     }
     fn memory(&mut self) -> &mut impl Memory {
         &mut self.memory
+    }
+    fn system(&mut self) -> &mut impl System {
+        &mut self.system
     }
 }
 
@@ -861,12 +879,27 @@ pub mod testing {
         }
     }
 
+    pub struct TestingSystem;
+
+    impl TestingSystem {
+        pub fn new() -> Self {
+            Self
+        }
+    }
+
+    impl super::System for TestingSystem {
+        fn reboot_to_bootloader(&mut self) -> ! {
+            panic!("reboot_to_bootloader called")
+        }
+    }
+
     pub struct TestingHal<'a> {
         pub ui: crate::workflow::testing::TestingWorkflows<'a>,
         pub sd: TestingSd,
         pub random: TestingRandom,
         pub securechip: TestingSecureChip,
         pub memory: TestingMemory,
+        pub system: TestingSystem,
     }
 
     impl TestingHal<'_> {
@@ -877,6 +910,7 @@ pub mod testing {
                 random: TestingRandom::new(),
                 securechip: TestingSecureChip::new(),
                 memory: TestingMemory::new(),
+                system: TestingSystem::new(),
             }
         }
     }
@@ -896,6 +930,9 @@ pub mod testing {
         }
         fn memory(&mut self) -> &mut impl super::Memory {
             &mut self.memory
+        }
+        fn system(&mut self) -> &mut impl super::System {
+            &mut self.system
         }
     }
 

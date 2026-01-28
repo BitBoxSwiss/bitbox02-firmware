@@ -303,7 +303,6 @@ async fn verify_standard_transaction(
 
         if data_length > 0 {
             // Streaming mode: data is too large to display, show size instead
-            // TODO: Add option to scroll through streamed data chunks
             hal.ui()
                 .confirm(&confirm::Params {
                     title: "Transaction\ndata",

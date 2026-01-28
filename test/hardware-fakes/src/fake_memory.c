@@ -68,9 +68,13 @@ void fake_memory_factoryreset(void)
 
 bool fake_memory_nova(void)
 {
-    chunk_shared_t* shared_ptr = (chunk_shared_t*)&_memory_shared_data[0];
-    shared_ptr->fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
-    shared_ptr->fields.securechip_type = MEMORY_SECURECHIP_TYPE_OPTIGA;
+    chunk_shared_t shared = {0};
+    memory_read_shared_bootdata_fake(shared.bytes);
+    shared.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    shared.fields.securechip_type = MEMORY_SECURECHIP_TYPE_OPTIGA;
+    if (!memory_write_to_address_fake(FLASH_SHARED_DATA_START, 0, shared.bytes)) {
+        return false;
+    }
 
     memory_ble_metadata_t ble_metadata = {0};
     memcpy(ble_metadata.allowed_firmware_hash, ALLOWED_HASH, sizeof(ALLOWED_HASH) - 1);

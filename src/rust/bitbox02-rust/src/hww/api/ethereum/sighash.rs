@@ -327,25 +327,23 @@ pub mod tests {
     use util::bb02_async::block_on;
 
     pub fn setup_chunk_responder(data: Vec<u8>) {
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-            Some(Box::new(move |response: crate::pb::response::Response| {
-                match response {
-                    crate::pb::response::Response::Eth(crate::pb::EthResponse {
-                        response:
-                            Some(super::super::pb::eth_response::Response::DataChunkRequest(req)),
-                    }) => {
-                        let offset = req.offset as usize;
-                        let length = req.length as usize;
-                        let chunk = data[offset..offset + length].to_vec();
-                        Ok(crate::pb::request::Request::Eth(crate::pb::EthRequest {
-                            request: Some(super::super::pb::eth_request::Request::DataChunk(
-                                super::super::pb::EthSignDataResponseChunkRequest { chunk },
-                            )),
-                        }))
-                    }
-                    _ => panic!("unexpected response"),
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(
+            move |response: crate::pb::response::Response| match response {
+                crate::pb::response::Response::Eth(crate::pb::EthResponse {
+                    response: Some(super::super::pb::eth_response::Response::DataChunkRequest(req)),
+                }) => {
+                    let offset = req.offset as usize;
+                    let length = req.length as usize;
+                    let chunk = data[offset..offset + length].to_vec();
+                    Ok(crate::pb::request::Request::Eth(crate::pb::EthRequest {
+                        request: Some(super::super::pb::eth_request::Request::DataChunk(
+                            super::super::pb::EthSignDataResponseChunkRequest { chunk },
+                        )),
+                    }))
                 }
-            }));
+                _ => panic!("unexpected response"),
+            },
+        ));
     }
 
     pub fn clear_chunk_responder() {

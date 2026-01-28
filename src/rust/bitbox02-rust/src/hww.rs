@@ -130,7 +130,6 @@ pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    extern crate std;
 
     use crate::hal::testing::TestingHal;
     use crate::workflow::testing::Screen;
@@ -266,16 +265,17 @@ mod tests {
         };
         let request_encoded = request.encode_to_vec();
         let mut mock_hal = TestingHal::new();
-        let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            make_request(&mut mock_hal, &request_encoded).unwrap();
-        }));
-        match reboot_called {
-            Ok(()) => panic!("reboot was not called"),
-            Err(msg) => assert_eq!(
-                msg.downcast_ref::<&str>(),
-                Some(&"reboot_to_bootloader called")
-            ),
-        }
+        let response_encoded = make_request(&mut mock_hal, &request_encoded).unwrap();
+        let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
+        assert_eq!(
+            response,
+            crate::pb::Response {
+                response: Some(crate::pb::response::Response::Success(
+                    crate::pb::Success {}
+                )),
+            }
+        );
+        assert_eq!(mock_hal.system.get_reboot_to_bootloader_counter(), 1);
         assert_eq!(
             mock_hal.ui.screens,
             vec![Screen::Confirm {
@@ -334,16 +334,18 @@ mod tests {
         // reconnects the device.
         crate::keystore::lock();
         let mut mock_hal = TestingHal::new();
-        let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let response_encoded =
             make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
-        }));
-        match reboot_called {
-            Ok(()) => panic!("reboot was not called"),
-            Err(msg) => assert_eq!(
-                msg.downcast_ref::<&str>(),
-                Some(&"reboot_to_bootloader called")
-            ),
-        }
+        let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
+        assert_eq!(
+            response,
+            crate::pb::Response {
+                response: Some(crate::pb::response::Response::Success(
+                    crate::pb::Success {}
+                )),
+            }
+        );
+        assert_eq!(mock_hal.system.get_reboot_to_bootloader_counter(), 1);
         assert_eq!(
             mock_hal.ui.screens,
             vec![Screen::Confirm {
@@ -450,16 +452,18 @@ mod tests {
         // rejected), the noise states are out of sync and we need to make a new channel.
         mock_hal.ui = crate::workflow::testing::TestingWorkflows::new();
         let mut make_request = init_noise();
-        let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let response_encoded =
             make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
-        }));
-        match reboot_called {
-            Ok(()) => panic!("reboot was not called"),
-            Err(msg) => assert_eq!(
-                msg.downcast_ref::<&str>(),
-                Some(&"reboot_to_bootloader called")
-            ),
-        }
+        let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
+        assert_eq!(
+            response,
+            crate::pb::Response {
+                response: Some(crate::pb::response::Response::Success(
+                    crate::pb::Success {}
+                )),
+            }
+        );
+        assert_eq!(mock_hal.system.get_reboot_to_bootloader_counter(), 1);
         assert_eq!(
             mock_hal.ui.screens,
             vec![Screen::Confirm {

@@ -26,12 +26,12 @@ pub async fn reboot_to_bootloader(
             ..Default::default()
         })
         .await?;
-    hal.system().reboot_to_bootloader()
+    hal.system().reboot_to_bootloader();
+    Ok(Response::Success(pb::Success {}))
 }
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
 
     use crate::hal::testing::TestingHal;
@@ -41,22 +41,15 @@ mod tests {
 
     #[test]
     pub fn test_reboot_to_bootloader() {
-        let reboot_called = std::panic::catch_unwind(|| {
-            block_on(reboot_to_bootloader(
-                &mut TestingHal::new(),
-                &pb::RebootRequest {
-                    purpose: Purpose::Upgrade as _,
-                },
-            ))
-            .unwrap();
-        });
-        match reboot_called {
-            Ok(()) => panic!("reboot_to_bootloader was not called"),
-            Err(msg) => assert_eq!(
-                msg.downcast_ref::<&str>(),
-                Some(&"reboot_to_bootloader called")
-            ),
-        }
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(reboot_to_bootloader(
+            &mut mock_hal,
+            &pb::RebootRequest {
+                purpose: Purpose::Upgrade as _,
+            },
+        ));
+        assert_eq!(result, Ok(Response::Success(pb::Success {})));
+        assert_eq!(mock_hal.system.get_reboot_to_bootloader_counter(), 1);
     }
 
     #[test]

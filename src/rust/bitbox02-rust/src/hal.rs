@@ -94,7 +94,7 @@ pub trait Memory {
 }
 
 pub trait System {
-    fn reboot_to_bootloader(&mut self) -> !;
+    fn reboot_to_bootloader(&mut self);
 }
 
 /// Hardware abstraction layer for BitBox devices.
@@ -323,7 +323,7 @@ impl Memory for BitBox02Memory {
 pub struct BitBox02System;
 
 impl System for BitBox02System {
-    fn reboot_to_bootloader(&mut self) -> ! {
+    fn reboot_to_bootloader(&mut self) {
         bitbox02::reboot_to_bootloader()
     }
 }
@@ -879,17 +879,26 @@ pub mod testing {
         }
     }
 
-    pub struct TestingSystem;
+    pub struct TestingSystem {
+        // counter (0 = not called, 1 = called once, etc.)
+        reboot_to_bootloader_counter: usize,
+    }
 
     impl TestingSystem {
         pub fn new() -> Self {
-            Self
+            Self {
+                reboot_to_bootloader_counter: 0,
+            }
+        }
+
+        pub fn get_reboot_to_bootloader_counter(&self) -> usize {
+            self.reboot_to_bootloader_counter
         }
     }
 
     impl super::System for TestingSystem {
-        fn reboot_to_bootloader(&mut self) -> ! {
-            panic!("reboot_to_bootloader called")
+        fn reboot_to_bootloader(&mut self) {
+            self.reboot_to_bootloader_counter += 1;
         }
     }
 

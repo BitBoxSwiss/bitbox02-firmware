@@ -220,15 +220,10 @@ pub fn format_datetime(
     })
 }
 
-#[cfg(not(feature = "testing"))]
+#[allow(clippy::empty_loop)]
 pub fn reboot_to_bootloader() -> ! {
     unsafe { bitbox02_sys::reboot_to_bootloader() }
     loop {}
-}
-
-#[cfg(feature = "testing")]
-pub fn reboot_to_bootloader() -> ! {
-    panic!("reboot_to_bootloader called")
 }
 
 #[cfg(any(feature = "testing", feature = "c-unit-testing"))]

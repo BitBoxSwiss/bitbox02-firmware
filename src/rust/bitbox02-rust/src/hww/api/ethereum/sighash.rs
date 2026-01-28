@@ -91,7 +91,6 @@ impl DataProducer for ChunkingProducer {
         let remaining = self.total_length - self.offset;
         let chunk_length = core::cmp::min(CHUNK_SIZE as usize, remaining) as u32;
 
-        #[cfg(not(test))]
         let response = super::next_request(super::pb::eth_response::Response::DataChunkRequest(
             super::pb::EthSignDataRequestChunkResponse {
                 offset: self.offset as u32,
@@ -99,9 +98,6 @@ impl DataProducer for ChunkingProducer {
             },
         ))
         .await?;
-
-        #[cfg(test)]
-        let response = tests::mock_next_request(self.offset as u32, chunk_length)?;
 
         match response {
             super::pb::eth_request::Request::DataChunk(

@@ -14,6 +14,7 @@ use super::Error;
 
 /// An async producer/generator of a bytes array. This is used to be able to accumulate the RLP hash
 /// of the `data` field, which can be very large and has to be streamed in chunks in that case.
+#[allow(async_fn_in_trait)]
 pub trait DataProducer {
     type Error;
     /// Returns the length of the data.
@@ -317,14 +318,15 @@ pub async fn compute_eip1559<D: DataProducer<Error = Error>>(
     Ok(hasher.0.finalize().into())
 }
 
-#[cfg(test)]
-pub(crate) mod tests {
+#[cfg(any(test, feature = "testing"))]
+pub mod tests {
     use super::*;
 
     use alloc::boxed::Box;
+    #[cfg(test)]
     use util::bb02_async::block_on;
 
-    pub(crate) fn setup_chunk_responder(data: Vec<u8>) {
+    pub fn setup_chunk_responder(data: Vec<u8>) {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
             Some(Box::new(move |response: crate::pb::response::Response| {
                 match response {
@@ -346,182 +348,12 @@ pub(crate) mod tests {
             }));
     }
 
-    pub(crate) fn clear_chunk_responder() {
+    pub fn clear_chunk_responder() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
     }
 
-    fn decode_hex(s: &str) -> Vec<u8> {
+    pub fn decode_hex(s: &str) -> Vec<u8> {
         hex::decode(s).unwrap()
-    }
-
-    fn extract_json_string<'a>(json: &'a str, key: &str) -> &'a str {
-        let search = alloc::format!("\"{}\":", key);
-        let start = json.find(&search).unwrap() + search.len();
-        let rest = &json[start..];
-        let rest = rest.trim_start();
-        if let Some(rest) = rest.strip_prefix('"') {
-            let end = rest.find('"').unwrap();
-            &rest[..end]
-        } else {
-            panic!("expected string value for key {}", key);
-        }
-    }
-
-    fn extract_json_u64(json: &str, key: &str) -> u64 {
-        let search = alloc::format!("\"{}\":", key);
-        let start = json.find(&search).unwrap() + search.len();
-        let rest = &json[start..];
-        let rest = rest.trim_start();
-        let end = rest
-            .find(|c: char| !c.is_ascii_digit())
-            .unwrap_or(rest.len());
-        rest[..end].parse().unwrap()
-    }
-
-    fn split_json_objects(json: &str) -> Vec<&str> {
-        let mut objects = Vec::new();
-        let json = json.trim();
-        let json = json.strip_prefix('[').unwrap().strip_suffix(']').unwrap();
-
-        let mut depth = 0;
-        let mut start = 0;
-        for (i, c) in json.char_indices() {
-            match c {
-                '{' => {
-                    if depth == 0 {
-                        start = i;
-                    }
-                    depth += 1;
-                }
-                '}' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        objects.push(&json[start..=i]);
-                    }
-                }
-                _ => {}
-            }
-        }
-        objects
-    }
-
-    #[test]
-    fn test_compute_eip1559() {
-        let json_data = include_str!("testdata/eip1559_tests.json");
-        let objects = split_json_objects(json_data);
-
-        const DATA_THRESHOLD: usize = 6144;
-
-        for (i, obj) in objects.iter().enumerate() {
-            let chain_id = extract_json_u64(obj, "chain_id");
-            let nonce = decode_hex(extract_json_string(obj, "nonce"));
-            let max_priority_fee = decode_hex(extract_json_string(obj, "max_priority_fee"));
-            let max_fee_per_gas = decode_hex(extract_json_string(obj, "max_fee_per_gas"));
-            let gas_limit = decode_hex(extract_json_string(obj, "gas_limit"));
-            let recipient = decode_hex(extract_json_string(obj, "recipient"));
-            let value = decode_hex(extract_json_string(obj, "value"));
-            let data = decode_hex(extract_json_string(obj, "data"));
-            let expected_sighash: [u8; 32] =
-                decode_hex(extract_json_string(obj, "expected_sighash"))
-                    .try_into()
-                    .unwrap();
-
-            if data.len() < DATA_THRESHOLD {
-                let params = ParamsEIP1559 {
-                    chain_id,
-                    nonce: &nonce,
-                    max_priority_fee_per_gas: &max_priority_fee,
-                    max_fee_per_gas: &max_fee_per_gas,
-                    gas_limit: &gas_limit,
-                    recipient: &recipient,
-                    value: &value,
-                    data: RefCell::new(SimpleProducer::new(&data)),
-                };
-                let result = block_on(compute_eip1559(&params)).unwrap();
-                assert_eq!(
-                    result, expected_sighash,
-                    "EIP1559 test {} failed (SimpleProducer)",
-                    i
-                );
-            } else {
-                setup_chunk_responder(data.clone());
-                let params = ParamsEIP1559 {
-                    chain_id,
-                    nonce: &nonce,
-                    max_priority_fee_per_gas: &max_priority_fee,
-                    max_fee_per_gas: &max_fee_per_gas,
-                    gas_limit: &gas_limit,
-                    recipient: &recipient,
-                    value: &value,
-                    data: RefCell::new(ChunkingProducer::new(data.len())),
-                };
-                let result = block_on(compute_eip1559(&params)).unwrap();
-                assert_eq!(
-                    result, expected_sighash,
-                    "EIP1559 test {} failed (ChunkingProducer)",
-                    i
-                );
-                clear_chunk_responder();
-            }
-        }
-    }
-
-    #[test]
-    fn test_compute_legacy() {
-        let json_data = include_str!("testdata/legacy_tests.json");
-        let objects = split_json_objects(json_data);
-
-        const DATA_THRESHOLD: usize = 6144;
-
-        for (i, obj) in objects.iter().enumerate() {
-            let chain_id = extract_json_u64(obj, "chain_id");
-            let nonce = decode_hex(extract_json_string(obj, "nonce"));
-            let gas_price = decode_hex(extract_json_string(obj, "gas_price"));
-            let gas_limit = decode_hex(extract_json_string(obj, "gas_limit"));
-            let recipient = decode_hex(extract_json_string(obj, "recipient"));
-            let value = decode_hex(extract_json_string(obj, "value"));
-            let data = decode_hex(extract_json_string(obj, "data"));
-            let expected_sighash: [u8; 32] =
-                decode_hex(extract_json_string(obj, "expected_sighash"))
-                    .try_into()
-                    .unwrap();
-
-            if data.len() < DATA_THRESHOLD {
-                let params = ParamsLegacy {
-                    nonce: &nonce,
-                    gas_price: &gas_price,
-                    gas_limit: &gas_limit,
-                    recipient: &recipient,
-                    value: &value,
-                    data: RefCell::new(SimpleProducer::new(&data)),
-                    chain_id,
-                };
-                let result = block_on(compute_legacy(&params)).unwrap();
-                assert_eq!(
-                    result, expected_sighash,
-                    "Legacy test {} failed (SimpleProducer)",
-                    i
-                );
-            } else {
-                setup_chunk_responder(data.clone());
-                let params = ParamsLegacy {
-                    nonce: &nonce,
-                    gas_price: &gas_price,
-                    gas_limit: &gas_limit,
-                    recipient: &recipient,
-                    value: &value,
-                    data: RefCell::new(ChunkingProducer::new(data.len())),
-                    chain_id,
-                };
-                let result = block_on(compute_legacy(&params)).unwrap();
-                assert_eq!(
-                    result, expected_sighash,
-                    "Legacy test {} failed (ChunkingProducer)",
-                    i
-                );
-                clear_chunk_responder();
-            }
-        }
     }
 
     #[test]

@@ -10,7 +10,7 @@ mod amount;
 mod keypath;
 mod params;
 mod pubrequest;
-mod sighash;
+pub mod sighash;
 mod sign;
 mod sign_typed_msg;
 mod signmsg;

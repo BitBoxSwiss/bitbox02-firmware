@@ -1503,6 +1503,9 @@ pub struct EthSignRequest {
     pub chain_id: u64,
     #[prost(enumeration = "EthAddressCase", tag = "11")]
     pub address_case: i32,
+    /// For streaming: if non-zero, data field should be empty and data will be requested in chunks
+    #[prost(uint32, tag = "12")]
+    pub data_length: u32,
 }
 /// TX payload for an EIP-1559 (type 2) transaction: <https://eips.ethereum.org/EIPS/eip-1559>
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -1536,6 +1539,23 @@ pub struct EthSignEip1559Request {
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
     #[prost(enumeration = "EthAddressCase", tag = "11")]
     pub address_case: i32,
+    /// For streaming: if non-zero, data field should be empty and data will be requested in chunks
+    #[prost(uint32, tag = "12")]
+    pub data_length: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct EthSignDataRequestChunkResponse {
+    #[prost(uint32, tag = "1")]
+    pub offset: u32,
+    #[prost(uint32, tag = "2")]
+    pub length: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EthSignDataResponseChunkRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub chunk: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1723,7 +1743,7 @@ pub struct EthTypedMessageValueRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthRequest {
-    #[prost(oneof = "eth_request::Request", tags = "1, 2, 3, 4, 5, 6, 7")]
+    #[prost(oneof = "eth_request::Request", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
     pub request: ::core::option::Option<eth_request::Request>,
 }
 /// Nested message and enum types in `ETHRequest`.
@@ -1745,12 +1765,14 @@ pub mod eth_request {
         TypedMsgValue(super::EthTypedMessageValueRequest),
         #[prost(message, tag = "7")]
         SignEip1559(super::EthSignEip1559Request),
+        #[prost(message, tag = "8")]
+        DataChunk(super::EthSignDataResponseChunkRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EthResponse {
-    #[prost(oneof = "eth_response::Response", tags = "1, 2, 3, 4")]
+    #[prost(oneof = "eth_response::Response", tags = "1, 2, 3, 4, 5")]
     pub response: ::core::option::Option<eth_response::Response>,
 }
 /// Nested message and enum types in `ETHResponse`.
@@ -1766,6 +1788,8 @@ pub mod eth_response {
         AntikleptoSignerCommitment(super::AntiKleptoSignerCommitment),
         #[prost(message, tag = "4")]
         TypedMsgValue(super::EthTypedMessageValueResponse),
+        #[prost(message, tag = "5")]
+        DataChunkRequest(super::EthSignDataRequestChunkResponse),
     }
 }
 /// Kept for backwards compatibility. Use chain_id instead, introduced in v9.10.0.

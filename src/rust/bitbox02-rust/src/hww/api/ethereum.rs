@@ -10,7 +10,7 @@ mod amount;
 mod keypath;
 mod params;
 mod pubrequest;
-mod sighash;
+pub mod sighash;
 mod sign;
 mod sign_typed_msg;
 mod signmsg;
@@ -77,5 +77,6 @@ pub async fn process_api(
         Request::AntikleptoSignature(_) => Err(Error::InvalidInput),
         Request::SignTypedMsg(request) => sign_typed_msg::process(hal, request).await,
         Request::TypedMsgValue(_) => Err(Error::InvalidInput),
+        Request::DataChunk(_) => Err(Error::InvalidInput),
     }
 }

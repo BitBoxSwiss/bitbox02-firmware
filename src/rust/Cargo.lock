@@ -148,6 +148,8 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "prost",
+ "serde",
+ "serde_json",
  "sha2",
  "sha3",
  "streaming-silent-payments",

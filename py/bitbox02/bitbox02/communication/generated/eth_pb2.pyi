@@ -123,6 +123,7 @@ class ETHSignRequest(google.protobuf.message.Message):
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
     CHAIN_ID_FIELD_NUMBER: builtins.int
     ADDRESS_CASE_FIELD_NUMBER: builtins.int
+    DATA_LENGTH_FIELD_NUMBER: builtins.int
     coin: global___ETHCoin.ValueType
     """Deprecated: use chain_id instead."""
     nonce: builtins.bytes
@@ -139,6 +140,8 @@ class ETHSignRequest(google.protobuf.message.Message):
     chain_id: builtins.int
     """If non-zero, `coin` is ignored and `chain_id` is used to identify the network."""
     address_case: global___ETHAddressCase.ValueType
+    data_length: builtins.int
+    """For streaming: if non-zero, data field should be empty and data will be requested in chunks"""
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     @property
@@ -157,9 +160,10 @@ class ETHSignRequest(google.protobuf.message.Message):
         host_nonce_commitment: antiklepto_pb2.AntiKleptoHostNonceCommitment | None = ...,
         chain_id: builtins.int = ...,
         address_case: global___ETHAddressCase.ValueType = ...,
+        data_length: builtins.int = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["host_nonce_commitment", b"host_nonce_commitment"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["address_case", b"address_case", "chain_id", b"chain_id", "coin", b"coin", "data", b"data", "gas_limit", b"gas_limit", "gas_price", b"gas_price", "host_nonce_commitment", b"host_nonce_commitment", "keypath", b"keypath", "nonce", b"nonce", "recipient", b"recipient", "value", b"value"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["address_case", b"address_case", "chain_id", b"chain_id", "coin", b"coin", "data", b"data", "data_length", b"data_length", "gas_limit", b"gas_limit", "gas_price", b"gas_price", "host_nonce_commitment", b"host_nonce_commitment", "keypath", b"keypath", "nonce", b"nonce", "recipient", b"recipient", "value", b"value"]) -> None: ...
 
 global___ETHSignRequest = ETHSignRequest
 
@@ -180,6 +184,7 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
     DATA_FIELD_NUMBER: builtins.int
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
     ADDRESS_CASE_FIELD_NUMBER: builtins.int
+    DATA_LENGTH_FIELD_NUMBER: builtins.int
     chain_id: builtins.int
     nonce: builtins.bytes
     """smallest big endian serialization, max. 16 bytes"""
@@ -195,6 +200,8 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
     """smallest big endian serialization, max. 32 bytes"""
     data: builtins.bytes
     address_case: global___ETHAddressCase.ValueType
+    data_length: builtins.int
+    """For streaming: if non-zero, data field should be empty and data will be requested in chunks"""
     @property
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     @property
@@ -213,11 +220,45 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
         data: builtins.bytes = ...,
         host_nonce_commitment: antiklepto_pb2.AntiKleptoHostNonceCommitment | None = ...,
         address_case: global___ETHAddressCase.ValueType = ...,
+        data_length: builtins.int = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["host_nonce_commitment", b"host_nonce_commitment"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["address_case", b"address_case", "chain_id", b"chain_id", "data", b"data", "gas_limit", b"gas_limit", "host_nonce_commitment", b"host_nonce_commitment", "keypath", b"keypath", "max_fee_per_gas", b"max_fee_per_gas", "max_priority_fee_per_gas", b"max_priority_fee_per_gas", "nonce", b"nonce", "recipient", b"recipient", "value", b"value"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["address_case", b"address_case", "chain_id", b"chain_id", "data", b"data", "data_length", b"data_length", "gas_limit", b"gas_limit", "host_nonce_commitment", b"host_nonce_commitment", "keypath", b"keypath", "max_fee_per_gas", b"max_fee_per_gas", "max_priority_fee_per_gas", b"max_priority_fee_per_gas", "nonce", b"nonce", "recipient", b"recipient", "value", b"value"]) -> None: ...
 
 global___ETHSignEIP1559Request = ETHSignEIP1559Request
+
+@typing.final
+class ETHSignDataRequestChunkResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    OFFSET_FIELD_NUMBER: builtins.int
+    LENGTH_FIELD_NUMBER: builtins.int
+    offset: builtins.int
+    length: builtins.int
+    def __init__(
+        self,
+        *,
+        offset: builtins.int = ...,
+        length: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["length", b"length", "offset", b"offset"]) -> None: ...
+
+global___ETHSignDataRequestChunkResponse = ETHSignDataRequestChunkResponse
+
+@typing.final
+class ETHSignDataResponseChunkRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHUNK_FIELD_NUMBER: builtins.int
+    chunk: builtins.bytes
+    def __init__(
+        self,
+        *,
+        chunk: builtins.bytes = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["chunk", b"chunk"]) -> None: ...
+
+global___ETHSignDataResponseChunkRequest = ETHSignDataResponseChunkRequest
 
 @typing.final
 class ETHSignMessageRequest(google.protobuf.message.Message):
@@ -447,6 +488,7 @@ class ETHRequest(google.protobuf.message.Message):
     SIGN_TYPED_MSG_FIELD_NUMBER: builtins.int
     TYPED_MSG_VALUE_FIELD_NUMBER: builtins.int
     SIGN_EIP1559_FIELD_NUMBER: builtins.int
+    DATA_CHUNK_FIELD_NUMBER: builtins.int
     @property
     def pub(self) -> global___ETHPubRequest: ...
     @property
@@ -461,6 +503,8 @@ class ETHRequest(google.protobuf.message.Message):
     def typed_msg_value(self) -> global___ETHTypedMessageValueRequest: ...
     @property
     def sign_eip1559(self) -> global___ETHSignEIP1559Request: ...
+    @property
+    def data_chunk(self) -> global___ETHSignDataResponseChunkRequest: ...
     def __init__(
         self,
         *,
@@ -471,10 +515,11 @@ class ETHRequest(google.protobuf.message.Message):
         sign_typed_msg: global___ETHSignTypedMessageRequest | None = ...,
         typed_msg_value: global___ETHTypedMessageValueRequest | None = ...,
         sign_eip1559: global___ETHSignEIP1559Request | None = ...,
+        data_chunk: global___ETHSignDataResponseChunkRequest | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "pub", b"pub", "request", b"request", "sign", b"sign", "sign_eip1559", b"sign_eip1559", "sign_msg", b"sign_msg", "sign_typed_msg", b"sign_typed_msg", "typed_msg_value", b"typed_msg_value"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "pub", b"pub", "request", b"request", "sign", b"sign", "sign_eip1559", b"sign_eip1559", "sign_msg", b"sign_msg", "sign_typed_msg", b"sign_typed_msg", "typed_msg_value", b"typed_msg_value"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["request", b"request"]) -> typing.Literal["pub", "sign", "sign_msg", "antiklepto_signature", "sign_typed_msg", "typed_msg_value", "sign_eip1559"] | None: ...
+    def HasField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "data_chunk", b"data_chunk", "pub", b"pub", "request", b"request", "sign", b"sign", "sign_eip1559", b"sign_eip1559", "sign_msg", b"sign_msg", "sign_typed_msg", b"sign_typed_msg", "typed_msg_value", b"typed_msg_value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["antiklepto_signature", b"antiklepto_signature", "data_chunk", b"data_chunk", "pub", b"pub", "request", b"request", "sign", b"sign", "sign_eip1559", b"sign_eip1559", "sign_msg", b"sign_msg", "sign_typed_msg", b"sign_typed_msg", "typed_msg_value", b"typed_msg_value"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["request", b"request"]) -> typing.Literal["pub", "sign", "sign_msg", "antiklepto_signature", "sign_typed_msg", "typed_msg_value", "sign_eip1559", "data_chunk"] | None: ...
 
 global___ETHRequest = ETHRequest
 
@@ -486,6 +531,7 @@ class ETHResponse(google.protobuf.message.Message):
     SIGN_FIELD_NUMBER: builtins.int
     ANTIKLEPTO_SIGNER_COMMITMENT_FIELD_NUMBER: builtins.int
     TYPED_MSG_VALUE_FIELD_NUMBER: builtins.int
+    DATA_CHUNK_REQUEST_FIELD_NUMBER: builtins.int
     @property
     def pub(self) -> common_pb2.PubResponse: ...
     @property
@@ -494,6 +540,8 @@ class ETHResponse(google.protobuf.message.Message):
     def antiklepto_signer_commitment(self) -> antiklepto_pb2.AntiKleptoSignerCommitment: ...
     @property
     def typed_msg_value(self) -> global___ETHTypedMessageValueResponse: ...
+    @property
+    def data_chunk_request(self) -> global___ETHSignDataRequestChunkResponse: ...
     def __init__(
         self,
         *,
@@ -501,9 +549,10 @@ class ETHResponse(google.protobuf.message.Message):
         sign: global___ETHSignResponse | None = ...,
         antiklepto_signer_commitment: antiklepto_pb2.AntiKleptoSignerCommitment | None = ...,
         typed_msg_value: global___ETHTypedMessageValueResponse | None = ...,
+        data_chunk_request: global___ETHSignDataRequestChunkResponse | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "pub", b"pub", "response", b"response", "sign", b"sign", "typed_msg_value", b"typed_msg_value"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "pub", b"pub", "response", b"response", "sign", b"sign", "typed_msg_value", b"typed_msg_value"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["response", b"response"]) -> typing.Literal["pub", "sign", "antiklepto_signer_commitment", "typed_msg_value"] | None: ...
+    def HasField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "data_chunk_request", b"data_chunk_request", "pub", b"pub", "response", b"response", "sign", b"sign", "typed_msg_value", b"typed_msg_value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["antiklepto_signer_commitment", b"antiklepto_signer_commitment", "data_chunk_request", b"data_chunk_request", "pub", b"pub", "response", b"response", "sign", b"sign", "typed_msg_value", b"typed_msg_value"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["response", b"response"]) -> typing.Literal["pub", "sign", "antiklepto_signer_commitment", "typed_msg_value", "data_chunk_request"] | None: ...
 
 global___ETHResponse = ETHResponse

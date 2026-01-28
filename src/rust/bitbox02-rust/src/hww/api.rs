@@ -5,7 +5,7 @@ use crate::pb;
 pub(super) mod error;
 
 #[cfg(feature = "app-ethereum")]
-mod ethereum;
+pub mod ethereum;
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 pub mod bitcoin;

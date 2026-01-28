@@ -541,10 +541,10 @@ pub(crate) mod tests {
         let mut producer = SimpleProducer::new(&[]);
         assert_eq!(producer.len(), 0);
 
-        let chunk = util::bb02_async::block_on(producer.next());
+        let chunk = block_on(producer.next());
         assert_eq!(chunk, Ok(Some(vec![])));
 
-        let chunk2 = util::bb02_async::block_on(producer.next());
+        let chunk2 = block_on(producer.next());
         assert_eq!(chunk2, Ok(None));
     }
 
@@ -554,10 +554,10 @@ pub(crate) mod tests {
         assert_eq!(producer.len(), 1);
         assert_eq!(producer.first_byte(), 0x42);
 
-        let chunk = util::bb02_async::block_on(producer.next());
+        let chunk = block_on(producer.next());
         assert_eq!(chunk, Ok(Some(vec![0x42])));
 
-        let chunk2 = util::bb02_async::block_on(producer.next());
+        let chunk2 = block_on(producer.next());
         assert_eq!(chunk2, Ok(None));
     }
 
@@ -568,10 +568,10 @@ pub(crate) mod tests {
         assert_eq!(producer.len(), 4096);
         assert_eq!(producer.first_byte(), 0xAB);
 
-        let chunk = util::bb02_async::block_on(producer.next());
+        let chunk = block_on(producer.next());
         assert_eq!(chunk, Ok(Some(data.clone())));
 
-        let chunk2 = util::bb02_async::block_on(producer.next());
+        let chunk2 = block_on(producer.next());
         assert_eq!(chunk2, Ok(None));
     }
 
@@ -582,7 +582,7 @@ pub(crate) mod tests {
         assert_eq!(producer.len(), 10000);
         assert_eq!(producer.first_byte(), 0xCD);
 
-        let chunk = util::bb02_async::block_on(producer.next());
+        let chunk = block_on(producer.next());
         assert_eq!(chunk, Ok(Some(data)));
     }
 

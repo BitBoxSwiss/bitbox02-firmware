@@ -491,7 +491,7 @@ mod tests {
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
-    use super::super::sighash::tests::{clear_mock_chunk_data, setup_mock_chunk_data};
+    use super::super::sighash::tests::{clear_chunk_responder, setup_chunk_responder};
 
     #[test]
     pub fn test_parse_recipient() {
@@ -1444,7 +1444,7 @@ mod tests {
             }),
         ));
 
-        setup_mock_chunk_data(test_data.clone());
+        setup_chunk_responder(test_data.clone());
         mock_unlocked();
         let mut mock_hal_streaming = TestingHal::new();
         let streaming_result = block_on(process(
@@ -1465,7 +1465,7 @@ mod tests {
                 data_length: 4000,
             }),
         ));
-        clear_mock_chunk_data();
+        clear_chunk_responder();
 
         assert!(traditional_result.is_ok());
         assert!(streaming_result.is_ok());
@@ -1503,7 +1503,7 @@ mod tests {
             }),
         ));
 
-        setup_mock_chunk_data(test_data.clone());
+        setup_chunk_responder(test_data.clone());
         mock_unlocked();
         let mut mock_hal_streaming = TestingHal::new();
         let streaming_result = block_on(process(
@@ -1524,7 +1524,7 @@ mod tests {
                 data_length: 4000,
             }),
         ));
-        clear_mock_chunk_data();
+        clear_chunk_responder();
 
         assert!(traditional_result.is_ok());
         assert!(streaming_result.is_ok());
@@ -1541,7 +1541,7 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..10000u32).map(|i| (i % 256) as u8).collect();
 
-        setup_mock_chunk_data(test_data);
+        setup_chunk_responder(test_data);
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         let result = block_on(process(
@@ -1562,7 +1562,7 @@ mod tests {
                 data_length: 10000,
             }),
         ));
-        clear_mock_chunk_data();
+        clear_chunk_responder();
 
         assert!(result.is_ok());
         match result {
@@ -1578,7 +1578,7 @@ mod tests {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..12000u32).map(|i| (i % 256) as u8).collect();
 
-        setup_mock_chunk_data(test_data);
+        setup_chunk_responder(test_data);
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         let result = block_on(process(
@@ -1599,7 +1599,7 @@ mod tests {
                 data_length: 12000,
             }),
         ));
-        clear_mock_chunk_data();
+        clear_chunk_responder();
 
         assert!(result.is_ok());
         match result {

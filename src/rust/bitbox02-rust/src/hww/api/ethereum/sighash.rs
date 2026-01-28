@@ -318,44 +318,36 @@ pub async fn compute_eip1559<D: DataProducer<Error = Error>>(
 }
 
 #[cfg(test)]
-#[allow(static_mut_refs)]
 pub(crate) mod tests {
     use super::*;
 
+    use alloc::boxed::Box;
     use util::bb02_async::block_on;
 
-    static mut MOCK_CHUNK_DATA: Option<Vec<u8>> = None;
-
-    pub(crate) fn setup_mock_chunk_data(data: Vec<u8>) {
-        unsafe {
-            MOCK_CHUNK_DATA = Some(data);
-        }
+    pub(crate) fn setup_chunk_responder(data: Vec<u8>) {
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response: crate::pb::response::Response| {
+                match response {
+                    crate::pb::response::Response::Eth(crate::pb::EthResponse {
+                        response:
+                            Some(super::super::pb::eth_response::Response::DataChunkRequest(req)),
+                    }) => {
+                        let offset = req.offset as usize;
+                        let length = req.length as usize;
+                        let chunk = data[offset..offset + length].to_vec();
+                        Ok(crate::pb::request::Request::Eth(crate::pb::EthRequest {
+                            request: Some(super::super::pb::eth_request::Request::DataChunk(
+                                super::super::pb::EthSignDataResponseChunkRequest { chunk },
+                            )),
+                        }))
+                    }
+                    _ => panic!("unexpected response"),
+                }
+            }));
     }
 
-    pub(crate) fn clear_mock_chunk_data() {
-        unsafe {
-            MOCK_CHUNK_DATA = None;
-        }
-    }
-
-    pub(super) fn mock_next_request(
-        offset: u32,
-        length: u32,
-    ) -> Result<super::super::pb::eth_request::Request, Error> {
-        unsafe {
-            let data = MOCK_CHUNK_DATA.as_ref().ok_or(Error::InvalidInput)?;
-            let offset = offset as usize;
-            let length = length as usize;
-
-            if offset + length > data.len() {
-                return Err(Error::InvalidInput);
-            }
-
-            let chunk = data[offset..offset + length].to_vec();
-            Ok(super::super::pb::eth_request::Request::DataChunk(
-                super::super::pb::EthSignDataResponseChunkRequest { chunk },
-            ))
-        }
+    pub(crate) fn clear_chunk_responder() {
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
     }
 
     fn decode_hex(s: &str) -> Vec<u8> {
@@ -452,7 +444,7 @@ pub(crate) mod tests {
                     i
                 );
             } else {
-                setup_mock_chunk_data(data.clone());
+                setup_chunk_responder(data.clone());
                 let params = ParamsEIP1559 {
                     chain_id,
                     nonce: &nonce,
@@ -469,7 +461,7 @@ pub(crate) mod tests {
                     "EIP1559 test {} failed (ChunkingProducer)",
                     i
                 );
-                clear_mock_chunk_data();
+                clear_chunk_responder();
             }
         }
     }
@@ -511,7 +503,7 @@ pub(crate) mod tests {
                     i
                 );
             } else {
-                setup_mock_chunk_data(data.clone());
+                setup_chunk_responder(data.clone());
                 let params = ParamsLegacy {
                     nonce: &nonce,
                     gas_price: &gas_price,
@@ -527,7 +519,7 @@ pub(crate) mod tests {
                     "Legacy test {} failed (ChunkingProducer)",
                     i
                 );
-                clear_mock_chunk_data();
+                clear_chunk_responder();
             }
         }
     }
@@ -593,7 +585,7 @@ pub(crate) mod tests {
     #[test]
     fn test_chunking_producer_single_chunk() {
         let data = vec![0xAB; 100];
-        setup_mock_chunk_data(data.clone());
+        setup_chunk_responder(data.clone());
 
         let mut producer = ChunkingProducer::new(100);
         assert_eq!(producer.len(), 100);
@@ -605,13 +597,13 @@ pub(crate) mod tests {
         let chunk2 = block_on(producer.next()).unwrap();
         assert_eq!(chunk2, None);
 
-        clear_mock_chunk_data();
+        clear_chunk_responder();
     }
 
     #[test]
     fn test_chunking_producer_multiple_chunks() {
         let data = vec![0xCD; 10000];
-        setup_mock_chunk_data(data.clone());
+        setup_chunk_responder(data);
 
         let mut producer = ChunkingProducer::new(10000);
         assert_eq!(producer.len(), 10000);
@@ -629,6 +621,6 @@ pub(crate) mod tests {
         let chunk4 = block_on(producer.next()).unwrap();
         assert_eq!(chunk4, None);
 
-        clear_mock_chunk_data();
+        clear_chunk_responder();
     }
 }

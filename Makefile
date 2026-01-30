@@ -180,7 +180,7 @@ prepare-tidy: | build build-build
 	$(MAKE) -C build rust-cbindgen
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-build build-debug build-build-noasan
+	rm -rf build build-build build-debug build-build-noasan src/rust/target
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:

@@ -98,6 +98,8 @@ simulator: | build-build-noasan
 	$(MAKE) -C build-build-noasan simulator
 simulator-graphical: | build-build-noasan
 	$(MAKE) -C build-build-noasan simulator-graphical
+simulator-graphical-bb03: | build-build-noasan
+	$(MAKE) -C build-build-noasan simulator-graphical-bb03
 run-simulator: | simulator
 	./build-build-noasan/bin/simulator
 unit-test: | build-build

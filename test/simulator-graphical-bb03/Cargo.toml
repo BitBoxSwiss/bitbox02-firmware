@@ -19,3 +19,4 @@ clap = { version = "4.5.48", features = ["derive"] }
 hex = "0.4.3"
 util = { path = "../../src/rust/util" }
 critical-section = { version = "1.2", features = ["std"] }
+bitbox03 = { path = "../../src/rust/bitbox03" }

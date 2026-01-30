@@ -435,6 +435,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox03"
+version = "0.1.0"
+
+[[package]]
 name = "bitcoin"
 version = "0.32.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2826,6 +2830,7 @@ dependencies = [
  "bitbox02",
  "bitbox02-rust",
  "bitbox02-rust-c",
+ "bitbox03",
  "clap",
  "critical-section",
  "femtovg",

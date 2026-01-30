@@ -16,6 +16,7 @@ members = [
     "bitbox-aes",
     "fatfs-sys",
     "bitbox-executor",
+    "bitbox03",
 ]
 
 resolver = "2"

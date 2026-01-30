@@ -96,13 +96,60 @@ pub fn handle_stream_writer(
     counter.fetch_sub(1, Ordering::SeqCst);
 }
 
+// Simulator frame buffer
+struct FrameBuffer {
+    buffer: DynamicImage::ImageRgba8,
+    path: Path,
+    canvas: &Canvas,
+}
+impl FrameBuffer {
+    pub fn new(x: i32, y: i32, canvas: &Canvas) -> FrameBuffer {
+        let mut path = Path::new();
+        path.rect(x, y, 480, 800);
+        FrameBuffer {
+            buffer: DynamicImage::ImageRgba8(RgbaImage::new(
+                SCREEN_WIDTH as u32,
+                SCREEN_HEIGHT as u32,
+            )),
+            path,
+            canvas
+        }
+    }
+}
+
+impl bitbox03::display::Display for FrameBuffer {
+    type Error = ();
+
+    fn size(&self) -> (u16, u16) {
+        (480, 800)
+    }
+
+    fn clear(&mut self, c: Rgb565) -> Result<(), Self::Error> {
+        todo!()
+    }
+    fn fill_rect(&mut self, r: Rect) -> Result<(), Self::Error> {
+        todo!()
+    }
+    fn blit(&mut self) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn present(&mut self) -> Result<(), Self::Error> {
+        let paint = Paint::image(
+                screen_id.clone(),
+                screen_x,
+                screen_y,
+                screen_width,
+                screen_height,
+                0f32,
+                1f32,
+            );
+        canvas.fill_path(&self.path, &paint);
+    }
+}
+
 /// Screen frame buffer
-static SCREEN_FB: LazyLock<Mutex<DynamicImage>> = LazyLock::new(|| {
-    Mutex::new(DynamicImage::ImageRgba8(RgbaImage::new(
-        SCREEN_WIDTH as u32,
-        SCREEN_HEIGHT as u32,
-    )))
-});
+static SCREEN_FB: LazyLock<Mutex<DynamicImage>> = LazyLock::new(|| {});
 
 static MIRROR: AtomicBool = AtomicBool::new(false);
 
@@ -398,30 +445,32 @@ impl ApplicationHandler<UserEvent> for App {
                         &Paint::color(femtovg::Color::rgba(0x12, 0x14, 0x18, 0xff)),
                     );
 
-                    let mut screen_path = Path::new();
-                    screen_path.rect(screen_x, screen_y, screen_width, screen_height);
-                    let paint = if MIRROR.load(Ordering::Relaxed) {
-                        Paint::image(
-                            screen_id.clone(),
-                            screen_x + screen_width,
-                            screen_y + screen_height,
-                            screen_width,
-                            screen_height,
-                            std::f32::consts::PI,
-                            1f32,
-                        )
-                    } else {
-                        Paint::image(
-                            screen_id.clone(),
-                            screen_x,
-                            screen_y,
-                            screen_width,
-                            screen_height,
-                            0f32,
-                            1f32,
-                        )
-                    };
-                    canvas.fill_path(&screen_path, &paint);
+                    //let mut screen_path = Path::new();
+                    //screen_path.rect(screen_x, screen_y, screen_width, screen_height);
+                    //let paint = if MIRROR.load(Ordering::Relaxed) {
+                    //    Paint::image(
+                    //        screen_id.clone(),
+                    //        screen_x + screen_width,
+                    //        screen_y + screen_height,
+                    //        screen_width,
+                    //        screen_height,
+                    //        std::f32::consts::PI,
+                    //        1f32,
+                    //    )
+                    //} else {
+                    //    Paint::image(
+                    //        screen_id.clone(),
+                    //        screen_x,
+                    //        screen_y,
+                    //        screen_width,
+                    //        screen_height,
+                    //        0f32,
+                    //        1f32,
+                    //    )
+                    //};
+                    //canvas.fill_path(&screen_path, &paint);
+
+                    fb.present()
 
                     canvas.flush_to_surface(&());
                     surface.swap_buffers(gl_context).unwrap();

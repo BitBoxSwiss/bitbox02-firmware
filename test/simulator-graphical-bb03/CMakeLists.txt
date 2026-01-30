@@ -35,6 +35,7 @@ add_custom_command(
       RUSTFLAGS=${RUSTFLAGS}
       CFLAGS=${CARGO_C_FLAGS}
       RUSTC_BOOTSTRAP=1
+      LV_CONF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h
       cargo build $ENV{CARGOFLAGS} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml --target-dir ${RUST_BINARY_DIR} --target=${LLVM_HOST_TUPLE} --release
     COMMAND
       ${CMAKE_COMMAND} -E copy

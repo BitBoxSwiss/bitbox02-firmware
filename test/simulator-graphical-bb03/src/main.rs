@@ -2,15 +2,16 @@
 
 use clap::Parser;
 use femtovg::{Canvas, ImageFlags, ImageId, ImageSource, Paint, Path, renderer::OpenGl};
-use image::{DynamicImage, GenericImage, Rgba, RgbaImage};
+use image::{DynamicImage, Rgba, RgbaImage};
 
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::num::NonZeroU32;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{
-    Arc, LazyLock, Mutex,
+    Arc, LazyLock,
     atomic::{AtomicBool, AtomicU32, Ordering},
     mpsc,
     mpsc::TryRecvError,
@@ -37,11 +38,16 @@ use glutin_winit::DisplayBuilder;
 use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
-use bitbox02::ui::ugui::UG_COLOR;
 use bitbox02_rust::hal::{Hal, Memory, System};
+
+use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
 
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
+use bitbox_lvgl as lvgl;
+use lvgl::LvDisplayRenderMode;
+
+const UI_REFRESH_PERIOD_MS: u64 = 5;
 
 static BG: &[u8] = include_bytes!("../bg.png");
 
@@ -52,6 +58,7 @@ const PADDING_LEFT_RIGHT: usize = 50;
 // TODO put size in product crate
 const SCREEN_WIDTH: usize = 480;
 const SCREEN_HEIGHT: usize = 800;
+const SCREEN_PIXELS: usize = SCREEN_WIDTH * SCREEN_HEIGHT;
 const WINDOW_LOGICAL_WIDTH_ORIGINAL: usize = SCREEN_WIDTH + 2 * MARGIN + 2 * PADDING_LEFT_RIGHT;
 const WINDOW_LOGICAL_HEIGHT_ORIGINAL: usize =
     SCREEN_HEIGHT + 2 * MARGIN + PADDING_TOP + PADDING_BOTTOM;
@@ -96,51 +103,104 @@ pub fn handle_stream_writer(
     counter.fetch_sub(1, Ordering::SeqCst);
 }
 
-/// Screen frame buffer
-static SCREEN_FB: LazyLock<Mutex<DynamicImage>> = LazyLock::new(|| {
-    Mutex::new(DynamicImage::ImageRgba8(RgbaImage::new(
-        SCREEN_WIDTH as u32,
-        SCREEN_HEIGHT as u32,
-    )))
-});
+#[derive(Debug, Copy, Clone)]
+struct Argb(pub [u8; 4]);
 
-static MIRROR: AtomicBool = AtomicBool::new(false);
-
-fn pixel_fn(x: i16, y: i16, c: UG_COLOR) {
-    if x < 0 || x >= SCREEN_WIDTH as i16 {
-        return;
-    }
-    if y < 0 || y >= SCREEN_HEIGHT as i16 {
-        return;
-    }
-    let x = x as u32;
-    let y = y as u32;
-    let mut screen = SCREEN_FB.lock().unwrap();
-
-    if c != 0 {
-        screen.put_pixel(x, y, Rgba([0xff, 0xff, 0xff, 0xff]));
+impl Argb {
+    // Will this work on big endian?
+    pub fn to_rgba(&self) -> Rgba<u8> {
+        Rgba([self.0[2], self.0[1], self.0[0], self.0[3]])
     }
 }
 
-fn clear_fn() {
-    let mut screen = SCREEN_FB.lock().unwrap();
-    if let DynamicImage::ImageRgba8(rgba) = &mut *screen {
-        for pixel in rgba.pixels_mut() {
-            *pixel = Rgba([0, 0, 0, 0]);
+// Simulator frame buffer
+#[derive(Debug)]
+struct FrameBuffer {
+    /// Used with OpenGL (RGBA)
+    front_buffer: DynamicImage,
+    /// First leaked LVGL draw buffer (ARGB).
+    buf1: NonNull<Argb>,
+    /// Second leaked LVGL draw buffer (ARGB).
+    buf2: NonNull<Argb>,
+    /// Which buffer is active
+    buf1_active: bool,
+    /// Window used to request redraws after LVGL flushes.
+    window: Rc<Window>,
+    screen_id: ImageId,
+}
+impl FrameBuffer {
+    pub fn new(
+        canvas: &mut Canvas<OpenGl>,
+        buf1: NonNull<Argb>,
+        buf2: NonNull<Argb>,
+        window: Rc<Window>,
+    ) -> FrameBuffer {
+        let front_buffer =
+            DynamicImage::ImageRgba8(RgbaImage::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32));
+        let screen_id = canvas
+            .create_image(
+                ImageSource::try_from(&front_buffer).unwrap(),
+                ImageFlags::NEAREST,
+            )
+            .unwrap();
+        FrameBuffer {
+            front_buffer,
+            screen_id,
+            buf1,
+            buf2,
+            buf1_active: true,
+            window,
         }
     }
-}
 
-fn mirror_fn(_: bool) {
-    MIRROR.fetch_xor(true, Ordering::Relaxed);
+    pub fn present(&self, canvas: &mut Canvas<OpenGl>, x: f32, y: f32, width: f32, height: f32) {
+        let mut path = Path::new();
+        path.rect(x, y, width, height);
+        canvas.fill_path(
+            &path,
+            &Paint::image(self.screen_id, x, y, width, height, 0f32, 1f32),
+        );
+    }
 }
 
 static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
-fn init_hww(preseed: bool) -> bool {
-    bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
-    bitbox02::screen::splash();
+extern "C" fn get_current_time_ms() -> u32 {
+    use std::time::Instant;
+    static INIT: LazyLock<Instant> = LazyLock::new(|| Instant::now());
+    INIT.elapsed().as_millis() as u32
+}
 
+// In "DIRECT" mode only the content of buf1/2 should be blitted to the front buffer.
+fn my_flush_cb(display: lvgl::LvDisplay, _area: &lvgl::LvArea, _px_map: *mut u8) {
+    let Some(fb_ptr) = display.get_user_data() else {
+        return;
+    };
+    let fb = unsafe { &mut *fb_ptr.cast::<FrameBuffer>().as_ptr() };
+
+    let buf_ptr = if fb.buf1_active {
+        &mut fb.buf1
+    } else {
+        &mut fb.buf2
+    };
+    let buf = unsafe { core::slice::from_raw_parts(buf_ptr.as_ptr(), SCREEN_PIXELS) };
+
+    if display.flush_is_last() {
+        if let DynamicImage::ImageRgba8(ref mut image_buf) = fb.front_buffer {
+            // Last chunk, send back buffer to front
+            for y in 0..SCREEN_HEIGHT {
+                for x in 0..SCREEN_WIDTH {
+                    let px = buf[y * SCREEN_WIDTH + x];
+                    image_buf.put_pixel(x as u32, y as u32, px.to_rgba());
+                }
+            }
+        };
+        fb.buf1_active = !fb.buf1_active;
+        fb.window.request_redraw();
+    }
+}
+
+fn init_hww(preseed: bool) -> bool {
     // BitBox02 simulation initialization
     bitbox02::usb_processing::init();
     info!("USB setup success");
@@ -174,14 +234,15 @@ fn init_hww(preseed: bool) -> bool {
 }
 
 struct App {
+    framebuffer: Option<NonNull<FrameBuffer>>,
+    touchscreen: Option<TouchScreen>,
     window: Option<Rc<Window>>,
     surface: Option<Surface<WindowSurface>>,
     gl_context: Option<PossiblyCurrentContext>,
     canvas: Option<Canvas<OpenGl>>,
     bg: Option<ImageId>,
-    screen: Option<ImageId>,
     touch_active: bool,
-    cursor_pos: (i32, i32),
+    touch_pos: Option<(i32, i32)>,
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
@@ -190,14 +251,15 @@ struct App {
 impl Default for App {
     fn default() -> App {
         App {
+            framebuffer: Default::default(),
+            touchscreen: Default::default(),
             window: Default::default(),
             surface: Default::default(),
             gl_context: Default::default(),
             canvas: Default::default(),
             bg: Default::default(),
-            screen: Default::default(),
             touch_active: false,
-            cursor_pos: (0, 0),
+            touch_pos: None,
             outbound_in: Default::default(),
             inbound_out: Default::default(),
             startup_task: Default::default(),
@@ -221,6 +283,42 @@ impl App {
         event_loop: &ActiveEventLoop,
         _: Option<String>,
     ) -> Result<WindowId, Box<dyn Error>> {
+        lvgl::system::init();
+        lvgl::log::register_print_cb(|level, buf| {
+            if let Ok(s) = buf.to_str() {
+                let s = s.trim();
+                match level as u32 {
+                    lvgl::ffi::LV_LOG_LEVEL_TRACE => tracing::trace!("{}", s),
+                    lvgl::ffi::LV_LOG_LEVEL_INFO => tracing::info!("{}", s),
+                    lvgl::ffi::LV_LOG_LEVEL_WARN => tracing::warn!("{}", s),
+                    lvgl::ffi::LV_LOG_LEVEL_ERROR => tracing::error!("{}", s),
+                    lvgl::ffi::LV_LOG_LEVEL_USER => tracing::info!("USER: {}", s),
+                    lvgl::ffi::LV_LOG_LEVEL_NONE => tracing::info!("NONE: {}", s),
+                    _ => tracing::error!("invalid log level!"),
+                }
+            }
+        });
+        lvgl::tick::set_cb(Some(get_current_time_ms));
+
+        let buf1: &'static mut [Argb; SCREEN_PIXELS] =
+            Box::leak(Box::new([Argb([0, 0, 0, 0]); SCREEN_PIXELS]));
+        let buf2: &'static mut [Argb; SCREEN_PIXELS] =
+            Box::leak(Box::new([Argb([0, 0, 0, 0]); SCREEN_PIXELS]));
+        let buf1_ptr = NonNull::new(buf1.as_mut_ptr()).unwrap();
+        let buf2_ptr = NonNull::new(buf2.as_mut_ptr()).unwrap();
+        let disp = lvgl::LvDisplay::new(SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32)
+            .expect("create display");
+        disp.set_buffers(
+            buf1.as_mut_slice(),
+            Some(buf2.as_mut_slice()),
+            LvDisplayRenderMode::LV_DISPLAY_RENDER_MODE_DIRECT,
+        )
+        .expect("display set buffers");
+        disp.set_flush_cb(my_flush_cb);
+        //lv_display_set_color_format(&disp, bitbox_lvgl::LvColorFormat::LV_COLOR_FORMAT_RGB888);
+
+        bitbox03::io::screen::splash();
+
         let width = WINDOW_LOGICAL_WIDTH_ORIGINAL as u32;
         let height = WINDOW_LOGICAL_HEIGHT_ORIGINAL as u32;
         let w_attr = Window::default_attributes()
@@ -292,20 +390,45 @@ impl App {
                 ImageFlags::NEAREST,
             )
             .unwrap();
-        let screen_id = canvas
-            .create_image(
-                ImageSource::try_from(&*SCREEN_FB.lock().unwrap()).unwrap(),
-                ImageFlags::NEAREST,
-            )
-            .unwrap();
 
+        let framebuffer = Box::leak(Box::new(FrameBuffer::new(
+            &mut canvas,
+            buf1_ptr,
+            buf2_ptr,
+            window.clone(),
+        )));
+        let framebuffer_ptr = NonNull::from(&mut *framebuffer);
+        disp.set_user_data(Some(framebuffer));
+
+        let touchscreen = TouchScreen::new();
+
+        self.touchscreen.replace(touchscreen);
+        self.framebuffer.replace(framebuffer_ptr);
         self.window.replace(window);
         self.surface.replace(surface);
         self.gl_context.replace(gl_context);
         self.canvas.replace(canvas);
         self.bg.replace(bg_id);
-        self.screen.replace(screen_id);
+        info!("window created");
         Ok(window_id)
+    }
+
+    fn release_touch(&mut self) {
+        if !self.touch_active {
+            return;
+        }
+
+        self.touch_active = false;
+        if let Some((x, y)) = self.touch_pos
+            && let Some(touchscreen) = &mut self.touchscreen
+        {
+            touchscreen.push(TouchScreenEvent {
+                x,
+                y,
+                pressed: false,
+            });
+            debug!("released x={x}, y={y}");
+        }
     }
 }
 
@@ -341,9 +464,19 @@ impl ApplicationHandler<UserEvent> for App {
                     && let Some(canvas) = &mut self.canvas
                     && let Some(gl_context) = &mut self.gl_context
                     && let Some(bg_id) = &mut self.bg
-                    && let Some(screen_id) = &mut self.screen
                     && let Some(window) = &mut self.window
+                    && let Some(mut framebuffer_ptr) = self.framebuffer
                 {
+                    let framebuffer = unsafe { framebuffer_ptr.as_mut() };
+                    canvas
+                        .update_image(
+                            framebuffer.screen_id,
+                            ImageSource::try_from(&framebuffer.front_buffer).unwrap(),
+                            0,
+                            0,
+                        )
+                        .unwrap();
+
                     let dpi_factor = window.scale_factor() as f32;
                     let window_size = window.inner_size();
                     let width_stretch_factor =
@@ -376,7 +509,7 @@ impl ApplicationHandler<UserEvent> for App {
                     canvas.fill_path(
                         &device_path,
                         &Paint::image(
-                            bg_id.clone(),
+                            *bg_id,
                             device_x,
                             device_y,
                             device_width,
@@ -398,30 +531,7 @@ impl ApplicationHandler<UserEvent> for App {
                         &Paint::color(femtovg::Color::rgba(0x12, 0x14, 0x18, 0xff)),
                     );
 
-                    let mut screen_path = Path::new();
-                    screen_path.rect(screen_x, screen_y, screen_width, screen_height);
-                    let paint = if MIRROR.load(Ordering::Relaxed) {
-                        Paint::image(
-                            screen_id.clone(),
-                            screen_x + screen_width,
-                            screen_y + screen_height,
-                            screen_width,
-                            screen_height,
-                            std::f32::consts::PI,
-                            1f32,
-                        )
-                    } else {
-                        Paint::image(
-                            screen_id.clone(),
-                            screen_x,
-                            screen_y,
-                            screen_width,
-                            screen_height,
-                            0f32,
-                            1f32,
-                        )
-                    };
-                    canvas.fill_path(&screen_path, &paint);
+                    framebuffer.present(canvas, screen_x, screen_y, screen_width, screen_height);
 
                     canvas.flush_to_surface(&());
                     surface.swap_buffers(gl_context).unwrap();
@@ -443,38 +553,41 @@ impl ApplicationHandler<UserEvent> for App {
                     return;
                 };
                 let (x, y) = window_to_logical(window, position);
-                self.cursor_pos = (x, y);
-
-                if !self.touch_active {
-                    return;
-                }
-
                 if let Some((x, y)) = screen_coord(x, y) {
-                    debug!("drag x={x}, y={y}");
+                    self.touch_pos = Some((x, y));
+                    if self.touch_active {
+                        debug!("drag x={x}, y={y}");
+                    }
                 }
+            }
+            WindowEvent::CursorEntered { .. } => {
+                debug!("cursor entered");
+            }
+            WindowEvent::CursorLeft { .. } => {
+                debug!("cursor left");
+                self.release_touch();
+                self.touch_pos = None;
             }
             WindowEvent::MouseInput { state, button, .. } => {
                 if button != MouseButton::Left {
                     return;
                 }
-                let (x, y) = self.cursor_pos;
 
                 match state {
                     ElementState::Pressed => {
-                        if let Some((x, y)) = screen_coord(x, y) {
+                        if let Some((x, y)) = self.touch_pos
+                            && let Some(touchscreen) = &mut self.touchscreen
+                        {
+                            touchscreen.push(TouchScreenEvent {
+                                x,
+                                y,
+                                pressed: true,
+                            });
                             debug!("pressed x={x}, y={y}");
                             self.touch_active = true;
                         }
                     }
-                    ElementState::Released => {
-                        if !self.touch_active {
-                            return;
-                        }
-                        self.touch_active = false;
-                        if let Some((x, y)) = screen_coord(x, y) {
-                            debug!("released x={x}, y={y}");
-                        }
-                    }
+                    ElementState::Released => self.release_touch(),
                 }
             }
             _ => debug!("{event:?}"),
@@ -526,27 +639,14 @@ impl ApplicationHandler<UserEvent> for App {
                 // Business logic
                 bitbox02_rust::async_usb::spin();
                 bitbox02::usb_processing::process_hww();
-                bitbox02::screen::process();
+                //bitbox02::screen::process();
+                lvgl::timer::handler();
 
                 if let Some(ref mut task) = self.startup_task {
                     if let Ready(_startup) = util::bb02_async::spin(task) {
                         ACCEPTING_CONNECTIONS.store(true, Ordering::Relaxed);
                         self.startup_task = None;
                     }
-                }
-
-                if let Some(window) = &self.window
-                    && let Some(canvas) = &mut self.canvas
-                    && let Some(screen_id) = self.screen.clone()
-                {
-                    // TODO: We should only update texture and redraw in case screen actually changed.
-                    // Update opengl texture from "screen_process"
-                    let screen_fb = &*SCREEN_FB.lock().unwrap();
-                    canvas
-                        .update_image(screen_id, ImageSource::try_from(screen_fb).unwrap(), 0, 0)
-                        .unwrap();
-
-                    window.request_redraw();
                 }
             }
             UserEvent::NewConnection(outbound_in, inbound_out) => {
@@ -558,6 +658,9 @@ impl ApplicationHandler<UserEvent> for App {
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.window.is_some() {
+            return;
+        }
         self.create_window(event_loop, None)
             .expect("failed to create initial window");
         self.startup_task = Some(Box::pin(bitbox02::hal::system::BitBox02System::startup()));
@@ -669,7 +772,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
                     // Event loop has quit
                     return;
                 }
-                std::thread::sleep(Duration::from_micros(5000));
+                std::thread::sleep(Duration::from_millis(UI_REFRESH_PERIOD_MS));
             }
         }
     });

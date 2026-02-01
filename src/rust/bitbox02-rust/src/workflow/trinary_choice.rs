@@ -9,6 +9,7 @@ pub use bitbox02::ui::TrinaryChoice;
 use bitbox02::ui::trinary_choice_create;
 
 pub async fn choose(
+    hal_ui: &mut impl crate::hal::Ui,
     message: &str,
     label_left: Option<&str>,
     label_middle: Option<&str>,
@@ -26,5 +27,5 @@ pub async fn choose(
         }),
     );
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    option_no_screensaver(hal_ui, &result).await
 }

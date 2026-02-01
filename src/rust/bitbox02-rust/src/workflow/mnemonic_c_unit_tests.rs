@@ -5,11 +5,18 @@ pub use super::cancel::Error as CancelError;
 use alloc::string::String;
 use alloc::string::ToString;
 
-pub async fn show_mnemonic(_words: &[&str]) -> Result<(), CancelError> {
+pub async fn show_mnemonic(
+    _ui: &mut impl crate::hal::Ui,
+    _words: &[&str],
+) -> Result<(), CancelError> {
     panic!("unused")
 }
 
-pub async fn confirm_word(_choices: &[&str], _title: &str) -> Result<u8, CancelError> {
+pub async fn confirm_word(
+    _ui: &mut impl crate::hal::Ui,
+    _choices: &[&str],
+    _title: &str,
+) -> Result<u8, CancelError> {
     panic!("unused")
 }
 

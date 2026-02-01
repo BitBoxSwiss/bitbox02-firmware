@@ -157,6 +157,9 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
         }
     }
 
+    // disable screensaver for the whole unlock+animation duration
+    hal.ui().screen_saver_disable();
+
     let ((), result) = futures_lite::future::zip(
         super::unlock_animation::animate(),
         crate::keystore::unlock_bip39(
@@ -173,6 +176,8 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
         ),
     )
     .await;
+
+    hal.ui().screen_saver_enable();
 
     if result.is_err() {
         abort("bip39 unlock failed");

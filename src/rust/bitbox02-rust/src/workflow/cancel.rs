@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::bb02_async::option_no_screensaver;
+use crate::hal::Ui;
 use core::cell::RefCell;
 
 use super::confirm;
@@ -31,13 +32,14 @@ pub fn set_result<R>(result_cell: &ResultCell<R>, result: R) {
 /// * `result_cell` - result var to synchronize the result on. Pass the same to `cancel` and
 ///   `set_result`.
 pub async fn with_cancel<R>(
+    hal_ui: &mut impl Ui,
     title: &str,
     component: &mut bitbox02::ui::Component<'_>,
     result_cell: &ResultCell<R>,
 ) -> Result<R, Error> {
     component.screen_stack_push();
     loop {
-        let result = option_no_screensaver(result_cell).await;
+        let result = option_no_screensaver(hal_ui, result_cell).await;
         if let Err(Error::Cancelled) = result {
             let params = confirm::Params {
                 title,
@@ -45,7 +47,7 @@ pub async fn with_cancel<R>(
                 ..Default::default()
             };
 
-            if let Err(confirm::UserAbort) = confirm::confirm(&params).await {
+            if let Err(confirm::UserAbort) = confirm::confirm(hal_ui, &params).await {
                 continue;
             }
         }

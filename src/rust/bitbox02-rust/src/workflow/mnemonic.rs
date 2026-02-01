@@ -64,7 +64,10 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
 }
 
 /// Displays all mnemonic words in a scroll-through screen.
-pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
+pub async fn show_mnemonic(
+    hal_ui: &mut impl crate::hal::Ui,
+    words: &[&str],
+) -> Result<(), CancelError> {
     let result = RefCell::new(None);
     let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
         words,
@@ -77,11 +80,15 @@ pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
             cancel(&result);
         })),
     });
-    with_cancel("Recovery\nwords", &mut component, &result).await
+    with_cancel(hal_ui, "Recovery\nwords", &mut component, &result).await
 }
 
 /// Displays the `choices` to the user, returning the index of the selected choice.
-pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
+pub async fn confirm_word(
+    hal_ui: &mut impl crate::hal::Ui,
+    choices: &[&str],
+    title: &str,
+) -> Result<u8, CancelError> {
     let result = RefCell::new(None);
     let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
         words: choices,
@@ -94,7 +101,7 @@ pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelErr
             cancel(&result);
         })),
     });
-    with_cancel("Recovery\nwords", &mut component, &result).await
+    with_cancel(hal_ui, "Recovery\nwords", &mut component, &result).await
 }
 
 pub async fn show_and_confirm_mnemonic(

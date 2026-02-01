@@ -97,6 +97,9 @@ pub trait Workflows {
     {
         mnemonic::get(self).await
     }
+
+    fn screen_saver_disable(&mut self);
+    fn screen_saver_enable(&mut self);
 }
 
 pub struct RealWorkflows;
@@ -104,7 +107,7 @@ pub struct RealWorkflows;
 impl Workflows for RealWorkflows {
     #[inline(always)]
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
-        confirm::confirm(params).await
+        confirm::confirm(self, params).await
     }
 
     #[inline(always)]
@@ -113,7 +116,7 @@ impl Workflows for RealWorkflows {
         recipient: &str,
         amount: &str,
     ) -> Result<(), transaction::UserAbort> {
-        transaction::verify_recipient(recipient, amount).await
+        transaction::verify_recipient(self, recipient, amount).await
     }
 
     #[inline(always)]
@@ -123,7 +126,7 @@ impl Workflows for RealWorkflows {
         fee: &str,
         longtouch: bool,
     ) -> Result<(), transaction::UserAbort> {
-        transaction::verify_total_fee(total, fee, longtouch).await
+        transaction::verify_total_fee(self, total, fee, longtouch).await
     }
 
     #[inline(always)]
@@ -143,12 +146,12 @@ impl Workflows for RealWorkflows {
 
     #[inline(always)]
     async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
-        sdcard::sdcard().await
+        sdcard::sdcard(self).await
     }
 
     #[inline(always)]
     async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, menu::CancelError> {
-        menu::pick(words, title).await
+        menu::pick(self, words, title).await
     }
 
     #[inline(always)]
@@ -159,11 +162,11 @@ impl Workflows for RealWorkflows {
         label_middle: Option<&str>,
         label_right: Option<&str>,
     ) -> trinary_choice::TrinaryChoice {
-        trinary_choice::choose(message, label_left, label_middle, label_right).await
+        trinary_choice::choose(self, message, label_left, label_middle, label_right).await
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {
-        mnemonic::show_mnemonic(words).await
+        mnemonic::show_mnemonic(self, words).await
     }
 
     async fn quiz_mnemonic_word(
@@ -171,6 +174,14 @@ impl Workflows for RealWorkflows {
         choices: &[&str],
         title: &str,
     ) -> Result<u8, cancel::Error> {
-        mnemonic::confirm_word(choices, title).await
+        mnemonic::confirm_word(self, choices, title).await
+    }
+
+    fn screen_saver_disable(&mut self) {
+        bitbox02::screen_saver::screen_saver_disable();
+    }
+
+    fn screen_saver_enable(&mut self) {
+        bitbox02::screen_saver::screen_saver_enable();
     }
 }

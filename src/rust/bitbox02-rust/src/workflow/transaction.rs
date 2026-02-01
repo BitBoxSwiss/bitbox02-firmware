@@ -10,7 +10,11 @@ use alloc::string::String;
 
 pub struct UserAbort;
 
-pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserAbort> {
+pub async fn verify_recipient(
+    hal_ui: &mut impl Ui,
+    recipient: &str,
+    amount: &str,
+) -> Result<(), UserAbort> {
     let result = RefCell::new(None as Option<Result<(), UserAbort>>);
 
     let mut component = bitbox02::ui::confirm_transaction_address_create(
@@ -21,7 +25,7 @@ pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserA
         }),
     );
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    option_no_screensaver(hal_ui, &result).await
 }
 
 fn format_percentage(p: f64) -> String {
@@ -29,7 +33,12 @@ fn format_percentage(p: f64) -> String {
     util::decimal::format_no_trim(int, 1)
 }
 
-pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result<(), UserAbort> {
+pub async fn verify_total_fee(
+    hal_ui: &mut impl Ui,
+    total: &str,
+    fee: &str,
+    longtouch: bool,
+) -> Result<(), UserAbort> {
     let result = RefCell::new(None as Option<Result<(), UserAbort>>);
 
     let mut component = bitbox02::ui::confirm_transaction_fee_create(
@@ -41,7 +50,7 @@ pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result
         }),
     );
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    option_no_screensaver(hal_ui, &result).await
 }
 
 pub async fn verify_total_fee_maybe_warn(

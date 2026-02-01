@@ -6,8 +6,10 @@ pub use bitbox02::ui::{ConfirmParams as Params, Font};
 
 pub struct UserAbort;
 
+use crate::hal::Ui;
+
 /// Returns true if the user accepts, false if the user rejects.
-pub async fn confirm(params: &Params<'_>) -> Result<(), UserAbort> {
+pub async fn confirm(ui: &mut impl Ui, params: &Params<'_>) -> Result<(), UserAbort> {
     let result = core::cell::RefCell::new(None as Option<Result<(), UserAbort>>);
 
     // The component will set the result when the user accepted/rejected.
@@ -19,5 +21,5 @@ pub async fn confirm(params: &Params<'_>) -> Result<(), UserAbort> {
         };
     });
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    option_no_screensaver(ui, &result).await
 }

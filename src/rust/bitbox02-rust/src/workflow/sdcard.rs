@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::bb02_async::option_no_screensaver;
+use crate::hal::Ui;
 use core::cell::RefCell;
 
 pub struct UserAbort;
 
-pub async fn sdcard() -> Result<(), UserAbort> {
+pub async fn sdcard(hal_ui: &mut impl Ui) -> Result<(), UserAbort> {
     let result = RefCell::new(None as Option<Result<(), UserAbort>>);
     let mut component = bitbox02::ui::sdcard_create(|sd_done| {
         *result.borrow_mut() = if sd_done {
@@ -15,5 +16,5 @@ pub async fn sdcard() -> Result<(), UserAbort> {
         };
     });
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    option_no_screensaver(hal_ui, &result).await
 }

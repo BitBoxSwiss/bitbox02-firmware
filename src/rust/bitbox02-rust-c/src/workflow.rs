@@ -13,6 +13,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::string::String;
+use bitbox02_rust::hal::Hal;
 use bitbox02_rust::workflow::{confirm, orientation_screen};
 use core::task::Poll;
 use util::bb02_async::{Task, spin};
@@ -57,8 +58,10 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
             ..Default::default()
         });
 
-        CONFIRM_STATE =
-            TaskState::Running(Box::pin(confirm::confirm(CONFIRM_PARAMS.as_ref().unwrap())));
+        CONFIRM_STATE = TaskState::Running(Box::pin(confirm::confirm(
+            BITBOX02_HAL.ui(),
+            CONFIRM_PARAMS.as_ref().unwrap(),
+        )));
     }
 }
 

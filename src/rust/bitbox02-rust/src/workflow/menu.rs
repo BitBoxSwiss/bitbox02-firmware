@@ -3,12 +3,17 @@
 pub use super::cancel::Error as CancelError;
 
 use crate::bb02_async::option_no_screensaver;
+use crate::hal::Ui;
 
 use alloc::boxed::Box;
 use core::cell::RefCell;
 
 /// Returns the index of the word chosen by the user.
-pub async fn pick(words: &[&str], title: Option<&str>) -> Result<u8, CancelError> {
+pub async fn pick(
+    hal_ui: &mut impl Ui,
+    words: &[&str],
+    title: Option<&str>,
+) -> Result<u8, CancelError> {
     let result = RefCell::new(None as Option<Result<u8, CancelError>>);
     let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
         words,
@@ -22,5 +27,5 @@ pub async fn pick(words: &[&str], title: Option<&str>) -> Result<u8, CancelError
         })),
     });
     component.screen_stack_push();
-    option_no_screensaver(&result).await
+    option_no_screensaver(hal_ui, &result).await
 }

@@ -176,6 +176,14 @@ impl Workflows for TestingWorkflows<'_> {
 
         Ok(zeroize::Zeroizing::new(words.into()))
     }
+
+    fn screen_saver_disable(&mut self) {
+        // no-op or record in self.screens if you care
+    }
+
+    fn screen_saver_enable(&mut self) {
+        // no-op
+    }
 }
 
 impl<'a> TestingWorkflows<'a> {

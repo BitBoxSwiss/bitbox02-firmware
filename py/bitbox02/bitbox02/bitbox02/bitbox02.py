@@ -5,7 +5,7 @@
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Tuple, Any, Generator, Union, Sequence
 from typing_extensions import TypedDict
 
@@ -240,7 +240,7 @@ class BitBox02(BitBoxCommonAPI):
         request.list_backups.CopyFrom(backup.ListBackupsRequest())
         response = self._msg_query(request, expected_response="list_backups")
         for info in response.list_backups.info:
-            utcdate = datetime.utcfromtimestamp(info.timestamp)
+            utcdate = datetime.fromtimestamp(info.timestamp, timezone.utc)
             yield (info.id, info.name, utcdate)
 
     def restore_backup(self, backup_id: str) -> None:

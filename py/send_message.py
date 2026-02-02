@@ -243,7 +243,7 @@ class SendMessage:
             return
         fmt = "%Y-%m-%d %H:%M:%S %z"
         for i, (backup_id, backup_name, date) in enumerate(backups):
-            date = local_timezone.localize(date)
+            date = date.astimezone(local_timezone)
             date_str = date.strftime(fmt)
             print(f"[{i+1}] Backup Name: {backup_name}, Time: {date_str}, ID: {backup_id}")
 

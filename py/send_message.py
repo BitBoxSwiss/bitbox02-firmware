@@ -1820,7 +1820,13 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
             print("Neither bitbox nor bootloader found.")
             return 1
         hid_device = hid.device()
-        hid_device.open_path(bootloader["path"])
+        try:
+            hid_device.open_path(bootloader["path"])
+        except OSError:
+            print(
+                "Could not connect to the BitBox, device may be already connected to another app."
+            )
+            return 1
         bootloader_connection = bitbox02.Bootloader(u2fhid.U2FHid(hid_device), bootloader)
         boot_app = SendMessageBootloader(bootloader_connection)
         return boot_app.run()
@@ -1865,7 +1871,13 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         config = NoiseConfigNoCache()
 
     hid_device = hid.device()
-    hid_device.open_path(bitbox["path"])
+    try:
+        hid_device.open_path(bitbox["path"])
+    except OSError:
+        print(
+            "Could not connect to the BitBox, device may be already connected to another app."
+        )
+        return 1
     bitbox_connection = bitbox02.BitBox02(
         transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config
     )

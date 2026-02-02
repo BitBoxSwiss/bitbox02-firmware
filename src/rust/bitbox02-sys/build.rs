@@ -204,7 +204,6 @@ const RUSTIFIED_ENUMS: &[&str] = &[
 
 // BITBOX02_SOURCES are only used for native builds (simulator). Avoid cross-target specific files.
 const BITBOX02_SOURCES: &[&str] = &[
-    "src/da14531/crc.c",
     "src/da14531/da14531_handler.c",
     "src/da14531/da14531_protocol.c",
     "src/da14531/da14531.c",

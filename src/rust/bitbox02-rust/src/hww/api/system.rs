@@ -6,7 +6,7 @@ use crate::pb;
 use pb::reboot_request::Purpose;
 use pb::response::Response;
 
-use crate::hal::Ui;
+use crate::hal::{System, Ui};
 use crate::workflow::confirm;
 
 pub async fn reboot_to_bootloader(
@@ -26,7 +26,7 @@ pub async fn reboot_to_bootloader(
             ..Default::default()
         })
         .await?;
-    bitbox02::reboot_to_bootloader()
+    hal.system().reboot_to_bootloader()
 }
 
 #[cfg(test)]

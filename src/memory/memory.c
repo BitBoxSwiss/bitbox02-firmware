@@ -386,7 +386,7 @@ bool memory_reset_hww(void)
             sizeof(chunk_shared.fields.ble_identity_resolving_key));
         memcpy(
             &chunk_shared.fields.ble_identity_address[0],
-            &random_bytes[sizeof(chunk_shared.fields.ble_identity_address)],
+            &random_bytes[sizeof(chunk_shared.fields.ble_identity_resolving_key)],
             sizeof(chunk_shared.fields.ble_identity_address));
 
         // Two most significant bits must be set to indicate "public static address". See ch. 1.3.2

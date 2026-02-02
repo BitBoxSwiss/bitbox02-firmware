@@ -39,7 +39,7 @@ add_custom_command(
       RUSTFLAGS=${RUSTFLAGS}
       CFLAGS=${CFLAGS}
       RUSTC_BOOTSTRAP=1
-      cargo build --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml --target-dir ${RUST_BINARY_DIR} --target=${LLVM_HOST_TUPLE} --release
+      cargo build $ENV{CARGOFLAGS} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml --target-dir ${RUST_BINARY_DIR} --target=${LLVM_HOST_TUPLE} --release
     COMMAND
       ${CMAKE_COMMAND} -E copy
       ${RUST_BINARY_DIR}/${LLVM_HOST_TUPLE}/release/simulator-graphical

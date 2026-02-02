@@ -403,6 +403,7 @@ foreach(type ${RUST_LIBS})
         rustc
         $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv>
         --offline
+        $ENV{CARGOFLAGS}
         --features target-${type}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt>
         --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml
         --target-dir ${RUST_BINARY_DIR}/feature-${type}

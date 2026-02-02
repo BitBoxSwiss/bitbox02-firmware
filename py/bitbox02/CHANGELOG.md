@@ -1,10 +1,10 @@
 # Changelog
 
 ## [Unreleased]
-
-# 7.1.0
 - Add `btc_xpubs()` to fetch multiple xpubs at once
 - Bitcoin: add support for OP_RETURN outputs
+- Add `change_password()`
+- Backups: return non-naive timestamps with UTC timezone
 
 # 7.0.0
 - get_info: add optional device initialized boolean to returned tuple

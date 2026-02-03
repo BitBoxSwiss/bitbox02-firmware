@@ -68,7 +68,7 @@ void firmware_main_loop(void)
     /// the fw. Send it over.
     char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
     memory_get_device_name(buf);
-    da14531_set_name(buf, strlen(buf), &uart_write_queue);
+    da14531_set_name(buf, &uart_write_queue);
 
     // This starts the async orientation screen workflow, which is processed by the loop below.
     rust_workflow_spawn_orientation_screen();

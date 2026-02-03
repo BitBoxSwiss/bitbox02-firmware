@@ -1874,9 +1874,7 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
     try:
         hid_device.open_path(bitbox["path"])
     except OSError:
-        print(
-            "Could not connect to the BitBox, device may be already connected to another app."
-        )
+        print("Could not connect to the BitBox, device may be already connected to another app.")
         return 1
     bitbox_connection = bitbox02.BitBox02(
         transport=u2fhid.U2FHid(hid_device), device_info=bitbox, noise_config=config

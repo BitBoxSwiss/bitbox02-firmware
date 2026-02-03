@@ -19,6 +19,8 @@ FILES=$(find src/ test/ \
 	\( \
 		-path src/ui/fonts -o \
 		-path external/vendor -o \
+		-path src/rust/bitbox-secp256k1/depend -o \
+		-path src/rust/fatfs-sys/depend -o \
 		-name "ugui*" \
 	\) -prune -o \( -name "*.c" -o -name "*.h" \) -print)
 

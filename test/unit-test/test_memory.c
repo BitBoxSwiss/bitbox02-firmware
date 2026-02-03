@@ -375,6 +375,59 @@ static void _test_memory_reset_hww(void** state)
     assert_false(memory_reset_hww());
 }
 
+static void _test_memory_reset_hww_ble(void** state)
+{
+    // Make the platform BitBox02 Plus so that the BLE branch in
+    // memory_reset_hww() is executed.
+    EMPTYCHUNK(empty_shared_chunk);
+    chunk_shared_t shared_chunk = {0};
+    memcpy(shared_chunk.bytes, empty_shared_chunk, CHUNK_SIZE);
+    shared_chunk.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+
+    // First shared bootdata read is used by memory_get_platform()
+    will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk.bytes);
+
+    EXPECT_RESET;
+
+    // Second random_32_bytes() call in memory_reset_hww()
+    uint8_t ble_random[32] = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
+        0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+        0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+    };
+    will_return(_mock_random_32_bytes, ble_random);
+
+    // Second shared bootdata read is used inside the BLE branch of memory_reset_hww()
+    chunk_shared_t shared_chunk2 = {0};
+    memcpy(shared_chunk2.bytes, empty_shared_chunk, CHUNK_SIZE);
+    shared_chunk2.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk2.bytes);
+
+    // Build expected shared chunk after BLE re-initialization
+    chunk_shared_t expected_shared = shared_chunk2;
+
+    // IRK must be the first 16 bytes of ble_random.
+    memcpy(expected_shared.fields.ble_identity_resolving_key, &ble_random[0], MEMORY_BLE_IRK_LEN);
+
+    // Identity address must be the next 6 bytes of ble_random (bytes 16..21).
+    // Top bits of the first byte are OR'ed with 0xc.
+    memcpy(
+        expected_shared.fields.ble_identity_address,
+        &ble_random[MEMORY_BLE_IRK_LEN],
+        MEMORY_BLE_ADDR_LEN);
+    expected_shared.fields.ble_identity_address[0] |= 0xc;
+
+    // Bond DB must be reset to 0xff
+    memset(expected_shared.fields.ble_bond_db, 0xff, sizeof(expected_shared.fields.ble_bond_db));
+
+    // Expect write to FLASH_SHARED_DATA_START with the updated shared chunk
+    expect_value(__wrap_memory_write_to_address_fake, base, FLASH_SHARED_DATA_START);
+    expect_value(__wrap_memory_write_to_address_fake, addr, 0);
+    expect_memory(__wrap_memory_write_to_address_fake, chunk, expected_shared.bytes, CHUNK_SIZE);
+
+    assert_true(memory_reset_hww());
+}
+
 static void _test_memory_get_device_name_default(void** state)
 {
     char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
@@ -573,6 +626,7 @@ int main(void)
         cmocka_unit_test(_test_memory_is_mnemonic_passphrase_enabled),
         cmocka_unit_test(_test_memory_set_mnemonic_passphrase_enabled),
         cmocka_unit_test(_test_memory_reset_hww),
+        cmocka_unit_test(_test_memory_reset_hww_ble),
         cmocka_unit_test(_test_memory_get_device_name_default),
         cmocka_unit_test(_test_memory_get_device_name_default_bluetooth),
         cmocka_unit_test(_test_memory_get_device_name_invalid),

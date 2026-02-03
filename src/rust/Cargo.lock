@@ -121,6 +121,7 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-aes",
+ "bitbox-framed-serial-link",
  "bitbox02-rust",
  "bitbox02-sys",
  "hex_lit",

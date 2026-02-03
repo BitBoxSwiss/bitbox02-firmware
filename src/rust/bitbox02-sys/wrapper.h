@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <delay.h>
+#include <da14531/da14531.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/memory.h>
 #include <memory/memory_shared.h>

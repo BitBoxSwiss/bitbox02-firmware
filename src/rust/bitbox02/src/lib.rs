@@ -22,6 +22,7 @@ pub mod testing;
 #[cfg(test)]
 extern crate bitbox02_rust;
 
+pub mod da14531;
 pub mod delay;
 #[cfg(feature = "simulator-graphical")]
 pub mod event;

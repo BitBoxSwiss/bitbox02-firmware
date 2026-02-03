@@ -279,6 +279,11 @@ async fn verify_standard_transaction(
         Transaction::Eip1559(eip1559) => eip1559.data_length,
     };
 
+    const MAX_DATA_LENGTH: u32 = 1024 * 1024; // 1MB
+    if data_length > MAX_DATA_LENGTH {
+        return Err(Error::InvalidInput);
+    }
+
     if !request.data().is_empty() || data_length > 0 {
         hal.ui()
             .confirm(&confirm::Params {

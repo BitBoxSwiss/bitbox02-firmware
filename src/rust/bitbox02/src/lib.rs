@@ -31,6 +31,7 @@ pub mod memory;
 #[cfg(feature = "simulator-graphical")]
 pub mod queue;
 pub mod random;
+pub mod ringbuffer;
 #[cfg(feature = "simulator-graphical")]
 pub mod screen;
 pub mod screen_saver;

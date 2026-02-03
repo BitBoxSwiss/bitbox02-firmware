@@ -38,6 +38,7 @@
 #include <usb/usb.h>
 #include <usb/usb_processing.h>
 #include <util.h>
+#include <utils_ringbuffer.h>
 
 #if defined(TESTING)
     #include <fake_memory.h>

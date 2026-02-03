@@ -42,6 +42,9 @@ extern crate alloc;
 #[cfg(test)]
 extern crate bitbox_aes;
 
+// Manually link fatfs
+extern crate fatfs_sys;
+
 //
 // C interface
 //

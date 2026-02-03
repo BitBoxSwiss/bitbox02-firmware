@@ -183,6 +183,9 @@ configure_file(src/bootloader/bootloader_version.h.in src/bootloader/bootloader_
 #-----------------------------------------------------------------------------
 # Set the default compiler options (Only set global options that truly are necessary for all files)
 
+# Flags that are passed to the C compiler when `cc` builds c code in build.rs scripts.
+set(CARGO_C_FLAGS "")
+
 string(APPEND CMAKE_C_FLAGS " -std=c11 -pipe")
 if(CMAKE_CROSSCOMPILING)
   set(CMAKE_C_FLAGS "\
@@ -196,6 +199,9 @@ if(CMAKE_CROSSCOMPILING)
     ${CMAKE_C_LINK_FLAGS} -mcpu=cortex-m4 -mthumb  -Wl,--gc-sections \
     "
   )
+
+  string(APPEND CARGO_C_FLAGS "\
+    -mlong-calls -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fomit-frame-pointer -D__SAMD51J20A")
 endif()
 
 # Optimize for size by default
@@ -210,6 +216,11 @@ if(DEFINED ENV{RUSTFLAGS})
 else()
     set(RUSTFLAGS "")
 endif()
+
+# Use libsecp256k1 that we link ourselves.
+# See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
+# This is replicated in .cargo/config.toml because RUSTFLAGS here override the rustflags there.
+string(APPEND RUSTFLAGS " --cfg=rust_secp_no_symbol_renaming")
 
 #-----------------------------------------------------------------------------
 # Print system information and build options
@@ -312,6 +323,7 @@ string(APPEND CMAKE_C_FLAGS " -Wno-cast-function-type")
 # Enable stack protection on release builds
 if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   string(APPEND CMAKE_C_FLAGS " -fstack-protector-strong")
+  string(APPEND CARGO_C_FLAGS " -fstack-protector-strong")
   if(CMAKE_CROSSCOMPILING)
     # Path to empty dummy libssp and libssp_shared. '-llibssp -llibssp_shared' is automatically added
     # with '-fstack-protector-all', but we don't need them as we have our own custom
@@ -322,15 +334,18 @@ endif()
 
 # For `struct timespec` and `strdup`
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_XOPEN_SOURCE=600")
+string(APPEND CARGO_C_FLAGS " -D_XOPEN_SOURCE=600")
 
 string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
 add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
 
 if(SANITIZE_ADDRESS)
     string(APPEND CMAKE_C_FLAGS " -fsanitize=address")
+    string(APPEND CARGO_C_FLAGS " -fsanitize=address")
 endif()
 if(SANITIZE_UNDEFINED)
     string(APPEND CMAKE_C_FLAGS " -fsanitize=undefined")
+    string(APPEND CARGO_C_FLAGS " -fsanitize=undefined")
 endif()
 
 # protoc is used to generate API messages

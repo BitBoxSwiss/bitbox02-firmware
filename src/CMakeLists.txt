@@ -218,11 +218,6 @@ else()
   string(JOIN " " RUSTFLAGS "${RUSTFLAGS}" "--remap-path-prefix=${CMAKE_CURRENT_SOURCE_DIR}/rust=src" "--remap-path-prefix=$ENV{HOME}=")
 endif()
 
-# Use libsecp256k1 that we link ourselves.
-# See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
-# This is replicated in .cargo/config.toml because RUSTFLAGS here override the rustflags there.
-string(JOIN " " RUSTFLAGS "${RUSTFLAGS}" "--cfg=rust_secp_no_symbol_renaming")
-
 if(CMAKE_CROSSCOMPILING)
   set(RUST_TARGET_ARCH thumbv7em-none-eabi)
   set(RUST_TARGET_ARCH_DIR ${RUST_TARGET_ARCH})
@@ -267,7 +262,6 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-  set(RUSTFLAGS_TESTS "${RUSTFLAGS} -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lstatic=fatfs")
 
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a
@@ -278,7 +272,6 @@ if(NOT CMAKE_CROSSCOMPILING)
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
-        RUSTFLAGS=${RUSTFLAGS_TESTS}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO}
           test
@@ -294,7 +287,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     DEPENDS
       ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
     )
-  add_dependencies(rust-test generate-protobufs fatfs)
+  add_dependencies(rust-test generate-protobufs)
 
   add_custom_target(rust-clippy
     COMMAND
@@ -395,6 +388,7 @@ foreach(type ${RUST_LIBS})
       CMAKE_SYSROOT=${CMAKE_SYSROOT}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
+      CFLAGS=${CARGO_C_FLAGS}
       FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
@@ -425,7 +419,7 @@ foreach(type ${RUST_LIBS})
   add_dependencies(${type}_rust_c ${type}-rust-target generate-protobufs)
   set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
   # Add the include directory to find rust/rust.h
-  target_include_directories(${type}_rust_c INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
+  target_include_directories(${type}_rust_c INTERFACE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/rust/fatfs-sys/depend/fatfs/source)
   if (NOT CMAKE_CROSSCOMPILING)
     # Needs to match the definitions in `bitbox02-sys/build.rs`
     target_compile_definitions(${type}_rust_c INTERFACE
@@ -540,8 +534,8 @@ if(CMAKE_CROSSCOMPILING)
         optiga
         embedded-swd
         cryptoauthlib
-        fatfs
         c
+        ${firmware}_rust_c
         samd51a-ds
         asf4-drivers-min
         asf4-drivers
@@ -552,10 +546,6 @@ if(CMAKE_CROSSCOMPILING)
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")
     target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
-
-    # Link the Rust static library before its C dependencies. Static library resolution is
-    # left-to-right.
-    target_link_libraries(${elf} PRIVATE ${firmware}_rust_c)
 
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 

@@ -155,6 +155,7 @@ dependencies = [
  "digest",
  "ed25519-dalek",
  "erc20_params",
+ "fatfs-sys",
  "futures-lite",
  "hex",
  "hex_lit",
@@ -541,6 +542,13 @@ name = "erc20_params"
 version = "0.1.0"
 dependencies = [
  "hex",
+]
+
+[[package]]
+name = "fatfs-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

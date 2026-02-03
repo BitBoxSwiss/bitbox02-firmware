@@ -11,8 +11,6 @@
 #include <reset.h>
 #include <screen.h>
 #include <sd.h>
-#include <secp256k1_ecdsa_adaptor.h>
-#include <secp256k1_ecdsa_s2c.h>
 #include <securechip/securechip.h>
 #include <system.h>
 #include <time.h>

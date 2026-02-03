@@ -9,7 +9,7 @@ license = "Apache-2.0"
 
 [dependencies]
 bitcoin = { workspace = true }
-bitbox02 = { path = "../bitbox02" }
+bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }

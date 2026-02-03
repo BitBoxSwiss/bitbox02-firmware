@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 bitbox02 = {path = "../bitbox02"}
+bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
 util = { path = "../util" }
 erc20_params = { path = "../erc20_params", optional = true }
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
@@ -89,6 +90,7 @@ app-cardano = [
 
 testing = [
   "bitbox02/testing",
+  "bitbox-secp256k1/testing",
   "util/testing"
 ]
 

@@ -1939,7 +1939,7 @@ mod tests {
 
             // Protocol step 1.
             let host_commitment_vec =
-                bitbox02::secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce).unwrap();
+                bitbox_secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce).unwrap();
             let host_commitment: [u8; 32] = host_commitment_vec.try_into().unwrap();
 
             // Get pubkey at keypath.
@@ -1963,7 +1963,7 @@ mod tests {
             let signature =
                 secp256k1::ecdsa::Signature::from_compact(&sign_result.signature).unwrap();
             // Protocol step 5: host verification.
-            bitbox02::secp256k1::anti_exfil_host_verify(
+            bitbox_secp256k1::anti_exfil_host_verify(
                 SECP256K1,
                 &signature,
                 &msg,

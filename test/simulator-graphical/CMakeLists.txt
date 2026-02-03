@@ -6,7 +6,10 @@
 
 set(RUST_BINARY_DIR ${CMAKE_BINARY_DIR}/src/rust)
 
-set(RUSTFLAGS "-L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lstatic=fatfs -lstatic=secp256k1 --cfg=rust_secp_no_symbol_renaming")
+# Use libsecp256k1 that we link ourselves.
+# See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
+# This is replicated in .cargo/config.toml because RUSTFLAGS here override the rustflags there.
+set(RUSTFLAGS "-L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} -lstatic=fatfs --cfg=rust_secp_no_symbol_renaming")
 
 if(SANITIZE_ADDRESS OR SANITIZE_UNDEFINED)
     string(APPEND RUSTFLAGS " -Zexternal-clangrt -Cdefault-linker-libraries=y")
@@ -44,7 +47,7 @@ add_custom_command(
       ${CMAKE_COMMAND} -E copy
       ${RUST_BINARY_DIR}/${LLVM_HOST_TUPLE}/release/simulator-graphical
       ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simulator-graphical
-    DEPENDS rust-cbindgen secp256k1 fatfs
+    DEPENDS rust-cbindgen fatfs
     WORKING_DIRECTORY ${RUST_BINARY_DIR}
 )
 

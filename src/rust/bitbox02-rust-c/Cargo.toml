@@ -43,8 +43,10 @@ target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-factory-setup = [
   # enable these features
+  "factory-setup",
   "firmware",
   "platform-bitbox02",
+  "dep:bitcoin",
 ]
 # add Rust features which are called in the C unit tests (currently there is only one target for C tests).
 target-c-unit-tests = [
@@ -112,5 +114,7 @@ app-cardano = [
  # enable this feature in the deps
   "bitbox02-rust/app-cardano",
 ]
+
+factory-setup = []
 
 rtt = [ "util/rtt" ]

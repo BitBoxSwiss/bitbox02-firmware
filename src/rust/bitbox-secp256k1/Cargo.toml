@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-secp256k1"
+version = "0.1.0"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2024"
+description = "secp256k1-zkp build and wrappers for BitBox"
+license = "Apache-2.0"
+
+[lib]
+doctest = false
+
+[dependencies]
+bitcoin = { workspace = true }
+
+[dev-dependencies]
+hex_lit = { workspace = true, features = ["rust_v_1_46"] }
+
+[build-dependencies]
+cc = { version = "1.2", features = ["parallel"] }
+
+[features]
+testing = []

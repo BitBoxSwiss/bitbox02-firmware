@@ -468,7 +468,7 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
     size_t kh_cert_sig_len = response->keyHandleLen + sizeof(U2F_ATT_CERT) + der_len;
 
     // Append success bytes
-    memcpy(response->keyHandleCertSig + kh_cert_sig_len, "\x90\x00", 2);
+    memcpy(response->keyHandleCertSig + kh_cert_sig_len, (uint8_t[]){0x90, 0x00}, 2);
 
     size_t len =
         1 /* registerId */ + U2F_EC_POINT_SIZE + 1 /* keyhandleLen */ + kh_cert_sig_len + 2;

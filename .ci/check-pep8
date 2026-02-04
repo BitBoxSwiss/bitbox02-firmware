@@ -16,7 +16,7 @@ if [ -z "${FILES}" ] ; then
        exit 0
 fi
 
-./scripts/format-python --config py/pyproject.toml --check --fast ${FILES}
+./scripts/format-python --config py/pyproject.toml --check --fast --diff ${FILES}
 # We lint all default Python files, as linting only a subset can lead to errors (e.g. if
 # send_message.py only is linted without the bitbox02 dep).
 ./scripts/lint-python

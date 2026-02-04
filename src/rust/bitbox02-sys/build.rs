@@ -9,6 +9,8 @@ const ALLOWLIST_VARS: &[&str] = &[
     "BASE58_CHECKSUM_LEN",
     "BIP32_SERIALIZED_LEN",
     "BIP39_WORDLIST_LEN",
+    "da14531_handler_current_product",
+    "da14531_handler_current_product_len",
     "font_font_a_11X10",
     "font_font_a_9X9",
     "font_monogram_5X9",
@@ -32,6 +34,8 @@ const ALLOWLIST_VARS: &[&str] = &[
     "secfalse_u8",
     "SD_MAX_FILE_SIZE",
     "SLIDER_POSITION_TWO_THIRD",
+    "USART_0_BUFFER_SIZE",
+    "USB_REPORT_SIZE",
 ];
 
 const ALLOWLIST_TYPES: &[&str] = &[
@@ -39,6 +43,7 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "buffer_t",
     "component_t",
     "confirm_params_t",
+    "da14531_protocol_frame",
     "delay_t",
     "event_slider_data_t",
     "event_types",
@@ -48,6 +53,8 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "UG_COLOR",
     "upside_down_t",
 ];
+
+const OPAQUE_TYPES: &[&str] = &["da14531_protocol_frame"];
 
 const ALLOWLIST_FNS: &[&str] = &[
     "bip32_derive_xpub",
@@ -64,6 +71,9 @@ const ALLOWLIST_FNS: &[&str] = &[
     "delay_is_elapsed",
     "delay_ms",
     "delay_us",
+    "da14531_handler",
+    "da14531_power_down",
+    "da14531_protocol_poll",
     "da14531_set_product",
     "da14531_set_name",
     "da14531_power_down",
@@ -71,6 +81,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "empty_create",
     "fake_memory_factoryreset",
     "fake_memory_nova",
+    "hid_hww_read",
+    "hid_hww_write_poll",
+    "hid_u2f_read",
+    "hid_u2f_write_poll",
     "hww_setup",
     "keystore_bip39_mnemonic_to_seed",
     "keystore_get_bip39_word",
@@ -117,11 +131,13 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_spi_get_active_ble_firmware_version",
     "menu_create",
     "orientation_arrows_create",
+    "platform_product",
     "printf",
     "progress_create",
     "progress_set",
     "queue_hww_queue",
     "queue_pull",
+    "queue_u2f_queue",
     "random_32_bytes_mcu",
     "random_32_bytes",
     "random_fake_reset",
@@ -168,6 +184,12 @@ const ALLOWLIST_FNS: &[&str] = &[
     "trinary_choice_create",
     "trinary_input_string_create",
     "trinary_input_string_set_input",
+    "u2f_packet_init",
+    "u2f_packet_process",
+    "u2f_packet_timeout_get",
+    "u2f_packet_timeout",
+    "u2f_process",
+    "uart_poll",
     "UG_ClearBuffer",
     "UG_FontSelect",
     "UG_PutString",
@@ -179,8 +201,12 @@ const ALLOWLIST_FNS: &[&str] = &[
     "usb_packet_process",
     "usb_processing_hww",
     "usb_processing_init",
+    "usb_processing_locked",
     "usb_processing_process",
     "usb_processing_timeout_reset",
+    "usb_processing_u2f",
+    "usb_processing_unlock",
+    "usb_start",
     "util_format_datetime",
 ];
 
@@ -398,6 +424,7 @@ pub fn main() -> Result<(), &'static str> {
         .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
         .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
         .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
+        .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
         .arg("wrapper.h")
         .arg("--")
         .args(&definitions)

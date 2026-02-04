@@ -117,4 +117,4 @@ app-cardano = [
 
 factory-setup = []
 
-rtt = [ "util/rtt" ]
+rtt = ["util/rtt"]

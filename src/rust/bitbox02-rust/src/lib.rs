@@ -25,6 +25,11 @@ pub mod hal;
 pub mod hash;
 pub mod hww;
 pub mod keystore;
+#[cfg(all(
+    feature = "firmware",
+    not(any(feature = "c-unit-testing", feature = "simulator-graphical"))
+))]
+pub mod main_loop;
 pub mod reset;
 pub mod salt;
 pub mod secp256k1;

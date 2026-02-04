@@ -8,7 +8,6 @@ target_link_libraries(simulator PRIVATE
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
-    fatfs
     $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
 )
 

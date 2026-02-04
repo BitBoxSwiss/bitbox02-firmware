@@ -1,0 +1,12 @@
+[package]
+name = "fatfs-sys"
+version = "0.1.0"
+edition = "2024"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+description = "fatfs wrapper"
+license = "FatFs"
+
+[dependencies]
+
+[build-dependencies]
+cc = { version = "1.2", features = ["parallel"] }

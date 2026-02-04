@@ -376,6 +376,7 @@ dependencies = [
  "digest",
  "ed25519-dalek",
  "erc20_params",
+ "fatfs-sys",
  "futures-lite",
  "hex",
  "hex_lit",
@@ -1084,6 +1085,13 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
+]
+
+[[package]]
+name = "fatfs-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

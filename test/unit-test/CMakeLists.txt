@@ -66,7 +66,6 @@ else()
       -Wl,--start-group
       c-unit-tests_rust_c
       mocks
-      fatfs
       -Wl,--end-group
       ${TEST_LINK_ARGS}
     )
@@ -138,10 +137,7 @@ foreach(TEST_NAME ${U2F_TESTS})
   target_link_libraries(${EXE} PRIVATE
     $<$<BOOL:${SANITIZE_ADDRESS}>:-fsanitize=address>
     $<$<BOOL:${SANITIZE_UNDEFINED}>:-fsanitize=undefined>
-    $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--start-group>
     c-unit-tests_rust_c
-    fatfs
-    $<$<NOT:$<PLATFORM_ID:Darwin>>:-Wl,--end-group>
     u2f-util
   )
   add_test(NAME test_${TEST_NAME} COMMAND ${EXE})

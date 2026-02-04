@@ -319,7 +319,7 @@ pub fn main() -> Result<(), &'static str> {
         // ASF4 headers allowed in unit tests
         "../../../external/asf4-drivers/hal/utils/include",
         // fatfs
-        "../../../external/fatfs/source",
+        "../../rust/fatfs-sys/depend/fatfs/source",
     ];
 
     // rust.h is created by cbindgen in the cmake build directory

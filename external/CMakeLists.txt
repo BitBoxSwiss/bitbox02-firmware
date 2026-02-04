@@ -197,17 +197,6 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
 
 endif() # CMAKE_CROSSCOMPILING
 
-# fatfs must to be linked together with a diskio middleware:
-# - in the firmware, it is linked with asf4-drivers, which contains sdmmc_diskio.c (writing to actual microSD cards)
-# - in unit tests, it is linked with a lib containing mock_diskio.c (volume mounted in RAM).
-add_library(fatfs STATIC
-  fatfs/source/ff.c
-  fatfs/source/ffunicode.c
-  )
-set_property(TARGET fatfs PROPERTY INTERFACE_LINK_LIBRARIES "")
-target_include_directories(fatfs SYSTEM PUBLIC fatfs/source)
-target_compile_options(fatfs PRIVATE -Wno-switch-default)
-
 # optiga-trust-m
 # The below build instructions are loosely based on optiga-trust-m/tests/linux_i2c.cmake
 aux_source_directory(optiga-trust-m/src/cmd SRC_CMD_FILES)

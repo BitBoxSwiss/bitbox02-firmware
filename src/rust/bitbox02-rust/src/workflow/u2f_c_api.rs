@@ -11,9 +11,9 @@
 
 extern crate alloc;
 
+use crate::workflow::{confirm, orientation_screen};
 use alloc::boxed::Box;
 use alloc::string::String;
-use bitbox02_rust::workflow::{confirm, orientation_screen};
 use core::task::Poll;
 use util::bb02_async::{Task, spin};
 
@@ -29,16 +29,15 @@ static mut CONFIRM_TITLE: Option<String> = None;
 static mut CONFIRM_BODY: Option<String> = None;
 static mut CONFIRM_PARAMS: Option<confirm::Params> = None;
 static mut CONFIRM_STATE: TaskState<'static, Result<(), confirm::UserAbort>> = TaskState::Nothing;
-static mut BITBOX02_HAL: bitbox02_rust::hal::BitBox02Hal = bitbox02_rust::hal::BitBox02Hal::new();
+static mut BITBOX02_HAL: crate::hal::BitBox02Hal = crate::hal::BitBox02Hal::new();
 
 static mut ORIENTATION_SCREEN_STATE: TaskState<'static, bool> = TaskState::Nothing;
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
     unsafe {
-        UNLOCK_STATE = TaskState::Running(Box::pin(bitbox02_rust::workflow::unlock::unlock(
-            &mut BITBOX02_HAL,
-        )));
+        UNLOCK_STATE =
+            TaskState::Running(Box::pin(crate::workflow::unlock::unlock(&mut BITBOX02_HAL)));
     }
 }
 

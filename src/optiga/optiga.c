@@ -1823,7 +1823,8 @@ bool optiga_gen_attestation_key(uint8_t* pubkey_out)
     // Parse DER "BIT STRING", see Solution Reference Manual 6.2.2,
     // example for ECC NIST-P256.
     // The 64 byte X/Y values are the last 64 bytes.
-    if (pubkey_der_size != 68 || !MEMEQ(pubkey_der, "\x03\x42\x00\x04", 4)) {
+    const uint8_t magic[] = {0x03, 0x42, 0x00, 0x04};
+    if (pubkey_der_size != 68 || !MEMEQ(pubkey_der, magic, 4)) {
         return false;
     }
     memcpy(pubkey_out, pubkey_der + 4, 64);

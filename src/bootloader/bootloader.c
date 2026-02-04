@@ -353,7 +353,9 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
 {
     qtouch_force_calibrate();
     bootloader_pairing_request = true;
-    uint32_t pairing_code_int = (*(uint32_t*)&bootloader_pairing_code_bytes[0]) % 1000000;
+    uint32_t pairing_code_int;
+    memcpy(&pairing_code_int, &bootloader_pairing_code_bytes[0], sizeof(pairing_code_int));
+    pairing_code_int %= 1000000;
     char code_str[10] = {0};
     snprintf(code_str, sizeof(code_str), "%06u", (unsigned)pairing_code_int);
     UG_ClearBuffer();
@@ -556,7 +558,9 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
 static inline version_t _parse_version(const uint8_t* start)
 {
     // 4 byte little endian
-    return *(const version_t*)start;
+    version_t version;
+    memcpy(&version, start, sizeof(version));
+    return version;
 }
 
 static void _double_hash(const uint8_t* data, uint32_t len, uint8_t* hash)

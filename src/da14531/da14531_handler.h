@@ -14,6 +14,6 @@ extern uint16_t da14531_handler_current_product_len;
 bool da14531_handler_bond_db_set(void);
 #endif
 
-void da14531_handler(struct da14531_protocol_frame* frame, struct ringbuffer* queue);
+void da14531_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue);
 
 #endif

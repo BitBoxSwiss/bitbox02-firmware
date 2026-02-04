@@ -170,7 +170,7 @@ int16_t memory_get_ble_bond_db(uint8_t* data)
     return len;
 }
 
-bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len)
+bool memory_set_ble_bond_db(const uint8_t* data, int16_t data_len)
 {
     ASSERT(data_len <= MEMORY_BLE_BOND_DB_LEN);
     if (data_len > MEMORY_BLE_BOND_DB_LEN) {

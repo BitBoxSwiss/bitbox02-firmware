@@ -144,7 +144,7 @@ void memory_get_ble_irk(uint8_t* data);
 void memory_get_ble_identity_address(uint8_t* data);
 
 // data_len can be at most MEMORY_BLE_BOND_DB_LEN
-bool memory_set_ble_bond_db(uint8_t* data, int16_t data_len);
+bool memory_set_ble_bond_db(const uint8_t* data, int16_t data_len);
 
 typedef struct {
     uint8_t allowed_firmware_hash[32];

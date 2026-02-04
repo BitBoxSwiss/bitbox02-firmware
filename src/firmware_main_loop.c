@@ -176,7 +176,6 @@ void firmware_main_loop(void)
          * If USB has generated events at the application level,
          * process them now.
          */
-        hww_process();
 #if APP_U2F == 1
         u2f_process();
 #endif

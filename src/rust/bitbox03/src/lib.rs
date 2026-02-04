@@ -25,7 +25,7 @@ pub mod display {
         fn fill_rect(&mut self, r: Rect) -> Result<(), Self::Error>;
         fn blit(&mut self) -> Result<(), Self::Error>;
 
-        fn present(&mut self) -> Result<(), Self::Error>;
+        //fn present(&mut self) -> Result<(), Self::Error>;
     }
 }
 

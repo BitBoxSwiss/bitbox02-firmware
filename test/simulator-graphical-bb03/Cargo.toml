@@ -20,3 +20,4 @@ hex = "0.4.3"
 util = { path = "../../src/rust/util" }
 critical-section = { version = "1.2", features = ["std"] }
 bitbox03 = { path = "../../src/rust/bitbox03" }
+lvgl = { version = "0.6.2", default-features = false}

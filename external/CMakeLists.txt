@@ -81,8 +81,6 @@ if(CMAKE_CROSSCOMPILING)
 
   target_link_libraries(asf4-drivers-min samd51a-ds)
   set_property(TARGET asf4-drivers-min PROPERTY INTERFACE_LINK_LIBRARIES "")
-  target_compile_options(asf4-drivers-min PRIVATE -Wno-cast-qual
-      -Wno-unused-parameter -Wno-missing-prototypes -Wno-missing-declarations -Wno-cast-align)
 
   target_include_directories(asf4-drivers-min SYSTEM
     PUBLIC
@@ -119,7 +117,7 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/diskio/sdmmc_diskio.c
   )
 
-  target_compile_options(asf4-drivers PRIVATE -Wno-cast-qual -Wno-unused-parameter -Wno-switch-default -Wno-bad-function-cast -Wno-implicit-fallthrough)
+  target_compile_options(asf4-drivers PRIVATE -Wno-cast-qual -Wno-unused-parameter -Wno-switch-default -Wno-bad-function-cast -Wno-implicit-fallthrough -Wno-cast-align)
 
   target_link_libraries(asf4-drivers
     PRIVATE

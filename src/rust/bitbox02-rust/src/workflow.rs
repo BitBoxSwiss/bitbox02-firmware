@@ -18,6 +18,8 @@ pub mod testing;
 pub mod transaction;
 pub mod trinary_choice;
 pub mod trinary_input_string;
+#[cfg(feature = "firmware")]
+pub mod u2f_c_api;
 pub mod unlock;
 pub mod unlock_animation;
 pub mod verify_message;

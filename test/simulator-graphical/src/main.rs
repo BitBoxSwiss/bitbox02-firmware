@@ -41,6 +41,9 @@ use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 use bitbox02::ui::ugui::UG_COLOR;
 use bitbox02_rust::hal::{Hal, Memory};
 
+// Explicitly link library for its C exports
+extern crate bitbox02_rust_c;
+
 static BG: &[u8; 325362] = include_bytes!("../bg.png");
 
 const MARGIN: usize = 20;
@@ -652,7 +655,7 @@ impl ApplicationHandler<UserEvent> for App {
                     }
                 }
                 // Business logic
-                unsafe { bitbox02_rust_c::workflow::rust_workflow_spin() }
+                unsafe { bitbox02_rust::workflow::u2f_c_api::rust_workflow_spin() }
                 bitbox02_rust::async_usb::spin();
                 bitbox02::usb_processing::process_hww();
                 bitbox02::screen::process();

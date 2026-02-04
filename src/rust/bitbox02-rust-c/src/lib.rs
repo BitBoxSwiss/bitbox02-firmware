@@ -15,8 +15,6 @@ pub mod async_usb;
 mod der;
 #[cfg(feature = "factory-setup")]
 mod secp256k1;
-#[cfg(feature = "firmware")]
-pub mod workflow;
 
 // Expose C interface defined in bitbox_aes
 #[cfg(feature = "firmware")]

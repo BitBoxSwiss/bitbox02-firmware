@@ -22,6 +22,7 @@ pub mod testing;
 #[cfg(test)]
 extern crate bitbox02_rust;
 
+pub mod da14531;
 pub mod delay;
 #[cfg(feature = "simulator-graphical")]
 pub mod event;
@@ -31,6 +32,7 @@ pub mod memory;
 #[cfg(feature = "simulator-graphical")]
 pub mod queue;
 pub mod random;
+pub mod ringbuffer;
 #[cfg(feature = "simulator-graphical")]
 pub mod screen;
 pub mod screen_saver;

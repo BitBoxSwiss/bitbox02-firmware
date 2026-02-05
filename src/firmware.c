@@ -3,7 +3,6 @@
 #include "common_main.h"
 #include "da14531/da14531_protocol.h"
 #include "driver_init.h"
-#include "firmware_main_loop.h"
 #include "hardfault.h"
 #include "memory/bitbox02_smarteeprom.h"
 #include "memory/memory_shared.h"
@@ -15,6 +14,7 @@
 #include "usb/usb_processing.h"
 #include <hww.h>
 #include <memory/memory_spi.h>
+#include <rust/rust.h>
 #include <ui/oled/oled.h>
 
 #if APP_U2F == 1
@@ -43,6 +43,6 @@ int main(void)
 #if APP_U2F == 1
     u2f_device_setup();
 #endif
-    firmware_main_loop();
+    rust_main_loop();
     return 0;
 }

@@ -7,5 +7,6 @@
 #![allow(non_snake_case)]
 // Can be removed once https://github.com/rust-lang/rust-bindgen/issues/1651 is resolved.
 #![allow(deref_nullptr)]
+
 // include our generated bindings
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

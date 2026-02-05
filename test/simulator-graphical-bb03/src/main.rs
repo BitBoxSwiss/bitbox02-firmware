@@ -493,7 +493,7 @@ impl ApplicationHandler<UserEvent> for App {
                     loop {
                         match inbound_out.try_recv() {
                             Ok(data) => {
-                                bitbox02::usb_packet::process(&data);
+                                bitbox02::usb_packet::process_from_report(&data);
                             }
                             Err(TryRecvError::Disconnected) => {
                                 // Drop the outbound channel
@@ -524,7 +524,6 @@ impl ApplicationHandler<UserEvent> for App {
                     }
                 }
                 // Business logic
-                unsafe { bitbox02_rust::workflow::u2f_c_api::rust_workflow_spin() }
                 bitbox02_rust::async_usb::spin();
                 bitbox02::usb_processing::process_hww();
                 bitbox02::screen::process();

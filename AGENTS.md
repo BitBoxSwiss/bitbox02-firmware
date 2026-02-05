@@ -41,6 +41,7 @@ pinned toolchain in `rust-toolchain.toml`; keep module paths aligned with `src/r
 bindings (`cbindgen`, protobuf) when interfaces change.
 
 For C code changes, run ./scripts/format to format the code. For Python changes, run `black` to format the code.
+For Rust code changes, run `cd src/rust && cargo fmt` to format the code.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware

@@ -55,20 +55,13 @@ where
     }
 }
 
-pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>
-where
-    F: FnMut(bool) + 'a,
-{
+pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
     crate::print_stdout(&format!(
         "CONFIRM SCREEN START\nTITLE: {}\nBODY: {}\nCONFIRM SCREEN END\n",
         params.title, params.body
     ));
 
-    result_callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    true
 }
 
 pub fn screen_process() {}

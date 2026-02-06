@@ -104,16 +104,7 @@ pub fn empty_create<'a>() -> Component<'a> {
     }
 }
 
-pub fn unlock_animation_create<'a, F>(mut on_done: F) -> Component<'a>
-where
-    F: FnMut() + 'a,
-{
-    on_done();
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
-}
+pub async fn unlock_animation() {}
 
 pub async fn choose_orientation() -> bool {
     false

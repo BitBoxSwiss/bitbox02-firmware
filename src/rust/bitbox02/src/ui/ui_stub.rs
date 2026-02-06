@@ -49,10 +49,7 @@ where
     panic!("not used");
 }
 
-pub fn confirm_create<'a, F>(_params: &ConfirmParams, _result_callback: F) -> Component<'a>
-where
-    F: FnMut(bool) + 'a,
-{
+pub async fn confirm(_params: &ConfirmParams<'_>) -> bool {
     panic!("not used");
 }
 

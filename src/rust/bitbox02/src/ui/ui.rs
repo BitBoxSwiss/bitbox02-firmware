@@ -137,13 +137,29 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
         }
     }
 
-    let mut title_scratch = Vec::new();
-    let mut body_scratch = Vec::new();
+    // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
+    // truncate and append '...'.
+    const TRUNCATE_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as usize + 1;
+    let title =
+        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.title, TRUNCATE_SIZE))
+            .unwrap();
+    let body =
+        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.body, TRUNCATE_SIZE))
+            .unwrap();
+    let c_params = bitbox02_sys::confirm_params_t {
+        title: title.as_ptr().cast(),
+        title_autowrap: params.title_autowrap,
+        body: body.as_ptr().cast(),
+        font: params.font.as_ptr(),
+        scrollable: params.scrollable,
+        longtouch: params.longtouch,
+        accept_only: params.accept_only,
+        accept_is_nextarrow: params.accept_is_nextarrow,
+        display_size: params.display_size as _,
+    };
     let component = unsafe {
         bitbox02_sys::confirm_create(
-            &params
-                .to_c_params(&mut title_scratch, &mut body_scratch)
-                .data,
+            &c_params,
             Some(callback),
             Rc::into_raw(Rc::clone(&shared_state)) as *mut _, // passed to callback as `user_data`.
         )

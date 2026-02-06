@@ -175,14 +175,6 @@ where
     }
 }
 
-pub fn orientation_arrows<'a, F>(on_done: F) -> Component<'a>
-where
-    // Callback must outlive component.
-    F: FnOnce(bool) + 'a,
-{
-    on_done(false);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+pub async fn choose_orientation() -> bool {
+    false
 }

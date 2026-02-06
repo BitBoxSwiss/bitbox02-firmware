@@ -15,17 +15,13 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
 
-use core::marker::PhantomData;
-
 /// Wraps the C component_t to be used in Rust.
-pub struct Component<'a> {
+pub struct Component {
     component: *mut bitbox02_sys::component_t,
     is_pushed: bool,
-    // This is used to have the result callbacks outlive the component.
-    _p: PhantomData<&'a ()>,
 }
 
-impl Component<'_> {
+impl Component {
     pub fn screen_stack_push(&mut self) {
         if self.is_pushed {
             panic!("component pushed twice");
@@ -37,7 +33,7 @@ impl Component<'_> {
     }
 }
 
-impl Drop for Component<'_> {
+impl Drop for Component {
     fn drop(&mut self) {
         if !self.is_pushed {
             panic!("component not pushed");
@@ -144,7 +140,6 @@ pub async fn trinary_input_string(
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -227,7 +222,6 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -254,7 +248,7 @@ pub fn screen_process() {
     }
 }
 
-pub fn status_create<'a>(text: &str, status_success: bool) -> Component<'a> {
+pub fn status_create(text: &str, status_success: bool) -> Component {
     let component = unsafe {
         bitbox02_sys::status_create(
             util::strings::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
@@ -264,7 +258,6 @@ pub fn status_create<'a>(text: &str, status_success: bool) -> Component<'a> {
     Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     }
 }
 
@@ -308,7 +301,6 @@ pub async fn sdcard() -> SdcardResponse {
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -429,7 +421,6 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -531,7 +522,6 @@ pub async fn trinary_choice(
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -593,7 +583,6 @@ pub async fn confirm_transaction_address(amount: &str, address: &str) -> Confirm
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -656,7 +645,6 @@ pub async fn confirm_transaction_fee(amount: &str, fee: &str, longtouch: bool) -
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -683,7 +671,7 @@ pub fn screen_stack_pop_all() {
     }
 }
 
-pub fn progress_create<'a>(title: &str) -> Component<'a> {
+pub fn progress_create(title: &str) -> Component {
     let component = unsafe {
         bitbox02_sys::progress_create(
             util::strings::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
@@ -693,7 +681,6 @@ pub fn progress_create<'a>(title: &str) -> Component<'a> {
     Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     }
 }
 
@@ -701,11 +688,10 @@ pub fn progress_set(component: &mut Component, progress: f32) {
     unsafe { bitbox02_sys::progress_set(component.component, progress) }
 }
 
-pub fn empty_create<'a>() -> Component<'a> {
+pub fn empty_create() -> Component {
     Component {
         component: unsafe { bitbox02_sys::empty_create() },
         is_pushed: false,
-        _p: PhantomData,
     }
 }
 
@@ -744,7 +730,6 @@ pub async fn unlock_animation() {
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 
@@ -796,7 +781,6 @@ pub async fn choose_orientation() -> bool {
     let mut component = Component {
         component,
         is_pushed: false,
-        _p: PhantomData,
     };
     component.screen_stack_push();
 

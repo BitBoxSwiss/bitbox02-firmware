@@ -2,10 +2,6 @@
 
 use crate::hal::Ui;
 
-use crate::bb02_async::option_no_screensaver;
-use core::cell::RefCell;
-
-use alloc::boxed::Box;
 use alloc::string::String;
 
 pub struct UserAbort;
@@ -23,18 +19,10 @@ fn format_percentage(p: f64) -> String {
 }
 
 pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result<(), UserAbort> {
-    let result = RefCell::new(None as Option<Result<(), UserAbort>>);
-
-    let mut component = bitbox02::ui::confirm_transaction_fee_create(
-        total,
-        fee,
-        longtouch,
-        Box::new(|ok| {
-            *result.borrow_mut() = Some(if ok { Ok(()) } else { Err(UserAbort) });
-        }),
-    );
-    component.screen_stack_push();
-    option_no_screensaver(&result).await
+    match bitbox02::ui::confirm_transaction_fee(total, fee, longtouch).await {
+        bitbox02::ui::ConfirmResponse::Approved => Ok(()),
+        bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
+    }
 }
 
 pub async fn verify_total_fee_maybe_warn(

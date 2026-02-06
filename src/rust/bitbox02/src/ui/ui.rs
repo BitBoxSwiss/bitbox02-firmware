@@ -475,19 +475,35 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
     }
 }
 
-pub fn trinary_choice_create<'a>(
-    message: &'a str,
-    label_left: Option<&'a str>,
-    label_middle: Option<&'a str>,
-    label_right: Option<&'a str>,
-    chosen_callback: TrinaryChoiceCb,
-) -> Component<'a> {
-    unsafe extern "C" fn c_chosen_cb(choice: TrinaryChoice, user_data: *mut c_void) {
-        let callback = user_data as *mut TrinaryChoiceCb;
-        unsafe { (*callback)(choice) };
-    }
+pub async fn trinary_choice(
+    message: &str,
+    label_left: Option<&str>,
+    label_middle: Option<&str>,
+    label_right: Option<&str>,
+) -> TrinaryChoice {
+    let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 
-    let chosen_user_data = Box::into_raw(Box::new(chosen_callback)) as *mut c_void;
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<TrinaryChoice>,
+    }
+    let shared_state = Box::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+    let shared_state_ptr = shared_state.as_ref() as *const RefCell<SharedState> as *mut c_void;
+
+    unsafe extern "C" fn callback(choice: TrinaryChoice, user_data: *mut c_void) {
+        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let mut shared_state = shared_state.borrow_mut();
+        if shared_state.result.is_none() {
+            shared_state.result = Some(choice);
+            if let Some(waker) = shared_state.waker.as_ref() {
+                waker.wake_by_ref();
+            }
+        }
+    }
 
     let label_left = label_left.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
     let label_middle = label_middle.map(|label| util::strings::str_to_cstr_vec(label).unwrap());
@@ -508,20 +524,35 @@ pub fn trinary_choice_create<'a>(
             label_right
                 .as_ref()
                 .map_or_else(core::ptr::null, |label| label.as_ptr()),
-            Some(c_chosen_cb as _),
-            chosen_user_data,
+            Some(callback),
+            shared_state_ptr,      // passed to callback as `user_data`.
             core::ptr::null_mut(), // parent component, there is no parent.
         )
     };
-    Component {
+
+    let mut component = Component {
         component,
         is_pushed: false,
-        on_drop: Some(Box::new(move || unsafe {
-            // Drop all callbacks.
-            drop(Box::from_raw(chosen_user_data as *mut TrinaryChoiceCb));
-        })),
+        on_drop: None,
         _p: PhantomData,
-    }
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = &shared_state;
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result.take() {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
 }
 
 pub fn confirm_transaction_address_create<'a, 'b>(

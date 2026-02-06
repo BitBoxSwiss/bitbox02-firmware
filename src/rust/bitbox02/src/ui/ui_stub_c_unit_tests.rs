@@ -35,24 +35,17 @@ impl<'a> Drop for Component<'a> {
     }
 }
 
-pub fn trinary_input_string_create<'a, F>(
-    params: &TrinaryInputStringParams,
-    mut confirm_callback: F,
-    _cancel_callback: Option<ContinueCancelCb<'a>>,
-) -> Component<'a>
-where
-    F: FnMut(zeroize::Zeroizing<String>) + 'a,
-{
+pub async fn trinary_input_string(
+    params: &TrinaryInputStringParams<'_>,
+    _can_cancel: bool,
+    _preset: &str,
+) -> Result<zeroize::Zeroizing<String>, ()> {
     crate::print_stdout(&format!(
         "ENTER SCREEN START\nTITLE: {}\nENTER SCREEN END\n",
         params.title
     ));
 
-    confirm_callback(zeroize::Zeroizing::new("".into()));
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    Ok(zeroize::Zeroizing::new("".into()))
 }
 
 pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
@@ -133,10 +126,6 @@ pub fn confirm_transaction_fee_create<'a, 'b>(
         is_pushed: false,
         _p: PhantomData,
     }
-}
-
-pub fn trinary_input_string_set_input(_component: &mut Component, _word: &str) {
-    panic!("not implemented")
 }
 
 pub fn screen_stack_pop_all() {}

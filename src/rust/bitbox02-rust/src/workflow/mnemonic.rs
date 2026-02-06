@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub use super::cancel::Error as CancelError;
-use super::cancel::{cancel, set_result, with_cancel};
 use super::confirm;
 use super::menu;
 use super::trinary_choice::TrinaryChoice;
 use super::trinary_input_string;
 
-use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::cell::RefCell;
 
 use sha2::{Digest, Sha256};
 
@@ -65,36 +62,36 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
 
 /// Displays all mnemonic words in a scroll-through screen.
 pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
-    let result = RefCell::new(None);
-    let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
+    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
         words,
         title: None,
-        select_word_cb: None,
-        continue_on_last_cb: Some(Box::new(|| {
-            set_result(&result, ());
-        })),
-        cancel_cb: Some(Box::new(|| {
-            cancel(&result);
-        })),
-    });
-    with_cancel("Recovery\nwords", &mut component, &result).await
+        select_word: false,
+        continue_on_last: true,
+        cancel_confirm_title: Some("Recovery\nwords"),
+    })
+    .await
+    {
+        bitbox02::ui::MenuResponse::ContinueOnLast => Ok(()),
+        bitbox02::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
+        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
+    }
 }
 
 /// Displays the `choices` to the user, returning the index of the selected choice.
 pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
-    let result = RefCell::new(None);
-    let mut component = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
+    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
         words: choices,
         title: Some(title),
-        select_word_cb: Some(Box::new(|idx| {
-            set_result(&result, idx);
-        })),
-        continue_on_last_cb: None,
-        cancel_cb: Some(Box::new(|| {
-            cancel(&result);
-        })),
-    });
-    with_cancel("Recovery\nwords", &mut component, &result).await
+        select_word: true,
+        continue_on_last: false,
+        cancel_confirm_title: Some("Recovery\nwords"),
+    })
+    .await
+    {
+        bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
+        bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
+        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
+    }
 }
 
 pub async fn show_and_confirm_mnemonic(

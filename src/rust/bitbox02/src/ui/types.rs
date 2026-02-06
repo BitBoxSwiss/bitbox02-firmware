@@ -66,12 +66,25 @@ pub struct TrinaryInputStringParams<'a> {
 pub type SelectWordCb<'a> = Box<dyn FnMut(u8) + 'a>;
 pub type ContinueCancelCb<'a> = Box<dyn FnMut() + 'a>;
 
+/// Result of a resolved menu interaction.
+pub enum MenuResponse {
+    /// User chose one of the entries by index.
+    SelectWord(u8),
+    /// User reached the last item and continued.
+    ContinueOnLast,
+    /// User cancelled the menu flow.
+    Cancel,
+}
+
 pub struct MenuParams<'a> {
     pub words: &'a [&'a str],
     pub title: Option<&'a str>,
-    pub select_word_cb: Option<SelectWordCb<'a>>,
-    pub continue_on_last_cb: Option<ContinueCancelCb<'a>>,
-    pub cancel_cb: Option<ContinueCancelCb<'a>>,
+    /// If true, selecting a word is possible and `MenuResponse::SelectWord` is returned.
+    pub select_word: bool,
+    /// If true, user can continue at the last word, and `MenuResponse::ContinueOnLast` is returned.
+    pub continue_on_last: bool,
+    /// `None` means immediate cancel. `Some(title)` asks for cancel confirmation.
+    pub cancel_confirm_title: Option<&'a str>,
 }
 
 pub type TrinaryChoiceCb<'a> = Box<dyn FnMut(TrinaryChoice) + 'a>;

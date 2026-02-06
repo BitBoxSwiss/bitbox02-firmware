@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
-    TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse, SelectWordCb,
+    TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
 use core::ffi::{c_char, c_void};
@@ -299,52 +299,81 @@ where
     }
 }
 
-pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
-    unsafe extern "C" fn c_select_word_cb(word_idx: u8, user_data: *mut c_void) {
-        let callback = user_data as *mut SelectWordCb;
-        unsafe { (*callback)(word_idx) };
+pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
+    let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
+    let cancel_confirm_title = params.cancel_confirm_title;
+
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<MenuResponse>,
+    }
+    let shared_state = Box::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+    let shared_state_ptr = shared_state.as_ref() as *const RefCell<SharedState> as *mut c_void;
+
+    unsafe extern "C" fn select_word_cb(word_idx: u8, user_data: *mut c_void) {
+        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let mut shared_state = shared_state.borrow_mut();
+        if shared_state.result.is_none() {
+            shared_state.result = Some(MenuResponse::SelectWord(word_idx));
+            if let Some(waker) = shared_state.waker.as_ref() {
+                waker.wake_by_ref();
+            }
+        }
     }
 
-    unsafe extern "C" fn c_continue_cancel_cb(user_data: *mut c_void) {
-        let callback = user_data as *mut ContinueCancelCb;
-        unsafe { (*callback)() };
+    unsafe extern "C" fn continue_on_last_cb(user_data: *mut c_void) {
+        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let mut shared_state = shared_state.borrow_mut();
+        if shared_state.result.is_none() {
+            shared_state.result = Some(MenuResponse::ContinueOnLast);
+            if let Some(waker) = shared_state.waker.as_ref() {
+                waker.wake_by_ref();
+            }
+        }
+    }
+
+    unsafe extern "C" fn cancel_cb(user_data: *mut c_void) {
+        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let mut shared_state = shared_state.borrow_mut();
+        if shared_state.result.is_none() {
+            shared_state.result = Some(MenuResponse::Cancel);
+            if let Some(waker) = shared_state.waker.as_ref() {
+                waker.wake_by_ref();
+            }
+        }
     }
 
     // We want to turn &[&str] into a C char**.
     //
-    // Step 1: create the C strings. This var has to be alive until after menu_create() finishes,
+    // Step 1: create the C strings. This var has to be alive until after menu() finishes,
     // otherwise the pointers we send to menu_create() will be invalid.
     let words: Vec<Vec<core::ffi::c_char>> = params
         .words
         .iter()
         .map(|word| util::strings::str_to_cstr_vec(word).unwrap())
         .collect();
-    // Step two: collect pointers. This var also has to be valid until menu_create() finishes, or
+    // Step two: collect pointers. This var also has to be valid until menu() finishes, or
     // the pointer will be invalid.
     let c_words: Vec<*const core::ffi::c_char> =
         words.iter().map(|word| word.as_ptr() as _).collect();
 
-    let (select_word_cb, select_word_user_data) = match params.select_word_cb {
-        None => (None, core::ptr::null_mut()),
-        Some(cb) => (
-            Some(c_select_word_cb as _),
-            Box::into_raw(Box::new(cb)) as *mut c_void,
+    let (select_word_cb, select_word_user_data) = match params.select_word {
+        false => (None, core::ptr::null_mut()),
+        true => (
+            Some(select_word_cb as _),
+            shared_state_ptr, // passed to select_word_cb as `user_data`.
         ),
     };
 
-    let (continue_on_last_cb, continue_on_last_user_data) = match params.continue_on_last_cb {
-        None => (None, core::ptr::null_mut()),
-        Some(cb) => (
-            Some(c_continue_cancel_cb as _),
-            Box::into_raw(Box::new(cb)) as *mut c_void,
-        ),
-    };
-
-    let (cancel_cb, cancel_user_data) = match params.cancel_cb {
-        None => (None, core::ptr::null_mut()),
-        Some(cb) => (
-            Some(c_continue_cancel_cb as _),
-            Box::into_raw(Box::new(cb)) as *mut c_void,
+    let (continue_on_last_cb, continue_on_last_user_data) = match params.continue_on_last {
+        false => (None, core::ptr::null_mut()),
+        true => (
+            Some(continue_on_last_cb as _),
+            shared_state_ptr, // passed to continue_on_last_cb as `user_data`.
         ),
     };
     let title = params
@@ -362,29 +391,55 @@ pub fn menu_create(params: MenuParams<'_>) -> Component<'_> {
                 .map_or_else(core::ptr::null, |title| title.as_ptr()),
             continue_on_last_cb,
             continue_on_last_user_data,
-            cancel_cb,
-            cancel_user_data,
+            Some(cancel_cb as _),
+            shared_state_ptr, // passed to cancel_cb as `user_data`.
             core::ptr::null_mut(),
         )
     };
-    Component {
+    let mut component = Component {
         component,
         is_pushed: false,
-        on_drop: Some(Box::new(move || unsafe {
-            // Drop all callbacks.
-            if !select_word_user_data.is_null() {
-                drop(Box::from_raw(select_word_user_data as *mut SelectWordCb));
-            }
-            if !continue_on_last_user_data.is_null() {
-                drop(Box::from_raw(
-                    continue_on_last_user_data as *mut ContinueCancelCb,
-                ));
-            }
-            if !cancel_user_data.is_null() {
-                drop(Box::from_raw(cancel_user_data as *mut ContinueCancelCb));
-            }
-        })),
+        on_drop: None,
         _p: PhantomData,
+    };
+    component.screen_stack_push();
+
+    loop {
+        let result = core::future::poll_fn({
+            let shared_state = &shared_state;
+            move |cx| {
+                let mut shared_state = shared_state.borrow_mut();
+
+                if let Some(result) = shared_state.result.take() {
+                    Poll::Ready(result)
+                } else {
+                    // Store the waker so the callback can wake up this task
+                    shared_state.waker = Some(cx.waker().clone());
+                    Poll::Pending
+                }
+            }
+        })
+        .await;
+
+        match result {
+            MenuResponse::SelectWord(_) | MenuResponse::ContinueOnLast => return result,
+            MenuResponse::Cancel => match cancel_confirm_title {
+                None => return MenuResponse::Cancel,
+                Some(title) => {
+                    // false means _do not cancel_, stay in the same menu component.
+                    if !confirm(&ConfirmParams {
+                        title,
+                        body: "Do you really\nwant to cancel?",
+                        ..Default::default()
+                    })
+                    .await
+                    {
+                        continue;
+                    }
+                    return MenuResponse::Cancel;
+                }
+            },
+        }
     }
 }
 

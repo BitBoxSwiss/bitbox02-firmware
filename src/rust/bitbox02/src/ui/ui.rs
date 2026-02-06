@@ -103,10 +103,32 @@ pub async fn trinary_input_string(
         (None, core::ptr::null_mut())
     };
 
-    let mut title_scratch = Vec::new();
+    // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
+    // truncate and append '...'.
+    const TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 1;
+    let title =
+        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.title, TRUNCATE_SIZE))
+            .unwrap();
+    let c_params = bitbox02_sys::trinary_input_string_params_t {
+        title: title.as_ptr().cast(),
+        wordlist: match params.wordlist {
+            None => core::ptr::null(),
+            Some(wordlist) => wordlist.as_ptr(),
+        },
+        wordlist_size: match params.wordlist {
+            None => 0,
+            Some(wordlist) => wordlist.len() as _,
+        },
+        number_input: params.number_input,
+        hide: params.hide,
+        special_chars: params.special_chars,
+        longtouch: params.longtouch,
+        cancel_is_backbutton: params.cancel_is_backbutton,
+        default_to_digits: params.default_to_digits,
+    };
     let component = unsafe {
         bitbox02_sys::trinary_input_string_create(
-            &params.to_c_params(&mut title_scratch).data, // title copied in C
+            &c_params, // title copied in C
             Some(confirm_cb),
             shared_state_ptr, // passed to confirm_cb as `user_data`.
             actual_cancel_cb,

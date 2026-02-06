@@ -33,21 +33,6 @@ pub fn zero(dst: &mut [u8]) {
     }
 }
 
-/// Survive forces T to live at least as long as lifetme 'a.
-pub struct Survive<'a, T: 'a> {
-    pub data: T,
-    phantom: core::marker::PhantomData<&'a T>,
-}
-
-impl<T> Survive<'_, T> {
-    pub fn new(data: T) -> Self {
-        Survive {
-            data,
-            phantom: core::marker::PhantomData,
-        }
-    }
-}
-
 // # C interface
 
 /// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.

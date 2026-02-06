@@ -6,8 +6,9 @@
 //! workflows now.
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse,
-    SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ConfirmResponse, ContinueCancelCb, Font, MenuParams,
+    MenuResponse, SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb,
+    TrinaryInputStringParams,
 };
 
 use core::marker::PhantomData;
@@ -74,11 +75,7 @@ pub fn trinary_choice_create<'a>(
     panic!("not used")
 }
 
-pub fn confirm_transaction_address_create<'a, 'b>(
-    _amount: &'a str,
-    _address: &'a str,
-    _callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+pub async fn confirm_transaction_address(_amount: &str, _address: &str) -> ConfirmResponse {
     panic!("not used");
 }
 

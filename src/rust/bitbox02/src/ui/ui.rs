@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse,
-    SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ConfirmResponse, ContinueCancelCb, Font, MenuParams,
+    MenuResponse, SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb,
+    TrinaryInputStringParams,
 };
 
 use core::ffi::{c_char, c_void};
@@ -524,34 +525,67 @@ pub fn trinary_choice_create<'a>(
     }
 }
 
-pub fn confirm_transaction_address_create<'a, 'b>(
-    amount: &'a str,
-    address: &'a str,
-    callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
-    unsafe extern "C" fn c_callback(result: bool, user_data: *mut c_void) {
-        let callback = user_data as *mut AcceptRejectCb;
-        unsafe { (*callback)(result) };
+pub async fn confirm_transaction_address(amount: &str, address: &str) -> ConfirmResponse {
+    let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
+
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<ConfirmResponse>,
+    }
+    let shared_state = Box::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+    let shared_state_ptr = shared_state.as_ref() as *const RefCell<SharedState> as *mut c_void;
+
+    unsafe extern "C" fn callback(result: bool, user_data: *mut c_void) {
+        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let mut shared_state = shared_state.borrow_mut();
+        if shared_state.result.is_none() {
+            shared_state.result = Some(if result {
+                ConfirmResponse::Approved
+            } else {
+                ConfirmResponse::Cancelled
+            });
+            if let Some(waker) = shared_state.waker.as_ref() {
+                waker.wake_by_ref();
+            }
+        }
     }
 
-    let user_data = Box::into_raw(Box::new(callback)) as *mut c_void;
     let component = unsafe {
         bitbox02_sys::confirm_transaction_address_create(
             util::strings::str_to_cstr_vec(amount).unwrap().as_ptr(), // copied in C
             util::strings::str_to_cstr_vec(address).unwrap().as_ptr(), // copied in C
-            Some(c_callback as _),
-            user_data,
+            Some(callback),
+            shared_state_ptr, // passed to callback as `user_data`.
         )
     };
-    Component {
+
+    let mut component = Component {
         component,
         is_pushed: false,
-        on_drop: Some(Box::new(move || unsafe {
-            // Drop all callbacks.
-            drop(Box::from_raw(user_data as *mut AcceptRejectCb));
-        })),
+        on_drop: None,
         _p: PhantomData,
-    }
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = &shared_state;
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result.take() {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
 }
 
 pub fn confirm_transaction_fee_create<'a, 'b>(

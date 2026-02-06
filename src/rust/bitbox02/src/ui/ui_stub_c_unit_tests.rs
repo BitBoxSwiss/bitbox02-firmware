@@ -3,8 +3,9 @@
 //! Stubs for the Bitbox02 simulator and also C unit-tests.
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse,
-    SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ConfirmResponse, ContinueCancelCb, Font, MenuParams,
+    MenuResponse, SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb,
+    TrinaryInputStringParams,
 };
 
 use core::marker::PhantomData;
@@ -88,20 +89,12 @@ pub fn trinary_choice_create<'a>(
     panic!("not implemented")
 }
 
-pub fn confirm_transaction_address_create<'a, 'b>(
-    _amount: &'a str,
-    _address: &'a str,
-    mut callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+pub async fn confirm_transaction_address(_amount: &str, _address: &str) -> ConfirmResponse {
     crate::print_stdout(&format!(
         "CONFIRM TRANSACTION ADDRESS SCREEN START\nAMOUNT: {}\nADDRESS: {}\nCONFIRM TRANSACTION ADDRESS SCREEN END\n",
         _amount, _address
     ));
-    callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    ConfirmResponse::Approved
 }
 
 pub fn confirm_transaction_fee_create<'a, 'b>(

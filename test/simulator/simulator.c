@@ -57,6 +57,7 @@ static void simulate_firmware_execution(const uint8_t* input)
     USB_FRAME frame;
     memcpy(&frame, input, sizeof(frame));
     usb_packet_process(&frame);
+    rust_async_usb_spin();
     usb_processing_process(usb_processing_hww());
 }
 

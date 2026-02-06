@@ -28,6 +28,11 @@ impl Font {
     }
 }
 
+pub enum SdcardResponse {
+    Inserted,
+    Cancelled,
+}
+
 #[derive(Default)]
 pub struct ConfirmParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.

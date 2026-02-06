@@ -6,8 +6,8 @@
 //! workflows now.
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse, SelectWordCb,
-    TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse,
+    SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
 use core::marker::PhantomData;
@@ -56,10 +56,7 @@ pub fn status_create<'a>(_text: &str, _status_success: bool) -> Component<'a> {
     panic!("not used");
 }
 
-pub fn sdcard_create<'a, F>(_callback: F) -> Component<'a>
-where
-    F: FnMut(bool) + 'a,
-{
+pub async fn sdcard() -> SdcardResponse {
     panic!("not used");
 }
 

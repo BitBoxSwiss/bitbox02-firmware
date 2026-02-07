@@ -12,7 +12,6 @@ mod types;
 mod ui;
 
 pub use ui::*;
-
 pub mod ugui;
 
 pub fn screen_process_waiting_switch_to_logo() {

@@ -2,9 +2,6 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::vec::Vec;
-
-use util::Survive;
 
 pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
 
@@ -52,38 +49,6 @@ pub struct ConfirmParams<'a> {
     pub display_size: usize,
 }
 
-impl<'a> ConfirmParams<'a> {
-    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
-    /// `title_scratch` and `body_scratch` exist to keep the data
-    /// alive for as long as the C params live.
-    pub(crate) fn to_c_params(
-        &self,
-        title_scatch: &'a mut Vec<core::ffi::c_char>,
-        body_scratch: &'a mut Vec<core::ffi::c_char>,
-    ) -> Survive<'a, bitbox02_sys::confirm_params_t> {
-        // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
-        // truncate and append '...'.
-        const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
-        *title_scatch =
-            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.title, TRUNCATE_SIZE))
-                .unwrap();
-        *body_scratch =
-            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.body, TRUNCATE_SIZE))
-                .unwrap();
-        Survive::new(bitbox02_sys::confirm_params_t {
-            title: title_scatch.as_ptr().cast(),
-            title_autowrap: self.title_autowrap,
-            body: body_scratch.as_ptr().cast(),
-            font: self.font.as_ptr(),
-            scrollable: self.scrollable,
-            longtouch: self.longtouch,
-            accept_only: self.accept_only,
-            accept_is_nextarrow: self.accept_is_nextarrow,
-            display_size: self.display_size as _,
-        })
-    }
-}
-
 #[derive(Default)]
 pub struct TrinaryInputStringParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
@@ -98,49 +63,15 @@ pub struct TrinaryInputStringParams<'a> {
     pub default_to_digits: bool,
 }
 
-impl<'a> TrinaryInputStringParams<'a> {
-    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
-    pub(crate) fn to_c_params(
-        &self,
-        title_scratch: &'a mut Vec<core::ffi::c_char>,
-    ) -> Survive<'a, bitbox02_sys::trinary_input_string_params_t> {
-        // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
-        // truncate and append '...'.
-        const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
-
-        *title_scratch =
-            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.title, TRUNCATE_SIZE))
-                .unwrap();
-
-        Survive::new(bitbox02_sys::trinary_input_string_params_t {
-            title: title_scratch.as_ptr().cast(),
-            wordlist: match self.wordlist {
-                None => core::ptr::null(),
-                Some(wordlist) => wordlist.as_ptr(),
-            },
-            wordlist_size: match self.wordlist {
-                None => 0,
-                Some(wordlist) => wordlist.len() as _,
-            },
-            number_input: self.number_input,
-            hide: self.hide,
-            special_chars: self.special_chars,
-            longtouch: self.longtouch,
-            cancel_is_backbutton: self.cancel_is_backbutton,
-            default_to_digits: self.default_to_digits,
-        })
-    }
-}
-
 pub type SelectWordCb<'a> = Box<dyn FnMut(u8) + 'a>;
 pub type ContinueCancelCb<'a> = Box<dyn FnMut() + 'a>;
 
 pub struct MenuParams<'a> {
     pub words: &'a [&'a str],
     pub title: Option<&'a str>,
-    pub select_word_cb: Option<SelectWordCb<'a>>,
-    pub continue_on_last_cb: Option<ContinueCancelCb<'a>>,
-    pub cancel_cb: Option<ContinueCancelCb<'a>>,
+    pub select_word: bool,
+    pub continue_on_last: bool,
+    pub cancel: bool,
 }
 
 pub type TrinaryChoiceCb<'a> = Box<dyn FnMut(TrinaryChoice) + 'a>;

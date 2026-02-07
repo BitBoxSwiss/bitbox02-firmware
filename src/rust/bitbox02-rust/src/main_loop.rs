@@ -1,33 +1,112 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::boxed::Box;
+use bitbox_executor::Executor;
 use bitbox02::ringbuffer::RingBuffer;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb_packet::USB_FRAME;
 use core::mem::MaybeUninit;
-use core::task::Poll;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 const UART_OUT_BUF_LEN: u32 = 2048;
 
-fn orientation_screen_poll(
-    orientation_task: &mut Option<util::bb02_async::Task<'static, bool>>,
-    uart_write_queue: &mut RingBuffer,
-) {
-    if let Some(task) = orientation_task {
-        if let Poll::Ready(_orientation) = util::bb02_async::spin(task) {
-            // hww handler in usb_process must be setup before we can allow ble connections
-            if let Ok(bitbox02::memory::Platform::BitBox02Plus) = bitbox02::memory::get_platform() {
-                let product = bitbox02::platform::product();
-                bitbox02::da14531_handler::set_product(product);
-                bitbox02::da14531::set_product(product, uart_write_queue)
-            }
-            bitbox02::usb::start();
-            *orientation_task = None;
-        }
+static EXECUTOR: Executor = Executor::new();
+
+async fn ui_async_component_demo() {
+    async fn show_result(body: &str) {
+        let _ = bitbox02::ui::confirm(&bitbox02::ui::ConfirmParams {
+            title: "Result",
+            body,
+            scrollable: true,
+            accept_only: true,
+            ..Default::default()
+        })
+        .await;
     }
+
+    let confirm = bitbox02::ui::confirm(&bitbox02::ui::ConfirmParams {
+        title: "Confirm",
+        body: "Dummy",
+        ..Default::default()
+    })
+    .await;
+    show_result(if confirm {
+        "confirm -> true"
+    } else {
+        "confirm -> false"
+    })
+    .await;
+
+    let trinary_input = bitbox02::ui::trinary_input_string(
+        &bitbox02::ui::TrinaryInputStringParams {
+            title: "Input",
+            ..Default::default()
+        },
+        true,
+        "",
+    )
+    .await;
+    show_result(if trinary_input.is_ok() {
+        "trinary_input -> Ok"
+    } else {
+        "trinary_input -> Err"
+    })
+    .await;
+
+    let sdcard = bitbox02::ui::sdcard().await;
+    show_result(if sdcard {
+        "sdcard -> true"
+    } else {
+        "sdcard -> false"
+    })
+    .await;
+
+    let menu = bitbox02::ui::menu_create(bitbox02::ui::MenuParams {
+        words: &["One", "Two"],
+        title: Some("Menu"),
+        select_word: true,
+        continue_on_last: false,
+        cancel: true,
+    })
+    .await;
+    let menu_status = match menu {
+        Ok(0) => "menu_create -> Ok(0)",
+        Ok(1) => "menu_create -> Ok(1)",
+        Ok(_) => "menu_create -> Ok(*)",
+        Err(()) => "menu_create -> Err",
+    };
+    show_result(menu_status).await;
+
+    let trinary_choice = bitbox02::ui::trinary_choice("Choice", Some("L"), None, Some("R")).await;
+    let choice_status = match trinary_choice {
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_LEFT => "trinary_choice -> left",
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE => "trinary_choice -> middle",
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT => "trinary_choice -> right",
+    };
+    show_result(choice_status).await;
+
+    let tx_addr = bitbox02::ui::confirm_transaction_address_create("1 BTC", "bc1qdummy").await;
+    show_result(if tx_addr {
+        "confirm_tx_addr -> true"
+    } else {
+        "confirm_tx_addr -> false"
+    })
+    .await;
+
+    let tx_fee = bitbox02::ui::confirm_transaction_fee_create("1 BTC", "0.01 BTC", false).await;
+    show_result(if tx_fee {
+        "confirm_tx_fee -> true"
+    } else {
+        "confirm_tx_fee -> false"
+    })
+    .await;
+
+    bitbox02::ui::unlock_animation().await;
+    show_result("unlock_animation -> done").await;
 }
 
 fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
+    static ORIENTATION_CHOSEN: AtomicBool = AtomicBool::new(false);
+
     // Set the size of uart_read_buf to the size of the ringbuffer in the UART driver so we can read
     // out all bytes
     let mut uart_read_buf = [0u8; USART_0_BUFFER_SIZE as usize];
@@ -42,9 +121,12 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
     bitbox02::da14531::set_name(&device_name, &mut uart_write_queue);
 
     // This starts the async orientation screen workflow, which is processed by the loop below.
-    let mut orientation_task: Option<util::bb02_async::Task<'static, bool>> = Some(Box::pin(
-        crate::workflow::orientation_screen::orientation_screen(),
-    ));
+    EXECUTOR
+        .spawn(async {
+            crate::workflow::orientation_screen::orientation_screen().await;
+            ORIENTATION_CHOSEN.store(true, Ordering::Relaxed);
+        })
+        .detach();
 
     let mut hww_data = None;
     let mut hww_frame: USB_FRAME = unsafe { MaybeUninit::zeroed().assume_init() };
@@ -165,7 +247,19 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
 
         crate::async_usb::spin();
 
-        orientation_screen_poll(&mut orientation_task, &mut uart_write_queue);
+        // Run async executor
+        EXECUTOR.try_tick();
+
+        if ORIENTATION_CHOSEN.swap(false, Ordering::Relaxed) {
+            // hww handler in usb_process must be setup before we can allow ble connections
+            if let Ok(bitbox02::memory::Platform::BitBox02Plus) = bitbox02::memory::get_platform() {
+                let product = bitbox02::platform::product();
+                bitbox02::da14531_handler::set_product(product);
+                bitbox02::da14531::set_product(product, &mut uart_write_queue)
+            }
+            bitbox02::usb::start();
+            EXECUTOR.spawn(ui_async_component_demo()).detach();
+        }
     }
 }
 

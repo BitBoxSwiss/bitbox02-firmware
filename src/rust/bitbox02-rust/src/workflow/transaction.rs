@@ -2,26 +2,16 @@
 
 use crate::hal::Ui;
 
-use crate::bb02_async::option_no_screensaver;
-use core::cell::RefCell;
-
-use alloc::boxed::Box;
 use alloc::string::String;
 
 pub struct UserAbort;
 
 pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserAbort> {
-    let result = RefCell::new(None as Option<Result<(), UserAbort>>);
-
-    let mut component = bitbox02::ui::confirm_transaction_address_create(
-        amount,
-        recipient,
-        Box::new(|ok| {
-            *result.borrow_mut() = Some(if ok { Ok(()) } else { Err(UserAbort) });
-        }),
-    );
-    component.screen_stack_push();
-    option_no_screensaver(&result).await
+    if bitbox02::ui::confirm_transaction_address_create(amount, recipient).await {
+        Ok(())
+    } else {
+        Err(UserAbort)
+    }
 }
 
 fn format_percentage(p: f64) -> String {
@@ -30,18 +20,11 @@ fn format_percentage(p: f64) -> String {
 }
 
 pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result<(), UserAbort> {
-    let result = RefCell::new(None as Option<Result<(), UserAbort>>);
-
-    let mut component = bitbox02::ui::confirm_transaction_fee_create(
-        total,
-        fee,
-        longtouch,
-        Box::new(|ok| {
-            *result.borrow_mut() = Some(if ok { Ok(()) } else { Err(UserAbort) });
-        }),
-    );
-    component.screen_stack_push();
-    option_no_screensaver(&result).await
+    if bitbox02::ui::confirm_transaction_fee_create(total, fee, longtouch).await {
+        Ok(())
+    } else {
+        Err(UserAbort)
+    }
 }
 
 pub async fn verify_total_fee_maybe_warn(

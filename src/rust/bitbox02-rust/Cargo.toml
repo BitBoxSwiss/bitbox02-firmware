@@ -14,10 +14,11 @@ license = "Apache-2.0"
 doctest = false
 
 [dependencies]
-bitbox02 = {path = "../bitbox02"}
+bitbox02 = { path = "../bitbox02" }
 bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
 util = { path = "../util" }
 erc20_params = { path = "../erc20_params", optional = true }
+bitbox-executor = { path = "../bitbox-executor" }
 binascii = { version = "0.1.4", default-features = false, features = ["encode"] }
 bitbox02-noise = {path = "../bitbox02-noise"}
 streaming-silent-payments = { path = "../streaming-silent-payments", optional = true }

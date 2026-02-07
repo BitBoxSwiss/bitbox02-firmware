@@ -15,6 +15,7 @@ members = [
     "streaming-silent-payments",
     "bitbox-aes",
     "fatfs-sys",
+    "bitbox-executor",
 ]
 
 resolver = "2"
@@ -24,6 +25,7 @@ resolver = "2"
 # Attempting to enable it conditionally only for tests somehow leads to linking errors (duplicate secp256k1 symbols).
 bitcoin = { version = "0.32.7", default-features = false, features = ["secp-recovery"] }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+
 # Forked for:
 # - https://github.com/rust-bitcoin/rust-bip39/pull/76 -> custom commit can be removed once this is merged
 # - async functionality

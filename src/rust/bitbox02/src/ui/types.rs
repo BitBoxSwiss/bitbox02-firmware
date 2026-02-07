@@ -52,38 +52,6 @@ pub struct ConfirmParams<'a> {
     pub display_size: usize,
 }
 
-impl<'a> ConfirmParams<'a> {
-    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
-    /// `title_scratch` and `body_scratch` exist to keep the data
-    /// alive for as long as the C params live.
-    pub(crate) fn to_c_params(
-        &self,
-        title_scatch: &'a mut Vec<core::ffi::c_char>,
-        body_scratch: &'a mut Vec<core::ffi::c_char>,
-    ) -> Survive<'a, bitbox02_sys::confirm_params_t> {
-        // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
-        // truncate and append '...'.
-        const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
-        *title_scatch =
-            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.title, TRUNCATE_SIZE))
-                .unwrap();
-        *body_scratch =
-            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.body, TRUNCATE_SIZE))
-                .unwrap();
-        Survive::new(bitbox02_sys::confirm_params_t {
-            title: title_scatch.as_ptr().cast(),
-            title_autowrap: self.title_autowrap,
-            body: body_scratch.as_ptr().cast(),
-            font: self.font.as_ptr(),
-            scrollable: self.scrollable,
-            longtouch: self.longtouch,
-            accept_only: self.accept_only,
-            accept_is_nextarrow: self.accept_is_nextarrow,
-            display_size: self.display_size as _,
-        })
-    }
-}
-
 #[derive(Default)]
 pub struct TrinaryInputStringParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.

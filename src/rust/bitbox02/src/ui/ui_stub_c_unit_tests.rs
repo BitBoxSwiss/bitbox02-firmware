@@ -55,20 +55,13 @@ where
     }
 }
 
-pub fn confirm_create<'a, F>(params: &ConfirmParams, mut result_callback: F) -> Component<'a>
-where
-    F: FnMut(bool) + 'a,
-{
+pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
     crate::print_stdout(&format!(
         "CONFIRM SCREEN START\nTITLE: {}\nBODY: {}\nCONFIRM SCREEN END\n",
         params.title, params.body
     ));
 
-    result_callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    true
 }
 
 pub fn screen_process() {}
@@ -175,14 +168,6 @@ where
     }
 }
 
-pub fn orientation_arrows<'a, F>(on_done: F) -> Component<'a>
-where
-    // Callback must outlive component.
-    F: FnOnce(bool) + 'a,
-{
-    on_done(false);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+pub async fn choose_orientation() -> bool {
+    false
 }

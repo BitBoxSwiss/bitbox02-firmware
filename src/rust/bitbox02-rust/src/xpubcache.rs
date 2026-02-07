@@ -187,7 +187,7 @@ mod tests {
                 .unwrap()
                 .keypath
                 .as_slice(),
-            &[]
+            &[] as &[u32]
         );
         assert_eq!(CHILD_DERIVATIONS.with(|count| *count.borrow()), 0u32);
         assert_eq!(ROOT_DERIVATIONS.with(|count| *count.borrow()), 1u32);

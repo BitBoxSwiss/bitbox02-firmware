@@ -47,10 +47,10 @@ fn get_transitive_types<'a>(types: &'a [StructType], name: &'a str) -> Result<Ve
         result.push(name);
         for member in typ.members.iter() {
             let mut member_type = member.r#type.as_ref().ok_or(Error::InvalidInput)?;
-            while member_type.r#type == DataType::Array as _ {
+            while member_type.r#type == DataType::Array as i32 {
                 member_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
             }
-            if member_type.r#type == DataType::Struct as _ {
+            if member_type.r#type == DataType::Struct as i32 {
                 rec(types, &member_type.struct_name, result)?;
             }
         }
@@ -275,7 +275,7 @@ async fn encode_member<U: sha3::digest::Update>(
     formatted_path: &[String],
     title_suffix: Option<String>,
 ) -> Result<(), Error> {
-    if member_type.r#type == DataType::Struct as _ {
+    if member_type.r#type == DataType::Struct as i32 {
         let value_encoded = Box::pin(hash_struct(
             hal,
             types,
@@ -287,7 +287,7 @@ async fn encode_member<U: sha3::digest::Update>(
         ))
         .await?;
         hasher.update(&value_encoded);
-    } else if member_type.r#type == DataType::Array as _ {
+    } else if member_type.r#type == DataType::Array as i32 {
         let encoded_value = Box::pin(hash_array(
             hal,
             types,
@@ -744,7 +744,7 @@ mod tests {
 
     #[test]
     fn test_leftpad32() {
-        assert_eq!(leftpad32(&[], false), Ok(vec![0u8; 32]));
+        assert_eq!(leftpad32(&[] as &[u8], false), Ok(vec![0u8; 32]));
         assert_eq!(leftpad32(&[0], false), Ok(vec![0u8; 32]));
         assert_eq!(leftpad32(&[0, 0], false), Ok(vec![0u8; 32]));
         assert_eq!(

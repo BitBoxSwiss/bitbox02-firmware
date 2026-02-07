@@ -51,6 +51,8 @@ message ETHSignRequest {
   // If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
   uint64 chain_id = 10;
   ETHAddressCase address_case = 11;
+  // For streaming: if non-zero, data field should be empty and data will be requested in chunks
+  uint32 data_length = 12;
 }
 
 // TX payload for an EIP-1559 (type 2) transaction: https://eips.ethereum.org/EIPS/eip-1559
@@ -66,6 +68,17 @@ message ETHSignEIP1559Request {
   bytes data = 9;
   AntiKleptoHostNonceCommitment host_nonce_commitment = 10;
   ETHAddressCase address_case = 11;
+  // For streaming: if non-zero, data field should be empty and data will be requested in chunks
+  uint32 data_length = 12;
+}
+
+message ETHSignDataRequestChunkResponse {
+  uint32 offset = 1;
+  uint32 length = 2;
+}
+
+message ETHSignDataResponseChunkRequest {
+  bytes chunk = 1;
 }
 
 message ETHSignMessageRequest {
@@ -142,6 +155,7 @@ message ETHRequest {
     ETHSignTypedMessageRequest sign_typed_msg = 5;
     ETHTypedMessageValueRequest typed_msg_value = 6;
     ETHSignEIP1559Request sign_eip1559 = 7;
+    ETHSignDataResponseChunkRequest data_chunk = 8;
   }
 }
 
@@ -151,5 +165,6 @@ message ETHResponse {
     ETHSignResponse sign = 2;
     AntiKleptoSignerCommitment antiklepto_signer_commitment = 3;
     ETHTypedMessageValueResponse typed_msg_value = 4;
+    ETHSignDataRequestChunkResponse data_chunk_request = 5;
   }
 }

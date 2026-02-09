@@ -113,40 +113,83 @@ where
     }
 }
 
-/// Creates a user confirmation dialog screen.
-/// `result` - will be asynchronously set to `Some(bool)` once the user accets or rejects.
-pub fn confirm_create<'a, F>(params: &ConfirmParams, result_callback: F) -> Component<'a>
-where
-    // Callback must outlive component.
-    F: FnMut(bool) + 'a,
-{
-    unsafe extern "C" fn c_callback<F2>(result: bool, user_data: *mut c_void)
-    where
-        F2: FnMut(bool),
-    {
-        // The callback is dropped afterwards. This is safe because
-        // this C callback is guaranteed to be called only once.
-        let mut callback = unsafe { Box::from_raw(user_data as *mut F2) };
-        callback(result);
+/// Returns true if the user accepts, false if the user rejects.
+pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
+    let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
+
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<bool>,
     }
-    let mut title_scratch = Vec::new();
-    let mut body_scratch = Vec::new();
+    let shared_state = Box::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+    let shared_state_ptr = shared_state.as_ref() as *const RefCell<SharedState> as *mut c_void;
+
+    unsafe extern "C" fn callback(result: bool, user_data: *mut c_void) {
+        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let mut shared_state = shared_state.borrow_mut();
+        if shared_state.result.is_none() {
+            shared_state.result = Some(result);
+            if let Some(waker) = shared_state.waker.as_ref() {
+                waker.wake_by_ref();
+            }
+        }
+    }
+
+    // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
+    // truncate and append '...'.
+    const TRUNCATE_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as usize + 1;
+    let title =
+        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.title, TRUNCATE_SIZE))
+            .unwrap();
+    let body =
+        util::strings::str_to_cstr_vec(util::strings::truncate_str(params.body, TRUNCATE_SIZE))
+            .unwrap();
+    let c_params = bitbox02_sys::confirm_params_t {
+        title: title.as_ptr().cast(),
+        title_autowrap: params.title_autowrap,
+        body: body.as_ptr().cast(),
+        font: params.font.as_ptr(),
+        scrollable: params.scrollable,
+        longtouch: params.longtouch,
+        accept_only: params.accept_only,
+        accept_is_nextarrow: params.accept_is_nextarrow,
+        display_size: params.display_size as _,
+    };
     let component = unsafe {
         bitbox02_sys::confirm_create(
-            &params
-                .to_c_params(&mut title_scratch, &mut body_scratch)
-                .data,
-            Some(c_callback::<F>),
-            // passed to the C callback as `user_data`
-            Box::into_raw(Box::new(result_callback)) as *mut _,
+            &c_params,
+            Some(callback),
+            shared_state_ptr, // passed to callback as `user_data`.
         )
     };
-    Component {
+
+    let mut component = Component {
         component,
         is_pushed: false,
         on_drop: None,
         _p: PhantomData,
-    }
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = &shared_state;
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
 }
 
 pub fn screen_process() {

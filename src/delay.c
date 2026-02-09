@@ -13,6 +13,8 @@
 struct task {
     struct timer_task timer;
     volatile bool done;
+    delay_callback_t cb;
+    void* user_data;
 };
 
 static struct task _tasks[10] = {0};
@@ -22,11 +24,16 @@ static void _hal_timer_cb(const struct timer_task* const timer)
     for (size_t i = 0; i < COUNT_OF(_tasks); i++) {
         if (&_tasks[i].timer == timer) {
             _tasks[i].done = true;
+            if (_tasks[i].cb) {
+                _tasks[i].cb(_tasks[i].user_data);
+                // Only call callbak once
+                _tasks[i].cb = NULL;
+            }
         }
     }
 }
 
-void delay_init_ms(delay_t* self, uint32_t ms)
+void delay_init_ms(delay_t* self, uint32_t ms, delay_callback_t cb, void* user_data)
 {
     // find an unused slot in tasks
     size_t i;
@@ -44,6 +51,8 @@ void delay_init_ms(delay_t* self, uint32_t ms)
     } else {
         _tasks[i].done = false;
         memset(&_tasks[i], 0, sizeof(struct task));
+        _tasks[i].cb = cb;
+        _tasks[i].user_data = user_data;
         _tasks[i].timer.interval = ms;
         _tasks[i].timer.cb = _hal_timer_cb;
         _tasks[i].timer.mode = TIMER_TASK_ONE_SHOT;

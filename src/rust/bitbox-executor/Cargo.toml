@@ -1,0 +1,8 @@
+[package]
+name = "bitbox-executor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-task = { version="4.7.1", default-features=false }
+concurrent-queue = { version="2.5.0", default-features=false }

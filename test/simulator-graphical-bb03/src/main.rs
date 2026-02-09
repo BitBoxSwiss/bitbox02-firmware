@@ -42,7 +42,17 @@ use bitbox02_rust::hal::{Hal, Memory};
 
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
-use lvgl::{self, Display, DrawBuffer};
+use bitbox_lvgl::{
+    LvAlign, LvDisplay, LvDisplayRenderMode, LvIndev, LvIndevState, LvIndevType, LvPoint,
+    lv_display_create, lv_display_get_user_data, lv_display_set_buffers, lv_display_set_flush_cb,
+    lv_display_set_user_data, lv_indev_create, lv_indev_get_user_data, lv_indev_set_read_cb,
+    lv_indev_set_type, lv_indev_set_user_data, lv_init, lv_label_create, lv_label_set_text,
+    lv_obj_align, lv_screen_active, lv_tick_set_cb, lv_timer_handler,
+};
+
+use std::collections::VecDeque;
+
+const UI_REFRESH_PERIOD_MS: u64 = 5;
 
 static BG: &[u8] = include_bytes!("../bg.png");
 
@@ -98,6 +108,7 @@ pub fn handle_stream_writer(
 }
 
 // Simulator frame buffer
+#[derive(Debug)]
 struct FrameBuffer {
     buffer: DynamicImage,
     screen_id: ImageId,
@@ -140,37 +151,84 @@ impl bitbox03::display::Display for FrameBuffer {
     }
 }
 
-//fn pixel_fn(x: i16, y: i16, c: UG_COLOR) {
-//    if x < 0 || x >= SCREEN_WIDTH as i16 {
-//        return;
-//    }
-//    if y < 0 || y >= SCREEN_HEIGHT as i16 {
-//        return;
-//    }
-//    let x = x as u32;
-//    let y = y as u32;
-//    let mut screen = SCREEN_FB.lock().unwrap();
-//
-//    if c != 0 {
-//        screen.put_pixel(x, y, Rgba([0xff, 0xff, 0xff, 0xff]));
-//    }
-//}
-//
-//fn clear_fn() {
-//    let mut screen = SCREEN_FB.lock().unwrap();
-//    if let DynamicImage::ImageRgba8(rgba) = &mut *screen {
-//        for pixel in rgba.pixels_mut() {
-//            *pixel = Rgba([0, 0, 0, 0]);
-//        }
-//    }
-//}
-
 static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
-fn init_hww(preseed: bool) -> bool {
-    //bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
-    //bitbox02::screen::splash();
+fn hw_lvgl() {
+    /* Get the currently active screen */
+    let scr = lv_screen_active();
 
+    /* Create a label */
+    let label = lv_label_create(&scr);
+
+    /* Set the label text */
+    lv_label_set_text(&label, "BitBox03\nHello, World!\nFrom LVGL");
+
+    /* Center it on the screen */
+    lv_obj_align(&label, LvAlign::LV_ALIGN_CENTER, 0, 0);
+
+    //let button = lv_button_create();
+}
+
+extern "C" fn get_current_time_ms() -> u32 {
+    use std::time::Instant;
+    static INIT: LazyLock<Instant> = LazyLock::new(|| Instant::now());
+    INIT.elapsed().as_millis() as u32
+}
+
+extern "C" fn my_flush_cb(
+    display: *mut bitbox_lvgl::ffi::lv_display_t,
+    area: *const bitbox_lvgl::ffi::lv_area_t,
+    px_map: *mut u8,
+) {
+    let area = unsafe { &*area };
+    info!("flush {:?}", area);
+    let fb_ptr = unsafe { bitbox_lvgl::ffi::lv_display_get_user_data(display) as *mut FrameBuffer };
+    debug_assert!(fb_ptr != core::ptr::null_mut());
+    let fb = unsafe { &mut *fb_ptr };
+    let pxs = px_map as *mut u32;
+    const STRIDE: i32 = 480;
+    let offset = area.y1 * STRIDE;
+    let len = (area.y2 - area.y1 + 1) * STRIDE;
+    if let DynamicImage::ImageRgba8(ref mut image_buf) = fb.buffer {
+        for (i, pixel) in image_buf
+            .pixels_mut()
+            .skip(offset as usize)
+            .take(len as usize)
+            .enumerate()
+        {
+            *pixel = Rgba(unsafe { (*pxs.add(i)).to_le_bytes() });
+        }
+    };
+
+    /* IMPORTANT!!!
+     * Inform LVGL that flushing is complete so buffer can be modified again. */
+    unsafe { bitbox_lvgl::ffi::lv_display_flush_ready(display) };
+}
+
+extern "C" fn indev_read_cb(
+    indev: *mut bitbox_lvgl::ffi::lv_indev_t,
+    data: *mut bitbox_lvgl::ffi::lv_indev_data_t,
+) {
+    let ud_ptr = unsafe { bitbox_lvgl::ffi::lv_indev_get_user_data(indev) };
+    debug_assert!(ud_ptr != core::ptr::null_mut());
+    let ud = unsafe { &mut *(ud_ptr as *mut VecDeque<TouchScreenEvent>) };
+    if let Some(next) = ud.pop_front() {
+        info!("popped event");
+        let data = unsafe { &mut *data };
+        data.point = LvPoint {
+            x: next.x,
+            y: next.y,
+        };
+        data.state = if next.pressed {
+            LvIndevState::LV_INDEV_STATE_PRESSED
+        } else {
+            LvIndevState::LV_INDEV_STATE_RELEASED
+        };
+        data.continue_reading = !ud.is_empty()
+    }
+}
+
+fn init_hww(preseed: bool) -> bool {
     // BitBox02 simulation initialization
     bitbox02::usb_processing::init();
     info!("USB setup success");
@@ -203,8 +261,30 @@ fn init_hww(preseed: bool) -> bool {
     true
 }
 
+struct TouchScreenEvent {
+    pub x: i32,
+    pub y: i32,
+    pub pressed: bool,
+}
+
+struct TouchScreen {
+    events: VecDeque<TouchScreenEvent>,
+    indev: LvIndev,
+}
+
+impl TouchScreen {
+    pub fn new(indev: LvIndev) -> TouchScreen {
+        TouchScreen {
+            events: Default::default(),
+            indev,
+        }
+    }
+}
+
 struct App {
-    framebuffer: Option<FrameBuffer>,
+    framebuffer: Option<Box<FrameBuffer>>,
+    touchscreen: Option<TouchScreen>,
+    touchscreen_events: Box<VecDeque<TouchScreenEvent>>,
     window: Option<Rc<Window>>,
     surface: Option<Surface<WindowSurface>>,
     gl_context: Option<PossiblyCurrentContext>,
@@ -221,6 +301,8 @@ impl Default for App {
     fn default() -> App {
         App {
             framebuffer: Default::default(),
+            touchscreen: Default::default(),
+            touchscreen_events: Default::default(),
             window: Default::default(),
             surface: Default::default(),
             gl_context: Default::default(),
@@ -251,6 +333,24 @@ impl App {
         event_loop: &ActiveEventLoop,
         _: Option<String>,
     ) -> Result<WindowId, Box<dyn Error>> {
+        lv_init();
+        lv_tick_set_cb(get_current_time_ms);
+
+        // Make a buffer and give it to lvgl.
+        // RGB565 (16 bits per pixel)
+        let buf = Box::leak(Box::new([0; 480 * 800 / 10 * 4]));
+        let buf_len = buf.len();
+        let disp = lv_display_create(480, 800);
+        lv_display_set_buffers(
+            &disp,
+            buf,
+            None,
+            buf_len as u32,
+            LvDisplayRenderMode::LV_DISPLAY_RENDER_MODE_PARTIAL,
+        );
+        lv_display_set_flush_cb(&disp, my_flush_cb);
+        hw_lvgl();
+
         let width = WINDOW_LOGICAL_WIDTH_ORIGINAL as u32;
         let height = WINDOW_LOGICAL_HEIGHT_ORIGINAL as u32;
         let w_attr = Window::default_attributes()
@@ -323,14 +423,27 @@ impl App {
             )
             .unwrap();
 
-        let framebuffer = FrameBuffer::new(&mut canvas);
+        let mut framebuffer = Box::new(FrameBuffer::new(&mut canvas));
+        unsafe { lv_display_set_user_data(&disp, framebuffer.as_mut() as *mut _ as *mut _) };
+
+        let indev = lv_indev_create();
+        lv_indev_set_type(&indev, LvIndevType::LV_INDEV_TYPE_POINTER);
+        lv_indev_set_read_cb(&indev, indev_read_cb);
+
+        unsafe {
+            lv_indev_set_user_data(&indev, self.touchscreen_events.as_mut() as *mut _ as *mut _)
+        };
+
+        let touchscreen = TouchScreen::new(indev);
 
         self.framebuffer.replace(framebuffer);
+        self.touchscreen.replace(touchscreen);
         self.window.replace(window);
         self.surface.replace(surface);
         self.gl_context.replace(gl_context);
         self.canvas.replace(canvas);
         self.bg.replace(bg_id);
+        info!("window created");
         Ok(window_id)
     }
 }
@@ -465,6 +578,11 @@ impl ApplicationHandler<UserEvent> for App {
                 match state {
                     ElementState::Pressed => {
                         if let Some((x, y)) = screen_coord(x, y) {
+                            self.touchscreen_events.push_back(TouchScreenEvent {
+                                x,
+                                y,
+                                pressed: true,
+                            });
                             debug!("pressed x={x}, y={y}");
                             self.touch_active = true;
                         }
@@ -475,6 +593,11 @@ impl ApplicationHandler<UserEvent> for App {
                         }
                         self.touch_active = false;
                         if let Some((x, y)) = screen_coord(x, y) {
+                            self.touchscreen_events.push_back(TouchScreenEvent {
+                                x,
+                                y,
+                                pressed: false,
+                            });
                             debug!("released x={x}, y={y}");
                         }
                     }
@@ -530,6 +653,7 @@ impl ApplicationHandler<UserEvent> for App {
                 bitbox02_rust::async_usb::spin();
                 bitbox02::usb_processing::process_hww();
                 //bitbox02::screen::process();
+                lv_timer_handler();
 
                 if let Some(ref mut task) = self.orientation_task {
                     if let Ready(_orientation) = util::bb02_async::spin(task) {
@@ -678,7 +802,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
                     // Event loop has quit
                     return;
                 }
-                std::thread::sleep(Duration::from_micros(5000));
+                std::thread::sleep(Duration::from_millis(UI_REFRESH_PERIOD_MS));
             }
         }
     });

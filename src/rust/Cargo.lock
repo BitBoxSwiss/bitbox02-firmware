@@ -121,6 +121,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-lvgl"
+version = "0.1.0"
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [

@@ -5,7 +5,8 @@ use crate::pb;
 
 use pb::response::Response;
 
-use crate::workflow::{Workflows, confirm};
+use crate::hal::Ui;
+use crate::workflow::confirm;
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let params = confirm::Params {

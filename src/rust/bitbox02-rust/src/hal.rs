@@ -1,13 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::RealWorkflows;
-pub use crate::workflow::Workflows as Ui;
+pub mod ui;
+pub use ui::Ui;
+
+#[cfg(feature = "testing")]
+pub mod testing;
 
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use futures_lite::future::yield_now;
+
+use crate::workflow::{
+    cancel, confirm, menu, mnemonic, sdcard, status, transaction, trinary_choice,
+    trinary_input_string,
+};
 
 #[allow(async_fn_in_trait)]
 pub trait Sd {
@@ -105,6 +113,82 @@ pub trait Hal {
     fn securechip(&mut self) -> &mut impl SecureChip;
     fn memory(&mut self) -> &mut impl Memory;
     fn system(&mut self) -> &mut impl System;
+}
+
+pub struct BitBox02Ui;
+
+impl Ui for BitBox02Ui {
+    #[inline(always)]
+    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
+        confirm::confirm(params).await
+    }
+
+    #[inline(always)]
+    async fn verify_recipient(
+        &mut self,
+        recipient: &str,
+        amount: &str,
+    ) -> Result<(), transaction::UserAbort> {
+        transaction::verify_recipient(recipient, amount).await
+    }
+
+    #[inline(always)]
+    async fn verify_total_fee(
+        &mut self,
+        total: &str,
+        fee: &str,
+        longtouch: bool,
+    ) -> Result<(), transaction::UserAbort> {
+        transaction::verify_total_fee(total, fee, longtouch).await
+    }
+
+    #[inline(always)]
+    async fn status(&mut self, title: &str, status_success: bool) {
+        status::status(title, status_success).await
+    }
+
+    #[inline(always)]
+    async fn enter_string(
+        &mut self,
+        params: &trinary_input_string::Params<'_>,
+        can_cancel: trinary_input_string::CanCancel,
+        preset: &str,
+    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
+        trinary_input_string::enter(params, can_cancel, preset).await
+    }
+
+    #[inline(always)]
+    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
+        sdcard::sdcard().await
+    }
+
+    #[inline(always)]
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, menu::CancelError> {
+        menu::pick(words, title).await
+    }
+
+    #[inline(always)]
+    async fn trinary_choice(
+        &mut self,
+        message: &str,
+        label_left: Option<&str>,
+        label_middle: Option<&str>,
+        label_right: Option<&str>,
+    ) -> trinary_choice::TrinaryChoice {
+        trinary_choice::choose(message, label_left, label_middle, label_right).await
+    }
+
+    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {
+        mnemonic::show_mnemonic(words).await
+    }
+
+    async fn quiz_mnemonic_word(
+        &mut self,
+        choices: &[&str],
+        title: &str,
+    ) -> Result<u8, cancel::Error> {
+        mnemonic::confirm_word(choices, title).await
+    }
 }
 
 pub struct BitBox02Sd;
@@ -329,7 +413,7 @@ impl System for BitBox02System {
 }
 
 pub struct BitBox02Hal {
-    ui: RealWorkflows,
+    ui: BitBox02Ui,
     sd: BitBox02Sd,
     random: BitBox02Random,
     securechip: BitBox02SecureChip,
@@ -340,7 +424,7 @@ pub struct BitBox02Hal {
 impl BitBox02Hal {
     pub const fn new() -> Self {
         Self {
-            ui: crate::workflow::RealWorkflows,
+            ui: BitBox02Ui,
             sd: BitBox02Sd,
             random: BitBox02Random,
             securechip: BitBox02SecureChip,
@@ -368,627 +452,5 @@ impl Hal for BitBox02Hal {
     }
     fn system(&mut self) -> &mut impl System {
         &mut self.system
-    }
-}
-
-#[cfg(feature = "testing")]
-pub mod testing {
-    use alloc::boxed::Box;
-    use alloc::collections::{BTreeMap, VecDeque};
-    use alloc::string::String;
-    use alloc::vec::Vec;
-
-    use bitcoin::hashes::{Hash, sha256};
-
-    use bitbox02::memory::SecurechipType;
-    use hex_lit::hex;
-
-    pub struct TestingRandom {
-        mock_next_values: VecDeque<[u8; 32]>,
-        counter: u32,
-    }
-
-    impl TestingRandom {
-        pub fn new() -> Self {
-            Self {
-                mock_next_values: VecDeque::new(),
-                counter: 0,
-            }
-        }
-
-        pub fn mock_next(&mut self, value: [u8; 32]) {
-            self.mock_next_values.push_back(value)
-        }
-    }
-
-    impl super::Random for TestingRandom {
-        fn random_32_bytes(&mut self) -> Box<zeroize::Zeroizing<[u8; 32]>> {
-            self.counter += 1;
-            let value = if let Some(value) = self.mock_next_values.pop_front() {
-                value
-            } else {
-                let hash = sha256::Hash::hash(&self.counter.to_be_bytes());
-                hash.to_byte_array()
-            };
-            Box::new(zeroize::Zeroizing::new(value))
-        }
-    }
-
-    pub struct TestingSd {
-        pub inserted: Option<bool>,
-        files: BTreeMap<String, BTreeMap<String, Vec<u8>>>,
-    }
-
-    impl TestingSd {
-        pub fn new() -> Self {
-            Self {
-                inserted: None,
-                files: BTreeMap::new(),
-            }
-        }
-    }
-
-    impl super::Sd for TestingSd {
-        async fn sdcard_inserted(&mut self) -> bool {
-            self.inserted.unwrap()
-        }
-
-        async fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()> {
-            match subdir {
-                Some(key) => Ok(self
-                    .files
-                    .get(key)
-                    .map(|files| files.keys().cloned().collect())
-                    .unwrap_or_default()),
-                None => Ok(self.files.keys().cloned().collect()),
-            }
-        }
-
-        async fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()> {
-            self.files
-                .get_mut(dir)
-                .and_then(|files| files.remove(filename).map(|_| ()))
-                .ok_or(())
-        }
-
-        async fn load_bin(
-            &mut self,
-            filename: &str,
-            dir: &str,
-        ) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-            self.files
-                .get(dir)
-                .and_then(|files| files.get(filename))
-                .map(|data| zeroize::Zeroizing::new(data.clone()))
-                .ok_or(())
-        }
-
-        async fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()> {
-            self.files
-                .entry(dir.into())
-                .or_default()
-                .insert(filename.into(), data.to_vec());
-            Ok(())
-        }
-    }
-
-    pub struct TestingSecureChip {
-        // Count how man security events happen. The numbers were obtained by reading the security
-        // event counter slot (0xE0C5) on a real device. We can use this to assert how many events
-        // were used in unit tests. The number is relevant due to Optiga's throttling mechanism.
-        event_counter: u32,
-        reset_keys_fail_once: bool,
-        #[cfg(feature = "app-u2f")]
-        u2f_counter: u32,
-        mock_attestation_signature: [u8; 64],
-        last_attestation_challenge: Option<[u8; 32]>,
-    }
-
-    pub struct TestingMemory {
-        securechip_type: SecurechipType,
-        platform: bitbox02::memory::Platform,
-        initialized: bool,
-        is_seeded: bool,
-        mnemonic_passphrase_enabled: bool,
-        seed_birthdate: u32,
-        encrypted_seed_and_hmac: Option<(Vec<u8>, bitbox02::memory::PasswordStretchAlgo)>,
-        device_name: Option<String>,
-        unlock_attempts: u8,
-        salt_root: [u8; 32],
-        attestation_device_pubkey: Option<[u8; 64]>,
-        attestation_certificate: Option<[u8; 64]>,
-        attestation_root_pubkey_identifier: Option<[u8; 32]>,
-        attestation_bootloader_hash: [u8; 32],
-        multisig_entries: Vec<([u8; 32], String)>,
-    }
-
-    impl TestingSecureChip {
-        pub fn new() -> Self {
-            TestingSecureChip {
-                event_counter: 0,
-                reset_keys_fail_once: false,
-                #[cfg(feature = "app-u2f")]
-                u2f_counter: 0,
-                mock_attestation_signature: [0u8; 64],
-                last_attestation_challenge: None,
-            }
-        }
-
-        /// Resets the event counter.
-        pub fn event_counter_reset(&mut self) {
-            self.event_counter = 0;
-        }
-
-        /// Retrieves the event counter.
-        pub fn get_event_counter(&self) -> u32 {
-            self.event_counter
-        }
-
-        /// Make the next `reset_keys()` call return an error once. Subsequent calls succeed.
-        pub fn mock_reset_keys_fails(&mut self) {
-            self.reset_keys_fail_once = true;
-        }
-
-        #[cfg(feature = "app-u2f")]
-        pub fn get_u2f_counter(&self) -> u32 {
-            self.u2f_counter
-        }
-
-        pub fn set_mock_attestation_signature(&mut self, sig: &[u8; 64]) {
-            self.mock_attestation_signature = *sig;
-        }
-
-        pub fn last_attestation_challenge(&self) -> Option<[u8; 32]> {
-            self.last_attestation_challenge
-        }
-    }
-
-    impl super::SecureChip for TestingSecureChip {
-        fn init_new_password(
-            &mut self,
-            password: &str,
-            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
-            self.event_counter += 3;
-
-            let key: &'static [u8] = match password_stretch_algo {
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
-                    b"unit-test-v0"
-                }
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
-                    b"unit-test"
-                }
-            };
-            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
-            let mut engine = HmacEngine::<sha256::Hash>::new(key);
-            engine.input(password.as_bytes());
-            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-            Ok(zeroize::Zeroizing::new(
-                hmac_result.to_byte_array().to_vec(),
-            ))
-        }
-
-        fn stretch_password(
-            &mut self,
-            password: &str,
-            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
-            self.event_counter += match password_stretch_algo {
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => 5,
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => 4,
-            };
-
-            let key: &'static [u8] = match password_stretch_algo {
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
-                    b"unit-test-v0"
-                }
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
-                    b"unit-test"
-                }
-            };
-
-            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
-            let mut engine = HmacEngine::<sha256::Hash>::new(key);
-            engine.input(password.as_bytes());
-            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-            Ok(zeroize::Zeroizing::new(
-                hmac_result.to_byte_array().to_vec(),
-            ))
-        }
-
-        fn kdf(
-            &mut self,
-            msg: &[u8],
-        ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
-            self.event_counter += 1;
-
-            use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
-            let mut engine = HmacEngine::<sha256::Hash>::new(&hex!(
-                "d2e1e6b18b6c6b08433edbc1d168c1a0043774a4221877e79ed56684be5ac01b"
-            ));
-            engine.input(msg);
-            let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-            Ok(zeroize::Zeroizing::new(
-                hmac_result.to_byte_array().to_vec(),
-            ))
-        }
-
-        fn attestation_sign(
-            &mut self,
-            challenge: &[u8; 32],
-            signature: &mut [u8; 64],
-        ) -> Result<(), ()> {
-            self.event_counter += 1;
-            self.last_attestation_challenge = Some(*challenge);
-            *signature = self.mock_attestation_signature;
-            Ok(())
-        }
-
-        fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
-            Ok(1)
-        }
-
-        fn model(&mut self) -> Result<bitbox02::securechip::Model, ()> {
-            Ok(bitbox02::securechip::Model::ATECC_ATECC608B)
-        }
-
-        fn reset_keys(&mut self) -> Result<(), ()> {
-            if self.reset_keys_fail_once {
-                self.reset_keys_fail_once = false;
-                Err(())
-            } else {
-                self.event_counter += 3;
-                Ok(())
-            }
-        }
-
-        #[cfg(feature = "app-u2f")]
-        fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
-            self.u2f_counter = counter;
-            Ok(())
-        }
-    }
-
-    // Same as MEMORY_MULTISIG_NUM_ENTRIES in memory.h.
-    const MULTISIG_LIMIT: usize = 25;
-    impl TestingMemory {
-        pub fn new() -> Self {
-            Self {
-                securechip_type: SecurechipType::Optiga,
-                platform: bitbox02::memory::Platform::BitBox02,
-                initialized: false,
-                is_seeded: false,
-                mnemonic_passphrase_enabled: false,
-                seed_birthdate: 0,
-                encrypted_seed_and_hmac: None,
-                device_name: None,
-                unlock_attempts: 0,
-                salt_root: *b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                attestation_device_pubkey: None,
-                attestation_certificate: None,
-                attestation_root_pubkey_identifier: None,
-                attestation_bootloader_hash: [0; 32],
-                multisig_entries: Vec::new(),
-            }
-        }
-
-        pub fn set_securechip_type(&mut self, securechip_type: SecurechipType) {
-            self.securechip_type = securechip_type;
-        }
-
-        pub fn set_platform(&mut self, platform: bitbox02::memory::Platform) {
-            self.platform = platform;
-        }
-
-        pub fn set_unlock_attempts_for_testing(&mut self, attempts: u8) {
-            self.unlock_attempts = attempts;
-        }
-
-        pub fn set_salt_root(&mut self, salt_root: &[u8; 32]) {
-            self.salt_root = *salt_root;
-        }
-
-        pub fn set_attestation_certificate(
-            &mut self,
-            pubkey: &[u8; 64],
-            certificate: &[u8; 64],
-            root_pubkey_identifier: &[u8; 32],
-        ) {
-            self.attestation_device_pubkey = Some(*pubkey);
-            self.attestation_certificate = Some(*certificate);
-            self.attestation_root_pubkey_identifier = Some(*root_pubkey_identifier);
-        }
-
-        pub fn set_attestation_bootloader_hash(&mut self, hash: &[u8; 32]) {
-            self.attestation_bootloader_hash = *hash;
-        }
-    }
-
-    impl super::Memory for TestingMemory {
-        fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
-            Ok(self.securechip_type)
-        }
-
-        fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
-            Ok(self.platform)
-        }
-
-        fn get_device_name(&mut self) -> String {
-            self.device_name
-                .clone()
-                .unwrap_or_else(|| "My BitBox".into())
-        }
-
-        fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
-            self.device_name = Some(name.into());
-            Ok(())
-        }
-
-        fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
-            self.mnemonic_passphrase_enabled
-        }
-
-        fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()> {
-            self.mnemonic_passphrase_enabled = enabled;
-            Ok(())
-        }
-
-        fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()> {
-            self.seed_birthdate = timestamp;
-            Ok(())
-        }
-
-        fn get_seed_birthdate(&mut self) -> u32 {
-            self.seed_birthdate
-        }
-
-        fn is_seeded(&mut self) -> bool {
-            self.is_seeded
-        }
-
-        fn is_initialized(&mut self) -> bool {
-            self.initialized
-        }
-
-        fn set_initialized(&mut self) -> Result<(), ()> {
-            self.initialized = true;
-            Ok(())
-        }
-
-        fn get_encrypted_seed_and_hmac(
-            &mut self,
-        ) -> Result<(alloc::vec::Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()> {
-            self.encrypted_seed_and_hmac.clone().ok_or(())
-        }
-
-        fn set_encrypted_seed_and_hmac(
-            &mut self,
-            data: &[u8],
-            password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-        ) -> Result<(), ()> {
-            // 96 is the max space allocated in BitBox02's memory for this.
-            if data.len() > 96 {
-                return Err(());
-            }
-            self.encrypted_seed_and_hmac = Some((data.to_vec(), password_stretch_algo));
-            self.is_seeded = true;
-            Ok(())
-        }
-
-        fn reset_hww(&mut self) -> Result<(), ()> {
-            self.initialized = false;
-            self.is_seeded = false;
-            self.mnemonic_passphrase_enabled = false;
-            self.seed_birthdate = 0;
-            self.encrypted_seed_and_hmac = None;
-            self.device_name = None;
-            self.multisig_entries = Vec::new();
-            Ok(())
-        }
-
-        fn get_unlock_attempts(&mut self) -> u8 {
-            self.unlock_attempts
-        }
-
-        fn increment_unlock_attempts(&mut self) {
-            self.unlock_attempts += 1;
-        }
-
-        fn reset_unlock_attempts(&mut self) {
-            self.unlock_attempts = 0;
-        }
-
-        fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-            if self.salt_root.iter().all(|&b| b == 0xff) {
-                Err(())
-            } else {
-                Ok(zeroize::Zeroizing::new(self.salt_root.to_vec()))
-            }
-        }
-
-        fn get_attestation_pubkey_and_certificate(
-            &mut self,
-            pubkey_out: &mut [u8; 64],
-            certificate_out: &mut [u8; 64],
-            root_pubkey_identifier_out: &mut [u8; 32],
-        ) -> Result<(), ()> {
-            match (
-                self.attestation_device_pubkey,
-                self.attestation_certificate,
-                self.attestation_root_pubkey_identifier,
-            ) {
-                (Some(pubkey), Some(certificate), Some(root_id)) => {
-                    *pubkey_out = pubkey;
-                    *certificate_out = certificate;
-                    *root_pubkey_identifier_out = root_id;
-                    Ok(())
-                }
-                _ => Err(()),
-            }
-        }
-
-        fn get_attestation_bootloader_hash(&mut self) -> [u8; 32] {
-            self.attestation_bootloader_hash
-        }
-
-        fn multisig_set_by_hash(
-            &mut self,
-            hash: &[u8; 32],
-            name: &str,
-        ) -> Result<(), bitbox02::memory::MemoryError> {
-            // Validate input
-            if name.is_empty() {
-                return Err(bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT);
-            }
-            // Check for duplicate name with different hash
-            for (existing_hash, existing_name) in &self.multisig_entries {
-                if existing_name == name {
-                    if existing_hash != hash {
-                        // Mirror bitbox02::memory multisig_set_by_hash semantics (duplicate-name / full-table),
-                        // even if these branches are not currently exercised in bitbox02-rust tests.
-                        return Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME);
-                    }
-                    // same name, same hash (already stored)
-                    return Ok(());
-                }
-            }
-            // Try to find existing entry with same hash
-            if let Some((_, existing_name)) = self
-                .multisig_entries
-                .iter_mut()
-                .find(|(existing_hash, _)| existing_hash == hash)
-            {
-                // rename: same hash, new name
-                *existing_name = String::from(name);
-                return Ok(());
-            }
-            if self.multisig_entries.len() >= MULTISIG_LIMIT {
-                // See comment above about mirroring bitbox02::memory semantics.
-                return Err(bitbox02::memory::MemoryError::MEMORY_ERR_FULL);
-            }
-            // Insert new entry
-            self.multisig_entries.push((*hash, String::from(name)));
-            Ok(())
-        }
-
-        fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String> {
-            self.multisig_entries
-                .iter()
-                .find(|(existing_hash, _)| existing_hash == hash)
-                .map(|(_, name)| name.clone())
-        }
-    }
-
-    pub struct TestingSystem;
-
-    impl TestingSystem {
-        pub fn new() -> Self {
-            Self
-        }
-    }
-
-    impl super::System for TestingSystem {
-        fn reboot_to_bootloader(&mut self) -> ! {
-            panic!("reboot_to_bootloader called")
-        }
-    }
-
-    pub struct TestingHal<'a> {
-        pub ui: crate::workflow::testing::TestingWorkflows<'a>,
-        pub sd: TestingSd,
-        pub random: TestingRandom,
-        pub securechip: TestingSecureChip,
-        pub memory: TestingMemory,
-        pub system: TestingSystem,
-    }
-
-    impl TestingHal<'_> {
-        pub fn new() -> Self {
-            Self {
-                ui: crate::workflow::testing::TestingWorkflows::new(),
-                sd: TestingSd::new(),
-                random: TestingRandom::new(),
-                securechip: TestingSecureChip::new(),
-                memory: TestingMemory::new(),
-                system: TestingSystem::new(),
-            }
-        }
-    }
-
-    impl super::Hal for TestingHal<'_> {
-        fn ui(&mut self) -> &mut impl super::Ui {
-            &mut self.ui
-        }
-        fn sd(&mut self) -> &mut impl super::Sd {
-            &mut self.sd
-        }
-        fn random(&mut self) -> &mut impl super::Random {
-            &mut self.random
-        }
-        fn securechip(&mut self) -> &mut impl super::SecureChip {
-            &mut self.securechip
-        }
-        fn memory(&mut self) -> &mut impl super::Memory {
-            &mut self.memory
-        }
-        fn system(&mut self) -> &mut impl super::System {
-            &mut self.system
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::hal::{Random, Sd};
-        use hex_lit::hex;
-
-        use util::bb02_async::block_on;
-
-        // Quick check if our mock TestingSd implementation makes sense.
-        #[test]
-        fn test_sd_list_write_read_erase() {
-            let mut sd = TestingSd::new();
-            assert_eq!(block_on(sd.list_subdir(None)), Ok(vec![]));
-            assert_eq!(block_on(sd.list_subdir(Some("dir1"))), Ok(vec![]));
-
-            assert!(block_on(sd.load_bin("file1.txt", "dir1")).is_err());
-            assert!(block_on(sd.write_bin("file1.txt", "dir1", b"data")).is_ok());
-            assert_eq!(block_on(sd.list_subdir(None)), Ok(vec!["dir1".into()]));
-            assert_eq!(
-                block_on(sd.list_subdir(Some("dir1"))),
-                Ok(vec!["file1.txt".into()])
-            );
-            assert_eq!(
-                block_on(sd.load_bin("file1.txt", "dir1"))
-                    .unwrap()
-                    .as_slice(),
-                b"data"
-            );
-            assert!(block_on(sd.write_bin("file1.txt", "dir1", b"replaced data")).is_ok());
-            assert_eq!(
-                block_on(sd.load_bin("file1.txt", "dir1"))
-                    .unwrap()
-                    .as_slice(),
-                b"replaced data"
-            );
-            assert!(block_on(sd.erase_file_in_subdir("doesnt-exist.txt", "dir1")).is_err());
-            assert!(block_on(sd.erase_file_in_subdir("file1.txt", "dir1")).is_ok());
-            assert_eq!(block_on(sd.list_subdir(Some("dir1"))), Ok(vec![]));
-        }
-
-        #[test]
-        fn test_random() {
-            let mut random = TestingRandom::new();
-            let first = random.random_32_bytes();
-            let second = random.random_32_bytes();
-            assert_eq!(
-                first.as_slice(),
-                &hex!("b40711a88c7039756fb8a73827eabe2c0fe5a0346ca7e0a104adc0fc764f528d"),
-            );
-            assert_eq!(
-                second.as_slice(),
-                &hex!("433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a"),
-            );
-        }
     }
 }

@@ -2,7 +2,8 @@
 
 use alloc::vec::Vec;
 
-use super::{Workflows, confirm};
+use super::confirm;
+use crate::hal::Ui;
 
 use util::ascii;
 

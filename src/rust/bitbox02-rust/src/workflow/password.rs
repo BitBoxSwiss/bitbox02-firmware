@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::{Workflows, confirm, trinary_input_string};
+use super::{confirm, trinary_input_string};
+use crate::hal::Ui;
 
 use crate::hal::Memory;
 use bitbox02::memory::SecurechipType;

@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2024 Jonathan 'theJPster' Pallant <github@thejpster.org.uk>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  cargo-build-native:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: |
+        cargo build
+        cargo build --all-features
+  cargo-build-cross:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [thumbv6m-none-eabi, riscv32i-unknown-none-elf, thumbv7m-none-eabi, thumbv7em-none-eabi, thumbv8m.base-none-eabi, thumbv8m.main-none-eabi, riscv32imac-unknown-none-elf]
+    steps:
+    - uses: actions/checkout@v4
+    - run: rustup target add ${{ matrix.target }}
+    - run: |
+        cargo build --target=${{ matrix.target }}
+        cargo build --target=${{ matrix.target }} --features=cas,critical-section
+  cargo-build-cross-with-cas:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [thumbv7m-none-eabi, thumbv7em-none-eabi, thumbv8m.base-none-eabi, thumbv8m.main-none-eabi, riscv32imac-unknown-none-elf]
+    steps:
+    - uses: actions/checkout@v4
+    - run: rustup target add ${{ matrix.target }}
+    - run: |
+        cargo build --target=${{ matrix.target }} --features=cas
+  cargo-test-native:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: |
+        cargo test
+        cargo test --all-features

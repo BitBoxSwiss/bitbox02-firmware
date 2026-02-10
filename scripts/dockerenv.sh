@@ -22,7 +22,20 @@ fi
 CONTAINER_IMAGE=shiftcrypto/firmware_v2
 CONTAINER_VERSION=${CONTAINER_VERSION:-$(cat .containerversion)}
 PROJECT_NAME="$(basename "$(realpath "$DIR/..")")"
-CONTAINER_NAME="$PROJECT_NAME-$CONTAINER_NAME_SUFFIX"
+
+container_user() {
+    local user
+    user="$(id -un 2>/dev/null || true)"
+    user="$(printf '%s' "$user" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]+/-/g; s/^-+//; s/-+$//')"
+    if [ -z "$user" ]; then
+        echo "Could not derive a valid username for container naming." >&2
+        exit 1
+    fi
+    printf '%s' "$user"
+}
+
+CONTAINER_USER="$(container_user)"
+CONTAINER_NAME="${CONTAINER_USER}-${PROJECT_NAME}-${CONTAINER_NAME_SUFFIX}"
 
 dockerdev () {
     local repo_path="$DIR/.."

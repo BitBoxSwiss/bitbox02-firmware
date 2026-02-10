@@ -1,10 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
+pub mod memory;
+pub mod random;
+pub mod sd;
+pub mod securechip;
+pub mod system;
 pub mod ui;
-pub use ui::Ui;
 
 #[cfg(feature = "testing")]
 pub mod testing;
+
+pub use memory::Memory;
+pub use random::Random;
+pub use sd::Sd;
+pub use securechip::SecureChip;
+pub use system::System;
+pub use ui::Ui;
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -16,94 +27,6 @@ use crate::workflow::{
     cancel, confirm, menu, mnemonic, sdcard, status, transaction, trinary_choice,
     trinary_input_string,
 };
-
-#[allow(async_fn_in_trait)]
-pub trait Sd {
-    async fn sdcard_inserted(&mut self) -> bool;
-    async fn list_subdir(&mut self, subdir: Option<&str>) -> Result<Vec<String>, ()>;
-    async fn erase_file_in_subdir(&mut self, filename: &str, dir: &str) -> Result<(), ()>;
-    async fn load_bin(
-        &mut self,
-        filename: &str,
-        dir: &str,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
-    async fn write_bin(&mut self, filename: &str, dir: &str, data: &[u8]) -> Result<(), ()>;
-}
-
-pub trait Random {
-    fn random_32_bytes(&mut self) -> Box<zeroize::Zeroizing<[u8; 32]>>;
-}
-
-pub trait SecureChip {
-    fn init_new_password(
-        &mut self,
-        password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
-    fn stretch_password(
-        &mut self,
-        password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
-    fn kdf(
-        &mut self,
-        msg: &[u8],
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error>;
-    fn attestation_sign(
-        &mut self,
-        challenge: &[u8; 32],
-        signature: &mut [u8; 64],
-    ) -> Result<(), ()>;
-    fn monotonic_increments_remaining(&mut self) -> Result<u32, ()>;
-    fn model(&mut self) -> Result<bitbox02::securechip::Model, ()>;
-    fn reset_keys(&mut self) -> Result<(), ()>;
-    #[cfg(feature = "app-u2f")]
-    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;
-}
-
-pub trait Memory {
-    fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
-    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
-    fn get_device_name(&mut self) -> String;
-    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error>;
-    fn is_mnemonic_passphrase_enabled(&mut self) -> bool;
-    fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()>;
-    fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()>;
-    fn get_seed_birthdate(&mut self) -> u32;
-    fn is_seeded(&mut self) -> bool;
-    fn is_initialized(&mut self) -> bool;
-    fn set_initialized(&mut self) -> Result<(), ()>;
-    fn get_encrypted_seed_and_hmac(
-        &mut self,
-    ) -> Result<(alloc::vec::Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()>;
-    fn set_encrypted_seed_and_hmac(
-        &mut self,
-        data: &[u8],
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-    ) -> Result<(), ()>;
-    fn reset_hww(&mut self) -> Result<(), ()>;
-    fn get_unlock_attempts(&mut self) -> u8;
-    fn increment_unlock_attempts(&mut self);
-    fn reset_unlock_attempts(&mut self);
-    fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
-    fn get_attestation_pubkey_and_certificate(
-        &mut self,
-        pubkey_out: &mut [u8; 64],
-        certificate_out: &mut [u8; 64],
-        root_pubkey_identifier_out: &mut [u8; 32],
-    ) -> Result<(), ()>;
-    fn get_attestation_bootloader_hash(&mut self) -> [u8; 32];
-    fn multisig_set_by_hash(
-        &mut self,
-        hash: &[u8; 32],
-        name: &str,
-    ) -> Result<(), bitbox02::memory::MemoryError>;
-    fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String>;
-}
-
-pub trait System {
-    fn reboot_to_bootloader(&mut self) -> !;
-}
 
 /// Hardware abstraction layer for BitBox devices.
 pub trait Hal {

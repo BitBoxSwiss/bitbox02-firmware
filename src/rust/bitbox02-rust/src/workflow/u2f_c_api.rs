@@ -8,6 +8,7 @@
 
 extern crate alloc;
 
+use crate::hal::{Hal, Ui};
 use crate::workflow::confirm;
 use alloc::string::String;
 use async_channel::{Receiver, TryRecvError};
@@ -60,7 +61,12 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
         CONFIRM_STATE
             .get()
             .write(TaskState::Running(crate::main_loop::spawn(
-                confirm::confirm(CONFIRM_PARAMS.get().as_ref().unwrap()),
+                BITBOX02_HAL
+                    .get()
+                    .as_mut()
+                    .unwrap()
+                    .ui()
+                    .confirm(CONFIRM_PARAMS.get().as_ref().unwrap()),
             )));
     }
 }

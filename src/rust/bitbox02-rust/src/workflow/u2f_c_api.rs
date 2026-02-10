@@ -4,128 +4,174 @@
 //! usb message proessing is not ported to Rust. If that happens, the `async_usb` module can be
 //! used and this can be deleted.
 
-// TODO: figure out how to deal with the static muts below.
-// https://doc.rust-lang.org/nightly/edition-guide/rust-2024/static-mut-references.html
-#![allow(static_mut_refs)]
-#![allow(clippy::missing_safety_doc)]
-
 extern crate alloc;
 
+use crate::hal::{Hal, Ui};
 use crate::workflow::confirm;
 use alloc::boxed::Box;
 use alloc::string::String;
-use core::task::Poll;
-use util::bb02_async::{Task, spin};
+use core::ffi::CStr;
+use core::sync::atomic::{AtomicU32, Ordering};
+use grounded::const_init::ConstInit;
+use grounded::uninit::GroundedCell;
 
-enum TaskState<'a, O> {
+enum TaskState<O> {
     Nothing,
-    Running(Task<'a, O>),
+    Running(u32),
     ResultAvailable(O),
 }
 
-static mut UNLOCK_STATE: TaskState<'static, Result<(), ()>> = TaskState::Nothing;
+impl<O> ConstInit for TaskState<O> {
+    const VAL: Self = Self::Nothing;
+}
 
-static mut CONFIRM_TITLE: Option<String> = None;
-static mut CONFIRM_BODY: Option<String> = None;
-static mut CONFIRM_PARAMS: Option<confirm::Params> = None;
-static mut CONFIRM_STATE: TaskState<'static, Result<(), confirm::UserAbort>> = TaskState::Nothing;
-static mut BITBOX02_HAL: crate::hal::BitBox02Hal = crate::hal::BitBox02Hal::new();
+static NEXT_TASK_TOKEN: AtomicU32 = AtomicU32::new(0);
+static UNLOCK_STATE: GroundedCell<TaskState<Result<(), ()>>> = GroundedCell::const_init();
+static CONFIRM_STATE: GroundedCell<TaskState<Result<(), confirm::UserAbort>>> =
+    GroundedCell::const_init();
+static BITBOX02_HAL: GroundedCell<crate::hal::BitBox02Hal> = GroundedCell::const_init();
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
+fn next_task_token() -> u32 {
+    NEXT_TASK_TOKEN.fetch_add(1, Ordering::Relaxed)
+}
+
+/// # Safety
+/// Must not be called concurrently or reentrantly with other operations that mutate unlock
+/// workflow state in this module.
+/// Callers must guarantee single-threaded access to this workflow.
+unsafe fn complete_unlock(token: u32, result: Result<(), ()>) {
     unsafe {
-        UNLOCK_STATE =
-            TaskState::Running(Box::pin(crate::workflow::unlock::unlock(&mut BITBOX02_HAL)));
+        if let TaskState::Running(current_token) = UNLOCK_STATE.get().as_ref().unwrap()
+            && *current_token == token
+        {
+            UNLOCK_STATE.get().write(TaskState::ResultAvailable(result));
+        }
     }
 }
 
+/// # Safety
+/// Must not be called concurrently or reentrantly with other operations that mutate confirm
+/// workflow state in this module.
+/// Callers must guarantee single-threaded access to this workflow.
+unsafe fn complete_confirm(token: u32, result: Result<(), confirm::UserAbort>) {
+    unsafe {
+        if let TaskState::Running(current_token) = CONFIRM_STATE.get().as_ref().unwrap()
+            && *current_token == token
+        {
+            CONFIRM_STATE
+                .get()
+                .write(TaskState::ResultAvailable(result));
+        }
+    }
+}
+
+/// # Safety
+/// Must be called from the same single-threaded, non-reentrant execution context as all other
+/// U2F workflow C API calls. In particular, do not call this from interrupts or from multiple
+/// threads.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
+    let token = next_task_token();
+    unsafe {
+        UNLOCK_STATE.get().write(TaskState::Running(token));
+    }
+    crate::main_loop::spawn(Box::pin(async move {
+        let result =
+            unsafe { crate::workflow::unlock::unlock(BITBOX02_HAL.get().as_mut().unwrap()).await };
+        unsafe { complete_unlock(token, result) };
+    }));
+}
+
+/// # Safety
+/// `title` and `body` must be valid non-null pointers to NUL-terminated UTF-8 strings, readable
+/// for the duration of this call.
+///
+/// This must be called from the same single-threaded, non-reentrant execution context as all
+/// other U2F workflow C API calls (no interrupts/multi-threaded callers).
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     title: *const core::ffi::c_char,
     body: *const core::ffi::c_char,
 ) {
+    let title: String = unsafe { CStr::from_ptr(title).to_str().unwrap().into() };
+    let body: String = unsafe { CStr::from_ptr(body).to_str().unwrap().into() };
+    let token = next_task_token();
     unsafe {
-        CONFIRM_TITLE = Some(core::ffi::CStr::from_ptr(title).to_str().unwrap().into());
-        CONFIRM_BODY = Some(core::ffi::CStr::from_ptr(body).to_str().unwrap().into());
-        CONFIRM_PARAMS = Some(confirm::Params {
-            title: CONFIRM_TITLE.as_ref().unwrap(),
-            body: CONFIRM_BODY.as_ref().unwrap(),
+        CONFIRM_STATE.get().write(TaskState::Running(token));
+    }
+    crate::main_loop::spawn(Box::pin(async move {
+        let params = confirm::Params {
+            title: &title,
+            body: &body,
             accept_only: true,
             ..Default::default()
-        });
-
-        CONFIRM_STATE =
-            TaskState::Running(Box::pin(confirm::confirm(CONFIRM_PARAMS.as_ref().unwrap())));
-    }
-}
-
-pub fn workflow_spin() {
-    unsafe {
-        match UNLOCK_STATE {
-            TaskState::Running(ref mut task) => {
-                let result = spin(task);
-                if let Poll::Ready(result) = result {
-                    UNLOCK_STATE = TaskState::ResultAvailable(result);
-                }
-            }
-            _ => (),
-        }
-        match CONFIRM_STATE {
-            TaskState::Running(ref mut task) => {
-                let result = spin(task);
-                if let Poll::Ready(result) = result {
-                    CONFIRM_STATE = TaskState::ResultAvailable(result);
-                }
-            }
-            _ => (),
-        }
-    }
+        };
+        let result = unsafe {
+            BITBOX02_HAL
+                .get()
+                .as_mut()
+                .unwrap()
+                .ui()
+                .confirm(&params)
+                .await
+        };
+        unsafe { complete_confirm(token, result) };
+    }));
 }
 
 /// Returns true if there was a result.
+///
+/// # Safety
+/// `result_out` must be a valid, non-null writable pointer to a `bool` for the duration of this
+/// call.
+///
+/// This must be called from the same single-threaded, non-reentrant execution context as all
+/// other U2F workflow C API calls (no interrupts/multi-threaded callers).
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_unlock_poll(result_out: &mut bool) -> bool {
     unsafe {
-        match UNLOCK_STATE {
+        match UNLOCK_STATE.get().as_ref().unwrap() {
             TaskState::ResultAvailable(result) => {
-                UNLOCK_STATE = TaskState::Nothing;
-                match result {
-                    Ok(()) => *result_out = true,
-                    Err(()) => *result_out = false,
-                }
+                *result_out = result.is_ok();
+                UNLOCK_STATE.get().write(TaskState::Nothing);
                 true
             }
-            _ => false,
+            TaskState::Running(_) => false,
+            TaskState::Nothing => panic!("polled non-existing future"),
         }
     }
 }
 
 /// Returns true if there was a result.
+///
+/// # Safety
+/// `result_out` must be a valid, non-null writable pointer to a `bool` for the duration of this
+/// call.
+///
+/// This must be called from the same single-threaded, non-reentrant execution context as all
+/// other U2F workflow C API calls (no interrupts/multi-threaded callers).
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_confirm_poll(result_out: &mut bool) -> bool {
     unsafe {
-        match CONFIRM_STATE {
-            TaskState::ResultAvailable(ref result) => {
-                CONFIRM_TITLE = None;
-                CONFIRM_BODY = None;
-                CONFIRM_PARAMS = None;
-                CONFIRM_STATE = TaskState::Nothing;
+        match CONFIRM_STATE.get().as_ref().unwrap() {
+            TaskState::ResultAvailable(result) => {
+                CONFIRM_STATE.get().write(TaskState::Nothing);
                 *result_out = result.is_ok();
                 true
             }
-            _ => false,
+            TaskState::Running(_) => false,
+            TaskState::Nothing => false,
         }
     }
 }
 
+/// # Safety
+/// Must be called from the same single-threaded, non-reentrant execution context as all other
+/// U2F workflow C API calls (no interrupts/multi-threaded callers).
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_abort_current() {
     unsafe {
-        UNLOCK_STATE = TaskState::Nothing;
-
-        CONFIRM_TITLE = None;
-        CONFIRM_BODY = None;
-        CONFIRM_PARAMS = None;
-        CONFIRM_STATE = TaskState::Nothing;
+        UNLOCK_STATE.get().write(TaskState::Nothing);
+        CONFIRM_STATE.get().write(TaskState::Nothing);
     }
 }

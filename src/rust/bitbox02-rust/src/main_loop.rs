@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::boxed::Box;
 use bitbox_executor::Executor;
 use bitbox02::ringbuffer::RingBuffer;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb_packet::USB_FRAME;
+use core::future::Future;
 use core::mem::MaybeUninit;
+use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 const UART_OUT_BUF_LEN: u32 = 2048;
 
 static EXECUTOR: Executor = Executor::new();
+type DynExecutorFuture = Pin<Box<dyn Future<Output = ()> + 'static>>;
+
+pub fn spawn(fut: DynExecutorFuture) {
+    EXECUTOR.spawn(fut).detach();
+}
 
 fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
     static ORIENTATION_CHOSEN: AtomicBool = AtomicBool::new(false);
@@ -28,12 +36,10 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
     bitbox02::da14531::set_name(&device_name, &mut uart_write_queue);
 
     // This starts the async orientation screen workflow, which is processed by the loop below.
-    EXECUTOR
-        .spawn(async {
-            crate::workflow::orientation_screen::orientation_screen().await;
-            ORIENTATION_CHOSEN.store(true, Ordering::Relaxed);
-        })
-        .detach();
+    spawn(Box::pin(async {
+        crate::workflow::orientation_screen::orientation_screen().await;
+        ORIENTATION_CHOSEN.store(true, Ordering::Relaxed);
+    }));
 
     let mut hww_data = None;
     let mut hww_frame: USB_FRAME = unsafe { MaybeUninit::zeroed().assume_init() };
@@ -149,9 +155,6 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
         bitbox02::screen::process();
 
         /* And finally, run the high-level event processing. */
-        #[cfg(feature = "app-u2f")]
-        crate::workflow::u2f_c_api::workflow_spin();
-
         crate::async_usb::spin();
 
         // Run async executor

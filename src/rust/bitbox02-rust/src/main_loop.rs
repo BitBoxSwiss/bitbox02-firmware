@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use async_channel::Receiver;
 use bitbox_executor::Executor;
 use bitbox02::ringbuffer::RingBuffer;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb_packet::USB_FRAME;
+use core::future::Future;
 use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
 
@@ -239,9 +241,6 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
         bitbox02::screen::process();
 
         /* And finally, run the high-level event processing. */
-        #[cfg(feature = "app-u2f")]
-        crate::workflow::u2f_c_api::workflow_spin();
-
         crate::async_usb::spin();
 
         // Run async executor
@@ -258,6 +257,18 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
             EXECUTOR.spawn(ui_async_component_demo()).detach();
         }
     }
+}
+
+// Spawns a task and returns the receiving end of a one shot channel
+pub fn spawn<T>(fut: impl Future<Output = T> + 'static) -> Receiver<T>
+where
+    T: 'static,
+{
+    let (sender, receiver) = async_channel::bounded(1);
+    EXECUTOR
+        .spawn(async move { sender.send(fut.await).await })
+        .detach();
+    receiver
 }
 
 //

@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2024 Jonathan 'theJPster' Pallant <github@thejpster.org.uk>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Format
+
+on: [push, pull_request]
+
+jobs:
+  cargo-fmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: rustup component add rustfmt
+    - run: cargo fmt -- --check

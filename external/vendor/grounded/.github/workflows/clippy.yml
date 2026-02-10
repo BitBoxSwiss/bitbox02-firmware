@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2024 Jonathan 'theJPster' Pallant <github@thejpster.org.uk>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Clippy
+
+on: [push, pull_request]
+
+jobs:
+  cargo-clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run Clippy
+      run: cargo clippy

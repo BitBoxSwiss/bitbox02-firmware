@@ -39,7 +39,7 @@ target-bb02p-bl-multi-production = ["bootloader", "platform-bitbox02plus"]
 target-bb02p-bl-btconly = ["bootloader", "platform-bitbox02plus"]
 target-bb02p-bl-btconly-development = ["bootloader", "platform-bitbox02plus"]
 target-bb02p-bl-btconly-production = ["bootloader", "platform-bitbox02plus"]
-target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
+target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano", "app-swap"]
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-factory-setup = [
   # enable these features
@@ -57,6 +57,7 @@ target-c-unit-tests = [
   "app-u2f",
   "firmware",
   "c-unit-testing",
+  "app-swap",
 ]
 
 platform-bitbox02 = []
@@ -86,6 +87,7 @@ simulator-graphical = [
   "app-ethereum",
   "app-cardano",
   "firmware",
+  "app-swap",
 ]
 
 app-ethereum = [
@@ -113,6 +115,10 @@ app-u2f = [
 app-cardano = [
  # enable this feature in the deps
   "bitbox02-rust/app-cardano",
+]
+
+app-swap = [
+  "bitbox02-rust/app-swap",
 ]
 
 factory-setup = []

@@ -246,8 +246,14 @@ message BTCPaymentRequestRequest {
     message TextMemo {
       string note = 1;
     }
+    message CoinPurchaseMemo {
+      uint32 coin_type = 1;
+      string amount = 2;
+      string address = 3;
+    }
     oneof memo {
       TextMemo text_memo = 1;
+      CoinPurchaseMemo coin_purchase_memo = 2;
     }
   }
 

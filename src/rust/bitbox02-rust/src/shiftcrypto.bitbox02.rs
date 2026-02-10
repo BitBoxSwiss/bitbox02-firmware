@@ -928,7 +928,7 @@ pub mod btc_payment_request_request {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Memo {
-        #[prost(oneof = "memo::Memo", tags = "1")]
+        #[prost(oneof = "memo::Memo", tags = "1, 2")]
         pub memo: ::core::option::Option<memo::Memo>,
     }
     /// Nested message and enum types in `Memo`.
@@ -940,10 +940,22 @@ pub mod btc_payment_request_request {
             pub note: ::prost::alloc::string::String,
         }
         #[allow(clippy::derive_partial_eq_without_eq)]
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct CoinPurchaseMemo {
+            #[prost(uint32, tag = "1")]
+            pub coin_type: u32,
+            #[prost(string, tag = "2")]
+            pub amount: ::prost::alloc::string::String,
+            #[prost(string, tag = "3")]
+            pub address: ::prost::alloc::string::String,
+        }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Memo {
             #[prost(message, tag = "1")]
             TextMemo(TextMemo),
+            #[prost(message, tag = "2")]
+            CoinPurchaseMemo(CoinPurchaseMemo),
         }
     }
 }

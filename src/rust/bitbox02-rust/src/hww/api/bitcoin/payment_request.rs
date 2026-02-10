@@ -83,6 +83,7 @@ pub async fn user_verify(
                 verify_message::verify(hal, "Memo", "Memo", text_memo.note.as_bytes(), false)
                     .await?;
             }
+            // TODO: add CoinPurchaseMemo arm when SwapKit UI is finalized
             _ => return Err(Error::InvalidInput),
         }
     }
@@ -127,6 +128,15 @@ fn compute_sighash(
             } => {
                 sighash.update(1u32.to_le_bytes());
                 hash_data_lenprefixed(&mut sighash, text_memo.note.as_bytes());
+            }
+            #[cfg(feature = "app-swap")]
+            Memo {
+                memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
+            } => {
+                sighash.update(3u32.to_le_bytes());
+                sighash.update(coin_purchase_memo.coin_type.to_le_bytes());
+                hash_data_lenprefixed(&mut sighash, coin_purchase_memo.amount.as_bytes());
+                hash_data_lenprefixed(&mut sighash, coin_purchase_memo.address.as_bytes());
             }
             _ => return Err(ValidationError::Other),
         }
@@ -204,6 +214,17 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "app-swap")]
+    fn make_coin_purchase_memo(coin_type: u32, amount: &str, address: &str) -> Memo {
+        Memo {
+            memo: Some(memo::Memo::CoinPurchaseMemo(memo::CoinPurchaseMemo {
+                coin_type,
+                amount: amount.into(),
+                address: address.into(),
+            })),
+        }
+    }
+
     #[test]
     fn test_sighash() {
         let coin_params = params::get(pb::BtcCoin::Tbtc);
@@ -243,6 +264,28 @@ mod tests {
             hex::encode(sighash),
             "9303ef0189ab78e92b7518ebf9851bf567ca06ddce242fb33220c3b31a489251"
         );
+
+        #[cfg(feature = "app-swap")]
+        {
+            // CoinPurchase memo
+            let sighash = compute_sighash(
+                coin_params,
+                &pb::BtcPaymentRequestRequest {
+                    recipient_name: "Merchant".into(),
+                    memos: vec![make_coin_purchase_memo(60, "0.25 ETH", "0xabc1234567890")],
+                    nonce: vec![],
+                    total_amount: 123456,
+                    signature: vec![],
+                },
+                123456,
+                "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup",
+            )
+            .unwrap();
+            assert_eq!(
+                hex::encode(sighash),
+                "1806caf7c518aad69eb38f25fd418d507c6a3e01719a7d77be94cd50a2790872"
+            );
+        }
     }
 
     #[test]
@@ -262,6 +305,20 @@ mod tests {
         tst_sign_payment_request(coin_params, &mut payment_request, value, address);
 
         assert!(validate(coin_params, &payment_request, value, address).is_ok());
+
+        #[cfg(feature = "app-swap")]
+        {
+            // CoinPurchase memo
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(60, "0.25 ETH", "0xabc1234567890")],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(validate(coin_params, &payment_request, value, address).is_ok());
+        }
 
         // Unhappy cases:
 

@@ -30,22 +30,14 @@ fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(
     Ok(())
 }
 
-fn build_clang_args(target: &str, lvgl_dir: &Path, lv_conf: &Path) -> Vec<String> {
+fn build_clang_args(lvgl_dir: &Path, lv_conf: &Path) -> Vec<String> {
     let mut args = vec![
         format!("-I{}", lvgl_dir.display()),
         "-DLV_CONF_INCLUDE_SIMPLE".to_owned(),
         format!("-DLV_CONF_PATH=\"{}\"", lv_conf.display()),
     ];
-    if target == "thumbv7em-none-eabi" {
-        args.extend([
-            "--target=thumbv7em-none-eabi".to_owned(),
-            "-mcpu=cortex-m4".to_owned(),
-            "-mthumb".to_owned(),
-            "-mfloat-abi=soft".to_owned(),
-        ]);
-        if let Ok(sysroot) = env::var("CMAKE_SYSROOT") {
-            args.push(format!("--sysroot={sysroot}"));
-        }
+    if let Ok(sysroot) = env::var("CMAKE_SYSROOT") {
+        args.push(format!("--sysroot={sysroot}"));
     }
     args
 }
@@ -76,13 +68,11 @@ fn main() -> Result<(), &'static str> {
         lvgl_dir.join("src/lvgl.h").display()
     );
 
-    let lv_conf = match env::var("LV_CONF_PATH") {
-        Ok(path) => PathBuf::from(path),
-        Err(_) => repo_root.join("src/lvgl/lv_conf.h"),
-    };
-    if !lv_conf.is_file() {
+    let Ok(lv_conf) = env::var("LV_CONF_PATH") else {
         return Err("lv_conf.h not found. Set LV_CONF_PATH or provide src/lvgl/lv_conf.h.");
-    }
+    };
+    let lv_conf = PathBuf::from(lv_conf);
+
     println!("cargo::rerun-if-changed={}", lv_conf.display());
 
     if let Err(err) = Command::new("bindgen").arg("--version").output() {
@@ -92,8 +82,7 @@ fn main() -> Result<(), &'static str> {
         return Err("failed to execute `bindgen --version`");
     }
 
-    let target = env::var("TARGET").expect("TARGET not set");
-    let clang_args = build_clang_args(&target, &lvgl_dir, &lv_conf);
+    let clang_args = build_clang_args(&lvgl_dir, &lv_conf);
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
     run_bindgen(&wrapper, &out_path, &clang_args)
 }

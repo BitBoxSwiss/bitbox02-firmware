@@ -30,11 +30,6 @@ set(LV_BUILD_CONF_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH
 )
 set(CONFIG_LV_BUILD_EXAMPLES OFF)
 set(CONFIG_LV_BUILD_DEMOS OFF)
-#include_directories(SYSTEM /opt/homebrew/include)
-#find_package(PkgConfig)
-#pkg_check_modules(GLFW glfw3)
-#pkg_check_modules(GLEW glew)
-#include_directories(SYSTEM ${GLFW_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS})
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/lvgl lvgl)
 # lvgl overrides our archive output directory :(. We override it back
 set_target_properties(
@@ -42,6 +37,11 @@ set_target_properties(
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
 )
+# ignore warnings in external lib
+target_compile_options(lvgl PRIVATE "-w")
+
+# Look for lvgl in cmake build directory
+string(APPEND RUSTFLAGS " -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
 
 # Supplying llvm host tuple is necessary for address sanitization and doesn't
 # hurt during regular builds.
@@ -53,6 +53,7 @@ add_custom_command(
       RUSTFLAGS=${RUSTFLAGS}
       CFLAGS=${CARGO_C_FLAGS}
       RUSTC_BOOTSTRAP=1
+      LV_CONF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h
       cargo build $ENV{CARGOFLAGS} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml --target-dir ${RUST_BINARY_DIR} --target=${LLVM_HOST_TUPLE} --release
     COMMAND
       ${CMAKE_COMMAND} -E copy

@@ -23,6 +23,9 @@ if(SANITIZE_UNDEFINED)
     string(APPEND RUSTFLAGS " -Clink-arg=-fsanitize=undefined")
 endif()
 
+# Look for lvgl in cmake build directory
+string(APPEND RUSTFLAGS "-L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+
 execute_process(COMMAND rustc --print host-tuple OUTPUT_VARIABLE LLVM_HOST_TUPLE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Supplying llvm host tuple is necessary for address sanitization and doesn't

@@ -2,15 +2,16 @@
 
 use clap::Parser;
 use femtovg::{Canvas, ImageFlags, ImageId, ImageSource, Paint, Path, renderer::OpenGl};
-use image::{DynamicImage, GenericImage, Rgba, RgbaImage};
+use image::{DynamicImage, Rgba, RgbaImage};
 
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::num::NonZeroU32;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{
-    Arc, LazyLock, Mutex,
+    Arc, LazyLock,
     atomic::{AtomicBool, AtomicU32, Ordering},
     mpsc,
     mpsc::TryRecvError,
@@ -37,17 +38,15 @@ use glutin_winit::DisplayBuilder;
 use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
-use bitbox02::ui::ugui::UG_COLOR;
 use bitbox02_rust::hal::{Hal, Memory};
 
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
 use bitbox_lvgl::{
-    LvAlign, LvDisplay, LvDisplayRenderMode, LvIndev, LvIndevState, LvIndevType, LvPoint,
-    lv_display_create, lv_display_get_user_data, lv_display_set_buffers, lv_display_set_flush_cb,
-    lv_display_set_user_data, lv_indev_create, lv_indev_get_user_data, lv_indev_set_read_cb,
-    lv_indev_set_type, lv_indev_set_user_data, lv_init, lv_label_create, lv_label_set_text,
-    lv_obj_align, lv_screen_active, lv_tick_set_cb, lv_timer_handler,
+    LvAlign, LvDisplayRenderMode, LvIndevState, LvIndevType, LvPoint, lv_display_create,
+    lv_display_set_buffers, lv_display_set_flush_cb, lv_display_set_user_data, lv_indev_create,
+    lv_indev_set_read_cb, lv_indev_set_type, lv_indev_set_user_data, lv_init, lv_label_create,
+    lv_label_set_text, lv_obj_align, lv_screen_active, lv_tick_set_cb, lv_timer_handler,
 };
 
 use std::collections::VecDeque;
@@ -140,10 +139,10 @@ impl bitbox03::display::Display for FrameBuffer {
         (480, 800)
     }
 
-    fn clear(&mut self, c: bitbox03::display::Rgb565) -> Result<(), Self::Error> {
+    fn clear(&mut self, _c: bitbox03::display::Rgb565) -> Result<(), Self::Error> {
         todo!()
     }
-    fn fill_rect(&mut self, r: bitbox03::display::Rect) -> Result<(), Self::Error> {
+    fn fill_rect(&mut self, _r: bitbox03::display::Rect) -> Result<(), Self::Error> {
         todo!()
     }
     fn blit(&mut self) -> Result<(), Self::Error> {
@@ -155,13 +154,13 @@ static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
 fn hw_lvgl() {
     /* Get the currently active screen */
-    let scr = lv_screen_active();
+    let scr = lv_screen_active().expect("get active screen");
 
     /* Create a label */
-    let label = lv_label_create(&scr);
+    let label = lv_label_create(&scr).expect("create label");
 
     /* Set the label text */
-    lv_label_set_text(&label, "BitBox03\nHello, World!\nFrom LVGL");
+    lv_label_set_text(&label, "BitBox03\nHello, World!\nFrom LVGL").expect("label set text");
 
     /* Center it on the screen */
     lv_obj_align(&label, LvAlign::LV_ALIGN_CENTER, 0, 0);
@@ -180,6 +179,9 @@ extern "C" fn my_flush_cb(
     area: *const bitbox_lvgl::ffi::lv_area_t,
     px_map: *mut u8,
 ) {
+    debug_assert!(!display.is_null());
+    debug_assert!(!area.is_null());
+    debug_assert!(!px_map.is_null());
     let area = unsafe { &*area };
     info!("flush {:?}", area);
     let fb_ptr = unsafe { bitbox_lvgl::ffi::lv_display_get_user_data(display) as *mut FrameBuffer };
@@ -267,23 +269,19 @@ struct TouchScreenEvent {
     pub pressed: bool,
 }
 
-struct TouchScreen {
-    events: VecDeque<TouchScreenEvent>,
-    indev: LvIndev,
-}
+//struct TouchScreen {
+//    indev: LvIndev,
+//}
 
-impl TouchScreen {
-    pub fn new(indev: LvIndev) -> TouchScreen {
-        TouchScreen {
-            events: Default::default(),
-            indev,
-        }
-    }
-}
+//impl TouchScreen {
+//    pub fn new(indev: LvIndev) -> TouchScreen {
+//        TouchScreen { indev }
+//    }
+//}
 
 struct App {
     framebuffer: Option<Box<FrameBuffer>>,
-    touchscreen: Option<TouchScreen>,
+    //touchscreen: Option<TouchScreen>,
     touchscreen_events: Box<VecDeque<TouchScreenEvent>>,
     window: Option<Rc<Window>>,
     surface: Option<Surface<WindowSurface>>,
@@ -301,7 +299,7 @@ impl Default for App {
     fn default() -> App {
         App {
             framebuffer: Default::default(),
-            touchscreen: Default::default(),
+            //touchscreen: Default::default(),
             touchscreen_events: Default::default(),
             window: Default::default(),
             surface: Default::default(),
@@ -334,21 +332,22 @@ impl App {
         _: Option<String>,
     ) -> Result<WindowId, Box<dyn Error>> {
         lv_init();
-        lv_tick_set_cb(get_current_time_ms);
+        lv_tick_set_cb(Some(get_current_time_ms));
 
         // Make a buffer and give it to lvgl.
         // RGB565 (16 bits per pixel)
         let buf = Box::leak(Box::new([0; 480 * 800 / 10 * 4]));
-        let buf_len = buf.len();
-        let disp = lv_display_create(480, 800);
-        lv_display_set_buffers(
-            &disp,
-            buf,
-            None,
-            buf_len as u32,
-            LvDisplayRenderMode::LV_DISPLAY_RENDER_MODE_PARTIAL,
-        );
-        lv_display_set_flush_cb(&disp, my_flush_cb);
+        let disp = lv_display_create(480, 800).expect("create display");
+        unsafe {
+            lv_display_set_buffers(
+                &disp,
+                buf,
+                None,
+                LvDisplayRenderMode::LV_DISPLAY_RENDER_MODE_PARTIAL,
+            )
+            .expect("display set buffers");
+        };
+        lv_display_set_flush_cb(&disp, Some(my_flush_cb));
         hw_lvgl();
 
         let width = WINDOW_LOGICAL_WIDTH_ORIGINAL as u32;
@@ -424,20 +423,28 @@ impl App {
             .unwrap();
 
         let mut framebuffer = Box::new(FrameBuffer::new(&mut canvas));
-        unsafe { lv_display_set_user_data(&disp, framebuffer.as_mut() as *mut _ as *mut _) };
-
-        let indev = lv_indev_create();
-        lv_indev_set_type(&indev, LvIndevType::LV_INDEV_TYPE_POINTER);
-        lv_indev_set_read_cb(&indev, indev_read_cb);
-
         unsafe {
-            lv_indev_set_user_data(&indev, self.touchscreen_events.as_mut() as *mut _ as *mut _)
+            lv_display_set_user_data(
+                &disp,
+                NonNull::new(framebuffer.as_mut() as *mut _ as *mut _),
+            )
         };
 
-        let touchscreen = TouchScreen::new(indev);
+        let indev = lv_indev_create().expect("create input device");
+        lv_indev_set_type(&indev, LvIndevType::LV_INDEV_TYPE_POINTER);
+        lv_indev_set_read_cb(&indev, Some(indev_read_cb));
+
+        unsafe {
+            lv_indev_set_user_data(
+                &indev,
+                NonNull::new(self.touchscreen_events.as_mut() as *mut _ as *mut _),
+            )
+        };
+
+        //let touchscreen = TouchScreen::new(indev);
 
         self.framebuffer.replace(framebuffer);
-        self.touchscreen.replace(touchscreen);
+        //self.touchscreen.replace(touchscreen);
         self.window.replace(window);
         self.surface.replace(surface);
         self.gl_context.replace(gl_context);

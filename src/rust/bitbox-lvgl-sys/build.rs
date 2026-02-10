@@ -2,17 +2,10 @@
 
 use std::env;
 use std::io::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn run_bindgen(
-    wrapper: &PathBuf,
-    output: &PathBuf,
-    lvgl_dir: &PathBuf,
-    lv_conf: &PathBuf,
-) -> Result<(), &'static str> {
-    let lv_conf_arg = format!("-DLV_CONF_PATH=\"{}\"", lv_conf.display());
-
+fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(), &'static str> {
     let res = Command::new("bindgen")
         .arg("--output")
         .arg(output)
@@ -22,9 +15,7 @@ fn run_bindgen(
         .arg(".*")
         .arg(wrapper)
         .arg("--")
-        .arg(format!("-I{}", lvgl_dir.display()))
-        .arg("-DLV_CONF_INCLUDE_SIMPLE")
-        .arg(lv_conf_arg)
+        .args(clang_args)
         .output()
         .expect("failed to run bindgen");
 
@@ -37,6 +28,26 @@ fn run_bindgen(
         return Err("bindgen failed");
     }
     Ok(())
+}
+
+fn build_clang_args(target: &str, lvgl_dir: &Path, lv_conf: &Path) -> Vec<String> {
+    let mut args = vec![
+        format!("-I{}", lvgl_dir.display()),
+        "-DLV_CONF_INCLUDE_SIMPLE".to_owned(),
+        format!("-DLV_CONF_PATH=\"{}\"", lv_conf.display()),
+    ];
+    if target == "thumbv7em-none-eabi" {
+        args.extend([
+            "--target=thumbv7em-none-eabi".to_owned(),
+            "-mcpu=cortex-m4".to_owned(),
+            "-mthumb".to_owned(),
+            "-mfloat-abi=soft".to_owned(),
+        ]);
+        if let Ok(sysroot) = env::var("CMAKE_SYSROOT") {
+            args.push(format!("--sysroot={sysroot}"));
+        }
+    }
+    args
 }
 
 fn main() -> Result<(), &'static str> {
@@ -59,6 +70,11 @@ fn main() -> Result<(), &'static str> {
             "external/lvgl/lvgl.h not found. Is the external/lvgl submodule initialized and checked out?",
         );
     }
+    println!("cargo::rerun-if-changed={}", lvgl_header.display());
+    println!(
+        "cargo::rerun-if-changed={}",
+        lvgl_dir.join("src/lvgl.h").display()
+    );
 
     let lv_conf = match env::var("LV_CONF_PATH") {
         Ok(path) => PathBuf::from(path),
@@ -76,6 +92,8 @@ fn main() -> Result<(), &'static str> {
         return Err("failed to execute `bindgen --version`");
     }
 
+    let target = env::var("TARGET").expect("TARGET not set");
+    let clang_args = build_clang_args(&target, &lvgl_dir, &lv_conf);
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
-    run_bindgen(&wrapper, &out_path, &lvgl_dir, &lv_conf)
+    run_bindgen(&wrapper, &out_path, &clang_args)
 }

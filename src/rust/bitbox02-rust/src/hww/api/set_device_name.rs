@@ -35,7 +35,7 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
-    use crate::workflow::testing::Screen;
+    use crate::hal::testing::ui::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;

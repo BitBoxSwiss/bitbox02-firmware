@@ -27,8 +27,8 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 mod tests {
     use super::*;
 
+    use crate::hal::testing::ui::Screen;
     use crate::hal::{Memory, testing::TestingHal};
-    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;

@@ -1288,9 +1288,9 @@ pub async fn process(
 mod tests {
     use super::*;
     use crate::bip32::parse_xpub;
+    use crate::hal::testing::ui::Screen;
     use crate::hal::{Memory, testing::TestingHal};
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
-    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
     use hex_lit::hex;

@@ -133,7 +133,7 @@ mod tests {
     extern crate std;
 
     use crate::hal::testing::TestingHal;
-    use crate::workflow::testing::Screen;
+    use crate::hal::testing::ui::Screen;
     use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 
@@ -382,7 +382,7 @@ mod tests {
         .unwrap();
         assert!(!crate::keystore::is_locked());
         assert!(!mock_hal.memory.is_initialized());
-        mock_hal.ui = crate::workflow::testing::TestingUi::new();
+        mock_hal.ui = crate::hal::testing::TestingUi::new();
         make_request(
             &mut mock_hal,
             (crate::pb::Request {
@@ -423,7 +423,7 @@ mod tests {
 
         // Can't reboot when initialized but locked.
         crate::keystore::lock();
-        mock_hal.ui = crate::workflow::testing::TestingUi::new();
+        mock_hal.ui = crate::hal::testing::TestingUi::new();
         let response_encoded =
             make_request(&mut mock_hal, &reboot_request.encode_to_vec()).unwrap();
         let response = crate::pb::Response::decode(&response_encoded[..]).unwrap();
@@ -436,7 +436,7 @@ mod tests {
         );
 
         // Unlock.
-        mock_hal.ui = crate::workflow::testing::TestingUi::new();
+        mock_hal.ui = crate::hal::testing::TestingUi::new();
         mock_hal
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
@@ -448,7 +448,7 @@ mod tests {
 
         // Since in the previous request the msg was encrypted but not decrypted (query was
         // rejected), the noise states are out of sync and we need to make a new channel.
-        mock_hal.ui = crate::workflow::testing::TestingUi::new();
+        mock_hal.ui = crate::hal::testing::TestingUi::new();
         let mut make_request = init_noise();
         let reboot_called = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             make_request(&mut mock_hal, reboot_request.encode_to_vec().as_ref()).unwrap();
@@ -509,7 +509,7 @@ mod tests {
                 }]
             );
 
-            mock_hal.ui = crate::workflow::testing::TestingUi::new();
+            mock_hal.ui = crate::hal::testing::TestingUi::new();
             make_request(
                 &mut mock_hal,
                 (crate::pb::Request {
@@ -541,7 +541,7 @@ mod tests {
 
             let seed = crate::keystore::copy_seed(&mut mock_hal).unwrap();
             assert_eq!(seed.len(), host_entropy.len());
-            mock_hal.ui = crate::workflow::testing::TestingUi::new();
+            mock_hal.ui = crate::hal::testing::TestingUi::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
@@ -566,7 +566,7 @@ mod tests {
             ));
             assert_eq!(mock_hal.ui.screens, vec![]);
 
-            mock_hal.ui = crate::workflow::testing::TestingUi::new();
+            mock_hal.ui = crate::hal::testing::TestingUi::new();
             make_request(
                 &mut mock_hal,
                 (crate::pb::Request {
@@ -593,7 +593,7 @@ mod tests {
                 ]
             );
 
-            mock_hal.ui = crate::workflow::testing::TestingUi::new();
+            mock_hal.ui = crate::hal::testing::TestingUi::new();
             assert!(matches!(
                 crate::pb::Response::decode(
                     make_request(
@@ -618,7 +618,7 @@ mod tests {
             ));
             assert_eq!(mock_hal.ui.screens, vec![]);
 
-            mock_hal.ui = crate::workflow::testing::TestingUi::new();
+            mock_hal.ui = crate::hal::testing::TestingUi::new();
             let backup_id = match crate::pb::Response::decode(
                 make_request(
                     &mut mock_hal,
@@ -655,7 +655,7 @@ mod tests {
             };
             assert_eq!(mock_hal.ui.screens, vec![]);
 
-            mock_hal.ui = crate::workflow::testing::TestingUi::new();
+            mock_hal.ui = crate::hal::testing::TestingUi::new();
             mock_hal
                 .ui
                 .set_enter_string(Box::new(|_params| Ok("password".into())));

@@ -13,8 +13,6 @@ pub mod pairing;
 pub mod password;
 pub mod sdcard;
 pub mod status;
-#[cfg(feature = "testing")]
-pub mod testing;
 pub mod transaction;
 pub mod trinary_choice;
 pub mod trinary_input_string;

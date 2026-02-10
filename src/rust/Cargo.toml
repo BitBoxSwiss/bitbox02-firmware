@@ -11,6 +11,7 @@ members = [
     "bitbox02",
     "bitbox-secp256k1",
     "bitbox02-sys",
+    "bitbox-lvgl-sys",
     "erc20_params",
     "streaming-silent-payments",
     "bitbox-aes",

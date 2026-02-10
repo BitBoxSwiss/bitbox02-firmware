@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-lvgl-sys"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "Rust bindings for LVGL in bitbox02-firmware"
+
+[dependencies]

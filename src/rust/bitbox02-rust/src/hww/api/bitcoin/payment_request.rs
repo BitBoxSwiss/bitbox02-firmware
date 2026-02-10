@@ -83,6 +83,7 @@ pub async fn user_verify(
                 verify_message::verify(hal, "Memo", "Memo", text_memo.note.as_bytes(), false)
                     .await?;
             }
+            // TODO: add CoinPurchaseMemo arm when SwapKit UI is finalized
             _ => return Err(Error::InvalidInput),
         }
     }
@@ -93,6 +94,10 @@ pub async fn user_verify(
 pub enum ValidationError {
     UnknownRecipient,
     InvalidSignature,
+    #[cfg(feature = "app-ethereum")]
+    AddressMismatch,
+    #[cfg(not(feature = "app-ethereum"))]
+    Disabled,
     Other,
 }
 
@@ -127,6 +132,17 @@ fn compute_sighash(
             } => {
                 sighash.update(1u32.to_le_bytes());
                 hash_data_lenprefixed(&mut sighash, text_memo.note.as_bytes());
+            }
+            #[cfg(feature = "app-ethereum")]
+            Memo {
+                memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
+            } => {
+                // Only hash SLIP-24 fields. address_derivation is BitBox-specific and not
+                // part of the signed payload.
+                sighash.update(3u32.to_le_bytes()); // CoinPurchaseMemo type, not Protobuf field.
+                sighash.update(coin_purchase_memo.coin_type.to_le_bytes());
+                hash_data_lenprefixed(&mut sighash, coin_purchase_memo.amount.as_bytes());
+                hash_data_lenprefixed(&mut sighash, coin_purchase_memo.address.as_bytes());
             }
             _ => return Err(ValidationError::Other),
         }
@@ -173,6 +189,7 @@ fn ecdsa_verify(sig64: &[u8], msg32: &[u8], pubkey33: &[u8]) -> Result<(), Valid
 
 /// Validate the payment request: amount, signature, etc.
 pub fn validate(
+    #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
     coin_params: &params::Params,
     payment_request: &pb::BtcPaymentRequestRequest,
     output_value: u64,
@@ -190,6 +207,29 @@ pub fn validate(
     if payment_request.memos.len() > MAX_MEMOS_NUM {
         return Err(ValidationError::Other);
     }
+    for memo in payment_request.memos.iter() {
+        if let Memo {
+            memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
+        } = memo
+        {
+            match &coin_purchase_memo.address_derivation {
+                Some(memo::coin_purchase_memo::AddressDerivation::Eth(_eth)) => {
+                    #[cfg(feature = "app-ethereum")]
+                    {
+                        let derived_address =
+                            super::super::ethereum::derive_address(hal, &_eth.keypath)
+                                .map_err(|_| ValidationError::Other)?;
+                        if derived_address != coin_purchase_memo.address {
+                            return Err(ValidationError::AddressMismatch);
+                        }
+                    }
+                    #[cfg(not(feature = "app-ethereum"))]
+                    return Err(ValidationError::Disabled);
+                }
+                None => return Err(ValidationError::Other),
+            }
+        }
+    }
     let sighash = compute_sighash(coin_params, payment_request, output_value, output_address)?;
     ecdsa_verify(&payment_request.signature, &sighash, identity.public_key)
 }
@@ -197,11 +237,45 @@ pub fn validate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hal::testing::TestingHal;
 
     fn make_text_memo(note: &str) -> Memo {
         Memo {
             memo: Some(memo::Memo::TextMemo(memo::TextMemo { note: note.into() })),
         }
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    fn make_coin_purchase_memo(
+        coin_type: u32,
+        amount: &str,
+        address: &str,
+        address_derivation: Option<memo::coin_purchase_memo::AddressDerivation>,
+    ) -> Memo {
+        Memo {
+            memo: Some(memo::Memo::CoinPurchaseMemo(memo::CoinPurchaseMemo {
+                coin_type,
+                amount: amount.into(),
+                address: address.into(),
+                address_derivation,
+            })),
+        }
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    fn dummy_eth_address_derivation(valid: bool) -> memo::coin_purchase_memo::AddressDerivation {
+        let coin_type = if valid { 60 } else { 0 };
+        memo::coin_purchase_memo::AddressDerivation::Eth(
+            memo::coin_purchase_memo::EthAddressDerivation {
+                keypath: vec![
+                    44 + util::bip32::HARDENED,
+                    coin_type + util::bip32::HARDENED,
+                    0 + util::bip32::HARDENED,
+                    0,
+                    0,
+                ],
+            },
+        )
     }
 
     #[test]
@@ -243,11 +317,63 @@ mod tests {
             hex::encode(sighash),
             "9303ef0189ab78e92b7518ebf9851bf567ca06ddce242fb33220c3b31a489251"
         );
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // Verify that keypath does not influence the sighash.
+            let payment_request_without = pb::BtcPaymentRequestRequest {
+                recipient_name: "Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0xabc1234567890",
+                    None,
+                )],
+                nonce: vec![],
+                total_amount: 123456,
+                signature: vec![],
+            };
+            let sighash_without = compute_sighash(
+                coin_params,
+                &payment_request_without,
+                123456,
+                "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup",
+            )
+            .unwrap();
+
+            let payment_request_with = pb::BtcPaymentRequestRequest {
+                recipient_name: "Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0xabc1234567890",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: 123456,
+                signature: vec![],
+            };
+            let sighash_with = compute_sighash(
+                coin_params,
+                &payment_request_with,
+                123456,
+                "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup",
+            )
+            .unwrap();
+
+            assert_eq!(sighash_without, sighash_with);
+
+            assert_eq!(
+                hex::encode(sighash_without),
+                "1806caf7c518aad69eb38f25fd418d507c6a3e01719a7d77be94cd50a2790872"
+            );
+        }
     }
 
     #[test]
     fn test_validate() {
         let coin_params = params::get(pb::BtcCoin::Tbtc);
+        let mut mock_hal = TestingHal::new();
 
         let value = 123456u64;
         let address = "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup";
@@ -261,11 +387,107 @@ mod tests {
         };
         tst_sign_payment_request(coin_params, &mut payment_request, value, address);
 
-        assert!(validate(coin_params, &payment_request, value, address).is_ok());
+        assert!(validate(&mut mock_hal, coin_params, &payment_request, value, address).is_ok());
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // CoinPurchase memo with matching keypath and address. The
+            // address results from the keypath which is used in dummy_eth_address_derivation().
+            // See src/rust/bitbox02-rust/src/hww/api/ethereum/pubrequest.rs
+            use crate::keystore::testing::mock_unlocked;
+            mock_unlocked();
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0x773A77b9D32589be03f9132AF759e294f7851be9",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(validate(&mut mock_hal, coin_params, &payment_request, value, address).is_ok());
+        }
 
         // Unhappy cases:
 
-        // Unnown recipient
+        #[cfg(feature = "app-ethereum")]
+        {
+            // Invalid ETH keypath in CoinPurchaseMemo
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0xabc1234567890",
+                    Some(dummy_eth_address_derivation(/*valid=*/ false)),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            // Sign it so the only failure reason is the keypath validation.
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                Err(ValidationError::Other)
+            ));
+        }
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // Valid keypath but address mismatch
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0xWRONG_ADDRESS_THAT_DOESNT_MATCH",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(
+                    &mut TestingHal::new(),
+                    coin_params,
+                    &payment_request,
+                    value,
+                    address
+                ),
+                Err(ValidationError::AddressMismatch)
+            ));
+        }
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // Missing address_derivation in CoinPurchaseMemo
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0xabc1234567890",
+                    None,
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                Err(ValidationError::Other)
+            ));
+        }
+
+        // Unknown recipient
         let payment_request = pb::BtcPaymentRequestRequest {
             recipient_name: "Unknown Merchant".into(),
             memos: vec![make_text_memo("TextMemo")],
@@ -274,7 +496,7 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(coin_params, &payment_request, value, address),
+            validate(&mut mock_hal, coin_params, &payment_request, value, address),
             Err(ValidationError::UnknownRecipient)
         ));
 
@@ -287,7 +509,13 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(coin_params, &payment_request, value + 1, address),
+            validate(
+                &mut mock_hal,
+                coin_params,
+                &payment_request,
+                value + 1,
+                address
+            ),
             Err(ValidationError::Other)
         ));
 
@@ -300,7 +528,7 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(coin_params, &payment_request, value, address),
+            validate(&mut mock_hal, coin_params, &payment_request, value, address),
             Err(ValidationError::Other)
         ));
 
@@ -313,7 +541,7 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(coin_params, &payment_request, value, address),
+            validate(&mut mock_hal, coin_params, &payment_request, value, address),
             Err(ValidationError::InvalidSignature)
         ));
     }

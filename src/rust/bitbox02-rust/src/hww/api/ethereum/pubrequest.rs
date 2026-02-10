@@ -30,13 +30,7 @@ async fn process_address(
         Some(erc20_params::get(params.chain_id, address).ok_or(Error::InvalidInput)?)
     };
 
-    if !super::keypath::is_valid_keypath_address(&request.keypath) {
-        return Err(Error::InvalidInput);
-    }
-    let pubkey = crate::keystore::get_xpub_twice(hal, &request.keypath)
-        .or(Err(Error::InvalidInput))?
-        .pubkey_uncompressed()?;
-    let address = super::address::from_pubkey(&pubkey);
+    let address = super::derive_address(hal, &request.keypath)?;
 
     if request.display {
         let title = match erc20_params {

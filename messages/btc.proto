@@ -246,8 +246,22 @@ message BTCPaymentRequestRequest {
     message TextMemo {
       string note = 1;
     }
+    message CoinPurchaseMemo {
+      uint32 coin_type = 1; // SLIP-44 coin type
+      string amount = 2; // Human-readable amount (e.g. "0.25 ETH")
+      string address = 3; // Address to send the purchased coins to
+      // Derivation info for verifying address ownership.
+      // NOT part of the SLIP-24 sighash.
+      message EthAddressDerivation {
+        repeated uint32 keypath = 1; // Keypath to the address
+      }
+      oneof address_derivation {
+        EthAddressDerivation eth = 4;
+      }
+    }
     oneof memo {
       TextMemo text_memo = 1;
+      CoinPurchaseMemo coin_purchase_memo = 2;
     }
   }
 

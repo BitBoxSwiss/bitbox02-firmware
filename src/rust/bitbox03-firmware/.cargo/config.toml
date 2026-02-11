@@ -1,0 +1,2 @@
+[env]
+LV_CONF_PATH={ value = "../../lvgl/lv_conf.h", relative=true}

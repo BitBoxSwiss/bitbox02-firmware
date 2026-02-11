@@ -185,3 +185,7 @@ clean:
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
 	(cd external; ./vendor-rust.sh)
+
+
+bitbox03-firmware:
+	 (cd src/rust; cargo build --config bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware --target thumbv8m.main-none-eabihf)

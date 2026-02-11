@@ -230,7 +230,7 @@
 #endif
 
 /*Use TSi's aka (Think Silicon) NemaGFX */
-#define LV_USE_NEMA_GFX 1
+#define LV_USE_NEMA_GFX 0
 
 #if LV_USE_NEMA_GFX
     /** Select which NemaGFX HAL to use. Possible options:
@@ -369,7 +369,7 @@
 /** Accelerate blends, fills, etc. with STM32 DMA2D */
 #define LV_USE_DRAW_DMA2D 1
 #if LV_USE_DRAW_DMA2D
-    #define LV_DRAW_DMA2D_HAL_INCLUDE "stm32h7xx_hal.h"
+    #define LV_DRAW_DMA2D_HAL_INCLUDE "stm32u5xx_hal.h"
 
     /* if enabled, the user is required to call `lv_draw_dma2d_transfer_complete_interrupt_handler`
      * upon receiving the DMA2D global interrupt

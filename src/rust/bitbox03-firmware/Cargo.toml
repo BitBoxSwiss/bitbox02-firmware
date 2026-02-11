@@ -1,0 +1,7 @@
+[package]
+name = "bitbox03-firmware"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitbox-lvgl = { path = "../bitbox-lvgl" }

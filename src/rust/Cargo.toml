@@ -19,7 +19,9 @@ members = [
     "st-drivers-sys",
     "bitbox-executor",
     "bitbox03",
-    "bitbox03", "bitbox-lvgl",
+    "bitbox03",
+    "bitbox-lvgl",
+    "bitbox03-firmware",
 ]
 
 resolver = "2"

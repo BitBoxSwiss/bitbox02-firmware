@@ -346,7 +346,7 @@ pub async fn _process(
             if let [0, ..] = &eip1559.max_priority_fee_per_gas[..] {
                 return Err(Error::InvalidInput);
             }
-            if let [0, ..] = &eip1559.gas_limit[..] {
+            if let [0, ..] = &eip1559.max_fee_per_gas[..] {
                 return Err(Error::InvalidInput);
             }
             if eip1559.max_priority_fee_per_gas.len() > 16 || eip1559.max_fee_per_gas.len() > 16 {
@@ -1207,6 +1207,32 @@ mod tests {
             // invalid chain ID
             let mut invalid_request = valid_request.clone();
             invalid_request.chain_id = 0;
+            assert_eq!(
+                block_on(process(
+                    &mut TestingHal::new(),
+                    &Transaction::Eip1559(&invalid_request)
+                )),
+                Err(Error::InvalidInput)
+            );
+        }
+
+        {
+            // max_fee_per_gas with leading zero byte
+            let mut invalid_request = valid_request.clone();
+            invalid_request.max_fee_per_gas = b"\x00\x01\x65\xa0\xbc\x00".to_vec();
+            assert_eq!(
+                block_on(process(
+                    &mut TestingHal::new(),
+                    &Transaction::Eip1559(&invalid_request)
+                )),
+                Err(Error::InvalidInput)
+            );
+        }
+
+        {
+            // max_priority_fee_per_gas with leading zero byte
+            let mut invalid_request = valid_request.clone();
+            invalid_request.max_priority_fee_per_gas = b"\x00\x3b\x9a\xca\x00".to_vec();
             assert_eq!(
                 block_on(process(
                     &mut TestingHal::new(),

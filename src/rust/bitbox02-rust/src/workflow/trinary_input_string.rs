@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub use super::cancel::{Error, cancel, set_result};
-pub use bitbox02::ui::TrinaryInputStringParams as Params;
+pub use super::cancel::Error;
+pub use bitbox02::ui::{TrinaryInputStringParams as Params, trinary_input_string};
 
-use core::cell::RefCell;
-use util::bb02_async::option;
-
-use alloc::boxed::Box;
 use alloc::string::String;
 
 #[derive(Copy, Clone)]
@@ -24,20 +20,11 @@ pub async fn enter(
     can_cancel: CanCancel,
     preset: &str,
 ) -> Result<zeroize::Zeroizing<String>, Error> {
-    let result = RefCell::new(None);
-    let mut component = bitbox02::ui::trinary_input_string_create(
-        params,
-        |string| set_result(&result, string),
-        match can_cancel {
-            CanCancel::Yes => Some(Box::new(|| cancel(&result))),
-            CanCancel::No => None,
-        },
-    );
-    if !preset.is_empty() {
-        bitbox02::ui::trinary_input_string_set_input(&mut component, preset);
-    }
-    component.screen_stack_push();
-    option(&result)
+    let can_cancel = match can_cancel {
+        CanCancel::Yes => true,
+        CanCancel::No => false,
+    };
+    trinary_input_string(params, can_cancel, preset)
         .await
-        .or(Err(super::cancel::Error::Cancelled))
+        .or(Err(Error::Cancelled))
 }

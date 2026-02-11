@@ -2,9 +2,6 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::vec::Vec;
-
-use util::Survive;
 
 pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
 
@@ -64,40 +61,6 @@ pub struct TrinaryInputStringParams<'a> {
     pub longtouch: bool,
     pub cancel_is_backbutton: bool,
     pub default_to_digits: bool,
-}
-
-impl<'a> TrinaryInputStringParams<'a> {
-    #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
-    pub(crate) fn to_c_params(
-        &self,
-        title_scratch: &'a mut Vec<core::ffi::c_char>,
-    ) -> Survive<'a, bitbox02_sys::trinary_input_string_params_t> {
-        // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
-        // truncate and append '...'.
-        const TRUNCATE_SIZE: usize = MAX_LABEL_SIZE + 1;
-
-        *title_scratch =
-            util::strings::str_to_cstr_vec(util::strings::truncate_str(self.title, TRUNCATE_SIZE))
-                .unwrap();
-
-        Survive::new(bitbox02_sys::trinary_input_string_params_t {
-            title: title_scratch.as_ptr().cast(),
-            wordlist: match self.wordlist {
-                None => core::ptr::null(),
-                Some(wordlist) => wordlist.as_ptr(),
-            },
-            wordlist_size: match self.wordlist {
-                None => 0,
-                Some(wordlist) => wordlist.len() as _,
-            },
-            number_input: self.number_input,
-            hide: self.hide,
-            special_chars: self.special_chars,
-            longtouch: self.longtouch,
-            cancel_is_backbutton: self.cancel_is_backbutton,
-            default_to_digits: self.default_to_digits,
-        })
-    }
 }
 
 pub type SelectWordCb<'a> = Box<dyn FnMut(u8) + 'a>;

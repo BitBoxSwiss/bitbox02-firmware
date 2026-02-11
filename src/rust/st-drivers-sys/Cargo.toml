@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "st-drivers-sys"
+version = "0.1.0"
+edition = "2024"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+description = "Rust bindings for external/ST drivers in bitbox02-firmware"
+license = "Apache-2.0"
+
+[dependencies]
+
+[build-dependencies]
+cc = { version = "1.2", features = ["parallel"] }

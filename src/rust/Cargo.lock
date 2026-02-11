@@ -1107,6 +1107,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "st-drivers-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "streaming-silent-payments"
 version = "0.1.0"
 dependencies = [

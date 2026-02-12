@@ -1958,7 +1958,8 @@ mod tests {
             // Protocol step 3: host_nonce sent from host to signer to be used in step 4.
             // Sign - protocol step 4.
             let sign_result =
-                crate::secp256k1::secp256k1_sign(&private_key_bytes, &msg, &host_nonce).unwrap();
+                crate::secp256k1::secp256k1_sign(&private_key_bytes, &msg, Some(&host_nonce))
+                    .unwrap();
 
             let signature =
                 secp256k1::ecdsa::Signature::from_compact(&sign_result.signature).unwrap();

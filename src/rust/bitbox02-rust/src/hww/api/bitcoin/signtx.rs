@@ -1252,7 +1252,7 @@ async fn _process(
             let sign_result = crate::secp256k1::secp256k1_sign(
                 private_key.as_slice().try_into().unwrap(),
                 &sighash,
-                &host_nonce,
+                Some(&host_nonce),
             )?;
             drop(private_key);
             next_response.next.has_signature = true;

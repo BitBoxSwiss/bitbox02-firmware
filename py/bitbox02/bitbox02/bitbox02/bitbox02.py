@@ -1064,14 +1064,21 @@ class BitBox02(BitBoxCommonAPI):
         return format_as_uncompressed(signature)
 
     def eth_sign_typed_msg(
-        self, keypath: Sequence[int], msg: Dict[str, Any], chain_id: int = 1
+        self,
+        keypath: Sequence[int],
+        msg: Dict[str, Any],
+        chain_id: int = 1,
+        use_antiklepto: bool = True,
     ) -> bytes:
         """
         Sign a EIP-712 typed message.
+        Set `use_antiklepto=False` to sign without the anti-klepto protocol.
         """
         # pylint: disable=too-many-statements
 
         self._require_atleast(semver.VersionInfo(9, 12, 0))
+        if not use_antiklepto:
+            self._require_atleast(semver.VersionInfo(9, 26, 0))
 
         def format_as_uncompressed(sig: bytes) -> bytes:
             # 27 is the magic constant to add to the recoverable ID to denote an uncompressed
@@ -1210,8 +1217,12 @@ class BitBox02(BitBoxCommonAPI):
                     for key, val in msg["types"].items()
                 ],
                 primary_type=msg["primaryType"],
-                host_nonce_commitment=antiklepto.AntiKleptoHostNonceCommitment(
-                    commitment=antiklepto_host_commit(host_nonce),
+                host_nonce_commitment=(
+                    antiklepto.AntiKleptoHostNonceCommitment(
+                        commitment=antiklepto_host_commit(host_nonce),
+                    )
+                    if use_antiklepto
+                    else None
                 ),
             )
         )
@@ -1228,19 +1239,23 @@ class BitBox02(BitBoxCommonAPI):
                 )
             )
 
-        assert response.WhichOneof("response") == "antiklepto_signer_commitment"
-        signer_commitment = response.antiklepto_signer_commitment.commitment
+        if use_antiklepto:
+            assert response.WhichOneof("response") == "antiklepto_signer_commitment"
+            signer_commitment = response.antiklepto_signer_commitment.commitment
 
-        request = eth.ETHRequest()
-        request.antiklepto_signature.CopyFrom(
-            antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
-        )
+            request = eth.ETHRequest()
+            request.antiklepto_signature.CopyFrom(
+                antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
+            )
 
-        signature = self._eth_msg_query(request, expected_response="sign").sign.signature
-        antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+            signature = self._eth_msg_query(request, expected_response="sign").sign.signature
+            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
-        if self.debug:
-            print("Antiklepto nonce verification PASSED")
+            if self.debug:
+                print("Antiklepto nonce verification PASSED")
+        else:
+            assert response.WhichOneof("response") == "sign"
+            signature = response.sign.signature
 
         return format_as_uncompressed(signature)
 

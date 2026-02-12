@@ -128,8 +128,9 @@ impl Deref for GlobalContext {
 
 /// Sign message with private key using the given private key.
 ///
-/// Details about `host_nonce`, the host nonce contribution.  Instead of using plain rfc6979 to
-/// generate the nonce in this signature, the following formula is used:
+/// If `host_nonce` is `Some`, the host nonce contribution is mixed into the nonce derivation.
+/// Instead of using plain rfc6979 to generate the nonce in this signature, the following formula
+/// is used:
 ///
 ///     r = rfc6979(..., additional_data=Hash_d(host_nonce))
 ///     R = r * G (pubkey to secret r)
@@ -143,8 +144,9 @@ impl Deref for GlobalContext {
 /// # Arguments
 /// * `private_key` - 32 byte private key
 /// * `msg` - 32 byte message to sign
-/// * `host_nonce` - 32 byte nonce contribution. Cannot be NULL.
-///   Intended to be a contribution by the host. If there is none available, use 32 zero bytes.
+/// * `host_nonce` - optional 32 byte nonce contribution.
+///   If `Some`, anti-exfil signing is used.
+///   If `None`, regular deterministic ECDSA signing (without host nonce contribution) is used.
 ///
 /// # Returns
 /// * `Ok(SignResult)` containing signature in compact format and recoverable id on success
@@ -152,8 +154,19 @@ impl Deref for GlobalContext {
 pub fn secp256k1_sign(
     private_key: &[u8; 32],
     msg: &[u8; 32],
-    host_nonce: &[u8; 32],
+    host_nonce: Option<&[u8; 32]>,
 ) -> Result<SignResult, ()> {
+    let Some(host_nonce) = host_nonce else {
+        let message = bitcoin::secp256k1::Message::from_digest_slice(msg).map_err(|_| ())?;
+        let secret_key = bitcoin::secp256k1::SecretKey::from_slice(private_key).map_err(|_| ())?;
+        let recoverable_sig = SECP256K1.sign_ecdsa_recoverable(&message, &secret_key);
+        let (recid, signature) = recoverable_sig.serialize_compact();
+        return Ok(SignResult {
+            signature,
+            recid: recid.to_i32().try_into().unwrap(),
+        });
+    };
+
     let mut sig = MaybeUninit::<bitcoin::secp256k1::ffi::Signature>::uninit();
     let mut recid: c_int = 0;
     if unsafe {
@@ -378,7 +391,7 @@ mod tests {
         let msg = [0x88u8; 32];
         let host_nonce = [0x56u8; 32];
 
-        let sign_result = secp256k1_sign(&private_key, &msg, &host_nonce).unwrap();
+        let sign_result = secp256k1_sign(&private_key, &msg, Some(&host_nonce)).unwrap();
 
         // Verify signature against expected pubkey.
 
@@ -403,6 +416,56 @@ mod tests {
             SECP256K1
                 .verify_ecdsa(&msg, &recoverable_sig.to_standard(), &expected_pubkey)
                 .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_secp256k1_sign_zero_host_nonce_differs_from_no_host_nonce_sign() {
+        let private_key = hex!("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c");
+        let msg = [0x88u8; 32];
+        let host_nonce = [0u8; 32];
+
+        let anti_exfil_signature = secp256k1_sign(&private_key, &msg, Some(&host_nonce))
+            .unwrap()
+            .signature;
+
+        let no_host_nonce_signature = secp256k1_sign(&private_key, &msg, None).unwrap().signature;
+
+        assert_ne!(anti_exfil_signature, no_host_nonce_signature);
+    }
+
+    #[test]
+    fn test_secp256k1_sign_no_host_nonce_deterministic() {
+        let private_key = hex!("a2d8cf543c60d65162b5a06f0cef9760c883f8aa09f31236859faa85d0b74c7c");
+        let msg = [0x88u8; 32];
+
+        let sign_result_1 = secp256k1_sign(&private_key, &msg, None).unwrap();
+        let sign_result_2 = secp256k1_sign(&private_key, &msg, None).unwrap();
+        let message = secp256k1::Message::from_digest_slice(&msg).unwrap();
+        let secret_key = SecretKey::from_slice(&private_key).unwrap();
+        let expected_pubkey = secret_key.public_key(SECP256K1);
+        let recoverable_sig = secp256k1::ecdsa::RecoverableSignature::from_compact(
+            &sign_result_1.signature,
+            secp256k1::ecdsa::RecoveryId::from_i32(sign_result_1.recid as i32).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(sign_result_1.signature, sign_result_2.signature);
+        assert_eq!(
+            sign_result_1.signature,
+            hex!(
+                "a58eaaad54d6af33e3844b1c59b70aa9a0ad5bb9e072e5d006a4cd3b27694fc12d38d8488c07586207bf0ade93af18fc7d28e0242df938ff1f495d489111192a"
+            ),
+        );
+        assert_eq!(
+            sign_result_1.signature,
+            SECP256K1
+                .sign_ecdsa(&message, &secret_key)
+                .serialize_compact(),
+        );
+        assert_eq!(
+            SECP256K1.recover_ecdsa(&message, &recoverable_sig).unwrap(),
+            expected_pubkey,
         );
     }
 

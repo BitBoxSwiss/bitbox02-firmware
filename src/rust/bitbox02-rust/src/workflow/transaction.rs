@@ -11,17 +11,10 @@ use alloc::string::String;
 pub struct UserAbort;
 
 pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserAbort> {
-    let result = RefCell::new(None as Option<Result<(), UserAbort>>);
-
-    let mut component = bitbox02::ui::confirm_transaction_address_create(
-        amount,
-        recipient,
-        Box::new(|ok| {
-            *result.borrow_mut() = Some(if ok { Ok(()) } else { Err(UserAbort) });
-        }),
-    );
-    component.screen_stack_push();
-    option_no_screensaver(&result).await
+    match bitbox02::ui::confirm_transaction_address(amount, recipient).await {
+        bitbox02::ui::ConfirmResponse::Approved => Ok(()),
+        bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
+    }
 }
 
 fn format_percentage(p: f64) -> String {

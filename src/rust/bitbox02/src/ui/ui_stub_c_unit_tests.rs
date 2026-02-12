@@ -3,8 +3,8 @@
 //! Stubs for the Bitbox02 simulator and also C unit-tests.
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse, SelectWordCb,
-    TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse,
+    SdcardResponse, SelectWordCb, TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
 use core::marker::PhantomData;
@@ -70,15 +70,8 @@ pub fn status_create<'a>(text: &str, _status_success: bool) -> Component<'a> {
     }
 }
 
-pub fn sdcard_create<'a, F>(mut callback: F) -> Component<'a>
-where
-    F: FnMut(bool) + 'a,
-{
-    callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+pub async fn sdcard() -> SdcardResponse {
+    SdcardResponse::Inserted
 }
 
 pub async fn menu(_params: MenuParams<'_>) -> MenuResponse {

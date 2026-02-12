@@ -170,14 +170,15 @@ pub async fn trinary_input_string(
     .await
 }
 
-/// Returns true if the user accepts, false if the user rejects.
-pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
+/// Returns `ConfirmResponse::Approved` if the user accepts,
+/// `ConfirmResponse::Cancelled` if the user rejects.
+pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
     let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 
     // Shared between the async context and the c callback
     struct SharedState {
         waker: Option<Waker>,
-        result: Option<bool>,
+        result: Option<ConfirmResponse>,
     }
     let shared_state = Box::new(RefCell::new(SharedState {
         waker: None,
@@ -189,7 +190,11 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
         let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
         let mut shared_state = shared_state.borrow_mut();
         if shared_state.result.is_none() {
-            shared_state.result = Some(result);
+            shared_state.result = Some(if result {
+                ConfirmResponse::Approved
+            } else {
+                ConfirmResponse::Cancelled
+            });
             if let Some(waker) = shared_state.waker.as_ref() {
                 waker.wake_by_ref();
             }
@@ -237,7 +242,7 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
         move |cx| {
             let mut shared_state = shared_state.borrow_mut();
 
-            if let Some(result) = shared_state.result {
+            if let Some(result) = shared_state.result.take() {
                 Poll::Ready(result)
             } else {
                 // Store the waker so the callback can wake up this task
@@ -459,17 +464,18 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
             MenuResponse::Cancel => match cancel_confirm_title {
                 None => return MenuResponse::Cancel,
                 Some(title) => {
-                    // false means _do not cancel_, stay in the same menu component.
-                    if !confirm(&ConfirmParams {
+                    // `ConfirmResponse::Cancelled` means _do not cancel_,
+                    // stay in the same menu component.
+                    match confirm(&ConfirmParams {
                         title,
                         body: "Do you really\nwant to cancel?",
                         ..Default::default()
                     })
                     .await
                     {
-                        continue;
+                        ConfirmResponse::Approved => return MenuResponse::Cancel,
+                        ConfirmResponse::Cancelled => continue,
                     }
-                    return MenuResponse::Cancel;
                 }
             },
         }

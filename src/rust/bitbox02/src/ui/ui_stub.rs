@@ -47,7 +47,7 @@ pub async fn trinary_input_string(
     panic!("not used");
 }
 
-pub async fn confirm(_params: &ConfirmParams<'_>) -> bool {
+pub async fn confirm(_params: &ConfirmParams<'_>) -> ConfirmResponse {
     panic!("not used");
 }
 

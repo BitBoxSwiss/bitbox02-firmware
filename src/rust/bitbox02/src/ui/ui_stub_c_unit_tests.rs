@@ -49,13 +49,13 @@ pub async fn trinary_input_string(
     Ok(zeroize::Zeroizing::new("".into()))
 }
 
-pub async fn confirm(params: &ConfirmParams<'_>) -> bool {
+pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
     crate::print_stdout(&format!(
         "CONFIRM SCREEN START\nTITLE: {}\nBODY: {}\nCONFIRM SCREEN END\n",
         params.title, params.body
     ));
 
-    true
+    ConfirmResponse::Approved
 }
 
 pub fn screen_process() {}

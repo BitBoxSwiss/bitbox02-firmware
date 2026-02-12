@@ -1,0 +1,70 @@
+[package]
+authors = [
+    "The Cortex-M Team <cortex-m@teams.rust-embedded.org>",
+    "Jonathan Pallant <github@thejpster.org.uk>",
+    "Jorge Aparicio <jorge@japaric.io>",
+    "Sébastien Béchet <sebastien.bechet@osinix.com>",
+]
+
+description = "A heap allocator for embedded systems"
+repository = "https://github.com/rust-embedded/embedded-alloc"
+documentation = "https://docs.rs/embedded-alloc"
+readme = "README.md"
+edition = "2021"
+
+keywords = [
+    "allocator",
+    "embedded",
+    "arm",
+    "riscv",
+    "cortex-m",
+]
+license = "MIT OR Apache-2.0"
+name = "embedded-alloc"
+version = "0.7.0"
+
+[features]
+default = ["llff", "tlsf"]
+allocator_api = []
+
+# Use the Two-Level Segregated Fit allocator
+tlsf = ["rlsf", "const-default"]
+# Use the LinkedList first-fit allocator
+llff = ["linked_list_allocator"]
+
+[dependencies]
+critical-section = "1.0"
+linked_list_allocator = { version = "0.10.5", default-features = false, optional = true }
+rlsf = { version = "0.2.1", default-features = false, features = ["unstable"], optional = true }
+const-default = { version = "1.0.0", default-features = false, optional = true }
+
+[dev-dependencies]
+cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7"
+defmt = "1.0"
+defmt-semihosting = "0.3.0"
+semihosting = { version = "0.1.20", features = ["stdio"] }
+
+# thumbv6m-none-eabi only
+[target.thumbv6m-none-eabi.dev-dependencies]
+portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
+
+# every other target gets the crate without the feature
+[target.'cfg(not(target = "thumbv6m-none-eabi"))'.dev-dependencies]
+portable-atomic = { version = "1" }
+
+[[example]]
+name = "allocator_api"
+required-features = ["allocator_api", "llff"]
+
+[[example]]
+name = "llff_integration_test"
+required-features = ["allocator_api", "llff"]
+
+[[example]]
+name = "tlsf_integration_test"
+required-features = ["allocator_api", "tlsf"]
+
+[[example]]
+name = "global_alloc"
+required-features = ["llff"]

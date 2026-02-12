@@ -7,4 +7,6 @@ edition = "2024"
 bitbox-lvgl = { path = "../bitbox-lvgl" }
 st-drivers-sys = { path = "../st-drivers-sys" }
 cortex-m-rt = "0.7"
-cortex-m = "0.7"
+cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
+arrayvec = {version = "0.7", default-features = false}
+embedded-alloc = { version = "0.7" }

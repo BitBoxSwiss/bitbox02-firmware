@@ -16,9 +16,10 @@ fn SysTick() {
 }
 
 #[cortex_m_rt::pre_init]
-unsafe fn call_st_system_init() {
+unsafe fn init_safe_clocks_and_heap() {
     // Typically called in Reset_Handler
     unsafe { SystemInit() };
+    {}
 }
 
 // pub union Vector {

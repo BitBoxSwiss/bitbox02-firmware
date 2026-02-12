@@ -3,61 +3,43 @@
 
 extern crate alloc;
 
-use alloc::{boxed::Box};
+use alloc::boxed::Box;
+use core::ffi::CStr;
+use core::fmt::Write;
 use core::panic::PanicInfo;
 use cortex_m_rt::entry;
-use core::fmt::Write;
 
+use bitbox_lvgl::{
+    LvAlign, LvDisplayRenderMode, lv_display_create, lv_display_set_buffers,
+    lv_display_set_flush_cb, lv_init, lv_label_create, lv_label_set_text, lv_obj_align,
+    lv_screen_active, lv_tick_set_cb,
+};
 
-use bitbox_lvgl::{lv_init, lv_tick_set_cb, lv_display_create, lv_display_set_buffers, LvDisplayRenderMode, lv_display_set_flush_cb, LvAlign, lv_obj_align, lv_label_create, lv_label_set_text, lv_screen_active};
+mod uart;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     //cortex_m::interrupt::disable();
 
-    let mut buf = arrayvec::ArrayString::<1024>::new();
-    writeln!(&mut buf, "{}", info).ok();
-
-    unsafe {st_drivers_sys::HAL_UART_Transmit(
-        &raw mut st_drivers_sys::huart1 as *mut _,
-        buf.as_ptr() as *const _,
-        buf.len() as u16,
-        1000,
-    )};
+    let mut uart = uart::Uart::default();
+    let _ = writeln!(&mut uart, "{info}");
 
     //cortex_m::asm::bkpt();
-    loop{}
-}
-
-unsafe fn strlen(mut buf: *const core::ffi::c_char) -> usize {
-    unsafe {
-    let mut c = 0;
-    while core::ptr::read(buf) != 0 {
-        buf = buf.add(1);
-        c += 1;
-    }
-    c
-    }
+    loop {}
 }
 
 extern "C" fn lv_log_cb(level: bitbox_lvgl::ffi::lv_log_level_t, buf: *const core::ffi::c_char) {
-    let msg = match level as u32 {
+    let mut uart = uart::Uart::default();
+
+    let level_msg = match level as u32 {
         bitbox_lvgl::ffi::LV_LOG_LEVEL_INFO => "INFO",
         _ => "undef",
     };
-    unsafe {st_drivers_sys::HAL_UART_Transmit(
-        &raw mut st_drivers_sys::huart1 as *mut _,
-        msg.as_ptr() as *const _,
-        msg.len() as u16,
-        1000,
-    )};
-    unsafe {st_drivers_sys::HAL_UART_Transmit(
-        &raw mut st_drivers_sys::huart1 as *mut _,
-        buf,
-        strlen(buf) as u16,
-        1000,
-    )};
+    let _ = write!(&mut uart, "{level_msg}");
 
+    if !buf.is_null() {
+        let _ = uart.write_cstr_crlf(unsafe { CStr::from_ptr(buf) });
+    }
 }
 
 fn hw_lvgl() {
@@ -124,7 +106,7 @@ unsafe fn main() -> ! {
     setup_heap();
     unsafe { st_drivers_sys::platform_init() };
     lv_init();
-    unsafe {bitbox_lvgl::ffi::lv_log_register_print_cb(Some(lv_log_cb))};
+    unsafe { bitbox_lvgl::ffi::lv_log_register_print_cb(Some(lv_log_cb)) };
     lv_tick_set_cb(Some(st_drivers_sys::HAL_GetTick));
 
     // Make a buffer and give it to lvgl.
@@ -145,15 +127,11 @@ unsafe fn main() -> ! {
     if bitbox_lvgl::ffi::lv_mem_test() != bitbox_lvgl::ffi::lv_result_t::LV_RESULT_OK {
         panic!("fail");
     }
-    let tx_buf = b"hello, world\r\n";
+
+    let mut uart = uart::Uart::default();
     loop {
+        let _ = writeln!(&mut uart, "hello, world");
         unsafe {
-            st_drivers_sys::HAL_UART_Transmit(
-                &raw mut st_drivers_sys::huart1 as *mut _,
-                tx_buf.as_ptr() as *const _,
-                tx_buf.len() as u16,
-                1000,
-            );
             st_drivers_sys::HAL_Delay(1000);
         }
         cortex_m::asm::nop();

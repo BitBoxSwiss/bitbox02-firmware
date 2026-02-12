@@ -3,8 +3,8 @@
 //! Stubs for the Bitbox02 simulator and also C unit-tests.
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
-    TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse, SelectWordCb,
+    TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
 use core::marker::PhantomData;
@@ -81,7 +81,7 @@ where
     }
 }
 
-pub fn menu_create(_params: MenuParams<'_>) -> Component<'_> {
+pub async fn menu(_params: MenuParams<'_>) -> MenuResponse {
     panic!("not implemented");
 }
 

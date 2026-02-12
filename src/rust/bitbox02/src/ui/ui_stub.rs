@@ -6,8 +6,8 @@
 //! workflows now.
 
 pub use super::types::{
-    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, SelectWordCb, TrinaryChoice,
-    TrinaryChoiceCb, TrinaryInputStringParams,
+    AcceptRejectCb, ConfirmParams, ContinueCancelCb, Font, MenuParams, MenuResponse, SelectWordCb,
+    TrinaryChoice, TrinaryChoiceCb, TrinaryInputStringParams,
 };
 
 use core::marker::PhantomData;
@@ -63,7 +63,7 @@ where
     panic!("not used");
 }
 
-pub fn menu_create(_params: MenuParams<'_>) -> Component<'_> {
+pub async fn menu(_params: MenuParams<'_>) -> MenuResponse {
     panic!("not used");
 }
 

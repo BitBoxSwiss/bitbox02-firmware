@@ -78,13 +78,12 @@ pub async fn menu(_params: MenuParams<'_>) -> MenuResponse {
     panic!("not implemented");
 }
 
-pub fn trinary_choice_create<'a>(
-    _message: &'a str,
-    _label_left: Option<&'a str>,
-    _label_middle: Option<&'a str>,
-    _label_right: Option<&'a str>,
-    _chosen_callback: TrinaryChoiceCb,
-) -> Component<'a> {
+pub async fn trinary_choice(
+    _message: &str,
+    _label_left: Option<&str>,
+    _label_middle: Option<&str>,
+    _label_right: Option<&str>,
+) -> TrinaryChoice {
     panic!("not implemented")
 }
 

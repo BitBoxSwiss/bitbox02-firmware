@@ -197,28 +197,6 @@ HAL_StatusTypeDef HAL_DeInit(void)
 }
 
 /**
-  * @brief  Initializes the MSP.
-  * @retval None
-  */
-__weak void HAL_MspInit(void)
-{
-  /* NOTE : This function Should not be modified, when the callback is needed,
-            the HAL_MspInit could be implemented in the user file
-   */
-}
-
-/**
-  * @brief  DeInitializes the MSP.
-  * @retval None
-  */
-__weak void HAL_MspDeInit(void)
-{
-  /* NOTE : This function Should not be modified, when the callback is needed,
-            the HAL_MspDeInit could be implemented in the user file
-   */
-}
-
-/**
   * @brief This function configures the source of the time base.
   *        The time source is configured to have 1ms time base with a dedicated
   *        Tick interrupt priority.

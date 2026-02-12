@@ -9,6 +9,8 @@ description = "Rust bindings for external/ST drivers in bitbox02-firmware"
 license = "Apache-2.0"
 
 [dependencies]
+# Set stack pointer in startup code
+cortex-m-rt = { version = "0.7", features = ["set-sp"]}
 
 [build-dependencies]
 cc = { version = "1.2", features = ["parallel"] }

@@ -1,2 +1,18 @@
 [env]
 LV_CONF_PATH={ value = "../../lvgl/lv_conf.h", relative=true}
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+rustflags = [
+  "-C", "linker=arm-none-eabi-gcc",
+  "-C", "link-arg=-Wl,-Tbitbox03-firmware.ld",
+  "-C", "link-arg=-mcpu=cortex-m33",
+  "-C", "link-arg=-mthumb",
+  "-C", "link-arg=-mfpu=fpv5-sp-d16",
+  "-C", "link-arg=-mfloat-abi=hard",
+  # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
+  # See https://github.com/rust-embedded/cortex-m-quickstart/pull/95
+  "-C", "link-arg=-Wl,--nmagic",
+]
+
+[build]
+target = "thumbv8m.main-none-eabihf"

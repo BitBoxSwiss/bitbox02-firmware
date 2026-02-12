@@ -6,13 +6,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const ST_SOURCES: &[&str] = &[
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal.c",
+    "Core/Src/platform.c",
     "Core/Src/stm32u5xx_it.c",
     "Core/Src/stm32u5xx_hal_msp.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_adc.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_adc_ex.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dma.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dma_ex.c",
-    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_i2c.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_i2c_ex.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_rcc.c",

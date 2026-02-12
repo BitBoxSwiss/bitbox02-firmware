@@ -186,6 +186,10 @@ clean:
 vendor-rust-deps:
 	(cd external; ./vendor-rust.sh)
 
-
+# It is important that cargo is executed from `src/rust` so that it loads the
+# configration for the vendored dependencies.
 bitbox03-firmware:
-	 (cd src/rust; cargo build --config bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware --target thumbv8m.main-none-eabihf)
+	 (cd src/rust; cargo build --config bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware)
+	 arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+bitbox03-firmware-release:
+	 (cd src/rust; cargo build --config bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware --release)

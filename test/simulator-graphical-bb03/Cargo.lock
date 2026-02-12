@@ -355,6 +355,10 @@ dependencies = [
 [[package]]
 name = "bitbox-lvgl-sys"
 version = "0.1.0"
+dependencies = [
+ "cc",
+ "cmake",
+]
 
 [[package]]
 name = "bitbox-secp256k1"
@@ -734,6 +738,15 @@ name = "clap_lex"
 version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
+
+[[package]]
+name = "cmake"
+version = "0.1.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75443c44cd6b379beb8c5b45d85d0773baf31cce901fe7bb252f4eff3008ef7d"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "color_quant"

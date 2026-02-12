@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::{
-    Workflows, cancel, confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string,
+use crate::hal::Ui;
+use crate::workflow::{
+    cancel, confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string,
 };
 
 use alloc::boxed::Box;
@@ -39,15 +40,15 @@ type EnterStringCb<'a> = Box<
         + 'a,
 >;
 
-/// An Workflows implementation for unit tests. Collects all screens and provides helper functions
+/// A Ui implementation for unit tests. Collects all screens and provides helper functions
 /// to verify them.
-pub struct TestingWorkflows<'a> {
+pub struct TestingUi<'a> {
     _abort_nth: Option<usize>,
     pub screens: Vec<Screen>,
     _enter_string: Option<EnterStringCb<'a>>,
 }
 
-impl Workflows for TestingWorkflows<'_> {
+impl Ui for TestingUi<'_> {
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
         self.screens.push(Screen::Confirm {
             title: params.title.into(),
@@ -178,7 +179,7 @@ impl Workflows for TestingWorkflows<'_> {
     }
 }
 
-impl<'a> TestingWorkflows<'a> {
+impl<'a> TestingUi<'a> {
     pub fn new() -> Self {
         Self {
             screens: vec![],

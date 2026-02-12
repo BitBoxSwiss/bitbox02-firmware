@@ -37,8 +37,9 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 mod tests {
     use super::*;
 
+    use crate::hal::testing::ui::Screen;
     use crate::hal::{Memory, testing::TestingHal};
-    use crate::workflow::{testing::Screen, unlock};
+    use crate::workflow::unlock;
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
     use hex_lit::hex;

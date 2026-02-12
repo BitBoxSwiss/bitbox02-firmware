@@ -73,9 +73,9 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
+    use crate::hal::testing::ui::Screen;
     use crate::keystore;
     use crate::keystore::testing::mock_unlocked;
-    use crate::workflow::testing::Screen;
     use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 

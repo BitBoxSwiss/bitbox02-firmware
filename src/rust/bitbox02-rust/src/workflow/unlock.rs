@@ -208,8 +208,8 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
+    use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
-    use crate::workflow::testing::Screen;
     use alloc::boxed::Box;
     use util::bb02_async::block_on;
 

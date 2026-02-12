@@ -6,7 +6,7 @@ use bitcoin::hashes::Hash;
 use hex_lit::hex;
 
 pub struct TestingSecureChip {
-    // Count how man security events happen. The numbers were obtained by reading the security
+    // Count how many security events happen. The numbers were obtained by reading the security
     // event counter slot (0xE0C5) on a real device. We can use this to assert how many events
     // were used in unit tests. The number is relevant due to Optiga's throttling mechanism.
     event_counter: u32,

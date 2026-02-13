@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::{cancel, confirm, mnemonic, sdcard, trinary_input_string};
+use crate::workflow::{confirm, mnemonic, sdcard, trinary_input_string};
 
 use alloc::string::String;
 
@@ -30,12 +30,12 @@ pub trait Ui {
         params: &trinary_input_string::Params<'_>,
         can_cancel: trinary_input_string::CanCancel,
         preset: &str,
-    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error>;
+    ) -> Result<zeroize::Zeroizing<String>, UserAbort>;
 
     async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort>;
 
     /// Returns the index of the word chosen by the user.
-    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, cancel::Error>;
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, UserAbort>;
 
     async fn trinary_choice(
         &mut self,
@@ -46,15 +46,11 @@ pub trait Ui {
     ) -> bitbox02::ui::TrinaryChoice;
 
     /// Display the BIP39 mnemonic to the user.
-    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error>;
+    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort>;
 
     /// Display these BIP39 mnemonic word choices to the user as part of the quiz to confirm the
     /// user backuped up the mnemonic correctly.
-    async fn quiz_mnemonic_word(
-        &mut self,
-        choices: &[&str],
-        title: &str,
-    ) -> Result<u8, cancel::Error>;
+    async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort>;
 
     /// Display the mnemonic words and have the user confirm them in a multiple-choice quiz.
     ///
@@ -67,7 +63,7 @@ pub trait Ui {
         &mut self,
         random: &mut impl crate::hal::Random,
         words: &[&str],
-    ) -> Result<(), cancel::Error>
+    ) -> Result<(), UserAbort>
     where
         Self: Sized,
     {
@@ -78,7 +74,7 @@ pub trait Ui {
     ///
     /// This function is defined in the HAL so unit tests can easily mock it. Real implementations
     /// should leave the default implementation.
-    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, cancel::Error>
+    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, UserAbort>
     where
         Self: Sized,
     {

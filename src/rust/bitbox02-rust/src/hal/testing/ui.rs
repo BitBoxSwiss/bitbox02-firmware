@@ -2,7 +2,7 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::UserAbort;
-use crate::workflow::{cancel, confirm, sdcard, trinary_input_string};
+use crate::workflow::{confirm, sdcard, trinary_input_string};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -119,7 +119,7 @@ impl Ui for TestingUi<'_> {
         params: &trinary_input_string::Params<'_>,
         _can_cancel: trinary_input_string::CanCancel,
         _preset: &str,
-    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
+    ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
         self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)
     }
 
@@ -127,7 +127,7 @@ impl Ui for TestingUi<'_> {
         Ok(())
     }
 
-    async fn menu(&mut self, _words: &[&str], _title: Option<&str>) -> Result<u8, cancel::Error> {
+    async fn menu(&mut self, _words: &[&str], _title: Option<&str>) -> Result<u8, UserAbort> {
         todo!("not used in unit tests yet");
     }
 
@@ -141,7 +141,7 @@ impl Ui for TestingUi<'_> {
         todo!("not used in unit tests yet");
     }
 
-    async fn show_mnemonic(&mut self, _words: &[&str]) -> Result<(), cancel::Error> {
+    async fn show_mnemonic(&mut self, _words: &[&str]) -> Result<(), UserAbort> {
         todo!("not used in unit tests yet");
     }
 
@@ -149,7 +149,7 @@ impl Ui for TestingUi<'_> {
         &mut self,
         _choices: &[&str],
         _title: &str,
-    ) -> Result<u8, cancel::Error> {
+    ) -> Result<u8, UserAbort> {
         todo!("not used in unit tests yet");
     }
 
@@ -157,14 +157,14 @@ impl Ui for TestingUi<'_> {
         &mut self,
         _random: &mut impl crate::hal::Random,
         words: &[&str],
-    ) -> Result<(), cancel::Error> {
+    ) -> Result<(), UserAbort> {
         self.screens.push(Screen::ShowAndConfirmMnemonic {
             mnemonic: words.join(" "),
         });
         Ok(())
     }
 
-    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, cancel::Error>
+    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, UserAbort>
     where
         Self: Sized,
     {

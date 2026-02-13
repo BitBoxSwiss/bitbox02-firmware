@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-pub use crate::hal::ui::UserAbort;
-use crate::workflow::confirm;
+use crate::hal::ui::{ConfirmParams, Font, UserAbort};
 
 use alloc::string::String;
 
@@ -22,10 +21,10 @@ pub fn format_hash(hash: &[u8; 32]) -> String {
 }
 
 pub async fn confirm(hal: &mut impl crate::hal::Hal, hash: &[u8; 32]) -> Result<(), UserAbort> {
-    let params = confirm::Params {
+    let params = ConfirmParams {
         title: "Pairing code",
         body: &format_hash(hash),
-        font: confirm::Font::Monogram5X9,
+        font: Font::Monogram5X9,
         ..Default::default()
     };
 

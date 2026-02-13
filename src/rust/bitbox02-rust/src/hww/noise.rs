@@ -121,7 +121,7 @@ pub(crate) async fn process(
                     };
                     Ok(())
                 }
-                Err(pairing::UserAbort) => {
+                Err(crate::hal::ui::UserAbort) => {
                     let mut state = NOISE_STATE.0.borrow_mut();
                     state.reset();
                     Err(Error)

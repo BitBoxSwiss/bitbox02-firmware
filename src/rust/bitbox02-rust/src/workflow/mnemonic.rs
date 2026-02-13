@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::confirm;
 use super::trinary_input_string;
-use crate::hal::ui::UserAbort;
+use crate::hal::ui::{ConfirmParams, TrinaryChoice, UserAbort};
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use bitbox02::ui::TrinaryChoice;
 use sha2::{Digest, Sha256};
 
 const NUM_RANDOM_WORDS: u8 = 5;
@@ -64,7 +62,7 @@ pub async fn show_and_confirm_mnemonic(
     words: &[&str],
 ) -> Result<(), UserAbort> {
     hal_ui
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: &format!("{} words follow", words.len()),
             accept_is_nextarrow: true,
@@ -78,7 +76,7 @@ pub async fn show_and_confirm_mnemonic(
 
     // Can only succeed due to `accept_only`.
     let _ = hal_ui
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: "Please confirm\neach word",
             accept_only: true,
@@ -189,7 +187,7 @@ async fn get_24th_word(
         match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
             Err(UserAbort) => return Err(UserAbort),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
-                let params = confirm::Params {
+                let params = ConfirmParams {
                     title: "",
                     body: "Invalid. Check\nrecovery words.\nRestart?",
                     ..Default::default()
@@ -203,7 +201,7 @@ async fn get_24th_word(
                 // Double checking is also safer, as the user might not even realize they made a typo.
                 let word = choices[choice_idx as usize].clone();
                 if let Ok(()) = hal_ui
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title,
                         body: &word,
                         ..Default::default()
@@ -233,7 +231,7 @@ async fn get_12th_18th_word(
         let choices = lastword_choices(entered_words);
         let word = hal_ui
             .enter_string(
-                &trinary_input_string::Params {
+                &crate::hal::ui::EnterStringParams {
                     title,
                     wordlist: Some(&choices),
                     ..Default::default()
@@ -246,7 +244,7 @@ async fn get_12th_18th_word(
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
         if let Ok(()) = hal_ui
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title,
                 body: &word,
                 ..Default::default()
@@ -266,9 +264,9 @@ pub async fn get(
         .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
-        TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => unreachable!(),
-        TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
+        TrinaryChoice::Left => 12,
+        TrinaryChoice::Middle => unreachable!(),
+        TrinaryChoice::Right => 24,
     };
 
     hal_ui
@@ -307,7 +305,7 @@ pub async fn get(
         } else {
             hal_ui
                 .enter_string(
-                    &trinary_input_string::Params {
+                    &crate::hal::ui::EnterStringParams {
                         title: &title,
                         wordlist: Some(&bip39_wordlist),
                         ..Default::default()
@@ -350,7 +348,7 @@ pub async fn get(
                 match cancel_choice {
                     GetWordError::EditPrevious => word_idx -= 1,
                     GetWordError::Cancel => {
-                        let params = confirm::Params {
+                        let params = ConfirmParams {
                             title: "Restore",
                             body: "Do you really\nwant to cancel?",
                             ..Default::default()

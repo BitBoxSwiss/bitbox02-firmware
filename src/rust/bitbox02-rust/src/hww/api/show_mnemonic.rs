@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::ui::ConfirmParams;
 use alloc::vec::Vec;
 
 use super::Error;
@@ -8,7 +9,7 @@ use crate::pb;
 use pb::response::Response;
 
 use crate::hal::{Memory, Ui};
-use crate::workflow::{confirm, unlock};
+use crate::workflow::unlock;
 
 /// Handle the ShowMnemonic API call. This shows the seed encoded as
 /// 12/18/24 BIP39 English words. Afterwards, for each word, the user
@@ -26,7 +27,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
     };
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "Warning",
             body: "DO NOT share your\nrecovery words with\nanyone!",
             accept_is_nextarrow: true,
@@ -35,7 +36,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         .await?;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "Recovery\nwords",
             body: "Please write down\nthe following words",
             accept_is_nextarrow: true,

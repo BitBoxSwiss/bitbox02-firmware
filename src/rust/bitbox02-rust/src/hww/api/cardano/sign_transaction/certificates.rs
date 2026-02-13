@@ -4,6 +4,7 @@ use super::super::Error;
 use super::super::keypath::validate_address_shelley_stake;
 use super::super::params;
 use super::super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use alloc::vec::Vec;
 
@@ -13,7 +14,6 @@ use pb::cardano_sign_transaction_request::{
 };
 
 use crate::hal::Ui;
-use crate::workflow::confirm;
 use util::bip32::HARDENED;
 
 pub async fn verify<'a>(
@@ -31,7 +31,7 @@ pub async fn verify<'a>(
                 signing_keypaths.push(keypath);
                 // 2 ADA will be deposited and refunded once delegation stops, independent of the staking rewards.
                 hal.ui()
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title: params.name,
                         body: &format!(
                             "Register staking key for account #{}?",
@@ -48,7 +48,7 @@ pub async fn verify<'a>(
                 signing_keypaths.push(keypath);
                 // 2 ADA will be refunded back, independent of the staking rewards.
                 hal.ui()
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title: params.name,
                         body: &format!(
                             "Stop stake delegation for account #{}?",
@@ -67,7 +67,7 @@ pub async fn verify<'a>(
                 validate_address_shelley_stake(keypath, Some(bip44_account))?;
                 signing_keypaths.push(keypath);
                 hal.ui()
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title: params.name,
                         body: &format!(
                             "Delegate staking for account #{} to pool {}?",
@@ -101,7 +101,7 @@ pub async fn verify<'a>(
                 match drep_credhash {
                     Some(hash) => {
                         hal.ui()
-                            .confirm(&confirm::Params {
+                            .confirm(&ConfirmParams {
                                 title: params.name,
                                 body: &format!(
                                     "Delegate voting for account #{} to type {} and drep {}?",
@@ -117,7 +117,7 @@ pub async fn verify<'a>(
                     }
                     None => {
                         hal.ui()
-                            .confirm(&confirm::Params {
+                            .confirm(&ConfirmParams {
                                 title: params.name,
                                 body: &format!(
                                     "Delegate voting for account #{} to type {}?",

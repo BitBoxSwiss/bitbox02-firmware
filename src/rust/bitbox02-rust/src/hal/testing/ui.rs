@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-use crate::hal::ui::UserAbort;
-use crate::workflow::{confirm, trinary_input_string};
+use crate::hal::ui::{ConfirmParams, EnterStringParams, TrinaryChoice, UserAbort};
+use crate::workflow::trinary_input_string;
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -34,10 +34,7 @@ pub enum Screen {
     More,
 }
 
-type EnterStringCb<'a> = Box<
-    dyn FnMut(&trinary_input_string::Params<'_>) -> Result<String, trinary_input_string::Error>
-        + 'a,
->;
+type EnterStringCb<'a> = Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, UserAbort> + 'a>;
 
 /// A Ui implementation for unit tests. Collects all screens and provides helper functions
 /// to verify them.
@@ -48,7 +45,7 @@ pub struct TestingUi<'a> {
 }
 
 impl Ui for TestingUi<'_> {
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort> {
+    async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {
         self.screens.push(Screen::Confirm {
             title: params.title.into(),
             body: params.body.into(),
@@ -116,7 +113,7 @@ impl Ui for TestingUi<'_> {
 
     async fn enter_string(
         &mut self,
-        params: &trinary_input_string::Params<'_>,
+        params: &EnterStringParams<'_>,
         _can_cancel: trinary_input_string::CanCancel,
         _preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
@@ -137,7 +134,7 @@ impl Ui for TestingUi<'_> {
         _label_left: Option<&str>,
         _label_middle: Option<&str>,
         _label_right: Option<&str>,
-    ) -> bitbox02::ui::TrinaryChoice {
+    ) -> TrinaryChoice {
         todo!("not used in unit tests yet");
     }
 

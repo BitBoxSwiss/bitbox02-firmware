@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
+use crate::hal::ui::ConfirmParams;
 use crate::hal::ui::UserAbort;
 
 use alloc::string::String;
@@ -23,7 +24,7 @@ pub async fn verify_total_fee_maybe_warn(
 
     if let Some(fee_percentage) = fee_percentage {
         hal.ui()
-            .confirm(&super::confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "High fee",
                 body: &format!(
                     "The fee is {}%\nthe send amount.\nProceed?",

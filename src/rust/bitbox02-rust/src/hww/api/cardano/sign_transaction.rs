@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::ui::ConfirmParams;
 mod cbor;
 mod certificates;
 
@@ -17,7 +18,7 @@ use blake2::{
 };
 
 use crate::hal::Ui;
-use crate::workflow::{confirm, transaction};
+use crate::workflow::transaction;
 
 use pb::cardano_response::Response;
 use pb::cardano_sign_transaction_response::ShelleyWitness;
@@ -73,7 +74,7 @@ async fn verify_slot(
     let epoch = SHELLEY_START_EPOCH + (slot - SHELLEY_START_SLOT) / SHELLEY_SLOTS_IN_EPOCH;
     let slot_in_epoch = (slot - SHELLEY_START_SLOT) % SHELLEY_SLOTS_IN_EPOCH;
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: params.name,
             body: &format!("{}\nslot {} in\nepoch {}", title, slot_in_epoch, epoch),
             accept_is_nextarrow: true,
@@ -158,7 +159,7 @@ async fn _process(
             || (ttl_present && request.ttl < SHELLEY_START_SLOT);
         if cannot_be_mined {
             hal.ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     title: params.name,
                     body: "Transaction\ncannot be\nmined",
                     accept_is_nextarrow: true,
@@ -196,7 +197,7 @@ async fn _process(
         }
 
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: params.name,
                 body: &format!(
                     "Withdraw {} in staking rewards for account #{}?",
@@ -246,7 +247,7 @@ async fn _process(
                 for asset_group in output.asset_groups.iter() {
                     for token in asset_group.tokens.iter() {
                         hal.ui()
-                            .confirm(&confirm::Params {
+                            .confirm(&ConfirmParams {
                                 title: "Send token",
                                 body: &format!(
                                     "Amount: {}. Asset: {}",
@@ -266,7 +267,7 @@ async fn _process(
 
     if total == 0 {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: params.name,
                 body: &format!("Fee\n{}", format_value(params, request.fee)),
                 longtouch: true,

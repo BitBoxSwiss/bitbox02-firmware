@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub mod confirm;
 #[cfg_attr(
     all(feature = "c-unit-testing", not(feature = "testing")),
     path = "workflow/mnemonic_c_unit_tests.rs"

@@ -8,8 +8,8 @@
 
 extern crate alloc;
 
+use crate::hal::ui::ConfirmParams;
 use crate::hal::{Hal, Ui};
-use crate::workflow::confirm;
 use alloc::string::String;
 use async_channel::{Receiver, TryRecvError};
 use core::ffi::CStr;
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
 ) {
     static CONFIRM_TITLE: GroundedCell<String> = GroundedCell::uninit();
     static CONFIRM_BODY: GroundedCell<String> = GroundedCell::uninit();
-    static CONFIRM_PARAMS: GroundedCell<confirm::Params> = GroundedCell::uninit();
+    static CONFIRM_PARAMS: GroundedCell<ConfirmParams> = GroundedCell::uninit();
     unsafe {
         CONFIRM_TITLE
             .get()
@@ -51,7 +51,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
         CONFIRM_BODY
             .get()
             .write(CStr::from_ptr(body).to_str().unwrap().into());
-        CONFIRM_PARAMS.get().write(confirm::Params {
+        CONFIRM_PARAMS.get().write(ConfirmParams {
             title: CONFIRM_TITLE.get().as_ref().unwrap(),
             body: CONFIRM_BODY.get().as_ref().unwrap(),
             accept_only: true,

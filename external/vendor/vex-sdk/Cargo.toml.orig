@@ -6,7 +6,7 @@ authors = ["Tropical"]
 license = "MIT"
 categories = ["science::robotics", "no-std", "embedded"]
 keywords = ["vex", "vex-v5", "vex-robotics", "robotics"]
-version = "0.27.0"
+version = "0.27.1"
 edition = "2021"
 
 [dependencies]
@@ -17,3 +17,7 @@ rustc-dep-of-std = ["core"]
 
 [package.metadata.docs.rs]
 targets = ["armv7a-vex-v5"]
+cargo-args=[
+    "-Zbuild-std=core,alloc,compiler_builtins",
+    "-Zbuild-std-features=compiler-builtins-mem"
+]

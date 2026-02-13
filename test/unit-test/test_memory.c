@@ -447,7 +447,8 @@ static void _test_memory_get_device_name_default(void** state)
 static void _test_memory_get_device_name_default_bluetooth(void** state)
 {
     uint8_t entropy[32] = {0};
-    memcpy(entropy, "\x00\x19\xFE\xFF", 4);
+    const uint8_t entropy_prefix[] = {0x00, 0x19, 0xFE, 0xFF};
+    memcpy(entropy, entropy_prefix, sizeof(entropy_prefix));
 
     char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
     EMPTYCHUNK(empty_chunk);

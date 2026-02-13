@@ -14,18 +14,18 @@ ARG TARGETARCH
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip bzip2 xz-utils
 
-# for clang-*-15, see https://apt.llvm.org/
-RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/apt/sources.list && \
-    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/apt/sources.list && \
+# for clang-*-21, see https://apt.llvm.org/
+RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main" >> /etc/apt/sources.list && \
+    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main" >> /etc/apt/sources.list && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
 # Install gcc8-arm-none-eabi
 RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
-      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-arm-none-eabi.tar.xz \
-      GNU_TOOLCHAIN_HASH=87330bab085dd8749d4ed0ad633674b9dc48b237b61069e3b481abd364d0a684; \
+      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz \
+      GNU_TOOLCHAIN_HASH=d061559d814b205ed30c5b7c577c03317ec447ca51cd5a159d26b12a5bbeb20c; \
     else \
-      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz \
-      GNU_TOOLCHAIN_HASH=62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823; \
+      GNU_TOOLCHAIN=https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz \
+      GNU_TOOLCHAIN_HASH=597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16; \
     fi; \
     curl -sSL -o gcc.tar.xz ${GNU_TOOLCHAIN} && \
     echo "$GNU_TOOLCHAIN_HASH gcc.tar.xz" | sha256sum -c && \
@@ -35,7 +35,7 @@ RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
 # Tools for building
 RUN apt-get update && apt-get install -y \
     make \
-    llvm-18 \
+    llvm-21 \
     gcc-10 \
     binutils \
     valgrind \
@@ -67,8 +67,8 @@ RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 100
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    clang-format-18 \
-    clang-tidy-18
+    clang-format-21 \
+    clang-tidy-21
 
 RUN python3 -m pip install --upgrade pip
 
@@ -132,6 +132,7 @@ ENV RUSTUP_HOME=/opt/rustup
 COPY src/rust/rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' /tmp/rust-toolchain.toml) -y
 RUN rustup target add thumbv7em-none-eabi
+RUN rustup target add thumbv8m.main-none-eabihf
 RUN rustup component add rustfmt
 RUN rustup component add clippy
 RUN rustup component add rust-src

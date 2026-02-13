@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.82.0"
 name = "wit-bindgen"
-version = "0.45.0"
+version = "0.45.1"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 build = "build.rs"
 autolib = false
@@ -83,5 +83,5 @@ version = "1.19.0"
 optional = true
 
 [dependencies.wit-bindgen-rust-macro]
-version = "0.45.0"
+version = "0.45.1"
 optional = true

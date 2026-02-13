@@ -62,8 +62,8 @@ impl core::convert::From<crate::workflow::password::EnterTwiceError> for Error {
     }
 }
 
-impl core::convert::From<crate::workflow::confirm::UserAbort> for Error {
-    fn from(_error: crate::workflow::confirm::UserAbort) -> Self {
+impl core::convert::From<crate::hal::ui::UserAbort> for Error {
+    fn from(_error: crate::hal::ui::UserAbort) -> Self {
         Error::UserAbort
     }
 }

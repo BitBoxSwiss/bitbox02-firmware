@@ -3,16 +3,17 @@
 use alloc::string::String;
 
 use crate::hal::Ui;
+use crate::hal::ui::UserAbort;
 use crate::workflow::{cancel, confirm, sdcard, transaction, trinary_input_string};
 
 pub struct BitBox02Ui;
 
 impl Ui for BitBox02Ui {
     #[inline(always)]
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
+    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort> {
         match bitbox02::ui::confirm(params).await {
             bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-            bitbox02::ui::ConfirmResponse::Cancelled => Err(confirm::UserAbort),
+            bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
     }
 

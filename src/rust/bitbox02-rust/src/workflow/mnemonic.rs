@@ -362,7 +362,7 @@ pub async fn get(
                             ..Default::default()
                         };
 
-                        if let Err(confirm::UserAbort) = hal_ui.confirm(&params).await {
+                        if let Err(crate::hal::ui::UserAbort) = hal_ui.confirm(&params).await {
                             // Cancel cancelled.
                             continue;
                         }

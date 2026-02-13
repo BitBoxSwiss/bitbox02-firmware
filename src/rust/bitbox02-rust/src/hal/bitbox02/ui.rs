@@ -4,7 +4,7 @@ use alloc::string::String;
 
 use crate::hal::Ui;
 use crate::hal::ui::UserAbort;
-use crate::workflow::{cancel, confirm, sdcard, trinary_input_string};
+use crate::workflow::{confirm, sdcard, trinary_input_string};
 
 pub struct BitBox02Ui;
 
@@ -49,14 +49,14 @@ impl Ui for BitBox02Ui {
         params: &trinary_input_string::Params<'_>,
         can_cancel: trinary_input_string::CanCancel,
         preset: &str,
-    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
+    ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
         let can_cancel = match can_cancel {
             trinary_input_string::CanCancel::Yes => true,
             trinary_input_string::CanCancel::No => false,
         };
         bitbox02::ui::trinary_input_string(params, can_cancel, preset)
             .await
-            .or(Err(trinary_input_string::Error::Cancelled))
+            .map_err(|_| UserAbort)
     }
 
     #[inline(always)]
@@ -68,7 +68,7 @@ impl Ui for BitBox02Ui {
     }
 
     #[inline(always)]
-    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, cancel::Error> {
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, UserAbort> {
         match bitbox02::ui::menu(bitbox02::ui::MenuParams {
             words,
             title,
@@ -80,7 +80,7 @@ impl Ui for BitBox02Ui {
         {
             bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
             bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-            bitbox02::ui::MenuResponse::Cancel => Err(cancel::Error::Cancelled),
+            bitbox02::ui::MenuResponse::Cancel => Err(UserAbort),
         }
     }
 
@@ -95,7 +95,7 @@ impl Ui for BitBox02Ui {
         bitbox02::ui::trinary_choice(message, label_left, label_middle, label_right).await
     }
 
-    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {
+    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort> {
         match bitbox02::ui::menu(bitbox02::ui::MenuParams {
             words,
             title: None,
@@ -107,15 +107,11 @@ impl Ui for BitBox02Ui {
         {
             bitbox02::ui::MenuResponse::ContinueOnLast => Ok(()),
             bitbox02::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
-            bitbox02::ui::MenuResponse::Cancel => Err(cancel::Error::Cancelled),
+            bitbox02::ui::MenuResponse::Cancel => Err(UserAbort),
         }
     }
 
-    async fn quiz_mnemonic_word(
-        &mut self,
-        choices: &[&str],
-        title: &str,
-    ) -> Result<u8, cancel::Error> {
+    async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort> {
         match bitbox02::ui::menu(bitbox02::ui::MenuParams {
             words: choices,
             title: Some(title),
@@ -127,7 +123,7 @@ impl Ui for BitBox02Ui {
         {
             bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
             bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-            bitbox02::ui::MenuResponse::Cancel => Err(cancel::Error::Cancelled),
+            bitbox02::ui::MenuResponse::Cancel => Err(UserAbort),
         }
     }
 }

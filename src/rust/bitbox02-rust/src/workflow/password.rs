@@ -2,10 +2,11 @@
 
 use super::{confirm, trinary_input_string};
 use crate::hal::Ui;
+use crate::hal::ui::UserAbort;
 
 use crate::hal::{Memory, memory::SecurechipType};
 
-pub use trinary_input_string::{CanCancel, Error};
+pub use trinary_input_string::CanCancel;
 
 use alloc::string::String;
 
@@ -72,9 +73,9 @@ pub async fn enter(
     loop {
         match hal.ui().enter_string(&params, can_cancel, "").await {
             Ok(pw) => return Ok(pw),
-            Err(Error::Cancelled) => match prompt_cancel(hal).await {
+            Err(UserAbort) => match prompt_cancel(hal).await {
                 Ok(()) => return Err(EnterError::Cancelled),
-                Err(crate::hal::ui::UserAbort) => {}
+                Err(UserAbort) => {}
             },
         }
     }
@@ -133,9 +134,9 @@ pub async fn enter_twice(
                 .await
             {
                 Ok(()) => break,
-                Err(crate::hal::ui::UserAbort) => match prompt_cancel(hal).await {
+                Err(UserAbort) => match prompt_cancel(hal).await {
                     Ok(()) => return Err(EnterTwiceError::EnterError(EnterError::Cancelled)),
-                    Err(crate::hal::ui::UserAbort) => {}
+                    Err(UserAbort) => {}
                 },
             }
         }
@@ -195,9 +196,7 @@ mod tests {
     fn test_enter_cancelled() {
         let mut hal = TestingHal::new();
         hal.memory.set_securechip_type(SecurechipType::Atecc);
-        hal.ui.set_enter_string(Box::new(|_params| {
-            Err(trinary_input_string::Error::Cancelled)
-        }));
+        hal.ui.set_enter_string(Box::new(|_params| Err(UserAbort)));
 
         let result = block_on(enter(
             &mut hal,

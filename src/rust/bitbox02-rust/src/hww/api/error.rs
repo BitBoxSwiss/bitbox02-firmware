@@ -35,12 +35,6 @@ impl core::convert::From<crate::hal::memory::Error> for Error {
     }
 }
 
-impl core::convert::From<crate::workflow::cancel::Error> for Error {
-    fn from(_error: crate::workflow::cancel::Error) -> Self {
-        Error::UserAbort
-    }
-}
-
 impl core::convert::From<crate::workflow::password::EnterError> for Error {
     fn from(error: crate::workflow::password::EnterError) -> Self {
         match error {

@@ -96,21 +96,16 @@ pub async fn confirm_transaction_address(_amount: &str, _address: &str) -> Confi
     ConfirmResponse::Approved
 }
 
-pub fn confirm_transaction_fee_create<'a, 'b>(
-    _amount: &'a str,
-    _fee: &'a str,
+pub async fn confirm_transaction_fee(
+    _amount: &str,
+    _fee: &str,
     _longtouch: bool,
-    mut callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+) -> ConfirmResponse {
     crate::print_stdout(&format!(
         "CONFIRM TRANSACTION FEE SCREEN START\nAMOUNT: {}\nFEE: {}\nCONFIRM TRANSACTION FEE SCREEN END\n",
         _amount, _fee
     ));
-    callback(true);
-    Component {
-        is_pushed: false,
-        _p: PhantomData,
-    }
+    ConfirmResponse::Approved
 }
 
 pub fn screen_stack_pop_all() {}

@@ -78,12 +78,11 @@ pub async fn confirm_transaction_address(_amount: &str, _address: &str) -> Confi
     panic!("not used");
 }
 
-pub fn confirm_transaction_fee_create<'a, 'b>(
-    _amount: &'a str,
-    _fee: &'a str,
+pub async fn confirm_transaction_fee(
+    _amount: &str,
+    _fee: &str,
     _longtouch: bool,
-    _callback: AcceptRejectCb<'b>,
-) -> Component<'b> {
+) -> ConfirmResponse {
     panic!("not used");
 }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{CanCancel, ConfirmParams};
 use crate::pb;
 use alloc::vec::Vec;
 
@@ -89,7 +89,7 @@ pub async fn create(
     let is_initialized = hal.memory().is_initialized();
 
     let seed = if is_initialized {
-        unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
+        unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?
     } else {
         let seed = crate::keystore::copy_seed(hal)?;
         // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes

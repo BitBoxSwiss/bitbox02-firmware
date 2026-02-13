@@ -9,7 +9,6 @@ pub mod orientation_screen;
 pub mod pairing;
 pub mod password;
 pub mod transaction;
-pub mod trinary_input_string;
 pub mod unlock;
 pub mod unlock_animation;
 pub mod verify_message;

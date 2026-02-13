@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{CanCancel, ConfirmParams};
 use crate::pb;
 
 use pb::response::Response;
@@ -21,7 +21,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         })
         .await?;
     // Unlock with old password
-    let seed = unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?;
+    let seed = unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?;
     // Enter and confirm new password
     let new_password = password::enter_twice(hal).await?;
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::{confirm, mnemonic, sdcard, trinary_input_string};
+use crate::workflow::{confirm, mnemonic, trinary_input_string};
 
 use alloc::string::String;
 
@@ -28,7 +28,7 @@ pub trait Ui {
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort>;
 
-    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort>;
+    async fn insert_sdcard(&mut self) -> Result<(), UserAbort>;
 
     async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, UserAbort>;
 

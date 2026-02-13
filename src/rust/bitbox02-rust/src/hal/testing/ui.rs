@@ -2,7 +2,7 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::UserAbort;
-use crate::workflow::{confirm, sdcard, trinary_input_string};
+use crate::workflow::{confirm, trinary_input_string};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -123,7 +123,7 @@ impl Ui for TestingUi<'_> {
         self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)
     }
 
-    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
+    async fn insert_sdcard(&mut self) -> Result<(), UserAbort> {
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::{mnemonic, trinary_input_string};
+use crate::workflow::mnemonic;
 
 use alloc::string::String;
 
@@ -56,6 +56,12 @@ pub enum TrinaryChoice {
     Right,
 }
 
+#[derive(Copy, Clone)]
+pub enum CanCancel {
+    No,
+    Yes,
+}
+
 #[allow(async_fn_in_trait)]
 pub trait Ui {
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
@@ -78,7 +84,7 @@ pub trait Ui {
     async fn enter_string(
         &mut self,
         params: &EnterStringParams<'_>,
-        can_cancel: trinary_input_string::CanCancel,
+        can_cancel: CanCancel,
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort>;
 

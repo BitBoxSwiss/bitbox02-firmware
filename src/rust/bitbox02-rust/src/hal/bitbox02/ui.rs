@@ -3,8 +3,7 @@
 use alloc::string::String;
 
 use crate::hal::Ui;
-use crate::hal::ui::{ConfirmParams, EnterStringParams, Font, TrinaryChoice, UserAbort};
-use crate::workflow::trinary_input_string;
+use crate::hal::ui::{CanCancel, ConfirmParams, EnterStringParams, Font, TrinaryChoice, UserAbort};
 
 pub struct BitBox02Ui;
 
@@ -95,13 +94,13 @@ impl Ui for BitBox02Ui {
     async fn enter_string(
         &mut self,
         params: &EnterStringParams<'_>,
-        can_cancel: trinary_input_string::CanCancel,
+        can_cancel: CanCancel,
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
         let params = to_bitbox02_trinary_input_string_params(params);
         let can_cancel = match can_cancel {
-            trinary_input_string::CanCancel::Yes => true,
-            trinary_input_string::CanCancel::No => false,
+            CanCancel::Yes => true,
+            CanCancel::No => false,
         };
         bitbox02::ui::trinary_input_string(&params, can_cancel, preset)
             .await

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{CanCancel, ConfirmParams};
 use alloc::vec::Vec;
 
 use super::Error;
@@ -18,7 +18,7 @@ use crate::workflow::unlock;
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let mnemonic_sentence = {
         let seed = if hal.memory().is_initialized() {
-            unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
+            unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?
         } else {
             crate::keystore::copy_seed(hal)?
         };

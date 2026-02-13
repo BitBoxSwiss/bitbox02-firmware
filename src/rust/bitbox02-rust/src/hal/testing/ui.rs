@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-use crate::hal::ui::{ConfirmParams, EnterStringParams, TrinaryChoice, UserAbort};
-use crate::workflow::trinary_input_string;
+use crate::hal::ui::{CanCancel, ConfirmParams, EnterStringParams, TrinaryChoice, UserAbort};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -114,7 +113,7 @@ impl Ui for TestingUi<'_> {
     async fn enter_string(
         &mut self,
         params: &EnterStringParams<'_>,
-        _can_cancel: trinary_input_string::CanCancel,
+        _can_cancel: CanCancel,
         _preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
         self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)

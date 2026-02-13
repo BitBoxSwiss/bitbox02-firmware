@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::trinary_input_string;
 use crate::hal::Ui;
-use crate::hal::ui::{ConfirmParams, UserAbort};
+use crate::hal::ui::{CanCancel, ConfirmParams, UserAbort};
 
 use crate::hal::{Memory, memory::SecurechipType};
-
-pub use trinary_input_string::CanCancel;
 
 use alloc::string::String;
 

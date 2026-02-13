@@ -14,8 +14,8 @@ use pb::btc_script_config::Config;
 
 use super::multisig::SortXpubs;
 
+use crate::hal::ui::CanCancel;
 use crate::hal::{Memory, Ui};
-use crate::workflow::trinary_input_string;
 
 pub fn process_is_script_config_registered(
     hal: &mut impl crate::hal::Hal,
@@ -80,7 +80,7 @@ async fn get_name(
                     longtouch: true,
                     ..Default::default()
                 },
-                trinary_input_string::CanCancel::Yes,
+                CanCancel::Yes,
                 "",
             )
             .await?;

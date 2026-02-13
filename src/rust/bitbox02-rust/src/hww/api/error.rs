@@ -62,12 +62,6 @@ impl core::convert::From<crate::hal::ui::UserAbort> for Error {
     }
 }
 
-impl core::convert::From<crate::workflow::sdcard::UserAbort> for Error {
-    fn from(_error: crate::workflow::sdcard::UserAbort) -> Self {
-        Error::UserAbort
-    }
-}
-
 impl core::convert::From<crate::workflow::verify_message::Error> for Error {
     fn from(error: crate::workflow::verify_message::Error) -> Self {
         match error {

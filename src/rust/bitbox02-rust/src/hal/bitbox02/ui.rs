@@ -4,7 +4,7 @@ use alloc::string::String;
 
 use crate::hal::Ui;
 use crate::hal::ui::UserAbort;
-use crate::workflow::{confirm, sdcard, trinary_input_string};
+use crate::workflow::{confirm, trinary_input_string};
 
 pub struct BitBox02Ui;
 
@@ -60,10 +60,10 @@ impl Ui for BitBox02Ui {
     }
 
     #[inline(always)]
-    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
+    async fn insert_sdcard(&mut self) -> Result<(), UserAbort> {
         match bitbox02::ui::sdcard().await {
             bitbox02::ui::SdcardResponse::Inserted => Ok(()),
-            bitbox02::ui::SdcardResponse::Cancelled => Err(sdcard::UserAbort),
+            bitbox02::ui::SdcardResponse::Cancelled => Err(UserAbort),
         }
     }
 

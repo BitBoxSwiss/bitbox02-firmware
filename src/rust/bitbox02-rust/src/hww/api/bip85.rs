@@ -31,8 +31,7 @@ pub async fn process(
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
 async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
-    use crate::hal::ui::TrinaryChoice;
-    use crate::workflow::trinary_input_string;
+    use crate::hal::ui::{CanCancel, TrinaryChoice};
 
     hal.ui()
         .confirm(&ConfirmParams {
@@ -82,7 +81,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
                         longtouch: true,
                         ..Default::default()
                     },
-                    trinary_input_string::CanCancel::Yes,
+                    CanCancel::Yes,
                     "",
                 )
                 .await?;

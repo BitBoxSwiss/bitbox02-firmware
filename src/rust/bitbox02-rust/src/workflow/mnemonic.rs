@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::trinary_input_string;
-use crate::hal::ui::{ConfirmParams, TrinaryChoice, UserAbort};
+use crate::hal::ui::{CanCancel, ConfirmParams, TrinaryChoice, UserAbort};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -236,7 +235,7 @@ async fn get_12th_18th_word(
                     wordlist: Some(&choices),
                     ..Default::default()
                 },
-                trinary_input_string::CanCancel::Yes,
+                CanCancel::Yes,
                 "",
             )
             .await?;
@@ -310,7 +309,7 @@ pub async fn get(
                         wordlist: Some(&bip39_wordlist),
                         ..Default::default()
                     },
-                    trinary_input_string::CanCancel::Yes,
+                    CanCancel::Yes,
                     preset,
                 )
                 .await

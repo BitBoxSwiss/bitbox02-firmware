@@ -948,6 +948,27 @@ pub mod btc_payment_request_request {
             pub amount: ::prost::alloc::string::String,
             #[prost(string, tag = "3")]
             pub address: ::prost::alloc::string::String,
+            #[prost(oneof = "coin_purchase_memo::AddressDerivation", tags = "4")]
+            pub address_derivation: ::core::option::Option<
+                coin_purchase_memo::AddressDerivation,
+            >,
+        }
+        /// Nested message and enum types in `CoinPurchaseMemo`.
+        pub mod coin_purchase_memo {
+            /// Derivation info for verifying address ownership.
+            /// NOT part of the SLIP-24 sighash.
+            #[allow(clippy::derive_partial_eq_without_eq)]
+            #[derive(Clone, PartialEq, ::prost::Message)]
+            pub struct EthAddressDerivation {
+                #[prost(uint32, repeated, tag = "1")]
+                pub keypath: ::prost::alloc::vec::Vec<u32>,
+            }
+            #[allow(clippy::derive_partial_eq_without_eq)]
+            #[derive(Clone, PartialEq, ::prost::Oneof)]
+            pub enum AddressDerivation {
+                #[prost(message, tag = "4")]
+                Eth(EthAddressDerivation),
+            }
         }
         #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]

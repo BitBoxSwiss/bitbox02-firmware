@@ -133,6 +133,8 @@ fn compute_sighash(
             Memo {
                 memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
             } => {
+                // Only hash SLIP-24 fields. address_derivation is BitBox-specific and not
+                // part of the signed payload.
                 sighash.update(3u32.to_le_bytes());
                 sighash.update(coin_purchase_memo.coin_type.to_le_bytes());
                 hash_data_lenprefixed(&mut sighash, coin_purchase_memo.amount.as_bytes());
@@ -221,6 +223,17 @@ mod tests {
                 coin_type,
                 amount: amount.into(),
                 address: address.into(),
+                address_derivation: Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                    memo::coin_purchase_memo::EthAddressDerivation {
+                        keypath: vec![
+                            44 + util::bip32::HARDENED,
+                            60 + util::bip32::HARDENED,
+                            0 + util::bip32::HARDENED,
+                            0,
+                            0,
+                        ],
+                    },
+                )),
             })),
         }
     }

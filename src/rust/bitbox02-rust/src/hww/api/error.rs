@@ -68,12 +68,6 @@ impl core::convert::From<crate::hal::ui::UserAbort> for Error {
     }
 }
 
-impl core::convert::From<crate::workflow::transaction::UserAbort> for Error {
-    fn from(_error: crate::workflow::transaction::UserAbort) -> Self {
-        Error::UserAbort
-    }
-}
-
 impl core::convert::From<crate::workflow::sdcard::UserAbort> for Error {
     fn from(_error: crate::workflow::sdcard::UserAbort) -> Self {
         Error::UserAbort

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::{cancel, confirm, mnemonic, sdcard, transaction, trinary_input_string};
+use crate::workflow::{cancel, confirm, mnemonic, sdcard, trinary_input_string};
 
 use alloc::string::String;
 
@@ -10,18 +10,14 @@ pub struct UserAbort;
 pub trait Ui {
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort>;
 
-    async fn verify_recipient(
-        &mut self,
-        recipient: &str,
-        amount: &str,
-    ) -> Result<(), transaction::UserAbort>;
+    async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort>;
 
     async fn verify_total_fee(
         &mut self,
         total: &str,
         fee: &str,
         longtouch: bool,
-    ) -> Result<(), transaction::UserAbort>;
+    ) -> Result<(), UserAbort>;
 
     async fn status(&mut self, title: &str, status_success: bool);
 

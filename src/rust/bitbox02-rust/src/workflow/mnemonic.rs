@@ -2,13 +2,12 @@
 
 pub use super::cancel::Error as CancelError;
 use super::confirm;
-use super::menu;
-use super::trinary_choice::TrinaryChoice;
 use super::trinary_input_string;
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use bitbox02::ui::TrinaryChoice;
 use sha2::{Digest, Sha256};
 
 const NUM_RANDOM_WORDS: u8 = 5;
@@ -62,40 +61,6 @@ fn create_random_unique_words(
         .collect();
 
     (index_word, result)
-}
-
-/// Displays all mnemonic words in a scroll-through screen.
-pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
-    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
-        words,
-        title: None,
-        select_word: false,
-        continue_on_last: true,
-        cancel_confirm_title: Some("Recovery\nwords"),
-    })
-    .await
-    {
-        bitbox02::ui::MenuResponse::ContinueOnLast => Ok(()),
-        bitbox02::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
-        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
-    }
-}
-
-/// Displays the `choices` to the user, returning the index of the selected choice.
-pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
-    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
-        words: choices,
-        title: Some(title),
-        select_word: true,
-        continue_on_last: false,
-        cancel_confirm_title: Some("Recovery\nwords"),
-    })
-    .await
-    {
-        bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
-        bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
-    }
 }
 
 pub async fn show_and_confirm_mnemonic(
@@ -227,7 +192,7 @@ async fn get_24th_word(
     };
     loop {
         match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
-            Err(menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
+            Err(CancelError::Cancelled) => return Err(CancelError::Cancelled),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
                 let params = confirm::Params {
                     title: "",
@@ -378,7 +343,7 @@ pub async fn get(
                         .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
                         .await
                     {
-                        Err(menu::CancelError::Cancelled) => {
+                        Err(CancelError::Cancelled) => {
                             // Cancel cancelled.
                             continue;
                         }

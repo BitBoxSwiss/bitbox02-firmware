@@ -2,7 +2,6 @@
 
 pub mod cancel;
 pub mod confirm;
-pub mod menu;
 #[cfg_attr(
     all(feature = "c-unit-testing", not(feature = "testing")),
     path = "workflow/mnemonic_c_unit_tests.rs"
@@ -12,9 +11,7 @@ pub mod orientation_screen;
 pub mod pairing;
 pub mod password;
 pub mod sdcard;
-pub mod status;
 pub mod transaction;
-pub mod trinary_choice;
 pub mod trinary_input_string;
 pub mod unlock;
 pub mod unlock_animation;

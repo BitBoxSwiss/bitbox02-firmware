@@ -2,7 +2,7 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::UserAbort;
-use crate::workflow::{cancel, confirm, sdcard, transaction, trinary_input_string};
+use crate::workflow::{cancel, confirm, sdcard, trinary_input_string};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -64,11 +64,7 @@ impl Ui for TestingUi<'_> {
         Ok(())
     }
 
-    async fn verify_recipient(
-        &mut self,
-        recipient: &str,
-        amount: &str,
-    ) -> Result<(), transaction::UserAbort> {
+    async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
         self.screens.push(Screen::Recipient {
             recipient: recipient.into(),
             amount: amount.into(),
@@ -78,7 +74,7 @@ impl Ui for TestingUi<'_> {
             .as_ref()
             .is_some_and(|&n| self.screens.len() - 1 == n)
         {
-            return Err(transaction::UserAbort);
+            return Err(UserAbort);
         }
         Ok(())
     }
@@ -88,7 +84,7 @@ impl Ui for TestingUi<'_> {
         total: &str,
         fee: &str,
         longtouch: bool,
-    ) -> Result<(), transaction::UserAbort> {
+    ) -> Result<(), UserAbort> {
         self.screens.push(Screen::TotalFee {
             total: total.into(),
             fee: fee.into(),
@@ -99,7 +95,7 @@ impl Ui for TestingUi<'_> {
             .as_ref()
             .is_some_and(|&n| self.screens.len() - 1 == n)
         {
-            return Err(transaction::UserAbort);
+            return Err(UserAbort);
         }
         Ok(())
     }

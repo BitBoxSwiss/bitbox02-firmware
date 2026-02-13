@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
+use crate::hal::ui::UserAbort;
 
 use alloc::string::String;
-
-pub struct UserAbort;
 
 fn format_percentage(p: f64) -> String {
     let int: u64 = num_traits::float::FloatCore::round(p * 10.) as _;
@@ -23,8 +22,7 @@ pub async fn verify_total_fee_maybe_warn(
     hal.ui().verify_total_fee(total, fee, longtouch).await?;
 
     if let Some(fee_percentage) = fee_percentage {
-        match hal
-            .ui()
+        hal.ui()
             .confirm(&super::confirm::Params {
                 title: "High fee",
                 body: &format!(
@@ -34,11 +32,7 @@ pub async fn verify_total_fee_maybe_warn(
                 longtouch: true,
                 ..Default::default()
             })
-            .await
-        {
-            Ok(()) => (),
-            Err(crate::hal::ui::UserAbort) => return Err(UserAbort),
-        }
+            .await?;
     }
     Ok(())
 }

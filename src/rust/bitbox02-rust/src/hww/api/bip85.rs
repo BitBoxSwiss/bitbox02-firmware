@@ -31,8 +31,8 @@ pub async fn process(
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
 async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
-    use crate::workflow::trinary_choice::TrinaryChoice;
     use crate::workflow::trinary_input_string;
+    use bitbox02::ui::TrinaryChoice;
 
     hal.ui()
         .confirm(&confirm::Params {

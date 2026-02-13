@@ -9,7 +9,7 @@ pub use trinary_input_string::{CanCancel, Error};
 
 use alloc::string::String;
 
-async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), confirm::UserAbort> {
+async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), crate::hal::ui::UserAbort> {
     hal.ui()
         .confirm(&confirm::Params {
             body: "Do you really\nwant to cancel?",
@@ -74,7 +74,7 @@ pub async fn enter(
             Ok(pw) => return Ok(pw),
             Err(Error::Cancelled) => match prompt_cancel(hal).await {
                 Ok(()) => return Err(EnterError::Cancelled),
-                Err(confirm::UserAbort) => {}
+                Err(crate::hal::ui::UserAbort) => {}
             },
         }
     }
@@ -133,9 +133,9 @@ pub async fn enter_twice(
                 .await
             {
                 Ok(()) => break,
-                Err(confirm::UserAbort) => match prompt_cancel(hal).await {
+                Err(crate::hal::ui::UserAbort) => match prompt_cancel(hal).await {
                     Ok(()) => return Err(EnterTwiceError::EnterError(EnterError::Cancelled)),
-                    Err(confirm::UserAbort) => {}
+                    Err(crate::hal::ui::UserAbort) => {}
                 },
             }
         }

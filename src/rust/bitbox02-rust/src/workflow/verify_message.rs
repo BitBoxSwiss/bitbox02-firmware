@@ -12,8 +12,8 @@ pub enum Error {
     UserAbort,
 }
 
-impl core::convert::From<confirm::UserAbort> for Error {
-    fn from(_error: confirm::UserAbort) -> Self {
+impl core::convert::From<crate::hal::ui::UserAbort> for Error {
+    fn from(_error: crate::hal::ui::UserAbort) -> Self {
         Error::UserAbort
     }
 }

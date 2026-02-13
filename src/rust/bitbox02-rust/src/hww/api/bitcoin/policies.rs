@@ -404,7 +404,7 @@ impl ParsedPolicy<'_> {
             .await?;
 
         if matches!(mode, Mode::Basic) {
-            if let Err(confirm::UserAbort) = hal
+            if let Err(crate::hal::ui::UserAbort) = hal
                 .ui()
                 .confirm(&confirm::Params {
                     body: "Show policy\ndetails?",

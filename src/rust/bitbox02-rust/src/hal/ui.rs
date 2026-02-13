@@ -4,9 +4,11 @@ use crate::workflow::{cancel, confirm, mnemonic, sdcard, transaction, trinary_in
 
 use alloc::string::String;
 
+pub struct UserAbort;
+
 #[allow(async_fn_in_trait)]
 pub trait Ui {
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort>;
+    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort>;
 
     async fn verify_recipient(
         &mut self,

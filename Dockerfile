@@ -132,6 +132,7 @@ ENV RUSTUP_HOME=/opt/rustup
 COPY src/rust/rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' /tmp/rust-toolchain.toml) -y
 RUN rustup target add thumbv7em-none-eabi
+RUN rustup target add thumbv8m.main-none-eabihf
 RUN rustup component add rustfmt
 RUN rustup component add clippy
 RUN rustup component add rust-src

@@ -21,7 +21,7 @@ enum TaskState<O> {
 }
 
 static UNLOCK_STATE: GroundedCell<TaskState<Result<(), ()>>> = GroundedCell::uninit();
-static CONFIRM_STATE: GroundedCell<TaskState<Result<(), confirm::UserAbort>>> =
+static CONFIRM_STATE: GroundedCell<TaskState<Result<(), crate::hal::ui::UserAbort>>> =
     GroundedCell::uninit();
 static BITBOX02_HAL: GroundedCell<crate::hal::BitBox02Hal> = GroundedCell::const_init();
 

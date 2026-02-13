@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 async fn confirm_mnemonic_passphrase(
     hal: &mut impl crate::hal::Hal,
     passphrase: &str,
-) -> Result<(), confirm::UserAbort> {
+) -> Result<(), crate::hal::ui::UserAbort> {
     // Accept empty passphrase without confirmation.
     if passphrase.is_empty() {
         return Ok(());
@@ -60,7 +60,7 @@ impl core::convert::From<password::EnterError> for UnlockError {
 async fn maybe_confirm_remaining_unlock_attempts(
     hal: &mut impl crate::hal::Hal,
     can_cancel: password::CanCancel,
-) -> Result<(), confirm::UserAbort> {
+) -> Result<(), crate::hal::ui::UserAbort> {
     let remaining = crate::keystore::get_remaining_unlock_attempts(hal);
     if remaining >= crate::keystore::MAX_UNLOCK_ATTEMPTS {
         return Ok(());

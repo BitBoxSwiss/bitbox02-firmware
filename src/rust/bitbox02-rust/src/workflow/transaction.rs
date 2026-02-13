@@ -37,7 +37,7 @@ pub async fn verify_total_fee_maybe_warn(
             .await
         {
             Ok(()) => (),
-            Err(super::confirm::UserAbort) => return Err(UserAbort),
+            Err(crate::hal::ui::UserAbort) => return Err(UserAbort),
         }
     }
     Ok(())

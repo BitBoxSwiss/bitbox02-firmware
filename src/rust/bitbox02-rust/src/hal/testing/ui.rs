@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
+use crate::hal::ui::UserAbort;
 use crate::workflow::{cancel, confirm, sdcard, transaction, trinary_input_string};
 
 use alloc::boxed::Box;
@@ -47,7 +48,7 @@ pub struct TestingUi<'a> {
 }
 
 impl Ui for TestingUi<'_> {
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
+    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort> {
         self.screens.push(Screen::Confirm {
             title: params.title.into(),
             body: params.body.into(),
@@ -58,7 +59,7 @@ impl Ui for TestingUi<'_> {
             .as_ref()
             .is_some_and(|&n| self.screens.len() - 1 == n)
         {
-            return Err(confirm::UserAbort);
+            return Err(UserAbort);
         }
         Ok(())
     }

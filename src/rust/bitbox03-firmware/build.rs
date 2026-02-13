@@ -21,5 +21,8 @@ fn main() {
     // Search paths to linker scripts
     println!("cargo::rustc-link-search={}", out_dir.display());
 
-    println!("cargo::rustc-link-arg=-Wl,-Map={}", out_dir.join("bitbox03-firmware.map").display())
+    println!(
+        "cargo::rustc-link-arg=-Wl,-Map={}",
+        out_dir.join("bitbox03-firmware.map").display()
+    )
 }

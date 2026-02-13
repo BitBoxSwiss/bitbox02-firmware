@@ -39,8 +39,12 @@ fn build_clang_args(lvgl_dir: &Path, lv_conf: &Path) -> Vec<String> {
 
     if let Ok(sysroot) = env::var("CMAKE_SYSROOT") {
         args.push(format!("--sysroot={sysroot}"));
-    }
-    else if let Ok(output) = cc::Build::new().get_compiler().to_command().arg("-print-sysroot").output() {
+    } else if let Ok(output) = cc::Build::new()
+        .get_compiler()
+        .to_command()
+        .arg("-print-sysroot")
+        .output()
+    {
         let sysroot = String::from_utf8(output.stdout).expect("invalid utf-8");
         let sysroot = sysroot.trim();
         args.push(format!("--sysroot={sysroot}"));
@@ -83,29 +87,50 @@ fn main() -> Result<(), &'static str> {
     println!("cargo::rerun-if-changed={}", lv_conf.display());
 
     let mut cmake_build = cmake::Config::new(&lvgl_dir);
-        cmake_build.define("LV_BUILD_CONF_PATH",&lv_conf);
+    cmake_build.define("LV_BUILD_CONF_PATH", &lv_conf);
     // TODO: check if cross compiling
     //if target.startswith("thumb") {
-        const INCLUDES: &[&str] = &[
-            "Core/Inc",
-            "Drivers/STM32U5xx_HAL_Driver/Inc",
-            "Drivers/STM32U5xx_HAL_Driver/Inc/Legacy",
-            "Drivers/CMSIS/Device/ST/STM32U5xx/Include",
-            "Drivers/CMSIS/Include"];
-        let st_root = repo_root.join("external/ST");
-        for inc in INCLUDES {
-            let inc_full = st_root.join(inc);
-            cmake_build.cflag(format!("-I{}", inc_full.display()));
-        }
-        //cmake_build.cflag("--specs=nosys.specs");
-        //cmake_build.cflag("--specs=nano.specs");
-        cmake_build.cflag("-DUSE_HAL_DRIVER");
-        cmake_build.cflag("-DSTM32U5A9xx");
-        cmake_build.define("CMAKE_EXE_LINKER_FLAGS", "--specs=nosys.specs --specs=nano.specs");
+    const INCLUDES: &[&str] = &[
+        "Core/Inc",
+        "Drivers/STM32U5xx_HAL_Driver/Inc",
+        "Drivers/STM32U5xx_HAL_Driver/Inc/Legacy",
+        "Drivers/CMSIS/Device/ST/STM32U5xx/Include",
+        "Drivers/CMSIS/Include",
+    ];
+    let st_root = repo_root.join("external/ST");
+    for inc in INCLUDES {
+        let inc_full = st_root.join(inc);
+        cmake_build.cflag(format!("-I{}", inc_full.display()));
+    }
+    let nema_gfx_include = lvgl_dir.join("libs/nema_gfx/include");
+    if nema_gfx_include.join("nema_core.h").is_file() {
+        cmake_build.cflag(format!("-I{}", nema_gfx_include.display()));
+    }
+    //cmake_build.cflag("--specs=nosys.specs");
+    //cmake_build.cflag("--specs=nano.specs");
+    cmake_build.cflag("-DUSE_HAL_DRIVER");
+    cmake_build.cflag("-DSTM32U5A9xx");
+    cmake_build.define(
+        "CMAKE_EXE_LINKER_FLAGS",
+        "--specs=nosys.specs --specs=nano.specs",
+    );
     //}
     let dst = cmake_build.build();
     println!("cargo::rustc-link-search=native={}/lib", dst.display());
     println!("cargo::rustc-link-lib=static=lvgl");
+    let target = env::var("TARGET").expect("TARGET not set");
+    if target.starts_with("thumb") {
+        let nema_gfx_lib_dir = lvgl_dir.join("libs/nema_gfx/lib/core/cortex_m33_revC/gcc");
+        let nema_gfx_lib = nema_gfx_lib_dir.join("libnemagfx-float-abi-hard.a");
+        if nema_gfx_lib.is_file() {
+            println!("cargo::rerun-if-changed={}", nema_gfx_lib.display());
+            println!(
+                "cargo::rustc-link-search=native={}",
+                nema_gfx_lib_dir.display()
+            );
+            println!("cargo::rustc-link-lib=static=nemagfx-float-abi-hard");
+        }
+    }
 
     if let Err(err) = Command::new("bindgen").arg("--version").output() {
         if err.kind() == ErrorKind::NotFound {

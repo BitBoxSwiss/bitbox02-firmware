@@ -4,7 +4,7 @@ use alloc::string::String;
 
 use crate::hal::Ui;
 use crate::hal::ui::UserAbort;
-use crate::workflow::{cancel, confirm, sdcard, transaction, trinary_input_string};
+use crate::workflow::{cancel, confirm, sdcard, trinary_input_string};
 
 pub struct BitBox02Ui;
 
@@ -18,14 +18,10 @@ impl Ui for BitBox02Ui {
     }
 
     #[inline(always)]
-    async fn verify_recipient(
-        &mut self,
-        recipient: &str,
-        amount: &str,
-    ) -> Result<(), transaction::UserAbort> {
+    async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
         match bitbox02::ui::confirm_transaction_address(amount, recipient).await {
             bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-            bitbox02::ui::ConfirmResponse::Cancelled => Err(transaction::UserAbort),
+            bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
     }
 
@@ -35,10 +31,10 @@ impl Ui for BitBox02Ui {
         total: &str,
         fee: &str,
         longtouch: bool,
-    ) -> Result<(), transaction::UserAbort> {
+    ) -> Result<(), UserAbort> {
         match bitbox02::ui::confirm_transaction_fee(total, fee, longtouch).await {
             bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-            bitbox02::ui::ConfirmResponse::Cancelled => Err(transaction::UserAbort),
+            bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
     }
 

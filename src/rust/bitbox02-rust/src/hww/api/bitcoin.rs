@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::ui::ConfirmParams;
 #[cfg(not(feature = "app-bitcoin"))]
 compile_error!("Bitcoin code is being compiled even though the app-bitcoin feature is not enabled");
 
@@ -22,7 +23,6 @@ use super::Error;
 use super::pb;
 
 use crate::hal::Ui;
-use crate::workflow::confirm;
 
 use util::bip32::HARDENED;
 
@@ -102,7 +102,7 @@ async fn xpub(
     if is_unusual {
         // For unusual keypaths, we allow export after a confirmation.
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: if display { "xpub" } else { "Export xpub" },
                 body: &format!(
                     "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
@@ -126,7 +126,7 @@ async fn xpub(
             format!("{}\naccount #{}", params.name, keypath[2] - HARDENED + 1)
         };
 
-        let confirm_params = confirm::Params {
+        let confirm_params = ConfirmParams {
             title: &title,
             body: &xpub,
             scrollable: true,
@@ -172,7 +172,7 @@ async fn address_simple(
 ) -> Result<Response, Error> {
     let address = derive_address_simple(hal, coin, simple_type, keypath)?;
     if display {
-        let confirm_params = confirm::Params {
+        let confirm_params = ConfirmParams {
             title: params::get(coin).name,
             body: &address,
             scrollable: true,
@@ -213,7 +213,7 @@ pub async fn address_multisig(
     .address(coin_params)?;
     if display {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title,
                 body: &address,
                 scrollable: true,
@@ -253,7 +253,7 @@ async fn address_policy(
         common::Payload::from_policy(coin_params, &parsed, keypath)?.address(coin_params)?;
     if display {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title,
                 body: &address,
                 scrollable: true,

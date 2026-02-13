@@ -4,11 +4,12 @@ use super::Error;
 use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use crate::keystore;
 
 use crate::hal::Ui;
-use crate::workflow::{confirm, transaction};
+use crate::workflow::transaction;
 
 use alloc::vec::Vec;
 use pb::eth_response::Response;
@@ -259,7 +260,7 @@ async fn verify_standard_transaction(
 
     if !request.data().is_empty() || data_length > 0 {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Unknown\ncontract",
                 body: if data_length > 0 {
                     "You are signing a\ncontract interaction\nwith large data."
@@ -271,7 +272,7 @@ async fn verify_standard_transaction(
             })
             .await?;
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Unknown\ncontract",
                 body: if data_length > 0 {
                     "Only proceed if you\nfully understand\nthe risks involved."
@@ -286,7 +287,7 @@ async fn verify_standard_transaction(
         if data_length > 0 {
             // Streaming mode: data is too large to display, show size instead
             hal.ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     title: "Transaction\ndata",
                     body: &alloc::format!("{} bytes\n(too large to\ndisplay)", data_length),
                     accept_is_nextarrow: true,
@@ -296,7 +297,7 @@ async fn verify_standard_transaction(
         } else {
             // Nonstreaming mode: show hex data
             hal.ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     title: "Transaction\ndata",
                     body: &hex::encode(request.data()),
                     scrollable: true,
@@ -345,7 +346,7 @@ pub async fn _process(
     // Show chain confirmation only for known networks
     if super::params::is_known_network(request.coin()?, request.chain_id()) {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 body: &format!("Sign transaction on\n\n{}", params.name),
                 accept_is_nextarrow: true,
                 ..Default::default()

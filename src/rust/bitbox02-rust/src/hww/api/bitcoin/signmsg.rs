@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::ui::ConfirmParams;
 use alloc::vec::Vec;
 
 use sha2::{Digest, Sha256};
@@ -15,7 +16,7 @@ use pb::btc_response::Response;
 use crate::keystore;
 
 use crate::hal::Ui;
-use crate::workflow::{confirm, verify_message};
+use crate::workflow::verify_message;
 
 const MAX_MESSAGE_SIZE: usize = 1024;
 
@@ -52,7 +53,7 @@ pub async fn process(
     let address = super::derive_address_simple(hal, coin, simple_type, keypath)?;
 
     let basic_info = format!("Coin: {}", super::params::get(coin).name);
-    let confirm_params = confirm::Params {
+    let confirm_params = ConfirmParams {
         title: "Sign message",
         body: &basic_info,
         accept_is_nextarrow: true,
@@ -60,7 +61,7 @@ pub async fn process(
     };
     hal.ui().confirm(&confirm_params).await?;
 
-    let confirm_params = confirm::Params {
+    let confirm_params = ConfirmParams {
         title: "Address",
         body: &address,
         scrollable: true,

@@ -2,6 +2,7 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use hex_lit::hex;
 
@@ -11,7 +12,6 @@ use pb::bluetooth_response::Response;
 use sha2::{Digest, Sha256};
 
 use crate::hal::{Memory, Ui, memory as hal_memory};
-use crate::workflow::confirm;
 
 use alloc::vec::Vec;
 
@@ -143,7 +143,7 @@ async fn process_upgrade(
     }
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "Bluetooth",
             body: "Upgrade\nfirmware?",
             longtouch: true,
@@ -177,7 +177,7 @@ async fn process_toggle_enabled(hal: &mut impl crate::hal::Hal) -> Result<Respon
     };
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             body,
             longtouch: true,
             ..Default::default()

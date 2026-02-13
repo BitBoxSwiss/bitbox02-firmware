@@ -2,10 +2,10 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 use pb::EthCoin;
 
 use crate::hal::Ui;
-use crate::workflow::confirm;
 
 use util::bip32::HARDENED;
 
@@ -139,7 +139,7 @@ pub async fn get_and_warn_unknown(
                 Err(Error::InvalidInput)
             } else {
                 hal.ui()
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title: "Warning",
                         body: &format!("Unknown network\nwith chain ID:\n{}", chain_id),
                         accept_is_nextarrow: true,
@@ -147,7 +147,7 @@ pub async fn get_and_warn_unknown(
                     })
                     .await?;
                 hal.ui()
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title: "Warning",
                         body: "Only proceed if\nyou recognize\nthis chain ID.",
                         accept_is_nextarrow: true,

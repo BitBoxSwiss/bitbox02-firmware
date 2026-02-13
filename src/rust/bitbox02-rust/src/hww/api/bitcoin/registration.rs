@@ -3,6 +3,7 @@
 use super::Error;
 use super::params;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use alloc::string::String;
 
@@ -14,7 +15,7 @@ use pb::btc_script_config::Config;
 use super::multisig::SortXpubs;
 
 use crate::hal::{Memory, Ui};
-use crate::workflow::{confirm, trinary_input_string};
+use crate::workflow::trinary_input_string;
 
 pub fn process_is_script_config_registered(
     hal: &mut impl crate::hal::Hal,
@@ -63,7 +64,7 @@ async fn get_name(
 ) -> Result<String, Error> {
     let name = if request.name.is_empty() {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Register",
                 body: "Please name this\naccount",
                 accept_is_nextarrow: true,
@@ -74,7 +75,7 @@ async fn get_name(
         let name = hal
             .ui()
             .enter_string(
-                &trinary_input_string::Params {
+                &crate::hal::ui::EnterStringParams {
                     title: "Enter account name",
                     longtouch: true,
                     ..Default::default()

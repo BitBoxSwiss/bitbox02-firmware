@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use crate::hal::Memory;
 
-pub(crate) struct BitBox02Memory;
+pub struct BitBox02Memory;
 
 impl Memory for BitBox02Memory {
     fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()> {

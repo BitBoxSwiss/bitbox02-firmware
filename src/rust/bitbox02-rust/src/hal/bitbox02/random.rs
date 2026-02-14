@@ -4,7 +4,7 @@ use alloc::boxed::Box;
 
 use crate::hal::Random;
 
-pub(crate) struct BitBox02Random;
+pub struct BitBox02Random;
 
 impl Random for BitBox02Random {
     #[inline(always)]

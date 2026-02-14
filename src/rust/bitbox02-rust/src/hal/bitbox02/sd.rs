@@ -7,7 +7,7 @@ use futures_lite::future::yield_now;
 
 use crate::hal::Sd;
 
-pub(crate) struct BitBox02Sd;
+pub struct BitBox02Sd;
 
 impl Sd for BitBox02Sd {
     #[inline(always)]

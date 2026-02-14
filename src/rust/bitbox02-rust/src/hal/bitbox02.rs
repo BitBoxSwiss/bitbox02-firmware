@@ -7,7 +7,7 @@ pub mod securechip;
 pub mod system;
 pub mod ui;
 
-use crate::hal::{Hal, Memory, Random, Sd, SecureChip, System, Ui};
+use crate::hal::Hal;
 
 pub struct BitBox02Hal {
     ui: ui::BitBox02Ui,
@@ -32,27 +32,31 @@ impl BitBox02Hal {
 }
 
 impl Hal for BitBox02Hal {
-    fn ui(&mut self) -> &mut impl Ui {
-        &mut self.ui
-    }
+    type Ui = ui::BitBox02Ui;
+    type Random = random::BitBox02Random;
+    type Sd = sd::BitBox02Sd;
+    type SecureChip = securechip::BitBox02SecureChip;
+    type Memory = memory::BitBox02Memory;
+    type System = system::BitBox02System;
 
-    fn sd(&mut self) -> &mut impl Sd {
-        &mut self.sd
-    }
-
-    fn random(&mut self) -> &mut impl Random {
-        &mut self.random
-    }
-
-    fn securechip(&mut self) -> &mut impl SecureChip {
-        &mut self.securechip
-    }
-
-    fn memory(&mut self) -> &mut impl Memory {
-        &mut self.memory
-    }
-
-    fn system(&mut self) -> &mut impl System {
-        &mut self.system
+    fn subsystems(
+        &mut self,
+    ) -> crate::hal::HalSubsystems<
+        '_,
+        Self::Ui,
+        Self::Random,
+        Self::Sd,
+        Self::SecureChip,
+        Self::Memory,
+        Self::System,
+    > {
+        crate::hal::HalSubsystems {
+            ui: &mut self.ui,
+            random: &mut self.random,
+            sd: &mut self.sd,
+            securechip: &mut self.securechip,
+            memory: &mut self.memory,
+            system: &mut self.system,
+        }
     }
 }

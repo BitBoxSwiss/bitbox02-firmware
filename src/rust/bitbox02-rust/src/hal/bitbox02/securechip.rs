@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use crate::hal::SecureChip;
 
-pub(crate) struct BitBox02SecureChip;
+pub struct BitBox02SecureChip;
 
 impl SecureChip for BitBox02SecureChip {
     fn init_new_password(

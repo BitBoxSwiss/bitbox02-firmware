@@ -621,7 +621,7 @@ optiga_lib_status_t optiga_ops_crypt_symmetric_generate_key_sync(
 optiga_lib_status_t optiga_ops_crypt_random_sync(
     optiga_crypt_t* me,
     optiga_rng_type_t rng_type,
-    uint8_t* random_data,
+    uint8_t* random_data, // NOLINT(readability-non-const-parameter)
     uint16_t random_data_length)
 {
     (void)me;
@@ -714,8 +714,8 @@ optiga_lib_status_t optiga_ops_crypt_ecc_generate_keypair_sync(
     uint8_t key_usage,
     bool_t export_private_key,
     void* private_key,
-    uint8_t* public_key,
-    uint16_t* public_key_length)
+    uint8_t* public_key, // NOLINT(readability-non-const-parameter)
+    uint16_t* public_key_length) // NOLINT(readability-non-const-parameter)
 {
     (void)me;
     (void)curve_id;
@@ -732,8 +732,8 @@ optiga_lib_status_t optiga_ops_crypt_ecdsa_sign_sync(
     const uint8_t* digest,
     uint8_t digest_length,
     optiga_key_id_t private_key,
-    uint8_t* signature,
-    uint16_t* signature_length)
+    uint8_t* signature, // NOLINT(readability-non-const-parameter)
+    uint16_t* signature_length) // NOLINT(readability-non-const-parameter)
 {
     (void)me;
     (void)digest;

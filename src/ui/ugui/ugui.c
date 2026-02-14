@@ -226,7 +226,7 @@ UG_S16 UG_Init( UG_GUI *g, void (*p)(UG_S16, UG_S16, UG_COLOR),
         return 0;
     }
 
-    g->pset = (void(*)(UG_S16, UG_S16, UG_COLOR))p;
+    g->pset = p;
     g->x_dim = x;
     g->y_dim = y;
     g->font = *font;

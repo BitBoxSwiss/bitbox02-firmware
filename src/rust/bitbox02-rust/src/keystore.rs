@@ -7,7 +7,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use crate::hal::{Memory, Random, SecureChip};
+use crate::hal::{Memory, Random, SecureChip, memory, securechip};
 
 use util::bip32::HARDENED;
 use util::cell::SyncCell;
@@ -41,14 +41,14 @@ pub enum Error {
     Decrypt,
 }
 
-impl core::convert::From<bitbox02::securechip::Error> for Error {
-    fn from(error: bitbox02::securechip::Error) -> Self {
+impl core::convert::From<securechip::Error> for Error {
+    fn from(error: securechip::Error) -> Self {
         match error {
-            bitbox02::securechip::Error::SecureChip(
-                bitbox02::securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD,
-            ) => Error::IncorrectPassword,
-            bitbox02::securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
-            bitbox02::securechip::Error::Status(status) => Error::SecureChip(status),
+            securechip::Error::SecureChip(securechip::SecureChipError::IncorrectPassword) => {
+                Error::IncorrectPassword
+            }
+            securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
+            securechip::Error::Status(status) => Error::SecureChip(status),
         }
     }
 }
@@ -157,7 +157,7 @@ fn verify_seed(
     hal: &mut impl crate::hal::Hal,
     encryption_key: &[u8],
     expected_seed: &[u8],
-    expected_password_stretch_also: bitbox02::memory::PasswordStretchAlgo,
+    expected_password_stretch_also: memory::PasswordStretchAlgo,
 ) -> bool {
     if encryption_key.len() != 32 {
         return false;
@@ -209,18 +209,14 @@ fn retain_bip39_seed(hal: &mut impl crate::hal::Hal, bip39_seed: &[u8]) -> Resul
 /// Returns the stretching algo that will be used when setting new passwords.
 pub fn default_password_stretch_algo(
     hal: &mut impl crate::hal::Hal,
-) -> Result<bitbox02::memory::PasswordStretchAlgo, Error> {
+) -> Result<memory::PasswordStretchAlgo, Error> {
     match hal
         .memory()
         .get_securechip_type()
         .map_err(|_| Error::Memory)?
     {
-        bitbox02::memory::SecurechipType::Atecc => {
-            Ok(bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0)
-        }
-        bitbox02::memory::SecurechipType::Optiga => {
-            Ok(bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1)
-        }
+        memory::SecurechipType::Atecc => Ok(memory::PasswordStretchAlgo::V0),
+        memory::SecurechipType::Optiga => Ok(memory::PasswordStretchAlgo::V1),
     }
 }
 
@@ -894,10 +890,7 @@ mod tests {
             // Decrypt and check seed.
             let (cipher, password_stretch_algo) = hal.memory.get_encrypted_seed_and_hmac().unwrap();
 
-            assert_eq!(
-                password_stretch_algo,
-                bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
-            );
+            assert_eq!(password_stretch_algo, memory::PasswordStretchAlgo::V1);
             // Same as Python:
             // import hmac, hashlib; hmac.digest(b"unit-test", b"password", hashlib.sha256).hex()
             // See also: mock_securechip.c
@@ -1375,7 +1368,7 @@ mod tests {
 
         assert!(matches!(
             mock_hal.memory.get_securechip_type().unwrap(),
-            bitbox02::memory::SecurechipType::Optiga
+            memory::SecurechipType::Optiga
         ));
 
         // Setup a seed encrypted with algo V0.
@@ -1383,10 +1376,7 @@ mod tests {
             let encrypted = {
                 let secret = mock_hal
                     .securechip
-                    .stretch_password(
-                        password,
-                        bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
-                    )
+                    .stretch_password(password, memory::PasswordStretchAlgo::V0)
                     .unwrap();
                 let iv: &[u8; 16] = &[0xaau8; 16];
 
@@ -1395,10 +1385,7 @@ mod tests {
 
             mock_hal
                 .memory
-                .set_encrypted_seed_and_hmac(
-                    &encrypted,
-                    bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0,
-                )
+                .set_encrypted_seed_and_hmac(&encrypted, memory::PasswordStretchAlgo::V0)
                 .unwrap();
         }
 
@@ -1416,10 +1403,7 @@ mod tests {
         assert_eq!(copy_seed(&mut mock_hal).unwrap().as_slice(), seed);
         // Check the seed now uses the new algo.
         let (_, stored_algo) = mock_hal.memory.get_encrypted_seed_and_hmac().unwrap();
-        assert_eq!(
-            stored_algo,
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
-        );
+        assert_eq!(stored_algo, memory::PasswordStretchAlgo::V1);
 
         // Password check still works
         assert_eq!(

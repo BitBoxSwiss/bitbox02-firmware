@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::{Memory, SecureChip};
+use crate::hal::{Memory, SecureChip, memory as hal_memory, securechip};
 use crate::pb;
 
-use bitbox02::{memory, securechip, spi_mem};
+use bitbox02::{memory, spi_mem};
 use pb::response::Response;
 
 pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let bluetooth = match hal.memory().get_platform().map_err(|_| Error::Memory)? {
-        memory::Platform::BitBox02Plus => {
+        hal_memory::Platform::BitBox02Plus => {
             let ble_metadata = memory::get_ble_metadata();
             Some(pb::device_info_response::Bluetooth {
                 firmware_hash: ble_metadata.allowed_firmware_hash.to_vec(),
@@ -18,7 +18,7 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
                 enabled: memory::ble_enabled(),
             })
         }
-        memory::Platform::BitBox02 => None,
+        hal_memory::Platform::BitBox02 => None,
     };
     // We display the stretching algo that is used on a seeded device, or the algo that would be
     // used for a new seed on an unseeded device.
@@ -41,14 +41,14 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         mnemonic_passphrase_enabled: hal.memory().is_mnemonic_passphrase_enabled(),
         monotonic_increments_remaining: hal.securechip().monotonic_increments_remaining()?,
         securechip_model: match hal.securechip().model()? {
-            securechip::Model::ATECC_ATECC608A => "ATECC608A".into(),
-            securechip::Model::ATECC_ATECC608B => "ATECC608B".into(),
-            securechip::Model::OPTIGA_TRUST_M_V3 => "OPTIGA_TRUST_M_V3".into(),
+            securechip::Model::Atecc608A => "ATECC608A".into(),
+            securechip::Model::Atecc608B => "ATECC608B".into(),
+            securechip::Model::OptigaTrustM3 => "OPTIGA_TRUST_M_V3".into(),
         },
         bluetooth,
         password_stretching_algo: match password_stretching_algo {
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => "V1".into(),
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => "V2".into(),
+            hal_memory::PasswordStretchAlgo::V0 => "V1".into(),
+            hal_memory::PasswordStretchAlgo::V1 => "V2".into(),
         },
     }))
 }

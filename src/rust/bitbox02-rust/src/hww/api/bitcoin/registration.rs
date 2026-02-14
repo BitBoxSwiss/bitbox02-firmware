@@ -126,16 +126,9 @@ pub async fn process_register_script_config(
             )
             .await?;
             let hash = super::multisig::get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
-            match hal.memory().multisig_set_by_hash(&hash, &name) {
-                Ok(()) => {
-                    hal.ui().status("Multisig account\nregistered", true).await;
-                    Ok(Response::Success(pb::BtcSuccess {}))
-                }
-                Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {
-                    Err(Error::Duplicate)
-                }
-                Err(_) => Err(Error::Generic),
-            }
+            hal.memory().multisig_set_by_hash(&hash, &name)?;
+            hal.ui().status("Multisig account\nregistered", true).await;
+            Ok(Response::Success(pb::BtcSuccess {}))
         }
         Some(pb::BtcScriptConfigRegistration {
             coin,
@@ -159,16 +152,9 @@ pub async fn process_register_script_config(
                 )
                 .await?;
             let hash = super::policies::get_hash(coin, policy)?;
-            match hal.memory().multisig_set_by_hash(&hash, &name) {
-                Ok(()) => {
-                    hal.ui().status("Policy\nregistered", true).await;
-                    Ok(Response::Success(pb::BtcSuccess {}))
-                }
-                Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME) => {
-                    Err(Error::Duplicate)
-                }
-                Err(_) => Err(Error::Generic),
-            }
+            hal.memory().multisig_set_by_hash(&hash, &name)?;
+            hal.ui().status("Policy\nregistered", true).await;
+            Ok(Response::Success(pb::BtcSuccess {}))
         }
         // Only multisig and policy registration supported for now.
         _ => Err(Error::InvalidInput),

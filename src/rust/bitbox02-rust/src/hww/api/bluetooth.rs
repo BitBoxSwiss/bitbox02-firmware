@@ -10,7 +10,7 @@ use pb::bluetooth_response::Response;
 
 use sha2::{Digest, Sha256};
 
-use crate::hal::{Memory, Ui};
+use crate::hal::{Memory, Ui, memory as hal_memory};
 use crate::workflow::confirm;
 
 use alloc::vec::Vec;
@@ -205,7 +205,7 @@ pub async fn process_api(
 ) -> Result<Response, Error> {
     if !matches!(
         hal.memory().get_platform().map_err(|_| Error::Memory)?,
-        memory::Platform::BitBox02Plus
+        hal_memory::Platform::BitBox02Plus
     ) {
         return Err(Error::Disabled);
     }

@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::{confirm, trinary_input_string};
 use crate::hal::Ui;
+use crate::hal::ui::{CanCancel, ConfirmParams, UserAbort};
 
 use crate::hal::Memory;
 use bitbox02::memory::SecurechipType;
 
-pub use trinary_input_string::{CanCancel, Error};
-
 use alloc::string::String;
 
-async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), confirm::UserAbort> {
+async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), crate::hal::ui::UserAbort> {
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             body: "Do you really\nwant to cancel?",
             ..Default::default()
         })
@@ -46,7 +44,7 @@ pub async fn enter(
     password_type: PasswordType,
     can_cancel: CanCancel,
 ) -> Result<zeroize::Zeroizing<String>, EnterError> {
-    let params = trinary_input_string::Params {
+    let params = crate::hal::ui::EnterStringParams {
         title,
         hide: true,
         special_chars: match password_type {
@@ -73,9 +71,9 @@ pub async fn enter(
     loop {
         match hal.ui().enter_string(&params, can_cancel, "").await {
             Ok(pw) => return Ok(pw),
-            Err(Error::Cancelled) => match prompt_cancel(hal).await {
+            Err(UserAbort) => match prompt_cancel(hal).await {
                 Ok(()) => return Err(EnterError::Cancelled),
-                Err(confirm::UserAbort) => {}
+                Err(UserAbort) => {}
             },
         }
     }
@@ -125,7 +123,7 @@ pub async fn enter_twice(
         loop {
             match hal
                 .ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     title: "WARNING",
                     body: "Your password\n has fewer than\n 4 characters.\nContinue?",
                     longtouch: true,
@@ -134,9 +132,9 @@ pub async fn enter_twice(
                 .await
             {
                 Ok(()) => break,
-                Err(confirm::UserAbort) => match prompt_cancel(hal).await {
+                Err(UserAbort) => match prompt_cancel(hal).await {
                     Ok(()) => return Err(EnterTwiceError::EnterError(EnterError::Cancelled)),
-                    Err(confirm::UserAbort) => {}
+                    Err(UserAbort) => {}
                 },
             }
         }
@@ -196,9 +194,7 @@ mod tests {
     fn test_enter_cancelled() {
         let mut hal = TestingHal::new();
         hal.memory.set_securechip_type(SecurechipType::Atecc);
-        hal.ui.set_enter_string(Box::new(|_params| {
-            Err(trinary_input_string::Error::Cancelled)
-        }));
+        hal.ui.set_enter_string(Box::new(|_params| Err(UserAbort)));
 
         let result = block_on(enter(
             &mut hal,

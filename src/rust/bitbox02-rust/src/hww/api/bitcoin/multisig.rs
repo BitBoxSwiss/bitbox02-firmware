@@ -3,6 +3,7 @@
 use super::Error;
 use super::params::Params;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use pb::BtcCoin;
 use pb::btc_register_script_config_request::XPubType;
@@ -11,7 +12,6 @@ use pb::btc_script_config::{Multisig, multisig::ScriptType};
 use crate::bip32;
 
 use crate::hal::{Memory, Ui};
-use crate::workflow::confirm;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -128,7 +128,7 @@ pub async fn confirm(
     multisig: &Multisig,
 ) -> Result<(), Error> {
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title,
             body: &format!(
                 "{}-of-{}\n{} multisig",
@@ -141,7 +141,7 @@ pub async fn confirm(
         })
         .await?;
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title,
             body: name,
             scrollable: true,
@@ -177,7 +177,7 @@ pub async fn confirm_extended(
 
     confirm(hal, title, params, name, multisig).await?;
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title,
             body: &format!(
                 "{}\nat\n{}",
@@ -215,7 +215,7 @@ pub async fn confirm_extended(
             .serialize_str(output_xpub_type)
             .or(Err(Error::InvalidInput))?;
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title,
                 body: (if i == multisig.our_xpub_index as usize {
                     format!(

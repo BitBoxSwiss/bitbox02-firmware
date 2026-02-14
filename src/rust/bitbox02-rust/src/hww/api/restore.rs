@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
+use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
 use pb::response::Response;
@@ -8,7 +9,7 @@ use pb::response::Response;
 #[cfg(feature = "app-u2f")]
 use crate::hal::SecureChip;
 use crate::hal::{Memory, Ui};
-use crate::workflow::{confirm, password, unlock};
+use crate::workflow::{password, unlock};
 
 pub async fn from_file(
     hal: &mut impl crate::hal::Hal,
@@ -16,7 +17,7 @@ pub async fn from_file(
 ) -> Result<Response, Error> {
     // This is a separate screen because 'Restore backup?' does not fit in the title field.
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             body: "Restore backup?",
             accept_is_nextarrow: true,
             ..Default::default()
@@ -32,7 +33,7 @@ pub async fn from_file(
     };
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             body: &format!("Name: {}. ID: {}", &metadata.name, &request.id),
             scrollable: true,
             accept_is_nextarrow: true,
@@ -45,7 +46,7 @@ pub async fn from_file(
         let datetime_string =
             util::datetime::format_datetime(request.timestamp, request.timezone_offset, false)
                 .map_err(|_| Error::InvalidInput)?;
-        let params = confirm::Params {
+        let params = ConfirmParams {
             title: "Is now?",
             body: &datetime_string,
             accept_is_nextarrow: true,
@@ -95,7 +96,7 @@ pub async fn from_mnemonic(
         let datetime_string = util::datetime::format_datetime(timestamp, timezone_offset, false)
             .map_err(|_| Error::InvalidInput)?;
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Is now?",
                 body: &datetime_string,
                 accept_is_nextarrow: true,
@@ -120,7 +121,7 @@ pub async fn from_mnemonic(
         match password::enter_twice(hal).await {
             Err(password::EnterTwiceError::DoNotMatch) => {
                 hal.ui()
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title: "",
                         body: "Passwords\ndo not match.\nTry again?",
                         ..Default::default()

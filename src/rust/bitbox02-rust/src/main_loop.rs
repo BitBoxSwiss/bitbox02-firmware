@@ -1,15 +1,107 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use async_channel::Receiver;
 use bitbox_executor::Executor;
 use bitbox02::ringbuffer::RingBuffer;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb_packet::USB_FRAME;
+use core::future::Future;
 use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
 
 const UART_OUT_BUF_LEN: u32 = 2048;
 
 static EXECUTOR: Executor = Executor::new();
+
+async fn ui_async_component_demo() {
+    async fn show_result(body: &str) {
+        let _ = bitbox02::ui::confirm(&bitbox02::ui::ConfirmParams {
+            title: "Result",
+            body,
+            scrollable: true,
+            accept_only: true,
+            ..Default::default()
+        })
+        .await;
+    }
+
+    let confirm = bitbox02::ui::confirm(&bitbox02::ui::ConfirmParams {
+        title: "Confirm",
+        body: "Dummy",
+        ..Default::default()
+    })
+    .await;
+    show_result(match confirm {
+        bitbox02::ui::ConfirmResponse::Approved => "confirm ok",
+        bitbox02::ui::ConfirmResponse::Cancelled => "confirm cancel",
+    })
+    .await;
+
+    let trinary_input = bitbox02::ui::trinary_input_string(
+        &bitbox02::ui::TrinaryInputStringParams {
+            title: "Input",
+            ..Default::default()
+        },
+        true,
+        "",
+    )
+    .await;
+    show_result(if trinary_input.is_ok() {
+        "trinary_input -> Ok"
+    } else {
+        "trinary_input -> Err"
+    })
+    .await;
+
+    let sdcard = bitbox02::ui::sdcard().await;
+    let sdcard_status = match sdcard {
+        bitbox02::ui::SdcardResponse::Inserted => "sdcard -> inserted",
+        bitbox02::ui::SdcardResponse::Cancelled => "sdcard -> cancelled",
+    };
+    show_result(sdcard_status).await;
+
+    let menu = bitbox02::ui::menu(bitbox02::ui::MenuParams {
+        words: &["One", "Two"],
+        title: Some("Menu"),
+        select_word: true,
+        continue_on_last: false,
+        cancel_confirm_title: None,
+    })
+    .await;
+    let menu_status = match menu {
+        bitbox02::ui::MenuResponse::SelectWord(0) => "menu -> SelectWord(0)",
+        bitbox02::ui::MenuResponse::SelectWord(1) => "menu -> SelectWord(1)",
+        bitbox02::ui::MenuResponse::SelectWord(_) => "menu -> SelectWord(*)",
+        bitbox02::ui::MenuResponse::ContinueOnLast => "menu -> ContinueOnLast",
+        bitbox02::ui::MenuResponse::Cancel => "menu -> Cancelled",
+    };
+    show_result(menu_status).await;
+
+    let trinary_choice = bitbox02::ui::trinary_choice("Choice", Some("L"), None, Some("R")).await;
+    let choice_status = match trinary_choice {
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_LEFT => "trinary_choice -> left",
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE => "trinary_choice -> middle",
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT => "trinary_choice -> right",
+    };
+    show_result(choice_status).await;
+
+    let tx_addr = bitbox02::ui::confirm_transaction_address("1 BTC", "bc1qdummy").await;
+    let tx_addr_status = match tx_addr {
+        bitbox02::ui::ConfirmResponse::Approved => "confirm_tx_addr -> approved",
+        bitbox02::ui::ConfirmResponse::Cancelled => "confirm_tx_addr -> cancelled",
+    };
+    show_result(tx_addr_status).await;
+
+    let tx_fee = bitbox02::ui::confirm_transaction_fee("1 BTC", "0.01 BTC", false).await;
+    let tx_fee_status = match tx_fee {
+        bitbox02::ui::ConfirmResponse::Approved => "confirm_tx_fee -> approved",
+        bitbox02::ui::ConfirmResponse::Cancelled => "confirm_tx_fee -> cancelled",
+    };
+    show_result(tx_fee_status).await;
+
+    bitbox02::ui::unlock_animation().await;
+    show_result("unlock_animation -> done").await;
+}
 
 fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
     static ORIENTATION_CHOSEN: AtomicBool = AtomicBool::new(false);
@@ -149,9 +241,6 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
         bitbox02::screen::process();
 
         /* And finally, run the high-level event processing. */
-        #[cfg(feature = "app-u2f")]
-        crate::workflow::u2f_c_api::workflow_spin();
-
         crate::async_usb::spin();
 
         // Run async executor
@@ -165,8 +254,21 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
                 bitbox02::da14531::set_product(product, &mut uart_write_queue)
             }
             bitbox02::usb::start();
+            EXECUTOR.spawn(ui_async_component_demo()).detach();
         }
     }
+}
+
+// Spawns a task and returns the receiving end of a one shot channel
+pub fn spawn<T>(fut: impl Future<Output = T> + 'static) -> Receiver<T>
+where
+    T: 'static,
+{
+    let (sender, receiver) = async_channel::bounded(1);
+    EXECUTOR
+        .spawn(async move { sender.send(fut.await).await })
+        .detach();
+    receiver
 }
 
 //

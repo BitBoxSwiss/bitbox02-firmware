@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
+use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
 use pb::reboot_request::Purpose;
 use pb::response::Response;
 
 use crate::hal::{System, Ui};
-use crate::workflow::confirm;
 
 pub async fn reboot_to_bootloader(
     hal: &mut impl crate::hal::Hal,
     &pb::RebootRequest { purpose }: &pb::RebootRequest,
 ) -> Result<Response, Error> {
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: match Purpose::try_from(purpose) {
                 Ok(Purpose::Upgrade) => "Proceed to upgrade?",

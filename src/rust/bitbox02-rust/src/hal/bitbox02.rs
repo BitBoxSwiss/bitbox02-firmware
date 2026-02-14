@@ -18,6 +18,10 @@ pub struct BitBox02Hal {
     system: system::BitBox02System,
 }
 
+impl grounded::const_init::ConstInit for BitBox02Hal {
+    const VAL: Self = Self::new();
+}
+
 impl BitBox02Hal {
     pub const fn new() -> Self {
         Self {

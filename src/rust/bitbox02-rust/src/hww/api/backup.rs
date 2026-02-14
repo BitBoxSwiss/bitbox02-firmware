@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
+use crate::hal::ui::{CanCancel, ConfirmParams};
 use crate::pb;
 use alloc::vec::Vec;
 
@@ -8,7 +9,7 @@ use pb::response::Response;
 
 use crate::backup;
 use crate::hal::{Memory, Sd, Ui};
-use crate::workflow::{confirm, unlock};
+use crate::workflow::unlock;
 
 pub async fn check(
     hal: &mut impl crate::hal::Hal,
@@ -29,7 +30,7 @@ pub async fn check(
     }
     if !silent {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Name?",
                 body: &metadata.name,
                 scrollable: true,
@@ -39,7 +40,7 @@ pub async fn check(
             .await?;
 
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "ID?",
                 body: &id,
                 scrollable: true,
@@ -68,7 +69,7 @@ pub async fn create(
     }: &pb::CreateBackupRequest,
 ) -> Result<Response, Error> {
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "Is today?",
             body: &util::datetime::format_datetime(timestamp, timezone_offset, true)
                 .map_err(|_| Error::InvalidInput)?,
@@ -88,7 +89,7 @@ pub async fn create(
     let is_initialized = hal.memory().is_initialized();
 
     let seed = if is_initialized {
-        unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?
+        unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?
     } else {
         let seed = crate::keystore::copy_seed(hal)?;
         // Yield now to give executor a chance to process USB/BLE communication, as copy_seed() causes

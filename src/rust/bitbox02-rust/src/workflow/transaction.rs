@@ -1,28 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
+use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::UserAbort;
 
 use alloc::string::String;
-
-pub struct UserAbort;
-
-pub async fn verify_recipient(recipient: &str, amount: &str) -> Result<(), UserAbort> {
-    match bitbox02::ui::confirm_transaction_address(amount, recipient).await {
-        bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-        bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
-    }
-}
 
 fn format_percentage(p: f64) -> String {
     let int: u64 = num_traits::float::FloatCore::round(p * 10.) as _;
     util::decimal::format_no_trim(int, 1)
-}
-
-pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result<(), UserAbort> {
-    match bitbox02::ui::confirm_transaction_fee(total, fee, longtouch).await {
-        bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-        bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
-    }
 }
 
 pub async fn verify_total_fee_maybe_warn(
@@ -37,9 +23,8 @@ pub async fn verify_total_fee_maybe_warn(
     hal.ui().verify_total_fee(total, fee, longtouch).await?;
 
     if let Some(fee_percentage) = fee_percentage {
-        match hal
-            .ui()
-            .confirm(&super::confirm::Params {
+        hal.ui()
+            .confirm(&ConfirmParams {
                 title: "High fee",
                 body: &format!(
                     "The fee is {}%\nthe send amount.\nProceed?",
@@ -48,11 +33,7 @@ pub async fn verify_total_fee_maybe_warn(
                 longtouch: true,
                 ..Default::default()
             })
-            .await
-        {
-            Ok(()) => (),
-            Err(super::confirm::UserAbort) => return Err(UserAbort),
-        }
+            .await?;
     }
     Ok(())
 }

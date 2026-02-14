@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::ui::ConfirmParams;
 use alloc::vec::Vec;
 
-use super::confirm;
 use crate::hal::Ui;
 
 use util::ascii;
@@ -12,8 +12,8 @@ pub enum Error {
     UserAbort,
 }
 
-impl core::convert::From<confirm::UserAbort> for Error {
-    fn from(_error: confirm::UserAbort) -> Self {
+impl core::convert::From<crate::hal::ui::UserAbort> for Error {
+    fn from(_error: crate::hal::ui::UserAbort) -> Self {
         Error::UserAbort
     }
 }
@@ -51,7 +51,7 @@ pub async fn verify(
             } else {
                 format!("{} {}/{}", title_short, i + 1, pages.len())
             };
-            let params = confirm::Params {
+            let params = ConfirmParams {
                 title: &title,
                 body: page,
                 scrollable: true,
@@ -63,7 +63,7 @@ pub async fn verify(
         }
         Ok(())
     } else {
-        let params = confirm::Params {
+        let params = ConfirmParams {
             title: &format!("{}\ndata (hex)", title_long),
             body: &hex::encode(msg),
             scrollable: true,

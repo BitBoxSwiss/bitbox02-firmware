@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
+use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
 use pb::response::Response;
 
 use crate::hal::Ui;
-use crate::workflow::confirm;
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
-    let params = confirm::Params {
+    let params = ConfirmParams {
         title: "RESET",
         body: "Proceed to\nfactory reset?",
         longtouch: true,

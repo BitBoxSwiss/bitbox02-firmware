@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub use super::cancel::Error as CancelError;
-use super::confirm;
-use super::menu;
-use super::trinary_choice::TrinaryChoice;
-use super::trinary_input_string;
+use crate::hal::ui::{CanCancel, ConfirmParams, TrinaryChoice, UserAbort};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -60,60 +56,26 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
     (index_word, result)
 }
 
-/// Displays all mnemonic words in a scroll-through screen.
-pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
-    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
-        words,
-        title: None,
-        select_word: false,
-        continue_on_last: true,
-        cancel_confirm_title: Some("Recovery\nwords"),
-    })
-    .await
-    {
-        bitbox02::ui::MenuResponse::ContinueOnLast => Ok(()),
-        bitbox02::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
-        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
-    }
-}
-
-/// Displays the `choices` to the user, returning the index of the selected choice.
-pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
-    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
-        words: choices,
-        title: Some(title),
-        select_word: true,
-        continue_on_last: false,
-        cancel_confirm_title: Some("Recovery\nwords"),
-    })
-    .await
-    {
-        bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
-        bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
-    }
-}
-
 pub async fn show_and_confirm_mnemonic(
     hal_ui: &mut impl crate::hal::Ui,
     words: &[&str],
-) -> Result<(), CancelError> {
+) -> Result<(), UserAbort> {
     hal_ui
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: &format!("{} words follow", words.len()),
             accept_is_nextarrow: true,
             ..Default::default()
         })
         .await
-        .map_err(|_| CancelError::Cancelled)?;
+        .map_err(|_| UserAbort)?;
 
     // Part 1) Scroll through words
     hal_ui.show_mnemonic(words).await?;
 
     // Can only succeed due to `accept_only`.
     let _ = hal_ui
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: "Please confirm\neach word",
             accept_only: true,
@@ -208,12 +170,12 @@ fn lastword_choices_strings(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<St
 /// Select the 24th word from a list of 8 valid candidate words presented as a menu.
 /// Returns `Ok(None)` if the user chooses "None of them".
 /// Returns `Ok(Some(word))` if the user chooses a word.
-/// Returns `Err(CancelError::Cancelled)` if the user cancels.
+/// Returns `Err(UserAbort)` if the user cancels.
 async fn get_24th_word(
     hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
-) -> Result<Option<zeroize::Zeroizing<String>>, CancelError> {
+) -> Result<Option<zeroize::Zeroizing<String>>, UserAbort> {
     let mut choices = lastword_choices_strings(entered_words);
     // Add one more menu entry.
     let none_of_them_idx = {
@@ -222,9 +184,9 @@ async fn get_24th_word(
     };
     loop {
         match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
-            Err(menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
+            Err(UserAbort) => return Err(UserAbort),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
-                let params = confirm::Params {
+                let params = ConfirmParams {
                     title: "",
                     body: "Invalid. Check\nrecovery words.\nRestart?",
                     ..Default::default()
@@ -238,7 +200,7 @@ async fn get_24th_word(
                 // Double checking is also safer, as the user might not even realize they made a typo.
                 let word = choices[choice_idx as usize].clone();
                 if let Ok(()) = hal_ui
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title,
                         body: &word,
                         ..Default::default()
@@ -256,24 +218,24 @@ async fn get_24th_word(
 /// is the trinary input keyboard with the wordlist restricted to these candidates.
 ///
 /// Returns `Ok(word)` if the user chooses a word.
-/// Returns `Err(CancelError::Cancelled)` if the user cancels.
+/// Returns `Err(UserAbort)` if the user cancels.
 async fn get_12th_18th_word(
     hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
-) -> Result<zeroize::Zeroizing<String>, CancelError> {
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
     // With 12/18 words there are 128/32 candidates, so we limit the keyboard to allow entering only
     // these.
     loop {
         let choices = lastword_choices(entered_words);
         let word = hal_ui
             .enter_string(
-                &trinary_input_string::Params {
+                &crate::hal::ui::EnterStringParams {
                     title,
                     wordlist: Some(&choices),
                     ..Default::default()
                 },
-                trinary_input_string::CanCancel::Yes,
+                CanCancel::Yes,
                 "",
             )
             .await?;
@@ -281,7 +243,7 @@ async fn get_12th_18th_word(
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
         if let Ok(()) = hal_ui
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title,
                 body: &word,
                 ..Default::default()
@@ -296,14 +258,14 @@ async fn get_12th_18th_word(
 /// Retrieve a BIP39 mnemonic sentence of 12 or 24 words from the user.
 pub async fn get(
     hal_ui: &mut impl crate::hal::Ui,
-) -> Result<zeroize::Zeroizing<String>, CancelError> {
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
     let num_words: usize = match hal_ui
         .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
-        TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => unreachable!(),
-        TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
+        TrinaryChoice::Left => 12,
+        TrinaryChoice::Middle => unreachable!(),
+        TrinaryChoice::Right => 24,
     };
 
     hal_ui
@@ -323,8 +285,7 @@ pub async fn get(
         // goes forward again.
         let preset = entered_words[word_idx].as_str();
 
-        let user_entry: Result<zeroize::Zeroizing<String>, CancelError> = if word_idx
-            == num_words - 1
+        let user_entry: Result<zeroize::Zeroizing<String>, UserAbort> = if word_idx == num_words - 1
         {
             // For the last word, we can restrict to a subset of bip39 words that fulfil the
             // checksum requirement. This special case exists so that users can generate a seed
@@ -333,7 +294,7 @@ pub async fn get(
             if num_words == 24 {
                 // With 24 words there are only 8 valid candidates. We presnet them as a menu.
                 match get_24th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await {
-                    Ok(None) => return Err(CancelError::Cancelled),
+                    Ok(None) => return Err(UserAbort),
                     Ok(Some(r)) => Ok(r),
                     Err(e) => Err(e),
                 }
@@ -343,19 +304,19 @@ pub async fn get(
         } else {
             hal_ui
                 .enter_string(
-                    &trinary_input_string::Params {
+                    &crate::hal::ui::EnterStringParams {
                         title: &title,
                         wordlist: Some(&bip39_wordlist),
                         ..Default::default()
                     },
-                    trinary_input_string::CanCancel::Yes,
+                    CanCancel::Yes,
                     preset,
                 )
                 .await
         };
 
         match user_entry {
-            Err(CancelError::Cancelled) => {
+            Err(UserAbort) => {
                 // User clicked the cancel button. There are two choices:
                 enum GetWordError {
                     Cancel,
@@ -373,7 +334,7 @@ pub async fn get(
                         .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
                         .await
                     {
-                        Err(menu::CancelError::Cancelled) => {
+                        Err(UserAbort) => {
                             // Cancel cancelled.
                             continue;
                         }
@@ -386,17 +347,17 @@ pub async fn get(
                 match cancel_choice {
                     GetWordError::EditPrevious => word_idx -= 1,
                     GetWordError::Cancel => {
-                        let params = confirm::Params {
+                        let params = ConfirmParams {
                             title: "Restore",
                             body: "Do you really\nwant to cancel?",
                             ..Default::default()
                         };
 
-                        if let Err(confirm::UserAbort) = hal_ui.confirm(&params).await {
+                        if let Err(UserAbort) = hal_ui.confirm(&params).await {
                             // Cancel cancelled.
                             continue;
                         }
-                        return Err(CancelError::Cancelled);
+                        return Err(UserAbort);
                     }
                 }
             }

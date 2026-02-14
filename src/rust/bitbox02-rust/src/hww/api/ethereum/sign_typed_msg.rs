@@ -11,8 +11,8 @@ use super::Error;
 use super::pb;
 
 use crate::hal::Ui;
+use crate::hal::ui::ConfirmParams;
 use crate::keystore;
-use crate::workflow::confirm;
 
 use pb::eth_request::Request;
 use pb::eth_response::Response;
@@ -305,7 +305,7 @@ async fn encode_member<U: sha3::digest::Update>(
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
             hal.ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     title: &format!(
                         "{}{}",
                         confirm_title(root_object),
@@ -351,7 +351,7 @@ async fn hash_array(
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: &format!(
                 "{}{}",
                 confirm_title(root_object),
@@ -541,7 +541,7 @@ pub async fn process(
     let sighash: [u8; 32] = eip712_sighash(hal, &request.types, &request.primary_type).await?;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             body: "Sign data?",
             longtouch: true,
             ..Default::default()

@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
+use crate::hal::ui::{CanCancel, ConfirmParams};
 use crate::pb;
 
 use pb::response::Response;
 
 use crate::hal::Ui;
 use crate::keystore;
-use crate::workflow::{confirm, password, unlock};
+use crate::workflow::{password, unlock};
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     // Process confirmation and instruction for user
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: "Proceed to\nchange password?",
             accept_is_nextarrow: true,
@@ -20,7 +21,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         })
         .await?;
     // Unlock with old password
-    let seed = unlock::unlock_keystore(hal, "Unlock device", unlock::CanCancel::Yes).await?;
+    let seed = unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?;
     // Enter and confirm new password
     let new_password = password::enter_twice(hal).await?;
 

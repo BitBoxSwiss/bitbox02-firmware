@@ -4,11 +4,12 @@ use super::Error;
 use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use crate::keystore;
 
 use crate::hal::Ui;
-use crate::workflow::{confirm, transaction};
+use crate::workflow::transaction;
 
 use alloc::vec::Vec;
 use pb::eth_response::Response;
@@ -239,7 +240,7 @@ async fn verify_standard_transaction(
 
     if !request.data().is_empty() {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Unknown\ncontract",
                 body: "You will be shown\nthe raw\ntransaction data.",
                 accept_is_nextarrow: true,
@@ -247,7 +248,7 @@ async fn verify_standard_transaction(
             })
             .await?;
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Unknown\ncontract",
                 body: "Only proceed if you\nunderstand exactly\nwhat the data means.",
                 accept_is_nextarrow: true,
@@ -256,7 +257,7 @@ async fn verify_standard_transaction(
             .await?;
 
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Transaction\ndata",
                 body: &hex::encode(request.data()),
                 scrollable: true,
@@ -304,7 +305,7 @@ pub async fn _process(
     // Show chain confirmation only for known networks
     if super::params::is_known_network(request.coin()?, request.chain_id()) {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 body: &format!("Sign transaction on\n\n{}", params.name),
                 accept_is_nextarrow: true,
                 ..Default::default()

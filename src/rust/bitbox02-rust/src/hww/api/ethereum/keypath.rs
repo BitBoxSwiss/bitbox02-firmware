@@ -3,7 +3,7 @@
 use super::Error;
 use super::params::Params;
 use crate::hal::Ui;
-use crate::workflow::confirm;
+use crate::hal::ui::ConfirmParams;
 use util::bip32::HARDENED;
 
 const ACCOUNT_MAX: u32 = 99; // 100 accounts
@@ -33,7 +33,7 @@ pub async fn warn_unusual_keypath(
         );
         return Ok(hal
             .ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title,
                 body: &body,
                 title_autowrap: true,

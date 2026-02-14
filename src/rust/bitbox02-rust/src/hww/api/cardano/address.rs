@@ -2,12 +2,12 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::hal::Ui;
-use crate::workflow::confirm;
 
 use pb::CardanoNetwork;
 use pb::cardano_response::Response;
@@ -377,7 +377,7 @@ pub async fn process(
 
     if request.display {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: params.name,
                 body: &encoded_address,
                 scrollable: true,

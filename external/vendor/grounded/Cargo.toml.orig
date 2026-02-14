@@ -1,0 +1,25 @@
+[package]
+name = "grounded"
+version = "0.2.1"
+authors = ["James Munns <james@onevariable.com>"]
+edition = "2021"
+readme = "README.md"
+repository = "https://github.com/jamesmunns/grounded"
+description = "A toolkit for managing unsafe statics"
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/grounded/"
+
+[dependencies.portable-atomic]
+version = "1.3"
+default-features = false
+
+[features]
+default = []
+# components that require compare-and-swap operations
+cas = ["portable-atomic/require-cas"]
+# Allow for use on non-atomic systems by use of critical-sections
+critical-section = ["portable-atomic/critical-section"]
+
+[package.metadata.docs.rs]
+features = ["cas"]
+rustdoc-args = ["--cfg", "doc_cfg"]

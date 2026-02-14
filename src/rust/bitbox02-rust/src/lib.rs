@@ -17,7 +17,6 @@ pub mod general;
 pub mod async_usb;
 pub mod attestation;
 pub mod backup;
-pub mod bb02_async;
 mod bip32;
 pub mod bip39;
 pub mod communication_mode;

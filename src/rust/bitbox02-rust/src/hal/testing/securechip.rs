@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use bitcoin::hashes::Hash;
 use hex_lit::hex;
 
-use crate::hal::securechip::Model;
+use crate::hal::securechip::{Error, Model};
 
 pub struct TestingSecureChip {
     // Count how many security events happen. The numbers were obtained by reading the security
@@ -65,7 +65,7 @@ impl crate::hal::SecureChip for TestingSecureChip {
         &mut self,
         password: &str,
         password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         self.event_counter += 3;
 
         let key: &'static [u8] = match password_stretch_algo {
@@ -87,7 +87,7 @@ impl crate::hal::SecureChip for TestingSecureChip {
         &mut self,
         password: &str,
         password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         self.event_counter += match password_stretch_algo {
             bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => 5,
             bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => 4,
@@ -109,10 +109,7 @@ impl crate::hal::SecureChip for TestingSecureChip {
         ))
     }
 
-    fn kdf(
-        &mut self,
-        msg: &[u8],
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, bitbox02::securechip::Error> {
+    fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         self.event_counter += 1;
 
         use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};

@@ -7,7 +7,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use crate::hal::{Memory, Random, SecureChip};
+use crate::hal::{Memory, Random, SecureChip, securechip};
 
 use util::bip32::HARDENED;
 use util::cell::SyncCell;
@@ -41,14 +41,14 @@ pub enum Error {
     Decrypt,
 }
 
-impl core::convert::From<bitbox02::securechip::Error> for Error {
-    fn from(error: bitbox02::securechip::Error) -> Self {
+impl core::convert::From<securechip::Error> for Error {
+    fn from(error: securechip::Error) -> Self {
         match error {
-            bitbox02::securechip::Error::SecureChip(
-                bitbox02::securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD,
-            ) => Error::IncorrectPassword,
-            bitbox02::securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
-            bitbox02::securechip::Error::Status(status) => Error::SecureChip(status),
+            securechip::Error::SecureChip(securechip::SecureChipError::IncorrectPassword) => {
+                Error::IncorrectPassword
+            }
+            securechip::Error::SecureChip(sc_err) => Error::SecureChip(sc_err as i32),
+            securechip::Error::Status(status) => Error::SecureChip(status),
         }
     }
 }

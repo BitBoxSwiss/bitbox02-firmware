@@ -3,7 +3,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::hal::memory::{PasswordStretchAlgo, SecurechipType};
+use crate::hal::memory::{Error, PasswordStretchAlgo, SecurechipType};
 
 pub struct TestingMemory {
     securechip_type: SecurechipType,
@@ -94,7 +94,7 @@ impl crate::hal::Memory for TestingMemory {
             .unwrap_or_else(|| "My BitBox".into())
     }
 
-    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::MemoryError> {
+    fn set_device_name(&mut self, name: &str) -> Result<(), Error> {
         self.device_name = Some(name.into());
         Ok(())
     }
@@ -206,14 +206,10 @@ impl crate::hal::Memory for TestingMemory {
         self.attestation_bootloader_hash
     }
 
-    fn multisig_set_by_hash(
-        &mut self,
-        hash: &[u8; 32],
-        name: &str,
-    ) -> Result<(), bitbox02::memory::MemoryError> {
+    fn multisig_set_by_hash(&mut self, hash: &[u8; 32], name: &str) -> Result<(), Error> {
         // Validate input
         if name.is_empty() {
-            return Err(bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT);
+            return Err(Error::InvalidInput);
         }
         // Check for duplicate name with different hash
         for (existing_hash, existing_name) in &self.multisig_entries {
@@ -221,7 +217,7 @@ impl crate::hal::Memory for TestingMemory {
                 if existing_hash != hash {
                     // Mirror bitbox02::memory multisig_set_by_hash semantics (duplicate-name / full-table),
                     // even if these branches are not currently exercised in bitbox02-rust tests.
-                    return Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME);
+                    return Err(Error::DuplicateName);
                 }
                 // same name, same hash (already stored)
                 return Ok(());
@@ -239,7 +235,7 @@ impl crate::hal::Memory for TestingMemory {
         }
         if self.multisig_entries.len() >= MULTISIG_LIMIT {
             // See comment above about mirroring bitbox02::memory semantics.
-            return Err(bitbox02::memory::MemoryError::MEMORY_ERR_FULL);
+            return Err(Error::Full);
         }
         // Insert new entry
         self.multisig_entries.push((*hash, String::from(name)));

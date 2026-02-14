@@ -4,7 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::hal::Memory;
-use crate::hal::memory::{PasswordStretchAlgo, SecurechipType};
+use crate::hal::memory::{Error, PasswordStretchAlgo, SecurechipType};
 
 pub(crate) struct BitBox02Memory;
 
@@ -25,6 +25,18 @@ fn to_hal_password_stretch_algo(
         bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
             PasswordStretchAlgo::V1
         }
+    }
+}
+
+fn to_hal_error(error: bitbox02::memory::MemoryError) -> Error {
+    match error {
+        bitbox02::memory::MemoryError::MEMORY_OK => {
+            unreachable!("MEMORY_OK must not be converted to hal::memory::Error")
+        }
+        bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT => Error::InvalidInput,
+        bitbox02::memory::MemoryError::MEMORY_ERR_FULL => Error::Full,
+        bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME => Error::DuplicateName,
+        bitbox02::memory::MemoryError::MEMORY_ERR_UNKNOWN => Error::Unknown,
     }
 }
 
@@ -54,8 +66,8 @@ impl Memory for BitBox02Memory {
         bitbox02::memory::get_device_name()
     }
 
-    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::MemoryError> {
-        bitbox02::memory::set_device_name(name)
+    fn set_device_name(&mut self, name: &str) -> Result<(), Error> {
+        bitbox02::memory::set_device_name(name).map_err(to_hal_error)
     }
 
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
@@ -139,12 +151,8 @@ impl Memory for BitBox02Memory {
         bitbox02::memory::get_attestation_bootloader_hash()
     }
 
-    fn multisig_set_by_hash(
-        &mut self,
-        hash: &[u8; 32],
-        name: &str,
-    ) -> Result<(), bitbox02::memory::MemoryError> {
-        bitbox02::memory::multisig_set_by_hash(hash, name)
+    fn multisig_set_by_hash(&mut self, hash: &[u8; 32], name: &str) -> Result<(), Error> {
+        bitbox02::memory::multisig_set_by_hash(hash, name).map_err(to_hal_error)
     }
 
     fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String> {

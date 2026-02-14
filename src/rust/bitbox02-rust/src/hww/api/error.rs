@@ -24,16 +24,13 @@ impl core::convert::From<()> for Error {
     }
 }
 
-impl core::convert::From<bitbox02::memory::MemoryError> for Error {
-    fn from(error: bitbox02::memory::MemoryError) -> Self {
+impl core::convert::From<crate::hal::memory::Error> for Error {
+    fn from(error: crate::hal::memory::Error) -> Self {
         match error {
-            bitbox02::memory::MemoryError::MEMORY_OK => {
-                unreachable!("MEMORY_OK must not be converted to api::Error")
-            }
-            bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT => Error::InvalidInput,
-            bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME => Error::Duplicate,
-            bitbox02::memory::MemoryError::MEMORY_ERR_UNKNOWN => Error::Memory,
-            bitbox02::memory::MemoryError::MEMORY_ERR_FULL => Error::Generic,
+            crate::hal::memory::Error::InvalidInput => Error::InvalidInput,
+            crate::hal::memory::Error::DuplicateName => Error::Duplicate,
+            crate::hal::memory::Error::Unknown => Error::Memory,
+            crate::hal::memory::Error::Full => Error::Generic,
         }
     }
 }

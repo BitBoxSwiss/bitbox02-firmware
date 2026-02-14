@@ -19,7 +19,7 @@ pub trait Memory {
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
     fn get_device_name(&mut self) -> String;
-    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error>;
+    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::MemoryError>;
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool;
     fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()>;
     fn set_seed_birthdate(&mut self, timestamp: u32) -> Result<(), ()>;

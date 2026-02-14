@@ -24,9 +24,17 @@ impl core::convert::From<()> for Error {
     }
 }
 
-impl core::convert::From<bitbox02::memory::Error> for Error {
-    fn from(_error: bitbox02::memory::Error) -> Self {
-        Error::Memory
+impl core::convert::From<bitbox02::memory::MemoryError> for Error {
+    fn from(error: bitbox02::memory::MemoryError) -> Self {
+        match error {
+            bitbox02::memory::MemoryError::MEMORY_OK => {
+                unreachable!("MEMORY_OK must not be converted to api::Error")
+            }
+            bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT => Error::InvalidInput,
+            bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME => Error::Duplicate,
+            bitbox02::memory::MemoryError::MEMORY_ERR_UNKNOWN => Error::Memory,
+            bitbox02::memory::MemoryError::MEMORY_ERR_FULL => Error::Generic,
+        }
     }
 }
 

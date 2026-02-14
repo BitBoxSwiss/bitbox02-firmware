@@ -94,7 +94,7 @@ impl crate::hal::Memory for TestingMemory {
             .unwrap_or_else(|| "My BitBox".into())
     }
 
-    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
+    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::MemoryError> {
         self.device_name = Some(name.into());
         Ok(())
     }

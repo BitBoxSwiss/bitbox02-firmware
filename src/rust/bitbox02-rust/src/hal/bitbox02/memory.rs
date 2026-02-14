@@ -54,7 +54,7 @@ impl Memory for BitBox02Memory {
         bitbox02::memory::get_device_name()
     }
 
-    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
+    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::MemoryError> {
         bitbox02::memory::set_device_name(name)
     }
 

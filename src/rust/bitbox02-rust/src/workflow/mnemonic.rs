@@ -24,14 +24,18 @@ fn as_str_vec(v: &[zeroize::Zeroizing<String>]) -> Vec<&str> {
 /// one of them is provided `word`. Returns the position of `word` in
 /// the list of words, and the lis of words.  This is used to test if
 /// the user wrote down the seed words properly.
-fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroizing<String>>) {
-    fn rand16() -> u16 {
+fn create_random_unique_words(
+    hal_random: &mut impl crate::hal::Random,
+    word: &str,
+    length: u8,
+) -> (u8, Vec<zeroize::Zeroizing<String>>) {
+    fn rand16(hal_random: &mut impl crate::hal::Random) -> u16 {
         let mut rand = [0u8; 32];
-        bitbox02::random::mcu_32_bytes(&mut rand);
+        hal_random.mcu_32_bytes(&mut rand);
         ((rand[0] as u16) << 8) | (rand[1] as u16)
     }
 
-    let index_word = (rand16() as u8) % length;
+    let index_word = (rand16(hal_random) as u8) % length;
     let mut picked_indices = Vec::new();
     let result = (0..length)
         .map(|i| {
@@ -43,7 +47,7 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
             // A random word everywhere else.
             // Loop until we get a unique word, we don't want repeated words in the list.
             loop {
-                let idx = rand16() % BIP39_WORDLIST_LEN;
+                let idx = rand16(hal_random) % BIP39_WORDLIST_LEN;
                 if picked_indices.contains(&idx) {
                     continue;
                 };
@@ -96,6 +100,7 @@ pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelErr
 
 pub async fn show_and_confirm_mnemonic(
     hal_ui: &mut impl crate::hal::Ui,
+    hal_random: &mut impl crate::hal::Random,
     words: &[&str],
 ) -> Result<(), CancelError> {
     hal_ui
@@ -125,7 +130,7 @@ pub async fn show_and_confirm_mnemonic(
     // Part 2) Confirm words
     for (word_idx, word) in words.iter().enumerate() {
         let title = format!("{:02}", word_idx + 1);
-        let (correct_idx, choices) = create_random_unique_words(word, NUM_RANDOM_WORDS);
+        let (correct_idx, choices) = create_random_unique_words(hal_random, word, NUM_RANDOM_WORDS);
         let mut choices: Vec<&str> = choices.iter().map(|c| c.as_ref()).collect();
         choices.push("Back to\nrecovery words");
         let back_idx = (choices.len() - 1) as u8;
@@ -415,7 +420,12 @@ pub async fn get(
 mod tests {
     use super::*;
 
-    use alloc::boxed::Box;
+    fn u16_to_rand(value: u16) -> [u8; 32] {
+        let mut out = [0u8; 32];
+        out[0] = (value >> 8) as u8;
+        out[1] = value as u8;
+        out
+    }
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
@@ -428,6 +438,28 @@ mod tests {
             }
         }
         result
+    }
+
+    #[test]
+    fn test_create_random_unique_words() {
+        let mut random = crate::hal::testing::TestingRandom::new();
+        random.mock_next(u16_to_rand(2)); // place the target at index 2 in a 5-entry list.
+        random.mock_next(u16_to_rand(0));
+        random.mock_next(u16_to_rand(1));
+        random.mock_next(u16_to_rand(2));
+        random.mock_next(u16_to_rand(3));
+        let (correct_idx, choices) =
+            create_random_unique_words(&mut random, "zoo", NUM_RANDOM_WORDS);
+        assert_eq!(correct_idx, 2);
+        assert_eq!(
+            as_str_vec(&choices),
+            vec!["abandon", "ability", "zoo", "able", "about"]
+        );
+
+        let mut unique = as_str_vec(&choices);
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), choices.len());
     }
 
     #[test]

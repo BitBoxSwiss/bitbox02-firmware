@@ -21,18 +21,25 @@ impl TestingRandom {
     pub fn mock_next(&mut self, value: [u8; 32]) {
         self.mock_next_values.push_back(value)
     }
-}
 
-impl crate::hal::Random for TestingRandom {
-    fn random_32_bytes(&mut self) -> Box<zeroize::Zeroizing<[u8; 32]>> {
+    fn next_value(&mut self) -> [u8; 32] {
         self.counter += 1;
-        let value = if let Some(value) = self.mock_next_values.pop_front() {
+        if let Some(value) = self.mock_next_values.pop_front() {
             value
         } else {
             let hash = sha256::Hash::hash(&self.counter.to_be_bytes());
             hash.to_byte_array()
-        };
-        Box::new(zeroize::Zeroizing::new(value))
+        }
+    }
+}
+
+impl crate::hal::Random for TestingRandom {
+    fn random_32_bytes(&mut self) -> Box<zeroize::Zeroizing<[u8; 32]>> {
+        Box::new(zeroize::Zeroizing::new(self.next_value()))
+    }
+
+    fn mcu_32_bytes(&mut self, out: &mut [u8; 32]) {
+        *out = self.next_value();
     }
 }
 
@@ -54,6 +61,23 @@ mod tests {
         assert_eq!(
             second.as_slice(),
             &hex!("433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a"),
+        );
+    }
+
+    #[test]
+    fn test_mcu_32_bytes() {
+        let mut random = TestingRandom::new();
+        let mut first = [0u8; 32];
+        let mut second = [0u8; 32];
+        random.mcu_32_bytes(&mut first);
+        random.mcu_32_bytes(&mut second);
+        assert_eq!(
+            first,
+            hex!("b40711a88c7039756fb8a73827eabe2c0fe5a0346ca7e0a104adc0fc764f528d"),
+        );
+        assert_eq!(
+            second,
+            hex!("433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a"),
         );
     }
 }

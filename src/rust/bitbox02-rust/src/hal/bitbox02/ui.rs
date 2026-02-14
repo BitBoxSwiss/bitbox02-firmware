@@ -8,7 +8,7 @@ use crate::workflow::{
     trinary_input_string,
 };
 
-pub(crate) struct BitBox02Ui;
+pub struct BitBox02Ui;
 
 impl Ui for BitBox02Ui {
     #[inline(always)]

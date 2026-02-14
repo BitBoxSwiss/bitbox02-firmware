@@ -15,6 +15,7 @@ pub async fn confirm_word(_choices: &[&str], _title: &str) -> Result<u8, CancelE
 
 pub async fn show_and_confirm_mnemonic(
     _ui: &mut impl crate::hal::Ui,
+    _random: &mut impl crate::hal::Random,
     words: &[&str],
 ) -> Result<(), CancelError> {
     for word in words.iter() {

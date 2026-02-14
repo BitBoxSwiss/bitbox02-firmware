@@ -2,7 +2,7 @@
 
 use crate::hal::System;
 
-pub(crate) struct BitBox02System;
+pub struct BitBox02System;
 
 impl System for BitBox02System {
     fn reboot_to_bootloader(&mut self) -> ! {

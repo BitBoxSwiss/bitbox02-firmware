@@ -162,7 +162,11 @@ impl Ui for TestingUi<'_> {
         todo!("not used in unit tests yet");
     }
 
-    async fn show_and_confirm_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {
+    async fn show_and_confirm_mnemonic(
+        &mut self,
+        _random: &mut impl crate::hal::Random,
+        words: &[&str],
+    ) -> Result<(), cancel::Error> {
         self.screens.push(Screen::ShowAndConfirmMnemonic {
             mnemonic: words.join(" "),
         });

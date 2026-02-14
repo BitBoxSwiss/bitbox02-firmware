@@ -46,6 +46,8 @@ zeroize = "1.7.0"
 futures-lite = { version = "2.6.1", default-features = false }
 hex_lit = { version = "0.1.1", default-features = false }
 crc = "3.0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [patch.crates-io]
 rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }

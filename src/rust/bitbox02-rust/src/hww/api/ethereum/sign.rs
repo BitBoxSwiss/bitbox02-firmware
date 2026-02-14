@@ -87,6 +87,12 @@ impl Transaction<'_> {
             }
         }
     }
+    fn data_length(&self) -> u32 {
+        match self {
+            Transaction::Legacy(legacy) => legacy.data_length,
+            Transaction::Eip1559(eip1559) => eip1559.data_length,
+        }
+    }
 }
 
 /// Converts `recipient` to an array of 20 chars. If `recipient` is
@@ -155,33 +161,70 @@ fn parse_fee<'a>(request: &Transaction<'_>, params: &'a Params) -> Amount<'a> {
     }
 }
 
-fn hash_legacy(chain_id: u64, request: &pb::EthSignRequest) -> Result<[u8; 32], Error> {
-    let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
-        nonce: &request.nonce,
-        gas_price: &request.gas_price,
-        gas_limit: &request.gas_limit,
-        recipient: &request.recipient,
-        value: &request.value,
-        data: &request.data,
-        chain_id,
-    })
-    .map_err(|_| Error::InvalidInput)?;
-    Ok(hash)
+async fn hash_legacy(chain_id: u64, request: &pb::EthSignRequest) -> Result<[u8; 32], Error> {
+    if request.data_length > 0 {
+        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+            nonce: &request.nonce,
+            gas_price: &request.gas_price,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
+                request.data_length,
+            )),
+            chain_id,
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    } else {
+        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+            nonce: &request.nonce,
+            gas_price: &request.gas_price,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
+            chain_id,
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    }
 }
 
-fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], Error> {
-    let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
-        chain_id: request.chain_id,
-        nonce: &request.nonce,
-        max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
-        max_fee_per_gas: &request.max_fee_per_gas,
-        gas_limit: &request.gas_limit,
-        recipient: &request.recipient,
-        value: &request.value,
-        data: &request.data,
-    })
-    .map_err(|_| Error::InvalidInput)?;
-    Ok(hash)
+async fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], Error> {
+    if request.data_length > 0 {
+        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
+            chain_id: request.chain_id,
+            nonce: &request.nonce,
+            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
+            max_fee_per_gas: &request.max_fee_per_gas,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
+                request.data_length,
+            )),
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    } else {
+        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
+            chain_id: request.chain_id,
+            nonce: &request.nonce,
+            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
+            max_fee_per_gas: &request.max_fee_per_gas,
+            gas_limit: &request.gas_limit,
+            recipient: &request.recipient,
+            value: &request.value,
+            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
+        })
+        .await
+        .map_err(|_| Error::InvalidInput)?;
+        Ok(hash)
+    }
 }
 
 /// Verifies an ERC20 transfer.
@@ -237,11 +280,17 @@ async fn verify_standard_transaction(
 ) -> Result<(), Error> {
     let recipient = parse_recipient(request.recipient())?;
 
-    if !request.data().is_empty() {
+    let data_length = request.data_length();
+
+    if !request.data().is_empty() || data_length > 0 {
         hal.ui()
             .confirm(&confirm::Params {
                 title: "Unknown\ncontract",
-                body: "You will be shown\nthe raw\ntransaction data.",
+                body: if data_length > 0 {
+                    "You are signing a\ncontract interaction\nwith large data."
+                } else {
+                    "You will be shown\nthe raw\ntransaction data."
+                },
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -249,22 +298,39 @@ async fn verify_standard_transaction(
         hal.ui()
             .confirm(&confirm::Params {
                 title: "Unknown\ncontract",
-                body: "Only proceed if you\nunderstand exactly\nwhat the data means.",
+                body: if data_length > 0 {
+                    "Only proceed if you\nfully understand\nthe risks involved."
+                } else {
+                    "Only proceed if you\nunderstand exactly\nwhat the data means."
+                },
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
             .await?;
 
-        hal.ui()
-            .confirm(&confirm::Params {
-                title: "Transaction\ndata",
-                body: &hex::encode(request.data()),
-                scrollable: true,
-                display_size: request.data().len(),
-                accept_is_nextarrow: true,
-                ..Default::default()
-            })
-            .await?;
+        if data_length > 0 {
+            // Streaming mode: data is too large to display, show size instead
+            hal.ui()
+                .confirm(&confirm::Params {
+                    title: "Transaction\ndata",
+                    body: &alloc::format!("{} bytes\n(too large to\ndisplay)", data_length),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+        } else {
+            // Nonstreaming mode: show hex data
+            hal.ui()
+                .confirm(&confirm::Params {
+                    title: "Transaction\ndata",
+                    body: &hex::encode(request.data()),
+                    scrollable: true,
+                    display_size: request.data().len(),
+                    accept_is_nextarrow: true,
+                    ..Default::default()
+                })
+                .await?;
+        }
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
@@ -313,11 +379,19 @@ pub async fn _process(
     }
 
     // Size limits.
+    const MAX_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
+    const MAX_NONSTREAMING_DATA_LENGTH: usize = 6144;
     if request.nonce().len() > 16
         || request.gas_limit().len() > 16
         || request.value().len() > 32
-        || request.data().len() > 6144
+        || request.data().len() > MAX_NONSTREAMING_DATA_LENGTH
+        || request.data_length() > MAX_STREAMING_DATA_LENGTH
     {
+        return Err(Error::InvalidInput);
+    }
+
+    // Can't use both inline data and streaming at the same time.
+    if request.data_length() > 0 && !request.data().is_empty() {
         return Err(Error::InvalidInput);
     }
 
@@ -369,8 +443,8 @@ pub async fn _process(
     hal.ui().status("Transaction\nconfirmed", true).await;
 
     let hash: [u8; 32] = match request {
-        Transaction::Legacy(legacy) => hash_legacy(params.chain_id, legacy)?,
-        Transaction::Eip1559(eip1559) => hash_eip1559(eip1559)?,
+        Transaction::Legacy(legacy) => hash_legacy(params.chain_id, legacy).await?,
+        Transaction::Eip1559(eip1559) => hash_eip1559(eip1559).await?,
     };
 
     let host_nonce = match request.host_nonce_commitment() {
@@ -431,6 +505,8 @@ mod tests {
     use alloc::boxed::Box;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
+
+    use super::super::sighash::tests::{clear_chunk_responder, setup_chunk_responder};
 
     #[test]
     pub fn test_parse_recipient() {
@@ -543,6 +619,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 0,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\xc3\xae\x24\xc1\x67\xe2\x16\xcf\xb7\x5c\x72\xb5\xe0\x3e\xf9\x7a\xcc\x2b\x60\x7f\x3a\xcf\x63\x86\x5f\x80\x96\x0f\x76\xf6\x56\x47\x0f\x8e\x23\xf1\xd2\x78\x8f\xb0\x07\x0e\x28\xc2\xa5\xc8\xaa\xf1\x5b\x5d\xbf\x30\xb4\x09\x07\xff\x6c\x50\x68\xfd\xcb\xc1\x1a\x2d\x00"
@@ -565,6 +642,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x28\x91\x11\x77\x0d\xc0\x67\x89\x57\x80\xde\x3e\x9b\x30\x45\x4e\x33\x1b\xa6\x66\x1f\x04\x6e\x9e\x26\x43\x15\x76\xd7\xf0\x8a\x49\x6f\xfe\x6d\xef\xfb\x07\xdd\x8d\x47\x13\xd8\xc5\x23\xb6\xc3\x3b\x53\xdd\x6e\xf2\xdc\x9c\x39\x4d\x6e\x21\xf6\x43\x07\xd2\xbc\xf0\x01"
@@ -599,6 +677,7 @@ mod tests {
             host_nonce_commitment: None,
             chain_id: 0,
             address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
         })))
         .is_ok());
 
@@ -655,6 +734,7 @@ mod tests {
             host_nonce_commitment: None,
             chain_id: 1,
             address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
         })))
         .is_ok());
 
@@ -709,6 +789,7 @@ mod tests {
             host_nonce_commitment: None,
             chain_id: 11155111,
             address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
         })))
         .unwrap();
 
@@ -762,6 +843,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 0,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x7d\x3f\x37\x13\xe3\xcf\x10\x82\x79\x1d\x5c\x0f\xc6\x8e\xc2\x9e\xaf\xf5\xe1\xee\x84\x67\xa8\xec\x54\x7d\xc7\x96\xe8\x5a\x79\x04\x2b\x7c\x01\x69\x2f\xb7\x2f\x55\x76\xab\x50\xdc\xaa\x62\x1a\xd1\xee\xab\xd9\x97\x59\x73\xb8\x62\x56\xf4\x0c\x6f\x85\x50\xef\x44\x00"
@@ -828,6 +910,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\xc5\xd9\x63\x9a\x77\x8a\x34\x15\xf6\x3a\x11\xc0\x3a\x58\xbe\xde\x6b\x3c\xaf\xff\x4f\x2c\xe6\xea\x16\x41\x1e\x76\xfb\xa9\x46\xf7\x21\x66\xf0\x9e\x31\x3c\x07\xe7\x8b\x7b\x1f\xff\x87\x45\x0c\x43\x21\x17\x0c\x02\xdf\x2d\x36\xc4\x4c\x3a\x02\x1a\xbf\x20\x54\x60\x01"
@@ -916,6 +999,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x67\x4e\x9a\x01\x70\xee\xe0\xca\x8c\x40\x6e\xc9\xa7\xdf\x2e\x3a\x6b\xdd\x17\x9c\xf6\x93\x85\x80\x0e\x1f\xd3\x78\xe7\xcf\xb1\x9c\x4d\x55\x16\x2c\x54\x7b\x04\xd1\x81\x8e\x43\x90\x16\x91\xae\xc9\x88\xef\x75\xcd\x67\xd9\xbb\x30\x1d\x14\x90\x2f\xd6\xe6\x92\x92\x01"
@@ -938,6 +1022,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x31\x62\x48\x78\x80\xab\xde\xa1\xf3\x52\xd9\xa4\xe3\xd5\x60\x66\xf1\x22\xf0\x4f\xf1\x12\x11\x7c\x8c\xa3\xcd\x22\x0f\x16\x66\x30\x2d\xac\xd5\xe5\xe8\xda\x4c\xd3\x97\x04\xe3\x34\x43\xa9\xa7\xf3\x26\x02\xd3\x32\xbb\x52\x56\x7c\x2e\x34\xaa\xfe\x9e\xd4\x8f\xeb\x01"
@@ -987,6 +1072,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 0,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\xec\x6e\x53\x0c\x8e\xe2\x54\x34\xfc\x44\x0e\x9a\xc0\xf8\x88\xe9\xc6\x3c\xf0\x7e\xbc\xf1\xc2\xf8\xa8\x3e\x2e\x8c\x39\x83\x2c\x55\x15\x12\x71\x6f\x6e\x1a\x8b\x66\xce\x38\x11\xa7\x26\xbc\xb2\x44\x66\x4e\xf2\x6f\x98\xee\x35\xc0\xc9\xdb\x4c\xaa\xb0\x73\x98\x56\x00"
@@ -1009,6 +1095,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\x82\x03\xd8\x0b\x60\x0d\xce\x8e\x77\xcd\xcb\x11\x9d\x45\xdb\x7f\x60\xd7\xca\x34\xe7\x36\x91\x40\xe9\x2d\x93\x91\x92\x21\xf8\x5a\x0a\x11\x9d\x24\x64\xdf\xab\x65\x83\x30\x95\xc1\x27\x63\xfe\xd3\x7c\x07\x2f\xeb\x29\x61\x0e\x14\x37\xf3\x88\x95\x8d\x77\x56\x28\x01"
@@ -1034,6 +1121,7 @@ mod tests {
             host_nonce_commitment: None,
             chain_id: 0,
             address_case: pb::EthAddressCase::Mixed as _,
+            data_length: 0,
         };
 
         {
@@ -1189,6 +1277,7 @@ mod tests {
             host_nonce_commitment: None,
             chain_id: 1,
             address_case: pb::EthAddressCase::Mixed as _,
+            data_length: 0,
         };
 
         {
@@ -1263,6 +1352,7 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 12345,
                 address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: b"\xb1\xb6\xb3\x4e\x15\xa0\x30\x9d\xdc\x26\x03\xdf\x4c\x40\x38\xea\x86\x65\xed\x85\xd3\xf2\xc8\x1e\x7f\x1a\xa0\x25\x4b\x21\x38\x72\x0d\x60\x1f\x42\x19\xfb\x29\xab\x3d\x5f\xf7\x76\xea\xe1\xbe\x15\x26\xb4\x67\xe2\xb0\xe6\x30\xe8\xe6\x34\xa4\xda\x4a\x82\x2e\x39\x00".to_vec()
@@ -1320,6 +1410,7 @@ mod tests {
             host_nonce_commitment: None,
             chain_id: 42161,
             address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
         })))
         .unwrap();
 
@@ -1355,6 +1446,7 @@ mod tests {
             host_nonce_commitment: None,
             chain_id: 137,
             address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
         })))
         .unwrap();
         assert_eq!(
@@ -1364,6 +1456,270 @@ mod tests {
                 body: "Sign transaction on\n\nPolygon".into(),
                 longtouch: false,
             }
+        );
+    }
+
+    #[test]
+    pub fn test_streaming_equivalence_legacy() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..4000u32).map(|i| (i % 256) as u8).collect();
+
+        mock_unlocked();
+        let mut mock_hal_nonstreaming = TestingHal::new();
+        let nonstreaming_result = block_on(process(
+            &mut mock_hal_nonstreaming,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: b"\x01".to_vec(),
+                gas_price: b"\x04\xa8\x17\xc8\x00".to_vec(),
+                gas_limit: b"\x0f\x42\x40".to_vec(),
+                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                    .to_vec(),
+                value: b"".to_vec(),
+                data: test_data.clone(),
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
+            }),
+        ));
+
+        setup_chunk_responder(test_data.clone());
+        mock_unlocked();
+        let mut mock_hal_streaming = TestingHal::new();
+        let streaming_result = block_on(process(
+            &mut mock_hal_streaming,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: b"\x01".to_vec(),
+                gas_price: b"\x04\xa8\x17\xc8\x00".to_vec(),
+                gas_limit: b"\x0f\x42\x40".to_vec(),
+                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                    .to_vec(),
+                value: b"".to_vec(),
+                data: vec![],
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 4000,
+            }),
+        ));
+        clear_chunk_responder();
+
+        assert!(nonstreaming_result.is_ok());
+        assert!(streaming_result.is_ok());
+        match (&nonstreaming_result, &streaming_result) {
+            (Ok(Response::Sign(trad)), Ok(Response::Sign(stream))) => {
+                assert_eq!(trad.signature, stream.signature);
+            }
+            _ => panic!("Expected Sign responses from both modes"),
+        }
+    }
+
+    #[test]
+    pub fn test_streaming_equivalence_eip1559() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..4000u32).map(|i| (i % 256) as u8).collect();
+
+        mock_unlocked();
+        let mut mock_hal_nonstreaming = TestingHal::new();
+        let nonstreaming_result = block_on(process(
+            &mut mock_hal_nonstreaming,
+            &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                keypath: KEYPATH.to_vec(),
+                nonce: b"\x01".to_vec(),
+                max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
+                max_fee_per_gas: b"\x04\xa8\x17\xc8\x00".to_vec(),
+                gas_limit: b"\x0f\x42\x40".to_vec(),
+                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                    .to_vec(),
+                value: b"".to_vec(),
+                data: test_data.clone(),
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
+            }),
+        ));
+
+        setup_chunk_responder(test_data.clone());
+        mock_unlocked();
+        let mut mock_hal_streaming = TestingHal::new();
+        let streaming_result = block_on(process(
+            &mut mock_hal_streaming,
+            &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                keypath: KEYPATH.to_vec(),
+                nonce: b"\x01".to_vec(),
+                max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
+                max_fee_per_gas: b"\x04\xa8\x17\xc8\x00".to_vec(),
+                gas_limit: b"\x0f\x42\x40".to_vec(),
+                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                    .to_vec(),
+                value: b"".to_vec(),
+                data: vec![],
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 4000,
+            }),
+        ));
+        clear_chunk_responder();
+
+        assert!(nonstreaming_result.is_ok());
+        assert!(streaming_result.is_ok());
+        match (&nonstreaming_result, &streaming_result) {
+            (Ok(Response::Sign(trad)), Ok(Response::Sign(stream))) => {
+                assert_eq!(trad.signature, stream.signature);
+            }
+            _ => panic!("Expected Sign responses from both modes"),
+        }
+    }
+
+    #[test]
+    pub fn test_streaming_large_data_legacy() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..10000u32).map(|i| (i % 256) as u8).collect();
+
+        setup_chunk_responder(test_data);
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Legacy(&pb::EthSignRequest {
+                    coin: pb::EthCoin::Eth as _,
+                    keypath: KEYPATH.to_vec(),
+                    nonce: b"\x01".to_vec(),
+                    gas_price: b"\x04\xa8\x17\xc8\x00".to_vec(),
+                    gas_limit: b"\x0f\x42\x40".to_vec(),
+                    recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                        .to_vec(),
+                    value: b"".to_vec(),
+                    data: vec![],
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 10000,
+                }),
+            )),
+            Ok(Response::Sign(pb::EthSignResponse {
+                signature: b"\xf0\x0a\x05\x08\x4c\x54\x0b\xb6\x9b\x9d\x0d\x1e\x77\x83\xa0\xfe\x31\x5f\xfc\x3f\xfd\xc0\xed\xc3\x2a\x3d\x0e\x9d\x00\xf9\xd8\xa8\x6c\x7b\x5c\x36\xfc\x13\x60\x62\xad\xc1\x85\x7e\x2e\xdc\xf7\x3e\xb7\x51\x38\xd5\x39\x0e\xd8\x07\xb2\xcb\x0b\x90\x65\x2f\xef\x22\x01"
+                    .to_vec()
+            }))
+        );
+        clear_chunk_responder();
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Sign transaction on\n\nEthereum".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "You are signing a\ncontract interaction\nwith large data.".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Transaction\ndata".into(),
+                    body: "10000 bytes\n(too large to\ndisplay)".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "0x112233445566778899AabbcCDDeEFF0011223344".into(),
+                    amount: "0 ETH".into(),
+                },
+                Screen::TotalFee {
+                    total: "0.02 ETH".into(),
+                    fee: "0.02 ETH".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    pub fn test_streaming_large_data_eip1559() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..12000u32).map(|i| (i % 256) as u8).collect();
+
+        setup_chunk_responder(test_data);
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                    keypath: KEYPATH.to_vec(),
+                    nonce: b"\x01".to_vec(),
+                    max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
+                    max_fee_per_gas: b"\x04\xa8\x17\xc8\x00".to_vec(),
+                    gas_limit: b"\x0f\x42\x40".to_vec(),
+                    recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                        .to_vec(),
+                    value: b"".to_vec(),
+                    data: vec![],
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 12000,
+                }),
+            )),
+            Ok(Response::Sign(pb::EthSignResponse {
+                signature: b"\xdc\x85\x36\x40\xb4\xa7\x53\x90\xb5\xb5\x94\x78\xc1\x8b\x1f\xba\x13\x50\x25\xbf\x40\xbb\x41\xd5\x4f\x95\xd3\x56\x28\x44\x3e\x19\x00\x37\x6e\x1b\xe2\x91\x68\x29\xbe\x4c\xbb\x0d\x89\x7c\xc6\x9a\xd8\x09\x87\xa5\x7a\x48\x92\x54\xd5\x61\xdf\xd3\x07\x1a\x0d\xb1\x01"
+                    .to_vec()
+            }))
+        );
+        clear_chunk_responder();
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Sign transaction on\n\nEthereum".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "You are signing a\ncontract interaction\nwith large data.".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Unknown\ncontract".into(),
+                    body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Transaction\ndata".into(),
+                    body: "12000 bytes\n(too large to\ndisplay)".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "0x112233445566778899AabbcCDDeEFF0011223344".into(),
+                    amount: "0 ETH".into(),
+                },
+                Screen::TotalFee {
+                    total: "0.02 ETH".into(),
+                    fee: "0.02 ETH".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true,
+                },
+            ]
         );
     }
 }

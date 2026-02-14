@@ -2061,7 +2061,7 @@ mod tests {
                 }
                 _ => panic!("wrong result"),
             }
-            assert_eq!(unsafe { PREVTX_REQUESTED }, tx.inputs.len() as _);
+            assert_eq!(unsafe { PREVTX_REQUESTED }, tx.inputs.len() as u32);
         }
     }
 
@@ -2217,7 +2217,7 @@ mod tests {
         assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
         assert_eq!(
             unsafe { PREVTX_REQUESTED },
-            transaction.borrow().inputs.len() as _
+            transaction.borrow().inputs.len() as u32
         );
     }
 

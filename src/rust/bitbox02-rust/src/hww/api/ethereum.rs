@@ -74,8 +74,10 @@ pub async fn process_api(
         Request::SignEip1559(request) => {
             sign::process(hal, &sign::Transaction::Eip1559(request)).await
         }
-        Request::AntikleptoSignature(_) => Err(Error::InvalidInput),
         Request::SignTypedMsg(request) => sign_typed_msg::process(hal, request).await,
-        Request::TypedMsgValue(_) => Err(Error::InvalidInput),
+        // These are streamed asynchronously using the `next_request()` primitive
+        Request::AntikleptoSignature(_)
+        | Request::TypedMsgValue(_)
+        | Request::DataResponseChunk(_) => Err(Error::InvalidState),
     }
 }

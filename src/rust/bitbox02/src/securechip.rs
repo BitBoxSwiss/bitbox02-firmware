@@ -17,7 +17,7 @@ pub enum Error {
 }
 
 // Keep in sync with securechip.h's securechip_error_t.
-const SECURECHIP_ERRORS: [SecureChipError; 16] = [
+const SECURECHIP_ERRORS: [SecureChipError; 17] = [
     // Errors common to any securechip implementation
     SecureChipError::SC_ERR_IFS,
     SecureChipError::SC_ERR_INVALID_ARGS,
@@ -25,6 +25,7 @@ const SECURECHIP_ERRORS: [SecureChipError; 16] = [
     SecureChipError::SC_ERR_SALT,
     SecureChipError::SC_ERR_INCORRECT_PASSWORD,
     SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
+    SecureChipError::SC_ERR_MEMORY,
     // Errors specific to the ATECC
     SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG,
     SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_DATA,
@@ -165,6 +166,36 @@ mod tests {
     use super::*;
 
     use hex_lit::hex;
+
+    #[test]
+    fn test_error_from_status() {
+        let cases = [
+            SecureChipError::SC_ERR_IFS,
+            SecureChipError::SC_ERR_INVALID_ARGS,
+            SecureChipError::SC_ERR_CONFIG_MISMATCH,
+            SecureChipError::SC_ERR_SALT,
+            SecureChipError::SC_ERR_INCORRECT_PASSWORD,
+            SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
+            SecureChipError::SC_ERR_MEMORY,
+            SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG,
+            SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_DATA,
+            SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_IO,
+            SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_AUTH,
+            SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_ENC,
+            SecureChipError::SC_ATECC_ERR_RESET_KEYS,
+            SecureChipError::SC_OPTIGA_ERR_CREATE,
+            SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_METADATA,
+            SecureChipError::SC_OPTIGA_ERR_PAL,
+            SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN,
+        ];
+
+        for error in cases {
+            assert_eq!(Error::from_status(error as i32), Error::SecureChip(error),);
+        }
+
+        assert_eq!(Error::from_status(7), Error::Status(7));
+        assert_eq!(Error::from_status(-9999), Error::Status(-9999));
+    }
 
     #[test]
     fn test_kdf() {

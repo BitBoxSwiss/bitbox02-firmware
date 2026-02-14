@@ -24,9 +24,14 @@ impl core::convert::From<()> for Error {
     }
 }
 
-impl core::convert::From<bitbox02::memory::Error> for Error {
-    fn from(_error: bitbox02::memory::Error) -> Self {
-        Error::Memory
+impl core::convert::From<crate::hal::memory::Error> for Error {
+    fn from(error: crate::hal::memory::Error) -> Self {
+        match error {
+            crate::hal::memory::Error::InvalidInput => Error::InvalidInput,
+            crate::hal::memory::Error::DuplicateName => Error::Duplicate,
+            crate::hal::memory::Error::Unknown => Error::Memory,
+            crate::hal::memory::Error::Full => Error::Generic,
+        }
     }
 }
 

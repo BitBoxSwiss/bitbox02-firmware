@@ -16,9 +16,6 @@ pub use bitbox02_sys::memory_optiga_config_version_t as OptigaConfigVersion;
 pub use bitbox02_sys::memory_password_stretch_algo_t as PasswordStretchAlgo;
 pub use bitbox02_sys::memory_result_t as MemoryError;
 
-#[derive(Debug)]
-pub struct Error;
-
 pub fn get_device_name() -> String {
     let mut name = [0u8; DEVICE_NAME_MAX_LEN + 1];
     unsafe { bitbox02_sys::memory_get_device_name(name.as_mut_ptr().cast()) }
@@ -27,17 +24,17 @@ pub fn get_device_name() -> String {
         .into()
 }
 
-pub fn set_device_name(name: &str) -> Result<(), Error> {
+pub fn set_device_name(name: &str) -> Result<(), MemoryError> {
     match unsafe {
         bitbox02_sys::memory_set_device_name(
             util::strings::str_to_cstr_vec(name)
-                .or(Err(Error))?
+                .or(Err(MemoryError::MEMORY_ERR_UNKNOWN))?
                 .as_ptr()
                 .cast(),
         )
     } {
         true => Ok(()),
-        false => Err(Error),
+        false => Err(MemoryError::MEMORY_ERR_UNKNOWN),
     }
 }
 

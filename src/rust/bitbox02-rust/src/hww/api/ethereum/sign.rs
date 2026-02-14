@@ -162,69 +162,44 @@ fn parse_fee<'a>(request: &Transaction<'_>, params: &'a Params) -> Amount<'a> {
 }
 
 async fn hash_legacy(chain_id: u64, request: &pb::EthSignRequest) -> Result<[u8; 32], Error> {
-    if request.data_length > 0 {
-        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
-            nonce: &request.nonce,
-            gas_price: &request.gas_price,
-            gas_limit: &request.gas_limit,
-            recipient: &request.recipient,
-            value: &request.value,
-            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
-                request.data_length,
-            )),
-            chain_id,
-        })
-        .await
-        .map_err(|_| Error::InvalidInput)?;
-        Ok(hash)
+    let producer = if request.data_length > 0 {
+        super::sighash::ChunkingProducer::from_host(request.data_length)
     } else {
-        let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
-            nonce: &request.nonce,
-            gas_price: &request.gas_price,
-            gas_limit: &request.gas_limit,
-            recipient: &request.recipient,
-            value: &request.value,
-            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
-            chain_id,
-        })
-        .await
-        .map_err(|_| Error::InvalidInput)?;
-        Ok(hash)
-    }
+        super::sighash::ChunkingProducer::from_data(&request.data)
+    };
+    let hash = super::sighash::compute_legacy(&super::sighash::ParamsLegacy {
+        nonce: &request.nonce,
+        gas_price: &request.gas_price,
+        gas_limit: &request.gas_limit,
+        recipient: &request.recipient,
+        value: &request.value,
+        data: core::cell::RefCell::new(producer),
+        chain_id,
+    })
+    .await
+    .map_err(|_| Error::InvalidInput)?;
+    Ok(hash)
 }
 
 async fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], Error> {
-    if request.data_length > 0 {
-        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
-            chain_id: request.chain_id,
-            nonce: &request.nonce,
-            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
-            max_fee_per_gas: &request.max_fee_per_gas,
-            gas_limit: &request.gas_limit,
-            recipient: &request.recipient,
-            value: &request.value,
-            data: core::cell::RefCell::new(super::sighash::ChunkingProducer::new(
-                request.data_length,
-            )),
-        })
-        .await
-        .map_err(|_| Error::InvalidInput)?;
-        Ok(hash)
+    let producer = if request.data_length > 0 {
+        super::sighash::ChunkingProducer::from_host(request.data_length)
     } else {
-        let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
-            chain_id: request.chain_id,
-            nonce: &request.nonce,
-            max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
-            max_fee_per_gas: &request.max_fee_per_gas,
-            gas_limit: &request.gas_limit,
-            recipient: &request.recipient,
-            value: &request.value,
-            data: core::cell::RefCell::new(super::sighash::SimpleProducer::new(&request.data)),
-        })
-        .await
-        .map_err(|_| Error::InvalidInput)?;
-        Ok(hash)
-    }
+        super::sighash::ChunkingProducer::from_data(&request.data)
+    };
+    let hash = super::sighash::compute_eip1559(&super::sighash::ParamsEIP1559 {
+        chain_id: request.chain_id,
+        nonce: &request.nonce,
+        max_priority_fee_per_gas: &request.max_priority_fee_per_gas,
+        max_fee_per_gas: &request.max_fee_per_gas,
+        gas_limit: &request.gas_limit,
+        recipient: &request.recipient,
+        value: &request.value,
+        data: core::cell::RefCell::new(producer),
+    })
+    .await
+    .map_err(|_| Error::InvalidInput)?;
+    Ok(hash)
 }
 
 /// Verifies an ERC20 transfer.

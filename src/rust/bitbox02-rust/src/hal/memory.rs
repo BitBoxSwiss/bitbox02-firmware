@@ -16,6 +16,12 @@ pub enum SecurechipType {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Platform {
+    BitBox02,
+    BitBox02Plus,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
     InvalidInput,
     Full,
@@ -25,7 +31,7 @@ pub enum Error {
 
 pub trait Memory {
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
-    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
+    fn get_platform(&mut self) -> Result<Platform, ()>;
     fn get_device_name(&mut self) -> String;
     fn set_device_name(&mut self, name: &str) -> Result<(), Error>;
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool;

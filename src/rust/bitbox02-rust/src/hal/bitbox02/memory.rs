@@ -4,7 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::hal::Memory;
-use crate::hal::memory::{Error, PasswordStretchAlgo, SecurechipType};
+use crate::hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
 
 pub(crate) struct BitBox02Memory;
 
@@ -12,6 +12,13 @@ fn to_hal_securechip_type(securechip_type: bitbox02::memory::SecurechipType) -> 
     match securechip_type {
         bitbox02::memory::SecurechipType::Atecc => SecurechipType::Atecc,
         bitbox02::memory::SecurechipType::Optiga => SecurechipType::Optiga,
+    }
+}
+
+fn to_hal_platform(platform: bitbox02::memory::Platform) -> Platform {
+    match platform {
+        bitbox02::memory::Platform::BitBox02 => Platform::BitBox02,
+        bitbox02::memory::Platform::BitBox02Plus => Platform::BitBox02Plus,
     }
 }
 
@@ -58,8 +65,8 @@ impl Memory for BitBox02Memory {
         bitbox02::memory::get_securechip_type().map(to_hal_securechip_type)
     }
 
-    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
-        bitbox02::memory::get_platform()
+    fn get_platform(&mut self) -> Result<Platform, ()> {
+        bitbox02::memory::get_platform().map(to_hal_platform)
     }
 
     fn get_device_name(&mut self) -> String {

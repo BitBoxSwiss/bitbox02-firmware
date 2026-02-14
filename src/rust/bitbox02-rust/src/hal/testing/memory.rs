@@ -3,11 +3,11 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::hal::memory::{Error, PasswordStretchAlgo, SecurechipType};
+use crate::hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
 
 pub struct TestingMemory {
     securechip_type: SecurechipType,
-    platform: bitbox02::memory::Platform,
+    platform: Platform,
     initialized: bool,
     is_seeded: bool,
     mnemonic_passphrase_enabled: bool,
@@ -30,7 +30,7 @@ impl TestingMemory {
     pub fn new() -> Self {
         Self {
             securechip_type: SecurechipType::Optiga,
-            platform: bitbox02::memory::Platform::BitBox02,
+            platform: Platform::BitBox02,
             initialized: false,
             is_seeded: false,
             mnemonic_passphrase_enabled: false,
@@ -51,7 +51,7 @@ impl TestingMemory {
         self.securechip_type = securechip_type;
     }
 
-    pub fn set_platform(&mut self, platform: bitbox02::memory::Platform) {
+    pub fn set_platform(&mut self, platform: Platform) {
         self.platform = platform;
     }
 
@@ -84,7 +84,7 @@ impl crate::hal::Memory for TestingMemory {
         Ok(self.securechip_type)
     }
 
-    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+    fn get_platform(&mut self) -> Result<Platform, ()> {
         Ok(self.platform)
     }
 

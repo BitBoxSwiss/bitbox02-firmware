@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::general::abort;
-use crate::hal::{Memory, SecureChip, Ui};
+use crate::hal::{Memory, SecureChip, Ui, memory};
 
 /// Resets the device:
 /// - Updates secure chip KDF keys.
@@ -59,7 +59,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     // The ble chip needs to be restarted to load the new secrets.
     if matches!(
         hal.memory().get_platform(),
-        Ok(bitbox02::memory::Platform::BitBox02Plus)
+        Ok(memory::Platform::BitBox02Plus)
     ) {
         bitbox02::reset_ble();
     }

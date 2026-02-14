@@ -9,7 +9,7 @@ use pb::response::Response;
 
 pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let bluetooth = match hal.memory().get_platform().map_err(|_| Error::Memory)? {
-        memory::Platform::BitBox02Plus => {
+        hal_memory::Platform::BitBox02Plus => {
             let ble_metadata = memory::get_ble_metadata();
             Some(pb::device_info_response::Bluetooth {
                 firmware_hash: ble_metadata.allowed_firmware_hash.to_vec(),
@@ -18,7 +18,7 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
                 enabled: memory::ble_enabled(),
             })
         }
-        memory::Platform::BitBox02 => None,
+        hal_memory::Platform::BitBox02 => None,
     };
     // We display the stretching algo that is used on a seeded device, or the algo that would be
     // used for a new seed on an unseeded device.

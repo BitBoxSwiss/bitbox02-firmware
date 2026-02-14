@@ -45,7 +45,10 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 
-    hal.ui().show_and_confirm_mnemonic(&words).await?;
+    {
+        let crate::hal::HalSubsystems { ui, random, .. } = hal.subsystems();
+        ui.show_and_confirm_mnemonic(random, &words).await?;
+    }
 
     hal.memory().set_initialized().or(Err(Error::Memory))?;
 

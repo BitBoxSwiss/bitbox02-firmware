@@ -17,7 +17,11 @@ Checks: >-
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -readability-avoid-unconditional-preprocessor-if,
   -readability-suspicious-call-argument,
-  -clang-diagnostic-incompatible-pointer-types-discards-qualifiers
+  -clang-diagnostic-incompatible-pointer-types-discards-qualifiers,
+  -readability-use-concise-preprocessor-directives,
+  -readability-math-missing-parentheses,
+  -clang-analyzer-core.FixedAddressDereference,
+  -clang-diagnostic-cast-qual
 HeaderFilterRegex: '.*'
 ExtraArgs:
   - -Wno-unknown-warning-option

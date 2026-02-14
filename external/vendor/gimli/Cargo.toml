@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.60"
 name = "gimli"
-version = "0.32.0"
+version = "0.32.3"
 build = false
 include = [
     "/CHANGELOG.md",

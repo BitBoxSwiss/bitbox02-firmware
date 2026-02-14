@@ -24,7 +24,7 @@ int __wrap_rust_sha256(const unsigned char* data, size_t len, unsigned char* out
 static void _test_random_32_bytes_mcu(void** state)
 {
     uint8_t expected[RANDOM_NUM_SIZE] = {0};
-    uint8_t buf[RANDOM_NUM_SIZE] = "12345678901234567890123456789012";
+    __extension__ uint8_t buf[RANDOM_NUM_SIZE] = {[0 ... RANDOM_NUM_SIZE - 1] = 0x42};
     // mock mcu rand()
     for (int i = 0; i < RANDOM_NUM_SIZE; i++) {
         will_return(__wrap_rand, i);

@@ -2,6 +2,13 @@
 
 use alloc::vec::Vec;
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Model {
+    Atecc608A,
+    Atecc608B,
+    OptigaTrustM3,
+}
+
 pub trait SecureChip {
     fn init_new_password(
         &mut self,
@@ -23,7 +30,7 @@ pub trait SecureChip {
         signature: &mut [u8; 64],
     ) -> Result<(), ()>;
     fn monotonic_increments_remaining(&mut self) -> Result<u32, ()>;
-    fn model(&mut self) -> Result<bitbox02::securechip::Model, ()>;
+    fn model(&mut self) -> Result<Model, ()>;
     fn reset_keys(&mut self) -> Result<(), ()>;
     #[cfg(feature = "app-u2f")]
     fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;

@@ -5,6 +5,8 @@ use alloc::vec::Vec;
 use bitcoin::hashes::Hash;
 use hex_lit::hex;
 
+use crate::hal::securechip::Model;
+
 pub struct TestingSecureChip {
     // Count how many security events happen. The numbers were obtained by reading the security
     // event counter slot (0xE0C5) on a real device. We can use this to assert how many events
@@ -139,8 +141,8 @@ impl crate::hal::SecureChip for TestingSecureChip {
         Ok(1)
     }
 
-    fn model(&mut self) -> Result<bitbox02::securechip::Model, ()> {
-        Ok(bitbox02::securechip::Model::ATECC_ATECC608B)
+    fn model(&mut self) -> Result<Model, ()> {
+        Ok(Model::Atecc608B)
     }
 
     fn reset_keys(&mut self) -> Result<(), ()> {

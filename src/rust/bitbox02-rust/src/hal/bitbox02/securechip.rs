@@ -3,8 +3,17 @@
 use alloc::vec::Vec;
 
 use crate::hal::SecureChip;
+use crate::hal::securechip::Model;
 
 pub(crate) struct BitBox02SecureChip;
+
+fn to_hal_model(model: bitbox02::securechip::Model) -> Model {
+    match model {
+        bitbox02::securechip::Model::ATECC_ATECC608A => Model::Atecc608A,
+        bitbox02::securechip::Model::ATECC_ATECC608B => Model::Atecc608B,
+        bitbox02::securechip::Model::OPTIGA_TRUST_M_V3 => Model::OptigaTrustM3,
+    }
+}
 
 impl SecureChip for BitBox02SecureChip {
     fn init_new_password(
@@ -42,8 +51,8 @@ impl SecureChip for BitBox02SecureChip {
         bitbox02::securechip::monotonic_increments_remaining()
     }
 
-    fn model(&mut self) -> Result<bitbox02::securechip::Model, ()> {
-        bitbox02::securechip::model()
+    fn model(&mut self) -> Result<Model, ()> {
+        bitbox02::securechip::model().map(to_hal_model)
     }
 
     fn reset_keys(&mut self) -> Result<(), ()> {

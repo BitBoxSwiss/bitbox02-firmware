@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::{Memory, SecureChip};
+use crate::hal::{Memory, SecureChip, securechip};
 use crate::pb;
 
-use bitbox02::{memory, securechip, spi_mem};
+use bitbox02::{memory, spi_mem};
 use pb::response::Response;
 
 pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
@@ -41,9 +41,9 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         mnemonic_passphrase_enabled: hal.memory().is_mnemonic_passphrase_enabled(),
         monotonic_increments_remaining: hal.securechip().monotonic_increments_remaining()?,
         securechip_model: match hal.securechip().model()? {
-            securechip::Model::ATECC_ATECC608A => "ATECC608A".into(),
-            securechip::Model::ATECC_ATECC608B => "ATECC608B".into(),
-            securechip::Model::OPTIGA_TRUST_M_V3 => "OPTIGA_TRUST_M_V3".into(),
+            securechip::Model::Atecc608A => "ATECC608A".into(),
+            securechip::Model::Atecc608B => "ATECC608B".into(),
+            securechip::Model::OptigaTrustM3 => "OPTIGA_TRUST_M_V3".into(),
         },
         bluetooth,
         password_stretching_algo: match password_stretching_algo {

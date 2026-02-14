@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 use bitcoin::hashes::Hash;
 use hex_lit::hex;
 
+use crate::hal::memory::PasswordStretchAlgo;
 use crate::hal::securechip::{Error, Model};
 
 pub struct TestingSecureChip {
@@ -64,15 +65,13 @@ impl crate::hal::SecureChip for TestingSecureChip {
     fn init_new_password(
         &mut self,
         password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         self.event_counter += 3;
 
         let key: &'static [u8] = match password_stretch_algo {
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
-                b"unit-test-v0"
-            }
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => b"unit-test",
+            PasswordStretchAlgo::V0 => b"unit-test-v0",
+            PasswordStretchAlgo::V1 => b"unit-test",
         };
         use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
         let mut engine = HmacEngine::<sha256::Hash>::new(key);
@@ -86,18 +85,16 @@ impl crate::hal::SecureChip for TestingSecureChip {
     fn stretch_password(
         &mut self,
         password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         self.event_counter += match password_stretch_algo {
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => 5,
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => 4,
+            PasswordStretchAlgo::V0 => 5,
+            PasswordStretchAlgo::V1 => 4,
         };
 
         let key: &'static [u8] = match password_stretch_algo {
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
-                b"unit-test-v0"
-            }
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => b"unit-test",
+            PasswordStretchAlgo::V0 => b"unit-test-v0",
+            PasswordStretchAlgo::V1 => b"unit-test",
         };
 
         use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};

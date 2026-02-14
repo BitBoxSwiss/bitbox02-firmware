@@ -3,8 +3,7 @@
 use super::{confirm, trinary_input_string};
 use crate::hal::Ui;
 
-use crate::hal::Memory;
-use bitbox02::memory::SecurechipType;
+use crate::hal::{Memory, memory::SecurechipType};
 
 pub use trinary_input_string::{CanCancel, Error};
 

@@ -3,7 +3,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use bitbox02::memory::SecurechipType;
+use crate::hal::memory::{PasswordStretchAlgo, SecurechipType};
 
 pub struct TestingMemory {
     securechip_type: SecurechipType,
@@ -12,7 +12,7 @@ pub struct TestingMemory {
     is_seeded: bool,
     mnemonic_passphrase_enabled: bool,
     seed_birthdate: u32,
-    encrypted_seed_and_hmac: Option<(Vec<u8>, bitbox02::memory::PasswordStretchAlgo)>,
+    encrypted_seed_and_hmac: Option<(Vec<u8>, PasswordStretchAlgo)>,
     device_name: Option<String>,
     unlock_attempts: u8,
     salt_root: [u8; 32],
@@ -132,14 +132,14 @@ impl crate::hal::Memory for TestingMemory {
 
     fn get_encrypted_seed_and_hmac(
         &mut self,
-    ) -> Result<(alloc::vec::Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()> {
+    ) -> Result<(alloc::vec::Vec<u8>, PasswordStretchAlgo), ()> {
         self.encrypted_seed_and_hmac.clone().ok_or(())
     }
 
     fn set_encrypted_seed_and_hmac(
         &mut self,
         data: &[u8],
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<(), ()> {
         // 96 is the max space allocated in BitBox02's memory for this.
         if data.len() > 96 {

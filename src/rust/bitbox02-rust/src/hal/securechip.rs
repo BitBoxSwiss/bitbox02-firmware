@@ -2,6 +2,8 @@
 
 use alloc::vec::Vec;
 
+use super::memory::PasswordStretchAlgo;
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Model {
     Atecc608A,
@@ -49,12 +51,12 @@ pub trait SecureChip {
     fn init_new_password(
         &mut self,
         password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
     fn stretch_password(
         &mut self,
         password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
     fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
     fn attestation_sign(

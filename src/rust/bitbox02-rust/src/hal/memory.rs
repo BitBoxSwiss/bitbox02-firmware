@@ -3,8 +3,20 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum PasswordStretchAlgo {
+    V0,
+    V1,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum SecurechipType {
+    Atecc,
+    Optiga,
+}
+
 pub trait Memory {
-    fn get_securechip_type(&mut self) -> Result<bitbox02::memory::SecurechipType, ()>;
+    fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()>;
     fn get_device_name(&mut self) -> String;
     fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error>;
@@ -15,13 +27,11 @@ pub trait Memory {
     fn is_seeded(&mut self) -> bool;
     fn is_initialized(&mut self) -> bool;
     fn set_initialized(&mut self) -> Result<(), ()>;
-    fn get_encrypted_seed_and_hmac(
-        &mut self,
-    ) -> Result<(Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()>;
+    fn get_encrypted_seed_and_hmac(&mut self) -> Result<(Vec<u8>, PasswordStretchAlgo), ()>;
     fn set_encrypted_seed_and_hmac(
         &mut self,
         data: &[u8],
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<(), ()>;
     fn reset_hww(&mut self) -> Result<(), ()>;
     fn get_unlock_attempts(&mut self) -> u8;

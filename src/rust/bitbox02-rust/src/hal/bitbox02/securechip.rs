@@ -3,6 +3,7 @@
 use alloc::vec::Vec;
 
 use crate::hal::SecureChip;
+use crate::hal::memory::PasswordStretchAlgo;
 use crate::hal::securechip::{Error, Model, SecureChipError};
 
 pub(crate) struct BitBox02SecureChip;
@@ -66,23 +67,42 @@ fn to_hal_error(error: bitbox02::securechip::Error) -> Error {
     }
 }
 
+fn to_bitbox02_password_stretch_algo(
+    algo: PasswordStretchAlgo,
+) -> bitbox02::memory::PasswordStretchAlgo {
+    match algo {
+        PasswordStretchAlgo::V0 => {
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0
+        }
+        PasswordStretchAlgo::V1 => {
+            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
+        }
+    }
+}
+
 impl SecureChip for BitBox02SecureChip {
     fn init_new_password(
         &mut self,
         password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        bitbox02::securechip::init_new_password(password, password_stretch_algo)
-            .map_err(to_hal_error)
+        bitbox02::securechip::init_new_password(
+            password,
+            to_bitbox02_password_stretch_algo(password_stretch_algo),
+        )
+        .map_err(to_hal_error)
     }
 
     fn stretch_password(
         &mut self,
         password: &str,
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        bitbox02::securechip::stretch_password(password, password_stretch_algo)
-            .map_err(to_hal_error)
+        bitbox02::securechip::stretch_password(
+            password,
+            to_bitbox02_password_stretch_algo(password_stretch_algo),
+        )
+        .map_err(to_hal_error)
     }
 
     fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::{Memory, SecureChip, securechip};
+use crate::hal::{Memory, SecureChip, memory as hal_memory, securechip};
 use crate::pb;
 
 use bitbox02::{memory, spi_mem};
@@ -47,8 +47,8 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
         },
         bluetooth,
         password_stretching_algo: match password_stretching_algo {
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => "V1".into(),
-            bitbox02::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => "V2".into(),
+            hal_memory::PasswordStretchAlgo::V0 => "V1".into(),
+            hal_memory::PasswordStretchAlgo::V1 => "V2".into(),
         },
     }))
 }

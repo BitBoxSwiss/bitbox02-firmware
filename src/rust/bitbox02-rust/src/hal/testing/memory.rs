@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use crate::hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
 
 pub struct TestingMemory {
+    ble_enabled: bool,
     securechip_type: SecurechipType,
     platform: Platform,
     initialized: bool,
@@ -29,6 +30,7 @@ const MULTISIG_LIMIT: usize = 25;
 impl TestingMemory {
     pub fn new() -> Self {
         Self {
+            ble_enabled: true,
             securechip_type: SecurechipType::Optiga,
             platform: Platform::BitBox02,
             initialized: false,
@@ -80,6 +82,15 @@ impl TestingMemory {
 }
 
 impl crate::hal::Memory for TestingMemory {
+    fn ble_enabled(&mut self) -> bool {
+        self.ble_enabled
+    }
+
+    fn ble_enable(&mut self, enable: bool) -> Result<(), ()> {
+        self.ble_enabled = enable;
+        Ok(())
+    }
+
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
         Ok(self.securechip_type)
     }

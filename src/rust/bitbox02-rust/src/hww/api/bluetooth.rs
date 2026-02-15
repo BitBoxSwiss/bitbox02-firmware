@@ -169,7 +169,7 @@ async fn process_upgrade(
 }
 
 async fn process_toggle_enabled(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
-    let enabled = memory::ble_enabled();
+    let enabled = hal.memory().ble_enabled();
     let body = if enabled {
         "Disable Bluetooth?"
     } else {
@@ -184,7 +184,9 @@ async fn process_toggle_enabled(hal: &mut impl crate::hal::Hal) -> Result<Respon
         })
         .await?;
 
-    memory::ble_enable(!enabled).map_err(|_| Error::Memory)?;
+    hal.memory()
+        .ble_enable(!enabled)
+        .map_err(|_| Error::Memory)?;
 
     let status_text = if enabled {
         "Bluetooth\ndisabled"

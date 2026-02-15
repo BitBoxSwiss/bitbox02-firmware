@@ -15,7 +15,7 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
                 firmware_hash: ble_metadata.allowed_firmware_hash.to_vec(),
                 firmware_version: spi_mem::get_active_ble_firmware_version()
                     .map_err(|_| Error::Memory)?,
-                enabled: memory::ble_enabled(),
+                enabled: hal.memory().ble_enabled(),
             })
         }
         hal_memory::Platform::BitBox02 => None,

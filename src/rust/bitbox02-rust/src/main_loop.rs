@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::Memory;
 use alloc::boxed::Box;
 use bitbox_executor::Executor;
 use bitbox02::ringbuffer::RingBuffer;
@@ -32,7 +33,7 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
 
     // If the bootloader has booted the BLE chip, the BLE chip isn't aware of the name according to
     // the fw. Send it over.
-    let device_name = bitbox02::memory::get_device_name();
+    let device_name = hal.memory().get_device_name();
     bitbox02::da14531::set_name(&device_name, &mut uart_write_queue);
 
     // This starts the async orientation screen workflow, which is processed by the loop below.
@@ -51,7 +52,7 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
     #[cfg(feature = "app-u2f")]
     let mut u2f_frame: USB_FRAME = unsafe { MaybeUninit::zeroed().assume_init() };
 
-    if !bitbox02::memory::ble_enabled() {
+    if !hal.memory().ble_enabled() {
         crate::communication_mode::ble_disable();
     }
 
@@ -162,7 +163,7 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
 
         if ORIENTATION_CHOSEN.swap(false, Ordering::Relaxed) {
             // hww handler in usb_process must be setup before we can allow ble connections
-            if let Ok(bitbox02::memory::Platform::BitBox02Plus) = bitbox02::memory::get_platform() {
+            if let Ok(crate::hal::memory::Platform::BitBox02Plus) = hal.memory().get_platform() {
                 let product = bitbox02::platform::product();
                 bitbox02::da14531_handler::set_product(product);
                 bitbox02::da14531::set_product(product, &mut uart_write_queue)

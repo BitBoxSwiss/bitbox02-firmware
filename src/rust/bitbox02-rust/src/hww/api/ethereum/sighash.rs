@@ -5,66 +5,49 @@ use sha3::{Digest, Keccak256};
 const RLP_SMALL_TAG: u8 = 0xc0;
 const RLP_LARGE_TAG: u8 = 0xf7;
 
-use core::cell::RefCell;
-use core::ops::DerefMut;
+use core::future::Future;
+use core::pin::Pin;
 
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use super::Error;
 
 /// An async producer/generator of a bytes array. This is used to be able to accumulate the RLP hash
 /// of the `data` field, which can be very large and has to be streamed in chunks in that case.
-#[allow(async_fn_in_trait)]
 pub trait DataProducer {
-    type Error;
     /// Returns the length of the data.
     fn len(&self) -> u32;
     /// Returns the first byte of the data.
     fn first_byte(&self) -> u8;
     /// Produces a chunk of the data. Returns `Ok(Some(data))` if data was available,
     /// `Ok(None)` when there are no more chunks, or `Err` on failure.
-    async fn next(&mut self) -> Result<Option<Vec<u8>>, Self::Error>;
+    fn next<'a>(&'a mut self)
+    -> Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, Error>> + 'a>>;
 }
 
-/// Produces a byte slice in one shot.
-pub struct SimpleProducer<'a>(&'a [u8], bool);
-
-impl<'a> SimpleProducer<'a> {
-    pub fn new(data: &'a [u8]) -> Self {
-        SimpleProducer(data, false)
-    }
+pub enum ChunkingProducer<'a> {
+    Inline {
+        data: &'a [u8],
+        consumed: bool,
+    },
+    Host {
+        total_length: u32,
+        offset: u32,
+        first_byte_cached: Option<u8>,
+    },
 }
 
-impl<'a> DataProducer for SimpleProducer<'a> {
-    type Error = Error;
-
-    fn len(&self) -> u32 {
-        self.0.len() as u32
-    }
-
-    fn first_byte(&self) -> u8 {
-        self.0[0]
-    }
-
-    async fn next(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
-        if !self.1 {
-            self.1 = true;
-            Ok(Some(self.0.to_vec()))
-        } else {
-            Ok(None)
+impl<'a> ChunkingProducer<'a> {
+    pub fn from_data(data: &'a [u8]) -> Self {
+        Self::Inline {
+            data,
+            consumed: false,
         }
     }
-}
 
-pub struct ChunkingProducer {
-    total_length: u32,
-    offset: u32,
-    first_byte_cached: Option<u8>,
-}
-
-impl ChunkingProducer {
-    pub fn new(total_length: u32) -> Self {
-        Self {
+    pub fn from_host(total_length: u32) -> Self {
+        Self::Host {
             total_length,
             offset: 0,
             first_byte_cached: None,
@@ -72,67 +55,94 @@ impl ChunkingProducer {
     }
 }
 
-impl DataProducer for ChunkingProducer {
-    type Error = Error;
-
+impl DataProducer for ChunkingProducer<'_> {
     fn len(&self) -> u32 {
-        self.total_length
+        match self {
+            Self::Inline { data, .. } => data.len() as u32,
+            Self::Host { total_length, .. } => *total_length,
+        }
     }
 
     fn first_byte(&self) -> u8 {
-        self.first_byte_cached.unwrap()
+        match self {
+            Self::Inline { data, .. } => data[0],
+            Self::Host {
+                first_byte_cached, ..
+            } => first_byte_cached.unwrap(),
+        }
     }
 
-    async fn next(&mut self) -> Result<Option<Vec<u8>>, Self::Error> {
-        if self.offset >= self.total_length {
-            return Ok(None);
-        }
-
-        const CHUNK_SIZE: u32 = 4096;
-        let remaining = self.total_length - self.offset;
-        let chunk_length = core::cmp::min(CHUNK_SIZE, remaining);
-
-        let response = super::next_request(super::pb::eth_response::Response::DataRequestChunk(
-            super::pb::EthSignDataRequestChunkResponse {
-                offset: self.offset,
-                length: chunk_length,
-            },
-        ))
-        .await?;
-
-        match response {
-            super::pb::eth_request::Request::DataResponseChunk(
-                super::pb::EthSignDataResponseChunkRequest { chunk },
-            ) => {
-                // Error: chunk size mismatch
-                if chunk.len() != chunk_length as usize {
-                    return Err(Error::InvalidInput);
+    fn next<'a>(
+        &'a mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, Error>> + 'a>> {
+        Box::pin(async move {
+            match self {
+                Self::Inline { data, consumed } => {
+                    if !*consumed {
+                        *consumed = true;
+                        Ok(Some(data.to_vec()))
+                    } else {
+                        Ok(None)
+                    }
                 }
+                Self::Host {
+                    total_length,
+                    offset,
+                    first_byte_cached,
+                } => {
+                    if *offset >= *total_length {
+                        return Ok(None);
+                    }
 
-                if self.offset == 0 && !chunk.is_empty() {
-                    self.first_byte_cached = Some(chunk[0]);
+                    const CHUNK_SIZE: u32 = 4096;
+                    let remaining = *total_length - *offset;
+                    let chunk_length = core::cmp::min(CHUNK_SIZE, remaining);
+
+                    let response =
+                        super::next_request(super::pb::eth_response::Response::DataRequestChunk(
+                            super::pb::EthSignDataRequestChunkResponse {
+                                offset: *offset,
+                                length: chunk_length,
+                            },
+                        ))
+                        .await?;
+
+                    match response {
+                        super::pb::eth_request::Request::DataResponseChunk(
+                            super::pb::EthSignDataResponseChunkRequest { chunk },
+                        ) => {
+                            // Error: chunk size mismatch
+                            if chunk.len() as u32 != chunk_length {
+                                return Err(Error::InvalidInput);
+                            }
+
+                            if *offset == 0 && !chunk.is_empty() {
+                                *first_byte_cached = Some(chunk[0]);
+                            }
+
+                            *offset += chunk.len() as u32;
+                            Ok(Some(chunk))
+                        }
+                        // Error: wrong response type
+                        _ => Err(Error::InvalidInput),
+                    }
                 }
-
-                self.offset += chunk.len() as u32;
-                Ok(Some(chunk))
             }
-            // Error: wrong response type
-            _ => Err(Error::InvalidInput),
-        }
+        })
     }
 }
 
-pub struct ParamsLegacy<'a, D: DataProducer> {
+pub struct ParamsLegacy<'a> {
     pub nonce: &'a [u8],
     pub gas_price: &'a [u8],
     pub gas_limit: &'a [u8],
     pub recipient: &'a [u8],
     pub value: &'a [u8],
-    pub data: RefCell<D>,
+    pub data: &'a mut dyn DataProducer,
     pub chain_id: u64,
 }
 
-pub struct ParamsEIP1559<'a, D: DataProducer> {
+pub struct ParamsEIP1559<'a> {
     pub chain_id: u64,
     pub nonce: &'a [u8],
     pub max_priority_fee_per_gas: &'a [u8],
@@ -140,17 +150,14 @@ pub struct ParamsEIP1559<'a, D: DataProducer> {
     pub gas_limit: &'a [u8],
     pub recipient: &'a [u8],
     pub value: &'a [u8],
-    pub data: RefCell<D>,
+    pub data: &'a mut dyn DataProducer,
 }
 
 trait Write {
     // Writes the given data to the writer.
     fn write(&mut self, data: &[u8]);
     // Same as `write`, but it writes all the data produced by the async data producer.
-    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(
-        &mut self,
-        producer: T,
-    ) -> Result<(), D::Error>;
+    async fn write_producer(&mut self, producer: &mut dyn DataProducer) -> Result<(), Error>;
 }
 
 struct Hasher(Keccak256);
@@ -160,10 +167,7 @@ impl Write for Hasher {
         self.0.update(data);
     }
 
-    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(
-        &mut self,
-        mut producer: T,
-    ) -> Result<(), D::Error> {
+    async fn write_producer(&mut self, producer: &mut dyn DataProducer) -> Result<(), Error> {
         while let Some(data) = producer.next().await? {
             self.0.update(&data);
         }
@@ -178,10 +182,7 @@ impl Write for Counter {
         self.0 += data.len() as u32;
     }
 
-    async fn write_producer<D: DataProducer, T: DerefMut<Target = D>>(
-        &mut self,
-        producer: T,
-    ) -> Result<(), D::Error> {
+    async fn write_producer(&mut self, producer: &mut dyn DataProducer) -> Result<(), Error> {
         self.0 += producer.len();
         Ok(())
     }
@@ -210,10 +211,10 @@ fn hash_element<W: Write>(writer: &mut W, bytes: &[u8]) {
 }
 
 // Async version of `hash_element()` that streams the data to be hashed from the producer.
-async fn hash_producer<W: Write, D: DataProducer, T: DerefMut<Target = D>>(
+async fn hash_producer<W: Write>(
     writer: &mut W,
-    producer: T,
-) -> Result<(), D::Error> {
+    producer: &mut dyn DataProducer,
+) -> Result<(), Error> {
     // hash header
     let len = producer.len();
     if len != 1 || producer.first_byte() > 0x7f {
@@ -231,16 +232,16 @@ fn hash_u64<W: Write>(writer: &mut W, value: u64) {
     hash_element(writer, stripped)
 }
 
-async fn hash_params_legacy<W: Write, D: DataProducer>(
+async fn hash_params_legacy<W: Write>(
     writer: &mut W,
-    params: &ParamsLegacy<'_, D>,
-) -> Result<(), D::Error> {
+    params: &mut ParamsLegacy<'_>,
+) -> Result<(), Error> {
     hash_element(writer, params.nonce);
     hash_element(writer, params.gas_price);
     hash_element(writer, params.gas_limit);
     hash_element(writer, params.recipient);
     hash_element(writer, params.value);
-    hash_producer(writer, params.data.borrow_mut()).await?;
+    hash_producer(writer, &mut *params.data).await?;
     {
         // EIP155, encodes <chainID><0><0>
         hash_u64(writer, params.chain_id);
@@ -250,10 +251,10 @@ async fn hash_params_legacy<W: Write, D: DataProducer>(
     Ok(())
 }
 
-async fn hash_params_eip1559<W: Write, D: DataProducer>(
+async fn hash_params_eip1559<W: Write>(
     writer: &mut W,
-    params: &ParamsEIP1559<'_, D>,
-) -> Result<(), D::Error> {
+    params: &mut ParamsEIP1559<'_>,
+) -> Result<(), Error> {
     hash_u64(writer, params.chain_id);
     hash_element(writer, params.nonce);
     hash_element(writer, params.max_priority_fee_per_gas);
@@ -261,7 +262,7 @@ async fn hash_params_eip1559<W: Write, D: DataProducer>(
     hash_element(writer, params.gas_limit);
     hash_element(writer, params.recipient);
     hash_element(writer, params.value);
-    hash_producer(writer, params.data.borrow_mut()).await?;
+    hash_producer(writer, &mut *params.data).await?;
     hash_header(writer, RLP_SMALL_TAG, RLP_LARGE_TAG, 0); // access list not currently supported and hashed as empty list
     Ok(())
 }
@@ -271,9 +272,7 @@ async fn hash_params_eip1559<W: Write, D: DataProducer>(
 /// not allowed to have leading zeros (unchecked).
 ///
 /// See https://github.com/ethereum/wiki/wiki/RLP
-pub async fn compute_legacy<D: DataProducer<Error = Error>>(
-    params: &ParamsLegacy<'_, D>,
-) -> Result<[u8; 32], Error> {
+pub async fn compute_legacy(params: &mut ParamsLegacy<'_>) -> Result<[u8; 32], Error> {
     // We hash [nonce, gas price, gas limit, recipient, value, data], RLP encoded.
     // The list length prefix is (0xc0 + length of the encoding of all elements).
 
@@ -293,9 +292,7 @@ pub async fn compute_legacy<D: DataProducer<Error = Error>>(
     Ok(hasher.0.finalize().into())
 }
 
-pub async fn compute_eip1559<D: DataProducer<Error = Error>>(
-    params: &ParamsEIP1559<'_, D>,
-) -> Result<[u8; 32], Error> {
+pub async fn compute_eip1559(params: &mut ParamsEIP1559<'_>) -> Result<[u8; 32], Error> {
     // https://eips.ethereum.org/EIPS/eip-1559
     // We hash [chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas limit, recipient, value, data, access list]
     // RLP encoded. Prefixed with 0x02 for EIP1559 transaction type
@@ -398,7 +395,8 @@ pub mod tests {
             let expected_sighash: [u8; 32] = decode_hex(&test.expected_sighash).try_into().unwrap();
 
             if data.len() < DATA_THRESHOLD {
-                let params = ParamsEIP1559 {
+                let mut producer = ChunkingProducer::from_data(&data);
+                let mut params = ParamsEIP1559 {
                     chain_id: test.chain_id,
                     nonce: &nonce,
                     max_priority_fee_per_gas: &max_priority_fee,
@@ -406,17 +404,18 @@ pub mod tests {
                     gas_limit: &gas_limit,
                     recipient: &recipient,
                     value: &value,
-                    data: RefCell::new(SimpleProducer::new(&data)),
+                    data: &mut producer,
                 };
-                let result = block_on(compute_eip1559(&params)).unwrap();
+                let result = block_on(compute_eip1559(&mut params)).unwrap();
                 assert_eq!(
                     result, expected_sighash,
-                    "EIP1559 test {} failed (SimpleProducer)",
+                    "EIP1559 test {} failed (ChunkingProducer::from_data)",
                     i
                 );
             } else {
                 setup_chunk_responder(data.clone());
-                let params = ParamsEIP1559 {
+                let mut producer = ChunkingProducer::from_host(data.len() as u32);
+                let mut params = ParamsEIP1559 {
                     chain_id: test.chain_id,
                     nonce: &nonce,
                     max_priority_fee_per_gas: &max_priority_fee,
@@ -424,12 +423,12 @@ pub mod tests {
                     gas_limit: &gas_limit,
                     recipient: &recipient,
                     value: &value,
-                    data: RefCell::new(ChunkingProducer::new(data.len() as u32)),
+                    data: &mut producer,
                 };
-                let result = block_on(compute_eip1559(&params)).unwrap();
+                let result = block_on(compute_eip1559(&mut params)).unwrap();
                 assert_eq!(
                     result, expected_sighash,
-                    "EIP1559 test {} failed (ChunkingProducer)",
+                    "EIP1559 test {} failed (ChunkingProducer::from_host)",
                     i
                 );
                 clear_chunk_responder();
@@ -452,36 +451,38 @@ pub mod tests {
             let expected_sighash: [u8; 32] = decode_hex(&test.expected_sighash).try_into().unwrap();
 
             if data.len() < DATA_THRESHOLD {
-                let params = ParamsLegacy {
+                let mut producer = ChunkingProducer::from_data(&data);
+                let mut params = ParamsLegacy {
                     nonce: &nonce,
                     gas_price: &gas_price,
                     gas_limit: &gas_limit,
                     recipient: &recipient,
                     value: &value,
-                    data: RefCell::new(SimpleProducer::new(&data)),
+                    data: &mut producer,
                     chain_id: test.chain_id,
                 };
-                let result = block_on(compute_legacy(&params)).unwrap();
+                let result = block_on(compute_legacy(&mut params)).unwrap();
                 assert_eq!(
                     result, expected_sighash,
-                    "Legacy test {} failed (SimpleProducer)",
+                    "Legacy test {} failed (ChunkingProducer::from_data)",
                     i
                 );
             } else {
                 setup_chunk_responder(data.clone());
-                let params = ParamsLegacy {
+                let mut producer = ChunkingProducer::from_host(data.len() as u32);
+                let mut params = ParamsLegacy {
                     nonce: &nonce,
                     gas_price: &gas_price,
                     gas_limit: &gas_limit,
                     recipient: &recipient,
                     value: &value,
-                    data: RefCell::new(ChunkingProducer::new(data.len() as u32)),
+                    data: &mut producer,
                     chain_id: test.chain_id,
                 };
-                let result = block_on(compute_legacy(&params)).unwrap();
+                let result = block_on(compute_legacy(&mut params)).unwrap();
                 assert_eq!(
                     result, expected_sighash,
-                    "Legacy test {} failed (ChunkingProducer)",
+                    "Legacy test {} failed (ChunkingProducer::from_host)",
                     i
                 );
                 clear_chunk_responder();
@@ -490,8 +491,8 @@ pub mod tests {
     }
 
     #[test]
-    fn test_simple_producer_empty() {
-        let mut producer = SimpleProducer::new(&[]);
+    fn test_chunking_producer_inline_empty() {
+        let mut producer = ChunkingProducer::from_data(&[]);
         assert_eq!(producer.len(), 0);
 
         let chunk = block_on(producer.next());
@@ -502,8 +503,8 @@ pub mod tests {
     }
 
     #[test]
-    fn test_simple_producer_single_byte() {
-        let mut producer = SimpleProducer::new(&[0x42]);
+    fn test_chunking_producer_inline_single_byte() {
+        let mut producer = ChunkingProducer::from_data(&[0x42]);
         assert_eq!(producer.len(), 1);
         assert_eq!(producer.first_byte(), 0x42);
 
@@ -515,9 +516,9 @@ pub mod tests {
     }
 
     #[test]
-    fn test_simple_producer_4096_bytes() {
+    fn test_chunking_producer_inline_4096_bytes() {
         let data = vec![0xAB; 4096];
-        let mut producer = SimpleProducer::new(&data);
+        let mut producer = ChunkingProducer::from_data(&data);
         assert_eq!(producer.len(), 4096);
         assert_eq!(producer.first_byte(), 0xAB);
 
@@ -529,9 +530,9 @@ pub mod tests {
     }
 
     #[test]
-    fn test_simple_producer_10kb() {
+    fn test_chunking_producer_inline_10kb() {
         let data = vec![0xCD; 10000];
-        let mut producer = SimpleProducer::new(&data);
+        let mut producer = ChunkingProducer::from_data(&data);
         assert_eq!(producer.len(), 10000);
         assert_eq!(producer.first_byte(), 0xCD);
 
@@ -540,11 +541,11 @@ pub mod tests {
     }
 
     #[test]
-    fn test_chunking_producer_len() {
-        assert_eq!(ChunkingProducer::new(1).len(), 1);
-        assert_eq!(ChunkingProducer::new(4096).len(), 4096);
-        assert_eq!(ChunkingProducer::new(4097).len(), 4097);
-        assert_eq!(ChunkingProducer::new(10000).len(), 10000);
+    fn test_chunking_producer_host_len() {
+        assert_eq!(ChunkingProducer::from_host(1).len(), 1);
+        assert_eq!(ChunkingProducer::from_host(4096).len(), 4096);
+        assert_eq!(ChunkingProducer::from_host(4097).len(), 4097);
+        assert_eq!(ChunkingProducer::from_host(10000).len(), 10000);
     }
 
     #[test]
@@ -552,7 +553,7 @@ pub mod tests {
         let data = vec![0xAB; 100];
         setup_chunk_responder(data.clone());
 
-        let mut producer = ChunkingProducer::new(100);
+        let mut producer = ChunkingProducer::from_host(100);
         assert_eq!(producer.len(), 100);
 
         let chunk = block_on(producer.next()).unwrap();
@@ -570,7 +571,7 @@ pub mod tests {
         let data = vec![0xCD; 10000];
         setup_chunk_responder(data);
 
-        let mut producer = ChunkingProducer::new(10000);
+        let mut producer = ChunkingProducer::from_host(10000);
         assert_eq!(producer.len(), 10000);
 
         let chunk1 = block_on(producer.next()).unwrap().unwrap();

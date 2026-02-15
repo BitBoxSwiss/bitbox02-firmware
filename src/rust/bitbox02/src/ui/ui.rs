@@ -14,6 +14,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
+use core::time::Duration;
 
 /// Wraps the C component_t to be used in Rust.
 pub struct Component {
@@ -248,17 +249,19 @@ pub fn screen_process() {
     }
 }
 
-pub fn status_create(text: &str, status_success: bool) -> Component {
+pub async fn status(text: &str, status_success: bool) {
     let component = unsafe {
         bitbox02_sys::status_create(
             util::strings::str_to_cstr_vec(text).unwrap().as_ptr(), // copied in C
             status_success,
         )
     };
-    Component {
+    let mut component = Component {
         component,
         is_pushed: false,
-    }
+    };
+    component.screen_stack_push();
+    crate::delay::delay_for(Duration::from_millis(2000)).await;
 }
 
 pub async fn sdcard() -> SdcardResponse {

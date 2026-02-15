@@ -305,7 +305,7 @@ async fn handle_prevtx(
     input_index: u32,
     input: &pb::BtcSignInputRequest,
     num_inputs: u32,
-    progress_component: &mut bitbox02::ui::Component<'_>,
+    progress_component: &mut bitbox02::ui::Component,
     next_response: &mut NextResponse,
 ) -> Result<(), Error> {
     let prevtx_init = get_prevtx_init(input_index, next_response).await?;

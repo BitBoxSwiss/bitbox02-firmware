@@ -34,7 +34,7 @@ static void _delay(uint32_t msec)
     struct timespec rem;
     struct timespec ts = {
         .tv_sec = 0,
-        .tv_nsec = msec * 1000000,
+        .tv_nsec = (long)msec * 1000000L,
     };
     nanosleep(&ts, &rem);
 }

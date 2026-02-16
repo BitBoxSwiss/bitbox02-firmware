@@ -1023,6 +1023,7 @@ static uint8_t _ble_firmware_checksum(const uint8_t* buf, size_t buf_len)
 {
     uint8_t res = 0;
     for (size_t i = 0; i < buf_len; ++i) {
+        // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
         res ^= buf[i];
     }
     return res;

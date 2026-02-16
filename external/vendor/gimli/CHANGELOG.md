@@ -2,6 +2,59 @@
 
 --------------------------------------------------------------------------------
 
+## 0.32.3
+
+Released 2025/09/13.
+
+### Changed
+
+* Changed parsing to accept -2 for tombstone values in `.debug_line`,
+  `.debug_aranges`, `.debug_loclists`, and `.debug_rnglists`.
+  [#791](https://github.com/gimli-rs/gimli/pull/791)
+
+### Added
+
+* Added more x86-64 register definitions.
+  [#794](https://github.com/gimli-rs/gimli/pull/794)
+
+--------------------------------------------------------------------------------
+
+## 0.32.2
+
+Released 2025/08/26.
+
+### Changed
+
+* Removed `PartialEq<Debug*Offset>` implementations for `UnitSectionOffset`.
+  These were an unintended breaking change.
+  [#789](https://github.com/gimli-rs/gimli/pull/789)
+
+--------------------------------------------------------------------------------
+
+## 0.32.1
+
+Released 2025/08/22.
+
+### Changed
+
+* Improved handling of invalid DIE references during writing.
+  [#777](https://github.com/gimli-rs/gimli/pull/777)
+  [#779](https://github.com/gimli-rs/gimli/pull/779)
+
+* Changed abbreviation parsing to allow a missing null terminator.
+  [#781](https://github.com/gimli-rs/gimli/pull/781)
+
+* Changed `write::LineProgram` to support any form for file source code.
+  [#784](https://github.com/gimli-rs/gimli/pull/784)
+  [#786](https://github.com/gimli-rs/gimli/pull/786)
+
+### Added
+
+* Added DWARF version 1.1 constant definitions.
+  [#775](https://github.com/gimli-rs/gimli/pull/775)
+
+--------------------------------------------------------------------------------
+
 ## 0.32.0
 
 Released 2025/06/11.

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "vex-sdk"
-version = "0.27.0"
+version = "0.27.1"
 authors = ["Tropical"]
 build = false
 autolib = false
@@ -39,6 +39,10 @@ resolver = "3"
 
 [package.metadata.docs.rs]
 targets = ["armv7a-vex-v5"]
+cargo-args = [
+    "-Zbuild-std=core,alloc,compiler_builtins",
+    "-Zbuild-std-features=compiler-builtins-mem",
+]
 
 [features]
 rustc-dep-of-std = ["core"]

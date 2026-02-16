@@ -1,6 +1,7 @@
 {
   "git": {
-    "sha1": "4977e2e9ce71601c886027b00c159fd3015c9c73"
+    "sha1": "6c0b83d35b6fc31a7607efe456e387df45476314",
+    "dirty": true
   },
   "path_in_vcs": "packages/vex-sdk"
 }

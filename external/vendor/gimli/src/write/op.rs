@@ -255,12 +255,16 @@ impl Expression {
         self.operations.push(Operation::WasmStack(index));
     }
 
-    pub(crate) fn size(&self, encoding: Encoding, unit_offsets: Option<&UnitOffsets>) -> usize {
+    pub(crate) fn size(
+        &self,
+        encoding: Encoding,
+        unit_offsets: Option<&UnitOffsets>,
+    ) -> Result<usize> {
         let mut size = 0;
         for operation in &self.operations {
-            size += operation.size(encoding, unit_offsets);
+            size += operation.size(encoding, unit_offsets)?;
         }
-        size
+        Ok(size)
     }
 
     pub(crate) fn write<W: Writer>(
@@ -275,13 +279,14 @@ impl Expression {
         let mut offset = w.len();
         for operation in &self.operations {
             offsets.push(offset);
-            offset += operation.size(encoding, unit_offsets);
+            offset += operation.size(encoding, unit_offsets)?;
         }
         offsets.push(offset);
         for (operation, offset) in self.operations.iter().zip(offsets.iter().copied()) {
             debug_assert_eq!(w.len(), offset);
             operation.write(w, refs.as_deref_mut(), encoding, unit_offsets, &offsets)?;
         }
+        debug_assert_eq!(w.len(), offset);
         Ok(())
     }
 }
@@ -498,16 +503,16 @@ enum Operation {
 }
 
 impl Operation {
-    fn size(&self, encoding: Encoding, unit_offsets: Option<&UnitOffsets>) -> usize {
-        let base_size = |base| {
-            // Errors are handled during writes.
-            match unit_offsets {
-                Some(offsets) => uleb128_size(offsets.unit_offset(base)),
-                None => 0,
-            }
+    fn size(&self, encoding: Encoding, unit_offsets: Option<&UnitOffsets>) -> Result<usize> {
+        let base_size = |entry| match unit_offsets {
+            Some(offsets) => offsets
+                .unit_offset(entry)
+                .map(uleb128_size)
+                .ok_or(Error::UnsupportedExpressionForwardReference),
+            None => Err(Error::UnsupportedCfiExpressionReference),
         };
-        1 + match *self {
-            Operation::Raw(ref bytecode) => return bytecode.len(),
+        Ok(1 + match *self {
+            Operation::Raw(ref bytecode) => return Ok(bytecode.len()),
             Operation::Simple(_) => 0,
             Operation::Address(_) => encoding.address_size as usize,
             Operation::UnsignedConstant(value) => {
@@ -518,7 +523,7 @@ impl Operation {
                 }
             }
             Operation::SignedConstant(value) => sleb128_size(value),
-            Operation::ConstantType(base, ref value) => base_size(base) + 1 + value.len(),
+            Operation::ConstantType(base, ref value) => base_size(base)? + 1 + value.len(),
             Operation::FrameOffset(offset) => sleb128_size(offset),
             Operation::RegisterOffset(register, offset) => {
                 if register.0 < 32 {
@@ -528,7 +533,7 @@ impl Operation {
                 }
             }
             Operation::RegisterType(register, base) => {
-                uleb128_size(register.0.into()) + base_size(base)
+                uleb128_size(register.0.into()) + base_size(base)?
             }
             Operation::Pick(index) => {
                 if index > 1 {
@@ -539,22 +544,22 @@ impl Operation {
             }
             Operation::Deref { .. } => 0,
             Operation::DerefSize { .. } => 1,
-            Operation::DerefType { base, .. } => 1 + base_size(base),
+            Operation::DerefType { base, .. } => 1 + base_size(base)?,
             Operation::PlusConstant(value) => uleb128_size(value),
             Operation::Skip(_) => 2,
             Operation::Branch(_) => 2,
             Operation::Call(_) => 4,
             Operation::CallRef(_) => encoding.format.word_size() as usize,
             Operation::Convert(base) => match base {
-                Some(base) => base_size(base),
+                Some(base) => base_size(base)?,
                 None => 1,
             },
             Operation::Reinterpret(base) => match base {
-                Some(base) => base_size(base),
+                Some(base) => base_size(base)?,
                 None => 1,
             },
             Operation::EntryValue(ref expression) => {
-                let length = expression.size(encoding, unit_offsets);
+                let length = expression.size(encoding, unit_offsets)?;
                 uleb128_size(length as u64) + length
             }
             Operation::Register(register) => {
@@ -582,7 +587,7 @@ impl Operation {
             Operation::WasmLocal(index)
             | Operation::WasmGlobal(index)
             | Operation::WasmStack(index) => 1 + uleb128_size(index.into()),
-        }
+        })
     }
 
     pub(crate) fn write<W: Writer>(
@@ -594,14 +599,9 @@ impl Operation {
         offsets: &[usize],
     ) -> Result<()> {
         let entry_offset = |entry| match unit_offsets {
-            Some(offsets) => {
-                let offset = offsets.unit_offset(entry);
-                if offset == 0 {
-                    Err(Error::UnsupportedExpressionForwardReference)
-                } else {
-                    Ok(offset)
-                }
-            }
+            Some(offsets) => offsets
+                .unit_offset(entry)
+                .ok_or(Error::UnsupportedExpressionForwardReference),
             None => Err(Error::UnsupportedCfiExpressionReference),
         };
         match *self {
@@ -756,7 +756,7 @@ impl Operation {
                 } else {
                     w.write_u8(constants::DW_OP_GNU_entry_value.0)?;
                 }
-                let length = expression.size(encoding, unit_offsets);
+                let length = expression.size(encoding, unit_offsets)?;
                 w.write_uleb128(length as u64)?;
                 expression.write(w, refs, encoding, unit_offsets)?;
             }
@@ -1601,5 +1601,162 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_expression_raw() {
+        for version in [2, 3, 4, 5] {
+            for address_size in [4, 8] {
+                for format in [Format::Dwarf32, Format::Dwarf64] {
+                    let encoding = Encoding {
+                        format,
+                        version,
+                        address_size,
+                    };
+
+                    let mut dwarf = Dwarf::new();
+                    let unit_id = dwarf.units.add(Unit::new(encoding, LineProgram::none()));
+                    let unit = dwarf.units.get_mut(unit_id);
+                    let subprogram_id = unit.add(unit.root(), constants::DW_TAG_subprogram);
+                    let subprogram = unit.get_mut(subprogram_id);
+                    let expression = Expression::raw(vec![constants::DW_OP_constu.0, 23]);
+                    subprogram.set(
+                        constants::DW_AT_location,
+                        AttributeValue::Exprloc(expression),
+                    );
+
+                    // Write the DWARF, then parse it.
+                    let mut sections = Sections::new(EndianVec::new(LittleEndian));
+                    dwarf.write(&mut sections).unwrap();
+
+                    let read_dwarf = sections.read(LittleEndian);
+                    let mut read_units = read_dwarf.units();
+                    let read_unit_header = read_units.next().unwrap().unwrap();
+                    let read_unit = read_dwarf.unit(read_unit_header).unwrap();
+                    let mut read_entries = read_unit.entries();
+                    let (_, read_entry) = read_entries.next_dfs().unwrap().unwrap();
+                    assert_eq!(read_entry.tag(), constants::DW_TAG_compile_unit);
+                    let (_, read_entry) = read_entries.next_dfs().unwrap().unwrap();
+                    assert_eq!(read_entry.tag(), constants::DW_TAG_subprogram);
+                    let read_attr = read_entry
+                        .attr_value(constants::DW_AT_location)
+                        .unwrap()
+                        .unwrap();
+                    let read_expression = read_attr.exprloc_value().unwrap();
+                    let mut read_operations = read_expression.operations(encoding);
+                    assert_eq!(
+                        read_operations.next(),
+                        Ok(Some(read::Operation::UnsignedConstant { value: 23 }))
+                    );
+                    assert_eq!(read_operations.next(), Ok(None));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_forward_ref() {
+        let encoding = Encoding {
+            format: Format::Dwarf32,
+            version: 5,
+            address_size: 8,
+        };
+
+        let mut dwarf = Dwarf::new();
+        let unit_id = dwarf.units.add(Unit::new(encoding, LineProgram::none()));
+        let unit = dwarf.units.get_mut(unit_id);
+
+        // First, create an entry that will contain the expression.
+        let subprogram_id = unit.add(unit.root(), constants::DW_TAG_subprogram);
+
+        // Now create the entry to be referenced by the expression.
+        let entry_id = unit.add(unit.root(), constants::DW_TAG_const_type);
+
+        // Create an expression containing the reference.
+        let mut expression = Expression::new();
+        expression.op_deref_type(2, entry_id);
+
+        // Add the expression to the subprogram.
+        unit.get_mut(subprogram_id).set(
+            constants::DW_AT_location,
+            AttributeValue::Exprloc(expression),
+        );
+
+        // Writing the DWARF should fail.
+        let mut sections = Sections::new(EndianVec::new(LittleEndian));
+        assert_eq!(
+            dwarf.write(&mut sections),
+            Err(Error::UnsupportedExpressionForwardReference)
+        );
+    }
+
+    #[test]
+    fn test_missing_unit_ref() {
+        let encoding = Encoding {
+            format: Format::Dwarf32,
+            version: 5,
+            address_size: 8,
+        };
+
+        let mut dwarf = Dwarf::new();
+        let unit_id = dwarf.units.add(Unit::new(encoding, LineProgram::none()));
+        let unit = dwarf.units.get_mut(unit_id);
+
+        // Create the entry to be referenced by the expression.
+        let entry_id = unit.add(unit.root(), constants::DW_TAG_const_type);
+        // And delete it so that it is not available when writing the expression.
+        unit.get_mut(unit.root()).delete_child(entry_id);
+
+        // Create an expression containing the reference.
+        let mut expression = Expression::new();
+        expression.op_deref_type(2, entry_id);
+
+        // Create an entry containing the expression.
+        let subprogram_id = unit.add(unit.root(), constants::DW_TAG_subprogram);
+        unit.get_mut(subprogram_id).set(
+            constants::DW_AT_location,
+            AttributeValue::Exprloc(expression),
+        );
+
+        // Writing the DWARF should fail.
+        let mut sections = Sections::new(EndianVec::new(LittleEndian));
+        assert_eq!(
+            dwarf.write(&mut sections),
+            Err(Error::UnsupportedExpressionForwardReference)
+        );
+    }
+
+    #[test]
+    fn test_missing_debuginfo_ref() {
+        let encoding = Encoding {
+            format: Format::Dwarf32,
+            version: 5,
+            address_size: 8,
+        };
+
+        let mut dwarf = Dwarf::new();
+        let unit_id = dwarf.units.add(Unit::new(encoding, LineProgram::none()));
+        let unit = dwarf.units.get_mut(unit_id);
+
+        // Create the entry to be referenced by the expression.
+        let entry_id = unit.add(unit.root(), constants::DW_TAG_const_type);
+        // And delete it so that it is not available when writing the expression.
+        unit.get_mut(unit.root()).delete_child(entry_id);
+
+        // Create an expression containing the reference.
+        let mut expression = Expression::new();
+        expression.op_call_ref(Reference::Entry(unit_id, entry_id));
+
+        // Create an entry containing the expression.
+        let subprogram_id = unit.add(unit.root(), constants::DW_TAG_subprogram);
+        unit.get_mut(subprogram_id).set(
+            constants::DW_AT_location,
+            AttributeValue::Exprloc(expression),
+        );
+
+        // Writing the DWARF should fail.
+        let mut sections = Sections::new(EndianVec::new(LittleEndian));
+        assert_eq!(dwarf.write(&mut sections), Err(Error::InvalidReference));
     }
 }

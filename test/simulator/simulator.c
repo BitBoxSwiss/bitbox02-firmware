@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
-    int serv_addr_len = sizeof(serv_addr);
+    socklen_t serv_addr_len = sizeof(serv_addr);
     if (bind(sockfd, (struct sockaddr*)&serv_addr, serv_addr_len) < 0) {
         perror("ERROR binding socket");
         return 1;
@@ -161,8 +161,8 @@ int main(int argc, char* argv[])
     printf("Listening on port %d\n", portno);
 
     while (1) {
-        if ((commfd = accept(sockfd, (struct sockaddr*)&serv_addr, (socklen_t*)&serv_addr_len)) <
-            0) {
+        commfd = accept(sockfd, (struct sockaddr*)&serv_addr, &serv_addr_len);
+        if (commfd < 0) {
             if (quitting) {
                 printf("\nGot signal, exiting\n");
                 break;

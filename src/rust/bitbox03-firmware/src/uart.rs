@@ -44,11 +44,11 @@ impl Uart {
         }
     }
 
-    pub fn write_all(&mut self, bytes: &[u8]) -> Result<(), Error> {
-        self.write_all_raw(bytes)?;
-        self.last_byte_was_cr = bytes.last().copied() == Some(b'\r');
-        Ok(())
-    }
+    //pub fn write_all(&mut self, bytes: &[u8]) -> Result<(), Error> {
+    //    self.write_all_raw(bytes)?;
+    //    self.last_byte_was_cr = bytes.last().copied() == Some(b'\r');
+    //    Ok(())
+    //}
 
     pub fn write_all_crlf(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let mut segment_start = 0usize;

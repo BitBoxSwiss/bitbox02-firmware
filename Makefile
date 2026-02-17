@@ -180,7 +180,7 @@ prepare-tidy: | build build-build
 	$(MAKE) -C build rust-cbindgen
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-build build-debug build-build-noasan
+	rm -rf build build-build build-debug build-build-noasan src/rust/target
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
@@ -191,6 +191,8 @@ vendor-rust-deps:
 bitbox03-firmware:
 	 (cd src/rust; cargo build --config bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware)
 	 arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	 arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
 bitbox03-firmware-release:
 	 (cd src/rust; cargo build --config bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware --release)
 	 arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	 arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware

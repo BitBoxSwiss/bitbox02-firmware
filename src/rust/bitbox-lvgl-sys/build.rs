@@ -110,6 +110,8 @@ fn main() -> Result<(), &'static str> {
     //cmake_build.cflag("--specs=nano.specs");
     cmake_build.cflag("-DUSE_HAL_DRIVER");
     cmake_build.cflag("-DSTM32U5A9xx");
+    cmake_build.cflag("-Os");
+    cmake_build.cflag("-g");
     cmake_build.define(
         "CMAKE_EXE_LINKER_FLAGS",
         "--specs=nosys.specs --specs=nano.specs",

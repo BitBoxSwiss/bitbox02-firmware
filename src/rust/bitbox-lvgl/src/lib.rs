@@ -28,6 +28,8 @@ pub use ffi::lv_style_selector_t as LvStyleSelector;
 pub use ffi::lv_text_align_t as LvTextAlign;
 pub use ffi::lv_text_decor_t as LvTextDecor;
 
+pub use bitbox_lvgl_sys::lv_part_t::LV_PART_MAIN;
+
 // Keep in sync with `src/lvgl/lv_conf.h`.
 const LV_DRAW_BUFFER_ALIGNMENT: usize = 4;
 
@@ -377,6 +379,30 @@ pub fn lv_tick_set_cb(cb: Option<unsafe extern "C" fn() -> u32>) {
 pub fn lv_display_create(hor_res: i32, ver_res: i32) -> Option<LvDisplay> {
     NonNull::new(unsafe { ffi::lv_display_create(hor_res, ver_res) })
         .map(|inner| LvDisplay { inner })
+}
+
+/// # Safety
+/// `buf2` must have same size as LTDC buffer at `addr`
+pub unsafe fn lv_st_ltdc_create_direct(
+    addr: usize,
+    buf2: Option<&mut [u8]>,
+    layer: u32,
+) -> Result<Option<LvDisplay>, LvDisplayBufferError> {
+    let buf2_ptr = if let Some(buf2) = buf2 {
+        if buf2.is_empty() {
+            return Err(LvDisplayBufferError::EmptyBuffer);
+        }
+        if (buf2.as_ptr() as usize) % LV_DRAW_BUFFER_ALIGNMENT != 0 {
+            return Err(LvDisplayBufferError::UnalignedBuffer);
+        }
+        buf2.as_mut_ptr()
+    } else {
+        core::ptr::null_mut()
+    };
+    Ok(NonNull::new(unsafe {
+        ffi::lv_st_ltdc_create_direct(addr as *mut core::ffi::c_void, buf2_ptr.cast(), layer)
+    })
+    .map(|inner| LvDisplay { inner }))
 }
 
 /// # Safety

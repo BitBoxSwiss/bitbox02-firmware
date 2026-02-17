@@ -10,32 +10,27 @@ use core::panic::PanicInfo;
 use cortex_m_rt::entry;
 
 use bitbox_lvgl::{
-    LvAlign, LvDisplayRenderMode, lv_display_create, lv_display_set_buffers,
-    lv_display_set_flush_cb, lv_init, lv_label_create, lv_label_set_text, lv_obj_align,
-    lv_screen_active, lv_tick_set_cb,
+    LV_PART_MAIN, LvAlign, LvDisplayRenderMode, lv_color_hex, lv_display_create,
+    lv_display_set_buffers, lv_display_set_flush_cb, lv_init, lv_label_create, lv_label_set_text,
+    lv_obj_align, lv_obj_set_style_bg_color, lv_obj_set_style_text_color, lv_screen_active,
+    lv_st_ltdc_create_direct, lv_tick_set_cb,
 };
 
 mod uart;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    //cortex_m::interrupt::disable();
+    cortex_m::interrupt::disable();
 
     let mut uart = uart::Uart::default();
     let _ = writeln!(&mut uart, "{info}");
 
-    //cortex_m::asm::bkpt();
+    cortex_m::asm::bkpt();
     loop {}
 }
 
-extern "C" fn lv_log_cb(level: bitbox_lvgl::ffi::lv_log_level_t, buf: *const core::ffi::c_char) {
+extern "C" fn lv_log_cb(_level: bitbox_lvgl::ffi::lv_log_level_t, buf: *const core::ffi::c_char) {
     let mut uart = uart::Uart::default();
-
-    let level_msg = match level as u32 {
-        bitbox_lvgl::ffi::LV_LOG_LEVEL_INFO => "INFO",
-        _ => "undef",
-    };
-    let _ = write!(&mut uart, "{level_msg}");
 
     if !buf.is_null() {
         let _ = uart.write_cstr_crlf(unsafe { CStr::from_ptr(buf) });
@@ -45,6 +40,9 @@ extern "C" fn lv_log_cb(level: bitbox_lvgl::ffi::lv_log_level_t, buf: *const cor
 fn hw_lvgl() {
     /* Get the currently active screen */
     let scr = lv_screen_active().expect("get active screen");
+
+    lv_obj_set_style_bg_color(&scr, lv_color_hex(0x003a57), LV_PART_MAIN as u32);
+    lv_obj_set_style_text_color(&scr, lv_color_hex(0xffffff), LV_PART_MAIN as u32);
 
     /* Create a label */
     let label = lv_label_create(&scr).expect("create label");
@@ -66,7 +64,7 @@ extern "C" fn my_flush_cb(
     debug_assert!(!display.is_null());
     debug_assert!(!area.is_null());
     debug_assert!(!px_map.is_null());
-    let area = unsafe { &*area };
+    //let area = unsafe { &*area };
     //info!("flush {:?}", area);
     //let fb_ptr = unsafe { bitbox_lvgl::ffi::lv_display_get_user_data(display) as *mut FrameBuffer };
     //debug_assert!(fb_ptr != core::ptr::null_mut());
@@ -97,8 +95,35 @@ use embedded_alloc::LlffHeap as Heap;
 static HEAP: Heap = Heap::empty();
 
 fn setup_heap() {
-    const HEAP_SIZE: usize = 1024 * 1024;
+    const HEAP_SIZE: usize = 128 * 1024;
     unsafe { HEAP.init(cortex_m_rt::heap_start() as usize, HEAP_SIZE) };
+}
+
+use core::ops::{Deref, DerefMut};
+
+// RGBA8888 (32 bits per pixel)
+const LVGL_BUFFER_SIZE: usize = 4 * 480 * 10;
+#[repr(align(4))]
+struct LvglBuffer([u8; LVGL_BUFFER_SIZE]);
+
+impl LvglBuffer {
+    fn new() -> LvglBuffer {
+        LvglBuffer([0; LVGL_BUFFER_SIZE])
+    }
+}
+
+impl Deref for LvglBuffer {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for LvglBuffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 #[entry]
@@ -110,30 +135,40 @@ unsafe fn main() -> ! {
     lv_tick_set_cb(Some(st_drivers_sys::HAL_GetTick));
 
     // Make a buffer and give it to lvgl.
-    // RGB565 (16 bits per pixel)
-    let buf = Box::leak(Box::new([0; 480 * 800 / 10 * 4]));
-    let disp = lv_display_create(480, 800).expect("create display");
-    unsafe {
-        lv_display_set_buffers(
-            &disp,
-            buf,
+    //let buf = Box::leak(Box::new(LvglBuffer::new()));
+    //let disp = lv_display_create(480, 800).expect("create display");
+    let my_ltdc_framebuffer_address = 0x2000_0000usize;
+    let my_ltdc_layer_index = 0u32;
+    let disp = unsafe {
+        lv_st_ltdc_create_direct(
+            my_ltdc_framebuffer_address,
+            //Some(&mut buf),
             None,
-            LvDisplayRenderMode::LV_DISPLAY_RENDER_MODE_PARTIAL,
+            my_ltdc_layer_index,
         )
-        .expect("display set buffers");
     };
-    lv_display_set_flush_cb(&disp, Some(my_flush_cb));
+    //unsafe {
+    //    lv_display_set_buffers(
+    //        &disp,
+    //        buf,
+    //        None,
+    //        LvDisplayRenderMode::LV_DISPLAY_RENDER_MODE_PARTIAL,
+    //    )
+    //    .expect("display set buffers");
+    //};
+    //lv_display_set_flush_cb(&disp, Some(my_flush_cb));
     hw_lvgl();
-    if bitbox_lvgl::ffi::lv_mem_test() != bitbox_lvgl::ffi::lv_result_t::LV_RESULT_OK {
-        panic!("fail");
-    }
 
     let mut uart = uart::Uart::default();
+    let mut counter = 0u32;
     loop {
-        let _ = writeln!(&mut uart, "hello, world");
-        unsafe {
-            st_drivers_sys::HAL_Delay(1000);
+        if counter % 200 == 0 {
+            let _ = writeln!(&mut uart, "hello, world");
         }
-        cortex_m::asm::nop();
+        bitbox_lvgl::lv_timer_handler();
+        unsafe {
+            st_drivers_sys::HAL_Delay(5);
+        }
+        counter += 1;
     }
 }

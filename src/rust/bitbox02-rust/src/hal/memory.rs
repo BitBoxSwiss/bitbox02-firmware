@@ -30,6 +30,8 @@ pub enum Error {
 }
 
 pub trait Memory {
+    fn ble_enabled(&mut self) -> bool;
+    fn ble_enable(&mut self, enable: bool) -> Result<(), ()>;
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<Platform, ()>;
     fn get_device_name(&mut self) -> String;

@@ -61,6 +61,14 @@ pub(super) fn to_bitbox02_password_stretch_algo(
 }
 
 impl Memory for BitBox02Memory {
+    fn ble_enabled(&mut self) -> bool {
+        bitbox02::memory::ble_enabled()
+    }
+
+    fn ble_enable(&mut self, enable: bool) -> Result<(), ()> {
+        bitbox02::memory::ble_enable(enable)
+    }
+
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
         bitbox02::memory::get_securechip_type().map(to_hal_securechip_type)
     }

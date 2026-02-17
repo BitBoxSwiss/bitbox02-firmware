@@ -165,6 +165,62 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
 }
 
 /**
+  * @brief DSI MSP Initialization
+  * This function configures the hardware resources used in this example
+  * @param hdsi: DSI handle pointer
+  * @retval None
+  */
+void HAL_DSI_MspInit(DSI_HandleTypeDef* hdsi)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+  if(hdsi->Instance==DSI)
+  {
+    /* USER CODE BEGIN DSI_MspInit 0 */
+
+    /* USER CODE END DSI_MspInit 0 */
+
+  /** Initializes the peripherals clock
+  */
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_DSI;
+    PeriphClkInit.DsiClockSelection = RCC_DSICLKSOURCE_DSIPHY;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    /* Peripheral clock enable */
+    __HAL_RCC_DSI_CLK_ENABLE();
+    /* USER CODE BEGIN DSI_MspInit 1 */
+
+    /* USER CODE END DSI_MspInit 1 */
+
+  }
+
+}
+
+/**
+  * @brief DSI MSP De-Initialization
+  * This function freeze the hardware resources used in this example
+  * @param hdsi: DSI handle pointer
+  * @retval None
+  */
+void HAL_DSI_MspDeInit(DSI_HandleTypeDef* hdsi)
+{
+  if(hdsi->Instance==DSI)
+  {
+    /* USER CODE BEGIN DSI_MspDeInit 0 */
+
+    /* USER CODE END DSI_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_DSI_CLK_DISABLE();
+    /* USER CODE BEGIN DSI_MspDeInit 1 */
+
+    /* USER CODE END DSI_MspDeInit 1 */
+  }
+
+}
+
+/**
   * @brief GPU2D MSP Initialization
   * This function configures the hardware resources used in this example
   * @param hgpu2d: GPU2D handle pointer
@@ -515,7 +571,7 @@ void HAL_LTDC_MspInit(LTDC_HandleTypeDef* hltdc)
     PeriphClkInit.PLL2.PLL2Q = 2;
     PeriphClkInit.PLL2.PLL2R = 1;
     PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_1;
-    PeriphClkInit.PLL2.PLL2FRACN = 0.0;
+    PeriphClkInit.PLL2.PLL2FRACN = 0;
     PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVR;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {

@@ -173,6 +173,7 @@ dependencies = [
  "erc20_params",
  "fatfs-sys",
  "futures-lite",
+ "grounded",
  "hex",
  "hex_lit",
  "hmac",
@@ -628,6 +629,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "grounded"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a7c71ebd5d467418b46639b622912cd0338ce59766bd19130bffcbf9ac6df2c"
+dependencies = [
+ "portable-atomic",
+]
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -863,6 +873,9 @@ name = "portable-atomic"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
+dependencies = [
+ "critical-section",
+]
 
 [[package]]
 name = "powerfmt"

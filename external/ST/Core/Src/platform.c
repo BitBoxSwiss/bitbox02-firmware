@@ -316,12 +316,12 @@ static void MX_DSIHOST_DSI_Init(void)
   hdsi.Init.AutomaticClockLaneControl = DSI_AUTO_CLK_LANE_CTRL_DISABLE;
   hdsi.Init.TXEscapeCkdiv = 4;
   hdsi.Init.NumberOfLanes = DSI_TWO_DATA_LANES;
-  hdsi.Init.PHYFrequencyRange = DSI_DPHY_FRANGE_80MHZ_100MHZ;
+  hdsi.Init.PHYFrequencyRange = DSI_DPHY_FRANGE_450MHZ_510MHZ;
   hdsi.Init.PHYLowPowerOffset = PHY_LP_OFFSSET_0_CLKP;
   PLLInit.PLLNDIV = 16;
   PLLInit.PLLIDF = DSI_PLL_IN_DIV1;
   PLLInit.PLLODF = DSI_PLL_OUT_DIV2;
-  PLLInit.PLLVCORange = DSI_DPHY_VCO_FRANGE_500MHZ_800MHZ;
+  PLLInit.PLLVCORange = DSI_DPHY_VCO_FRANGE_800MHZ_1GHZ;
   PLLInit.PLLChargePump = DSI_PLL_CHARGE_PUMP_2000HZ_4400HZ;
   PLLInit.PLLTuning = DSI_PLL_LOOP_FILTER_2000HZ_4400HZ;
   if (HAL_DSI_Init(&hdsi, &PLLInit) != HAL_OK)
@@ -378,12 +378,12 @@ static void MX_DSIHOST_DSI_Init(void)
   VidCfg.LPCommandEnable = DSI_LP_COMMAND_DISABLE;
   VidCfg.LPLargestPacketSize = 0;
   VidCfg.LPVACTLargestPacketSize = 0;
-  VidCfg.LPHorizontalFrontPorchEnable = DSI_LP_HFP_DISABLE;
-  VidCfg.LPHorizontalBackPorchEnable = DSI_LP_HBP_DISABLE;
-  VidCfg.LPVerticalActiveEnable = DSI_LP_VACT_DISABLE;
-  VidCfg.LPVerticalFrontPorchEnable = DSI_LP_VFP_DISABLE;
-  VidCfg.LPVerticalBackPorchEnable = DSI_LP_VBP_DISABLE;
-  VidCfg.LPVerticalSyncActiveEnable = DSI_LP_VSYNC_DISABLE;
+  VidCfg.LPHorizontalFrontPorchEnable = DSI_LP_HFP_ENABLE;
+  VidCfg.LPHorizontalBackPorchEnable = DSI_LP_HBP_ENABLE;
+  VidCfg.LPVerticalActiveEnable = DSI_LP_VACT_ENABLE;
+  VidCfg.LPVerticalFrontPorchEnable = DSI_LP_VFP_ENABLE;
+  VidCfg.LPVerticalBackPorchEnable = DSI_LP_VBP_ENABLE;
+  VidCfg.LPVerticalSyncActiveEnable = DSI_LP_VSYNC_ENABLE;
   VidCfg.FrameBTAAcknowledgeEnable = DSI_FBTAA_DISABLE;
   if (HAL_DSI_ConfigVideoMode(&hdsi, &VidCfg) != HAL_OK)
   {
@@ -641,8 +641,8 @@ static void MX_LTDC_Init(void)
   pLayerCfg.BlendingFactor1 = LTDC_BLENDING_FACTOR1_CA;
   pLayerCfg.BlendingFactor2 = LTDC_BLENDING_FACTOR2_CA;
   pLayerCfg.FBStartAdress = 0x20000000;
-  pLayerCfg.ImageWidth = 0;
-  pLayerCfg.ImageHeight = 0;
+  pLayerCfg.ImageWidth = 480;
+  pLayerCfg.ImageHeight = 800;
   pLayerCfg.Backcolor.Blue = 0;
   pLayerCfg.Backcolor.Green = 0;
   pLayerCfg.Backcolor.Red = 0;

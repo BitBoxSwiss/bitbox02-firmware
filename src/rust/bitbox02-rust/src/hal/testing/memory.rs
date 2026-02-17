@@ -3,16 +3,16 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use bitbox02::memory::SecurechipType;
+use crate::hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
 
 pub struct TestingMemory {
     securechip_type: SecurechipType,
-    platform: bitbox02::memory::Platform,
+    platform: Platform,
     initialized: bool,
     is_seeded: bool,
     mnemonic_passphrase_enabled: bool,
     seed_birthdate: u32,
-    encrypted_seed_and_hmac: Option<(Vec<u8>, bitbox02::memory::PasswordStretchAlgo)>,
+    encrypted_seed_and_hmac: Option<(Vec<u8>, PasswordStretchAlgo)>,
     device_name: Option<String>,
     unlock_attempts: u8,
     salt_root: [u8; 32],
@@ -30,7 +30,7 @@ impl TestingMemory {
     pub fn new() -> Self {
         Self {
             securechip_type: SecurechipType::Optiga,
-            platform: bitbox02::memory::Platform::BitBox02,
+            platform: Platform::BitBox02,
             initialized: false,
             is_seeded: false,
             mnemonic_passphrase_enabled: false,
@@ -51,7 +51,7 @@ impl TestingMemory {
         self.securechip_type = securechip_type;
     }
 
-    pub fn set_platform(&mut self, platform: bitbox02::memory::Platform) {
+    pub fn set_platform(&mut self, platform: Platform) {
         self.platform = platform;
     }
 
@@ -84,7 +84,7 @@ impl crate::hal::Memory for TestingMemory {
         Ok(self.securechip_type)
     }
 
-    fn get_platform(&mut self) -> Result<bitbox02::memory::Platform, ()> {
+    fn get_platform(&mut self) -> Result<Platform, ()> {
         Ok(self.platform)
     }
 
@@ -94,7 +94,7 @@ impl crate::hal::Memory for TestingMemory {
             .unwrap_or_else(|| "My BitBox".into())
     }
 
-    fn set_device_name(&mut self, name: &str) -> Result<(), bitbox02::memory::Error> {
+    fn set_device_name(&mut self, name: &str) -> Result<(), Error> {
         self.device_name = Some(name.into());
         Ok(())
     }
@@ -132,14 +132,14 @@ impl crate::hal::Memory for TestingMemory {
 
     fn get_encrypted_seed_and_hmac(
         &mut self,
-    ) -> Result<(alloc::vec::Vec<u8>, bitbox02::memory::PasswordStretchAlgo), ()> {
+    ) -> Result<(alloc::vec::Vec<u8>, PasswordStretchAlgo), ()> {
         self.encrypted_seed_and_hmac.clone().ok_or(())
     }
 
     fn set_encrypted_seed_and_hmac(
         &mut self,
         data: &[u8],
-        password_stretch_algo: bitbox02::memory::PasswordStretchAlgo,
+        password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<(), ()> {
         // 96 is the max space allocated in BitBox02's memory for this.
         if data.len() > 96 {
@@ -206,14 +206,10 @@ impl crate::hal::Memory for TestingMemory {
         self.attestation_bootloader_hash
     }
 
-    fn multisig_set_by_hash(
-        &mut self,
-        hash: &[u8; 32],
-        name: &str,
-    ) -> Result<(), bitbox02::memory::MemoryError> {
+    fn multisig_set_by_hash(&mut self, hash: &[u8; 32], name: &str) -> Result<(), Error> {
         // Validate input
         if name.is_empty() {
-            return Err(bitbox02::memory::MemoryError::MEMORY_ERR_INVALID_INPUT);
+            return Err(Error::InvalidInput);
         }
         // Check for duplicate name with different hash
         for (existing_hash, existing_name) in &self.multisig_entries {
@@ -221,7 +217,7 @@ impl crate::hal::Memory for TestingMemory {
                 if existing_hash != hash {
                     // Mirror bitbox02::memory multisig_set_by_hash semantics (duplicate-name / full-table),
                     // even if these branches are not currently exercised in bitbox02-rust tests.
-                    return Err(bitbox02::memory::MemoryError::MEMORY_ERR_DUPLICATE_NAME);
+                    return Err(Error::DuplicateName);
                 }
                 // same name, same hash (already stored)
                 return Ok(());
@@ -239,7 +235,7 @@ impl crate::hal::Memory for TestingMemory {
         }
         if self.multisig_entries.len() >= MULTISIG_LIMIT {
             // See comment above about mirroring bitbox02::memory semantics.
-            return Err(bitbox02::memory::MemoryError::MEMORY_ERR_FULL);
+            return Err(Error::Full);
         }
         // Insert new entry
         self.multisig_entries.push((*hash, String::from(name)));

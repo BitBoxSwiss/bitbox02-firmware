@@ -3,7 +3,7 @@
 //! The BitBox02 Nova has two communication modes: USB and Bluetooth.
 //! Bluetooth is active until the first USB request is seen, at which point USB takes priority.
 
-use crate::hal::Memory;
+use crate::hal::{Memory, memory};
 use util::cell::SyncCell;
 
 static USB_HWW_REQUEST_SEEN: SyncCell<bool> = SyncCell::new(false);
@@ -28,7 +28,7 @@ fn has_ble(hal: &mut impl crate::hal::Hal) -> bool {
 
     let has_ble = matches!(
         hal.memory().get_platform(),
-        Ok(bitbox02::memory::Platform::BitBox02Plus),
+        Ok(memory::Platform::BitBox02Plus),
     );
     HAS_BLE.write(Some(has_ble));
     has_ble
@@ -61,8 +61,7 @@ mod tests {
     fn test_ble_disabled_on_non_plus() {
         reset_for_testing();
         let mut hal = TestingHal::new();
-        hal.memory
-            .set_platform(bitbox02::memory::Platform::BitBox02);
+        hal.memory.set_platform(memory::Platform::BitBox02);
 
         assert!(!ble_enabled(&mut hal));
 
@@ -74,8 +73,7 @@ mod tests {
     fn test_ble_enabled_until_usb_request_seen() {
         reset_for_testing();
         let mut hal = TestingHal::new();
-        hal.memory
-            .set_platform(bitbox02::memory::Platform::BitBox02Plus);
+        hal.memory.set_platform(memory::Platform::BitBox02Plus);
 
         assert!(ble_enabled(&mut hal));
 

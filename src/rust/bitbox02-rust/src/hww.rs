@@ -98,7 +98,10 @@ fn api_attestation(hal: &mut impl crate::hal::Hal, usb_in: &[u8]) -> Vec<u8> {
     out
 }
 
-async fn _process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> Vec<u8> {
+/// Async HWW api processing main entry point.
+/// `usb_in` - api request bytes.
+/// Returns the usb response bytes.
+pub async fn process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> Vec<u8> {
     // Update the waiting screen from "See the BitBoxApp" to the logo, now that the host is
     // connected. When the device is initialized, we delay this until the unlock call, otherwise
     // there would be a flicker where the logo would be shown before the host invokes unlock.
@@ -117,14 +120,6 @@ async fn _process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> Vec
         Ok(()) => out,
         Err(noise::Error) => [OP_STATUS_FAILURE].to_vec(),
     }
-}
-
-/// Async HWW api processing main entry point.
-/// `usb_in` - api request bytes.
-/// Returns the usb response bytes.
-pub async fn process_packet(usb_in: Vec<u8>) -> Vec<u8> {
-    let hal = &mut crate::hal::BitBox02Hal::new();
-    _process_packet(hal, usb_in).await
 }
 
 #[cfg(test)]
@@ -147,13 +142,13 @@ mod tests {
     /// encrypts the message going in and decrypts the message coming out.
     fn init_noise<H: crate::hal::Hal>() -> Box<dyn FnMut(&mut H, &[u8]) -> Result<Vec<u8>, ()>> {
         assert_eq!(
-            block_on(_process_packet(&mut TestingHal::new(), b"h".to_vec())),
+            block_on(process_packet(&mut TestingHal::new(), b"h".to_vec())),
             [OP_STATUS_SUCCESS].to_vec()
         );
         let mut host_noise = bitbox02_noise::testing::make_host();
         let host_handshake_1 = host_noise.write_message_vec(b"").unwrap();
         let bb02_handshake_1 = {
-            let result = block_on(_process_packet(&mut TestingHal::new(), {
+            let result = block_on(process_packet(&mut TestingHal::new(), {
                 let mut m = b"H".to_vec(); // handshake opcode
                 m.extend_from_slice(&host_handshake_1);
                 m
@@ -169,7 +164,7 @@ mod tests {
             host_noise.write_message_vec(&payload).unwrap()
         };
 
-        let response = block_on(_process_packet(&mut TestingHal::new(), {
+        let response = block_on(process_packet(&mut TestingHal::new(), {
             let mut m = b"H".to_vec(); // handshake opcode
             m.extend_from_slice(&host_handshake_2);
             m
@@ -190,7 +185,7 @@ mod tests {
 
             let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(_process_packet(&mut mock_hal, b"v".to_vec())),
+                block_on(process_packet(&mut mock_hal, b"v".to_vec())),
                 [OP_STATUS_SUCCESS].to_vec()
             );
             assert_eq!(
@@ -206,7 +201,7 @@ mod tests {
         let (mut host_send, mut host_recv) = host_noise.get_ciphers();
         Box::new(move |hal, msg| -> Result<Vec<u8>, ()> {
             let msg_encrypted = host_send.encrypt_vec(msg);
-            let response_encrypted = block_on(_process_packet(hal, {
+            let response_encrypted = block_on(process_packet(hal, {
                 let mut m = b"n".to_vec(); // message opcode
                 m.extend_from_slice(&msg_encrypted);
                 m
@@ -223,7 +218,7 @@ mod tests {
     fn test_cant_unlock() {
         mock_memory();
         assert_eq!(
-            block_on(_process_packet(&mut TestingHal::new(), vec![OP_UNLOCK])),
+            block_on(process_packet(&mut TestingHal::new(), vec![OP_UNLOCK])),
             [OP_STATUS_FAILURE_UNINITIALIZED].to_vec()
         );
     }
@@ -441,7 +436,7 @@ mod tests {
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
         assert_eq!(
-            block_on(_process_packet(&mut mock_hal, vec![OP_UNLOCK])),
+            block_on(process_packet(&mut mock_hal, vec![OP_UNLOCK])),
             [OP_STATUS_SUCCESS].to_vec()
         );
         assert!(!crate::keystore::is_locked());

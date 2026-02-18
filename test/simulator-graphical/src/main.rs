@@ -162,7 +162,7 @@ fn init_hww(preseed: bool) -> bool {
     if preseed {
         let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
         let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
-        let mut hal = bitbox02_rust::hal::BitBox02Hal::new();
+        let mut hal = bitbox02::hal::BitBox02Hal::new();
         bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
         hal.memory().set_initialized().unwrap();
     }

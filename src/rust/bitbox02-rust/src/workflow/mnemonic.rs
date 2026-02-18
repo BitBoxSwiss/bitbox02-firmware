@@ -2,12 +2,12 @@
 
 pub use super::cancel::Error as CancelError;
 use super::confirm;
-use super::trinary_choice::TrinaryChoice;
 use super::trinary_input_string;
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use bitbox02::ui::TrinaryChoice;
 use sha2::{Digest, Sha256};
 
 const NUM_RANDOM_WORDS: u8 = 5;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::{cancel, confirm, mnemonic, sdcard, transaction, trinary_choice, trinary_input_string};
+use crate::workflow::{cancel, confirm, mnemonic, sdcard, transaction, trinary_input_string};
 
 use alloc::string::String;
 
@@ -45,7 +45,7 @@ pub trait Ui {
         label_left: Option<&str>,
         label_middle: Option<&str>,
         label_right: Option<&str>,
-    ) -> trinary_choice::TrinaryChoice;
+    ) -> bitbox02::ui::TrinaryChoice;
 
     /// Display the BIP39 mnemonic to the user.
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error>;

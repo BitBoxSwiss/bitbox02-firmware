@@ -3,9 +3,7 @@
 use alloc::string::String;
 
 use crate::hal::Ui;
-use crate::workflow::{
-    cancel, confirm, mnemonic, sdcard, transaction, trinary_choice, trinary_input_string,
-};
+use crate::workflow::{cancel, confirm, mnemonic, sdcard, transaction, trinary_input_string};
 
 pub(crate) struct BitBox02Ui;
 
@@ -96,8 +94,8 @@ impl Ui for BitBox02Ui {
         label_left: Option<&str>,
         label_middle: Option<&str>,
         label_right: Option<&str>,
-    ) -> trinary_choice::TrinaryChoice {
-        trinary_choice::choose(message, label_left, label_middle, label_right).await
+    ) -> bitbox02::ui::TrinaryChoice {
+        bitbox02::ui::trinary_choice(message, label_left, label_middle, label_right).await
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {

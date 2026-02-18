@@ -12,7 +12,6 @@ pub mod pairing;
 pub mod password;
 pub mod sdcard;
 pub mod transaction;
-pub mod trinary_choice;
 pub mod trinary_input_string;
 pub mod unlock;
 pub mod unlock_animation;

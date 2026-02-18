@@ -121,6 +121,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-hal"
+version = "0.1.0"
+dependencies = [
+ "zeroize",
+]
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
@@ -161,6 +168,7 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox-executor",
+ "bitbox-hal",
  "bitbox-secp256k1",
  "bitbox02",
  "bitbox02-noise",

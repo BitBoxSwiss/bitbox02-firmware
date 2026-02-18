@@ -5,6 +5,7 @@
 members = [
     "bitbox02-rust-c",
     "bitbox02-rust",
+    "bitbox-hal",
     "bitbox-framed-serial-link",
     "util",
     "bitbox02-noise",

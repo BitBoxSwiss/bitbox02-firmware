@@ -14,6 +14,7 @@ license = "Apache-2.0"
 doctest = false
 
 [dependencies]
+bitbox-hal = { path = "../bitbox-hal" }
 bitbox02 = { path = "../bitbox02" }
 bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
 util = { path = "../util" }
@@ -81,6 +82,7 @@ app-litecoin = [
 ]
 
 app-u2f = [
+  "bitbox-hal/app-u2f",
   "bitbox02/app-u2f",
 ]
 

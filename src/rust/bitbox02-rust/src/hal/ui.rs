@@ -8,6 +8,7 @@ use alloc::string::String;
 
 #[allow(async_fn_in_trait)]
 pub trait Ui {
+    /// Returns `Ok(())` if the user accepts, `Err(confirm::UserAbort)` if the user rejects.
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort>;
 
     async fn verify_recipient(

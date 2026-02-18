@@ -13,7 +13,10 @@ pub(crate) struct BitBox02Ui;
 impl Ui for BitBox02Ui {
     #[inline(always)]
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
-        confirm::confirm(params).await
+        match bitbox02::ui::confirm(params).await {
+            bitbox02::ui::ConfirmResponse::Approved => Ok(()),
+            bitbox02::ui::ConfirmResponse::Cancelled => Err(confirm::UserAbort),
+        }
     }
 
     #[inline(always)]

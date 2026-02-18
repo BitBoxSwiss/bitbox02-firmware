@@ -25,7 +25,10 @@ impl Ui for BitBox02Ui {
         recipient: &str,
         amount: &str,
     ) -> Result<(), transaction::UserAbort> {
-        transaction::verify_recipient(recipient, amount).await
+        match bitbox02::ui::confirm_transaction_address(amount, recipient).await {
+            bitbox02::ui::ConfirmResponse::Approved => Ok(()),
+            bitbox02::ui::ConfirmResponse::Cancelled => Err(transaction::UserAbort),
+        }
     }
 
     #[inline(always)]

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-use crate::hal::ui::{ConfirmParams, UserAbort};
+use crate::hal::ui::{ConfirmParams, EnterStringParams, UserAbort};
 use crate::workflow::trinary_input_string;
 
 use alloc::boxed::Box;
@@ -34,10 +34,7 @@ pub enum Screen {
     More,
 }
 
-type EnterStringCb<'a> = Box<
-    dyn FnMut(&trinary_input_string::Params<'_>) -> Result<String, trinary_input_string::Error>
-        + 'a,
->;
+type EnterStringCb<'a> = Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, UserAbort> + 'a>;
 
 /// A Ui implementation for unit tests. Collects all screens and provides helper functions
 /// to verify them.
@@ -116,7 +113,7 @@ impl Ui for TestingUi<'_> {
 
     async fn enter_string(
         &mut self,
-        params: &trinary_input_string::Params<'_>,
+        params: &EnterStringParams<'_>,
         _can_cancel: trinary_input_string::CanCancel,
         _preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort> {

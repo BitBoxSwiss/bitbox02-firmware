@@ -76,7 +76,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
             let number_string = hal
                 .ui()
                 .enter_string(
-                    &trinary_input_string::Params {
+                    &crate::hal::ui::EnterStringParams {
                         title: "Enter index",
                         number_input: true,
                         longtouch: true,

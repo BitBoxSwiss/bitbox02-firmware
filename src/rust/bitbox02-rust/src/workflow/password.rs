@@ -46,7 +46,7 @@ pub async fn enter(
     password_type: PasswordType,
     can_cancel: CanCancel,
 ) -> Result<zeroize::Zeroizing<String>, EnterError> {
-    let params = trinary_input_string::Params {
+    let params = crate::hal::ui::EnterStringParams {
         title,
         hide: true,
         special_chars: match password_type {

@@ -237,7 +237,7 @@ async fn get_12th_18th_word(
         let choices = lastword_choices(entered_words);
         let word = hal_ui
             .enter_string(
-                &trinary_input_string::Params {
+                &crate::hal::ui::EnterStringParams {
                     title,
                     wordlist: Some(&choices),
                     ..Default::default()
@@ -311,7 +311,7 @@ pub async fn get(
         } else {
             hal_ui
                 .enter_string(
-                    &trinary_input_string::Params {
+                    &crate::hal::ui::EnterStringParams {
                         title: &title,
                         wordlist: Some(&bip39_wordlist),
                         ..Default::default()

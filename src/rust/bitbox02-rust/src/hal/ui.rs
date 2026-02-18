@@ -35,6 +35,20 @@ pub struct ConfirmParams<'a> {
     pub display_size: usize,
 }
 
+#[derive(Default)]
+pub struct EnterStringParams<'a> {
+    /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
+    pub title: &'a str,
+    /// Currently specialized to the BIP39 wordlist: a list of BIP39 word indices. Can be extended if needed.
+    pub wordlist: Option<&'a [u16]>,
+    pub number_input: bool,
+    pub hide: bool,
+    pub special_chars: bool,
+    pub longtouch: bool,
+    pub cancel_is_backbutton: bool,
+    pub default_to_digits: bool,
+}
+
 #[allow(async_fn_in_trait)]
 pub trait Ui {
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
@@ -56,7 +70,7 @@ pub trait Ui {
     /// If `preset` is not empty, it must be part of `params.wordlist` and will be pre-entered.
     async fn enter_string(
         &mut self,
-        params: &trinary_input_string::Params<'_>,
+        params: &EnterStringParams<'_>,
         can_cancel: trinary_input_string::CanCancel,
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort>;

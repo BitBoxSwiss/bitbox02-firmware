@@ -75,7 +75,7 @@ async fn get_name(
         let name = hal
             .ui()
             .enter_string(
-                &trinary_input_string::Params {
+                &crate::hal::ui::EnterStringParams {
                     title: "Enter account name",
                     longtouch: true,
                     ..Default::default()

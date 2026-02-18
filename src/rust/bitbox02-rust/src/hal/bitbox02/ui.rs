@@ -3,7 +3,7 @@
 use alloc::string::String;
 
 use crate::hal::Ui;
-use crate::hal::ui::{ConfirmParams, Font, UserAbort};
+use crate::hal::ui::{ConfirmParams, EnterStringParams, Font, UserAbort};
 use crate::workflow::trinary_input_string;
 
 pub struct BitBox02Ui;
@@ -29,6 +29,21 @@ fn to_bitbox02_confirm_params<'a>(
         accept_only: params.accept_only,
         accept_is_nextarrow: params.accept_is_nextarrow,
         display_size: params.display_size,
+    }
+}
+
+fn to_bitbox02_trinary_input_string_params<'a>(
+    params: &'a EnterStringParams<'a>,
+) -> bitbox02::ui::TrinaryInputStringParams<'a> {
+    bitbox02::ui::TrinaryInputStringParams {
+        title: params.title,
+        wordlist: params.wordlist,
+        number_input: params.number_input,
+        hide: params.hide,
+        special_chars: params.special_chars,
+        longtouch: params.longtouch,
+        cancel_is_backbutton: params.cancel_is_backbutton,
+        default_to_digits: params.default_to_digits,
     }
 }
 
@@ -71,15 +86,16 @@ impl Ui for BitBox02Ui {
     #[inline(always)]
     async fn enter_string(
         &mut self,
-        params: &trinary_input_string::Params<'_>,
+        params: &EnterStringParams<'_>,
         can_cancel: trinary_input_string::CanCancel,
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+        let params = to_bitbox02_trinary_input_string_params(params);
         let can_cancel = match can_cancel {
             trinary_input_string::CanCancel::Yes => true,
             trinary_input_string::CanCancel::No => false,
         };
-        bitbox02::ui::trinary_input_string(params, can_cancel, preset)
+        bitbox02::ui::trinary_input_string(&params, can_cancel, preset)
             .await
             .map_err(|_| UserAbort)
     }
@@ -199,5 +215,50 @@ mod tests {
             assert!(output.accept_is_nextarrow);
             assert_eq!(output.display_size, 42);
         }
+    }
+
+    #[test]
+    fn test_to_bitbox02_trinary_input_string_params() {
+        let input_without_wordlist = EnterStringParams {
+            title: "Enter",
+            wordlist: None,
+            number_input: true,
+            hide: true,
+            special_chars: true,
+            longtouch: true,
+            cancel_is_backbutton: true,
+            default_to_digits: true,
+        };
+        let output_without_wordlist =
+            to_bitbox02_trinary_input_string_params(&input_without_wordlist);
+        assert_eq!(output_without_wordlist.title, "Enter");
+        assert!(output_without_wordlist.wordlist.is_none());
+        assert!(output_without_wordlist.number_input);
+        assert!(output_without_wordlist.hide);
+        assert!(output_without_wordlist.special_chars);
+        assert!(output_without_wordlist.longtouch);
+        assert!(output_without_wordlist.cancel_is_backbutton);
+        assert!(output_without_wordlist.default_to_digits);
+
+        let wordlist = [1u16, 2, 3];
+        let input_with_wordlist = EnterStringParams {
+            title: "Seed",
+            wordlist: Some(&wordlist),
+            number_input: false,
+            hide: false,
+            special_chars: false,
+            longtouch: false,
+            cancel_is_backbutton: false,
+            default_to_digits: false,
+        };
+        let output_with_wordlist = to_bitbox02_trinary_input_string_params(&input_with_wordlist);
+        assert_eq!(output_with_wordlist.title, "Seed");
+        assert_eq!(output_with_wordlist.wordlist.unwrap(), wordlist.as_slice());
+        assert!(!output_with_wordlist.number_input);
+        assert!(!output_with_wordlist.hide);
+        assert!(!output_with_wordlist.special_chars);
+        assert!(!output_with_wordlist.longtouch);
+        assert!(!output_with_wordlist.cancel_is_backbutton);
+        assert!(!output_with_wordlist.default_to_digits);
     }
 }

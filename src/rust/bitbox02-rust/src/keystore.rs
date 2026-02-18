@@ -749,18 +749,6 @@ pub fn get_u2f_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing
     ))
 }
 
-#[cfg(feature = "app-u2f")]
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut) -> bool {
-    match get_u2f_seed(&mut crate::hal::BitBox02Hal::new()) {
-        Ok(seed) => {
-            seed_out.as_mut().copy_from_slice(&seed);
-            true
-        }
-        Err(_) => false,
-    }
-}
-
 #[cfg(feature = "testing")]
 pub mod testing {
     /// This mocks an unlocked keystore with the given bip39 recovery words and bip39 passphrase.

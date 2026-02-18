@@ -6,10 +6,10 @@
 
 extern crate alloc;
 
-use crate::hal::ui::ConfirmParams;
-use crate::hal::{Hal, Ui};
 use alloc::boxed::Box;
 use alloc::string::String;
+use bitbox_hal::ui::{ConfirmParams, UserAbort};
+use bitbox_hal::{Hal, Ui};
 use core::ffi::CStr;
 use core::sync::atomic::{AtomicU32, Ordering};
 use grounded::const_init::ConstInit;
@@ -27,9 +27,8 @@ impl<O> ConstInit for TaskState<O> {
 
 static NEXT_TASK_TOKEN: AtomicU32 = AtomicU32::new(0);
 static UNLOCK_STATE: GroundedCell<TaskState<Result<(), ()>>> = GroundedCell::const_init();
-static CONFIRM_STATE: GroundedCell<TaskState<Result<(), crate::hal::ui::UserAbort>>> =
-    GroundedCell::const_init();
-static BITBOX02_HAL: GroundedCell<crate::hal::BitBox02Hal> = GroundedCell::const_init();
+static CONFIRM_STATE: GroundedCell<TaskState<Result<(), UserAbort>>> = GroundedCell::const_init();
+static BITBOX02_HAL: GroundedCell<crate::HalImpl> = GroundedCell::const_init();
 
 fn next_task_token() -> u32 {
     NEXT_TASK_TOKEN.fetch_add(1, Ordering::Relaxed)
@@ -53,7 +52,7 @@ unsafe fn complete_unlock(token: u32, result: Result<(), ()>) {
 /// Must not be called concurrently or reentrantly with other operations that mutate confirm
 /// workflow state in this module.
 /// Callers must guarantee single-threaded access to this workflow.
-unsafe fn complete_confirm(token: u32, result: Result<(), crate::hal::ui::UserAbort>) {
+unsafe fn complete_confirm(token: u32, result: Result<(), UserAbort>) {
     unsafe {
         if let TaskState::Running(current_token) = CONFIRM_STATE.get().as_ref().unwrap()
             && *current_token == token
@@ -75,9 +74,10 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
     unsafe {
         UNLOCK_STATE.get().write(TaskState::Running(token));
     }
-    crate::main_loop::spawn(Box::pin(async move {
-        let result =
-            unsafe { crate::workflow::unlock::unlock(BITBOX02_HAL.get().as_mut().unwrap()).await };
+    bitbox02_rust::main_loop::spawn(Box::pin(async move {
+        let result = unsafe {
+            bitbox02_rust::workflow::unlock::unlock(BITBOX02_HAL.get().as_mut().unwrap()).await
+        };
         unsafe { complete_unlock(token, result) };
     }));
 }
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     unsafe {
         CONFIRM_STATE.get().write(TaskState::Running(token));
     }
-    crate::main_loop::spawn(Box::pin(async move {
+    bitbox02_rust::main_loop::spawn(Box::pin(async move {
         let params = ConfirmParams {
             title: &title,
             body: &body,

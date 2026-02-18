@@ -11,6 +11,7 @@ use crate::hal::Ui;
 use crate::workflow::{confirm, transaction};
 
 use alloc::vec::Vec;
+use hex_lit::hex;
 use pb::eth_response::Response;
 
 use core::ops::{Add, Mul};
@@ -116,7 +117,7 @@ fn parse_erc20(request: &Transaction<'_>) -> Option<([u8; 20], BigUint)> {
         &request.data()[4..36],
         &request.data()[36..68],
     );
-    if method != [0xa9, 0x05, 0x9c, 0xbb] {
+    if method != hex!("a9059cbb") {
         return None;
     }
     // Recipient must be zero padded.
@@ -502,8 +503,9 @@ mod tests {
 
     #[test]
     pub fn test_parse_erc20() {
-        let valid_data =
-            b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x55\0\0\0\xff";
+        let valid_data = hex!(
+            "a9059cbb0000000000000000000000006162636465666768696a6b6c6d6e6f707172737400000000000000000000000000000000000000000000000000000055000000ff"
+        );
         assert_eq!(
             parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
                 data: valid_data.to_vec(),
@@ -523,7 +525,9 @@ mod tests {
         );
 
         // Invalid method (first byte)
-        let invalid_data = b"\xa8\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xff";
+        let invalid_data = hex!(
+            "a8059cbb0000000000000000000000006162636465666768696a6b6c6d6e6f707172737400000000000000000000000000000000000000000000000000000000000000ff"
+        );
         assert!(
             parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
                 data: invalid_data.to_vec(),
@@ -533,7 +537,9 @@ mod tests {
         );
 
         // Recipient too long (not zero padded)
-        let invalid_data = b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0babcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xff";
+        let invalid_data = hex!(
+            "a9059cbb0000000000000000000000626162636465666768696a6b6c6d6e6f707172737400000000000000000000000000000000000000000000000000000000000000ff"
+        );
         assert!(
             parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
                 data: invalid_data.to_vec(),
@@ -543,7 +549,9 @@ mod tests {
         );
 
         // Value can't be zero
-        let invalid_data = b"\xa9\x05\x9c\xbb\0\0\0\0\0\0\0\0\0\0\0\0abcdefghijklmnopqrst\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x00";
+        let invalid_data = hex!(
+            "a9059cbb0000000000000000000000006162636465666768696a6b6c6d6e6f70717273740000000000000000000000000000000000000000000000000000000000000000"
+        );
         assert!(
             parse_erc20(&Transaction::Legacy(&pb::EthSignRequest {
                 data: invalid_data.to_vec(),
@@ -585,11 +593,11 @@ mod tests {
             block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x1f\xdc".to_vec(),
-                gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
-                gas_limit: b"\x52\x08".to_vec(),
-                recipient: b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85".to_vec(),
-                value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+                nonce: hex!("1fdc").to_vec(),
+                gas_price: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
                 data: b"".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
@@ -597,7 +605,7 @@ mod tests {
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\xc3\xae\x24\xc1\x67\xe2\x16\xcf\xb7\x5c\x72\xb5\xe0\x3e\xf9\x7a\xcc\x2b\x60\x7f\x3a\xcf\x63\x86\x5f\x80\x96\x0f\x76\xf6\x56\x47\x0f\x8e\x23\xf1\xd2\x78\x8f\xb0\x07\x0e\x28\xc2\xa5\xc8\xaa\xf1\x5b\x5d\xbf\x30\xb4\x09\x07\xff\x6c\x50\x68\xfd\xcb\xc1\x1a\x2d\x00"
+                signature: hex!("c3ae24c167e216cfb75c72b5e03ef97acc2b607f3acf63865f80960f76f656470f8e23f1d2788fb0070e28c2a5c8aaf15b5dbf30b40907ff6c5068fdcbc11a2d00")
                     .to_vec()
             }))
         );
@@ -607,12 +615,12 @@ mod tests {
         assert_eq!(
             block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x1f\xdc".to_vec(),
+                nonce: hex!("1fdc").to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
-                max_fee_per_gas: b"\x01\x65\xa0\xbc\x00".to_vec(),
-                gas_limit: b"\x52\x08".to_vec(),
-                recipient: b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85".to_vec(),
-                value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+                max_fee_per_gas: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
                 data: b"".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 1,
@@ -620,7 +628,7 @@ mod tests {
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\x28\x91\x11\x77\x0d\xc0\x67\x89\x57\x80\xde\x3e\x9b\x30\x45\x4e\x33\x1b\xa6\x66\x1f\x04\x6e\x9e\x26\x43\x15\x76\xd7\xf0\x8a\x49\x6f\xfe\x6d\xef\xfb\x07\xdd\x8d\x47\x13\xd8\xc5\x23\xb6\xc3\x3b\x53\xdd\x6e\xf2\xdc\x9c\x39\x4d\x6e\x21\xf6\x43\x07\xd2\xbc\xf0\x01"
+                signature: hex!("289111770dc067895780de3e9b30454e331ba6661f046e9e26431576d7f08a496ffe6deffb07dd8d4713d8c523b6c33b53dd6ef2dc9c394d6e21f64307d2bcf001")
                     .to_vec()
             }))
         );
@@ -636,25 +644,27 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert!(
-            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
-            coin: pb::EthCoin::Eth as _,
-            keypath: KEYPATH.to_vec(),
-            nonce: b"\x1f\xdc".to_vec(),
-            // fee=gas_price*gas_limit=63713280000000000
-            gas_price: b"\x01\x65\xa0\xbc\x00\x00".to_vec(),
-            gas_limit: b"\xa2\x08".to_vec(),
-            recipient:
-                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
-                    .to_vec(),
-            // 530564000000000000
-            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
-            data: b"".to_vec(),
-            host_nonce_commitment: None,
-            chain_id: 0,
-            address_case: pb::EthAddressCase::Mixed as _,
-                data_length: 0,
-        })))
-        .is_ok());
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Legacy(&pb::EthSignRequest {
+                    coin: pb::EthCoin::Eth as _,
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("1fdc").to_vec(),
+                    // fee=gas_price*gas_limit=63713280000000000
+                    gas_price: hex!("0165a0bc0000").to_vec(),
+                    gas_limit: hex!("a208").to_vec(),
+                    recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                    // 530564000000000000
+                    value: hex!("075cf1259e9c4000").to_vec(),
+                    data: b"".to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 0,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                })
+            ))
+            .is_ok()
+        );
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -693,25 +703,28 @@ mod tests {
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
-            keypath: KEYPATH.to_vec(),
-            nonce: b"\x1f\xdc".to_vec(),
-            // fee=max_fee_per_gas*gas_limit=63713280000000000
-            max_priority_fee_per_gas: b"".to_vec(),
-            max_fee_per_gas: b"\x01\x65\xa0\xbc\x00\x00".to_vec(),
-            gas_limit: b"\xa2\x08".to_vec(),
-            recipient:
-                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
-                    .to_vec(),
-            // 530564000000000000
-            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
-            data: b"".to_vec(),
-            host_nonce_commitment: None,
-            chain_id: 1,
-            address_case: pb::EthAddressCase::Mixed as _,
-                data_length: 0,
-        })))
-        .is_ok());
+        assert!(
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("1fdc").to_vec(),
+                    // fee=max_fee_per_gas*gas_limit=63713280000000000
+                    max_priority_fee_per_gas: b"".to_vec(),
+                    max_fee_per_gas: hex!("0165a0bc0000").to_vec(),
+                    gas_limit: hex!("a208").to_vec(),
+                    recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                    // 530564000000000000
+                    value: hex!("075cf1259e9c4000").to_vec(),
+                    data: b"".to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                })
+            ))
+            .is_ok()
+        );
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -750,22 +763,23 @@ mod tests {
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
-            coin: pb::EthCoin::Eth as _,
-            keypath: KEYPATH.to_vec(),
-            nonce: b"\x1f\xdc".to_vec(),
-            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
-            gas_limit: b"\x52\x08".to_vec(),
-            recipient:
-                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
-                    .to_vec(),
-            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
-            data: b"".to_vec(),
-            host_nonce_commitment: None,
-            chain_id: 11155111,
-            address_case: pb::EthAddressCase::Mixed as _,
+        block_on(process(
+            &mut mock_hal,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("1fdc").to_vec(),
+                gas_price: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
+                data: b"".to_vec(),
+                host_nonce_commitment: None,
+                chain_id: 11155111,
+                address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-        })))
+            }),
+        ))
         .unwrap();
 
         assert_eq!(
@@ -809,11 +823,11 @@ mod tests {
             block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x1f\xdc".to_vec(),
-                gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
-                gas_limit: b"\x52\x08".to_vec(),
-                recipient: b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85".to_vec(),
-                value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+                nonce: hex!("1fdc").to_vec(),
+                gas_price: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
                 data: b"foo bar".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
@@ -821,7 +835,7 @@ mod tests {
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\x7d\x3f\x37\x13\xe3\xcf\x10\x82\x79\x1d\x5c\x0f\xc6\x8e\xc2\x9e\xaf\xf5\xe1\xee\x84\x67\xa8\xec\x54\x7d\xc7\x96\xe8\x5a\x79\x04\x2b\x7c\x01\x69\x2f\xb7\x2f\x55\x76\xab\x50\xdc\xaa\x62\x1a\xd1\xee\xab\xd9\x97\x59\x73\xb8\x62\x56\xf4\x0c\x6f\x85\x50\xef\x44\x00"
+                signature: hex!("7d3f3713e3cf1082791d5c0fc68ec29eaff5e1ee8467a8ec547dc796e85a79042b7c01692fb72f5576ab50dcaa621ad1eeabd9975973b86256f40c6f8550ef4400")
                     .to_vec()
             }))
         );
@@ -875,12 +889,12 @@ mod tests {
         assert_eq!(
             block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x1f\xdc".to_vec(),
-                max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
-                max_fee_per_gas: b"\x01\x65\xa0\xbc\x00".to_vec(),
-                gas_limit: b"\x52\x08".to_vec(),
-                recipient: b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85".to_vec(),
-                value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+                nonce: hex!("1fdc").to_vec(),
+                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                max_fee_per_gas: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
                 data: b"foo bar".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 1,
@@ -888,7 +902,7 @@ mod tests {
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\xc5\xd9\x63\x9a\x77\x8a\x34\x15\xf6\x3a\x11\xc0\x3a\x58\xbe\xde\x6b\x3c\xaf\xff\x4f\x2c\xe6\xea\x16\x41\x1e\x76\xfb\xa9\x46\xf7\x21\x66\xf0\x9e\x31\x3c\x07\xe7\x8b\x7b\x1f\xff\x87\x45\x0c\x43\x21\x17\x0c\x02\xdf\x2d\x36\xc4\x4c\x3a\x02\x1a\xbf\x20\x54\x60\x01"
+                signature: hex!("c5d9639a778a3415f63a11c03a58bede6b3cafff4f2ce6ea16411e76fba946f72166f09e313c07e78b7b1fff87450c4321170c02df2d36c44c3a021abf20546001")
                     .to_vec()
             }))
         );
@@ -965,19 +979,19 @@ mod tests {
             block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::RopstenEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x23\x67".to_vec(),
-                gas_price: b"\x02\x7a\xca\x1a\x80".to_vec(),
-                gas_limit: b"\x01\xd0\x48".to_vec(),
-                recipient: b"\xda\xc1\x7f\x95\x8d\x2e\xe5\x23\xa2\x20\x62\x06\x99\x45\x97\xc1\x3d\x83\x1e\xc7".to_vec(),
+                nonce: hex!("2367").to_vec(),
+                gas_price: hex!("027aca1a80").to_vec(),
+                gas_limit: hex!("01d048").to_vec(),
+                recipient: hex!("dac17f958d2ee523a2206206994597c13d831ec7").to_vec(),
                 value: b"".to_vec(),
-                data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe6\xce\x0a\x09\x2a\x99\x70\x0c\xd4\xcc\xcc\xbb\x1f\xed\xc3\x9c\xf5\x3e\x63\x30\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x65\xc0\x40".to_vec(),
+                data: hex!("a9059cbb000000000000000000000000e6ce0a092a99700cd4ccccbb1fedc39cf53e6330000000000000000000000000000000000000000000000000000000000365c040").to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\x67\x4e\x9a\x01\x70\xee\xe0\xca\x8c\x40\x6e\xc9\xa7\xdf\x2e\x3a\x6b\xdd\x17\x9c\xf6\x93\x85\x80\x0e\x1f\xd3\x78\xe7\xcf\xb1\x9c\x4d\x55\x16\x2c\x54\x7b\x04\xd1\x81\x8e\x43\x90\x16\x91\xae\xc9\x88\xef\x75\xcd\x67\xd9\xbb\x30\x1d\x14\x90\x2f\xd6\xe6\x92\x92\x01"
+                signature: hex!("674e9a0170eee0ca8c406ec9a7df2e3a6bdd179cf69385800e1fd378e7cfb19c4d55162c547b04d1818e43901691aec988ef75cd67d9bb301d14902fd6e6929201")
                     .to_vec()
             }))
         );
@@ -987,20 +1001,20 @@ mod tests {
         assert_eq!(
             block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x23\x67".to_vec(),
-                max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
-                max_fee_per_gas: b"\x02\x7a\xca\x1a\x80".to_vec(),
-                gas_limit: b"\x01\xd0\x48".to_vec(),
-                recipient: b"\xda\xc1\x7f\x95\x8d\x2e\xe5\x23\xa2\x20\x62\x06\x99\x45\x97\xc1\x3d\x83\x1e\xc7".to_vec(),
+                nonce: hex!("2367").to_vec(),
+                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                max_fee_per_gas: hex!("027aca1a80").to_vec(),
+                gas_limit: hex!("01d048").to_vec(),
+                recipient: hex!("dac17f958d2ee523a2206206994597c13d831ec7").to_vec(),
                 value: b"".to_vec(),
-                data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe6\xce\x0a\x09\x2a\x99\x70\x0c\xd4\xcc\xcc\xbb\x1f\xed\xc3\x9c\xf5\x3e\x63\x30\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x65\xc0\x40".to_vec(),
+                data: hex!("a9059cbb000000000000000000000000e6ce0a092a99700cd4ccccbb1fedc39cf53e6330000000000000000000000000000000000000000000000000000000000365c040").to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\x31\x62\x48\x78\x80\xab\xde\xa1\xf3\x52\xd9\xa4\xe3\xd5\x60\x66\xf1\x22\xf0\x4f\xf1\x12\x11\x7c\x8c\xa3\xcd\x22\x0f\x16\x66\x30\x2d\xac\xd5\xe5\xe8\xda\x4c\xd3\x97\x04\xe3\x34\x43\xa9\xa7\xf3\x26\x02\xd3\x32\xbb\x52\x56\x7c\x2e\x34\xaa\xfe\x9e\xd4\x8f\xeb\x01"
+                signature: hex!("3162487880abdea1f352d9a4e3d56066f122f04ff112117c8ca3cd220f1666302dacd5e5e8da4cd39704e33443a9a7f32602d332bb52567c2e34aafe9ed48feb01")
                     .to_vec()
             }))
         );
@@ -1038,19 +1052,19 @@ mod tests {
             block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\xb9".to_vec(),
-                gas_price: b"\x3b\x9a\xca\x00".to_vec(),
-                gas_limit: b"\x01\x09\x85".to_vec(),
-                recipient: b"\x9c\x23\xd6\x7a\xea\x7b\x95\xd8\x09\x42\xe3\x83\x6b\xcd\xf7\xe7\x08\xa7\x47\xc1".to_vec(),
+                nonce: hex!("b9").to_vec(),
+                gas_price: hex!("3b9aca00").to_vec(),
+                gas_limit: hex!("010985").to_vec(),
+                recipient: hex!("9c23d67aea7b95d80942e3836bcdf7e708a747c1").to_vec(),
                 value: b"".to_vec(),
-                data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x85\x7b\x3d\x96\x9e\xac\xb7\x75\xa9\xf7\x9c\xab\xc6\x2e\xc4\xbb\x1d\x1c\xd6\x0e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x98\xa6\x3c\xbe\xb8\x59\xd0\x27\xb0".to_vec(),
+                data: hex!("a9059cbb000000000000000000000000857b3d969eacb775a9f79cabc62ec4bb1d1cd60e000000000000000000000000000000000000000000000098a63cbeb859d027b0").to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\xec\x6e\x53\x0c\x8e\xe2\x54\x34\xfc\x44\x0e\x9a\xc0\xf8\x88\xe9\xc6\x3c\xf0\x7e\xbc\xf1\xc2\xf8\xa8\x3e\x2e\x8c\x39\x83\x2c\x55\x15\x12\x71\x6f\x6e\x1a\x8b\x66\xce\x38\x11\xa7\x26\xbc\xb2\x44\x66\x4e\xf2\x6f\x98\xee\x35\xc0\xc9\xdb\x4c\xaa\xb0\x73\x98\x56\x00"
+                signature: hex!("ec6e530c8ee25434fc440e9ac0f888e9c63cf07ebcf1c2f8a83e2e8c39832c551512716f6e1a8b66ce3811a726bcb244664ef26f98ee35c0c9db4caab073985600")
                     .to_vec()
             }))
         );
@@ -1060,20 +1074,20 @@ mod tests {
         assert_eq!(
             block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\xb9".to_vec(),
+                nonce: hex!("b9").to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
-                max_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
-                gas_limit: b"\x01\x09\x85".to_vec(),
-                recipient: b"\x9c\x23\xd6\x7a\xea\x7b\x95\xd8\x09\x42\xe3\x83\x6b\xcd\xf7\xe7\x08\xa7\x47\xc1".to_vec(),
+                max_fee_per_gas: hex!("3b9aca00").to_vec(),
+                gas_limit: hex!("010985").to_vec(),
+                recipient: hex!("9c23d67aea7b95d80942e3836bcdf7e708a747c1").to_vec(),
                 value: b"".to_vec(),
-                data: b"\xa9\x05\x9c\xbb\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x85\x7b\x3d\x96\x9e\xac\xb7\x75\xa9\xf7\x9c\xab\xc6\x2e\xc4\xbb\x1d\x1c\xd6\x0e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x98\xa6\x3c\xbe\xb8\x59\xd0\x27\xb0".to_vec(),
+                data: hex!("a9059cbb000000000000000000000000857b3d969eacb775a9f79cabc62ec4bb1d1cd60e000000000000000000000000000000000000000000000098a63cbeb859d027b0").to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\x82\x03\xd8\x0b\x60\x0d\xce\x8e\x77\xcd\xcb\x11\x9d\x45\xdb\x7f\x60\xd7\xca\x34\xe7\x36\x91\x40\xe9\x2d\x93\x91\x92\x21\xf8\x5a\x0a\x11\x9d\x24\x64\xdf\xab\x65\x83\x30\x95\xc1\x27\x63\xfe\xd3\x7c\x07\x2f\xeb\x29\x61\x0e\x14\x37\xf3\x88\x95\x8d\x77\x56\x28\x01"
+                signature: hex!("8203d80b600dce8e77cdcb119d45db7f60d7ca34e7369140e92d93919221f85a0a119d2464dfab65833095c12763fed37c072feb29610e1437f388958d77562801")
                     .to_vec()
             }))
         );
@@ -1085,13 +1099,11 @@ mod tests {
         let valid_request = pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
-            nonce: b"\x1f\xdc".to_vec(),
-            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
-            gas_limit: b"\x52\x08".to_vec(),
-            recipient:
-                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
-                    .to_vec(),
-            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            nonce: hex!("1fdc").to_vec(),
+            gas_price: hex!("0165a0bc00").to_vec(),
+            gas_limit: hex!("5208").to_vec(),
+            recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+            value: hex!("075cf1259e9c4000").to_vec(),
             data: b"".to_vec(),
             host_nonce_commitment: None,
             chain_id: 0,
@@ -1240,14 +1252,12 @@ mod tests {
     pub fn test_process_unhappy_eip1559() {
         let valid_request = pb::EthSignEip1559Request {
             keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
-            nonce: b"\x1f\xdc".to_vec(),
+            nonce: hex!("1fdc").to_vec(),
             max_priority_fee_per_gas: b"".to_vec(),
-            max_fee_per_gas: b"\x01\x65\xa0\xbc\x00".to_vec(),
-            gas_limit: b"\x52\x08".to_vec(),
-            recipient:
-                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
-                    .to_vec(),
-            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+            max_fee_per_gas: hex!("0165a0bc00").to_vec(),
+            gas_limit: hex!("5208").to_vec(),
+            recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+            value: hex!("075cf1259e9c4000").to_vec(),
             data: b"".to_vec(),
             host_nonce_commitment: None,
             chain_id: 1,
@@ -1283,7 +1293,7 @@ mod tests {
         {
             // max_fee_per_gas with leading zero byte
             let mut invalid_request = valid_request.clone();
-            invalid_request.max_fee_per_gas = b"\x00\x01\x65\xa0\xbc\x00".to_vec();
+            invalid_request.max_fee_per_gas = hex!("000165a0bc00").to_vec();
             assert_eq!(
                 block_on(process(
                     &mut TestingHal::new(),
@@ -1296,7 +1306,7 @@ mod tests {
         {
             // max_priority_fee_per_gas with leading zero byte
             let mut invalid_request = valid_request.clone();
-            invalid_request.max_priority_fee_per_gas = b"\x00\x3b\x9a\xca\x00".to_vec();
+            invalid_request.max_priority_fee_per_gas = hex!("003b9aca00").to_vec();
             assert_eq!(
                 block_on(process(
                     &mut TestingHal::new(),
@@ -1318,11 +1328,11 @@ mod tests {
             block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x1f\xdc".to_vec(),
-                gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
-                gas_limit: b"\x52\x08".to_vec(),
-                recipient: b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85".to_vec(),
-                value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
+                nonce: hex!("1fdc").to_vec(),
+                gas_price: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
                 data: b"".to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 12345,
@@ -1330,7 +1340,7 @@ mod tests {
                 data_length: 0,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\xb1\xb6\xb3\x4e\x15\xa0\x30\x9d\xdc\x26\x03\xdf\x4c\x40\x38\xea\x86\x65\xed\x85\xd3\xf2\xc8\x1e\x7f\x1a\xa0\x25\x4b\x21\x38\x72\x0d\x60\x1f\x42\x19\xfb\x29\xab\x3d\x5f\xf7\x76\xea\xe1\xbe\x15\x26\xb4\x67\xe2\xb0\xe6\x30\xe8\xe6\x34\xa4\xda\x4a\x82\x2e\x39\x00".to_vec()
+                signature: hex!("b1b6b34e15a0309ddc2603df4c4038ea8665ed85d3f2c81e7f1aa0254b2138720d601f4219fb29ab3d5ff776eae1be1526b467e2b0e630e8e634a4da4a822e3900").to_vec()
             }))
         );
         assert_eq!(
@@ -1371,22 +1381,23 @@ mod tests {
         // Test with Arbitrum (chain_id 42161)
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
-            coin: pb::EthCoin::Eth as _,
-            keypath: KEYPATH.to_vec(),
-            nonce: b"\x1f\xdc".to_vec(),
-            gas_price: b"\x01\x65\xa0\xbc\x00".to_vec(),
-            gas_limit: b"\x52\x08".to_vec(),
-            recipient:
-                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
-                    .to_vec(),
-            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
-            data: b"".to_vec(),
-            host_nonce_commitment: None,
-            chain_id: 42161,
-            address_case: pb::EthAddressCase::Mixed as _,
+        block_on(process(
+            &mut mock_hal,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("1fdc").to_vec(),
+                gas_price: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
+                data: b"".to_vec(),
+                host_nonce_commitment: None,
+                chain_id: 42161,
+                address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-        })))
+            }),
+        ))
         .unwrap();
 
         assert_eq!(
@@ -1407,22 +1418,23 @@ mod tests {
         // Test with Polygon network (chain_id 137)
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
-            keypath: KEYPATH.to_vec(),
-            nonce: b"\x1f\xdc".to_vec(),
-            max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
-            max_fee_per_gas: b"\x01\x65\xa0\xbc\x00".to_vec(),
-            gas_limit: b"\x52\x08".to_vec(),
-            recipient:
-                b"\x04\xf2\x64\xcf\x34\x44\x03\x13\xb4\xa0\x19\x2a\x35\x28\x14\xfb\xe9\x27\xb8\x85"
-                    .to_vec(),
-            value: b"\x07\x5c\xf1\x25\x9e\x9c\x40\x00".to_vec(),
-            data: b"".to_vec(),
-            host_nonce_commitment: None,
-            chain_id: 137,
-            address_case: pb::EthAddressCase::Mixed as _,
+        block_on(process(
+            &mut mock_hal,
+            &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("1fdc").to_vec(),
+                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                max_fee_per_gas: hex!("0165a0bc00").to_vec(),
+                gas_limit: hex!("5208").to_vec(),
+                recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                value: hex!("075cf1259e9c4000").to_vec(),
+                data: b"".to_vec(),
+                host_nonce_commitment: None,
+                chain_id: 137,
+                address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-        })))
+            }),
+        ))
         .unwrap();
         assert_eq!(
             mock_hal.ui.screens[0],
@@ -1446,11 +1458,10 @@ mod tests {
             &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x01".to_vec(),
-                gas_price: b"\x04\xa8\x17\xc8\x00".to_vec(),
-                gas_limit: b"\x0f\x42\x40".to_vec(),
-                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
-                    .to_vec(),
+                nonce: hex!("01").to_vec(),
+                gas_price: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
                 value: b"".to_vec(),
                 data: test_data.clone(),
                 host_nonce_commitment: None,
@@ -1468,11 +1479,10 @@ mod tests {
             &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x01".to_vec(),
-                gas_price: b"\x04\xa8\x17\xc8\x00".to_vec(),
-                gas_limit: b"\x0f\x42\x40".to_vec(),
-                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
-                    .to_vec(),
+                nonce: hex!("01").to_vec(),
+                gas_price: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
                 value: b"".to_vec(),
                 data: vec![],
                 host_nonce_commitment: None,
@@ -1504,12 +1514,11 @@ mod tests {
             &mut mock_hal_nonstreaming,
             &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x01".to_vec(),
-                max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
-                max_fee_per_gas: b"\x04\xa8\x17\xc8\x00".to_vec(),
-                gas_limit: b"\x0f\x42\x40".to_vec(),
-                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
-                    .to_vec(),
+                nonce: hex!("01").to_vec(),
+                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                max_fee_per_gas: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
                 value: b"".to_vec(),
                 data: test_data.clone(),
                 host_nonce_commitment: None,
@@ -1526,12 +1535,11 @@ mod tests {
             &mut mock_hal_streaming,
             &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
-                nonce: b"\x01".to_vec(),
-                max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
-                max_fee_per_gas: b"\x04\xa8\x17\xc8\x00".to_vec(),
-                gas_limit: b"\x0f\x42\x40".to_vec(),
-                recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
-                    .to_vec(),
+                nonce: hex!("01").to_vec(),
+                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                max_fee_per_gas: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
                 value: b"".to_vec(),
                 data: vec![],
                 host_nonce_commitment: None,
@@ -1566,10 +1574,10 @@ mod tests {
                 &Transaction::Legacy(&pb::EthSignRequest {
                     coin: pb::EthCoin::Eth as _,
                     keypath: KEYPATH.to_vec(),
-                    nonce: b"\x01".to_vec(),
-                    gas_price: b"\x04\xa8\x17\xc8\x00".to_vec(),
-                    gas_limit: b"\x0f\x42\x40".to_vec(),
-                    recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                    nonce: hex!("01").to_vec(),
+                    gas_price: hex!("04a817c800").to_vec(),
+                    gas_limit: hex!("0f4240").to_vec(),
+                    recipient: hex!("112233445566778899aabbccddeeff0011223344")
                         .to_vec(),
                     value: b"".to_vec(),
                     data: vec![],
@@ -1580,7 +1588,7 @@ mod tests {
                 }),
             )),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\xf0\x0a\x05\x08\x4c\x54\x0b\xb6\x9b\x9d\x0d\x1e\x77\x83\xa0\xfe\x31\x5f\xfc\x3f\xfd\xc0\xed\xc3\x2a\x3d\x0e\x9d\x00\xf9\xd8\xa8\x6c\x7b\x5c\x36\xfc\x13\x60\x62\xad\xc1\x85\x7e\x2e\xdc\xf7\x3e\xb7\x51\x38\xd5\x39\x0e\xd8\x07\xb2\xcb\x0b\x90\x65\x2f\xef\x22\x01"
+                signature: hex!("f00a05084c540bb69b9d0d1e7783a0fe315ffc3ffdc0edc32a3d0e9d00f9d8a86c7b5c36fc136062adc1857e2edcf73eb75138d5390ed807b2cb0b90652fef2201")
                     .to_vec()
             }))
         );
@@ -1638,11 +1646,11 @@ mod tests {
                 &mut mock_hal,
                 &Transaction::Eip1559(&pb::EthSignEip1559Request {
                     keypath: KEYPATH.to_vec(),
-                    nonce: b"\x01".to_vec(),
-                    max_priority_fee_per_gas: b"\x3b\x9a\xca\x00".to_vec(),
-                    max_fee_per_gas: b"\x04\xa8\x17\xc8\x00".to_vec(),
-                    gas_limit: b"\x0f\x42\x40".to_vec(),
-                    recipient: b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+                    nonce: hex!("01").to_vec(),
+                    max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                    max_fee_per_gas: hex!("04a817c800").to_vec(),
+                    gas_limit: hex!("0f4240").to_vec(),
+                    recipient: hex!("112233445566778899aabbccddeeff0011223344")
                         .to_vec(),
                     value: b"".to_vec(),
                     data: vec![],
@@ -1653,7 +1661,7 @@ mod tests {
                 }),
             )),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\xdc\x85\x36\x40\xb4\xa7\x53\x90\xb5\xb5\x94\x78\xc1\x8b\x1f\xba\x13\x50\x25\xbf\x40\xbb\x41\xd5\x4f\x95\xd3\x56\x28\x44\x3e\x19\x00\x37\x6e\x1b\xe2\x91\x68\x29\xbe\x4c\xbb\x0d\x89\x7c\xc6\x9a\xd8\x09\x87\xa5\x7a\x48\x92\x54\xd5\x61\xdf\xd3\x07\x1a\x0d\xb1\x01"
+                signature: hex!("dc853640b4a75390b5b59478c18b1fba135025bf40bb41d54f95d35628443e1900376e1be2916829be4cbb0d897cc69ad80987a57a489254d561dfd3071a0db101")
                     .to_vec()
             }))
         );

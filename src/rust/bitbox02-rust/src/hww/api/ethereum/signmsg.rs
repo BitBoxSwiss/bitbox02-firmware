@@ -96,6 +96,7 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
+    use hex_lit::hex;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
@@ -118,8 +119,10 @@ mod tests {
                 chain_id: 0,
             })),
             Ok(Response::Sign(pb::EthSignResponse {
-                signature: b"\x34\x88\x5e\x93\x74\x37\x5a\x12\xe8\xc5\x18\x6e\xf9\x87\x0b\x03\x6b\x2b\xd2\x51\xb3\xf2\x0b\x97\x95\x11\x91\x2d\xd4\x18\x94\x72\x5c\x0a\x50\x4a\x34\x19\xae\x21\xd6\x9e\x22\x43\xca\x18\xe9\xc6\xee\xe7\x5b\x2e\x16\xea\x57\xb4\xf6\x47\xfd\x10\x6b\xe8\x3f\xd2\x01"
-                    .to_vec()
+                signature: hex!(
+                    "34885e9374375a12e8c5186ef9870b036b2bd251b3f20b979511912dd41894725c0a504a3419ae21d69e2243ca18e9c6eee75b2e16ea57b4f647fd106be83fd201"
+                )
+                .to_vec()
             }))
         );
         assert_eq!(

@@ -2,23 +2,21 @@
 
 use alloc::string::String;
 
-use crate::hal::Ui;
-use crate::hal::ui::{CanCancel, ConfirmParams, EnterStringParams, Font, TrinaryChoice, UserAbort};
+use bitbox_hal::Ui;
+use bitbox_hal::ui::{CanCancel, ConfirmParams, EnterStringParams, Font, TrinaryChoice, UserAbort};
 
 pub struct BitBox02Ui;
 
-fn to_bitbox02_font(font: Font) -> bitbox02::ui::Font {
+fn to_bitbox02_font(font: Font) -> crate::ui::Font {
     match font {
-        Font::Default => bitbox02::ui::Font::Default,
-        Font::Password11X12 => bitbox02::ui::Font::Password11X12,
-        Font::Monogram5X9 => bitbox02::ui::Font::Monogram5X9,
+        Font::Default => crate::ui::Font::Default,
+        Font::Password11X12 => crate::ui::Font::Password11X12,
+        Font::Monogram5X9 => crate::ui::Font::Monogram5X9,
     }
 }
 
-fn to_bitbox02_confirm_params<'a>(
-    params: &'a ConfirmParams<'a>,
-) -> bitbox02::ui::ConfirmParams<'a> {
-    bitbox02::ui::ConfirmParams {
+fn to_bitbox02_confirm_params<'a>(params: &'a ConfirmParams<'a>) -> crate::ui::ConfirmParams<'a> {
+    crate::ui::ConfirmParams {
         title: params.title,
         title_autowrap: params.title_autowrap,
         body: params.body,
@@ -33,8 +31,8 @@ fn to_bitbox02_confirm_params<'a>(
 
 fn to_bitbox02_trinary_input_string_params<'a>(
     params: &'a EnterStringParams<'a>,
-) -> bitbox02::ui::TrinaryInputStringParams<'a> {
-    bitbox02::ui::TrinaryInputStringParams {
+) -> crate::ui::TrinaryInputStringParams<'a> {
+    crate::ui::TrinaryInputStringParams {
         title: params.title,
         wordlist: params.wordlist,
         number_input: params.number_input,
@@ -46,11 +44,11 @@ fn to_bitbox02_trinary_input_string_params<'a>(
     }
 }
 
-fn to_hal_trinary_choice(choice: bitbox02::ui::TrinaryChoice) -> TrinaryChoice {
+fn to_hal_trinary_choice(choice: crate::ui::TrinaryChoice) -> TrinaryChoice {
     match choice {
-        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_LEFT => TrinaryChoice::Left,
-        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE => TrinaryChoice::Middle,
-        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT => TrinaryChoice::Right,
+        crate::ui::TrinaryChoice::TRINARY_CHOICE_LEFT => TrinaryChoice::Left,
+        crate::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE => TrinaryChoice::Middle,
+        crate::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT => TrinaryChoice::Right,
     }
 }
 
@@ -58,17 +56,17 @@ impl Ui for BitBox02Ui {
     #[inline(always)]
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {
         let params = to_bitbox02_confirm_params(params);
-        match bitbox02::ui::confirm(&params).await {
-            bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-            bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
+        match crate::ui::confirm(&params).await {
+            crate::ui::ConfirmResponse::Approved => Ok(()),
+            crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
     }
 
     #[inline(always)]
     async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
-        match bitbox02::ui::confirm_transaction_address(amount, recipient).await {
-            bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-            bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
+        match crate::ui::confirm_transaction_address(amount, recipient).await {
+            crate::ui::ConfirmResponse::Approved => Ok(()),
+            crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
     }
 
@@ -79,15 +77,15 @@ impl Ui for BitBox02Ui {
         fee: &str,
         longtouch: bool,
     ) -> Result<(), UserAbort> {
-        match bitbox02::ui::confirm_transaction_fee(total, fee, longtouch).await {
-            bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-            bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
+        match crate::ui::confirm_transaction_fee(total, fee, longtouch).await {
+            crate::ui::ConfirmResponse::Approved => Ok(()),
+            crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
     }
 
     #[inline(always)]
     async fn status(&mut self, title: &str, status_success: bool) {
-        bitbox02::ui::status(title, status_success).await
+        crate::ui::status(title, status_success).await
     }
 
     #[inline(always)]
@@ -102,22 +100,22 @@ impl Ui for BitBox02Ui {
             CanCancel::Yes => true,
             CanCancel::No => false,
         };
-        bitbox02::ui::trinary_input_string(&params, can_cancel, preset)
+        crate::ui::trinary_input_string(&params, can_cancel, preset)
             .await
             .map_err(|_| UserAbort)
     }
 
     #[inline(always)]
     async fn insert_sdcard(&mut self) -> Result<(), UserAbort> {
-        match bitbox02::ui::sdcard().await {
-            bitbox02::ui::SdcardResponse::Inserted => Ok(()),
-            bitbox02::ui::SdcardResponse::Cancelled => Err(UserAbort),
+        match crate::ui::sdcard().await {
+            crate::ui::SdcardResponse::Inserted => Ok(()),
+            crate::ui::SdcardResponse::Cancelled => Err(UserAbort),
         }
     }
 
     #[inline(always)]
     async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, UserAbort> {
-        match bitbox02::ui::menu(bitbox02::ui::MenuParams {
+        match crate::ui::menu(crate::ui::MenuParams {
             words,
             title,
             select_word: true,
@@ -126,9 +124,9 @@ impl Ui for BitBox02Ui {
         })
         .await
         {
-            bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
-            bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-            bitbox02::ui::MenuResponse::Cancel => Err(UserAbort),
+            crate::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
+            crate::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
+            crate::ui::MenuResponse::Cancel => Err(UserAbort),
         }
     }
 
@@ -141,12 +139,12 @@ impl Ui for BitBox02Ui {
         label_right: Option<&str>,
     ) -> TrinaryChoice {
         to_hal_trinary_choice(
-            bitbox02::ui::trinary_choice(message, label_left, label_middle, label_right).await,
+            crate::ui::trinary_choice(message, label_left, label_middle, label_right).await,
         )
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort> {
-        match bitbox02::ui::menu(bitbox02::ui::MenuParams {
+        match crate::ui::menu(crate::ui::MenuParams {
             words,
             title: None,
             select_word: false,
@@ -155,14 +153,14 @@ impl Ui for BitBox02Ui {
         })
         .await
         {
-            bitbox02::ui::MenuResponse::ContinueOnLast => Ok(()),
-            bitbox02::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
-            bitbox02::ui::MenuResponse::Cancel => Err(UserAbort),
+            crate::ui::MenuResponse::ContinueOnLast => Ok(()),
+            crate::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
+            crate::ui::MenuResponse::Cancel => Err(UserAbort),
         }
     }
 
     async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort> {
-        match bitbox02::ui::menu(bitbox02::ui::MenuParams {
+        match crate::ui::menu(crate::ui::MenuParams {
             words: choices,
             title: Some(title),
             select_word: true,
@@ -171,9 +169,9 @@ impl Ui for BitBox02Ui {
         })
         .await
         {
-            bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
-            bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-            bitbox02::ui::MenuResponse::Cancel => Err(UserAbort),
+            crate::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
+            crate::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
+            crate::ui::MenuResponse::Cancel => Err(UserAbort),
         }
     }
 }
@@ -185,9 +183,9 @@ mod tests {
     #[test]
     fn test_to_bitbox02_font() {
         let cases = [
-            (Font::Default, bitbox02::ui::Font::Default),
-            (Font::Password11X12, bitbox02::ui::Font::Password11X12),
-            (Font::Monogram5X9, bitbox02::ui::Font::Monogram5X9),
+            (Font::Default, crate::ui::Font::Default),
+            (Font::Password11X12, crate::ui::Font::Password11X12),
+            (Font::Monogram5X9, crate::ui::Font::Monogram5X9),
         ];
         for (input, expected) in cases {
             assert_eq!(to_bitbox02_font(input) as i32, expected as i32);
@@ -197,9 +195,9 @@ mod tests {
     #[test]
     fn test_to_bitbox02_confirm_params() {
         let fonts = [
-            (Font::Default, bitbox02::ui::Font::Default),
-            (Font::Password11X12, bitbox02::ui::Font::Password11X12),
-            (Font::Monogram5X9, bitbox02::ui::Font::Monogram5X9),
+            (Font::Default, crate::ui::Font::Default),
+            (Font::Password11X12, crate::ui::Font::Password11X12),
+            (Font::Monogram5X9, crate::ui::Font::Monogram5X9),
         ];
         for (font, expected_font) in fonts {
             let input = ConfirmParams {
@@ -275,15 +273,15 @@ mod tests {
     fn test_to_hal_trinary_choice() {
         let cases = [
             (
-                bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_LEFT,
+                crate::ui::TrinaryChoice::TRINARY_CHOICE_LEFT,
                 TrinaryChoice::Left,
             ),
             (
-                bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE,
+                crate::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE,
                 TrinaryChoice::Middle,
             ),
             (
-                bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT,
+                crate::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT,
                 TrinaryChoice::Right,
             ),
         ];

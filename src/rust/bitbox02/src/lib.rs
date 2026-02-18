@@ -28,6 +28,7 @@ pub mod da14531_protocol;
 pub mod delay;
 #[cfg(feature = "simulator-graphical")]
 pub mod event;
+pub mod hal;
 pub mod hid_hww;
 #[cfg(feature = "app-u2f")]
 pub mod hid_u2f;

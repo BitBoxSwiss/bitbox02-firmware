@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
+pub use crate::hal::ui::UserAbort;
 use crate::workflow::confirm;
-pub use confirm::UserAbort;
 
 use alloc::string::String;
 

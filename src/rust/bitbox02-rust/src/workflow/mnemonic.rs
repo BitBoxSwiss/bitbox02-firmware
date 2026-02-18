@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub use super::cancel::Error as CancelError;
 use super::confirm;
 use super::trinary_input_string;
+use crate::hal::ui::UserAbort;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -67,7 +67,7 @@ pub async fn show_and_confirm_mnemonic(
     hal_ui: &mut impl crate::hal::Ui,
     hal_random: &mut impl crate::hal::Random,
     words: &[&str],
-) -> Result<(), CancelError> {
+) -> Result<(), UserAbort> {
     hal_ui
         .confirm(&confirm::Params {
             title: "",
@@ -76,7 +76,7 @@ pub async fn show_and_confirm_mnemonic(
             ..Default::default()
         })
         .await
-        .map_err(|_| CancelError::Cancelled)?;
+        .map_err(|_| UserAbort)?;
 
     // Part 1) Scroll through words
     hal_ui.show_mnemonic(words).await?;
@@ -178,12 +178,12 @@ fn lastword_choices_strings(entered_words: &[&str]) -> Vec<zeroize::Zeroizing<St
 /// Select the 24th word from a list of 8 valid candidate words presented as a menu.
 /// Returns `Ok(None)` if the user chooses "None of them".
 /// Returns `Ok(Some(word))` if the user chooses a word.
-/// Returns `Err(CancelError::Cancelled)` if the user cancels.
+/// Returns `Err(UserAbort)` if the user cancels.
 async fn get_24th_word(
     hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
-) -> Result<Option<zeroize::Zeroizing<String>>, CancelError> {
+) -> Result<Option<zeroize::Zeroizing<String>>, UserAbort> {
     let mut choices = lastword_choices_strings(entered_words);
     // Add one more menu entry.
     let none_of_them_idx = {
@@ -192,7 +192,7 @@ async fn get_24th_word(
     };
     loop {
         match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
-            Err(CancelError::Cancelled) => return Err(CancelError::Cancelled),
+            Err(UserAbort) => return Err(UserAbort),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
                 let params = confirm::Params {
                     title: "",
@@ -226,12 +226,12 @@ async fn get_24th_word(
 /// is the trinary input keyboard with the wordlist restricted to these candidates.
 ///
 /// Returns `Ok(word)` if the user chooses a word.
-/// Returns `Err(CancelError::Cancelled)` if the user cancels.
+/// Returns `Err(UserAbort)` if the user cancels.
 async fn get_12th_18th_word(
     hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
-) -> Result<zeroize::Zeroizing<String>, CancelError> {
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
     // With 12/18 words there are 128/32 candidates, so we limit the keyboard to allow entering only
     // these.
     loop {
@@ -266,7 +266,7 @@ async fn get_12th_18th_word(
 /// Retrieve a BIP39 mnemonic sentence of 12 or 24 words from the user.
 pub async fn get(
     hal_ui: &mut impl crate::hal::Ui,
-) -> Result<zeroize::Zeroizing<String>, CancelError> {
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
     let num_words: usize = match hal_ui
         .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
@@ -293,8 +293,7 @@ pub async fn get(
         // goes forward again.
         let preset = entered_words[word_idx].as_str();
 
-        let user_entry: Result<zeroize::Zeroizing<String>, CancelError> = if word_idx
-            == num_words - 1
+        let user_entry: Result<zeroize::Zeroizing<String>, UserAbort> = if word_idx == num_words - 1
         {
             // For the last word, we can restrict to a subset of bip39 words that fulfil the
             // checksum requirement. This special case exists so that users can generate a seed
@@ -303,7 +302,7 @@ pub async fn get(
             if num_words == 24 {
                 // With 24 words there are only 8 valid candidates. We presnet them as a menu.
                 match get_24th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await {
-                    Ok(None) => return Err(CancelError::Cancelled),
+                    Ok(None) => return Err(UserAbort),
                     Ok(Some(r)) => Ok(r),
                     Err(e) => Err(e),
                 }
@@ -325,7 +324,7 @@ pub async fn get(
         };
 
         match user_entry {
-            Err(CancelError::Cancelled) => {
+            Err(UserAbort) => {
                 // User clicked the cancel button. There are two choices:
                 enum GetWordError {
                     Cancel,
@@ -343,7 +342,7 @@ pub async fn get(
                         .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
                         .await
                     {
-                        Err(CancelError::Cancelled) => {
+                        Err(UserAbort) => {
                             // Cancel cancelled.
                             continue;
                         }
@@ -362,11 +361,11 @@ pub async fn get(
                             ..Default::default()
                         };
 
-                        if let Err(confirm::UserAbort) = hal_ui.confirm(&params).await {
+                        if let Err(UserAbort) = hal_ui.confirm(&params).await {
                             // Cancel cancelled.
                             continue;
                         }
-                        return Err(CancelError::Cancelled);
+                        return Err(UserAbort);
                     }
                 }
             }

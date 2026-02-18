@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-use crate::workflow::{cancel, confirm, sdcard, transaction, trinary_input_string};
+use crate::hal::ui::UserAbort;
+use crate::workflow::{confirm, trinary_input_string};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -47,7 +48,7 @@ pub struct TestingUi<'a> {
 }
 
 impl Ui for TestingUi<'_> {
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort> {
+    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort> {
         self.screens.push(Screen::Confirm {
             title: params.title.into(),
             body: params.body.into(),
@@ -58,16 +59,12 @@ impl Ui for TestingUi<'_> {
             .as_ref()
             .is_some_and(|&n| self.screens.len() - 1 == n)
         {
-            return Err(confirm::UserAbort);
+            return Err(UserAbort);
         }
         Ok(())
     }
 
-    async fn verify_recipient(
-        &mut self,
-        recipient: &str,
-        amount: &str,
-    ) -> Result<(), transaction::UserAbort> {
+    async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
         self.screens.push(Screen::Recipient {
             recipient: recipient.into(),
             amount: amount.into(),
@@ -77,7 +74,7 @@ impl Ui for TestingUi<'_> {
             .as_ref()
             .is_some_and(|&n| self.screens.len() - 1 == n)
         {
-            return Err(transaction::UserAbort);
+            return Err(UserAbort);
         }
         Ok(())
     }
@@ -87,7 +84,7 @@ impl Ui for TestingUi<'_> {
         total: &str,
         fee: &str,
         longtouch: bool,
-    ) -> Result<(), transaction::UserAbort> {
+    ) -> Result<(), UserAbort> {
         self.screens.push(Screen::TotalFee {
             total: total.into(),
             fee: fee.into(),
@@ -98,7 +95,7 @@ impl Ui for TestingUi<'_> {
             .as_ref()
             .is_some_and(|&n| self.screens.len() - 1 == n)
         {
-            return Err(transaction::UserAbort);
+            return Err(UserAbort);
         }
         Ok(())
     }
@@ -122,15 +119,15 @@ impl Ui for TestingUi<'_> {
         params: &trinary_input_string::Params<'_>,
         _can_cancel: trinary_input_string::CanCancel,
         _preset: &str,
-    ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
+    ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
         self._enter_string.as_mut().unwrap()(params).map(zeroize::Zeroizing::new)
     }
 
-    async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
+    async fn insert_sdcard(&mut self) -> Result<(), UserAbort> {
         Ok(())
     }
 
-    async fn menu(&mut self, _words: &[&str], _title: Option<&str>) -> Result<u8, cancel::Error> {
+    async fn menu(&mut self, _words: &[&str], _title: Option<&str>) -> Result<u8, UserAbort> {
         todo!("not used in unit tests yet");
     }
 
@@ -144,7 +141,7 @@ impl Ui for TestingUi<'_> {
         todo!("not used in unit tests yet");
     }
 
-    async fn show_mnemonic(&mut self, _words: &[&str]) -> Result<(), cancel::Error> {
+    async fn show_mnemonic(&mut self, _words: &[&str]) -> Result<(), UserAbort> {
         todo!("not used in unit tests yet");
     }
 
@@ -152,7 +149,7 @@ impl Ui for TestingUi<'_> {
         &mut self,
         _choices: &[&str],
         _title: &str,
-    ) -> Result<u8, cancel::Error> {
+    ) -> Result<u8, UserAbort> {
         todo!("not used in unit tests yet");
     }
 
@@ -160,14 +157,14 @@ impl Ui for TestingUi<'_> {
         &mut self,
         _random: &mut impl crate::hal::Random,
         words: &[&str],
-    ) -> Result<(), cancel::Error> {
+    ) -> Result<(), UserAbort> {
         self.screens.push(Screen::ShowAndConfirmMnemonic {
             mnemonic: words.join(" "),
         });
         Ok(())
     }
 
-    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, cancel::Error>
+    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, UserAbort>
     where
         Self: Sized,
     {

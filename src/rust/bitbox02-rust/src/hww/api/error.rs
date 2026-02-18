@@ -35,12 +35,6 @@ impl core::convert::From<crate::hal::memory::Error> for Error {
     }
 }
 
-impl core::convert::From<crate::workflow::cancel::Error> for Error {
-    fn from(_error: crate::workflow::cancel::Error) -> Self {
-        Error::UserAbort
-    }
-}
-
 impl core::convert::From<crate::workflow::password::EnterError> for Error {
     fn from(error: crate::workflow::password::EnterError) -> Self {
         match error {
@@ -62,20 +56,8 @@ impl core::convert::From<crate::workflow::password::EnterTwiceError> for Error {
     }
 }
 
-impl core::convert::From<crate::workflow::confirm::UserAbort> for Error {
-    fn from(_error: crate::workflow::confirm::UserAbort) -> Self {
-        Error::UserAbort
-    }
-}
-
-impl core::convert::From<crate::workflow::transaction::UserAbort> for Error {
-    fn from(_error: crate::workflow::transaction::UserAbort) -> Self {
-        Error::UserAbort
-    }
-}
-
-impl core::convert::From<crate::workflow::sdcard::UserAbort> for Error {
-    fn from(_error: crate::workflow::sdcard::UserAbort) -> Self {
+impl core::convert::From<crate::hal::ui::UserAbort> for Error {
+    fn from(_error: crate::hal::ui::UserAbort) -> Self {
         Error::UserAbort
     }
 }

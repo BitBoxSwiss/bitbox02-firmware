@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub mod cancel;
 pub mod confirm;
 #[cfg_attr(
     all(feature = "c-unit-testing", not(feature = "testing")),
@@ -10,7 +9,6 @@ pub mod mnemonic;
 pub mod orientation_screen;
 pub mod pairing;
 pub mod password;
-pub mod sdcard;
 pub mod transaction;
 pub mod trinary_input_string;
 pub mod unlock;

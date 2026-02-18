@@ -49,6 +49,13 @@ pub struct EnterStringParams<'a> {
     pub default_to_digits: bool,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum TrinaryChoice {
+    Left,
+    Middle,
+    Right,
+}
+
 #[allow(async_fn_in_trait)]
 pub trait Ui {
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
@@ -86,7 +93,7 @@ pub trait Ui {
         label_left: Option<&str>,
         label_middle: Option<&str>,
         label_right: Option<&str>,
-    ) -> bitbox02::ui::TrinaryChoice;
+    ) -> TrinaryChoice;
 
     /// Display the BIP39 mnemonic to the user.
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort>;

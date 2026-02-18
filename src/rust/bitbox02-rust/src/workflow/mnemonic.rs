@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::trinary_input_string;
-use crate::hal::ui::{ConfirmParams, UserAbort};
+use crate::hal::ui::{ConfirmParams, TrinaryChoice, UserAbort};
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use bitbox02::ui::TrinaryChoice;
 use sha2::{Digest, Sha256};
 
 const NUM_RANDOM_WORDS: u8 = 5;
@@ -270,9 +269,9 @@ pub async fn get(
         .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
-        TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => unreachable!(),
-        TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
+        TrinaryChoice::Left => 12,
+        TrinaryChoice::Middle => unreachable!(),
+        TrinaryChoice::Right => 24,
     };
 
     hal_ui

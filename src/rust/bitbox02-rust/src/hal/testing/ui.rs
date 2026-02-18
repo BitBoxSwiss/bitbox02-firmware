@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-use crate::hal::ui::{ConfirmParams, EnterStringParams, UserAbort};
+use crate::hal::ui::{ConfirmParams, EnterStringParams, TrinaryChoice, UserAbort};
 use crate::workflow::trinary_input_string;
 
 use alloc::boxed::Box;
@@ -134,7 +134,7 @@ impl Ui for TestingUi<'_> {
         _label_left: Option<&str>,
         _label_middle: Option<&str>,
         _label_right: Option<&str>,
-    ) -> bitbox02::ui::TrinaryChoice {
+    ) -> TrinaryChoice {
         todo!("not used in unit tests yet");
     }
 

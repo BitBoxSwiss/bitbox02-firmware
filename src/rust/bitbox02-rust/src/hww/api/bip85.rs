@@ -31,8 +31,8 @@ pub async fn process(
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
 async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
+    use crate::hal::ui::TrinaryChoice;
     use crate::workflow::trinary_input_string;
-    use bitbox02::ui::TrinaryChoice;
 
     hal.ui()
         .confirm(&ConfirmParams {
@@ -58,9 +58,9 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
-        TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => unreachable!(),
-        TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
+        TrinaryChoice::Left => 12,
+        TrinaryChoice::Middle => unreachable!(),
+        TrinaryChoice::Right => 24,
     };
 
     hal.ui().status(&format!("{} words", num_words), true).await;

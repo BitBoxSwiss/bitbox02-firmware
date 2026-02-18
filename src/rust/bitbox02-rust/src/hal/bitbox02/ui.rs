@@ -3,7 +3,7 @@
 use alloc::string::String;
 
 use crate::hal::Ui;
-use crate::hal::ui::{ConfirmParams, EnterStringParams, Font, UserAbort};
+use crate::hal::ui::{ConfirmParams, EnterStringParams, Font, TrinaryChoice, UserAbort};
 use crate::workflow::trinary_input_string;
 
 pub struct BitBox02Ui;
@@ -44,6 +44,14 @@ fn to_bitbox02_trinary_input_string_params<'a>(
         longtouch: params.longtouch,
         cancel_is_backbutton: params.cancel_is_backbutton,
         default_to_digits: params.default_to_digits,
+    }
+}
+
+fn to_hal_trinary_choice(choice: bitbox02::ui::TrinaryChoice) -> TrinaryChoice {
+    match choice {
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_LEFT => TrinaryChoice::Left,
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE => TrinaryChoice::Middle,
+        bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT => TrinaryChoice::Right,
     }
 }
 
@@ -132,8 +140,10 @@ impl Ui for BitBox02Ui {
         label_left: Option<&str>,
         label_middle: Option<&str>,
         label_right: Option<&str>,
-    ) -> bitbox02::ui::TrinaryChoice {
-        bitbox02::ui::trinary_choice(message, label_left, label_middle, label_right).await
+    ) -> TrinaryChoice {
+        to_hal_trinary_choice(
+            bitbox02::ui::trinary_choice(message, label_left, label_middle, label_right).await,
+        )
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort> {
@@ -260,5 +270,26 @@ mod tests {
         assert!(!output_with_wordlist.longtouch);
         assert!(!output_with_wordlist.cancel_is_backbutton);
         assert!(!output_with_wordlist.default_to_digits);
+    }
+
+    #[test]
+    fn test_to_hal_trinary_choice() {
+        let cases = [
+            (
+                bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_LEFT,
+                TrinaryChoice::Left,
+            ),
+            (
+                bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_MIDDLE,
+                TrinaryChoice::Middle,
+            ),
+            (
+                bitbox02::ui::TrinaryChoice::TRINARY_CHOICE_RIGHT,
+                TrinaryChoice::Right,
+            ),
+        ];
+        for (input, expected) in cases {
+            assert!(to_hal_trinary_choice(input) == expected);
+        }
     }
 }

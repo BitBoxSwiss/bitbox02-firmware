@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use crate::hal::Memory;
 use crate::hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
 
-pub(crate) struct BitBox02Memory;
+pub struct BitBox02Memory;
 
 fn to_hal_securechip_type(securechip_type: bitbox02::memory::SecurechipType) -> SecurechipType {
     match securechip_type {

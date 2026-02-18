@@ -62,11 +62,15 @@ pub trait Ui {
     ///
     /// This function is defined in the HAL so unit tests can easily mock it. Real implementations
     /// should leave the default implementation.
-    async fn show_and_confirm_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error>
+    async fn show_and_confirm_mnemonic(
+        &mut self,
+        random: &mut impl crate::hal::Random,
+        words: &[&str],
+    ) -> Result<(), cancel::Error>
     where
         Self: Sized,
     {
-        mnemonic::show_and_confirm_mnemonic(self, words).await
+        mnemonic::show_and_confirm_mnemonic(self, random, words).await
     }
 
     /// Retrieve a BIP39 mnemonic sentence of 12 or 24 words from the user.

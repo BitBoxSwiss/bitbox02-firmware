@@ -6,7 +6,7 @@ use crate::hal::SecureChip;
 use crate::hal::memory::PasswordStretchAlgo;
 use crate::hal::securechip::{Error, Model, SecureChipError};
 
-pub(crate) struct BitBox02SecureChip;
+pub struct BitBox02SecureChip;
 
 fn to_hal_model(model: bitbox02::securechip::Model) -> Model {
     match model {

@@ -40,6 +40,9 @@ pub enum Screen {
 }
 
 type EnterStringCb<'a> = Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, UserAbort> + 'a>;
+type MenuCb<'a> = Box<dyn FnMut(&[&str], Option<&str>) -> Result<u8, UserAbort> + 'a>;
+type TrinaryChoiceCb<'a> =
+    Box<dyn FnMut(&str, Option<&str>, Option<&str>, Option<&str>) -> TrinaryChoice + 'a>;
 
 /// A Ui implementation for unit tests. Collects all screens and provides helper functions
 /// to verify them.
@@ -47,6 +50,8 @@ pub struct TestingUi<'a> {
     _abort_nth: Option<usize>,
     pub screens: Vec<Screen>,
     _enter_string: Option<EnterStringCb<'a>>,
+    _menu: Option<MenuCb<'a>>,
+    _trinary_choice: Option<TrinaryChoiceCb<'a>>,
     _quiz_choices: VecDeque<u8>,
 }
 
@@ -130,18 +135,18 @@ impl Ui for TestingUi<'_> {
         Ok(())
     }
 
-    async fn menu(&mut self, _words: &[&str], _title: Option<&str>) -> Result<u8, UserAbort> {
-        todo!("not used in unit tests yet");
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, UserAbort> {
+        self._menu.as_mut().unwrap()(words, title)
     }
 
     async fn trinary_choice(
         &mut self,
-        _message: &str,
-        _label_left: Option<&str>,
-        _label_middle: Option<&str>,
-        _label_right: Option<&str>,
+        message: &str,
+        label_left: Option<&str>,
+        label_middle: Option<&str>,
+        label_right: Option<&str>,
     ) -> TrinaryChoice {
-        todo!("not used in unit tests yet");
+        self._trinary_choice.as_mut().unwrap()(message, label_left, label_middle, label_right)
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort> {
@@ -194,6 +199,8 @@ impl<'a> TestingUi<'a> {
             screens: vec![],
             _abort_nth: None,
             _enter_string: None,
+            _menu: None,
+            _trinary_choice: None,
             _quiz_choices: VecDeque::new(),
         }
     }
@@ -217,6 +224,22 @@ impl<'a> TestingUi<'a> {
 
     pub fn remove_enter_string(&mut self) {
         self._enter_string = None;
+    }
+
+    pub fn set_menu(&mut self, cb: MenuCb<'a>) {
+        self._menu = Some(cb);
+    }
+
+    pub fn remove_menu(&mut self) {
+        self._menu = None;
+    }
+
+    pub fn set_trinary_choice(&mut self, cb: TrinaryChoiceCb<'a>) {
+        self._trinary_choice = Some(cb);
+    }
+
+    pub fn remove_trinary_choice(&mut self) {
+        self._trinary_choice = None;
     }
 
     pub fn push_quiz_choice(&mut self, selected: u8) {
@@ -263,6 +286,49 @@ impl<'a> TestingUi<'a> {
             Self::prepare_mnemonic_quiz_word_random(random);
             self.push_quiz_choice(2);
         }
+    }
+
+    /// Configure inputs for `workflow::mnemonic::get()` with a 24-word mnemonic.
+    /// This also wraps an existing `enter_string` callback for non-mnemonic prompts,
+    /// e.g. password entry in higher-level workflows.
+    pub fn prepare_get_mnemonic_24_words(&mut self, words: &[&str]) {
+        assert_eq!(words.len(), 24, "expected exactly 24 words");
+        let words: Vec<String> = words.iter().map(|word| (*word).into()).collect();
+        let mut first_words: VecDeque<String> = words[..23].iter().cloned().collect();
+        let last_word = words[23].clone();
+        let mut fallback_enter_string = self._enter_string.take();
+
+        self.set_trinary_choice(Box::new(
+            |message, label_left, label_middle, label_right| {
+                assert_eq!(message, "How many words?");
+                assert_eq!(label_left, Some("12"));
+                assert_eq!(label_middle, None);
+                assert_eq!(label_right, Some("24"));
+                TrinaryChoice::Right
+            },
+        ));
+
+        self.set_menu(Box::new(move |menu_words, title| {
+            assert_eq!(title, Some("24 of 24"));
+            Ok(menu_words
+                .iter()
+                .position(|word| *word == last_word.as_str())
+                .unwrap()
+                .try_into()
+                .unwrap())
+        }));
+
+        self.set_enter_string(Box::new(move |params| {
+            if params.wordlist.is_some() && params.title.ends_with(" of 24") {
+                return Ok(first_words
+                    .pop_front()
+                    .expect("too many mnemonic word entries"));
+            }
+            if let Some(ref mut fallback) = fallback_enter_string {
+                return fallback(params);
+            }
+            panic!("unexpected enter_string call: {}", params.title);
+        }));
     }
 
     /// Assert screens emitted by `workflow::mnemonic::show_and_confirm_mnemonic()`.

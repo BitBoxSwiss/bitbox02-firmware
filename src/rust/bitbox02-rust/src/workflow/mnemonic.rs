@@ -431,6 +431,23 @@ mod tests {
     }
 
     #[test]
+    fn test_get() {
+        let words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
+            .split(' ')
+            .collect();
+        let mut ui = TestingUi::new();
+        ui.prepare_get_mnemonic_24_words(&words);
+
+        let result = block_on(get(&mut ui));
+        assert!(result.is_ok());
+        let mnemonic = match result {
+            Ok(mnemonic) => mnemonic,
+            Err(_) => panic!("unexpected user abort"),
+        };
+        assert_eq!(mnemonic.as_str(), words.join(" "));
+    }
+
+    #[test]
     fn test_lastword_choices() {
         // 23 words
 

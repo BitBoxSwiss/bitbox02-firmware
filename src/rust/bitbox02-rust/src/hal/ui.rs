@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::{
-    cancel, confirm, menu, mnemonic, sdcard, transaction, trinary_choice, trinary_input_string,
-};
+use crate::workflow::{cancel, confirm, mnemonic, sdcard, transaction, trinary_input_string};
 
 use alloc::string::String;
 
 #[allow(async_fn_in_trait)]
 pub trait Ui {
+    /// Returns `Ok(())` if the user accepts, `Err(confirm::UserAbort)` if the user rejects.
     async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), confirm::UserAbort>;
 
     async fn verify_recipient(
@@ -25,6 +24,9 @@ pub trait Ui {
 
     async fn status(&mut self, title: &str, status_success: bool);
 
+    /// If `can_cancel` is `Yes`, the workflow can be cancelled.
+    /// If it is `No`, the result is always `Ok(())`.
+    /// If `preset` is not empty, it must be part of `params.wordlist` and will be pre-entered.
     async fn enter_string(
         &mut self,
         params: &trinary_input_string::Params<'_>,
@@ -34,7 +36,8 @@ pub trait Ui {
 
     async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort>;
 
-    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, menu::CancelError>;
+    /// Returns the index of the word chosen by the user.
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, cancel::Error>;
 
     async fn trinary_choice(
         &mut self,
@@ -42,7 +45,7 @@ pub trait Ui {
         label_left: Option<&str>,
         label_middle: Option<&str>,
         label_right: Option<&str>,
-    ) -> trinary_choice::TrinaryChoice;
+    ) -> bitbox02::ui::TrinaryChoice;
 
     /// Display the BIP39 mnemonic to the user.
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error>;

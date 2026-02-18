@@ -130,11 +130,7 @@ impl Ui for TestingUi<'_> {
         Ok(())
     }
 
-    async fn menu(
-        &mut self,
-        _words: &[&str],
-        _title: Option<&str>,
-    ) -> Result<u8, cancel::Error> {
+    async fn menu(&mut self, _words: &[&str], _title: Option<&str>) -> Result<u8, cancel::Error> {
         todo!("not used in unit tests yet");
     }
 

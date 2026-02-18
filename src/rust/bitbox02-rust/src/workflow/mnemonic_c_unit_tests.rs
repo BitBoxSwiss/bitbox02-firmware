@@ -5,10 +5,6 @@ pub use super::cancel::Error as CancelError;
 use alloc::string::String;
 use alloc::string::ToString;
 
-pub async fn confirm_word(_choices: &[&str], _title: &str) -> Result<u8, CancelError> {
-    panic!("unused")
-}
-
 pub async fn show_and_confirm_mnemonic(
     _ui: &mut impl crate::hal::Ui,
     words: &[&str],

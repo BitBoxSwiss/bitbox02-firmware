@@ -59,23 +59,6 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
     (index_word, result)
 }
 
-/// Displays the `choices` to the user, returning the index of the selected choice.
-pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
-    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
-        words: choices,
-        title: Some(title),
-        select_word: true,
-        continue_on_last: false,
-        cancel_confirm_title: Some("Recovery\nwords"),
-    })
-    .await
-    {
-        bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
-        bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
-        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
-    }
-}
-
 pub async fn show_and_confirm_mnemonic(
     hal_ui: &mut impl crate::hal::Ui,
     words: &[&str],

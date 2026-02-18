@@ -3,7 +3,7 @@
 use alloc::string::String;
 
 use crate::hal::Ui;
-use crate::workflow::{cancel, confirm, mnemonic, sdcard, transaction, trinary_input_string};
+use crate::workflow::{cancel, confirm, sdcard, transaction, trinary_input_string};
 
 pub(crate) struct BitBox02Ui;
 
@@ -119,6 +119,18 @@ impl Ui for BitBox02Ui {
         choices: &[&str],
         title: &str,
     ) -> Result<u8, cancel::Error> {
-        mnemonic::confirm_word(choices, title).await
+        match bitbox02::ui::menu(bitbox02::ui::MenuParams {
+            words: choices,
+            title: Some(title),
+            select_word: true,
+            continue_on_last: false,
+            cancel_confirm_title: Some("Recovery\nwords"),
+        })
+        .await
+        {
+            bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
+            bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
+            bitbox02::ui::MenuResponse::Cancel => Err(cancel::Error::Cancelled),
+        }
     }
 }

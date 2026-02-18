@@ -11,6 +11,11 @@ mod alloc;
 
 #[cfg(feature = "firmware")]
 pub mod async_usb;
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+mod communication_mode;
 #[cfg(feature = "firmware")]
 mod der;
 #[cfg(feature = "firmware")]
@@ -47,7 +52,10 @@ extern crate bitbox_framed_serial_link;
 extern crate util;
 
 #[allow(unused)]
-#[cfg(feature = "firmware")]
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
 type HalImpl = bitbox02::hal::BitBox02Hal;
 
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic

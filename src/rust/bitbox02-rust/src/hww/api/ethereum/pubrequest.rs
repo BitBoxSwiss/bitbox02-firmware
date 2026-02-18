@@ -96,6 +96,7 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
+    use hex_lit::hex;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
@@ -274,8 +275,7 @@ mod tests {
     #[test]
     pub fn test_process_erc20_address() {
         const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
-        const CONTRACT_ADDRESS: [u8; 20] =
-            *b"\xda\xc1\x7f\x95\x8d\x2e\xe5\x23\xa2\x20\x62\x06\x99\x45\x97\xc1\x3d\x83\x1e\xc7";
+        const CONTRACT_ADDRESS: [u8; 20] = hex!("dac17f958d2ee523a2206206994597c13d831ec7");
 
         let request = pb::EthPubRequest {
             output_type: OutputType::Address as _,

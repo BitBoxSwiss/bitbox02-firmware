@@ -48,7 +48,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 
     {
         let crate::hal::HalSubsystems { ui, random, .. } = hal.subsystems();
-        ui.show_and_confirm_mnemonic(random, &words).await?;
+        crate::workflow::mnemonic::show_and_confirm_mnemonic(ui, random, &words).await?;
     }
 
     hal.memory().set_initialized().or(Err(Error::Memory))?;
@@ -63,10 +63,12 @@ mod tests {
 
     use alloc::boxed::Box;
 
-    use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
+    use crate::hal::testing::{TestingHal, TestingUi};
     use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
+
+    const MNEMONIC: &str = "shy parrot age monkey rhythm snake mystery burden topic hello mouse script gesture tattoo demand float verify shoe recycle cool network better aspect list";
 
     /// When not yet initialized, we show the mnemonic without a password check. This happens during
     /// wallet setup.
@@ -87,6 +89,9 @@ mod tests {
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             panic!("unexpected call to enter password")
         }));
+        mock_hal
+            .ui
+            .prepare_show_and_confirm_mnemonic(&mut mock_hal.random, 24);
 
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
@@ -96,27 +101,32 @@ mod tests {
         // 1 operation for one copy_seed() to get the seed to display it.
         assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
+        let words: Vec<&str> = MNEMONIC.split(' ').collect();
         assert_eq!(
-            mock_hal.ui.screens,
-            vec![
+            mock_hal.ui.screens[..2],
+            [
                 Screen::Confirm {
                     title: "Warning".into(),
                     body: "DO NOT share your\nrecovery words with\nanyone!".into(),
-                    longtouch: false
+                    longtouch: false,
                 },
                 Screen::Confirm {
                     title: "Recovery\nwords".into(),
                     body: "Please write down\nthe following words".into(),
-                    longtouch: false
-                },
-                Screen::ShowAndConfirmMnemonic {
-                    mnemonic: "shy parrot age monkey rhythm snake mystery burden topic hello mouse script gesture tattoo demand float verify shoe recycle cool network better aspect list".into(),
-                },
-                Screen::Status {
-                    title: "Backup created".into(),
-                    success: true
+                    longtouch: false,
                 },
             ]
+        );
+        TestingUi::assert_show_and_confirm_mnemonic_screens(
+            &mock_hal.ui.screens[2..mock_hal.ui.screens.len() - 1],
+            &words,
+        );
+        assert_eq!(
+            mock_hal.ui.screens.last(),
+            Some(&Screen::Status {
+                title: "Backup created".into(),
+                success: true,
+            })
         );
     }
     /// When initialized, a password check is prompted before displaying the mnemonic.
@@ -141,6 +151,9 @@ mod tests {
             password_entered = true;
             Ok("password".into())
         }));
+        mock_hal
+            .ui
+            .prepare_show_and_confirm_mnemonic(&mut mock_hal.random, 24);
 
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
@@ -149,27 +162,32 @@ mod tests {
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 4);
 
+        let words: Vec<&str> = MNEMONIC.split(' ').collect();
         assert_eq!(
-            mock_hal.ui.screens,
-            vec![
+            mock_hal.ui.screens[..2],
+            [
                 Screen::Confirm {
                     title: "Warning".into(),
                     body: "DO NOT share your\nrecovery words with\nanyone!".into(),
-                    longtouch: false
+                    longtouch: false,
                 },
                 Screen::Confirm {
                     title: "Recovery\nwords".into(),
                     body: "Please write down\nthe following words".into(),
-                    longtouch: false
-                },
-                Screen::ShowAndConfirmMnemonic {
-                    mnemonic: "shy parrot age monkey rhythm snake mystery burden topic hello mouse script gesture tattoo demand float verify shoe recycle cool network better aspect list".into(),
-                },
-                Screen::Status {
-                    title: "Backup created".into(),
-                    success: true
+                    longtouch: false,
                 },
             ]
+        );
+        TestingUi::assert_show_and_confirm_mnemonic_screens(
+            &mock_hal.ui.screens[2..mock_hal.ui.screens.len() - 1],
+            &words,
+        );
+        assert_eq!(
+            mock_hal.ui.screens.last(),
+            Some(&Screen::Status {
+                title: "Backup created".into(),
+                success: true,
+            })
         );
 
         drop(mock_hal); // to remove mutable borrow of `password_entered`

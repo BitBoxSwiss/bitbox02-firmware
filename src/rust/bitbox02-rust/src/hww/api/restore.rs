@@ -105,7 +105,7 @@ pub async fn from_mnemonic(
             .await?;
     }
 
-    let mnemonic = hal.ui().get_mnemonic().await?;
+    let mnemonic = crate::workflow::mnemonic::get(hal.ui()).await?;
     let seed = match crate::bip39::mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
         Err(()) => {
@@ -163,22 +163,27 @@ mod tests {
     use util::bb02_async::block_on;
 
     use alloc::boxed::Box;
+    use alloc::vec::Vec;
 
     #[test]
     fn test_from_mnemonic() {
         mock_memory();
         crate::keystore::lock();
-        let mut counter = 0u32;
+        let mnemonic_words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
+            .split(' ')
+            .collect();
+        let mut password_entries = 0usize;
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.set_enter_string(Box::new(|params| {
-            counter += 1;
-            match counter {
+            password_entries += 1;
+            match password_entries {
                 1 => assert_eq!(params.title, "Set password"),
                 2 => assert_eq!(params.title, "Repeat password"),
-                _ => panic!("too many user inputs"),
+                _ => panic!("too many password user inputs"),
             }
             Ok("password".into())
         }));
+        mock_hal.ui.prepare_get_mnemonic_24_words(&mnemonic_words);
 
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
@@ -206,7 +211,7 @@ mod tests {
             "257724bccc8858cfe565b456b01263a4a6a45184fab4531f5c199649207a74e74c399a01d4f957258c05cee818369b31404c884a4b7a29ff6886bae6700fb56a"
         );
 
-        drop(mock_hal); // to remove mutable borrow of counter
-        assert_eq!(counter, 2);
+        drop(mock_hal); // to remove mutable borrow of password_entries
+        assert_eq!(password_entries, 2);
     }
 }

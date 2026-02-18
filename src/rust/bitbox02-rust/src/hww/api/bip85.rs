@@ -112,7 +112,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
     let words: Vec<&str> = mnemonic.split(' ').collect();
     {
         let crate::hal::HalSubsystems { ui, random, .. } = hal.subsystems();
-        ui.show_and_confirm_mnemonic(random, &words).await?;
+        crate::workflow::mnemonic::show_and_confirm_mnemonic(ui, random, &words).await?;
     }
 
     hal.ui().status("Finished", true).await;

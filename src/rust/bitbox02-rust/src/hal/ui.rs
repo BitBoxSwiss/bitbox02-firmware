@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::mnemonic;
-
 use alloc::string::String;
 
 pub struct UserAbort;
@@ -107,33 +105,4 @@ pub trait Ui {
     /// Display these BIP39 mnemonic word choices to the user as part of the quiz to confirm the
     /// user backuped up the mnemonic correctly.
     async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort>;
-
-    /// Display the mnemonic words and have the user confirm them in a multiple-choice quiz.
-    ///
-    /// The default implementation is implemented in terms of `self.show_mnemonic()`,
-    /// `self.quiz_mnemonic_word()`, etc.
-    ///
-    /// This function is defined in the HAL so unit tests can easily mock it. Real implementations
-    /// should leave the default implementation.
-    async fn show_and_confirm_mnemonic(
-        &mut self,
-        random: &mut impl crate::hal::Random,
-        words: &[&str],
-    ) -> Result<(), UserAbort>
-    where
-        Self: Sized,
-    {
-        mnemonic::show_and_confirm_mnemonic(self, random, words).await
-    }
-
-    /// Retrieve a BIP39 mnemonic sentence of 12 or 24 words from the user.
-    ///
-    /// This function is defined in the HAL so unit tests can easily mock it. Real implementations
-    /// should leave the default implementation.
-    async fn get_mnemonic(&mut self) -> Result<zeroize::Zeroizing<String>, UserAbort>
-    where
-        Self: Sized,
-    {
-        mnemonic::get(self).await
-    }
 }

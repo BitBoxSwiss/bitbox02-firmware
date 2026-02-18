@@ -381,12 +381,8 @@ pub async fn get(
 mod tests {
     use super::*;
 
-    fn u16_to_rand(value: u16) -> [u8; 32] {
-        let mut out = [0u8; 32];
-        out[0] = (value >> 8) as u8;
-        out[1] = value as u8;
-        out
-    }
+    use crate::hal::testing::{TestingRandom, TestingUi};
+    use util::bb02_async::block_on;
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
@@ -403,12 +399,9 @@ mod tests {
 
     #[test]
     fn test_create_random_unique_words() {
-        let mut random = crate::hal::testing::TestingRandom::new();
-        random.mock_next(u16_to_rand(2)); // place the target at index 2 in a 5-entry list.
-        random.mock_next(u16_to_rand(0));
-        random.mock_next(u16_to_rand(1));
-        random.mock_next(u16_to_rand(2));
-        random.mock_next(u16_to_rand(3));
+        let mut random = TestingRandom::new();
+        // Place the target at index 2 in a 5-entry list.
+        TestingUi::prepare_mnemonic_quiz_word_random(&mut random);
         let (correct_idx, choices) =
             create_random_unique_words(&mut random, "zoo", NUM_RANDOM_WORDS);
         assert_eq!(correct_idx, 2);
@@ -421,6 +414,37 @@ mod tests {
         unique.sort_unstable();
         unique.dedup();
         assert_eq!(unique.len(), choices.len());
+    }
+
+    #[test]
+    fn test_show_and_confirm_mnemonic() {
+        let words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
+            .split(' ')
+            .collect();
+        let mut ui = TestingUi::new();
+        let mut random = TestingRandom::new();
+        ui.prepare_show_and_confirm_mnemonic(&mut random, words.len());
+
+        let result = block_on(show_and_confirm_mnemonic(&mut ui, &mut random, &words));
+        assert!(result.is_ok());
+        TestingUi::assert_show_and_confirm_mnemonic_screens(&ui.screens, &words);
+    }
+
+    #[test]
+    fn test_get() {
+        let words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
+            .split(' ')
+            .collect();
+        let mut ui = TestingUi::new();
+        ui.prepare_get_mnemonic_24_words(&words);
+
+        let result = block_on(get(&mut ui));
+        assert!(result.is_ok());
+        let mnemonic = match result {
+            Ok(mnemonic) => mnemonic,
+            Err(_) => panic!("unexpected user abort"),
+        };
+        assert_eq!(mnemonic.as_str(), words.join(" "));
     }
 
     #[test]

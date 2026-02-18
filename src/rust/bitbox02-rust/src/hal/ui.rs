@@ -26,6 +26,9 @@ pub trait Ui {
 
     async fn status(&mut self, title: &str, status_success: bool);
 
+    /// If `can_cancel` is `Yes`, the workflow can be cancelled.
+    /// If it is `No`, the result is always `Ok(())`.
+    /// If `preset` is not empty, it must be part of `params.wordlist` and will be pre-entered.
     async fn enter_string(
         &mut self,
         params: &trinary_input_string::Params<'_>,

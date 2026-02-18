@@ -55,7 +55,13 @@ impl Ui for BitBox02Ui {
         can_cancel: trinary_input_string::CanCancel,
         preset: &str,
     ) -> Result<zeroize::Zeroizing<String>, trinary_input_string::Error> {
-        trinary_input_string::enter(params, can_cancel, preset).await
+        let can_cancel = match can_cancel {
+            trinary_input_string::CanCancel::Yes => true,
+            trinary_input_string::CanCancel::No => false,
+        };
+        bitbox02::ui::trinary_input_string(params, can_cancel, preset)
+            .await
+            .or(Err(trinary_input_string::Error::Cancelled))
     }
 
     #[inline(always)]

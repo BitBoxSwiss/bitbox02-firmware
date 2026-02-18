@@ -2,11 +2,11 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use pb::response::Response;
 
 use crate::hal::Ui;
-use crate::workflow::confirm;
 
 use crate::keystore;
 
@@ -31,11 +31,10 @@ pub async fn process(
 /// Derives and displays a BIP-39 seed according to BIP-85:
 /// https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki#bip39.
 async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
-    use crate::workflow::trinary_input_string;
-    use bitbox02::ui::TrinaryChoice;
+    use crate::hal::ui::{CanCancel, TrinaryChoice};
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "BIP-85",
             body: "Derive BIP-39\nmnemonic?",
             accept_is_nextarrow: true,
@@ -44,7 +43,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         .await?;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "BIP-85",
             body: "This is an advanced feature. Proceed only if you know what you are doing.",
             scrollable: true,
@@ -58,9 +57,9 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         .trinary_choice("How many words?", Some("12"), None, Some("24"))
         .await
     {
-        TrinaryChoice::TRINARY_CHOICE_LEFT => 12,
-        TrinaryChoice::TRINARY_CHOICE_MIDDLE => unreachable!(),
-        TrinaryChoice::TRINARY_CHOICE_RIGHT => 24,
+        TrinaryChoice::Left => 12,
+        TrinaryChoice::Middle => unreachable!(),
+        TrinaryChoice::Right => 24,
     };
 
     hal.ui().status(&format!("{} words", num_words), true).await;
@@ -76,13 +75,13 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
             let number_string = hal
                 .ui()
                 .enter_string(
-                    &trinary_input_string::Params {
+                    &crate::hal::ui::EnterStringParams {
                         title: "Enter index",
                         number_input: true,
                         longtouch: true,
                         ..Default::default()
                     },
-                    trinary_input_string::CanCancel::Yes,
+                    CanCancel::Yes,
                     "",
                 )
                 .await?;
@@ -100,7 +99,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
     hal.ui().status(&format!("Index: {}", index), true).await;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "Keypath",
             body: &format!("m/83696968'/39'/0'/{}'/{}'", num_words, index),
             scrollable: true,
@@ -134,7 +133,7 @@ async fn process_ln(
         return Err(Error::InvalidInput);
     }
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: "Create\nLightning wallet\non host device?",
             longtouch: true,

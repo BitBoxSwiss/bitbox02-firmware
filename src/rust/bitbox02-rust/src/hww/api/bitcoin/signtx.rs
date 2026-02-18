@@ -2,6 +2,7 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use super::common::format_amount;
 use super::payment_request;
@@ -12,7 +13,7 @@ use super::{bip143, bip341, common, keypath};
 
 use crate::hal::Ui;
 use crate::secp256k1::SECP256K1;
-use crate::workflow::{confirm, transaction};
+use crate::workflow::transaction;
 use crate::xpubcache::{Bip32XpubCache, Compute};
 
 use alloc::string::String;
@@ -1047,7 +1048,7 @@ async fn _process(
 
     if num_changes > 1 {
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Warning",
                 body: &format!("There are {}\nchange outputs.\nProceed?", num_changes),
                 accept_is_nextarrow: true,
@@ -1066,7 +1067,7 @@ async fn _process(
         // The RBF nsequence bytes are often set in conjunction with a locktime,
         // so verify both simultaneously.
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 body: &format!(
                     "Locktime on block:\n{}\n{}",
                     request.locktime,

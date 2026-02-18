@@ -2,6 +2,7 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use alloc::vec::Vec;
 
@@ -14,7 +15,7 @@ use pb::btc_sign_init_request::FormatUnit;
 
 use crate::hal::Ui;
 use crate::secp256k1::SECP256K1;
-use crate::workflow::{confirm, verify_message};
+use crate::workflow::verify_message;
 
 use sha2::{Digest, Sha256};
 
@@ -73,7 +74,7 @@ pub async fn user_verify(
                     return Err(Error::InvalidInput);
                 }
                 hal.ui()
-                    .confirm(&confirm::Params {
+                    .confirm(&ConfirmParams {
                         title: "",
                         body: &format!("Memo from\n\n{}", payment_request.recipient_name),
                         accept_is_nextarrow: true,

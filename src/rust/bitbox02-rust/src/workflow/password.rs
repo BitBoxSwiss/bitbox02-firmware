@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::{confirm, trinary_input_string};
 use crate::hal::Ui;
-use crate::hal::ui::UserAbort;
+use crate::hal::ui::{CanCancel, ConfirmParams, UserAbort};
 
 use crate::hal::{Memory, memory::SecurechipType};
-
-pub use trinary_input_string::CanCancel;
 
 use alloc::string::String;
 
 async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), crate::hal::ui::UserAbort> {
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             body: "Do you really\nwant to cancel?",
             ..Default::default()
         })
@@ -46,7 +43,7 @@ pub async fn enter(
     password_type: PasswordType,
     can_cancel: CanCancel,
 ) -> Result<zeroize::Zeroizing<String>, EnterError> {
-    let params = trinary_input_string::Params {
+    let params = crate::hal::ui::EnterStringParams {
         title,
         hide: true,
         special_chars: match password_type {
@@ -125,7 +122,7 @@ pub async fn enter_twice(
         loop {
             match hal
                 .ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     title: "WARNING",
                     body: "Your password\n has fewer than\n 4 characters.\nContinue?",
                     longtouch: true,

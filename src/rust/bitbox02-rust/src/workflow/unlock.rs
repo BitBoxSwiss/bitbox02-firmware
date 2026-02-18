@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::general::abort;
+use crate::hal::ui::{CanCancel, ConfirmParams};
 use crate::hal::{Memory, Ui};
-use crate::workflow::{confirm, password};
-
-pub use password::CanCancel;
+use crate::workflow::password;
 
 use alloc::vec::Vec;
 
@@ -19,7 +18,7 @@ async fn confirm_mnemonic_passphrase(
         return Ok(());
     }
 
-    let params = confirm::Params {
+    let params = ConfirmParams {
         title: "",
         body: "You will be asked to\nvisually confirm your\npassphrase now.",
         accept_only: true,
@@ -29,10 +28,10 @@ async fn confirm_mnemonic_passphrase(
 
     hal.ui().confirm(&params).await?;
 
-    let params = confirm::Params {
+    let params = ConfirmParams {
         title: "Confirm",
         body: passphrase,
-        font: bitbox02::ui::Font::Password11X12,
+        font: crate::hal::ui::Font::Password11X12,
         scrollable: true,
         longtouch: true,
         ..Default::default()
@@ -59,7 +58,7 @@ impl core::convert::From<password::EnterError> for UnlockError {
 
 async fn maybe_confirm_remaining_unlock_attempts(
     hal: &mut impl crate::hal::Hal,
-    can_cancel: password::CanCancel,
+    can_cancel: CanCancel,
 ) -> Result<(), crate::hal::ui::UserAbort> {
     let remaining = crate::keystore::get_remaining_unlock_attempts(hal);
     if remaining >= crate::keystore::MAX_UNLOCK_ATTEMPTS {
@@ -80,12 +79,12 @@ async fn maybe_confirm_remaining_unlock_attempts(
     };
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "WARNING",
             body: &body,
             accept_is_nextarrow: true,
             longtouch: remaining == 1,
-            accept_only: matches!(can_cancel, password::CanCancel::No),
+            accept_only: matches!(can_cancel, CanCancel::No),
             ..Default::default()
         })
         .await
@@ -102,7 +101,7 @@ async fn maybe_confirm_remaining_unlock_attempts(
 pub async fn unlock_keystore(
     hal: &mut impl crate::hal::Hal,
     title: &str,
-    can_cancel: password::CanCancel,
+    can_cancel: CanCancel,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, UnlockError> {
     maybe_confirm_remaining_unlock_attempts(hal, can_cancel)
         .await
@@ -144,7 +143,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
                 hal,
                 "Optional passphrase",
                 password::PasswordType::Bip39Passphrase,
-                password::CanCancel::No,
+                CanCancel::No,
             )
             .await
             .expect("not cancelable and does not call memory functions");
@@ -196,7 +195,7 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
 
     // Loop unlock until the password is correct or the device resets.
     loop {
-        if let Ok(seed) = unlock_keystore(hal, "Enter password", password::CanCancel::No).await {
+        if let Ok(seed) = unlock_keystore(hal, "Enter password", CanCancel::No).await {
             unlock_bip39(hal, &seed).await;
             return Ok(());
         }
@@ -284,11 +283,7 @@ mod tests {
 
         mock_hal.securechip.event_counter_reset();
         assert!(matches!(
-            block_on(unlock_keystore(
-                &mut mock_hal,
-                "title",
-                password::CanCancel::No,
-            )),
+            block_on(unlock_keystore(&mut mock_hal, "title", CanCancel::No,)),
             Err(UnlockError::IncorrectPassword),
         ));
         assert_eq!(mock_hal.securechip.get_event_counter(), 4);
@@ -335,11 +330,7 @@ mod tests {
         }));
 
         assert!(matches!(
-            block_on(unlock_keystore(
-                &mut mock_hal,
-                "title",
-                password::CanCancel::No,
-            )),
+            block_on(unlock_keystore(&mut mock_hal, "title", CanCancel::No,)),
             Err(UnlockError::IncorrectPassword),
         ));
 
@@ -373,11 +364,7 @@ mod tests {
         mock_hal.ui.abort_nth(0);
 
         assert!(matches!(
-            block_on(unlock_keystore(
-                &mut mock_hal,
-                "title",
-                password::CanCancel::No,
-            )),
+            block_on(unlock_keystore(&mut mock_hal, "title", CanCancel::No,)),
             Err(UnlockError::UserAbort),
         ));
 

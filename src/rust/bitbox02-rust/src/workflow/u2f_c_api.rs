@@ -6,8 +6,8 @@
 
 extern crate alloc;
 
+use crate::hal::ui::ConfirmParams;
 use crate::hal::{Hal, Ui};
-use crate::workflow::confirm;
 use alloc::boxed::Box;
 use alloc::string::String;
 use core::ffi::CStr;
@@ -100,7 +100,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
         CONFIRM_STATE.get().write(TaskState::Running(token));
     }
     crate::main_loop::spawn(Box::pin(async move {
-        let params = confirm::Params {
+        let params = ConfirmParams {
             title: &title,
             body: &body,
             accept_only: true,

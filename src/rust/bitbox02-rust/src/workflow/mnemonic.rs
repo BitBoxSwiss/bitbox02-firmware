@@ -2,7 +2,6 @@
 
 pub use super::cancel::Error as CancelError;
 use super::confirm;
-use super::menu;
 use super::trinary_choice::TrinaryChoice;
 use super::trinary_input_string;
 
@@ -222,7 +221,7 @@ async fn get_24th_word(
     };
     loop {
         match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
-            Err(menu::CancelError::Cancelled) => return Err(CancelError::Cancelled),
+            Err(CancelError::Cancelled) => return Err(CancelError::Cancelled),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
                 let params = confirm::Params {
                     title: "",
@@ -373,7 +372,7 @@ pub async fn get(
                         .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
                         .await
                     {
-                        Err(menu::CancelError::Cancelled) => {
+                        Err(CancelError::Cancelled) => {
                             // Cancel cancelled.
                             continue;
                         }

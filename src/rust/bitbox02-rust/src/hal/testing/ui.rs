@@ -2,7 +2,7 @@
 
 use crate::hal::Ui;
 use crate::workflow::{
-    cancel, confirm, menu, sdcard, transaction, trinary_choice, trinary_input_string,
+    cancel, confirm, sdcard, transaction, trinary_choice, trinary_input_string,
 };
 
 use alloc::boxed::Box;
@@ -136,7 +136,7 @@ impl Ui for TestingUi<'_> {
         &mut self,
         _words: &[&str],
         _title: Option<&str>,
-    ) -> Result<u8, menu::CancelError> {
+    ) -> Result<u8, cancel::Error> {
         todo!("not used in unit tests yet");
     }
 

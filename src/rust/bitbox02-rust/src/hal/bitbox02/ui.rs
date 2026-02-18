@@ -4,7 +4,7 @@ use alloc::string::String;
 
 use crate::hal::Ui;
 use crate::workflow::{
-    cancel, confirm, menu, mnemonic, sdcard, transaction, trinary_choice, trinary_input_string,
+    cancel, confirm, mnemonic, sdcard, transaction, trinary_choice, trinary_input_string,
 };
 
 pub(crate) struct BitBox02Ui;
@@ -73,8 +73,20 @@ impl Ui for BitBox02Ui {
     }
 
     #[inline(always)]
-    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, menu::CancelError> {
-        menu::pick(words, title).await
+    async fn menu(&mut self, words: &[&str], title: Option<&str>) -> Result<u8, cancel::Error> {
+        match bitbox02::ui::menu(bitbox02::ui::MenuParams {
+            words,
+            title,
+            select_word: true,
+            continue_on_last: false,
+            cancel_confirm_title: None,
+        })
+        .await
+        {
+            bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
+            bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
+            bitbox02::ui::MenuResponse::Cancel => Err(cancel::Error::Cancelled),
+        }
     }
 
     #[inline(always)]

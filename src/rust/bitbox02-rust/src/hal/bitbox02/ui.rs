@@ -66,7 +66,10 @@ impl Ui for BitBox02Ui {
 
     #[inline(always)]
     async fn insert_sdcard(&mut self) -> Result<(), sdcard::UserAbort> {
-        sdcard::sdcard().await
+        match bitbox02::ui::sdcard().await {
+            bitbox02::ui::SdcardResponse::Inserted => Ok(()),
+            bitbox02::ui::SdcardResponse::Cancelled => Err(sdcard::UserAbort),
+        }
     }
 
     #[inline(always)]

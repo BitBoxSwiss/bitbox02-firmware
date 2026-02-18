@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-use crate::hal::ui::UserAbort;
-use crate::workflow::{confirm, trinary_input_string};
+use crate::hal::ui::{ConfirmParams, UserAbort};
+use crate::workflow::trinary_input_string;
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -48,7 +48,7 @@ pub struct TestingUi<'a> {
 }
 
 impl Ui for TestingUi<'_> {
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort> {
+    async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {
         self.screens.push(Screen::Confirm {
             title: params.title.into(),
             body: params.body.into(),

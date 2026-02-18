@@ -2,11 +2,11 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use pb::response::Response;
 
 use crate::hal::Ui;
-use crate::workflow::confirm;
 
 use crate::keystore;
 
@@ -35,7 +35,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
     use bitbox02::ui::TrinaryChoice;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "BIP-85",
             body: "Derive BIP-39\nmnemonic?",
             accept_is_nextarrow: true,
@@ -44,7 +44,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         .await?;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "BIP-85",
             body: "This is an advanced feature. Proceed only if you know what you are doing.",
             scrollable: true,
@@ -100,7 +100,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
     hal.ui().status(&format!("Index: {}", index), true).await;
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "Keypath",
             body: &format!("m/83696968'/39'/0'/{}'/{}'", num_words, index),
             scrollable: true,
@@ -134,7 +134,7 @@ async fn process_ln(
         return Err(Error::InvalidInput);
     }
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: "Create\nLightning wallet\non host device?",
             longtouch: true,

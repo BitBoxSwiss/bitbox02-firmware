@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
+use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
 use pb::response::Response;
 
 use crate::hal::{Memory, Ui};
-use crate::workflow::confirm;
 
 pub async fn process(
     hal: &mut impl crate::hal::Hal,
     &pb::SetMnemonicPassphraseEnabledRequest { enabled }: &pb::SetMnemonicPassphraseEnabledRequest,
 ) -> Result<Response, Error> {
-    let params = confirm::Params {
+    let params = ConfirmParams {
         title: if enabled { "Enable" } else { "Disable" },
         body: "Optional\npassphrase",
         longtouch: true,

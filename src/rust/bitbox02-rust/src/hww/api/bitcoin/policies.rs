@@ -3,6 +3,7 @@
 use super::Error;
 use super::params::Params;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 use pb::BtcCoin;
 
 use pb::btc_script_config::Policy;
@@ -16,7 +17,6 @@ use util::bip32::HARDENED;
 
 use crate::bip32;
 use crate::hal::{Memory, Ui};
-use crate::workflow::confirm;
 use crate::xpubcache::Bip32XpubCache;
 
 use bitcoin::taproot::{LeafVersion, TapLeafHash, TapTweakHash};
@@ -385,7 +385,7 @@ impl ParsedPolicy<'_> {
     ) -> Result<(), Error> {
         let policy = self.policy;
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title,
                 body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
                 accept_is_nextarrow: true,
@@ -394,7 +394,7 @@ impl ParsedPolicy<'_> {
             .await?;
 
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Name",
                 body: name,
                 scrollable: true,
@@ -406,7 +406,7 @@ impl ParsedPolicy<'_> {
         if matches!(mode, Mode::Basic) {
             if let Err(crate::hal::ui::UserAbort) = hal
                 .ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     body: "Show policy\ndetails?",
                     accept_is_nextarrow: true,
                     ..Default::default()
@@ -418,7 +418,7 @@ impl ParsedPolicy<'_> {
         }
 
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: "Policy",
                 body: &policy.policy,
                 scrollable: true,
@@ -466,7 +466,7 @@ impl ParsedPolicy<'_> {
                 key_str = format!("Provably unspendable: {}", key_str)
             }
             hal.ui()
-                .confirm(&confirm::Params {
+                .confirm(&ConfirmParams {
                     title: &format!("Key {}/{}", i + 1, num_keys),
                     body: key_str.as_str(),
                     scrollable: true,

@@ -2,6 +2,7 @@
 
 use super::Error;
 use super::pb;
+use crate::hal::ui::ConfirmParams;
 
 use pb::eth_pub_request::OutputType;
 use pb::eth_response::Response;
@@ -9,7 +10,6 @@ use pb::eth_response::Response;
 use crate::bip32;
 use crate::hal::Ui;
 use crate::keystore;
-use crate::workflow::confirm;
 
 async fn process_address(
     hal: &mut impl crate::hal::Hal,
@@ -45,7 +45,7 @@ async fn process_address(
         };
         super::keypath::warn_unusual_keypath(hal, &params, &title, &request.keypath).await?;
         hal.ui()
-            .confirm(&confirm::Params {
+            .confirm(&ConfirmParams {
                 title: &title,
                 title_autowrap: true,
                 body: &address,

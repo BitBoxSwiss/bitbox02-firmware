@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
+use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
 use pb::response::Response;
 
 use crate::hal::Ui;
 use crate::keystore;
-use crate::workflow::{confirm, password, unlock};
+use crate::workflow::{password, unlock};
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     // Process confirmation and instruction for user
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "",
             body: "Proceed to\nchange password?",
             accept_is_nextarrow: true,

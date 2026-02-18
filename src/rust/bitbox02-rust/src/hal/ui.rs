@@ -1,15 +1,44 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::workflow::{confirm, mnemonic, trinary_input_string};
+use crate::workflow::{mnemonic, trinary_input_string};
 
 use alloc::string::String;
 
 pub struct UserAbort;
 
+#[derive(Copy, Clone, Default)]
+pub enum Font {
+    #[default]
+    Default,
+    Password11X12,
+    Monogram5X9,
+}
+
+#[derive(Default)]
+pub struct ConfirmParams<'a> {
+    /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
+    pub title: &'a str,
+    pub title_autowrap: bool,
+    /// The confirmation body of the screen. Max 200 chars, otherwise **panic**.
+    pub body: &'a str,
+    pub font: Font,
+    /// If true, the body is horizontally scrollable.
+    pub scrollable: bool,
+    /// If true, require the hold gesture to confirm instead of tap.
+    pub longtouch: bool,
+    /// If true, the user can only confirm, not reject.
+    pub accept_only: bool,
+    /// if true, the accept icon is a right arrow instead of a checkmark (indicating going to the
+    /// "next" screen).
+    pub accept_is_nextarrow: bool,
+    /// Print the value of this variable in the corner. Will not print when 0
+    pub display_size: usize,
+}
+
 #[allow(async_fn_in_trait)]
 pub trait Ui {
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort>;
+    async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort>;
 
     async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort>;
 

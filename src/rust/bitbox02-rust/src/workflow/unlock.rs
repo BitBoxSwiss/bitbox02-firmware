@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::general::abort;
+use crate::hal::ui::ConfirmParams;
 use crate::hal::{Memory, Ui};
-use crate::workflow::{confirm, password};
+use crate::workflow::password;
 
 pub use password::CanCancel;
 
@@ -19,7 +20,7 @@ async fn confirm_mnemonic_passphrase(
         return Ok(());
     }
 
-    let params = confirm::Params {
+    let params = ConfirmParams {
         title: "",
         body: "You will be asked to\nvisually confirm your\npassphrase now.",
         accept_only: true,
@@ -29,10 +30,10 @@ async fn confirm_mnemonic_passphrase(
 
     hal.ui().confirm(&params).await?;
 
-    let params = confirm::Params {
+    let params = ConfirmParams {
         title: "Confirm",
         body: passphrase,
-        font: bitbox02::ui::Font::Password11X12,
+        font: crate::hal::ui::Font::Password11X12,
         scrollable: true,
         longtouch: true,
         ..Default::default()
@@ -80,7 +81,7 @@ async fn maybe_confirm_remaining_unlock_attempts(
     };
 
     hal.ui()
-        .confirm(&confirm::Params {
+        .confirm(&ConfirmParams {
             title: "WARNING",
             body: &body,
             accept_is_nextarrow: true,

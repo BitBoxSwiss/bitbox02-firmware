@@ -3,15 +3,40 @@
 use alloc::string::String;
 
 use crate::hal::Ui;
-use crate::hal::ui::UserAbort;
-use crate::workflow::{confirm, trinary_input_string};
+use crate::hal::ui::{ConfirmParams, Font, UserAbort};
+use crate::workflow::trinary_input_string;
 
 pub struct BitBox02Ui;
 
+fn to_bitbox02_font(font: Font) -> bitbox02::ui::Font {
+    match font {
+        Font::Default => bitbox02::ui::Font::Default,
+        Font::Password11X12 => bitbox02::ui::Font::Password11X12,
+        Font::Monogram5X9 => bitbox02::ui::Font::Monogram5X9,
+    }
+}
+
+fn to_bitbox02_confirm_params<'a>(
+    params: &'a ConfirmParams<'a>,
+) -> bitbox02::ui::ConfirmParams<'a> {
+    bitbox02::ui::ConfirmParams {
+        title: params.title,
+        title_autowrap: params.title_autowrap,
+        body: params.body,
+        font: to_bitbox02_font(params.font),
+        scrollable: params.scrollable,
+        longtouch: params.longtouch,
+        accept_only: params.accept_only,
+        accept_is_nextarrow: params.accept_is_nextarrow,
+        display_size: params.display_size,
+    }
+}
+
 impl Ui for BitBox02Ui {
     #[inline(always)]
-    async fn confirm(&mut self, params: &confirm::Params<'_>) -> Result<(), UserAbort> {
-        match bitbox02::ui::confirm(params).await {
+    async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {
+        let params = to_bitbox02_confirm_params(params);
+        match bitbox02::ui::confirm(&params).await {
             bitbox02::ui::ConfirmResponse::Approved => Ok(()),
             bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
         }
@@ -124,6 +149,55 @@ impl Ui for BitBox02Ui {
             bitbox02::ui::MenuResponse::SelectWord(choice_idx) => Ok(choice_idx),
             bitbox02::ui::MenuResponse::ContinueOnLast => panic!("unexpected continue-on-last"),
             bitbox02::ui::MenuResponse::Cancel => Err(UserAbort),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_bitbox02_font() {
+        let cases = [
+            (Font::Default, bitbox02::ui::Font::Default),
+            (Font::Password11X12, bitbox02::ui::Font::Password11X12),
+            (Font::Monogram5X9, bitbox02::ui::Font::Monogram5X9),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(to_bitbox02_font(input) as i32, expected as i32);
+        }
+    }
+
+    #[test]
+    fn test_to_bitbox02_confirm_params() {
+        let fonts = [
+            (Font::Default, bitbox02::ui::Font::Default),
+            (Font::Password11X12, bitbox02::ui::Font::Password11X12),
+            (Font::Monogram5X9, bitbox02::ui::Font::Monogram5X9),
+        ];
+        for (font, expected_font) in fonts {
+            let input = ConfirmParams {
+                title: "title",
+                title_autowrap: true,
+                body: "body",
+                font,
+                scrollable: true,
+                longtouch: true,
+                accept_only: true,
+                accept_is_nextarrow: true,
+                display_size: 42,
+            };
+            let output = to_bitbox02_confirm_params(&input);
+            assert_eq!(output.title, "title");
+            assert!(output.title_autowrap);
+            assert_eq!(output.body, "body");
+            assert_eq!(output.font as i32, expected_font as i32);
+            assert!(output.scrollable);
+            assert!(output.longtouch);
+            assert!(output.accept_only);
+            assert!(output.accept_is_nextarrow);
+            assert_eq!(output.display_size, 42);
         }
     }
 }

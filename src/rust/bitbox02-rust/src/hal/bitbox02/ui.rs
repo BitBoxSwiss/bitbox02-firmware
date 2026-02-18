@@ -99,7 +99,19 @@ impl Ui for BitBox02Ui {
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), cancel::Error> {
-        mnemonic::show_mnemonic(words).await
+        match bitbox02::ui::menu(bitbox02::ui::MenuParams {
+            words,
+            title: None,
+            select_word: false,
+            continue_on_last: true,
+            cancel_confirm_title: Some("Recovery\nwords"),
+        })
+        .await
+        {
+            bitbox02::ui::MenuResponse::ContinueOnLast => Ok(()),
+            bitbox02::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
+            bitbox02::ui::MenuResponse::Cancel => Err(cancel::Error::Cancelled),
+        }
     }
 
     async fn quiz_mnemonic_word(

@@ -59,23 +59,6 @@ fn create_random_unique_words(word: &str, length: u8) -> (u8, Vec<zeroize::Zeroi
     (index_word, result)
 }
 
-/// Displays all mnemonic words in a scroll-through screen.
-pub async fn show_mnemonic(words: &[&str]) -> Result<(), CancelError> {
-    match bitbox02::ui::menu(bitbox02::ui::MenuParams {
-        words,
-        title: None,
-        select_word: false,
-        continue_on_last: true,
-        cancel_confirm_title: Some("Recovery\nwords"),
-    })
-    .await
-    {
-        bitbox02::ui::MenuResponse::ContinueOnLast => Ok(()),
-        bitbox02::ui::MenuResponse::SelectWord(_) => panic!("unexpected select-word"),
-        bitbox02::ui::MenuResponse::Cancel => Err(CancelError::Cancelled),
-    }
-}
-
 /// Displays the `choices` to the user, returning the index of the selected choice.
 pub async fn confirm_word(choices: &[&str], title: &str) -> Result<u8, CancelError> {
     match bitbox02::ui::menu(bitbox02::ui::MenuParams {

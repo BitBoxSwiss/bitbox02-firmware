@@ -38,7 +38,10 @@ impl Ui for BitBox02Ui {
         fee: &str,
         longtouch: bool,
     ) -> Result<(), transaction::UserAbort> {
-        transaction::verify_total_fee(total, fee, longtouch).await
+        match bitbox02::ui::confirm_transaction_fee(total, fee, longtouch).await {
+            bitbox02::ui::ConfirmResponse::Approved => Ok(()),
+            bitbox02::ui::ConfirmResponse::Cancelled => Err(transaction::UserAbort),
+        }
     }
 
     #[inline(always)]

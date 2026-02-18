@@ -11,13 +11,6 @@ fn format_percentage(p: f64) -> String {
     util::decimal::format_no_trim(int, 1)
 }
 
-pub async fn verify_total_fee(total: &str, fee: &str, longtouch: bool) -> Result<(), UserAbort> {
-    match bitbox02::ui::confirm_transaction_fee(total, fee, longtouch).await {
-        bitbox02::ui::ConfirmResponse::Approved => Ok(()),
-        bitbox02::ui::ConfirmResponse::Cancelled => Err(UserAbort),
-    }
-}
-
 pub async fn verify_total_fee_maybe_warn(
     hal: &mut impl crate::hal::Hal,
     total: &str,

@@ -4,8 +4,7 @@ use alloc::string::String;
 
 use crate::hal::Ui;
 use crate::workflow::{
-    cancel, confirm, menu, mnemonic, sdcard, status, transaction, trinary_choice,
-    trinary_input_string,
+    cancel, confirm, menu, mnemonic, sdcard, transaction, trinary_choice, trinary_input_string,
 };
 
 pub(crate) struct BitBox02Ui;
@@ -46,7 +45,7 @@ impl Ui for BitBox02Ui {
 
     #[inline(always)]
     async fn status(&mut self, title: &str, status_success: bool) {
-        status::status(title, status_success).await
+        bitbox02::ui::status(title, status_success).await
     }
 
     #[inline(always)]

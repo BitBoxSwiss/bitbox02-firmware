@@ -157,6 +157,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     }
 
     let crate::hal::HalSubsystems {
+        ui,
         random,
         securechip,
         memory,
@@ -165,7 +166,7 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     let mut keystore_hal = crate::keystore::KeystoreHalImpl::new(memory, random, securechip);
 
     let ((), result) = futures_lite::future::zip(
-        super::unlock_animation::animate(),
+        ui.unlock_animation(),
         crate::keystore::unlock_bip39(
             &mut keystore_hal,
             seed,

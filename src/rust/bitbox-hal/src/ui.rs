@@ -74,6 +74,8 @@ pub trait Ui {
         longtouch: bool,
     ) -> Result<(), UserAbort>;
 
+    async fn unlock_animation(&mut self);
+
     async fn status(&mut self, title: &str, status_success: bool);
 
     /// If `can_cancel` is `Yes`, the workflow can be cancelled.

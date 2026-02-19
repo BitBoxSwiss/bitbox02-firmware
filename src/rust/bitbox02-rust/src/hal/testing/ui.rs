@@ -108,6 +108,8 @@ impl Ui for TestingUi<'_> {
         Ok(())
     }
 
+    async fn unlock_animation(&mut self) {}
+
     async fn status(&mut self, title: &str, status_success: bool) {
         self.screens.push(Screen::Status {
             title: title.into(),

@@ -26,6 +26,58 @@ const LONG_TIMEOUT: i16 = -70;
 // After this many failed unlock attempts, the keystore becomes locked until a device reset.
 pub const MAX_UNLOCK_ATTEMPTS: u8 = 10;
 
+pub trait KeystoreHal {
+    type Memory: Memory;
+    type Random: Random;
+    type SecureChip: SecureChip;
+
+    fn memory(&mut self) -> &mut Self::Memory;
+    fn random(&mut self) -> &mut Self::Random;
+    fn securechip(&mut self) -> &mut Self::SecureChip;
+}
+
+pub struct KeystoreHalImpl<'a, M: Memory, R: Random, S: SecureChip> {
+    memory: &'a mut M,
+    random: &'a mut R,
+    securechip: &'a mut S,
+}
+
+impl<'a, M: Memory, R: Random, S: SecureChip> KeystoreHalImpl<'a, M, R, S> {
+    pub fn new(memory: &'a mut M, random: &'a mut R, securechip: &'a mut S) -> Self {
+        Self {
+            memory,
+            random,
+            securechip,
+        }
+    }
+
+    pub fn from_hal<H>(hal: &'a mut H) -> Self
+    where
+        H: crate::hal::Hal<Memory = M, Random = R, SecureChip = S>,
+    {
+        let subsystems = hal.subsystems();
+        Self::new(subsystems.memory, subsystems.random, subsystems.securechip)
+    }
+}
+
+impl<M: Memory, R: Random, S: SecureChip> KeystoreHal for KeystoreHalImpl<'_, M, R, S> {
+    type Memory = M;
+    type Random = R;
+    type SecureChip = S;
+
+    fn memory(&mut self) -> &mut Self::Memory {
+        self.memory
+    }
+
+    fn random(&mut self) -> &mut Self::Random {
+        self.random
+    }
+
+    fn securechip(&mut self) -> &mut Self::SecureChip {
+        self.securechip
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     InvalidState,
@@ -88,7 +140,7 @@ struct RetainedEncryptedBuffer {
 
 impl RetainedEncryptedBuffer {
     fn from_buffer(
-        hal: &mut impl crate::hal::Hal,
+        hal: &mut impl KeystoreHal,
         data: &[u8],
         purpose: &'static str,
     ) -> Result<Self, Error> {
@@ -114,10 +166,7 @@ impl RetainedEncryptedBuffer {
         })
     }
 
-    fn decrypt(
-        &self,
-        hal: &mut impl crate::hal::Hal,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    fn decrypt(&self, hal: &mut impl KeystoreHal) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         let encryption_key = stretch_retained_seed_encryption_key(
             hal,
             &self.unstretched_encryption_key,
@@ -178,16 +227,16 @@ fn verify_seed(
     decrypted.as_slice() == expected_seed
 }
 
-fn hash_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<[u8; 32], Error> {
-    let salted_key =
-        crate::salt::hash_data(hal, &[], "keystore_retain_seed_hash").map_err(|_| Error::Salt)?;
+fn hash_seed(hal: &mut impl KeystoreHal, seed: &[u8]) -> Result<[u8; 32], Error> {
+    let salted_key = crate::salt::hash_data(hal.memory(), &[], "keystore_retain_seed_hash")
+        .map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_key.as_slice());
     engine.input(seed);
     Ok(Hmac::<sha256::Hash>::from_engine(engine).to_byte_array())
 }
 
-fn retain_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), Error> {
+fn retain_seed(hal: &mut impl KeystoreHal, seed: &[u8]) -> Result<(), Error> {
     RETAINED_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
         hal,
         seed,
@@ -197,7 +246,7 @@ fn retain_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), Error>
     Ok(())
 }
 
-fn retain_bip39_seed(hal: &mut impl crate::hal::Hal, bip39_seed: &[u8]) -> Result<(), Error> {
+fn retain_bip39_seed(hal: &mut impl KeystoreHal, bip39_seed: &[u8]) -> Result<(), Error> {
     RETAINED_BIP39_SEED.write(Some(RetainedEncryptedBuffer::from_buffer(
         hal,
         bip39_seed,
@@ -259,7 +308,7 @@ fn encrypt_and_store_seed_internal(
         return Err(Error::Memory);
     }
 
-    retain_seed(hal, seed)
+    retain_seed(&mut KeystoreHalImpl::from_hal(hal), seed)
 }
 
 /// Restores a seed. This also unlocks the keystore with this seed.
@@ -295,7 +344,7 @@ pub fn re_encrypt_seed(
     encrypt_and_store_seed_internal(hal, seed, new_password)?;
 
     // Re-retain the bip39 seed and root fingerprint
-    retain_bip39_seed(hal, bip39_seed.as_slice())?;
+    retain_bip39_seed(&mut KeystoreHalImpl::from_hal(hal), bip39_seed.as_slice())?;
     ROOT_FINGERPRINT.write(Some(root_fingerprint));
 
     Ok(())
@@ -317,12 +366,12 @@ fn migrate_password_algo_and_retain_seed(
     if stored_algo != default_algo {
         encrypt_and_store_seed_internal(hal, seed, password)
     } else {
-        retain_seed(hal, seed)
+        retain_seed(&mut KeystoreHalImpl::from_hal(hal), seed)
     }
 }
 
 // Checks if the retained seed matches the passed seed.
-fn check_retained_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<(), ()> {
+fn check_retained_seed(hal: &mut impl KeystoreHal, seed: &[u8]) -> Result<(), ()> {
     if RETAINED_SEED.read().is_none() {
         return Err(());
     }
@@ -389,7 +438,7 @@ pub async fn unlock(
 
     if RETAINED_SEED.read().is_some() {
         // Already unlocked. Fail if the seed changed under our feet (should never happen).
-        if check_retained_seed(hal, &seed).is_err() {
+        if check_retained_seed(&mut KeystoreHalImpl::from_hal(hal), &seed).is_err() {
             panic!("Seed has suddenly changed. This should never happen.");
         }
     } else {
@@ -411,7 +460,7 @@ pub fn get_remaining_unlock_attempts(hal: &mut impl crate::hal::Hal) -> u8 {
 /// `mnemonic_passphrase` is the bip39 passphrase used in the derivation. Use the empty string if no
 /// passphrase is needed or provided.
 pub async fn unlock_bip39(
-    hal: &mut impl crate::hal::Hal,
+    hal: &mut impl KeystoreHal,
     seed: &[u8],
     mnemonic_passphrase: &str,
     yield_now: impl AsyncFn(),
@@ -437,7 +486,11 @@ pub async fn unlock_bip39(
 
 /// Returns a copy of the retained seed. Errors if the keystore is locked.
 pub fn copy_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    RETAINED_SEED.read().ok_or(())?.decrypt(hal).map_err(|_| ())
+    RETAINED_SEED
+        .read()
+        .ok_or(())?
+        .decrypt(&mut KeystoreHalImpl::from_hal(hal))
+        .map_err(|_| ())
 }
 
 /// Returns a copy of the retained bip39 seed. Errors if the keystore is locked.
@@ -445,7 +498,7 @@ pub fn copy_bip39_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroiz
     RETAINED_BIP39_SEED
         .read()
         .ok_or(())?
-        .decrypt(hal)
+        .decrypt(&mut KeystoreHalImpl::from_hal(hal))
         .map_err(|_| ())
 }
 
@@ -472,9 +525,12 @@ pub fn create_and_store_seed(
     }
 
     // Mix in entropy derived from the user password.
-    let password_salted_hashed =
-        crate::salt::hash_data(hal, password.as_bytes(), "keystore_seed_generation")
-            .map_err(|_| Error::Salt)?;
+    let password_salted_hashed = crate::salt::hash_data(
+        hal.memory(),
+        password.as_bytes(),
+        "keystore_seed_generation",
+    )
+    .map_err(|_| Error::Salt)?;
 
     for (i, &hash_byte) in password_salted_hashed.iter().take(seed_len).enumerate() {
         seed[i] ^= hash_byte;
@@ -604,18 +660,18 @@ pub fn root_fingerprint() -> Result<Vec<u8>, ()> {
 /// Stretches the given encryption_key using the securechip. The resulting key is used to encrypt
 /// the retained seed or bip39 seed.
 pub fn stretch_retained_seed_encryption_key(
-    hal: &mut impl crate::hal::Hal,
+    hal: &mut impl KeystoreHal,
     encryption_key: &[u8; 32],
     purpose_in: &str,
     purpose_out: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let salted_in =
-        crate::salt::hash_data(hal, encryption_key, purpose_in).map_err(|_| Error::Salt)?;
+    let salted_in = crate::salt::hash_data(hal.memory(), encryption_key, purpose_in)
+        .map_err(|_| Error::Salt)?;
 
     let kdf = hal.securechip().kdf(salted_in.as_slice())?;
 
-    let salted_out =
-        crate::salt::hash_data(hal, encryption_key, purpose_out).map_err(|_| Error::Salt)?;
+    let salted_out = crate::salt::hash_data(hal.memory(), encryption_key, purpose_out)
+        .map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_out.as_slice());
     engine.input(kdf.as_slice());
@@ -755,9 +811,9 @@ pub mod testing {
     pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {
         let mut mock_hal = crate::hal::testing::TestingHal::new();
         let seed = crate::bip39::mnemonic_to_seed(mnemonic).unwrap();
-        super::retain_seed(&mut mock_hal, &seed).unwrap();
+        super::retain_seed(&mut super::KeystoreHalImpl::from_hal(&mut mock_hal), &seed).unwrap();
         util::bb02_async::block_on(super::unlock_bip39(
-            &mut mock_hal,
+            &mut super::KeystoreHalImpl::from_hal(&mut mock_hal),
             &seed,
             passphrase,
             async || {},
@@ -920,7 +976,15 @@ mod tests {
         let unlocked_seed = block_on(unlock(&mut mock_hal, "old_password")).unwrap();
         assert_eq!(unlocked_seed.as_slice(), seed.as_slice());
 
-        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "", async || {})).is_ok());
+        assert!(
+            block_on(unlock_bip39(
+                &mut KeystoreHalImpl::from_hal(&mut mock_hal),
+                &seed,
+                "",
+                async || {},
+            ))
+            .is_ok()
+        );
 
         // Step 3: Re-encrypt with new password
         assert!(re_encrypt_seed(&mut mock_hal, &seed, "new_password").is_ok());
@@ -948,7 +1012,15 @@ mod tests {
         // Initial setup
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password1").is_ok());
 
-        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "", async || {})).is_ok());
+        assert!(
+            block_on(unlock_bip39(
+                &mut KeystoreHalImpl::from_hal(&mut mock_hal),
+                &seed,
+                "",
+                async || {},
+            ))
+            .is_ok()
+        );
 
         let seed_reference = copy_seed(&mut mock_hal).unwrap();
         let bip39_seed_reference = copy_bip39_seed(&mut mock_hal).unwrap();
@@ -984,7 +1056,15 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         block_on(unlock(&mut mock_hal, "password")).unwrap();
 
-        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "", async || {})).is_ok());
+        assert!(
+            block_on(unlock_bip39(
+                &mut KeystoreHalImpl::from_hal(&mut mock_hal),
+                &seed,
+                "",
+                async || {},
+            ))
+            .is_ok()
+        );
 
         // Try to re-encrypt with invalid seed size
         assert!(matches!(
@@ -1007,7 +1087,9 @@ mod tests {
         assert!(copy_bip39_seed(&mut mock_hal).is_err());
 
         // Retain the BIP39 seed
-        assert!(retain_bip39_seed(&mut mock_hal, &bip39_seed).is_ok());
+        assert!(
+            retain_bip39_seed(&mut KeystoreHalImpl::from_hal(&mut mock_hal), &bip39_seed).is_ok()
+        );
 
         // Should now be available
         let retrieved = copy_bip39_seed(&mut mock_hal).unwrap();
@@ -1027,14 +1109,18 @@ mod tests {
         );
 
         // Retain first seed
-        assert!(retain_bip39_seed(&mut mock_hal, &bip39_seed1).is_ok());
+        assert!(
+            retain_bip39_seed(&mut KeystoreHalImpl::from_hal(&mut mock_hal), &bip39_seed1).is_ok()
+        );
         assert_eq!(
             copy_bip39_seed(&mut mock_hal).unwrap().as_slice(),
             bip39_seed1.as_slice()
         );
 
         // Retain second seed (should overwrite)
-        assert!(retain_bip39_seed(&mut mock_hal, &bip39_seed2).is_ok());
+        assert!(
+            retain_bip39_seed(&mut KeystoreHalImpl::from_hal(&mut mock_hal), &bip39_seed2).is_ok()
+        );
         assert_eq!(
             copy_bip39_seed(&mut mock_hal).unwrap().as_slice(),
             bip39_seed2.as_slice()
@@ -1069,7 +1155,15 @@ mod tests {
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
-        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "foo", async || {})).is_ok());
+        assert!(
+            block_on(unlock_bip39(
+                &mut KeystoreHalImpl::from_hal(&mut mock_hal),
+                &seed,
+                "foo",
+                async || {},
+            ))
+            .is_ok()
+        );
         assert!(!is_locked());
         lock();
         assert!(is_locked());
@@ -1429,10 +1523,10 @@ mod tests {
         // Incorrect seed passed
         assert!(
             block_on(unlock_bip39(
-                &mut mock_hal,
+                &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                 b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "foo",
-                async || {}
+                async || {},
             ))
             .is_err()
         );
@@ -1444,7 +1538,15 @@ mod tests {
         ));
 
         mock_hal.securechip.event_counter_reset();
-        assert!(block_on(unlock_bip39(&mut mock_hal, &seed, "foo", async || {})).is_ok());
+        assert!(
+            block_on(unlock_bip39(
+                &mut KeystoreHalImpl::from_hal(&mut mock_hal),
+                &seed,
+                "foo",
+                async || {},
+            ))
+            .is_ok()
+        );
         assert_eq!(mock_hal.securechip.get_event_counter(), 1);
         assert_eq!(root_fingerprint(), Ok(vec![0xf1, 0xbc, 0x3c, 0x46]),);
 
@@ -1682,7 +1784,7 @@ mod tests {
             hex!("00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00");
 
         let stretched = stretch_retained_seed_encryption_key(
-            &mut mock_hal,
+            &mut KeystoreHalImpl::from_hal(&mut mock_hal),
             &encryption_key,
             "keystore_retained_seed_access_in",
             "keystore_retained_seed_access_out",
@@ -1701,7 +1803,7 @@ mod tests {
 
         let encryption_key = [0u8; 32];
         let result = stretch_retained_seed_encryption_key(
-            &mut mock_hal,
+            &mut KeystoreHalImpl::from_hal(&mut mock_hal),
             &encryption_key,
             "purpose_in",
             "purpose_out",
@@ -1845,10 +1947,10 @@ mod tests {
 
             assert!(
                 block_on(unlock_bip39(
-                    &mut mock_hal,
+                    &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                     seed,
                     test.mnemonic_passphrase,
-                    async || {}
+                    async || {},
                 ))
                 .is_err()
             );
@@ -1862,10 +1964,10 @@ mod tests {
             mock_hal.securechip.event_counter_reset();
             assert!(
                 block_on(unlock_bip39(
-                    &mut mock_hal,
+                    &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                     seed,
                     test.mnemonic_passphrase,
-                    async || {}
+                    async || {},
                 ))
                 .is_ok()
             );

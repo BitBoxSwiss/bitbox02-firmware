@@ -10,5 +10,4 @@ pub mod pairing;
 pub mod password;
 pub mod transaction;
 pub mod unlock;
-pub mod unlock_animation;
 pub mod verify_message;

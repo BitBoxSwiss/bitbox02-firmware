@@ -84,6 +84,11 @@ impl Ui for BitBox02Ui {
     }
 
     #[inline(always)]
+    async fn unlock_animation(&mut self) {
+        crate::ui::unlock_animation().await
+    }
+
+    #[inline(always)]
     async fn status(&mut self, title: &str, status_success: bool) {
         crate::ui::status(title, status_success).await
     }

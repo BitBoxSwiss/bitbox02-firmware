@@ -156,10 +156,19 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
         }
     }
 
+    let crate::hal::HalSubsystems {
+        ui,
+        random,
+        securechip,
+        memory,
+        ..
+    } = hal.subsystems();
+    let mut keystore_hal = crate::keystore::KeystoreHalImpl::new(memory, random, securechip);
+
     let ((), result) = futures_lite::future::zip(
-        super::unlock_animation::animate(),
+        ui.unlock_animation(),
         crate::keystore::unlock_bip39(
-            hal,
+            &mut keystore_hal,
             seed,
             &mnemonic_passphrase,
             // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the

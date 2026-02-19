@@ -230,7 +230,7 @@
 #endif
 
 /*Use TSi's aka (Think Silicon) NemaGFX */
-#define LV_USE_NEMA_GFX 1
+#define LV_USE_NEMA_GFX 0
 
 #if LV_USE_NEMA_GFX
     /** Select which NemaGFX HAL to use. Possible options:
@@ -367,7 +367,7 @@
 #endif
 
 /** Accelerate blends, fills, etc. with STM32 DMA2D */
-#define LV_USE_DRAW_DMA2D 1
+#define LV_USE_DRAW_DMA2D 0
 #if LV_USE_DRAW_DMA2D
     #define LV_DRAW_DMA2D_HAL_INCLUDE "stm32u5xx_hal.h"
 

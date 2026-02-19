@@ -254,6 +254,7 @@ dependencies = [
  "cortex-m-rt",
  "embedded-alloc",
  "st-drivers-sys",
+ "stm32u5",
 ]
 
 [[package]]
@@ -1206,6 +1207,18 @@ version = "0.1.0"
 dependencies = [
  "cc",
  "cortex-m-rt",
+]
+
+[[package]]
+name = "stm32u5"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d618b263f62f04405cb1a67976740dd89dfe82eb70f42811dc63ce24b09198f"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "vcell",
 ]
 
 [[package]]

@@ -10,3 +10,4 @@ cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
 arrayvec = {version = "0.7", default-features = false}
 embedded-alloc = { version = "0.7" }
+stm32u5 = { version = "0.16", features = ["stm32u5a9"]}

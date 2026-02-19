@@ -10,7 +10,7 @@ license = "Apache-2.0"
 
 [dependencies]
 # Set stack pointer in startup code
-cortex-m-rt = { version = "0.7", features = ["set-sp"]}
+cortex-m-rt = { version = "0.7", features = ["set-sp", "device"]}
 
 [build-dependencies]
 cc = { version = "1.2", features = ["parallel"] }

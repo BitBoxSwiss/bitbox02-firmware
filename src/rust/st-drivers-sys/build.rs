@@ -155,7 +155,8 @@ fn main() -> Result<(), &'static str> {
     if !wrapper.is_file() {
         return Err("wrapper.h not found");
     }
-    let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let out_path = out_dir.join("bindings.rs");
     run_bindgen(&wrapper, &out_path, &clang_args)?;
 
     // ST sources are Cortex-M only and do not compile as host objects.
@@ -172,6 +173,5 @@ fn main() -> Result<(), &'static str> {
         build.flag_if_supported("-w");
         build.compile("st_drivers");
     }
-
     Ok(())
 }

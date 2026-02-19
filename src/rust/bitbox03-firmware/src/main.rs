@@ -8,6 +8,7 @@ use core::ffi::CStr;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 use cortex_m_rt::entry;
+use stm32u5::stm32u5a9::interrupt;
 
 use bitbox_lvgl::{
     LV_PART_MAIN, LvAlign, LvDisplayRenderMode, lv_color_hex, lv_display_create,
@@ -17,6 +18,27 @@ use bitbox_lvgl::{
 };
 
 mod uart;
+
+unsafe extern "C" {
+    fn LTDC_IRQHandler();
+    fn GPU2D_IRQHandler();
+    fn GPU2D_ER_IRQHandler();
+}
+
+#[interrupt]
+unsafe fn GPU2D_IRQ() {
+    unsafe { GPU2D_IRQHandler() }
+}
+
+#[interrupt]
+unsafe fn GPU2D_IRQSYS() {
+    unsafe { GPU2D_ER_IRQHandler() }
+}
+
+#[interrupt]
+unsafe fn LCD_TFT() {
+    unsafe { LTDC_IRQHandler() }
+}
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {

@@ -34,18 +34,6 @@ fn has_ble(hal: &mut impl crate::hal::Hal) -> bool {
     has_ble
 }
 
-/// C interface.
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_communication_mode_ble_disable() {
-    ble_disable();
-}
-
-/// C interface.
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_communication_mode_ble_enabled() -> bool {
-    ble_enabled(&mut crate::hal::BitBox02Hal::new())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -11,10 +11,27 @@ mod alloc;
 
 #[cfg(feature = "firmware")]
 pub mod async_usb;
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+mod communication_mode;
 #[cfg(feature = "firmware")]
 mod der;
+#[cfg(feature = "firmware")]
+mod firmware_c_api;
 #[cfg(feature = "factory-setup")]
 mod secp256k1;
+
+#[cfg(feature = "app-u2f")]
+// Stubs for C unit tests and C simulator - these are currently compiled and linked but they don't
+// actually have to spawn/poll futures. The C simulator does not contain U2F, and the unit tests
+// don't contain an executor.
+#[cfg_attr(
+    any(feature = "c-unit-testing", feature = "simulator-graphical"),
+    path = "u2f_c_api_stubs.rs"
+)]
+mod u2f_c_api;
 
 // Expose C interface defined in bitbox_aes
 #[cfg(feature = "firmware")]
@@ -33,6 +50,13 @@ extern crate bitbox_framed_serial_link;
 
 // Expose C interface defined in util
 extern crate util;
+
+#[allow(unused)]
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+type HalImpl = bitbox02::hal::BitBox02Hal;
 
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen and over RTT. If we compile with

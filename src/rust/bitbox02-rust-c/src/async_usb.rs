@@ -2,8 +2,16 @@
 
 #![allow(clippy::missing_safety_doc)]
 
+extern crate alloc;
+
+use crate::HalImpl;
+use alloc::vec::Vec;
 use bitbox02_rust::async_usb::{on_next_request, spawn, waiting_for_next_request};
-use bitbox02_rust::hww::process_packet;
+
+async fn process_packet_with_hal(usb_in: Vec<u8>) -> Vec<u8> {
+    let mut hal = HalImpl::new();
+    bitbox02_rust::hww::process_packet(&mut hal, usb_in).await
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_async_usb_spin() {
@@ -46,7 +54,7 @@ pub extern "C" fn rust_async_usb_on_request_hww(usb_in: util::bytes::Bytes) {
     if waiting_for_next_request() {
         on_next_request(usb_in.as_ref());
     } else {
-        spawn(process_packet, usb_in.as_ref());
+        spawn(process_packet_with_hal, usb_in.as_ref());
     }
 }
 

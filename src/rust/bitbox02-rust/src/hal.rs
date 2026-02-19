@@ -4,4 +4,3 @@
 pub mod testing;
 
 pub use bitbox_hal::*;
-pub use bitbox02::hal::BitBox02Hal;

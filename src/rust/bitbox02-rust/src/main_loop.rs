@@ -20,7 +20,7 @@ pub fn spawn(fut: DynExecutorFuture) {
     EXECUTOR.spawn(fut).detach();
 }
 
-fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
+pub fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
     static ORIENTATION_CHOSEN: AtomicBool = AtomicBool::new(false);
 
     // Set the size of uart_read_buf to the size of the ringbuffer in the UART driver so we can read
@@ -171,13 +171,4 @@ fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
             bitbox02::usb::start();
         }
     }
-}
-
-//
-// C interface
-//
-
-#[unsafe(no_mangle)]
-pub extern "C" fn rust_main_loop() -> ! {
-    main_loop(&mut crate::hal::BitBox02Hal::new())
 }

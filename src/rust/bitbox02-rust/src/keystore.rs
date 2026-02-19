@@ -55,8 +55,13 @@ impl<'a, M: Memory, R: Random, S: SecureChip> KeystoreHalImpl<'a, M, R, S> {
     where
         H: crate::hal::Hal<Memory = M, Random = R, SecureChip = S>,
     {
-        let subsystems = hal.subsystems();
-        Self::new(subsystems.memory, subsystems.random, subsystems.securechip)
+        let crate::hal::HalSubsystems {
+            random,
+            securechip,
+            memory,
+            ..
+        } = hal.as_mut();
+        Self::new(memory, random, securechip)
     }
 }
 

@@ -44,7 +44,7 @@ impl<'a> crate::hal::Hal for TestingHal<'a> {
     type Memory = TestingMemory;
     type System = TestingSystem;
 
-    fn subsystems(
+    fn as_mut(
         &mut self,
     ) -> crate::hal::HalSubsystems<
         '_,

@@ -43,7 +43,7 @@ impl Hal for BitBox02Hal {
     type Memory = memory::BitBox02Memory;
     type System = system::BitBox02System;
 
-    fn subsystems(
+    fn as_mut(
         &mut self,
     ) -> bitbox_hal::HalSubsystems<
         '_,

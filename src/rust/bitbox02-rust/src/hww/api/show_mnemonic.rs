@@ -47,7 +47,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 
     {
-        let crate::hal::HalSubsystems { ui, random, .. } = hal.subsystems();
+        let crate::hal::HalSubsystems { ui, random, .. } = hal.as_mut();
         crate::workflow::mnemonic::show_and_confirm_mnemonic(ui, random, &words).await?;
     }
 

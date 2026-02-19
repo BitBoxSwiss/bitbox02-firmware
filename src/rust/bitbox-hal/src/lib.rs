@@ -44,7 +44,7 @@ pub trait Hal {
     type Memory: memory::Memory;
     type System: system::System;
 
-    fn subsystems(
+    fn as_mut(
         &mut self,
     ) -> HalSubsystems<
         '_,
@@ -57,26 +57,26 @@ pub trait Hal {
     >;
 
     fn ui(&mut self) -> &mut Self::Ui {
-        self.subsystems().ui
+        self.as_mut().ui
     }
 
     fn random(&mut self) -> &mut Self::Random {
-        self.subsystems().random
+        self.as_mut().random
     }
 
     fn sd(&mut self) -> &mut Self::Sd {
-        self.subsystems().sd
+        self.as_mut().sd
     }
 
     fn securechip(&mut self) -> &mut Self::SecureChip {
-        self.subsystems().securechip
+        self.as_mut().securechip
     }
 
     fn memory(&mut self) -> &mut Self::Memory {
-        self.subsystems().memory
+        self.as_mut().memory
     }
 
     fn system(&mut self) -> &mut Self::System {
-        self.subsystems().system
+        self.as_mut().system
     }
 }

@@ -7,7 +7,7 @@ pub mod securechip;
 pub mod system;
 pub mod ui;
 
-use crate::hal::Hal;
+use bitbox_hal::Hal;
 
 pub struct BitBox02Hal {
     ui: ui::BitBox02Ui,
@@ -45,7 +45,7 @@ impl Hal for BitBox02Hal {
 
     fn subsystems(
         &mut self,
-    ) -> crate::hal::HalSubsystems<
+    ) -> bitbox_hal::HalSubsystems<
         '_,
         Self::Ui,
         Self::Random,
@@ -54,7 +54,7 @@ impl Hal for BitBox02Hal {
         Self::Memory,
         Self::System,
     > {
-        crate::hal::HalSubsystems {
+        bitbox_hal::HalSubsystems {
             ui: &mut self.ui,
             random: &mut self.random,
             sd: &mut self.sd,

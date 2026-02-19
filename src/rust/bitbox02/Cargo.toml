@@ -10,9 +10,12 @@ license = "Apache-2.0"
 
 [dependencies]
 bitbox02-sys = {path="../bitbox02-sys"}
+bitbox-hal = { path = "../bitbox-hal" }
 util = {path = "../util"}
 zeroize = { workspace = true }
 bip39 = { workspace = true }
+futures-lite = { workspace = true }
+grounded = { workspace = true }
 
 [dev-dependencies]
 bitbox-aes = { path = "../bitbox-aes" }
@@ -33,4 +36,4 @@ simulator-graphical = []
 app-ethereum = []
 app-bitcoin = []
 app-litecoin = []
-app-u2f = []
+app-u2f = ["bitbox-hal/app-u2f"]

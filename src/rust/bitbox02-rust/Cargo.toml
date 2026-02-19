@@ -14,6 +14,7 @@ license = "Apache-2.0"
 doctest = false
 
 [dependencies]
+bitbox-hal = { path = "../bitbox-hal" }
 bitbox02 = { path = "../bitbox02" }
 bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
 util = { path = "../util" }
@@ -49,7 +50,7 @@ bip39 = { workspace = true }
 bitcoin_hashes = { version = "0.14.0", default-features = false, features = ["small-hash"] }
 futures-lite = { workspace = true }
 hex_lit = { workspace = true, features = ["rust_v_1_46"] }
-grounded = { version = "0.2.0", default-features = false, features = ["critical-section"] }
+grounded = { workspace = true }
 
 [dependencies.prost]
 # keep version in sync with tools/prost-build/Cargo.toml.
@@ -81,6 +82,7 @@ app-litecoin = [
 ]
 
 app-u2f = [
+  "bitbox-hal/app-u2f",
   "bitbox02/app-u2f",
 ]
 

@@ -12,11 +12,11 @@ use zeroize::Zeroizing;
 ///
 /// Returns `Err(())` if the salt root cannot be retrieved from persistent storage.
 pub fn hash_data(
-    hal: &mut impl crate::hal::Hal,
+    memory: &mut impl Memory,
     data: &[u8],
     purpose: &str,
 ) -> Result<Zeroizing<Vec<u8>>, ()> {
-    let salt_root = hal.memory().get_salt_root()?;
+    let salt_root = memory.get_salt_root()?;
 
     let mut hasher = sha2::Sha256::new();
     hasher.update(salt_root.as_slice());
@@ -46,7 +46,7 @@ mod tests {
         let data = hex!("001122334455667788");
         let expected = hex!("62db8dcd47ddf8e81809c377ed96643855d3052bb73237100ca81f0f5a7611e6");
 
-        let hash = hash_data(&mut mock_hal, &data, "test purpose").unwrap();
+        let hash = hash_data(&mut mock_hal.memory, &data, "test purpose").unwrap();
         assert_eq!(hash.as_slice(), &expected);
     }
 
@@ -58,7 +58,7 @@ mod tests {
 
         let expected = hex!("2dbb05dd73d94edba6946611aaca367f76c809e96f20499ad674e596050f9833");
 
-        let hash = hash_data(&mut mock_hal, &[], "").unwrap();
+        let hash = hash_data(&mut mock_hal.memory, &[], "").unwrap();
         assert_eq!(hash.as_slice(), &expected);
     }
 }

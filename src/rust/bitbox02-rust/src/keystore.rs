@@ -179,8 +179,8 @@ fn verify_seed(
 }
 
 fn hash_seed(hal: &mut impl crate::hal::Hal, seed: &[u8]) -> Result<[u8; 32], Error> {
-    let salted_key =
-        crate::salt::hash_data(hal, &[], "keystore_retain_seed_hash").map_err(|_| Error::Salt)?;
+    let salted_key = crate::salt::hash_data(hal.memory(), &[], "keystore_retain_seed_hash")
+        .map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_key.as_slice());
     engine.input(seed);
@@ -472,9 +472,12 @@ pub fn create_and_store_seed(
     }
 
     // Mix in entropy derived from the user password.
-    let password_salted_hashed =
-        crate::salt::hash_data(hal, password.as_bytes(), "keystore_seed_generation")
-            .map_err(|_| Error::Salt)?;
+    let password_salted_hashed = crate::salt::hash_data(
+        hal.memory(),
+        password.as_bytes(),
+        "keystore_seed_generation",
+    )
+    .map_err(|_| Error::Salt)?;
 
     for (i, &hash_byte) in password_salted_hashed.iter().take(seed_len).enumerate() {
         seed[i] ^= hash_byte;
@@ -609,13 +612,13 @@ pub fn stretch_retained_seed_encryption_key(
     purpose_in: &str,
     purpose_out: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let salted_in =
-        crate::salt::hash_data(hal, encryption_key, purpose_in).map_err(|_| Error::Salt)?;
+    let salted_in = crate::salt::hash_data(hal.memory(), encryption_key, purpose_in)
+        .map_err(|_| Error::Salt)?;
 
     let kdf = hal.securechip().kdf(salted_in.as_slice())?;
 
-    let salted_out =
-        crate::salt::hash_data(hal, encryption_key, purpose_out).map_err(|_| Error::Salt)?;
+    let salted_out = crate::salt::hash_data(hal.memory(), encryption_key, purpose_out)
+        .map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_out.as_slice());
     engine.input(kdf.as_slice());

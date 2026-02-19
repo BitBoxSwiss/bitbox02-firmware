@@ -3,6 +3,8 @@
 use core::ffi::c_char;
 use util::bytes::{Bytes, BytesMut};
 
+use bitbox_hal::Hal;
+
 #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_main_loop() -> ! {
@@ -22,7 +24,8 @@ pub unsafe extern "C" fn rust_salt_hash_data(
         Ok(purpose) => purpose,
         Err(()) => return false,
     };
-    match bitbox02_rust::salt::hash_data(&mut crate::HalImpl::new(), data.as_ref(), purpose_str) {
+    let mut hal = crate::HalImpl::new();
+    match bitbox02_rust::salt::hash_data(hal.memory(), data.as_ref(), purpose_str) {
         Ok(hash) => {
             hash_out.as_mut()[..32].copy_from_slice(&hash);
             true

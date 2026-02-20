@@ -6,6 +6,7 @@
 
 #include <hardfault.h>
 #include <memory/memory.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <string.h>
 #include <touch/gestures.h>
@@ -47,7 +48,7 @@ static void _truncate_to_fit(
 
     // Name fits without truncation.
     if (width <= max_width) {
-        snprintf(out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", in);
+        snprintf(out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", in);
         return;
     }
 
@@ -75,14 +76,14 @@ component_t* lockscreen_create(void)
 
     const UG_FONT* device_name_font = &font_font_a_9X9;
 
-    char device_name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    char device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     memory_get_device_name(device_name);
     // Show nothing if the name is the default name.
     if (STREQ(device_name, MEMORY_DEFAULT_DEVICE_NAME)) {
         device_name[0] = 0;
     }
 
-    char display_name[MEMORY_DEVICE_NAME_MAX_LEN + 3] = {0};
+    char display_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL + 3] = {0};
     _truncate_to_fit(
         device_name,
         display_name,

@@ -11,6 +11,7 @@
 #include "usb/usb_frame.h"
 #include "usb/usb_packet.h"
 #include "utils_ringbuffer.h"
+#include <rust/rust.h>
 #include <ui/components/confirm.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/monogram_5X9.h>
@@ -79,7 +80,7 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuf
         // util_log("da14531: get device name");
         //  1 byte cmd
         //  rest device name
-        uint8_t response[1 + MEMORY_DEVICE_NAME_MAX_LEN] = {0}; // +1 for cmd
+        uint8_t response[1 + MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0}; // +1 for cmd
         response[0] = CTRL_CMD_DEVICE_NAME;
 #if defined(BOOTLOADER)
         memory_random_name((char*)&response[1]);

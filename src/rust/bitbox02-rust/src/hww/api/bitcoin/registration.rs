@@ -87,11 +87,11 @@ async fn get_name(
         // We truncate the user input string to fit into the maximum allowed multisig
         // account name length. This is not very nice, but it has to do until we have some
         // sort of indication in the input component.
-        util::strings::truncate_str(name.as_str(), bitbox02::memory::MULTISIG_NAME_MAX_LEN).into()
+        util::strings::truncate_str(name.as_str(), bitbox_hal::memory::MULTISIG_NAME_MAX_LEN).into()
     } else {
         request.name.clone()
     };
-    if !util::name::validate(&name, bitbox02::memory::MULTISIG_NAME_MAX_LEN) {
+    if !util::name::validate(&name, bitbox_hal::memory::MULTISIG_NAME_MAX_LEN) {
         return Err(Error::InvalidInput);
     }
     Ok(name)

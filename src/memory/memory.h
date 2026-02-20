@@ -11,9 +11,6 @@
 
 #define NOISE_PUBKEY_SIZE 32
 
-// Including null terminator.
-#define MEMORY_MULTISIG_NAME_MAX_LEN (31)
-
 // How many multisig configurations (accounts) can be registered.
 #define MEMORY_MULTISIG_NUM_ENTRIES 25
 
@@ -66,18 +63,15 @@ USE_RESULT bool memory_cleanup_smarteeprom(void);
 
 // Default device name if no name was set by the user.
 extern const char* MEMORY_DEFAULT_DEVICE_NAME;
-// Don't change this without proper memory layout migration! (see chunk_1_t in
-// memory.c)
-#define MEMORY_DEVICE_NAME_MAX_LEN (64)
 
 // set device name. name is null terminated. The name must be smaller or equal to
-// MEMORY_DEVICE_NAME_MAX_LEN (including the null terminator) and larger than 0 in size, consist of
-// printable ASCII characters only (and space), not start or end with whitespace, and contain no
-// whitespace other than space.
+// MEMORY_DEVICE_MAX_LEN_WITH_NULL (including the null terminator) and larger than 0 in size,
+// consist of printable ASCII characters only (and space), not start or end with whitespace, and
+// contain no whitespace other than space.
 USE_RESULT bool memory_set_device_name(const char* name);
 
-// name_out must have MEMORY_DEVICE_NAME_MAX_LEN bytes in size. If no device name is set, or if it
-// is invalid, we return:
+// name_out must have MEMORY_DEVICE_MAX_LEN_WITH_NULL bytes in size. If no device name is set, or if
+// it is invalid, we return:
 // - `MEMORY_DEFAULT_DEVICE_NAME` for non-bluetooth enabled BitBoxes
 // - "BitBox ABCD" for Bluetooth-enabled BitBoxes, where ABCD are four random uppercase letters.
 //    The name is cached in RAM, so the same random name is returned until reboot.
@@ -259,7 +253,7 @@ USE_RESULT bool memory_add_noise_remote_static_pubkey(const uint8_t* pubkey);
  * If a name is already stored with this hash, the old name will be overwritten.
  * It's the callers responsibility to validate the name (beyond that it must be non-empty).
  * @param[in] hash hash identifying the multisig config. Can't be 0xfffff....
- * @param[in] human readable name. Must be at most MEMORY_MULTISIG_NAME_MAX_LEN bytes,
+ * @param[in] human readable name. Must be at most MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL bytes,
  * including the null terminator (otherwise the name will be truncated), and non-empty.
  * @return see memory_result_t, can return MEMORY_OK, MEMORY_ERR_INVALID_INPUT, MEMORY_ERR_FULL,
  * MEMORY_ERR_DUPLICATE_NAME, MEMORY_ERR_UNKNOWN.
@@ -269,7 +263,8 @@ USE_RESULT memory_result_t memory_multisig_set_by_hash(const uint8_t* hash, cons
 /**
  * Retrieves the name of a previously stored multisig config identified by `hash`.
  * @param[in] hash hash identifying the multisig config.
- * @param[out] name_out will contain the name. Must have at least `MEMORY_MULTISIG_NAME_MAX_LEN`
+ * @param[out] name_out will contain the name. Must have at least
+ * `MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL`
  * bytes. Can be NULL.
  * @return true if the multisig config was found, false otherwise.
  */

@@ -7,6 +7,7 @@
 
 #include <driver_init.h>
 #include <flags.h>
+#include <rust/rust.h>
 #include <util.h>
 #include <utils_assert.h>
 
@@ -237,7 +238,7 @@ void memory_get_ble_metadata(memory_ble_metadata_t* metadata_out)
 
 void memory_random_name(char* name_out)
 {
-    static char cached_name[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    static char cached_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
 
     if (cached_name[0] == 0x00) {
         // Generate 4 random uppercase letters
@@ -251,7 +252,7 @@ void memory_random_name(char* name_out)
         // Format into cached name
         snprintf(
             cached_name,
-            MEMORY_DEVICE_NAME_MAX_LEN,
+            MEMORY_DEVICE_MAX_LEN_WITH_NULL,
             "BitBox %c%c%c%c",
             letters[0],
             letters[1],
@@ -260,5 +261,5 @@ void memory_random_name(char* name_out)
     }
 
     // Copy cached result to output
-    snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", cached_name);
+    snprintf(name_out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", cached_name);
 }

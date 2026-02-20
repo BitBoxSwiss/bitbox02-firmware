@@ -330,7 +330,7 @@ void bootloader_render_default_screen(void)
     UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp", false);
     if (rust_communication_mode_ble_enabled() &&
         da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
-        char buf[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+        char buf[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
         memory_random_name(buf);
         UG_PutString(0, SCREEN_HEIGHT - 9, buf, false);
     } else if (_is_app_flash_empty) {

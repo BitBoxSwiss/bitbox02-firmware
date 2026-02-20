@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::Ui;
-use crate::hal::ui::{CanCancel, ConfirmParams, EnterStringParams, TrinaryChoice, UserAbort};
+use crate::hal::ui::{
+    CanCancel, ConfirmParams, EnterStringParams, Progress, TrinaryChoice, UserAbort,
+};
 
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
@@ -55,7 +57,19 @@ pub struct TestingUi<'a> {
     _quiz_choices: VecDeque<u8>,
 }
 
+pub struct NoopProgress;
+
+impl Progress for NoopProgress {
+    fn set(&mut self, _progress: f32) {}
+}
+
 impl Ui for TestingUi<'_> {
+    type Progress = NoopProgress;
+
+    fn progress_create(&mut self, _title: &str) -> Self::Progress {
+        NoopProgress
+    }
+
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {
         self.screens.push(Screen::Confirm {
             title: params.title.into(),

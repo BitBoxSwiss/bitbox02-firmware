@@ -60,8 +60,15 @@ pub enum CanCancel {
     Yes,
 }
 
+pub trait Progress {
+    /// Set progress. `progress` should be in the range `[0.0, 1.0]`.
+    fn set(&mut self, progress: f32);
+}
+
 #[allow(async_fn_in_trait)]
 pub trait Ui {
+    type Progress: Progress;
+
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort>;
 
@@ -77,6 +84,8 @@ pub trait Ui {
     async fn unlock_animation(&mut self);
 
     async fn status(&mut self, title: &str, status_success: bool);
+
+    fn progress_create(&mut self, title: &str) -> Self::Progress;
 
     /// If `can_cancel` is `Yes`, the workflow can be cancelled.
     /// If it is `No`, the result is always `Ok(())`.

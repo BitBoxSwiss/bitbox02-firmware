@@ -4,7 +4,6 @@ use super::Error;
 use crate::hal::{Memory, SecureChip, memory as hal_memory, securechip};
 use crate::pb;
 
-use bitbox02::spi_mem;
 use pb::response::Response;
 
 pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
@@ -13,8 +12,7 @@ pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
             let ble_metadata = hal.memory().ble_get_metadata();
             Some(pb::device_info_response::Bluetooth {
                 firmware_hash: ble_metadata.allowed_firmware_hash.to_vec(),
-                firmware_version: spi_mem::get_active_ble_firmware_version()
-                    .map_err(|_| Error::Memory)?,
+                firmware_version: hal.memory().get_active_ble_firmware_version()?,
                 enabled: hal.memory().ble_enabled(),
             })
         }

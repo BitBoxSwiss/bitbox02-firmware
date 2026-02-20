@@ -46,6 +46,7 @@ pub struct BleMetadata {
 pub trait Memory {
     fn ble_enabled(&mut self) -> bool;
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()>;
+    fn get_active_ble_firmware_version(&mut self) -> Result<String, Error>;
     fn ble_get_metadata(&mut self) -> BleMetadata;
     fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error>;
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;

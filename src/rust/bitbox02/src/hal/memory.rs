@@ -85,6 +85,10 @@ impl Memory for BitBox02Memory {
         crate::memory::ble_enable(enable)
     }
 
+    fn get_active_ble_firmware_version(&mut self) -> Result<String, Error> {
+        crate::spi_mem::get_active_ble_firmware_version().map_err(|_| Error::Unknown)
+    }
+
     fn ble_get_metadata(&mut self) -> BleMetadata {
         to_hal_ble_metadata(crate::memory::get_ble_metadata())
     }

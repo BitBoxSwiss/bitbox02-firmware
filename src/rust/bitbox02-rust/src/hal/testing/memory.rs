@@ -8,6 +8,7 @@ use crate::hal::memory::{BleMetadata, Error, PasswordStretchAlgo, Platform, Secu
 pub struct TestingMemory {
     ble_enabled: bool,
     ble_metadata: BleMetadata,
+    active_ble_firmware_version: String,
     securechip_type: SecurechipType,
     platform: Platform,
     initialized: bool,
@@ -38,6 +39,7 @@ impl TestingMemory {
                 firmware_sizes: [0; 2],
                 firmware_checksums: [0; 2],
             },
+            active_ble_firmware_version: "0.0.0".into(),
             securechip_type: SecurechipType::Optiga,
             platform: Platform::BitBox02,
             initialized: false,
@@ -96,6 +98,10 @@ impl crate::hal::Memory for TestingMemory {
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()> {
         self.ble_enabled = enable;
         Ok(())
+    }
+
+    fn get_active_ble_firmware_version(&mut self) -> Result<String, Error> {
+        Ok(self.active_ble_firmware_version.clone())
     }
 
     fn ble_get_metadata(&mut self) -> BleMetadata {

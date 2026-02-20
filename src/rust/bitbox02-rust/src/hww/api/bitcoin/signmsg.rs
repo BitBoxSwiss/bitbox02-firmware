@@ -112,7 +112,7 @@ pub async fn process(
             .try_into()
             .unwrap(),
         &sighash,
-        &host_nonce,
+        Some(&host_nonce),
     )?;
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);

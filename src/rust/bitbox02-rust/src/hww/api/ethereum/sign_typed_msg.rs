@@ -563,10 +563,10 @@ pub async fn process(
             )?;
 
             // Send signer commitment to host and wait for the host nonce from the host.
-            super::antiklepto_get_host_nonce(signer_commitment).await?
+            Some(super::antiklepto_get_host_nonce(signer_commitment).await?)
         }
 
-        _ => return Err(Error::InvalidInput),
+        None => None,
     };
 
     let sign_result = crate::secp256k1::secp256k1_sign(
@@ -575,7 +575,7 @@ pub async fn process(
             .try_into()
             .unwrap(),
         &sighash,
-        &host_nonce,
+        host_nonce.as_ref(),
     )?;
     let mut signature: Vec<u8> = sign_result.signature.to_vec();
     signature.push(sign_result.recid);

@@ -3,12 +3,7 @@
 extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-// deduct one for the null terminator.
-pub const DEVICE_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_DEVICE_NAME_MAX_LEN as usize - 1;
-
-// deduct one for the null terminator.
-pub const MULTISIG_NAME_MAX_LEN: usize = bitbox02_sys::MEMORY_MULTISIG_NAME_MAX_LEN as usize - 1;
+use bitbox_hal::memory::{DEVICE_NAME_MAX_LEN, MULTISIG_NAME_MAX_LEN};
 
 pub use bitbox02_sys::memory_ble_metadata_t as BleMetadata;
 

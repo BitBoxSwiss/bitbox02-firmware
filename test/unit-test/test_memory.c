@@ -7,6 +7,7 @@
 
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
+#include <rust/rust.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -31,7 +32,8 @@ static const int _addr_noise_static_private_key = 4;
 static const int _addr_noise_remote_static_pubkeys = _addr_noise_static_private_key + 32;
 static const int _addr_salt_root = _addr_noise_remote_static_pubkeys + 5 * NOISE_PUBKEY_SIZE;
 static const int _addr_device_name = _addr_salt_root + 32;
-static const int _addr_seed_birthdate = _addr_device_name + MEMORY_DEVICE_NAME_MAX_LEN + 1 + 96;
+static const int _addr_seed_birthdate =
+    _addr_device_name + MEMORY_DEVICE_MAX_LEN_WITH_NULL + 1 + 96;
 static const uint8_t _bitmask_seeded = (1 << 0);
 static const uint8_t _bitmask_initialized = (1 << 1);
 static const uint8_t _bitmask_mnemonic_passphrase_enabled = (1 << 2);
@@ -430,7 +432,7 @@ static void _test_memory_reset_hww_ble(void** state)
 
 static void _test_memory_get_device_name_default(void** state)
 {
-    char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     EMPTYCHUNK(empty_chunk);
     expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
     will_return(__wrap_memory_read_chunk_fake, empty_chunk);
@@ -450,7 +452,7 @@ static void _test_memory_get_device_name_default_bluetooth(void** state)
     const uint8_t entropy_prefix[] = {0x00, 0x19, 0xFE, 0xFF};
     memcpy(entropy, entropy_prefix, sizeof(entropy_prefix));
 
-    char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     EMPTYCHUNK(empty_chunk);
     expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
     will_return(__wrap_memory_read_chunk_fake, empty_chunk);
@@ -476,11 +478,11 @@ static void _test_memory_get_device_name_default_bluetooth(void** state)
 
 static void _test_memory_get_device_name_invalid(void** state)
 {
-    char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     EMPTYCHUNK(chunk);
-    memset(chunk + _addr_device_name, 0, MEMORY_DEVICE_NAME_MAX_LEN);
+    memset(chunk + _addr_device_name, 0, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
     const char* device_name = "Äxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxx 漢字xxxxxxxxxxxxxxxxx";
-    snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", device_name);
+    snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", device_name);
 
     EMPTYCHUNK(empty_shared_chunk);
     will_return(__wrap_memory_read_shared_bootdata_fake, empty_shared_chunk);
@@ -493,11 +495,11 @@ static void _test_memory_get_device_name_invalid(void** state)
 
 static void _test_memory_get_device_name(void** state)
 {
-    char name_out[MEMORY_DEVICE_NAME_MAX_LEN] = {0};
+    char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     EMPTYCHUNK(chunk);
-    memset(chunk + _addr_device_name, 0, MEMORY_DEVICE_NAME_MAX_LEN);
+    memset(chunk + _addr_device_name, 0, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
     const char* device_name = "foo bar";
-    snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", device_name);
+    snprintf((char*)chunk + _addr_device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", device_name);
 
     expect_value(__wrap_memory_read_chunk_fake, chunk_num, 1);
     will_return(__wrap_memory_read_chunk_fake, chunk);
@@ -512,9 +514,12 @@ static void _set_device_name(const char* device_name)
     will_return(__wrap_memory_read_chunk_fake, empty_chunk);
 
     EMPTYCHUNK(expected_chunk);
-    memset(expected_chunk + _addr_device_name, 0, MEMORY_DEVICE_NAME_MAX_LEN);
+    memset(expected_chunk + _addr_device_name, 0, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
     snprintf(
-        (char*)expected_chunk + _addr_device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", device_name);
+        (char*)expected_chunk + _addr_device_name,
+        MEMORY_DEVICE_MAX_LEN_WITH_NULL,
+        "%s",
+        device_name);
     expect_value(__wrap_memory_write_chunk_fake, chunk_num, 1);
     expect_memory(__wrap_memory_write_chunk_fake, chunk, expected_chunk, CHUNK_SIZE);
     will_return(__wrap_memory_write_chunk_fake, true);

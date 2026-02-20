@@ -12,7 +12,7 @@ pub async fn process(
     hal: &mut impl crate::hal::Hal,
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
-    if !util::name::validate(name, bitbox02::memory::DEVICE_NAME_MAX_LEN) {
+    if !util::name::validate(name, bitbox_hal::memory::DEVICE_NAME_MAX_LEN) {
         return Err(Error::InvalidInput);
     }
 

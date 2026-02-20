@@ -26,6 +26,14 @@
 
 const char* MEMORY_DEFAULT_DEVICE_NAME = "My BitBox";
 
+// These values are part of the persistent memory layout and must never change without a migration.
+static_assert(
+    MEMORY_DEVICE_MAX_LEN_WITH_NULL == 64,
+    "MEMORY_DEVICE_MAX_LEN_WITH_NULL must remain 64.");
+static_assert(
+    MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL == 31,
+    "MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL must remain 31.");
+
 // Documentation of all appData chunks and their contents.  A chunk is defined as
 // 16 pages, which is the erase granularity: changing any byte in the page
 // involves erases and writing all 16 pages. One page is 512 bytes.  The MCU has
@@ -82,8 +90,8 @@ typedef union {
         uint8_t noise_static_private_key[32]; // CURVE25519
         uint8_t noise_remote_static_pubkeys[5][NOISE_PUBKEY_SIZE]; // 5 pubkey slots
         uint8_t salt_root[32];
-        uint8_t
-            device_name[MEMORY_DEVICE_NAME_MAX_LEN]; // utf8 encoded device name. 0xFF if not set.
+        uint8_t device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL]; // utf8 encoded device name. 0xFF if
+                                                              // not set.
         uint8_t encrypted_seed_and_hmac_len;
         uint8_t encrypted_seed_and_hmac[96];
         uint32_t seed_birthdate; // unix timestamp.
@@ -98,7 +106,7 @@ typedef struct __attribute__((__packed__)) {
     // support other types of data.
     // The multisig entry is considered empty/unset if the hash is filled with 0xFF.
     uint8_t version;
-    char name[MEMORY_MULTISIG_NAME_MAX_LEN]; // user-given name for this multisig setup.
+    char name[MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL]; // user-given name for this multisig setup.
     uint8_t hash[32]; // hash comitting to the multisig setup.
 } multisig_configuration_t;
 
@@ -240,9 +248,9 @@ bool memory_set_device_name(const char* name)
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     util_zero(chunk.fields.device_name, sizeof(chunk.fields.device_name));
-    snprintf((char*)&chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN, "%s", name);
+    snprintf((char*)&chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", name);
 
-    if (!rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN)) {
+    if (!rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
         return false;
     }
     return _write_chunk(CHUNK_1, chunk.bytes);
@@ -254,16 +262,16 @@ void memory_get_device_name(char* name_out)
     CLEANUP_CHUNK(chunk);
     _read_chunk(CHUNK_1, chunk_bytes);
     if (chunk.fields.device_name[0] == 0xFF ||
-        !rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_NAME_MAX_LEN)) {
+        !rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
             // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
             // identified if multiple BitBoxes are advertising at the same time.
             memory_random_name(name_out);
         } else {
-            snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", MEMORY_DEFAULT_DEVICE_NAME);
+            snprintf(name_out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", MEMORY_DEFAULT_DEVICE_NAME);
         }
     } else {
-        snprintf(name_out, MEMORY_DEVICE_NAME_MAX_LEN, "%s", chunk.fields.device_name);
+        snprintf(name_out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", chunk.fields.device_name);
     }
 }
 

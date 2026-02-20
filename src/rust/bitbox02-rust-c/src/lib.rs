@@ -58,6 +58,20 @@ extern crate util;
 ))]
 type HalImpl = bitbox02::hal::BitBox02Hal;
 
+// Keep this as a numeric literal so cbindgen reliably exports it to C.
+// The static assert below enforces consistency with the Rust HAL constant.
+/// Maximum device name length in bytes, including null terminator.
+pub const MEMORY_DEVICE_MAX_LEN_WITH_NULL: u8 = 64;
+// Keep this as a numeric literal so cbindgen reliably exports it to C.
+// The static assert below enforces consistency with the Rust HAL constant.
+/// Maximum multisig account name length in bytes, including null terminator.
+pub const MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL: u8 = 31;
+
+const _: [(); bitbox_hal::memory::DEVICE_NAME_MAX_LEN + 1] =
+    [(); MEMORY_DEVICE_MAX_LEN_WITH_NULL as usize];
+const _: [(); bitbox_hal::memory::MULTISIG_NAME_MAX_LEN + 1] =
+    [(); MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL as usize];
+
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen and over RTT. If we compile with
 // `panic=abort` this code will never get executed.

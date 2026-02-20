@@ -3,6 +3,12 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+/// Maximum device name length in bytes, excluding the null terminator used in C strings.
+pub const DEVICE_NAME_MAX_LEN: usize = 63;
+/// Maximum multisig account name length in bytes, excluding the null terminator used in C
+/// strings.
+pub const MULTISIG_NAME_MAX_LEN: usize = 30;
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PasswordStretchAlgo {
     V0,
@@ -35,6 +41,7 @@ pub trait Memory {
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<Platform, ()>;
     fn get_device_name(&mut self) -> String;
+    /// `name` must be non-empty and at most [`DEVICE_NAME_MAX_LEN`] bytes long.
     fn set_device_name(&mut self, name: &str) -> Result<(), Error>;
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool;
     fn set_mnemonic_passphrase_enabled(&mut self, enabled: bool) -> Result<(), ()>;
@@ -61,6 +68,7 @@ pub trait Memory {
         root_pubkey_identifier_out: &mut [u8; 32],
     ) -> Result<(), ()>;
     fn get_attestation_bootloader_hash(&mut self) -> [u8; 32];
+    /// `name` must be non-empty and at most [`MULTISIG_NAME_MAX_LEN`] bytes long.
     fn multisig_set_by_hash(&mut self, hash: &[u8; 32], name: &str) -> Result<(), Error>;
     fn multisig_get_by_hash(&self, hash: &[u8; 32]) -> Option<String>;
 }

@@ -15,7 +15,7 @@ use crate::hal::{Memory, Ui, memory as hal_memory};
 
 use alloc::vec::Vec;
 
-use bitbox02::{memory, spi_mem};
+use bitbox02::spi_mem;
 
 // See also bitbox-da14531-firmware.bin.sha256.
 const ALLOWED_HASH: [u8; 32] =
@@ -57,6 +57,7 @@ trait Funcs {
 }
 
 async fn _process_upgrade(
+    memory: &mut impl Memory,
     funcs: &mut impl Funcs,
     progress: &mut impl Progress,
     request: &pb::BluetoothUpgradeInitRequest,
@@ -66,7 +67,7 @@ async fn _process_upgrade(
         return Err(Error::InvalidInput);
     }
 
-    let mut ble_metadata = memory::get_ble_metadata();
+    let mut ble_metadata = memory.ble_get_metadata();
 
     // We work on the inactive firmware memory area.
     let inactive_index: u8 = if ble_metadata.active_index == 0 { 1 } else { 0 };
@@ -116,7 +117,7 @@ async fn _process_upgrade(
     ble_metadata.firmware_sizes[inactive_index as usize] = request.firmware_length as u16;
     ble_metadata.firmware_checksums[inactive_index as usize] = firmware_checksum;
 
-    memory::set_ble_metadata(&ble_metadata).map_err(|_| Error::Memory)?;
+    memory.set_ble_metadata(&ble_metadata)?;
 
     Ok(pb::bluetooth_response::Response::Success(
         pb::BluetoothSuccess {},
@@ -144,7 +145,14 @@ async fn process_upgrade(
         .await?;
 
     let mut progress = hal.ui().progress_create("Upgrading...");
-    let response = _process_upgrade(&mut RealFuncs, &mut progress, request, &ALLOWED_HASH).await;
+    let response = _process_upgrade(
+        hal.memory(),
+        &mut RealFuncs,
+        &mut progress,
+        request,
+        &ALLOWED_HASH,
+    )
+    .await;
     drop(progress);
 
     if response.is_ok() {
@@ -282,6 +290,7 @@ mod tests {
         ];
 
         for test in test_cases {
+            let mut memory = crate::hal::testing::TestingMemory::new();
             let mut mock_funcs = MockFuncs {
                 chunk_requests: vec![],
             };
@@ -289,6 +298,7 @@ mod tests {
                 Sha256::digest(vec![0; test.firmware_length as usize]).into();
             assert!(
                 block_on(_process_upgrade(
+                    &mut memory,
                     &mut mock_funcs,
                     &mut crate::hal::testing::ui::NoopProgress,
                     &pb::BluetoothUpgradeInitRequest {

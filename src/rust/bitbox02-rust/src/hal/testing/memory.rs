@@ -3,10 +3,11 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
+use crate::hal::memory::{BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType};
 
 pub struct TestingMemory {
     ble_enabled: bool,
+    ble_metadata: BleMetadata,
     securechip_type: SecurechipType,
     platform: Platform,
     initialized: bool,
@@ -31,6 +32,12 @@ impl TestingMemory {
     pub fn new() -> Self {
         Self {
             ble_enabled: true,
+            ble_metadata: BleMetadata {
+                allowed_firmware_hash: [0; 32],
+                active_index: 0,
+                firmware_sizes: [0; 2],
+                firmware_checksums: [0; 2],
+            },
             securechip_type: SecurechipType::Optiga,
             platform: Platform::BitBox02,
             initialized: false,
@@ -88,6 +95,15 @@ impl crate::hal::Memory for TestingMemory {
 
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()> {
         self.ble_enabled = enable;
+        Ok(())
+    }
+
+    fn ble_get_metadata(&mut self) -> BleMetadata {
+        self.ble_metadata
+    }
+
+    fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error> {
+        self.ble_metadata = *metadata;
         Ok(())
     }
 

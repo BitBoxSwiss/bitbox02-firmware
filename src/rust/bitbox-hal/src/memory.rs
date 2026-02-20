@@ -35,9 +35,19 @@ pub enum Error {
     Unknown,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct BleMetadata {
+    pub allowed_firmware_hash: [u8; 32],
+    pub active_index: u8,
+    pub firmware_sizes: [u16; 2],
+    pub firmware_checksums: [u8; 2],
+}
+
 pub trait Memory {
     fn ble_enabled(&mut self) -> bool;
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()>;
+    fn ble_get_metadata(&mut self) -> BleMetadata;
+    fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error>;
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<Platform, ()>;
     fn get_device_name(&mut self) -> String;

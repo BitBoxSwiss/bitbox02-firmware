@@ -72,6 +72,33 @@ const _: [(); bitbox_hal::memory::DEVICE_NAME_MAX_LEN + 1] =
 const _: [(); bitbox_hal::memory::MULTISIG_NAME_MAX_LEN + 1] =
     [(); MEMORY_MULTISIG_NAME_MAX_LEN_WITH_NULL as usize];
 
+// Keep these as numeric literals so cbindgen reliably exports them to C.
+// The static asserts below enforce consistency with other Rust constants.
+/// Erase sector size of SPI memory in bytes.
+const MEMORY_SPI_ERASE_GRANULARITY: u32 = 4096;
+// Keep this as a numeric literal so cbindgen reliably exports it to C.
+// The static assert below enforces consistency with the Rust HAL constant.
+/// Maximum size in bytes of a BLE firmware image.
+pub const MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE: u32 = 32 * 1024;
+// Keep this as a numeric literal so cbindgen reliably exports it to C.
+/// Start address of BLE firmware slot 1 in SPI memory. Cannot change this as it defines the memory
+/// layout.
+pub const MEMORY_SPI_BLE_FIRMWARE_1_ADDR: u32 = 0x00;
+/// Start address of BLE firmware slot 2 in SPI memory. Cannot change this as it defines the memory
+/// layout.
+pub const MEMORY_SPI_BLE_FIRMWARE_2_ADDR: u32 = MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE;
+
+const _: [(); bitbox_hal::memory::BLE_FIRMWARE_MAX_SIZE] =
+    [(); MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE as usize];
+const _: [(); bitbox02::spi_mem::BLE_FIRMWARE_1_ADDR as usize] =
+    [(); MEMORY_SPI_BLE_FIRMWARE_1_ADDR as usize];
+const _: [(); bitbox02::spi_mem::BLE_FIRMWARE_2_ADDR as usize] =
+    [(); MEMORY_SPI_BLE_FIRMWARE_2_ADDR as usize];
+
+// Addresses must be aligned to an erase sector
+const _: [(); 0] = [(); (MEMORY_SPI_BLE_FIRMWARE_1_ADDR % MEMORY_SPI_ERASE_GRANULARITY) as usize];
+const _: [(); 0] = [(); (MEMORY_SPI_BLE_FIRMWARE_2_ADDR % MEMORY_SPI_ERASE_GRANULARITY) as usize];
+
 // Whenever execution reaches somewhere it isn't supposed to rust code will "panic". Our panic
 // handler will print the available information on the screen and over RTT. If we compile with
 // `panic=abort` this code will never get executed.

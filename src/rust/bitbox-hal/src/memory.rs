@@ -8,6 +8,8 @@ pub const DEVICE_NAME_MAX_LEN: usize = 63;
 /// Maximum multisig account name length in bytes, excluding the null terminator used in C
 /// strings.
 pub const MULTISIG_NAME_MAX_LEN: usize = 30;
+/// Maximum allowed BLE firmware size in bytes.
+pub const BLE_FIRMWARE_MAX_SIZE: usize = 32 * 1024;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PasswordStretchAlgo {

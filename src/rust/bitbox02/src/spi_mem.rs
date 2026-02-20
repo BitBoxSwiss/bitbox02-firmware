@@ -2,9 +2,14 @@
 
 extern crate alloc;
 
-pub use bitbox02_sys::MEMORY_SPI_BLE_FIRMWARE_1_ADDR as BLE_FIRMWARE_1_ADDR;
-pub use bitbox02_sys::MEMORY_SPI_BLE_FIRMWARE_2_ADDR as BLE_FIRMWARE_2_ADDR;
-pub use bitbox02_sys::MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE as BLE_FIRMWARE_MAX_SIZE;
+/// Start address of BLE firmware slot 1 in SPI memory. Cannot change this as it defines the memory
+/// layout.
+pub const BLE_FIRMWARE_1_ADDR: u32 = 0x00;
+
+/// Start address of BLE firmware slot 2 in SPI memory. Cannot change this as it defines the memory
+/// layout.
+pub const BLE_FIRMWARE_2_ADDR: u32 = bitbox_hal::memory::BLE_FIRMWARE_MAX_SIZE as u32;
+const _: [(); 32 * 1024] = [(); bitbox_hal::memory::BLE_FIRMWARE_MAX_SIZE];
 
 use alloc::string::String;
 

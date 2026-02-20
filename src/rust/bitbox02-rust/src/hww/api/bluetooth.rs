@@ -15,8 +15,6 @@ use crate::hal::{Memory, Ui, memory as hal_memory};
 
 use alloc::vec::Vec;
 
-use bitbox02::spi_mem;
-
 // See also bitbox-da14531-firmware.bin.sha256.
 const ALLOWED_HASH: [u8; 32] =
     hex!("1e4aa8364e935c0785e4f891208307d832f788172e4bf61621de6df9ec3c215f");
@@ -59,7 +57,9 @@ async fn _process_upgrade<M: Memory>(
     request: &pb::BluetoothUpgradeInitRequest,
     allowed_hash: &[u8; 32],
 ) -> Result<Response, Error> {
-    if request.firmware_length == 0 || request.firmware_length > spi_mem::BLE_FIRMWARE_MAX_SIZE {
+    if request.firmware_length == 0
+        || request.firmware_length as usize > hal_memory::BLE_FIRMWARE_MAX_SIZE
+    {
         return Err(Error::InvalidInput);
     }
 

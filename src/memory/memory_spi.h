@@ -9,21 +9,6 @@
 
 #include <compiler_util.h>
 
-#define MEMORY_SPI_ERASE_GRANULARITY 4096
-
-// BLE firmware max size is 32kB.
-#define MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE (32 * 1024)
-// The first 64kB are reserved for storing BLE firmwares, so we can safely upgrade.
-#define MEMORY_SPI_BLE_FIRMWARE_1_ADDR 0x00
-#define MEMORY_SPI_BLE_FIRMWARE_2_ADDR MEMORY_SPI_BLE_FIRMWARE_MAX_SIZE
-
-#if (MEMORY_SPI_BLE_FIRMWARE_1_ADDR % MEMORY_SPI_ERASE_GRANULARITY)
-    #error "Address must be aligned to an erase sector"
-#endif
-#if (MEMORY_SPI_BLE_FIRMWARE_2_ADDR % MEMORY_SPI_ERASE_GRANULARITY)
-    #error "Address must be aligned to an erase sector"
-#endif
-
 /**
  * Retrieve the BLE firmware and associated size and checksum from the SPI memory chip. It takes
  * into account the currently active firmware area, and verifies that it matches the

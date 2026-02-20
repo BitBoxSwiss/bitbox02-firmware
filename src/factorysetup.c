@@ -13,7 +13,6 @@
 #include "memory/memory_spi.h"
 #include "memory/spi_mem.h"
 #include "platform_init.h"
-#include "rust/rust.h"
 #include "screen.h"
 #include "securechip/securechip.h"
 #include "uart.h"
@@ -21,6 +20,7 @@
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
 #include "utils_ringbuffer.h"
+#include <rust/rust.h>
 #include <ui/oled/oled.h>
 
 #define BUFFER_SIZE_DOWN 1024

@@ -43,10 +43,26 @@ pub struct BleMetadata {
     pub firmware_checksums: [u8; 2],
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum BleFirmwareSlot {
+    First,
+    Second,
+}
+
 pub trait Memory {
+    /// We want to write FW to the memory chip in erase-size chunks, so that we don't repeatedly
+    /// need to read-erase-write the same sector.
+    const BLE_FW_FLASH_CHUNK_SIZE: u32;
+
     fn ble_enabled(&mut self) -> bool;
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()>;
     fn get_active_ble_firmware_version(&mut self) -> Result<String, Error>;
+    fn ble_firmware_flash_chunk(
+        &mut self,
+        slot: BleFirmwareSlot,
+        chunk_index: u32,
+        chunk: &[u8],
+    ) -> Result<(), Error>;
     fn ble_get_metadata(&mut self) -> BleMetadata;
     fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error>;
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;

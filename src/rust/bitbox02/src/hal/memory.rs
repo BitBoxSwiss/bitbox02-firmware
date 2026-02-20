@@ -4,7 +4,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use bitbox_hal::Memory;
-use bitbox_hal::memory::{BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType};
+use bitbox_hal::memory::{
+    BleFirmwareSlot, BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType,
+};
 
 pub struct BitBox02Memory;
 
@@ -77,6 +79,10 @@ fn to_bitbox02_ble_metadata(metadata: &BleMetadata) -> crate::memory::BleMetadat
 }
 
 impl Memory for BitBox02Memory {
+    /// We want to write FW to the memory chip in erase-size chunks, so that we don't repeatedly
+    /// need to read-erase-write the same sector.
+    const BLE_FW_FLASH_CHUNK_SIZE: u32 = 4096;
+
     fn ble_enabled(&mut self) -> bool {
         crate::memory::ble_enabled()
     }
@@ -87,6 +93,26 @@ impl Memory for BitBox02Memory {
 
     fn get_active_ble_firmware_version(&mut self) -> Result<String, Error> {
         crate::spi_mem::get_active_ble_firmware_version().map_err(|_| Error::Unknown)
+    }
+
+    fn ble_firmware_flash_chunk(
+        &mut self,
+        slot: BleFirmwareSlot,
+        chunk_index: u32,
+        chunk: &[u8],
+    ) -> Result<(), Error> {
+        if chunk.len() > Self::BLE_FW_FLASH_CHUNK_SIZE as usize {
+            return Err(Error::InvalidInput);
+        }
+        let base = match slot {
+            BleFirmwareSlot::First => crate::spi_mem::BLE_FIRMWARE_1_ADDR,
+            BleFirmwareSlot::Second => crate::spi_mem::BLE_FIRMWARE_2_ADDR,
+        };
+        let chunk_offset: u32 = chunk_index
+            .checked_mul(Self::BLE_FW_FLASH_CHUNK_SIZE)
+            .ok_or(Error::InvalidInput)?;
+        let address = base.checked_add(chunk_offset).ok_or(Error::InvalidInput)?;
+        crate::spi_mem::write_protected(address, chunk).map_err(|_| Error::Unknown)
     }
 
     fn ble_get_metadata(&mut self) -> BleMetadata {

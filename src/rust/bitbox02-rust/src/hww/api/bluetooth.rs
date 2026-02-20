@@ -21,10 +21,6 @@ use bitbox02::spi_mem;
 const ALLOWED_HASH: [u8; 32] =
     hex!("1e4aa8364e935c0785e4f891208307d832f788172e4bf61621de6df9ec3c215f");
 
-// We want to write FW to the memory chip in erase-size chunks, so that we don't repeatedly need to
-// read-erase-write the same sector.
-const SPI_ERASE_SIZE: u32 = 4096;
-
 /// Like `hww::next_request`, but for Bluetooth requests/responses.
 async fn next_request(response: Response) -> Result<Request, Error> {
     let request =
@@ -56,8 +52,8 @@ trait Funcs {
     async fn get_fw_chunk(&mut self, offset: u32, length: u32) -> Result<Vec<u8>, Error>;
 }
 
-async fn _process_upgrade(
-    memory: &mut impl Memory,
+async fn _process_upgrade<M: Memory>(
+    memory: &mut M,
     funcs: &mut impl Funcs,
     progress: &mut impl Progress,
     request: &pb::BluetoothUpgradeInitRequest,
@@ -71,22 +67,24 @@ async fn _process_upgrade(
 
     // We work on the inactive firmware memory area.
     let inactive_index: u8 = if ble_metadata.active_index == 0 { 1 } else { 0 };
-    let inactive_ble_fw_address = if inactive_index == 0 {
-        spi_mem::BLE_FIRMWARE_1_ADDR
+    let inactive_slot = if inactive_index == 0 {
+        hal_memory::BleFirmwareSlot::First
     } else {
-        spi_mem::BLE_FIRMWARE_2_ADDR
+        hal_memory::BleFirmwareSlot::Second
     };
 
     let mut firmware_hasher = Sha256::new();
     let mut firmware_checksum = 0u8;
 
+    let flash_chunk_size = M::BLE_FW_FLASH_CHUNK_SIZE;
+
     // The host needs to send this many chunks.
-    let num_chunks = request.firmware_length.div_ceil(SPI_ERASE_SIZE);
+    let num_chunks = request.firmware_length.div_ceil(flash_chunk_size);
 
     // Stream chunks from host.
     for chunk_index in 0..num_chunks {
-        let chunk_offset = chunk_index * SPI_ERASE_SIZE;
-        let chunk_length = core::cmp::min(SPI_ERASE_SIZE, request.firmware_length - chunk_offset);
+        let chunk_offset = chunk_index * flash_chunk_size;
+        let chunk_length = core::cmp::min(flash_chunk_size, request.firmware_length - chunk_offset);
         let chunk: Vec<u8> = funcs.get_fw_chunk(chunk_offset, chunk_length).await?;
         if chunk.len() != chunk_length as usize {
             return Err(Error::InvalidInput);
@@ -96,8 +94,7 @@ async fn _process_upgrade(
             firmware_checksum ^= byte;
         }
 
-        spi_mem::write_protected(inactive_ble_fw_address + chunk_offset, &chunk)
-            .map_err(|_| Error::Memory)?;
+        memory.ble_firmware_flash_chunk(inactive_slot, chunk_index, &chunk)?;
 
         // Update progress.
         progress.set((chunk_index + 1) as f32 / (num_chunks as f32));

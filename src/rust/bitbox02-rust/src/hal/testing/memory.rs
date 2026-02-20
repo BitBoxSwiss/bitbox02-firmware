@@ -3,7 +3,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::hal::memory::{BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType};
+use crate::hal::memory::{
+    BleFirmwareSlot, BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType,
+};
 
 pub struct TestingMemory {
     ble_enabled: bool,
@@ -91,6 +93,8 @@ impl TestingMemory {
 }
 
 impl crate::hal::Memory for TestingMemory {
+    const BLE_FW_FLASH_CHUNK_SIZE: u32 = 4096;
+
     fn ble_enabled(&mut self) -> bool {
         self.ble_enabled
     }
@@ -102,6 +106,18 @@ impl crate::hal::Memory for TestingMemory {
 
     fn get_active_ble_firmware_version(&mut self) -> Result<String, Error> {
         Ok(self.active_ble_firmware_version.clone())
+    }
+
+    fn ble_firmware_flash_chunk(
+        &mut self,
+        _slot: BleFirmwareSlot,
+        _chunk_index: u32,
+        chunk: &[u8],
+    ) -> Result<(), Error> {
+        if chunk.len() > Self::BLE_FW_FLASH_CHUNK_SIZE as usize {
+            return Err(Error::InvalidInput);
+        }
+        Ok(())
     }
 
     fn ble_get_metadata(&mut self) -> BleMetadata {

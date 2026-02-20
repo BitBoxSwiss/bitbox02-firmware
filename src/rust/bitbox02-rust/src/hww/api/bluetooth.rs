@@ -50,7 +50,7 @@ trait Funcs {
     async fn get_fw_chunk(&mut self, offset: u32, length: u32) -> Result<Vec<u8>, Error>;
 }
 
-async fn _process_upgrade<M: Memory>(
+async fn process_upgrade_helper<M: Memory>(
     memory: &mut M,
     funcs: &mut impl Funcs,
     progress: &mut impl Progress,
@@ -142,7 +142,7 @@ async fn process_upgrade(
         .await?;
 
     let mut progress = hal.ui().progress_create("Upgrading...");
-    let response = _process_upgrade(
+    let response = process_upgrade_helper(
         hal.memory(),
         &mut RealFuncs,
         &mut progress,
@@ -223,30 +223,60 @@ pub async fn process_api(
 mod tests {
     use super::*;
 
-    use bitbox02::testing::mock_memory;
+    use crate::hal::memory::{BleFirmwareSlot, BleMetadata};
     use util::bb02_async::block_on;
 
+    struct MockFuncs {
+        chunk_requests: Vec<(u32, u32)>,
+    }
+
+    impl Funcs for MockFuncs {
+        async fn get_fw_chunk(&mut self, offset: u32, length: u32) -> Result<Vec<u8>, Error> {
+            self.chunk_requests.push((offset, length));
+            Ok(vec![0; length as usize])
+        }
+    }
+
+    #[derive(Default)]
+    struct TestProgress {
+        values: Vec<f32>,
+    }
+
+    impl Progress for TestProgress {
+        fn set(&mut self, progress: f32) {
+            self.values.push(progress);
+        }
+    }
+
+    fn compute_checksum(data: &[u8]) -> u8 {
+        data.iter().fold(0u8, |acc, byte| acc ^ *byte)
+    }
+
+    fn make_metadata(active_index: u8) -> BleMetadata {
+        BleMetadata {
+            allowed_firmware_hash: [9; 32],
+            active_index,
+            firmware_sizes: [11, 22],
+            firmware_checksums: [33, 44],
+        }
+    }
+
+    fn assert_progress_values(actual: &[f32], expected: &[f32]) {
+        assert_eq!(actual.len(), expected.len());
+        for (actual_value, expected_value) in actual.iter().zip(expected.iter()) {
+            assert!((actual_value - expected_value).abs() < 1e-6);
+        }
+    }
+
+    /// Verifies that successful upgrades request host chunks with exact offset/length boundaries.
     #[test]
-    fn test_chunk_streaming() {
-        mock_memory();
-
-        struct MockFuncs {
-            chunk_requests: Vec<(u32, u32)>,
-        }
-
-        impl Funcs for MockFuncs {
-            async fn get_fw_chunk(&mut self, offset: u32, length: u32) -> Result<Vec<u8>, Error> {
-                self.chunk_requests.push((offset, length));
-                Ok(vec![0; length as usize])
-            }
-        }
-
+    fn test_process_upgrade_helper_chunk_streaming() {
         struct Test<'a> {
             firmware_length: u32,
             expected_chunk_requests: &'a [(u32, u32)],
         }
 
-        let test_cases = vec![
+        let test_cases = [
             Test {
                 firmware_length: 1,
                 expected_chunk_requests: &[(0, 1)],
@@ -289,23 +319,139 @@ mod tests {
         for test in test_cases {
             let mut memory = crate::hal::testing::TestingMemory::new();
             let mut mock_funcs = MockFuncs {
-                chunk_requests: vec![],
+                chunk_requests: Vec::new(),
             };
+            let mut progress = TestProgress::default();
             let allowed_hash: [u8; 32] =
                 Sha256::digest(vec![0; test.firmware_length as usize]).into();
-            assert!(
-                block_on(_process_upgrade(
+
+            assert_eq!(
+                block_on(process_upgrade_helper(
                     &mut memory,
                     &mut mock_funcs,
-                    &mut crate::hal::testing::ui::NoopProgress,
+                    &mut progress,
                     &pb::BluetoothUpgradeInitRequest {
                         firmware_length: test.firmware_length,
                     },
                     &allowed_hash,
-                ))
-                .is_ok()
+                )),
+                Ok(Response::Success(pb::BluetoothSuccess {}))
             );
             assert_eq!(mock_funcs.chunk_requests, test.expected_chunk_requests);
+            assert_eq!(progress.values.len(), test.expected_chunk_requests.len());
+            if !progress.values.is_empty() {
+                let last = *progress.values.last().unwrap();
+                assert!((last - 1.0).abs() < 1e-6);
+            }
         }
+    }
+
+    /// Verifies that a successful upgrade writes firmware bytes to the inactive slot and updates BLE metadata.
+    #[test]
+    fn test_process_upgrade_helper_success_updates_metadata_and_slot_data() {
+        let mut memory = crate::hal::testing::TestingMemory::new();
+        let initial_metadata = make_metadata(0);
+        memory.set_ble_metadata(&initial_metadata).unwrap();
+
+        let firmware = vec![0; 4096 + 5];
+        let allowed_hash: [u8; 32] = Sha256::digest(firmware.as_slice()).into();
+
+        let mut mock_funcs = MockFuncs {
+            chunk_requests: Vec::new(),
+        };
+        let mut progress = TestProgress::default();
+
+        assert_eq!(
+            block_on(process_upgrade_helper(
+                &mut memory,
+                &mut mock_funcs,
+                &mut progress,
+                &pb::BluetoothUpgradeInitRequest {
+                    firmware_length: firmware.len() as u32,
+                },
+                &allowed_hash,
+            )),
+            Ok(Response::Success(pb::BluetoothSuccess {}))
+        );
+        assert_eq!(mock_funcs.chunk_requests, vec![(0, 4096), (4096, 5)]);
+        assert_progress_values(&progress.values, &[0.5, 1.0]);
+
+        let metadata = memory.ble_get_metadata();
+        assert_eq!(metadata.active_index, 1);
+        assert_eq!(metadata.allowed_firmware_hash, allowed_hash);
+        assert_eq!(
+            metadata.firmware_sizes[0],
+            initial_metadata.firmware_sizes[0]
+        );
+        assert_eq!(metadata.firmware_sizes[1], firmware.len() as u16);
+        assert_eq!(
+            metadata.firmware_checksums[0],
+            initial_metadata.firmware_checksums[0]
+        );
+        assert_eq!(metadata.firmware_checksums[1], compute_checksum(&firmware));
+
+        assert_eq!(
+            &memory.ble_firmware_slot_data(BleFirmwareSlot::Second)[..firmware.len()],
+            firmware.as_slice()
+        );
+        assert!(
+            memory.ble_firmware_slot_data(BleFirmwareSlot::First)[..firmware.len()]
+                .iter()
+                .all(|&byte| byte == 0xff)
+        );
+    }
+
+    /// Verifies that when slot 1 is active, a successful upgrade targets slot 0 and flips active index.
+    #[test]
+    fn test_process_upgrade_helper_success_uses_first_slot_if_second_is_active() {
+        let mut memory = crate::hal::testing::TestingMemory::new();
+        let initial_metadata = make_metadata(1);
+        memory.set_ble_metadata(&initial_metadata).unwrap();
+
+        let firmware = vec![0; 3];
+        let allowed_hash: [u8; 32] = Sha256::digest(firmware.as_slice()).into();
+        let mut mock_funcs = MockFuncs {
+            chunk_requests: Vec::new(),
+        };
+        let mut progress = TestProgress::default();
+
+        assert_eq!(
+            block_on(process_upgrade_helper(
+                &mut memory,
+                &mut mock_funcs,
+                &mut progress,
+                &pb::BluetoothUpgradeInitRequest {
+                    firmware_length: firmware.len() as u32,
+                },
+                &allowed_hash,
+            )),
+            Ok(Response::Success(pb::BluetoothSuccess {}))
+        );
+        assert_eq!(mock_funcs.chunk_requests, vec![(0, 3)]);
+        assert_progress_values(&progress.values, &[1.0]);
+
+        let metadata = memory.ble_get_metadata();
+        assert_eq!(metadata.active_index, 0);
+        assert_eq!(metadata.allowed_firmware_hash, allowed_hash);
+        assert_eq!(metadata.firmware_sizes[0], firmware.len() as u16);
+        assert_eq!(
+            metadata.firmware_sizes[1],
+            initial_metadata.firmware_sizes[1]
+        );
+        assert_eq!(metadata.firmware_checksums[0], compute_checksum(&firmware));
+        assert_eq!(
+            metadata.firmware_checksums[1],
+            initial_metadata.firmware_checksums[1]
+        );
+
+        assert_eq!(
+            &memory.ble_firmware_slot_data(BleFirmwareSlot::First)[..firmware.len()],
+            firmware.as_slice()
+        );
+        assert!(
+            memory.ble_firmware_slot_data(BleFirmwareSlot::Second)[..firmware.len()]
+                .iter()
+                .all(|&byte| byte == 0xff)
+        );
     }
 }

@@ -452,6 +452,10 @@ dependencies = [
 [[package]]
 name = "bitbox03"
 version = "0.1.0"
+dependencies = [
+ "bitbox-lvgl",
+ "tracing",
+]
 
 [[package]]
 name = "bitcoin"

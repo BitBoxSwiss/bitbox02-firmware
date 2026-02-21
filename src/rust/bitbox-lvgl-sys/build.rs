@@ -106,22 +106,29 @@ fn main() -> Result<(), &'static str> {
     if nema_gfx_include.join("nema_core.h").is_file() {
         cmake_build.cflag(format!("-I{}", nema_gfx_include.display()));
     }
-    //cmake_build.cflag("--specs=nosys.specs");
-    //cmake_build.cflag("--specs=nano.specs");
-    cmake_build.cflag("-DUSE_HAL_DRIVER");
-    cmake_build.cflag("-DSTM32U5A9xx");
-    cmake_build.cflag("-Os");
-    cmake_build.cflag("-g");
+    cmake_build.cflag("-w");
+    let debug = env::var("PROFILE").unwrap() == "debug";
+    if debug {
+        cmake_build.cflag("-g");
+    }
     cmake_build.define(
         "CMAKE_EXE_LINKER_FLAGS",
         "--specs=nosys.specs --specs=nano.specs",
     );
+    cmake_build.define("CONFIG_LV_BUILD_EXAMPLES", "OFF");
+    cmake_build.define("CONFIG_LV_BUILD_DEMOS", "OFF");
+
     //}
     let dst = cmake_build.build();
     println!("cargo::rustc-link-search=native={}/lib", dst.display());
     println!("cargo::rustc-link-lib=static=lvgl");
     let target = env::var("TARGET").expect("TARGET not set");
     if target.starts_with("thumb") {
+        //cmake_build.cflag("--specs=nosys.specs");
+        //cmake_build.cflag("--specs=nano.specs");
+        cmake_build.cflag("-DUSE_HAL_DRIVER");
+        cmake_build.cflag("-DSTM32U5A9xx");
+        cmake_build.cflag("-Os");
         let nema_gfx_lib_dir = lvgl_dir.join("libs/nema_gfx/lib/core/cortex_m33_revC/gcc");
         let nema_gfx_lib = nema_gfx_lib_dir.join("libnemagfx-float-abi-hard.a");
         if nema_gfx_lib.is_file() {

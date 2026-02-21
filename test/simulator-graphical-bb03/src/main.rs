@@ -40,16 +40,14 @@ use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 use bitbox02_rust::hal::{Hal, Memory};
 
+use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
+
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
 use bitbox_lvgl::{
-    LvAlign, LvDisplayRenderMode, LvIndevState, LvIndevType, LvPoint, lv_display_create,
-    lv_display_set_buffers, lv_display_set_flush_cb, lv_display_set_user_data, lv_indev_create,
-    lv_indev_set_read_cb, lv_indev_set_type, lv_indev_set_user_data, lv_init, lv_label_create,
-    lv_label_set_text, lv_obj_align, lv_screen_active, lv_tick_set_cb, lv_timer_handler,
+    LvDisplayRenderMode, lv_display_create, lv_display_set_buffers, lv_display_set_flush_cb,
+    lv_display_set_user_data, lv_init, lv_tick_set_cb, lv_timer_handler,
 };
-
-use std::collections::VecDeque;
 
 const UI_REFRESH_PERIOD_MS: u64 = 5;
 
@@ -132,41 +130,7 @@ impl FrameBuffer {
     }
 }
 
-impl bitbox03::display::Display for FrameBuffer {
-    type Error = ();
-
-    fn size(&self) -> (u16, u16) {
-        (480, 800)
-    }
-
-    fn clear(&mut self, _c: bitbox03::display::Rgb565) -> Result<(), Self::Error> {
-        todo!()
-    }
-    fn fill_rect(&mut self, _r: bitbox03::display::Rect) -> Result<(), Self::Error> {
-        todo!()
-    }
-    fn blit(&mut self) -> Result<(), Self::Error> {
-        todo!()
-    }
-}
-
 static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
-
-fn hw_lvgl() {
-    /* Get the currently active screen */
-    let scr = lv_screen_active().expect("get active screen");
-
-    /* Create a label */
-    let label = lv_label_create(&scr).expect("create label");
-
-    /* Set the label text */
-    lv_label_set_text(&label, "BitBox03\nHello, World!\nFrom LVGL").expect("label set text");
-
-    /* Center it on the screen */
-    lv_obj_align(&label, LvAlign::LV_ALIGN_CENTER, 0, 0);
-
-    //let button = lv_button_create();
-}
 
 extern "C" fn get_current_time_ms() -> u32 {
     use std::time::Instant;
@@ -207,29 +171,6 @@ extern "C" fn my_flush_cb(
     unsafe { bitbox_lvgl::ffi::lv_display_flush_ready(display) };
 }
 
-extern "C" fn indev_read_cb(
-    indev: *mut bitbox_lvgl::ffi::lv_indev_t,
-    data: *mut bitbox_lvgl::ffi::lv_indev_data_t,
-) {
-    let ud_ptr = unsafe { bitbox_lvgl::ffi::lv_indev_get_user_data(indev) };
-    debug_assert!(ud_ptr != core::ptr::null_mut());
-    let ud = unsafe { &mut *(ud_ptr as *mut VecDeque<TouchScreenEvent>) };
-    if let Some(next) = ud.pop_front() {
-        info!("popped event");
-        let data = unsafe { &mut *data };
-        data.point = LvPoint {
-            x: next.x,
-            y: next.y,
-        };
-        data.state = if next.pressed {
-            LvIndevState::LV_INDEV_STATE_PRESSED
-        } else {
-            LvIndevState::LV_INDEV_STATE_RELEASED
-        };
-        data.continue_reading = !ud.is_empty()
-    }
-}
-
 fn init_hww(preseed: bool) -> bool {
     // BitBox02 simulation initialization
     bitbox02::usb_processing::init();
@@ -263,26 +204,9 @@ fn init_hww(preseed: bool) -> bool {
     true
 }
 
-struct TouchScreenEvent {
-    pub x: i32,
-    pub y: i32,
-    pub pressed: bool,
-}
-
-//struct TouchScreen {
-//    indev: LvIndev,
-//}
-
-//impl TouchScreen {
-//    pub fn new(indev: LvIndev) -> TouchScreen {
-//        TouchScreen { indev }
-//    }
-//}
-
 struct App {
     framebuffer: Option<Box<FrameBuffer>>,
-    //touchscreen: Option<TouchScreen>,
-    touchscreen_events: Box<VecDeque<TouchScreenEvent>>,
+    touchscreen: Option<TouchScreen>,
     window: Option<Rc<Window>>,
     surface: Option<Surface<WindowSurface>>,
     gl_context: Option<PossiblyCurrentContext>,
@@ -299,8 +223,7 @@ impl Default for App {
     fn default() -> App {
         App {
             framebuffer: Default::default(),
-            //touchscreen: Default::default(),
-            touchscreen_events: Default::default(),
+            touchscreen: Default::default(),
             window: Default::default(),
             surface: Default::default(),
             gl_context: Default::default(),
@@ -348,7 +271,8 @@ impl App {
             .expect("display set buffers");
         };
         lv_display_set_flush_cb(&disp, Some(my_flush_cb));
-        hw_lvgl();
+
+        bitbox03::io::screen::splash();
 
         let width = WINDOW_LOGICAL_WIDTH_ORIGINAL as u32;
         let height = WINDOW_LOGICAL_HEIGHT_ORIGINAL as u32;
@@ -430,21 +354,10 @@ impl App {
             )
         };
 
-        let indev = lv_indev_create().expect("create input device");
-        lv_indev_set_type(&indev, LvIndevType::LV_INDEV_TYPE_POINTER);
-        lv_indev_set_read_cb(&indev, Some(indev_read_cb));
+        let touchscreen = TouchScreen::new();
 
-        unsafe {
-            lv_indev_set_user_data(
-                &indev,
-                NonNull::new(self.touchscreen_events.as_mut() as *mut _ as *mut _),
-            )
-        };
-
-        //let touchscreen = TouchScreen::new(indev);
-
+        self.touchscreen.replace(touchscreen);
         self.framebuffer.replace(framebuffer);
-        //self.touchscreen.replace(touchscreen);
         self.window.replace(window);
         self.surface.replace(surface);
         self.gl_context.replace(gl_context);
@@ -584,8 +497,10 @@ impl ApplicationHandler<UserEvent> for App {
 
                 match state {
                     ElementState::Pressed => {
-                        if let Some((x, y)) = screen_coord(x, y) {
-                            self.touchscreen_events.push_back(TouchScreenEvent {
+                        if let Some((x, y)) = screen_coord(x, y)
+                            && let Some(touchscreen) = &mut self.touchscreen
+                        {
+                            touchscreen.push(TouchScreenEvent {
                                 x,
                                 y,
                                 pressed: true,
@@ -599,8 +514,10 @@ impl ApplicationHandler<UserEvent> for App {
                             return;
                         }
                         self.touch_active = false;
-                        if let Some((x, y)) = screen_coord(x, y) {
-                            self.touchscreen_events.push_back(TouchScreenEvent {
+                        if let Some((x, y)) = screen_coord(x, y)
+                            && let Some(touchscreen) = &mut self.touchscreen
+                        {
+                            touchscreen.push(TouchScreenEvent {
                                 x,
                                 y,
                                 pressed: false,

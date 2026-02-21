@@ -25,24 +25,6 @@ endif()
 
 execute_process(COMMAND rustc --print host-tuple OUTPUT_VARIABLE LLVM_HOST_TUPLE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-set(LV_BUILD_CONF_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH
-    "Can be used to specify the include dir containing lv_conf.h, to be used in conjunction with LV_CONF_INCLUDE_SIMPLE"
-)
-set(CONFIG_LV_BUILD_EXAMPLES OFF)
-set(CONFIG_LV_BUILD_DEMOS OFF)
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/lvgl lvgl)
-# lvgl overrides our archive output directory :(. We override it back
-set_target_properties(
-    lvgl
-    PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
-)
-# ignore warnings in external lib
-target_compile_options(lvgl PRIVATE "-w")
-
-# Look for lvgl in cmake build directory
-string(APPEND RUSTFLAGS " -L${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
-
 # Supplying llvm host tuple is necessary for address sanitization and doesn't
 # hurt during regular builds.
 add_custom_command(
@@ -59,7 +41,7 @@ add_custom_command(
       ${CMAKE_COMMAND} -E copy
       ${RUST_BINARY_DIR}/${LLVM_HOST_TUPLE}/release/simulator-graphical-bb03
       ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simulator-graphical-bb03
-    DEPENDS rust-cbindgen lvgl
+    DEPENDS rust-cbindgen
     WORKING_DIRECTORY ${RUST_BINARY_DIR}
 )
 

@@ -383,6 +383,7 @@ pub fn lv_display_create(hor_res: i32, ver_res: i32) -> Option<LvDisplay> {
 
 /// # Safety
 /// `buf2` must have same size as LTDC buffer at `addr`
+#[cfg(target_os = "none")]
 pub unsafe fn lv_st_ltdc_create_direct(
     addr: usize,
     buf2: Option<&mut [u8]>,

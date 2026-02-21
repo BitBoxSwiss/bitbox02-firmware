@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 bitbox-lvgl = { path = "../bitbox-lvgl" }
+bitbox03 = { path = "../bitbox03" }
 st-drivers-sys = { path = "../st-drivers-sys" }
 cortex-m-rt = "0.7"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"]}

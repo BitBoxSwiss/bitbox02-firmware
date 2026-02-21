@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use bitbox_lvgl::{
     LvIndevState, LvIndevType, LvPoint, lv_indev_create, lv_indev_set_read_cb, lv_indev_set_type,

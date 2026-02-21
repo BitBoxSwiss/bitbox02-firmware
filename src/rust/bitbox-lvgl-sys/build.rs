@@ -118,14 +118,8 @@ fn main() -> Result<(), &'static str> {
     cmake_build.define("CONFIG_LV_BUILD_EXAMPLES", "OFF");
     cmake_build.define("CONFIG_LV_BUILD_DEMOS", "OFF");
 
-    //}
-    let dst = cmake_build.build();
-    println!("cargo::rustc-link-search=native={}/lib", dst.display());
-    println!("cargo::rustc-link-lib=static=lvgl");
     let target = env::var("TARGET").expect("TARGET not set");
     if target.starts_with("thumb") {
-        //cmake_build.cflag("--specs=nosys.specs");
-        //cmake_build.cflag("--specs=nano.specs");
         cmake_build.cflag("-DUSE_HAL_DRIVER");
         cmake_build.cflag("-DSTM32U5A9xx");
         cmake_build.cflag("-Os");
@@ -150,5 +144,8 @@ fn main() -> Result<(), &'static str> {
 
     let clang_args = build_clang_args(&lvgl_dir, &lv_conf);
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
+    let dst = cmake_build.build();
+    println!("cargo::rustc-link-search=native={}/lib", dst.display());
+    println!("cargo::rustc-link-lib=static=lvgl");
     run_bindgen(&wrapper, &out_path, &clang_args)
 }

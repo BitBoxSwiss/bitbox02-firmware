@@ -57,6 +57,7 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 void GPU2D_IRQHandler(void);
 void GPU2D_ER_IRQHandler(void);
+void LTDC_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

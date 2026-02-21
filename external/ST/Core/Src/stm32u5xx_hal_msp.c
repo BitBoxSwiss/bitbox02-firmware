@@ -172,22 +172,11 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
   */
 void HAL_DSI_MspInit(DSI_HandleTypeDef* hdsi)
 {
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
   if(hdsi->Instance==DSI)
   {
     /* USER CODE BEGIN DSI_MspInit 0 */
 
     /* USER CODE END DSI_MspInit 0 */
-
-  /** Initializes the peripherals clock
-  */
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_DSI;
-    PeriphClkInit.DsiClockSelection = RCC_DSICLKSOURCE_DSIPHY;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
     /* Peripheral clock enable */
     __HAL_RCC_DSI_CLK_ENABLE();
     /* USER CODE BEGIN DSI_MspInit 1 */
@@ -553,33 +542,16 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
   */
 void HAL_LTDC_MspInit(LTDC_HandleTypeDef* hltdc)
 {
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
   if(hltdc->Instance==LTDC)
   {
     /* USER CODE BEGIN LTDC_MspInit 0 */
 
     /* USER CODE END LTDC_MspInit 0 */
-
-  /** Initializes the peripherals clock
-  */
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
-    PeriphClkInit.LtdcClockSelection = RCC_LTDCCLKSOURCE_PLL3;
-    PeriphClkInit.PLL3.PLL3Source = RCC_PLLSOURCE_MSI;
-    PeriphClkInit.PLL3.PLL3M = 3;
-    PeriphClkInit.PLL3.PLL3N = 8;
-    PeriphClkInit.PLL3.PLL3P = 2;
-    PeriphClkInit.PLL3.PLL3Q = 2;
-    PeriphClkInit.PLL3.PLL3R = 1;
-    PeriphClkInit.PLL3.PLL3RGE = RCC_PLLVCIRANGE_1;
-    PeriphClkInit.PLL3.PLL3FRACN = 0.0;
-    PeriphClkInit.PLL3.PLL3ClockOut = RCC_PLL3_DIVR;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
     /* Peripheral clock enable */
     __HAL_RCC_LTDC_CLK_ENABLE();
+    /* LTDC interrupt Init */
+    HAL_NVIC_SetPriority(LTDC_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(LTDC_IRQn);
     /* USER CODE BEGIN LTDC_MspInit 1 */
 
     /* USER CODE END LTDC_MspInit 1 */
@@ -603,6 +575,9 @@ void HAL_LTDC_MspDeInit(LTDC_HandleTypeDef* hltdc)
     /* USER CODE END LTDC_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_LTDC_CLK_DISABLE();
+
+    /* LTDC interrupt DeInit */
+    HAL_NVIC_DisableIRQ(LTDC_IRQn);
     /* USER CODE BEGIN LTDC_MspDeInit 1 */
 
     /* USER CODE END LTDC_MspDeInit 1 */

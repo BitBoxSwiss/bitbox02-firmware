@@ -56,6 +56,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern GPU2D_HandleTypeDef hgpu2d;
+extern LTDC_HandleTypeDef hltdc;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -224,6 +225,20 @@ void GPU2D_ER_IRQHandler(void)
   /* USER CODE BEGIN GPU2D_ER_IRQn 1 */
 
   /* USER CODE END GPU2D_ER_IRQn 1 */
+}
+
+/**
+  * @brief This function handles LCD-TFT global interrupt.
+  */
+void LTDC_IRQHandler(void)
+{
+  /* USER CODE BEGIN LTDC_IRQn 0 */
+
+  /* USER CODE END LTDC_IRQn 0 */
+  HAL_LTDC_IRQHandler(&hltdc);
+  /* USER CODE BEGIN LTDC_IRQn 1 */
+
+  /* USER CODE END LTDC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

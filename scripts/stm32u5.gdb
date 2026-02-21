@@ -7,4 +7,4 @@ load
 b HardFault_Handler
 
 # Step into first instruction
-si
+c

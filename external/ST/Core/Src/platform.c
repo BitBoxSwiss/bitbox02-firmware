@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <string.h>
 
 /* USER CODE END Includes */
 
@@ -67,6 +69,7 @@ HCD_HandleTypeDef hhcd_USB_OTG_HS;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void PeriphCommonClock_Config(void);
 static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC4_Init(void);
@@ -79,9 +82,11 @@ static void MX_SDMMC1_MMC_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USB_OTG_HS_HCD_Init(void);
 static void MX_GPU2D_Init(void);
-static void MX_LTDC_Init(void);
 static void MX_DSIHOST_DSI_Init(void);
+static void MX_LTDC_Init(void);
 /* USER CODE BEGIN PFP */
+
+static void setPanelConfig(void);
 
 /* USER CODE END PFP */
 
@@ -116,6 +121,9 @@ int platform_init(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  /* Configure the peripherals common clocks */
+  PeriphCommonClock_Config();
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -132,22 +140,16 @@ int platform_init(void)
   MX_USART1_UART_Init();
   MX_USB_OTG_HS_HCD_Init();
   MX_GPU2D_Init();
-  MX_LTDC_Init();
   MX_DSIHOST_DSI_Init();
+  MX_LTDC_Init();
   /* USER CODE BEGIN 2 */
+  // ^- The call to MX_DSIHOST_DSI_Init() must be done before MX_LTDC_Init().
+  
+  setPanelConfig();
 
-  static unsigned char tx_buf[] = "Hello World\n\r";
+  static unsigned char tx_buf[] = "Hello World\r\n";
 
   /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1) {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -161,7 +163,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE2) != HAL_OK)
+  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -180,10 +182,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV1;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 8;
+  RCC_OscInitStruct.PLL.PLLN = 10;
   RCC_OscInitStruct.PLL.PLLP = 8;
   RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLR = 1;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -196,13 +198,41 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_PCLK3;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief Peripherals Common Clock Configuration
+  * @retval None
+  */
+void PeriphCommonClock_Config(void)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Initializes the common periph clock
+  */
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LTDC|RCC_PERIPHCLK_DSI;
+  PeriphClkInit.DsiClockSelection = RCC_DSICLKSOURCE_PLL3;
+  PeriphClkInit.LtdcClockSelection = RCC_LTDCCLKSOURCE_PLL3;
+  PeriphClkInit.PLL3.PLL3Source = RCC_PLLSOURCE_HSE;
+  PeriphClkInit.PLL3.PLL3M = 1;
+  PeriphClkInit.PLL3.PLL3N = 9;
+  PeriphClkInit.PLL3.PLL3P = 3;
+  PeriphClkInit.PLL3.PLL3Q = 2;
+  PeriphClkInit.PLL3.PLL3R = 5;
+  PeriphClkInit.PLL3.PLL3RGE = RCC_PLLVCIRANGE_1;
+  PeriphClkInit.PLL3.PLL3FRACN = 3072;
+  PeriphClkInit.PLL3.PLL3ClockOut = RCC_PLL3_DIVP|RCC_PLL3_DIVR;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
@@ -316,7 +346,7 @@ static void MX_DSIHOST_DSI_Init(void)
   hdsi.Init.AutomaticClockLaneControl = DSI_AUTO_CLK_LANE_CTRL_DISABLE;
   hdsi.Init.TXEscapeCkdiv = 4;
   hdsi.Init.NumberOfLanes = DSI_TWO_DATA_LANES;
-  hdsi.Init.PHYFrequencyRange = DSI_DPHY_FRANGE_450MHZ_510MHZ;
+  hdsi.Init.PHYFrequencyRange = DSI_DPHY_FRANGE_240MHZ_320MHZ;
   hdsi.Init.PHYLowPowerOffset = PHY_LP_OFFSSET_0_CLKP;
   PLLInit.PLLNDIV = 16;
   PLLInit.PLLIDF = DSI_PLL_IN_DIV1;
@@ -341,7 +371,7 @@ static void MX_DSIHOST_DSI_Init(void)
   {
     Error_Handler();
   }
-  PhyTimings.ClockLaneHS2LPTime = 5;
+  PhyTimings.ClockLaneHS2LPTime = 8;
   PhyTimings.ClockLaneLP2HSTime = 0;
   PhyTimings.DataLaneHS2LPTime = 0;
   PhyTimings.DataLaneLP2HSTime = 0;
@@ -361,21 +391,21 @@ static void MX_DSIHOST_DSI_Init(void)
   }
   VidCfg.ColorCoding = DSI_RGB666;
   VidCfg.LooselyPacked = DSI_LOOSELY_PACKED_DISABLE;
-  VidCfg.Mode = DSI_VID_MODE_NB_PULSES;
-  VidCfg.PacketSize = 4;
-  VidCfg.NumberOfChunks = 120;
+  VidCfg.Mode = DSI_VID_MODE_BURST;
+  VidCfg.PacketSize = 480;
+  VidCfg.NumberOfChunks = 0;
   VidCfg.NullPacketSize = 0;
   VidCfg.HSPolarity = DSI_HSYNC_ACTIVE_LOW;
   VidCfg.VSPolarity = DSI_VSYNC_ACTIVE_LOW;
   VidCfg.DEPolarity = DSI_DATA_ENABLE_ACTIVE_HIGH;
-  VidCfg.HorizontalSyncActive = 2;
-  VidCfg.HorizontalBackPorch = 2;
-  VidCfg.HorizontalLine = 125;
-  VidCfg.VerticalSyncActive = 4;
-  VidCfg.VerticalBackPorch = 2;
-  VidCfg.VerticalFrontPorch = 2;
+  VidCfg.HorizontalSyncActive = 68;
+  VidCfg.HorizontalBackPorch = 67;
+  VidCfg.HorizontalLine = 985;
+  VidCfg.VerticalSyncActive = 21;
+  VidCfg.VerticalBackPorch = 16;
+  VidCfg.VerticalFrontPorch = 12;
   VidCfg.VerticalActive = 800;
-  VidCfg.LPCommandEnable = DSI_LP_COMMAND_DISABLE;
+  VidCfg.LPCommandEnable = DSI_LP_COMMAND_ENABLE;
   VidCfg.LPLargestPacketSize = 0;
   VidCfg.LPVACTLargestPacketSize = 0;
   VidCfg.LPHorizontalFrontPorchEnable = DSI_LP_HFP_ENABLE;
@@ -384,7 +414,7 @@ static void MX_DSIHOST_DSI_Init(void)
   VidCfg.LPVerticalFrontPorchEnable = DSI_LP_VFP_ENABLE;
   VidCfg.LPVerticalBackPorchEnable = DSI_LP_VBP_ENABLE;
   VidCfg.LPVerticalSyncActiveEnable = DSI_LP_VSYNC_ENABLE;
-  VidCfg.FrameBTAAcknowledgeEnable = DSI_FBTAA_DISABLE;
+  VidCfg.FrameBTAAcknowledgeEnable = DSI_FBTAA_ENABLE;
   if (HAL_DSI_ConfigVideoMode(&hdsi, &VidCfg) != HAL_OK)
   {
     Error_Handler();
@@ -394,6 +424,22 @@ static void MX_DSIHOST_DSI_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN DSIHOST_Init 2 */
+
+  
+  RCC_PeriphCLKInitTypeDef  DSIPHYInitPeriph;
+
+  /* Switch to DSI PHY PLL clock */
+  DSIPHYInitPeriph.PeriphClockSelection = RCC_PERIPHCLK_DSI;
+  DSIPHYInitPeriph.DsiClockSelection    = RCC_DSICLKSOURCE_DSIPHY;
+
+  HAL_RCCEx_PeriphCLKConfig(&DSIPHYInitPeriph);
+
+  HAL_Delay(15);
+  HAL_GPIO_WritePin(DSI_RESETn_GPIO_Port, DSI_RESETn_Pin, GPIO_PIN_SET);
+  HAL_Delay(150);
+
+
+
 
   /* USER CODE END DSIHOST_Init 2 */
 
@@ -482,7 +528,7 @@ static void MX_I2C3_Init(void)
 
   /* USER CODE END I2C3_Init 1 */
   hi2c3.Instance = I2C3;
-  hi2c3.Init.Timing = 0x20303E5D;
+  hi2c3.Init.Timing = 0x30909DEC;
   hi2c3.Init.OwnAddress1 = 0;
   hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -530,7 +576,7 @@ static void MX_I2C5_Init(void)
 
   /* USER CODE END I2C5_Init 1 */
   hi2c5.Instance = I2C5;
-  hi2c5.Init.Timing = 0x20303E5D;
+  hi2c5.Init.Timing = 0x30909DEC;
   hi2c5.Init.OwnAddress1 = 0;
   hi2c5.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c5.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -616,15 +662,15 @@ static void MX_LTDC_Init(void)
   hltdc.Init.VSPolarity = LTDC_VSPOLARITY_AL;
   hltdc.Init.DEPolarity = LTDC_DEPOLARITY_AL;
   hltdc.Init.PCPolarity = LTDC_PCPOLARITY_IPC;
-  hltdc.Init.HorizontalSync = 7;
-  hltdc.Init.VerticalSync = 3;
-  hltdc.Init.AccumulatedHBP = 14;
-  hltdc.Init.AccumulatedVBP = 5;
-  hltdc.Init.AccumulatedActiveW = 494;
-  hltdc.Init.AccumulatedActiveH = 805;
-  hltdc.Init.TotalWidth = 500;
-  hltdc.Init.TotalHeigh = 807;
-  hltdc.Init.Backcolor.Blue = 0;
+  hltdc.Init.HorizontalSync = 40;
+  hltdc.Init.VerticalSync = 20;
+  hltdc.Init.AccumulatedHBP = 80;
+  hltdc.Init.AccumulatedVBP = 36;
+  hltdc.Init.AccumulatedActiveW = 560;
+  hltdc.Init.AccumulatedActiveH = 836;
+  hltdc.Init.TotalWidth = 590;
+  hltdc.Init.TotalHeigh = 848;
+  hltdc.Init.Backcolor.Blue = 255;
   hltdc.Init.Backcolor.Green = 0;
   hltdc.Init.Backcolor.Red = 0;
   if (HAL_LTDC_Init(&hltdc) != HAL_OK)
@@ -632,11 +678,11 @@ static void MX_LTDC_Init(void)
     Error_Handler();
   }
   pLayerCfg.WindowX0 = 0;
-  pLayerCfg.WindowX1 = 0;
+  pLayerCfg.WindowX1 = 480;
   pLayerCfg.WindowY0 = 0;
-  pLayerCfg.WindowY1 = 0;
+  pLayerCfg.WindowY1 = 800;
   pLayerCfg.PixelFormat = LTDC_PIXEL_FORMAT_ARGB8888;
-  pLayerCfg.Alpha = 0;
+  pLayerCfg.Alpha = 255;
   pLayerCfg.Alpha0 = 0;
   pLayerCfg.BlendingFactor1 = LTDC_BLENDING_FACTOR1_CA;
   pLayerCfg.BlendingFactor2 = LTDC_BLENDING_FACTOR2_CA;
@@ -915,6 +961,206 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+typedef struct {
+    int cmd;                /*<! The specific LCD command */
+    const void *data;       /*<! Buffer that holds the command specific data */
+    size_t data_bytes;      /*<! Size of `data` in memory, in bytes */
+    unsigned int delay_ms;  /*<! Delay in milliseconds after this command */
+} st7701_lcd_init_cmd_t;
+
+//char * dbg(uint8_t* data, size_t data_len) {
+//    static char buf[1024] = {0};
+//    char* p = buf;
+//    for(int i=0; i<data_len; ++i) {
+//        int len = snprintf(p, sizeof(buf)-strlen(p), "%02x", data[i]);
+//        p += len;
+//    }
+//    return buf;
+//}
+//
+//void print_hex(uint8_t* data, size_t data_len) {
+//    char tmp[64];
+//    size_t len = snprintf(tmp, sizeof(tmp), "0x%s\r\n", dbg(data,data_len));
+//    HAL_UART_Transmit(&huart1, (uint8_t*)tmp, len, 1000);
+//}
+
+void print_s(char *str) {
+    HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), 1000);
+}
+void *memset16(void *m, uint16_t val, size_t count)
+{
+    uint16_t *buf = m;
+
+    while(count--) *buf++ = val;
+    return m;
+}
+
+void *memset32(void *m, uint32_t val, size_t count)
+{
+    uint32_t *buf = m;
+
+    while(count--) *buf++ = val;
+    return m;
+}
+void *memset24(void *m, uint32_t val, size_t count)
+{
+    uint8_t *buf = m;
+
+    while(count--) {
+        *buf++ = val&0xff;
+        *buf++ = (val>>8) & 0xff;
+        *buf++ = (val>>16) & 0xff;
+    }
+    return m;
+}
+
+uint8_t* fbuf = (uint8_t*)0x20000000;
+
+static void setPanelConfig() {
+    memset(fbuf, 0, 480*800*4);
+    //fbuf[0] = 0xff;
+    //fbuf[1] = 0xff;
+    //fbuf[2] = 0xff;
+    //fbuf[3] = 0xff;
+    //memset(fbuf, 0xff, 480*3);
+    //memset(&fbuf[480*3*2], 0xff, 480*3);
+    //memset(&fbuf[480*3*4], 0xff, 480*3);
+    //memset(&fbuf[480*3*6], 0xff, 480*3);
+    memset32(fbuf, 0xffffffff, 480);
+    memset32(&fbuf[480*4], 0xffffffff, 480);
+    //memset32(&fbuf[797*480*4], 0xffffffff, 480);
+    //memset32(&fbuf[796*480*4], 0xffff0000, 480);
+    //memset32(&fbuf[797*480*4], 0xffff0000, 480);
+    memset32(&fbuf[798*480*4], 0xffff0000, 480);
+    memset32(&fbuf[799*480*4], 0xffff0000, 480);
+    //memset32(&fbuf[799*480*4], 0xffff0000, 480);
+    //memset32((uint8_t*)0x20000000, 0xff00ff00, 480);
+  if(HAL_DSI_Start(&hdsi) != HAL_OK) {
+      Error_Handler();
+  }
+  // SWRESET
+  //if(HAL_DSI_ShortWrite(&hdsi, 0, DSI_DCS_SHORT_PKT_WRITE_P0, 0x01, 0) != HAL_OK) {
+  //    Error_Handler();
+  //}
+  //HAL_Delay(150);
+  //if(HAL_DSI_LongWrite(&hdsi, 0, DSI_DCS_LONG_PKT_WRITE, 5, 0xFF, (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}) != HAL_OK) {
+  //    Error_Handler();
+  //}
+   {
+     uint8_t buf[64] = {0};
+     if(HAL_DSI_Read(&hdsi, 0, buf, 4, DSI_DCS_SHORT_PKT_READ, 0x04, 0) == HAL_OK)
+     {
+       print_s("rddid: ");
+       //print_hex(buf, 8);
+     } else {
+       print_s("no_response\r\n");
+     }
+   }
+   //{
+   //  uint8_t buf[64] = {0};
+   //  if(HAL_DSI_Read(&hdsi, 0, buf, 1, DSI_DCS_SHORT_PKT_READ, 0x0A, 0) == HAL_OK)
+   //  {
+   //    print_s("rddpm: ");
+   //    print_hex(buf, 2);
+   //  } else {
+   //    print_s("no_response\r\n");
+   //  }
+   //}
+
+  const st7701_lcd_init_cmd_t lh397k_display_init_sequence[] = {
+    //  {cmd, { data }, data_size, delay_ms}
+    {0xFF, (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, 5, 0},  // Regular command function
+    {0x13, (uint8_t[]){0x00}, 0, 0},                          // Turn on normal display mode
+    {0xEF, (uint8_t[]){0x08}, 1, 0},                          //??
+
+    {0xFF, (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x10}, 5, 0},  // Command 2 BK0 function
+    {0xC0, (uint8_t[]){0x63, 0x00}, 2, 0},                    // LNESET (Display Line Setting): (0x63+1)*8 = 800 lines
+    {0xC1, (uint8_t[]){0x10, 0x0C}, 2, 0},                    // PORCTRL (Porch Control): VBP = 16, VFP = 12
+    {0xC2, (uint8_t[]){0x37, 0x08}, 2, 0},  // INVSET (Inversion sel. & frame rate control): PCLK=512+(8*16) = 640
+    {0xCC, (uint8_t[]){0x38}, 1, 0},        //
+    {0xB0, (uint8_t[]){0x40, 0xC9, 0x90, 0x0D, 0x0F, 0x04, 0x00, 0x07, 0x07, 0x1C, 0x04, 0x52, 0x0F, 0xDF, 0x26, 0xCF},
+     16, 0},  // PVGAMCTRL
+    {0xB1, (uint8_t[]){0x40, 0xC9, 0xCF, 0x0C, 0x90, 0x04, 0x00, 0x07, 0x08, 0x1B, 0x06, 0x55, 0x13, 0x62, 0xE7, 0xCF},
+     16, 0},  // NVGAMCTRL
+
+    {0xFF, (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x11}, 5, 0},  // Command 2 BK1 function
+    {0xB0, (uint8_t[]){0x5D}, 1, 0},                          // VRHS
+    {0xB1, (uint8_t[]){0x2D}, 1, 0},                          // VCOMS
+    {0xB2, (uint8_t[]){0x07}, 1, 0},                          // VGH
+    {0xB3, (uint8_t[]){0x80}, 1, 0},                          // TESTCMD
+    {0xB5, (uint8_t[]){0x08}, 1, 0},                          // VGLS
+    {0xB7, (uint8_t[]){0x85}, 1, 0},                          // PWCTRL1
+    {0xB8, (uint8_t[]){0x20}, 1, 0},                          // PWCTRL2
+    {0xB9, (uint8_t[]){0x10}, 1, 0},                          // DGMLUTR
+    {0xC1, (uint8_t[]){0x78}, 1, 0},                          // SPD1
+    {0xC2, (uint8_t[]){0x78}, 1, 0},                          // SPD2
+    {0xD0, (uint8_t[]){0x88}, 1, 100},                        // MIPISET1
+    {0xE0, (uint8_t[]){0x00, 0x19, 0x02}, 3, 0},              //
+    {0xE1, (uint8_t[]){0x05, 0xA0, 0x07, 0xA0, 0x04, 0xA0, 0x06, 0xA0, 0x00, 0x44, 0x44}, 11, 0},              //
+    {0xE2, (uint8_t[]){0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 13, 0},  //
+    {0xE3, (uint8_t[]){0x00, 0x00, 0x33, 0x33}, 5, 0},                                                         //
+    {0xE4, (uint8_t[]){0x44, 0x44}, 2, 0},                                                                     //
+    {0xE5, (uint8_t[]){0x0D, 0x31, 0xC8, 0xAF, 0x0F, 0x33, 0xC8, 0xAF, 0x09, 0x2D, 0xC8, 0xAF, 0x0B, 0x2F, 0xC8, 0xAF},
+     16, 0},                                            //
+    {0xE6, (uint8_t[]){0x00, 0x00, 0x33, 0x33}, 4, 0},  //
+    {0xE7, (uint8_t[]){0x44, 0x44}, 2, 0},              //
+    {0xE8, (uint8_t[]){0x0C, 0x30, 0xC8, 0xAF, 0x0E, 0x32, 0xC8, 0xAF, 0x08, 0x2C, 0xC8, 0xAF, 0x0A, 0x2E, 0xC8, 0xAF},
+     16, 0},                                                              //
+    {0xEB, (uint8_t[]){0x02, 0x00, 0xE4, 0xE4, 0x44, 0x00, 0x40}, 7, 0},  //
+    {0xEC, (uint8_t[]){0x3C, 0x00}, 2, 0},                                //
+    {0xED, (uint8_t[]){0xAB, 0x89, 0x76, 0x54, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x10, 0x45, 0x67, 0x98, 0xBA},
+     16, 0},  //
+
+    {0xFF, (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, 5, 0},  // Regular command function
+    {0x11, (uint8_t[]){0x00}, 0, 120},                        // Exit sleep mode
+    {0x3A, (uint8_t[]){0x66}, 1, 0},                          // RGB666
+    {0x51, (uint8_t[]){0xff}, 1, 0},                          // brightness
+    {0x29, (uint8_t[]){0x00}, 0, 0},                          // Display on (enable frame buffer output)
+  };
+
+  for(int i=0; i<sizeof(lh397k_display_init_sequence)/sizeof(st7701_lcd_init_cmd_t); ++i) {
+    const st7701_lcd_init_cmd_t* cmd = &lh397k_display_init_sequence[i];
+    if (cmd->data_bytes > 1) {
+      if(HAL_DSI_LongWrite(&hdsi, 0, DSI_DCS_LONG_PKT_WRITE, cmd->data_bytes, cmd->cmd, cmd->data)!= HAL_OK) {
+          Error_Handler();
+      }
+    } else if(cmd->data_bytes == 1) {
+      if(HAL_DSI_ShortWrite(&hdsi, 0, DSI_DCS_SHORT_PKT_WRITE_P1, cmd->cmd, ((uint8_t*)cmd->data)[0]) != HAL_OK) {
+          Error_Handler();
+      }
+    } else {
+      if(HAL_DSI_ShortWrite(&hdsi, 0, DSI_DCS_SHORT_PKT_WRITE_P0, cmd->cmd, 0) != HAL_OK) {
+          Error_Handler();
+      }
+    }
+    if(cmd->delay_ms > 0) {
+        HAL_Delay(cmd->delay_ms);
+    }
+    //char buf[10];
+    //size_t len = snprintf(buf, sizeof(buf), "%d ", i);
+    //HAL_UART_Transmit(&huart1, (uint8_t*)buf, len, 1000);
+  }
+  HAL_UART_Transmit(&huart1, (uint8_t*)"done\r\n", 6, 1000);
+  //   uint8_t buf[64] = {0};
+  //   if(HAL_DSI_Read(&hdsi, 0, buf, 1, DSI_DCS_SHORT_PKT_READ, 0x0f, 0) == HAL_OK)
+  //   {
+  //     print_s("rddsdr: ");
+  //     print_hex(buf, 2);
+  //   } else {
+  //     print_s("no_response\r\n");
+  //   }
+  // {
+  //   uint8_t buf[64] = {0};
+  //   if(HAL_DSI_Read(&hdsi, 0, buf, 1, DSI_DCS_SHORT_PKT_READ, 0x0A, 0) == HAL_OK)
+  //   {
+  //     print_s("rddpm: ");
+  //     print_hex(buf, 2);
+  //   } else {
+  //     print_s("no_response\r\n");
+  //   }
+  // }
+}
 
 /* USER CODE END 4 */
 

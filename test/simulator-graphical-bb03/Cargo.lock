@@ -454,6 +454,7 @@ name = "bitbox03"
 version = "0.1.0"
 dependencies = [
  "bitbox-lvgl",
+ "png-decoder",
  "tracing",
 ]
 
@@ -2320,6 +2321,17 @@ dependencies = [
  "fdeflate",
  "flate2",
  "miniz_oxide",
+]
+
+[[package]]
+name = "png-decoder"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "713df1df0e7ec45433786eda4bd6c21a534e90e9b9417b8cb02bb6fa7479086e"
+dependencies = [
+ "crc32fast",
+ "miniz_oxide",
+ "num_enum",
 ]
 
 [[package]]

@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 bitbox-lvgl = { path = "../bitbox-lvgl" }
 tracing = { version = "0.1.41", features = ["log"], default-features = false }
+png-decoder = { version="0.2"}

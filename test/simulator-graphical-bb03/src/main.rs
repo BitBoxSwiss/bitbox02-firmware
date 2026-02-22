@@ -171,6 +171,21 @@ extern "C" fn my_flush_cb(
     unsafe { bitbox_lvgl::ffi::lv_display_flush_ready(display) };
 }
 
+extern "C" fn lv_log_cb(level: bitbox_lvgl::ffi::lv_log_level_t, buf: *const core::ffi::c_char) {
+    if !buf.is_null() {
+        let str = unsafe { std::ffi::CStr::from_ptr(buf).to_str().unwrap() };
+        match level as u32 {
+            bitbox_lvgl::ffi::LV_LOG_LEVEL_TRACE => tracing::trace!("{}", str),
+            bitbox_lvgl::ffi::LV_LOG_LEVEL_INFO => tracing::info!("{}", str),
+            bitbox_lvgl::ffi::LV_LOG_LEVEL_WARN => tracing::warn!("{}", str),
+            bitbox_lvgl::ffi::LV_LOG_LEVEL_ERROR => tracing::error!("{}", str),
+            bitbox_lvgl::ffi::LV_LOG_LEVEL_USER => tracing::info!("USER: {}", str),
+            bitbox_lvgl::ffi::LV_LOG_LEVEL_NONE => tracing::info!("NONE: {}", str),
+            _ => tracing::error!("invalid log level!"),
+        }
+    }
+}
+
 fn init_hww(preseed: bool) -> bool {
     // BitBox02 simulation initialization
     bitbox02::usb_processing::init();
@@ -255,6 +270,7 @@ impl App {
         _: Option<String>,
     ) -> Result<WindowId, Box<dyn Error>> {
         lv_init();
+        unsafe { bitbox_lvgl::ffi::lv_log_register_print_cb(Some(lv_log_cb)) };
         lv_tick_set_cb(Some(get_current_time_ms));
 
         // Make a buffer and give it to lvgl.

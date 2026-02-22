@@ -1,0 +1,30 @@
+[package]
+name = "png-decoder"
+version = "0.2.0"
+authors = ["Brian Schwind <brianmschwind@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/bschwind/png-decoder"
+description = "A pure-Rust, no_std compatible PNG decoder."
+homepage = "https://github.com/bschwind/png-decoder"
+readme = "README.md"
+documentation = "https://docs.rs/png-decoder"
+keywords = ["png", "image", "decoder"]
+categories = ["multimedia::images"]
+license = "MIT OR Apache-2.0 OR Zlib"
+
+exclude = [
+    "test_pngs/*",
+]
+
+[dependencies]
+crc32fast = { version = "1", default-features = false }
+num_enum = { version = "0.7", default-features = false }
+miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
+
+[dev-dependencies]
+image = { version = "0.23", features = ["png"] }
+criterion = "0.3"
+
+[[bench]]
+name = "decode_benchmark"
+harness = false

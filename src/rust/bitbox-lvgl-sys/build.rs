@@ -51,6 +51,9 @@ fn build_clang_args(lvgl_dir: &Path, lv_conf: &Path) -> Vec<String> {
     } else {
         panic!("Could not determine sysroot");
     }
+    if let Ok(target) = env::var("TARGET") {
+        args.push(format!("--target={target}"));
+    }
     args
 }
 

@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::ffi::c_void;
 use core::ptr::NonNull;
 
@@ -20,6 +22,7 @@ pub use ffi::lv_flex_align_t as LvFlexAlign;
 pub use ffi::lv_flex_flow_t as LvFlexFlow;
 pub use ffi::lv_grad_dir_t as LvGradDir;
 pub use ffi::lv_grid_align_t as LvGridAlign;
+pub use ffi::lv_image_dsc_t as LvImageDsc;
 pub use ffi::lv_indev_state_t as LvIndevState;
 pub use ffi::lv_indev_type_t as LvIndevType;
 pub use ffi::lv_opa_t as LvOpa;
@@ -58,6 +61,11 @@ pub enum LvDisplayBufferError {
     EmptyBuffer,
     UnalignedBuffer,
     BufferTooLarge,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LvCanvas {
+    inner: NonNull<ffi::lv_obj_t>,
 }
 
 impl LvObj {
@@ -506,4 +514,51 @@ pub unsafe fn lv_indev_set_user_data(indev: &LvIndev, user_data: Option<NonNull<
 
 pub fn lv_indev_get_user_data(indev: &LvIndev) -> Option<NonNull<c_void>> {
     NonNull::new(unsafe { ffi::lv_indev_get_user_data(indev.inner.as_ptr()) })
+}
+
+unsafe extern "C" fn on_delete_free_attachment(e: *mut ffi::lv_event_t) {
+    unsafe {
+        if ffi::lv_event_get_code(e) != ffi::lv_event_code_t::LV_EVENT_DELETE {
+            return;
+        }
+    }
+
+    let ud = unsafe { ffi::lv_event_get_user_data(e) };
+    let attachment_ptr = ud as *mut Vec<[u8; 4]>;
+
+    let attachment = unsafe { Box::from_raw(attachment_ptr) };
+    drop(attachment);
+}
+
+pub fn lv_canvas_create_from_slice(
+    parent: &LvObj,
+    data: Vec<[u8; 4]>,
+    width: u32,
+    height: u32,
+) -> Option<LvObj> {
+    let canvas = unsafe { ffi::lv_canvas_create(parent.inner.as_ptr()) };
+
+    unsafe {
+        ffi::lv_canvas_set_buffer(
+            canvas,
+            data.as_ptr() as *mut c_void, // Pointer to Vec storage
+            width as i32,
+            height as i32,
+            ffi::lv_color_format_t::LV_COLOR_FORMAT_ARGB8888,
+        )
+    };
+
+    let attachment = Box::new(data);
+    let attachment_ptr = Box::into_raw(attachment) as *mut core::ffi::c_void;
+
+    unsafe {
+        ffi::lv_obj_add_event_cb(
+            canvas,
+            Some(on_delete_free_attachment),
+            ffi::lv_event_code_t::LV_EVENT_DELETE,
+            attachment_ptr,
+        )
+    };
+
+    NonNull::new(canvas).map(|inner| LvObj { inner })
 }

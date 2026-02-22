@@ -36,10 +36,10 @@ add_custom_command(
       CFLAGS=${CARGO_C_FLAGS}
       RUSTC_BOOTSTRAP=1
       LV_CONF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h
-      cargo build $ENV{CARGOFLAGS} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml --target-dir ${RUST_BINARY_DIR} --target=${LLVM_HOST_TUPLE} --release
+      cargo build $ENV{CARGOFLAGS} --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml --target-dir ${RUST_BINARY_DIR} --target=${LLVM_HOST_TUPLE}
     COMMAND
       ${CMAKE_COMMAND} -E copy
-      ${RUST_BINARY_DIR}/${LLVM_HOST_TUPLE}/release/simulator-graphical-bb03
+      ${RUST_BINARY_DIR}/${LLVM_HOST_TUPLE}/debug/simulator-graphical-bb03
       ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/simulator-graphical-bb03
     DEPENDS rust-cbindgen
     WORKING_DIRECTORY ${RUST_BINARY_DIR}

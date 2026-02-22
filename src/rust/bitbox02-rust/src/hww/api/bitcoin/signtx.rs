@@ -2,7 +2,7 @@
 
 use super::Error;
 use super::pb;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Progress};
 
 use super::common::format_amount;
 use super::payment_request;
@@ -306,7 +306,7 @@ async fn handle_prevtx(
     input_index: u32,
     input: &pb::BtcSignInputRequest,
     num_inputs: u32,
-    progress_component: &mut bitbox02::ui::Component,
+    progress_component: &mut impl Progress,
     next_response: &mut NextResponse,
 ) -> Result<(), Error> {
     let prevtx_init = get_prevtx_init(input_index, next_response).await?;
@@ -324,7 +324,7 @@ async fn handle_prevtx(
     hasher.update(serialize_varint(prevtx_init.num_inputs as u64).as_slice());
     for prevtx_input_index in 0..prevtx_init.num_inputs {
         // Update progress.
-        bitbox02::ui::progress_set(progress_component, {
+        progress_component.set({
             let step = 1f32 / (num_inputs as f32);
             let subprogress: f32 = (prevtx_input_index as f32)
                 / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
@@ -342,7 +342,7 @@ async fn handle_prevtx(
     hasher.update(serialize_varint(prevtx_init.num_outputs as u64).as_slice());
     for prevtx_output_index in 0..prevtx_init.num_outputs {
         // Update progress.
-        bitbox02::ui::progress_set(progress_component, {
+        progress_component.set({
             let step = 1f32 / (num_inputs as f32);
             let subprogress: f32 = (prevtx_init.num_inputs + prevtx_output_index) as f32
                 / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
@@ -687,11 +687,7 @@ async fn _process(
     // transaction.
     let mut payment_request_seen = false;
 
-    let mut progress_component = {
-        let mut c = bitbox02::ui::progress_create("Loading transaction...");
-        c.screen_stack_push();
-        Some(c)
-    };
+    let mut progress_component = Some(hal.ui().progress_create("Loading transaction..."));
 
     let mut next_response = NextResponse {
         next: Default::default(),
@@ -720,10 +716,10 @@ async fn _process(
 
     for input_index in 0..request.num_inputs {
         // Update progress.
-        bitbox02::ui::progress_set(
-            progress_component.as_mut().unwrap(),
-            (input_index as f32) / (request.num_inputs as f32),
-        );
+        progress_component
+            .as_mut()
+            .unwrap()
+            .set((input_index as f32) / (request.num_inputs as f32));
 
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
         let script_config_account = validated_script_configs
@@ -809,7 +805,7 @@ async fn _process(
     }
 
     // The progress for loading the inputs is 100%.
-    bitbox02::ui::progress_set(progress_component.as_mut().unwrap(), 1.);
+    progress_component.as_mut().unwrap().set(1.);
 
     let hash_prevouts = hasher_prevouts.finalize();
     let hash_sequence = hasher_sequence.finalize();
@@ -1117,9 +1113,7 @@ async fn _process(
     // Show progress of signing inputs if there are more than 2 inputs. This is an arbitrary cutoff;
     // less or equal to 2 inputs is fast enough so it does not need a progress bar.
     let mut progress_component = if request.num_inputs > 2 {
-        let mut c = bitbox02::ui::progress_create("Signing transaction...");
-        c.screen_stack_push();
-        Some(c)
+        Some(hal.ui().progress_create("Signing transaction..."))
     } else {
         None
     };
@@ -1262,7 +1256,7 @@ async fn _process(
 
         // Update progress.
         if let Some(ref mut c) = progress_component {
-            bitbox02::ui::progress_set(c, (input_index + 1) as f32 / (request.num_inputs as f32));
+            c.set((input_index + 1) as f32 / (request.num_inputs as f32));
         }
     }
 

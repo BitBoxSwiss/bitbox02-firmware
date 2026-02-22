@@ -2,7 +2,7 @@
 
 use super::Error;
 use super::pb;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Progress};
 
 use hex_lit::hex;
 
@@ -58,6 +58,7 @@ trait Funcs {
 
 async fn _process_upgrade(
     funcs: &mut impl Funcs,
+    progress: &mut impl Progress,
     request: &pb::BluetoothUpgradeInitRequest,
     allowed_hash: &[u8; 32],
 ) -> Result<Response, Error> {
@@ -81,10 +82,6 @@ async fn _process_upgrade(
     // The host needs to send this many chunks.
     let num_chunks = request.firmware_length.div_ceil(SPI_ERASE_SIZE);
 
-    // Show progress
-    let mut progress_component = bitbox02::ui::progress_create("Upgrading...");
-    progress_component.screen_stack_push();
-
     // Stream chunks from host.
     for chunk_index in 0..num_chunks {
         let chunk_offset = chunk_index * SPI_ERASE_SIZE;
@@ -102,13 +99,8 @@ async fn _process_upgrade(
             .map_err(|_| Error::Memory)?;
 
         // Update progress.
-        bitbox02::ui::progress_set(
-            &mut progress_component,
-            (chunk_index + 1) as f32 / (num_chunks as f32),
-        );
+        progress.set((chunk_index + 1) as f32 / (num_chunks as f32));
     }
-
-    drop(progress_component);
 
     let firmware_hash: [u8; 32] = firmware_hasher.finalize().into();
     if &firmware_hash != allowed_hash {
@@ -151,7 +143,9 @@ async fn process_upgrade(
         })
         .await?;
 
-    let response = _process_upgrade(&mut RealFuncs, request, &ALLOWED_HASH).await;
+    let mut progress = hal.ui().progress_create("Upgrading...");
+    let response = _process_upgrade(&mut RealFuncs, &mut progress, request, &ALLOWED_HASH).await;
+    drop(progress);
 
     if response.is_ok() {
         hal.ui().status("Upgrade\nsuccessful", true).await;
@@ -296,6 +290,7 @@ mod tests {
             assert!(
                 block_on(_process_upgrade(
                     &mut mock_funcs,
+                    &mut crate::hal::testing::ui::NoopProgress,
                     &pb::BluetoothUpgradeInitRequest {
                         firmware_length: test.firmware_length,
                     },

@@ -25,8 +25,8 @@ bool memory_spi_get_active_ble_firmware(
         return false;
     }
     if (firmware_out != NULL) {
-        uint32_t ble_addr = metadata.active_index == 0 ? MEMORY_SPI_BLE_FIRMWARE_1_ADDR
-                                                       : MEMORY_SPI_BLE_FIRMWARE_2_ADDR;
+        uint32_t ble_addr = metadata.active_index == 0 ? BITBOX02_MEMORY_SPI_BLE_FIRMWARE_1_ADDR
+                                                       : BITBOX02_MEMORY_SPI_BLE_FIRMWARE_2_ADDR;
         *firmware_out = spi_mem_read(ble_addr, size);
         if (!*firmware_out) {
             return false;
@@ -57,8 +57,8 @@ USE_RESULT bool memory_spi_get_active_ble_firmware_version(struct da14531_firmwa
         return false;
     }
 
-    uint32_t ble_addr = metadata.active_index == 0 ? MEMORY_SPI_BLE_FIRMWARE_1_ADDR
-                                                   : MEMORY_SPI_BLE_FIRMWARE_2_ADDR;
+    uint32_t ble_addr = metadata.active_index == 0 ? BITBOX02_MEMORY_SPI_BLE_FIRMWARE_1_ADDR
+                                                   : BITBOX02_MEMORY_SPI_BLE_FIRMWARE_2_ADDR;
     uint8_t* firmware_bytes =
         spi_mem_read(ble_addr + 0x110, sizeof(struct da14531_firmware_version));
     ASSERT(firmware_bytes);

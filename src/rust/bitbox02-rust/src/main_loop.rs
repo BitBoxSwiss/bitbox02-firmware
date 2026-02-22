@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::Memory;
+use crate::hal::{Memory, System};
 use alloc::boxed::Box;
 use bitbox_executor::Executor;
 use bitbox02::ringbuffer::RingBuffer;
@@ -20,8 +20,8 @@ pub fn spawn(fut: DynExecutorFuture) {
     EXECUTOR.spawn(fut).detach();
 }
 
-pub fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
-    static ORIENTATION_CHOSEN: AtomicBool = AtomicBool::new(false);
+pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
+    static STARTUP_COMPLETE: AtomicBool = AtomicBool::new(false);
 
     // Set the size of uart_read_buf to the size of the ringbuffer in the UART driver so we can read
     // out all bytes
@@ -36,10 +36,10 @@ pub fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
     let device_name = hal.memory().get_device_name();
     bitbox02::da14531::set_name(&device_name, &mut uart_write_queue);
 
-    // This starts the async orientation screen workflow, which is processed by the loop below.
+    // This starts the async startup workflow, which is processed by the loop below.
     spawn(Box::pin(async {
-        crate::workflow::orientation_screen::orientation_screen().await;
-        ORIENTATION_CHOSEN.store(true, Ordering::Relaxed);
+        H::System::startup().await;
+        STARTUP_COMPLETE.store(true, Ordering::Relaxed);
     }));
 
     let mut hww_data = None;
@@ -161,7 +161,7 @@ pub fn main_loop(hal: &mut impl crate::hal::Hal) -> ! {
         // Run async executor
         EXECUTOR.try_tick();
 
-        if ORIENTATION_CHOSEN.swap(false, Ordering::Relaxed) {
+        if STARTUP_COMPLETE.swap(false, Ordering::Relaxed) {
             // hww handler in usb_process must be setup before we can allow ble connections
             if let Ok(crate::hal::memory::Platform::BitBox02Plus) = hal.memory().get_platform() {
                 let product = bitbox02::platform::product();

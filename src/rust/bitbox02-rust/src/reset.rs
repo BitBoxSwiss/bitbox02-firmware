@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::general::abort;
-use crate::hal::{Memory, SecureChip, Ui, memory};
+use crate::hal::{Memory, SecureChip, System, Ui, memory};
 
 /// Resets the device:
 /// - Updates secure chip KDF keys.
@@ -51,7 +51,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     }
 
     // Disable SmartEEPROM so it will be erased on next reboot.
-    bitbox02::smarteeprom::disable();
+    hal.system().smarteeprom_disable();
 
     // Show "Device reset" status using the UI workflow.
     hal.ui().status("Device reset", status).await;
@@ -61,11 +61,11 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
         hal.memory().get_platform(),
         Ok(memory::Platform::BitBox02Plus)
     ) {
-        bitbox02::reset_ble();
+        hal.system().reset_ble();
     }
 
     #[cfg(not(feature = "testing"))]
-    bitbox02::reboot();
+    hal.system().reboot();
 }
 
 #[cfg(test)]
@@ -89,7 +89,7 @@ mod tests {
         mock_unlocked();
         hal.memory.set_device_name("Custom name").unwrap();
         assert!(!keystore::is_locked());
-        assert!(bitbox02::smarteeprom::is_enabled());
+        assert!(hal.system.smarteeprom_enabled);
 
         // Make the reset keys call fail once, to test that it is retried.
         hal.securechip.mock_reset_keys_fails();
@@ -110,7 +110,7 @@ mod tests {
         assert_eq!(hal.memory.get_device_name().as_str(), "My BitBox");
 
         // SmartEEPROM was disabled as part of the reset.
-        assert!(!bitbox02::smarteeprom::is_enabled());
+        assert!(!hal.system.smarteeprom_enabled);
 
         assert_eq!(hal.securechip.get_u2f_counter(), 0);
 

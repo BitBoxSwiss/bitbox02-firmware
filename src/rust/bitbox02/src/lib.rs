@@ -126,11 +126,6 @@ pub fn reset_ble() {
     unsafe { bitbox02_sys::reset_ble() }
 }
 
-#[cfg(not(feature = "testing"))]
-pub fn reboot() {
-    unsafe { bitbox02_sys::reboot() }
-}
-
 #[allow(clippy::empty_loop)]
 pub fn reboot_to_bootloader() -> ! {
     unsafe { bitbox02_sys::reboot_to_bootloader() }

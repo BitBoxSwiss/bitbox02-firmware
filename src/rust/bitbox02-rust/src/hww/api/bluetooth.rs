@@ -11,7 +11,7 @@ use pb::bluetooth_response::Response;
 
 use sha2::{Digest, Sha256};
 
-use crate::hal::{Memory, Ui, memory as hal_memory};
+use crate::hal::{Memory, System, Ui, memory as hal_memory};
 
 use alloc::vec::Vec;
 
@@ -149,7 +149,7 @@ async fn process_upgrade(
 
     if response.is_ok() {
         hal.ui().status("Upgrade\nsuccessful", true).await;
-        bitbox02::reset_ble();
+        hal.system().reset_ble();
         if crate::communication_mode::ble_enabled(hal) {
             // Since the Bluetooth host will not be there anymore to read this response, this task
             // will not be cleared by the executor. We do it manually to make space for the next

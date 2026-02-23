@@ -99,6 +99,11 @@ pub fn lv_label_create(parent: &LvObj) -> Option<LvObj> {
         .map(|inner| LvObj { inner })
 }
 
+pub fn lv_spinner_create(parent: &LvObj) -> Option<LvObj> {
+    NonNull::new(unsafe { ffi::lv_spinner_create(parent.inner.as_ptr()) })
+        .map(|inner| LvObj { inner })
+}
+
 pub fn lv_label_set_text(obj: &LvObj, txt: &str) -> Result<(), LvLabelTextError> {
     let txt = alloc::ffi::CString::new(txt).map_err(|_| LvLabelTextError::ContainsNul)?;
     unsafe { ffi::lv_label_set_text(obj.inner.as_ptr(), txt.as_ptr()) }
@@ -107,6 +112,10 @@ pub fn lv_label_set_text(obj: &LvObj, txt: &str) -> Result<(), LvLabelTextError>
 
 pub fn lv_obj_align(obj: &LvObj, align: LvAlign, x_ofs: i32, y_ofs: i32) {
     unsafe { ffi::lv_obj_align(obj.inner.as_ptr(), align, x_ofs, y_ofs) }
+}
+
+pub fn lv_obj_set_size(obj: &LvObj, width: i32, height: i32) {
+    unsafe { ffi::lv_obj_set_size(obj.inner.as_ptr(), width, height) }
 }
 
 macro_rules! impl_lv_obj_style_setter {

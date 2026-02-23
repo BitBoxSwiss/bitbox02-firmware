@@ -467,13 +467,19 @@ class ETHTypedMessageValueRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     VALUE_FIELD_NUMBER: builtins.int
+    DATA_LENGTH_FIELD_NUMBER: builtins.int
     value: builtins.bytes
+    data_length: builtins.int
+    """If non-zero, value should be empty and data will be streamed via
+    DataRequestChunk/DataResponseChunk.
+    """
     def __init__(
         self,
         *,
         value: builtins.bytes = ...,
+        data_length: builtins.int = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["value", b"value"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_length", b"data_length", "value", b"value"]) -> None: ...
 
 global___ETHTypedMessageValueRequest = ETHTypedMessageValueRequest
 

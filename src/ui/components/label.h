@@ -9,6 +9,7 @@
 
 // Max size of text shown (excl. null terminator). The current size of 640 is chosen to be able to
 // show up to 320 bytes of Ethereum tx data in hex format.
+// If changed, keep in sync with MAX_DISPLAY_SIZE.
 #define MAX_LABEL_SIZE 640
 
 /**

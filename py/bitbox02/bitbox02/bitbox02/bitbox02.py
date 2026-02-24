@@ -50,6 +50,8 @@ except ModuleNotFoundError:
 
 HARDENED = 0x80000000
 
+STREAMING_THRESHOLD = 6144
+
 Backup = Tuple[str, str, datetime]
 
 
@@ -928,9 +930,6 @@ class BitBox02(BitBoxCommonAPI):
 
             return signature
 
-        # Streaming threshold: use chunking for data larger than this
-        streaming_threshold = 6144
-
         if is_eip1559:
             self._require_atleast(semver.VersionInfo(9, 16, 0))
             (
@@ -952,7 +951,7 @@ class BitBox02(BitBoxCommonAPI):
                     f"chainID argument ({chain_id}) does not match chainID encoded in transaction ({decoded_chain_id_int})"
                 )
 
-            require_streaming = len(data) > streaming_threshold
+            require_streaming = len(data) > STREAMING_THRESHOLD
             if require_streaming:
                 self._require_atleast(semver.VersionInfo(9, 26, 0))
 
@@ -977,7 +976,7 @@ class BitBox02(BitBoxCommonAPI):
 
         nonce, gas_price, gas_limit, recipient, value, data, _, _, _ = rlp.decode(transaction)
 
-        require_streaming = len(data) > streaming_threshold
+        require_streaming = len(data) > STREAMING_THRESHOLD
         if require_streaming:
             self._require_atleast(semver.VersionInfo(9, 26, 0))
 
@@ -1229,15 +1228,25 @@ class BitBox02(BitBoxCommonAPI):
 
         response = self._eth_msg_query(request)
         while response.WhichOneof("response") == "typed_msg_value":
-            response = self._eth_msg_query(
-                eth.ETHRequest(
-                    typed_msg_value=eth.ETHTypedMessageValueRequest(
-                        value=get_value(
-                            response.typed_msg_value.root_object, response.typed_msg_value.path
+            value = get_value(response.typed_msg_value.root_object, response.typed_msg_value.path)
+            if len(value) > STREAMING_THRESHOLD:
+                response = self._eth_msg_query(
+                    eth.ETHRequest(
+                        typed_msg_value=eth.ETHTypedMessageValueRequest(
+                            value=b"",
+                            data_length=len(value),
                         ),
-                    ),
+                    )
                 )
-            )
+                response = self._handle_eth_chunking(response, value)
+            else:
+                response = self._eth_msg_query(
+                    eth.ETHRequest(
+                        typed_msg_value=eth.ETHTypedMessageValueRequest(
+                            value=value,
+                        ),
+                    )
+                )
 
         if use_antiklepto:
             assert response.WhichOneof("response") == "antiklepto_signer_commitment"

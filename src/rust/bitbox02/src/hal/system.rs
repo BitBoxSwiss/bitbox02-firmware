@@ -19,7 +19,21 @@ impl System for BitBox02System {
         crate::ui::screen_process_waiting_switch_to_lockscreen();
     }
 
+    #[allow(clippy::empty_loop)]
+    fn reboot(&mut self) -> ! {
+        unsafe { bitbox02_sys::reboot() }
+        loop {}
+    }
+
     fn reboot_to_bootloader(&mut self) -> ! {
         crate::reboot_to_bootloader()
+    }
+
+    fn reset_ble(&mut self) {
+        crate::reset_ble()
+    }
+
+    fn smarteeprom_disable(&mut self) {
+        unsafe { bitbox02_sys::smarteeprom_disable() }
     }
 }

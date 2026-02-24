@@ -5,5 +5,8 @@ pub trait System {
     /// Runs device-specific startup UI/initialization before regular operation.
     async fn startup();
 
+    fn reboot(&mut self) -> !;
     fn reboot_to_bootloader(&mut self) -> !;
+    fn reset_ble(&mut self);
+    fn smarteeprom_disable(&mut self);
 }

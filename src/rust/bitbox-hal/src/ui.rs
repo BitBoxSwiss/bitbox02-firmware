@@ -85,6 +85,10 @@ pub trait Ui {
 
     async fn status(&mut self, title: &str, status_success: bool);
 
+    /// Switches the waiting screen from the lockscreen (as described in
+    /// [`crate::system::System::startup`]) to the BitBox logo.
+    fn switch_to_logo(&mut self);
+
     fn progress_create(&mut self, title: &str) -> Self::Progress;
 
     /// If `can_cancel` is `Yes`, the workflow can be cancelled.

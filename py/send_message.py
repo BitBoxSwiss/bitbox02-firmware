@@ -15,6 +15,7 @@ import binascii
 import textwrap
 import json
 from pathlib import Path
+import os
 
 import requests
 import hid
@@ -1226,6 +1227,52 @@ class SendMessage:
 
         print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
 
+    def _sign_eth_typed_message_large_data(self) -> None:
+        large_data = "0x" + os.urandom(50000).hex()
+        msg = {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "SafeTx": [
+                    {"name": "to", "type": "address"},
+                    {"name": "value", "type": "uint256"},
+                    {"name": "data", "type": "bytes"},
+                    {"name": "operation", "type": "uint8"},
+                    {"name": "safeTxGas", "type": "uint256"},
+                    {"name": "baseGas", "type": "uint256"},
+                    {"name": "gasPrice", "type": "uint256"},
+                    {"name": "gasToken", "type": "address"},
+                    {"name": "refundReceiver", "type": "address"},
+                    {"name": "nonce", "type": "uint256"},
+                ],
+            },
+            "primaryType": "SafeTx",
+            "domain": {
+                "chainId": "1",
+                "verifyingContract": "0x0000000000000000000000000000000000000000",
+            },
+            "message": {
+                "to": "0x0000000000000000000000000000000000000000",
+                "value": "0",
+                "data": large_data,
+                "operation": "0",
+                "safeTxGas": "0",
+                "baseGas": "0",
+                "gasPrice": "0",
+                "gasToken": "0x0000000000000000000000000000000000000000",
+                "refundReceiver": "0x0000000000000000000000000000000000000000",
+                "nonce": "3",
+            },
+        }
+        print(f"Signing SafeTx with {len(large_data)//2 - 1} bytes of data (streaming)")
+        sig = self._device.eth_sign_typed_msg(
+            keypath=[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+            msg=msg,
+        )
+        print("Signature: 0x{}".format(binascii.hexlify(sig).decode("utf-8")))
+
     def _cardano(self) -> None:
         def xpubs() -> None:
             xpubs = self._device.cardano_xpubs(
@@ -1592,6 +1639,10 @@ class SendMessage:
             ("Sign Ethereum tx", self._sign_eth_tx),
             ("Sign Ethereum Message", self._sign_eth_message),
             ("Sign Ethereum Typed Message (EIP-712)", self._sign_eth_typed_message),
+            (
+                "Sign Ethereum Typed Message (50KB streaming) ",
+                self._sign_eth_typed_message_large_data,
+            ),
             ("Cardano", self._cardano),
             ("Show Electrum wallet encryption key", self._get_electrum_encryption_key),
             ("BIP85 - BIP39", self._bip85_bip39),

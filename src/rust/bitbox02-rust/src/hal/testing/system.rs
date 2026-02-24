@@ -9,6 +9,8 @@ impl TestingSystem {
 }
 
 impl crate::hal::System for TestingSystem {
+    async fn startup() {}
+
     fn reboot_to_bootloader(&mut self) -> ! {
         panic!("reboot_to_bootloader called")
     }

@@ -5,7 +5,6 @@
     path = "workflow/mnemonic_c_unit_tests.rs"
 )]
 pub mod mnemonic;
-pub mod orientation_screen;
 pub mod pairing;
 pub mod password;
 pub mod transaction;

@@ -39,7 +39,7 @@ use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 use bitbox02::ui::ugui::UG_COLOR;
-use bitbox02_rust::hal::{Hal, Memory};
+use bitbox02_rust::hal::{Hal, Memory, System};
 
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
@@ -220,7 +220,7 @@ struct App {
     mouse_last_y: i32,
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
-    orientation_task: Option<util::bb02_async::Task<'static, bool>>,
+    startup_task: Option<util::bb02_async::Task<'static, ()>>,
 }
 
 impl Default for App {
@@ -239,7 +239,7 @@ impl Default for App {
             mouse_last_y: 0,
             outbound_in: Default::default(),
             inbound_out: Default::default(),
-            orientation_task: Default::default(),
+            startup_task: Default::default(),
         }
     }
 }
@@ -659,10 +659,10 @@ impl ApplicationHandler<UserEvent> for App {
                 bitbox02::usb_processing::process_hww();
                 bitbox02::screen::process();
 
-                if let Some(ref mut task) = self.orientation_task {
-                    if let Ready(_orientation) = util::bb02_async::spin(task) {
+                if let Some(ref mut task) = self.startup_task {
+                    if let Ready(_startup) = util::bb02_async::spin(task) {
                         ACCEPTING_CONNECTIONS.store(true, Ordering::Relaxed);
-                        self.orientation_task = None;
+                        self.startup_task = None;
                     }
                 }
 
@@ -691,9 +691,7 @@ impl ApplicationHandler<UserEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.create_window(event_loop, None)
             .expect("failed to create initial window");
-        self.orientation_task = Some(Box::pin(
-            bitbox02_rust::workflow::orientation_screen::orientation_screen(),
-        ));
+        self.startup_task = Some(Box::pin(bitbox02::hal::system::BitBox02System::startup()));
     }
 }
 

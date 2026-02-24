@@ -159,7 +159,6 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use bitbox02::memory;
-    use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 
     use alloc::boxed::Box;
@@ -167,7 +166,6 @@ mod tests {
 
     #[test]
     fn test_from_mnemonic() {
-        mock_memory();
         crate::keystore::lock();
         let mnemonic_words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
             .split(' ')

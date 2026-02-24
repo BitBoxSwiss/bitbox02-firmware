@@ -39,13 +39,12 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 
     #[test]
     pub fn test_mnemonic_passphrase_enabled() {
         // All good.
-        mock_memory();
+
         // Enable:
         let mut mock_hal = TestingHal::new();
         assert_eq!(

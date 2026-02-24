@@ -327,7 +327,6 @@ mod tests {
     use crate::keystore::testing::{TEST_MNEMONIC, mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::boxed::Box;
     use alloc::vec::Vec;
-    use bitbox02::testing::mock_memory;
     use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
@@ -984,7 +983,6 @@ mod tests {
             },
         ];
         for test in tests.iter() {
-            mock_memory();
             let name = "some name";
             mock_unlocked_using_mnemonic(
                 "sudden tenant fault inject concert weather maid people chunk youth stumble grit",

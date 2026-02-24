@@ -1287,7 +1287,6 @@ mod tests {
     use crate::hal::{Memory, testing::TestingHal};
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::boxed::Box;
-    use bitbox02::testing::mock_memory;
     use hex_lit::hex;
     use pb::btc_payment_request_request::{Memo, memo};
     use util::bb02_async::block_on;
@@ -1812,7 +1811,6 @@ mod tests {
                 "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
                 "",
             );
-            mock_memory();
 
             let params = super::super::params::get(pb::BtcCoin::Btc);
             let keypath = &[48 + HARDENED, params.bip44_coin, 0 + HARDENED, 2 + HARDENED];
@@ -2884,8 +2882,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the multisig registration below.
-        mock_memory();
 
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
         let multisig_hash =
@@ -3057,8 +3053,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the multisig registration below.
-        mock_memory();
 
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
         let multisig_hash =
@@ -3132,8 +3126,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the multisig registration below.
-        mock_memory();
 
         // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
         let multisig_hash =
@@ -3230,8 +3222,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the policy registration below.
-        mock_memory();
 
         let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
 
@@ -3355,8 +3345,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the policy registration below.
-        mock_memory();
 
         let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
 
@@ -3419,8 +3407,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the policy registration below.
-        mock_memory();
 
         let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
 
@@ -3542,8 +3528,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the policy registration below.
-        mock_memory();
 
         let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
 
@@ -3603,8 +3587,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the policy registration below.
-        mock_memory();
 
         let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
         let wrong_keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 4 + HARDENED];
@@ -3658,8 +3640,6 @@ mod tests {
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        // For the policy registration below.
-        mock_memory();
 
         let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
 

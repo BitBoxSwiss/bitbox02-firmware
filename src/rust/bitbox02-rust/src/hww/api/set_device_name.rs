@@ -37,7 +37,6 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use alloc::boxed::Box;
-    use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 
     #[test]
@@ -45,7 +44,6 @@ mod tests {
         const SOME_NAME: &str = "foo";
 
         // All good.
-        mock_memory();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
             block_on(process(

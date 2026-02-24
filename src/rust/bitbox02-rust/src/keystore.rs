@@ -1440,7 +1440,6 @@ mod tests {
 
     #[test]
     fn test_unlock_migrate_password_algo() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1449,7 +1448,7 @@ mod tests {
 
         let mock_salt_root =
             hex!("3333333333333333444444444444444411111111111111112222222222222222");
-        bitbox02::memory::set_salt_root(&mock_salt_root).unwrap();
+        mock_hal.memory.set_salt_root(&mock_salt_root);
 
         let password = "password";
 

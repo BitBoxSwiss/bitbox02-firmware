@@ -168,7 +168,6 @@ mod tests {
 
     use crate::bip32::parse_xpub;
     use crate::keystore::testing::mock_unlocked_using_mnemonic;
-    use bitbox02::testing::mock_memory;
     use util::bip32::HARDENED;
 
     use crate::hal::testing::TestingHal;
@@ -178,7 +177,6 @@ mod tests {
     #[test]
     fn test_process_is_script_config_registered() {
         fn test(sort_xpubs: SortXpubs) {
-            mock_memory();
             let mut mock_hal = TestingHal::new();
 
             let keypath = &[48 + HARDENED, 0 + HARDENED, 10 + HARDENED, 2 + HARDENED];

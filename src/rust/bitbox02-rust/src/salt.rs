@@ -30,7 +30,6 @@ pub fn hash_data(
 mod tests {
     use super::*;
     use crate::hal::testing::TestingHal;
-    use bitbox02::testing::mock_memory;
     use core::convert::TryInto;
     use hex_lit::hex;
 
@@ -39,7 +38,6 @@ mod tests {
 
     #[test]
     fn test_hash_data() {
-        mock_memory();
         let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_salt_root(&MOCK_SALT_ROOT);
 
@@ -52,7 +50,6 @@ mod tests {
 
     #[test]
     fn test_hash_data_empty_inputs() {
-        mock_memory();
         let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_salt_root(&MOCK_SALT_ROOT);
 

@@ -10,11 +10,11 @@
 #include "usb/class/usb_size.h"
 #include "usb/usb_frame.h"
 #include "usb/usb_packet.h"
-#include "utils_ringbuffer.h"
 #include <rust/rust.h>
 #include <ui/components/confirm.h>
 #include <ui/components/ui_images.h>
 #include <ui/fonts/monogram_5X9.h>
+#include <utils_assert.h>
 
 const uint8_t* da14531_handler_current_product = NULL;
 uint16_t da14531_handler_current_product_len = 0;
@@ -32,7 +32,7 @@ static component_t* _ble_pairing_component = NULL;
 
 struct pairing_callback {
     uint8_t key[4];
-    struct ringbuffer* queue;
+    struct RustByteQueue* queue;
 };
 
 static struct pairing_callback _ble_pairing_callback_data;
@@ -50,9 +50,8 @@ static void _ble_pairing_callback(bool ok, void* param)
     uint16_t len = da14531_protocol_format(
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, payload, sizeof(payload));
     ASSERT(len <= sizeof(tmp));
-    ASSERT(ringbuffer_num(data->queue) + len <= data->queue->size);
     for (int i = 0; i < len; i++) {
-        ringbuffer_put(data->queue, tmp[i]);
+        rust_bytequeue_put(data->queue, tmp[i]);
     }
 
     ui_screen_stack_pop();
@@ -73,7 +72,7 @@ bool da14531_handler_bond_db_set(void)
 }
 #endif
 
-static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuffer* queue)
+static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByteQueue* queue)
 {
     switch (frame->cmd) {
     case CTRL_CMD_DEVICE_NAME: {
@@ -95,9 +94,8 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuf
             &response[0],
             1 + strlen((char*)&response[1]));
         ASSERT(len <= sizeof(tmp));
-        ASSERT(ringbuffer_num(queue) + len <= queue->size);
         for (int i = 0; i < len; i++) {
-            ringbuffer_put(queue, tmp[i]);
+            rust_bytequeue_put(queue, tmp[i]);
         }
     } break;
     case CTRL_CMD_BOND_DB_GET: {
@@ -120,9 +118,8 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuf
                 &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &response[0], 1);
         }
         ASSERT(tmp_len <= sizeof(tmp));
-        ASSERT(ringbuffer_num(queue) + tmp_len <= queue->size);
         for (int i = 0; i < tmp_len; i++) {
-            ringbuffer_put(queue, tmp[i]);
+            rust_bytequeue_put(queue, tmp[i]);
         }
     } break;
     case CTRL_CMD_BOND_DB_SET:
@@ -223,7 +220,7 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuf
             sizeof(response));
         ASSERT(len <= sizeof(tmp));
         for (int i = 0; i < len; i++) {
-            ringbuffer_put(queue, tmp[i]);
+            rust_bytequeue_put(queue, tmp[i]);
         }
     } break;
     case CTRL_CMD_PRODUCT_STRING: {
@@ -246,9 +243,8 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuf
             &response[0],
             sizeof(response));
         ASSERT(len <= sizeof(tmp));
-        ASSERT(ringbuffer_num(queue) + len <= queue->size);
         for (int i = 0; i < len; i++) {
-            ringbuffer_put(queue, tmp[i]);
+            rust_bytequeue_put(queue, tmp[i]);
         }
     } break;
 #if !defined(NDEBUG)
@@ -268,7 +264,7 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct ringbuf
     }
 }
 
-static void _hww_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue)
+static void _hww_handler(const struct da14531_protocol_frame* frame, struct RustByteQueue* queue)
 {
     // util_log(" in: %s", util_dbg_hex(frame->payload, 64));
     (void)queue;
@@ -282,7 +278,7 @@ static void _hww_handler(const struct da14531_protocol_frame* frame, struct ring
 }
 
 // Handler must not use the frame pointer after it has returned
-void da14531_handler(const struct da14531_protocol_frame* frame, struct ringbuffer* queue)
+void da14531_handler(const struct da14531_protocol_frame* frame, struct RustByteQueue* queue)
 {
     // util_log("handler called");
     switch (frame->type) {

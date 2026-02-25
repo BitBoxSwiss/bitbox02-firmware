@@ -104,6 +104,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-bytequeue"
+version = "0.1.0"
+
+[[package]]
 name = "bitbox-executor"
 version = "0.1.0"
 dependencies = [
@@ -128,10 +132,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitbox-bytequeue"
-version = "0.1.0"
-
-[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
@@ -146,6 +146,7 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox02-rust",
@@ -174,6 +175,7 @@ dependencies = [
  "bip32-ed25519",
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",
@@ -212,9 +214,9 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
- "bitbox-bytequeue",
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",

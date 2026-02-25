@@ -1,0 +1,10 @@
+[package]
+name = "stm32u5-dk-board"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitbox-stm32u5 = { path = "../../platform/bitbox-stm32u5"}
+
+[build-dependencies]
+cc = { version = "1.2", features = ["parallel"] }

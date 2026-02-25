@@ -3,7 +3,6 @@
 
 extern crate alloc;
 
-use core::ffi::CStr;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 use cortex_m_rt::entry;
@@ -45,73 +44,39 @@ fn panic(info: &PanicInfo) -> ! {
     loop {}
 }
 
-extern "C" fn lv_log_cb(_level: bitbox_lvgl::ffi::lv_log_level_t, buf: *const core::ffi::c_char) {
-    let mut uart = uart::Uart::default();
-
-    if !buf.is_null() {
-        let _ = uart.write_cstr_crlf(unsafe { CStr::from_ptr(buf) });
-    }
-}
-
 use embedded_alloc::LlffHeap as Heap;
 
 #[global_allocator]
 static HEAP: Heap = Heap::empty();
 
-fn setup_heap() {
-    const HEAP_SIZE: usize = 128 * 1024;
-    unsafe { HEAP.init(cortex_m_rt::heap_start() as usize, HEAP_SIZE) };
-}
+fn ui_init() -> Result<Option<bitbox_lvgl::LvDisplay>, bitbox_lvgl::LvDisplayBufferError> {
+    lv_init();
+    bitbox_lvgl::lv_log_register_print_cb(|_level, buf| {
+        let mut uart = uart::Uart::default();
+        let _ = uart.write_cstr_crlf(buf);
+    });
+    lv_tick_set_cb(Some(st_drivers_sys::HAL_GetTick));
 
-use core::ops::{Deref, DerefMut};
-
-// TODO, we probably want a secondary buffer...
-// RGBA8888 (32 bits per pixel)
-const LVGL_BUFFER_SIZE: usize = 4 * 480 * 10;
-#[repr(align(4))]
-struct LvglBuffer([u8; LVGL_BUFFER_SIZE]);
-
-impl LvglBuffer {
-    fn new() -> LvglBuffer {
-        LvglBuffer([0; LVGL_BUFFER_SIZE])
-    }
-}
-
-impl Deref for LvglBuffer {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for LvglBuffer {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
+    let ltdc_fbuf_addr_1 = 0xA000_0000usize;
+    // TODO: Get display size and bytes per pixel from somewhere...
+    let fbuf1 = unsafe { core::slice::from_raw_parts_mut(ltdc_fbuf_addr_1 as _, 480 * 800 * 4) };
+    // Position the framebuffers 2 MB apart
+    let ltdc_fbuf_addr_2 = 0xA000_0000usize + 2 * 1024 * 1024;
+    let fbuf2 = unsafe { core::slice::from_raw_parts_mut(ltdc_fbuf_addr_2 as _, 480 * 800 * 4) };
+    let ltdc_layer = 0;
+    unsafe { lv_st_ltdc_create_direct(fbuf1, Some(fbuf2), ltdc_layer) }
 }
 
 #[entry]
 unsafe fn main() -> ! {
-    setup_heap();
+    // Initialize vendor drivers
     unsafe { st_drivers_sys::platform_init() };
-    lv_init();
-    unsafe { bitbox_lvgl::ffi::lv_log_register_print_cb(Some(lv_log_cb)) };
-    lv_tick_set_cb(Some(st_drivers_sys::HAL_GetTick));
 
-    // Make a buffer and give it to lvgl.
-    //let buf = Box::leak(Box::new(LvglBuffer::new()));
-    //let disp = lv_display_create(480, 800).expect("create display");
-    let my_ltdc_framebuffer_address = 0x2000_0000usize;
-    let my_ltdc_layer_index = 0u32;
-    let _disp = unsafe {
-        lv_st_ltdc_create_direct(
-            my_ltdc_framebuffer_address,
-            //Some(&mut buf),
-            None,
-            my_ltdc_layer_index,
-        )
-    };
+    // Initializing the heap must come super early
+    embedded_alloc::init!(HEAP, 128 * 1024);
+
+    // Initalize UI
+    let _disp = ui_init();
     bitbox03::io::screen::splash();
 
     let mut uart = uart::Uart::default();

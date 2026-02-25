@@ -1,0 +1,2 @@
+[env]
+STM32_HAL_CONF_DIR={ value = "../../../external/ST/stm32u5-dk/Inc", relative=true}

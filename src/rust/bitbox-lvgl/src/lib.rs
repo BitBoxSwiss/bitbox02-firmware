@@ -4,8 +4,10 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use core::ffi::c_void;
+use core::ffi::{CStr, c_char, c_void};
 use core::ptr::NonNull;
+
+use grounded::uninit::GroundedCell;
 
 pub mod ffi {
     pub use bitbox_lvgl_sys::*;
@@ -25,6 +27,7 @@ pub use ffi::lv_grid_align_t as LvGridAlign;
 pub use ffi::lv_image_dsc_t as LvImageDsc;
 pub use ffi::lv_indev_state_t as LvIndevState;
 pub use ffi::lv_indev_type_t as LvIndevType;
+pub use ffi::lv_log_level_t as LvLogLevel;
 pub use ffi::lv_opa_t as LvOpa;
 pub use ffi::lv_point_t as LvPoint;
 pub use ffi::lv_style_selector_t as LvStyleSelector;
@@ -61,6 +64,7 @@ pub enum LvDisplayBufferError {
     EmptyBuffer,
     UnalignedBuffer,
     BufferTooLarge,
+    InvalidSize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -102,6 +106,10 @@ pub fn lv_label_create(parent: &LvObj) -> Option<LvObj> {
 pub fn lv_spinner_create(parent: &LvObj) -> Option<LvObj> {
     NonNull::new(unsafe { ffi::lv_spinner_create(parent.inner.as_ptr()) })
         .map(|inner| LvObj { inner })
+}
+
+pub fn lv_spinner_set_anim_params(obj: &LvObj, spin_duration: u32, angle: u32) {
+    unsafe { ffi::lv_spinner_set_anim_params(obj.inner.as_ptr(), spin_duration, angle) }
 }
 
 pub fn lv_label_set_text(obj: &LvObj, txt: &str) -> Result<(), LvLabelTextError> {
@@ -402,23 +410,26 @@ pub fn lv_display_create(hor_res: i32, ver_res: i32) -> Option<LvDisplay> {
 /// `buf2` must have same size as LTDC buffer at `addr`
 #[cfg(target_os = "none")]
 pub unsafe fn lv_st_ltdc_create_direct(
-    addr: usize,
-    buf2: Option<&mut [u8]>,
+    fbuf1: &mut [u8],
+    fbuf2: Option<&mut [u8]>,
     layer: u32,
 ) -> Result<Option<LvDisplay>, LvDisplayBufferError> {
-    let buf2_ptr = if let Some(buf2) = buf2 {
-        if buf2.is_empty() {
+    let fbuf2_ptr = if let Some(fbuf2) = fbuf2 {
+        if fbuf2.is_empty() {
             return Err(LvDisplayBufferError::EmptyBuffer);
         }
-        if (buf2.as_ptr() as usize) % LV_DRAW_BUFFER_ALIGNMENT != 0 {
+        if (fbuf2.as_ptr() as usize) % LV_DRAW_BUFFER_ALIGNMENT != 0 {
             return Err(LvDisplayBufferError::UnalignedBuffer);
         }
-        buf2.as_mut_ptr()
+        if fbuf1.len() != fbuf2.len() {
+            return Err(LvDisplayBufferError::InvalidSize);
+        }
+        fbuf2.as_mut_ptr()
     } else {
         core::ptr::null_mut()
     };
     Ok(NonNull::new(unsafe {
-        ffi::lv_st_ltdc_create_direct(addr as *mut core::ffi::c_void, buf2_ptr.cast(), layer)
+        ffi::lv_st_ltdc_create_direct(fbuf1.as_mut_ptr().cast(), fbuf2_ptr.cast(), layer)
     })
     .map(|inner| LvDisplay { inner }))
 }
@@ -570,4 +581,33 @@ pub fn lv_canvas_create_from_slice(
     };
 
     NonNull::new(canvas).map(|inner| LvObj { inner })
+}
+
+type LogCb = Box<dyn Fn(LvLogLevel, &CStr) + Send + Sync + 'static>;
+
+static LOG_CB: GroundedCell<Option<LogCb>> = GroundedCell::const_init();
+
+extern "C" fn print_cb_trampoline(level: LvLogLevel, buf: *const c_char) {
+    if buf.is_null() {
+        return;
+    }
+
+    // SAFETY: LVGL promises buf is a valid NUL-terminated string for the duration of the call.
+    let cstr = unsafe { CStr::from_ptr(buf) };
+
+    if let Some(log_cb) = unsafe { &mut *LOG_CB.get() } {
+        log_cb(level, cstr);
+    }
+}
+
+pub fn lv_log_register_print_cb<F>(f: F)
+where
+    F: Fn(LvLogLevel, &CStr) + Send + Sync + 'static,
+{
+    let log_cb = unsafe { &mut *LOG_CB.get() };
+    if log_cb.is_some() {
+        panic!("Only call once");
+    }
+    log_cb.replace(Box::new(f));
+    unsafe { ffi::lv_log_register_print_cb(Some(print_cb_trampoline)) }
 }

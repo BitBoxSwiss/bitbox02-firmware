@@ -137,6 +137,7 @@ name = "bitbox-lvgl"
 version = "0.1.0"
 dependencies = [
  "bitbox-lvgl-sys",
+ "grounded",
 ]
 
 [[package]]
@@ -731,6 +732,15 @@ dependencies = [
  "typenum",
  "version_check",
  "zeroize",
+]
+
+[[package]]
+name = "grounded"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a7c71ebd5d467418b46639b622912cd0338ce59766bd19130bffcbf9ac6df2c"
+dependencies = [
+ "portable-atomic",
 ]
 
 [[package]]

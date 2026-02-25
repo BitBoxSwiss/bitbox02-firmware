@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 bitbox-lvgl-sys = { path = "../bitbox-lvgl-sys" }
+grounded = {version = "0.2.1"}

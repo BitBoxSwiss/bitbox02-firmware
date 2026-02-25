@@ -315,6 +315,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-bytequeue"
+version = "0.1.0"
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
@@ -390,6 +394,7 @@ dependencies = [
  "bitbox-aes",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-bytequeue",
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",

@@ -3,7 +3,7 @@
 pub mod api;
 pub mod noise;
 
-use crate::hal::Memory;
+use crate::hal::{Memory, Ui};
 use alloc::vec::Vec;
 
 const OP_UNLOCK: u8 = b'u';
@@ -106,7 +106,7 @@ pub async fn process_packet(hal: &mut impl crate::hal::Hal, usb_in: Vec<u8>) -> 
     // connected. When the device is initialized, we delay this until the unlock call, otherwise
     // there would be a flicker where the logo would be shown before the host invokes unlock.
     if !hal.memory().is_initialized() || usb_in.as_slice() == [OP_UNLOCK] {
-        bitbox02::ui::screen_process_waiting_switch_to_logo();
+        hal.ui().switch_to_logo();
     }
 
     match usb_in.split_first() {

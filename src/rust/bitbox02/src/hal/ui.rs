@@ -115,6 +115,11 @@ impl Ui for BitBox02Ui {
     }
 
     #[inline(always)]
+    fn switch_to_logo(&mut self) {
+        crate::ui::screen_process_waiting_switch_to_logo();
+    }
+
+    #[inline(always)]
     async fn enter_string(
         &mut self,
         params: &EnterStringParams<'_>,

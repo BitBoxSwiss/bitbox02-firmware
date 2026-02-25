@@ -25,7 +25,6 @@
     #include <memory/memory.h>
     #include <memory/memory_shared.h>
     #include <uart.h>
-    #include <utils_ringbuffer.h>
 
     #if PRODUCT_BITBOX_PLUS_MULTI == 1
         #define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"" BOOTLOADER_VERSION "\"}"
@@ -50,10 +49,9 @@ uint32_t __stack_chk_guard = 0;
 extern volatile bool measurement_done_touch;
 int bootloader_pairing_request = false;
 uint8_t bootloader_pairing_code_bytes[4] = {0};
-    // Must be power of 2, must fit bond_db
+    // Must fit bond_db.
     #define UART_OUT_BUF_LEN 2048
-struct ringbuffer uart_write_queue;
-uint8_t uart_write_buf[UART_OUT_BUF_LEN];
+struct RustByteQueue* uart_write_queue = NULL;
 #endif
 
 int main(void)
@@ -84,7 +82,8 @@ int main(void)
     uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
     uint16_t uart_read_buf_len = 0;
 
-    ringbuffer_init(&uart_write_queue, &uart_write_buf, UART_OUT_BUF_LEN);
+    uart_write_queue = rust_bytequeue_init(UART_OUT_BUF_LEN);
+    ASSERT(uart_write_queue != NULL);
     if (!memory_ble_enabled()) {
         rust_communication_mode_ble_disable();
     }
@@ -95,16 +94,16 @@ int main(void)
     da14531_handler_current_product = (const uint8_t*)platform_product(&product_len);
     da14531_handler_current_product_len = product_len;
     da14531_set_product(
-        da14531_handler_current_product, da14531_handler_current_product_len, &uart_write_queue);
+        da14531_handler_current_product, da14531_handler_current_product_len, uart_write_queue);
 
     // Set device name, the MCU and BLE chip will probably not have the same name after a reset of
     // only the MCU.
     char buf[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     memory_random_name(buf);
-    da14531_set_name(buf, &uart_write_queue);
+    da14531_set_name(buf, uart_write_queue);
 
     // Ask for the current conection state
-    da14531_get_connection_state(&uart_write_queue);
+    da14531_get_connection_state(uart_write_queue);
 
     da14531_protocol_init();
 #endif
@@ -115,13 +114,10 @@ int main(void)
 #if PLATFORM_BITBOX02PLUS == 1
         if (rust_communication_mode_ble_enabled()) {
             if (uart_read_buf_len < sizeof(uart_read_buf) ||
-                ringbuffer_num(&uart_write_queue) > 0) {
+                rust_bytequeue_num(uart_write_queue) > 0) {
                 // screen_sprintf_debug(1000, "uart poll");
                 uart_poll(
-                    &uart_read_buf[0],
-                    sizeof(uart_read_buf),
-                    &uart_read_buf_len,
-                    &uart_write_queue);
+                    &uart_read_buf[0], sizeof(uart_read_buf), &uart_read_buf_len, uart_write_queue);
             }
         }
 #endif
@@ -133,10 +129,10 @@ int main(void)
 #if PLATFORM_BITBOX02PLUS == 1
             if (rust_communication_mode_ble_enabled()) {
                 // Enqueue a power down command to the da14531
-                da14531_power_down(&uart_write_queue);
+                da14531_power_down(uart_write_queue);
                 // Flush out the power down command. This will be the last UART communication we do.
-                while (ringbuffer_num(&uart_write_queue) > 0) {
-                    uart_poll(NULL, 0, NULL, &uart_write_queue);
+                while (rust_bytequeue_num(uart_write_queue) > 0) {
+                    uart_poll(NULL, 0, NULL, uart_write_queue);
                 }
                 rust_communication_mode_ble_disable();
                 bootloader_render_default_screen();
@@ -146,11 +142,11 @@ int main(void)
 #if PLATFORM_BITBOX02PLUS == 1
         if (rust_communication_mode_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
-                &uart_read_buf[0], &uart_read_buf_len, &hww_data, &uart_write_queue);
+                &uart_read_buf[0], &uart_read_buf_len, &hww_data, uart_write_queue);
 
             if (frame) {
                 // screen_sprintf_debug(1000, "got frame");
-                da14531_handler(frame, &uart_write_queue);
+                da14531_handler(frame, uart_write_queue);
             }
         }
 #endif
@@ -201,9 +197,8 @@ int main(void)
                     payload,
                     sizeof(payload));
                 ASSERT(len <= sizeof(tmp));
-                ASSERT(ringbuffer_num(&uart_write_queue) + len <= uart_write_queue.size);
                 for (int i = 0; i < len; i++) {
-                    ringbuffer_put(&uart_write_queue, tmp[i]);
+                    rust_bytequeue_put(uart_write_queue, tmp[i]);
                 }
                 bootloader_pairing_request = false;
                 UG_SendBuffer();

@@ -1,24 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::ringbuffer::RingBuffer;
+use bitbox_bytequeue::ByteQueue;
 
 /// Set the product string of the BLE chip. The product string must be smaller than 64 bytes.
-pub fn set_product(product: &str, queue: &mut RingBuffer) {
+pub fn set_product(product: &str, queue: &mut ByteQueue) {
     let product = product.as_bytes();
     unsafe {
-        bitbox02_sys::da14531_set_product(product.as_ptr(), product.len() as u16, &mut queue.inner)
+        bitbox02_sys::da14531_set_product(
+            product.as_ptr(),
+            product.len() as u16,
+            queue as *mut _ as *mut _,
+        )
     }
 }
 
 /// Set the device name of the BLE chip. The name must contain no null bytes.
-pub fn set_name(name: &str, queue: &mut RingBuffer) {
+pub fn set_name(name: &str, queue: &mut ByteQueue) {
     let c_name = util::strings::str_to_cstr_vec(name).unwrap();
-    unsafe { bitbox02_sys::da14531_set_name(c_name.as_ptr(), &mut queue.inner) }
+    unsafe { bitbox02_sys::da14531_set_name(c_name.as_ptr(), queue as *mut _ as *mut _) }
 }
 
 /// Power down the BLE chip.
-pub fn power_down(queue: &mut RingBuffer) {
-    unsafe { bitbox02_sys::da14531_power_down(&mut queue.inner) }
+pub fn power_down(queue: &mut ByteQueue) {
+    unsafe { bitbox02_sys::da14531_power_down(queue as *mut _ as *mut _) }
 }
 
 #[cfg(test)]
@@ -35,9 +39,9 @@ mod tests {
     const CTRL_CMD_PRODUCT_STRING: u8 = 7;
     const CTRL_CMD_BLE_POWER_DOWN: u8 = 12;
 
-    fn drain(queue: &mut RingBuffer) -> Vec<u8> {
+    fn drain(queue: &mut ByteQueue) -> Vec<u8> {
         let mut out = Vec::new();
-        while queue.len() > 0 {
+        while queue.num() > 0 {
             out.push(queue.get().unwrap());
         }
         out
@@ -46,8 +50,7 @@ mod tests {
     #[test]
     fn test_set_product() {
         let product = "foo bar";
-        let mut buf = [0u8; 256];
-        let mut queue = RingBuffer::new(&mut buf);
+        let mut queue = ByteQueue::with_capacity(64);
 
         set_product(product, &mut queue);
 
@@ -64,8 +67,7 @@ mod tests {
 
     #[test]
     fn test_power_down() {
-        let mut buf = [0u8; 256];
-        let mut queue = RingBuffer::new(&mut buf);
+        let mut queue = ByteQueue::with_capacity(64);
 
         power_down(&mut queue);
 
@@ -82,8 +84,7 @@ mod tests {
     #[test]
     fn test_set_name() {
         let name = "foo bar";
-        let mut buf = [0u8; 256];
-        let mut queue = RingBuffer::new(&mut buf);
+        let mut queue = ByteQueue::with_capacity(64);
 
         set_name(name, &mut queue);
 

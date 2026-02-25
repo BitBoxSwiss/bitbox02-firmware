@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::ringbuffer::RingBuffer;
+use bitbox_bytequeue::ByteQueue;
 pub use bitbox02_sys::USART_0_BUFFER_SIZE;
 
 pub fn poll(
     uart_read_buf: Option<&mut [u8]>,
     uart_read_buf_len: Option<&mut u16>,
-    uart_write_queue: &mut RingBuffer,
+    uart_write_queue: &mut ByteQueue,
 ) {
     let (uart_read_buf, cap) = if let Some(uart_read_buf) = uart_read_buf {
         (
@@ -27,7 +27,7 @@ pub fn poll(
             uart_read_buf,
             cap,
             uart_read_buf_len,
-            &mut uart_write_queue.inner,
+            uart_write_queue as *mut _ as *mut _,
         );
     }
 }

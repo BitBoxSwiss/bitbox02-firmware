@@ -146,6 +146,7 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox02-rust",
@@ -174,6 +175,7 @@ dependencies = [
  "bip32-ed25519",
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",

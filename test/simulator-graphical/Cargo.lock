@@ -332,6 +332,7 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-hal",
+ "bitbox-bytequeue",
  "bitbox02-sys",
  "futures-lite",
  "grounded",
@@ -358,6 +359,7 @@ dependencies = [
  "bitbox-aes",
  "bitbox-executor",
  "bitbox-hal",
+ "bitbox-bytequeue",
  "bitbox-secp256k1",
  "bitbox02",
  "bitbox02-noise",

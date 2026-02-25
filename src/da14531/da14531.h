@@ -3,7 +3,7 @@
 #ifndef DA14531_H
 #define DA14531_H
 
-#include "utils_ringbuffer.h"
+#include <stdint.h>
 
 // Control commands
 #define CTRL_CMD_DEVICE_NAME 1
@@ -28,9 +28,11 @@ enum da14531_connected_state {
 
 extern enum da14531_connected_state da14531_connected_state;
 
-void da14531_power_down(struct ringbuffer* uart_out);
+struct RustByteQueue;
 
-void da14531_reset(struct ringbuffer* uart_out);
+void da14531_power_down(struct RustByteQueue* uart_out);
+
+void da14531_reset(struct RustByteQueue* uart_out);
 
 // product is an array of characters to be set as product characteristic (not null terminated)
 // procuct_len is the number of characters in the product array
@@ -38,10 +40,10 @@ void da14531_reset(struct ringbuffer* uart_out);
 void da14531_set_product(
     volatile const uint8_t* product,
     volatile uint16_t product_len,
-    struct ringbuffer* uart_out);
+    struct RustByteQueue* uart_out);
 
-void da14531_set_name(const char* name, struct ringbuffer* uart_out);
+void da14531_set_name(const char* name, struct RustByteQueue* uart_out);
 
-void da14531_get_connection_state(struct ringbuffer* uart_out);
+void da14531_get_connection_state(struct RustByteQueue* uart_out);
 
 #endif

@@ -4,6 +4,7 @@
 #include "driver_init.h"
 #include "util.h"
 #include "utils_assert.h"
+#include <rust/rust.h>
 
 #define EVENT_READ 0x01 // Available to read
 #define EVENT_WRITE 0x02 // Available to write
@@ -83,7 +84,7 @@ bool uart_0_write(const uint8_t* buf, uint16_t buf_len)
     return wrote == buf_len;
 }
 
-bool uart_0_write_from_queue(struct ringbuffer* queue)
+bool uart_0_write_from_queue(struct RustByteQueue* queue)
 {
     // Must be static becuase UART driver will read from it until all bytes has been written out
     // over uart. Must not touch buffer unless EVENT_WRITE is set (indicating driver is done with
@@ -93,27 +94,24 @@ bool uart_0_write_from_queue(struct ringbuffer* queue)
     if (!(_usart_0_readyness & EVENT_WRITE)) {
         return false;
     }
-    int32_t len;
-    int32_t res;
-    len = MIN(ringbuffer_num(queue), sizeof(_out_buf));
-    for (int32_t i = 0; i < len; i++) {
-        res = ringbuffer_get(queue, &_out_buf[i]);
-        ASSERT(res == ERR_NONE);
-        if (res != ERR_NONE) {
-            break;
+    uint32_t len = MIN(rust_bytequeue_num(queue), sizeof(_out_buf));
+    for (uint32_t i = 0; i < len; i++) {
+        bool got = rust_bytequeue_get(queue, &_out_buf[i]);
+        ASSERT(got);
+        if (!got) {
+            return false;
         }
     }
-    // util_log("will write %d char, left %d", (int)len, (int)ringbuffer_num(queue));
-    int32_t wrote = _write(_out_buf, len);
-    ASSERT(wrote == len);
-    return wrote == len;
+    int32_t wrote = _write(_out_buf, (uint16_t)len);
+    ASSERT(wrote == (int32_t)len);
+    return wrote == (int32_t)len;
 }
 
 void uart_poll(
     uint8_t* read_buf,
     uint16_t read_buf_cap,
     uint16_t* read_buf_len,
-    struct ringbuffer* out_queue)
+    struct RustByteQueue* out_queue)
 {
     if (read_buf) {
         *read_buf_len += uart_0_read(&read_buf[*read_buf_len], read_buf_cap - *read_buf_len);
@@ -122,7 +120,7 @@ void uart_poll(
         ASSERT(*read_buf_len < USART_0_BUFFER_SIZE);
     }
 
-    if (ringbuffer_num(out_queue) > 0) {
+    if (rust_bytequeue_num(out_queue) > 0) {
         uart_0_write_from_queue(out_queue);
     }
 }

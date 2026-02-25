@@ -2,7 +2,6 @@
 
 #ifndef DA14531_PROTOCOL_H
 #define DA14531_PROTOCOL_H
-#include "utils_ringbuffer.h"
 #include <stdint.h>
 
 enum da14531_protocol_packet_type {
@@ -19,6 +18,8 @@ struct da14531_protocol_frame {
     uint8_t payload[];
 } __attribute((packed));
 
+struct RustByteQueue;
+
 void da14531_protocol_init(void);
 
 // Will return true once the firmware is loaded to the BLE chip
@@ -33,7 +34,7 @@ struct da14531_protocol_frame* da14531_protocol_poll(
     uint8_t* in_buf,
     uint16_t* in_buf_len,
     const uint8_t** hww_data,
-    struct ringbuffer* out_queue);
+    struct RustByteQueue* out_queue);
 
 // Formats a packet into buf for sending over serial. Worst case the buf_len needs to fit:
 // SOF - 1 byte

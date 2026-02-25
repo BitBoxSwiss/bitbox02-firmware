@@ -13,7 +13,6 @@
 #include "memory/memory_spi.h"
 #include "memory/spi_mem.h"
 #include "platform_init.h"
-#include "rust/rust.h"
 #include "screen.h"
 #include "securechip/securechip.h"
 #include "uart.h"
@@ -21,6 +20,7 @@
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
 #include "utils_ringbuffer.h"
+#include <rust/rust.h>
 #include <ui/oled/oled.h>
 
 #define BUFFER_SIZE_DOWN 1024
@@ -1090,7 +1090,9 @@ static ble_error_code_t _setup_ble(void)
     // Write FW
     screen_print_debug("Writing BLE fw", 0);
     if (!spi_mem_write(
-            MEMORY_SPI_BLE_FIRMWARE_1_ADDR, da14531_firmware_start(), da14531_firmware_size())) {
+            BITBOX02_MEMORY_SPI_BLE_FIRMWARE_1_ADDR,
+            da14531_firmware_start(),
+            da14531_firmware_size())) {
         screen_print_debug("Writing BLE fw failed", 0);
         return BLE_ERR_FLASH_FW;
     }

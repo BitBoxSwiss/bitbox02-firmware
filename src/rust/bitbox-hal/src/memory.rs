@@ -8,6 +8,8 @@ pub const DEVICE_NAME_MAX_LEN: usize = 63;
 /// Maximum multisig account name length in bytes, excluding the null terminator used in C
 /// strings.
 pub const MULTISIG_NAME_MAX_LEN: usize = 30;
+/// Maximum allowed BLE firmware size in bytes.
+pub const BLE_FIRMWARE_MAX_SIZE: usize = 32 * 1024;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PasswordStretchAlgo {
@@ -35,9 +37,36 @@ pub enum Error {
     Unknown,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct BleMetadata {
+    pub allowed_firmware_hash: [u8; 32],
+    pub active_index: u8,
+    pub firmware_sizes: [u16; 2],
+    pub firmware_checksums: [u8; 2],
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum BleFirmwareSlot {
+    First,
+    Second,
+}
+
 pub trait Memory {
+    /// We want to write FW to the memory chip in erase-size chunks, so that we don't repeatedly
+    /// need to read-erase-write the same sector.
+    const BLE_FW_FLASH_CHUNK_SIZE: u32;
+
     fn ble_enabled(&mut self) -> bool;
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()>;
+    fn get_active_ble_firmware_version(&mut self) -> Result<String, Error>;
+    fn ble_firmware_flash_chunk(
+        &mut self,
+        slot: BleFirmwareSlot,
+        chunk_index: u32,
+        chunk: &[u8],
+    ) -> Result<(), Error>;
+    fn ble_get_metadata(&mut self) -> BleMetadata;
+    fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error>;
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
     fn get_platform(&mut self) -> Result<Platform, ()>;
     fn get_device_name(&mut self) -> String;

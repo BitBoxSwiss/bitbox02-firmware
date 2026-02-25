@@ -83,10 +83,10 @@ typedef union {
         // Hash of the BLE firmware that is allowed to be loaded into the BLE chip.
         uint8_t ble_allowed_firmware_hash[32];
         // - 0xFF: uninitialized (should never happen after factorysetup)
-        // - 0x00: active BLE firmware is at `MEMORY_SPI_BLE_FIRMWARE_1_ADDR` in the SPI memory
-        // chip.
-        // - 0x01: active BLE firmware is at `MEMORY_SPI_BLE_FIRMWARE_2_ADDR` in the SPI memory
-        // chip.
+        // - 0x00: active BLE firmware is at `BITBOX02_MEMORY_SPI_BLE_FIRMWARE_1_ADDR` in the SPI
+        // memory chip.
+        // - 0x01: active BLE firmware is at `BITBOX02_MEMORY_SPI_BLE_FIRMWARE_2_ADDR` in the SPI
+        // memory chip.
         uint8_t ble_active_index;
         // Checksum of each of the two BLE stored firmwares.
         //

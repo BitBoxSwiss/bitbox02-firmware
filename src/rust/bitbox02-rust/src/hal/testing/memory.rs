@@ -3,10 +3,15 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
+use crate::hal::memory::{
+    BleFirmwareSlot, BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType,
+};
 
 pub struct TestingMemory {
     ble_enabled: bool,
+    ble_metadata: BleMetadata,
+    ble_firmware_slots: [Vec<u8>; 2],
+    active_ble_firmware_version: String,
     securechip_type: SecurechipType,
     platform: Platform,
     initialized: bool,
@@ -31,6 +36,17 @@ impl TestingMemory {
     pub fn new() -> Self {
         Self {
             ble_enabled: true,
+            ble_metadata: BleMetadata {
+                allowed_firmware_hash: [0; 32],
+                active_index: 0,
+                firmware_sizes: [0; 2],
+                firmware_checksums: [0; 2],
+            },
+            ble_firmware_slots: [
+                vec![0xff; crate::hal::memory::BLE_FIRMWARE_MAX_SIZE],
+                vec![0xff; crate::hal::memory::BLE_FIRMWARE_MAX_SIZE],
+            ],
+            active_ble_firmware_version: "0.0.0".into(),
             securechip_type: SecurechipType::Optiga,
             platform: Platform::BitBox02,
             initialized: false,
@@ -79,15 +95,65 @@ impl TestingMemory {
     pub fn set_attestation_bootloader_hash(&mut self, hash: &[u8; 32]) {
         self.attestation_bootloader_hash = *hash;
     }
+
+    pub fn ble_firmware_slot_data(&self, slot: BleFirmwareSlot) -> &[u8] {
+        match slot {
+            BleFirmwareSlot::First => &self.ble_firmware_slots[0],
+            BleFirmwareSlot::Second => &self.ble_firmware_slots[1],
+        }
+    }
 }
 
 impl crate::hal::Memory for TestingMemory {
+    const BLE_FW_FLASH_CHUNK_SIZE: u32 = 4096;
+
     fn ble_enabled(&mut self) -> bool {
         self.ble_enabled
     }
 
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()> {
         self.ble_enabled = enable;
+        Ok(())
+    }
+
+    fn get_active_ble_firmware_version(&mut self) -> Result<String, Error> {
+        Ok(self.active_ble_firmware_version.clone())
+    }
+
+    fn ble_firmware_flash_chunk(
+        &mut self,
+        slot: BleFirmwareSlot,
+        chunk_index: u32,
+        chunk: &[u8],
+    ) -> Result<(), Error> {
+        if chunk.len() > Self::BLE_FW_FLASH_CHUNK_SIZE as usize {
+            return Err(Error::InvalidInput);
+        }
+
+        let chunk_offset = (chunk_index as usize)
+            .checked_mul(Self::BLE_FW_FLASH_CHUNK_SIZE as usize)
+            .ok_or(Error::InvalidInput)?;
+        let chunk_end = chunk_offset
+            .checked_add(chunk.len())
+            .ok_or(Error::InvalidInput)?;
+
+        let slot_data = match slot {
+            BleFirmwareSlot::First => &mut self.ble_firmware_slots[0],
+            BleFirmwareSlot::Second => &mut self.ble_firmware_slots[1],
+        };
+        if chunk_end > slot_data.len() {
+            return Err(Error::InvalidInput);
+        }
+        slot_data[chunk_offset..chunk_end].copy_from_slice(chunk);
+        Ok(())
+    }
+
+    fn ble_get_metadata(&mut self) -> BleMetadata {
+        self.ble_metadata
+    }
+
+    fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error> {
+        self.ble_metadata = *metadata;
         Ok(())
     }
 

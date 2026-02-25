@@ -4,7 +4,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use bitbox_hal::Memory;
-use bitbox_hal::memory::{Error, PasswordStretchAlgo, Platform, SecurechipType};
+use bitbox_hal::memory::{
+    BleFirmwareSlot, BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType,
+};
 
 pub struct BitBox02Memory;
 
@@ -45,6 +47,15 @@ fn to_hal_error(error: crate::memory::MemoryError) -> Error {
     }
 }
 
+fn to_hal_ble_metadata(metadata: crate::memory::BleMetadata) -> BleMetadata {
+    BleMetadata {
+        allowed_firmware_hash: metadata.allowed_firmware_hash,
+        active_index: metadata.active_index,
+        firmware_sizes: metadata.firmware_sizes,
+        firmware_checksums: metadata.firmware_checksums,
+    }
+}
+
 pub(super) fn to_bitbox02_password_stretch_algo(
     algo: PasswordStretchAlgo,
 ) -> crate::memory::PasswordStretchAlgo {
@@ -58,13 +69,59 @@ pub(super) fn to_bitbox02_password_stretch_algo(
     }
 }
 
+fn to_bitbox02_ble_metadata(metadata: &BleMetadata) -> crate::memory::BleMetadata {
+    crate::memory::BleMetadata {
+        allowed_firmware_hash: metadata.allowed_firmware_hash,
+        active_index: metadata.active_index,
+        firmware_sizes: metadata.firmware_sizes,
+        firmware_checksums: metadata.firmware_checksums,
+    }
+}
+
 impl Memory for BitBox02Memory {
+    /// We want to write FW to the memory chip in erase-size chunks, so that we don't repeatedly
+    /// need to read-erase-write the same sector.
+    const BLE_FW_FLASH_CHUNK_SIZE: u32 = 4096;
+
     fn ble_enabled(&mut self) -> bool {
         crate::memory::ble_enabled()
     }
 
     fn ble_enable(&mut self, enable: bool) -> Result<(), ()> {
         crate::memory::ble_enable(enable)
+    }
+
+    fn get_active_ble_firmware_version(&mut self) -> Result<String, Error> {
+        crate::spi_mem::get_active_ble_firmware_version().map_err(|_| Error::Unknown)
+    }
+
+    fn ble_firmware_flash_chunk(
+        &mut self,
+        slot: BleFirmwareSlot,
+        chunk_index: u32,
+        chunk: &[u8],
+    ) -> Result<(), Error> {
+        if chunk.len() > Self::BLE_FW_FLASH_CHUNK_SIZE as usize {
+            return Err(Error::InvalidInput);
+        }
+        let base = match slot {
+            BleFirmwareSlot::First => crate::spi_mem::BLE_FIRMWARE_1_ADDR,
+            BleFirmwareSlot::Second => crate::spi_mem::BLE_FIRMWARE_2_ADDR,
+        };
+        let chunk_offset: u32 = chunk_index
+            .checked_mul(Self::BLE_FW_FLASH_CHUNK_SIZE)
+            .ok_or(Error::InvalidInput)?;
+        let address = base.checked_add(chunk_offset).ok_or(Error::InvalidInput)?;
+        crate::spi_mem::write_protected(address, chunk).map_err(|_| Error::Unknown)
+    }
+
+    fn ble_get_metadata(&mut self) -> BleMetadata {
+        to_hal_ble_metadata(crate::memory::get_ble_metadata())
+    }
+
+    fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error> {
+        let metadata = to_bitbox02_ble_metadata(metadata);
+        crate::memory::set_ble_metadata(&metadata).map_err(|_| Error::Unknown)
     }
 
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
@@ -251,5 +308,39 @@ mod tests {
             to_bitbox02_password_stretch_algo(PasswordStretchAlgo::V1) as i32,
             crate::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 as i32,
         );
+    }
+
+    #[test]
+    fn test_to_hal_ble_metadata() {
+        let input = crate::memory::BleMetadata {
+            allowed_firmware_hash: [0x11; 32],
+            active_index: 1,
+            firmware_sizes: [1234, 5678],
+            firmware_checksums: [0xaa, 0xbb],
+        };
+
+        let output = to_hal_ble_metadata(input);
+
+        assert_eq!(output.allowed_firmware_hash, [0x11; 32]);
+        assert_eq!(output.active_index, 1);
+        assert_eq!(output.firmware_sizes, [1234, 5678]);
+        assert_eq!(output.firmware_checksums, [0xaa, 0xbb]);
+    }
+
+    #[test]
+    fn test_to_bitbox02_ble_metadata() {
+        let input = BleMetadata {
+            allowed_firmware_hash: [0x22; 32],
+            active_index: 0,
+            firmware_sizes: [100, 200],
+            firmware_checksums: [0xcc, 0xdd],
+        };
+
+        let output = to_bitbox02_ble_metadata(&input);
+
+        assert_eq!(output.allowed_firmware_hash, [0x22; 32]);
+        assert_eq!(output.active_index, 0);
+        assert_eq!(output.firmware_sizes, [100, 200]);
+        assert_eq!(output.firmware_checksums, [0xcc, 0xdd]);
     }
 }

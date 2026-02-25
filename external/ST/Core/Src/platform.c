@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+#include <aps512xx.h>
+#include <stdint.h>
 
 /* USER CODE END Includes */
 
@@ -65,6 +67,24 @@ HCD_HandleTypeDef hhcd_USB_OTG_HS;
 
 /* USER CODE BEGIN PV */
 
+struct psram_config {
+    uint8_t LatencyType;
+    uint8_t BurstType;
+    uint8_t BurstLength;
+    uint8_t ReadLatencyCode;
+    uint8_t WriteLatencyCode;
+    uint8_t IOMode;
+};
+
+const struct psram_config psram_config = {
+    .LatencyType = 0, /* 0 = Variable latency (default), 0x20 = Fixed */
+    .BurstType = 0, /* 0 = Linear, 0x04 = Hybrid */
+    .BurstLength = 1, /* 1 = 32 bytes (dcache line), Not applicable for Hybrid?  */
+    .ReadLatencyCode =  0x10, /* 0x10 = RLC7 */
+    .WriteLatencyCode =  0x20, /* 0x20 = WLC7 */
+    .IOMode = 0, /* 0 = X8, 0x40 = X16 */
+};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,13 +93,13 @@ void PeriphCommonClock_Config(void);
 static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC4_Init(void);
+static void MX_USART1_UART_Init(void);
 static void MX_HSPI1_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_I2C5_Init(void);
 static void MX_ICACHE_Init(void);
 static void MX_OCTOSPI1_Init(void);
 static void MX_SDMMC1_MMC_Init(void);
-static void MX_USART1_UART_Init(void);
 static void MX_USB_OTG_HS_HCD_Init(void);
 static void MX_GPU2D_Init(void);
 static void MX_DSIHOST_DSI_Init(void);
@@ -87,6 +107,10 @@ static void MX_LTDC_Init(void);
 /* USER CODE BEGIN PFP */
 
 static void setPanelConfig(void);
+static void print_s(char *str);
+//static void print_hex(uint8_t* data, size_t data_len);
+//static void print_hexln(uint8_t* data, size_t data_len);
+static void memtest(uint32_t* addr, uint32_t words);
 
 /* USER CODE END PFP */
 
@@ -131,13 +155,13 @@ int platform_init(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC4_Init();
+  MX_USART1_UART_Init();
   MX_HSPI1_Init();
   MX_I2C3_Init();
   MX_I2C5_Init();
   MX_ICACHE_Init();
   MX_OCTOSPI1_Init();
   MX_SDMMC1_MMC_Init();
-  MX_USART1_UART_Init();
   MX_USB_OTG_HS_HCD_Init();
   MX_GPU2D_Init();
   MX_DSIHOST_DSI_Init();
@@ -485,28 +509,155 @@ static void MX_HSPI1_Init(void)
 
   /* USER CODE BEGIN HSPI1_Init 1 */
 
+  hxspi1.Init.DelayBlockBypass = HAL_XSPI_DELAY_BLOCK_ON;
+  // Broken?
+  //uint32_t hspi_clk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_HSPI);
+  uint32_t hspi_clk = 200000000U;
+  uint8_t clock_prescaler = 1;
+
   /* USER CODE END HSPI1_Init 1 */
   /* HSPI1 parameter configuration*/
   hxspi1.Instance = HSPI1;
-  hxspi1.Init.FifoThresholdByte = 1;
+  hxspi1.Init.FifoThresholdByte = 2;
   hxspi1.Init.MemoryMode = HAL_XSPI_SINGLE_MEM;
-  hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_MICRON;
-  hxspi1.Init.MemorySize = HAL_XSPI_SIZE_16B;
+  hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_APMEM;
+  hxspi1.Init.MemorySize = HAL_XSPI_SIZE_512MB;
   hxspi1.Init.ChipSelectHighTimeCycle = 1;
   hxspi1.Init.FreeRunningClock = HAL_XSPI_FREERUNCLK_DISABLE;
   hxspi1.Init.ClockMode = HAL_XSPI_CLOCK_MODE_0;
-  hxspi1.Init.WrapSize = HAL_XSPI_WRAP_NOT_SUPPORTED;
-  hxspi1.Init.ClockPrescaler = 0;
+  hxspi1.Init.WrapSize = HAL_XSPI_WRAP_32_BYTES;
+  hxspi1.Init.ClockPrescaler = clock_prescaler;
   hxspi1.Init.SampleShifting = HAL_XSPI_SAMPLE_SHIFT_NONE;
   hxspi1.Init.DelayHoldQuarterCycle = HAL_XSPI_DHQC_DISABLE;
-  hxspi1.Init.ChipSelectBoundary = HAL_XSPI_BONDARYOF_NONE;
+  hxspi1.Init.ChipSelectBoundary = HAL_XSPI_BONDARYOF_2KB;
   hxspi1.Init.MaxTran = 0;
-  hxspi1.Init.Refresh = 0;
+  hxspi1.Init.Refresh = ((2U * (hspi_clk / (clock_prescaler + 1U))) / 1000000U) - 4U;
   if (HAL_XSPI_Init(&hxspi1) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN HSPI1_Init 2 */
+  {
+      if(APS512XX_Reset(&hxspi1) != APS512XX_OK) {
+          Error_Handler();
+      }
+      // APS read/write latanecies default to 5
+      // Configure RAM
+      uint8_t reg[2];
+
+      // Modify MR0 (read latency)
+      if(APS512XX_ReadReg(&hxspi1, APS512XX_MR0_ADDRESS, reg, APS512XX_READ_REG_LATENCY(APS512XX_READ_LATENCY_5)) != APS512XX_OK) {
+          Error_Handler();
+      }
+      //print_s("mr0: ");
+      //print_hexln(reg, 1);
+      MODIFY_REG(reg[0], APS512XX_MR0_READ_LATENCY_CODE, APS512XX_MR0_RLC_7);
+      if(APS512XX_WriteReg(&hxspi1, APS512XX_MR0_ADDRESS, reg[0]) != APS512XX_OK) {
+          Error_Handler();
+      }
+      //print_s("mr0: ");
+      //print_hexln(reg, 1);
+
+      // Modify MR4 (write latency)
+      if(APS512XX_ReadReg(&hxspi1, APS512XX_MR4_ADDRESS, reg, APS512XX_READ_REG_LATENCY(APS512XX_READ_LATENCY_7)) != APS512XX_OK) {
+          Error_Handler();
+      }
+      //print_s("mr4: ");
+      //print_hexln(reg, 1);
+      MODIFY_REG(reg[0], APS512XX_MR4_WRITE_LATENCY_CODE, APS512XX_MR4_WLC_7);
+      if(APS512XX_WriteReg(&hxspi1, APS512XX_MR4_ADDRESS, reg[0]) != APS512XX_OK) {
+          Error_Handler();
+      }
+      //print_s("mr4: ");
+      //print_hexln(reg, 1);
+
+      // Modify MR8 (burst length)
+      if(APS512XX_ReadReg(&hxspi1, APS512XX_MR8_ADDRESS, reg, APS512XX_READ_REG_LATENCY(APS512XX_READ_LATENCY_7)) != APS512XX_OK) {
+          Error_Handler();
+      }
+      //print_s("mr8: ");
+      //print_hexln(reg, 1);
+      MODIFY_REG(reg[0], APS512XX_MR8_BL, APS512XX_MR8_BL_32_BYTES);
+      if(APS512XX_WriteReg(&hxspi1, APS512XX_MR8_ADDRESS, reg[0]) != APS512XX_OK) {
+          Error_Handler();
+      }
+      //print_s("mr8: ");
+      //print_hexln(reg, 1);
+
+      clock_prescaler = 3;
+      hxspi1.Init.ClockPrescaler = clock_prescaler;
+      hxspi1.Init.Refresh = ((2U * (hspi_clk / (clock_prescaler + 1U))) / 1000000U) - 4U;
+
+      //Increase clock frequency
+      //HAL_XSPI_SetClockPrescaler(&hxspi1, 0);
+      if(HAL_XSPI_DeInit(&hxspi1) != HAL_OK) {
+          Error_Handler();
+      }
+      if(HAL_XSPI_Init(&hxspi1) != HAL_OK) {
+          Error_Handler();
+      }
+      if(APS512XX_ReadReg(&hxspi1, APS512XX_MR0_ADDRESS, reg, APS512XX_READ_REG_LATENCY(APS512XX_READ_LATENCY_7)) != APS512XX_OK) {
+          Error_Handler();
+      }
+      //print_s("mr0: ");
+      //print_hexln(reg, 1);
+
+      uint8_t buf[32];
+      if(APS512XX_Read(&hxspi1, buf, 0, 32, APS512XX_READ_LATENCY_7, 0, 1) != HAL_OK) {
+          Error_Handler();
+      }
+      //print_s("buf: ");
+      //print_hexln(buf, 32);
+
+      for(int i = 0; i<32; i++) {
+          buf[i] = i;
+      }
+
+      if(APS512XX_Write(&hxspi1, buf, 0, 32, APS512XX_WRITE_LATENCY_7, 0, 1) != HAL_OK) {
+          Error_Handler();
+      }
+      memset(buf, 0, 32);
+
+      if(APS512XX_Read(&hxspi1, buf, 0, 32, APS512XX_READ_LATENCY_7, 0, 1) != HAL_OK) {
+          Error_Handler();
+      }
+      //print_s("buf: ");
+      //print_hexln(buf, 32);
+
+
+      // Memory mapped
+      if(APS512XX_EnableMemoryMappedMode(
+          &hxspi1,
+          APS512XX_READ_LATENCY(psram_config.ReadLatencyCode, psram_config.LatencyType),
+          APS512XX_WRITE_LATENCY(psram_config.WriteLatencyCode),
+          psram_config.IOMode,
+          psram_config.BurstType
+      ) != APS512XX_OK) {
+          Error_Handler();
+      }
+
+      uint32_t* psram = (uint32_t*)HSPI1_BASE;
+      uint32_t* ram = (uint32_t*)(0x20000000 + (768+64)*1024);
+      //print_s("RAM\r\n");
+      //memtest(ram, 480*800/2);
+      //print_s("PSRAM\r\n");
+      //memtest(psram, 480*800/2);
+
+      //uint32_t* p = psram;
+      //for(uint32_t* p = psram; p<psram+8; p++) {
+      //    print_hex((uint8_t*)(uint32_t)p, 4);
+      //  print_s(" ");
+      //}
+      //print_s("\r\n");
+
+      //for(uint32_t* p = psram; p<psram+8; p++) {
+      //    print_hexln((uint8_t*)p, 32);
+      //}
+      //*psram = 0xcafebabe;
+      //if (*psram != 0xcafebabe) {
+      //    Error_Handler();
+      //}
+  }
 
   /* USER CODE END HSPI1_Init 2 */
 
@@ -681,7 +832,7 @@ static void MX_LTDC_Init(void)
   pLayerCfg.WindowX1 = 480;
   pLayerCfg.WindowY0 = 0;
   pLayerCfg.WindowY1 = 800;
-  pLayerCfg.PixelFormat = LTDC_PIXEL_FORMAT_ARGB8888;
+  pLayerCfg.PixelFormat = LTDC_PIXEL_FORMAT_RGB565;
   pLayerCfg.Alpha = 255;
   pLayerCfg.Alpha0 = 0;
   pLayerCfg.BlendingFactor1 = LTDC_BLENDING_FACTOR1_CA;
@@ -830,6 +981,8 @@ static void MX_USART1_UART_Init(void)
   }
   /* USER CODE BEGIN USART1_Init 2 */
 
+  print_s("\r\n");
+
   /* USER CODE END USART1_Init 2 */
 
 }
@@ -969,23 +1122,28 @@ typedef struct {
     unsigned int delay_ms;  /*<! Delay in milliseconds after this command */
 } st7701_lcd_init_cmd_t;
 
-//char * dbg(uint8_t* data, size_t data_len) {
-//    static char buf[1024] = {0};
-//    char* p = buf;
-//    for(int i=0; i<data_len; ++i) {
-//        int len = snprintf(p, sizeof(buf)-strlen(p), "%02x", data[i]);
-//        p += len;
-//    }
-//    return buf;
-//}
-//
-//void print_hex(uint8_t* data, size_t data_len) {
-//    char tmp[64];
-//    size_t len = snprintf(tmp, sizeof(tmp), "0x%s\r\n", dbg(data,data_len));
-//    HAL_UART_Transmit(&huart1, (uint8_t*)tmp, len, 1000);
-//}
+// char * dbg(uint8_t* data, size_t data_len) {
+//     static char buf[1024] = {0};
+//     char* p = buf;
+//     for(int i=0; i<data_len; ++i) {
+//         int len = snprintf(p, sizeof(buf)-strlen(p), "%02x", data[i]);
+//         p += len;
+//     }
+//     return buf;
+// }
+// 
+// static void print_hex(uint8_t* data, size_t data_len) {
+//     char tmp[128];
+//     size_t len = snprintf(tmp, sizeof(tmp), "0x%s", dbg(data,data_len));
+//     HAL_UART_Transmit(&huart1, (uint8_t*)tmp, len, 1000);
+// }
+// static void print_hexln(uint8_t* data, size_t data_len) {
+//     char tmp[128];
+//     size_t len = snprintf(tmp, sizeof(tmp), "0x%s\r\n", dbg(data,data_len));
+//     HAL_UART_Transmit(&huart1, (uint8_t*)tmp, len, 1000);
+// }
 
-void print_s(char *str) {
+static void print_s(char *str) {
     HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), 1000);
 }
 void *memset16(void *m, uint16_t val, size_t count)
@@ -1015,58 +1173,18 @@ void *memset24(void *m, uint32_t val, size_t count)
     return m;
 }
 
-uint8_t* fbuf = (uint8_t*)0x20000000;
+//uint8_t* fbuf = (uint8_t*)0x20000000;
+uint8_t* fbuf = (uint8_t*)HSPI1_BASE;
 
 static void setPanelConfig() {
     memset(fbuf, 0, 480*800*4);
-    //fbuf[0] = 0xff;
-    //fbuf[1] = 0xff;
-    //fbuf[2] = 0xff;
-    //fbuf[3] = 0xff;
-    //memset(fbuf, 0xff, 480*3);
-    //memset(&fbuf[480*3*2], 0xff, 480*3);
-    //memset(&fbuf[480*3*4], 0xff, 480*3);
-    //memset(&fbuf[480*3*6], 0xff, 480*3);
-    memset32(fbuf, 0xffffffff, 480);
-    memset32(&fbuf[480*4], 0xffffffff, 480);
-    //memset32(&fbuf[797*480*4], 0xffffffff, 480);
-    //memset32(&fbuf[796*480*4], 0xffff0000, 480);
-    //memset32(&fbuf[797*480*4], 0xffff0000, 480);
-    memset32(&fbuf[798*480*4], 0xffff0000, 480);
-    memset32(&fbuf[799*480*4], 0xffff0000, 480);
-    //memset32(&fbuf[799*480*4], 0xffff0000, 480);
-    //memset32((uint8_t*)0x20000000, 0xff00ff00, 480);
+    for(int i =0; i<800; ++i) {
+        int w = i % 480;
+        memset16(&fbuf[480*2*i], 0xffff, w);
+    }
   if(HAL_DSI_Start(&hdsi) != HAL_OK) {
       Error_Handler();
   }
-  // SWRESET
-  //if(HAL_DSI_ShortWrite(&hdsi, 0, DSI_DCS_SHORT_PKT_WRITE_P0, 0x01, 0) != HAL_OK) {
-  //    Error_Handler();
-  //}
-  //HAL_Delay(150);
-  //if(HAL_DSI_LongWrite(&hdsi, 0, DSI_DCS_LONG_PKT_WRITE, 5, 0xFF, (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}) != HAL_OK) {
-  //    Error_Handler();
-  //}
-   {
-     uint8_t buf[64] = {0};
-     if(HAL_DSI_Read(&hdsi, 0, buf, 4, DSI_DCS_SHORT_PKT_READ, 0x04, 0) == HAL_OK)
-     {
-       print_s("rddid: ");
-       //print_hex(buf, 8);
-     } else {
-       print_s("no_response\r\n");
-     }
-   }
-   //{
-   //  uint8_t buf[64] = {0};
-   //  if(HAL_DSI_Read(&hdsi, 0, buf, 1, DSI_DCS_SHORT_PKT_READ, 0x0A, 0) == HAL_OK)
-   //  {
-   //    print_s("rddpm: ");
-   //    print_hex(buf, 2);
-   //  } else {
-   //    print_s("no_response\r\n");
-   //  }
-   //}
 
   const st7701_lcd_init_cmd_t lh397k_display_init_sequence[] = {
     //  {cmd, { data }, data_size, delay_ms}
@@ -1137,29 +1255,8 @@ static void setPanelConfig() {
     if(cmd->delay_ms > 0) {
         HAL_Delay(cmd->delay_ms);
     }
-    //char buf[10];
-    //size_t len = snprintf(buf, sizeof(buf), "%d ", i);
-    //HAL_UART_Transmit(&huart1, (uint8_t*)buf, len, 1000);
   }
-  HAL_UART_Transmit(&huart1, (uint8_t*)"done\r\n", 6, 1000);
-  //   uint8_t buf[64] = {0};
-  //   if(HAL_DSI_Read(&hdsi, 0, buf, 1, DSI_DCS_SHORT_PKT_READ, 0x0f, 0) == HAL_OK)
-  //   {
-  //     print_s("rddsdr: ");
-  //     print_hex(buf, 2);
-  //   } else {
-  //     print_s("no_response\r\n");
-  //   }
-  // {
-  //   uint8_t buf[64] = {0};
-  //   if(HAL_DSI_Read(&hdsi, 0, buf, 1, DSI_DCS_SHORT_PKT_READ, 0x0A, 0) == HAL_OK)
-  //   {
-  //     print_s("rddpm: ");
-  //     print_hex(buf, 2);
-  //   } else {
-  //     print_s("no_response\r\n");
-  //   }
-  // }
+  HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 1000);
 }
 
 /* USER CODE END 4 */

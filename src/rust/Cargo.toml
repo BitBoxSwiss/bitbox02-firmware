@@ -40,7 +40,7 @@ hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 # We don't rely on this dep directly, the sha3 dep does. We list it here to enable the
 # no_unroll feature to reduce the binary size, saving around 1528 bytes (as measured at time of
 # writing, this might fluctuate over time).
-keccak = { version = "0.1.4", default-features = false, features = ["no_unroll"] }
+keccak = { version = "0.1.6", default-features = false, features = ["no_unroll"] }
 zeroize = "1.7.0"
 futures-lite = { version = "2.6.1", default-features = false }
 hex_lit = { version = "0.1.1", default-features = false }

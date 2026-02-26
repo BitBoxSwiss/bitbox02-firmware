@@ -967,16 +967,22 @@ async fn _process(
                     get_payment_request(output_payment_request_index, &mut next_response).await?;
                 payment_request::user_verify(hal, coin_params, &payment_request, format_unit)
                     .await?;
-                if payment_request::validate(
+                match payment_request::validate(
+                    hal,
                     coin_params,
                     &payment_request,
                     tx_output.value,
                     &address()?,
-                )
-                .is_err()
-                {
-                    hal.ui().status("Invalid\npayment request", true).await;
-                    return Err(Error::InvalidInput);
+                ) {
+                    Ok(()) => {}
+                    #[cfg(not(feature = "app-ethereum"))]
+                    Err(payment_request::ValidationError::Disabled) => {
+                        return Err(Error::Disabled);
+                    }
+                    Err(_) => {
+                        hal.ui().status("Invalid\npayment request", true).await;
+                        return Err(Error::InvalidInput);
+                    }
                 }
 
                 payment_request_seen = true;

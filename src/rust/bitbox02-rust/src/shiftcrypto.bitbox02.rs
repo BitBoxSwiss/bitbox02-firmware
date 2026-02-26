@@ -928,7 +928,7 @@ pub mod btc_payment_request_request {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Memo {
-        #[prost(oneof = "memo::Memo", tags = "1")]
+        #[prost(oneof = "memo::Memo", tags = "1, 2")]
         pub memo: ::core::option::Option<memo::Memo>,
     }
     /// Nested message and enum types in `Memo`.
@@ -940,10 +940,47 @@ pub mod btc_payment_request_request {
             pub note: ::prost::alloc::string::String,
         }
         #[allow(clippy::derive_partial_eq_without_eq)]
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct CoinPurchaseMemo {
+            /// SLIP-44 coin type
+            #[prost(uint32, tag = "1")]
+            pub coin_type: u32,
+            /// Human-readable amount (e.g. "0.25 ETH")
+            #[prost(string, tag = "2")]
+            pub amount: ::prost::alloc::string::String,
+            /// Address to send the purchased coins to
+            #[prost(string, tag = "3")]
+            pub address: ::prost::alloc::string::String,
+            #[prost(oneof = "coin_purchase_memo::AddressDerivation", tags = "4")]
+            pub address_derivation: ::core::option::Option<
+                coin_purchase_memo::AddressDerivation,
+            >,
+        }
+        /// Nested message and enum types in `CoinPurchaseMemo`.
+        pub mod coin_purchase_memo {
+            /// Derivation info for verifying address ownership.
+            /// NOT part of the SLIP-24 sighash.
+            #[allow(clippy::derive_partial_eq_without_eq)]
+            #[derive(Clone, PartialEq, ::prost::Message)]
+            pub struct EthAddressDerivation {
+                /// Keypath to the address
+                #[prost(uint32, repeated, tag = "1")]
+                pub keypath: ::prost::alloc::vec::Vec<u32>,
+            }
+            #[allow(clippy::derive_partial_eq_without_eq)]
+            #[derive(Clone, PartialEq, ::prost::Oneof)]
+            pub enum AddressDerivation {
+                #[prost(message, tag = "4")]
+                Eth(EthAddressDerivation),
+            }
+        }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Memo {
             #[prost(message, tag = "1")]
             TextMemo(TextMemo),
+            #[prost(message, tag = "2")]
+            CoinPurchaseMemo(CoinPurchaseMemo),
         }
     }
 }

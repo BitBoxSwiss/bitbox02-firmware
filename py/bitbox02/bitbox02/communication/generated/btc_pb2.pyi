@@ -760,17 +760,69 @@ class BTCPaymentRequestRequest(google.protobuf.message.Message):
             ) -> None: ...
             def ClearField(self, field_name: typing.Literal["note", b"note"]) -> None: ...
 
+        @typing.final
+        class CoinPurchaseMemo(google.protobuf.message.Message):
+            DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+            @typing.final
+            class EthAddressDerivation(google.protobuf.message.Message):
+                """Derivation info for verifying address ownership.
+                NOT part of the SLIP-24 sighash.
+                """
+
+                DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+                KEYPATH_FIELD_NUMBER: builtins.int
+                @property
+                def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
+                    """Keypath to the address"""
+
+                def __init__(
+                    self,
+                    *,
+                    keypath: collections.abc.Iterable[builtins.int] | None = ...,
+                ) -> None: ...
+                def ClearField(self, field_name: typing.Literal["keypath", b"keypath"]) -> None: ...
+
+            COIN_TYPE_FIELD_NUMBER: builtins.int
+            AMOUNT_FIELD_NUMBER: builtins.int
+            ADDRESS_FIELD_NUMBER: builtins.int
+            ETH_FIELD_NUMBER: builtins.int
+            coin_type: builtins.int
+            """SLIP-44 coin type"""
+            amount: builtins.str
+            """Human-readable amount (e.g. "0.25 ETH")"""
+            address: builtins.str
+            """Address to send the purchased coins to"""
+            @property
+            def eth(self) -> global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo.EthAddressDerivation: ...
+            def __init__(
+                self,
+                *,
+                coin_type: builtins.int = ...,
+                amount: builtins.str = ...,
+                address: builtins.str = ...,
+                eth: global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo.EthAddressDerivation | None = ...,
+            ) -> None: ...
+            def HasField(self, field_name: typing.Literal["address_derivation", b"address_derivation", "eth", b"eth"]) -> builtins.bool: ...
+            def ClearField(self, field_name: typing.Literal["address", b"address", "address_derivation", b"address_derivation", "amount", b"amount", "coin_type", b"coin_type", "eth", b"eth"]) -> None: ...
+            def WhichOneof(self, oneof_group: typing.Literal["address_derivation", b"address_derivation"]) -> typing.Literal["eth"] | None: ...
+
         TEXT_MEMO_FIELD_NUMBER: builtins.int
+        COIN_PURCHASE_MEMO_FIELD_NUMBER: builtins.int
         @property
         def text_memo(self) -> global___BTCPaymentRequestRequest.Memo.TextMemo: ...
+        @property
+        def coin_purchase_memo(self) -> global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo: ...
         def __init__(
             self,
             *,
             text_memo: global___BTCPaymentRequestRequest.Memo.TextMemo | None = ...,
+            coin_purchase_memo: global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo | None = ...,
         ) -> None: ...
-        def HasField(self, field_name: typing.Literal["memo", b"memo", "text_memo", b"text_memo"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing.Literal["memo", b"memo", "text_memo", b"text_memo"]) -> None: ...
-        def WhichOneof(self, oneof_group: typing.Literal["memo", b"memo"]) -> typing.Literal["text_memo"] | None: ...
+        def HasField(self, field_name: typing.Literal["coin_purchase_memo", b"coin_purchase_memo", "memo", b"memo", "text_memo", b"text_memo"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["coin_purchase_memo", b"coin_purchase_memo", "memo", b"memo", "text_memo", b"text_memo"]) -> None: ...
+        def WhichOneof(self, oneof_group: typing.Literal["memo", b"memo"]) -> typing.Literal["text_memo", "coin_purchase_memo"] | None: ...
 
     RECIPIENT_NAME_FIELD_NUMBER: builtins.int
     MEMOS_FIELD_NUMBER: builtins.int

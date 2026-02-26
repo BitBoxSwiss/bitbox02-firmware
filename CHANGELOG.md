@@ -10,6 +10,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Improve experience of moving back and forth when entering password characters
 - Ethereum: add data streaming support for transactions with large (>6144 bytes) data
 - Ethereum: allow EIP-712 typed message signing without anti-klepto host nonce commitment
+- Ethereum: add data streaming support for EIP-712 typed data for member values with large data
 
 ### v9.25.0
 - BitBox02 Nova: improved password stretching algorithm

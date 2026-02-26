@@ -144,6 +144,9 @@ message ETHTypedMessageValueResponse {
 
 message ETHTypedMessageValueRequest {
   bytes value = 1;
+  // If non-zero, value should be empty and data will be streamed via
+  // DataRequestChunk/DataResponseChunk.
+  uint32 data_length = 2;
 }
 
 message ETHRequest {

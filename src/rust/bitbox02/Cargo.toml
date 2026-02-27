@@ -12,6 +12,7 @@ license = "Apache-2.0"
 bitbox02-sys = {path="../bitbox02-sys"}
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
+bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
 util = {path = "../util"}
 zeroize = { workspace = true }
 bip39 = { workspace = true }
@@ -20,7 +21,6 @@ grounded = { workspace = true }
 
 [dev-dependencies]
 bitbox-aes = { path = "../bitbox-aes" }
-bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
 bitbox02-rust = { path = "../bitbox02-rust" }
 hex_lit = { workspace = true }
 

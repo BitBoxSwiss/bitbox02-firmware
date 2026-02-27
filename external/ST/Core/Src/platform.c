@@ -249,12 +249,12 @@ void PeriphCommonClock_Config(void)
   PeriphClkInit.LtdcClockSelection = RCC_LTDCCLKSOURCE_PLL3;
   PeriphClkInit.PLL3.PLL3Source = RCC_PLLSOURCE_HSE;
   PeriphClkInit.PLL3.PLL3M = 1;
-  PeriphClkInit.PLL3.PLL3N = 9;
+  PeriphClkInit.PLL3.PLL3N = 8;
   PeriphClkInit.PLL3.PLL3P = 3;
   PeriphClkInit.PLL3.PLL3Q = 2;
   PeriphClkInit.PLL3.PLL3R = 5;
   PeriphClkInit.PLL3.PLL3RGE = RCC_PLLVCIRANGE_1;
-  PeriphClkInit.PLL3.PLL3FRACN = 3072;
+  PeriphClkInit.PLL3.PLL3FRACN = 1024;
   PeriphClkInit.PLL3.PLL3ClockOut = RCC_PLL3_DIVP|RCC_PLL3_DIVR;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
@@ -395,7 +395,7 @@ static void MX_DSIHOST_DSI_Init(void)
   {
     Error_Handler();
   }
-  PhyTimings.ClockLaneHS2LPTime = 8;
+  PhyTimings.ClockLaneHS2LPTime = 7;
   PhyTimings.ClockLaneLP2HSTime = 0;
   PhyTimings.DataLaneHS2LPTime = 0;
   PhyTimings.DataLaneLP2HSTime = 0;
@@ -422,9 +422,9 @@ static void MX_DSIHOST_DSI_Init(void)
   VidCfg.HSPolarity = DSI_HSYNC_ACTIVE_LOW;
   VidCfg.VSPolarity = DSI_VSYNC_ACTIVE_LOW;
   VidCfg.DEPolarity = DSI_DATA_ENABLE_ACTIVE_HIGH;
-  VidCfg.HorizontalSyncActive = 68;
-  VidCfg.HorizontalBackPorch = 67;
-  VidCfg.HorizontalLine = 985;
+  VidCfg.HorizontalSyncActive = 33;
+  VidCfg.HorizontalBackPorch = 5;
+  VidCfg.HorizontalLine = 855;
   VidCfg.VerticalSyncActive = 21;
   VidCfg.VerticalBackPorch = 16;
   VidCfg.VerticalFrontPorch = 12;
@@ -584,7 +584,7 @@ static void MX_HSPI1_Init(void)
       //print_s("mr8: ");
       //print_hexln(reg, 1);
 
-      clock_prescaler = 3;
+      clock_prescaler = 1;
       hxspi1.Init.ClockPrescaler = clock_prescaler;
       hxspi1.Init.Refresh = ((2U * (hspi_clk / (clock_prescaler + 1U))) / 1000000U) - 4U;
 
@@ -813,13 +813,13 @@ static void MX_LTDC_Init(void)
   hltdc.Init.VSPolarity = LTDC_VSPOLARITY_AL;
   hltdc.Init.DEPolarity = LTDC_DEPOLARITY_AL;
   hltdc.Init.PCPolarity = LTDC_PCPOLARITY_IPC;
-  hltdc.Init.HorizontalSync = 40;
+  hltdc.Init.HorizontalSync = 19;
   hltdc.Init.VerticalSync = 20;
-  hltdc.Init.AccumulatedHBP = 80;
+  hltdc.Init.AccumulatedHBP = 22;
   hltdc.Init.AccumulatedVBP = 36;
-  hltdc.Init.AccumulatedActiveW = 560;
+  hltdc.Init.AccumulatedActiveW = 502;
   hltdc.Init.AccumulatedActiveH = 836;
-  hltdc.Init.TotalWidth = 590;
+  hltdc.Init.TotalWidth = 512;
   hltdc.Init.TotalHeigh = 848;
   hltdc.Init.Backcolor.Blue = 255;
   hltdc.Init.Backcolor.Green = 0;

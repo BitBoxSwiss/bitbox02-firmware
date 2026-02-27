@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use bitbox_bytequeue::ByteQueue;
 use alloc::vec;
 use alloc::vec::Vec;
+use bitbox_bytequeue::ByteQueue;
 use bitbox_framed_serial_link::{ProtocolPacketType, protocol_format};
 
 const CTRL_CMD_DEVICE_NAME: u8 = 1;
+const CTRL_CMD_BLE_STATUS: u8 = 5;
 const CTRL_CMD_PRODUCT_STRING: u8 = 7;
+const CTRL_CMD_BLE_CHIP_RESET: u8 = 8;
 const CTRL_CMD_BLE_POWER_DOWN: u8 = 12;
 const CTRL_PAYLOAD_MAX_LEN: usize = 64;
 
@@ -45,6 +47,16 @@ pub fn power_down(queue: &mut ByteQueue) {
     enqueue_ctrl_data(&[CTRL_CMD_BLE_POWER_DOWN, 0], queue);
 }
 
+/// Reset the BLE chip.
+pub fn reset(queue: &mut ByteQueue) {
+    enqueue_ctrl_data(&[CTRL_CMD_BLE_CHIP_RESET], queue);
+}
+
+/// Ask the BLE chip for its current connection state.
+pub fn get_connection_state(queue: &mut ByteQueue) {
+    enqueue_ctrl_data(&[CTRL_CMD_BLE_STATUS], queue);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,7 +68,9 @@ mod tests {
     use hex_lit::hex;
 
     const CTRL_CMD_DEVICE_NAME: u8 = 1;
+    const CTRL_CMD_BLE_STATUS: u8 = 5;
     const CTRL_CMD_PRODUCT_STRING: u8 = 7;
+    const CTRL_CMD_BLE_CHIP_RESET: u8 = 8;
     const CTRL_CMD_BLE_POWER_DOWN: u8 = 12;
 
     fn drain(queue: &mut ByteQueue) -> Vec<u8> {
@@ -117,5 +131,37 @@ mod tests {
         expected.truncate(expected_len);
         assert_eq!(actual, expected);
         assert_eq!(actual, hex!("7eb4080001666f6f20626172db2f7e").to_vec());
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut queue = ByteQueue::with_capacity(64);
+
+        reset(&mut queue);
+
+        let actual = drain(&mut queue);
+
+        let payload = vec![CTRL_CMD_BLE_CHIP_RESET];
+        let mut expected = vec![0u8; 140];
+        let expected_len = protocol_format(&mut expected, ProtocolPacketType::CtrlData, &payload);
+        expected.truncate(expected_len);
+        assert_eq!(actual, expected);
+        assert_eq!(actual, hex!("7eb401000877f67e").to_vec());
+    }
+
+    #[test]
+    fn test_get_connection_state() {
+        let mut queue = ByteQueue::with_capacity(64);
+
+        get_connection_state(&mut queue);
+
+        let actual = drain(&mut queue);
+
+        let payload = vec![CTRL_CMD_BLE_STATUS];
+        let mut expected = vec![0u8; 140];
+        let expected_len = protocol_format(&mut expected, ProtocolPacketType::CtrlData, &payload);
+        expected.truncate(expected_len);
+        assert_eq!(actual, expected);
+        assert_eq!(actual, hex!("7eb4010005b6337e").to_vec());
     }
 }

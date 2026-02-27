@@ -1,28 +1,48 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bitbox_bytequeue::ByteQueue;
+use alloc::vec;
+use alloc::vec::Vec;
+use bitbox_framed_serial_link::{ProtocolPacketType, protocol_format};
+
+const CTRL_CMD_DEVICE_NAME: u8 = 1;
+const CTRL_CMD_PRODUCT_STRING: u8 = 7;
+const CTRL_CMD_BLE_POWER_DOWN: u8 = 12;
+const CTRL_PAYLOAD_MAX_LEN: usize = 64;
+
+fn enqueue_ctrl_data(payload: &[u8], queue: &mut ByteQueue) {
+    let mut frame = vec![0u8; 12 + payload.len() * 2];
+    let frame_len = protocol_format(&mut frame, ProtocolPacketType::CtrlData, payload);
+    for &byte in &frame[..frame_len] {
+        queue.put(byte);
+    }
+}
 
 /// Set the product string of the BLE chip. The product string must be smaller than 64 bytes.
 pub fn set_product(product: &str, queue: &mut ByteQueue) {
     let product = product.as_bytes();
-    unsafe {
-        bitbox02_sys::da14531_set_product(
-            product.as_ptr(),
-            product.len() as u16,
-            queue as *mut _ as *mut _,
-        )
-    }
+    assert!(
+        product.len() < CTRL_PAYLOAD_MAX_LEN,
+        "product string too large"
+    );
+
+    let mut payload = Vec::with_capacity(1 + product.len());
+    payload.push(CTRL_CMD_PRODUCT_STRING);
+    payload.extend_from_slice(product);
+    enqueue_ctrl_data(&payload, queue);
 }
 
-/// Set the device name of the BLE chip. The name must contain no null bytes.
+/// Set the device name of the BLE chip.
 pub fn set_name(name: &str, queue: &mut ByteQueue) {
-    let c_name = util::strings::str_to_cstr_vec(name).unwrap();
-    unsafe { bitbox02_sys::da14531_set_name(c_name.as_ptr(), queue as *mut _ as *mut _) }
+    let mut payload = Vec::with_capacity(1 + name.len());
+    payload.push(CTRL_CMD_DEVICE_NAME);
+    payload.extend_from_slice(name.as_bytes());
+    enqueue_ctrl_data(&payload, queue);
 }
 
 /// Power down the BLE chip.
 pub fn power_down(queue: &mut ByteQueue) {
-    unsafe { bitbox02_sys::da14531_power_down(queue as *mut _ as *mut _) }
+    enqueue_ctrl_data(&[CTRL_CMD_BLE_POWER_DOWN, 0], queue);
 }
 
 #[cfg(test)]

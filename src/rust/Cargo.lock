@@ -108,6 +108,15 @@ name = "bitbox-bytequeue"
 version = "0.1.0"
 
 [[package]]
+name = "bitbox-da14531"
+version = "0.1.0"
+dependencies = [
+ "bitbox-bytequeue",
+ "bitbox-framed-serial-link",
+ "hex_lit",
+]
+
+[[package]]
 name = "bitbox-executor"
 version = "0.1.0"
 dependencies = [
@@ -176,6 +185,7 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox-bytequeue",
+ "bitbox-da14531",
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",

@@ -10,6 +10,7 @@ license = "Apache-2.0"
 [dependencies]
 bitbox02-rust = { path = "../bitbox02-rust", optional = true }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
+bitbox-da14531 = { path = "../bitbox-da14531" }
 bitbox-aes = { path = "../bitbox-aes", optional = true }
 bitbox02 = { path = "../bitbox02" }
 bitbox-hal = { path = "../bitbox-hal" }

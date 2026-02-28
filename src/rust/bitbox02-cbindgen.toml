@@ -22,10 +22,10 @@ header = '''
 parse_deps = true
 
 # ... but only parse these crates.
-include = ["bitbox02-rust", "util", "bitbox-aes", "bitbox-framed-serial-link"]
+include = ["bitbox02-rust", "util", "bitbox-aes", "bitbox-da14531", "bitbox-framed-serial-link", "bitbox-bytequeue"]
 
 # also generate bindings from these crates.
-extra_bindings = ["bitbox02-rust", "util", "bitbox-aes", "bitbox-framed-serial-link"]
+extra_bindings = ["bitbox02-rust", "util", "bitbox-aes", "bitbox-da14531", "bitbox-framed-serial-link", "bitbox-bytequeue"]
 
 [export]
 # malloc, free declared in bitbox02-rust-c/src/alloc.rs, but does not need to be exported, as it

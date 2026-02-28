@@ -292,6 +292,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-bytequeue"
+version = "0.1.0"
+
+[[package]]
+name = "bitbox-da14531"
+version = "0.1.0"
+dependencies = [
+ "bitbox-bytequeue",
+ "bitbox-framed-serial-link",
+ "util",
+]
+
+[[package]]
 name = "bitbox-executor"
 version = "0.1.0"
 dependencies = [
@@ -327,6 +340,8 @@ name = "bitbox02"
 version = "0.1.0"
 dependencies = [
  "bip39",
+ "bitbox-bytequeue",
+ "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox02-sys",
  "futures-lite",
@@ -352,6 +367,8 @@ dependencies = [
  "bip32-ed25519",
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
+ "bitbox-da14531",
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",
@@ -388,6 +405,8 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
+ "bitbox-da14531",
  "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox02",

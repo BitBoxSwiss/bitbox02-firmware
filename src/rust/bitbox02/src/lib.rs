@@ -22,7 +22,6 @@ pub mod testing;
 #[cfg(test)]
 extern crate bitbox02_rust;
 
-pub mod da14531;
 pub mod da14531_handler;
 pub mod da14531_protocol;
 pub mod delay;
@@ -38,7 +37,6 @@ pub mod memory;
 pub mod platform;
 pub mod queue;
 pub mod random;
-pub mod ringbuffer;
 pub mod screen;
 pub mod screen_saver;
 pub mod sd;

@@ -2,9 +2,9 @@
 
 #include "system.h"
 #include "da14531/da14531.h"
-#include "utils_ringbuffer.h"
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
+#include <rust/rust.h>
 #include <screen.h>
 #ifndef TESTING
     #include "uart.h"
@@ -13,17 +13,19 @@
 
 static void _ble_clear_product(void)
 {
-    struct ringbuffer uart_queue;
-    uint8_t uart_queue_buf[64];
-    ringbuffer_init(&uart_queue, &uart_queue_buf[0], sizeof(uart_queue_buf));
-    da14531_set_product(NULL, 0, &uart_queue);
-    while (ringbuffer_num(&uart_queue)) {
+    struct RustByteQueue* uart_queue = rust_bytequeue_init(64);
+    if (uart_queue == NULL) {
+        return;
+    }
+    rust_da14531_set_product(rust_util_bytes(NULL, 0), uart_queue);
+    while (rust_bytequeue_num(uart_queue)) {
 #ifndef TESTING
-        uart_poll(NULL, 0, NULL, &uart_queue);
+        uart_poll(NULL, 0, NULL, uart_queue);
 #else
-        ringbuffer_flush(&uart_queue);
+        rust_bytequeue_flush(uart_queue);
 #endif
     }
+    rust_bytequeue_free(uart_queue);
 }
 
 void reboot_to_bootloader(void)

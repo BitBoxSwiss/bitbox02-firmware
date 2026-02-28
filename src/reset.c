@@ -18,12 +18,14 @@
 void reset_ble(void)
 {
 #if !defined(TESTING)
-    struct ringbuffer uart_queue;
-    uint8_t uart_queue_buf[64];
-    ringbuffer_init(&uart_queue, &uart_queue_buf[0], sizeof(uart_queue_buf));
-    da14531_reset(&uart_queue);
-    while (ringbuffer_num(&uart_queue)) {
-        uart_poll(NULL, 0, NULL, &uart_queue);
+    struct RustByteQueue* uart_queue = rust_bytequeue_init(64);
+    if (uart_queue == NULL) {
+        return;
     }
+    rust_da14531_reset(uart_queue);
+    while (rust_bytequeue_num(uart_queue)) {
+        uart_poll(NULL, 0, NULL, uart_queue);
+    }
+    rust_bytequeue_free(uart_queue);
 #endif
 }

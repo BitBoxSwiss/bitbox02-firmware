@@ -31,7 +31,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
     // If the bootloader has booted the BLE chip, the BLE chip isn't aware of the name according to
     // the fw. Send it over.
     let device_name = hal.memory().get_device_name();
-    bitbox02::da14531::set_name(&device_name, &mut uart_write_queue);
+    bitbox_da14531::set_name(&device_name, &mut uart_write_queue);
 
     // This starts the async startup workflow, which is processed by the loop below.
     spawn(Box::pin(async {
@@ -93,7 +93,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
             if bitbox02::usb_packet::process(&hww_frame) {
                 if crate::communication_mode::ble_enabled(hal) {
                     // Enqueue a power down command to the da14531
-                    bitbox02::da14531::power_down(&mut uart_write_queue);
+                    bitbox_da14531::power_down(&mut uart_write_queue);
                     // Flush out the power down command. This will be the last UART communication
                     // we do.
                     while uart_write_queue.num() > 0 {
@@ -163,7 +163,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
             if let Ok(crate::hal::memory::Platform::BitBox02Plus) = hal.memory().get_platform() {
                 let product = bitbox02::platform::product();
                 bitbox02::da14531_handler::set_product(product);
-                bitbox02::da14531::set_product(product, &mut uart_write_queue)
+                bitbox_da14531::set_product(product, &mut uart_write_queue)
             }
             bitbox02::usb::start();
         }

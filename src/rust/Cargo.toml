@@ -6,6 +6,7 @@ members = [
     "bitbox02-rust-c",
     "bitbox02-rust",
     "bitbox-bytequeue",
+    "bitbox-da14531",
     "bitbox-hal",
     "bitbox-framed-serial-link",
     "util",

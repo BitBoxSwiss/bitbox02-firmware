@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#![no_std]
+
+extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitbox_bytequeue::ByteQueue;

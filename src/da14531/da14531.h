@@ -27,23 +27,4 @@ enum da14531_connected_state {
 };
 
 extern enum da14531_connected_state da14531_connected_state;
-
-struct RustByteQueue;
-
-void da14531_power_down(struct RustByteQueue* uart_out);
-
-void da14531_reset(struct RustByteQueue* uart_out);
-
-// product is an array of characters to be set as product characteristic (not null terminated)
-// procuct_len is the number of characters in the product array
-// uart_out is the queue where to put the outgoing serially encoded bytes
-void da14531_set_product(
-    volatile const uint8_t* product,
-    volatile uint16_t product_len,
-    struct RustByteQueue* uart_out);
-
-void da14531_set_name(const char* name, struct RustByteQueue* uart_out);
-
-void da14531_get_connection_state(struct RustByteQueue* uart_out);
-
 #endif

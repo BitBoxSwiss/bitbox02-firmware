@@ -225,8 +225,9 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
     } break;
     case CTRL_CMD_PRODUCT_STRING: {
         // util_log("da14531: get device mode");
-        da14531_set_product(
-            da14531_handler_current_product, da14531_handler_current_product_len, queue);
+        rust_da14531_set_product(
+            rust_util_bytes(da14531_handler_current_product, da14531_handler_current_product_len),
+            queue);
     } break;
     case CTRL_CMD_IDENTITY_ADDRESS: {
         // util_log("da14531: get addr");

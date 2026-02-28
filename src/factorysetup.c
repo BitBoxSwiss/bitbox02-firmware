@@ -1126,7 +1126,7 @@ static ble_error_code_t _setup_ble(void)
     }
     // If the BLE chip already was successfully booted, for example by running the factory-setup
     // once already and not power cycled, we need to reset it to trigger a complete setup again.
-    da14531_reset(uart_write_queue);
+    rust_da14531_reset(uart_write_queue);
     int32_t timeout = 1000000;
     while (timeout-- > 0) {
         uart_poll(uart_read_buf, sizeof(uart_read_buf), &uart_read_buf_len, uart_write_queue);

@@ -22,7 +22,7 @@ void reset_ble(void)
     if (uart_queue == NULL) {
         return;
     }
-    da14531_reset(uart_queue);
+    rust_da14531_reset(uart_queue);
     while (rust_bytequeue_num(uart_queue)) {
         uart_poll(NULL, 0, NULL, uart_queue);
     }

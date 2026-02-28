@@ -17,7 +17,7 @@ static void _ble_clear_product(void)
     if (uart_queue == NULL) {
         return;
     }
-    da14531_set_product(NULL, 0, uart_queue);
+    rust_da14531_set_product(rust_util_bytes(NULL, 0), uart_queue);
     while (rust_bytequeue_num(uart_queue)) {
 #ifndef TESTING
         uart_poll(NULL, 0, NULL, uart_queue);

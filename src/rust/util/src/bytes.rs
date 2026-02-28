@@ -94,12 +94,13 @@ impl AsMut<[u8]> for BytesMut {
 
 /// Convert buffer to slice
 ///
-/// * `buf` - Must be a valid pointer to an array of bytes
+/// * `buf` - Must be a valid pointer to an array of bytes, can be NULL if `len == 0`
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
 ///
 /// # Safety
 ///
-/// buf must not be NULL and point to a valid memory area of size `len`.
+/// `buf` must point to a valid memory area of size `len`, unless `len == 0`, in which case `buf`
+/// may be NULL.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Bytes {
     Bytes { buf, len }
@@ -107,12 +108,13 @@ pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Byt
 
 /// Convert buffer to mutable slice
 ///
-/// * `buf` - Must be a valid pointer to an array of bytes
+/// * `buf` - Must be a valid pointer to an array of bytes, can be NULL if `len == 0`
 /// * `len` - Length of buffer, `buf[len-1]` must be a valid dereference
 ///
 /// # Safety
 ///
-/// buf must not be NULL and point to a valid memory area of size `len`.
+/// `buf` must point to a valid memory area of size `len`, unless `len == 0`, in which case `buf`
+/// may be NULL.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut {
     BytesMut { buf, len }
@@ -136,6 +138,19 @@ mod tests {
     fn create_invalid_bytes_ref() {
         // Calling `as_ref()` will panic because it tries to create an invalid rust slice.
         (unsafe { rust_util_bytes(core::ptr::null(), 1) }).as_ref();
+    }
+
+    #[test]
+    fn create_null_bytes_ref_with_zero_len() {
+        let bytes = unsafe { rust_util_bytes(core::ptr::null(), 0) };
+        assert!(bytes.as_ref().is_empty());
+    }
+
+    #[test]
+    fn create_null_bytes_mut_with_zero_len() {
+        let mut bytes = unsafe { rust_util_bytes_mut(core::ptr::null_mut(), 0) };
+        assert!(bytes.as_ref().is_empty());
+        assert!(bytes.as_mut().is_empty());
     }
 
     #[test]

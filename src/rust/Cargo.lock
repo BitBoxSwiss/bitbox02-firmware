@@ -114,6 +114,7 @@ dependencies = [
  "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "hex_lit",
+ "util",
 ]
 
 [[package]]
@@ -225,6 +226,7 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox-bytequeue",
+ "bitbox-da14531",
  "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox02",

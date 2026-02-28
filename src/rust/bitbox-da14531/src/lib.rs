@@ -5,8 +5,9 @@
 extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
-use bitbox_bytequeue::ByteQueue;
+use bitbox_bytequeue::{ByteQueue, RustByteQueue};
 use bitbox_framed_serial_link::{ProtocolPacketType, protocol_format};
+use util::bytes::Bytes;
 
 const CTRL_CMD_DEVICE_NAME: u8 = 1;
 const CTRL_CMD_BLE_STATUS: u8 = 5;
@@ -25,7 +26,11 @@ fn enqueue_ctrl_data(payload: &[u8], queue: &mut ByteQueue) {
 
 /// Set the product string of the BLE chip. The product string must be smaller than 64 bytes.
 pub fn set_product(product: &str, queue: &mut ByteQueue) {
-    let product = product.as_bytes();
+    set_product_bytes(product.as_bytes(), queue);
+}
+
+/// Set the product string of the BLE chip. The product string must be smaller than 64 bytes.
+pub fn set_product_bytes(product: &[u8], queue: &mut ByteQueue) {
     assert!(
         product.len() < CTRL_PAYLOAD_MAX_LEN,
         "product string too large"
@@ -39,9 +44,14 @@ pub fn set_product(product: &str, queue: &mut ByteQueue) {
 
 /// Set the device name of the BLE chip.
 pub fn set_name(name: &str, queue: &mut ByteQueue) {
+    set_name_bytes(name.as_bytes(), queue);
+}
+
+/// Set the device name of the BLE chip.
+pub fn set_name_bytes(name: &[u8], queue: &mut ByteQueue) {
     let mut payload = Vec::with_capacity(1 + name.len());
     payload.push(CTRL_CMD_DEVICE_NAME);
-    payload.extend_from_slice(name.as_bytes());
+    payload.extend_from_slice(name);
     enqueue_ctrl_data(&payload, queue);
 }
 
@@ -58,6 +68,53 @@ pub fn reset(queue: &mut ByteQueue) {
 /// Ask the BLE chip for its current connection state.
 pub fn get_connection_state(queue: &mut ByteQueue) {
     enqueue_ctrl_data(&[CTRL_CMD_BLE_STATUS], queue);
+}
+
+fn queue_from_ptr(uart_out: *mut RustByteQueue) -> *mut ByteQueue {
+    assert!(!uart_out.is_null());
+    uart_out.cast::<ByteQueue>()
+}
+
+/// # Safety
+///
+/// `uart_out` must point to a valid `RustByteQueue` allocated by Rust.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_da14531_power_down(uart_out: *mut RustByteQueue) {
+    power_down(unsafe { &mut *queue_from_ptr(uart_out) });
+}
+
+/// # Safety
+///
+/// `uart_out` must point to a valid `RustByteQueue` allocated by Rust.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_da14531_reset(uart_out: *mut RustByteQueue) {
+    reset(unsafe { &mut *queue_from_ptr(uart_out) });
+}
+
+/// # Safety
+///
+/// `product` must reference a valid byte buffer for the duration of this call.
+/// `uart_out` must point to a valid `RustByteQueue` allocated by Rust.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_da14531_set_product(product: Bytes, uart_out: *mut RustByteQueue) {
+    set_product_bytes(product.as_ref(), unsafe { &mut *queue_from_ptr(uart_out) });
+}
+
+/// # Safety
+///
+/// `name` must reference a valid byte buffer for the duration of this call.
+/// `uart_out` must point to a valid `RustByteQueue` allocated by Rust.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_da14531_set_name(name: Bytes, uart_out: *mut RustByteQueue) {
+    set_name_bytes(name.as_ref(), unsafe { &mut *queue_from_ptr(uart_out) });
+}
+
+/// # Safety
+///
+/// `uart_out` must point to a valid `RustByteQueue` allocated by Rust.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_da14531_get_connection_state(uart_out: *mut RustByteQueue) {
+    get_connection_state(unsafe { &mut *queue_from_ptr(uart_out) });
 }
 
 #[cfg(test)]

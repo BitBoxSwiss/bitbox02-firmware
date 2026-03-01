@@ -34,7 +34,6 @@
     #include <da14531/da14531.h>
     #include <da14531/da14531_protocol.h>
     #include <uart.h>
-    #include <utils_ringbuffer.h>
 #endif
 
 #include <assert.h>
@@ -134,7 +133,7 @@ static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
-extern struct ringbuffer uart_write_queue;
+extern struct RustByteQueue* uart_write_queue;
 #endif
 
 // clang-format off
@@ -891,10 +890,10 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
 
     case OP_REBOOT: {
 #if PLATFORM_BITBOX02PLUS == 1
-        da14531_set_product(NULL, 0, &uart_write_queue);
+        da14531_set_product(NULL, 0, uart_write_queue);
         //  Send it now, because we are about to reset ourselves
-        while (ringbuffer_num(&uart_write_queue)) {
-            uart_poll(NULL, 0, NULL, &uart_write_queue);
+        while (rust_bytequeue_num(uart_write_queue)) {
+            uart_poll(NULL, 0, NULL, uart_write_queue);
         }
 #endif
         _api_reboot();

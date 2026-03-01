@@ -106,7 +106,7 @@ static void _firmware_loader_poll(
     struct firmware_loader* self,
     const uint8_t* buf_in,
     uint16_t* buf_in_len,
-    struct ringbuffer* out_queue)
+    struct RustByteQueue* out_queue)
 {
     // if (*buf_in_len > 0) {
     //     util_log(
@@ -131,17 +131,16 @@ static void _firmware_loader_poll(
                 util_log("da14531: requested firmware");
                 self->state = FIRMWARE_LOADER_STATE_SEEN_STX;
                 // There is no point in sending anything that was scheduled to be sent out
-                ringbuffer_flush(out_queue);
+                rust_bytequeue_flush(out_queue);
                 break;
             }
         }
         *buf_in_len = 0;
         break;
     case FIRMWARE_LOADER_STATE_SEEN_STX: {
-        ASSERT(ringbuffer_num(out_queue) + 3 <= out_queue->size);
-        ringbuffer_put(out_queue, SOH);
-        ringbuffer_put(out_queue, ble_fw_size & 0xff);
-        ringbuffer_put(out_queue, (ble_fw_size >> 8) & 0xff);
+        rust_bytequeue_put(out_queue, SOH);
+        rust_bytequeue_put(out_queue, ble_fw_size & 0xff);
+        rust_bytequeue_put(out_queue, (ble_fw_size >> 8) & 0xff);
         self->state = FIRMWARE_LOADER_STATE_SENT_HEADER;
     } break;
 
@@ -150,7 +149,7 @@ static void _firmware_loader_poll(
             if (buf_in[0] == ACK) {
                 util_log("da14513: sending firmware");
                 // Wait until uart tx is ready, and issue a write for the firmware.
-                // Don't use ringbuffer as the source is static
+                // Don't use bytequeue as the source is static
                 if (ble_fw != NULL) {
                     // This should never happen
                     // TODO
@@ -170,8 +169,7 @@ static void _firmware_loader_poll(
         if (*buf_in_len == 1) {
             if (buf_in[0] == ble_fw_checksum) {
                 util_log("da14531: checksum success (%x)", buf_in[0]);
-                ASSERT(ringbuffer_num(out_queue) + 1 <= out_queue->size);
-                ringbuffer_put(out_queue, ACK);
+                rust_bytequeue_put(out_queue, ACK);
                 self->state = FIRMWARE_LOADER_STATE_DONE;
             } else {
                 util_log(
@@ -341,21 +339,16 @@ struct da14531_protocol_frame* da14531_protocol_poll(
     uint8_t* in_buf,
     uint16_t* in_buf_len,
     const uint8_t** hww_data,
-    struct ringbuffer* out_queue)
+    struct RustByteQueue* out_queue)
 {
     if (hww_data && *hww_data) {
         uint8_t tmp[12 + 64 * 2];
         int len = da14531_protocol_format(
             &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA, *hww_data, 64);
         ASSERT(len <= (int)sizeof(tmp));
-        // If it won't fit, try again later
-        if (ringbuffer_num(out_queue) + len > out_queue->size) {
-            util_log("ringbuffer full");
-            return NULL;
-        }
         util_log("out: %s", util_dbg_hex(*hww_data, 64));
         for (int i = 0; i < len; i++) {
-            ringbuffer_put(out_queue, tmp[i]);
+            rust_bytequeue_put(out_queue, tmp[i]);
         }
         *hww_data = NULL;
     }

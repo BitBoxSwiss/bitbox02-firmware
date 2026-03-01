@@ -2,16 +2,14 @@
 
 use crate::hal::{Memory, System};
 use alloc::boxed::Box;
+use bitbox_bytequeue::ByteQueue;
 use bitbox_executor::Executor;
-use bitbox02::ringbuffer::RingBuffer;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb_packet::USB_FRAME;
 use core::future::Future;
 use core::mem::MaybeUninit;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, Ordering};
-
-const UART_OUT_BUF_LEN: u32 = 2048;
 
 static EXECUTOR: Executor = Executor::new();
 type DynExecutorFuture = Pin<Box<dyn Future<Output = ()> + 'static>>;
@@ -28,8 +26,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
     let mut uart_read_buf = [0u8; USART_0_BUFFER_SIZE as usize];
     let mut uart_read_buf_len = 0u16;
 
-    let mut uart_write_buf = [0u8; UART_OUT_BUF_LEN as usize];
-    let mut uart_write_queue = RingBuffer::new(&mut uart_write_buf);
+    let mut uart_write_queue = ByteQueue::with_capacity(2048);
 
     // If the bootloader has booted the BLE chip, the BLE chip isn't aware of the name according to
     // the fw. Send it over.
@@ -59,7 +56,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
     loop {
         // Do UART I/O
         if crate::communication_mode::ble_enabled(hal) {
-            if uart_read_buf_len < uart_read_buf.len() as u16 || uart_write_queue.len() > 0 {
+            if uart_read_buf_len < uart_read_buf.len() as u16 || uart_write_queue.num() > 0 {
                 bitbox02::uart::poll(
                     Some(&mut uart_read_buf),
                     Some(&mut uart_read_buf_len),
@@ -99,7 +96,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
                     bitbox02::da14531::power_down(&mut uart_write_queue);
                     // Flush out the power down command. This will be the last UART communication
                     // we do.
-                    while uart_write_queue.len() > 0 {
+                    while uart_write_queue.num() > 0 {
                         bitbox02::uart::poll(None, None, &mut uart_write_queue);
                     }
                     crate::communication_mode::ble_disable();

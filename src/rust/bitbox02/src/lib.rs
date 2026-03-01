@@ -38,7 +38,6 @@ pub mod memory;
 pub mod platform;
 pub mod queue;
 pub mod random;
-pub mod ringbuffer;
 pub mod screen;
 pub mod screen_saver;
 pub mod sd;

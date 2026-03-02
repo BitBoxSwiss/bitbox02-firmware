@@ -7,7 +7,7 @@
 extern crate std;
 
 #[macro_use]
-mod alloc;
+mod c_alloc;
 
 #[cfg(feature = "firmware")]
 pub mod async_usb;

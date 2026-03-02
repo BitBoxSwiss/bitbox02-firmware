@@ -65,9 +65,12 @@ pub trait Progress {
     fn set(&mut self, progress: f32);
 }
 
+pub trait Empty {}
+
 #[allow(async_fn_in_trait)]
 pub trait Ui {
     type Progress: Progress;
+    type Empty: Empty;
 
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort>;
@@ -90,6 +93,8 @@ pub trait Ui {
     fn switch_to_logo(&mut self);
 
     fn progress_create(&mut self, title: &str) -> Self::Progress;
+
+    fn empty_create(&mut self) -> Self::Empty;
 
     /// If `can_cancel` is `Yes`, the workflow can be cancelled.
     /// If it is `No`, the result is always `Ok(())`.

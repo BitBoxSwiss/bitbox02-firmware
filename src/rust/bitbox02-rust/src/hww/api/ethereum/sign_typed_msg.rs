@@ -520,8 +520,7 @@ pub async fn process(
     // Base component on the screen stack during signing, which is shown while the device is waiting
     // for the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would
     // flicker in between user confirmations.
-    let mut empty_component = bitbox02::ui::empty_create();
-    empty_component.screen_stack_push();
+    let _empty_component = hal.ui().empty_create();
 
     // Verify address. We don't need the actual result, but we have to propagate validation or user
     // abort errors.

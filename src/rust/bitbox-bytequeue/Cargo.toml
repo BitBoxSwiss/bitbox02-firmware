@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-bytequeue"
+version = "0.1.0"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2024"
+license = "Apache-2.0"

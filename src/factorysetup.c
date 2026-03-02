@@ -19,7 +19,6 @@
 #include "usb/usb.h"
 #include "usb/usb_packet.h"
 #include "usb/usb_processing.h"
-#include "utils_ringbuffer.h"
 #include <rust/rust.h>
 #include <ui/oled/oled.h>
 
@@ -1121,25 +1120,28 @@ static ble_error_code_t _setup_ble(void)
     da14531_protocol_init();
     uint8_t uart_read_buf[1024];
     uint16_t uart_read_buf_len = 0;
-    uint8_t uart_write_buf[1024];
-    struct ringbuffer uart_write_queue;
-    ringbuffer_init(&uart_write_queue, uart_write_buf, sizeof(uart_write_buf));
+    struct RustByteQueue* uart_write_queue = rust_bytequeue_init(1024);
+    if (uart_write_queue == NULL) {
+        return BLE_ERR_NOT_BOOTED;
+    }
     // If the BLE chip already was successfully booted, for example by running the factory-setup
     // once already and not power cycled, we need to reset it to trigger a complete setup again.
-    da14531_reset(&uart_write_queue);
+    da14531_reset(uart_write_queue);
     int32_t timeout = 1000000;
     while (timeout-- > 0) {
-        uart_poll(uart_read_buf, sizeof(uart_read_buf), &uart_read_buf_len, &uart_write_queue);
+        uart_poll(uart_read_buf, sizeof(uart_read_buf), &uart_read_buf_len, uart_write_queue);
         struct da14531_protocol_frame* frame =
-            da14531_protocol_poll(uart_read_buf, &uart_read_buf_len, NULL, &uart_write_queue);
+            da14531_protocol_poll(uart_read_buf, &uart_read_buf_len, NULL, uart_write_queue);
         if (frame) {
-            da14531_handler(frame, &uart_write_queue);
+            da14531_handler(frame, uart_write_queue);
         }
         if (da14531_handler_bond_db_set()) {
             // We have successfully booted the BLE chip and the bond db is stored.
+            rust_bytequeue_free(uart_write_queue);
             return BLE_OK;
         }
     }
+    rust_bytequeue_free(uart_write_queue);
     screen_print_debug("Failed to check BLE chip status", 0);
     return BLE_ERR_NOT_BOOTED;
 }

@@ -19,6 +19,10 @@ impl System for BitBox02System {
         crate::ui::screen_process_waiting_switch_to_lockscreen();
     }
 
+    fn communication_timeout_reset(&mut self, value: i16) {
+        crate::usb_processing::timeout_reset(value);
+    }
+
     #[allow(clippy::empty_loop)]
     fn reboot(&mut self) -> ! {
         unsafe { bitbox02_sys::reboot() }

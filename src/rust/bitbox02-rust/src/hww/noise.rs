@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::Ui;
 use crate::workflow::pairing;
 use alloc::vec::Vec;
 use bitbox02::memory;
@@ -72,7 +73,7 @@ pub(crate) async fn process(
         Some((&OP_I_CAN_HAS_HANDSHAEK, b"")) => {
             // Pairing is the start of a session, so we clean the screen stack in case
             // we started a new session in the middle of something.
-            bitbox02::ui::screen_stack_pop_all();
+            hal.ui().reset();
 
             NOISE_STATE
                 .0

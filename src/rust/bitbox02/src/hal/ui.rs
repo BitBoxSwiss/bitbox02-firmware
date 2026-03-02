@@ -135,6 +135,11 @@ impl Ui for BitBox02Ui {
     }
 
     #[inline(always)]
+    fn reset(&mut self) {
+        crate::ui::screen_stack_pop_all();
+    }
+
+    #[inline(always)]
     async fn enter_string(
         &mut self,
         params: &EnterStringParams<'_>,

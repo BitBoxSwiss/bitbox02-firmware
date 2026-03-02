@@ -29,7 +29,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
         }
     }
     if !reset_ok {
-        abort("Could not reset secure chip.");
+        abort(hal, "Could not reset secure chip.");
     }
 
     #[cfg(feature = "app-u2f")]
@@ -42,12 +42,12 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
             }
         }
         if !u2f_ok {
-            abort("Could not initialize U2F counter.");
+            abort(hal, "Could not initialize U2F counter.");
         }
     }
 
     if hal.memory().reset_hww().is_err() {
-        abort("Could not reset memory.");
+        abort(hal, "Could not reset memory.");
     }
 
     // Disable SmartEEPROM so it will be erased on next reboot.

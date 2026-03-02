@@ -9,6 +9,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::time::Duration;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Screen {
@@ -29,6 +30,10 @@ pub enum Screen {
     Status {
         title: String,
         success: bool,
+    },
+    PrintScreen {
+        message: String,
+        duration: Duration,
     },
     ShowMnemonic {
         words: Vec<String>,
@@ -145,6 +150,13 @@ impl Ui for TestingUi<'_> {
         {
             panic!("canot abort status screen");
         }
+    }
+
+    fn print_screen(&mut self, duration: Duration, msg: &str) {
+        self.screens.push(Screen::PrintScreen {
+            message: msg.into(),
+            duration,
+        });
     }
 
     fn switch_to_logo(&mut self) {}

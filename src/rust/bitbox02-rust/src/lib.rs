@@ -12,14 +12,13 @@ mod pb_backup {
     include!("./shiftcrypto.bitbox02.backups.rs");
 }
 
-#[macro_use]
-pub mod general;
 pub mod async_usb;
 pub mod attestation;
 pub mod backup;
 mod bip32;
 pub mod bip39;
 pub mod communication_mode;
+pub mod general;
 pub mod hal;
 pub mod hash;
 pub mod hww;

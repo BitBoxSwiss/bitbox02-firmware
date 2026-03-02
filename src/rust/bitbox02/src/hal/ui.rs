@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::string::String;
+use core::time::Duration;
 
 use bitbox_hal::Ui;
 use bitbox_hal::ui::{
@@ -127,6 +128,14 @@ impl Ui for BitBox02Ui {
     #[inline(always)]
     async fn status(&mut self, title: &str, status_success: bool) {
         crate::ui::status(title, status_success).await
+    }
+
+    fn print_screen(&mut self, duration: Duration, msg: &str) {
+        crate::screen_clear();
+        crate::ug_font_select_9x9();
+        crate::ug_put_string(0, 0, msg, false);
+        crate::ug_send_buffer();
+        crate::delay(duration);
     }
 
     #[inline(always)]

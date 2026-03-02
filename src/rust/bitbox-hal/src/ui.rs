@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::string::String;
+use core::time::Duration;
 
 pub struct UserAbort;
 
@@ -87,6 +88,10 @@ pub trait Ui {
     async fn unlock_animation(&mut self);
 
     async fn status(&mut self, title: &str, status_success: bool);
+
+    /// Render a debug/error message directly to the screen.
+    /// If `duration` is zero, the message remains visible indefinitely.
+    fn print_screen(&mut self, duration: Duration, msg: &str);
 
     /// Switches the waiting screen from the lockscreen (as described in
     /// [`crate::system::System::startup`]) to the BitBox logo.

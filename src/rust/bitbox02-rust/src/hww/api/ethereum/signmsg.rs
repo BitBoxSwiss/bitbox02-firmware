@@ -102,7 +102,7 @@ mod tests {
 
     const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
     const MESSAGE: &str = "message";
-    const EXPECTED_ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
+    const EXPECTED_ADDRESS: &str = "0x 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9";
 
     #[test]
     pub fn test_process() {

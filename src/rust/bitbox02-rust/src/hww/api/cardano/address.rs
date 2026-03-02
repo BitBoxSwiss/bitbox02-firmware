@@ -359,6 +359,24 @@ pub fn validate_and_encode_payment_address(
     }
 }
 
+/// Formats a Cardano address for display in blocks of 4 chars.
+/// Bech32 payment prefixes `addr1` and `addr_test1` are preserved and followed by a space.
+pub fn format_display_address(address: &str) -> String {
+    if let Some(rest) = address.strip_prefix("addr_test1") {
+        if rest.is_empty() {
+            return address.into();
+        }
+        return format!("addr_test1 {}", util::strings::format_address(rest));
+    }
+    if let Some(rest) = address.strip_prefix("addr1") {
+        if rest.is_empty() {
+            return address.into();
+        }
+        return format!("addr1 {}", util::strings::format_address(rest));
+    }
+    util::strings::format_address(address)
+}
+
 pub async fn process(
     hal: &mut impl crate::hal::Hal,
     request: &pb::CardanoAddressRequest,
@@ -376,10 +394,11 @@ pub async fn process(
     let encoded_address = validate_and_encode_payment_address(hal, params, script_config, None)?;
 
     if request.display {
+        let displayed_address = format_display_address(&encoded_address);
         hal.ui()
             .confirm(&ConfirmParams {
                 title: params.name,
-                body: &encoded_address,
+                body: &displayed_address,
                 scrollable: true,
                 ..Default::default()
             })
@@ -400,6 +419,26 @@ mod tests {
     use alloc::boxed::Box;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
+
+    #[test]
+    fn test_format_display_address() {
+        assert_eq!(
+            format_display_address(
+                "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs"
+            ),
+            "addr1 q90t lskd 4mh5 kncm ul7v x887 j30t jtfg vap5 n0g0 rf9q qc7z nmnd rdhe 7rwv qkw5 c7mq np4a 3yfl nvu6 kff7 l5du ngvq mvu6 hs",
+        );
+        assert_eq!(
+            format_display_address(
+                "addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgs68faae"
+            ),
+            "addr_test1 qz2f xv2u myht tkxy xp8x 0dlp dt3k 6cwn g5px j3jh sydz er3n 0d3v llmy qwsx 5wkt cd8c c3sq 835l u7dr v2xw l2wy wfgs 68fa ae",
+        );
+        assert_eq!(
+            format_display_address("Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi"),
+            "Ae2t dPwU PEZF Rbyh z3cp fC2C umGz NkFB N2L4 2rcU c2yj QpEk xDbk Podp MAi",
+        );
+    }
 
     #[test]
     fn test_decode_payment_address() {
@@ -563,6 +602,7 @@ mod tests {
     #[test]
     fn test_process_confirm() {
         const EXPECTED: &str = "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs";
+        const EXPECTED_DISPLAYED: &str = "addr1 q90t lskd 4mh5 kncm ul7v x887 j30t jtfg vap5 n0g0 rf9q qc7z nmnd rdhe 7rwv qkw5 c7mq np4a 3yfl nvu6 kff7 l5du ngvq mvu6 hs";
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
@@ -586,7 +626,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Cardano".into(),
-                body: EXPECTED.into(),
+                body: EXPECTED_DISPLAYED.into(),
                 longtouch: false,
             },]
         );

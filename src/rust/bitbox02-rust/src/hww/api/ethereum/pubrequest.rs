@@ -33,6 +33,7 @@ async fn process_address(
     let address = super::derive_address(hal, &request.keypath)?;
 
     if request.display {
+        let address_display = super::address::format_display_address(&address);
         let title = match erc20_params {
             Some(erc20_params) => format!("{}\n{}", params.name, erc20_params.unit),
             None => params.name.into(),
@@ -42,7 +43,7 @@ async fn process_address(
             .confirm(&ConfirmParams {
                 title: &title,
                 title_autowrap: true,
-                body: &address,
+                body: &address_display,
                 scrollable: true,
                 ..Default::default()
             })
@@ -134,6 +135,7 @@ mod tests {
     #[test]
     pub fn test_process_address() {
         const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
+        const DISPLAY_ADDRESS: &str = "0x 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9";
 
         let request = pb::EthPubRequest {
             output_type: OutputType::Address as _,
@@ -176,7 +178,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Ethereum".into(),
-                body: ADDRESS.into(),
+                body: DISPLAY_ADDRESS.into(),
                 longtouch: false,
             }]
         );
@@ -210,7 +212,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Sepolia".into(),
-                    body: ADDRESS.into(),
+                    body: DISPLAY_ADDRESS.into(),
                     longtouch: false,
                 },
             ]
@@ -269,6 +271,7 @@ mod tests {
     #[test]
     pub fn test_process_erc20_address() {
         const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
+        const DISPLAY_ADDRESS: &str = "0x 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9";
         const CONTRACT_ADDRESS: [u8; 20] = hex!("dac17f958d2ee523a2206206994597c13d831ec7");
 
         let request = pb::EthPubRequest {
@@ -312,7 +315,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Ethereum\nUSDT".into(),
-                body: ADDRESS.into(),
+                body: DISPLAY_ADDRESS.into(),
                 longtouch: false,
             }]
         );

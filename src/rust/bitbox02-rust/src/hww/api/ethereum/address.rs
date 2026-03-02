@@ -48,6 +48,21 @@ pub fn from_pubkey(pubkey_uncompressed: &[u8; 65]) -> String {
     )
 }
 
+/// Formats an Ethereum address for display in blocks of 4 chars.
+/// If the input starts with `0x`/`0X`, the prefix is preserved and followed by a space.
+pub fn format_display_address(address: &str) -> String {
+    if let Some(rest) = address
+        .strip_prefix("0x")
+        .or_else(|| address.strip_prefix("0X"))
+    {
+        if rest.is_empty() {
+            return address.into();
+        }
+        return format!("{} {}", &address[..2], util::strings::format_address(rest));
+    }
+    util::strings::format_address(address)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,5 +147,21 @@ mod tests {
         {
             assert_eq!(from_pubkey(pubkey), expected_address);
         }
+    }
+
+    #[test]
+    fn test_format_display_address() {
+        assert_eq!(
+            format_display_address("0x773A77b9D32589be03f9132AF759e294f7851be9"),
+            "0x 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9"
+        );
+        assert_eq!(
+            format_display_address("0X773A77b9D32589be03f9132AF759e294f7851be9"),
+            "0X 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9"
+        );
+        assert_eq!(
+            format_display_address("773A77b9D32589be03f9132AF759e294f7851be9"),
+            "773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9"
+        );
     }
 }

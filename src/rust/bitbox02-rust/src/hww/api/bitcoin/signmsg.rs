@@ -51,6 +51,7 @@ pub async fn process(
 
     // Keypath and script_config are validated in address_simple().
     let address = super::derive_address_simple(hal, coin, simple_type, keypath)?;
+    let address_formatted = util::strings::format_address(&address);
 
     let basic_info = format!("Coin: {}", super::params::get(coin).name);
     let confirm_params = ConfirmParams {
@@ -63,7 +64,7 @@ pub async fn process(
 
     let confirm_params = ConfirmParams {
         title: "Address",
-        body: &address,
+        body: &address_formatted,
         scrollable: true,
         accept_is_nextarrow: true,
         ..Default::default()
@@ -167,7 +168,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Address".into(),
-                    body: "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt".into(),
+                    body: "bc1q k5f9 em9q c8yf pks8 ngfg 3h8h 02n2 e3ye qdyh pt".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
@@ -206,7 +207,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Address".into(),
-                    body: "tb1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvketqwdg".into(),
+                    body: "tb1q nlyr q9ps hg0v 0lsu udjg ga4n vmjx hcvk etqw dg".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {
@@ -250,7 +251,7 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Address".into(),
-                    body: "3BaL6XecvLAidPToUDhXo1zxD99ZUrErpd".into(),
+                    body: "3BaL 6Xec vLAi dPTo UDhX o1zx D99Z UrEr pd".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {

@@ -222,6 +222,7 @@ async fn verify_erc20_transaction(
     let erc20_params = erc20_params::get(params.chain_id, parse_recipient(request.recipient())?);
     let formatted_fee = parse_fee(request, params).format();
     let recipient_address = super::address::from_pubkey_hash(&erc20_recipient, request.case()?);
+    let recipient_address_display = super::address::format_display_address(&recipient_address);
     let (formatted_value, formatted_total) = match erc20_params {
         Some(erc20_params) => {
             let value = Amount {
@@ -237,7 +238,7 @@ async fn verify_erc20_transaction(
         None => ("Unknown token".into(), "Unknown amount".into()),
     };
     hal.ui()
-        .verify_recipient(&recipient_address, &formatted_value)
+        .verify_recipient(&recipient_address_display, &formatted_value)
         .await?;
     transaction::verify_total_fee_maybe_warn(hal, &formatted_total, &formatted_fee, None).await?;
     Ok(())
@@ -311,13 +312,14 @@ async fn verify_standard_transaction(
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
+    let address_display = super::address::format_display_address(&address);
     let amount = Amount {
         unit: params.unit,
         decimals: WEI_DECIMALS,
         value: BigUint::from_bytes_be(request.value()),
     };
     hal.ui()
-        .verify_recipient(&address, &amount.format())
+        .verify_recipient(&address_display, &amount.format())
         .await?;
 
     let fee = parse_fee(request, params);
@@ -575,7 +577,7 @@ mod tests {
                 longtouch: false,
             },
             Screen::Recipient {
-                recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                 amount: "0.530564 ETH".into(),
             },
             Screen::TotalFee {
@@ -676,7 +678,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                     amount: "0.530564 ETH".into(),
                 },
                 Screen::TotalFee {
@@ -736,7 +738,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                     amount: "0.530564 ETH".into(),
                 },
                 Screen::TotalFee {
@@ -797,7 +799,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                     amount: "0.530564 SEPETH".into(),
                 },
                 Screen::TotalFee {
@@ -864,7 +866,7 @@ mod tests {
                     longtouch: false
                 },
                 Screen::Recipient {
-                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                     amount: "0.530564 ETH".into()
                 },
                 Screen::TotalFee {
@@ -931,7 +933,7 @@ mod tests {
                     longtouch: false
                 },
                 Screen::Recipient {
-                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                     amount: "0.530564 ETH".into()
                 },
                 Screen::TotalFee {
@@ -960,7 +962,7 @@ mod tests {
                 longtouch: false,
             },
             Screen::Recipient {
-                recipient: "0xE6CE0a092A99700CD4ccCcBb1fEDc39Cf53E6330".into(),
+                recipient: "0x E6CE 0a09 2A99 700C D4cc CcBb 1fED c39C f53E 6330".into(),
                 amount: "57 USDT".into(),
             },
             Screen::TotalFee {
@@ -1034,7 +1036,7 @@ mod tests {
                 longtouch: false,
             },
             Screen::Recipient {
-                recipient: "0x857B3D969eAcB775a9f79cabc62Ec4bB1D1cd60e".into(),
+                recipient: "0x 857B 3D96 9eAc B775 a9f7 9cab c62E c4bB 1D1c d60e".into(),
                 amount: "Unknown token".into(),
             },
             Screen::TotalFee {
@@ -1218,7 +1220,7 @@ mod tests {
                         longtouch: false,
                     },
                     Screen::Recipient {
-                        recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                        recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                         amount: "0.530564 ETH".into(),
                     },
                     Screen::TotalFee {
@@ -1358,7 +1360,7 @@ mod tests {
                     longtouch: false
                 },
                 Screen::Recipient {
-                    recipient: "0x04F264Cf34440313B4A0192A352814FBe927b885".into(),
+                    recipient: "0x 04F2 64Cf 3444 0313 B4A0 192A 3528 14FB e927 b885".into(),
                     amount: "0.530564 ".into(),
                 },
                 Screen::TotalFee {
@@ -1618,7 +1620,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "0x112233445566778899AabbcCDDeEFF0011223344".into(),
+                    recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
                     amount: "0 ETH".into(),
                 },
                 Screen::TotalFee {
@@ -1691,7 +1693,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "0x112233445566778899AabbcCDDeEFF0011223344".into(),
+                    recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
                     amount: "0 ETH".into(),
                 },
                 Screen::TotalFee {

@@ -1015,13 +1015,15 @@ async fn _process(
                     None
                 };
 
+                let address_formatted = util::strings::format_address(&address()?);
+                let recipient = if let Some(prefix) = prefix {
+                    format!("{}: {}", prefix, address_formatted)
+                } else {
+                    address_formatted
+                };
                 hal.ui()
                     .verify_recipient(
-                        &(if let Some(prefix) = prefix {
-                            format!("{}: {}", prefix, address()?)
-                        } else {
-                            address()?
-                        }),
+                        &recipient,
                         &format_amount(coin_params, format_unit, tx_output.value)?,
                     )
                     .await?;
@@ -1307,7 +1309,6 @@ mod tests {
             _ => panic!("wrong response type"),
         }
     }
-
     struct TxInput {
         input: pb::BtcSignInputRequest,
         prevtx_version: u32,
@@ -1954,60 +1955,56 @@ mod tests {
                 vec![
                     match coin {
                         pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient: "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH".into(),
+                            recipient: "12ZE w5Hc v1hT b6YU QJ69 y1V7 uhco Dz92 PH".into(),
                             amount: match format_unit {
                                 FormatUnit::Default => "1.00000000 BTC".into(),
                                 FormatUnit::Sat => "100000000 sat".into(),
                             },
                         },
                         pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient: "LLnCCHbSzfwWquEdaS5TF2Yt7uz5Qb1SZ1".into(),
+                            recipient: "LLnC CHbS zfwW quEd aS5T F2Yt 7uz5 Qb1S Z1".into(),
                             amount: "1.00000000 LTC".into(),
                         },
                         _ => panic!("unexpected coin"),
                     },
                     match coin {
                         pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient: "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ".into(),
+                            recipient: "34oV nh4g NviJ GMnN vgqu MeLA xvXJ uaRV MZ".into(),
                             amount: match format_unit {
                                 FormatUnit::Default => "12.34567890 BTC".into(),
                                 FormatUnit::Sat => "1234567890 sat".into(),
                             },
                         },
                         pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient: "MB1e6aUeL3Zj4s4H2ZqFBHaaHd7kvvzTco".into(),
+                            recipient: "MB1e 6aUe L3Zj 4s4H 2ZqF BHaa Hd7k vvzT co".into(),
                             amount: "12.34567890 LTC".into(),
                         },
                         _ => panic!("unexpected coin"),
                     },
                     match coin {
                         pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient: "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8".into(),
+                            recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),
                             amount: match format_unit {
                                 FormatUnit::Default => "0.00006000 BTC".into(),
                                 FormatUnit::Sat => "6000 sat".into(),
                             },
                         },
                         pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient: "ltc1qxvenxvenxvenxvenxvenxvenxvenxvenwcpknh".into(),
+                            recipient: "ltc1 qxve nxve nxve nxve nxve nxve nxve nxve nwcp knh".into(),
                             amount: "0.00006000 LTC".into(),
                         },
                         _ => panic!("unexpected coin"),
                     },
                     match coin {
                         pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient:
-                                "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
-                                    .into(),
+                            recipient: "bc1q g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zq d8sx w4".into(),
                             amount: match format_unit {
                                 FormatUnit::Default => "0.00007000 BTC".into(),
                                 FormatUnit::Sat => "7000 sat".into(),
                             },
                         },
                         pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient:
-                                "ltc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqwr7k5s"
-                                    .into(),
+                            recipient: "ltc1 qg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z qwr7 k5s".into(),
                             amount: "0.00007000 LTC".into(),
                         },
                         _ => panic!("unexpected coin"),
@@ -2528,7 +2525,9 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens[0],
             Screen::Recipient {
-                recipient: "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr".into(),
+                recipient:
+                    "bc1p 5cyx nuxm euwu vkwf em96 lqzs zd02 n6xd cjrs 20ca c6yq jjwu dpxq kedr cr"
+                        .into(),
                 amount: "1.00000000 BTC".into(),
             }
         );
@@ -2600,7 +2599,7 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens[0],
             Screen::Recipient {
-                recipient: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
+                recipient: "sp1q qgst e7k9 hx0q ftg6 qmwl kqtw uy6c ycya vzmz j85c 6qdf hjdp djtd gqju exzk 6mur w56s uy3e 0rd2 cgqv ycxt tddw svgx e2us fpxu mr70 xc9p kqwv".into(),
                 amount: "1.00000000 BTC".into(),
             }
         );
@@ -2621,8 +2620,7 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens[4],
             Screen::Recipient {
-                recipient: "This BitBox (same account): bc1qnu4x8dlrx6dety47gehf4uhk5tj3q7yhywgry6"
-                    .into(),
+                recipient: "This BitBox (same account): bc1q nu4x 8dlr x6de ty47 gehf 4uhk 5tj3 q7yh ywgr y6".into(),
                 amount: "0.00000100 BTC".into(),
             }
         );
@@ -2678,8 +2676,7 @@ mod tests {
         assert_eq!(
             mock_hal.ui.screens[4],
             Screen::Recipient {
-                recipient: "This BitBox (account #21): bc1qr9t2u35gzrtznzv6n99f2dj37j9msfffv78cv2"
-                    .into(),
+                recipient: "This BitBox (account #21): bc1q r9t2 u35g zrtz nzv6 n99f 2dj3 7j9m sfff v78c v2".into(),
                 amount: "0.00000100 BTC".into(),
             }
         );
@@ -2965,8 +2962,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
-                        .into(),
+                    recipient: "tb1q txyq ynfx wsk8 f5gu 8v5g 8e6h s3nj tglk ywhv yztk 6v8z nvx5 kdds mhuv e2".into(),
                     amount: "0.00090000 TBTC".into(),
                 },
                 Screen::Confirm {
@@ -3306,8 +3302,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
-                        .into(),
+                    recipient: "tb1q txyq ynfx wsk8 f5gu 8v5g 8e6h s3nj tglk ywhv yztk 6v8z nvx5 kdds mhuv e2".into(),
                     amount: "0.00090000 TBTC".into(),
                 },
                 Screen::Confirm {
@@ -3495,8 +3490,7 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "tb1qtxyqynfxwsk8f5gu8v5g8e6hs3njtglkywhvyztk6v8znvx5kddsmhuve2"
-                        .into(),
+                    recipient: "tb1q txyq ynfx wsk8 f5gu 8v5g 8e6h s3nj tglk ywhv yztk 6v8z nvx5 kdds mhuv e2".into(),
                     amount: "0.00090000 TBTC".into(),
                 },
                 Screen::Confirm {
@@ -3731,7 +3725,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Recipient {
-                    recipient: "12ZEw5Hcv1hTb6YUQJ69y1V7uhcoDz92PH".into(),
+                    recipient: "12ZE w5Hc v1hT b6YU QJ69 y1V7 uhco Dz92 PH".into(),
                     amount: "1.00000000 BTC".into(),
                 },
                 // Payment request
@@ -3755,12 +3749,11 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Recipient {
-                    recipient: "bc1qxvenxvenxvenxvenxvenxvenxvenxven2ymjt8".into(),
+                    recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),
                     amount: "0.00006000 BTC".into(),
                 },
                 Screen::Recipient {
-                    recipient: "bc1qg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zqd8sxw4"
-                        .into(),
+                    recipient: "bc1q g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zq d8sx w4".into(),
                     amount: "0.00007000 BTC".into(),
                 },
                 Screen::Confirm {

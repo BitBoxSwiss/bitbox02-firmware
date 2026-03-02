@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern crate alloc;
+use alloc::string::String;
 use alloc::vec::Vec;
 
 /// Parses a utf-8 string out of a null terminated buffer. Returns `Err(())` if there
@@ -56,6 +57,24 @@ pub fn str_to_cstr_vec_zeroizing(
         result[i] = *b as _;
     }
     Ok(result)
+}
+
+/// Formats an address-like string into blocks of 4 chars separated by spaces.
+pub fn format_address(input: &str) -> String {
+    const GROUP_SIZE: usize = 4;
+    const SEPARATOR: char = ' ';
+
+    if input.is_empty() {
+        return input.into();
+    }
+    let mut result = String::with_capacity(input.len() + input.len() / GROUP_SIZE);
+    for (index, ch) in input.chars().enumerate() {
+        if index > 0 && index % GROUP_SIZE == 0 {
+            result.push(SEPARATOR);
+        }
+        result.push(ch);
+    }
+    result
 }
 
 #[cfg(test)]
@@ -152,5 +171,14 @@ mod tests {
                 .into(),
         );
         assert_eq!(str_to_cstr_vec_zeroizing("te\0st"), Err(()));
+    }
+
+    #[test]
+    fn test_format_address() {
+        assert_eq!(format_address(""), "");
+        assert_eq!(format_address("abc"), "abc");
+        assert_eq!(format_address("abcd"), "abcd");
+        assert_eq!(format_address("abcde"), "abcd e");
+        assert_eq!(format_address("abcdefghijkl"), "abcd efgh ijkl");
     }
 }

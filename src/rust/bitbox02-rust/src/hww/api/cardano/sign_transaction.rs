@@ -239,8 +239,10 @@ async fn _process(
             },
             None => {
                 let formatted_value = format_value(params, output.value);
+                let displayed_address =
+                    super::address::format_display_address(&output.encoded_address);
                 hal.ui()
-                    .verify_recipient(&output.encoded_address, &formatted_value)
+                    .verify_recipient(&displayed_address, &formatted_value)
                     .await?;
                 total += output.value;
 
@@ -441,9 +443,10 @@ mod tests {
                 }]
             })
         );
-        const RECIPIENT1: &str = "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt";
-        const RECIPIENT2: &str = "Ae2tdPwUPEZFRbyhz3cpfC2CumGzNkFBN2L42rcUc2yjQpEkxDbkPodpMAi";
-        const RECIPIENT3: &str = "DdzFFzCqrhtC3C4UY8YFaEyDALJmFAwhx4Kggk3eae3BT9PhymMjzCVYhQE753BH1Rp3LXfVkVaD1FHT4joSBq7Y8rcXbbVWoxkqB7gy";
+        const RECIPIENT1: &str = "addr1 q9qf llpx g2vu 4lq6 rnpe l4pv pp5x nv3k vvgt xk6k 6wp4 ff89 xrhu 8jnu 3p33 vnct c9ek lee5 dtyk zyag 5pen c6dc makq sqqg pt";
+        const RECIPIENT2: &str =
+            "Ae2t dPwU PEZF Rbyh z3cp fC2C umGz NkFB N2L4 2rcU c2yj QpEk xDbk Podp MAi";
+        const RECIPIENT3: &str = "DdzF FzCq rhtC 3C4U Y8YF aEyD ALJm FAwh x4Kg gk3e ae3B T9Ph ymMj zCVY hQE7 53BH 1Rp3 LXfV kVaD 1FHT 4joS Bq7Y 8rcX bbVW oxkq B7gy";
         assert_eq!(
             mock_hal.ui.screens,
             vec![
@@ -949,7 +952,7 @@ mod tests {
                     longtouch: false
                 },
                 Screen::Recipient {
-                    recipient: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    recipient: "addr1 q9qf llpx g2vu 4lq6 rnpe l4pv pp5x nv3k vvgt xk6k 6wp4 ff89 xrhu 8jnu 3p33 vnct c9ek lee5 dtyk zyag 5pen c6dc makq sqqg pt".into(),
                     amount: "1 ADA".into()
                 },
                 Screen::TotalFee {
@@ -1149,7 +1152,7 @@ mod tests {
             mock_hal.ui.screens,
             vec![
                 Screen::Recipient {
-                    recipient: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    recipient: "addr1 q9qf llpx g2vu 4lq6 rnpe l4pv pp5x nv3k vvgt xk6k 6wp4 ff89 xrhu 8jnu 3p33 vnct c9ek lee5 dtyk zyag 5pen c6dc makq sqqg pt".into(),
                     amount: "1 ADA".into()
                 },
                 Screen::Confirm {

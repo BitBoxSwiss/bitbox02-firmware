@@ -172,9 +172,10 @@ async fn address_simple(
 ) -> Result<Response, Error> {
     let address = derive_address_simple(hal, coin, simple_type, keypath)?;
     if display {
+        let address_formatted = util::strings::format_address(&address);
         let confirm_params = ConfirmParams {
             title: params::get(coin).name,
-            body: &address,
+            body: &address_formatted,
             scrollable: true,
             ..Default::default()
         };
@@ -212,10 +213,11 @@ pub async fn address_multisig(
     )?
     .address(coin_params)?;
     if display {
+        let address_formatted = util::strings::format_address(&address);
         hal.ui()
             .confirm(&ConfirmParams {
                 title,
-                body: &address,
+                body: &address_formatted,
                 scrollable: true,
                 ..Default::default()
             })
@@ -252,10 +254,11 @@ async fn address_policy(
     let address =
         common::Payload::from_policy(coin_params, &parsed, keypath)?.address(coin_params)?;
     if display {
+        let address_formatted = util::strings::format_address(&address);
         hal.ui()
             .confirm(&ConfirmParams {
                 title,
-                body: &address,
+                body: &address_formatted,
                 scrollable: true,
                 ..Default::default()
             })
@@ -330,7 +333,6 @@ mod tests {
     use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
-
     #[test]
     pub fn test_xpub() {
         struct Test<'a> {
@@ -589,6 +591,7 @@ mod tests {
             keypath: &'a [u32],
             simple_type: SimpleType,
             expected_address: &'a str,
+            expected_displayed_address: &'a str,
             expected_display_title: &'a str,
         }
 
@@ -600,6 +603,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "3BaL6XecvLAidPToUDhXo1zxD99ZUrErpd",
+                expected_displayed_address: "3BaL 6Xec vLAi dPTo UDhX o1zx D99Z UrEr pd",
                 expected_display_title: "Bitcoin",
             },
             Test {
@@ -608,6 +612,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "3QRfCGEJVzvR1HN13kxB7xkuUtdEvG2orZ",
+                expected_displayed_address: "3QRf CGEJ VzvR 1HN1 3kxB 7xku UtdE vG2o rZ",
                 expected_display_title: "Bitcoin",
             },
             Test {
@@ -616,6 +621,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "39r7CFVo1wpb3mxQfkG6yYyxMAfqAmZMhA",
+                expected_displayed_address: "39r7 CFVo 1wpb 3mxQ fkG6 yYyx MAfq AmZM hA",
                 expected_display_title: "Bitcoin",
             },
             // BTC P2WPKH
@@ -625,6 +631,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "bc1qk5f9em9qc8yfpks8ngfg3h8h02n2e3yeqdyhpt",
+                expected_displayed_address: "bc1q k5f9 em9q c8yf pks8 ngfg 3h8h 02n2 e3ye qdyh pt",
                 expected_display_title: "Bitcoin",
             },
             Test {
@@ -633,6 +640,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "bc1qtn7feuj7juxkzf48zfxtngrcyqyns9f4ska7hg",
+                expected_displayed_address: "bc1q tn7f euj7 juxk zf48 zfxt ngrc yqyn s9f4 ska7 hg",
                 expected_display_title: "Bitcoin",
             },
             Test {
@@ -641,6 +649,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "bc1qarhxx6daqetewkjwz9p6y78a28ygxm2vndhdas",
+                expected_displayed_address: "bc1q arhx x6da qete wkjw z9p6 y78a 28yg xm2v ndhd as",
                 expected_display_title: "Bitcoin",
             },
             // BTC P2TR
@@ -651,6 +660,7 @@ mod tests {
                 keypath: &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2tr,
                 expected_address: "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr",
+                expected_displayed_address: "bc1p 5cyx nuxm euwu vkwf em96 lqzs zd02 n6xd cjrs 20ca c6yq jjwu dpxq kedr cr",
                 expected_display_title: "Bitcoin",
             },
             Test {
@@ -659,6 +669,7 @@ mod tests {
                 keypath: &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2tr,
                 expected_address: "bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh",
+                expected_displayed_address: "bc1p 4qhj n9zd vkux 4e44 uhx8 tc55 attv tyu3 58ku tcqk udyc celu 0was 9fqz wh",
                 expected_display_title: "Bitcoin",
             },
             Test {
@@ -667,6 +678,7 @@ mod tests {
                 keypath: &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 0],
                 simple_type: SimpleType::P2tr,
                 expected_address: "bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7",
+                expected_displayed_address: "bc1p 3qkh fews 2uk4 4qtv auqy r2tt dsw7 svhk l9nk m9s9 c3x4 ax5h 60wq wruh k7",
                 expected_display_title: "Bitcoin",
             },
             // TBTC P2WPKH-P2SH
@@ -676,6 +688,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "2N5Tjwx5Htk7gLbv7nWqXUgpg5K2Uf4TacQ",
+                expected_displayed_address: "2N5T jwx5 Htk7 gLbv 7nWq XUgp g5K2 Uf4T acQ",
                 expected_display_title: "BTC Testnet",
             },
             // TBTC P2WPKH
@@ -685,6 +698,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "tb1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvketqwdg",
+                expected_displayed_address: "tb1q nlyr q9ps hg0v 0lsu udjg ga4n vmjx hcvk etqw dg",
                 expected_display_title: "BTC Testnet",
             },
             // RBTC P2WPKH
@@ -694,6 +708,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "bcrt1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvkmzer6p",
+                expected_displayed_address: "bcrt 1qnl yrq9 pshg 0v0l suud jgga 4nvm jxhc vkmz er6p",
                 expected_display_title: "BTC Regtest",
             },
             // LTC P2WPKH-P2SH
@@ -703,6 +718,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "MMmYgSH7fbTPnfdi1vTejMJyY7rKY4j9qv",
+                expected_displayed_address: "MMmY gSH7 fbTP nfdi 1vTe jMJy Y7rK Y4j9 qv",
                 expected_display_title: "Litecoin",
             },
             Test {
@@ -711,6 +727,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "M7wA8gBLL4SBiwQ1muQeKcG6naYqWcaUHg",
+                expected_displayed_address: "M7wA 8gBL L4SB iwQ1 muQe KcG6 naYq WcaU Hg",
                 expected_display_title: "Litecoin",
             },
             Test {
@@ -719,6 +736,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 2 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "MPBnihMP2JYjPtBnLxGydqvaALBsc5ALTG",
+                expected_displayed_address: "MPBn ihMP 2JYj PtBn LxGy dqva ALBs c5AL TG",
                 expected_display_title: "Litecoin",
             },
             // LTC P2WPKH
@@ -728,6 +746,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "ltc1q7598y6mzud5fka043vs4vkx7zktvppxffsf7e3",
+                expected_displayed_address: "ltc1 q759 8y6m zud5 fka0 43vs 4vkx 7zkt vppx ffsf 7e3",
                 expected_display_title: "Litecoin",
             },
             Test {
@@ -736,6 +755,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 2 + HARDENED, 0 + HARDENED, 0, 1],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "ltc1qtgjfu2ltg4slmksv27awmh6h2pccvsth4mw2w9",
+                expected_displayed_address: "ltc1 qtgj fu2l tg4s lmks v27a wmh6 h2pc cvst h4mw 2w9",
                 expected_display_title: "Litecoin",
             },
             Test {
@@ -744,6 +764,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 2 + HARDENED, 1 + HARDENED, 1, 100],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "ltc1qwsz89auhpezjfllq9y9qegpfgdwpw5vesppsz0",
+                expected_displayed_address: "ltc1 qwsz 89au hpez jfll q9y9 qegp fgdw pw5v espp sz0",
                 expected_display_title: "Litecoin",
             },
             // TLTC P2WPKH-P2SH
@@ -753,6 +774,7 @@ mod tests {
                 keypath: &[49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkhP2sh,
                 expected_address: "2N5Tjwx5Htk7gLbv7nWqXUgpg5K2Uf4TacQ",
+                expected_displayed_address: "2N5T jwx5 Htk7 gLbv 7nWq XUgp g5K2 Uf4T acQ",
                 expected_display_title: "LTC Testnet",
             },
             // TLTC P2WPKH
@@ -762,6 +784,7 @@ mod tests {
                 keypath: &[84 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0],
                 simple_type: SimpleType::P2wpkh,
                 expected_address: "tltc1qnlyrq9pshg0v0lsuudjgga4nvmjxhcvkqrzsap",
+                expected_displayed_address: "tltc 1qnl yrq9 pshg 0v0l suud jgga 4nvm jxhc vkqr zsap",
                 expected_display_title: "LTC Testnet",
             },
         ] {
@@ -797,7 +820,7 @@ mod tests {
                 mock_hal.ui.screens,
                 vec![Screen::Confirm {
                     title: test.expected_display_title.into(),
-                    body: test.expected_address.into(),
+                    body: test.expected_displayed_address.into(),
                     longtouch: false,
                 },]
             );
@@ -856,6 +879,7 @@ mod tests {
             keypath: &'a [u32],
             script_type: MultisigScriptType,
             expected_address: &'a str,
+            expected_displayed_address: &'a str,
         }
         let tests = &[
             /* P2WSH */
@@ -878,6 +902,7 @@ mod tests {
                 ],
                 script_type: MultisigScriptType::P2wsh,
                 expected_address: "bc1q2fhgukymf0caaqrhfxrdju4wm94wwrch2ukntl5fuc0faz8zm49q0h6ss8",
+                expected_displayed_address: "bc1q 2fhg ukym f0ca aqrh fxrd ju4w m94w wrch 2ukn tl5f uc0f az8z m49q 0h6s s8",
             },
             Test {
                 coin: BtcCoin::Tbtc,
@@ -898,6 +923,7 @@ mod tests {
                 ],
                 script_type: MultisigScriptType::P2wsh,
                 expected_address: "tb1qw2scxk3zq0znr4ug9xkf3n7nfjsc8ldvemrm9dxjpl847zyu6afsfjjy28",
+                expected_displayed_address: "tb1q w2sc xk3z q0zn r4ug 9xkf 3n7n fjsc 8ldv emrm 9dxj pl84 7zyu 6afs fjjy 28",
             },
             Test {
                 coin: BtcCoin::Tbtc,
@@ -931,6 +957,7 @@ mod tests {
                 ],
                 script_type: MultisigScriptType::P2wsh,
                 expected_address: "tb1qndz49j0arp8g6jc8vcrgf9ugrsw96a0j5d7vqcun6jev6rlv47jsv99y5m",
+                expected_displayed_address: "tb1q ndz4 9j0a rp8g 6jc8 vcrg f9ug rsw9 6a0j 5d7v qcun 6jev 6rlv 47js v99y 5m",
             },
             // An arbitrary "non-standard" keypath
             Test {
@@ -945,6 +972,7 @@ mod tests {
                 keypath: &[45 + HARDENED, 1, 2],
                 script_type: MultisigScriptType::P2wsh,
                 expected_address: "bc1qtsvlhzltl05etjjeqh00urwttu6ep4xn3c0ccndz77unttut9h0qvrcs04",
+                expected_displayed_address: "bc1q tsvl hzlt l05e tjje qh00 urwt tu6e p4xn 3c0c cndz 77un ttut 9h0q vrcs 04",
             },
             /* P2WSH-P2SH */
             Test {
@@ -966,6 +994,7 @@ mod tests {
                 ],
                 script_type: MultisigScriptType::P2wshP2sh,
                 expected_address: "3BKdK5c2kcFrNmmJbMAeWuveaoYDB4BYvu",
+                expected_displayed_address: "3BKd K5c2 kcFr NmmJ bMAe Wuve aoYD B4BY vu",
             },
             /* P2WSH-P2SH Nunchuk keypath */
             Test {
@@ -980,6 +1009,7 @@ mod tests {
                 keypath: &[48 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1, 0],
                 script_type: MultisigScriptType::P2wshP2sh,
                 expected_address: "341hw7cuzpf2AtSuXupX5Pu3tkkXv24bvo",
+                expected_displayed_address: "341h w7cu zpf2 AtSu XupX 5Pu3 tkkX v24b vo",
             },
         ];
         for test in tests.iter() {
@@ -1034,7 +1064,7 @@ mod tests {
                     },
                     Screen::Confirm {
                         title: "Receive to".into(),
-                        body: test.expected_address.into(),
+                        body: test.expected_displayed_address.into(),
                         longtouch: false,
                     },
                 ]
@@ -1085,6 +1115,7 @@ mod tests {
             keys: &'a [pb::KeyOriginInfo],
             keypath: &'a [u32],
             expected_address: &'a str,
+            expected_displayed_address: &'a str,
         }
         let tests = &[
             Test {
@@ -1100,6 +1131,7 @@ mod tests {
                     0,
                 ],
                 expected_address: "bc1q9n0nxanmarawjpj2xz0echuhk4a2qga99xpn0nrpgfv2vv9279vsvrh6rj",
+                expected_displayed_address: "bc1q 9n0n xanm araw jpj2 xz0e chuh k4a2 qga9 9xpn 0nrp gfv2 vv92 79vs vrh6 rj",
             },
             Test {
                 coin: BtcCoin::Tbtc,
@@ -1114,6 +1146,7 @@ mod tests {
                     0,
                 ],
                 expected_address: "tb1qvq2793p7nyuxzqn5ts3kgqywxn9kj277skyvtz895gf7urfdxenqvq39sp",
+                expected_displayed_address: "tb1q vq27 93p7 nyux zqn5 ts3k gqyw xn9k j277 skyv tz89 5gf7 urfd xenq vq39 sp",
             },
             Test {
                 coin: BtcCoin::Tbtc,
@@ -1128,6 +1161,7 @@ mod tests {
                     0,
                 ],
                 expected_address: "tb1qeah5dqvya674w60ce6d3gk2xy7n8n0g4weztlywdd6zhu0csdv7s8yynr3",
+                expected_displayed_address: "tb1q eah5 dqvy a674 w60c e6d3 gk2x y7n8 n0g4 wezt lywd d6zh u0cs dv7s 8yyn r3",
             },
             Test {
                 coin: BtcCoin::Tbtc,
@@ -1142,6 +1176,7 @@ mod tests {
                     0,
                 ],
                 expected_address: "tb1qeyetg3vgjvrgax0c5z70yuev3egdtxvv870jvzn235agtqe0l3gqytjrmc",
+                expected_displayed_address: "tb1q eyet g3vg jvrg ax0c 5z70 yuev 3egd txvv 870j vzn2 35ag tqe0 l3gq ytjr mc",
             },
             Test {
                 coin: BtcCoin::Tbtc,
@@ -1156,6 +1191,7 @@ mod tests {
                     5,
                 ],
                 expected_address: "tb1qkfpeqx87pwjruet9c2xt88n6k47mz9q9m5jt77906780qrv4sl4sr5m72q",
+                expected_displayed_address: "tb1q kfpe qx87 pwjr uet9 c2xt 88n6 k47m z9q9 m5jt 7790 6780 qrv4 sl4s r5m7 2q",
             },
         ];
         for test in tests {

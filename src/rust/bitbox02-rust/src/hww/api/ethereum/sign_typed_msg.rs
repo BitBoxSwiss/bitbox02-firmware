@@ -237,10 +237,8 @@ fn encode_value(typ: &MemberType, value: Vec<u8>) -> Result<(Vec<u8>, String), E
             } else {
                 return Err(Error::InvalidInput);
             };
-            (
-                encoded,
-                String::from_utf8(value).or(Err(Error::InvalidInput))?,
-            )
+            let value_str = String::from_utf8(value).or(Err(Error::InvalidInput))?;
+            (encoded, super::address::format_display_address(&value_str))
         }
         DataType::String => {
             if !util::ascii::is_printable_ascii(&value, util::ascii::Charset::AllNewline) {
@@ -1009,7 +1007,8 @@ mod tests {
                 },
                 Screen::Confirm {
                     title: "Domain (4/4)".into(),
-                    body: "verifyingContract: 0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC".into(),
+                    body: "verifyingContract: 0x CcCC cccc CCCC cCCC CCCc CcCc cCcC CCcC cccc cccC"
+                        .into(),
                     longtouch: false,
                 },
             ]
@@ -1106,13 +1105,13 @@ mod tests {
             ("Domain (3/4)", "chainId: 1"),
             (
                 "Domain (4/4)",
-                "verifyingContract: 0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+                "verifyingContract: 0x CcCC cccc CCCC cCCC CCCc CcCc cCcC CCcC cccc cccC",
             ),
             ("Message (1/23)", "str: str"),
             ("Message (2/23)", "emptyArray: (empty list)"),
             (
                 "Message (3/23)",
-                "name_address: 0xa21A16EC22a940990922220E4ab5bF4C2310F556",
+                "name_address: 0x a21A 16EC 22a9 4099 0922 220E 4ab5 bF4C 2310 F556",
             ),
             ("Message (4/23)", "name_string: list with 6 elements"),
             ("Message (4/23)", "name_string[1/6]: "),

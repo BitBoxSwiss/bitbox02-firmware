@@ -4,8 +4,8 @@ use alloc::string::String;
 
 use bitbox_hal::Ui;
 use bitbox_hal::ui::{
-    CanCancel, ConfirmParams, EnterStringParams, Font, Progress as HalProgress, TrinaryChoice,
-    UserAbort,
+    CanCancel, ConfirmParams, Empty as HalEmpty, EnterStringParams, Font, Progress as HalProgress,
+    TrinaryChoice, UserAbort,
 };
 
 pub struct BitBox02Ui;
@@ -19,6 +19,12 @@ impl HalProgress for BitBox02Progress {
         crate::ui::progress_set(&mut self.component, progress);
     }
 }
+
+pub struct BitBox02Empty {
+    _component: crate::ui::Component,
+}
+
+impl HalEmpty for BitBox02Empty {}
 
 fn to_bitbox02_font(font: Font) -> crate::ui::Font {
     match font {
@@ -67,11 +73,20 @@ fn to_hal_trinary_choice(choice: crate::ui::TrinaryChoice) -> TrinaryChoice {
 
 impl Ui for BitBox02Ui {
     type Progress = BitBox02Progress;
+    type Empty = BitBox02Empty;
 
     fn progress_create(&mut self, title: &str) -> Self::Progress {
         let mut component = crate::ui::progress_create(title);
         component.screen_stack_push();
         BitBox02Progress { component }
+    }
+
+    fn empty_create(&mut self) -> Self::Empty {
+        let mut component = crate::ui::empty_create();
+        component.screen_stack_push();
+        BitBox02Empty {
+            _component: component,
+        }
     }
 
     #[inline(always)]

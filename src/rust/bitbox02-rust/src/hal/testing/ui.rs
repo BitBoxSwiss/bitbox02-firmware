@@ -2,7 +2,7 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::{
-    CanCancel, ConfirmParams, EnterStringParams, Progress, TrinaryChoice, UserAbort,
+    CanCancel, ConfirmParams, Empty, EnterStringParams, Progress, TrinaryChoice, UserAbort,
 };
 
 use alloc::boxed::Box;
@@ -63,11 +63,20 @@ impl Progress for NoopProgress {
     fn set(&mut self, _progress: f32) {}
 }
 
+pub struct NoopEmpty;
+
+impl Empty for NoopEmpty {}
+
 impl Ui for TestingUi<'_> {
     type Progress = NoopProgress;
+    type Empty = NoopEmpty;
 
     fn progress_create(&mut self, _title: &str) -> Self::Progress {
         NoopProgress
+    }
+
+    fn empty_create(&mut self) -> Self::Empty {
+        NoopEmpty
     }
 
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {

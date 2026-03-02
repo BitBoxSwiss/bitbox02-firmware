@@ -835,11 +835,7 @@ async fn _process(
             // Stop rendering inputs progress update.
             drop(progress_component.take());
 
-            empty_component = {
-                let mut c = bitbox02::ui::empty_create();
-                c.screen_stack_push();
-                Some(c)
-            };
+            empty_component = Some(hal.ui().empty_create());
         }
 
         let output_type = pb::BtcOutputType::try_from(tx_output.r#type)?;

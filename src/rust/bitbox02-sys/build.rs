@@ -295,6 +295,17 @@ const BITBOX02_SOURCES: &[&str] = &[
     "external/asf4-drivers/hal/utils/src/utils_ringbuffer.c",
 ];
 
+const FAKEHARDWARE_SOURCES: &[&str] = &[
+    "test/hardware-fakes/src/fake_component.c",
+    "test/hardware-fakes/src/fake_diskio.c",
+    "test/hardware-fakes/src/fake_memory.c",
+    "test/hardware-fakes/src/fake_qtouch.c",
+    "test/hardware-fakes/src/fake_screen.c",
+    "test/hardware-fakes/src/fake_securechip.c",
+    "test/hardware-fakes/src/fake_smarteeprom.c",
+    "test/hardware-fakes/src/fake_spi_mem.c",
+];
+
 pub fn main() -> Result<(), &'static str> {
     // We could theoretically list every header file that we end up depending on, but that is hard
     // to maintain. So instead we just listen to changes on "wrapper.h" which is good enough.
@@ -435,10 +446,6 @@ pub fn main() -> Result<(), &'static str> {
         return Err("Bindgen failed");
     }
 
-    // For the c unit tests and c simulator we build a library that mocks/fakes real user behavior
-    // and logs to stdout
-    // For the rust simulator (with gui) we build a library that behaves more like the real
-    // hardware since we have graphical inputs and outputs.
     let excludes = if let Ok(libtype) = env::var("LIB_TYPE") {
         match libtype.as_str() {
             "c-unit-tests" => vec!["src/screen.c"],
@@ -448,28 +455,20 @@ pub fn main() -> Result<(), &'static str> {
         vec![]
     };
 
-    let source_includes = &[
-        "test/hardware-fakes/src/fake_component.c",
-        "test/hardware-fakes/src/fake_diskio.c",
-        "test/hardware-fakes/src/fake_memory.c",
-        "test/hardware-fakes/src/fake_qtouch.c",
-        "test/hardware-fakes/src/fake_screen.c",
-        "test/hardware-fakes/src/fake_securechip.c",
-        "test/hardware-fakes/src/fake_smarteeprom.c",
-        "test/hardware-fakes/src/fake_spi_mem.c",
-    ];
-
-    // Build the c deps for unit tests
+    // Build native C deps for host builds. Keep bitbox C and hardware fakes in one archive so
+    // static archive ordering cannot drop fake providers before bitbox02 consumers.
     if !cross_compiling {
         let mdir = env::var("CARGO_MANIFEST_DIR").unwrap();
         let mut builder = cc::Build::new();
 
-        let files: Vec<String> = BITBOX02_SOURCES
+        let bitbox02_files = BITBOX02_SOURCES
             .iter()
-            .chain(source_includes.iter())
             .filter(|x| !excludes.contains(x))
-            .map(|s| [&mdir, "../../..", s].join("/"))
-            .collect();
+            .map(|s| [&mdir, "../../..", s].join("/"));
+        let fakehardware_files = FAKEHARDWARE_SOURCES
+            .iter()
+            .map(|s| [&mdir, "../../..", s].join("/"));
+        let files: Vec<String> = bitbox02_files.chain(fakehardware_files).collect();
 
         builder.files(&files);
         for definition in &definitions {

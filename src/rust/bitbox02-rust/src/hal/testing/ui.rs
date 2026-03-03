@@ -149,6 +149,8 @@ impl Ui for TestingUi<'_> {
 
     fn switch_to_logo(&mut self) {}
 
+    fn reset(&mut self) {}
+
     async fn enter_string(
         &mut self,
         params: &EnterStringParams<'_>,

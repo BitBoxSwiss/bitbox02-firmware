@@ -92,6 +92,15 @@ pub trait Ui {
     /// [`crate::system::System::startup`]) to the BitBox logo.
     fn switch_to_logo(&mut self);
 
+    /// Reset the UI screen stack to an empty state.
+    ///
+    /// This is be called when starting a fresh high-level session (when starting a new noise
+    /// handshake) so stale screens from an interrupted previous session do not remain visible.
+    ///
+    /// Implementations should clear all currently stacked UI components and leave the UI in its
+    /// default waiting state.
+    fn reset(&mut self);
+
     fn progress_create(&mut self, title: &str) -> Self::Progress;
 
     fn empty_create(&mut self) -> Self::Empty;

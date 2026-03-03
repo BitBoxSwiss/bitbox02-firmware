@@ -12,6 +12,10 @@ mod pb_backup {
     include!("./shiftcrypto.bitbox02.backups.rs");
 }
 
+// Force link `bitbox-framed-serial-olink` for tests
+#[cfg(test)]
+extern crate bitbox_framed_serial_link;
+
 pub mod async_usb;
 pub mod attestation;
 pub mod backup;

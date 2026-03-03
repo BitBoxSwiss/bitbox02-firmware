@@ -10,6 +10,8 @@ license = "Apache-2.0"
 
 [dependencies]
 util = {path = "../util"}
+bitbox-framed-serial-link = {path = "../bitbox-framed-serial-link"}
+bitbox-bytequeue = {path = "../bitbox-bytequeue" }
 
 [build-dependencies]
 cc = {version="1.2", features=["parallel"]}

@@ -177,6 +177,7 @@ dependencies = [
  "bitbox-aes",
  "bitbox-bytequeue",
  "bitbox-executor",
+ "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox-secp256k1",
  "bitbox02",
@@ -235,6 +236,8 @@ dependencies = [
 name = "bitbox02-sys"
 version = "0.1.0"
 dependencies = [
+ "bitbox-bytequeue",
+ "bitbox-framed-serial-link",
  "cc",
  "util",
 ]

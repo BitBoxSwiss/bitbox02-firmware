@@ -41,6 +41,7 @@ crc = { workspace = true, optional = true }
 ed25519-dalek = { version = "2.1.1", default-features = false, features = ["hazmat", "digest"], optional = true }
 hmac = { workspace = true }
 fatfs-sys = { path = "../fatfs-sys"}
+bitbox-framed-serial-link = {path = "../bitbox-framed-serial-link"}
 
 miniscript = { version = "13.0.0", default-features = false, features = [], optional = true }
 bitcoin = { workspace = true }

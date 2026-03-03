@@ -441,16 +441,21 @@ pub fn main() -> Result<(), &'static str> {
         vec![]
     };
 
-    let source_includes = &[
+    let mut hardware_fake_sources = vec![
         "test/hardware-fakes/src/fake_component.c",
         "test/hardware-fakes/src/fake_diskio.c",
         "test/hardware-fakes/src/fake_memory.c",
         "test/hardware-fakes/src/fake_qtouch.c",
-        "test/hardware-fakes/src/fake_screen.c",
         "test/hardware-fakes/src/fake_securechip.c",
         "test/hardware-fakes/src/fake_smarteeprom.c",
         "test/hardware-fakes/src/fake_spi_mem.c",
     ];
+
+    if let Ok(libtype) = env::var("LIB_TYPE")
+        && libtype.as_str() == "c-unit-tests"
+    {
+        hardware_fake_sources.push("test/hardware-fakes/src/fake_screen.c")
+    }
 
     // Build the c deps for unit tests
     if !cross_compiling {
@@ -459,7 +464,7 @@ pub fn main() -> Result<(), &'static str> {
 
         let files: Vec<String> = BITBOX02_SOURCES
             .iter()
-            .chain(source_includes.iter())
+            .chain(hardware_fake_sources.iter())
             .filter(|x| !excludes.contains(x))
             .map(|s| [&mdir, "../../..", s].join("/"))
             .collect();
@@ -469,6 +474,7 @@ pub fn main() -> Result<(), &'static str> {
             builder.flag(definition);
         }
         builder.includes(&includes);
+        builder.link_lib_modifier("+whole-archive");
 
         builder.compile("bitbox02");
 

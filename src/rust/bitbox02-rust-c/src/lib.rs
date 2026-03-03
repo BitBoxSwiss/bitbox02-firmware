@@ -7,7 +7,8 @@
 extern crate std;
 
 #[macro_use]
-mod alloc;
+mod c_alloc;
+extern crate alloc;
 
 #[cfg(feature = "firmware")]
 pub mod async_usb;
@@ -118,7 +119,14 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     #[cfg(feature = "firmware")]
     ::util::log::log!("{}", info);
     #[cfg(feature = "firmware")]
-    bitbox02_rust::print_screen!(0, "Error: {}", info);
+    {
+        use bitbox_hal::{Hal, Ui};
+
+        let mut hal = crate::HalImpl::new();
+        let msg = alloc::format!("Error: {}", info);
+        hal.ui()
+            .print_screen(core::time::Duration::from_millis(0), &msg);
+    }
     cortex_m::asm::bkpt();
     loop {}
 }

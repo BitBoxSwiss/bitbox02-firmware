@@ -28,7 +28,7 @@ include = ["bitbox02-rust", "util", "bitbox-aes", "bitbox-framed-serial-link", "
 extra_bindings = ["bitbox02-rust", "util", "bitbox-aes", "bitbox-framed-serial-link", "bitbox-bytequeue"]
 
 [export]
-# malloc, free declared in bitbox02-rust-c/src/alloc.rs, but does not need to be exported, as it
+# malloc, free declared in bitbox02-rust-c/src/c_alloc.rs, but does not need to be exported, as it
 # already exists in stdlib.h.
 exclude = [
   "malloc",

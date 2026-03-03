@@ -156,34 +156,37 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
         }
     }
 
-    let crate::hal::HalSubsystems {
-        ui,
-        random,
-        securechip,
-        memory,
-        ..
-    } = hal.as_mut();
-    let mut keystore_hal = crate::keystore::KeystoreHalImpl::new(memory, random, securechip);
+    let result = {
+        let crate::hal::HalSubsystems {
+            ui,
+            random,
+            securechip,
+            memory,
+            ..
+        } = hal.as_mut();
+        let mut keystore_hal = crate::keystore::KeystoreHalImpl::new(memory, random, securechip);
 
-    let ((), result) = futures_lite::future::zip(
-        ui.unlock_animation(),
-        crate::keystore::unlock_bip39(
-            &mut keystore_hal,
-            seed,
-            &mnemonic_passphrase,
-            // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
-            // simulator.
-            #[cfg(any(feature = "c-unit-testing", feature = "simulator-graphical"))]
-            async || {},
-            // we yield every time to keep the processing time per iteration to a minimum.
-            #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
-            futures_lite::future::yield_now,
-        ),
-    )
-    .await;
+        let ((), result) = futures_lite::future::zip(
+            ui.unlock_animation(),
+            crate::keystore::unlock_bip39(
+                &mut keystore_hal,
+                seed,
+                &mnemonic_passphrase,
+                // for the simulator, we don't yield at all, otherwise unlock becomes very slow in the
+                // simulator.
+                #[cfg(any(feature = "c-unit-testing", feature = "simulator-graphical"))]
+                async || {},
+                // we yield every time to keep the processing time per iteration to a minimum.
+                #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
+                futures_lite::future::yield_now,
+            ),
+        )
+        .await;
+        result
+    };
 
     if result.is_err() {
-        abort("bip39 unlock failed");
+        abort(hal, "bip39 unlock failed");
     }
 }
 

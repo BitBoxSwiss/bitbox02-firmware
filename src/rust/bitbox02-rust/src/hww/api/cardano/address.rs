@@ -305,7 +305,7 @@ pub fn pubkey_hash_at_keypath(
     hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
 ) -> Result<[u8; ADDRESS_HASH_SIZE], ()> {
-    let xpub = crate::keystore::ed25519::get_xpub(hal, keypath)?;
+    let xpub = crate::keystore::ed25519::get_xpub_twice(hal, keypath)?;
     let pubkey_bytes = xpub.pubkey_bytes();
     let mut hasher = Blake2bVar::new(ADDRESS_HASH_SIZE).unwrap();
     hasher.update(pubkey_bytes);

@@ -62,7 +62,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "confirm_transaction_fee_create",
     "delay_cancel",
     "delay_init_ms",
-    "delay_is_elapsed",
     "delay_ms",
     "delay_us",
     "da14531_handler",

@@ -65,16 +65,6 @@ void delay_init_ms(delay_t* self, uint32_t ms, delay_callback_t cb, void* user_d
     self->id = i;
 }
 
-bool delay_is_elapsed(const delay_t* self)
-{
-    ASSERT(self->id < COUNT_OF(_tasks));
-    if (_tasks[self->id].done) {
-        memset(&_tasks[self->id], 0, sizeof(struct task));
-        return true;
-    }
-    return false;
-}
-
 void delay_cancel(const delay_t* self)
 {
     ASSERT(self->id < COUNT_OF(_tasks));

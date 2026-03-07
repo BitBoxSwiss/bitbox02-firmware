@@ -48,7 +48,15 @@ pub async fn delay_for(duration: Duration) {
             shared_state_ptr,
         )
     }
-
+    struct DelayGuard<'a>(&'a bitbox02_sys::delay_t);
+    impl Drop for DelayGuard<'_> {
+        fn drop(&mut self) {
+            unsafe {
+                bitbox02_sys::delay_cancel(self.0 as *const _);
+            }
+        }
+    }
+    let _delay_guard = DelayGuard(&bitbox02_delay);
     core::future::poll_fn({
         let shared_state = &shared_state;
         move |cx| {

@@ -62,11 +62,16 @@ void da14531_set_name(const char* name, struct RustByteQueue* uart_out)
 {
     size_t name_len = strlen(name);
     uint8_t payload[64] = {0};
+    size_t payload_name_len = MIN(name_len, sizeof(payload) - 1);
     payload[0] = CTRL_CMD_DEVICE_NAME;
-    memcpy(&payload[1], name, MIN(name_len, sizeof(payload) - 1));
+    memcpy(&payload[1], name, payload_name_len);
     uint8_t tmp[12 + sizeof(payload) * 2];
     uint16_t tmp_len = da14531_protocol_format(
-        &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &payload[0], 1 + name_len);
+        &tmp[0],
+        sizeof(tmp),
+        DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA,
+        &payload[0],
+        1 + payload_name_len);
     ASSERT(tmp_len <= sizeof(tmp));
     for (int i = 0; i < tmp_len; i++) {
         rust_bytequeue_put(uart_out, tmp[i]);

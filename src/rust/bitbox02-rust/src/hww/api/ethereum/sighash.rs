@@ -19,7 +19,7 @@ pub trait DataProducer {
     /// Returns the length of the data.
     fn len(&self) -> u32;
     /// Returns the first byte of the data.
-    fn first_byte(&self) -> u8;
+    fn first_byte<'a>(&'a mut self) -> Pin<Box<dyn Future<Output = Result<u8, Error>> + 'a>>;
     /// Produces a chunk of the data. Returns `Ok(Some(data))` if data was available,
     /// `Ok(None)` when there are no more chunks, or `Err` on failure.
     fn next<'a>(&'a mut self)
@@ -63,13 +63,40 @@ impl DataProducer for ChunkingProducer<'_> {
         }
     }
 
-    fn first_byte(&self) -> u8 {
-        match self {
-            Self::Inline { data, .. } => data[0],
-            Self::Host {
-                first_byte_cached, ..
-            } => first_byte_cached.unwrap(),
-        }
+    fn first_byte<'a>(&'a mut self) -> Pin<Box<dyn Future<Output = Result<u8, Error>> + 'a>> {
+        Box::pin(async move {
+            match self {
+                Self::Inline { data, .. } => Ok(data[0]),
+                Self::Host {
+                    first_byte_cached: Some(b),
+                    ..
+                } => Ok(*b),
+                Self::Host {
+                    first_byte_cached, ..
+                } => {
+                    let response =
+                        super::next_request(super::pb::eth_response::Response::DataRequestChunk(
+                            super::pb::EthSignDataRequestChunkResponse {
+                                offset: 0,
+                                length: 1,
+                            },
+                        ))
+                        .await?;
+                    match response {
+                        super::pb::eth_request::Request::DataResponseChunk(
+                            super::pb::EthSignDataResponseChunkRequest { chunk },
+                        ) => {
+                            if chunk.len() != 1 {
+                                return Err(Error::InvalidInput);
+                            }
+                            *first_byte_cached = Some(chunk[0]);
+                            Ok(chunk[0])
+                        }
+                        _ => Err(Error::InvalidInput),
+                    }
+                }
+            }
+        })
     }
 
     fn next<'a>(
@@ -88,12 +115,25 @@ impl DataProducer for ChunkingProducer<'_> {
                 Self::Host {
                     total_length,
                     offset,
-                    first_byte_cached,
+                    ..
+                } if *offset >= *total_length => Ok(None),
+                Self::Host {
+                    total_length: 1,
+                    offset,
+                    first_byte_cached: Some(byte),
+                } if *offset == 0 => {
+                    *offset += 1;
+                    Ok(Some(alloc::vec![*byte]))
+                }
+                Self::Host {
+                    first_byte_cached: Some(_),
+                    ..
+                } => Err(Error::InvalidInput),
+                Self::Host {
+                    total_length,
+                    offset,
+                    first_byte_cached: None,
                 } => {
-                    if *offset >= *total_length {
-                        return Ok(None);
-                    }
-
                     const CHUNK_SIZE: u32 = 4096;
                     let remaining = *total_length - *offset;
                     let chunk_length = core::cmp::min(CHUNK_SIZE, remaining);
@@ -111,19 +151,13 @@ impl DataProducer for ChunkingProducer<'_> {
                         super::pb::eth_request::Request::DataResponseChunk(
                             super::pb::EthSignDataResponseChunkRequest { chunk },
                         ) => {
-                            // Error: chunk size mismatch
                             if chunk.len() as u32 != chunk_length {
                                 return Err(Error::InvalidInput);
-                            }
-
-                            if *offset == 0 && !chunk.is_empty() {
-                                *first_byte_cached = Some(chunk[0]);
                             }
 
                             *offset += chunk.len() as u32;
                             Ok(Some(chunk))
                         }
-                        // Error: wrong response type
                         _ => Err(Error::InvalidInput),
                     }
                 }
@@ -217,7 +251,7 @@ async fn hash_producer<W: Write>(
 ) -> Result<(), Error> {
     // hash header
     let len = producer.len();
-    if len != 1 || producer.first_byte() > 0x7f {
+    if len != 1 || producer.first_byte().await? > 0x7f {
         hash_header(writer, 0x80, 0xb7, len as _);
     }
     writer.write_producer(producer).await
@@ -506,7 +540,7 @@ pub mod tests {
     fn test_chunking_producer_inline_single_byte() {
         let mut producer = ChunkingProducer::from_data(&[0x42]);
         assert_eq!(producer.len(), 1);
-        assert_eq!(producer.first_byte(), 0x42);
+        assert_eq!(block_on(producer.first_byte()).unwrap(), 0x42);
 
         let chunk = block_on(producer.next());
         assert_eq!(chunk, Ok(Some(vec![0x42])));
@@ -520,7 +554,7 @@ pub mod tests {
         let data = vec![0xAB; 4096];
         let mut producer = ChunkingProducer::from_data(&data);
         assert_eq!(producer.len(), 4096);
-        assert_eq!(producer.first_byte(), 0xAB);
+        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xAB);
 
         let chunk = block_on(producer.next());
         assert_eq!(chunk, Ok(Some(data.clone())));
@@ -534,7 +568,7 @@ pub mod tests {
         let data = vec![0xCD; 10000];
         let mut producer = ChunkingProducer::from_data(&data);
         assert_eq!(producer.len(), 10000);
-        assert_eq!(producer.first_byte(), 0xCD);
+        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xCD);
 
         let chunk = block_on(producer.next());
         assert_eq!(chunk, Ok(Some(data)));
@@ -558,7 +592,7 @@ pub mod tests {
 
         let chunk = block_on(producer.next()).unwrap();
         assert_eq!(chunk, Some(data));
-        assert_eq!(producer.first_byte(), 0xAB);
+        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xAB);
 
         let chunk2 = block_on(producer.next()).unwrap();
         assert_eq!(chunk2, None);
@@ -576,7 +610,6 @@ pub mod tests {
 
         let chunk1 = block_on(producer.next()).unwrap().unwrap();
         assert_eq!(chunk1.len(), 4096);
-        assert_eq!(producer.first_byte(), 0xCD);
 
         let chunk2 = block_on(producer.next()).unwrap().unwrap();
         assert_eq!(chunk2.len(), 4096);
@@ -586,6 +619,25 @@ pub mod tests {
 
         let chunk4 = block_on(producer.next()).unwrap();
         assert_eq!(chunk4, None);
+
+        clear_chunk_responder();
+    }
+
+    #[test]
+    fn test_chunking_producer_first_byte_before_next() {
+        let data = vec![0xEF];
+        setup_chunk_responder(data);
+
+        let mut producer = ChunkingProducer::from_host(1);
+        assert_eq!(producer.len(), 1);
+
+        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xEF);
+
+        let chunk = block_on(producer.next()).unwrap();
+        assert_eq!(chunk, Some(vec![0xEF]));
+
+        let chunk2 = block_on(producer.next()).unwrap();
+        assert_eq!(chunk2, None);
 
         clear_chunk_responder();
     }

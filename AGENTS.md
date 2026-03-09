@@ -54,6 +54,11 @@ security-sensitive areas.
 - In Rust unit tests, if testing a function foo, name the test `test_foo` (or `test_foo_xyz` if it needs qualifiers).
 - in Rust unit tests, prefer .as_slice() instead of `&*` for wrapped/zeroized Vec<u8>.
 
+## Review Guidelines
+
+- when reviewing a removed function call, check that the removed behavior was not required and was not dropped by accident during a refactor.
+- when reviewing a removed function call, check if the callee became unused and should also be removed.
+
 ## Commit & Pull Request Guidelines
 Write commits with a ≤50 character subject, blank line, and explanatory body per `CONTRIBUTING.md`;
 reference issues via `refs #1234` or `fixes #1234`. Keep patches atomic—avoid mixing formatting and

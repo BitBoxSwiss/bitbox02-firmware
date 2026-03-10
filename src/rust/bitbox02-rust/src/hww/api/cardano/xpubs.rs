@@ -20,7 +20,7 @@ pub fn process(
     for pb::Keypath { keypath } in &request.keypaths {
         validate_account_shelley(keypath)?;
 
-        let xpub = crate::keystore::ed25519::get_xpub(hal, keypath)?;
+        let xpub = crate::keystore::ed25519::get_xpub_twice(hal, keypath)?;
         let mut xpub_bytes = Vec::with_capacity(64);
         xpub_bytes.extend_from_slice(xpub.pubkey_bytes());
         xpub_bytes.extend_from_slice(xpub.chain_code());
@@ -34,6 +34,7 @@ mod tests {
     use super::*;
 
     use crate::keystore::testing::mock_unlocked;
+    use hex_lit::hex;
     use util::bip32::HARDENED;
 
     #[test]
@@ -77,18 +78,14 @@ mod tests {
             ),
             Ok(Response::Xpubs(pb::CardanoXpubsResponse {
                 xpubs: vec![
-                    vec![
-                        135, 93, 21, 165, 177, 234, 235, 114, 75, 217, 61, 109, 54, 203, 75, 97,
-                        188, 69, 219, 186, 120, 219, 156, 176, 139, 147, 231, 40, 146, 89, 211,
-                        216, 174, 223, 100, 1, 197, 31, 45, 152, 27, 1, 127, 215, 4, 53, 226, 217,
-                        223, 160, 215, 78, 124, 206, 75, 146, 6, 29, 251, 8, 139, 95, 8, 206
-                    ],
-                    vec![
-                        205, 217, 152, 187, 63, 149, 35, 26, 115, 72, 234, 223, 192, 248, 151, 77,
-                        20, 221, 211, 158, 71, 189, 60, 40, 26, 217, 150, 150, 122, 49, 129, 126,
-                        93, 199, 240, 91, 226, 212, 218, 106, 29, 25, 36, 178, 129, 146, 0, 184,
-                        113, 4, 22, 225, 46, 250, 1, 192, 77, 21, 220, 167, 234, 215, 191, 233
-                    ]
+                    hex!(
+                        "875d15a5b1eaeb724bd93d6d36cb4b61bc45dbba78db9cb08b93e7289259d3d8aedf6401c51f2d981b017fd70435e2d9dfa0d74e7cce4b92061dfb088b5f08ce"
+                    )
+                    .to_vec(),
+                    hex!(
+                        "cdd998bb3f95231a7348eadfc0f8974d14ddd39e47bd3c281ad996967a31817e5dc7f05be2d4da6a1d1924b2819200b8710416e12efa01c04d15dca7ead7bfe9"
+                    )
+                    .to_vec(),
                 ],
             })),
         );

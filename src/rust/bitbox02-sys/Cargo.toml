@@ -10,6 +10,7 @@ license = "Apache-2.0"
 
 [dependencies]
 util = {path = "../util"}
+fatfs-sys = { path = "../fatfs-sys" }
 
 [build-dependencies]
 cc = {version="1.2", features=["parallel"]}

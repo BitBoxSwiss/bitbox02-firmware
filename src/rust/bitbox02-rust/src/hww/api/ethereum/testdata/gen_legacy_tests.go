@@ -58,6 +58,9 @@ func randbytes(n int) []byte {
 }
 
 func generateDataSize(i int) int {
+	if i == 0 || i == 1 {
+		return 1
+	}
 	// 80% small (0-1024 bytes), 20% large (8KB, 12KB, 15KB, 60KB)
 	if i%5 == 0 {
 		largeSizes := []int{8 * 1024, 12 * 1024, 15 * 1024, 60 * 1024}
@@ -79,6 +82,12 @@ func main() {
 		gasLimit := rand.Uint64()
 		gasPrice := new(big.Int).SetBytes(randbytes(rand.Intn(16) + 1))
 		data := randbytes(generateDataSize(i))
+		if i == 0 {
+			data[0] = 0x42 // <= 0x7f: no RLP header for single byte
+		}
+		if i == 1 {
+			data[0] = 0x81 // > 0x7f: needs RLP length prefix
+		}
 
 		net := nets[rand.Intn(len(nets))]
 

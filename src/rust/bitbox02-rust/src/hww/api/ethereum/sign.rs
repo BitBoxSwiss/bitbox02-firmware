@@ -1637,6 +1637,40 @@ mod tests {
     }
 
     #[test]
+    pub fn test_streaming_1_byte_legacy() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = vec![0x42];
+
+        setup_chunk_responder(test_data);
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(
+            &mut mock_hal,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("01").to_vec(),
+                gas_price: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
+                value: b"".to_vec(),
+                data: vec![],
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 1,
+            }),
+        ));
+        clear_chunk_responder();
+        match result {
+            Ok(Response::Sign(ref sig)) => {
+                assert_eq!(sig.signature.len(), 65);
+            }
+            other => panic!("expected Ok(Sign), got {:?}", other),
+        }
+    }
+
+    #[test]
     pub fn test_streaming_large_data_eip1559() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..12000u32).map(|i| (i % 256) as u8).collect();

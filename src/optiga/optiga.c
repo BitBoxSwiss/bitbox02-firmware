@@ -785,7 +785,10 @@ static int _configure_object_counter(void)
     }
     util_log("_configure_object_counter: setting up");
 
-    _reset_counter(oid, MONOTONIC_COUNTER_MAX_USE);
+    res = _reset_counter(oid, MONOTONIC_COUNTER_MAX_USE);
+    if (res != OPTIGA_LIB_SUCCESS) {
+        return res;
+    }
 
     return optiga_ops_util_write_metadata_sync(
         _util, oid, _counter_metadata, sizeof(_counter_metadata));

@@ -313,6 +313,8 @@ jobs:
     needs: [build]
     runs-on: ubuntu-22.04
     if: github.event_name == 'push' && !cancelled()
+    permissions:
+      contents: read
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
@@ -328,7 +330,8 @@ jobs:
             echo EOF
           } >> ${GITHUB_OUTPUT}
       - name: Send message to mattermost
-        uses: mattermost/action-mattermost-notify@master
+        # Hash corresponds to v2.0.0 tag. https://github.com/mattermost/action-mattermost-notify/releases/tag/2.0.0
+        uses: mattermost/action-mattermost-notify@b7d118e440bf2749cd18a4a8c88e7092e696257a
         continue-on-error: true
         if: job.status == 'success'
         with:

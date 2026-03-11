@@ -33,6 +33,7 @@ const DOMAIN_TYPE_NAME: &str = "EIP712Domain";
 
 const MAX_TYPED_MSG_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
 
+// If changed, keep in sync with MAX_LABEL_SIZE.
 const MAX_DISPLAY_SIZE: usize = 640;
 
 fn get_type<'a>(types: &'a [StructType], name: &str) -> Option<&'a StructType> {
@@ -309,11 +310,9 @@ async fn encode_member<U: sha3::digest::Update>(
         let req = get_value_from_host(root_object, path).await?;
 
         let value_formatted = if req.data_length > 0 {
-            // Streaming mode: only dynamic bytes and string may stream.
+            // Streaming mode: only dynamic bytes may stream.
             let data_type = DataType::try_from(member_type.r#type)?;
-            let is_dynamic_bytes = data_type == DataType::Bytes && member_type.size == 0;
-            let is_string = data_type == DataType::String;
-            if !is_dynamic_bytes && !is_string {
+            if data_type != DataType::Bytes || member_type.size != 0 {
                 return Err(Error::InvalidInput);
             }
             if !req.value.is_empty() {
@@ -323,40 +322,18 @@ async fn encode_member<U: sha3::digest::Update>(
                 return Err(Error::InvalidInput);
             }
 
-            // Cap bytes at half (320 raw -> 640 hex chars), strings at full display size.
-            let display_cap = if is_dynamic_bytes {
-                MAX_DISPLAY_SIZE / 2
-            } else {
-                MAX_DISPLAY_SIZE
-            };
-
+            let display_cap = MAX_DISPLAY_SIZE / 2;
             let mut producer = super::sighash::ChunkingProducer::from_host(req.data_length);
             let mut keccak = sha3::Keccak256::new();
             let mut display_buf: Vec<u8> = Vec::new();
-            let mut is_valid_string = true;
             while let Some(chunk) = producer.next().await? {
                 keccak.update(&chunk);
-                if is_string {
-                    is_valid_string = is_valid_string
-                        && util::ascii::is_printable_ascii(
-                            &chunk,
-                            util::ascii::Charset::AllNewline,
-                        );
-                }
                 let n = (display_cap - display_buf.len()).min(chunk.len());
                 display_buf.extend_from_slice(&chunk[..n]);
             }
             hasher.update(&keccak.finalize());
 
-            if is_dynamic_bytes {
-                format!("0x{}", hex::encode(&display_buf))
-            } else if !is_valid_string {
-                return Err(Error::InvalidInput);
-            } else {
-                core::str::from_utf8(&display_buf)
-                    .or(Err(Error::InvalidInput))?
-                    .to_string()
-            }
+            format!("0x{}", hex::encode(&display_buf))
         } else {
             let (value_encoded, fmt) = encode_value(member_type, req.value)?;
             hasher.update(&value_encoded);
@@ -1841,20 +1818,13 @@ mod tests {
             let types = parse_json_types(&tc.types);
             // Leak to get 'static refs needed by the mock closure -- test-only.
             let primary_type: &'static str = Box::leak(tc.primary_type.clone().into_boxed_str());
-            let data: Vec<u8> = match tc.field_type.as_str() {
-                "bytes" => decode_hex(&tc.message_data),
-                "string" => tc.message_data.as_bytes().to_vec(),
-                _ => panic!("unexpected field_type: {}", tc.field_type),
-            };
+            assert_eq!(tc.field_type, "bytes");
+            let data: Vec<u8> = decode_hex(&tc.message_data);
 
             // Inline sighash.
             {
                 let data_static: &'static [u8] = Box::leak(data.clone().into_boxed_slice());
-                let inline_value = match tc.field_type.as_str() {
-                    "bytes" => Object::Bytes(data_static),
-                    "string" => Object::String(core::str::from_utf8(data_static).unwrap()),
-                    _ => unreachable!(),
-                };
+                let inline_value = Object::Bytes(data_static);
                 let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
                     types.clone(),
                     primary_type,
@@ -1880,8 +1850,8 @@ mod tests {
                 );
             }
 
-            // Streaming sighash + display verification.
-            {
+            // Streaming sighash + display verification (bytes only).
+            if tc.field_type == "bytes" {
                 let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
                     types.clone(),
                     primary_type,

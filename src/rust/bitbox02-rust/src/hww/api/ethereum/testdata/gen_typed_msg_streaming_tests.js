@@ -40,19 +40,6 @@ const testCases = [
     },
     sign: true,
   },
-  {
-    description: "large string",
-    types: {
-      EIP712Domain: [{ name: "name", type: "string" }],
-      Msg: [{ name: "data", type: "string" }],
-    },
-    primaryType: "Msg",
-    domain: { name: "test" },
-    message: {
-      data: "a".repeat(10000),
-    },
-    sign: false,
-  },
 ];
 
 const output = testCases.map((tc) => {
@@ -64,16 +51,11 @@ const output = testCases.map((tc) => {
   };
   const sighash = util.TypedDataUtils.eip712Hash(msgParams, "V4");
 
-  // For bytes fields, store hex-encoded value (without 0x prefix).
-  // For string fields, store the raw string.
-  let messageValue = tc.message.data;
   const fieldType = tc.types[tc.primaryType].find(
     (m) => m.name === "data"
   ).type;
-  if (fieldType === "bytes") {
-    // Strip 0x prefix for the JSON output.
-    messageValue = messageValue.slice(2);
-  }
+  // Strip 0x prefix for the JSON output.
+  const messageValue = tc.message.data.slice(2);
 
   // Compute expected screens shown by the firmware.
   const expectedScreens = [];
@@ -90,15 +72,10 @@ const output = testCases.map((tc) => {
   for (let i = 0; i < msgType.length; i++) {
     const field = msgType[i];
     const title = `Message (${i + 1}/${msgType.length})`;
-    let valueFormatted;
-    if (field.type === "bytes") {
-      const rawBytes = Buffer.from(tc.message[field.name].slice(2), "hex");
-      const displayCap = MAX_DISPLAY_SIZE / 2;
-      const truncated = rawBytes.slice(0, displayCap);
-      valueFormatted = "0x" + truncated.toString("hex");
-    } else if (field.type === "string") {
-      valueFormatted = tc.message[field.name].slice(0, MAX_DISPLAY_SIZE);
-    }
+    const rawBytes = Buffer.from(tc.message[field.name].slice(2), "hex");
+    const displayCap = MAX_DISPLAY_SIZE / 2;
+    const truncated = rawBytes.slice(0, displayCap);
+    const valueFormatted = "0x" + truncated.toString("hex");
     const body = `${field.name}: ${valueFormatted}`;
     if (body.length > MAX_DISPLAY_SIZE) {
       expectedScreens.push([

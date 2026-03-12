@@ -11,6 +11,7 @@ pub mod keyboard;
 pub mod label;
 pub mod obj;
 pub mod slider;
+pub mod span;
 pub mod spinner;
 pub mod textarea;
 mod util;
@@ -32,6 +33,7 @@ mod tests {
     fn assert_arc_ext<T: arc::ArcExt>() {}
     fn assert_bar_ext<T: bar::BarExt>() {}
     fn assert_buttonmatrix_ext<T: buttonmatrix::ButtonmatrixExt>() {}
+    fn assert_spangroup_ext<T: span::SpangroupExt>() {}
 
     #[test]
     fn test_derived_widgets_implement_base_extension_traits() {
@@ -39,6 +41,7 @@ mod tests {
         assert_arc_ext::<spinner::LvSpinner>();
         assert_bar_ext::<slider::LvSlider>();
         assert_buttonmatrix_ext::<keyboard::LvKeyboard>();
+        assert_spangroup_ext::<span::LvSpangroup>();
     }
 
     #[test]
@@ -58,5 +61,8 @@ mod tests {
         let keyboard = dummy_handle::<class::KeyboardTag>();
         assert_eq!(keyboard.to_buttonmatrix().as_ptr(), keyboard.as_ptr());
         assert_eq!(keyboard.to_obj().as_ptr(), keyboard.as_ptr());
+
+        let spangroup = dummy_handle::<class::SpangroupTag>();
+        assert_eq!(spangroup.to_obj().as_ptr(), spangroup.as_ptr());
     }
 }

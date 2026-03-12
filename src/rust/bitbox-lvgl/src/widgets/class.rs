@@ -35,6 +35,9 @@ pub struct BarTag;
 pub struct SliderTag;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SpangroupTag;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TextareaTag;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,6 +65,7 @@ impl_lv_class!(SpinnerTag, lv_spinner_class);
 impl_lv_class!(ButtonTag, lv_button_class);
 impl_lv_class!(BarTag, lv_bar_class);
 impl_lv_class!(SliderTag, lv_slider_class);
+impl_lv_class!(SpangroupTag, lv_spangroup_class);
 impl_lv_class!(TextareaTag, lv_textarea_class);
 impl_lv_class!(ButtonmatrixTag, lv_buttonmatrix_class);
 impl_lv_class!(KeyboardTag, lv_keyboard_class);
@@ -75,6 +79,7 @@ mod tests {
         assert!(!ObjTag::class_ptr().is_null());
         assert!(!CanvasTag::class_ptr().is_null());
         assert!(!SpinnerTag::class_ptr().is_null());
+        assert!(!SpangroupTag::class_ptr().is_null());
         assert!(!KeyboardTag::class_ptr().is_null());
     }
 }

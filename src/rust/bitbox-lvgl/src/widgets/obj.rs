@@ -5,8 +5,8 @@ use core::marker::PhantomData;
 use core::ptr::NonNull;
 
 use crate::{
-    LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvFlexAlign, LvFlexFlow, LvGradDir,
-    LvGridAlign, LvOpa, LvStyleSelector, LvTextAlign, LvTextDecor, class, ffi,
+    LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvFlexAlign, LvFlexFlow, LvFont,
+    LvGradDir, LvGridAlign, LvOpa, LvStyleSelector, LvTextAlign, LvTextDecor, class, ffi,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -52,11 +52,12 @@ impl<C: class::LvClass> LvHandle<C> {
 }
 
 impl LvHandle<class::ObjTag> {
-    pub fn new(parent: Option<&LvHandle<impl class::LvClass>>) -> Option<Self> {
-        NonNull::new(unsafe {
-            ffi::lv_obj_create(parent.map_or(core::ptr::null_mut(), LvHandle::as_ptr))
-        })
-        .map(LvHandle::from_ptr)
+    pub fn new() -> Option<Self> {
+        NonNull::new(unsafe { ffi::lv_obj_create(core::ptr::null_mut()) }).map(LvHandle::from_ptr)
+    }
+
+    pub fn with_parent(parent: &LvHandle<impl class::LvClass>) -> Option<Self> {
+        NonNull::new(unsafe { ffi::lv_obj_create(parent.as_ptr()) }).map(LvHandle::from_ptr)
     }
 }
 
@@ -117,6 +118,25 @@ pub trait ObjExt {
 
     fn set_size(&self, width: i32, height: i32) {
         unsafe { ffi::lv_obj_set_size(self.as_ptr(), width, height) }
+    }
+
+    fn set_width(&self, width: i32) {
+        unsafe { ffi::lv_obj_set_width(self.as_ptr(), width) }
+    }
+
+    fn set_height(&self, height: i32) {
+        unsafe { ffi::lv_obj_set_height(self.as_ptr(), height) }
+    }
+
+    fn delete(&self) {
+        unsafe { ffi::lv_obj_delete(self.as_ptr()) }
+    }
+
+    fn set_layout(&self, layout: crate::LvLayout) {
+        unsafe { ffi::lv_obj_set_layout(self.as_ptr(), layout as u32) }
+    }
+    fn set_flex_flow(&self, flow: crate::LvFlexFlow) {
+        unsafe { ffi::lv_obj_set_flex_flow(self.as_ptr(), flow) }
     }
 
     impl_obj_style_setter_methods!(
@@ -233,7 +253,6 @@ pub trait ObjExt {
     impl_obj_style_optional_ref_setter_methods!(
         set_style_bg_grad => lv_obj_set_style_bg_grad: ffi::lv_grad_dsc_t,
         set_style_image_colorkey => lv_obj_set_style_image_colorkey: ffi::lv_image_colorkey_t,
-        set_style_text_font => lv_obj_set_style_text_font: ffi::lv_font_t,
         set_style_color_filter_dsc => lv_obj_set_style_color_filter_dsc: ffi::lv_color_filter_dsc_t,
         set_style_anim => lv_obj_set_style_anim: ffi::lv_anim_t,
         set_style_transition => lv_obj_set_style_transition: ffi::lv_style_transition_dsc_t,
@@ -244,6 +263,20 @@ pub trait ObjExt {
         set_style_arc_image_src => lv_obj_set_style_arc_image_src,
         set_style_bitmap_mask_src => lv_obj_set_style_bitmap_mask_src,
     );
+
+    fn set_style_text_font(&self, value: LvFont, selector: LvStyleSelector) {
+        unsafe { ffi::lv_obj_set_style_text_font(self.as_ptr(), value.as_ptr(), selector) }
+    }
+
+    fn remove_style_text_font(&self, selector: LvStyleSelector) -> bool {
+        unsafe {
+            ffi::lv_obj_remove_local_style_prop(
+                self.as_ptr(),
+                ffi::_lv_style_id_t::LV_STYLE_TEXT_FONT as ffi::lv_style_prop_t,
+                selector,
+            )
+        }
+    }
 
     fn set_style_grid_column_dsc_array(
         &self,
@@ -283,5 +316,19 @@ pub trait ObjExt {
 impl<C: class::LvClass> ObjExt for LvHandle<C> {
     fn as_ptr(&self) -> *mut ffi::lv_obj_t {
         LvHandle::as_ptr(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_style_methods_exist() {
+        let _: fn(&LvObj, LvColor, LvStyleSelector) = <LvObj as ObjExt>::set_style_text_color;
+        let _: fn(&LvObj, LvFont, LvStyleSelector) = <LvObj as ObjExt>::set_style_text_font;
+        let _: fn(&LvObj, LvStyleSelector) -> bool = <LvObj as ObjExt>::remove_style_text_font;
+        let _: unsafe fn(&LvObj, Option<&'static u8>, LvStyleSelector) =
+            <LvObj as ObjExt>::set_style_bg_image_src::<u8>;
     }
 }

@@ -143,6 +143,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-lvgl-sys",
  "grounded",
+ "tracing",
 ]
 
 [[package]]
@@ -265,9 +266,11 @@ dependencies = [
 name = "bitbox03"
 version = "0.1.0"
 dependencies = [
+ "bitbox-hal",
  "bitbox-lvgl",
  "png-decoder",
  "tracing",
+ "zeroize",
 ]
 
 [[package]]

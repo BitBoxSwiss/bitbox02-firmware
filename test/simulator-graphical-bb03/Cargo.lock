@@ -362,6 +362,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-lvgl-sys",
  "grounded",
+ "tracing",
 ]
 
 [[package]]
@@ -475,9 +476,11 @@ dependencies = [
 name = "bitbox03"
 version = "0.1.0"
 dependencies = [
+ "bitbox-hal",
  "bitbox-lvgl",
  "png-decoder",
  "tracing",
+ "zeroize",
 ]
 
 [[package]]
@@ -2907,8 +2910,8 @@ name = "simulator-graphical-bb03"
 version = "0.1.0"
 dependencies = [
  "bitbox-aes",
+ "bitbox-hal",
  "bitbox-lvgl",
- "bitbox02",
  "bitbox02-rust",
  "bitbox02-rust-c",
  "bitbox03",

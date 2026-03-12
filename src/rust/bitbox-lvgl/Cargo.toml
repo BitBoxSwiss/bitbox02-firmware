@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 bitbox-lvgl-sys = { path = "../bitbox-lvgl-sys" }
 grounded = {version = "0.2.1"}
+tracing = {version = "0.1.41", features = ["log"], default-features = false}

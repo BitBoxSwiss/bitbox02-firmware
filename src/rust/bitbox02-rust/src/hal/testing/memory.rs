@@ -4,7 +4,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::hal::memory::{
-    BleFirmwareSlot, BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType,
+    BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
+    SecurechipType,
 };
 
 pub struct TestingMemory {
@@ -13,6 +14,7 @@ pub struct TestingMemory {
     ble_firmware_slots: [Vec<u8>; 2],
     active_ble_firmware_version: String,
     securechip_type: SecurechipType,
+    optiga_config_version: OptigaConfigVersion,
     platform: Platform,
     initialized: bool,
     is_seeded: bool,
@@ -48,6 +50,7 @@ impl TestingMemory {
             ],
             active_ble_firmware_version: "0.0.0".into(),
             securechip_type: SecurechipType::Optiga,
+            optiga_config_version: OptigaConfigVersion::V0,
             platform: Platform::BitBox02,
             initialized: false,
             is_seeded: false,
@@ -159,6 +162,15 @@ impl crate::hal::Memory for TestingMemory {
 
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
         Ok(self.securechip_type)
+    }
+
+    fn get_optiga_config_version(&mut self) -> Result<OptigaConfigVersion, ()> {
+        Ok(self.optiga_config_version)
+    }
+
+    fn set_optiga_config_version(&mut self, version: OptigaConfigVersion) -> Result<(), ()> {
+        self.optiga_config_version = version;
+        Ok(())
     }
 
     fn get_platform(&mut self) -> Result<Platform, ()> {

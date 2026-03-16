@@ -7,8 +7,7 @@ use zeroize::Zeroizing;
 
 pub use bitbox02_sys::securechip_error_t as SecureChipError;
 pub use bitbox02_sys::securechip_model_t as Model;
-
-use crate::memory::PasswordStretchAlgo;
+pub use bitbox02_sys::securechip_password_stretch_algo_t as PasswordStretchAlgo;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {

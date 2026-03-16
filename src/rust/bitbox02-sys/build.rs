@@ -203,6 +203,7 @@ const RUSTIFIED_ENUMS: &[&str] = &[
     "memory_optiga_config_version_t",
     "memory_password_stretch_algo_t",
     "memory_result_t",
+    "securechip_password_stretch_algo_t",
     "multisig_script_type_t",
     "output_type_t",
     "securechip_error_t",

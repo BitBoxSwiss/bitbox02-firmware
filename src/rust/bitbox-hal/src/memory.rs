@@ -17,6 +17,12 @@ pub enum PasswordStretchAlgo {
     V1,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd)]
+pub enum OptigaConfigVersion {
+    V0,
+    V1,
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SecurechipType {
     Atecc,
@@ -68,6 +74,8 @@ pub trait Memory {
     fn ble_get_metadata(&mut self) -> BleMetadata;
     fn set_ble_metadata(&mut self, metadata: &BleMetadata) -> Result<(), Error>;
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()>;
+    fn get_optiga_config_version(&mut self) -> Result<OptigaConfigVersion, ()>;
+    fn set_optiga_config_version(&mut self, version: OptigaConfigVersion) -> Result<(), ()>;
     fn get_platform(&mut self) -> Result<Platform, ()>;
     fn get_device_name(&mut self) -> String;
     /// `name` must be non-empty and at most [`DEVICE_NAME_MAX_LEN`] bytes long.

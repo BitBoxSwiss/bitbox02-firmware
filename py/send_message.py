@@ -23,6 +23,7 @@ from tzlocal import get_localzone
 
 from bitbox02 import util
 from bitbox02 import bitbox02
+from bitbox02.bitbox02 import Bootloader
 from bitbox02.communication import (
     devices,
     HARDENED,
@@ -1629,7 +1630,7 @@ class SendMessage:
 class SendMessageBootloader:
     """Simple test application for bootloader"""
 
-    def __init__(self, device: bitbox02.Bootloader):
+    def __init__(self, device: Bootloader):
         self._device = device
         self._stop = False
 
@@ -1849,7 +1850,7 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
                 "Could not connect to the BitBox, device may be already connected to another app."
             )
             return 1
-        bootloader_connection = bitbox02.Bootloader(u2fhid.U2FHid(hid_device), bootloader)
+        bootloader_connection = Bootloader(u2fhid.U2FHid(hid_device), bootloader)
         boot_app = SendMessageBootloader(bootloader_connection)
         return boot_app.run()
 

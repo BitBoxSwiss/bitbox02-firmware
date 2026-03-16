@@ -17,6 +17,7 @@ use crate::hal::Ui;
 use crate::secp256k1::SECP256K1;
 use crate::workflow::verify_message;
 
+use hex_lit::hex;
 use sha2::{Digest, Sha256};
 
 use bitcoin::secp256k1;
@@ -32,17 +33,32 @@ struct Identity {
 const IDENTITIES: &[Identity] = &[
     Identity {
         name: "POCKET",
-        public_key: b"\x02\x29\x02\xb4\xed\xe4\x82\xa9\x07\xce\x16\xa1\xc6\x34\x14\x5e\x72\x8f\x1d\xe4\xf2\x49\x04\x3a\x8b\xe4\x7d\xf2\x7d\xb9\x32\x0c\x2c",
+        public_key: &hex!("022902b4ede482a907ce16a1c634145e728f1de4f249043a8be47df27db9320c2c"),
+    },
+    Identity {
+        name: "SWAPKIT",
+        public_key: &hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff"),
     },
     #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
     Identity {
         name: "Test Merchant",
         // private_key: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        public_key: b"\x02\xe5\xa0\x18\xb3\xa2\xe1\x55\x31\x61\x09\xd9\xcd\xc5\xea\xb7\x39\x75\x9c\x0e\x07\xe0\xc0\x0b\xf9\xfc\xcb\x82\x37\xfe\x4d\x7f\x02",
+        public_key: &hex!("02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02"),
     },
 ];
 
+/// Looks up the signing identity for a payment request recipient name.
+///
+/// Most recipients must match an entry in `IDENTITIES` exactly. `SWAPKIT` is a
+/// special case: any recipient name containing `swapkit`, in any ASCII case,
+/// is matched to the fixed `SWAPKIT` identity so provider-specific or legacy
+/// naming variants are accepted.
 fn find_identity(name: &str) -> Option<&Identity> {
+    if name.to_ascii_uppercase().contains("SWAPKIT") {
+        return IDENTITIES
+            .iter()
+            .find(|identity| identity.name == "SWAPKIT");
+    }
     IDENTITIES.iter().find(|identity| identity.name == name)
 }
 
@@ -277,6 +293,25 @@ mod tests {
                 ],
             },
         )
+    }
+
+    #[test]
+    fn test_find_identity() {
+        assert_eq!(find_identity("POCKET").unwrap().name, "POCKET");
+
+        let swapkit_identity = find_identity("SWAPKIT (Provider)").unwrap();
+        assert_eq!(swapkit_identity.name, "SWAPKIT");
+        assert_eq!(
+            swapkit_identity.public_key,
+            hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff")
+        );
+
+        assert_eq!(find_identity("SWAPKIT Provider").unwrap().name, "SWAPKIT");
+        assert_eq!(find_identity("swapkit (Provider)").unwrap().name, "SWAPKIT");
+        assert_eq!(find_identity("SWAPKIT").unwrap().name, "SWAPKIT");
+        assert_eq!(find_identity("SwapKit").unwrap().name, "SWAPKIT");
+
+        assert!(find_identity("Provider").is_none());
     }
 
     #[test]

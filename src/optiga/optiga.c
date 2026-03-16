@@ -14,7 +14,6 @@
 #include <optiga_crypt.h>
 #include <optiga_util.h>
 #include <rust/rust.h>
-#include <salt.h>
 #include <securechip/securechip.h>
 #include <util.h>
 
@@ -1137,8 +1136,11 @@ static int _set_password(
         goto cleanup;
     }
 
-    if (!salt_hash_data(
-            auth_password, auth_password_len, "optiga_password", auth_password_salted_hashed)) {
+    if (!rust_salt_hash_data(
+            rust_util_bytes(auth_password, auth_password_len),
+            "optiga_password",
+            rust_util_bytes_mut(
+                auth_password_salted_hashed, sizeof(auth_password_salted_hashed)))) {
         res = SC_ERR_SALT;
         goto cleanup;
     }
@@ -1234,8 +1236,11 @@ static int _set_hmac_writeprotected(
 {
     uint8_t auth_password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(auth_password_salted_hashed);
-    if (!salt_hash_data(
-            auth_password, auth_password_len, "optiga_password", auth_password_salted_hashed)) {
+    if (!rust_salt_hash_data(
+            rust_util_bytes(auth_password, auth_password_len),
+            "optiga_password",
+            rust_util_bytes_mut(
+                auth_password_salted_hashed, sizeof(auth_password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
 
@@ -1270,11 +1275,10 @@ static int _v1_get_auth_password(
 {
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_in",
-            password_salted_hashed)) {
+            rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
 
@@ -1315,11 +1319,10 @@ static int _v1_combine(
 
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_out",
-            password_salted_hashed)) {
+            rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
     rust_hmac_sha256(
@@ -1414,11 +1417,10 @@ static int _optiga_verify_password_v0(const char* password, uint8_t* password_se
 {
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password",
-            password_salted_hashed)) {
+            rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
 
@@ -1467,7 +1469,11 @@ static int _optiga_verify_password_v1(const uint8_t* auth_password, uint8_t* pas
 {
     uint8_t auth_password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(auth_password_salted_hashed);
-    if (!salt_hash_data(auth_password, 32, "optiga_password", auth_password_salted_hashed)) {
+    if (!rust_salt_hash_data(
+            rust_util_bytes(auth_password, 32),
+            "optiga_password",
+            rust_util_bytes_mut(
+                auth_password_salted_hashed, sizeof(auth_password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
 
@@ -1713,11 +1719,10 @@ static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
 {
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_in",
-            password_salted_hashed)) {
+            rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
 
@@ -1753,11 +1758,10 @@ static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
 
     rust_hmac_sha256(password_secret, sizeof(password_secret), stretched_out, 32, stretched_out);
 
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_out",
-            password_salted_hashed)) {
+            rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
     rust_hmac_sha256(

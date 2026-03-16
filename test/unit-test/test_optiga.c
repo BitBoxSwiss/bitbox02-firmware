@@ -15,7 +15,6 @@
 #include <optiga_util.h>
 #include <pal/pal_os_timer.h>
 #include <rust/rust.h>
-#include <salt.h>
 
 #include <stdint.h>
 #include <string.h>
@@ -173,26 +172,18 @@ static const securechip_interface_functions_t _ifs = {
 };
 
 //------------------------------------------------------------------------------
-// Linker-wrapped salt_hash_data: same as salt.rs, but with a fixed salt_root.
+// Linker-wrapped rust_salt_hash_data: same as salt.rs, but with a fixed salt_root.
 
-bool __wrap_salt_hash_data(
-    const uint8_t* data,
-    size_t data_len,
-    const char* purpose,
-    uint8_t* hash_out)
+bool __wrap_rust_salt_hash_data(struct Bytes data, const char* purpose, struct BytesMut hash_out)
 {
-    if ((data_len > 0 && data == NULL) || purpose == NULL || hash_out == NULL) {
-        return false;
-    }
-
     void* ctx = rust_sha256_new();
     if (ctx == NULL) {
         return false;
     }
     rust_sha256_update(ctx, _salt_root_fixed, sizeof(_salt_root_fixed));
     rust_sha256_update(ctx, purpose, strlen(purpose));
-    rust_sha256_update(ctx, data, data_len);
-    rust_sha256_finish(&ctx, hash_out);
+    rust_sha256_update(ctx, data.buf, data.len);
+    rust_sha256_finish(&ctx, hash_out.buf);
     return true;
 }
 
@@ -753,7 +744,10 @@ static void test_optiga_stretch_password_v0_success(void** state)
     _setup_test();
 
     // Seed the OID_PASSWORD and OID_PASSWORD_COUNTER objects as if they were provisioned earlier.
-    assert_true(salt_hash_data((const uint8_t*)"pw", 2, "optiga_password", _oid_password));
+    assert_true(rust_salt_hash_data(
+        rust_util_bytes((const uint8_t*)"pw", 2),
+        "optiga_password",
+        rust_util_bytes_mut(_oid_password, sizeof(_oid_password))));
     _oid_password_set = true;
     const uint8_t counter_reset_buf[8] = {0, 0, 0, 0, 0, 0, 0, SMALL_MONOTONIC_COUNTER_MAX_USE};
     memcpy(_oid_counter_password_buf, counter_reset_buf, sizeof(_oid_counter_password_buf));
@@ -774,7 +768,10 @@ static void test_optiga_stretch_password_v0_attempt_counter(void** state)
     _setup_test();
 
     // Seed the OID_PASSWORD and OID_PASSWORD_COUNTER objects as if they were provisioned earlier.
-    assert_true(salt_hash_data((const uint8_t*)"pw", 2, "optiga_password", _oid_password));
+    assert_true(rust_salt_hash_data(
+        rust_util_bytes((const uint8_t*)"pw", 2),
+        "optiga_password",
+        rust_util_bytes_mut(_oid_password, sizeof(_oid_password))));
     _oid_password_set = true;
     const uint8_t counter_reset_buf[8] = {0, 0, 0, 0, 0, 0, 0, SMALL_MONOTONIC_COUNTER_MAX_USE};
     memcpy(_oid_counter_password_buf, counter_reset_buf, sizeof(_oid_counter_password_buf));

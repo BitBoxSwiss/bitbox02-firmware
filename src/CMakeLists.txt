@@ -18,7 +18,6 @@ set(DBB-FIRMWARE-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/spi_mem.c
   ${CMAKE_SOURCE_DIR}/src/memory/memory_spi.c
   ${CMAKE_SOURCE_DIR}/src/memory/smarteeprom.c
-  ${CMAKE_SOURCE_DIR}/src/salt.c
   ${CMAKE_SOURCE_DIR}/src/i2c_ecc.c
   ${CMAKE_SOURCE_DIR}/src/touch/gestures.c
   ${CMAKE_SOURCE_DIR}/src/reset.c

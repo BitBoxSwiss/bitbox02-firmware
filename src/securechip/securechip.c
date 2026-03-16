@@ -4,9 +4,8 @@
 
 #include <atecc/atecc.h>
 #include <hardfault.h>
-#include <memory/memory.h>
-#include <memory/memory_shared.h>
 #include <optiga/optiga.h>
+#include <rust/rust.h>
 
 typedef struct {
     int (*setup)(const securechip_interface_functions_t* fns);
@@ -38,8 +37,8 @@ static securechip_crypt_interface_t _fns = {0};
 // Detect if we have atecc or optiga chip and set interface functions
 bool securechip_init(void)
 {
-    switch (memory_get_securechip_type()) {
-    case MEMORY_SECURECHIP_TYPE_OPTIGA:
+    switch (rust_memory_get_securechip_type()) {
+    case RUST_MEMORY_SECURECHIP_TYPE_OPTIGA:
         _fns.setup = optiga_setup;
         _fns.kdf = optiga_kdf_external;
         _fns.init_new_password = optiga_init_new_password;
@@ -57,7 +56,7 @@ bool securechip_init(void)
 #endif
         _fns.model = optiga_model;
         break;
-    case MEMORY_SECURECHIP_TYPE_ATECC:
+    case RUST_MEMORY_SECURECHIP_TYPE_ATECC:
     default:
         _fns.setup = atecc_setup;
         _fns.kdf = atecc_kdf;

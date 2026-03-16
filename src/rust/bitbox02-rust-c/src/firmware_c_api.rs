@@ -3,7 +3,18 @@
 use core::ffi::c_char;
 use util::bytes::{Bytes, BytesMut};
 
-use bitbox_hal::{Hal, Memory, memory::OptigaConfigVersion};
+use bitbox_hal::{
+    Hal, Memory,
+    memory::{OptigaConfigVersion, SecurechipType},
+};
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[allow(non_camel_case_types)]
+pub enum rust_memory_securechip_type_t {
+    RUST_MEMORY_SECURECHIP_TYPE_ATECC = 0,
+    RUST_MEMORY_SECURECHIP_TYPE_OPTIGA = 1,
+}
 
 #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
 #[unsafe(no_mangle)]
@@ -63,6 +74,19 @@ pub extern "C" fn rust_memory_set_optiga_config_version_v1() -> bool {
         .is_ok()
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_memory_get_securechip_type() -> rust_memory_securechip_type_t {
+    let mut hal = crate::HalImpl::new();
+    match hal.memory().get_securechip_type() {
+        Ok(SecurechipType::Optiga) => {
+            rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_OPTIGA
+        }
+        Ok(SecurechipType::Atecc) | Err(()) => {
+            rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_ATECC
+        }
+    }
+}
+
 #[cfg(feature = "app-u2f")]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut) -> bool {
@@ -79,7 +103,8 @@ pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut
 mod tests {
     use super::*;
     use bitbox02::memory::{
-        OptigaConfigVersion as MemoryOptigaConfigVersion, set_optiga_config_version,
+        OptigaConfigVersion as MemoryOptigaConfigVersion, SecurechipType as MemorySecurechipType,
+        get_securechip_type, set_optiga_config_version,
     };
 
     fn setup_memory() {
@@ -105,5 +130,18 @@ mod tests {
     fn test_rust_memory_optiga_config_is_v1_or_higher_null_pointer() {
         setup_memory();
         assert!(!unsafe { rust_memory_optiga_config_is_v1_or_higher(core::ptr::null_mut()) });
+    }
+
+    #[test]
+    fn test_rust_memory_get_securechip_type() {
+        let expected = match get_securechip_type().unwrap() {
+            MemorySecurechipType::Atecc => {
+                rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_ATECC
+            }
+            MemorySecurechipType::Optiga => {
+                rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_OPTIGA
+            }
+        };
+        assert_eq!(rust_memory_get_securechip_type(), expected);
     }
 }

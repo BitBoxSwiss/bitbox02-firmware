@@ -227,7 +227,6 @@ const BITBOX02_SOURCES: &[&str] = &[
     "src/queue.c",
     "src/random.c",
     "src/reset.c",
-    "src/salt.c",
     "src/screen.c",
     "src/sd.c",
     "src/system.c",

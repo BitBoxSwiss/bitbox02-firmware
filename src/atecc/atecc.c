@@ -6,7 +6,6 @@
 #include <i2c_ecc.h>
 #include <memory/memory.h>
 #include <rust/rust.h>
-#include <salt.h>
 #include <util.h>
 
 // disabling some warnings, as it's an external library.
@@ -599,11 +598,10 @@ int atecc_stretch_password(
 
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
             "keystore_seed_access_in",
-            password_salted_hashed)) {
+            rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
 
@@ -625,11 +623,10 @@ int atecc_stretch_password(
         }
     }
 
-    if (!salt_hash_data(
-            (const uint8_t*)password,
-            strlen(password),
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
             "keystore_seed_access_out",
-            password_salted_hashed)) {
+            rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
         return SC_ERR_SALT;
     }
     rust_hmac_sha256(

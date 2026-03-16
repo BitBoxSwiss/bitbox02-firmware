@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <rust/rust.h>
-#include <salt.h>
 #include <securechip/securechip.h>
 #include <stdio.h>
 #include <string.h>

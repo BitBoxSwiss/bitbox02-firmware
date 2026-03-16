@@ -36,7 +36,7 @@ else()
      random
      "-Wl,--wrap=rand,--wrap=rust_sha256"
      optiga
-     "-Wl,--wrap=salt_hash_data"
+     "-Wl,--wrap=rust_salt_hash_data"
      ui_components
      ""
      ui_util

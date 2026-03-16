@@ -335,8 +335,7 @@ fn set_attestation_certificate(
     }
 }
 
-#[cfg(test)]
-fn get_io_protection_key(out: &mut [u8; 32]) {
+pub(crate) fn get_io_protection_key(out: &mut [u8; 32]) {
     unsafe { bitbox02_sys::memory_get_io_protection_key(out.as_mut_ptr()) }
 }
 

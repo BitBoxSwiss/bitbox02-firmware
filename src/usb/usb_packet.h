@@ -34,6 +34,6 @@ typedef struct {
  */
 bool usb_packet_process(const USB_FRAME* frame);
 
-void usb_invalid_endpoint(struct queue* queue, uint32_t cid);
+void usb_invalid_endpoint(RustUsbReportQueue* queue, uint32_t cid);
 
 #endif

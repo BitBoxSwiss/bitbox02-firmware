@@ -17,6 +17,7 @@ doctest = false
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox02 = { path = "../bitbox02" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
+bitbox-usb-report-queue = { path = "../bitbox-usb-report-queue" }
 bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
 util = { path = "../util" }
 erc20_params = { path = "../erc20_params", optional = true }

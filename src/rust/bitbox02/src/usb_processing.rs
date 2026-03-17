@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use bitbox_usb_report_queue::UsbReportQueue;
+
 /// Reset the USB processing timeout to the given value.
 pub fn timeout_reset(value: i16) {
     unsafe {
@@ -7,9 +9,30 @@ pub fn timeout_reset(value: i16) {
     }
 }
 
-#[cfg(feature = "simulator-graphical")]
-pub fn init() {
-    unsafe { bitbox02_sys::usb_processing_init() }
+#[cfg(feature = "app-u2f")]
+pub fn init(hww_queue: &mut UsbReportQueue, u2f_queue: &mut UsbReportQueue) {
+    unsafe {
+        bitbox02_sys::usb_processing_init(
+            hww_queue
+                .as_mut_ptr()
+                .cast::<bitbox02_sys::RustUsbReportQueue>(),
+            u2f_queue
+                .as_mut_ptr()
+                .cast::<bitbox02_sys::RustUsbReportQueue>(),
+        )
+    }
+}
+
+#[cfg(not(feature = "app-u2f"))]
+pub fn init(hww_queue: &mut UsbReportQueue) {
+    unsafe {
+        bitbox02_sys::usb_processing_init(
+            hww_queue
+                .as_mut_ptr()
+                .cast::<bitbox02_sys::RustUsbReportQueue>(),
+            core::ptr::null_mut(),
+        )
+    }
 }
 
 pub fn process_hww() {

@@ -7,17 +7,19 @@ Core firmware and bootloader code sits in `src/`, grouped by subsystem (`bootloa
 `py/bitbox02`. Supporting tooling is in `scripts/` (CI, J-Link macros), and `doc/` for
 manuals. Vendored dependencies are tracked in `external/`.
 
-The firmware has C and Rust code. Rust code lines in src/rust. The rust crates are:
+The firmware has C and Rust code. Rust code lives in src/rust. The most important rust crates are:
 - bitbox02-rust: the main app logic. It can expose functions to C using extern "C". If it needs
-  access to C functions, it has to go through the bitbox02 crate. Never add bitbox02-sys dep to
-  bitbox02-rust or use if the dep is present.
-- bitbox02-sys: generated bindings to C code. build.rs contains the functions etc that are
-  exposed. See also `wrapper.h`, it needs to include any C headers/declarations that are added to
-  build.rs.
-- bitbox02: wraps bitbox02-sys functions as idiomatic safe Rust
+  access to C functions, it has to go through the bitbox-hal crate. Never add bitbox02 or
+  bitbox02-sys dep to bitbox02-rust.
+- bitbox02-sys: generated bindings to bitbox02 specific C code. build.rs contains the functions etc
+  that are exposed. See also `wrapper.h`, it needs to include any C headers/declarations that are
+  added to build.rs.
+- bitbox-hal: provides an interface to device specific functionality
+- bitbox02: wraps bitbox02-sys as idiomatic safe Rust and implements the bitbox-hal interface.
 
-bitbox02-rust is pure Rust. If it needs to use a C function, it should instead use the safe C
-wrapper in the bitbox02 crate.
+bitbox02-rust is pure Rust and device agnostic. To access device specific functionality it must
+always go through bitbox-hal. The migration is a work in progress, only migrate what is necessary
+for the current scope.
 
 ## Build, Test, and Development Commands
 - `make dockerpull` / `make dockerdev`: fetch and enter the maintained development container.

@@ -36,7 +36,7 @@ U2F_REGISTER_REQ regReq;
 U2F_REGISTER_RESP regRsp;
 U2F_AUTHENTICATE_REQ authReq;
 
-static void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
+static void test_u2f_standard_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
     static char digits[] = "0123456789abcdef";
     size_t i;
@@ -163,7 +163,7 @@ static void test_Enroll(int expectedSW12, int printinfo)
     CHECK_EQ(getCertificate(regRsp, cert, &cert_len), true);
     if (printinfo) {
         char buf[cert_len * 2 + 1];
-        util_uint8_to_hex((uint8_t*)cert, cert_len, buf);
+        test_u2f_standard_uint8_to_hex((uint8_t*)cert, cert_len, buf);
         PRINT_INFO("Certificate: %lu %s", cert_len, buf);
     }
 
@@ -172,7 +172,7 @@ static void test_Enroll(int expectedSW12, int printinfo)
     CHECK_EQ(getSubjectPublicKey(cert, cert_len, pk, &pk_len), true);
     if (printinfo) {
         char buf[pk_len * 2 + 1];
-        util_uint8_to_hex((uint8_t*)pk, pk_len, buf);
+        test_u2f_standard_uint8_to_hex((uint8_t*)pk, pk_len, buf);
         PRINT_INFO("Public key:  %lu %s", pk_len, buf);
     }
     CHECK_EQ(pk_len, (size_t)U2F_EC_POINT_SIZE);
@@ -182,7 +182,7 @@ static void test_Enroll(int expectedSW12, int printinfo)
     CHECK_EQ(getSignature(regRsp, sig, &sig_len), true);
     if (printinfo) {
         char buf[sig_len * 2 + 1];
-        util_uint8_to_hex((uint8_t*)sig, sig_len, buf);
+        test_u2f_standard_uint8_to_hex((uint8_t*)sig, sig_len, buf);
         PRINT_INFO("Signature:   %lu %s", sig_len, buf);
     }
 

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::env;
+use std::fs;
 use std::io::ErrorKind;
-use std::path::PathBuf;
-use std::process::Command;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
 
 const ALLOWLIST_VARS: &[&str] = &[
     "BASE58_CHECKSUM_LEN",
@@ -298,17 +299,52 @@ const FAKEHARDWARE_SOURCES: &[&str] = &[
     "test/hardware-fakes/src/fake_spi_mem.c",
 ];
 
-pub fn main() -> Result<(), &'static str> {
-    // We could theoretically list every header file that we end up depending on, but that is hard
-    // to maintain. So instead we just listen to changes on "wrapper.h" which is good enough.
-    println!("cargo::rerun-if-changed=wrapper.h");
+const ZERO_GIT_COMMIT_HASH: &str = "0000000000000000000000000000000000000000";
+const ZERO_GIT_COMMIT_HASH_SHORT: &str = "0000000000";
 
-    // Check if we have `bindgen` executable
-    if let Err(e) = Command::new("bindgen").spawn() {
-        if e.kind() == ErrorKind::NotFound {
-            return Err("`bindgen` was not found! Check your PATH!");
-        }
-    }
+type BuildResult<T> = Result<T, String>;
+
+struct VersionInfo {
+    base: String,
+    full: String,
+    full_len: usize,
+    full_w16: String,
+    major: String,
+    minor: String,
+    patch: String,
+}
+
+pub fn main() -> BuildResult<()> {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+    let repo_root = manifest_dir
+        .join("../../..")
+        .canonicalize()
+        .map_err(|err| format!("failed to find repo root: {err}"))?;
+
+    emit_rerun_if_changed("wrapper.h");
+    emit_rerun_if_changed("../bitbox02-cbindgen.toml");
+    emit_rerun_if_changed("../bitbox02-rust-c/Cargo.toml");
+    emit_rerun_if_changed("../bitbox02-rust-c/src");
+    emit_rerun_if_changed("../bitbox02-rust/Cargo.toml");
+    emit_rerun_if_changed("../bitbox02-rust/src");
+    emit_rerun_if_changed("../bitbox02/Cargo.toml");
+    emit_rerun_if_changed("../bitbox02/src");
+    emit_rerun_if_changed("../util/Cargo.toml");
+    emit_rerun_if_changed("../util/src");
+    emit_rerun_if_changed("../bitbox-aes/Cargo.toml");
+    emit_rerun_if_changed("../bitbox-aes/src");
+    emit_rerun_if_changed("../bitbox-framed-serial-link/Cargo.toml");
+    emit_rerun_if_changed("../bitbox-framed-serial-link/src");
+    emit_rerun_if_changed("../bitbox-bytequeue/Cargo.toml");
+    emit_rerun_if_changed("../bitbox-bytequeue/src");
+    emit_rerun_if_changed("../../../CMakeLists.txt");
+    emit_rerun_if_changed("../../../src/version.h.in");
+    emit_rerun_if_changed("../../../src/bootloader/bootloader_version.h.in");
+    emit_rerun_if_changed("../../../scripts/get_version");
+    emit_rerun_if_changed("../../../scripts/generate_rust_header.sh");
+    emit_git_rerun_if_changed(&repo_root);
+
+    ensure_command_exists("bindgen")?;
 
     let target = env::var("TARGET").expect("TARGET not set");
     let cross_compiling = target == "thumbv7em-none-eabi";
@@ -339,63 +375,70 @@ pub fn main() -> Result<(), &'static str> {
         }
     }
 
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+
     let mut includes = vec![
         // $INCLUDES
-        "../..",
-        "../../ui/ugui",
-        "../../platform",
-        "../../qtouch",
-        "../../usb/class",
-        "../../usb/class/hid",
-        "../../usb/class/hid/hww",
-        "../../usb/class/hid/u2f",
+        "../..".to_owned(),
+        "../../ui/ugui".to_owned(),
+        "../../platform".to_owned(),
+        "../../qtouch".to_owned(),
+        "../../usb/class".to_owned(),
+        "../../usb/class/hid".to_owned(),
+        "../../usb/class/hid/hww".to_owned(),
+        "../../usb/class/hid/u2f".to_owned(),
         // ASF4 headers allowed in unit tests
-        "../../../external/asf4-drivers/hal/utils/include",
+        "../../../external/asf4-drivers/hal/utils/include".to_owned(),
         // fatfs
-        "../../rust/fatfs-sys/depend/fatfs/source",
+        "../../rust/fatfs-sys/depend/fatfs/source".to_owned(),
     ];
 
-    // rust.h is created by cbindgen in the cmake build directory
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let rust_h_dir = PathBuf::from([&out_dir, "../../../../../.."].join("/"));
-    println!("rust_h_dir: {:?}", rust_h_dir.canonicalize());
-    includes.push(rust_h_dir.as_os_str().to_str().unwrap());
+    let generated_headers_dir = if cross_compiling {
+        env::var("CMAKE_CURRENT_BINARY_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| out_dir.join("../../../../../.."))
+    } else {
+        ensure_command_exists("cbindgen")?;
+        generate_native_headers(&repo_root, &out_dir)?;
+        out_dir.clone()
+    };
+    includes.push(generated_headers_dir.display().to_string());
 
     if cross_compiling {
         includes.extend([
             // SAMD51A
-            "../../../external/samd51a-ds/include",
+            "../../../external/samd51a-ds/include".to_owned(),
             // ASF4-min
-            "../../../external/asf4-drivers",
-            "../../../external/asf4-drivers/Config",
-            "../../../external/asf4-drivers/hal/include",
-            "../../../external/asf4-drivers/hal/include",
-            "../../../external/asf4-drivers/hpl/core",
-            "../../../external/asf4-drivers/hpl/gclk",
-            "../../../external/asf4-drivers/hpl/pm",
-            "../../../external/asf4-drivers/hpl/port",
-            "../../../external/asf4-drivers/hpl/pukcc",
-            "../../../external/asf4-drivers/hpl/rtc",
-            "../../../external/asf4-drivers/hpl/spi",
-            "../../../external/asf4-drivers/hri",
-            "../../../external/asf4-drivers/qtouch",
-            "../../../external/asf4-drivers/qtouch/include",
-            "../../../external/asf4-drivers/sd_mmc",
-            "../../../external/asf4-drivers/usb",
-            "../../../external/asf4-drivers/usb/class",
-            "../../../external/asf4-drivers/usb/class/hid",
-            "../../../external/asf4-drivers/usb/device",
+            "../../../external/asf4-drivers".to_owned(),
+            "../../../external/asf4-drivers/Config".to_owned(),
+            "../../../external/asf4-drivers/hal/include".to_owned(),
+            "../../../external/asf4-drivers/hal/include".to_owned(),
+            "../../../external/asf4-drivers/hpl/core".to_owned(),
+            "../../../external/asf4-drivers/hpl/gclk".to_owned(),
+            "../../../external/asf4-drivers/hpl/pm".to_owned(),
+            "../../../external/asf4-drivers/hpl/port".to_owned(),
+            "../../../external/asf4-drivers/hpl/pukcc".to_owned(),
+            "../../../external/asf4-drivers/hpl/rtc".to_owned(),
+            "../../../external/asf4-drivers/hpl/spi".to_owned(),
+            "../../../external/asf4-drivers/hri".to_owned(),
+            "../../../external/asf4-drivers/qtouch".to_owned(),
+            "../../../external/asf4-drivers/qtouch/include".to_owned(),
+            "../../../external/asf4-drivers/sd_mmc".to_owned(),
+            "../../../external/asf4-drivers/usb".to_owned(),
+            "../../../external/asf4-drivers/usb/class".to_owned(),
+            "../../../external/asf4-drivers/usb/class/hid".to_owned(),
+            "../../../external/asf4-drivers/usb/device".to_owned(),
             // ASF4
-            "../../../external/asf4-drivers/diskio",
+            "../../../external/asf4-drivers/diskio".to_owned(),
             // CMSIS
-            "../../../external/CMSIS/Include",
+            "../../../external/CMSIS/Include".to_owned(),
         ]);
     } else {
         // unit test framework includes
-        includes.push("../../../test/hardware-fakes/include");
+        includes.push("../../../test/hardware-fakes/include".to_owned());
     }
 
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");
+    let out_path = out_dir.join("bindings.rs");
     let out_path = out_path.into_os_string().into_string().unwrap();
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
@@ -410,33 +453,26 @@ pub fn main() -> Result<(), &'static str> {
     ];
     definitions.extend(&extra_flags);
 
-    let res = Command::new("bindgen")
-        .args(["--output", &out_path])
-        .arg("--use-core")
-        .arg("--with-derive-default")
-        .args(
-            ALLOWLIST_FNS
-                .iter()
-                .flat_map(|s| ["--allowlist-function", s]),
-        )
-        .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
-        .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
-        .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
-        .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
-        .arg("wrapper.h")
-        .arg("--")
-        .args(&definitions)
-        .args(includes.iter().map(|s| format!("-I{s}")))
-        .output()
-        .expect("Failed to run bindgen");
-    if !res.status.success() {
-        println!(
-            "bindgen-out:\n{}\n\nbindgen-err:\n{}",
-            std::str::from_utf8(&res.stdout).unwrap(),
-            std::str::from_utf8(&res.stderr).unwrap()
-        );
-        return Err("Bindgen failed");
-    }
+    run_command(
+        Command::new("bindgen")
+            .args(["--output", &out_path])
+            .arg("--use-core")
+            .arg("--with-derive-default")
+            .args(
+                ALLOWLIST_FNS
+                    .iter()
+                    .flat_map(|s| ["--allowlist-function", s]),
+            )
+            .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
+            .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
+            .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
+            .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
+            .arg("wrapper.h")
+            .arg("--")
+            .args(&definitions)
+            .args(includes.iter().map(|s| format!("-I{s}"))),
+        "run bindgen",
+    )?;
 
     let excludes = if let Ok(libtype) = env::var("LIB_TYPE") {
         match libtype.as_str() {
@@ -476,4 +512,252 @@ pub fn main() -> Result<(), &'static str> {
     }
 
     Ok(())
+}
+
+fn emit_rerun_if_changed(path: &str) {
+    println!("cargo::rerun-if-changed={path}");
+}
+
+fn emit_git_rerun_if_changed(repo_root: &Path) {
+    let Some(git_dir) = git_output(repo_root, &["rev-parse", "--absolute-git-dir"]) else {
+        return;
+    };
+    let git_dir = PathBuf::from(git_dir);
+
+    for path in [
+        git_dir.join("HEAD"),
+        git_dir.join("index"),
+        git_dir.join("packed-refs"),
+        git_dir.join("refs/tags"),
+    ] {
+        if path.exists() {
+            println!("cargo::rerun-if-changed={}", path.display());
+        }
+    }
+
+    if let Some(head_ref) = git_output(repo_root, &["symbolic-ref", "-q", "HEAD"]) {
+        let ref_path = git_dir.join(head_ref);
+        if ref_path.exists() {
+            println!("cargo::rerun-if-changed={}", ref_path.display());
+        }
+    }
+}
+
+fn ensure_command_exists(command: &str) -> BuildResult<()> {
+    match Command::new(command).arg("--version").output() {
+        Ok(_) => Ok(()),
+        Err(err) if err.kind() == ErrorKind::NotFound => {
+            Err(format!("`{command}` was not found! Check your PATH!"))
+        }
+        Err(err) => Err(format!("failed to run `{command} --version`: {err}")),
+    }
+}
+
+fn run_command(command: &mut Command, context: &str) -> BuildResult<Output> {
+    let output = command
+        .output()
+        .map_err(|err| format!("failed to {context}: {err}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "{context} failed\nstdout:\n{}\n\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(output)
+}
+
+fn generate_native_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+    let script_path = repo_root.join("scripts/generate_rust_header.sh");
+    let rust_header_dir = out_dir.join("rust");
+
+    let mut command = Command::new("bash");
+    command.arg(&script_path).arg(&rust_header_dir);
+    if let Ok(cargo_bin) = env::var("CARGO") {
+        command.env("CARGO_BIN", cargo_bin);
+    }
+    if let Ok(cbindgen_bin) = env::var("CBINDGEN_BIN") {
+        command.env("CBINDGEN_BIN", cbindgen_bin);
+    }
+    command.current_dir(manifest_dir.join(".."));
+    run_command(&mut command, "generate rust.h")?;
+
+    generate_version_headers(repo_root, out_dir)
+}
+
+fn generate_version_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> {
+    let cmake_lists = fs::read_to_string(repo_root.join("CMakeLists.txt"))
+        .map_err(|err| format!("failed to read CMakeLists.txt: {err}"))?;
+    let version_template = fs::read_to_string(repo_root.join("src/version.h.in"))
+        .map_err(|err| format!("failed to read version.h.in: {err}"))?;
+    let bootloader_version_template =
+        fs::read_to_string(repo_root.join("src/bootloader/bootloader_version.h.in"))
+            .map_err(|err| format!("failed to read bootloader_version.h.in: {err}"))?;
+
+    let firmware_version = parse_cmake_string(&cmake_lists, "FIRMWARE_VERSION")?;
+    let bootloader_version = parse_cmake_string(&cmake_lists, "BOOTLOADER_VERSION")?;
+
+    let git_commit_hash = git_output(repo_root, &["rev-parse", "HEAD"])
+        .unwrap_or_else(|| ZERO_GIT_COMMIT_HASH.to_owned());
+    let git_commit_hash_short = git_output(repo_root, &["rev-parse", "--short=10", "HEAD"])
+        .unwrap_or_else(|| ZERO_GIT_COMMIT_HASH_SHORT.to_owned());
+
+    let git_firmware_version = script_version(repo_root, "firmware");
+    let git_bootloader_version = script_version(repo_root, "bootloader");
+
+    let firmware_info = build_version_info(
+        &firmware_version,
+        git_firmware_version.as_deref(),
+        &git_commit_hash_short,
+    )?;
+    let bootloader_info = build_version_info(
+        &bootloader_version,
+        git_bootloader_version.as_deref(),
+        &git_commit_hash_short,
+    )?;
+    let firmware_full_len = firmware_info.full_len.to_string();
+    let bootloader_full_len = bootloader_info.full_len.to_string();
+
+    let version_header = render_template(
+        &version_template,
+        &[
+            ("FIRMWARE_VERSION_FULL", firmware_info.full.as_str()),
+            ("FIRMWARE_VERSION", firmware_info.base.as_str()),
+            ("FIRMWARE_VERSION_FULL_LEN", firmware_full_len.as_str()),
+            ("FIRMWARE_VERSION_FULL_W16", firmware_info.full_w16.as_str()),
+            ("FIRMWARE_VERSION_MAJOR", firmware_info.major.as_str()),
+            ("FIRMWARE_VERSION_MINOR", firmware_info.minor.as_str()),
+            ("FIRMWARE_VERSION_PATCH", firmware_info.patch.as_str()),
+            ("GIT_COMMIT_HASH", git_commit_hash.as_str()),
+            ("GIT_COMMIT_HASH_SHORT", git_commit_hash_short.as_str()),
+        ],
+    );
+    let bootloader_version_header = render_template(
+        &bootloader_version_template,
+        &[
+            ("BOOTLOADER_VERSION_FULL", bootloader_info.full.as_str()),
+            (
+                "BOOTLOADER_VERSION_FULL_W16",
+                bootloader_info.full_w16.as_str(),
+            ),
+            ("BOOTLOADER_VERSION_FULL_LEN", bootloader_full_len.as_str()),
+        ],
+    );
+
+    write_generated_file(&out_dir.join("version.h"), &version_header)?;
+    write_generated_file(
+        &out_dir.join("bootloader/bootloader_version.h"),
+        &bootloader_version_header,
+    )?;
+
+    Ok(())
+}
+
+fn parse_cmake_string(contents: &str, variable: &str) -> BuildResult<String> {
+    let prefix = format!("set({variable} \"");
+    for line in contents.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix(&prefix) {
+            if let Some(value) = rest.strip_suffix("\")") {
+                return Ok(value.to_owned());
+            }
+        }
+    }
+    Err(format!("failed to parse {variable} from CMakeLists.txt"))
+}
+
+fn script_version(repo_root: &Path, component: &str) -> Option<String> {
+    let output = Command::new("python3")
+        .arg("./scripts/get_version")
+        .arg(component)
+        .arg("--check-semver")
+        .arg("--check-gpg")
+        .current_dir(repo_root)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let version = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if version.is_empty() {
+        None
+    } else {
+        Some(version)
+    }
+}
+
+fn git_output(repo_root: &Path, args: &[&str]) -> Option<String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_root)
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if value.is_empty() { None } else { Some(value) }
+}
+
+fn build_version_info(
+    base_version: &str,
+    git_version: Option<&str>,
+    git_commit_hash_short: &str,
+) -> BuildResult<VersionInfo> {
+    let full = if git_version == Some(base_version) {
+        base_version.to_owned()
+    } else {
+        format!("{base_version}-pre+{git_commit_hash_short}")
+    };
+    let mut parts = base_version.split('.');
+    let major = parts
+        .next()
+        .and_then(|major| major.strip_prefix('v'))
+        .ok_or_else(|| format!("invalid version format: {base_version}"))?;
+    let minor = parts
+        .next()
+        .ok_or_else(|| format!("invalid version format: {base_version}"))?;
+    let patch = parts
+        .next()
+        .ok_or_else(|| format!("invalid version format: {base_version}"))?;
+    if parts.next().is_some() {
+        return Err(format!("invalid version format: {base_version}"));
+    }
+    Ok(VersionInfo {
+        base: base_version.to_owned(),
+        full_len: full.len(),
+        full_w16: to_w16_literal(&full),
+        full,
+        major: major.to_owned(),
+        minor: minor.to_owned(),
+        patch: patch.to_owned(),
+    })
+}
+
+fn to_w16_literal(value: &str) -> String {
+    let mut output = String::new();
+    for ch in value.chars() {
+        output.push('\'');
+        output.push(ch);
+        output.push_str("', 0, ");
+    }
+    output
+}
+
+fn render_template(template: &str, replacements: &[(&str, &str)]) -> String {
+    let mut rendered = template.to_owned();
+    for (placeholder, value) in replacements {
+        rendered = rendered.replace(&format!("@{placeholder}@"), value);
+    }
+    rendered
+}
+
+fn write_generated_file(path: &Path, contents: &str) -> BuildResult<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|err| format!("failed to create {}: {err}", parent.display()))?;
+    }
+    fs::write(path, contents).map_err(|err| format!("failed to write {}: {err}", path.display()))
 }

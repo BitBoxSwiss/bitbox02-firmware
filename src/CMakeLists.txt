@@ -231,25 +231,14 @@ set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c
 set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
 
 # Generate c-headers for the rust library
-# Working dir must be set to the rust workspace so that cargo finds the
-# configuration for vendoring sources
 add_custom_target(rust-cbindgen
-  # cbindgen can automatically create the metadata, but it does so without the `--offline` flag.
-  # The workaround is to manually create and pass the metadata.
   COMMAND
-    ${CARGO}
-      metadata
-      --offline
-      --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml
-      > ${CMAKE_CURRENT_BINARY_DIR}/rust-metadata
-  COMMAND
-    ${CBINDGEN}
-      --quiet
-      --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-cbindgen.toml
-      --output ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
-      --profile release
-      --metadata ${CMAKE_CURRENT_BINARY_DIR}/rust-metadata
-      ${LIBBITBOX02_RUST_SOURCE_DIR}
+    ${CMAKE_COMMAND} -E env
+      CARGO_BIN=${CARGO}
+      CBINDGEN_BIN=${CBINDGEN}
+      bash
+      ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_rust_header.sh
+      ${CMAKE_CURRENT_BINARY_DIR}/rust
   WORKING_DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/rust
   BYPRODUCTS

@@ -14,6 +14,7 @@ bitbox02-noise = { path = "../bitbox02-noise" }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
+bitbox-usb-report-queue = { path = "../bitbox-usb-report-queue" }
 util = {path = "../util"}
 zeroize = { workspace = true }
 bip39 = { workspace = true }

@@ -42,13 +42,19 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "delay_t",
     "event_slider_data_t",
     "event_types",
+    "RustByteQueue",
+    "RustUsbReportQueue",
     "securechip_error_t",
     "trinary_input_string_params_t",
     "UG_COLOR",
     "upside_down_t",
 ];
 
-const OPAQUE_TYPES: &[&str] = &["da14531_protocol_frame"];
+const OPAQUE_TYPES: &[&str] = &[
+    "da14531_protocol_frame",
+    "RustByteQueue",
+    "RustUsbReportQueue",
+];
 
 const ALLOWLIST_FNS: &[&str] = &[
     "bip32_derive_xpub",
@@ -124,9 +130,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "printf",
     "progress_create",
     "progress_set",
-    "queue_hww_queue",
-    "queue_pull",
-    "queue_u2f_queue",
     "random_32_bytes_mcu",
     "random_32_bytes",
     "random_fake_reset",
@@ -172,6 +175,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "u2f_packet_process",
     "u2f_packet_timeout_get",
     "u2f_packet_timeout",
+    "u2f_device_setup",
     "u2f_process",
     "uart_poll",
     "UG_ClearBuffer",
@@ -185,6 +189,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "usb_packet_process",
     "usb_processing_hww",
     "usb_processing_init",
+    "usb_processing_init_u2f",
     "usb_processing_locked",
     "usb_processing_process",
     "usb_processing_timeout_reset",
@@ -222,7 +227,6 @@ const BITBOX02_SOURCES: &[&str] = &[
     "src/memory/memory_spi.c",
     "src/memory/memory.c",
     "src/platform/platform_init.c",
-    "src/queue.c",
     "src/random.c",
     "src/reset.c",
     "src/screen.c",

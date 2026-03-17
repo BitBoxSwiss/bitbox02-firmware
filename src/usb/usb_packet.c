@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "usb_packet.h"
-#include "queue.h"
 #include "screen.h"
 #include "usb_processing.h"
+#include <rust/rust.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,12 +15,17 @@
  */
 static State _in_state;
 
+static RustUsbReportQueue* _out_queue(void)
+{
+    return usb_processing_out_queue(usb_processing_hww());
+}
+
 /**
  * Resets the current state.
  */
 static void _reset_state(void)
 {
-    queue_clear(queue_hww_queue());
+    rust_usb_report_queue_clear(_out_queue());
     memset(&_in_state, 0, sizeof(_in_state));
 }
 
@@ -32,7 +37,7 @@ static void _reset_state(void)
  */
 static void _queue_err(const uint8_t err, uint32_t cid)
 {
-    usb_frame_prepare_err(err, cid, queue_hww_queue());
+    usb_frame_prepare_err(err, cid, _out_queue());
 }
 
 static bool _need_more_data(void)
@@ -40,7 +45,7 @@ static bool _need_more_data(void)
     return (_in_state.buf_ptr - _in_state.data) < (signed)_in_state.len;
 }
 
-void usb_invalid_endpoint(struct queue* queue, uint32_t cid)
+void usb_invalid_endpoint(RustUsbReportQueue* queue, uint32_t cid)
 {
     // TODO: if U2F is disabled, we used to return a 'channel busy' command.
     // now we return an invalid cmd, because there is not going to be a matching

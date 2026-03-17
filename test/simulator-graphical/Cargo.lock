@@ -336,6 +336,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-usb-report-queue"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+]
+
+[[package]]
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
@@ -343,6 +350,7 @@ dependencies = [
  "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-usb-report-queue",
  "bitbox02-noise",
  "bitbox02-sys",
  "futures-lite",
@@ -373,6 +381,7 @@ dependencies = [
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",
+ "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-noise",
  "bitcoin",
@@ -410,6 +419,7 @@ dependencies = [
  "bitbox-da14531",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",
@@ -2844,6 +2854,7 @@ name = "simulator-graphical"
 version = "0.1.0"
 dependencies = [
  "bitbox-aes",
+ "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-rust",
  "bitbox02-rust-c",

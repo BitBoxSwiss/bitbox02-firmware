@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <memory/memory.h>
 #include <mock_memory.h>
-#include <queue.h>
 #include <random.h>
 #include <rust/rust.h>
 #include <sd.h>
@@ -30,16 +29,15 @@ int get_usb_message_socket(uint8_t* input)
     return read(sockfd, input, USB_HID_REPORT_OUT_SIZE);
 }
 
-void send_usb_message_socket(void)
+void send_usb_message_socket(RustUsbReportQueue* hww_queue)
 {
-    const uint8_t* data = queue_pull(queue_hww_queue());
-    while (data) {
+    uint8_t data[USB_REPORT_SIZE];
+    while (rust_usb_report_queue_pull(hww_queue, data)) {
         data_len = 256 * (int)data[5] + (int)data[6];
         if (!write(sockfd, data, USB_HID_REPORT_OUT_SIZE)) {
             perror("ERROR, could not write to socket");
             exit(1);
         }
-        data = queue_pull(queue_hww_queue());
     }
 }
 
@@ -75,7 +73,12 @@ int main(void)
     }
 
     // BitBox02 simulation initializaition
-    usb_processing_init();
+    RustUsbReportQueue* hww_queue = rust_usb_report_queue_init();
+    if (hww_queue == NULL) {
+        perror("ERROR, could not allocate HWW queue");
+        return 1;
+    }
+    usb_processing_init(hww_queue);
     printf("USB setup success\n");
 
     hww_setup();
@@ -122,8 +125,9 @@ int main(void)
             usb_processing_process(usb_processing_hww());
             temp_len -= (USB_HID_REPORT_OUT_SIZE - 5);
         }
-        send_usb_message_socket();
+        send_usb_message_socket(hww_queue);
     }
     close(sockfd);
+    rust_usb_report_queue_free(hww_queue);
     return 0;
 }

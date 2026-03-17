@@ -54,6 +54,9 @@ extern crate bitbox_bytequeue;
 // Expose C interface defined in bitbox-da14531
 extern crate bitbox_da14531;
 
+// Expose C interface defined in bitbox-usb-report-queue
+extern crate bitbox_usb_report_queue;
+
 // Expose C interface defined in util
 extern crate util;
 

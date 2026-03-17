@@ -7,6 +7,7 @@ edition = "2024"
 bitbox02-rust = { path="../../src/rust/bitbox02-rust", features=["simulator-graphical"] }
 bitbox02-rust-c = { path="../../src/rust/bitbox02-rust-c", features=["simulator-graphical"] }
 bitbox02 = { path="../../src/rust/bitbox02", features=["simulator-graphical"] }
+bitbox-usb-report-queue = { path = "../../src/rust/bitbox-usb-report-queue" }
 bitbox-aes = { path="../../src/rust/bitbox-aes"}
 winit = "0.30.12"
 tracing = {version = "0.1.41", features=["log"]}

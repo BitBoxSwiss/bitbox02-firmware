@@ -10,10 +10,10 @@
 
 #include <hidapi.h>
 
-#include "queue.h"
 #include "u2f.h"
 #include "u2f/u2f_packet.h"
 #include "usb/usb_processing.h"
+#include <rust/rust.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
@@ -126,16 +126,17 @@ int hid_read_timeout(hid_device* dev, unsigned char* data, size_t length, int mi
         usb_processing_process(usb_processing_u2f());
     }
     usb_processing_process(usb_processing_u2f());
-    uint8_t* p = queue_pull(queue_u2f_queue());
-    // printf("Queue: %p\n", p);
-    if (p != NULL) {
-        memcpy(data, p, MIN(length, BUFSIZE));
+    uint8_t report[USB_REPORT_SIZE];
+    bool have_report = rust_usb_report_queue_pull(rust_usb_report_queue_u2f(), report);
+    // printf("Queue: %d\n", have_report);
+    if (have_report) {
+        memcpy(data, report, MIN(length, BUFSIZE));
     } else {
         // printf("No data in queue\n");
         _delay(600);
         return -127;
     }
-    if (queue_peek(queue_u2f_queue()) == NULL) {
+    if (!rust_usb_report_queue_peek(rust_usb_report_queue_u2f(), report)) {
         if (usb_processing_locked(usb_processing_u2f())) {
             usb_processing_unlock();
         }

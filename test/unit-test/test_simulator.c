@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <memory/memory.h>
 #include <mock_memory.h>
-#include <queue.h>
 #include <random.h>
 #include <rust/rust.h>
 #include <sd.h>
@@ -32,14 +31,13 @@ int get_usb_message_socket(uint8_t* input)
 
 void send_usb_message_socket(void)
 {
-    const uint8_t* data = queue_pull(queue_hww_queue());
-    while (data) {
+    uint8_t data[USB_REPORT_SIZE];
+    while (rust_usb_report_queue_pull(rust_usb_report_queue_hww(), data)) {
         data_len = 256 * (int)data[5] + (int)data[6];
         if (!write(sockfd, data, USB_HID_REPORT_OUT_SIZE)) {
             perror("ERROR, could not write to socket");
             exit(1);
         }
-        data = queue_pull(queue_hww_queue());
     }
 }
 

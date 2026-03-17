@@ -76,6 +76,7 @@ int main(void)
 
     // If did not jump to firmware code, begin UART/USB processing
     const uint8_t* hww_data = NULL;
+    uint8_t hww_data_buf[USB_REPORT_SIZE] = {0};
     USB_FRAME hww_frame = {0};
 
 #if PLATFORM_BITBOX02PLUS == 1
@@ -122,7 +123,9 @@ int main(void)
         }
 #endif
         if (!hww_data) {
-            hww_data = queue_pull(queue_hww_queue());
+            if (rust_usb_report_queue_pull(rust_usb_report_queue_hww(), hww_data_buf)) {
+                hww_data = hww_data_buf;
+            }
         }
         if (!hww_data && hid_hww_read((uint8_t*)&hww_frame)) {
             usb_packet_process(&hww_frame);

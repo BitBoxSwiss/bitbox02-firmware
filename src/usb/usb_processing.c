@@ -8,6 +8,7 @@
 #include "utils_assert.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 
 #if !defined(BOOTLOADER)
     #include <hww.h>
@@ -17,7 +18,6 @@ extern struct timer_descriptor TIMER_0;
     #endif
 
 #endif
-#include <queue.h>
 #include <stdlib.h>
 #include <string.h>
 #include <u2f.h>
@@ -36,13 +36,13 @@ struct usb_processing {
     uint32_t registered_cmds_len;
     /* Whether the content of in_packet is a new, complete incoming packet. */
     bool has_packet;
-    struct queue* (*out_queue)(void);
+    RustUsbReportQueue* (*out_queue)(void);
     usb_frame_formatter_t format_frame;
     /**
      * Function to call when a message has been received,
      * but there is no registered API set to manage it.
      */
-    void (*manage_invalid_endpoint)(struct queue* queue, uint32_t cid);
+    void (*manage_invalid_endpoint)(RustUsbReportQueue* queue, uint32_t cid);
 #if !defined(BOOTLOADER)
     /**
      * Function to call when a message has been received,
@@ -119,7 +119,7 @@ static usb_processing_state_t _usb_state = {0};
  * Responds with data of a certain length.
  * @param[in] packet The packet to be sent.
  */
-static queue_error_t _enqueue_frames(struct usb_processing* ctx, const Packet* out_packet)
+static UsbReportQueueError _enqueue_frames(struct usb_processing* ctx, const Packet* out_packet)
 {
     return ctx->format_frame(
         out_packet->cmd, out_packet->data_addr, out_packet->len, out_packet->cid, ctx->out_queue());
@@ -383,8 +383,8 @@ static void _register_timer(void)
 void usb_processing_init(void)
 {
 #if APP_U2F == 1
-    usb_processing_u2f()->out_queue = queue_u2f_queue;
-    queue_init(queue_u2f_queue(), USB_REPORT_SIZE);
+    usb_processing_u2f()->out_queue = rust_usb_report_queue_u2f;
+    rust_usb_report_queue_clear(rust_usb_report_queue_u2f());
     usb_processing_u2f()->format_frame = usb_frame_reply;
     usb_processing_u2f()->has_packet = false;
     usb_processing_u2f()->manage_invalid_endpoint = u2f_invalid_endpoint;
@@ -392,13 +392,13 @@ void usb_processing_init(void)
     usb_processing_u2f()->create_blocked_req_error = u2f_blocked_req_error;
     usb_processing_u2f()->abort_outstanding_op = u2f_abort_outstanding_op;
 #endif
-    usb_processing_hww()->out_queue = queue_hww_queue;
+    usb_processing_hww()->out_queue = rust_usb_report_queue_hww;
 #if !defined(BOOTLOADER)
     usb_processing_hww()->can_request_unblock = hww_blocking_request_can_go_through;
     usb_processing_hww()->create_blocked_req_error = hww_blocked_req_error;
     usb_processing_hww()->abort_outstanding_op = hww_abort_outstanding_op;
 #endif
-    queue_init(queue_hww_queue(), USB_REPORT_SIZE);
+    rust_usb_report_queue_clear(rust_usb_report_queue_hww());
     usb_processing_hww()->format_frame = usb_frame_reply;
     usb_processing_hww()->manage_invalid_endpoint = usb_invalid_endpoint;
     usb_processing_hww()->has_packet = false;

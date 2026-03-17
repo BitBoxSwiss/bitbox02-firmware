@@ -231,25 +231,14 @@ set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c
 set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
 
 # Generate c-headers for the rust library
-# Working dir must be set to the rust workspace so that cargo finds the
-# configuration for vendoring sources
 add_custom_target(rust-cbindgen
-  # cbindgen can automatically create the metadata, but it does so without the `--offline` flag.
-  # The workaround is to manually create and pass the metadata.
   COMMAND
-    ${CARGO}
-      metadata
-      --offline
-      --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml
-      > ${CMAKE_CURRENT_BINARY_DIR}/rust-metadata
-  COMMAND
-    ${CBINDGEN}
-      --quiet
-      --config ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-cbindgen.toml
-      --output ${CMAKE_CURRENT_BINARY_DIR}/rust/rust.h
-      --profile release
-      --metadata ${CMAKE_CURRENT_BINARY_DIR}/rust-metadata
-      ${LIBBITBOX02_RUST_SOURCE_DIR}
+    ${CMAKE_COMMAND} -E env
+      CARGO_BIN=${CARGO}
+      CBINDGEN_BIN=${CBINDGEN}
+      bash
+      ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_rust_header.sh
+      ${CMAKE_CURRENT_BINARY_DIR}/rust
   WORKING_DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/rust
   BYPRODUCTS
@@ -269,7 +258,6 @@ if(NOT CMAKE_CROSSCOMPILING)
       ${CMAKE_COMMAND} -E env
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO}
           test
@@ -292,7 +280,6 @@ if(NOT CMAKE_CROSSCOMPILING)
       ${CMAKE_COMMAND} -E env
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         ${CARGO} clippy
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
@@ -387,7 +374,6 @@ foreach(type ${RUST_LIBS})
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
       CFLAGS=${CARGO_C_FLAGS}
-      FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
       MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
@@ -443,7 +429,6 @@ if(CMAKE_CROSSCOMPILING)
     COMMAND
       CMAKE_SYSROOT=${CMAKE_SYSROOT}
       ${CMAKE_COMMAND} -E env
-      FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"

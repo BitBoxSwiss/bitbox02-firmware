@@ -149,7 +149,7 @@ dependencies = [
  "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
- "bitbox02-rust",
+ "bitbox02-noise",
  "bitbox02-sys",
  "futures-lite",
  "grounded",

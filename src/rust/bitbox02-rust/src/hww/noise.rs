@@ -11,17 +11,8 @@ const OP_I_CAN_HAS_PAIRIN_VERIFICASHUN: u8 = b'v';
 const OP_HER_COMEZ_TEH_HANDSHAEK: u8 = b'H';
 pub const OP_NOISE_MSG: u8 = b'n';
 
-/// Supplies the randomness source to the noise crate.
-pub enum BB02Random32 {}
-
-impl bitbox02_noise::Random32 for BB02Random32 {
-    fn mcu_32_bytes(out: &mut [u8; 32]) {
-        bitbox02::random::mcu_32_bytes(out);
-    }
-}
-
 /// A safer version of the noise state. RefCell so we cannot accidentally borrow illegally.
-struct SafeNoiseState(RefCell<bitbox02_noise::State<BB02Random32>>);
+struct SafeNoiseState(RefCell<bitbox02_noise::State<bitbox02::random::BB02Random32>>);
 
 /// Safety: this implements Sync even though it is not thread safe. This is okay, as we run only in
 /// a single thread in the BitBox02.

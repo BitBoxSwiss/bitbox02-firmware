@@ -19,9 +19,6 @@ extern crate alloc;
 #[cfg(any(feature = "testing", feature = "simulator-graphical"))]
 pub mod testing;
 
-#[cfg(test)]
-extern crate bitbox02_rust;
-
 pub mod da14531;
 pub mod da14531_handler;
 pub mod da14531_protocol;

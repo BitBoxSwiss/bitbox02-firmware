@@ -22,7 +22,6 @@ pub mod testing;
 #[cfg(test)]
 extern crate bitbox02_rust;
 
-pub mod da14531;
 pub mod da14531_handler;
 pub mod da14531_protocol;
 pub mod delay;

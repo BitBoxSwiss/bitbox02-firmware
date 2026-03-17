@@ -369,8 +369,9 @@ name = "bitbox02"
 version = "0.1.0"
 dependencies = [
  "bip39",
- "bitbox-hal",
  "bitbox-bytequeue",
+ "bitbox-hal",
+ "bitbox02-noise",
  "bitbox02-sys",
  "futures-lite",
  "grounded",
@@ -395,9 +396,9 @@ dependencies = [
  "bip32-ed25519",
  "bip39",
  "bitbox-aes",
+ "bitbox-bytequeue",
  "bitbox-executor",
  "bitbox-hal",
- "bitbox-bytequeue",
  "bitbox-secp256k1",
  "bitbox02",
  "bitbox02-noise",

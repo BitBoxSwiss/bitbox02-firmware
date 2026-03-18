@@ -65,10 +65,7 @@ fn main() -> Result<(), &'static str> {
         );
     }
     println!("cargo::rerun-if-changed={}", lvgl_header.display());
-    println!(
-        "cargo::rerun-if-changed={}",
-        lvgl_dir.join("src/lvgl.h").display()
-    );
+    println!("cargo::rerun-if-changed={}", lvgl_dir.display());
 
     let target = env::var("TARGET").expect("TARGET not set");
 

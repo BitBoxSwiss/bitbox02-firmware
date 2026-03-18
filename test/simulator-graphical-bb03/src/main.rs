@@ -286,6 +286,7 @@ impl App {
         lvgl::system::init();
         lvgl::log::register_print_cb(|level, buf| {
             if let Ok(s) = buf.to_str() {
+                let s = s.trim();
                 match level as u32 {
                     lvgl::ffi::LV_LOG_LEVEL_TRACE => tracing::trace!("{}", s),
                     lvgl::ffi::LV_LOG_LEVEL_INFO => tracing::info!("{}", s),

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @file lv_conf.h
  * Configuration file for v9.4.0

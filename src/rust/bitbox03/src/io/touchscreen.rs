@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use bitbox_lvgl as lvgl;
@@ -22,9 +24,9 @@ extern "C" fn indev_read_cb(
     let ud_ptr = unsafe { lvgl::ffi::lv_indev_get_user_data(indev) };
     debug_assert!(!ud_ptr.is_null());
     let ud = unsafe { &mut *(ud_ptr as *mut VecDeque<TouchScreenEvent>) };
-    if let Some(next) = ud.pop_front() {
-        info!("popped event");
-        let data = unsafe { &mut *data };
+    let data = unsafe { &mut *data };
+
+    if let Some(next) = ud.front() {
         data.point = LvPoint {
             x: next.x,
             y: next.y,
@@ -34,6 +36,13 @@ extern "C" fn indev_read_cb(
         } else {
             LvIndevState::LV_INDEV_STATE_RELEASED
         };
+    }
+
+    // indev_read_cb must always return the current state in `data`, so we keep the last item in
+    // the queue.
+    if ud.len() > 1 {
+        info!("pop event");
+        let _ = ud.pop_front();
         data.continue_reading = !ud.is_empty()
     }
 }

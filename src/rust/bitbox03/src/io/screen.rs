@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 use bitbox_lvgl as lvgl;
 use lvgl::{LvAlign, LvPart, ObjExt, SpinnerExt};
 

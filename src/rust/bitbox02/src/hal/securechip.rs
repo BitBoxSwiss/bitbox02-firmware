@@ -65,6 +65,17 @@ fn to_hal_error(error: crate::securechip::Error) -> Error {
     }
 }
 
+fn to_c_password_stretch_algo(algo: PasswordStretchAlgo) -> crate::securechip::PasswordStretchAlgo {
+    match algo {
+        PasswordStretchAlgo::V0 => {
+            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0
+        }
+        PasswordStretchAlgo::V1 => {
+            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1
+        }
+    }
+}
+
 impl SecureChip for BitBox02SecureChip {
     fn init_new_password(
         &mut self,
@@ -73,7 +84,7 @@ impl SecureChip for BitBox02SecureChip {
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         crate::securechip::init_new_password(
             password,
-            super::memory::to_bitbox02_password_stretch_algo(password_stretch_algo),
+            to_c_password_stretch_algo(password_stretch_algo),
         )
         .map_err(to_hal_error)
     }
@@ -85,7 +96,7 @@ impl SecureChip for BitBox02SecureChip {
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
         crate::securechip::stretch_password(
             password,
-            super::memory::to_bitbox02_password_stretch_algo(password_stretch_algo),
+            to_c_password_stretch_algo(password_stretch_algo),
         )
         .map_err(to_hal_error)
     }
@@ -225,6 +236,18 @@ mod tests {
         assert_eq!(
             to_hal_error(crate::securechip::Error::Status(7)),
             Error::Status(7)
+        );
+    }
+
+    #[test]
+    fn test_to_c_password_stretch_algo() {
+        assert_eq!(
+            to_c_password_stretch_algo(PasswordStretchAlgo::V0),
+            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0,
+        );
+        assert_eq!(
+            to_c_password_stretch_algo(PasswordStretchAlgo::V1),
+            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
         );
     }
 }

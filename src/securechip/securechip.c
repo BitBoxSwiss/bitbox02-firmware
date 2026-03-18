@@ -4,20 +4,19 @@
 
 #include <atecc/atecc.h>
 #include <hardfault.h>
-#include <memory/memory.h>
-#include <memory/memory_shared.h>
 #include <optiga/optiga.h>
+#include <rust/rust.h>
 
 typedef struct {
     int (*setup)(const securechip_interface_functions_t* fns);
     int (*kdf)(const uint8_t* msg, size_t msg_len, uint8_t* kdf_out);
     int (*init_new_password)(
         const char* password,
-        memory_password_stretch_algo_t password_stretch_algo,
+        securechip_password_stretch_algo_t password_stretch_algo,
         uint8_t* stretched_out);
     int (*stretch_password)(
         const char* password,
-        memory_password_stretch_algo_t password_stretch_algo,
+        securechip_password_stretch_algo_t password_stretch_algo,
         uint8_t* stretched_out);
     bool (*reset_keys)(void);
     bool (*gen_attestation_key)(uint8_t* pubkey_out);
@@ -38,8 +37,8 @@ static securechip_crypt_interface_t _fns = {0};
 // Detect if we have atecc or optiga chip and set interface functions
 bool securechip_init(void)
 {
-    switch (memory_get_securechip_type()) {
-    case MEMORY_SECURECHIP_TYPE_OPTIGA:
+    switch (rust_memory_get_securechip_type()) {
+    case RUST_MEMORY_SECURECHIP_TYPE_OPTIGA:
         _fns.setup = optiga_setup;
         _fns.kdf = optiga_kdf_external;
         _fns.init_new_password = optiga_init_new_password;
@@ -57,7 +56,7 @@ bool securechip_init(void)
 #endif
         _fns.model = optiga_model;
         break;
-    case MEMORY_SECURECHIP_TYPE_ATECC:
+    case RUST_MEMORY_SECURECHIP_TYPE_ATECC:
     default:
         _fns.setup = atecc_setup;
         _fns.kdf = atecc_kdf;
@@ -101,7 +100,7 @@ int securechip_kdf(const uint8_t* msg, size_t msg_len, uint8_t* mac_out)
 
 int securechip_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out)
 {
     ABORT_IF_NULL(init_new_password);
@@ -110,7 +109,7 @@ int securechip_init_new_password(
 
 int securechip_stretch_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out)
 {
     ABORT_IF_NULL(stretch_password);

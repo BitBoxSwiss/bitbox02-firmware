@@ -754,7 +754,7 @@ static void test_optiga_stretch_password_v0_success(void** state)
 
     uint8_t stretched_out[32] = {0};
     assert_int_equal(
-        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out), 0);
+        optiga_stretch_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V0, stretched_out), 0);
     assert_memory_equal(
         stretched_out, _expected_stretched_out_v0, sizeof(_expected_stretched_out_v0));
     // Successful password verification resets the small monotonic counter/threshold.
@@ -779,25 +779,25 @@ static void test_optiga_stretch_password_v0_attempt_counter(void** state)
     uint8_t stretched_out[32] = {0};
 
     assert_int_equal(
-        optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+        optiga_stretch_password("wrong", SECURECHIP_PASSWORD_STRETCH_ALGO_V0, stretched_out),
         SC_ERR_INCORRECT_PASSWORD);
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 1);
     assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
 
     assert_int_equal(
-        optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+        optiga_stretch_password("wrong", SECURECHIP_PASSWORD_STRETCH_ALGO_V0, stretched_out),
         SC_ERR_INCORRECT_PASSWORD);
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 2);
     assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
 
     assert_int_equal(
-        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out), 0);
+        optiga_stretch_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V0, stretched_out), 0);
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 0);
     assert_int_equal(_get_threshold(OID_COUNTER_PASSWORD), SMALL_MONOTONIC_COUNTER_MAX_USE);
 
     for (int i = 0; i < SMALL_MONOTONIC_COUNTER_MAX_USE; i++) {
         assert_int_equal(
-            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+            optiga_stretch_password("wrong", SECURECHIP_PASSWORD_STRETCH_ALGO_V0, stretched_out),
             SC_ERR_INCORRECT_PASSWORD);
     }
     assert_int_equal(
@@ -805,7 +805,7 @@ static void test_optiga_stretch_password_v0_attempt_counter(void** state)
 
     // After exhausting all allowed attempts, a correct password fails as well.
     assert_int_equal(
-        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V0, stretched_out),
+        optiga_stretch_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V0, stretched_out),
         SC_ERR_INCORRECT_PASSWORD);
     assert_int_equal(
         optiga_common_get_uint32(&_oid_counter_password_buf[0]), SMALL_MONOTONIC_COUNTER_MAX_USE);
@@ -820,7 +820,8 @@ static void test_optiga_password_v1_stretch_exhaust_fails_after_init(void** stat
     _setup_test();
 
     uint8_t stretched[32] = {0};
-    assert_int_equal(optiga_init_new_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
+    assert_int_equal(
+        optiga_init_new_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
     assert_memory_equal(stretched, _expected_stretched_out_v1, sizeof(_expected_stretched_out_v1));
 
     // Counter & threshold of password counter. After init, it is at 1, but the threshold is
@@ -835,7 +836,7 @@ static void test_optiga_password_v1_stretch_exhaust_fails_after_init(void** stat
     // Exhaust all attempts.
     for (int i = 1; i <= SMALL_MONOTONIC_COUNTER_MAX_USE; i++) {
         assert_int_equal(
-            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+            optiga_stretch_password("wrong", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched),
             SC_ERR_INCORRECT_PASSWORD);
 
         // Counter & threshold of password counter.
@@ -850,7 +851,7 @@ static void test_optiga_password_v1_stretch_exhaust_fails_after_init(void** stat
     // Even a correct password doesn't work.
     memset(stretched, 0x00, sizeof(stretched));
     assert_int_equal(
-        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+        optiga_stretch_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched),
         SC_ERR_INCORRECT_PASSWORD);
     uint8_t zero[32] = {0};
     assert_memory_equal(stretched, zero, sizeof(stretched));
@@ -864,7 +865,8 @@ static void test_optiga_password_v1(void** state)
     _setup_test();
 
     uint8_t stretched[32] = {0};
-    assert_int_equal(optiga_init_new_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
+    assert_int_equal(
+        optiga_init_new_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
     assert_memory_equal(stretched, _expected_stretched_out_v1, sizeof(_expected_stretched_out_v1));
 
     // Counter & threshold of password counter. After init, it is at 1, but the threshold is
@@ -879,7 +881,7 @@ static void test_optiga_password_v1(void** state)
     // A few failed attempts:
     for (int i = 1; i <= 2; i++) {
         assert_int_equal(
-            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+            optiga_stretch_password("wrong", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched),
             SC_ERR_INCORRECT_PASSWORD);
 
         // Counter & threshold of password counter.
@@ -893,7 +895,8 @@ static void test_optiga_password_v1(void** state)
 
     // Correct attempt gets the right stretched value and resets counters.
     memset(stretched, 0x00, sizeof(stretched));
-    assert_int_equal(optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
+    assert_int_equal(
+        optiga_stretch_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched), 0);
     assert_memory_equal(stretched, _expected_stretched_out_v1, sizeof(_expected_stretched_out_v1));
     // Counter & threshold of password counter.
     assert_int_equal(_get_counter(OID_COUNTER_PASSWORD), 0);
@@ -907,7 +910,7 @@ static void test_optiga_password_v1(void** state)
     // counter/threshold was reset to 0/MAX after the correct stretch attempt.
     for (int i = 1; i <= SMALL_MONOTONIC_COUNTER_MAX_USE; i++) {
         assert_int_equal(
-            optiga_stretch_password("wrong", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+            optiga_stretch_password("wrong", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched),
             SC_ERR_INCORRECT_PASSWORD);
 
         // Counter & threshold of password counter.
@@ -922,7 +925,7 @@ static void test_optiga_password_v1(void** state)
     // Even a correct password doesn't work anymore.
     memset(stretched, 0x00, sizeof(stretched));
     assert_int_equal(
-        optiga_stretch_password("pw", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched),
+        optiga_stretch_password("pw", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched),
         SC_ERR_INCORRECT_PASSWORD);
     uint8_t zero[32] = {0};
     assert_memory_equal(stretched, zero, sizeof(stretched));

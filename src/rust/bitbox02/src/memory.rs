@@ -365,8 +365,7 @@ fn set_attestation_bootloader_hash(hash: &[u8; 32]) -> bool {
     unsafe { bitbox02_sys::memory_set_attestation_bootloader_hash(hash.as_ptr()) }
 }
 
-#[cfg(test)]
-fn get_optiga_config_version() -> Result<OptigaConfigVersion, ()> {
+pub fn get_optiga_config_version() -> Result<OptigaConfigVersion, ()> {
     let mut version = core::mem::MaybeUninit::uninit();
     unsafe {
         match bitbox02_sys::memory_get_optiga_config_version(version.as_mut_ptr()) {
@@ -376,8 +375,7 @@ fn get_optiga_config_version() -> Result<OptigaConfigVersion, ()> {
     }
 }
 
-#[cfg(test)]
-fn set_optiga_config_version(version: OptigaConfigVersion) -> Result<(), ()> {
+pub fn set_optiga_config_version(version: OptigaConfigVersion) -> Result<(), ()> {
     match unsafe { bitbox02_sys::memory_set_optiga_config_version(version) } {
         true => Ok(()),
         false => Err(()),

@@ -4,7 +4,6 @@
 #define _SECURECHIP_H_
 
 #include "compiler_util.h"
-#include <memory/memory.h>
 #include <platform/platform_config.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -39,6 +38,14 @@ typedef enum {
     SC_OPTIGA_ERR_PAL = -205,
     SC_OPTIGA_ERR_UNEXPECTED_LEN = -206,
 } securechip_error_t;
+
+typedef enum {
+    // Legacy/initial value for BitBox02 and BitBox02 Nova using the initial stretch algo in
+    // ATECC/Optiga.
+    SECURECHIP_PASSWORD_STRETCH_ALGO_V0,
+    // Currently used only by Optiga.
+    SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
+} securechip_password_stretch_algo_t;
 
 typedef struct {
     /**
@@ -98,7 +105,7 @@ USE_RESULT int securechip_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
  */
 USE_RESULT int securechip_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out);
 
 /**
@@ -112,7 +119,7 @@ USE_RESULT int securechip_init_new_password(
  */
 USE_RESULT int securechip_stretch_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out);
 
 /**

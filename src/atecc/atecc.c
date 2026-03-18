@@ -4,7 +4,6 @@
 #include "hardfault.h"
 #include "securechip/securechip.h"
 #include <i2c_ecc.h>
-#include <memory/memory.h>
 #include <rust/rust.h>
 #include <util.h>
 
@@ -574,11 +573,11 @@ int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)
 
 int atecc_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out)
 {
     (void)password;
-    if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V0) {
+    if (password_stretch_algo != SECURECHIP_PASSWORD_STRETCH_ALGO_V0) {
         return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
     }
     if (!atecc_reset_keys()) {
@@ -589,10 +588,10 @@ int atecc_init_new_password(
 
 int atecc_stretch_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out)
 {
-    if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V0) {
+    if (password_stretch_algo != SECURECHIP_PASSWORD_STRETCH_ALGO_V0) {
         return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
     }
 

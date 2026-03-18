@@ -9,8 +9,6 @@
 #include "pal/pal_os_timer.h"
 
 #include <hardfault.h>
-#include <memory/bitbox02_smarteeprom.h>
-#include <memory/memory.h>
 #include <optiga_crypt.h>
 #include <optiga_util.h>
 #include <rust/rust.h>
@@ -1054,12 +1052,12 @@ static int _verify_metadata(
 // Updates Optiga config to V1 if not already done.
 static int _maybe_update_config_v1(void)
 {
-    memory_optiga_config_version_t config_version;
-    if (!memory_get_optiga_config_version(&config_version)) {
+    bool config_is_v1_or_higher = false;
+    if (!rust_memory_optiga_config_is_v1_or_higher(&config_is_v1_or_higher)) {
         return SC_ERR_MEMORY;
     }
 
-    if (config_version >= MEMORY_OPTIGA_CONFIG_V1) {
+    if (config_is_v1_or_higher) {
         if (FINAL_LCSO_STATE_V1 >= LCSO_STATE_OPERATIONAL) {
             // Already configured
             util_log("optiga: config v1 already configured");
@@ -1114,7 +1112,7 @@ static int _maybe_update_config_v1(void)
     }
 
     if (FINAL_LCSO_STATE_V1 >= LCSO_STATE_OPERATIONAL) {
-        if (!memory_set_optiga_config_version(MEMORY_OPTIGA_CONFIG_V1)) {
+        if (!rust_memory_set_optiga_config_version_v1()) {
             return SC_ERR_MEMORY;
         }
     }
@@ -1332,10 +1330,10 @@ static int _v1_combine(
 
 int optiga_init_new_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out)
 {
-    if (password_stretch_algo != MEMORY_PASSWORD_STRETCH_ALGO_V1) {
+    if (password_stretch_algo != SECURECHIP_PASSWORD_STRETCH_ALGO_V1) {
         // New passwords must use the latest algo.
         return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
     }
@@ -1410,7 +1408,7 @@ bool optiga_reset_keys(void)
 
     // We reset using V1, the latest algorithm. It covers resetting everything from V0 as well.
     uint8_t stretched[32];
-    return optiga_init_new_password("", MEMORY_PASSWORD_STRETCH_ALGO_V1, stretched) == 0;
+    return optiga_init_new_password("", SECURECHIP_PASSWORD_STRETCH_ALGO_V1, stretched) == 0;
 }
 
 static int _optiga_verify_password_v0(const char* password, uint8_t* password_secret_out)
@@ -1795,14 +1793,14 @@ static int _stretch_password_v1(const char* password, uint8_t* stretched_out)
 
 int optiga_stretch_password(
     const char* password,
-    memory_password_stretch_algo_t password_stretch_algo,
+    securechip_password_stretch_algo_t password_stretch_algo,
     uint8_t* stretched_out)
 {
     switch (password_stretch_algo) {
-    case MEMORY_PASSWORD_STRETCH_ALGO_V0:
+    case SECURECHIP_PASSWORD_STRETCH_ALGO_V0:
         util_log("stretching password using algo v0");
         return _stretch_password_v0(password, stretched_out);
-    case MEMORY_PASSWORD_STRETCH_ALGO_V1:
+    case SECURECHIP_PASSWORD_STRETCH_ALGO_V1:
         util_log("stretching password using algo v1");
         return _stretch_password_v1(password, stretched_out);
     default:

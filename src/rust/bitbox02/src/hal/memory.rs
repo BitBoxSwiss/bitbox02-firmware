@@ -5,7 +5,8 @@ use alloc::vec::Vec;
 
 use bitbox_hal::Memory;
 use bitbox_hal::memory::{
-    BleFirmwareSlot, BleMetadata, Error, PasswordStretchAlgo, Platform, SecurechipType,
+    BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
+    SecurechipType,
 };
 
 pub struct BitBox02Memory;
@@ -32,6 +33,15 @@ fn to_hal_password_stretch_algo(algo: crate::memory::PasswordStretchAlgo) -> Pas
         crate::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 => {
             PasswordStretchAlgo::V1
         }
+    }
+}
+
+fn to_hal_optiga_config_version(
+    version: crate::memory::OptigaConfigVersion,
+) -> OptigaConfigVersion {
+    match version {
+        crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V0 => OptigaConfigVersion::V0,
+        crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1 => OptigaConfigVersion::V1,
     }
 }
 
@@ -66,6 +76,15 @@ pub(super) fn to_bitbox02_password_stretch_algo(
         PasswordStretchAlgo::V1 => {
             crate::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1
         }
+    }
+}
+
+fn to_bitbox02_optiga_config_version(
+    version: OptigaConfigVersion,
+) -> crate::memory::OptigaConfigVersion {
+    match version {
+        OptigaConfigVersion::V0 => crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V0,
+        OptigaConfigVersion::V1 => crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1,
     }
 }
 
@@ -126,6 +145,14 @@ impl Memory for BitBox02Memory {
 
     fn get_securechip_type(&mut self) -> Result<SecurechipType, ()> {
         crate::memory::get_securechip_type().map(to_hal_securechip_type)
+    }
+
+    fn get_optiga_config_version(&mut self) -> Result<OptigaConfigVersion, ()> {
+        crate::memory::get_optiga_config_version().map(to_hal_optiga_config_version)
+    }
+
+    fn set_optiga_config_version(&mut self, version: OptigaConfigVersion) -> Result<(), ()> {
+        crate::memory::set_optiga_config_version(to_bitbox02_optiga_config_version(version))
     }
 
     fn get_platform(&mut self) -> Result<Platform, ()> {
@@ -307,6 +334,30 @@ mod tests {
         assert_eq!(
             to_bitbox02_password_stretch_algo(PasswordStretchAlgo::V1) as i32,
             crate::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V1 as i32,
+        );
+    }
+
+    #[test]
+    fn test_optiga_config_version_mappings() {
+        assert_eq!(
+            to_hal_optiga_config_version(
+                crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V0,
+            ),
+            OptigaConfigVersion::V0,
+        );
+        assert_eq!(
+            to_hal_optiga_config_version(
+                crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1,
+            ),
+            OptigaConfigVersion::V1,
+        );
+        assert_eq!(
+            to_bitbox02_optiga_config_version(OptigaConfigVersion::V0) as i32,
+            crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V0 as i32,
+        );
+        assert_eq!(
+            to_bitbox02_optiga_config_version(OptigaConfigVersion::V1) as i32,
+            crate::memory::OptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V1 as i32,
         );
     }
 

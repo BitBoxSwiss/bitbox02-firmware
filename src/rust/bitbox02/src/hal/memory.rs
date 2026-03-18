@@ -227,6 +227,10 @@ impl Memory for BitBox02Memory {
         crate::memory::smarteeprom_reset_unlock_attempts()
     }
 
+    fn get_io_protection_key(&mut self, out: &mut [u8; 32]) {
+        crate::memory::get_io_protection_key(out)
+    }
+
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
         crate::memory::get_salt_root()
     }

@@ -1,4 +1,3 @@
-use alloc::vec;
 use alloc::vec::Vec;
 use bitbox_hal as hal;
 use bitbox_lvgl::{
@@ -149,10 +148,10 @@ fn set_background(display: &mut LvDisplay) {
 }
 
 impl BitBox03Ui {
-    pub fn new() -> BitBox03Ui {
+    pub const fn new() -> BitBox03Ui {
         BitBox03Ui {
             display: None,
-            stack: vec![],
+            stack: Vec::new(),
         }
     }
     pub fn init(&mut self, mut display: LvDisplay) {

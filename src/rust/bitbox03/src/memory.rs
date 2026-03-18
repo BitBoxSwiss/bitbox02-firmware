@@ -141,4 +141,15 @@ impl hal::memory::Memory for BitBox03Memory {
     fn multisig_get_by_hash(&self, _hash: &[u8; 32]) -> Option<alloc::string::String> {
         todo!()
     }
+
+    fn get_optiga_config_version(&mut self) -> Result<bitbox_hal::memory::OptigaConfigVersion, ()> {
+        todo!()
+    }
+
+    fn set_optiga_config_version(
+        &mut self,
+        _version: bitbox_hal::memory::OptigaConfigVersion,
+    ) -> Result<(), ()> {
+        todo!()
+    }
 }

@@ -22,9 +22,15 @@ wrapper in the bitbox02 crate.
 ## Build, Test, and Development Commands
 - `make dockerpull` / `make dockerdev`: fetch and enter the maintained development container.
 
-All make commands are to be run inside docker like this: `./scripts/docker_exec.sh make -j <command>`, e.g.  `./scripts/docker_exec.sh make -j firmware`.
-Any shell command can be run inside docker using `./scripts/docker_exec.sh <command>` - do not use
-`bash -lc` before the command.
+Run regular Unix commands such as `git`, `rg`, `grep`, `ls`, `find`, `sed`, and `cat` directly on
+the host.
+
+Use `./scripts/dev_exec.sh <command>` only for project-specific commands that depend on the project
+toolchain or compiler environment.
+
+Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. If a command genuinely needs shell
+features such as `cd && ...`, pass an explicit shell as the command, e.g.
+`./scripts/dev_exec.sh bash -lc 'cd src/rust && cargo fmt'`.
 
 
 - `make firmware` / `make bootloader`: compile firmware or bootloader ELFs into `build/`.
@@ -40,8 +46,9 @@ Any shell command can be run inside docker using `./scripts/docker_exec.sh <comm
 pinned toolchain in `rust-toolchain.toml`; keep module paths aligned with `src/rust` and regenerate
 bindings (`cbindgen`, protobuf) when interfaces change.
 
-For C code changes, run ./scripts/format to format the code. For Python changes, run `black` to format the code.
-For Rust code changes, run `cd src/rust && cargo fmt` to format the code.
+For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code. For Python
+changes, run `./scripts/dev_exec.sh black` to format the code. For Rust code changes, run
+`./scripts/dev_exec.sh bash -lc 'cd src/rust && cargo fmt'`.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware

@@ -7,7 +7,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use crate::hal::{Memory, Random, SecureChip, memory, securechip};
+use crate::hal::{Memory, Random, SecureChip, System, memory, securechip};
 
 use util::bip32::HARDENED;
 use util::cell::SyncCell;
@@ -288,7 +288,7 @@ fn encrypt_and_store_seed_internal(
     // Lock to ensure clean RAM
     lock();
 
-    bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
+    hal.system().communication_timeout_reset(LONG_TIMEOUT);
 
     let password_stretch_algo = default_password_stretch_algo(hal)?;
 
@@ -428,7 +428,7 @@ pub async fn unlock(
         crate::reset::reset(hal, false).await;
         return Err(Error::MaxAttemptsExceeded);
     }
-    bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
+    hal.system().communication_timeout_reset(LONG_TIMEOUT);
     hal.memory().increment_unlock_attempts();
     let seed = match get_and_decrypt_seed(hal, password) {
         Ok(seed) => seed,

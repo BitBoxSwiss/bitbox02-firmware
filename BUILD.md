@@ -16,6 +16,10 @@ There is a container image with all the build dependencies and there are some
 > [!TIP]
 > It is highly recommended to use the container for development.
 
+For automation and editor integrations, use `./scripts/dev_exec.sh <command>` as the project
+entrypoint. It runs commands natively on the host by default and can be switched to container
+execution with `BITBOX_FW_EXEC_MODE=docker`.
+
 Accessing USB devices, like the flashing tool and the bitbox, is easier outside
 of the container. So it is recommended to install the J-Link Software on your
 development machine to follow the instructions below.
@@ -385,8 +389,8 @@ docker exec -u 0 -it bitbox02-firmware-dev bash -c 'apt update && apt install -y
 
 There is a Python api library in `py/bitbox02`.
 
-> [!IMPORTANT]  
-> The Python scripts and editable installs require **pip ≥ 25**. Older pip versions will fail.  
+> [!IMPORTANT]
+> The Python scripts and editable installs require **pip ≥ 25**. Older pip versions will fail.
 > For setup and usage instructions, see [`py/README.md`](py/README.md).
 
 ### BitBox02 CLI client

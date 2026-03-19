@@ -23,6 +23,7 @@ mod der;
 mod firmware_c_api;
 #[cfg(feature = "factory-setup")]
 mod secp256k1;
+mod u2fhid_c_api;
 
 #[cfg(feature = "app-u2f")]
 // Stubs for C unit tests and C simulator - these are currently compiled and linked but they don't

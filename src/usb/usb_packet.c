@@ -1,49 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "usb_packet.h"
-#include "screen.h"
-#include "usb_processing.h"
-#include <rust/rust.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define ERR_NONE 0
-
-/**
- * Keeps a state for the frame processing of incoming frames.
- */
-static State _in_state;
-
-static RustUsbReportQueue* _out_queue(void)
-{
-    return usb_processing_out_queue(usb_processing_hww());
-}
-
-/**
- * Resets the current state.
- */
-static void _reset_state(void)
-{
-    rust_usb_report_queue_clear(_out_queue());
-    memset(&_in_state, 0, sizeof(_in_state));
-}
-
-/**
- * Responds with an error.
- * @param[in] err The error.
- * @param[in] cid The channel identifier.
- * No return value needed as long as _reset_state clears the queue.
- */
-static void _queue_err(const uint8_t err, uint32_t cid)
-{
-    usb_frame_prepare_err(err, cid, _out_queue());
-}
-
-static bool _need_more_data(void)
-{
-    return (_in_state.buf_ptr - _in_state.data) < (signed)_in_state.len;
-}
 
 void usb_invalid_endpoint(RustUsbReportQueue* queue, uint32_t cid)
 {
@@ -56,46 +13,5 @@ void usb_invalid_endpoint(RustUsbReportQueue* queue, uint32_t cid)
 
 bool usb_packet_process(const USB_FRAME* frame)
 {
-    struct usb_processing* ctx = usb_processing_hww();
-    switch (usb_frame_process(frame, &_in_state)) {
-    case FRAME_ERR_IGNORE:
-        // Ignore this frame, i.e. no response.
-        break;
-    case FRAME_ERR_INVALID_SEQ:
-        // Reset the state becuase this error indicates that there is a host application bug
-        _reset_state();
-        _queue_err(FRAME_ERR_INVALID_SEQ, frame->cid);
-        break;
-    case FRAME_ERR_CHANNEL_BUSY:
-        // We don't reset the state because this error doesn't indicate something wrong with the
-        // "current" connection.
-        _queue_err(FRAME_ERR_CHANNEL_BUSY, frame->cid);
-        break;
-    case FRAME_ERR_INVALID_LEN:
-        // Reset the state becuase this error indicates that there is a host application bug
-        _reset_state();
-        _queue_err(FRAME_ERR_INVALID_LEN, frame->cid);
-        break;
-    case ERR_NONE:
-        if (_need_more_data()) {
-            // Do not send a message yet
-            return true;
-        }
-        if (usb_processing_enqueue(
-                ctx, _in_state.data, _in_state.len, _in_state.cmd, _in_state.cid)) {
-            // Queue filled and will be sent during usb processing
-            _reset_state();
-            return true;
-        }
-        // Else: Currently processing a message, reset the state and forget about this packet
-        _reset_state();
-        _queue_err(FRAME_ERR_CHANNEL_BUSY, frame->cid);
-        break;
-    default:
-        // other errors
-        _reset_state();
-        _queue_err(FRAME_ERR_OTHER, frame->cid);
-        break;
-    }
-    return false;
+    return rust_usb_packet_process(frame);
 }

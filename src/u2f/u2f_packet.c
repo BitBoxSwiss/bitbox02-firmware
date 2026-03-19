@@ -1,82 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "u2f_packet.h"
-#include "screen.h"
-#include "usb/usb_processing.h"
-#include <rust/rust.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <util.h>
-
-#define ERR_NONE 0
-
-// We can handle up to NUM_TIMEOUT_COUNTERS missing continuation frames
-#define NUM_TIMEOUT_COUNTERS 3
-
-struct frame_counter {
-    uint32_t cid;
-    uint8_t counter;
-};
-
-// cid == 0 indicates that there isn't any active timer for that slot
-static volatile struct frame_counter _timeout_counters[NUM_TIMEOUT_COUNTERS];
-
-static void _reset_timeout(uint32_t cid)
-{
-    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
-        if (_timeout_counters[i].cid == cid) {
-            _timeout_counters[i].counter = 0;
-        }
-    }
-}
-
-static void _timeout_disable(uint32_t cid)
-{
-    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
-        if (_timeout_counters[i].cid == cid) {
-            _timeout_counters[i].cid = 0;
-            _timeout_counters[i].counter = 0;
-        }
-    }
-}
-
-/**
- * Keeps a state for the frame processing of incoming frames.
- */
-static State _in_state;
-
-static RustUsbReportQueue* _out_queue(void)
-{
-    return usb_processing_out_queue(usb_processing_u2f());
-}
-
-/**
- * Resets the current state.
- */
-static void _reset_state(void)
-{
-    rust_usb_report_queue_clear(_out_queue());
-    _timeout_disable(_in_state.cid);
-    memset(&_in_state, 0, sizeof(_in_state));
-    _in_state.buf_ptr = _in_state.data;
-}
-
-/**
- * Responds with an error.
- * @param[in] err The error.
- * @param[in] cid The channel identifier.
- * No return value needed as long as _reset_state clears the queue.
- */
-static void _queue_err(const uint8_t err, uint32_t cid)
-{
-    usb_frame_prepare_err(err, cid, _out_queue());
-}
-
-static bool _need_more_data(void)
-{
-    return (_in_state.buf_ptr - _in_state.data) < (signed)_in_state.len;
-}
 
 void u2f_invalid_endpoint(RustUsbReportQueue* queue, uint32_t cid)
 {
@@ -89,99 +13,30 @@ void u2f_invalid_endpoint(RustUsbReportQueue* queue, uint32_t cid)
 
 void u2f_packet_timeout_enable(uint32_t cid)
 {
-    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
-        if (_timeout_counters[i].cid == 0) {
-            _timeout_counters[i].cid = cid;
-            _timeout_counters[i].counter = 0;
-            return;
-        }
-    }
+    rust_u2f_packet_timeout_enable(cid);
 }
 
 bool u2f_packet_timeout_get(uint32_t* cid)
 {
-    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
-        *cid = _timeout_counters[i].cid;
-        if (_timeout_counters[i].cid != 0 && _timeout_counters[i].counter >= 5) {
-            return true;
-        }
-    }
-    return false;
+    return rust_u2f_packet_timeout_get(cid);
 }
 
 void u2f_packet_timeout_tick(void)
 {
-    for (int i = 0; i < NUM_TIMEOUT_COUNTERS; ++i) {
-        if (_timeout_counters[i].cid != 0) {
-            _timeout_counters[i].counter += 1;
-        }
-    }
+    rust_u2f_packet_timeout_tick();
 }
 
 void u2f_packet_timeout(uint32_t cid)
 {
-    util_log("u2f_packet_timeout");
-    _timeout_disable(cid);
-    if (cid == _in_state.cid) {
-        _reset_state();
-    }
-    usb_frame_prepare_err(FRAME_ERR_MSG_TIMEOUT, cid, _out_queue());
+    rust_u2f_packet_timeout(cid);
 }
 
 bool u2f_packet_process(const USB_FRAME* frame)
 {
-    struct usb_processing* ctx = usb_processing_u2f();
-    switch (usb_frame_process(frame, &_in_state)) {
-    case FRAME_ERR_IGNORE:
-        util_log("u2f_packet ignore");
-        // Ignore this frame, i.e. no response.
-        break;
-    case FRAME_ERR_INVALID_SEQ:
-        util_log("u2f_packet seq");
-        // Reset the state becuase this error indicates that there is a host application bug
-        _reset_state();
-        _queue_err(FRAME_ERR_INVALID_SEQ, frame->cid);
-        break;
-    case FRAME_ERR_CHANNEL_BUSY:
-        util_log("u2f_packet busy");
-        // We don't reset the state because this error doesn't indicate something wrong with the
-        // "current" connection.
-        _queue_err(FRAME_ERR_CHANNEL_BUSY, frame->cid);
-        break;
-    case FRAME_ERR_INVALID_LEN:
-        util_log("u2f_packet invalid len");
-        // Reset the state becuase this error indicates that there is a host application bug
-        _reset_state();
-        _queue_err(FRAME_ERR_INVALID_LEN, frame->cid);
-        break;
-    case ERR_NONE:
-        _reset_timeout(frame->cid);
-        if (_need_more_data()) {
-            // Do not send a message yet
-            return true;
-        }
-        /* We have received a complete frame. Buffer it for processing. */
-        if (usb_processing_enqueue(
-                ctx, _in_state.data, _in_state.len, _in_state.cmd, _in_state.cid)) {
-            // Queue filled and will be sent during usb processing
-            _reset_state();
-            return false;
-        }
-        // Else: Currently processing a message, reset the state and forget about this packet
-        _timeout_disable(frame->cid);
-        _reset_state();
-        _queue_err(FRAME_ERR_CHANNEL_BUSY, frame->cid);
-        break;
-    default:
-        // other errors
-        _reset_state();
-        _queue_err(FRAME_ERR_OTHER, frame->cid);
-        break;
-    }
-    return false;
+    return rust_u2f_packet_process(frame);
 }
 
 void u2f_packet_init(void)
 {
-    _reset_state();
+    rust_u2f_packet_init();
 }

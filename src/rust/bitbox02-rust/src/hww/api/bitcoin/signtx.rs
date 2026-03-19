@@ -192,6 +192,44 @@ async fn get_antiklepto_host_nonce(
     }
 }
 
+/// Validates swap-specific source account constraints after a CoinPurchaseMemo was detected.
+/// Coin must be BTC/LTC and all selected source configs must be single-sig.
+#[cfg(feature = "app-ethereum")]
+fn validate_swap_source_account(
+    coin: pb::BtcCoin,
+    script_configs: &[ValidatedScriptConfigWithKeypath],
+) -> Result<(), Error> {
+    match coin {
+        pb::BtcCoin::Btc | pb::BtcCoin::Ltc => {}
+        _ => return Err(Error::InvalidInput),
+    }
+
+    if script_configs.is_empty() {
+        return Err(Error::InvalidInput);
+    }
+
+    for script_config in script_configs {
+        match script_config {
+            ValidatedScriptConfigWithKeypath {
+                config: ValidatedScriptConfig::SimpleType(_),
+                ..
+            } => {}
+            _ => return Err(Error::InvalidInput),
+        }
+    }
+
+    Ok(())
+}
+
+/// CoinPurchaseMemo-backed swaps require Ethereum support.
+#[cfg(not(feature = "app-ethereum"))]
+fn validate_swap_source_account(
+    _coin: pb::BtcCoin,
+    _script_configs: &[ValidatedScriptConfigWithKeypath],
+) -> Result<(), Error> {
+    Err(Error::Disabled)
+}
+
 fn validate_keypath(
     params: &super::params::Params,
     script_config_account: &ValidatedScriptConfigWithKeypath,
@@ -961,6 +999,9 @@ async fn _process(
                 }
                 let payment_request: pb::BtcPaymentRequestRequest =
                     get_payment_request(output_payment_request_index, &mut next_response).await?;
+                if payment_request::contains_coin_purchase_memo(&payment_request) {
+                    validate_swap_source_account(coin, &validated_script_configs)?;
+                }
                 payment_request::user_verify(hal, coin_params, &payment_request, format_unit)
                     .await?;
                 match payment_request::validate(
@@ -3767,6 +3808,224 @@ mod tests {
                     success: true
                 },
             ]
+        );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    pub fn test_validate_swap_source_account() {
+        // Swap payment requests are only supported for BTC/LTC source accounts,
+        // and only when the selected source config is simple single-sig.
+        let keypath = &[84 + HARDENED, 0 + HARDENED, 10 + HARDENED];
+        let multisig_pb = pb::btc_script_config::Multisig {
+            threshold: 1,
+            xpubs: vec![],
+            our_xpub_index: 0,
+            script_type: pb::btc_script_config::multisig::ScriptType::P2wsh as _,
+        };
+        let singlesig_account = [ValidatedScriptConfigWithKeypath {
+            keypath,
+            config: ValidatedScriptConfig::SimpleType(SimpleType::P2wpkh),
+        }];
+        let mixed_singlesig_accounts = [
+            ValidatedScriptConfigWithKeypath {
+                keypath,
+                config: ValidatedScriptConfig::SimpleType(SimpleType::P2wpkh),
+            },
+            ValidatedScriptConfigWithKeypath {
+                keypath,
+                config: ValidatedScriptConfig::SimpleType(SimpleType::P2tr),
+            },
+        ];
+        let multisig_account = [ValidatedScriptConfigWithKeypath {
+            keypath,
+            config: ValidatedScriptConfig::Multisig {
+                name: "test multisig".into(),
+                multisig: &multisig_pb,
+            },
+        }];
+        let mixed_accounts = [
+            ValidatedScriptConfigWithKeypath {
+                keypath,
+                config: ValidatedScriptConfig::SimpleType(SimpleType::P2wpkh),
+            },
+            ValidatedScriptConfigWithKeypath {
+                keypath,
+                config: ValidatedScriptConfig::Multisig {
+                    name: "test multisig".into(),
+                    multisig: &multisig_pb,
+                },
+            },
+        ];
+
+        assert_eq!(
+            validate_swap_source_account(pb::BtcCoin::Btc, &singlesig_account),
+            Ok(())
+        );
+        assert_eq!(
+            validate_swap_source_account(pb::BtcCoin::Ltc, &singlesig_account),
+            Ok(())
+        );
+        assert_eq!(
+            validate_swap_source_account(pb::BtcCoin::Btc, &mixed_singlesig_accounts),
+            Ok(())
+        );
+        assert_eq!(
+            validate_swap_source_account(pb::BtcCoin::Tbtc, &singlesig_account),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            validate_swap_source_account(pb::BtcCoin::Btc, &multisig_account),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            validate_swap_source_account(pb::BtcCoin::Btc, &mixed_accounts),
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    pub fn test_swap_payment_request() {
+        // End-to-end swap signing: swap screens appear, then the regular BTC confirmations continue.
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        {
+            let mut tx = transaction.borrow_mut();
+            tx.total_confirmations += 1;
+            let payment_request_output_index = 1;
+            let output_value = tx.outputs[payment_request_output_index].value;
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![Memo {
+                    memo: Some(memo::Memo::CoinPurchaseMemo(memo::CoinPurchaseMemo {
+                        coin_type: 60,
+                        amount: "0.25 ETH".into(),
+                        address: "0x773A77b9D32589be03f9132AF759e294f7851be9".into(),
+                        address_derivation: Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                            memo::coin_purchase_memo::EthAddressDerivation {
+                                keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                            },
+                        )),
+                    })),
+                }],
+                nonce: vec![],
+                total_amount: output_value,
+                signature: vec![],
+            };
+            let coin_params = super::super::params::get(tx.coin);
+            payment_request::tst_sign_payment_request(
+                coin_params,
+                &mut payment_request,
+                output_value,
+                "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ",
+            );
+            tx.payment_request = Some(payment_request);
+            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
+        }
+
+        mock_host_responder(transaction.clone());
+        let init_request = transaction.borrow().init_request();
+
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(&mut mock_hal, &init_request));
+        assert!(result.is_ok());
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "12ZE w5Hc v1hT b6YU QJ69 y1V7 uhco Dz92 PH".into(),
+                    amount: "1.00000000 BTC".into(),
+                },
+                Screen::Recipient {
+                    recipient: "Test Merchant".into(),
+                    amount: "12.34567890 BTC".into(),
+                },
+                Screen::Confirm {
+                    title: "SWAP".into(),
+                    body: "12.34567890 BTC\nto\n0.25 ETH".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Receive to".into(),
+                    body: "ETH account #1".into(),
+                    longtouch: false,
+                },
+                Screen::Recipient {
+                    recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),
+                    amount: "0.00006000 BTC".into(),
+                },
+                Screen::Recipient {
+                    recipient: "bc1q g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zq d8sx w4".into(),
+                    amount: "0.00007000 BTC".into(),
+                },
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "There are 2\nchange outputs.\nProceed?".into(),
+                    longtouch: false,
+                },
+                Screen::TotalFee {
+                    total: "13.39999900 BTC".into(),
+                    fee: "0.05419010 BTC".into(),
+                    longtouch: true,
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                },
+            ]
+        );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    pub fn test_swap_payment_request_unsupported_source_coin() {
+        // Swap UI is restricted to BTC/LTC source accounts; other BTC-like coins must fail early.
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(
+            pb::BtcCoin::Tbtc,
+        )));
+
+        {
+            let mut tx = transaction.borrow_mut();
+            let payment_request_output_index = 1;
+            let output_value = tx.outputs[payment_request_output_index].value;
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![Memo {
+                    memo: Some(memo::Memo::CoinPurchaseMemo(memo::CoinPurchaseMemo {
+                        coin_type: 60,
+                        amount: "0.25 ETH".into(),
+                        address: "0x773A77b9D32589be03f9132AF759e294f7851be9".into(),
+                        address_derivation: Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                            memo::coin_purchase_memo::EthAddressDerivation {
+                                keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                            },
+                        )),
+                    })),
+                }],
+                nonce: vec![],
+                total_amount: output_value,
+                signature: vec![],
+            };
+            let coin_params = super::super::params::get(tx.coin);
+            payment_request::tst_sign_payment_request(
+                coin_params,
+                &mut payment_request,
+                output_value,
+                "2MvdL2uD2Ubr4Zx8e6CQqNQEHjQ75sGH1NN",
+            );
+            tx.payment_request = Some(payment_request);
+            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
+        }
+
+        mock_host_responder(transaction.clone());
+        let init_request = transaction.borrow().init_request();
+
+        assert_eq!(
+            block_on(process(&mut TestingHal::new(), &init_request)),
+            Err(Error::InvalidInput)
         );
     }
 

@@ -62,6 +62,56 @@ fn find_identity(name: &str) -> Option<&Identity> {
     IDENTITIES.iter().find(|identity| identity.name == name)
 }
 
+pub(super) fn contains_coin_purchase_memo(payment_request: &pb::BtcPaymentRequestRequest) -> bool {
+    payment_request.memos.iter().any(|memo| {
+        matches!(
+            memo,
+            Memo {
+                memo: Some(memo::Memo::CoinPurchaseMemo(_)),
+            }
+        )
+    })
+}
+
+/// Parses a human-readable coin purchase amount of the form
+/// "<positive-number> <unit>", where the number may be an integer or decimal,
+/// and returns the amount/unit parts.
+fn parse_coin_purchase_amount(amount: &str) -> Result<(&str, &str), Error> {
+    let mut parts = amount.split_ascii_whitespace();
+    let destination_amount = parts.next().ok_or(Error::InvalidInput)?;
+    let destination_unit = parts.next().ok_or(Error::InvalidInput)?;
+    if parts.next().is_some() {
+        return Err(Error::InvalidInput);
+    }
+
+    let mut decimal_parts = destination_amount.split('.');
+    let integer = match decimal_parts.next() {
+        Some(integer) if !integer.is_empty() => integer,
+        _ => return Err(Error::InvalidInput),
+    };
+    if !integer.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(Error::InvalidInput);
+    }
+
+    let fractional = match decimal_parts.next() {
+        Some(fractional) => {
+            if fractional.is_empty() || !fractional.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(Error::InvalidInput);
+            }
+            fractional
+        }
+        None => "",
+    };
+    if decimal_parts.next().is_some() {
+        return Err(Error::InvalidInput);
+    }
+    if integer.bytes().chain(fractional.bytes()).all(|b| b == b'0') {
+        return Err(Error::InvalidInput);
+    }
+
+    Ok((destination_amount, destination_unit))
+}
+
 /// Prompt user to verify the payment request.
 pub async fn user_verify(
     hal: &mut impl crate::hal::Hal,
@@ -100,7 +150,46 @@ pub async fn user_verify(
                 verify_message::verify(hal, "Memo", "Memo", text_memo.note.as_bytes(), false)
                     .await?;
             }
-            // TODO: add CoinPurchaseMemo arm when SwapKit UI is finalized
+            Memo {
+                memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
+            } => {
+                let swap_body = format!(
+                    "{}\nto\n{}",
+                    format_amount(coin_params, format_unit, payment_request.total_amount)?,
+                    coin_purchase_memo.amount
+                );
+                hal.ui()
+                    .confirm(&ConfirmParams {
+                        title: "SWAP",
+                        body: &swap_body,
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
+                let (_, destination_unit) = parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
+                let address_derivation = coin_purchase_memo
+                    .address_derivation
+                    .as_ref()
+                    .ok_or(Error::InvalidInput)?;
+                let destination_account = match address_derivation {
+                    memo::coin_purchase_memo::AddressDerivation::Eth(eth) => {
+                        eth.keypath
+                            .get(2)
+                            .ok_or(Error::InvalidInput)?
+                            .checked_sub(util::bip32::HARDENED)
+                            .ok_or(Error::InvalidInput)?
+                            + 1
+                    }
+                };
+                hal.ui()
+                    .confirm(&ConfirmParams {
+                        title: "Receive to",
+                        body: &format!("{destination_unit} account #{destination_account}"),
+                        accept_is_nextarrow: true,
+                        ..Default::default()
+                    })
+                    .await?;
+            }
             _ => return Err(Error::InvalidInput),
         }
     }
@@ -224,6 +313,9 @@ pub fn validate(
     if payment_request.memos.len() > MAX_MEMOS_NUM {
         return Err(ValidationError::Other);
     }
+    if contains_coin_purchase_memo(payment_request) && payment_request.memos.len() != 1 {
+        return Err(ValidationError::Other);
+    }
     for memo in payment_request.memos.iter() {
         if let Memo {
             memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
@@ -255,6 +347,8 @@ pub fn validate(
 mod tests {
     use super::*;
     use crate::hal::testing::TestingHal;
+    use crate::hal::testing::ui::Screen;
+    use util::bb02_async::block_on;
 
     fn make_text_memo(note: &str) -> Memo {
         Memo {
@@ -312,6 +406,36 @@ mod tests {
         assert_eq!(find_identity("SwapKit").unwrap().name, "SWAPKIT");
 
         assert!(find_identity("Provider").is_none());
+    }
+
+    #[test]
+    fn test_parse_coin_purchase_amount() {
+        assert_eq!(parse_coin_purchase_amount("0.25 ETH"), Ok(("0.25", "ETH")));
+        assert_eq!(parse_coin_purchase_amount("1 ETH"), Ok(("1", "ETH")));
+        assert_eq!(
+            parse_coin_purchase_amount("14128 eth"),
+            Ok(("14128", "eth"))
+        );
+        assert_eq!(
+            parse_coin_purchase_amount("3481471947 SC"),
+            Ok(("3481471947", "SC"))
+        );
+
+        for amount in [
+            "",
+            "ETH",
+            "0 ETH",
+            "0.0 ETH",
+            "-1 ETH",
+            ".25 ETH",
+            "1. ETH",
+            "1.2.3 ETH",
+            "foo ETH",
+            "foo bar baz",
+            "1 ETH extra",
+        ] {
+            assert_eq!(parse_coin_purchase_amount(amount), Err(Error::InvalidInput));
+        }
     }
 
     #[test]
@@ -523,6 +647,54 @@ mod tests {
             ));
         }
 
+        #[cfg(feature = "app-ethereum")]
+        {
+            // CoinPurchaseMemo must be the only memo in a payment request.
+            for mut payment_request in [
+                pb::BtcPaymentRequestRequest {
+                    recipient_name: "Test Merchant".into(),
+                    memos: vec![
+                        make_text_memo("memo"),
+                        make_coin_purchase_memo(
+                            60,
+                            "0.25 ETH",
+                            "0x773A77b9D32589be03f9132AF759e294f7851be9",
+                            Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                        ),
+                    ],
+                    nonce: vec![],
+                    total_amount: value,
+                    signature: vec![],
+                },
+                pb::BtcPaymentRequestRequest {
+                    recipient_name: "Test Merchant".into(),
+                    memos: vec![
+                        make_coin_purchase_memo(
+                            60,
+                            "0.25 ETH",
+                            "0x773A77b9D32589be03f9132AF759e294f7851be9",
+                            Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                        ),
+                        make_coin_purchase_memo(
+                            60,
+                            "0.50 ETH",
+                            "0x773A77b9D32589be03f9132AF759e294f7851be9",
+                            Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                        ),
+                    ],
+                    nonce: vec![],
+                    total_amount: value,
+                    signature: vec![],
+                },
+            ] {
+                tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+                assert!(matches!(
+                    validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                    Err(ValidationError::Other)
+                ));
+            }
+        }
+
         // Unknown recipient
         let payment_request = pb::BtcPaymentRequestRequest {
             recipient_name: "Unknown Merchant".into(),
@@ -580,5 +752,183 @@ mod tests {
             validate(&mut mock_hal, coin_params, &payment_request, value, address),
             Err(ValidationError::InvalidSignature)
         ));
+    }
+
+    #[test]
+    fn test_user_verify_text_memos() {
+        // Baseline Pocket flow: recipient screen, memo intro, memo contents.
+        let mut mock_hal = TestingHal::new();
+        block_on(user_verify(
+            &mut mock_hal,
+            params::get(pb::BtcCoin::Btc),
+            &pb::BtcPaymentRequestRequest {
+                recipient_name: "POCKET".into(),
+                memos: vec![make_text_memo("Pocket memo")],
+                nonce: vec![],
+                total_amount: 1234567890,
+                signature: vec![],
+            },
+            FormatUnit::Default,
+        ))
+        .unwrap();
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "POCKET".into(),
+                    amount: "12.34567890 BTC".into(),
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Memo from\n\nPOCKET".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Memo".into(),
+                    body: "Pocket memo".into(),
+                    longtouch: false,
+                },
+            ]
+        );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    fn test_user_verify_swap() {
+        // Happy-path swap flow: recipient screen plus two swap-specific confirms.
+        let mut mock_hal = TestingHal::new();
+        block_on(user_verify(
+            &mut mock_hal,
+            params::get(pb::BtcCoin::Btc),
+            &pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0x123",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            FormatUnit::Default,
+        ))
+        .unwrap();
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "SWAPKIT (Provider)".into(),
+                    amount: "0.25000000 BTC".into(),
+                },
+                Screen::Confirm {
+                    title: "SWAP".into(),
+                    body: "0.25000000 BTC\nto\n0.25 ETH".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Receive to".into(),
+                    body: "ETH account #1".into(),
+                    longtouch: false,
+                },
+            ]
+        );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    fn test_user_verify_swap_invalid() {
+        // Invalid swap requests that user_verify must reject because the
+        // UI cannot render them safely.
+        let coin_params = params::get(pb::BtcCoin::Btc);
+
+        for payment_request in [
+            // Missing destination derivation, so "Send to" cannot be built.
+            pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(60, "0.25 ETH", "0x123", None)],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            // Destination keypath is too short to contain an account element.
+            pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0x123",
+                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                        memo::coin_purchase_memo::EthAddressDerivation {
+                            keypath: vec![44 + util::bip32::HARDENED, 60 + util::bip32::HARDENED],
+                        },
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            // Destination account element must be hardened.
+            pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    "0x123",
+                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                        memo::coin_purchase_memo::EthAddressDerivation {
+                            keypath: vec![
+                                44 + util::bip32::HARDENED,
+                                60 + util::bip32::HARDENED,
+                                0,
+                            ],
+                        },
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            // Display amount must contain both numeric amount and destination unit.
+            pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "ETH",
+                    "0x123",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            // Display amount must be exactly "<positive-decimal> <unit>".
+            pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "foo bar baz",
+                    "0x123",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+        ] {
+            let mut mock_hal = TestingHal::new();
+            assert_eq!(
+                block_on(user_verify(
+                    &mut mock_hal,
+                    coin_params,
+                    &payment_request,
+                    FormatUnit::Default,
+                )),
+                Err(Error::InvalidInput)
+            );
+        }
     }
 }

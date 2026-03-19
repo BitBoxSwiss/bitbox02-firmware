@@ -46,9 +46,9 @@ features such as `cd && ...`, pass an explicit shell as the command, e.g.
 pinned toolchain in `rust-toolchain.toml`; keep module paths aligned with `src/rust` and regenerate
 bindings (`cbindgen`, protobuf) when interfaces change.
 
-For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code. For Python
-changes, run `./scripts/dev_exec.sh black` to format the code. For Rust code changes, run
-`./scripts/dev_exec.sh bash -lc 'cd src/rust && cargo fmt'`.
+* For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code.
+* For Python changes, run `./scripts/dev_exec.sh ./scripts/format-python` to format the code.
+* For Rust code changes, run `./scripts/dev_exec.sh -lc 'cd src/rust && cargo fmt'` to format the code.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware

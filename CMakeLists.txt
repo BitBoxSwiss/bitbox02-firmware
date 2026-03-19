@@ -90,95 +90,41 @@ endif()
 #-----------------------------------------------------------------------------
 # Create version header file
 #
-# Versions MUST contain three parts and start with lowercase 'v'.
-# Example 'v1.0.0'. They MUST not contain a pre-release label such as '-beta'.
-set(FIRMWARE_VERSION "v9.26.0")
-set(BOOTLOADER_VERSION "v1.1.2")
-
 find_package(PythonInterp 3.6 REQUIRED)
-
-find_package(Git)
-if(GIT_FOUND AND PYTHONINTERP_FOUND)
-  # TODO: --verify cannot be used in container. Add our pubkeys to image?
-  execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version firmware --check-semver --check-gpg
-    RESULT_VARIABLE exit_code
-    OUTPUT_VARIABLE GIT_FIRMWARE_VERSION_STRING
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  if(NOT exit_code EQUAL "0")
-    message(FATAL_ERROR "get_version firmware failed")
-  endif()
-  execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} ./scripts/get_version bootloader --check-semver --check-gpg
-    RESULT_VARIABLE exit_code
-    OUTPUT_VARIABLE GIT_BOOTLOADER_VERSION_STRING
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  if(NOT exit_code EQUAL "0")
-    message(FATAL_ERROR "get_version bootloader failed")
-  endif()
-
-  execute_process(
-    COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
-    RESULT_VARIABLE exit_code
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  if(NOT exit_code EQUAL "0")
-    set(GIT_COMMIT_HASH "0000000000000000000000000000000000000000")
-  endif()
-  execute_process(
-    COMMAND ${GIT_EXECUTABLE} rev-parse --short=10 HEAD
-    RESULT_VARIABLE exit_code
-    OUTPUT_VARIABLE GIT_COMMIT_HASH_SHORT
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  if(NOT exit_code EQUAL "0")
-    set(GIT_COMMIT_HASH_SHORT "000000")
-  endif()
-else()
-  set(GIT_FIRMWARE_VERSION_STRING "v0.0.0")
-  set(GIT_BOOTLOADER_VERSION_STRING "v0.0.0")
-  set(GIT_COMMIT_HASH "0000000000000000000000000000000000000000")
-  set(GIT_COMMIT_HASH_SHORT "0000000000")
+set(VERSION_MANIFEST ${CMAKE_SOURCE_DIR}/versions.json)
+set(VERSION_GENERATOR ${CMAKE_SOURCE_DIR}/scripts/generate_version_headers.py)
+set(VERSION_TEMPLATE ${CMAKE_SOURCE_DIR}/src/version.h.tmpl)
+set(BOOTLOADER_VERSION_TEMPLATE ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_version.h.tmpl)
+set(GENERATED_VERSION_HEADERS_DIR ${CMAKE_BINARY_DIR}/src)
+set(GENERATED_VERSION_CMAKE ${CMAKE_BINARY_DIR}/generated_versions.cmake)
+set_property(
+  DIRECTORY
+  APPEND
+  PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${VERSION_MANIFEST}
+    ${VERSION_GENERATOR}
+    ${VERSION_TEMPLATE}
+    ${BOOTLOADER_VERSION_TEMPLATE}
+)
+execute_process(
+  COMMAND
+    ${PYTHON_EXECUTABLE}
+    ${VERSION_GENERATOR}
+    generate
+    --repo-root ${CMAKE_SOURCE_DIR}
+    --output-dir ${GENERATED_VERSION_HEADERS_DIR}
+    --cmake-vars-out ${GENERATED_VERSION_CMAKE}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  RESULT_VARIABLE exit_code
+  ERROR_VARIABLE version_generator_error
+)
+if(NOT exit_code EQUAL "0")
+  message(FATAL_ERROR "generate_version_headers.py failed:\n${version_generator_error}")
 endif()
-
-# If the current HEAD is not on the matching tag append '-pre' for "pre-release"
-set(FIRMWARE_VERSION_FULL ${FIRMWARE_VERSION})
-if(NOT FIRMWARE_VERSION STREQUAL GIT_FIRMWARE_VERSION_STRING)
-  string(APPEND FIRMWARE_VERSION_FULL "-pre+${GIT_COMMIT_HASH_SHORT}")
-endif()
-
-string(REPLACE "." ";" VERSION_LIST ${FIRMWARE_VERSION})
-list(GET VERSION_LIST 0 vMAJOR)
-list(GET VERSION_LIST 1 MINOR)
-list(GET VERSION_LIST 2 PATCH)
-string(REPLACE "v" "" MAJOR ${vMAJOR})
-
-string(LENGTH ${FIRMWARE_VERSION_FULL} FIRMWARE_VERSION_FULL_LEN)
-string(REGEX REPLACE "(.)" "'\\1', 0, " FIRMWARE_VERSION_FULL_W16 ${FIRMWARE_VERSION_FULL})
-set(FIRMWARE_VERSION_MAJOR ${MAJOR})
-set(FIRMWARE_VERSION_MINOR ${MINOR})
-set(FIRMWARE_VERSION_PATCH ${PATCH})
-
-# BOOTLOADER
-
-set(BOOTLOADER_VERSION_FULL ${BOOTLOADER_VERSION})
-if(NOT BOOTLOADER_VERSION STREQUAL GIT_BOOTLOADER_VERSION_STRING)
-  string(APPEND BOOTLOADER_VERSION_FULL "-pre+${GIT_COMMIT_HASH_SHORT}")
+include(${GENERATED_VERSION_CMAKE})
+if(BOOTLOADER_VERSION_HAS_METADATA)
   add_definitions("-DBOOTLOADER_VERSION_HAS_METADATA")
 endif()
-
-string(LENGTH ${BOOTLOADER_VERSION_FULL} BOOTLOADER_VERSION_FULL_LEN)
-string(REGEX REPLACE "(.)" "'\\1', 0, " BOOTLOADER_VERSION_FULL_W16 ${BOOTLOADER_VERSION_FULL})
-
-configure_file(src/version.h.in src/version.h)
-configure_file(src/bootloader/bootloader_version.h.in src/bootloader/bootloader_version.h)
 
 #-----------------------------------------------------------------------------
 # Set the default compiler options (Only set global options that truly are necessary for all files)
@@ -240,9 +186,7 @@ execute_process(
 message(STATUS "\n\n=============================================")
 message(STATUS "            - General -")
 message(STATUS "Firmware version:       ${FIRMWARE_VERSION_FULL}")
-message(STATUS "Firmware v. (git):      ${GIT_FIRMWARE_VERSION_STRING}")
 message(STATUS "Bootloader version:     ${BOOTLOADER_VERSION_FULL}")
-message(STATUS "Bootloader v. (git):    ${GIT_BOOTLOADER_VERSION_STRING}")
 message(STATUS "CMake version:          ${CMAKE_VERSION}")
 message(STATUS "System:                 ${CMAKE_SYSTEM}")
 message(STATUS "Processor:              ${CMAKE_SYSTEM_PROCESSOR}")

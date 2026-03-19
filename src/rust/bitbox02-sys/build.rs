@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::env;
-use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -299,20 +298,7 @@ const FAKEHARDWARE_SOURCES: &[&str] = &[
     "test/hardware-fakes/src/fake_spi_mem.c",
 ];
 
-const ZERO_GIT_COMMIT_HASH: &str = "0000000000000000000000000000000000000000";
-const ZERO_GIT_COMMIT_HASH_SHORT: &str = "0000000000";
-
 type BuildResult<T> = Result<T, String>;
-
-struct VersionInfo {
-    base: String,
-    full: String,
-    full_len: usize,
-    full_w16: String,
-    major: String,
-    minor: String,
-    patch: String,
-}
 
 pub fn main() -> BuildResult<()> {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
@@ -337,11 +323,13 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed("../bitbox-framed-serial-link/src");
     emit_rerun_if_changed("../bitbox-bytequeue/Cargo.toml");
     emit_rerun_if_changed("../bitbox-bytequeue/src");
-    emit_rerun_if_changed("../../../CMakeLists.txt");
-    emit_rerun_if_changed("../../../src/version.h.in");
-    emit_rerun_if_changed("../../../src/bootloader/bootloader_version.h.in");
-    emit_rerun_if_changed("../../../scripts/get_version");
+    emit_rerun_if_changed("../../../versions.json");
+    emit_rerun_if_changed("../../../src/version.h.tmpl");
+    emit_rerun_if_changed("../../../src/bootloader/bootloader_version.h.tmpl");
+    emit_rerun_if_changed("../../../scripts/generate_version_headers.py");
     emit_rerun_if_changed("../../../scripts/generate_rust_header.sh");
+
+    // Generating version.h/bootloader_version.h depends on the current state of the git repo
     emit_git_rerun_if_changed(&repo_root);
 
     ensure_command_exists("bindgen")?;
@@ -587,104 +575,18 @@ fn generate_native_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> 
 }
 
 fn generate_version_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> {
-    let cmake_lists = fs::read_to_string(repo_root.join("CMakeLists.txt"))
-        .map_err(|err| format!("failed to read CMakeLists.txt: {err}"))?;
-    let version_template = fs::read_to_string(repo_root.join("src/version.h.in"))
-        .map_err(|err| format!("failed to read version.h.in: {err}"))?;
-    let bootloader_version_template =
-        fs::read_to_string(repo_root.join("src/bootloader/bootloader_version.h.in"))
-            .map_err(|err| format!("failed to read bootloader_version.h.in: {err}"))?;
-
-    let firmware_version = parse_cmake_string(&cmake_lists, "FIRMWARE_VERSION")?;
-    let bootloader_version = parse_cmake_string(&cmake_lists, "BOOTLOADER_VERSION")?;
-
-    let git_commit_hash = git_output(repo_root, &["rev-parse", "HEAD"])
-        .unwrap_or_else(|| ZERO_GIT_COMMIT_HASH.to_owned());
-    let git_commit_hash_short = git_output(repo_root, &["rev-parse", "--short=10", "HEAD"])
-        .unwrap_or_else(|| ZERO_GIT_COMMIT_HASH_SHORT.to_owned());
-
-    let git_firmware_version = script_version(repo_root, "firmware");
-    let git_bootloader_version = script_version(repo_root, "bootloader");
-
-    let firmware_info = build_version_info(
-        &firmware_version,
-        git_firmware_version.as_deref(),
-        &git_commit_hash_short,
+    let script_path = repo_root.join("scripts/generate_version_headers.py");
+    run_command(
+        Command::new("python3")
+            .arg(&script_path)
+            .arg("generate")
+            .arg("--repo-root")
+            .arg(repo_root)
+            .arg("--output-dir")
+            .arg(out_dir),
+        "generate version headers",
     )?;
-    let bootloader_info = build_version_info(
-        &bootloader_version,
-        git_bootloader_version.as_deref(),
-        &git_commit_hash_short,
-    )?;
-    let firmware_full_len = firmware_info.full_len.to_string();
-    let bootloader_full_len = bootloader_info.full_len.to_string();
-
-    let version_header = render_template(
-        &version_template,
-        &[
-            ("FIRMWARE_VERSION_FULL", firmware_info.full.as_str()),
-            ("FIRMWARE_VERSION", firmware_info.base.as_str()),
-            ("FIRMWARE_VERSION_FULL_LEN", firmware_full_len.as_str()),
-            ("FIRMWARE_VERSION_FULL_W16", firmware_info.full_w16.as_str()),
-            ("FIRMWARE_VERSION_MAJOR", firmware_info.major.as_str()),
-            ("FIRMWARE_VERSION_MINOR", firmware_info.minor.as_str()),
-            ("FIRMWARE_VERSION_PATCH", firmware_info.patch.as_str()),
-            ("GIT_COMMIT_HASH", git_commit_hash.as_str()),
-            ("GIT_COMMIT_HASH_SHORT", git_commit_hash_short.as_str()),
-        ],
-    );
-    let bootloader_version_header = render_template(
-        &bootloader_version_template,
-        &[
-            ("BOOTLOADER_VERSION_FULL", bootloader_info.full.as_str()),
-            (
-                "BOOTLOADER_VERSION_FULL_W16",
-                bootloader_info.full_w16.as_str(),
-            ),
-            ("BOOTLOADER_VERSION_FULL_LEN", bootloader_full_len.as_str()),
-        ],
-    );
-
-    write_generated_file(&out_dir.join("version.h"), &version_header)?;
-    write_generated_file(
-        &out_dir.join("bootloader/bootloader_version.h"),
-        &bootloader_version_header,
-    )?;
-
     Ok(())
-}
-
-fn parse_cmake_string(contents: &str, variable: &str) -> BuildResult<String> {
-    let prefix = format!("set({variable} \"");
-    for line in contents.lines() {
-        let line = line.trim();
-        if let Some(rest) = line.strip_prefix(&prefix) {
-            if let Some(value) = rest.strip_suffix("\")") {
-                return Ok(value.to_owned());
-            }
-        }
-    }
-    Err(format!("failed to parse {variable} from CMakeLists.txt"))
-}
-
-fn script_version(repo_root: &Path, component: &str) -> Option<String> {
-    let output = Command::new("python3")
-        .arg("./scripts/get_version")
-        .arg(component)
-        .arg("--check-semver")
-        .arg("--check-gpg")
-        .current_dir(repo_root)
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let version = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-    if version.is_empty() {
-        None
-    } else {
-        Some(version)
-    }
 }
 
 fn git_output(repo_root: &Path, args: &[&str]) -> Option<String> {
@@ -699,65 +601,4 @@ fn git_output(repo_root: &Path, args: &[&str]) -> Option<String> {
     }
     let value = String::from_utf8_lossy(&output.stdout).trim().to_owned();
     if value.is_empty() { None } else { Some(value) }
-}
-
-fn build_version_info(
-    base_version: &str,
-    git_version: Option<&str>,
-    git_commit_hash_short: &str,
-) -> BuildResult<VersionInfo> {
-    let full = if git_version == Some(base_version) {
-        base_version.to_owned()
-    } else {
-        format!("{base_version}-pre+{git_commit_hash_short}")
-    };
-    let mut parts = base_version.split('.');
-    let major = parts
-        .next()
-        .and_then(|major| major.strip_prefix('v'))
-        .ok_or_else(|| format!("invalid version format: {base_version}"))?;
-    let minor = parts
-        .next()
-        .ok_or_else(|| format!("invalid version format: {base_version}"))?;
-    let patch = parts
-        .next()
-        .ok_or_else(|| format!("invalid version format: {base_version}"))?;
-    if parts.next().is_some() {
-        return Err(format!("invalid version format: {base_version}"));
-    }
-    Ok(VersionInfo {
-        base: base_version.to_owned(),
-        full_len: full.len(),
-        full_w16: to_w16_literal(&full),
-        full,
-        major: major.to_owned(),
-        minor: minor.to_owned(),
-        patch: patch.to_owned(),
-    })
-}
-
-fn to_w16_literal(value: &str) -> String {
-    let mut output = String::new();
-    for ch in value.chars() {
-        output.push('\'');
-        output.push(ch);
-        output.push_str("', 0, ");
-    }
-    output
-}
-
-fn render_template(template: &str, replacements: &[(&str, &str)]) -> String {
-    let mut rendered = template.to_owned();
-    for (placeholder, value) in replacements {
-        rendered = rendered.replace(&format!("@{placeholder}@"), value);
-    }
-    rendered
-}
-
-fn write_generated_file(path: &Path, contents: &str) -> BuildResult<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|err| format!("failed to create {}: {err}", parent.display()))?;
-    }
-    fs::write(path, contents).map_err(|err| format!("failed to write {}: {err}", path.display()))
 }

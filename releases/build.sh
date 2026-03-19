@@ -12,11 +12,9 @@ git clone --depth 1 --branch $1 --recurse-submodules https://github.com/BitBoxSw
 
 cd temp;
 
-# The shallow clone above doesn't fetch tags. Even if only building the firmware, the CMakeLists.txt
-# fetches the bootloader version using `./scripts/get_version bootloader`, which requires a
-# bootloader tag. The build scripts can be changed to only use the firmware tag that is needed,
-# ignoring the others, but we fetch the tags here so that builds of previous releases continue to
-# work.
+# The shallow clone above doesn't fetch tags. The build uses release tags to decide whether the
+# firmware and bootloader versions should include pre-release metadata, so we fetch tags here to
+# keep current and previous releases buildable.
 git fetch --tags;
 
 # For v9.15.0, the reproducible build using this script failed with this error:

@@ -327,6 +327,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-u2fhid"
+version = "0.1.0"
+dependencies = [
+ "bitbox-usb-report-queue",
+]
+
+[[package]]
 name = "bitbox-usb-report-queue"
 version = "0.1.0"
 dependencies = [
@@ -370,6 +377,7 @@ dependencies = [
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",
+ "bitbox-u2fhid",
  "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-noise",

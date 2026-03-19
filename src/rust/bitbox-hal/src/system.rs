@@ -9,6 +9,7 @@ pub trait System {
     /// and the (possibly empty) device name.
     async fn startup();
 
+    fn is_btconly(&mut self) -> bool;
     fn reboot(&mut self) -> !;
     fn reboot_to_bootloader(&mut self) -> !;
     fn reset_ble(&mut self);

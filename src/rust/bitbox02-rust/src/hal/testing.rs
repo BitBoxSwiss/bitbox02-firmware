@@ -36,6 +36,12 @@ impl TestingHal<'_> {
     }
 }
 
+impl Default for TestingHal<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> crate::hal::Hal for TestingHal<'a> {
     type Ui = TestingUi<'a>;
     type Random = TestingRandom;

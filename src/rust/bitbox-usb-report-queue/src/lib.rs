@@ -9,10 +9,14 @@ use alloc::collections::VecDeque;
 
 const USB_REPORT_SIZE: usize = 64;
 const USB_DATA_MAX_LEN: usize = 7609;
-const USB_REPORT_QUEUE_NUM_REPORTS: usize = USB_DATA_MAX_LEN / USB_REPORT_SIZE;
-// Preserve the previous effective capacity of the manual ring buffer, which
-// kept one slot empty to distinguish full from empty.
-const USB_REPORT_QUEUE_MAX_LEN: usize = USB_REPORT_QUEUE_NUM_REPORTS - 1;
+const U2FHID_INIT_HEADER_SIZE: usize = 7;
+const U2FHID_CONT_HEADER_SIZE: usize = 5;
+const U2FHID_INIT_PAYLOAD_SIZE: usize = USB_REPORT_SIZE - U2FHID_INIT_HEADER_SIZE;
+const U2FHID_CONT_PAYLOAD_SIZE: usize = USB_REPORT_SIZE - U2FHID_CONT_HEADER_SIZE;
+// A maximum-size U2FHID payload needs one init frame plus 128 continuation
+// frames: 57 + 128 * 59 = 7609 bytes.
+const USB_REPORT_QUEUE_MAX_LEN: usize =
+    1 + (USB_DATA_MAX_LEN - U2FHID_INIT_PAYLOAD_SIZE).div_ceil(U2FHID_CONT_PAYLOAD_SIZE);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -276,6 +280,11 @@ mod tests {
             queue.push(&report(0xff)),
             UsbReportQueueError::USB_REPORT_QUEUE_ERR_FULL
         ));
+    }
+
+    #[test]
+    fn test_capacity_matches_max_u2fhid_message() {
+        assert_eq!(USB_REPORT_QUEUE_MAX_LEN, 129);
     }
 
     #[test]

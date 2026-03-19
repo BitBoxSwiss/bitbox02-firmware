@@ -18,7 +18,7 @@ use std::sync::{
 };
 use std::task::Poll::Ready;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
@@ -38,9 +38,8 @@ use glutin_winit::DisplayBuilder;
 use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
-use bitbox_hal::{Hal, Ui, memory::Memory};
+use bitbox_hal::{Hal, Ui, memory::Memory, system::System};
 
-use bitbox_usb_report_queue::UsbReportQueue;
 use bitbox03::BitBox03;
 use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
 
@@ -202,9 +201,14 @@ fn my_flush_cb(display: lvgl::LvDisplay, _area: &lvgl::LvArea, _px_map: *mut u8)
     }
 }
 
-fn init_hww(bitbox: &mut BitBox03, preseed: bool, _hww_queue: &mut UsbReportQueue) -> bool {
+fn init_hww(
+    bitbox: &mut BitBox03,
+    preseed: bool,
+) -> Option<bitbox02_rust::simulator::HwwTransport<BitBox03>> {
+    //bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
+    //bitbox02::screen::splash();
+
     // BitBox02 simulation initialization
-    //bitbox02::usb_processing::init(hww_queue);
     info!("USB setup success");
 
     //bitbox02::hww::setup();
@@ -212,7 +216,7 @@ fn init_hww(bitbox: &mut BitBox03, preseed: bool, _hww_queue: &mut UsbReportQueu
 
     //if !bitbox02::sd::format() {
     //    error!("ERROR, sd card setup failed");
-    //    return false;
+    //    return None;
     //}
 
     info!("Sd card setup: success");
@@ -232,7 +236,7 @@ fn init_hww(bitbox: &mut BitBox03, preseed: bool, _hww_queue: &mut UsbReportQueu
     //bitbox02::smarteeprom::bb02_config();
     //bitbox02::smarteeprom::init();
 
-    true
+    Some(bitbox02_rust::simulator::hww_transport::<BitBox03>())
 }
 
 struct App {
@@ -250,7 +254,8 @@ struct App {
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
     counter: usize,
-    hww_queue: UsbReportQueue,
+    transport: Option<bitbox02_rust::simulator::HwwTransport<BitBox03>>,
+    started_at: Instant,
 }
 
 impl App {
@@ -270,7 +275,8 @@ impl App {
             inbound_out: Default::default(),
             startup_task: Default::default(),
             counter: 0,
-            hww_queue: Default::default(),
+            transport: Default::default(),
+            started_at: Instant::now(),
         }
     }
 }
@@ -605,14 +611,17 @@ impl ApplicationHandler<UserEvent> for App {
                     info!("test switch to logo (pop)");
                     self.bitbox.ui().switch_to_logo();
                 }
+                let now_ms = self.started_at.elapsed().as_millis() as u64;
                 // Read data from TCP client
                 let mut inbound_out = self.inbound_out.take();
                 let mut disconnected = false;
                 if let Some(inbound_out) = &mut inbound_out {
                     loop {
                         match inbound_out.try_recv() {
-                            Ok(_data) => {
-                                //bitbox02::usb_packet::process_from_report(&data);
+                            Ok(data) => {
+                                if let Some(transport) = self.transport.as_mut() {
+                                    transport.handle_report(&data, now_ms);
+                                }
                             }
                             Err(TryRecvError::Disconnected) => {
                                 // Drop the outbound channel
@@ -629,9 +638,16 @@ impl ApplicationHandler<UserEvent> for App {
                 if !disconnected {
                     self.inbound_out = inbound_out;
                 }
+                if let Some(transport) = self.transport.as_mut() {
+                    transport.tick(now_ms);
+                }
                 // Send data to TCP Client
                 loop {
-                    if let Some(data) = self.hww_queue.pull() {
+                    if let Some(data) = self
+                        .transport
+                        .as_mut()
+                        .and_then(|transport| transport.pull_report())
+                    {
                         if let Some(outbound_in) = &mut self.outbound_in {
                             if outbound_in.send(data).is_err() {
                                 info!("writer thread died and closed channel");
@@ -644,8 +660,6 @@ impl ApplicationHandler<UserEvent> for App {
                 }
                 // Business logic
                 bitbox02_rust::async_usb::spin();
-                //bitbox02::usb_processing::process_hww();
-                //bitbox02::screen::process();
                 lvgl::timer::handler();
 
                 if let Some(ref mut task) = self.startup_task {
@@ -669,7 +683,7 @@ impl ApplicationHandler<UserEvent> for App {
         }
         self.create_window(event_loop, None)
             .expect("failed to create initial window");
-        //self.startup_task = Some(Box::pin(bitbox02::hal::system::BitBox02System::startup()));
+        self.startup_task = Some(Box::pin(<BitBox03 as Hal>::System::startup()));
     }
 }
 
@@ -715,7 +729,8 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let mut app = App::new(bitbox);
-    if !init_hww(&mut bitbox, args.preseed, &mut app.hww_queue) {
+    app.transport = init_hww(&mut bitbox, args.preseed);
+    if app.transport.is_none() {
         return Err(Box::new(AppError::new("Failed to init hww")));
     }
     let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;

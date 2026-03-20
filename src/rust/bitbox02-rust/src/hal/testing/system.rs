@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub struct TestingSystem {
-    pub(crate) smarteeprom_enabled: bool,
     ble_reset_count: u32,
 }
 
 impl TestingSystem {
     pub fn new() -> Self {
-        Self {
-            smarteeprom_enabled: true,
-            ble_reset_count: 0,
-        }
+        Self { ble_reset_count: 0 }
     }
 
     pub fn ble_reset_count(&self) -> u32 {
@@ -32,10 +28,6 @@ impl crate::hal::System for TestingSystem {
     fn reset_ble(&mut self) {
         self.ble_reset_count += 1;
     }
-
-    fn smarteeprom_disable(&mut self) {
-        self.smarteeprom_enabled = false;
-    }
 }
 
 #[cfg(test)]
@@ -43,14 +35,6 @@ mod tests {
     use super::*;
 
     use crate::hal::System;
-
-    #[test]
-    fn test_smarteeprom_disable() {
-        let mut system = TestingSystem::new();
-        assert!(system.smarteeprom_enabled);
-        system.smarteeprom_disable();
-        assert!(!system.smarteeprom_enabled);
-    }
 
     #[test]
     fn test_reset_ble() {

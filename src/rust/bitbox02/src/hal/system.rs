@@ -32,8 +32,4 @@ impl System for BitBox02System {
     fn reset_ble(&mut self) {
         crate::reset_ble()
     }
-
-    fn smarteeprom_disable(&mut self) {
-        unsafe { bitbox02_sys::smarteeprom_disable() }
-    }
 }

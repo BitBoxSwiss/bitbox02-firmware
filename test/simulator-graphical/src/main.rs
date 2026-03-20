@@ -39,7 +39,7 @@ use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 use bitbox02::ui::ugui::UG_COLOR;
-use bitbox02_rust::hal::{Hal, Memory, System};
+use bitbox02_rust::hal::{Eeprom, Hal, Memory, System};
 
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
@@ -159,16 +159,17 @@ fn init_hww(preseed: bool) -> bool {
     bitbox02::memory::fake_nova();
     info!("Memory setup: success");
 
+    let mut hal = bitbox02::hal::BitBox02Hal::new();
+
     if preseed {
         let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
         let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
-        let mut hal = bitbox02::hal::BitBox02Hal::new();
         bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
         hal.memory().set_initialized().unwrap();
     }
 
-    bitbox02::smarteeprom::bb02_config();
-    bitbox02::smarteeprom::init();
+    hal.eeprom().setup();
+    hal.eeprom().init();
 
     true
 }

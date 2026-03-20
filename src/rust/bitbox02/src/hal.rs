@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+pub mod eeprom;
 pub mod memory;
 pub mod random;
 pub mod sd;
@@ -15,6 +16,7 @@ pub struct BitBox02Hal {
     random: random::BitBox02Random,
     securechip: securechip::BitBox02SecureChip,
     memory: memory::BitBox02Memory,
+    eeprom: eeprom::BitBox02Eeprom,
     system: system::BitBox02System,
 }
 
@@ -30,6 +32,7 @@ impl BitBox02Hal {
             random: random::BitBox02Random,
             securechip: securechip::BitBox02SecureChip,
             memory: memory::BitBox02Memory,
+            eeprom: eeprom::BitBox02Eeprom,
             system: system::BitBox02System,
         }
     }
@@ -41,6 +44,7 @@ impl Hal for BitBox02Hal {
     type Sd = sd::BitBox02Sd;
     type SecureChip = securechip::BitBox02SecureChip;
     type Memory = memory::BitBox02Memory;
+    type Eeprom = eeprom::BitBox02Eeprom;
     type System = system::BitBox02System;
 
     fn as_mut(
@@ -52,6 +56,7 @@ impl Hal for BitBox02Hal {
         Self::Sd,
         Self::SecureChip,
         Self::Memory,
+        Self::Eeprom,
         Self::System,
     > {
         bitbox_hal::HalSubsystems {
@@ -60,6 +65,7 @@ impl Hal for BitBox02Hal {
             sd: &mut self.sd,
             securechip: &mut self.securechip,
             memory: &mut self.memory,
+            eeprom: &mut self.eeprom,
             system: &mut self.system,
         }
     }

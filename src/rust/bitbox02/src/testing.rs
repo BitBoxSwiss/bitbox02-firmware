@@ -2,6 +2,8 @@
 
 //! Small mocking infrastructure for testing.
 
+use bitbox_hal::Eeprom;
+
 unsafe extern "C" fn c_mock_random_32_bytes(buf_out: *mut u8) {
     let s = unsafe { core::slice::from_raw_parts_mut(buf_out, 32) };
     s.copy_from_slice(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
@@ -15,11 +17,12 @@ pub fn mock_memory() {
 
         assert!(crate::memory::memory_setup(c_mock_random_32_bytes));
 
-        if bitbox02_sys::smarteeprom_is_enabled() {
-            bitbox02_sys::smarteeprom_disable();
+        let mut eeprom = crate::hal::eeprom::BitBox02Eeprom;
+        if eeprom.is_enabled() {
+            eeprom.disable();
         }
-        bitbox02_sys::smarteeprom_bb02_config();
-        bitbox02_sys::bitbox02_smarteeprom_init();
+        eeprom.setup();
+        eeprom.init();
         bitbox02_sys::spi_mem_full_erase();
     }
 }

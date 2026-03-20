@@ -22,7 +22,6 @@ pub struct TestingMemory {
     seed_birthdate: u32,
     encrypted_seed_and_hmac: Option<(Vec<u8>, PasswordStretchAlgo)>,
     device_name: Option<String>,
-    unlock_attempts: u8,
     salt_root: [u8; 32],
     attestation_device_pubkey: Option<[u8; 64]>,
     attestation_certificate: Option<[u8; 64]>,
@@ -58,7 +57,6 @@ impl TestingMemory {
             seed_birthdate: 0,
             encrypted_seed_and_hmac: None,
             device_name: None,
-            unlock_attempts: 0,
             salt_root: *b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             attestation_device_pubkey: None,
             attestation_certificate: None,
@@ -74,10 +72,6 @@ impl TestingMemory {
 
     pub fn set_platform(&mut self, platform: Platform) {
         self.platform = platform;
-    }
-
-    pub fn set_unlock_attempts_for_testing(&mut self, attempts: u8) {
-        self.unlock_attempts = attempts;
     }
 
     pub fn set_salt_root(&mut self, salt_root: &[u8; 32]) {
@@ -248,18 +242,6 @@ impl crate::hal::Memory for TestingMemory {
         self.device_name = None;
         self.multisig_entries = Vec::new();
         Ok(())
-    }
-
-    fn get_unlock_attempts(&mut self) -> u8 {
-        self.unlock_attempts
-    }
-
-    fn increment_unlock_attempts(&mut self) {
-        self.unlock_attempts += 1;
-    }
-
-    fn reset_unlock_attempts(&mut self) {
-        self.unlock_attempts = 0;
     }
 
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

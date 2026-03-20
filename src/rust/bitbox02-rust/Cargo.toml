@@ -17,6 +17,7 @@ doctest = false
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-da14531 = { path = "../bitbox-da14531" }
 bitbox02 = { path = "../bitbox02" }
+fake-hardware = { path = "../fake-hardware", optional = true }
 bitbox-u2fhid = { path = "../bitbox-u2fhid" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-usb-report-queue = { path = "../bitbox-usb-report-queue" }
@@ -96,6 +97,7 @@ app-cardano = [
 ]
 
 testing = [
+  "dep:fake-hardware",
   "bitbox02/testing",
   "bitbox-secp256k1/testing",
   "util/testing"

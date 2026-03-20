@@ -9,7 +9,6 @@ pub mod system;
 pub mod ui;
 
 pub use eeprom::TestingEeprom;
-pub use memory::TestingMemory;
 pub use random::TestingRandom;
 pub use sd::TestingSd;
 pub use securechip::TestingSecureChip;
@@ -21,19 +20,21 @@ pub struct TestingHal<'a> {
     pub sd: TestingSd,
     pub random: TestingRandom,
     pub securechip: TestingSecureChip,
-    pub memory: TestingMemory,
+    pub memory: fake_hardware::memory::FakeMemory,
     pub eeprom: TestingEeprom,
     pub system: TestingSystem,
 }
 
 impl TestingHal<'_> {
     pub fn new() -> Self {
+        // This is only necessary while Hal is internally singelton.
+        fake_hardware::memory::reset();
         Self {
             ui: TestingUi::new(),
             sd: TestingSd::new(),
             random: TestingRandom::new(),
             securechip: TestingSecureChip::new(),
-            memory: TestingMemory::new(),
+            memory: fake_hardware::memory::FakeMemory::new(),
             eeprom: TestingEeprom::new(),
             system: TestingSystem::new(),
         }
@@ -51,7 +52,7 @@ impl<'a> crate::hal::Hal for TestingHal<'a> {
     type Random = TestingRandom;
     type Sd = TestingSd;
     type SecureChip = TestingSecureChip;
-    type Memory = TestingMemory;
+    type Memory = fake_hardware::memory::FakeMemory;
     type Eeprom = TestingEeprom;
     type System = TestingSystem;
 

@@ -221,8 +221,7 @@ fn init_hww(
 
     info!("Sd card setup: success");
 
-    //bitbox02::testing::mock_memory();
-    //bitbox02::memory::fake_nova();
+    fake_hardware::memory::init_bitbox03_simulator();
     info!("Memory setup: success");
 
     if preseed {

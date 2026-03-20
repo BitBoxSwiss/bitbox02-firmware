@@ -357,11 +357,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-lvgl"
+version = "0.1.0"
+dependencies = [
+ "bitbox-lvgl-sys",
+ "grounded",
+ "tracing",
+]
+
+[[package]]
+name = "bitbox-lvgl-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "cmake",
+]
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
  "bitcoin",
  "cc",
+]
+
+[[package]]
+name = "bitbox-u2fhid"
+version = "0.1.0"
+dependencies = [
+ "bitbox-usb-report-queue",
+]
+
+[[package]]
+name = "bitbox-usb-report-queue"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
 ]
 
 [[package]]
@@ -371,8 +402,10 @@ dependencies = [
  "bip39",
  "bitbox-bytequeue",
  "bitbox-hal",
+ "bitbox-usb-report-queue",
  "bitbox02-noise",
  "bitbox02-sys",
+ "fake-hardware",
  "futures-lite",
  "grounded",
  "util",
@@ -400,6 +433,8 @@ dependencies = [
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",
+ "bitbox-u2fhid",
+ "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-noise",
  "bitcoin",
@@ -435,6 +470,7 @@ dependencies = [
  "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-noise",
  "bitbox02-rust",
@@ -453,6 +489,18 @@ dependencies = [
  "cc",
  "fatfs-sys",
  "util",
+]
+
+[[package]]
+name = "bitbox03"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "bitbox-lvgl",
+ "fake-hardware",
+ "png-decoder",
+ "tracing",
+ "zeroize",
 ]
 
 [[package]]
@@ -740,6 +788,15 @@ name = "clap_lex"
 version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
+
+[[package]]
+name = "cmake"
+version = "0.1.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75443c44cd6b379beb8c5b45d85d0773baf31cce901fe7bb252f4eff3008ef7d"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "color_quant"
@@ -1121,6 +1178,14 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
+]
+
+[[package]]
+name = "fake-hardware"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "zeroize",
 ]
 
 [[package]]
@@ -2321,6 +2386,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "png-decoder"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "713df1df0e7ec45433786eda4bd6c21a534e90e9b9417b8cb02bb6fa7479086e"
+dependencies = [
+ "crc32fast",
+ "miniz_oxide",
+ "num_enum",
+]
+
+[[package]]
 name = "polling"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2862,11 +2938,15 @@ name = "simulator-graphical-bb03"
 version = "0.1.0"
 dependencies = [
  "bitbox-aes",
- "bitbox02",
+ "bitbox-hal",
+ "bitbox-lvgl",
+ "bitbox-usb-report-queue",
  "bitbox02-rust",
  "bitbox02-rust-c",
+ "bitbox03",
  "clap",
  "critical-section",
+ "fake-hardware",
  "femtovg",
  "glutin",
  "glutin-winit",

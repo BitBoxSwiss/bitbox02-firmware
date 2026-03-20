@@ -1,16 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(not(feature = "simulator-graphical"))]
 use alloc::string::String;
+#[cfg(not(feature = "simulator-graphical"))]
 use alloc::vec::Vec;
 
+#[cfg(not(feature = "simulator-graphical"))]
 use bitbox_hal::Memory;
+#[cfg(not(feature = "simulator-graphical"))]
 use bitbox_hal::memory::{
     BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
     SecurechipType,
 };
 
+#[cfg(feature = "simulator-graphical")]
+pub use fake_hardware::memory::FakeMemory as BitBox02Memory;
+
+#[cfg(not(feature = "simulator-graphical"))]
 pub struct BitBox02Memory;
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_hal_securechip_type(securechip_type: crate::memory::SecurechipType) -> SecurechipType {
     match securechip_type {
         crate::memory::SecurechipType::Atecc => SecurechipType::Atecc,
@@ -18,6 +27,7 @@ fn to_hal_securechip_type(securechip_type: crate::memory::SecurechipType) -> Sec
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_hal_platform(platform: crate::memory::Platform) -> Platform {
     match platform {
         crate::memory::Platform::BitBox02 => Platform::BitBox02,
@@ -25,6 +35,7 @@ fn to_hal_platform(platform: crate::memory::Platform) -> Platform {
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_hal_password_stretch_algo(algo: crate::memory::PasswordStretchAlgo) -> PasswordStretchAlgo {
     match algo {
         crate::memory::PasswordStretchAlgo::MEMORY_PASSWORD_STRETCH_ALGO_V0 => {
@@ -36,6 +47,7 @@ fn to_hal_password_stretch_algo(algo: crate::memory::PasswordStretchAlgo) -> Pas
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_hal_optiga_config_version(
     version: crate::memory::OptigaConfigVersion,
 ) -> OptigaConfigVersion {
@@ -45,6 +57,7 @@ fn to_hal_optiga_config_version(
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_hal_error(error: crate::memory::MemoryError) -> Error {
     match error {
         crate::memory::MemoryError::MEMORY_OK => {
@@ -57,6 +70,7 @@ fn to_hal_error(error: crate::memory::MemoryError) -> Error {
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_hal_ble_metadata(metadata: crate::memory::BleMetadata) -> BleMetadata {
     BleMetadata {
         allowed_firmware_hash: metadata.allowed_firmware_hash,
@@ -66,6 +80,7 @@ fn to_hal_ble_metadata(metadata: crate::memory::BleMetadata) -> BleMetadata {
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 pub(super) fn to_bitbox02_password_stretch_algo(
     algo: PasswordStretchAlgo,
 ) -> crate::memory::PasswordStretchAlgo {
@@ -79,6 +94,7 @@ pub(super) fn to_bitbox02_password_stretch_algo(
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_bitbox02_optiga_config_version(
     version: OptigaConfigVersion,
 ) -> crate::memory::OptigaConfigVersion {
@@ -88,6 +104,7 @@ fn to_bitbox02_optiga_config_version(
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 fn to_bitbox02_ble_metadata(metadata: &BleMetadata) -> crate::memory::BleMetadata {
     crate::memory::BleMetadata {
         allowed_firmware_hash: metadata.allowed_firmware_hash,
@@ -97,6 +114,7 @@ fn to_bitbox02_ble_metadata(metadata: &BleMetadata) -> crate::memory::BleMetadat
     }
 }
 
+#[cfg(not(feature = "simulator-graphical"))]
 impl Memory for BitBox02Memory {
     /// We want to write FW to the memory chip in erase-size chunks, so that we don't repeatedly
     /// need to read-erase-write the same sector.
@@ -259,8 +277,10 @@ impl Memory for BitBox02Memory {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(feature = "simulator-graphical"))]
     use super::*;
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     fn test_to_hal_securechip_type() {
         assert_eq!(
@@ -273,6 +293,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     fn test_to_hal_platform() {
         assert_eq!(
@@ -285,6 +306,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     fn test_to_hal_error() {
         let cases = [
@@ -307,12 +329,14 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     #[should_panic(expected = "MEMORY_OK must not be converted to hal::memory::Error")]
     fn test_to_hal_error_memory_ok_panics() {
         let _ = to_hal_error(crate::memory::MemoryError::MEMORY_OK);
     }
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     fn test_password_stretch_algo_mappings() {
         assert_eq!(
@@ -337,6 +361,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     fn test_optiga_config_version_mappings() {
         assert_eq!(
@@ -361,6 +386,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     fn test_to_hal_ble_metadata() {
         let input = crate::memory::BleMetadata {
@@ -378,6 +404,7 @@ mod tests {
         assert_eq!(output.firmware_checksums, [0xaa, 0xbb]);
     }
 
+    #[cfg(not(feature = "simulator-graphical"))]
     #[test]
     fn test_to_bitbox02_ble_metadata() {
         let input = BleMetadata {
@@ -393,5 +420,26 @@ mod tests {
         assert_eq!(output.active_index, 0);
         assert_eq!(output.firmware_sizes, [100, 200]);
         assert_eq!(output.firmware_checksums, [0xcc, 0xdd]);
+    }
+
+    #[cfg(feature = "simulator-graphical")]
+    #[test]
+    fn test_set_initialized_uses_shared_fake_hardware_state() {
+        use bitbox_hal::{Hal, Memory};
+
+        fake_hardware::memory::reset();
+
+        let mut first = crate::hal::BitBox02Hal::new();
+        let mut second = crate::hal::BitBox02Hal::new();
+
+        assert!(!first.memory().is_initialized());
+        assert!(!second.memory().is_initialized());
+
+        first.memory().set_initialized().unwrap();
+
+        assert!(first.memory().is_initialized());
+        assert!(second.memory().is_initialized());
+
+        fake_hardware::memory::reset();
     }
 }

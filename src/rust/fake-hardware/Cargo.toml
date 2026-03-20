@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "fake-hardware"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[dependencies]
+bitbox-hal = { path = "../bitbox-hal" }
+zeroize = { workspace = true }

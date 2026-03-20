@@ -25,6 +25,8 @@ pub struct TestingHal<'a> {
 
 impl TestingHal<'_> {
     pub fn new() -> Self {
+        // This is only necessary while Hal is internally singelton.
+        fake_hardware::memory::reset();
         Self {
             ui: TestingUi::new(),
             sd: TestingSd::new(),
@@ -33,6 +35,12 @@ impl TestingHal<'_> {
             memory: TestingMemory::new(),
             system: TestingSystem::new(),
         }
+    }
+}
+
+impl Default for TestingHal<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

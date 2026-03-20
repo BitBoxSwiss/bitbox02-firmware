@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#include "queue.h"
+#include <rust/rust.h>
 #include <usb/class/usb_size.h>
 
 #define FRAME_TYPE_MASK 0x80 // Frame type mask
@@ -91,12 +91,12 @@ typedef struct {
  * @param[in] cid The channel ID.
  * @param[in] add_frame_callback The callback to which the prepared frames are passed to.
  */
-queue_error_t usb_frame_reply(
+UsbReportQueueError usb_frame_reply(
     uint8_t cmd,
     const uint8_t* data,
     uint32_t len,
     uint32_t cid,
-    struct queue* queue);
+    RustUsbReportQueue* queue);
 
 /**
  * Prepares an error USB frame, containing the channel id
@@ -105,7 +105,7 @@ queue_error_t usb_frame_reply(
  * @param[in] err The error send to the host.
  * @param[in] add_frame_callback The callback to which we add the frame.
  */
-queue_error_t usb_frame_prepare_err(uint8_t err, uint32_t cid, struct queue* queue);
+UsbReportQueueError usb_frame_prepare_err(uint8_t err, uint32_t cid, RustUsbReportQueue* queue);
 
 /**
  * Processes usb frame requests.

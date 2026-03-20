@@ -3,6 +3,7 @@
 pub struct TestingSystem {
     pub(crate) smarteeprom_enabled: bool,
     ble_reset_count: u32,
+    btconly: bool,
 }
 
 impl TestingSystem {
@@ -10,16 +11,25 @@ impl TestingSystem {
         Self {
             smarteeprom_enabled: true,
             ble_reset_count: 0,
+            btconly: false,
         }
     }
 
     pub fn ble_reset_count(&self) -> u32 {
         self.ble_reset_count
     }
+
+    pub fn set_btconly(&mut self, btconly: bool) {
+        self.btconly = btconly;
+    }
 }
 
 impl crate::hal::System for TestingSystem {
     async fn startup() {}
+
+    fn is_btconly(&mut self) -> bool {
+        self.btconly
+    }
 
     fn reboot(&mut self) -> ! {
         panic!("reboot called")
@@ -59,5 +69,13 @@ mod tests {
         system.reset_ble();
         system.reset_ble();
         assert_eq!(system.ble_reset_count(), 2);
+    }
+
+    #[test]
+    fn test_is_btconly() {
+        let mut system = TestingSystem::new();
+        assert!(!system.is_btconly());
+        system.set_btconly(true);
+        assert!(system.is_btconly());
     }
 }

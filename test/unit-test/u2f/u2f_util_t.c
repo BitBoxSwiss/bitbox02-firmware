@@ -36,7 +36,7 @@
         _a > _b ? _a : _b;                              \
     })
 
-static void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
+static void u2f_util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
     static char digits[] = "0123456789abcdef";
     size_t i;
@@ -517,7 +517,7 @@ bool getSubjectPublicKey(const char* cert, size_t cert_len, char* pk, size_t* pk
 
     char cert_c[cert_len * 2 + 1];
     char* cert_c_p = cert_c;
-    util_uint8_to_hex((const uint8_t*)cert, cert_len, cert_c);
+    u2f_util_uint8_to_hex((const uint8_t*)cert, cert_len, cert_c);
     // memcpy(cert_c, utils_uint8_to_hex((const uint8_t *)cert, cert_len), cert_len * 2);
 
     char* pkStart = strstr(cert_c, asn1);
@@ -540,7 +540,7 @@ bool getCertSignature(const char* cert, size_t cert_len, char* sig, size_t* sig_
     const char asn1[] = "300906072a8648ce3d040103";
     char cert_c[cert_len * 2 + 1];
     char* cert_c_p = cert_c;
-    util_uint8_to_hex((const uint8_t*)cert, cert_len, cert_c);
+    u2f_util_uint8_to_hex((const uint8_t*)cert, cert_len, cert_c);
     // memcpy(cert_c, utils_uint8_to_hex((const uint8_t *)cert, cert_len), cert_len * 2);
 
     char* pkStart = strstr(cert_c, asn1);

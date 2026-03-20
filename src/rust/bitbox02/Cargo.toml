@@ -13,6 +13,8 @@ bitbox02-sys = {path="../bitbox02-sys"}
 bitbox02-noise = { path = "../bitbox02-noise" }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
+bitbox-usb-report-queue = { path = "../bitbox-usb-report-queue" }
+fake-hardware = { path = "../fake-hardware", optional = true }
 util = {path = "../util"}
 zeroize = { workspace = true }
 bip39 = { workspace = true }
@@ -32,7 +34,7 @@ unit-testing = []
 # Active when the Rust code is compiled to be linked into the C unit tests and simulator.
 c-unit-testing = []
 # Active when building for the graphical simulator
-simulator-graphical = []
+simulator-graphical = ["dep:fake-hardware"]
 
 app-ethereum = []
 app-bitcoin = []

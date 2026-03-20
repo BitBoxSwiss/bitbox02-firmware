@@ -350,6 +350,7 @@ dependencies = [
  "bitbox-usb-report-queue",
  "bitbox02-noise",
  "bitbox02-sys",
+ "fake-hardware",
  "futures-lite",
  "grounded",
  "util",
@@ -1098,6 +1099,14 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
+]
+
+[[package]]
+name = "fake-hardware"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "zeroize",
 ]
 
 [[package]]
@@ -2835,6 +2844,7 @@ dependencies = [
  "bitbox02-rust-c",
  "clap",
  "critical-section",
+ "fake-hardware",
  "femtovg",
  "glutin",
  "glutin-winit",

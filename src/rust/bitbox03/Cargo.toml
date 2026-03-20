@@ -6,9 +6,11 @@ edition = "2024"
 [dependencies]
 bitbox-lvgl = { path = "../bitbox-lvgl" }
 bitbox-hal = { path = "../bitbox-hal" }
+fake-hardware = { path = "../fake-hardware", optional = true }
 tracing = { version = "0.1.41", features = ["log"], default-features = false }
 png-decoder = { version="0.2"}
 zeroize = {workspace=true}
 
 [features]
 app-u2f = []
+simulator-graphical = ["dep:fake-hardware"]

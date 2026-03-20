@@ -1,7 +1,13 @@
+#[cfg(feature = "simulator-graphical")]
+pub use fake_hardware::memory::FakeMemory as BitBox03Memory;
+
+#[cfg(not(feature = "simulator-graphical"))]
 use bitbox_hal as hal;
 
+#[cfg(not(feature = "simulator-graphical"))]
 pub struct BitBox03Memory;
 
+#[cfg(not(feature = "simulator-graphical"))]
 impl hal::memory::Memory for BitBox03Memory {
     const BLE_FW_FLASH_CHUNK_SIZE: u32 = 0;
 
@@ -151,5 +157,29 @@ impl hal::memory::Memory for BitBox03Memory {
         _version: bitbox_hal::memory::OptigaConfigVersion,
     ) -> Result<(), ()> {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bitbox_hal::{Hal, Memory};
+
+    #[cfg(feature = "simulator-graphical")]
+    #[test]
+    fn test_set_initialized_uses_shared_fake_hardware_state() {
+        fake_hardware::memory::reset();
+
+        let mut first = crate::BitBox03::new();
+        let mut second = crate::BitBox03::new();
+
+        assert!(!first.memory().is_initialized());
+        assert!(!second.memory().is_initialized());
+
+        first.memory().set_initialized().unwrap();
+
+        assert!(first.memory().is_initialized());
+        assert!(second.memory().is_initialized());
+
+        fake_hardware::memory::reset();
     }
 }

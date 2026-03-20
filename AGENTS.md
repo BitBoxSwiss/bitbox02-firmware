@@ -50,7 +50,7 @@ bindings (`cbindgen`, protobuf) when interfaces change.
 
 For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code. For Python
 changes, run `./scripts/dev_exec.sh black` to format the code. For Rust code changes, run
-`./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml`.
+`./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml --all`.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware

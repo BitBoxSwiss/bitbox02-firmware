@@ -23,6 +23,7 @@ members = [
     "bitbox-executor",
     "bitbox03",
     "bitbox-lvgl",
+    "fake-hardware",
 ]
 
 resolver = "2"

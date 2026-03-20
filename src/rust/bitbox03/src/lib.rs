@@ -4,6 +4,7 @@
 
 extern crate alloc;
 use core::cell::UnsafeCell;
+mod eeprom;
 pub mod io;
 mod memory;
 mod random;
@@ -21,6 +22,7 @@ struct BitBox03State {
     sd: sd::BitBox03Sd,
     securechip: securechip::BitBox03SecureChip,
     memory: memory::BitBox03Memory,
+    eeprom: eeprom::BitBox03Eeprom,
     system: system::BitBox03System,
 }
 
@@ -32,6 +34,7 @@ impl BitBox03State {
             sd: sd::BitBox03Sd {},
             securechip: securechip::BitBox03SecureChip {},
             memory: memory::BitBox03Memory {},
+            eeprom: eeprom::BitBox03Eeprom::new(),
             system: system::BitBox03System {},
         }
     }
@@ -83,6 +86,8 @@ impl hal::Hal for BitBox03 {
 
     type Memory = memory::BitBox03Memory;
 
+    type Eeprom = eeprom::BitBox03Eeprom;
+
     type System = system::BitBox03System;
 
     fn as_mut(
@@ -94,6 +99,7 @@ impl hal::Hal for BitBox03 {
         Self::Sd,
         Self::SecureChip,
         Self::Memory,
+        Self::Eeprom,
         Self::System,
     > {
         let state = state();
@@ -103,6 +109,7 @@ impl hal::Hal for BitBox03 {
             sd: &mut state.sd,
             securechip: &mut state.securechip,
             memory: &mut state.memory,
+            eeprom: &mut state.eeprom,
             system: &mut state.system,
         }
     }

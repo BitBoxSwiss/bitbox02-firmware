@@ -7,7 +7,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::bip32;
-use crate::hal::{Memory, Random, SecureChip, System, memory, securechip};
+use crate::hal::{Eeprom, Memory, Random, SecureChip, System, memory, securechip};
 
 use util::bip32::HARDENED;
 use util::cell::SyncCell;
@@ -27,24 +27,33 @@ const LONG_TIMEOUT: i16 = -70;
 pub const MAX_UNLOCK_ATTEMPTS: u8 = 10;
 
 pub trait KeystoreHal {
+    type Eeprom: Eeprom;
     type Memory: Memory;
     type Random: Random;
     type SecureChip: SecureChip;
 
+    fn eeprom(&mut self) -> &mut Self::Eeprom;
     fn memory(&mut self) -> &mut Self::Memory;
     fn random(&mut self) -> &mut Self::Random;
     fn securechip(&mut self) -> &mut Self::SecureChip;
 }
 
-pub struct KeystoreHalImpl<'a, M: Memory, R: Random, S: SecureChip> {
+pub struct KeystoreHalImpl<'a, E: Eeprom, M: Memory, R: Random, S: SecureChip> {
+    eeprom: &'a mut E,
     memory: &'a mut M,
     random: &'a mut R,
     securechip: &'a mut S,
 }
 
-impl<'a, M: Memory, R: Random, S: SecureChip> KeystoreHalImpl<'a, M, R, S> {
-    pub fn new(memory: &'a mut M, random: &'a mut R, securechip: &'a mut S) -> Self {
+impl<'a, E: Eeprom, M: Memory, R: Random, S: SecureChip> KeystoreHalImpl<'a, E, M, R, S> {
+    pub fn new(
+        eeprom: &'a mut E,
+        memory: &'a mut M,
+        random: &'a mut R,
+        securechip: &'a mut S,
+    ) -> Self {
         Self {
+            eeprom,
             memory,
             random,
             securechip,
@@ -53,22 +62,30 @@ impl<'a, M: Memory, R: Random, S: SecureChip> KeystoreHalImpl<'a, M, R, S> {
 
     pub fn from_hal<H>(hal: &'a mut H) -> Self
     where
-        H: crate::hal::Hal<Memory = M, Random = R, SecureChip = S>,
+        H: crate::hal::Hal<Eeprom = E, Memory = M, Random = R, SecureChip = S>,
     {
         let crate::hal::HalSubsystems {
+            eeprom,
             random,
             securechip,
             memory,
             ..
         } = hal.as_mut();
-        Self::new(memory, random, securechip)
+        Self::new(eeprom, memory, random, securechip)
     }
 }
 
-impl<M: Memory, R: Random, S: SecureChip> KeystoreHal for KeystoreHalImpl<'_, M, R, S> {
+impl<E: Eeprom, M: Memory, R: Random, S: SecureChip> KeystoreHal
+    for KeystoreHalImpl<'_, E, M, R, S>
+{
+    type Eeprom = E;
     type Memory = M;
     type Random = R;
     type SecureChip = S;
+
+    fn eeprom(&mut self) -> &mut Self::Eeprom {
+        self.eeprom
+    }
 
     fn memory(&mut self) -> &mut Self::Memory {
         self.memory
@@ -429,7 +446,7 @@ pub async fn unlock(
         return Err(Error::MaxAttemptsExceeded);
     }
     hal.system().communication_timeout_reset(LONG_TIMEOUT);
-    hal.memory().increment_unlock_attempts();
+    hal.eeprom().increment_unlock_attempts();
     let seed = match get_and_decrypt_seed(hal, password) {
         Ok(seed) => seed,
         err @ Err(_) => {
@@ -449,14 +466,14 @@ pub async fn unlock(
     } else {
         migrate_password_algo_and_retain_seed(hal, &seed, password)?;
     }
-    hal.memory().reset_unlock_attempts();
+    hal.eeprom().reset_unlock_attempts();
     Ok(seed)
 }
 
 /// Returns the number of remaining unlock attempts (calls to `unlock()`) that are allowed before
 /// the device resets itself.
 pub fn get_remaining_unlock_attempts(hal: &mut impl crate::hal::Hal) -> u8 {
-    let failed_attempts: u8 = hal.memory().get_unlock_attempts();
+    let failed_attempts: u8 = hal.eeprom().get_unlock_attempts();
     MAX_UNLOCK_ATTEMPTS.saturating_sub(failed_attempts)
 }
 
@@ -1330,11 +1347,11 @@ mod tests {
         assert!(is_locked());
 
         mock_hal
-            .memory
+            .eeprom
             .set_unlock_attempts_for_testing(MAX_UNLOCK_ATTEMPTS);
 
         assert_eq!(get_remaining_unlock_attempts(&mut mock_hal), 0);
-        assert_eq!(mock_hal.memory.get_unlock_attempts(), MAX_UNLOCK_ATTEMPTS);
+        assert_eq!(mock_hal.eeprom.get_unlock_attempts(), MAX_UNLOCK_ATTEMPTS);
 
         assert!(matches!(
             block_on(unlock(&mut mock_hal, "password")),

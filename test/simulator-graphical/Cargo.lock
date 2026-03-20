@@ -2830,7 +2830,6 @@ name = "simulator-graphical"
 version = "0.1.0"
 dependencies = [
  "bitbox-aes",
- "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-rust",
  "bitbox02-rust-c",

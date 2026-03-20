@@ -216,9 +216,10 @@ mod tests {
 
     #[test]
     fn test_req_new_while_busy_returns_busy() {
+        let _ = crate::async_usb::cancel();
         crate::async_usb::spawn(pending_task, &[]);
 
-        let mut handler = handler();
+        let mut handler = HwwVendorHandler::new(TestingHal::new());
         let response = handler
             .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0x00])
             .unwrap();

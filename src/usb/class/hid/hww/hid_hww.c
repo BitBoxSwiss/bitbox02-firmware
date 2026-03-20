@@ -3,7 +3,6 @@
 #include "hid_hww.h"
 #include "usb/usb_processing.h"
 #include "usb_desc.h"
-#include <queue.h>
 #include <string.h>
 #include <usb/usb_packet.h>
 

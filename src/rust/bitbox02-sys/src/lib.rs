@@ -7,6 +7,8 @@
 #![allow(non_snake_case)]
 // Can be removed once https://github.com/rust-lang/rust-bindgen/issues/1651 is resolved.
 #![allow(deref_nullptr)]
+// Some generated code is missing a "# Safety" section
+#![allow(clippy::missing_safety_doc)]
 
 #[allow(unused_extern_crates)]
 extern crate fatfs_sys;

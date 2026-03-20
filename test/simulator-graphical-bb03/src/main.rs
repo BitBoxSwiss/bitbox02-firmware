@@ -166,10 +166,6 @@ fn init_hww(preseed: bool) -> bool {
         bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
         hal.memory().set_initialized().unwrap();
     }
-
-    bitbox02::smarteeprom::bb02_config();
-    bitbox02::smarteeprom::init();
-
     true
 }
 

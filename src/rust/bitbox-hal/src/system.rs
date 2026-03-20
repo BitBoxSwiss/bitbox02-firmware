@@ -12,5 +12,4 @@ pub trait System {
     fn reboot(&mut self) -> !;
     fn reboot_to_bootloader(&mut self) -> !;
     fn reset_ble(&mut self);
-    fn smarteeprom_disable(&mut self);
 }

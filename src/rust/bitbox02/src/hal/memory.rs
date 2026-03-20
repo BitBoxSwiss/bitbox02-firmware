@@ -215,18 +215,6 @@ impl Memory for BitBox02Memory {
         crate::memory::reset_hww()
     }
 
-    fn get_unlock_attempts(&mut self) -> u8 {
-        crate::memory::smarteeprom_get_unlock_attempts()
-    }
-
-    fn increment_unlock_attempts(&mut self) {
-        crate::memory::smarteeprom_increment_unlock_attempts()
-    }
-
-    fn reset_unlock_attempts(&mut self) {
-        crate::memory::smarteeprom_reset_unlock_attempts()
-    }
-
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
         crate::memory::get_salt_root()
     }

@@ -94,9 +94,6 @@ pub trait Memory {
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<(), ()>;
     fn reset_hww(&mut self) -> Result<(), ()>;
-    fn get_unlock_attempts(&mut self) -> u8;
-    fn increment_unlock_attempts(&mut self);
-    fn reset_unlock_attempts(&mut self);
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
     fn get_attestation_pubkey_and_certificate(
         &mut self,

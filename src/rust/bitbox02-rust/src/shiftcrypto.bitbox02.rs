@@ -951,7 +951,7 @@ pub mod btc_payment_request_request {
             /// Address to send the purchased coins to
             #[prost(string, tag = "3")]
             pub address: ::prost::alloc::string::String,
-            #[prost(oneof = "coin_purchase_memo::AddressDerivation", tags = "4")]
+            #[prost(oneof = "coin_purchase_memo::AddressDerivation", tags = "4, 5")]
             pub address_derivation: ::core::option::Option<
                 coin_purchase_memo::AddressDerivation,
             >,
@@ -968,10 +968,21 @@ pub mod btc_payment_request_request {
                 pub keypath: ::prost::alloc::vec::Vec<u32>,
             }
             #[allow(clippy::derive_partial_eq_without_eq)]
+            #[derive(Clone, PartialEq, ::prost::Message)]
+            pub struct BtcLikeAddressDerivation {
+                /// Script config + keypath are needed to derive BTC/LTC-family addresses.
+                #[prost(message, optional, tag = "1")]
+                pub script_config_with_keypath: ::core::option::Option<
+                    super::super::super::BtcScriptConfigWithKeypath,
+                >,
+            }
+            #[allow(clippy::derive_partial_eq_without_eq)]
             #[derive(Clone, PartialEq, ::prost::Oneof)]
             pub enum AddressDerivation {
                 #[prost(message, tag = "4")]
                 Eth(EthAddressDerivation),
+                #[prost(message, tag = "5")]
+                BtcLike(BtcLikeAddressDerivation),
             }
         }
         #[allow(clippy::derive_partial_eq_without_eq)]

@@ -11,12 +11,14 @@ use crate::keystore;
 use crate::hal::Ui;
 use crate::workflow::transaction;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 use hex_lit::hex;
 use pb::eth_response::Response;
 
 use core::ops::{Add, Mul};
 use num_bigint::BigUint;
+use num_traits::Zero;
 
 // 1 ETH = 1e18 wei.
 const WEI_DECIMALS: usize = 18;
@@ -133,6 +135,734 @@ fn parse_erc20(request: &Transaction<'_>) -> Option<([u8; 20], BigUint)> {
         recipient[12..].try_into().unwrap(),
         BigUint::from_bytes_be(value),
     ))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum SwapAsset {
+    Native,
+    Erc20([u8; 20]),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum SwapAmountBound {
+    Exact,
+    Minimum,
+    Maximum,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SwapAmount {
+    bound: SwapAmountBound,
+    value: BigUint,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct UniswapSwap {
+    from_asset: SwapAsset,
+    from_amount: SwapAmount,
+    to_asset: SwapAsset,
+    to_amount: SwapAmount,
+}
+
+const SELECTOR_SWAP_EXACT_ETH_FOR_TOKENS: [u8; 4] = hex!("7ff36ab5");
+const SELECTOR_SWAP_ETH_FOR_EXACT_TOKENS: [u8; 4] = hex!("fb3bdb41");
+const SELECTOR_SWAP_EXACT_TOKENS_FOR_ETH: [u8; 4] = hex!("18cbafe5");
+const SELECTOR_SWAP_TOKENS_FOR_EXACT_ETH: [u8; 4] = hex!("4a25d94a");
+const SELECTOR_SWAP_EXACT_TOKENS_FOR_TOKENS: [u8; 4] = hex!("38ed1739");
+const SELECTOR_SWAP_TOKENS_FOR_EXACT_TOKENS: [u8; 4] = hex!("8803dbee");
+const SELECTOR_SWAP_EXACT_ETH_FOR_TOKENS_FEE: [u8; 4] = hex!("b6f9de95");
+const SELECTOR_SWAP_EXACT_TOKENS_FOR_ETH_FEE: [u8; 4] = hex!("791ac947");
+const SELECTOR_SWAP_EXACT_TOKENS_FOR_TOKENS_FEE: [u8; 4] = hex!("5c11d795");
+const SELECTOR_EXACT_INPUT_SINGLE: [u8; 4] = hex!("04e45aaf");
+const SELECTOR_EXACT_OUTPUT_SINGLE: [u8; 4] = hex!("5023b4df");
+const SELECTOR_EXACT_INPUT: [u8; 4] = hex!("c04b8d59");
+const SELECTOR_EXACT_OUTPUT: [u8; 4] = hex!("f28c0498");
+const SELECTOR_MULTICALL_WITH_DEADLINE: [u8; 4] = hex!("5ae401dc");
+const SELECTOR_MULTICALL: [u8; 4] = hex!("ac9650d8");
+const SELECTOR_UNIVERSAL_ROUTER_EXECUTE_WITH_DEADLINE: [u8; 4] = hex!("3593564c");
+const SELECTOR_UNIVERSAL_ROUTER_EXECUTE: [u8; 4] = hex!("24856bc3");
+
+const UNIVERSAL_ROUTER_COMMAND_MASK: u8 = 0x3f;
+const UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_IN: u8 = 0x00;
+const UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_OUT: u8 = 0x01;
+const UNIVERSAL_ROUTER_COMMAND_V2_SWAP_EXACT_IN: u8 = 0x08;
+const UNIVERSAL_ROUTER_COMMAND_V2_SWAP_EXACT_OUT: u8 = 0x09;
+const UNIVERSAL_ROUTER_COMMAND_UNWRAP_WETH: u8 = 0x0c;
+
+fn wrapped_native(chain_id: u64) -> Option<[u8; 20]> {
+    match chain_id {
+        1 => Some(hex!("c02aaA39b223Fe8D0A0E5C4F27eAD9083C756Cc2")),
+        10 => Some(hex!("4200000000000000000000000000000000000006")),
+        56 => Some(hex!("bb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")),
+        100 => Some(hex!("6A023CCD1ff6F2045C3309768eAd9E68F978f6e1")),
+        137 => Some(hex!("0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270")),
+        250 => Some(hex!("21be370D5312f44cB42ce377BC9b8a0CeF1A4C83")),
+        8453 => Some(hex!("4200000000000000000000000000000000000006")),
+        42161 => Some(hex!("82aF49447D8a07e3bd95BD0d56f35241523fBab1")),
+        11155111 => Some(hex!("fFf9976782d46CC05630D1f6EBAb18b2324d6B14")),
+        _ => None,
+    }
+}
+
+fn parse_word(data: &[u8], word_index: usize) -> Option<&[u8]> {
+    let start = word_index.checked_mul(32)?;
+    let end = start.checked_add(32)?;
+    data.get(start..end)
+}
+
+fn parse_usize_word(word: &[u8]) -> Option<usize> {
+    let word: &[u8; 32] = word.try_into().ok()?;
+    if word[..24] != [0; 24] {
+        return None;
+    }
+    usize::try_from(u64::from_be_bytes(word[24..32].try_into().unwrap())).ok()
+}
+
+fn parse_u256(data: &[u8], word_index: usize) -> Option<BigUint> {
+    Some(BigUint::from_bytes_be(parse_word(data, word_index)?))
+}
+
+fn parse_u256_at(data: &[u8], start: usize) -> Option<BigUint> {
+    Some(BigUint::from_bytes_be(data.get(start..start.checked_add(32)?)?))
+}
+
+fn parse_usize_at(data: &[u8], start: usize) -> Option<usize> {
+    parse_usize_word(data.get(start..start.checked_add(32)?)?)
+}
+
+fn parse_address_word(data: &[u8], word_index: usize) -> Option<[u8; 20]> {
+    parse_address_at(data, word_index.checked_mul(32)?)
+}
+
+fn parse_address_at(data: &[u8], start: usize) -> Option<[u8; 20]> {
+    let word = data.get(start..start.checked_add(32)?)?;
+    if word[..12] != [0; 12] {
+        return None;
+    }
+    Some(word[12..].try_into().unwrap())
+}
+
+fn parse_abi_bytes(data: &[u8], offset: usize) -> Option<&[u8]> {
+    if offset % 32 != 0 {
+        return None;
+    }
+    let len = parse_usize_at(data, offset)?;
+    let start = offset.checked_add(32)?;
+    let padded_len = len.checked_add(31)?.checked_div(32)?.checked_mul(32)?;
+    if start.checked_add(padded_len)? > data.len() {
+        return None;
+    }
+    data.get(start..start.checked_add(len)?)
+}
+
+fn parse_abi_bytes_array_element(data: &[u8], array_offset: usize, index: usize) -> Option<&[u8]> {
+    if array_offset % 32 != 0 {
+        return None;
+    }
+    let num_elements = parse_usize_at(data, array_offset)?;
+    if index >= num_elements {
+        return None;
+    }
+    let head_start = array_offset.checked_add(32)?;
+    let rel_offset = parse_usize_at(data, head_start.checked_add(index.checked_mul(32)?)?)?;
+    let element_offset = head_start.checked_add(rel_offset)?;
+    parse_abi_bytes(data, element_offset)
+}
+
+fn parse_address_array_first_last(data: &[u8], arg_index: usize) -> Option<([u8; 20], [u8; 20])> {
+    let offset = parse_usize_word(parse_word(data, arg_index)?)?;
+    if offset % 32 != 0 {
+        return None;
+    }
+    let len = parse_usize_at(data, offset)?;
+    if len < 2 {
+        return None;
+    }
+    let first = parse_address_at(data, offset.checked_add(32)?)?;
+    let last = parse_address_at(
+        data,
+        offset
+            .checked_add(32)?
+            .checked_add((len - 1).checked_mul(32)?)?,
+    )?;
+    Some((first, last))
+}
+
+fn parse_v3_path_endpoints(path: &[u8]) -> Option<([u8; 20], [u8; 20])> {
+    if path.len() < 43 || (path.len() - 20) % 23 != 0 {
+        return None;
+    }
+    Some((
+        path[..20].try_into().unwrap(),
+        path[path.len() - 20..].try_into().unwrap(),
+    ))
+}
+
+fn tx_value_nonzero(request: &Transaction<'_>) -> Option<BigUint> {
+    if request.value().is_empty() {
+        None
+    } else {
+        let value = BigUint::from_bytes_be(request.value());
+        if value.is_zero() {
+            None
+        } else {
+            Some(value)
+        }
+    }
+}
+
+fn parse_uniswap_swap_v2(data: &[u8], request: &Transaction<'_>) -> Option<UniswapSwap> {
+    let selector: [u8; 4] = data.get(..4)?.try_into().ok()?;
+    let args = data.get(4..)?;
+
+    match selector {
+        SELECTOR_SWAP_EXACT_ETH_FOR_TOKENS | SELECTOR_SWAP_EXACT_ETH_FOR_TOKENS_FEE => {
+            let amount_out_min = parse_u256(args, 0)?;
+            let (path_start, path_end) = parse_address_array_first_last(args, 1)?;
+            if let Some(expected_wrapped) = wrapped_native(request.chain_id()) {
+                if path_start != expected_wrapped {
+                    return None;
+                }
+            }
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Native,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: tx_value_nonzero(request)?,
+                },
+                to_asset: SwapAsset::Erc20(path_end),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: amount_out_min,
+                },
+            })
+        }
+        SELECTOR_SWAP_ETH_FOR_EXACT_TOKENS => {
+            let amount_out = parse_u256(args, 0)?;
+            let (path_start, path_end) = parse_address_array_first_last(args, 1)?;
+            if let Some(expected_wrapped) = wrapped_native(request.chain_id()) {
+                if path_start != expected_wrapped {
+                    return None;
+                }
+            }
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Native,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Maximum,
+                    value: tx_value_nonzero(request)?,
+                },
+                to_asset: SwapAsset::Erc20(path_end),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_out,
+                },
+            })
+        }
+        SELECTOR_SWAP_EXACT_TOKENS_FOR_ETH | SELECTOR_SWAP_EXACT_TOKENS_FOR_ETH_FEE => {
+            if !request.value().is_empty() {
+                return None;
+            }
+            let amount_in = parse_u256(args, 0)?;
+            let amount_out_min = parse_u256(args, 1)?;
+            let (path_start, path_end) = parse_address_array_first_last(args, 2)?;
+            if let Some(expected_wrapped) = wrapped_native(request.chain_id()) {
+                if path_end != expected_wrapped {
+                    return None;
+                }
+            }
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Erc20(path_start),
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_in,
+                },
+                to_asset: SwapAsset::Native,
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: amount_out_min,
+                },
+            })
+        }
+        SELECTOR_SWAP_TOKENS_FOR_EXACT_ETH => {
+            if !request.value().is_empty() {
+                return None;
+            }
+            let amount_out = parse_u256(args, 0)?;
+            let amount_in_max = parse_u256(args, 1)?;
+            let (path_start, path_end) = parse_address_array_first_last(args, 2)?;
+            if let Some(expected_wrapped) = wrapped_native(request.chain_id()) {
+                if path_end != expected_wrapped {
+                    return None;
+                }
+            }
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Erc20(path_start),
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Maximum,
+                    value: amount_in_max,
+                },
+                to_asset: SwapAsset::Native,
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_out,
+                },
+            })
+        }
+        SELECTOR_SWAP_EXACT_TOKENS_FOR_TOKENS | SELECTOR_SWAP_EXACT_TOKENS_FOR_TOKENS_FEE => {
+            if !request.value().is_empty() {
+                return None;
+            }
+            let amount_in = parse_u256(args, 0)?;
+            let amount_out_min = parse_u256(args, 1)?;
+            let (path_start, path_end) = parse_address_array_first_last(args, 2)?;
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Erc20(path_start),
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_in,
+                },
+                to_asset: SwapAsset::Erc20(path_end),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: amount_out_min,
+                },
+            })
+        }
+        SELECTOR_SWAP_TOKENS_FOR_EXACT_TOKENS => {
+            if !request.value().is_empty() {
+                return None;
+            }
+            let amount_out = parse_u256(args, 0)?;
+            let amount_in_max = parse_u256(args, 1)?;
+            let (path_start, path_end) = parse_address_array_first_last(args, 2)?;
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Erc20(path_start),
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Maximum,
+                    value: amount_in_max,
+                },
+                to_asset: SwapAsset::Erc20(path_end),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_out,
+                },
+            })
+        }
+        _ => None,
+    }
+}
+
+fn parse_uniswap_swap_v3(data: &[u8], request: &Transaction<'_>) -> Option<UniswapSwap> {
+    let selector: [u8; 4] = data.get(..4)?.try_into().ok()?;
+    let args = data.get(4..)?;
+    match selector {
+        SELECTOR_EXACT_INPUT_SINGLE => {
+            let token_in = parse_address_word(args, 0)?;
+            let token_out = parse_address_word(args, 1)?;
+            let amount_in = parse_u256(args, 5)?;
+            let amount_out_min = parse_u256(args, 6)?;
+            Some(UniswapSwap {
+                from_asset: classify_input_asset(token_in, &amount_in, request)?,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_in,
+                },
+                to_asset: SwapAsset::Erc20(token_out),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: amount_out_min,
+                },
+            })
+        }
+        SELECTOR_EXACT_OUTPUT_SINGLE => {
+            let token_in = parse_address_word(args, 0)?;
+            let token_out = parse_address_word(args, 1)?;
+            let amount_out = parse_u256(args, 5)?;
+            let amount_in_max = parse_u256(args, 6)?;
+            Some(UniswapSwap {
+                from_asset: classify_input_asset(token_in, &amount_in_max, request)?,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Maximum,
+                    value: amount_in_max,
+                },
+                to_asset: SwapAsset::Erc20(token_out),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_out,
+                },
+            })
+        }
+        SELECTOR_EXACT_INPUT | SELECTOR_EXACT_OUTPUT => {
+            let tuple_offset = parse_usize_word(parse_word(args, 0)?)?;
+            let tuple_start = tuple_offset;
+            let path_offset = parse_usize_at(args, tuple_start)?;
+            let path =
+                parse_abi_bytes(args, tuple_start.checked_add(path_offset)?)?;
+            let (path_start, path_end) = parse_v3_path_endpoints(path)?;
+            let amount_a = parse_u256_at(args, tuple_start.checked_add(3 * 32)?)?;
+            let amount_b = parse_u256_at(args, tuple_start.checked_add(4 * 32)?)?;
+
+            if selector == SELECTOR_EXACT_INPUT {
+                Some(UniswapSwap {
+                    from_asset: classify_input_asset(path_start, &amount_a, request)?,
+                    from_amount: SwapAmount {
+                        bound: SwapAmountBound::Exact,
+                        value: amount_a,
+                    },
+                    to_asset: SwapAsset::Erc20(path_end),
+                    to_amount: SwapAmount {
+                        bound: SwapAmountBound::Minimum,
+                        value: amount_b,
+                    },
+                })
+            } else {
+                Some(UniswapSwap {
+                    from_asset: classify_input_asset(path_end, &amount_b, request)?,
+                    from_amount: SwapAmount {
+                        bound: SwapAmountBound::Maximum,
+                        value: amount_b,
+                    },
+                    to_asset: SwapAsset::Erc20(path_start),
+                    to_amount: SwapAmount {
+                        bound: SwapAmountBound::Exact,
+                        value: amount_a,
+                    },
+                })
+            }
+        }
+        _ => None,
+    }
+}
+
+fn classify_input_asset(
+    token_in: [u8; 20],
+    amount_in: &BigUint,
+    request: &Transaction<'_>,
+) -> Option<SwapAsset> {
+    if let Some(tx_value) = tx_value_nonzero(request) {
+        if &tx_value < amount_in {
+            return None;
+        }
+        if let Some(expected_wrapped) = wrapped_native(request.chain_id()) {
+            if token_in != expected_wrapped {
+                return None;
+            }
+        }
+        Some(SwapAsset::Native)
+    } else {
+        Some(SwapAsset::Erc20(token_in))
+    }
+}
+
+fn parse_uniswap_universal_router_swap_input_v2(
+    command: u8,
+    input: &[u8],
+    request: &Transaction<'_>,
+) -> Option<UniswapSwap> {
+    let (path_start, path_end) = parse_address_array_first_last(input, 3)?;
+    match command {
+        UNIVERSAL_ROUTER_COMMAND_V2_SWAP_EXACT_IN => {
+            let amount_in = parse_u256(input, 1)?;
+            let amount_out_min = parse_u256(input, 2)?;
+            Some(UniswapSwap {
+                from_asset: classify_input_asset(path_start, &amount_in, request)?,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_in,
+                },
+                to_asset: SwapAsset::Erc20(path_end),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: amount_out_min,
+                },
+            })
+        }
+        UNIVERSAL_ROUTER_COMMAND_V2_SWAP_EXACT_OUT => {
+            let amount_out = parse_u256(input, 1)?;
+            let amount_in_max = parse_u256(input, 2)?;
+            Some(UniswapSwap {
+                from_asset: classify_input_asset(path_start, &amount_in_max, request)?,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Maximum,
+                    value: amount_in_max,
+                },
+                to_asset: SwapAsset::Erc20(path_end),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_out,
+                },
+            })
+        }
+        _ => None,
+    }
+}
+
+fn parse_uniswap_universal_router_swap_input_v3(
+    command: u8,
+    input: &[u8],
+    request: &Transaction<'_>,
+) -> Option<UniswapSwap> {
+    let path_offset = parse_usize_word(parse_word(input, 3)?)?;
+    let path = parse_abi_bytes(input, path_offset)?;
+    let (path_start, path_end) = parse_v3_path_endpoints(path)?;
+    match command {
+        UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_IN => {
+            let amount_in = parse_u256(input, 1)?;
+            let amount_out_min = parse_u256(input, 2)?;
+            Some(UniswapSwap {
+                from_asset: classify_input_asset(path_start, &amount_in, request)?,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_in,
+                },
+                to_asset: SwapAsset::Erc20(path_end),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: amount_out_min,
+                },
+            })
+        }
+        UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_OUT => {
+            let amount_out = parse_u256(input, 1)?;
+            let amount_in_max = parse_u256(input, 2)?;
+            // v3 exact out path is encoded in reverse: out -> in.
+            Some(UniswapSwap {
+                from_asset: classify_input_asset(path_end, &amount_in_max, request)?,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Maximum,
+                    value: amount_in_max,
+                },
+                to_asset: SwapAsset::Erc20(path_start),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: amount_out,
+                },
+            })
+        }
+        _ => None,
+    }
+}
+
+fn parse_uniswap_universal_router_swap(
+    data: &[u8],
+    request: &Transaction<'_>,
+) -> Option<UniswapSwap> {
+    let selector: [u8; 4] = data.get(..4)?.try_into().ok()?;
+    if selector != SELECTOR_UNIVERSAL_ROUTER_EXECUTE
+        && selector != SELECTOR_UNIVERSAL_ROUTER_EXECUTE_WITH_DEADLINE
+    {
+        return None;
+    }
+    let args = data.get(4..)?;
+    let commands_offset = parse_usize_word(parse_word(args, 0)?)?;
+    let inputs_offset = parse_usize_word(parse_word(args, 1)?)?;
+    let commands = parse_abi_bytes(args, commands_offset)?;
+    let num_inputs = parse_usize_at(args, inputs_offset)?;
+    let max_entries = core::cmp::min(commands.len(), num_inputs);
+    let wrapped_native_token = wrapped_native(request.chain_id());
+    let has_tx_value = tx_value_nonzero(request).is_some();
+    let has_unwrap_after = |commands: &[u8], start_index: usize| {
+        commands[start_index..]
+            .iter()
+            .any(|command| (command & UNIVERSAL_ROUTER_COMMAND_MASK) == UNIVERSAL_ROUTER_COMMAND_UNWRAP_WETH)
+    };
+
+    for i in 0..max_entries {
+        let command = commands[i] & UNIVERSAL_ROUTER_COMMAND_MASK;
+        let input = parse_abi_bytes_array_element(args, inputs_offset, i)?;
+        let parsed = match command {
+            UNIVERSAL_ROUTER_COMMAND_V2_SWAP_EXACT_IN | UNIVERSAL_ROUTER_COMMAND_V2_SWAP_EXACT_OUT => {
+                parse_uniswap_universal_router_swap_input_v2(command, input, request)
+            }
+            UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_IN | UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_OUT => {
+                parse_uniswap_universal_router_swap_input_v3(command, input, request)
+            }
+            _ => None,
+        };
+        if let Some(mut parsed_swap) = parsed {
+            if let Some(wrapped_native_token) = wrapped_native_token {
+                if parsed_swap.from_asset == SwapAsset::Erc20(wrapped_native_token) && has_tx_value {
+                    parsed_swap.from_asset = SwapAsset::Native;
+                }
+                if parsed_swap.to_asset == SwapAsset::Erc20(wrapped_native_token)
+                    && has_unwrap_after(commands, i + 1)
+                {
+                    parsed_swap.to_asset = SwapAsset::Native;
+                }
+            }
+            return Some(parsed_swap);
+        }
+    }
+    None
+}
+
+fn parse_uniswap_swap_data(
+    data: &[u8],
+    request: &Transaction<'_>,
+    depth: usize,
+) -> Option<UniswapSwap> {
+    if depth > 2 || data.len() < 4 {
+        return None;
+    }
+    if let Some(parsed) = parse_uniswap_swap_v2(data, request) {
+        return Some(parsed);
+    }
+    if let Some(parsed) = parse_uniswap_swap_v3(data, request) {
+        return Some(parsed);
+    }
+    if let Some(parsed) = parse_uniswap_universal_router_swap(data, request) {
+        return Some(parsed);
+    }
+
+    let selector: [u8; 4] = data.get(..4)?.try_into().ok()?;
+    let args = data.get(4..)?;
+    let bytes_array_arg = match selector {
+        SELECTOR_MULTICALL => 0,
+        SELECTOR_MULTICALL_WITH_DEADLINE => 1,
+        _ => return None,
+    };
+    let array_offset = parse_usize_word(parse_word(args, bytes_array_arg)?)?;
+    let num_elements = parse_usize_at(args, array_offset)?;
+    let head_start = array_offset.checked_add(32)?;
+    for element_index in 0..num_elements {
+        let rel_offset = parse_usize_at(args, head_start.checked_add(element_index.checked_mul(32)?)?)?;
+        let element_offset = head_start.checked_add(rel_offset)?;
+        let element_data = parse_abi_bytes(args, element_offset)?;
+        if let Some(parsed) = parse_uniswap_swap_data(element_data, request, depth + 1) {
+            return Some(parsed);
+        }
+    }
+    None
+}
+
+fn parse_uniswap_swap(request: &Transaction<'_>) -> Option<UniswapSwap> {
+    parse_uniswap_swap_data(request.data(), request, 0)
+}
+
+enum SwapAssetDisplay {
+    Known {
+        unit: &'static str,
+        decimals: usize,
+    },
+    UnknownToken {
+        address: String,
+    },
+}
+
+fn resolve_swap_asset(
+    asset: &SwapAsset,
+    chain_params: &Params,
+    case: pb::EthAddressCase,
+) -> SwapAssetDisplay {
+    match asset {
+        SwapAsset::Native => SwapAssetDisplay::Known {
+            unit: chain_params.unit,
+            decimals: WEI_DECIMALS,
+        },
+        SwapAsset::Erc20(address) => {
+            if let Some(token) = erc20_params::get(chain_params.chain_id, *address) {
+                SwapAssetDisplay::Known {
+                    unit: token.unit,
+                    decimals: token.decimals as usize,
+                }
+            } else {
+                SwapAssetDisplay::UnknownToken {
+                    address: super::address::format_display_address(&super::address::from_pubkey_hash(
+                        address,
+                        case,
+                    )),
+                }
+            }
+        }
+    }
+}
+
+fn format_swap_amount(amount: &SwapAmount, asset: &SwapAssetDisplay) -> String {
+    let mut line = match amount.bound {
+        SwapAmountBound::Exact => String::new(),
+        SwapAmountBound::Minimum => "min. ".into(),
+        SwapAmountBound::Maximum => "max. ".into(),
+    };
+    match asset {
+        SwapAssetDisplay::Known { unit, decimals } => {
+            line.push_str(
+                &Amount {
+                    unit,
+                    decimals: *decimals,
+                    value: amount.value.clone(),
+                }
+                .format(),
+            );
+            line
+        }
+        SwapAssetDisplay::UnknownToken { address } => {
+            line.push_str(&amount.value.to_str_radix(10));
+            line.push_str(" raw units\n");
+            line.push_str(address);
+            line
+        }
+    }
+}
+
+async fn verify_uniswap_swap_transaction(
+    hal: &mut impl crate::hal::Hal,
+    request: &Transaction<'_>,
+    chain_params: &Params,
+    swap: &UniswapSwap,
+) -> Result<(), Error> {
+    let case = request.case()?;
+    let from_asset = resolve_swap_asset(&swap.from_asset, chain_params, case);
+    let to_asset = resolve_swap_asset(&swap.to_asset, chain_params, case);
+    let from_display = format_swap_amount(&swap.from_amount, &from_asset);
+    let to_display = format_swap_amount(&swap.to_amount, &to_asset);
+
+    hal.ui()
+        .confirm(&ConfirmParams {
+            title: "Swap\nfrom",
+            body: &from_display,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+    hal.ui()
+        .confirm(&ConfirmParams {
+            title: "Swap\nto",
+            body: &to_display,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+    let fee = parse_fee(request, chain_params);
+    let (formatted_total, fee_percentage): (String, Option<f64>) = match swap.from_asset {
+        SwapAsset::Native => {
+            let total_value = (&swap.from_amount.value).add(&fee.value);
+            let mut total = Amount {
+                unit: chain_params.unit,
+                decimals: WEI_DECIMALS,
+                value: total_value,
+            }
+            .format();
+            if swap.from_amount.bound == SwapAmountBound::Maximum {
+                total = format!("max. {}", total);
+            }
+            (
+                total,
+                calculate_percentage(&fee.value, &swap.from_amount.value),
+            )
+        }
+        _ => (from_display, None),
+    };
+    transaction::verify_total_fee_maybe_warn(
+        hal,
+        &formatted_total,
+        &fee.format(),
+        fee_percentage,
+    )
+    .await?;
+    Ok(())
 }
 
 // For legacy transactions: `fee = gas limit * gas price`
@@ -416,6 +1146,8 @@ pub async fn _process(
 
     if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
         verify_erc20_transaction(hal, request, &params, erc20_recipient, erc20_value).await?;
+    } else if let Some(uniswap_swap) = parse_uniswap_swap(request) {
+        verify_uniswap_swap_transaction(hal, request, &params, &uniswap_swap).await?;
     } else {
         verify_standard_transaction(hal, request, &params).await?;
     }
@@ -562,6 +1294,420 @@ mod tests {
             }))
             .is_none()
         );
+    }
+
+    fn abi_word_u64(value: u64) -> [u8; 32] {
+        let mut word = [0u8; 32];
+        word[24..].copy_from_slice(&value.to_be_bytes());
+        word
+    }
+
+    fn abi_word_usize(value: usize) -> [u8; 32] {
+        abi_word_u64(value as u64)
+    }
+
+    fn abi_word_address(address: [u8; 20]) -> [u8; 32] {
+        let mut word = [0u8; 32];
+        word[12..].copy_from_slice(&address);
+        word
+    }
+
+    fn encode_multicall(calls: &[Vec<u8>]) -> Vec<u8> {
+        let mut out = Vec::<u8>::new();
+        out.extend_from_slice(&SELECTOR_MULTICALL);
+        out.extend_from_slice(&abi_word_usize(32));
+
+        out.extend_from_slice(&abi_word_usize(calls.len()));
+        let offsets_start = out.len();
+        for _ in calls {
+            out.extend_from_slice(&[0u8; 32]);
+        }
+
+        let mut current_relative_offset = calls.len() * 32;
+        for (index, call) in calls.iter().enumerate() {
+            let start = offsets_start + index * 32;
+            out[start..start + 32].copy_from_slice(&abi_word_usize(current_relative_offset));
+            out.extend_from_slice(&abi_word_usize(call.len()));
+            out.extend_from_slice(call);
+
+            let padding = (32 - (call.len() % 32)) % 32;
+            out.resize(out.len() + padding, 0);
+
+            current_relative_offset += 32 + call.len() + padding;
+        }
+        out
+    }
+
+    fn make_v2_swap_exact_eth_for_tokens_data() -> Vec<u8> {
+        const WETH: [u8; 20] = hex!("c02aaA39b223Fe8D0A0E5C4F27eAD9083C756Cc2");
+        const USDT: [u8; 20] = hex!("dac17f958d2ee523a2206206994597c13d831ec7");
+        const RECIPIENT: [u8; 20] = hex!("e6ce0a092a99700cd4ccccbb1fedc39cf53e6330");
+        let mut data = Vec::<u8>::new();
+        data.extend_from_slice(&SELECTOR_SWAP_EXACT_ETH_FOR_TOKENS);
+        data.extend_from_slice(&abi_word_u64(57_000_000)); // amountOutMin
+        data.extend_from_slice(&abi_word_u64(0x80)); // path offset
+        data.extend_from_slice(&abi_word_address(RECIPIENT)); // to
+        data.extend_from_slice(&abi_word_u64(1)); // deadline
+        data.extend_from_slice(&abi_word_u64(2)); // path length
+        data.extend_from_slice(&abi_word_address(WETH));
+        data.extend_from_slice(&abi_word_address(USDT));
+        data
+    }
+
+    fn make_v3_exact_input_single_data() -> Vec<u8> {
+        const WETH: [u8; 20] = hex!("c02aaA39b223Fe8D0A0E5C4F27eAD9083C756Cc2");
+        const USDT: [u8; 20] = hex!("dac17f958d2ee523a2206206994597c13d831ec7");
+        const RECIPIENT: [u8; 20] = hex!("e6ce0a092a99700cd4ccccbb1fedc39cf53e6330");
+        let mut data = Vec::<u8>::new();
+        data.extend_from_slice(&SELECTOR_EXACT_INPUT_SINGLE);
+        data.extend_from_slice(&abi_word_address(WETH));
+        data.extend_from_slice(&abi_word_address(USDT));
+        data.extend_from_slice(&abi_word_u64(3000)); // fee
+        data.extend_from_slice(&abi_word_address(RECIPIENT));
+        data.extend_from_slice(&abi_word_u64(1)); // deadline
+        data.extend_from_slice(&abi_word_u64(1_000_000_000_000_000_000)); // amountIn
+        data.extend_from_slice(&abi_word_u64(57_000_000)); // amountOutMinimum
+        data.extend_from_slice(&abi_word_u64(0)); // sqrtPriceLimitX96
+        data
+    }
+
+    fn encode_abi_bytes(data: &[u8]) -> Vec<u8> {
+        let mut out = Vec::<u8>::new();
+        out.extend_from_slice(&abi_word_usize(data.len()));
+        out.extend_from_slice(data);
+        let padding = (32 - (data.len() % 32)) % 32;
+        out.resize(out.len() + padding, 0);
+        out
+    }
+
+    fn encode_abi_bytes_array(elements: &[Vec<u8>]) -> Vec<u8> {
+        let mut out = Vec::<u8>::new();
+        out.extend_from_slice(&abi_word_usize(elements.len()));
+        let offsets_start = out.len();
+        for _ in elements {
+            out.extend_from_slice(&[0u8; 32]);
+        }
+
+        let mut current_relative_offset = elements.len() * 32;
+        for (index, element) in elements.iter().enumerate() {
+            let start = offsets_start + index * 32;
+            out[start..start + 32].copy_from_slice(&abi_word_usize(current_relative_offset));
+            let encoded = encode_abi_bytes(element);
+            out.extend_from_slice(&encoded);
+            current_relative_offset += encoded.len();
+        }
+        out
+    }
+
+    fn encode_universal_router_execute(commands: &[u8], inputs: &[Vec<u8>]) -> Vec<u8> {
+        let commands_blob = encode_abi_bytes(commands);
+        let inputs_blob = encode_abi_bytes_array(inputs);
+        let head_size = 64usize;
+        let commands_offset = head_size;
+        let inputs_offset = head_size + commands_blob.len();
+
+        let mut out = Vec::<u8>::new();
+        out.extend_from_slice(&SELECTOR_UNIVERSAL_ROUTER_EXECUTE);
+        out.extend_from_slice(&abi_word_usize(commands_offset));
+        out.extend_from_slice(&abi_word_usize(inputs_offset));
+        out.extend_from_slice(&commands_blob);
+        out.extend_from_slice(&inputs_blob);
+        out
+    }
+
+    fn make_universal_router_v3_exact_in_input() -> Vec<u8> {
+        const WETH: [u8; 20] = hex!("c02aaA39b223Fe8D0A0E5C4F27eAD9083C756Cc2");
+        const USDT: [u8; 20] = hex!("dac17f958d2ee523a2206206994597c13d831ec7");
+        const RECIPIENT: [u8; 20] = hex!("e6ce0a092a99700cd4ccccbb1fedc39cf53e6330");
+        let mut path = Vec::<u8>::new();
+        path.extend_from_slice(&WETH);
+        path.extend_from_slice(&[0x00, 0x0b, 0xb8]); // 3000
+        path.extend_from_slice(&USDT);
+
+        let mut data = Vec::<u8>::new();
+        data.extend_from_slice(&abi_word_address(RECIPIENT));
+        data.extend_from_slice(&abi_word_u64(1_000_000_000_000_000_000)); // amountIn
+        data.extend_from_slice(&abi_word_u64(57_000_000)); // amountOutMinimum
+        data.extend_from_slice(&abi_word_u64(0xa0)); // path offset
+        data.extend_from_slice(&abi_word_u64(0)); // payerIsUser=false
+        data.extend_from_slice(&encode_abi_bytes(&path));
+        data
+    }
+
+    fn make_universal_router_execute_v3_exact_in_data() -> Vec<u8> {
+        encode_universal_router_execute(
+            &[UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_IN],
+            &[make_universal_router_v3_exact_in_input()],
+        )
+    }
+
+    fn make_universal_router_v3_exact_in_usdt_to_weth_input() -> Vec<u8> {
+        const WETH: [u8; 20] = hex!("c02aaA39b223Fe8D0A0E5C4F27eAD9083C756Cc2");
+        const USDT: [u8; 20] = hex!("dac17f958d2ee523a2206206994597c13d831ec7");
+        const RECIPIENT: [u8; 20] = hex!("0000000000000000000000000000000000000002"); // router
+        let mut path = Vec::<u8>::new();
+        path.extend_from_slice(&USDT);
+        path.extend_from_slice(&[0x00, 0x0b, 0xb8]); // 3000
+        path.extend_from_slice(&WETH);
+
+        let mut data = Vec::<u8>::new();
+        data.extend_from_slice(&abi_word_address(RECIPIENT));
+        data.extend_from_slice(&abi_word_u64(57_000_000)); // amountIn
+        data.extend_from_slice(&abi_word_u64(10_000_000_000_000_000)); // amountOutMinimum
+        data.extend_from_slice(&abi_word_u64(0xa0)); // path offset
+        data.extend_from_slice(&abi_word_u64(0)); // payerIsUser=false
+        data.extend_from_slice(&encode_abi_bytes(&path));
+        data
+    }
+
+    fn make_universal_router_unwrap_weth_input() -> Vec<u8> {
+        const RECIPIENT: [u8; 20] = hex!("e6ce0a092a99700cd4ccccbb1fedc39cf53e6330");
+        let mut data = Vec::<u8>::new();
+        data.extend_from_slice(&abi_word_address(RECIPIENT));
+        data.extend_from_slice(&abi_word_u64(10_000_000_000_000_000)); // amountMin
+        data
+    }
+
+    fn make_universal_router_execute_v3_exact_in_usdt_to_eth_data() -> Vec<u8> {
+        encode_universal_router_execute(
+            &[
+                UNIVERSAL_ROUTER_COMMAND_V3_SWAP_EXACT_IN,
+                UNIVERSAL_ROUTER_COMMAND_UNWRAP_WETH,
+            ],
+            &[
+                make_universal_router_v3_exact_in_usdt_to_weth_input(),
+                make_universal_router_unwrap_weth_input(),
+            ],
+        )
+    }
+
+    #[test]
+    fn test_parse_uniswap_v2_swap_exact_eth_for_tokens() {
+        let request = pb::EthSignRequest {
+            value: hex!("0de0b6b3a7640000").to_vec(), // 1 ETH
+            data: make_v2_swap_exact_eth_for_tokens_data(),
+            chain_id: 1,
+            ..Default::default()
+        };
+        assert_eq!(
+            parse_uniswap_swap(&Transaction::Legacy(&request)),
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Native,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: BigUint::from(1_000_000_000_000_000_000u64),
+                },
+                to_asset: SwapAsset::Erc20(hex!("dac17f958d2ee523a2206206994597c13d831ec7")),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: BigUint::from(57_000_000u64),
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_uniswap_v3_exact_input_single_in_multicall() {
+        let inner_call = make_v3_exact_input_single_data();
+        let request = pb::EthSignRequest {
+            value: hex!("0de0b6b3a7640000").to_vec(), // 1 ETH
+            data: encode_multicall(&[inner_call]),
+            chain_id: 1,
+            ..Default::default()
+        };
+        assert_eq!(
+            parse_uniswap_swap(&Transaction::Legacy(&request)),
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Native,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: BigUint::from(1_000_000_000_000_000_000u64),
+                },
+                to_asset: SwapAsset::Erc20(hex!("dac17f958d2ee523a2206206994597c13d831ec7")),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: BigUint::from(57_000_000u64),
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_uniswap_universal_router_execute_v3_exact_in() {
+        let request = pb::EthSignRequest {
+            value: hex!("0de0b6b3a7640000").to_vec(), // 1 ETH
+            data: make_universal_router_execute_v3_exact_in_data(),
+            chain_id: 1,
+            ..Default::default()
+        };
+        assert_eq!(
+            parse_uniswap_swap(&Transaction::Legacy(&request)),
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Native,
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: BigUint::from(1_000_000_000_000_000_000u64),
+                },
+                to_asset: SwapAsset::Erc20(hex!("dac17f958d2ee523a2206206994597c13d831ec7")),
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: BigUint::from(57_000_000u64),
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_uniswap_universal_router_execute_v3_exact_in_with_unwrap() {
+        let request = pb::EthSignRequest {
+            value: b"".to_vec(),
+            data: make_universal_router_execute_v3_exact_in_usdt_to_eth_data(),
+            chain_id: 1,
+            ..Default::default()
+        };
+        assert_eq!(
+            parse_uniswap_swap(&Transaction::Legacy(&request)),
+            Some(UniswapSwap {
+                from_asset: SwapAsset::Erc20(hex!("dac17f958d2ee523a2206206994597c13d831ec7")),
+                from_amount: SwapAmount {
+                    bound: SwapAmountBound::Exact,
+                    value: BigUint::from(57_000_000u64),
+                },
+                to_asset: SwapAsset::Native,
+                to_amount: SwapAmount {
+                    bound: SwapAmountBound::Minimum,
+                    value: BigUint::from(10_000_000_000_000_000u64),
+                },
+            })
+        );
+    }
+
+    #[test]
+    pub fn test_process_uniswap_swap_exact_eth_for_tokens() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let expected_screens = vec![
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Swap\nfrom".into(),
+                body: "1 ETH".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Swap\nto".into(),
+                body: "min. 57 USDT".into(),
+                longtouch: false,
+            },
+            Screen::TotalFee {
+                total: "1.0012658164 ETH".into(),
+                fee: "0.0012658164 ETH".into(),
+                longtouch: true,
+            },
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            },
+        ];
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert!(
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("2367").to_vec(),
+                gas_price: hex!("027aca1a80").to_vec(),
+                gas_limit: hex!("01d048").to_vec(),
+                recipient: hex!("7a250d5630b4cf539739df2c5dacab4c659f2488").to_vec(),
+                value: hex!("0de0b6b3a7640000").to_vec(), // 1 ETH
+                data: make_v2_swap_exact_eth_for_tokens_data(),
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
+            })))
+            .is_ok()
+        );
+        assert_eq!(mock_hal.ui.screens, expected_screens);
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert!(
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("2367").to_vec(),
+                    max_priority_fee_per_gas: b"".to_vec(),
+                    max_fee_per_gas: hex!("027aca1a80").to_vec(),
+                    gas_limit: hex!("01d048").to_vec(),
+                    recipient: hex!("7a250d5630b4cf539739df2c5dacab4c659f2488").to_vec(),
+                    value: hex!("0de0b6b3a7640000").to_vec(), // 1 ETH
+                    data: make_v2_swap_exact_eth_for_tokens_data(),
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                })
+            ))
+            .is_ok()
+        );
+        assert_eq!(mock_hal.ui.screens, expected_screens);
+    }
+
+    #[test]
+    pub fn test_process_uniswap_universal_router_v3_exact_in() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let expected_screens = vec![
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Swap\nfrom".into(),
+                body: "1 ETH".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Swap\nto".into(),
+                body: "min. 57 USDT".into(),
+                longtouch: false,
+            },
+            Screen::TotalFee {
+                total: "1.0012658164 ETH".into(),
+                fee: "0.0012658164 ETH".into(),
+                longtouch: true,
+            },
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            },
+        ];
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert!(
+            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("2367").to_vec(),
+                gas_price: hex!("027aca1a80").to_vec(),
+                gas_limit: hex!("01d048").to_vec(),
+                recipient: hex!("ef1c6e67703c7bd7107eed8303fbe6ec2554bf6b").to_vec(),
+                value: hex!("0de0b6b3a7640000").to_vec(), // 1 ETH
+                data: make_universal_router_execute_v3_exact_in_data(),
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
+            })))
+            .is_ok()
+        );
+        assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
     /// Standard ETH transaction with no data field.

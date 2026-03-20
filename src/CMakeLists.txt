@@ -258,7 +258,6 @@ if(NOT CMAKE_CROSSCOMPILING)
       ${CMAKE_COMMAND} -E env
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO}
           test
@@ -281,7 +280,6 @@ if(NOT CMAKE_CROSSCOMPILING)
       ${CMAKE_COMMAND} -E env
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
         ${CARGO} clippy
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
@@ -376,7 +374,6 @@ foreach(type ${RUST_LIBS})
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
       CFLAGS=${CARGO_C_FLAGS}
-      FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
       MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
@@ -432,7 +429,6 @@ if(CMAKE_CROSSCOMPILING)
     COMMAND
       CMAKE_SYSROOT=${CMAKE_SYSROOT}
       ${CMAKE_COMMAND} -E env
-      FIRMWARE_VERSION_SHORT=${FIRMWARE_VERSION}
       ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"

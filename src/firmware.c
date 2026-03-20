@@ -37,12 +37,6 @@ int main(void)
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         da14531_protocol_init();
     }
-    usb_processing_init();
-    // Setup usb_processing handlers
-    hww_setup();
-#if APP_U2F == 1
-    u2f_device_setup();
-#endif
     rust_main_loop();
     return 0;
 }

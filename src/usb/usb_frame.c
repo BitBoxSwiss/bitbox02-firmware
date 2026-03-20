@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "usb_frame.h"
-#include "queue.h"
 #if APP_U2F == 1
     #include "u2f/u2f_packet.h"
 #endif
@@ -110,12 +109,12 @@ static int32_t _cmd_continue(const USB_FRAME* frame, State* state)
  * Prepares USB frames to be send to the host.
  * param[in] data The data is copied into one or more frames
  */
-queue_error_t usb_frame_reply(
+UsbReportQueueError usb_frame_reply(
     uint8_t cmd,
     const uint8_t* data,
     uint32_t len,
     uint32_t cid,
-    struct queue* queue)
+    RustUsbReportQueue* queue)
 {
     USB_FRAME frame;
     uint32_t cnt = 0;
@@ -132,8 +131,8 @@ queue_error_t usb_frame_reply(
     // Init frame
     psz = MIN(sizeof(frame.init.data), l);
     memcpy(frame.init.data, data, psz);
-    queue_error_t err = queue_push(queue, (const uint8_t*)&frame);
-    if (err != QUEUE_ERR_NONE) {
+    UsbReportQueueError err = rust_usb_report_queue_push(queue, (const uint8_t*)&frame);
+    if (err != USB_REPORT_QUEUE_ERR_NONE) {
         return err;
     }
     l -= psz;
@@ -145,12 +144,12 @@ queue_error_t usb_frame_reply(
         frame.cont.seq = seq++;
         psz = MIN(sizeof(frame.cont.data), l);
         memcpy(frame.cont.data, data + cnt, psz);
-        err = queue_push(queue, (const uint8_t*)&frame);
-        if (err != QUEUE_ERR_NONE) {
+        err = rust_usb_report_queue_push(queue, (const uint8_t*)&frame);
+        if (err != USB_REPORT_QUEUE_ERR_NONE) {
             return err;
         }
     }
-    return QUEUE_ERR_NONE;
+    return USB_REPORT_QUEUE_ERR_NONE;
 }
 
 /**
@@ -160,7 +159,7 @@ queue_error_t usb_frame_reply(
  * @param[in] cid The channel id.
  * @param[in] add_frame_callback The callback to which we add the frame.
  */
-queue_error_t usb_frame_prepare_err(uint8_t err, uint32_t cid, struct queue* queue)
+UsbReportQueueError usb_frame_prepare_err(uint8_t err, uint32_t cid, RustUsbReportQueue* queue)
 {
     USB_FRAME frame;
 
@@ -169,7 +168,7 @@ queue_error_t usb_frame_prepare_err(uint8_t err, uint32_t cid, struct queue* que
     frame.init.cmd = FRAME_ERROR;
     frame.init.bcntl = 1;
     frame.init.data[0] = err;
-    return queue_push(queue, (const uint8_t*)&frame);
+    return rust_usb_report_queue_push(queue, (const uint8_t*)&frame);
 }
 
 /**

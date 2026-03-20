@@ -105,6 +105,10 @@ pub fn waiting_for_next_request() -> bool {
     )
 }
 
+pub fn is_idle() -> bool {
+    matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing)
+}
+
 /// Resolves the `next_request()` future. `waiting_for_next_request()` must be true when calling
 /// this, otherwise this function panics.
 pub fn on_next_request(usb_in: &[u8]) {

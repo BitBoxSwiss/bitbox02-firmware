@@ -52,6 +52,9 @@ extern crate bitbox_framed_serial_link;
 // Expose C interface defined in bitbox-bytequeue
 extern crate bitbox_bytequeue;
 
+// Expose C interface defined in bitbox-usb-report-queue
+extern crate bitbox_usb_report_queue;
+
 // Expose C interface defined in util
 extern crate util;
 

@@ -19,6 +19,10 @@ impl System for BitBox02System {
         crate::ui::screen_process_waiting_switch_to_lockscreen();
     }
 
+    fn is_btconly(&mut self) -> bool {
+        crate::platform::product().contains("btconly")
+    }
+
     #[allow(clippy::empty_loop)]
     fn reboot(&mut self) -> ! {
         unsafe { bitbox02_sys::reboot() }

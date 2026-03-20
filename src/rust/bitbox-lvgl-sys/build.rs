@@ -143,16 +143,18 @@ fn main() -> Result<(), &'static str> {
 
     // LV_* variables are set using CMake when building the library but by us here when running
     // bindgen.
-    let mut clang_args = vec![
-        format!("--target={target}"),
+    let mut clang_args = vec![format!("--target={target}")];
+    let mut c_args = vec![
         format!("-DLV_CONF_PATH=\"{}\"", lv_conf.display()),
         "-DLV_CONF_INCLUDE_SIMPLE".to_owned(),
     ];
 
     for cflag in &cflags {
         cmake_build.cflag(cflag);
-        clang_args.push(cflag.into());
+        c_args.push(cflag.into());
     }
+
+    clang_args.extend(c_args.iter().cloned());
 
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
     let dst = cmake_build.build();
@@ -164,7 +166,7 @@ fn main() -> Result<(), &'static str> {
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_48.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_bold_32.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_bold_48.c"));
-    for flag in &clang_args {
+    for flag in &c_args {
         fonts.flag(flag);
     }
     fonts.compile("lvgl_fonts");

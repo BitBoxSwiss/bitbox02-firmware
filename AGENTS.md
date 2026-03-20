@@ -28,10 +28,10 @@ the host.
 Use `./scripts/dev_exec.sh <command>` only for project-specific commands that depend on the project
 toolchain or compiler environment.
 
-Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. If a command genuinely needs shell
-features such as `cd && ...`, pass an explicit shell as the command, e.g.
-`./scripts/dev_exec.sh bash -lc 'cd src/rust && cargo fmt'`.
-
+Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. Prefer changing CWD
+with CLI args like `tar -C <PATH>` or `cargo build --manifest-path <PATH>`. If
+a command genuinely needs shell features such as pipes, pass an explicit shell
+as the command, e.g.  `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
 
 - `make firmware` / `make bootloader`: compile firmware or bootloader ELFs into `build/`.
 - `make simulator`: build the Linux simulator under `build-build-noasan/bin/`.
@@ -48,7 +48,7 @@ bindings (`cbindgen`, protobuf) when interfaces change.
 
 For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code. For Python
 changes, run `./scripts/dev_exec.sh black` to format the code. For Rust code changes, run
-`./scripts/dev_exec.sh bash -lc 'cd src/rust && cargo fmt'`.
+`./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml`.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware

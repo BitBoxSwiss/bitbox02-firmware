@@ -784,10 +784,28 @@ class BTCPaymentRequestRequest(google.protobuf.message.Message):
                 ) -> None: ...
                 def ClearField(self, field_name: typing.Literal["keypath", b"keypath"]) -> None: ...
 
+            @typing.final
+            class BtcLikeAddressDerivation(google.protobuf.message.Message):
+                DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+                SCRIPT_CONFIG_WITH_KEYPATH_FIELD_NUMBER: builtins.int
+                @property
+                def script_config_with_keypath(self) -> global___BTCScriptConfigWithKeypath:
+                    """Script config + keypath are needed to derive BTC/LTC-family addresses."""
+
+                def __init__(
+                    self,
+                    *,
+                    script_config_with_keypath: global___BTCScriptConfigWithKeypath | None = ...,
+                ) -> None: ...
+                def HasField(self, field_name: typing.Literal["script_config_with_keypath", b"script_config_with_keypath"]) -> builtins.bool: ...
+                def ClearField(self, field_name: typing.Literal["script_config_with_keypath", b"script_config_with_keypath"]) -> None: ...
+
             COIN_TYPE_FIELD_NUMBER: builtins.int
             AMOUNT_FIELD_NUMBER: builtins.int
             ADDRESS_FIELD_NUMBER: builtins.int
             ETH_FIELD_NUMBER: builtins.int
+            BTC_LIKE_FIELD_NUMBER: builtins.int
             coin_type: builtins.int
             """SLIP-44 coin type"""
             amount: builtins.str
@@ -796,6 +814,8 @@ class BTCPaymentRequestRequest(google.protobuf.message.Message):
             """Address to send the purchased coins to"""
             @property
             def eth(self) -> global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo.EthAddressDerivation: ...
+            @property
+            def btc_like(self) -> global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo.BtcLikeAddressDerivation: ...
             def __init__(
                 self,
                 *,
@@ -803,10 +823,11 @@ class BTCPaymentRequestRequest(google.protobuf.message.Message):
                 amount: builtins.str = ...,
                 address: builtins.str = ...,
                 eth: global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo.EthAddressDerivation | None = ...,
+                btc_like: global___BTCPaymentRequestRequest.Memo.CoinPurchaseMemo.BtcLikeAddressDerivation | None = ...,
             ) -> None: ...
-            def HasField(self, field_name: typing.Literal["address_derivation", b"address_derivation", "eth", b"eth"]) -> builtins.bool: ...
-            def ClearField(self, field_name: typing.Literal["address", b"address", "address_derivation", b"address_derivation", "amount", b"amount", "coin_type", b"coin_type", "eth", b"eth"]) -> None: ...
-            def WhichOneof(self, oneof_group: typing.Literal["address_derivation", b"address_derivation"]) -> typing.Literal["eth"] | None: ...
+            def HasField(self, field_name: typing.Literal["address_derivation", b"address_derivation", "btc_like", b"btc_like", "eth", b"eth"]) -> builtins.bool: ...
+            def ClearField(self, field_name: typing.Literal["address", b"address", "address_derivation", b"address_derivation", "amount", b"amount", "btc_like", b"btc_like", "coin_type", b"coin_type", "eth", b"eth"]) -> None: ...
+            def WhichOneof(self, oneof_group: typing.Literal["address_derivation", b"address_derivation"]) -> typing.Literal["eth", "btc_like"] | None: ...
 
         TEXT_MEMO_FIELD_NUMBER: builtins.int
         COIN_PURCHASE_MEMO_FIELD_NUMBER: builtins.int

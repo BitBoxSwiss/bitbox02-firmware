@@ -255,8 +255,13 @@ message BTCPaymentRequestRequest {
       message EthAddressDerivation {
         repeated uint32 keypath = 1; // Keypath to the address
       }
+      message BtcLikeAddressDerivation {
+        // Script config + keypath are needed to derive BTC/LTC-family addresses.
+        BTCScriptConfigWithKeypath script_config_with_keypath = 1;
+      }
       oneof address_derivation {
         EthAddressDerivation eth = 4;
+        BtcLikeAddressDerivation btc_like = 5;
       }
     }
     oneof memo {

@@ -21,6 +21,8 @@ impl TestingSystem {
 impl crate::hal::System for TestingSystem {
     async fn startup() {}
 
+    fn communication_timeout_reset(&mut self, _value: i16) {}
+
     fn reboot(&mut self) -> ! {
         panic!("reboot called")
     }

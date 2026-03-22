@@ -17,7 +17,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     // 7 seconds (longer than needed) so we don't assume communication was lost and this task gets
     // dropped at an await point.
     const LONG_TIMEOUT: i16 = -70;
-    bitbox02::usb_processing::timeout_reset(LONG_TIMEOUT);
+    hal.system().communication_timeout_reset(LONG_TIMEOUT);
 
     // Reset secure chip keys and U2F counter with retries. We retry in case there are transient
     // errors.

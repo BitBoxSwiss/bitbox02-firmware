@@ -93,17 +93,18 @@ int main(void)
     size_t product_len;
     da14531_handler_current_product = (const uint8_t*)platform_product(&product_len);
     da14531_handler_current_product_len = product_len;
-    da14531_set_product(
-        da14531_handler_current_product, da14531_handler_current_product_len, uart_write_queue);
+    rust_da14531_set_product(
+        rust_util_bytes(da14531_handler_current_product, da14531_handler_current_product_len),
+        uart_write_queue);
 
     // Set device name, the MCU and BLE chip will probably not have the same name after a reset of
     // only the MCU.
     char buf[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     memory_random_name(buf);
-    da14531_set_name(buf, uart_write_queue);
+    rust_da14531_set_name(rust_util_bytes((const uint8_t*)buf, strlen(buf)), uart_write_queue);
 
     // Ask for the current conection state
-    da14531_get_connection_state(uart_write_queue);
+    rust_da14531_get_connection_state(uart_write_queue);
 
     da14531_protocol_init();
 #endif
@@ -129,7 +130,7 @@ int main(void)
 #if PLATFORM_BITBOX02PLUS == 1
             if (rust_communication_mode_ble_enabled()) {
                 // Enqueue a power down command to the da14531
-                da14531_power_down(uart_write_queue);
+                rust_da14531_power_down(uart_write_queue);
                 // Flush out the power down command. This will be the last UART communication we do.
                 while (rust_bytequeue_num(uart_write_queue) > 0) {
                     uart_poll(NULL, 0, NULL, uart_write_queue);

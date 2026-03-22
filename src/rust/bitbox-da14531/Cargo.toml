@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-da14531"
+version = "0.1.0"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2024"
+license = "Apache-2.0"
+
+[dependencies]
+bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
+bitbox-bytequeue = { path = "../bitbox-bytequeue" }
+util = { path = "../util" }
+
+[dev-dependencies]
+hex_lit = { workspace = true }

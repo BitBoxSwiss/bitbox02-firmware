@@ -266,7 +266,7 @@ if(NOT CMAKE_CROSSCOMPILING)
           --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml
           --target-dir ${RUST_BINARY_DIR}/all-features
           --
-          --nocapture
+          $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:--no-capture>
           --test-threads 1
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_SOURCE_DIR}/rust

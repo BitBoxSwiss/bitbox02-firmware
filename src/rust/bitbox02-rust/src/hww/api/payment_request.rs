@@ -6,11 +6,7 @@ use crate::pb;
 
 use alloc::vec::Vec;
 
-use super::bitcoin::common::format_amount;
-use super::bitcoin::params;
-
 use pb::btc_payment_request_request::{Memo, memo};
-use pb::btc_sign_init_request::FormatUnit;
 
 use crate::hal::Ui;
 use crate::secp256k1::SECP256K1;
@@ -112,21 +108,19 @@ fn parse_coin_purchase_amount(amount: &str) -> Result<(&str, &str), Error> {
     Ok((destination_amount, destination_unit))
 }
 
-/// Prompt user to verify the payment request.
+/// Prompt the user to verify the payment request UI flow.
+/// The caller is responsible for formatting `payment_request.total_amount`
+/// into the final display string for the sent amount, e.g. `"0.1 BTC"`.
 pub async fn user_verify(
     hal: &mut impl crate::hal::Hal,
-    coin_params: &params::Params,
     payment_request: &pb::BtcPaymentRequestRequest,
-    format_unit: FormatUnit,
+    displayed_source_amount: &str,
 ) -> Result<(), Error> {
     if find_identity(&payment_request.recipient_name).is_none() {
         return Err(Error::InvalidInput);
     }
     hal.ui()
-        .verify_recipient(
-            &payment_request.recipient_name,
-            &format_amount(coin_params, format_unit, payment_request.total_amount)?,
-        )
+        .verify_recipient(&payment_request.recipient_name, displayed_source_amount)
         .await?;
     for memo in payment_request.memos.iter() {
         match memo {
@@ -154,8 +148,7 @@ pub async fn user_verify(
                 memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
             } => {
                 let swap_body = format!(
-                    "{}\nto\n{}",
-                    format_amount(coin_params, format_unit, payment_request.total_amount)?,
+                    "{displayed_source_amount}\nto\n{}",
                     coin_purchase_memo.amount
                 );
                 hal.ui()
@@ -236,9 +229,9 @@ fn hash_data_lenprefixed<U: digest::Update>(hasher: &mut U, data: &[u8]) {
 // one output for a payment request is supported - for multiple output support, the data must be
 // streamed into the hasher.
 fn compute_sighash(
-    coin_params: &params::Params,
+    source_coin_type: u32,
     payment_request: &pb::BtcPaymentRequestRequest,
-    output_value: u64,
+    output_value: &[u8],
     output_address: &str,
 ) -> Result<Vec<u8>, ValidationError> {
     let mut sighash = Sha256::new();
@@ -273,11 +266,11 @@ fn compute_sighash(
         }
     }
     // coinType
-    sighash.update(coin_params.slip44().to_le_bytes());
+    sighash.update(source_coin_type.to_le_bytes());
     // outputsHash (only one output for now).
     sighash.update({
         let mut output_hasher = Sha256::new();
-        output_hasher.update(output_value.to_le_bytes());
+        output_hasher.update(output_value);
         hash_data_lenprefixed(&mut output_hasher, output_address.as_bytes());
         output_hasher.finalize()
     });
@@ -286,14 +279,36 @@ fn compute_sighash(
 
 #[cfg(feature = "testing")]
 #[allow(dead_code)]
-pub fn tst_sign_payment_request(
-    coin_params: &params::Params,
+pub fn tst_sign_payment_request_btc(
+    coin: pb::BtcCoin,
     payment_request: &mut pb::BtcPaymentRequestRequest,
-    output_value: u64,
+    total_value: u64,
     output_address: &str,
 ) {
-    let sighash =
-        compute_sighash(coin_params, payment_request, output_value, output_address).unwrap();
+    let total_value_bytes = total_value.to_le_bytes();
+    tst_sign_payment_request(
+        super::bitcoin::params::get(coin).slip44(),
+        payment_request,
+        &total_value_bytes,
+        output_address,
+    );
+}
+
+#[cfg(feature = "testing")]
+#[allow(dead_code)]
+fn tst_sign_payment_request(
+    source_coin_type: u32,
+    payment_request: &mut pb::BtcPaymentRequestRequest,
+    output_value: &[u8],
+    output_address: &str,
+) {
+    let sighash = compute_sighash(
+        source_coin_type,
+        payment_request,
+        output_value,
+        output_address,
+    )
+    .unwrap();
 
     let privkey = secp256k1::SecretKey::from_slice(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
     let msg = secp256k1::Message::from_digest_slice(&sighash).unwrap();
@@ -312,17 +327,43 @@ fn ecdsa_verify(sig64: &[u8], msg32: &[u8], pubkey33: &[u8]) -> Result<(), Valid
         .map_err(|_| ValidationError::InvalidSignature)
 }
 
-/// Validate the payment request: amount, signature, etc.
-pub fn validate(
+/// Validate a BTC payment request against the parsed BTC output total.
+pub fn validate_btc(
     #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
-    coin_params: &params::Params,
+    coin_params: &super::bitcoin::params::Params,
     payment_request: &pb::BtcPaymentRequestRequest,
-    output_value: u64,
+    total_value: u64,
+    output_address: &str,
+) -> Result<(), ValidationError> {
+    let total_value_bytes = total_value.to_le_bytes();
+    validate(
+        hal,
+        coin_params.slip44(),
+        payment_request,
+        &total_value_bytes,
+        output_address,
+    )
+}
+
+/// Validate that the parsed source-side transaction matches the signed payment request.
+///
+/// The caller provides the normalized source-side facts that are actually being
+/// signed: the SLIP-44 source coin type, the canonical source amount bytes, and
+/// the deposit/vault address.
+///
+/// Destination ownership checks for `CoinPurchaseMemo.address` still happen
+/// here, because they are derived from the memo's keypath metadata rather than
+/// from the source transaction itself.
+fn validate(
+    #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
+    source_coin_type: u32,
+    payment_request: &pb::BtcPaymentRequestRequest,
+    output_value: &[u8],
     output_address: &str,
 ) -> Result<(), ValidationError> {
     let identity =
         find_identity(&payment_request.recipient_name).ok_or(ValidationError::UnknownRecipient)?;
-    if payment_request.total_amount != output_value {
+    if output_value != payment_request.total_amount.to_le_bytes().as_slice() {
         return Err(ValidationError::Other);
     }
     if !payment_request.nonce.is_empty() {
@@ -397,7 +438,12 @@ pub fn validate(
             }
         }
     }
-    let sighash = compute_sighash(coin_params, payment_request, output_value, output_address)?;
+    let sighash = compute_sighash(
+        source_coin_type,
+        payment_request,
+        output_value,
+        output_address,
+    )?;
     ecdsa_verify(&payment_request.signature, &sighash, identity.public_key)
 }
 
@@ -406,6 +452,7 @@ mod tests {
     use super::*;
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
+    use crate::hww::api::bitcoin::params;
     use util::bb02_async::block_on;
 
     fn make_text_memo(note: &str) -> Memo {
@@ -515,10 +562,11 @@ mod tests {
 
     #[test]
     fn test_sighash() {
-        let coin_params = params::get(pb::BtcCoin::Tbtc);
+        let source_coin_type = params::get(pb::BtcCoin::Tbtc).slip44();
+        let output_value = 123456u64.to_le_bytes().to_vec();
 
         let sighash = compute_sighash(
-            coin_params,
+            source_coin_type,
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "Merchant".into(),
                 memos: vec![],
@@ -526,7 +574,7 @@ mod tests {
                 total_amount: 123456,
                 signature: vec![],
             },
-            123456,
+            &output_value,
             "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup",
         )
         .unwrap();
@@ -536,7 +584,7 @@ mod tests {
         );
 
         let sighash = compute_sighash(
-            coin_params,
+            source_coin_type,
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "Merchant".into(),
                 memos: vec![make_text_memo("TextMemo 1"), make_text_memo("TextMemo 2")],
@@ -544,7 +592,7 @@ mod tests {
                 total_amount: 123456,
                 signature: vec![],
             },
-            123456,
+            &output_value,
             "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup",
         )
         .unwrap();
@@ -569,9 +617,9 @@ mod tests {
                 signature: vec![],
             };
             let sighash_without = compute_sighash(
-                coin_params,
+                source_coin_type,
                 &payment_request_without,
-                123456,
+                &output_value,
                 "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup",
             )
             .unwrap();
@@ -589,9 +637,9 @@ mod tests {
                 signature: vec![],
             };
             let sighash_with = compute_sighash(
-                coin_params,
+                source_coin_type,
                 &payment_request_with,
-                123456,
+                &output_value,
                 "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup",
             )
             .unwrap();
@@ -607,10 +655,11 @@ mod tests {
 
     #[test]
     fn test_validate() {
-        let coin_params = params::get(pb::BtcCoin::Tbtc);
+        let source_coin_type = params::get(pb::BtcCoin::Tbtc).slip44();
         let mut mock_hal = TestingHal::new();
 
         let value = 123456u64;
+        let value_bytes = value.to_le_bytes().to_vec();
         let address = "tb1q2q0j6gmfxynj40p0kxsr9jkagcvgpuqvqynnup";
 
         let mut payment_request = pb::BtcPaymentRequestRequest {
@@ -620,9 +669,23 @@ mod tests {
             total_amount: value,
             signature: vec![],
         };
-        tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+        tst_sign_payment_request(
+            source_coin_type,
+            &mut payment_request,
+            &value_bytes,
+            address,
+        );
 
-        assert!(validate(&mut mock_hal, coin_params, &payment_request, value, address).is_ok());
+        assert!(
+            validate(
+                &mut mock_hal,
+                source_coin_type,
+                &payment_request,
+                &value_bytes,
+                address
+            )
+            .is_ok()
+        );
 
         #[cfg(feature = "app-ethereum")]
         {
@@ -643,8 +706,22 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
-            assert!(validate(&mut mock_hal, coin_params, &payment_request, value, address).is_ok());
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
+            assert!(
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                )
+                .is_ok()
+            );
         }
 
         #[cfg(feature = "app-litecoin")]
@@ -680,7 +757,7 @@ mod tests {
             )
             .unwrap();
 
-            let source_coin_params = params::get(pb::BtcCoin::Btc);
+            let source_coin_type = params::get(pb::BtcCoin::Btc).slip44();
 
             let mut payment_request = pb::BtcPaymentRequestRequest {
                 recipient_name: "Test Merchant".into(),
@@ -699,18 +776,18 @@ mod tests {
             };
 
             tst_sign_payment_request(
-                source_coin_params,
+                source_coin_type,
                 &mut payment_request,
-                value,
+                &value_bytes,
                 &source_address,
             );
 
             assert!(
                 validate(
                     &mut mock_hal,
-                    source_coin_params,
+                    source_coin_type,
                     &payment_request,
-                    value,
+                    &value_bytes,
                     &source_address,
                 )
                 .is_ok()
@@ -750,7 +827,7 @@ mod tests {
             )
             .unwrap();
 
-            let source_coin_params = params::get(pb::BtcCoin::Ltc);
+            let source_coin_type = params::get(pb::BtcCoin::Ltc).slip44();
 
             let mut payment_request = pb::BtcPaymentRequestRequest {
                 recipient_name: "Test Merchant".into(),
@@ -769,18 +846,18 @@ mod tests {
             };
 
             tst_sign_payment_request(
-                source_coin_params,
+                source_coin_type,
                 &mut payment_request,
-                value,
+                &value_bytes,
                 &source_address,
             );
 
             assert!(
                 validate(
                     &mut mock_hal,
-                    source_coin_params,
+                    source_coin_type,
                     &payment_request,
-                    value,
+                    &value_bytes,
                     &source_address,
                 )
                 .is_ok()
@@ -805,9 +882,20 @@ mod tests {
                 signature: vec![],
             };
             // Sign it so the only failure reason is the keypath validation.
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
-                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
                 Err(ValidationError::Other)
             ));
         }
@@ -827,13 +915,18 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
                 validate(
                     &mut TestingHal::new(),
-                    coin_params,
+                    source_coin_type,
                     &payment_request,
-                    value,
+                    &value_bytes,
                     address
                 ),
                 Err(ValidationError::AddressMismatch)
@@ -855,9 +948,20 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
-                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
                 Err(ValidationError::Other)
             ));
         }
@@ -902,9 +1006,20 @@ mod tests {
                     signature: vec![],
                 },
             ] {
-                tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+                tst_sign_payment_request(
+                    source_coin_type,
+                    &mut payment_request,
+                    &value_bytes,
+                    address,
+                );
                 assert!(matches!(
-                    validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                    validate(
+                        &mut mock_hal,
+                        source_coin_type,
+                        &payment_request,
+                        &value_bytes,
+                        address
+                    ),
                     Err(ValidationError::Other)
                 ));
             }
@@ -934,9 +1049,20 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
-                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
                 Err(ValidationError::AddressMismatch)
             ));
         }
@@ -965,9 +1091,20 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
-                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
                 Err(ValidationError::Other)
             ));
         }
@@ -996,9 +1133,20 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
-                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
                 Err(ValidationError::Other)
             ));
         }
@@ -1027,9 +1175,20 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
-                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
                 Err(ValidationError::Other)
             ));
         }
@@ -1074,9 +1233,20 @@ mod tests {
                 total_amount: value,
                 signature: vec![],
             };
-            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
             assert!(matches!(
-                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                validate(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
                 Err(ValidationError::Other)
             ));
         }
@@ -1090,7 +1260,13 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(&mut mock_hal, coin_params, &payment_request, value, address),
+            validate(
+                &mut mock_hal,
+                source_coin_type,
+                &payment_request,
+                &value_bytes,
+                address
+            ),
             Err(ValidationError::UnknownRecipient)
         ));
 
@@ -1105,9 +1281,9 @@ mod tests {
         assert!(matches!(
             validate(
                 &mut mock_hal,
-                coin_params,
+                source_coin_type,
                 &payment_request,
-                value + 1,
+                (value + 1).to_le_bytes().as_ref(),
                 address
             ),
             Err(ValidationError::Other)
@@ -1122,7 +1298,13 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(&mut mock_hal, coin_params, &payment_request, value, address),
+            validate(
+                &mut mock_hal,
+                source_coin_type,
+                &payment_request,
+                &value_bytes,
+                address
+            ),
             Err(ValidationError::Other)
         ));
 
@@ -1135,7 +1317,13 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(&mut mock_hal, coin_params, &payment_request, value, address),
+            validate(
+                &mut mock_hal,
+                source_coin_type,
+                &payment_request,
+                &value_bytes,
+                address
+            ),
             Err(ValidationError::InvalidSignature)
         ));
     }
@@ -1146,7 +1334,6 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         block_on(user_verify(
             &mut mock_hal,
-            params::get(pb::BtcCoin::Btc),
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "POCKET".into(),
                 memos: vec![make_text_memo("Pocket memo")],
@@ -1154,7 +1341,7 @@ mod tests {
                 total_amount: 1234567890,
                 signature: vec![],
             },
-            FormatUnit::Default,
+            "12.34567890 BTC",
         ))
         .unwrap();
 
@@ -1186,7 +1373,6 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         block_on(user_verify(
             &mut mock_hal,
-            params::get(pb::BtcCoin::Btc),
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "SWAPKIT (Provider)".into(),
                 memos: vec![make_coin_purchase_memo(
@@ -1199,7 +1385,7 @@ mod tests {
                 total_amount: 25000000,
                 signature: vec![],
             },
-            FormatUnit::Default,
+            "0.25000000 BTC",
         ))
         .unwrap();
 
@@ -1231,7 +1417,6 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         block_on(user_verify(
             &mut mock_hal,
-            params::get(pb::BtcCoin::Btc),
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "SWAPKIT (Provider)".into(),
                 memos: vec![make_coin_purchase_memo(
@@ -1253,7 +1438,7 @@ mod tests {
                 total_amount: 25000000,
                 signature: vec![],
             },
-            FormatUnit::Default,
+            "0.25000000 BTC",
         ))
         .unwrap();
 
@@ -1283,8 +1468,6 @@ mod tests {
     fn test_user_verify_swap_invalid() {
         // Invalid swap requests that user_verify must reject because the
         // UI cannot render them safely.
-        let coin_params = params::get(pb::BtcCoin::Btc);
-
         for payment_request in [
             // Missing destination derivation, so "Receive to" cannot be built.
             pb::BtcPaymentRequestRequest {
@@ -1362,9 +1545,8 @@ mod tests {
             assert_eq!(
                 block_on(user_verify(
                     &mut mock_hal,
-                    coin_params,
                     &payment_request,
-                    FormatUnit::Default,
+                    "0.25000000 BTC",
                 )),
                 Err(Error::InvalidInput)
             );

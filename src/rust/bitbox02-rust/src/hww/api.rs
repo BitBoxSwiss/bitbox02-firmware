@@ -9,6 +9,8 @@ mod ethereum;
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
 pub mod bitcoin;
+#[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
+pub(crate) mod payment_request;
 
 #[cfg(feature = "app-cardano")]
 mod cardano;

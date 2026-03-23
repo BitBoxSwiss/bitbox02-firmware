@@ -10,7 +10,6 @@ pub mod common;
 pub mod keypath;
 mod multisig;
 pub mod params;
-mod payment_request;
 mod policies;
 mod registration;
 mod script_configs;

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use super::pb;
 use crate::hal::ui::ConfirmParams;
+use crate::pb;
 
 use alloc::vec::Vec;
 
-use super::common::format_amount;
-use super::params;
+use super::bitcoin::common::format_amount;
+use super::bitcoin::params;
 
 use pb::btc_payment_request_request::{Memo, memo};
 use pb::btc_sign_init_request::FormatUnit;
@@ -344,9 +344,8 @@ pub fn validate(
                 Some(memo::coin_purchase_memo::AddressDerivation::Eth(_eth)) => {
                     #[cfg(feature = "app-ethereum")]
                     {
-                        let derived_address =
-                            super::super::ethereum::derive_address(hal, &_eth.keypath)
-                                .map_err(|_| ValidationError::Other)?;
+                        let derived_address = super::ethereum::derive_address(hal, &_eth.keypath)
+                            .map_err(|_| ValidationError::Other)?;
                         if derived_address != coin_purchase_memo.address {
                             return Err(ValidationError::AddressMismatch);
                         }
@@ -379,7 +378,7 @@ pub fn validate(
                             _ => return Err(ValidationError::Other),
                         };
 
-                        let derived_address = super::derive_address_simple(
+                        let derived_address = super::bitcoin::derive_address_simple(
                             hal,
                             destination_coin,
                             simple_type,
@@ -658,7 +657,7 @@ mod tests {
                 0,
                 0,
             ];
-            let source_address = super::super::derive_address_simple(
+            let source_address = super::super::bitcoin::derive_address_simple(
                 &mut mock_hal,
                 pb::BtcCoin::Btc,
                 pb::btc_script_config::SimpleType::P2wpkh,
@@ -673,7 +672,7 @@ mod tests {
                 0,
                 0,
             ];
-            let destination_address = super::super::derive_address_simple(
+            let destination_address = super::super::bitcoin::derive_address_simple(
                 &mut mock_hal,
                 pb::BtcCoin::Ltc,
                 pb::btc_script_config::SimpleType::P2wpkh,
@@ -728,7 +727,7 @@ mod tests {
                 0,
                 0,
             ];
-            let source_address = super::super::derive_address_simple(
+            let source_address = super::super::bitcoin::derive_address_simple(
                 &mut mock_hal,
                 pb::BtcCoin::Ltc,
                 pb::btc_script_config::SimpleType::P2wpkh,
@@ -743,7 +742,7 @@ mod tests {
                 0,
                 0,
             ];
-            let destination_address = super::super::derive_address_simple(
+            let destination_address = super::super::bitcoin::derive_address_simple(
                 &mut mock_hal,
                 pb::BtcCoin::Btc,
                 pb::btc_script_config::SimpleType::P2wpkh,

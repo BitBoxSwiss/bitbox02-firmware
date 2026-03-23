@@ -87,6 +87,13 @@ pub extern "C" fn rust_memory_get_securechip_type() -> rust_memory_securechip_ty
     }
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_memory_get_io_protection_key(mut key_out: BytesMut) {
+    let mut hal = crate::HalImpl::new();
+    hal.memory()
+        .get_io_protection_key(key_out.as_mut().try_into().unwrap());
+}
+
 #[cfg(feature = "app-u2f")]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut) -> bool {
@@ -143,5 +150,17 @@ mod tests {
             }
         };
         assert_eq!(rust_memory_get_securechip_type(), expected);
+    }
+
+    #[test]
+    fn test_rust_memory_get_io_protection_key() {
+        let mut hal = crate::HalImpl::new();
+        let mut expected = [0u8; 32];
+        hal.memory().get_io_protection_key(&mut expected);
+        let mut actual = [0u8; 32];
+        rust_memory_get_io_protection_key(unsafe {
+            util::bytes::rust_util_bytes_mut(actual.as_mut_ptr(), actual.len())
+        });
+        assert_eq!(actual, expected);
     }
 }

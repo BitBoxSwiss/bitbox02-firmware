@@ -262,6 +262,10 @@ impl crate::hal::Memory for TestingMemory {
         self.unlock_attempts = 0;
     }
 
+    fn get_io_protection_key(&mut self, _out: &mut [u8; 32]) {
+        panic!("unused")
+    }
+
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
         if self.salt_root.iter().all(|&b| b == 0xff) {
             Err(())

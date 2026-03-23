@@ -97,6 +97,7 @@ pub trait Memory {
     fn get_unlock_attempts(&mut self) -> u8;
     fn increment_unlock_attempts(&mut self);
     fn reset_unlock_attempts(&mut self);
+    fn get_io_protection_key(&mut self, out: &mut [u8; 32]);
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
     fn get_attestation_pubkey_and_certificate(
         &mut self,

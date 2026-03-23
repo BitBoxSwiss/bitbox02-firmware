@@ -5,23 +5,7 @@ use alloc::vec::Vec;
 /// Serialize a number in the VarInt encoding.
 /// https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
 pub fn serialize_varint(value: u64) -> Vec<u8> {
-    let mut out: Vec<u8> = Vec::new();
-    match value {
-        0..=0xFC => out.push(value as _),
-        0xFD..=0xFFFF => {
-            out.push(0xFD);
-            out.extend_from_slice(&(value as u16).to_le_bytes());
-        }
-        0x10000..=0xFFFFFFFF => {
-            out.push(0xFE);
-            out.extend_from_slice(&(value as u32).to_le_bytes());
-        }
-        _ => {
-            out.push(0xFF);
-            out.extend_from_slice(&value.to_le_bytes());
-        }
-    }
-    out
+    bitcoin::consensus::encode::serialize(&bitcoin::consensus::encode::VarInt(value))
 }
 
 #[cfg(test)]

@@ -2,8 +2,8 @@
 
 use std::env;
 use std::io::ErrorKind;
-use std::path::PathBuf;
-use std::process::Command;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
 
 const ALLOWLIST_VARS: &[&str] = &[
     "BASE58_CHECKSUM_LEN",
@@ -295,17 +295,41 @@ const FAKEHARDWARE_SOURCES: &[&str] = &[
     "test/hardware-fakes/src/fake_spi_mem.c",
 ];
 
-pub fn main() -> Result<(), &'static str> {
-    // We could theoretically list every header file that we end up depending on, but that is hard
-    // to maintain. So instead we just listen to changes on "wrapper.h" which is good enough.
-    println!("cargo::rerun-if-changed=wrapper.h");
+type BuildResult<T> = Result<T, String>;
 
-    // Check if we have `bindgen` executable
-    if let Err(e) = Command::new("bindgen").spawn() {
-        if e.kind() == ErrorKind::NotFound {
-            return Err("`bindgen` was not found! Check your PATH!");
-        }
-    }
+pub fn main() -> BuildResult<()> {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+    let repo_root = manifest_dir
+        .join("../../..")
+        .canonicalize()
+        .map_err(|err| format!("failed to find repo root: {err}"))?;
+
+    emit_rerun_if_changed("wrapper.h");
+    emit_rerun_if_changed("../bitbox02-cbindgen.toml");
+    emit_rerun_if_changed("../bitbox02-rust-c/Cargo.toml");
+    emit_rerun_if_changed("../bitbox02-rust-c/src");
+    emit_rerun_if_changed("../bitbox02-rust/Cargo.toml");
+    emit_rerun_if_changed("../bitbox02-rust/src");
+    emit_rerun_if_changed("../bitbox02/Cargo.toml");
+    emit_rerun_if_changed("../bitbox02/src");
+    emit_rerun_if_changed("../util/Cargo.toml");
+    emit_rerun_if_changed("../util/src");
+    emit_rerun_if_changed("../bitbox-aes/Cargo.toml");
+    emit_rerun_if_changed("../bitbox-aes/src");
+    emit_rerun_if_changed("../bitbox-framed-serial-link/Cargo.toml");
+    emit_rerun_if_changed("../bitbox-framed-serial-link/src");
+    emit_rerun_if_changed("../bitbox-bytequeue/Cargo.toml");
+    emit_rerun_if_changed("../bitbox-bytequeue/src");
+    emit_rerun_if_changed("../../../versions.json");
+    emit_rerun_if_changed("../../../src/version.h.tmpl");
+    emit_rerun_if_changed("../../../src/bootloader/bootloader_version.h.tmpl");
+    emit_rerun_if_changed("../../../scripts/generate_version_headers.py");
+    emit_rerun_if_changed("../../../scripts/generate_rust_header.sh");
+
+    // Generating version.h/bootloader_version.h depends on the current state of the git repo
+    emit_git_rerun_if_changed(&repo_root);
+
+    ensure_command_exists("bindgen")?;
 
     let target = env::var("TARGET").expect("TARGET not set");
     let cross_compiling = target == "thumbv7em-none-eabi";
@@ -336,63 +360,70 @@ pub fn main() -> Result<(), &'static str> {
         }
     }
 
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+
     let mut includes = vec![
         // $INCLUDES
-        "../..",
-        "../../ui/ugui",
-        "../../platform",
-        "../../qtouch",
-        "../../usb/class",
-        "../../usb/class/hid",
-        "../../usb/class/hid/hww",
-        "../../usb/class/hid/u2f",
+        "../..".to_owned(),
+        "../../ui/ugui".to_owned(),
+        "../../platform".to_owned(),
+        "../../qtouch".to_owned(),
+        "../../usb/class".to_owned(),
+        "../../usb/class/hid".to_owned(),
+        "../../usb/class/hid/hww".to_owned(),
+        "../../usb/class/hid/u2f".to_owned(),
         // ASF4 headers allowed in unit tests
-        "../../../external/asf4-drivers/hal/utils/include",
+        "../../../external/asf4-drivers/hal/utils/include".to_owned(),
         // fatfs
-        "../../rust/fatfs-sys/depend/fatfs/source",
+        "../../rust/fatfs-sys/depend/fatfs/source".to_owned(),
     ];
 
-    // rust.h is created by cbindgen in the cmake build directory
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let rust_h_dir = PathBuf::from([&out_dir, "../../../../../.."].join("/"));
-    println!("rust_h_dir: {:?}", rust_h_dir.canonicalize());
-    includes.push(rust_h_dir.as_os_str().to_str().unwrap());
+    let generated_headers_dir = if cross_compiling {
+        env::var("CMAKE_CURRENT_BINARY_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| out_dir.join("../../../../../.."))
+    } else {
+        ensure_command_exists("cbindgen")?;
+        generate_native_headers(&repo_root, &out_dir)?;
+        out_dir.clone()
+    };
+    includes.push(generated_headers_dir.display().to_string());
 
     if cross_compiling {
         includes.extend([
             // SAMD51A
-            "../../../external/samd51a-ds/include",
+            "../../../external/samd51a-ds/include".to_owned(),
             // ASF4-min
-            "../../../external/asf4-drivers",
-            "../../../external/asf4-drivers/Config",
-            "../../../external/asf4-drivers/hal/include",
-            "../../../external/asf4-drivers/hal/include",
-            "../../../external/asf4-drivers/hpl/core",
-            "../../../external/asf4-drivers/hpl/gclk",
-            "../../../external/asf4-drivers/hpl/pm",
-            "../../../external/asf4-drivers/hpl/port",
-            "../../../external/asf4-drivers/hpl/pukcc",
-            "../../../external/asf4-drivers/hpl/rtc",
-            "../../../external/asf4-drivers/hpl/spi",
-            "../../../external/asf4-drivers/hri",
-            "../../../external/asf4-drivers/qtouch",
-            "../../../external/asf4-drivers/qtouch/include",
-            "../../../external/asf4-drivers/sd_mmc",
-            "../../../external/asf4-drivers/usb",
-            "../../../external/asf4-drivers/usb/class",
-            "../../../external/asf4-drivers/usb/class/hid",
-            "../../../external/asf4-drivers/usb/device",
+            "../../../external/asf4-drivers".to_owned(),
+            "../../../external/asf4-drivers/Config".to_owned(),
+            "../../../external/asf4-drivers/hal/include".to_owned(),
+            "../../../external/asf4-drivers/hal/include".to_owned(),
+            "../../../external/asf4-drivers/hpl/core".to_owned(),
+            "../../../external/asf4-drivers/hpl/gclk".to_owned(),
+            "../../../external/asf4-drivers/hpl/pm".to_owned(),
+            "../../../external/asf4-drivers/hpl/port".to_owned(),
+            "../../../external/asf4-drivers/hpl/pukcc".to_owned(),
+            "../../../external/asf4-drivers/hpl/rtc".to_owned(),
+            "../../../external/asf4-drivers/hpl/spi".to_owned(),
+            "../../../external/asf4-drivers/hri".to_owned(),
+            "../../../external/asf4-drivers/qtouch".to_owned(),
+            "../../../external/asf4-drivers/qtouch/include".to_owned(),
+            "../../../external/asf4-drivers/sd_mmc".to_owned(),
+            "../../../external/asf4-drivers/usb".to_owned(),
+            "../../../external/asf4-drivers/usb/class".to_owned(),
+            "../../../external/asf4-drivers/usb/class/hid".to_owned(),
+            "../../../external/asf4-drivers/usb/device".to_owned(),
             // ASF4
-            "../../../external/asf4-drivers/diskio",
+            "../../../external/asf4-drivers/diskio".to_owned(),
             // CMSIS
-            "../../../external/CMSIS/Include",
+            "../../../external/CMSIS/Include".to_owned(),
         ]);
     } else {
         // unit test framework includes
-        includes.push("../../../test/hardware-fakes/include");
+        includes.push("../../../test/hardware-fakes/include".to_owned());
     }
 
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");
+    let out_path = out_dir.join("bindings.rs");
     let out_path = out_path.into_os_string().into_string().unwrap();
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
@@ -407,33 +438,26 @@ pub fn main() -> Result<(), &'static str> {
     ];
     definitions.extend(&extra_flags);
 
-    let res = Command::new("bindgen")
-        .args(["--output", &out_path])
-        .arg("--use-core")
-        .arg("--with-derive-default")
-        .args(
-            ALLOWLIST_FNS
-                .iter()
-                .flat_map(|s| ["--allowlist-function", s]),
-        )
-        .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
-        .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
-        .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
-        .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
-        .arg("wrapper.h")
-        .arg("--")
-        .args(&definitions)
-        .args(includes.iter().map(|s| format!("-I{s}")))
-        .output()
-        .expect("Failed to run bindgen");
-    if !res.status.success() {
-        println!(
-            "bindgen-out:\n{}\n\nbindgen-err:\n{}",
-            std::str::from_utf8(&res.stdout).unwrap(),
-            std::str::from_utf8(&res.stderr).unwrap()
-        );
-        return Err("Bindgen failed");
-    }
+    run_command(
+        Command::new("bindgen")
+            .args(["--output", &out_path])
+            .arg("--use-core")
+            .arg("--with-derive-default")
+            .args(
+                ALLOWLIST_FNS
+                    .iter()
+                    .flat_map(|s| ["--allowlist-function", s]),
+            )
+            .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
+            .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
+            .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
+            .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
+            .arg("wrapper.h")
+            .arg("--")
+            .args(&definitions)
+            .args(includes.iter().map(|s| format!("-I{s}"))),
+        "run bindgen",
+    )?;
 
     let excludes = if let Ok(libtype) = env::var("LIB_TYPE") {
         match libtype.as_str() {
@@ -473,4 +497,105 @@ pub fn main() -> Result<(), &'static str> {
     }
 
     Ok(())
+}
+
+fn emit_rerun_if_changed(path: &str) {
+    println!("cargo::rerun-if-changed={path}");
+}
+
+fn emit_git_rerun_if_changed(repo_root: &Path) {
+    let Some(git_dir) = git_output(repo_root, &["rev-parse", "--absolute-git-dir"]) else {
+        return;
+    };
+    let git_dir = PathBuf::from(git_dir);
+
+    for path in [
+        git_dir.join("HEAD"),
+        git_dir.join("index"),
+        git_dir.join("packed-refs"),
+        git_dir.join("refs/tags"),
+    ] {
+        if path.exists() {
+            println!("cargo::rerun-if-changed={}", path.display());
+        }
+    }
+
+    if let Some(head_ref) = git_output(repo_root, &["symbolic-ref", "-q", "HEAD"]) {
+        let ref_path = git_dir.join(head_ref);
+        if ref_path.exists() {
+            println!("cargo::rerun-if-changed={}", ref_path.display());
+        }
+    }
+}
+
+fn ensure_command_exists(command: &str) -> BuildResult<()> {
+    match Command::new(command).arg("--version").output() {
+        Ok(_) => Ok(()),
+        Err(err) if err.kind() == ErrorKind::NotFound => {
+            Err(format!("`{command}` was not found! Check your PATH!"))
+        }
+        Err(err) => Err(format!("failed to run `{command} --version`: {err}")),
+    }
+}
+
+fn run_command(command: &mut Command, context: &str) -> BuildResult<Output> {
+    let output = command
+        .output()
+        .map_err(|err| format!("failed to {context}: {err}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "{context} failed\nstdout:\n{}\n\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(output)
+}
+
+fn generate_native_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+    let script_path = repo_root.join("scripts/generate_rust_header.sh");
+    let rust_header_dir = out_dir.join("rust");
+
+    let mut command = Command::new("bash");
+    command.arg(&script_path).arg(&rust_header_dir);
+    if let Ok(cargo_bin) = env::var("CARGO") {
+        command.env("CARGO_BIN", cargo_bin);
+    }
+    if let Ok(cbindgen_bin) = env::var("CBINDGEN_BIN") {
+        command.env("CBINDGEN_BIN", cbindgen_bin);
+    }
+    command.current_dir(manifest_dir.join(".."));
+    run_command(&mut command, "generate rust.h")?;
+
+    generate_version_headers(repo_root, out_dir)
+}
+
+fn generate_version_headers(repo_root: &Path, out_dir: &Path) -> BuildResult<()> {
+    let script_path = repo_root.join("scripts/generate_version_headers.py");
+    run_command(
+        Command::new("python3")
+            .arg(&script_path)
+            .arg("generate")
+            .arg("--repo-root")
+            .arg(repo_root)
+            .arg("--output-dir")
+            .arg(out_dir),
+        "generate version headers",
+    )?;
+    Ok(())
+}
+
+fn git_output(repo_root: &Path, args: &[&str]) -> Option<String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_root)
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if value.is_empty() { None } else { Some(value) }
 }

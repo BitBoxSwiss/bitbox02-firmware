@@ -1,0 +1,7 @@
+indent_style = "Block"
+use_small_heuristics="Max"
+imports_granularity = "Crate"
+match_block_trailing_comma = true
+reorder_impl_items = true
+use_field_init_shorthand = true
+use_try_shorthand = true

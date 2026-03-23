@@ -13,3 +13,6 @@
 [submodule "src/rust/bitbox-secp256k1/depend/secp256k1-zkp"]
 	path = src/rust/bitbox-secp256k1/depend/secp256k1-zkp
 	url = https://github.com/BitBoxSwiss/secp256k1-zkp.git
+[submodule "external/lvgl"]
+	path = external/lvgl
+	url = https://github.com/BitBoxSwiss/lvgl

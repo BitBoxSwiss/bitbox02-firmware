@@ -180,6 +180,25 @@ pub async fn user_verify(
                             .ok_or(Error::InvalidInput)?
                             + 1
                     }
+                    memo::coin_purchase_memo::AddressDerivation::Btc(btc) => {
+                        if !matches!(
+                            (coin_purchase_memo.coin_type, destination_unit),
+                            (0, "BTC") | (2, "LTC")
+                        ) {
+                            return Err(Error::InvalidInput);
+                        }
+
+                        let script_config =
+                            btc.script_config.as_ref().ok_or(Error::InvalidInput)?;
+
+                        script_config
+                            .keypath
+                            .get(2)
+                            .ok_or(Error::InvalidInput)?
+                            .checked_sub(util::bip32::HARDENED)
+                            .ok_or(Error::InvalidInput)?
+                            + 1
+                    }
                 };
                 hal.ui()
                     .confirm(&ConfirmParams {
@@ -335,6 +354,46 @@ pub fn validate(
                     #[cfg(not(feature = "app-ethereum"))]
                     return Err(ValidationError::Disabled);
                 }
+                Some(memo::coin_purchase_memo::AddressDerivation::Btc(_btc)) => {
+                    #[cfg(feature = "app-litecoin")]
+                    {
+                        let (_, destination_unit) =
+                            parse_coin_purchase_amount(&coin_purchase_memo.amount)
+                                .map_err(|_| ValidationError::Other)?;
+
+                        let destination_coin =
+                            match (coin_purchase_memo.coin_type, destination_unit) {
+                                (0, "BTC") => pb::BtcCoin::Btc,
+                                (2, "LTC") => pb::BtcCoin::Ltc,
+                                _ => return Err(ValidationError::Other),
+                            };
+
+                        let script_config =
+                            _btc.script_config.as_ref().ok_or(ValidationError::Other)?;
+
+                        let simple_type = match script_config.script_config.as_ref() {
+                            Some(pb::BtcScriptConfig {
+                                config: Some(pb::btc_script_config::Config::SimpleType(simple_type)),
+                            }) => pb::btc_script_config::SimpleType::try_from(*simple_type)
+                                .map_err(|_| ValidationError::Other)?,
+                            _ => return Err(ValidationError::Other),
+                        };
+
+                        let derived_address = super::derive_address_simple(
+                            hal,
+                            destination_coin,
+                            simple_type,
+                            &script_config.keypath,
+                        )
+                        .map_err(|_| ValidationError::Other)?;
+
+                        if derived_address != coin_purchase_memo.address {
+                            return Err(ValidationError::AddressMismatch);
+                        }
+                    }
+                    #[cfg(not(feature = "app-litecoin"))]
+                    return Err(ValidationError::Disabled);
+                }
                 None => return Err(ValidationError::Other),
             }
         }
@@ -373,7 +432,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "app-ethereum")]
+    #[cfg(feature = "app-litecoin")]
     fn dummy_eth_address_derivation(valid: bool) -> memo::coin_purchase_memo::AddressDerivation {
         let coin_type = if valid { 60 } else { 0 };
         memo::coin_purchase_memo::AddressDerivation::Eth(
@@ -385,6 +444,23 @@ mod tests {
                     0,
                     0,
                 ],
+            },
+        )
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    fn dummy_btc_address_derivation(
+        simple_type: pb::btc_script_config::SimpleType,
+        keypath: &[u32],
+    ) -> memo::coin_purchase_memo::AddressDerivation {
+        memo::coin_purchase_memo::AddressDerivation::Btc(
+            memo::coin_purchase_memo::BtcAddressDerivation {
+                script_config: Some(pb::BtcScriptConfigWithKeypath {
+                    script_config: Some(pb::BtcScriptConfig {
+                        config: Some(pb::btc_script_config::Config::SimpleType(simple_type as _)),
+                    }),
+                    keypath: keypath.to_vec(),
+                }),
             },
         )
     }
@@ -572,6 +648,146 @@ mod tests {
             assert!(validate(&mut mock_hal, coin_params, &payment_request, value, address).is_ok());
         }
 
+        #[cfg(feature = "app-litecoin")]
+        {
+            // BTC -> LTC swap
+            let source_keypath = [
+                84 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                11 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let source_address = super::super::derive_address_simple(
+                &mut mock_hal,
+                pb::BtcCoin::Btc,
+                pb::btc_script_config::SimpleType::P2wpkh,
+                &source_keypath,
+            )
+            .unwrap();
+
+            let destination_keypath = [
+                84 + util::bip32::HARDENED,
+                2 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let destination_address = super::super::derive_address_simple(
+                &mut mock_hal,
+                pb::BtcCoin::Ltc,
+                pb::btc_script_config::SimpleType::P2wpkh,
+                &destination_keypath,
+            )
+            .unwrap();
+
+            let source_coin_params = params::get(pb::BtcCoin::Btc);
+
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    2,
+                    "0.25 LTC",
+                    &destination_address,
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &destination_keypath,
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+
+            tst_sign_payment_request(
+                source_coin_params,
+                &mut payment_request,
+                value,
+                &source_address,
+            );
+
+            assert!(
+                validate(
+                    &mut mock_hal,
+                    source_coin_params,
+                    &payment_request,
+                    value,
+                    &source_address,
+                )
+                .is_ok()
+            );
+        }
+
+        #[cfg(feature = "app-litecoin")]
+        {
+            // LTC -> BTC swap
+            let source_keypath = [
+                84 + util::bip32::HARDENED,
+                2 + util::bip32::HARDENED,
+                11 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let source_address = super::super::derive_address_simple(
+                &mut mock_hal,
+                pb::BtcCoin::Ltc,
+                pb::btc_script_config::SimpleType::P2wpkh,
+                &source_keypath,
+            )
+            .unwrap();
+
+            let destination_keypath = [
+                84 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let destination_address = super::super::derive_address_simple(
+                &mut mock_hal,
+                pb::BtcCoin::Btc,
+                pb::btc_script_config::SimpleType::P2wpkh,
+                &destination_keypath,
+            )
+            .unwrap();
+
+            let source_coin_params = params::get(pb::BtcCoin::Ltc);
+
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    0,
+                    "0.25 BTC",
+                    &destination_address,
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &destination_keypath,
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+
+            tst_sign_payment_request(
+                source_coin_params,
+                &mut payment_request,
+                value,
+                &source_address,
+            );
+
+            assert!(
+                validate(
+                    &mut mock_hal,
+                    source_coin_params,
+                    &payment_request,
+                    value,
+                    &source_address,
+                )
+                .is_ok()
+            );
+        }
+
         // Unhappy cases:
 
         #[cfg(feature = "app-ethereum")]
@@ -693,6 +909,177 @@ mod tests {
                     Err(ValidationError::Other)
                 ));
             }
+        }
+
+        #[cfg(feature = "app-litecoin")]
+        {
+            // BTC-like destination keypath is valid, but claimed address does not match.
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    2,
+                    "0.25 LTC",
+                    "ltc1qwrongdestinationaddressthatdoesnotmatch4w7g4j",
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &[
+                            84 + util::bip32::HARDENED,
+                            2 + util::bip32::HARDENED,
+                            0 + util::bip32::HARDENED,
+                            0,
+                            0,
+                        ],
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                Err(ValidationError::AddressMismatch)
+            ));
+        }
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // BTC-like destinations only support BTC/LTC mainnet coin_type values.
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    1,
+                    "0.25 BTC",
+                    "bc1qanything",
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &[
+                            84 + util::bip32::HARDENED,
+                            0 + util::bip32::HARDENED,
+                            0 + util::bip32::HARDENED,
+                            0,
+                            0,
+                        ],
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                Err(ValidationError::Other)
+            ));
+        }
+
+        #[cfg(feature = "app-litecoin")]
+        {
+            // BTC-like amount unit must agree with the destination coin_type.
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    2,
+                    "0.25 BTC",
+                    "bc1qanything",
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &[
+                            84 + util::bip32::HARDENED,
+                            2 + util::bip32::HARDENED,
+                            0 + util::bip32::HARDENED,
+                            0,
+                            0,
+                        ],
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                Err(ValidationError::Other)
+            ));
+        }
+
+        #[cfg(feature = "app-litecoin")]
+        {
+            // Invalid BTC keypath in CoinPurchaseMemo
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    0,
+                    "0.25 BTC",
+                    "bc1qanything",
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &[
+                            84 + util::bip32::HARDENED,
+                            2 + util::bip32::HARDENED,
+                            0 + util::bip32::HARDENED,
+                            0,
+                            0,
+                        ],
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                Err(ValidationError::Other)
+            ));
+        }
+
+        #[cfg(feature = "app-litecoin")]
+        {
+            // BTC-like destinations are simple singlesig only.
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    0,
+                    "0.25 BTC",
+                    "bc1qanything",
+                    Some(memo::coin_purchase_memo::AddressDerivation::Btc(
+                        memo::coin_purchase_memo::BtcAddressDerivation {
+                            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                                script_config: Some(pb::BtcScriptConfig {
+                                    config: Some(pb::btc_script_config::Config::Multisig(
+                                        pb::btc_script_config::Multisig {
+                                            threshold: 1,
+                                            xpubs: vec![],
+                                            our_xpub_index: 0,
+                                            script_type:
+                                                pb::btc_script_config::multisig::ScriptType::P2wsh
+                                                    as _,
+                                        },
+                                    )),
+                                }),
+                                keypath: vec![
+                                    48 + util::bip32::HARDENED,
+                                    0 + util::bip32::HARDENED,
+                                    0 + util::bip32::HARDENED,
+                                    2 + util::bip32::HARDENED,
+                                    0,
+                                    0,
+                                ],
+                            }),
+                        },
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(coin_params, &mut payment_request, value, address);
+            assert!(matches!(
+                validate(&mut mock_hal, coin_params, &payment_request, value, address),
+                Err(ValidationError::Other)
+            ));
         }
 
         // Unknown recipient
@@ -838,7 +1225,61 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "app-ethereum")]
+    #[cfg(feature = "app-litecoin")]
+    #[test]
+    fn test_user_verify_swap_btc_destination() {
+        // BTC -> LTC swap
+        let mut mock_hal = TestingHal::new();
+        block_on(user_verify(
+            &mut mock_hal,
+            params::get(pb::BtcCoin::Btc),
+            &pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    2,
+                    "0.25 LTC",
+                    "ltc1qdestination",
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &[
+                            84 + util::bip32::HARDENED,
+                            2 + util::bip32::HARDENED,
+                            0 + util::bip32::HARDENED,
+                            0,
+                            0,
+                        ],
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            FormatUnit::Default,
+        ))
+        .unwrap();
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "SWAPKIT (Provider)".into(),
+                    amount: "0.25000000 BTC".into(),
+                },
+                Screen::Confirm {
+                    title: "SWAP".into(),
+                    body: "0.25000000 BTC\nto\n0.25 LTC".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Receive to".into(),
+                    body: "LTC account #1".into(),
+                    longtouch: false,
+                },
+            ]
+        );
+    }
+
+    #[cfg(all(feature = "app-litecoin", feature = "app-ethereum"))]
     #[test]
     fn test_user_verify_swap_invalid() {
         // Invalid swap requests that user_verify must reject because the
@@ -846,7 +1287,7 @@ mod tests {
         let coin_params = params::get(pb::BtcCoin::Btc);
 
         for payment_request in [
-            // Missing destination derivation, so "Send to" cannot be built.
+            // Missing destination derivation, so "Receive to" cannot be built.
             pb::BtcPaymentRequestRequest {
                 recipient_name: "SWAPKIT (Provider)".into(),
                 memos: vec![make_coin_purchase_memo(60, "0.25 ETH", "0x123", None)],
@@ -871,20 +1312,16 @@ mod tests {
                 total_amount: 25000000,
                 signature: vec![],
             },
-            // Destination account element must be hardened.
+            // BTC-like derivation requires script_config.
             pb::BtcPaymentRequestRequest {
                 recipient_name: "SWAPKIT (Provider)".into(),
                 memos: vec![make_coin_purchase_memo(
-                    60,
-                    "0.25 ETH",
-                    "0x123",
-                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
-                        memo::coin_purchase_memo::EthAddressDerivation {
-                            keypath: vec![
-                                44 + util::bip32::HARDENED,
-                                60 + util::bip32::HARDENED,
-                                0,
-                            ],
+                    0,
+                    "0.25 BTC",
+                    "bc1qdestination",
+                    Some(memo::coin_purchase_memo::AddressDerivation::Btc(
+                        memo::coin_purchase_memo::BtcAddressDerivation {
+                            script_config: None,
                         },
                     )),
                 )],
@@ -892,14 +1329,17 @@ mod tests {
                 total_amount: 25000000,
                 signature: vec![],
             },
-            // Display amount must contain both numeric amount and destination unit.
+            // BTC-like destination keypath is too short to contain an account element.
             pb::BtcPaymentRequestRequest {
                 recipient_name: "SWAPKIT (Provider)".into(),
                 memos: vec![make_coin_purchase_memo(
-                    60,
-                    "ETH",
-                    "0x123",
-                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                    0,
+                    "0.25 BTC",
+                    "bc1qdestination",
+                    Some(dummy_btc_address_derivation(
+                        pb::btc_script_config::SimpleType::P2wpkh,
+                        &[84 + util::bip32::HARDENED, 0 + util::bip32::HARDENED],
+                    )),
                 )],
                 nonce: vec![],
                 total_amount: 25000000,

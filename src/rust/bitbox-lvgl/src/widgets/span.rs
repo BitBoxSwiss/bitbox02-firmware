@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::ffi::CString;
 use core::ffi::CStr;
 use core::ptr::NonNull;
 
-use super::util;
 use crate::{
     LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvFlexAlign, LvFlexFlow, LvFont,
     LvGradDir, LvGridAlign, LvHandle, LvObj, LvOpa, LvPoint, LvSpanCoords, LvSpanMode,
     LvSpanOverflow, LvTextAlign, LvTextDecor, ObjExt, class, ffi,
 };
+use util::strings::optional_cstr_from_ptr;
 
 pub type LvSpanTextError = super::LvTextError;
 pub type LvSpangroup = LvHandle<class::SpangroupTag>;
@@ -72,7 +73,7 @@ impl LvSpan {
     }
 
     pub fn set_text(&self, text: &str) -> Result<(), LvSpanTextError> {
-        let text = util::cstring(text)?;
+        let text = CString::new(text).map_err(|_| LvSpanTextError::ContainsNul)?;
         unsafe { ffi::lv_span_set_text(self.as_ptr(), text.as_ptr()) }
         Ok(())
     }
@@ -100,7 +101,7 @@ impl LvSpan {
     }
 
     pub fn get_text(&self) -> Option<&CStr> {
-        util::optional_cstr_from_ptr(unsafe { ffi::lv_span_get_text(self.as_ptr()) })
+        unsafe { optional_cstr_from_ptr(ffi::lv_span_get_text(self.as_ptr())) }
     }
 
     impl_span_style_setter_methods!(
@@ -274,7 +275,7 @@ pub trait SpangroupExt: ObjExt {
     }
 
     fn set_span_text(&self, span: &LvSpan, text: &str) -> Result<(), LvSpanTextError> {
-        let text = util::cstring(text)?;
+        let text = CString::new(text).map_err(|_| LvSpanTextError::ContainsNul)?;
         unsafe { ffi::lv_spangroup_set_span_text(self.as_ptr(), span.as_ptr(), text.as_ptr()) }
         Ok(())
     }

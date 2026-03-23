@@ -43,6 +43,17 @@ impl hal::memory::Memory for BitBox03Memory {
         todo!()
     }
 
+    fn get_optiga_config_version(&mut self) -> Result<bitbox_hal::memory::OptigaConfigVersion, ()> {
+        todo!()
+    }
+
+    fn set_optiga_config_version(
+        &mut self,
+        _version: bitbox_hal::memory::OptigaConfigVersion,
+    ) -> Result<(), ()> {
+        todo!()
+    }
+
     fn get_platform(&mut self) -> Result<bitbox_hal::memory::Platform, ()> {
         todo!()
     }
@@ -110,6 +121,10 @@ impl hal::memory::Memory for BitBox03Memory {
     }
 
     fn reset_unlock_attempts(&mut self) {
+        todo!()
+    }
+
+    fn get_io_protection_key(&mut self, _out: &mut [u8; 32]) {
         todo!()
     }
 

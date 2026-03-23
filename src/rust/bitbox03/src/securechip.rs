@@ -45,4 +45,9 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
     fn reset_keys(&mut self) -> Result<(), ()> {
         todo!()
     }
+
+    #[cfg(feature = "app-u2f")]
+    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
+        todo!()
+    }
 }

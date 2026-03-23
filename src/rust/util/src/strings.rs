@@ -3,7 +3,6 @@
 extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::ffi::{CStr, c_char};
 
 /// Parses a utf-8 string out of a null terminated buffer. Returns `Err(())` if there
 /// is no null terminator or if the bytes before the null terminator is invalid UTF8.
@@ -74,45 +73,6 @@ pub fn format_address(input: &str) -> String {
             result.push(SEPARATOR);
         }
         result.push(ch);
-    }
-    result
-}
-
-/// # Safety
-///
-/// `ptr` must be null or point to a valid NUL-terminated C string that remains alive for the
-/// returned lifetime.
-pub unsafe fn optional_cstr_from_ptr<'a>(ptr: *const c_char) -> Option<&'a CStr> {
-    if ptr.is_null() {
-        None
-    } else {
-        Some(unsafe { CStr::from_ptr(ptr) })
-    }
-}
-
-/// # Safety
-///
-/// `ptr` must be null or point to a valid array of pointers to NUL-terminated C strings. The
-/// array must be terminated by either a null pointer or an empty string sentinel, and all strings
-/// must remain alive for the returned lifetimes.
-pub unsafe fn cstr_array_from_ptr<'a>(ptr: *const *const c_char) -> Vec<&'a CStr> {
-    if ptr.is_null() {
-        return Vec::new();
-    }
-
-    let mut result = Vec::new();
-    let mut index = 0;
-    loop {
-        let entry = unsafe { *ptr.add(index) };
-        if entry.is_null() {
-            break;
-        }
-        let entry = unsafe { CStr::from_ptr(entry) };
-        if entry.to_bytes().is_empty() {
-            break;
-        }
-        result.push(entry);
-        index += 1;
     }
     result
 }
@@ -211,28 +171,6 @@ mod tests {
                 .into(),
         );
         assert_eq!(str_to_cstr_vec_zeroizing("te\0st"), Err(()));
-    }
-
-    #[test]
-    fn test_optional_cstr_from_ptr() {
-        assert_eq!(unsafe { optional_cstr_from_ptr(core::ptr::null()) }, None);
-        assert_eq!(
-            unsafe { optional_cstr_from_ptr(c"test".as_ptr()) },
-            Some(c"test")
-        );
-    }
-
-    #[test]
-    fn test_cstr_array_from_ptr() {
-        let map = [c"foo".as_ptr(), c"bar".as_ptr(), c"".as_ptr()];
-        assert_eq!(
-            unsafe { cstr_array_from_ptr(map.as_ptr()) },
-            vec![c"foo", c"bar"]
-        );
-        assert_eq!(
-            unsafe { cstr_array_from_ptr(core::ptr::null()) },
-            Vec::<&CStr>::new()
-        );
     }
 
     #[test]

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use bitcoin::consensus::encode::{VarInt, serialize};
 use sha2::Digest;
 use sha2::Sha256;
-
-use super::script::serialize_varint;
 
 /// https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification
 pub struct Args<'a> {
@@ -36,7 +35,7 @@ pub fn sighash(args: &Args) -> [u8; 32] {
     ctx.update(args.outpoint_hash);
     ctx.update(args.outpoint_index.to_le_bytes());
     // 5.
-    ctx.update(serialize_varint(args.sighash_script.len() as u64));
+    ctx.update(serialize(&VarInt(args.sighash_script.len() as u64)));
     ctx.update(args.sighash_script);
     // 6.
     ctx.update(args.prevout_value.to_le_bytes());

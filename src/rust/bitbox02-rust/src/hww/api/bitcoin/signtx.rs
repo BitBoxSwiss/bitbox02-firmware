@@ -7,7 +7,6 @@ use crate::hal::ui::{ConfirmParams, Progress};
 use super::common::format_amount;
 use super::payment_request;
 use super::policies::TaprootSpendInfo;
-use super::script::serialize_varint;
 use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
 use super::{bip143, bip341, common, keypath};
 
@@ -27,6 +26,7 @@ use pb::btc_sign_init_request::FormatUnit;
 use pb::btc_sign_next_response::Type as NextType;
 use sha2::{Digest, Sha256};
 
+use bitcoin::consensus::encode::{VarInt, serialize};
 use bitcoin::hashes::Hash;
 use bitcoin::key::TapTweak;
 
@@ -359,7 +359,7 @@ async fn handle_prevtx(
     let mut hasher = Sha256::new();
     hasher.update(prevtx_init.version.to_le_bytes());
 
-    hasher.update(serialize_varint(prevtx_init.num_inputs as u64).as_slice());
+    hasher.update(serialize(&VarInt(prevtx_init.num_inputs as u64)));
     for prevtx_input_index in 0..prevtx_init.num_inputs {
         // Update progress.
         progress_component.set({
@@ -372,12 +372,14 @@ async fn handle_prevtx(
         let prevtx_input = get_prevtx_input(input_index, prevtx_input_index, next_response).await?;
         hasher.update(prevtx_input.prev_out_hash.as_slice());
         hasher.update(prevtx_input.prev_out_index.to_le_bytes());
-        hasher.update(serialize_varint(prevtx_input.signature_script.len() as u64).as_slice());
+        hasher.update(serialize(&VarInt(
+            prevtx_input.signature_script.len() as u64
+        )));
         hasher.update(prevtx_input.signature_script.as_slice());
         hasher.update(prevtx_input.sequence.to_le_bytes());
     }
 
-    hasher.update(serialize_varint(prevtx_init.num_outputs as u64).as_slice());
+    hasher.update(serialize(&VarInt(prevtx_init.num_outputs as u64)));
     for prevtx_output_index in 0..prevtx_init.num_outputs {
         // Update progress.
         progress_component.set({
@@ -395,7 +397,7 @@ async fn handle_prevtx(
             return Err(Error::InvalidInput);
         }
         hasher.update(prevtx_output.value.to_le_bytes());
-        hasher.update(serialize_varint(prevtx_output.pubkey_script.len() as u64).as_slice());
+        hasher.update(serialize(&VarInt(prevtx_output.pubkey_script.len() as u64)));
         hasher.update(prevtx_output.pubkey_script.as_slice());
     }
 
@@ -799,7 +801,7 @@ async fn _process(
             script_config_account,
         )?
         .pk_script(coin_params)?;
-        hasher_scriptpubkeys.update(serialize_varint(pk_script.len() as u64).as_slice());
+        hasher_scriptpubkeys.update(serialize(&VarInt(pk_script.len() as u64)));
         hasher_scriptpubkeys.update(pk_script.as_slice());
 
         if !taproot_only {
@@ -1083,7 +1085,7 @@ async fn _process(
         // only SIGHASH_ALL supported.
         hasher_outputs.update(tx_output.value.to_le_bytes());
         let pk_script = payload.pk_script(coin_params)?;
-        hasher_outputs.update(serialize_varint(pk_script.len() as u64).as_slice());
+        hasher_outputs.update(serialize(&VarInt(pk_script.len() as u64)));
         hasher_outputs.update(pk_script.as_slice());
     }
 

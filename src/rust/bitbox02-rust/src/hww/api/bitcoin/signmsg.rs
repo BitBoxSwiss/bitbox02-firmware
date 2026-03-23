@@ -17,6 +17,7 @@ use crate::keystore;
 
 use crate::hal::Ui;
 use crate::workflow::verify_message;
+use bitcoin::consensus::encode::{VarInt, serialize};
 
 const MAX_MESSAGE_SIZE: usize = 1024;
 
@@ -79,7 +80,7 @@ pub async fn process(
     // Electrum re-used it for p2wpkh-p2sh and p2wpkh addresses.
     let mut msg: Vec<u8> = Vec::new();
     msg.extend(b"\x18Bitcoin Signed Message:\n");
-    msg.extend(super::script::serialize_varint(request.msg.len() as _));
+    msg.extend(serialize(&VarInt(request.msg.len() as _)));
     msg.extend(&request.msg);
 
     let sighash: [u8; 32] = Sha256::digest(Sha256::digest(msg)).into();

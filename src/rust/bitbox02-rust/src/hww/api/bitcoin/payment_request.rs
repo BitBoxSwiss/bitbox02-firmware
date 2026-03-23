@@ -8,7 +8,6 @@ use alloc::vec::Vec;
 
 use super::common::format_amount;
 use super::params;
-use super::script::serialize_varint;
 
 use pb::btc_payment_request_request::{Memo, memo};
 use pb::btc_sign_init_request::FormatUnit;
@@ -20,6 +19,7 @@ use crate::workflow::verify_message;
 use hex_lit::hex;
 use sha2::{Digest, Sha256};
 
+use bitcoin::consensus::encode::{VarInt, serialize};
 use bitcoin::secp256k1;
 
 // Arbitrary limit on number of memos that a payment request can show to the user.
@@ -227,7 +227,7 @@ pub enum ValidationError {
 }
 
 fn hash_data_lenprefixed<U: digest::Update>(hasher: &mut U, data: &[u8]) {
-    hasher.update(&serialize_varint(data.len() as u64));
+    hasher.update(&serialize(&VarInt(data.len() as u64)));
     hasher.update(data);
 }
 
@@ -249,7 +249,7 @@ fn compute_sighash(
     // recipientName
     hash_data_lenprefixed(&mut sighash, payment_request.recipient_name.as_bytes());
     // memos
-    sighash.update(serialize_varint(payment_request.memos.len() as u64));
+    sighash.update(serialize(&VarInt(payment_request.memos.len() as u64)));
     for memo in payment_request.memos.iter() {
         match memo {
             Memo {

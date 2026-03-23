@@ -160,5 +160,15 @@ fn main() -> Result<(), &'static str> {
     let dst = cmake_build.build();
     println!("cargo::rustc-link-search=native={}/lib", dst.display());
     println!("cargo::rustc-link-lib=static=lvgl");
+
+    let mut fonts = cc::Build::new();
+    fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_32.c"));
+    fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_48.c"));
+    fonts.file(manifest_dir.join("../../ui/fonts/inter_bold_32.c"));
+    fonts.file(manifest_dir.join("../../ui/fonts/inter_bold_48.c"));
+    for flag in &c_args {
+        fonts.flag(flag);
+    }
+    fonts.compile("lvgl_fonts");
     run_bindgen(&wrapper, &out_path, &clang_args)
 }

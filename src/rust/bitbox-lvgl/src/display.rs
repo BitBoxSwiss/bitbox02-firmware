@@ -9,7 +9,7 @@ use grounded::uninit::GroundedCell;
 use crate::util::assert_user_data_can_attach;
 use crate::{LvArea, LvColorFormat, LvDisplayRenderMode, LvHandle, class, ffi};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LvDisplay {
     raw: NonNull<ffi::lv_display_t>,
 }
@@ -116,6 +116,18 @@ impl LvDisplay {
     pub fn get_user_data(&self) -> Option<NonNull<c_void>> {
         NonNull::new(unsafe { ffi::lv_display_get_user_data(self.as_ptr()) })
     }
+
+    pub fn screen_active(&self) -> Option<LvHandle<class::ObjTag>> {
+        NonNull::new(unsafe { ffi::lv_screen_active() }).map(LvHandle::from_ptr)
+    }
+
+    pub fn layer_bottom(&self) -> Option<LvHandle<class::ObjTag>> {
+        NonNull::new(unsafe { ffi::lv_layer_bottom() }).map(LvHandle::from_ptr)
+    }
+
+    pub fn screen_load(&self, screen: LvHandle) {
+        unsafe { ffi::lv_screen_load(screen.as_ptr()) }
+    }
 }
 
 const LV_DRAW_BUFFER_ALIGNMENT: usize = crate::ffi::LV_DRAW_BUF_ALIGN as usize;
@@ -157,8 +169,4 @@ extern "C" fn flush_cb_trampoline(
     if let Some(flush_cb) = flush_cb.as_mut() {
         (flush_cb)(display, area, px_map);
     }
-}
-
-pub fn screen_active() -> Option<LvHandle<class::ObjTag>> {
-    NonNull::new(unsafe { ffi::lv_screen_active() }).map(LvHandle::from_ptr)
 }

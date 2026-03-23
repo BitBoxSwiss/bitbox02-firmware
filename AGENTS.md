@@ -28,10 +28,10 @@ the host.
 Use `./scripts/dev_exec.sh <command>` only for project-specific commands that depend on the project
 toolchain or compiler environment.
 
-Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. If a command genuinely needs shell
-features such as `cd && ...`, pass an explicit shell as the command, e.g.
-`./scripts/dev_exec.sh bash -lc 'cd src/rust && cargo fmt'`.
-
+Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. Prefer changing CWD
+with CLI args like `tar -C <PATH>` or `cargo build --manifest-path <PATH>`. If
+a command genuinely needs shell features such as pipes, pass an explicit shell
+as the command, e.g.  `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
 
 - `make firmware` / `make bootloader`: compile firmware or bootloader ELFs into `build/`.
 - `make simulator`: build the Linux simulator under `build-build-noasan/bin/`.
@@ -48,7 +48,7 @@ bindings (`cbindgen`, protobuf) when interfaces change.
 
 * For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code.
 * For Python changes, run `./scripts/dev_exec.sh ./scripts/format-python` to format the code.
-* For Rust code changes, run `./scripts/dev_exec.sh -lc 'cd src/rust && cargo fmt'` to format the code.
+* For Rust code changes, run `./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml` to format the code.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware
@@ -66,6 +66,7 @@ security-sensitive areas.
 
 - when reviewing a removed function call, check that the removed behavior was not required and was not dropped by accident during a refactor.
 - when reviewing a removed function call, check if the callee became unused and should also be removed.
+- Focus on memory issues
 
 ## Commit & Pull Request Guidelines
 Write commits with a ≤50 character subject, blank line, and explanatory body per `CONTRIBUTING.md`;
@@ -82,8 +83,9 @@ conclude.
   util::Bytes::BytesMut ot pass in buffers and write to out buffers.
 - when using Zeroizing<...> for buffers, use Zeroizing<Vec<u8>>. For other sensitive data, use
   Zeroizing<Box<...>>.
-- when wrapping C functions in the bitbox02 crate, make it safe idiomatic Rust, with no C types in
-  the input/output. Results should be returned, not passed to an out param.
+- when wrapping C functions, always use a '-sys' crate for the bindings, make it safe idiomatic
+  Rust, with no C types in the input/output, especially no pointers. Results should be returned,
+  not passed to an out param. Check all invariants in the C code and panic in case they are not met.
 - don't stop the Rust docker container unless you have restart it, e.g. if the .containerversion
   changed after checking out a different commit.
 - never commit a change if not explicitly being instructed to

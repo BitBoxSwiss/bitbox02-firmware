@@ -38,8 +38,9 @@ use glutin_winit::DisplayBuilder;
 use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
-use bitbox02_rust::hal::{Hal, Memory, System};
+use bitbox_hal::{Hal, Ui};
 
+use bitbox03::BitBox03;
 use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
 
 // Explicitly link library for its C exports
@@ -200,40 +201,41 @@ fn my_flush_cb(display: lvgl::LvDisplay, _area: &lvgl::LvArea, _px_map: *mut u8)
     }
 }
 
-fn init_hww(preseed: bool) -> bool {
+fn init_hww(_bitbox: &mut BitBox03, preseed: bool) -> bool {
     // BitBox02 simulation initialization
-    bitbox02::usb_processing::init();
+    //bitbox02::usb_processing::init();
     info!("USB setup success");
 
-    bitbox02::hww::setup();
+    //bitbox02::hww::setup();
     info!("HWW setup success");
 
-    if !bitbox02::sd::format() {
-        error!("ERROR, sd card setup failed");
-        return false;
-    }
+    //if !bitbox02::sd::format() {
+    //    error!("ERROR, sd card setup failed");
+    //    return false;
+    //}
 
     info!("Sd card setup: success");
 
-    bitbox02::testing::mock_memory();
-    bitbox02::memory::fake_nova();
+    //bitbox02::testing::mock_memory();
+    //bitbox02::memory::fake_nova();
     info!("Memory setup: success");
 
     if preseed {
-        let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
-        let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
-        let mut hal = bitbox02::hal::BitBox02Hal::new();
-        bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
-        hal.memory().set_initialized().unwrap();
+        //let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
+        //let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
+        //let mut hal = bitbox03::hal::BitBox02Hal::new();
+        //bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
+        //bitbox.memory().set_initialized().unwrap();
     }
 
-    bitbox02::smarteeprom::bb02_config();
-    bitbox02::smarteeprom::init();
+    //bitbox02::smarteeprom::bb02_config();
+    //bitbox02::smarteeprom::init();
 
     true
 }
 
 struct App {
+    bitbox: BitBox03,
     framebuffer: Option<NonNull<FrameBuffer>>,
     touchscreen: Option<TouchScreen>,
     window: Option<Rc<Window>>,
@@ -246,11 +248,13 @@ struct App {
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
+    counter: usize,
 }
 
-impl Default for App {
-    fn default() -> App {
+impl App {
+    fn new(bitbox: BitBox03) -> App {
         App {
+            bitbox,
             framebuffer: Default::default(),
             touchscreen: Default::default(),
             window: Default::default(),
@@ -263,6 +267,7 @@ impl Default for App {
             outbound_in: Default::default(),
             inbound_out: Default::default(),
             startup_task: Default::default(),
+            counter: 0,
         }
     }
 }
@@ -317,12 +322,10 @@ impl App {
         disp.set_flush_cb(my_flush_cb);
         //lv_display_set_color_format(&disp, bitbox_lvgl::LvColorFormat::LV_COLOR_FORMAT_RGB888);
 
-        bitbox03::io::screen::splash();
-
         let width = WINDOW_LOGICAL_WIDTH_ORIGINAL as u32;
         let height = WINDOW_LOGICAL_HEIGHT_ORIGINAL as u32;
         let w_attr = Window::default_attributes()
-            .with_inner_size(LogicalSize::new(width, height))
+            .with_inner_size(LogicalSize::new(width / 2, height / 2))
             .with_title("Graphical BitBox03 Simulator");
 
         let (window, gl_config) = {
@@ -399,6 +402,8 @@ impl App {
         )));
         let framebuffer_ptr = NonNull::from(&mut *framebuffer);
         disp.set_user_data(Some(framebuffer));
+
+        self.bitbox.init(disp);
 
         let touchscreen = TouchScreen::new();
 
@@ -599,14 +604,19 @@ impl ApplicationHandler<UserEvent> for App {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
         match event {
             UserEvent::WakeUp => {
+                self.counter += 1;
+                if self.counter == 5000 {
+                    info!("test switch to logo (pop)");
+                    self.bitbox.ui().switch_to_logo();
+                }
                 // Read data from TCP client
                 let mut inbound_out = self.inbound_out.take();
                 let mut disconnected = false;
                 if let Some(inbound_out) = &mut inbound_out {
                     loop {
                         match inbound_out.try_recv() {
-                            Ok(data) => {
-                                bitbox02::usb_packet::process_from_report(&data);
+                            Ok(_data) => {
+                                //bitbox02::usb_packet::process_from_report(&data);
                             }
                             Err(TryRecvError::Disconnected) => {
                                 // Drop the outbound channel
@@ -624,21 +634,21 @@ impl ApplicationHandler<UserEvent> for App {
                     self.inbound_out = inbound_out;
                 }
                 // Send data to TCP Client
-                loop {
-                    if let Some(data) = bitbox02::queue::pull_hww() {
-                        if let Some(outbound_in) = &mut self.outbound_in {
-                            if outbound_in.send(data).is_err() {
-                                info!("writer thread died and closed channel");
-                                let _ = self.outbound_in.take();
-                            }
-                        }
-                    } else {
-                        break;
-                    }
-                }
+                //loop {
+                //    if let Some(data) = bitbox02::queue::pull_hww() {
+                //        if let Some(outbound_in) = &mut self.outbound_in {
+                //            if outbound_in.send(data).is_err() {
+                //                info!("writer thread died and closed channel");
+                //                let _ = self.outbound_in.take();
+                //            }
+                //        }
+                //    } else {
+                //        break;
+                //    }
+                //}
                 // Business logic
                 bitbox02_rust::async_usb::spin();
-                bitbox02::usb_processing::process_hww();
+                //bitbox02::usb_processing::process_hww();
                 //bitbox02::screen::process();
                 lvgl::timer::handler();
 
@@ -663,7 +673,7 @@ impl ApplicationHandler<UserEvent> for App {
         }
         self.create_window(event_loop, None)
             .expect("failed to create initial window");
-        self.startup_task = Some(Box::pin(bitbox02::hal::system::BitBox02System::startup()));
+        //self.startup_task = Some(Box::pin(bitbox02::hal::system::BitBox02System::startup()));
     }
 }
 
@@ -704,9 +714,11 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Change log level with environment variable. e.g. RUST_LOG=debug");
 
+    let mut bitbox = BitBox03::new();
+
     let args = Args::parse();
 
-    if !init_hww(args.preseed) {
+    if !init_hww(&mut bitbox, args.preseed) {
         return Err(Box::new(AppError::new("Failed to init hww")));
     }
     let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;
@@ -777,7 +789,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = App::default();
+    let mut app = App::new(bitbox);
     event_loop.run_app(&mut app)?;
 
     Ok(())

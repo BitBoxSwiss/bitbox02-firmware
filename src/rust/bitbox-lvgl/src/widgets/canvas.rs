@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use core::ffi::c_void;
 use core::ptr::NonNull;
 
-use super::image::{ImageExt, LvImage};
+use super::image::ImageExt;
 use super::util;
 use crate::{LvColor, LvColor32, LvColorFormat, LvHandle, LvImageDsc, LvObj, LvOpa, class, ffi};
 
@@ -19,7 +19,9 @@ pub enum LvCanvasCreateError {
 
 pub trait CanvasExt: ImageExt {
     /// # Safety
-    /// `buf` must remain valid for the lifetime required by LVGL.
+    /// `buf` must point to writable storage large enough for the declared canvas dimensions and
+    /// color format, and that storage must remain valid for as long as LVGL can render from the
+    /// canvas. While registered, the backing memory must not be freed or repurposed.
     unsafe fn set_buffer_raw<T: ?Sized>(
         &self,
         buf: &'static mut T,
@@ -39,7 +41,9 @@ pub trait CanvasExt: ImageExt {
     }
 
     /// # Safety
-    /// `draw_buf` must remain valid for the lifetime required by LVGL.
+    /// `draw_buf` must be a fully initialized LVGL draw buffer whose handlers and backing storage
+    /// remain valid for as long as the canvas uses it. Neither the draw buffer nor the underlying
+    /// pixel storage may be freed or repurposed while registered on the canvas.
     unsafe fn set_draw_buf_raw(&self, draw_buf: &'static mut ffi::lv_draw_buf_t) {
         unsafe { ffi::lv_canvas_set_draw_buf(self.as_ptr(), draw_buf) }
     }
@@ -110,10 +114,6 @@ impl LvHandle<class::CanvasTag> {
         };
 
         Ok(canvas)
-    }
-
-    pub fn to_image(self) -> LvImage {
-        self.cast()
     }
 
     pub fn to_obj(self) -> LvObj {

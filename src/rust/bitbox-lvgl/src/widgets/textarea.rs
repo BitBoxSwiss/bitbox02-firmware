@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::borrow::ToOwned;
 use alloc::ffi::CString;
 use core::ffi::CStr;
 use core::ptr::NonNull;
@@ -98,19 +99,19 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_set_align(self.as_ptr(), align) }
     }
 
-    fn get_text(&self) -> Option<&CStr> {
+    fn get_text(&self) -> Option<CString> {
         unsafe {
-            // LVGL returns either null or a valid NUL-terminated textarea text pointer owned by
-            // the object and alive for the duration of this borrow.
+            // Snapshot the current text instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_text(self.as_ptr()))
+                .map(|text| text.to_owned())
         }
     }
 
-    fn get_placeholder_text(&self) -> Option<&CStr> {
+    fn get_placeholder_text(&self) -> Option<CString> {
         unsafe {
-            // LVGL returns either null or a valid NUL-terminated placeholder text pointer owned
-            // by the object and alive for the duration of this borrow.
+            // Snapshot the current placeholder instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_placeholder_text(self.as_ptr()))
+                .map(|text| text.to_owned())
         }
     }
 
@@ -130,11 +131,11 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_get_password_mode(self.as_ptr()) }
     }
 
-    fn get_password_bullet(&self) -> Option<&CStr> {
+    fn get_password_bullet(&self) -> Option<CString> {
         unsafe {
-            // LVGL returns either null or a valid NUL-terminated password bullet pointer owned by
-            // the object and alive for the duration of this borrow.
+            // Snapshot the current bullet instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_password_bullet(self.as_ptr()))
+                .map(|text| text.to_owned())
         }
     }
 
@@ -142,11 +143,11 @@ pub trait TextareaExt: ObjExt {
         unsafe { ffi::lv_textarea_get_one_line(self.as_ptr()) }
     }
 
-    fn get_accepted_chars(&self) -> Option<&CStr> {
+    fn get_accepted_chars(&self) -> Option<CString> {
         unsafe {
-            // LVGL returns either null or a valid NUL-terminated accepted-chars pointer owned by
-            // the object and alive for the duration of this borrow.
+            // Snapshot the accepted-char list instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_textarea_get_accepted_chars(self.as_ptr()))
+                .map(|text| text.to_owned())
         }
     }
 

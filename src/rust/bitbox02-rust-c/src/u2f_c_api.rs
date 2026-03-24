@@ -73,9 +73,9 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock(hal: *mut crate::BitBox02HAL
     unsafe {
         UNLOCK_STATE.get().write(TaskState::Running(token));
     }
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
     bitbox02_rust::main_loop::spawn(Box::pin(async move {
-        let result =
-            unsafe { bitbox02_rust::workflow::unlock::unlock(crate::bitbox02hal_mut(hal)).await };
+        let result = bitbox02_rust::workflow::unlock::unlock(&mut *hal).await;
         unsafe { complete_unlock(token, result) };
     }));
 }
@@ -98,6 +98,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     unsafe {
         CONFIRM_STATE.get().write(TaskState::Running(token));
     }
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
     bitbox02_rust::main_loop::spawn(Box::pin(async move {
         let params = ConfirmParams {
             title: &title,
@@ -105,7 +106,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
             accept_only: true,
             ..Default::default()
         };
-        let result = unsafe { crate::bitbox02hal_mut(hal).ui().confirm(&params).await };
+        let result = (*hal).ui().confirm(&params).await;
         unsafe { complete_confirm(token, result) };
     }));
 }

@@ -15,10 +15,18 @@ pub fn ble_disable() {
     USB_HWW_REQUEST_SEEN.write(true);
 }
 
+pub fn init_has_ble(has_ble: bool) {
+    HAS_BLE.write(Some(has_ble));
+}
+
 /// Returns true if this device is Bluetooth-enabled and we have not seen a USB request yet, which
 /// means we are communicating via Bluetooth.
 pub fn ble_enabled(hal: &mut impl crate::hal::Hal) -> bool {
     !USB_HWW_REQUEST_SEEN.read() && has_ble(hal)
+}
+
+pub fn ble_enabled_cached() -> bool {
+    !USB_HWW_REQUEST_SEEN.read() && HAS_BLE.read().unwrap()
 }
 
 fn has_ble(hal: &mut impl crate::hal::Hal) -> bool {

@@ -52,6 +52,7 @@ void simulate_firmware_execution(const uint8_t* input)
 
 int main(void)
 {
+    BitBox02HAL hal = {0};
     // Establish socket connection with client
     int portno = 15423;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -78,6 +79,8 @@ int main(void)
     usb_processing_init();
     printf("USB setup success\n");
 
+    rust_bitbox02hal_init(&hal);
+    hww_init(&hal);
     hww_setup();
     printf("HWW setup success\n");
 

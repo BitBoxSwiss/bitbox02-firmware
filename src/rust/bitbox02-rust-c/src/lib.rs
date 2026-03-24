@@ -61,9 +61,12 @@ extern crate util;
     feature = "firmware",
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 ))]
-use core::sync::atomic::{AtomicPtr, Ordering};
-
-#[allow(unused)]
+use core::ops::{Deref, DerefMut};
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 #[cfg(any(
     feature = "firmware",
     all(feature = "bootloader", feature = "platform-bitbox02plus")
@@ -93,7 +96,80 @@ pub struct BitBox02HAL {
     feature = "firmware",
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 ))]
-static PANIC_HAL: AtomicPtr<BitBox02HAL> = AtomicPtr::new(core::ptr::null_mut());
+static BITBOX02_HAL: AtomicPtr<BitBox02HAL> = AtomicPtr::new(core::ptr::null_mut());
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+static BITBOX02_HAL_IN_USE: AtomicBool = AtomicBool::new(false);
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+struct HalGuard {
+    hal: *mut BitBox02HAL,
+}
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+impl Deref for HalGuard {
+    type Target = HalImpl;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.hal.cast::<HalImpl>() }
+    }
+}
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+impl DerefMut for HalGuard {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.hal.cast::<HalImpl>() }
+    }
+}
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+impl Drop for HalGuard {
+    fn drop(&mut self) {
+        BITBOX02_HAL_IN_USE.store(false, Ordering::Relaxed);
+    }
+}
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+impl bitbox_hal::Hal for HalGuard {
+    type Ui = <HalImpl as bitbox_hal::Hal>::Ui;
+    type Random = <HalImpl as bitbox_hal::Hal>::Random;
+    type Sd = <HalImpl as bitbox_hal::Hal>::Sd;
+    type SecureChip = <HalImpl as bitbox_hal::Hal>::SecureChip;
+    type Memory = <HalImpl as bitbox_hal::Hal>::Memory;
+    type System = <HalImpl as bitbox_hal::Hal>::System;
+
+    fn as_mut(
+        &mut self,
+    ) -> bitbox_hal::HalSubsystems<
+        '_,
+        Self::Ui,
+        Self::Random,
+        Self::Sd,
+        Self::SecureChip,
+        Self::Memory,
+        Self::System,
+    > {
+        bitbox_hal::Hal::as_mut(&mut **self)
+    }
+}
 
 #[cfg(any(
     feature = "firmware",
@@ -105,7 +181,8 @@ static PANIC_HAL: AtomicPtr<BitBox02HAL> = AtomicPtr::new(core::ptr::null_mut())
 /// `hal` must be a valid, non-null pointer to writable `BitBox02HAL` storage.
 pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
     assert!(!hal.is_null());
-    PANIC_HAL.store(hal, Ordering::Relaxed);
+    BITBOX02_HAL.store(hal, Ordering::Relaxed);
+    BITBOX02_HAL_IN_USE.store(false, Ordering::Relaxed);
     unsafe { hal.cast::<HalImpl>().write(HalImpl::new()) };
 }
 
@@ -125,9 +202,11 @@ pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
     feature = "firmware",
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 ))]
-unsafe fn bitbox02hal_mut<'a>(hal: *mut BitBox02HAL) -> &'a mut HalImpl {
+unsafe fn acquire_bitbox02hal(hal: *mut BitBox02HAL) -> HalGuard {
     assert!(!hal.is_null());
-    unsafe { &mut *hal.cast::<HalImpl>() }
+    assert_eq!(BITBOX02_HAL.load(Ordering::Relaxed), hal);
+    assert!(!BITBOX02_HAL_IN_USE.swap(true, Ordering::Relaxed));
+    HalGuard { hal }
 }
 
 #[cfg(any(
@@ -136,21 +215,19 @@ unsafe fn bitbox02hal_mut<'a>(hal: *mut BitBox02HAL) -> &'a mut HalImpl {
 ))]
 #[cfg_attr(any(test, feature = "c-unit-testing"), allow(dead_code))]
 unsafe fn panic_hal_mut<'a>() -> Option<&'a mut HalImpl> {
-    let hal = PANIC_HAL.load(Ordering::Relaxed);
+    let hal = BITBOX02_HAL.load(Ordering::Relaxed);
     if hal.is_null() {
         None
     } else {
-        Some(unsafe { bitbox02hal_mut(hal) })
+        Some(unsafe { &mut *hal.cast::<HalImpl>() })
     }
 }
 
 #[cfg(all(test, feature = "firmware"))]
 fn make_test_hal() -> BitBox02HAL {
-    let mut hal = BitBox02HAL {
+    BitBox02HAL {
         storage: [0; BITBOX02_HAL_STORAGE_SIZE],
-    };
-    unsafe { rust_bitbox02hal_init(&mut hal) };
-    hal
+    }
 }
 
 // Keep this as a numeric literal so cbindgen reliably exports it to C.

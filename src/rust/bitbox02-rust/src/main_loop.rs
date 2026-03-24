@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::{Memory, System};
 use alloc::boxed::Box;
+use alloc::string::String;
 use bitbox_bytequeue::ByteQueue;
 use bitbox_executor::Executor;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
@@ -18,7 +18,7 @@ pub fn spawn(fut: DynExecutorFuture) {
     EXECUTOR.spawn(fut).detach();
 }
 
-pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
+pub fn main_loop(device_name: String, ble_enabled: bool, has_ble: bool) -> ! {
     static STARTUP_COMPLETE: AtomicBool = AtomicBool::new(false);
 
     // Set the size of uart_read_buf to the size of the ringbuffer in the UART driver so we can read
@@ -30,12 +30,11 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
 
     // If the bootloader has booted the BLE chip, the BLE chip isn't aware of the name according to
     // the fw. Send it over.
-    let device_name = hal.memory().get_device_name();
     bitbox_da14531::set_name(&device_name, &mut uart_write_queue);
 
     // This starts the async startup workflow, which is processed by the loop below.
     spawn(Box::pin(async {
-        H::System::startup().await;
+        <bitbox02::hal::system::BitBox02System as crate::hal::System>::startup().await;
         STARTUP_COMPLETE.store(true, Ordering::Relaxed);
     }));
 
@@ -49,13 +48,14 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
     #[cfg(feature = "app-u2f")]
     let mut u2f_frame: USB_FRAME = unsafe { MaybeUninit::zeroed().assume_init() };
 
-    if !hal.memory().ble_enabled() {
+    crate::communication_mode::init_has_ble(has_ble);
+    if !ble_enabled {
         crate::communication_mode::ble_disable();
     }
 
     loop {
         // Do UART I/O
-        if crate::communication_mode::ble_enabled(hal) {
+        if crate::communication_mode::ble_enabled_cached() {
             if uart_read_buf_len < uart_read_buf.len() as u16 || uart_write_queue.num() > 0 {
                 bitbox02::uart::poll(
                     Some(&mut uart_read_buf),
@@ -91,7 +91,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
         // Do USB Input
         if hww_data.is_none() && bitbox02::hid_hww::read(&mut hww_frame) {
             if bitbox02::usb_packet::process(&hww_frame) {
-                if crate::communication_mode::ble_enabled(hal) {
+                if crate::communication_mode::ble_enabled_cached() {
                     // Enqueue a power down command to the da14531
                     bitbox_da14531::power_down(&mut uart_write_queue);
                     // Flush out the power down command. This will be the last UART communication
@@ -111,7 +111,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
         }
 
         // Do UART Output
-        if crate::communication_mode::ble_enabled(hal) {
+        if crate::communication_mode::ble_enabled_cached() {
             if let Some(frame) = bitbox02::da14531_protocol::poll(
                 &mut uart_read_buf,
                 &mut uart_read_buf_len,
@@ -125,7 +125,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
 
         // Do USB Output
         if let Some(data) = &mut hww_data
-            && !crate::communication_mode::ble_enabled(hal)
+            && !crate::communication_mode::ble_enabled_cached()
         {
             if bitbox02::hid_hww::write_poll(data) {
                 hww_data = None;
@@ -160,7 +160,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
 
         if STARTUP_COMPLETE.swap(false, Ordering::Relaxed) {
             // hww handler in usb_process must be setup before we can allow ble connections
-            if let Ok(crate::hal::memory::Platform::BitBox02Plus) = hal.memory().get_platform() {
+            if has_ble {
                 let product = bitbox02::platform::product();
                 bitbox02::da14531_handler::set_product(product);
                 bitbox_da14531::set_product(product, &mut uart_write_queue)

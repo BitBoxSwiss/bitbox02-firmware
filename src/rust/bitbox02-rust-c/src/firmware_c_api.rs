@@ -19,7 +19,15 @@ pub enum rust_memory_securechip_type_t {
 #[cfg(not(any(feature = "c-unit-testing", feature = "simulator-graphical")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_main_loop(hal: *mut crate::BitBox02HAL) -> ! {
-    bitbox02_rust::main_loop::main_loop(unsafe { crate::bitbox02hal_mut(hal) })
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
+    let device_name = hal.memory().get_device_name();
+    let ble_enabled = hal.memory().ble_enabled();
+    let has_ble = matches!(
+        hal.memory().get_platform(),
+        Ok(bitbox_hal::memory::Platform::BitBox02Plus),
+    );
+    drop(hal);
+    bitbox02_rust::main_loop::main_loop(device_name, ble_enabled, has_ble)
 }
 
 /// # Safety
@@ -36,11 +44,8 @@ pub unsafe extern "C" fn rust_salt_hash_data(
         Ok(purpose) => purpose,
         Err(()) => return false,
     };
-    match bitbox02_rust::salt::hash_data(
-        unsafe { crate::bitbox02hal_mut(hal) }.memory(),
-        data.as_ref(),
-        purpose_str,
-    ) {
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
+    match bitbox02_rust::salt::hash_data(hal.memory(), data.as_ref(), purpose_str) {
         Ok(hash) => {
             hash_out.as_mut()[..32].copy_from_slice(&hash);
             true
@@ -61,10 +66,8 @@ pub unsafe extern "C" fn rust_memory_optiga_config_is_v1_or_higher(
         return false;
     }
 
-    match unsafe { crate::bitbox02hal_mut(hal) }
-        .memory()
-        .get_optiga_config_version()
-    {
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
+    match hal.memory().get_optiga_config_version() {
         Ok(version) => {
             unsafe {
                 *result_out = version >= OptigaConfigVersion::V1;
@@ -79,8 +82,8 @@ pub unsafe extern "C" fn rust_memory_optiga_config_is_v1_or_higher(
 pub unsafe extern "C" fn rust_memory_set_optiga_config_version_v1(
     hal: *mut crate::BitBox02HAL,
 ) -> bool {
-    unsafe { crate::bitbox02hal_mut(hal) }
-        .memory()
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
+    hal.memory()
         .set_optiga_config_version(OptigaConfigVersion::V1)
         .is_ok()
 }
@@ -89,10 +92,8 @@ pub unsafe extern "C" fn rust_memory_set_optiga_config_version_v1(
 pub unsafe extern "C" fn rust_memory_get_securechip_type(
     hal: *mut crate::BitBox02HAL,
 ) -> rust_memory_securechip_type_t {
-    match unsafe { crate::bitbox02hal_mut(hal) }
-        .memory()
-        .get_securechip_type()
-    {
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
+    match hal.memory().get_securechip_type() {
         Ok(SecurechipType::Optiga) => {
             rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_OPTIGA
         }
@@ -107,8 +108,8 @@ pub unsafe extern "C" fn rust_memory_get_io_protection_key(
     hal: *mut crate::BitBox02HAL,
     mut key_out: BytesMut,
 ) {
-    unsafe { crate::bitbox02hal_mut(hal) }
-        .memory()
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
+    hal.memory()
         .get_io_protection_key(key_out.as_mut().try_into().unwrap());
 }
 
@@ -118,7 +119,8 @@ pub unsafe extern "C" fn rust_keystore_get_u2f_seed(
     hal: *mut crate::BitBox02HAL,
     mut seed_out: util::bytes::BytesMut,
 ) -> bool {
-    match bitbox02_rust::keystore::get_u2f_seed(unsafe { crate::bitbox02hal_mut(hal) }) {
+    let mut hal = unsafe { crate::acquire_bitbox02hal(hal) };
+    match bitbox02_rust::keystore::get_u2f_seed(&mut *hal) {
         Ok(seed) => {
             seed_out.as_mut().copy_from_slice(&seed);
             true
@@ -135,9 +137,19 @@ mod tests {
         OptigaConfigVersion as MemoryOptigaConfigVersion, SecurechipType as MemorySecurechipType,
         get_securechip_type, set_optiga_config_version,
     };
+    use std::sync::Mutex;
+
+    static TEST_LOCK: Mutex<()> = Mutex::new(());
 
     fn make_hal() -> crate::BitBox02HAL {
         crate::make_test_hal()
+    }
+
+    fn with_test_hal<T>(f: impl FnOnce(&mut crate::BitBox02HAL) -> T) -> T {
+        let _lock = TEST_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let mut hal = make_hal();
+        unsafe { crate::rust_bitbox02hal_init(&mut hal) };
+        f(&mut hal)
     }
 
     fn setup_memory() {
@@ -146,64 +158,65 @@ mod tests {
 
     #[test]
     fn test_rust_memory_optiga_config_is_v1_or_higher() {
-        setup_memory();
-        let mut hal = make_hal();
+        with_test_hal(|hal| {
+            setup_memory();
 
-        let mut is_v1_or_higher = false;
-        assert!(unsafe {
-            rust_memory_optiga_config_is_v1_or_higher(&mut hal, &mut is_v1_or_higher)
+            let mut is_v1_or_higher = false;
+            assert!(unsafe {
+                rust_memory_optiga_config_is_v1_or_higher(hal, &mut is_v1_or_higher)
+            });
+            assert!(!is_v1_or_higher);
+
+            assert!(unsafe { rust_memory_set_optiga_config_version_v1(hal) });
+
+            let mut is_v1_or_higher = false;
+            assert!(unsafe {
+                rust_memory_optiga_config_is_v1_or_higher(hal, &mut is_v1_or_higher)
+            });
+            assert!(is_v1_or_higher);
         });
-        assert!(!is_v1_or_higher);
-
-        assert!(unsafe { rust_memory_set_optiga_config_version_v1(&mut hal) });
-
-        let mut is_v1_or_higher = false;
-        assert!(unsafe {
-            rust_memory_optiga_config_is_v1_or_higher(&mut hal, &mut is_v1_or_higher)
-        });
-        assert!(is_v1_or_higher);
     }
 
     #[test]
     fn test_rust_memory_optiga_config_is_v1_or_higher_null_pointer() {
-        let mut hal = make_hal();
-        setup_memory();
-        assert!(!unsafe {
-            rust_memory_optiga_config_is_v1_or_higher(&mut hal, core::ptr::null_mut())
+        with_test_hal(|hal| {
+            setup_memory();
+            assert!(!unsafe {
+                rust_memory_optiga_config_is_v1_or_higher(hal, core::ptr::null_mut())
+            });
         });
     }
 
     #[test]
     fn test_rust_memory_get_securechip_type() {
-        let mut hal = make_hal();
-        let expected = match get_securechip_type().unwrap() {
-            MemorySecurechipType::Atecc => {
-                rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_ATECC
-            }
-            MemorySecurechipType::Optiga => {
-                rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_OPTIGA
-            }
-        };
-        assert_eq!(
-            unsafe { rust_memory_get_securechip_type(&mut hal) },
-            expected
-        );
+        with_test_hal(|hal| {
+            let expected = match get_securechip_type().unwrap() {
+                MemorySecurechipType::Atecc => {
+                    rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_ATECC
+                }
+                MemorySecurechipType::Optiga => {
+                    rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_OPTIGA
+                }
+            };
+            assert_eq!(unsafe { rust_memory_get_securechip_type(hal) }, expected);
+        });
     }
 
     #[test]
     fn test_rust_memory_get_io_protection_key() {
-        let mut hal = make_hal();
-        let mut expected = [0u8; 32];
-        unsafe { crate::bitbox02hal_mut(&mut hal) }
-            .memory()
-            .get_io_protection_key(&mut expected);
-        let mut actual = [0u8; 32];
-        unsafe {
-            rust_memory_get_io_protection_key(
-                &mut hal,
-                util::bytes::rust_util_bytes_mut(actual.as_mut_ptr(), actual.len()),
-            )
-        };
-        assert_eq!(actual, expected);
+        with_test_hal(|hal| {
+            let mut expected = [0u8; 32];
+            unsafe { crate::acquire_bitbox02hal(hal) }
+                .memory()
+                .get_io_protection_key(&mut expected);
+            let mut actual = [0u8; 32];
+            unsafe {
+                rust_memory_get_io_protection_key(
+                    hal,
+                    util::bytes::rust_util_bytes_mut(actual.as_mut_ptr(), actual.len()),
+                )
+            };
+            assert_eq!(actual, expected);
+        });
     }
 }

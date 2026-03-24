@@ -75,6 +75,7 @@ static void _hup_handler(int signum)
 
 int main(int argc, char* argv[])
 {
+    BitBox02HAL hal = {0};
     struct sigaction psa;
     memset(&psa, 0, sizeof(struct sigaction));
     psa.sa_handler = _quit_handler;
@@ -110,6 +111,8 @@ int main(int argc, char* argv[])
     usb_processing_init();
     printf("USB setup success\n");
 
+    rust_bitbox02hal_init(&hal);
+    hww_init(&hal);
     hww_setup();
     printf("HWW setup success\n");
 

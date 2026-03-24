@@ -209,10 +209,7 @@ unsafe fn acquire_bitbox02hal(hal: *mut BitBox02HAL) -> HalGuard {
     HalGuard { hal }
 }
 
-#[cfg(any(
-    feature = "firmware",
-    all(feature = "bootloader", feature = "platform-bitbox02plus")
-))]
+#[cfg(feature = "firmware")]
 #[cfg_attr(any(test, feature = "c-unit-testing"), allow(dead_code))]
 unsafe fn panic_hal_mut<'a>() -> Option<&'a mut HalImpl> {
     let hal = BITBOX02_HAL.load(Ordering::Relaxed);

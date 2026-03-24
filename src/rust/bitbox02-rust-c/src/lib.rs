@@ -100,6 +100,9 @@ static PANIC_HAL: AtomicPtr<BitBox02HAL> = AtomicPtr::new(core::ptr::null_mut())
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 ))]
 #[unsafe(no_mangle)]
+/// # Safety
+///
+/// `hal` must be a valid, non-null pointer to writable `BitBox02HAL` storage.
 pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
     assert!(!hal.is_null());
     PANIC_HAL.store(hal, Ordering::Relaxed);
@@ -111,6 +114,9 @@ pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 )))]
 #[unsafe(no_mangle)]
+/// # Safety
+///
+/// `hal` must be a valid, non-null pointer to writable `BitBox02HAL` storage.
 pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
     assert!(!hal.is_null());
 }
@@ -128,7 +134,7 @@ unsafe fn bitbox02hal_mut<'a>(hal: *mut BitBox02HAL) -> &'a mut HalImpl {
     feature = "firmware",
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 ))]
-#[cfg_attr(test, allow(dead_code))]
+#[cfg_attr(any(test, feature = "c-unit-testing"), allow(dead_code))]
 unsafe fn panic_hal_mut<'a>() -> Option<&'a mut HalImpl> {
     let hal = PANIC_HAL.load(Ordering::Relaxed);
     if hal.is_null() {

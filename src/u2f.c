@@ -200,8 +200,8 @@ static bool _unlock_if_locked(void)
 static uint32_t _next_cid(void)
 {
     do {
-        _state.cid = (random_byte_mcu() << 0) + (random_byte_mcu() << 8) +
-                     (random_byte_mcu() << 16) + (random_byte_mcu() << 24);
+        _state.cid = ((uint32_t)random_byte_mcu() << 0) | ((uint32_t)random_byte_mcu() << 8) |
+                     ((uint32_t)random_byte_mcu() << 16) | ((uint32_t)random_byte_mcu() << 24);
     } while (_state.cid == 0 || _state.cid == U2FHID_CID_BROADCAST);
     return _state.cid;
 }

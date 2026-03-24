@@ -174,8 +174,13 @@ static const securechip_interface_functions_t _ifs = {
 //------------------------------------------------------------------------------
 // Linker-wrapped rust_salt_hash_data: same as salt.rs, but with a fixed salt_root.
 
-bool __wrap_rust_salt_hash_data(struct Bytes data, const char* purpose, struct BytesMut hash_out)
+bool __wrap_rust_salt_hash_data(
+    struct BitBox02HAL* hal,
+    struct Bytes data,
+    const char* purpose,
+    struct BytesMut hash_out)
 {
+    (void)hal;
     void* ctx = rust_sha256_new();
     if (ctx == NULL) {
         return false;
@@ -193,6 +198,11 @@ bool __wrap_rust_salt_hash_data(struct Bytes data, const char* purpose, struct B
 static optiga_util_t _fake_util;
 static optiga_crypt_t _fake_crypt;
 
+void pal_os_datastore_init(struct BitBox02HAL* hal)
+{
+    (void)hal;
+}
+
 static uint8_t _oid_password[32];
 static bool _oid_password_set;
 
@@ -204,7 +214,11 @@ static bool _authorized_password_secret;
 
 static void _setup_test(void)
 {
+    static BitBox02HAL hal = {0};
+
     fake_memory_factoryreset();
+    rust_bitbox02hal_init(&hal);
+    optiga_init(&hal);
     memory_optiga_config_version_t config_version;
     assert_true(memory_get_optiga_config_version(&config_version));
     assert_int_equal(config_version, MEMORY_OPTIGA_CONFIG_V0);
@@ -745,6 +759,7 @@ static void test_optiga_stretch_password_v0_success(void** state)
 
     // Seed the OID_PASSWORD and OID_PASSWORD_COUNTER objects as if they were provisioned earlier.
     assert_true(rust_salt_hash_data(
+        NULL,
         rust_util_bytes((const uint8_t*)"pw", 2),
         "optiga_password",
         rust_util_bytes_mut(_oid_password, sizeof(_oid_password))));
@@ -769,6 +784,7 @@ static void test_optiga_stretch_password_v0_attempt_counter(void** state)
 
     // Seed the OID_PASSWORD and OID_PASSWORD_COUNTER objects as if they were provisioned earlier.
     assert_true(rust_salt_hash_data(
+        NULL,
         rust_util_bytes((const uint8_t*)"pw", 2),
         "optiga_password",
         rust_util_bytes_mut(_oid_password, sizeof(_oid_password))));

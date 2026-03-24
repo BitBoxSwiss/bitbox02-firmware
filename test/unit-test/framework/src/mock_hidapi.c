@@ -11,6 +11,7 @@
 #include <hidapi.h>
 
 #include "queue.h"
+#include "rust/rust.h"
 #include "u2f.h"
 #include "u2f/u2f_packet.h"
 #include "usb/usb_processing.h"
@@ -85,7 +86,11 @@ void hid_close(hid_device* dev)
 hid_device* hid_open_path(const char* path)
 {
     static char sham[] = "sham";
+    static BitBox02HAL hal = {0};
+
+    rust_bitbox02hal_init(&hal);
     usb_processing_init();
+    u2f_init(&hal);
     u2f_device_setup();
     timer_thread_stop = false;
     int res = pthread_create(&thread, NULL, &timer_task, NULL);

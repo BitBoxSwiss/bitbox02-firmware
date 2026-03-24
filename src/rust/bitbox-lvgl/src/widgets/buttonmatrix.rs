@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::borrow::ToOwned;
+use alloc::ffi::CString;
 use alloc::vec::Vec;
 use core::ffi::{CStr, c_char};
 use core::ptr::NonNull;
@@ -48,8 +50,10 @@ pub(crate) fn validate_map(map: &[LvButtonmatrixMapEntry]) -> usize {
     entries.iter().filter(|entry| !entry.is_newline()).count()
 }
 
-fn button_count_from_cstr_map(map: &[&CStr]) -> usize {
-    map.iter().filter(|entry| entry.to_bytes() != b"\n").count()
+fn button_count_from_cstr_map<S: AsRef<CStr>>(map: &[S]) -> usize {
+    map.iter()
+        .filter(|entry| entry.as_ref().to_bytes() != b"\n")
+        .count()
 }
 
 fn assert_ctrl_map_len(expected: usize, actual: usize) {
@@ -99,11 +103,12 @@ pub trait ButtonmatrixExt: ObjExt {
         unsafe { ffi::lv_buttonmatrix_set_one_checked(self.as_ptr(), enable) }
     }
 
-    fn get_map(&self) -> Vec<&CStr> {
+    fn get_map(&self) -> Vec<CString> {
         unsafe {
-            // LVGL returns either null or a valid button-matrix map array terminated by a null
-            // pointer or empty string sentinel, with entries alive for the duration of this borrow.
             cstr_array_from_ptr(ffi::lv_buttonmatrix_get_map(self.as_ptr()))
+                .into_iter()
+                .map(|entry| entry.to_owned())
+                .collect()
         }
     }
 
@@ -111,14 +116,13 @@ pub trait ButtonmatrixExt: ObjExt {
         unsafe { ffi::lv_buttonmatrix_get_selected_button(self.as_ptr()) }
     }
 
-    fn get_button_text(&self, button_id: u32) -> Option<&CStr> {
+    fn get_button_text(&self, button_id: u32) -> Option<CString> {
         unsafe {
-            // LVGL returns either null or a valid NUL-terminated button text pointer owned by
-            // the object and alive for the duration of this borrow.
             optional_cstr_from_ptr(ffi::lv_buttonmatrix_get_button_text(
                 self.as_ptr(),
                 button_id,
             ))
+            .map(|text| text.to_owned())
         }
     }
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::borrow::ToOwned;
 use alloc::ffi::CString;
 use core::ffi::CStr;
 use core::ptr::NonNull;
@@ -42,11 +43,11 @@ pub trait LabelExt: ObjExt {
         unsafe { ffi::lv_label_set_recolor(self.as_ptr(), enable) }
     }
 
-    fn get_text(&self) -> Option<&CStr> {
+    fn get_text(&self) -> Option<CString> {
         unsafe {
-            // LVGL returns either null or a valid NUL-terminated label text pointer owned by the
-            // object and alive for the duration of this borrow.
+            // Snapshot the current text instead of borrowing LVGL-owned storage.
             optional_cstr_from_ptr(ffi::lv_label_get_text(self.as_ptr()))
+                .map(|text| text.to_owned())
         }
     }
 

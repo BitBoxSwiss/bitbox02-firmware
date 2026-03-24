@@ -1,36 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::ffi::CString;
-use core::ffi::c_void;
-use core::ptr::NonNull;
-
-use crate::{LvBlendMode, LvHandle, LvImageAlign, LvImageDsc, LvObj, LvPoint, ObjExt, class, ffi};
-
-pub type LvImageSourceError = super::LvTextError;
-pub type LvImage = LvHandle<class::ImageTag>;
+use crate::{LvBlendMode, LvHandle, LvImageAlign, LvObj, LvPoint, ObjExt, class, ffi};
 
 pub trait ImageExt: ObjExt {
-    fn set_src(&self, src: &str) -> Result<(), LvImageSourceError> {
-        let src = CString::new(src).map_err(|_| LvImageSourceError::ContainsNul)?;
-        unsafe { ffi::lv_image_set_src(self.as_ptr(), src.as_ptr() as *const c_void) }
-        Ok(())
-    }
-
-    fn set_src_image(&self, src: &'static LvImageDsc) {
-        unsafe { ffi::lv_image_set_src(self.as_ptr(), src as *const LvImageDsc as *const c_void) }
-    }
-
-    /// # Safety
-    /// `src` must point to a `'static` value of a type accepted by LVGL as an image source.
-    unsafe fn set_src_raw<T: ?Sized>(&self, src: Option<&'static T>) {
-        unsafe {
-            ffi::lv_image_set_src(
-                self.as_ptr(),
-                src.map_or(core::ptr::null(), |src| src as *const T as *const c_void),
-            )
-        }
-    }
-
     fn set_offset_x(&self, x: i32) {
         unsafe { ffi::lv_image_set_offset_x(self.as_ptr(), x) }
     }
@@ -77,19 +49,6 @@ pub trait ImageExt: ObjExt {
 
     fn set_inner_align(&self, align: LvImageAlign) {
         unsafe { ffi::lv_image_set_inner_align(self.as_ptr(), align) }
-    }
-
-    fn set_bitmap_map_src(&self, src: Option<&'static LvImageDsc>) {
-        unsafe {
-            ffi::lv_image_set_bitmap_map_src(
-                self.as_ptr(),
-                src.map_or(core::ptr::null(), |src| src as *const LvImageDsc),
-            )
-        }
-    }
-
-    fn get_src(&self) -> *const c_void {
-        unsafe { ffi::lv_image_get_src(self.as_ptr()) }
     }
 
     fn get_offset_x(&self) -> i32 {
@@ -149,21 +108,12 @@ pub trait ImageExt: ObjExt {
     fn get_inner_align(&self) -> LvImageAlign {
         unsafe { ffi::lv_image_get_inner_align(self.as_ptr()) }
     }
-
-    fn get_bitmap_map_src(&self) -> Option<NonNull<LvImageDsc>> {
-        NonNull::new(unsafe { ffi::lv_image_get_bitmap_map_src(self.as_ptr()) as *mut LvImageDsc })
-    }
 }
 
 impl LvHandle<class::ImageTag> {
-    pub fn new<P: class::LvClass>(parent: &LvHandle<P>) -> Option<Self> {
-        NonNull::new(unsafe { ffi::lv_image_create(parent.as_ptr()) }).map(LvHandle::from_ptr)
-    }
-
     pub fn to_obj(self) -> LvObj {
         self.cast()
     }
 }
 
-impl ImageExt for LvHandle<class::ImageTag> {}
 impl ImageExt for LvHandle<class::CanvasTag> {}

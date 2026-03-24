@@ -7,3 +7,6 @@
 #![allow(clippy::all)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+
+// bindgen fails to generate LV_SIZE_CONTENT
+pub const LV_SIZE_CONTENT: u32 = LV_COORD_MAX | (1 << LV_COORD_TYPE_SHIFT);

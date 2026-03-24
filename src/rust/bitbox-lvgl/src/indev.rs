@@ -6,7 +6,7 @@ use core::ptr::NonNull;
 use crate::util::assert_user_data_can_attach;
 use crate::{LvIndevType, ffi};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LvIndev {
     raw: NonNull<ffi::lv_indev_t>,
 }

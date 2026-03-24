@@ -4,13 +4,15 @@
 
 extern crate alloc;
 
-use crate::HalImpl;
 use alloc::vec::Vec;
 use bitbox02_rust::async_usb::{on_next_request, spawn, waiting_for_next_request};
+use core::sync::atomic::{AtomicPtr, Ordering};
+
+static ASYNC_USB_HAL: AtomicPtr<crate::BitBox02HAL> = AtomicPtr::new(core::ptr::null_mut());
 
 async fn process_packet_with_hal(usb_in: Vec<u8>) -> Vec<u8> {
-    let mut hal = HalImpl::new();
-    bitbox02_rust::hww::process_packet(&mut hal, usb_in).await
+    let hal = ASYNC_USB_HAL.load(Ordering::Relaxed);
+    bitbox02_rust::hww::process_packet(unsafe { crate::bitbox02hal_mut(hal) }, usb_in).await
 }
 
 #[unsafe(no_mangle)]
@@ -50,7 +52,11 @@ pub unsafe extern "C" fn rust_async_usb_copy_response(out: *mut bitbox02::buffer
 ///
 /// `usb_in` are the api request bytes.
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_async_usb_on_request_hww(usb_in: util::bytes::Bytes) {
+pub unsafe extern "C" fn rust_async_usb_on_request_hww(
+    hal: *mut crate::BitBox02HAL,
+    usb_in: util::bytes::Bytes,
+) {
+    ASYNC_USB_HAL.store(hal, Ordering::Relaxed);
     if waiting_for_next_request() {
         on_next_request(usb_in.as_ref());
     } else {

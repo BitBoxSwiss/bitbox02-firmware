@@ -19,6 +19,20 @@ static struct {
     /** App ID of the outstanding async operation. */
     uint8_t app_id[32];
 } _state = {0};
+static struct BitBox02HAL* _bitbox02_hal = NULL;
+
+static struct BitBox02HAL* _get_bitbox02_hal(void)
+{
+    if (_bitbox02_hal == NULL) {
+        Abort("u2f_app_init");
+    }
+    return _bitbox02_hal;
+}
+
+void u2f_app_init(struct BitBox02HAL* hal)
+{
+    _bitbox02_hal = hal;
+}
 
 // appid: 32 byte appid
 // out: string,
@@ -58,7 +72,7 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
     }
     _state.outstanding_confirm = type;
     memcpy(_state.app_id, app_id, 32);
-    rust_workflow_spawn_confirm(title, app_string);
+    rust_workflow_spawn_confirm(_get_bitbox02_hal(), title, app_string);
 }
 
 async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)

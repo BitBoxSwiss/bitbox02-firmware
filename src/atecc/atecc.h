@@ -13,6 +13,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+struct BitBox02HAL;
+
+void atecc_init(struct BitBox02HAL* hal);
 USE_RESULT int atecc_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out);
 USE_RESULT int atecc_init_new_password(

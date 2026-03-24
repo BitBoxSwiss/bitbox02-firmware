@@ -7,7 +7,11 @@
 
 #include <usb/usb_packet.h>
 
+struct BitBox02HAL;
+
 #define HWW_MSG (HID_VENDOR_FIRST + 0x01) // Hardware wallet command
+
+void hww_init(struct BitBox02HAL* hal);
 
 /**
  * Set up the HWW command.

@@ -84,6 +84,21 @@ typedef struct {
 } u2f_state_t;
 
 static u2f_state_t _state = {0};
+static struct BitBox02HAL* _bitbox02_hal = NULL;
+
+static struct BitBox02HAL* _get_bitbox02_hal(void)
+{
+    if (_bitbox02_hal == NULL) {
+        Abort("u2f_init");
+    }
+    return _bitbox02_hal;
+}
+
+void u2f_init(struct BitBox02HAL* hal)
+{
+    _bitbox02_hal = hal;
+    u2f_app_init(hal);
+}
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpacked"
@@ -174,7 +189,7 @@ static void _stop_refresh_webpage_screen(void)
 static bool _unlock_if_locked(void)
 {
     if (rust_keystore_is_locked()) {
-        rust_workflow_spawn_unlock();
+        rust_workflow_spawn_unlock(_get_bitbox02_hal());
         return false;
     }
     /* Pop the "refresh webpage" screen if any */
@@ -245,7 +260,7 @@ USE_RESULT static bool _keyhandle_gen(
     uint8_t hmac_in[U2F_APPID_SIZE + U2F_NONCE_LENGTH];
     uint8_t seed[32];
     UTIL_CLEANUP_32(seed);
-    if (!rust_keystore_get_u2f_seed(rust_util_bytes_mut(seed, sizeof(seed)))) {
+    if (!rust_keystore_get_u2f_seed(_get_bitbox02_hal(), rust_util_bytes_mut(seed, sizeof(seed)))) {
         return false;
     }
 

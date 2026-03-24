@@ -28,7 +28,6 @@ impl<O> ConstInit for TaskState<O> {
 static NEXT_TASK_TOKEN: AtomicU32 = AtomicU32::new(0);
 static UNLOCK_STATE: GroundedCell<TaskState<Result<(), ()>>> = GroundedCell::const_init();
 static CONFIRM_STATE: GroundedCell<TaskState<Result<(), UserAbort>>> = GroundedCell::const_init();
-static BITBOX02_HAL: GroundedCell<crate::HalImpl> = GroundedCell::const_init();
 
 fn next_task_token() -> u32 {
     NEXT_TASK_TOKEN.fetch_add(1, Ordering::Relaxed)
@@ -69,15 +68,14 @@ unsafe fn complete_confirm(token: u32, result: Result<(), UserAbort>) {
 /// U2F workflow C API calls. In particular, do not call this from interrupts or from multiple
 /// threads.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
+pub unsafe extern "C" fn rust_workflow_spawn_unlock(hal: *mut crate::BitBox02HAL) {
     let token = next_task_token();
     unsafe {
         UNLOCK_STATE.get().write(TaskState::Running(token));
     }
     bitbox02_rust::main_loop::spawn(Box::pin(async move {
-        let result = unsafe {
-            bitbox02_rust::workflow::unlock::unlock(BITBOX02_HAL.get().as_mut().unwrap()).await
-        };
+        let result =
+            unsafe { bitbox02_rust::workflow::unlock::unlock(crate::bitbox02hal_mut(hal)).await };
         unsafe { complete_unlock(token, result) };
     }));
 }
@@ -90,6 +88,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
 /// other U2F workflow C API calls (no interrupts/multi-threaded callers).
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_confirm(
+    hal: *mut crate::BitBox02HAL,
     title: *const core::ffi::c_char,
     body: *const core::ffi::c_char,
 ) {
@@ -106,15 +105,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
             accept_only: true,
             ..Default::default()
         };
-        let result = unsafe {
-            BITBOX02_HAL
-                .get()
-                .as_mut()
-                .unwrap()
-                .ui()
-                .confirm(&params)
-                .await
-        };
+        let result = unsafe { crate::bitbox02hal_mut(hal).ui().confirm(&params).await };
         unsafe { complete_confirm(token, result) };
     }));
 }

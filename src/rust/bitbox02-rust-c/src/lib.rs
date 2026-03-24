@@ -57,12 +57,95 @@ extern crate bitbox_da14531;
 // Expose C interface defined in util
 extern crate util;
 
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+use core::sync::atomic::{AtomicPtr, Ordering};
+
 #[allow(unused)]
 #[cfg(any(
     feature = "firmware",
     all(feature = "bootloader", feature = "platform-bitbox02plus")
 ))]
 type HalImpl = bitbox02::hal::BitBox02Hal;
+
+pub const BITBOX02_HAL_STORAGE_SIZE: usize = 1;
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+const _: () = assert!(core::mem::size_of::<HalImpl>() == 0);
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+const _: () = assert!(core::mem::align_of::<HalImpl>() == 1);
+
+#[repr(C)]
+pub struct BitBox02HAL {
+    pub storage: [u8; BITBOX02_HAL_STORAGE_SIZE],
+}
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+static PANIC_HAL: AtomicPtr<BitBox02HAL> = AtomicPtr::new(core::ptr::null_mut());
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
+    assert!(!hal.is_null());
+    PANIC_HAL.store(hal, Ordering::Relaxed);
+    unsafe { hal.cast::<HalImpl>().write(HalImpl::new()) };
+}
+
+#[cfg(not(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+)))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
+    assert!(!hal.is_null());
+}
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+unsafe fn bitbox02hal_mut<'a>(hal: *mut BitBox02HAL) -> &'a mut HalImpl {
+    assert!(!hal.is_null());
+    unsafe { &mut *hal.cast::<HalImpl>() }
+}
+
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+#[cfg_attr(test, allow(dead_code))]
+unsafe fn panic_hal_mut<'a>() -> Option<&'a mut HalImpl> {
+    let hal = PANIC_HAL.load(Ordering::Relaxed);
+    if hal.is_null() {
+        None
+    } else {
+        Some(unsafe { bitbox02hal_mut(hal) })
+    }
+}
+
+#[cfg(all(test, feature = "firmware"))]
+fn make_test_hal() -> BitBox02HAL {
+    let mut hal = BitBox02HAL {
+        storage: [0; BITBOX02_HAL_STORAGE_SIZE],
+    };
+    unsafe { rust_bitbox02hal_init(&mut hal) };
+    hal
+}
 
 // Keep this as a numeric literal so cbindgen reliably exports it to C.
 // The static assert below enforces consistency with the Rust HAL constant.
@@ -124,10 +207,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     {
         use bitbox_hal::{Hal, Ui};
 
-        let mut hal = crate::HalImpl::new();
         let msg = alloc::format!("Error: {}", info);
-        hal.ui()
-            .print_screen(core::time::Duration::from_millis(0), &msg);
+        if let Some(hal) = unsafe { crate::panic_hal_mut() } {
+            hal.ui()
+                .print_screen(core::time::Duration::from_millis(0), &msg);
+        }
     }
     cortex_m::asm::bkpt();
     loop {}

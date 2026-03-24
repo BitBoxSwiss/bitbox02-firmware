@@ -86,6 +86,20 @@ typedef union {
 #pragma GCC diagnostic pop
 
 static const securechip_interface_functions_t* _interface_functions = NULL;
+static struct BitBox02HAL* _bitbox02_hal = NULL;
+
+static struct BitBox02HAL* _get_bitbox02_hal(void)
+{
+    if (_bitbox02_hal == NULL) {
+        Abort("atecc_init");
+    }
+    return _bitbox02_hal;
+}
+
+void atecc_init(struct BitBox02HAL* hal)
+{
+    _bitbox02_hal = hal;
+}
 
 /** \brief initialize an I2C interface using given config.
  * \param[in] hal - opaque ptr to HAL data
@@ -598,6 +612,7 @@ int atecc_stretch_password(
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes((const uint8_t*)password, strlen(password)),
             "keystore_seed_access_in",
             rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
@@ -623,6 +638,7 @@ int atecc_stretch_password(
     }
 
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes((const uint8_t*)password, strlen(password)),
             "keystore_seed_access_out",
             rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {

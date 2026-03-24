@@ -10,6 +10,8 @@
 
 #include <util.h>
 
+struct BitBox02HAL;
+
 /** Size of application IDs */
 #define U2F_APPID_SIZE 32
 
@@ -18,6 +20,8 @@ enum u2f_app_confirm_t {
     U2F_APP_REGISTER,
     U2F_APP_AUTHENTICATE,
 };
+
+void u2f_app_init(struct BitBox02HAL* hal);
 
 /**
  * User confirm auth/registration for a website given by the U2F app ID.

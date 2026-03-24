@@ -35,9 +35,12 @@ typedef struct {
 static securechip_crypt_interface_t _fns = {0};
 
 // Detect if we have atecc or optiga chip and set interface functions
-bool securechip_init(void)
+bool securechip_init(struct BitBox02HAL* hal)
 {
-    switch (rust_memory_get_securechip_type()) {
+    atecc_init(hal);
+    optiga_init(hal);
+
+    switch (rust_memory_get_securechip_type(hal)) {
     case RUST_MEMORY_SECURECHIP_TYPE_OPTIGA:
         _fns.setup = optiga_setup;
         _fns.kdf = optiga_kdf_external;

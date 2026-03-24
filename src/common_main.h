@@ -5,11 +5,13 @@
 
 #include <stdint.h>
 
+struct BitBox02HAL;
+
 uint32_t common_stack_chk_guard(void);
 
 /**
  * This performs common setup at boot of the firmware/factorysetup.
  */
-void common_main(void);
+void common_main(struct BitBox02HAL* hal);
 
 #endif

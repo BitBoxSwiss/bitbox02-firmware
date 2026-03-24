@@ -6,12 +6,19 @@
 #include <platform_config.h>
 #include <stdbool.h>
 
+struct BitBox02HAL;
+
+void bootloader_hal_init(struct BitBox02HAL* hal);
 void bootloader_jump(void);
 
 /**
  * Renders the default bootloader screen
  */
 void bootloader_render_default_screen(void);
+
+#if PLATFORM_BITBOX02PLUS
+bool bootloader_ble_enabled(void);
+#endif
 
 #if PLATFORM_BITBOX02PLUS
 /**

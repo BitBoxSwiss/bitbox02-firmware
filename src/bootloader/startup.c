@@ -56,6 +56,8 @@ struct RustByteQueue* uart_write_queue = NULL;
 
 int main(void)
 {
+    BitBox02HAL bitbox02_hal = {0};
+
     // When in bootloader mode, the vector table should be 0. If not, halt.
     if (SCB->VTOR) {
         while (1) {
@@ -66,6 +68,8 @@ int main(void)
     init_mcu();
     mpu_regions_bootloader_init();
     bootloader_init();
+    rust_bitbox02hal_init(&bitbox02_hal);
+    bootloader_hal_init(&bitbox02_hal);
     platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
     screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
@@ -113,7 +117,7 @@ int main(void)
     while (1) {
         // Do UART I/O
 #if PLATFORM_BITBOX02PLUS == 1
-        if (rust_communication_mode_ble_enabled()) {
+        if (bootloader_ble_enabled()) {
             if (uart_read_buf_len < sizeof(uart_read_buf) ||
                 rust_bytequeue_num(uart_write_queue) > 0) {
                 // screen_sprintf_debug(1000, "uart poll");
@@ -128,7 +132,7 @@ int main(void)
         if (!hww_data && hid_hww_read((uint8_t*)&hww_frame)) {
             usb_packet_process(&hww_frame);
 #if PLATFORM_BITBOX02PLUS == 1
-            if (rust_communication_mode_ble_enabled()) {
+            if (bootloader_ble_enabled()) {
                 // Enqueue a power down command to the da14531
                 rust_da14531_power_down(uart_write_queue);
                 // Flush out the power down command. This will be the last UART communication we do.
@@ -141,7 +145,7 @@ int main(void)
 #endif
         }
 #if PLATFORM_BITBOX02PLUS == 1
-        if (rust_communication_mode_ble_enabled()) {
+        if (bootloader_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
                 &uart_read_buf[0], &uart_read_buf_len, &hww_data, uart_write_queue);
 
@@ -153,7 +157,7 @@ int main(void)
 #endif
 
 #if PLATFORM_BITBOX02PLUS == 1
-        if (!rust_communication_mode_ble_enabled()) {
+        if (!bootloader_ble_enabled()) {
 #endif
             if (hww_data) {
                 if (hid_hww_write_poll(hww_data)) {

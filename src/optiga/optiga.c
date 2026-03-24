@@ -15,6 +15,8 @@
 #include <securechip/securechip.h>
 #include <util.h>
 
+void pal_os_datastore_init(struct BitBox02HAL* hal);
+
 // Set this to 1 for a more convenience during development.
 // Factory setup will be performed in the normal firmware, which makes it easier to tinker with the
 // chip setup and config.
@@ -58,6 +60,21 @@ static optiga_util_t* _util;
 static optiga_crypt_t* _crypt;
 
 static const securechip_interface_functions_t* _ifs = NULL;
+static struct BitBox02HAL* _bitbox02_hal = NULL;
+
+static struct BitBox02HAL* _get_bitbox02_hal(void)
+{
+    if (_bitbox02_hal == NULL) {
+        Abort("optiga_init");
+    }
+    return _bitbox02_hal;
+}
+
+void optiga_init(struct BitBox02HAL* hal)
+{
+    _bitbox02_hal = hal;
+    pal_os_datastore_init(hal);
+}
 
 #define TAG_LCSO 0xC0
 
@@ -1053,7 +1070,7 @@ static int _verify_metadata(
 static int _maybe_update_config_v1(void)
 {
     bool config_is_v1_or_higher = false;
-    if (!rust_memory_optiga_config_is_v1_or_higher(&config_is_v1_or_higher)) {
+    if (!rust_memory_optiga_config_is_v1_or_higher(_get_bitbox02_hal(), &config_is_v1_or_higher)) {
         return SC_ERR_MEMORY;
     }
 
@@ -1112,7 +1129,7 @@ static int _maybe_update_config_v1(void)
     }
 
     if (FINAL_LCSO_STATE_V1 >= LCSO_STATE_OPERATIONAL) {
-        if (!rust_memory_set_optiga_config_version_v1()) {
+        if (!rust_memory_set_optiga_config_version_v1(_get_bitbox02_hal())) {
             return SC_ERR_MEMORY;
         }
     }
@@ -1135,6 +1152,7 @@ static int _set_password(
     }
 
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes(auth_password, auth_password_len),
             "optiga_password",
             rust_util_bytes_mut(
@@ -1235,6 +1253,7 @@ static int _set_hmac_writeprotected(
     uint8_t auth_password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(auth_password_salted_hashed);
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes(auth_password, auth_password_len),
             "optiga_password",
             rust_util_bytes_mut(
@@ -1274,6 +1293,7 @@ static int _v1_get_auth_password(
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_in",
             rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
@@ -1318,6 +1338,7 @@ static int _v1_combine(
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_out",
             rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
@@ -1416,6 +1437,7 @@ static int _optiga_verify_password_v0(const char* password, uint8_t* password_se
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password",
             rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
@@ -1468,6 +1490,7 @@ static int _optiga_verify_password_v1(const uint8_t* auth_password, uint8_t* pas
     uint8_t auth_password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(auth_password_salted_hashed);
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes(auth_password, 32),
             "optiga_password",
             rust_util_bytes_mut(
@@ -1718,6 +1741,7 @@ static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
     uint8_t password_salted_hashed[32] = {0};
     UTIL_CLEANUP_32(password_salted_hashed);
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_in",
             rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {
@@ -1757,6 +1781,7 @@ static int _stretch_password_v0(const char* password, uint8_t* stretched_out)
     rust_hmac_sha256(password_secret, sizeof(password_secret), stretched_out, 32, stretched_out);
 
     if (!rust_salt_hash_data(
+            _get_bitbox02_hal(),
             rust_util_bytes((const uint8_t*)password, strlen(password)),
             "optiga_password_stretch_out",
             rust_util_bytes_mut(password_salted_hashed, sizeof(password_salted_hashed)))) {

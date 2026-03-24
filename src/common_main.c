@@ -38,7 +38,7 @@ static const securechip_interface_functions_t _securechip_interface_functions = 
     .random_32_bytes = random_32_bytes,
 };
 
-void common_main(void)
+void common_main(struct BitBox02HAL* hal)
 {
     mpu_bitbox02_init();
     if (!memory_setup(&_memory_interface_functions)) {
@@ -49,7 +49,7 @@ void common_main(void)
     /* Enable/configure SmartEEPROM. */
     smarteeprom_bb02_config();
 
-    if (!securechip_init()) {
+    if (!securechip_init(hal)) {
         AbortAutoenter("Failed to detect securechip");
     }
     // securechip_setup must come after memory_setup, so the io/auth keys to be

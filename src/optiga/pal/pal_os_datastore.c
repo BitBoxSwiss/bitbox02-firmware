@@ -36,10 +36,28 @@
  */
 
 #include "pal_os_datastore.h"
+#include <hardfault.h>
 #include <rust/rust.h>
 #include <util.h>
 
 /// @cond hidden
+
+static struct BitBox02HAL* _bitbox02_hal = NULL;
+
+void pal_os_datastore_init(struct BitBox02HAL* hal);
+
+void pal_os_datastore_init(struct BitBox02HAL* hal)
+{
+    _bitbox02_hal = hal;
+}
+
+static struct BitBox02HAL* _get_bitbox02_hal(void)
+{
+    if (_bitbox02_hal == NULL) {
+        Abort("pal_os_datastore_init");
+    }
+    return _bitbox02_hal;
+}
 
 // While the binding shared secret is read using pal_os_datastore_read() by the optiga library,
 // we are suppoesd to store it manually using pal_os_datastore_write() during factory setup.
@@ -64,7 +82,7 @@ pal_status_t pal_os_datastore_read(
 
     switch (datastore_id) {
     case OPTIGA_PLATFORM_BINDING_SHARED_SECRET_ID: {
-        rust_memory_get_io_protection_key(rust_util_bytes_mut(p_buffer, 32));
+        rust_memory_get_io_protection_key(_get_bitbox02_hal(), rust_util_bytes_mut(p_buffer, 32));
         *p_buffer_length = 32;
         return_status = PAL_STATUS_SUCCESS;
         break;

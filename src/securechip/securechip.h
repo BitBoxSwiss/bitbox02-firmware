@@ -9,6 +9,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+struct BitBox02HAL;
+
 // Keep in sync with securechip.rs `SECURECHIP_ERRORS`.
 typedef enum {
     // Errors common to any securechip implementation
@@ -68,7 +70,7 @@ typedef struct {
  * Discovers what secure chip is used and configures the module to communicate with it.
  * @return True if success
  */
-USE_RESULT bool securechip_init(void);
+USE_RESULT bool securechip_init(struct BitBox02HAL* hal);
 
 /**
  * Initializes the cryptoauthlib communication, by providing a custom i2c chip

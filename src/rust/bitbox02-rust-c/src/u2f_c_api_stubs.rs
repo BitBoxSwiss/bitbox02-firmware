@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rust_workflow_spawn_unlock() {}
+pub unsafe extern "C" fn rust_workflow_spawn_unlock(_hal: *mut crate::BitBox02HAL) {}
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_confirm(
+    _hal: *mut crate::BitBox02HAL,
     _title: *const core::ffi::c_char,
     _body: *const core::ffi::c_char,
 ) {

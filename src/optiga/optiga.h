@@ -15,6 +15,8 @@
 
 #include <rust/rust.h> // for MAX_UNLOCK_ATTEMPTS
 
+struct BitBox02HAL;
+
 // The Data Object IDs we use.
 
 // Stores a shared secret used for a shielded connection. Is is used to encrypt
@@ -79,6 +81,7 @@
 // Two extra bytes for the `0x20 <len>` header bytes.
 #define METADATA_MAX_SIZE (44 + 2)
 
+void optiga_init(struct BitBox02HAL* hal);
 USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out);
 USE_RESULT int optiga_init_new_password(

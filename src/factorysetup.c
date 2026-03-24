@@ -1148,13 +1148,16 @@ static ble_error_code_t _setup_ble(void)
 
 int main(void)
 {
+    BitBox02HAL bitbox02_hal = {0};
+
     init_mcu();
     system_init();
     platform_init();
+    rust_bitbox02hal_init(&bitbox02_hal);
     __stack_chk_guard = common_stack_chk_guard();
     screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
     screen_splash();
-    common_main();
+    common_main(&bitbox02_hal);
 
     {
         // We set auto_enter = true, as new devices are shipped without firmware, and a new device

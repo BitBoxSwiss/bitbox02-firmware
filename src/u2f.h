@@ -3,8 +3,11 @@
 #ifndef _U2F_DEVICE_H_
 #define _U2F_DEVICE_H_
 
+struct BitBox02HAL;
+
 #include <usb/usb_packet.h>
 
+void u2f_init(struct BitBox02HAL* hal);
 void u2f_device_setup(void);
 
 /**

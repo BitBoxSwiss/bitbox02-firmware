@@ -2,6 +2,7 @@
 
 #include "bootloader.h"
 #include "bootloader_version.h"
+#include "hardfault.h"
 #include "mpu_regions.h"
 #include "pac_ext.h"
 
@@ -86,6 +87,26 @@
 #define OP_STATUS_ERR_LOCK ((uint8_t)'K')
 
 extern volatile bool measurement_done_touch;
+#if PLATFORM_BITBOX02PLUS == 1
+static struct BitBox02HAL* _bitbox02_hal = NULL;
+
+static struct BitBox02HAL* _get_bitbox02_hal(void)
+{
+    if (_bitbox02_hal == NULL) {
+        Abort("bootloader_hal_init");
+    }
+    return _bitbox02_hal;
+}
+#endif
+
+void bootloader_hal_init(struct BitBox02HAL* hal)
+{
+#if PLATFORM_BITBOX02PLUS == 1
+    _bitbox02_hal = hal;
+#else
+    (void)hal;
+#endif
+}
 
 COMPILER_ALIGNED(128)
 static struct sha_context _pukcc_sha256_context;
@@ -321,14 +342,20 @@ static void _render_message(const char* message, int duration)
     delay_ms(duration);
 }
 
+#if PLATFORM_BITBOX02PLUS == 1
+bool bootloader_ble_enabled(void)
+{
+    return rust_communication_mode_ble_enabled(_get_bitbox02_hal());
+}
+#endif
+
 void bootloader_render_default_screen(void)
 {
     UG_ClearBuffer();
     _load_logo();
 #if PLATFORM_BITBOX02PLUS == 1
     UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp", false);
-    if (rust_communication_mode_ble_enabled() &&
-        da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
+    if (bootloader_ble_enabled() && da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
         char buf[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
         memory_random_name(buf);
         UG_PutString(0, SCREEN_HEIGHT - 9, buf, false);

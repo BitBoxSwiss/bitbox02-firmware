@@ -8,6 +8,9 @@ pub mod system;
 pub mod ui;
 
 use bitbox_hal::Hal;
+use core::sync::atomic::{AtomicBool, Ordering};
+
+static BITBOX02_HAL_TAKEN: AtomicBool = AtomicBool::new(false);
 
 pub struct BitBox02Hal {
     ui: ui::BitBox02Ui,
@@ -18,12 +21,8 @@ pub struct BitBox02Hal {
     system: system::BitBox02System,
 }
 
-impl grounded::const_init::ConstInit for BitBox02Hal {
-    const VAL: Self = Self::new();
-}
-
 impl BitBox02Hal {
-    pub const fn new() -> Self {
+    const fn new() -> Self {
         Self {
             ui: ui::BitBox02Ui,
             sd: sd::BitBox02Sd,
@@ -32,6 +31,24 @@ impl BitBox02Hal {
             memory: memory::BitBox02Memory,
             system: system::BitBox02System,
         }
+    }
+
+    /// Returns the single HAL instance.
+    pub fn take() -> Option<Self> {
+        BITBOX02_HAL_TAKEN
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .ok()
+            .map(|_| Self::new())
+    }
+
+    #[cfg(any(
+        test,
+        feature = "testing",
+        feature = "c-unit-testing",
+        feature = "simulator-graphical"
+    ))]
+    pub fn reset_for_testing() {
+        BITBOX02_HAL_TAKEN.store(false, Ordering::Release);
     }
 }
 

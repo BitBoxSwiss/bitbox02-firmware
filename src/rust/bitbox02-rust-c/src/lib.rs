@@ -183,7 +183,7 @@ pub unsafe extern "C" fn rust_bitbox02hal_init(hal: *mut BitBox02HAL) {
     assert!(!hal.is_null());
     BITBOX02_HAL.store(hal, Ordering::Relaxed);
     BITBOX02_HAL_IN_USE.store(false, Ordering::Relaxed);
-    unsafe { hal.cast::<HalImpl>().write(HalImpl::new()) };
+    unsafe { hal.cast::<HalImpl>().write(HalImpl::take().unwrap()) };
 }
 
 #[cfg(not(any(

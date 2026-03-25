@@ -22,7 +22,7 @@ pub struct BitBox02Hal {
 }
 
 impl BitBox02Hal {
-    const fn new() -> Self {
+    const fn new_unchecked() -> Self {
         Self {
             ui: ui::BitBox02Ui,
             sd: sd::BitBox02Sd,
@@ -33,22 +33,22 @@ impl BitBox02Hal {
         }
     }
 
-    /// Returns the single HAL instance.
-    pub fn take() -> Option<Self> {
-        BITBOX02_HAL_TAKEN
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .ok()
-            .map(|_| Self::new())
-    }
-
     #[cfg(any(
         test,
         feature = "testing",
         feature = "c-unit-testing",
         feature = "simulator-graphical"
     ))]
-    pub fn reset_for_testing() {
-        BITBOX02_HAL_TAKEN.store(false, Ordering::Release);
+    pub fn new() -> Self {
+        Self::new_unchecked()
+    }
+
+    /// Returns the single HAL instance.
+    pub fn take() -> Option<Self> {
+        BITBOX02_HAL_TAKEN
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .ok()
+            .map(|_| Self::new_unchecked())
     }
 }
 

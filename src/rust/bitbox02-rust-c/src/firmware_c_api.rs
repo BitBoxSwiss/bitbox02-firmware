@@ -148,7 +148,6 @@ mod tests {
     fn with_test_hal<T>(f: impl FnOnce(&mut crate::BitBox02HAL) -> T) -> T {
         let _lock = TEST_LOCK.lock().unwrap_or_else(|err| err.into_inner());
         let mut hal = make_hal();
-        bitbox02::hal::BitBox02Hal::reset_for_testing();
         unsafe { crate::rust_bitbox02hal_init(&mut hal) };
         f(&mut hal)
     }

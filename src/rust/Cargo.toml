@@ -5,6 +5,7 @@
 members = [
     "bitbox02-rust-c",
     "bitbox02-rust",
+    "bins/bitbox02-firmware",
     "bitbox-bytequeue",
     "bitbox-da14531",
     "bitbox-hal",

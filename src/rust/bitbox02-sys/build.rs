@@ -379,9 +379,13 @@ pub fn main() -> BuildResult<()> {
     ];
 
     let generated_headers_dir = if cross_compiling {
-        env::var("CMAKE_CURRENT_BINARY_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| out_dir.join("../../../../../.."))
+        if let Ok(path) = env::var("CMAKE_CURRENT_BINARY_DIR") {
+            PathBuf::from(path)
+        } else {
+            ensure_command_exists("cbindgen")?;
+            generate_native_headers(&repo_root, &out_dir)?;
+            out_dir.clone()
+        }
     } else {
         ensure_command_exists("cbindgen")?;
         generate_native_headers(&repo_root, &out_dir)?;

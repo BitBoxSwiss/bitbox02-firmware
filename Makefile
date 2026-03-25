@@ -6,6 +6,11 @@ UNAME_S := $(shell uname -s)
 
 .DEFAULT_GOAL := firmware
 SANITIZE ?= ON
+RUST_WORKSPACE_MANIFEST := src/rust/Cargo.toml
+BITBOX02_FIRMWARE_CARGO_CONFIG := src/rust/bins/bitbox02-firmware/.cargo/config.toml
+BITBOX02_FIRMWARE_CARGO_ARGS := --release --manifest-path $(RUST_WORKSPACE_MANIFEST) -p bitbox02-firmware --config $(BITBOX02_FIRMWARE_CARGO_CONFIG)
+BITBOX02_FIRMWARE_TARGET_DIR := src/rust/target/thumbv7em-none-eabi/release
+BITBOX02_FIRMWARE_ELF := $(BITBOX02_FIRMWARE_TARGET_DIR)/bitbox02-firmware
 
 bootstrap:
 	git submodule update --init --recursive
@@ -45,10 +50,22 @@ build-build: build-build/Makefile
 # address santizers when they link code compiled with gcc.
 build-build-noasan: build-build-noasan/Makefile
 
-firmware: | build
-	$(MAKE) -C build firmware.elf
-firmware-btc: | build
-	$(MAKE) -C build firmware-btc.elf
+firmware:
+	mkdir -p build/bin build/scripts
+	./scripts/dev_exec.sh cargo build $(BITBOX02_FIRMWARE_CARGO_ARGS)
+	cp $(BITBOX02_FIRMWARE_ELF) build/bin/firmware.elf
+	cp $(BITBOX02_FIRMWARE_TARGET_DIR)/firmware.map build/bin/firmware.map
+	arm-none-eabi-size build/bin/firmware.elf
+	arm-none-eabi-objcopy -O binary build/bin/firmware.elf build/bin/firmware.bin
+	python3 scripts/expand_template scripts/template-firmware.jlink file=build/bin/firmware.bin -o build/scripts/firmware.jlink
+firmware-btc:
+	mkdir -p build/bin build/scripts
+	./scripts/dev_exec.sh cargo build $(BITBOX02_FIRMWARE_CARGO_ARGS) --no-default-features --features btc-only
+	cp $(BITBOX02_FIRMWARE_ELF) build/bin/firmware-btc.elf
+	cp $(BITBOX02_FIRMWARE_TARGET_DIR)/firmware-btc.map build/bin/firmware-btc.map
+	arm-none-eabi-size build/bin/firmware-btc.elf
+	arm-none-eabi-objcopy -O binary build/bin/firmware-btc.elf build/bin/firmware-btc.bin
+	python3 scripts/expand_template scripts/template-firmware.jlink file=build/bin/firmware-btc.bin -o build/scripts/firmware-btc.jlink
 firmware-debug: | build-debug
 	$(MAKE) -C build-debug firmware.elf
 
@@ -118,7 +135,7 @@ coverage: | build-build
 run-valgrind-on-unit-tests:
 	$(MAKE) unit-test
 	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
-flash-dev-firmware:
+flash-dev-firmware: | firmware
 	./py/load_firmware.py build/bin/firmware.bin --debug
 jlink-flash-bootloader-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development.jlink
@@ -134,9 +151,9 @@ jlink-flash-bootloader-btc-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btconly-development.jlink
 jlink-flash-bootloader-btc: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btc.jlink
-jlink-flash-firmware: | build
+jlink-flash-firmware: | firmware
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
-jlink-flash-firmware-btc: | build
+jlink-flash-firmware-btc: | firmware-btc
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
 jlink-flash-factory-setup: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/factory-setup.jlink

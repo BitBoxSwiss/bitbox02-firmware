@@ -193,6 +193,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox02-firmware"
+version = "0.1.0"
+dependencies = [
+ "bitbox02-rust-c",
+ "cc",
+]
+
+[[package]]
 name = "bitbox02-noise"
 version = "0.1.0"
 dependencies = [

@@ -8,7 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Improve experience of moving back and forth when entering password characters
-- Ethereum: add data streaming support for transactions with large (>6144 bytes) data
+- Ethereum: add data streaming support for transactions and EIP-712 typed messages with large data
 - Ethereum: allow EIP-712 typed message signing without anti-klepto host nonce commitment
 - Improve address display by grouping addresses into groups of 4 characters
 

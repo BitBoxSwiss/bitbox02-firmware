@@ -56,6 +56,7 @@ type TrinaryChoiceCb<'a> =
 pub struct TestingUi<'a> {
     _abort_nth: Option<usize>,
     pub screens: Vec<Screen>,
+    pub confirm_display_sizes: Vec<usize>,
     _enter_string: Option<EnterStringCb<'a>>,
     _menu: Option<MenuCb<'a>>,
     _trinary_choice: Option<TrinaryChoiceCb<'a>>,
@@ -85,6 +86,7 @@ impl Ui for TestingUi<'_> {
     }
 
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {
+        self.confirm_display_sizes.push(params.display_size);
         self.screens.push(Screen::Confirm {
             title: params.title.into(),
             body: params.body.into(),
@@ -238,6 +240,7 @@ impl<'a> TestingUi<'a> {
     pub fn new() -> Self {
         Self {
             screens: vec![],
+            confirm_display_sizes: vec![],
             _abort_nth: None,
             _enter_string: None,
             _menu: None,

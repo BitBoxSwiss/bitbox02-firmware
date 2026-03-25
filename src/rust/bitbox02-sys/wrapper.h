@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <common_main.h>
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
 #include <da14531/da14531_protocol.h>
@@ -13,6 +14,7 @@
 #include <memory/spi_mem.h>
 #include <platform/driver_init.h>
 #include <platform/platform_init.h>
+#include <qtouch.h>
 #include <random.h>
 #include <reset.h>
 #include <screen.h>

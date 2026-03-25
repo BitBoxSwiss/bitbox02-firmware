@@ -7,7 +7,6 @@ pub fn timeout_reset(value: i16) {
     }
 }
 
-#[cfg(feature = "simulator-graphical")]
 pub fn init() {
     unsafe { bitbox02_sys::usb_processing_init() }
 }

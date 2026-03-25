@@ -203,6 +203,7 @@ dependencies = [
 name = "bitbox02-firmware"
 version = "0.1.0"
 dependencies = [
+ "bitbox02",
  "bitbox02-rust-c",
 ]
 

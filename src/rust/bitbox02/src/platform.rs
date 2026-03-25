@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
+pub fn init() {
+    unsafe { bitbox02_sys::platform_init() }
+}
+
 pub fn product() -> &'static str {
     unsafe {
         let mut len = 0;

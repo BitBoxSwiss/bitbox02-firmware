@@ -21,6 +21,11 @@ mod communication_mode;
 mod der;
 #[cfg(feature = "firmware")]
 mod firmware_c_api;
+#[cfg(all(
+    feature = "firmware",
+    not(any(feature = "c-unit-testing", feature = "simulator-graphical"))
+))]
+pub use firmware_c_api::main_loop;
 #[cfg(feature = "factory-setup")]
 mod secp256k1;
 

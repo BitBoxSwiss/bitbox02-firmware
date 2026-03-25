@@ -59,9 +59,13 @@ const ALLOWLIST_FNS: &[&str] = &[
     "bitbox02_smarteeprom_increment_unlock_attempts",
     "bitbox02_smarteeprom_reset_unlock_attempts",
     "bitbox02_smarteeprom_init",
+    "_init_chip",
+    "common_main",
+    "common_stack_chk_guard",
     "confirm_create",
     "confirm_transaction_address_create",
     "confirm_transaction_fee_create",
+    "da14531_protocol_init",
     "delay_cancel",
     "delay_init_ms",
     "delay_ms",
@@ -122,10 +126,15 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_spi_get_active_ble_firmware_version",
     "menu_create",
     "orientation_arrows_create",
+    "oled_clear_buffer",
+    "oled_mirror",
+    "oled_set_pixel",
     "platform_product",
+    "platform_init",
     "printf",
     "progress_create",
     "progress_set",
+    "qtouch_init",
     "queue_hww_queue",
     "queue_pull",
     "queue_u2f_queue",
@@ -170,6 +179,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "trinary_choice_create",
     "trinary_input_string_create",
     "trinary_input_string_set_input",
+    "u2f_device_setup",
     "u2f_packet_init",
     "u2f_packet_process",
     "u2f_packet_timeout_get",
@@ -194,6 +204,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "usb_processing_unlock",
     "usb_start",
     "util_format_datetime",
+    "system_init",
 ];
 
 const RUSTIFIED_ENUMS: &[&str] = &[
@@ -737,7 +748,6 @@ fn compile_firmware_c(repo_root: &Path, generated_headers_dir: &Path) -> BuildRe
     sources.extend(source_paths(repo_root, EMBEDDED_SWD_SOURCES));
     sources.extend(optiga_sources(repo_root)?);
     sources.push(repo_root.join("src/common_main.c"));
-    sources.push(repo_root.join("src/firmware.c"));
     if app_u2f {
         sources.extend(source_paths(repo_root, FIRMWARE_U2F_SOURCES));
         sources.extend(source_paths(repo_root, FIRMWARE_U2F_DRIVER_SOURCES));

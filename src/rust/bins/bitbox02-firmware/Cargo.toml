@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bitbox02 = { path = "../../bitbox02" }
 bitbox02-rust-c = { path = "../../bitbox02-rust-c" }
 
 [features]

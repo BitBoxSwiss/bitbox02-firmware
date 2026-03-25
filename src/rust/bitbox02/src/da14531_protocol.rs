@@ -3,6 +3,10 @@
 use bitbox_bytequeue::ByteQueue;
 pub use bitbox02_sys::da14531_protocol_frame;
 
+pub fn init() {
+    unsafe { bitbox02_sys::da14531_protocol_init() }
+}
+
 pub fn poll(
     uart_read_buf: &mut [u8],
     uart_read_buf_len: &mut u16,

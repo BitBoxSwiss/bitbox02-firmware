@@ -28,10 +28,11 @@ pub mod hal;
 pub mod hid_hww;
 #[cfg(feature = "app-u2f")]
 pub mod hid_u2f;
-#[cfg(feature = "simulator-graphical")]
 pub mod hww;
 pub mod memory;
+pub mod oled;
 pub mod platform;
+pub mod qtouch;
 pub mod queue;
 pub mod random;
 pub mod screen;
@@ -40,6 +41,7 @@ pub mod sd;
 pub mod securechip;
 pub mod smarteeprom;
 pub mod spi_mem;
+pub mod system;
 #[cfg(feature = "app-u2f")]
 pub mod u2f;
 #[cfg(feature = "app-u2f")]

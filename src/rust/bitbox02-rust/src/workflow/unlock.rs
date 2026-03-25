@@ -159,12 +159,14 @@ pub async fn unlock_bip39(hal: &mut impl crate::hal::Hal, seed: &[u8]) {
     let result = {
         let crate::hal::HalSubsystems {
             ui,
+            eeprom,
             random,
             securechip,
             memory,
             ..
         } = hal.as_mut();
-        let mut keystore_hal = crate::keystore::KeystoreHalImpl::new(memory, random, securechip);
+        let mut keystore_hal =
+            crate::keystore::KeystoreHalImpl::new(eeprom, memory, random, securechip);
 
         let ((), result) = futures_lite::future::zip(
             ui.unlock_animation(),
@@ -332,7 +334,7 @@ mod tests {
         // Lock the keystore to simulate the normal locked state
         crate::keystore::lock();
 
-        mock_hal.memory.set_unlock_attempts_for_testing(1);
+        mock_hal.eeprom.set_unlock_attempts_for_testing(1);
 
         let mut password_entered = false;
 
@@ -370,7 +372,7 @@ mod tests {
         let mut mock_hal = TestingHal::new();
 
         mock_hal
-            .memory
+            .eeprom
             .set_unlock_attempts_for_testing(crate::keystore::MAX_UNLOCK_ATTEMPTS - 1);
 
         mock_hal.ui.abort_nth(0);

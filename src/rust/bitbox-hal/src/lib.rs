@@ -4,6 +4,7 @@
 
 extern crate alloc;
 
+pub mod eeprom;
 pub mod memory;
 pub mod random;
 pub mod sd;
@@ -11,6 +12,7 @@ pub mod securechip;
 pub mod system;
 pub mod ui;
 
+pub use eeprom::Eeprom;
 pub use memory::Memory;
 pub use random::Random;
 pub use sd::Sd;
@@ -25,6 +27,7 @@ pub struct HalSubsystems<
     Sd: sd::Sd,
     SecureChip: securechip::SecureChip,
     Memory: memory::Memory,
+    Eeprom: eeprom::Eeprom,
     System: system::System,
 > {
     pub ui: &'a mut Ui,
@@ -32,6 +35,7 @@ pub struct HalSubsystems<
     pub sd: &'a mut Sd,
     pub securechip: &'a mut SecureChip,
     pub memory: &'a mut Memory,
+    pub eeprom: &'a mut Eeprom,
     pub system: &'a mut System,
 }
 
@@ -42,6 +46,7 @@ pub trait Hal {
     type Sd: sd::Sd;
     type SecureChip: securechip::SecureChip;
     type Memory: memory::Memory;
+    type Eeprom: eeprom::Eeprom;
     type System: system::System;
 
     fn as_mut(
@@ -53,6 +58,7 @@ pub trait Hal {
         Self::Sd,
         Self::SecureChip,
         Self::Memory,
+        Self::Eeprom,
         Self::System,
     >;
 
@@ -74,6 +80,10 @@ pub trait Hal {
 
     fn memory(&mut self) -> &mut Self::Memory {
         self.as_mut().memory
+    }
+
+    fn eeprom(&mut self) -> &mut Self::Eeprom {
+        self.as_mut().eeprom
     }
 
     fn system(&mut self) -> &mut Self::System {

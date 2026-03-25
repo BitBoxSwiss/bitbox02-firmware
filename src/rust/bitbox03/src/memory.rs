@@ -100,19 +100,6 @@ impl hal::memory::Memory for BitBox03Memory {
     fn reset_hww(&mut self) -> Result<(), ()> {
         todo!()
     }
-
-    fn get_unlock_attempts(&mut self) -> u8 {
-        todo!()
-    }
-
-    fn increment_unlock_attempts(&mut self) {
-        todo!()
-    }
-
-    fn reset_unlock_attempts(&mut self) {
-        todo!()
-    }
-
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<alloc::vec::Vec<u8>>, ()> {
         todo!()
     }

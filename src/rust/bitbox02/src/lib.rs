@@ -38,7 +38,6 @@ pub mod screen;
 pub mod screen_saver;
 pub mod sd;
 pub mod securechip;
-pub mod smarteeprom;
 pub mod spi_mem;
 #[cfg(feature = "app-u2f")]
 pub mod u2f;

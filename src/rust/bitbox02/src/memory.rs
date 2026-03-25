@@ -163,22 +163,6 @@ pub fn reset_hww() -> Result<(), ()> {
     }
 }
 
-pub fn smarteeprom_get_unlock_attempts() -> u8 {
-    unsafe { bitbox02_sys::bitbox02_smarteeprom_get_unlock_attempts() }
-}
-
-pub fn smarteeprom_increment_unlock_attempts() {
-    unsafe {
-        bitbox02_sys::bitbox02_smarteeprom_increment_unlock_attempts();
-    }
-}
-
-pub fn smarteeprom_reset_unlock_attempts() {
-    unsafe {
-        bitbox02_sys::bitbox02_smarteeprom_reset_unlock_attempts();
-    }
-}
-
 pub fn multisig_set_by_hash(hash: &[u8], name: &str) -> Result<(), MemoryError> {
     if hash.len() != 32 {
         return Err(MemoryError::MEMORY_ERR_INVALID_INPUT);

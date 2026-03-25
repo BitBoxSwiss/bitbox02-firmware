@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+pub mod eeprom;
 pub mod memory;
 pub mod random;
 pub mod sd;
@@ -7,6 +8,7 @@ pub mod securechip;
 pub mod system;
 pub mod ui;
 
+pub use eeprom::TestingEeprom;
 pub use memory::TestingMemory;
 pub use random::TestingRandom;
 pub use sd::TestingSd;
@@ -20,6 +22,7 @@ pub struct TestingHal<'a> {
     pub random: TestingRandom,
     pub securechip: TestingSecureChip,
     pub memory: TestingMemory,
+    pub eeprom: TestingEeprom,
     pub system: TestingSystem,
 }
 
@@ -31,6 +34,7 @@ impl TestingHal<'_> {
             random: TestingRandom::new(),
             securechip: TestingSecureChip::new(),
             memory: TestingMemory::new(),
+            eeprom: TestingEeprom::new(),
             system: TestingSystem::new(),
         }
     }
@@ -42,6 +46,7 @@ impl<'a> crate::hal::Hal for TestingHal<'a> {
     type Sd = TestingSd;
     type SecureChip = TestingSecureChip;
     type Memory = TestingMemory;
+    type Eeprom = TestingEeprom;
     type System = TestingSystem;
 
     fn as_mut(
@@ -53,6 +58,7 @@ impl<'a> crate::hal::Hal for TestingHal<'a> {
         Self::Sd,
         Self::SecureChip,
         Self::Memory,
+        Self::Eeprom,
         Self::System,
     > {
         crate::hal::HalSubsystems {
@@ -61,6 +67,7 @@ impl<'a> crate::hal::Hal for TestingHal<'a> {
             sd: &mut self.sd,
             securechip: &mut self.securechip,
             memory: &mut self.memory,
+            eeprom: &mut self.eeprom,
             system: &mut self.system,
         }
     }

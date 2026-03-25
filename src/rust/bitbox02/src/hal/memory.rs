@@ -215,18 +215,6 @@ impl Memory for BitBox02Memory {
         crate::memory::reset_hww()
     }
 
-    fn get_unlock_attempts(&mut self) -> u8 {
-        crate::memory::smarteeprom_get_unlock_attempts()
-    }
-
-    fn increment_unlock_attempts(&mut self) {
-        crate::memory::smarteeprom_increment_unlock_attempts()
-    }
-
-    fn reset_unlock_attempts(&mut self) {
-        crate::memory::smarteeprom_reset_unlock_attempts()
-    }
-
     fn get_io_protection_key(&mut self, out: &mut [u8; 32]) {
         crate::memory::get_io_protection_key(out)
     }

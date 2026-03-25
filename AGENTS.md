@@ -48,7 +48,8 @@ bindings (`cbindgen`, protobuf) when interfaces change.
 
 * For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code.
 * For Python changes, run `./scripts/dev_exec.sh ./scripts/format-python` to format the code.
-* For Rust code changes, run `./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml` to format the code.
+* For Rust code changes, run
+  `./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml --all` to format the code.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware
@@ -58,13 +59,15 @@ run-unit-tests` and `make run-rust-unit-tests`, and refresh `make coverage` for 
 security-sensitive areas.
 
 - in Rust unit tests, prefer .unwrap() over .expect().
-- In Rust unit tests, if testing a function foo, name the test `test_foo` (or `test_foo_xyz` if it needs qualifiers).
+- In Rust unit tests, if testing a function foo, name the test `test_foo` (or `test_foo_xyz` if it
+  needs qualifiers).
 - in Rust unit tests, prefer .as_slice() instead of `&*` for wrapped/zeroized Vec<u8>.
 - in Rust unit tests, prefer `hex!` literals for byte arrays/constants.
 
 ## Review Guidelines
 
-- when reviewing a removed function call, check that the removed behavior was not required and was not dropped by accident during a refactor.
+- when reviewing a removed function call, check that the removed behavior was not required and was
+  not dropped by accident during a refactor.
 - when reviewing a removed function call, check if the callee became unused and should also be removed.
 - Focus on memory issues
 

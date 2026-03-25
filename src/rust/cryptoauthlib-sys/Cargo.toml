@@ -1,0 +1,8 @@
+[package]
+name = "cryptoauthlib-sys"
+version = "0.1.0"
+edition = "2024"
+links = "cryptoauthlib"
+
+[build-dependencies]
+cc = { version = "1.2", features = ["parallel"] }

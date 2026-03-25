@@ -3,6 +3,7 @@
 [workspace]
 
 members = [
+    "cryptoauthlib-sys",
     "bitbox02-rust-c",
     "bitbox02-rust",
     "bins/bitbox02-firmware",

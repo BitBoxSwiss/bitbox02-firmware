@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::env;
+use std::ffi::OsStr;
+use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -209,8 +211,9 @@ const RUSTIFIED_ENUMS: &[&str] = &[
     "trinary_choice_t",
 ];
 
-// BITBOX02_SOURCES are only used for native builds (simulator). Avoid cross-target specific files.
-const BITBOX02_SOURCES: &[&str] = &[
+// HOST_BITBOX02_SOURCES are only used for native builds (simulator). Avoid cross-target specific
+// files.
+const HOST_BITBOX02_SOURCES: &[&str] = &[
     "src/da14531/da14531_handler.c",
     "src/da14531/da14531_protocol.c",
     "src/da14531/da14531.c",
@@ -284,6 +287,135 @@ const BITBOX02_SOURCES: &[&str] = &[
     "external/asf4-drivers/hal/utils/src/utils_ringbuffer.c",
 ];
 
+const DBB_FIRMWARE_SOURCES: &[&str] = &[
+    "src/delay.c",
+    "src/random.c",
+    "src/hardfault.c",
+    "src/util.c",
+    "src/sd.c",
+    "src/system.c",
+    "src/hww.c",
+    "src/memory/bitbox02_smarteeprom.c",
+    "src/memory/memory.c",
+    "src/memory/memory_shared.c",
+    "src/memory/mpu.c",
+    "src/memory/nvmctrl.c",
+    "src/memory/spi_mem.c",
+    "src/memory/memory_spi.c",
+    "src/memory/smarteeprom.c",
+    "src/i2c_ecc.c",
+    "src/touch/gestures.c",
+    "src/reset.c",
+    "src/queue.c",
+    "src/usb/usb_processing.c",
+];
+
+const DBB_FIRMWARE_UI_SOURCES: &[&str] = &[
+    "src/screen.c",
+    "src/ui/graphics/graphics.c",
+    "src/ui/ugui/ugui.c",
+    "src/ui/fonts/font_a_9X9.c",
+    "src/ui/fonts/font_a_11X10.c",
+    "src/ui/fonts/font_a_11X12.c",
+    "src/ui/fonts/font_a_13X14.c",
+    "src/ui/fonts/font_a_15X16.c",
+    "src/ui/fonts/font_a_17X18.c",
+    "src/ui/fonts/monogram_5X9.c",
+    "src/ui/fonts/password_9X9.c",
+    "src/ui/fonts/password_11X12.c",
+    "src/ui/screen_saver.c",
+    "src/ui/screen_stack.c",
+    "src/ui/screen_process.c",
+    "src/ui/event_handler.c",
+    "src/ui/ui_util.c",
+    "src/ui/components/trinary_choice.c",
+    "src/ui/components/trinary_input_char.c",
+    "src/ui/components/trinary_input_string.c",
+    "src/ui/components/waiting.c",
+    "src/ui/components/screensaver.c",
+    "src/ui/components/knight_rider.c",
+    "src/ui/components/right_arrow.c",
+    "src/ui/components/left_arrow.c",
+    "src/ui/components/icon_button.c",
+    "src/ui/components/confirm_gesture.c",
+    "src/ui/components/label.c",
+    "src/ui/components/confirm.c",
+    "src/ui/components/keyboard_switch.c",
+    "src/ui/components/orientation_arrows.c",
+    "src/ui/components/info_centered.c",
+    "src/ui/components/lockscreen.c",
+    "src/ui/components/unlock_animation.c",
+    "src/ui/components/menu.c",
+    "src/ui/components/status.c",
+    "src/ui/components/image.c",
+    "src/ui/components/button.c",
+    "src/ui/components/empty.c",
+    "src/ui/components/progress.c",
+    "src/ui/components/sdcard.c",
+    "src/ui/components/ui_images.c",
+    "src/ui/components/confirm_transaction.c",
+];
+
+const DRIVER_SOURCES: &[&str] = &[
+    "src/platform/platform_init.c",
+    "src/platform/driver_init.c",
+    "src/ui/oled/oled.c",
+    "src/ui/oled/oled_writer.c",
+];
+
+const QTOUCH_SOURCES: &[&str] = &["src/qtouch/qtouch.c"];
+
+const PLATFORM_BITBOX02_PLUS_SOURCES: &[&str] = &[
+    "src/da14531/da14531.c",
+    "src/da14531/da14531_protocol.c",
+    "src/da14531/da14531_handler.c",
+    "src/uart.c",
+];
+
+const PLATFORM_BITBOX02_SOURCES: &[&str] = &[
+    "src/sd_mmc/sd_mmc_start.c",
+    "src/sd_mmc/sd_mmc_ext.c",
+    "src/usb/class/hid/hid.c",
+    "src/usb/class/hid/hww/hid_hww.c",
+    "src/ui/oled/sh1107.c",
+    "src/ui/oled/ssd1312.c",
+    "src/usb/usb.c",
+    "src/usb/usb_frame.c",
+    "src/usb/usb_packet.c",
+    "src/u2f/u2f_packet.c",
+];
+
+const FIRMWARE_U2F_DRIVER_SOURCES: &[&str] = &["src/usb/class/hid/u2f/hid_u2f.c"];
+
+const FIRMWARE_U2F_SOURCES: &[&str] = &["src/u2f.c", "src/u2f/u2f_app.c"];
+
+const SECURECHIP_SOURCES: &[&str] = &[
+    "src/atecc/atecc.c",
+    "src/securechip/securechip.c",
+    "src/optiga/pal/pal.c",
+    "src/optiga/pal/pal_gpio.c",
+    "src/optiga/pal/pal_i2c.c",
+    "src/optiga/pal/pal_ifx_i2c_config.c",
+    "src/optiga/pal/pal_logger.c",
+    "src/optiga/pal/pal_os_datastore.c",
+    "src/optiga/pal/pal_os_event.c",
+    "src/optiga/pal/pal_os_lock.c",
+    "src/optiga/pal/pal_os_timer.c",
+    "src/optiga/pal/pal_os_memory.c",
+    "src/optiga/optiga_ops.c",
+    "src/optiga/optiga.c",
+];
+
+const EMBEDDED_SWD_SOURCES: &[&str] = &[
+    "external/embedded-swd/dap.c",
+    "external/embedded-swd/dap_target.c",
+];
+
+const STARTUP_SOURCES: &[&str] = &[
+    "external/samd51a-ds/gcc/system_samd51.c",
+    "external/samd51a-ds/gcc/gcc/startup_samd51.c",
+];
+
 const FAKEHARDWARE_SOURCES: &[&str] = &[
     "test/hardware-fakes/src/fake_component.c",
     "test/hardware-fakes/src/fake_diskio.c",
@@ -320,11 +452,17 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed("../bitbox-framed-serial-link/src");
     emit_rerun_if_changed("../bitbox-bytequeue/Cargo.toml");
     emit_rerun_if_changed("../bitbox-bytequeue/src");
+    emit_rerun_if_changed("../platform/bitbox-samd52/Cargo.toml");
+    emit_rerun_if_changed("../platform/bitbox-samd52/build.rs");
+    emit_rerun_if_changed("../cryptoauthlib-sys/Cargo.toml");
+    emit_rerun_if_changed("../cryptoauthlib-sys/build.rs");
     emit_rerun_if_changed("../../../versions.json");
     emit_rerun_if_changed("../../../src/version.h.tmpl");
     emit_rerun_if_changed("../../../src/bootloader/bootloader_version.h.tmpl");
     emit_rerun_if_changed("../../../scripts/generate_version_headers.py");
     emit_rerun_if_changed("../../../scripts/generate_rust_header.sh");
+    emit_rerun_if_changed("../../../external/embedded-swd");
+    emit_rerun_if_changed("../../../external/optiga-trust-m");
 
     // Generating version.h/bootloader_version.h depends on the current state of the git repo
     emit_git_rerun_if_changed(&repo_root);
@@ -472,13 +610,15 @@ pub fn main() -> BuildResult<()> {
         vec![]
     };
 
-    // Build native C deps for host builds. Keep bitbox C and hardware fakes in one archive so
-    // static archive ordering cannot drop fake providers before bitbox02 consumers.
-    if !cross_compiling {
+    if cross_compiling {
+        compile_firmware_c(&repo_root, &generated_headers_dir)?;
+    } else {
+        // Build native C deps for host builds. Keep bitbox C and hardware fakes in one archive so
+        // static archive ordering cannot drop fake providers before bitbox02 consumers.
         let mdir = env::var("CARGO_MANIFEST_DIR").unwrap();
         let mut builder = cc::Build::new();
 
-        let bitbox02_files = BITBOX02_SOURCES
+        let bitbox02_files = HOST_BITBOX02_SOURCES
             .iter()
             .filter(|x| !excludes.contains(x))
             .map(|s| [&mdir, "../../..", s].join("/"));
@@ -501,6 +641,198 @@ pub fn main() -> BuildResult<()> {
     }
 
     Ok(())
+}
+
+fn firmware_variant() -> BuildResult<&'static str> {
+    let bitcoin = env::var_os("CARGO_FEATURE_APP_BITCOIN").is_some();
+    let litecoin = env::var_os("CARGO_FEATURE_APP_LITECOIN").is_some();
+    let ethereum = env::var_os("CARGO_FEATURE_APP_ETHEREUM").is_some();
+
+    match (bitcoin, litecoin, ethereum) {
+        (true, true, true) => Ok("firmware"),
+        (true, false, false) => Ok("firmware-btc"),
+        _ => Err("unsupported app feature combination for bitbox02-sys target C build".to_string()),
+    }
+}
+
+fn compile_firmware_c(repo_root: &Path, generated_headers_dir: &Path) -> BuildResult<()> {
+    let variant = firmware_variant()?;
+    let app_u2f = env::var_os("CARGO_FEATURE_APP_U2F").is_some();
+
+    let mut build = cc::Build::new();
+    build.compiler("arm-none-eabi-gcc");
+    build.no_default_flags(true);
+    build.warnings(false);
+    build.flag("-std=c11");
+    build.flag("-mcpu=cortex-m4");
+    build.flag("-mthumb");
+    build.flag("-mlong-calls");
+    build.flag("-mfloat-abi=softfp");
+    build.flag("-mfpu=fpv4-sp-d16");
+    build.flag("-fomit-frame-pointer");
+    build.flag("-ffunction-sections");
+    build.flag("-fdata-sections");
+    build.flag("-fstack-protector-strong");
+    build.flag("-Os");
+    build.flag("-DNDEBUG");
+    build.flag("-D_XOPEN_SOURCE=600");
+    build.flag("-D__SAMD51J20A__");
+    build.flag("-DPB_NO_PACKED_STRUCTS=1");
+    build.flag("-DPB_FIELD_16BIT=1");
+    build.flag("-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"");
+    build.flag("-DMBEDTLS_USER_CONFIG_FILE=\"mbedtls_config.h\"");
+    build.flag("-Wno-incompatible-pointer-types");
+    build.flag("-Wno-unused-parameter");
+    build.flag("-Wno-unused-variable");
+    build.flag("-Wno-missing-prototypes");
+    build.flag("-Wno-missing-declarations");
+    build.flag("-Wno-cast-qual");
+    build.flag("-Wno-switch-default");
+    build.flag("-Wno-format-nonliteral");
+    build.flag("-Wno-bad-function-cast");
+    build.flag("-Wno-old-style-definition");
+    build.flag("-Wno-strict-prototypes");
+    build.flag("-Wno-cast-align");
+    build.flag("-Wno-implicit-fallthrough");
+    build.flag("-Wno-pedantic");
+    build.flag(&format!(
+        "-DSOURCE_PATH_SIZE={}",
+        repo_root.display().to_string().len() + 1
+    ));
+
+    match variant {
+        "firmware" => {
+            build.flag("-DPRODUCT_BITBOX_MULTI=1");
+            build.flag("-DAPP_BTC=1");
+            build.flag("-DAPP_LTC=1");
+            build.flag("-DAPP_ETH=1");
+        }
+        "firmware-btc" => {
+            build.flag("-DPRODUCT_BITBOX_BTCONLY=1");
+            build.flag("-DAPP_BTC=1");
+            build.flag("-DAPP_LTC=0");
+            build.flag("-DAPP_ETH=0");
+        }
+        _ => unreachable!(),
+    }
+    build.flag(if app_u2f {
+        "-DAPP_U2F=1"
+    } else {
+        "-DAPP_U2F=0"
+    });
+
+    for include in firmware_include_dirs(repo_root, generated_headers_dir) {
+        build.include(include);
+    }
+
+    let mut sources = Vec::new();
+    sources.extend(source_paths(repo_root, STARTUP_SOURCES));
+    sources.extend(source_paths(repo_root, DBB_FIRMWARE_SOURCES));
+    sources.extend(source_paths(repo_root, DBB_FIRMWARE_UI_SOURCES));
+    sources.extend(source_paths(repo_root, DRIVER_SOURCES));
+    sources.extend(source_paths(repo_root, QTOUCH_SOURCES));
+    sources.extend(source_paths(repo_root, SECURECHIP_SOURCES));
+    sources.extend(source_paths(repo_root, PLATFORM_BITBOX02_PLUS_SOURCES));
+    sources.extend(source_paths(repo_root, PLATFORM_BITBOX02_SOURCES));
+    sources.extend(source_paths(repo_root, EMBEDDED_SWD_SOURCES));
+    sources.extend(optiga_sources(repo_root)?);
+    sources.push(repo_root.join("src/common_main.c"));
+    sources.push(repo_root.join("src/firmware.c"));
+    if app_u2f {
+        sources.extend(source_paths(repo_root, FIRMWARE_U2F_SOURCES));
+        sources.extend(source_paths(repo_root, FIRMWARE_U2F_DRIVER_SOURCES));
+    }
+
+    for source in sources {
+        build.file(source);
+    }
+    build.compile("bitbox02");
+    Ok(())
+}
+
+fn firmware_include_dirs(repo_root: &Path, generated_headers_dir: &Path) -> Vec<PathBuf> {
+    vec![
+        repo_root.join("src"),
+        repo_root.join("src/ui/ugui"),
+        repo_root.join("src/platform"),
+        repo_root.join("src/qtouch"),
+        repo_root.join("src/usb/class"),
+        repo_root.join("src/usb/class/hid"),
+        repo_root.join("src/usb/class/hid/hww"),
+        repo_root.join("src/usb/class/hid/u2f"),
+        repo_root.join("external/asf4-drivers"),
+        repo_root.join("external/asf4-drivers/Config"),
+        repo_root.join("external/asf4-drivers/hal/include"),
+        repo_root.join("external/asf4-drivers/hal/utils/include"),
+        repo_root.join("external/asf4-drivers/hpl/core"),
+        repo_root.join("external/asf4-drivers/hpl/gclk"),
+        repo_root.join("external/asf4-drivers/hpl/pm"),
+        repo_root.join("external/asf4-drivers/hpl/port"),
+        repo_root.join("external/asf4-drivers/hpl/pukcc"),
+        repo_root.join("external/asf4-drivers/hpl/rtc"),
+        repo_root.join("external/asf4-drivers/hpl/spi"),
+        repo_root.join("external/asf4-drivers/hri"),
+        repo_root.join("external/asf4-drivers/qtouch"),
+        repo_root.join("external/asf4-drivers/qtouch/include"),
+        repo_root.join("external/asf4-drivers/sd_mmc"),
+        repo_root.join("external/asf4-drivers/usb"),
+        repo_root.join("external/asf4-drivers/usb/class"),
+        repo_root.join("external/asf4-drivers/usb/class/hid"),
+        repo_root.join("external/asf4-drivers/usb/device"),
+        repo_root.join("external/asf4-drivers/diskio"),
+        repo_root.join("external/samd51a-ds/include"),
+        repo_root.join("external/CMSIS/Include"),
+        repo_root.join("external/cryptoauthlib/lib"),
+        repo_root.join("external"),
+        repo_root.join("external/embedded-swd"),
+        repo_root.join("external/optiga-trust-m/config"),
+        repo_root.join("external/optiga-trust-m/include"),
+        repo_root.join("external/optiga-trust-m/include/cmd"),
+        repo_root.join("external/optiga-trust-m/include/common"),
+        repo_root.join("external/optiga-trust-m/include/ifx_i2c"),
+        repo_root.join("external/optiga-trust-m/include/pal"),
+        repo_root.join("external/optiga-trust-m/include/comms"),
+        repo_root.join("external/optiga-trust-m/external/mbedtls/include"),
+        repo_root.join("src/rust/fatfs-sys/depend/fatfs/source"),
+        generated_headers_dir.to_path_buf(),
+    ]
+}
+
+fn source_paths(repo_root: &Path, rel_paths: &[&str]) -> Vec<PathBuf> {
+    rel_paths.iter().map(|path| repo_root.join(path)).collect()
+}
+
+fn optiga_sources(repo_root: &Path) -> BuildResult<Vec<PathBuf>> {
+    let mut result = Vec::new();
+    for dir in [
+        "external/optiga-trust-m/src/cmd",
+        "external/optiga-trust-m/src/common",
+        "external/optiga-trust-m/external/mbedtls/library",
+        "external/optiga-trust-m/src/comms/ifx_i2c",
+        "external/optiga-trust-m/src/crypt",
+        "external/optiga-trust-m/src/util",
+    ] {
+        result.extend(list_c_files(&repo_root.join(dir))?);
+    }
+    result.push(repo_root.join("external/optiga-trust-m/src/comms/optiga_comms_ifx_i2c.c"));
+    result.push(repo_root.join("external/optiga-trust-m/extras/pal/pal_crypt_mbedtls.c"));
+    Ok(result)
+}
+
+fn list_c_files(dir: &Path) -> BuildResult<Vec<PathBuf>> {
+    let mut result = Vec::new();
+    for entry in fs::read_dir(dir)
+        .map_err(|err| format!("failed to read directory {}: {err}", dir.display()))?
+    {
+        let entry =
+            entry.map_err(|err| format!("failed to read entry in {}: {err}", dir.display()))?;
+        let path = entry.path();
+        if path.extension() == Some(OsStr::new("c")) {
+            result.push(path);
+        }
+    }
+    result.sort();
+    Ok(result)
 }
 
 fn emit_rerun_if_changed(path: &str) {

@@ -6,10 +6,6 @@ edition = "2024"
 [dependencies]
 bitbox02-rust-c = { path = "../../bitbox02-rust-c" }
 
-[build-dependencies]
-bitbox-samd52 = { path = "../../platform/bitbox-samd52" }
-cc = { version = "1.2", features = ["parallel"] }
-
 [features]
 default = ["multi"]
 multi = ["bitbox02-rust-c/target-firmware"]

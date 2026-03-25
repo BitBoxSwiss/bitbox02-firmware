@@ -9,6 +9,10 @@
 #![allow(deref_nullptr)]
 
 #[allow(unused_extern_crates)]
+extern crate bitbox_samd52;
+#[allow(unused_extern_crates)]
+extern crate cryptoauthlib_sys;
+#[allow(unused_extern_crates)]
 extern crate fatfs_sys;
 
 // Host targets link fatfs and bitbox02 static archives separately. Keep one explicit reference to

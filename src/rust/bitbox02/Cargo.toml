@@ -35,7 +35,7 @@ c-unit-testing = []
 # Active when building for the graphical simulator
 simulator-graphical = []
 
-app-ethereum = []
-app-bitcoin = []
-app-litecoin = []
-app-u2f = ["bitbox-hal/app-u2f"]
+app-ethereum = ["bitbox02-sys/app-ethereum"]
+app-bitcoin = ["bitbox02-sys/app-bitcoin"]
+app-litecoin = ["bitbox02-sys/app-litecoin"]
+app-u2f = ["bitbox-hal/app-u2f", "bitbox02-sys/app-u2f"]

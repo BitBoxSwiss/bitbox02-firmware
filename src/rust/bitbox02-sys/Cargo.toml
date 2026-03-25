@@ -9,8 +9,16 @@ description = "Rust bindings for C code in bitbox02-firmware"
 license = "Apache-2.0"
 
 [dependencies]
-util = {path = "../util"}
+util = { path = "../util" }
 fatfs-sys = { path = "../fatfs-sys" }
+bitbox-samd52 = { path = "../platform/bitbox-samd52" }
+cryptoauthlib-sys = { path = "../cryptoauthlib-sys" }
 
 [build-dependencies]
-cc = {version="1.2", features=["parallel"]}
+cc = { version = "1.2", features = ["parallel"] }
+
+[features]
+app-bitcoin = []
+app-litecoin = []
+app-ethereum = []
+app-u2f = []

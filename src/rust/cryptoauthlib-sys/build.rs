@@ -5,69 +5,61 @@ use std::path::{Path, PathBuf};
 
 type BuildResult<T> = Result<T, String>;
 
-const ASF4_DRIVERS_MIN_SOURCES: &[&str] = &[
-    "external/asf4-drivers/hal/utils/src/utils_syscalls.c",
-    "external/asf4-drivers/hal/utils/src/utils_list.c",
-    "external/asf4-drivers/hal/src/hal_atomic.c",
-    "external/asf4-drivers/hal/src/hal_gpio.c",
-    "external/asf4-drivers/hal/src/hal_init.c",
-    "external/asf4-drivers/hal/src/hal_delay.c",
-    "external/asf4-drivers/hal/src/hal_timer.c",
-    "external/asf4-drivers/hal/src/hal_usb_device.c",
-    "external/asf4-drivers/hal/src/hal_rand_sync.c",
-    "external/asf4-drivers/hal/src/hal_flash.c",
-    "external/asf4-drivers/hal/src/hal_pac.c",
-    "external/asf4-drivers/hal/src/hal_io.c",
-    "external/asf4-drivers/hal/src/hal_sha_sync.c",
-    "external/asf4-drivers/hpl/systick/hpl_systick.c",
-    "external/asf4-drivers/hal/src/hal_usart_async.c",
-    "external/asf4-drivers/hal/utils/src/utils_ringbuffer.c",
-    "external/asf4-drivers/hpl/gclk/hpl_gclk.c",
-    "external/asf4-drivers/hpl/oscctrl/hpl_oscctrl.c",
-    "external/asf4-drivers/hpl/mclk/hpl_mclk.c",
-    "external/asf4-drivers/hpl/osc32kctrl/hpl_osc32kctrl.c",
-    "external/asf4-drivers/hpl/core/hpl_init.c",
-    "external/asf4-drivers/hpl/core/hpl_core_m4.c",
-    "external/asf4-drivers/hpl/spi/spi_lite.c",
-    "external/asf4-drivers/hpl/usb/hpl_usb.c",
-    "external/asf4-drivers/hpl/rtc/hpl_rtc.c",
-    "external/asf4-drivers/hpl/sercom/hpl_sercom.c",
-    "external/asf4-drivers/hpl/trng/hpl_trng.c",
-    "external/asf4-drivers/hpl/nvmctrl/hpl_nvmctrl.c",
-    "external/asf4-drivers/hpl/icm/hpl_icm.c",
-    "external/asf4-drivers/hpl/pac/hpl_pac.c",
-    "external/asf4-drivers/usb/usb_protocol.c",
-    "external/asf4-drivers/usb/device/usbdc.c",
-];
-
-const ASF4_DRIVERS_SOURCES: &[&str] = &[
-    "external/asf4-drivers/hal/src/hal_mci_sync.c",
-    "external/asf4-drivers/hal/src/hal_i2c_m_sync.c",
-    "external/asf4-drivers/hpl/sdhc/hpl_sdhc.c",
-    "external/asf4-drivers/hpl/sercom/hpl_sercom.c",
-    "external/asf4-drivers/sd_mmc/sd_mmc.c",
-    "external/asf4-drivers/diskio/sdmmc_diskio.c",
+const SOURCES: &[&str] = &[
+    "external/cryptoauthlib/lib/atca_cfgs.c",
+    "external/cryptoauthlib/lib/atca_command.c",
+    "external/cryptoauthlib/lib/atca_device.c",
+    "external/cryptoauthlib/lib/atca_iface.c",
+    "external/cryptoauthlib/lib/hal/atca_hal.c",
+    "external/cryptoauthlib/lib/hal/hal_timer_start.c",
+    "external/cryptoauthlib/lib/atca_basic.c",
+    "external/cryptoauthlib/lib/atca_debug.c",
+    "external/cryptoauthlib/lib/calib/calib_basic.c",
+    "external/cryptoauthlib/lib/calib/calib_command.c",
+    "external/cryptoauthlib/lib/calib/calib_execution.c",
+    "external/cryptoauthlib/lib/calib/calib_counter.c",
+    "external/cryptoauthlib/lib/calib/calib_gendig.c",
+    "external/cryptoauthlib/lib/calib/calib_nonce.c",
+    "external/cryptoauthlib/lib/calib/calib_checkmac.c",
+    "external/cryptoauthlib/lib/calib/calib_info.c",
+    "external/cryptoauthlib/lib/calib/calib_derivekey.c",
+    "external/cryptoauthlib/lib/calib/calib_random.c",
+    "external/cryptoauthlib/lib/calib/calib_selftest.c",
+    "external/cryptoauthlib/lib/calib/calib_read.c",
+    "external/cryptoauthlib/lib/calib/calib_privwrite.c",
+    "external/cryptoauthlib/lib/calib/calib_verify.c",
+    "external/cryptoauthlib/lib/calib/calib_write.c",
+    "external/cryptoauthlib/lib/calib/calib_updateextra.c",
+    "external/cryptoauthlib/lib/calib/calib_lock.c",
+    "external/cryptoauthlib/lib/calib/calib_kdf.c",
+    "external/cryptoauthlib/lib/calib/calib_genkey.c",
+    "external/cryptoauthlib/lib/calib/calib_sign.c",
+    "external/cryptoauthlib/lib/host/atca_host.c",
+    "external/cryptoauthlib/lib/crypto/hashes/sha2_routines.c",
+    "external/cryptoauthlib/lib/crypto/atca_crypto_sw_sha2.c",
 ];
 
 fn main() -> BuildResult<()> {
     let manifest_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
     let repo_root = manifest_dir
-        .join("../../../..")
+        .join("../../..")
         .canonicalize()
         .map_err(|err| format!("failed to resolve repo root: {err}"))?;
     emit_rerun_if_changed_path(&manifest_dir.join("build.rs"));
     emit_rerun_if_changed_path(&manifest_dir.join("Cargo.toml"));
-    emit_rerun_if_changed_path(&repo_root.join("src"));
+    emit_rerun_if_changed_path(&repo_root.join("external/cryptoauthlib"));
+    emit_rerun_if_changed_path(&repo_root.join("external/atca_config.h"));
     emit_rerun_if_changed_path(&repo_root.join("external/asf4-drivers"));
     emit_rerun_if_changed_path(&repo_root.join("external/samd51a-ds"));
     emit_rerun_if_changed_path(&repo_root.join("external/CMSIS"));
+    emit_rerun_if_changed_path(&repo_root.join("src"));
 
-    compile_asf4_drivers(&repo_root)?;
+    compile_cryptoauthlib(&repo_root)?;
     Ok(())
 }
 
-fn compile_asf4_drivers(repo_root: &Path) -> BuildResult<()> {
+fn compile_cryptoauthlib(repo_root: &Path) -> BuildResult<()> {
     let mut build = cc::Build::new();
     build.compiler("arm-none-eabi-gcc");
     build.no_default_flags(true);
@@ -105,17 +97,16 @@ fn compile_asf4_drivers(repo_root: &Path) -> BuildResult<()> {
         build.include(include);
     }
 
-    build.files(source_paths(repo_root, ASF4_DRIVERS_MIN_SOURCES));
-    build.files(source_paths(repo_root, ASF4_DRIVERS_SOURCES));
-    build.compile("bitbox_samd52_asf4");
+    build.files(source_paths(repo_root, SOURCES));
+    build.compile("cryptoauthlib");
     Ok(())
 }
 
 fn include_dirs(repo_root: &Path) -> Vec<PathBuf> {
     vec![
         repo_root.join("src"),
-        repo_root.join("src/platform"),
-        repo_root.join("src/qtouch"),
+        repo_root.join("external"),
+        repo_root.join("external/cryptoauthlib/lib"),
         repo_root.join("external/asf4-drivers"),
         repo_root.join("external/asf4-drivers/Config"),
         repo_root.join("external/asf4-drivers/hal/include"),

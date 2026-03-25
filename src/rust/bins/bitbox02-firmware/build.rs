@@ -126,50 +126,6 @@ const SECURECHIP_SOURCES: &[&str] = &[
     "src/optiga/optiga.c",
 ];
 
-const ASF4_DRIVERS_MIN_SOURCES: &[&str] = &[
-    "external/asf4-drivers/hal/utils/src/utils_syscalls.c",
-    "external/asf4-drivers/hal/utils/src/utils_list.c",
-    "external/asf4-drivers/hal/src/hal_atomic.c",
-    "external/asf4-drivers/hal/src/hal_gpio.c",
-    "external/asf4-drivers/hal/src/hal_init.c",
-    "external/asf4-drivers/hal/src/hal_delay.c",
-    "external/asf4-drivers/hal/src/hal_timer.c",
-    "external/asf4-drivers/hal/src/hal_usb_device.c",
-    "external/asf4-drivers/hal/src/hal_rand_sync.c",
-    "external/asf4-drivers/hal/src/hal_flash.c",
-    "external/asf4-drivers/hal/src/hal_pac.c",
-    "external/asf4-drivers/hal/src/hal_io.c",
-    "external/asf4-drivers/hal/src/hal_sha_sync.c",
-    "external/asf4-drivers/hpl/systick/hpl_systick.c",
-    "external/asf4-drivers/hal/src/hal_usart_async.c",
-    "external/asf4-drivers/hal/utils/src/utils_ringbuffer.c",
-    "external/asf4-drivers/hpl/gclk/hpl_gclk.c",
-    "external/asf4-drivers/hpl/oscctrl/hpl_oscctrl.c",
-    "external/asf4-drivers/hpl/mclk/hpl_mclk.c",
-    "external/asf4-drivers/hpl/osc32kctrl/hpl_osc32kctrl.c",
-    "external/asf4-drivers/hpl/core/hpl_init.c",
-    "external/asf4-drivers/hpl/core/hpl_core_m4.c",
-    "external/asf4-drivers/hpl/spi/spi_lite.c",
-    "external/asf4-drivers/hpl/usb/hpl_usb.c",
-    "external/asf4-drivers/hpl/rtc/hpl_rtc.c",
-    "external/asf4-drivers/hpl/sercom/hpl_sercom.c",
-    "external/asf4-drivers/hpl/trng/hpl_trng.c",
-    "external/asf4-drivers/hpl/nvmctrl/hpl_nvmctrl.c",
-    "external/asf4-drivers/hpl/icm/hpl_icm.c",
-    "external/asf4-drivers/hpl/pac/hpl_pac.c",
-    "external/asf4-drivers/usb/usb_protocol.c",
-    "external/asf4-drivers/usb/device/usbdc.c",
-];
-
-const ASF4_DRIVERS_SOURCES: &[&str] = &[
-    "external/asf4-drivers/hal/src/hal_mci_sync.c",
-    "external/asf4-drivers/hal/src/hal_i2c_m_sync.c",
-    "external/asf4-drivers/hpl/sdhc/hpl_sdhc.c",
-    "external/asf4-drivers/hpl/sercom/hpl_sercom.c",
-    "external/asf4-drivers/sd_mmc/sd_mmc.c",
-    "external/asf4-drivers/diskio/sdmmc_diskio.c",
-];
-
 const CRYPTOAUTHLIB_SOURCES: &[&str] = &[
     "external/cryptoauthlib/lib/atca_cfgs.c",
     "external/cryptoauthlib/lib/atca_command.c",
@@ -233,6 +189,7 @@ fn main() -> BuildResult<()> {
     emit_rerun_if_changed_path(&repo_root.join("external/cryptoauthlib"));
     emit_rerun_if_changed_path(&repo_root.join("external/embedded-swd"));
     emit_rerun_if_changed_path(&repo_root.join("external/optiga-trust-m"));
+    emit_rerun_if_changed_path(&repo_root.join("src/rust/platform/bitbox-samd52"));
     emit_rerun_if_changed_path(&repo_root.join("scripts/generate_rust_header.sh"));
     emit_rerun_if_changed_path(&repo_root.join("scripts/generate_version_headers.py"));
     emit_rerun_if_changed_path(&repo_root.join("versions.json"));
@@ -251,7 +208,7 @@ fn main() -> BuildResult<()> {
     generate_version_headers(&repo_root, &generated_headers_dir)?;
     copy_linker_script(&manifest_dir, &out_dir)?;
     compile_c_firmware(&repo_root, &generated_headers_dir, variant)?;
-    emit_linker_args(&out_dir, &repo_root, variant);
+    emit_linker_args(&out_dir, &repo_root, variant)?;
 
     Ok(())
 }
@@ -344,8 +301,6 @@ fn compile_c_firmware(
     sources.extend(source_paths(repo_root, SECURECHIP_SOURCES));
     sources.extend(source_paths(repo_root, PLATFORM_BITBOX02_PLUS_SOURCES));
     sources.extend(source_paths(repo_root, PLATFORM_BITBOX02_SOURCES));
-    sources.extend(source_paths(repo_root, ASF4_DRIVERS_MIN_SOURCES));
-    sources.extend(source_paths(repo_root, ASF4_DRIVERS_SOURCES));
     sources.extend(source_paths(repo_root, CRYPTOAUTHLIB_SOURCES));
     sources.extend(source_paths(repo_root, EMBEDDED_SWD_SOURCES));
     sources.extend(optiga_sources(repo_root)?);
@@ -448,12 +403,22 @@ fn list_c_files(dir: &Path) -> BuildResult<Vec<PathBuf>> {
     Ok(result)
 }
 
-fn emit_linker_args(out_dir: &Path, repo_root: &Path, variant: &str) {
+fn emit_linker_args(out_dir: &Path, repo_root: &Path, variant: &str) -> BuildResult<()> {
     println!("cargo::rustc-link-search={}", out_dir.display());
     let profile_dir = out_dir
         .ancestors()
         .nth(3)
         .expect("OUT_DIR did not contain a Cargo profile directory");
+    let target_dir = profile_dir
+        .parent()
+        .and_then(Path::parent)
+        .expect("OUT_DIR did not contain a Cargo target directory");
+    let host_build_dir = target_dir
+        .join(env::var("PROFILE").expect("PROFILE not set"))
+        .join("build");
+    let samd52_archive =
+        find_native_archive(&host_build_dir, "bitbox-samd52-", "libbitbox_samd52_asf4.a")
+            .expect("failed to locate libbitbox_samd52_asf4.a produced by bitbox-samd52");
     let fatfs_archive = find_native_archive(&profile_dir.join("build"), "fatfs-sys-", "libfatfs.a")
         .expect("failed to locate libfatfs.a produced by fatfs-sys");
     println!(
@@ -465,6 +430,8 @@ fn emit_linker_args(out_dir: &Path, repo_root: &Path, variant: &str) {
     emit_rerun_if_changed_path(&firmware_archive);
     println!("cargo::rustc-link-arg=-Wl,--start-group");
     println!("cargo::rustc-link-arg={}", firmware_archive.display());
+    emit_rerun_if_changed_path(&samd52_archive);
+    println!("cargo::rustc-link-arg={}", samd52_archive.display());
     emit_rerun_if_changed_path(&fatfs_archive);
     println!("cargo::rustc-link-arg={}", fatfs_archive.display());
     for lib in [
@@ -481,6 +448,7 @@ fn emit_linker_args(out_dir: &Path, repo_root: &Path, variant: &str) {
     println!("cargo::rustc-link-arg=-lm");
     println!("cargo::rustc-link-arg=-lgcc");
     println!("cargo::rustc-link-arg=-Wl,--end-group");
+    Ok(())
 }
 
 fn find_native_archive(

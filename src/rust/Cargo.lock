@@ -166,6 +166,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-samd52"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
@@ -196,6 +203,7 @@ dependencies = [
 name = "bitbox02-firmware"
 version = "0.1.0"
 dependencies = [
+ "bitbox-samd52",
  "bitbox02-rust-c",
  "cc",
 ]

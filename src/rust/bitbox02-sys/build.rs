@@ -9,6 +9,7 @@ use std::process::{Command, Output};
 
 const ALLOWLIST_VARS: &[&str] = &[
     "BASE58_CHECKSUM_LEN",
+    "bottom_slider",
     "BIP32_SERIALIZED_LEN",
     "BIP39_WORDLIST_LEN",
     "da14531_handler_current_product",
@@ -21,6 +22,7 @@ const ALLOWLIST_VARS: &[&str] = &[
     "MAX_LABEL_SIZE",
     "MAX_PK_SCRIPT_SIZE",
     "MAX_VARINT_SIZE",
+    "measurement_done_touch",
     "MEMORY_MULTISIG_NUM_ENTRIES",
     "MEMORY_PLATFORM_BITBOX02_PLUS",
     "MEMORY_PLATFORM_BITBOX02",
@@ -31,6 +33,7 @@ const ALLOWLIST_VARS: &[&str] = &[
     "secfalse_u8",
     "SD_MAX_FILE_SIZE",
     "SLIDER_POSITION_TWO_THIRD",
+    "top_slider",
     "USART_0_BUFFER_SIZE",
     "USB_REPORT_SIZE",
 ];
@@ -60,6 +63,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "bitbox02_smarteeprom_reset_unlock_attempts",
     "bitbox02_smarteeprom_init",
     "_init_chip",
+    "bootloader_init",
+    "bootloader_jump",
+    "bootloader_render_ble_confirm_screen",
+    "bootloader_render_default_screen",
     "common_main",
     "common_stack_chk_guard",
     "confirm_create",
@@ -108,6 +115,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_is_mnemonic_passphrase_enabled",
     "memory_is_seeded",
     "memory_multisig_get_by_hash",
+    "memory_random_name",
     "memory_multisig_set_by_hash",
     "memory_reset_hww",
     "memory_set_ble_metadata",
@@ -125,6 +133,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "memory_setup",
     "memory_spi_get_active_ble_firmware_version",
     "menu_create",
+    "mpu_regions_bootloader_init",
     "orientation_arrows_create",
     "oled_clear_buffer",
     "oled_mirror",
@@ -134,7 +143,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "printf",
     "progress_create",
     "progress_set",
+    "qtouch_get_scroller_position",
     "qtouch_init",
+    "qtouch_is_scroller_active",
+    "qtouch_process",
     "queue_hww_queue",
     "queue_pull",
     "queue_u2f_queue",
@@ -319,6 +331,30 @@ const DBB_FIRMWARE_SOURCES: &[&str] = &[
     "src/reset.c",
     "src/queue.c",
     "src/usb/usb_processing.c",
+];
+
+const DBB_BOOTLOADER_SOURCES: &[&str] = &[
+    "src/util.c",
+    "src/pukcc/curve_p256.c",
+    "src/pukcc/pukcc.c",
+    "src/bootloader/bootloader.c",
+    "src/bootloader/mpu_regions.c",
+    "src/random.c",
+    "src/memory/memory_shared.c",
+    "src/memory/mpu.c",
+    "src/memory/nvmctrl.c",
+    "src/memory/spi_mem.c",
+    "src/memory/memory_spi.c",
+    "src/queue.c",
+    "src/usb/usb_processing.c",
+    "src/ui/ugui/ugui.c",
+    "src/ui/fonts/font_a_9X9.c",
+    "src/ui/fonts/font_a_11X10.c",
+    "src/ui/fonts/monogram_5X9.c",
+    "src/ui/graphics/graphics.c",
+    "src/screen.c",
+    "src/hardfault.c",
+    "src/ui/components/ui_images.c",
 ];
 
 const DBB_FIRMWARE_UI_SOURCES: &[&str] = &[
@@ -622,7 +658,19 @@ pub fn main() -> BuildResult<()> {
     };
 
     if cross_compiling {
-        compile_firmware_c(&repo_root, &generated_headers_dir)?;
+        if env::var_os("CARGO_FEATURE_BUILD_BOOTLOADER").is_some() {
+            compile_bootloader_c(&repo_root, &generated_headers_dir)?;
+        } else if env::var_os("CARGO_FEATURE_APP_BITCOIN").is_some()
+            || env::var_os("CARGO_FEATURE_APP_LITECOIN").is_some()
+            || env::var_os("CARGO_FEATURE_APP_ETHEREUM").is_some()
+        {
+            compile_firmware_c(&repo_root, &generated_headers_dir)?;
+        } else {
+            return Err(
+                "unsupported bitbox02-sys cross target feature combination for target C build"
+                    .to_string(),
+            );
+        }
     } else {
         // Build native C deps for host builds. Keep bitbox C and hardware fakes in one archive so
         // static archive ordering cannot drop fake providers before bitbox02 consumers.
@@ -760,6 +808,102 @@ fn compile_firmware_c(repo_root: &Path, generated_headers_dir: &Path) -> BuildRe
     Ok(())
 }
 
+fn compile_bootloader_c(repo_root: &Path, generated_headers_dir: &Path) -> BuildResult<()> {
+    let product_multi = env::var_os("CARGO_FEATURE_PRODUCT_MULTI").is_some();
+    let product_btconly = env::var_os("CARGO_FEATURE_PRODUCT_BTCONLY").is_some();
+    let platform_bitbox02plus = env::var_os("CARGO_FEATURE_PLATFORM_BITBOX02PLUS").is_some();
+    let bootloader_devdevice = env::var_os("CARGO_FEATURE_BOOTLOADER_DEVDEVICE").is_some();
+    let bootloader_production = env::var_os("CARGO_FEATURE_BOOTLOADER_PRODUCTION").is_some();
+
+    if product_multi == product_btconly {
+        return Err(
+            "bootloader target C build requires exactly one of `product-multi` or `product-btconly`"
+                .to_string(),
+        );
+    }
+
+    let mut build = cc::Build::new();
+    build.compiler("arm-none-eabi-gcc");
+    build.no_default_flags(true);
+    build.warnings(false);
+    build.flag("-std=c11");
+    build.flag("-mcpu=cortex-m4");
+    build.flag("-mthumb");
+    build.flag("-mlong-calls");
+    build.flag("-mfloat-abi=softfp");
+    build.flag("-mfpu=fpv4-sp-d16");
+    build.flag("-fomit-frame-pointer");
+    build.flag("-ffunction-sections");
+    build.flag("-fdata-sections");
+    build.flag("-fstack-protector-strong");
+    build.flag("-Os");
+    build.flag("-DNDEBUG");
+    build.flag("-D_XOPEN_SOURCE=600");
+    build.flag("-D__SAMD51J20A__");
+    build.flag("-DPB_NO_PACKED_STRUCTS=1");
+    build.flag("-DPB_FIELD_16BIT=1");
+    build.flag("-DBOOTLOADER");
+    build.flag("-DAPP_BTC=0");
+    build.flag("-DAPP_LTC=0");
+    build.flag("-DAPP_ETH=0");
+    build.flag("-DAPP_U2F=0");
+    build.flag("-Wno-incompatible-pointer-types");
+    build.flag("-Wno-unused-parameter");
+    build.flag("-Wno-unused-variable");
+    build.flag("-Wno-missing-prototypes");
+    build.flag("-Wno-missing-declarations");
+    build.flag("-Wno-cast-qual");
+    build.flag("-Wno-switch-default");
+    build.flag("-Wno-format-nonliteral");
+    build.flag("-Wno-bad-function-cast");
+    build.flag("-Wno-old-style-definition");
+    build.flag("-Wno-strict-prototypes");
+    build.flag("-Wno-cast-align");
+    build.flag("-Wno-implicit-fallthrough");
+    build.flag("-Wno-pedantic");
+    build.flag(&format!(
+        "-DSOURCE_PATH_SIZE={}",
+        repo_root.display().to_string().len() + 1
+    ));
+
+    match (platform_bitbox02plus, product_multi) {
+        (false, true) => build.flag("-DPRODUCT_BITBOX_MULTI=1"),
+        (false, false) => build.flag("-DPRODUCT_BITBOX_BTCONLY=1"),
+        (true, true) => build.flag("-DPRODUCT_BITBOX_PLUS_MULTI=1"),
+        (true, false) => build.flag("-DPRODUCT_BITBOX_PLUS_BTCONLY=1"),
+    };
+
+    if bootloader_devdevice {
+        build.flag("-DBOOTLOADER_DEVDEVICE");
+    }
+    if bootloader_production {
+        build.flag("-DBOOTLOADER_PRODUCTION");
+    }
+
+    for include in firmware_include_dirs(repo_root, generated_headers_dir) {
+        build.include(include);
+    }
+
+    let mut sources = Vec::new();
+    sources.extend(source_paths(repo_root, STARTUP_SOURCES));
+    sources.extend(source_paths(repo_root, DBB_BOOTLOADER_SOURCES));
+    sources.extend(source_paths(repo_root, DRIVER_SOURCES));
+    sources.extend(source_paths(repo_root, PLATFORM_BITBOX02_SOURCES));
+    if bootloader_devdevice || platform_bitbox02plus {
+        sources.extend(source_paths(repo_root, QTOUCH_SOURCES));
+    }
+    if platform_bitbox02plus {
+        sources.extend(source_paths(repo_root, PLATFORM_BITBOX02_PLUS_SOURCES));
+        sources.extend(source_paths(repo_root, EMBEDDED_SWD_SOURCES));
+    }
+
+    for source in sources {
+        build.file(source);
+    }
+    build.compile("bitbox02");
+    Ok(())
+}
+
 fn firmware_include_dirs(repo_root: &Path, generated_headers_dir: &Path) -> Vec<PathBuf> {
     vec![
         repo_root.join("src"),
@@ -804,6 +948,7 @@ fn firmware_include_dirs(repo_root: &Path, generated_headers_dir: &Path) -> Vec<
         repo_root.join("external/optiga-trust-m/include/comms"),
         repo_root.join("external/optiga-trust-m/external/mbedtls/include"),
         repo_root.join("src/rust/fatfs-sys/depend/fatfs/source"),
+        generated_headers_dir.join("bootloader"),
         generated_headers_dir.to_path_buf(),
     ]
 }

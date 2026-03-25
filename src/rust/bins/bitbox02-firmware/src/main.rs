@@ -10,7 +10,7 @@ compile_error!("One firmware variant must be enabled.");
 use bitbox02::memory::Platform;
 
 #[unsafe(no_mangle)]
-static mut __stack_chk_guard: u32 = 0;
+pub static mut __stack_chk_guard: u32 = 0;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn main() -> ! {

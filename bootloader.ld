@@ -174,6 +174,7 @@ SECTIONS
 
     . = ALIGN(4);
     _end = . ;
+    PROVIDE(end = _end);
 
     /* heap section */
     .heap (NOLOAD):

@@ -200,6 +200,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox02-bootloader"
+version = "0.1.0"
+dependencies = [
+ "bitbox-bytequeue",
+ "bitbox-da14531",
+ "bitbox-framed-serial-link",
+ "bitbox02",
+ "bitbox02-rust-c",
+ "bitbox02-sys",
+]
+
+[[package]]
 name = "bitbox02-firmware"
 version = "0.1.0"
 dependencies = [

@@ -21,6 +21,11 @@ mod communication_mode;
 mod der;
 #[cfg(feature = "firmware")]
 mod firmware_c_api;
+#[cfg(any(
+    feature = "firmware",
+    all(feature = "bootloader", feature = "platform-bitbox02plus")
+))]
+pub use communication_mode::{ble_disable, ble_enabled};
 #[cfg(all(
     feature = "firmware",
     not(any(feature = "c-unit-testing", feature = "simulator-graphical"))

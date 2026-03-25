@@ -1,0 +1,112 @@
+[package]
+name = "bitbox02-bootloader"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitbox-bytequeue = { path = "../../bitbox-bytequeue" }
+bitbox-da14531 = { path = "../../bitbox-da14531" }
+bitbox-framed-serial-link = { path = "../../bitbox-framed-serial-link" }
+bitbox02 = { path = "../../bitbox02" }
+bitbox02-rust-c = { path = "../../bitbox02-rust-c" }
+bitbox02-sys = { path = "../../bitbox02-sys" }
+
+[features]
+default = []
+
+platform-bitbox02plus = ["bitbox02-sys/platform-bitbox02plus"]
+bootloader-devdevice = ["bitbox02-sys/bootloader-devdevice"]
+bootloader-production = ["bitbox02-sys/bootloader-production"]
+product-multi = ["bitbox02-sys/product-multi"]
+product-btconly = ["bitbox02-sys/product-btconly"]
+build-bootloader = ["bitbox02-sys/build-bootloader"]
+
+target-bb02-bl-multi = [
+  "bitbox02-rust-c/target-bb02-bl-multi",
+  "build-bootloader",
+  "product-multi",
+]
+target-bb02-bl-multi-development = [
+  "bitbox02-rust-c/target-bb02-bl-multi-development",
+  "build-bootloader",
+  "product-multi",
+  "bootloader-devdevice",
+]
+target-bb02-bl-multi-development-locked = [
+  "bitbox02-rust-c/target-bb02-bl-multi-development-locked",
+  "build-bootloader",
+  "product-multi",
+  "bootloader-devdevice",
+  "bootloader-production",
+]
+target-bb02-bl-multi-production = [
+  "bitbox02-rust-c/target-bb02-bl-multi-production",
+  "build-bootloader",
+  "product-multi",
+  "bootloader-production",
+]
+target-bb02-bl-btconly = [
+  "bitbox02-rust-c/target-bb02-bl-btconly",
+  "build-bootloader",
+  "product-btconly",
+]
+target-bb02-bl-btconly-development = [
+  "bitbox02-rust-c/target-bb02-bl-btconly-development",
+  "build-bootloader",
+  "product-btconly",
+  "bootloader-devdevice",
+]
+target-bb02-bl-btconly-production = [
+  "bitbox02-rust-c/target-bb02-bl-btconly-production",
+  "build-bootloader",
+  "product-btconly",
+  "bootloader-production",
+]
+target-bb02p-bl-multi = [
+  "bitbox02-rust-c/target-bb02p-bl-multi",
+  "build-bootloader",
+  "product-multi",
+  "platform-bitbox02plus",
+]
+target-bb02p-bl-multi-development = [
+  "bitbox02-rust-c/target-bb02p-bl-multi-development",
+  "build-bootloader",
+  "product-multi",
+  "platform-bitbox02plus",
+  "bootloader-devdevice",
+]
+target-bb02p-bl-multi-development-locked = [
+  "bitbox02-rust-c/target-bb02p-bl-multi-development-locked",
+  "build-bootloader",
+  "product-multi",
+  "platform-bitbox02plus",
+  "bootloader-devdevice",
+  "bootloader-production",
+]
+target-bb02p-bl-multi-production = [
+  "bitbox02-rust-c/target-bb02p-bl-multi-production",
+  "build-bootloader",
+  "product-multi",
+  "platform-bitbox02plus",
+  "bootloader-production",
+]
+target-bb02p-bl-btconly = [
+  "bitbox02-rust-c/target-bb02p-bl-btconly",
+  "build-bootloader",
+  "product-btconly",
+  "platform-bitbox02plus",
+]
+target-bb02p-bl-btconly-development = [
+  "bitbox02-rust-c/target-bb02p-bl-btconly-development",
+  "build-bootloader",
+  "product-btconly",
+  "platform-bitbox02plus",
+  "bootloader-devdevice",
+]
+target-bb02p-bl-btconly-production = [
+  "bitbox02-rust-c/target-bb02p-bl-btconly-production",
+  "build-bootloader",
+  "product-btconly",
+  "platform-bitbox02plus",
+  "bootloader-production",
+]

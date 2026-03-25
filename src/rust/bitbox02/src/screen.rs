@@ -36,6 +36,10 @@ pub fn splash() {
     unsafe { bitbox02_sys::screen_splash() }
 }
 
+pub fn top_slider() -> u16 {
+    unsafe { bitbox02_sys::top_slider.into() }
+}
+
 pub fn process() {
     unsafe { bitbox02_sys::screen_process() }
 }

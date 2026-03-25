@@ -19,6 +19,7 @@ extern crate alloc;
 #[cfg(any(feature = "testing", feature = "simulator-graphical"))]
 pub mod testing;
 
+pub mod bootloader;
 pub mod da14531_handler;
 pub mod da14531_protocol;
 pub mod delay;

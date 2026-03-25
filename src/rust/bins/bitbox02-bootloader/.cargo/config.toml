@@ -1,0 +1,17 @@
+[build]
+target = "thumbv7em-none-eabi"
+
+[target.thumbv7em-none-eabi]
+linker = "arm-none-eabi-gcc"
+rustflags = [
+  "--cfg", "rust_secp_no_symbol_renaming",
+  "-C", "link-arg=-Wl,-Tbootloader.ld",
+  "-C", "link-arg=-mcpu=cortex-m4",
+  "-C", "link-arg=-mthumb",
+  "-C", "link-arg=-mfloat-abi=softfp",
+  "-C", "link-arg=-mfpu=fpv4-sp-d16",
+  "-C", "link-arg=-Wl,--gc-sections",
+  "-C", "link-arg=-Wl,-u,exception_table",
+  "-C", "link-arg=--specs=nano.specs",
+  "-C", "link-arg=--specs=nosys.specs",
+]

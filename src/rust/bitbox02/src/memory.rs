@@ -19,6 +19,14 @@ pub fn get_device_name() -> String {
         .into()
 }
 
+pub fn random_name() -> String {
+    let mut name = [0u8; DEVICE_NAME_MAX_LEN + 1];
+    unsafe { bitbox02_sys::memory_random_name(name.as_mut_ptr().cast()) }
+    util::strings::str_from_null_terminated(&name[..])
+        .unwrap()
+        .into()
+}
+
 pub fn set_device_name(name: &str) -> Result<(), MemoryError> {
     match unsafe {
         bitbox02_sys::memory_set_device_name(

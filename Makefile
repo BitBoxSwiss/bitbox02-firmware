@@ -11,6 +11,30 @@ BITBOX02_FIRMWARE_CARGO_CONFIG := src/rust/bins/bitbox02-firmware/.cargo/config.
 BITBOX02_FIRMWARE_CARGO_ARGS := --release --manifest-path $(RUST_WORKSPACE_MANIFEST) -p bitbox02-firmware --config $(BITBOX02_FIRMWARE_CARGO_CONFIG)
 BITBOX02_FIRMWARE_TARGET_DIR := src/rust/target/thumbv7em-none-eabi/release
 BITBOX02_FIRMWARE_ELF := $(BITBOX02_FIRMWARE_TARGET_DIR)/bitbox02-firmware
+BITBOX02_BOOTLOADER_CARGO_CONFIG := src/rust/bins/bitbox02-bootloader/.cargo/config.toml
+BITBOX02_BOOTLOADER_CARGO_ARGS := --manifest-path $(RUST_WORKSPACE_MANIFEST) -p bitbox02-bootloader --config $(BITBOX02_BOOTLOADER_CARGO_CONFIG)
+BITBOX02_BOOTLOADER_TARGET_DIR_RELEASE := src/rust/target/thumbv7em-none-eabi/release
+BITBOX02_BOOTLOADER_TARGET_DIR_DEBUG := src/rust/target/thumbv7em-none-eabi/debug
+
+define build_bootloader_release
+	mkdir -p build/bin build/scripts
+	./scripts/dev_exec.sh cargo build $(BITBOX02_BOOTLOADER_CARGO_ARGS) --release --features $(2)
+	cp $(BITBOX02_BOOTLOADER_TARGET_DIR_RELEASE)/bitbox02-bootloader build/bin/$(1).elf
+	cp $(BITBOX02_BOOTLOADER_TARGET_DIR_RELEASE)/$(1).map build/bin/$(1).map
+	arm-none-eabi-size build/bin/$(1).elf
+	arm-none-eabi-objcopy -O binary build/bin/$(1).elf build/bin/$(1).bin
+	python3 scripts/expand_template scripts/template-bootloader.jlink file=build/bin/$(1).bin -o build/scripts/$(1).jlink
+endef
+
+define build_bootloader_debug
+	mkdir -p build/bin build/scripts
+	./scripts/dev_exec.sh cargo build $(BITBOX02_BOOTLOADER_CARGO_ARGS) --features $(2)
+	cp $(BITBOX02_BOOTLOADER_TARGET_DIR_DEBUG)/bitbox02-bootloader build/bin/$(1).elf
+	cp $(BITBOX02_BOOTLOADER_TARGET_DIR_DEBUG)/$(1).map build/bin/$(1).map
+	arm-none-eabi-size build/bin/$(1).elf
+	arm-none-eabi-objcopy -O binary build/bin/$(1).elf build/bin/$(1).bin
+	python3 scripts/expand_template scripts/template-bootloader.jlink file=build/bin/$(1).bin -o build/scripts/$(1).jlink
+endef
 
 bootstrap:
 	git submodule update --init --recursive
@@ -69,39 +93,39 @@ firmware-btc:
 firmware-debug: | build-debug
 	$(MAKE) -C build-debug firmware.elf
 
-bootloader: | build
-	$(MAKE) -C build bb02-bl-multi.elf
-bootloader-development: | build
-	$(MAKE) -C build bb02-bl-multi-development.elf
-bootloader-development-locked: | build
-	$(MAKE) -C build bb02-bl-multi-development-locked.elf
-bootloader-production: | build
-	$(MAKE) -C build bb02-bl-multi-production.elf
-bootloader-debug: | build-debug
-	$(MAKE) -C build-debug bb02-bl-multi-development.elf
+bootloader:
+	$(call build_bootloader_release,bb02-bl-multi,target-bb02-bl-multi)
+bootloader-development:
+	$(call build_bootloader_release,bb02-bl-multi-development,target-bb02-bl-multi-development)
+bootloader-development-locked:
+	$(call build_bootloader_release,bb02-bl-multi-development-locked,target-bb02-bl-multi-development-locked)
+bootloader-production:
+	$(call build_bootloader_release,bb02-bl-multi-production,target-bb02-bl-multi-production)
+bootloader-debug:
+	$(call build_bootloader_debug,bb02-bl-multi-development,target-bb02-bl-multi-development)
 
-bootloader-btc: | build
-	$(MAKE) -C build bb02-bl-btconly.elf
-bootloader-btc-development: | build
-	$(MAKE) -C build bb02-bl-btconly-development.elf
-bootloader-btc-production: | build
-	$(MAKE) -C build bb02-bl-btconly-production.elf
+bootloader-btc:
+	$(call build_bootloader_release,bb02-bl-btconly,target-bb02-bl-btconly)
+bootloader-btc-development:
+	$(call build_bootloader_release,bb02-bl-btconly-development,target-bb02-bl-btconly-development)
+bootloader-btc-production:
+	$(call build_bootloader_release,bb02-bl-btconly-production,target-bb02-bl-btconly-production)
 
-bootloader-plus: | build
-	$(MAKE) -C build bb02p-bl-multi.elf
-bootloader-plus-development: | build
-	$(MAKE) -C build bb02p-bl-multi-development.elf
-bootloader-plus-production: | build
-	$(MAKE) -C build bb02p-bl-multi-production.elf
-bootloader-plus-debug: | build-debug
-	$(MAKE) -C build-debug bb02p-bl-multi-development.elf
+bootloader-plus:
+	$(call build_bootloader_release,bb02p-bl-multi,target-bb02p-bl-multi)
+bootloader-plus-development:
+	$(call build_bootloader_release,bb02p-bl-multi-development,target-bb02p-bl-multi-development)
+bootloader-plus-production:
+	$(call build_bootloader_release,bb02p-bl-multi-production,target-bb02p-bl-multi-production)
+bootloader-plus-debug:
+	$(call build_bootloader_debug,bb02p-bl-multi-development,target-bb02p-bl-multi-development)
 
-bootloader-plus-btc: | build
-	$(MAKE) -C build bb02p-bl-btconly.elf
-bootloader-plus-btc-development: | build
-	$(MAKE) -C build bb02p-bl-btconly-development.elf
-bootloader-plus-btc-production: | build
-	$(MAKE) -C build bb02p-bl-btconly-production.elf
+bootloader-plus-btc:
+	$(call build_bootloader_release,bb02p-bl-btconly,target-bb02p-bl-btconly)
+bootloader-plus-btc-development:
+	$(call build_bootloader_release,bb02p-bl-btconly-development,target-bb02p-bl-btconly-development)
+bootloader-plus-btc-production:
+	$(call build_bootloader_release,bb02p-bl-btconly-production,target-bb02p-bl-btconly-production)
 
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
@@ -137,20 +161,20 @@ run-valgrind-on-unit-tests:
 	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
 flash-dev-firmware: | firmware
 	./py/load_firmware.py build/bin/firmware.bin --debug
-jlink-flash-bootloader-development: | build
+jlink-flash-bootloader-development: | bootloader-development
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development.jlink
-jlink-flash-bootloader-plus-development: | build
+jlink-flash-bootloader-plus-development: | bootloader-plus-development
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-multi-development.jlink
-jlink-flash-bootloader-btc-plus-development: | build
+jlink-flash-bootloader-btc-plus-development: | bootloader-plus-btc-development
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-btconly-development.jlink
-jlink-flash-bootloader-development-locked: | build
+jlink-flash-bootloader-development-locked: | bootloader-development-locked
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development-locked.jlink
-jlink-flash-bootloader: | build
+jlink-flash-bootloader: | bootloader
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi.jlink
-jlink-flash-bootloader-btc-development: | build
+jlink-flash-bootloader-btc-development: | bootloader-btc-development
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btconly-development.jlink
-jlink-flash-bootloader-btc: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btc.jlink
+jlink-flash-bootloader-btc: | bootloader-btc
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btconly.jlink
 jlink-flash-firmware: | firmware
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
 jlink-flash-firmware-btc: | firmware-btc

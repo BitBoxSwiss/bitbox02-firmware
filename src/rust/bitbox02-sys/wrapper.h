@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <bootloader/bootloader.h>
+#include <bootloader/mpu_regions.h>
 #include <common_main.h>
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
@@ -67,3 +69,6 @@
 void delay_us(const uint16_t us);
 void delay_ms(const uint16_t ms);
 #endif
+
+void bootloader_render_ble_confirm_screen(bool confirmed);
+extern volatile bool measurement_done_touch;

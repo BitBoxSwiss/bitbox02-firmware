@@ -101,7 +101,9 @@ testing = [
 
 c-unit-testing = []
 
-simulator-graphical = []
+simulator-graphical = [
+  "bitbox02/simulator-graphical",
+]
 
 firmware = []
 

@@ -89,6 +89,7 @@ simulator-graphical = [
   "app-ethereum",
   "app-cardano",
   "firmware",
+  "bitbox02/simulator-graphical",
 ]
 
 app-ethereum = [

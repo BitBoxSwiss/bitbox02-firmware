@@ -237,13 +237,6 @@ unsafe fn panic_hal_mut<'a>() -> Option<&'a mut HalImpl> {
     }
 }
 
-#[cfg(all(test, feature = "firmware"))]
-fn make_test_hal() -> BitBox02HAL {
-    BitBox02HAL {
-        storage: [0; BITBOX02_HAL_STORAGE_SIZE],
-    }
-}
-
 // Keep this as a numeric literal so cbindgen reliably exports it to C.
 // The static assert below enforces consistency with the Rust HAL constant.
 /// Maximum device name length in bytes, including null terminator.

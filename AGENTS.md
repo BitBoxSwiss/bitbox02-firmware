@@ -61,6 +61,7 @@ security-sensitive areas.
 - In Rust unit tests, if testing a function foo, name the test `test_foo` (or `test_foo_xyz` if it needs qualifiers).
 - in Rust unit tests, prefer .as_slice() instead of `&*` for wrapped/zeroized Vec<u8>.
 - in Rust unit tests, prefer `hex!` literals for byte arrays/constants.
+- in Rust unit tests, call cargo test with --test-threads=1
 
 ## Review Guidelines
 

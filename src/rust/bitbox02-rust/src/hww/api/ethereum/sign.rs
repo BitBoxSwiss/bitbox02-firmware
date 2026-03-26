@@ -2,9 +2,12 @@
 
 use super::super::payment_request;
 use super::Error;
+use super::MAX_CONFIRM_BODY_SIZE;
 use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
 use super::pb;
+use super::sighash::DataProducer;
+use super::truncating_hex_preview_byte_cap;
 use crate::hal::ui::ConfirmParams;
 
 use crate::keystore;
@@ -12,6 +15,7 @@ use crate::keystore;
 use crate::hal::Ui;
 use crate::workflow::transaction;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 use hex_lit::hex;
 use pb::eth_response::Response;
@@ -21,7 +25,6 @@ use num_bigint::BigUint;
 
 // 1 ETH = 1e18 wei.
 const WEI_DECIMALS: usize = 18;
-
 pub enum Transaction<'a> {
     Legacy(&'a pb::EthSignRequest),
     Eip1559(&'a pb::EthSignEip1559Request),
@@ -220,13 +223,21 @@ async fn hash_legacy(chain_id: u64, request: &pb::EthSignRequest) -> Result<[u8;
     } else {
         super::sighash::ChunkingProducer::from_data(&request.data)
     };
+    hash_legacy_with_producer(chain_id, request, &mut producer).await
+}
+
+async fn hash_legacy_with_producer(
+    chain_id: u64,
+    request: &pb::EthSignRequest,
+    producer: &mut dyn DataProducer,
+) -> Result<[u8; 32], Error> {
     let mut params = super::sighash::ParamsLegacy {
         nonce: &request.nonce,
         gas_price: &request.gas_price,
         gas_limit: &request.gas_limit,
         recipient: &request.recipient,
         value: &request.value,
-        data: &mut producer,
+        data: producer,
         chain_id,
     };
     super::sighash::compute_legacy(&mut params)
@@ -240,6 +251,13 @@ async fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], E
     } else {
         super::sighash::ChunkingProducer::from_data(&request.data)
     };
+    hash_eip1559_with_producer(request, &mut producer).await
+}
+
+async fn hash_eip1559_with_producer(
+    request: &pb::EthSignEip1559Request,
+    producer: &mut dyn DataProducer,
+) -> Result<[u8; 32], Error> {
     let mut params = super::sighash::ParamsEIP1559 {
         chain_id: request.chain_id,
         nonce: &request.nonce,
@@ -248,11 +266,38 @@ async fn hash_eip1559(request: &pb::EthSignEip1559Request) -> Result<[u8; 32], E
         gas_limit: &request.gas_limit,
         recipient: &request.recipient,
         value: &request.value,
-        data: &mut producer,
+        data: producer,
     };
     super::sighash::compute_eip1559(&mut params)
         .await
         .map_err(|_| Error::InvalidInput)
+}
+
+struct PreparedStreamingStandardData {
+    body: String,
+    display_size: usize,
+    hash: [u8; 32],
+}
+
+async fn prepare_streaming_standard_data(
+    chain_id: u64,
+    request: &Transaction<'_>,
+) -> Result<PreparedStreamingStandardData, Error> {
+    let display_size = request.data_length() as usize;
+    let display_cap = truncating_hex_preview_byte_cap(0, display_size);
+    let mut producer = super::sighash::ChunkingProducer::from_host(request.data_length())
+        .with_preview(display_cap);
+    let hash = match request {
+        Transaction::Legacy(legacy) => {
+            hash_legacy_with_producer(chain_id, legacy, &mut producer).await?
+        }
+        Transaction::Eip1559(eip1559) => hash_eip1559_with_producer(eip1559, &mut producer).await?,
+    };
+    Ok(PreparedStreamingStandardData {
+        body: hex::encode(producer.preview()),
+        display_size,
+        hash,
+    })
 }
 
 /// Verifies an ERC20 transfer.
@@ -331,7 +376,7 @@ async fn verify_standard_transaction(
     request: &Transaction<'_>,
     params: &Params,
     payment_request: Option<&pb::BtcPaymentRequestRequest>,
-) -> Result<(), Error> {
+) -> Result<Option<[u8; 32]>, Error> {
     let recipient = parse_recipient(request.recipient())?;
 
     let data_length = request.data_length();
@@ -362,9 +407,10 @@ async fn verify_standard_transaction(
         )
         .await?;
         verify_standard_total_fee(hal, request, params, &amount_value).await?;
-        return Ok(());
+        return Ok(None);
     }
 
+    let mut prepared_streaming_data = None;
     if !request.data().is_empty() || data_length > 0 {
         hal.ui()
             .confirm(&ConfirmParams {
@@ -391,29 +437,35 @@ async fn verify_standard_transaction(
             })
             .await?;
 
-        if data_length > 0 {
-            // Streaming mode: data is too large to display, show size instead
-            hal.ui()
-                .confirm(&ConfirmParams {
-                    title: "Transaction\ndata",
-                    body: &alloc::format!("{} bytes\n(too large to\ndisplay)", data_length),
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
+        let (display_size, body) = if data_length > 0 {
+            let prepared = prepare_streaming_standard_data(params.chain_id, request).await?;
+            let display_size = prepared.display_size;
+            let body = prepared.body.clone();
+            prepared_streaming_data = Some(prepared);
+            (display_size, body)
         } else {
-            // Nonstreaming mode: show hex data
+            (request.data().len(), hex::encode(request.data()))
+        };
+        if body.len() > MAX_CONFIRM_BODY_SIZE {
             hal.ui()
                 .confirm(&ConfirmParams {
-                    title: "Transaction\ndata",
-                    body: &hex::encode(request.data()),
-                    scrollable: true,
-                    display_size: request.data().len(),
+                    title: "Warning",
+                    body: "The next value is\ntoo large to display\nin full",
                     accept_is_nextarrow: true,
                     ..Default::default()
                 })
                 .await?;
         }
+        hal.ui()
+            .confirm(&ConfirmParams {
+                title: "Transaction\ndata",
+                body: &body,
+                scrollable: true,
+                display_size,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
@@ -428,7 +480,7 @@ async fn verify_standard_transaction(
         .await?;
 
     verify_standard_total_fee(hal, request, params, &amount.value).await?;
-    Ok(())
+    Ok(prepared_streaming_data.map(|prepared| prepared.hash))
 }
 
 pub async fn _process(
@@ -517,7 +569,9 @@ pub async fn _process(
         Transaction::Eip1559(eip1559) => eip1559.payment_request.as_ref(),
         Transaction::Legacy(_) => None,
     };
-    if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
+    let erc20_transfer = parse_erc20(request);
+    let precomputed_standard_hash;
+    if let Some((erc20_recipient, erc20_value)) = erc20_transfer {
         verify_erc20_transaction(
             hal,
             request,
@@ -527,14 +581,19 @@ pub async fn _process(
             payment_request,
         )
         .await?;
+        precomputed_standard_hash = None;
     } else {
-        verify_standard_transaction(hal, request, &params, payment_request).await?;
+        precomputed_standard_hash =
+            verify_standard_transaction(hal, request, &params, payment_request).await?;
     }
     hal.ui().status("Transaction\nconfirmed", true).await;
 
-    let hash: [u8; 32] = match request {
-        Transaction::Legacy(legacy) => hash_legacy(params.chain_id, legacy).await?,
-        Transaction::Eip1559(eip1559) => hash_eip1559(eip1559).await?,
+    let hash: [u8; 32] = match precomputed_standard_hash {
+        Some(hash) => hash,
+        None => match request {
+            Transaction::Legacy(legacy) => hash_legacy(params.chain_id, legacy).await?,
+            Transaction::Eip1559(eip1559) => hash_eip1559(eip1559).await?,
+        },
     };
 
     let host_nonce = match request.host_nonce_commitment() {
@@ -597,7 +656,9 @@ mod tests {
 
     use super::super::super::payment_request;
     use super::super::address;
-    use super::super::sighash::tests::{clear_chunk_responder, setup_chunk_responder};
+    use super::super::sighash::tests::{
+        clear_chunk_responder, setup_chunk_responder, setup_counting_chunk_responder,
+    };
 
     // Base payment request fixture for ETH-side swap tests.
     fn make_eth_swap_payment_request() -> pb::BtcPaymentRequestRequest {
@@ -1930,6 +1991,54 @@ mod tests {
     }
 
     #[async_test::test]
+    pub async fn test_nonstreaming_large_data_shows_warning_and_display_size() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..321u32).map(|i| (i % 256) as u8).collect();
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let result = process(
+            &mut mock_hal,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("01").to_vec(),
+                gas_price: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
+                value: b"".to_vec(),
+                data: test_data,
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
+            }),
+        )
+        .await;
+
+        match result {
+            Ok(Response::Sign(ref sig)) => assert_eq!(sig.signature.len(), 65),
+            other => panic!("expected Ok(Sign), got {:?}", other),
+        }
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 321]);
+        assert_eq!(
+            mock_hal.ui.screens[3],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: "The next value is\ntoo large to display\nin full".into(),
+                longtouch: false,
+            }
+        );
+        match &mock_hal.ui.screens[4] {
+            Screen::Confirm { title, body, .. } => {
+                assert_eq!(title, "Transaction\ndata");
+                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+            }
+            _ => panic!("unexpected screen"),
+        }
+    }
+
+    #[async_test::test]
     pub async fn test_streaming_large_data_legacy() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..10000u32).map(|i| (i % 256) as u8).collect();
@@ -1955,50 +2064,75 @@ mod tests {
                     address_case: pb::EthAddressCase::Mixed as _,
                     data_length: 10000,
                 }),
-            ).await,
+            )
+            .await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("f00a05084c540bb69b9d0d1e7783a0fe315ffc3ffdc0edc32a3d0e9d00f9d8a86c7b5c36fc136062adc1857e2edcf73eb75138d5390ed807b2cb0b90652fef2201")
                     .to_vec()
             }))
         );
         clear_chunk_responder();
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 10_000]);
         assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Sign transaction on\n\nEthereum".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Unknown\ncontract".into(),
-                    body: "You are signing a\ncontract interaction\nwith large data.".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Unknown\ncontract".into(),
-                    body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Transaction\ndata".into(),
-                    body: "10000 bytes\n(too large to\ndisplay)".into(),
-                    longtouch: false,
-                },
-                Screen::Recipient {
-                    recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
-                    amount: "0 ETH".into(),
-                },
-                Screen::TotalFee {
-                    total: "0.02 ETH".into(),
-                    fee: "0.02 ETH".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true,
-                },
-            ]
+            mock_hal.ui.screens[0],
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[1],
+            Screen::Confirm {
+                title: "Unknown\ncontract".into(),
+                body: "You are signing a\ncontract interaction\nwith large data.".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[2],
+            Screen::Confirm {
+                title: "Unknown\ncontract".into(),
+                body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[3],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: "The next value is\ntoo large to display\nin full".into(),
+                longtouch: false,
+            }
+        );
+        match &mock_hal.ui.screens[4] {
+            Screen::Confirm { title, body, .. } => {
+                assert_eq!(title, "Transaction\ndata");
+                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+            }
+            _ => panic!("unexpected screen"),
+        }
+        assert_eq!(
+            mock_hal.ui.screens[5],
+            Screen::Recipient {
+                recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
+                amount: "0 ETH".into(),
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[6],
+            Screen::TotalFee {
+                total: "0.02 ETH".into(),
+                fee: "0.02 ETH".into(),
+                longtouch: true,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[7],
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            }
         );
     }
 
@@ -2071,6 +2205,7 @@ mod tests {
             }))
         );
         clear_chunk_responder();
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 12_000]);
         assert_eq!(
             mock_hal.ui.screens,
             vec![
@@ -2090,8 +2225,13 @@ mod tests {
                     longtouch: false,
                 },
                 Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "The next value is\ntoo large to display\nin full".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
                     title: "Transaction\ndata".into(),
-                    body: "12000 bytes\n(too large to\ndisplay)".into(),
+                    body: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40".into(),
                     longtouch: false,
                 },
                 Screen::Recipient {
@@ -2109,5 +2249,76 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[async_test::test]
+    async fn test_streaming_large_data_legacy_chunk_request_count() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..10_000u32).map(|i| (i % 256) as u8).collect();
+
+        let chunk_request_count = setup_counting_chunk_responder(test_data);
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let result = process(
+            &mut mock_hal,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("01").to_vec(),
+                gas_price: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
+                value: b"".to_vec(),
+                data: vec![],
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 10_000,
+            }),
+        )
+        .await;
+        clear_chunk_responder();
+
+        match result {
+            Ok(Response::Sign(ref sig)) => assert_eq!(sig.signature.len(), 65),
+            other => panic!("expected Ok(Sign), got {:?}", other),
+        }
+        assert_eq!(chunk_request_count.get(), 3);
+    }
+
+    #[async_test::test]
+    async fn test_streaming_large_data_eip1559_chunk_request_count() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..12_000u32).map(|i| (i % 256) as u8).collect();
+
+        let chunk_request_count = setup_counting_chunk_responder(test_data);
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let result = process(
+            &mut mock_hal,
+            &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("01").to_vec(),
+                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                max_fee_per_gas: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
+                value: b"".to_vec(),
+                data: vec![],
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 12_000,
+                payment_request: None,
+            }),
+        )
+        .await;
+        clear_chunk_responder();
+
+        match result {
+            Ok(Response::Sign(ref sig)) => assert_eq!(sig.signature.len(), 65),
+            other => panic!("expected Ok(Sign), got {:?}", other),
+        }
+        assert_eq!(chunk_request_count.get(), 3);
     }
 }

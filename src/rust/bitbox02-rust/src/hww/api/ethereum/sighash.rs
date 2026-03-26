@@ -26,15 +26,40 @@ pub trait DataProducer {
     -> Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, Error>> + 'a>>;
 }
 
+pub struct Preview {
+    cap: usize,
+    bytes: Vec<u8>,
+}
+
+impl Preview {
+    fn new(cap: usize) -> Self {
+        Self {
+            cap,
+            bytes: Vec::new(),
+        }
+    }
+
+    fn capture(&mut self, chunk: &[u8]) {
+        let remaining = self.cap.saturating_sub(self.bytes.len());
+        if remaining == 0 {
+            return;
+        }
+        let n = remaining.min(chunk.len());
+        self.bytes.extend_from_slice(&chunk[..n]);
+    }
+}
+
 pub enum ChunkingProducer<'a> {
     Inline {
         data: &'a [u8],
         consumed: bool,
+        preview: Option<Preview>,
     },
     Host {
         total_length: u32,
         offset: u32,
         first_byte_cached: Option<u8>,
+        preview: Option<Preview>,
     },
 }
 
@@ -43,6 +68,7 @@ impl<'a> ChunkingProducer<'a> {
         Self::Inline {
             data,
             consumed: false,
+            preview: None,
         }
     }
 
@@ -51,6 +77,24 @@ impl<'a> ChunkingProducer<'a> {
             total_length,
             offset: 0,
             first_byte_cached: None,
+            preview: None,
+        }
+    }
+
+    pub fn with_preview(mut self, cap: usize) -> Self {
+        match &mut self {
+            Self::Inline { preview, .. } | Self::Host { preview, .. } => {
+                *preview = Some(Preview::new(cap));
+            }
+        }
+        self
+    }
+
+    pub fn preview(&self) -> &[u8] {
+        match self {
+            Self::Inline { preview, .. } | Self::Host { preview, .. } => preview
+                .as_ref()
+                .map_or(&[], |preview| preview.bytes.as_slice()),
         }
     }
 }
@@ -104,10 +148,18 @@ impl DataProducer for ChunkingProducer<'_> {
     ) -> Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, Error>> + 'a>> {
         Box::pin(async move {
             match self {
-                Self::Inline { data, consumed } => {
+                Self::Inline {
+                    data,
+                    consumed,
+                    preview,
+                } => {
                     if !*consumed {
                         *consumed = true;
-                        Ok(Some(data.to_vec()))
+                        let chunk = data.to_vec();
+                        if let Some(preview) = preview {
+                            preview.capture(&chunk);
+                        }
+                        Ok(Some(chunk))
                     } else {
                         Ok(None)
                     }
@@ -121,9 +173,14 @@ impl DataProducer for ChunkingProducer<'_> {
                     total_length: 1,
                     offset,
                     first_byte_cached: Some(byte),
+                    preview,
                 } if *offset == 0 => {
                     *offset += 1;
-                    Ok(Some(alloc::vec![*byte]))
+                    let chunk = alloc::vec![*byte];
+                    if let Some(preview) = preview {
+                        preview.capture(&chunk);
+                    }
+                    Ok(Some(chunk))
                 }
                 Self::Host {
                     first_byte_cached: Some(_),
@@ -133,6 +190,7 @@ impl DataProducer for ChunkingProducer<'_> {
                     total_length,
                     offset,
                     first_byte_cached: None,
+                    preview,
                 } => {
                     const CHUNK_SIZE: u32 = 4096;
                     let remaining = *total_length - *offset;
@@ -156,6 +214,9 @@ impl DataProducer for ChunkingProducer<'_> {
                             }
 
                             *offset += chunk.len() as u32;
+                            if let Some(preview) = preview {
+                                preview.capture(&chunk);
+                            }
                             Ok(Some(chunk))
                         }
                         _ => Err(Error::InvalidInput),
@@ -354,7 +415,9 @@ pub mod tests {
     use super::*;
 
     use alloc::boxed::Box;
+    use alloc::rc::Rc;
     use alloc::string::String;
+    use core::cell::Cell;
     use serde::Deserialize;
 
     pub fn setup_chunk_responder(data: Vec<u8>) {
@@ -379,6 +442,30 @@ pub mod tests {
 
     pub fn clear_chunk_responder() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
+    }
+
+    pub fn setup_counting_chunk_responder(data: Vec<u8>) -> Rc<Cell<usize>> {
+        let count = Rc::new(Cell::new(0));
+        let count_clone = count.clone();
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(
+            move |response: crate::pb::response::Response| match response {
+                crate::pb::response::Response::Eth(crate::pb::EthResponse {
+                    response: Some(super::super::pb::eth_response::Response::DataRequestChunk(req)),
+                }) => {
+                    count_clone.set(count_clone.get() + 1);
+                    let offset = req.offset as usize;
+                    let length = req.length as usize;
+                    let chunk = data[offset..offset + length].to_vec();
+                    Ok(crate::pb::request::Request::Eth(crate::pb::EthRequest {
+                        request: Some(super::super::pb::eth_request::Request::DataResponseChunk(
+                            super::super::pb::EthSignDataResponseChunkRequest { chunk },
+                        )),
+                    }))
+                }
+                _ => panic!("unexpected response"),
+            },
+        ));
+        count
     }
 
     fn decode_hex(s: &str) -> Vec<u8> {
@@ -618,6 +705,32 @@ pub mod tests {
 
         let chunk4 = producer.next().await.unwrap();
         assert_eq!(chunk4, None);
+
+        clear_chunk_responder();
+    }
+
+    #[async_test::test]
+    async fn test_chunking_producer_preview_multiple_chunks() {
+        let data: Vec<u8> = (0..10_000u32).map(|i| (i % 256) as u8).collect();
+        setup_chunk_responder(data.clone());
+
+        let mut producer = ChunkingProducer::from_host(10_000).with_preview(321);
+        while producer.next().await.unwrap().is_some() {}
+
+        assert_eq!(producer.preview(), &data[..321]);
+
+        clear_chunk_responder();
+    }
+
+    #[async_test::test]
+    async fn test_chunking_producer_preview_cap_zero() {
+        let data = vec![0xAB; 100];
+        setup_chunk_responder(data);
+
+        let mut producer = ChunkingProducer::from_host(100).with_preview(0);
+        while producer.next().await.unwrap().is_some() {}
+
+        assert_eq!(producer.preview(), &[0u8; 0]);
 
         clear_chunk_responder();
     }

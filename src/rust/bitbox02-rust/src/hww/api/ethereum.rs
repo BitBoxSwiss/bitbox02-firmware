@@ -23,6 +23,24 @@ use pb::eth_response::Response;
 
 use core::convert::TryInto;
 
+// Keep this in sync with src/ui/components/label.h:MAX_LABEL_SIZE. `MAX_CONFIRM_BODY_SIZE` is the
+// effective confirmation body limit and intentionally matches that UI label size limit.
+const MAX_CONFIRM_BODY_SIZE: usize = 640;
+
+/// Returns how many bytes of hex-encoded data to include in a preview body.
+///
+/// The preview body is rendered as `<prefix><hex>`. If the full value is longer than what fits,
+/// one additional byte is included so the body exceeds `MAX_CONFIRM_BODY_SIZE` and the UI appends
+/// `...`.
+fn truncating_hex_preview_byte_cap(prefix_len: usize, data_length: usize) -> usize {
+    let hex_chars_budget = MAX_CONFIRM_BODY_SIZE.saturating_sub(prefix_len);
+    let bytes_that_fit = hex_chars_budget / 2;
+    let needs_ellipsis = data_length > bytes_that_fit;
+    let preview_bytes = bytes_that_fit + usize::from(needs_ellipsis);
+
+    preview_bytes.min(data_length)
+}
+
 pub(crate) fn derive_address(
     hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
@@ -122,5 +140,12 @@ mod tests {
         let result = derive_address(&mut hal, &keypath);
 
         assert!(matches!(result, Err(Error::InvalidInput)));
+    }
+
+    #[test]
+    fn test_transaction_data_display_byte_cap() {
+        assert_eq!(truncating_hex_preview_byte_cap(0, 320), 320);
+        assert_eq!(truncating_hex_preview_byte_cap(0, 321), 321);
+        assert_eq!(truncating_hex_preview_byte_cap(0, 10_000), 321);
     }
 }

@@ -18,6 +18,7 @@ pub trait System {
     /// cancelled).
     fn communication_timeout_reset(&mut self, value: i16);
 
+    fn is_btconly(&mut self) -> bool;
     fn reboot(&mut self) -> !;
     fn reboot_to_bootloader(&mut self) -> !;
     fn reset_ble(&mut self);

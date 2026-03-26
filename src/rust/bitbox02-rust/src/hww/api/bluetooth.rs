@@ -317,7 +317,7 @@ mod tests {
         ];
 
         for test in test_cases {
-            let mut memory = crate::hal::testing::TestingMemory::new();
+            let mut memory = fake_hardware::memory::FakeMemory::new();
             let mut mock_funcs = MockFuncs {
                 chunk_requests: Vec::new(),
             };
@@ -349,7 +349,7 @@ mod tests {
     /// Verifies that a successful upgrade writes firmware bytes to the inactive slot and updates BLE metadata.
     #[test]
     fn test_process_upgrade_helper_success_updates_metadata_and_slot_data() {
-        let mut memory = crate::hal::testing::TestingMemory::new();
+        let mut memory = fake_hardware::memory::FakeMemory::new();
         let initial_metadata = make_metadata(0);
         memory.set_ble_metadata(&initial_metadata).unwrap();
 
@@ -404,7 +404,7 @@ mod tests {
     /// Verifies that when slot 1 is active, a successful upgrade targets slot 0 and flips active index.
     #[test]
     fn test_process_upgrade_helper_success_uses_first_slot_if_second_is_active() {
-        let mut memory = crate::hal::testing::TestingMemory::new();
+        let mut memory = fake_hardware::memory::FakeMemory::new();
         let initial_metadata = make_metadata(1);
         memory.set_ble_metadata(&initial_metadata).unwrap();
 

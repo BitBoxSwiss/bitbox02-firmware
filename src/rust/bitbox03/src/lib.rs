@@ -33,7 +33,7 @@ impl BitBox03State {
             random: random::BitBox03Random {},
             sd: sd::BitBox03Sd {},
             securechip: securechip::BitBox03SecureChip {},
-            memory: memory::BitBox03Memory {},
+            memory: memory::BitBox03Memory,
             eeprom: eeprom::BitBox03Eeprom::new(),
             system: system::BitBox03System {},
         }

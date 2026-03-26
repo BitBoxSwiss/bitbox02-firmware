@@ -14,6 +14,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 static EXECUTOR: Executor = Executor::new();
 type DynExecutorFuture = Pin<Box<dyn Future<Output = ()> + 'static>>;
+const USB_REPORT_QUEUE_SIZE: usize = 129;
 
 pub fn spawn(fut: DynExecutorFuture) {
     EXECUTOR.spawn(fut).detach();
@@ -28,9 +29,9 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
     let mut uart_read_buf_len = 0u16;
 
     let mut uart_write_queue = ByteQueue::with_capacity(2048);
-    let mut hww_queue = UsbReportQueue::new();
+    let mut hww_queue = UsbReportQueue::<USB_REPORT_QUEUE_SIZE>::new();
     #[cfg(feature = "app-u2f")]
-    let mut u2f_queue = UsbReportQueue::new();
+    let mut u2f_queue = UsbReportQueue::<USB_REPORT_QUEUE_SIZE>::new();
 
     bitbox02::usb_processing::init(&mut hww_queue);
     #[cfg(feature = "app-u2f")]

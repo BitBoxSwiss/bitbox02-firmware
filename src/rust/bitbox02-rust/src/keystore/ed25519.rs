@@ -74,10 +74,10 @@ pub struct SignResult {
     pub public_key: ed25519_dalek::VerifyingKey,
 }
 
-pub fn sign(
+pub fn sign_message(
     hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
-    msg: &[u8; 32],
+    msg: &[u8],
 ) -> Result<SignResult, ()> {
     let xprv = get_xprv(hal, keypath)?;
     let secret_key =
@@ -88,6 +88,14 @@ pub fn sign(
             .to_bytes(),
         public_key,
     })
+}
+
+pub fn sign(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+    msg: &[u8; 32],
+) -> Result<SignResult, ()> {
+    sign_message(hal, keypath, msg)
 }
 
 #[cfg(test)]

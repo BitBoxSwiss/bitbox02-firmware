@@ -94,6 +94,10 @@ app-cardano = [
   "ed25519"
 ]
 
+app-solana = [
+  "ed25519"
+]
+
 testing = [
   "bitbox02/testing",
   "bitbox-secp256k1/testing",

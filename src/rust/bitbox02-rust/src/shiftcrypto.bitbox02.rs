@@ -1975,6 +1975,98 @@ pub struct SetMnemonicPassphraseEnabledRequest {
     pub enabled: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SolanaPubRequest {
+    #[prost(uint32, repeated, tag = "1")]
+    pub keypath: ::prost::alloc::vec::Vec<u32>,
+    #[prost(bool, tag = "2")]
+    pub display: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SolanaPubResponse {
+    #[prost(string, tag = "1")]
+    pub address: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "2")]
+    pub pubkey: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SolanaSignTransactionRequest {
+    #[prost(enumeration = "SolanaNetwork", tag = "1")]
+    pub network: i32,
+    #[prost(uint32, repeated, tag = "2")]
+    pub keypath: ::prost::alloc::vec::Vec<u32>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub message: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SolanaSignTransactionResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub signature: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SolanaRequest {
+    #[prost(oneof = "solana_request::Request", tags = "1, 2")]
+    pub request: ::core::option::Option<solana_request::Request>,
+}
+/// Nested message and enum types in `SolanaRequest`.
+pub mod solana_request {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Request {
+        #[prost(message, tag = "1")]
+        Pub(super::SolanaPubRequest),
+        #[prost(message, tag = "2")]
+        SignTransaction(super::SolanaSignTransactionRequest),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SolanaResponse {
+    #[prost(oneof = "solana_response::Response", tags = "1, 2")]
+    pub response: ::core::option::Option<solana_response::Response>,
+}
+/// Nested message and enum types in `SolanaResponse`.
+pub mod solana_response {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Response {
+        #[prost(message, tag = "1")]
+        Pub(super::SolanaPubResponse),
+        #[prost(message, tag = "2")]
+        SignTransaction(super::SolanaSignTransactionResponse),
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SolanaNetwork {
+    SolanaMainnet = 0,
+    SolanaDevnet = 1,
+}
+impl SolanaNetwork {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            SolanaNetwork::SolanaMainnet => "SolanaMainnet",
+            SolanaNetwork::SolanaDevnet => "SolanaDevnet",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SolanaMainnet" => Some(Self::SolanaMainnet),
+            "SolanaDevnet" => Some(Self::SolanaDevnet),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct RebootRequest {
     #[prost(enumeration = "reboot_request::Purpose", tag = "1")]
@@ -2058,7 +2150,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -2125,6 +2217,8 @@ pub mod request {
         Bluetooth(super::BluetoothRequest),
         #[prost(message, tag = "30")]
         ChangePassword(super::ChangePasswordRequest),
+        #[prost(message, tag = "31")]
+        Solana(super::SolanaRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -2132,7 +2226,7 @@ pub mod request {
 pub struct Response {
     #[prost(
         oneof = "response::Response",
-        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17"
+        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
     )]
     pub response: ::core::option::Option<response::Response>,
 }
@@ -2174,5 +2268,7 @@ pub mod response {
         Bip85(super::Bip85Response),
         #[prost(message, tag = "17")]
         Bluetooth(super::BluetoothResponse),
+        #[prost(message, tag = "18")]
+        Solana(super::SolanaResponse),
     }
 }

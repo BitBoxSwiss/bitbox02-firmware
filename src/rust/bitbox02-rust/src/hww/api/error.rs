@@ -78,6 +78,13 @@ impl core::convert::From<crate::hww::api::cardano::keypath::Error> for Error {
     }
 }
 
+#[cfg(feature = "app-solana")]
+impl core::convert::From<crate::hww::api::solana::keypath::Error> for Error {
+    fn from(_error: crate::hww::api::solana::keypath::Error) -> Self {
+        Error::InvalidInput
+    }
+}
+
 #[cfg(feature = "app-cardano")]
 impl<E> core::convert::From<minicbor::encode::Error<E>> for Error {
     fn from(_error: minicbor::encode::Error<E>) -> Self {

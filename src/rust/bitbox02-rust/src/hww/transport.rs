@@ -59,6 +59,7 @@ fn info_response<H: Hal>(hal: &mut H) -> Vec<u8> {
     response.extend_from_slice(version);
     response.push(match hal.memory().get_platform() {
         Ok(crate::hal::memory::Platform::BitBox02Plus) => 0x02,
+        Ok(crate::hal::memory::Platform::BitBox03) => 0x03,
         _ => 0x00,
     });
     response.push(if hal.system().is_btconly() {
@@ -244,6 +245,18 @@ mod tests {
         assert_eq!(response[response.len() - 4], 0x02);
         assert_eq!(response[response.len() - 3], 0x01);
         assert_eq!(response[response.len() - 1], 0x01);
+    }
+
+    #[test]
+    fn test_req_info_bitbox03() {
+        let _guard = test_guard();
+        let mut handler = handler();
+        handler.hal.memory.set_platform(Platform::BitBox03);
+        let response = handler
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_INFO], 0)
+            .unwrap();
+        assert!(!response.is_empty());
+        assert_eq!(response[response.len() - 4], 0x03);
     }
 
     #[test]

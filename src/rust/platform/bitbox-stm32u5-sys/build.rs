@@ -85,25 +85,21 @@ fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(
     Ok(())
 }
 
-fn detect_sysroot() -> Option<String> {
-    if let Ok(sysroot) = env::var("CMAKE_SYSROOT") {
-        if !sysroot.is_empty() {
-            return Some(sysroot);
-        }
-    }
+fn detect_sysroot() -> Result<String, &'static str> {
     let output = Command::new("arm-none-eabi-gcc")
         .arg("--print-sysroot")
         .output()
-        .ok()?;
+        .map_err(|_| "failed to execute arm-none-eabi-gcc to detect sysroot")?;
     if !output.status.success() {
-        return None;
+        return Err("arm-none-eabi-gcc failed to detect sysroot");
     }
-    let sysroot = String::from_utf8(output.stdout).ok()?;
+    let sysroot =
+        String::from_utf8(output.stdout).map_err(|_| "arm-none-eabi-gcc sysroot is not utf-8")?;
     let sysroot = sysroot.trim();
     if sysroot.is_empty() {
-        None
+        Err("arm-none-eabi-gcc returned an empty sysroot")
     } else {
-        Some(sysroot.to_owned())
+        Ok(sysroot.to_owned())
     }
 }
 
@@ -149,9 +145,8 @@ fn main() -> Result<(), &'static str> {
     );
     // Parse headers as Cortex-M33, matching the ST project that generated these files.
     clang_args.push("--target=thumbv8m.main-none-eabihf".to_owned());
-    if let Some(sysroot) = detect_sysroot() {
-        clang_args.push(format!("--sysroot={sysroot}"));
-    }
+    let sysroot = detect_sysroot()?;
+    clang_args.push(format!("--sysroot={sysroot}"));
 
     let wrapper = manifest_dir.join("wrapper.h");
     if !wrapper.is_file() {

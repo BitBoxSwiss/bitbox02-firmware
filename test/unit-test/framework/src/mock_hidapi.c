@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <util.h>
@@ -10,10 +11,10 @@
 
 #include <hidapi.h>
 
-#include "queue.h"
 #include "u2f.h"
 #include "u2f/u2f_packet.h"
 #include "usb/usb_processing.h"
+#include <rust/rust.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
@@ -28,6 +29,10 @@ static bool _have_data;
 static pthread_t thread;
 static bool timer_thread_stop;
 static pthread_mutex_t mutex;
+
+struct mock_hid_device {
+    RustUsbReportQueue* u2f_queue;
+};
 
 static void _delay(uint32_t msec)
 {
@@ -72,6 +77,7 @@ int hid_init(void)
 
 void hid_close(hid_device* dev)
 {
+    struct mock_hid_device* mock_dev = (struct mock_hid_device*)dev;
     pthread_mutex_lock(&mutex);
     timer_thread_stop = true;
     pthread_mutex_unlock(&mutex);
@@ -80,12 +86,25 @@ void hid_close(hid_device* dev)
     if (res != 0) {
         printf("Failed to join thread\n");
     }
+    rust_usb_report_queue_free(mock_dev->u2f_queue);
+    free(mock_dev);
 }
 
 hid_device* hid_open_path(const char* path)
 {
-    static char sham[] = "sham";
-    usb_processing_init();
+    (void)path;
+    struct mock_hid_device* mock_dev = malloc(sizeof(*mock_dev));
+    if (mock_dev == NULL) {
+        printf("failed to allocate mock hid device\n");
+        return NULL;
+    }
+    mock_dev->u2f_queue = rust_usb_report_queue_init();
+    if (mock_dev->u2f_queue == NULL) {
+        printf("failed to allocate U2F queue\n");
+        free(mock_dev);
+        return NULL;
+    }
+    usb_processing_init_u2f(mock_dev->u2f_queue);
     u2f_device_setup();
     timer_thread_stop = false;
     int res = pthread_create(&thread, NULL, &timer_task, NULL);
@@ -93,11 +112,12 @@ hid_device* hid_open_path(const char* path)
         printf("failed to create thread\n");
     }
     pthread_mutex_init(&mutex, NULL);
-    return (hid_device*)&sham;
+    return (hid_device*)mock_dev;
 }
 
 int hid_write(hid_device* dev, const unsigned char* data, size_t length)
 {
+    (void)dev;
     if (length > BUFSIZE + 1) {
         printf("Internal test error: %lu > %lu\n", length - 1, BUFSIZE);
         return 0;
@@ -115,6 +135,8 @@ int hid_write(hid_device* dev, const unsigned char* data, size_t length)
 
 int hid_read_timeout(hid_device* dev, unsigned char* data, size_t length, int milliseconds)
 {
+    struct mock_hid_device* mock_dev = (struct mock_hid_device*)dev;
+    (void)milliseconds;
     if (_expect_more || !_have_data) {
         if (_expect_more) {
             // printf("Internal error: expected more before read\n");
@@ -126,16 +148,17 @@ int hid_read_timeout(hid_device* dev, unsigned char* data, size_t length, int mi
         usb_processing_process(usb_processing_u2f());
     }
     usb_processing_process(usb_processing_u2f());
-    uint8_t* p = queue_pull(queue_u2f_queue());
-    // printf("Queue: %p\n", p);
-    if (p != NULL) {
-        memcpy(data, p, MIN(length, BUFSIZE));
+    uint8_t report[USB_REPORT_SIZE];
+    bool have_report = rust_usb_report_queue_pull(mock_dev->u2f_queue, report);
+    // printf("Queue: %d\n", have_report);
+    if (have_report) {
+        memcpy(data, report, MIN(length, BUFSIZE));
     } else {
         // printf("No data in queue\n");
         _delay(600);
         return -127;
     }
-    if (queue_peek(queue_u2f_queue()) == NULL) {
+    if (!rust_usb_report_queue_peek(mock_dev->u2f_queue, report)) {
         if (usb_processing_locked(usb_processing_u2f())) {
             usb_processing_unlock();
         }

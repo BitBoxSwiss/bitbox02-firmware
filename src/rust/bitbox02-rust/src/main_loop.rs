@@ -4,6 +4,7 @@ use crate::hal::{Memory, System};
 use alloc::boxed::Box;
 use bitbox_bytequeue::ByteQueue;
 use bitbox_executor::Executor;
+use bitbox_usb_report_queue::UsbReportQueue;
 use bitbox02::uart::USART_0_BUFFER_SIZE;
 use bitbox02::usb_packet::USB_FRAME;
 use core::future::Future;
@@ -27,6 +28,16 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
     let mut uart_read_buf_len = 0u16;
 
     let mut uart_write_queue = ByteQueue::with_capacity(2048);
+    let mut hww_queue = UsbReportQueue::new();
+    #[cfg(feature = "app-u2f")]
+    let mut u2f_queue = UsbReportQueue::new();
+
+    bitbox02::usb_processing::init(&mut hww_queue);
+    #[cfg(feature = "app-u2f")]
+    bitbox02::usb_processing::init_u2f(&mut u2f_queue);
+    bitbox02::hww::setup();
+    #[cfg(feature = "app-u2f")]
+    bitbox02::u2f::setup();
 
     // If the bootloader has booted the BLE chip, the BLE chip isn't aware of the name according to
     // the fw. Send it over.
@@ -41,7 +52,6 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
 
     let mut hww_data = None;
     let mut hww_frame: USB_FRAME = unsafe { MaybeUninit::zeroed().assume_init() };
-
     #[cfg(feature = "app-u2f")]
     bitbox02::u2f_packet::init();
     #[cfg(feature = "app-u2f")]
@@ -67,7 +77,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
 
         // Check if there is outgoing data
         if hww_data.is_none() {
-            hww_data = bitbox02::queue::pull_hww();
+            hww_data = hww_queue.pull();
         }
 
         // Generate u2f timeout packets
@@ -79,7 +89,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
                 bitbox02::u2f_packet::timeout(timeout_cid);
             }
             if u2f_data.is_none() {
-                u2f_data = bitbox02::queue::pull_u2f();
+                u2f_data = u2f_queue.pull();
                 // If USB stack was locked and there is no more messages to send out, time to
                 // unlock it.
                 if u2f_data.is_none() && bitbox02::usb_processing::locked_u2f() {

@@ -38,6 +38,7 @@ use glutin_winit::DisplayBuilder;
 use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
+use bitbox_usb_report_queue::UsbReportQueue;
 use bitbox02::ui::ugui::UG_COLOR;
 use bitbox02_rust::hal::{Eeprom, Hal, Memory, System};
 
@@ -137,12 +138,12 @@ fn mirror_fn(_: bool) {
 
 static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
-fn init_hww(preseed: bool) -> bool {
+fn init_hww(preseed: bool, hww_queue: &mut UsbReportQueue) -> bool {
     bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
     bitbox02::screen::splash();
 
     // BitBox02 simulation initialization
-    bitbox02::usb_processing::init();
+    bitbox02::usb_processing::init(hww_queue);
     info!("USB setup success");
 
     bitbox02::hww::setup();
@@ -222,6 +223,7 @@ struct App {
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
+    hww_queue: UsbReportQueue,
 }
 
 impl Default for App {
@@ -241,6 +243,7 @@ impl Default for App {
             outbound_in: Default::default(),
             inbound_out: Default::default(),
             startup_task: Default::default(),
+            hww_queue: Default::default(),
         }
     }
 }
@@ -644,7 +647,7 @@ impl ApplicationHandler<UserEvent> for App {
                 }
                 // Send data to TCP Client
                 loop {
-                    if let Some(data) = bitbox02::queue::pull_hww() {
+                    if let Some(data) = self.hww_queue.pull() {
                         if let Some(outbound_in) = &mut self.outbound_in {
                             if outbound_in.send(data).is_err() {
                                 info!("writer thread died and closed channel");
@@ -735,7 +738,8 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Args::parse();
 
-    if !init_hww(args.preseed) {
+    let mut app = App::default();
+    if !init_hww(args.preseed, &mut app.hww_queue) {
         return Err(Box::new(AppError::new("Failed to init hww")));
     }
     let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;
@@ -806,7 +810,6 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = App::default();
     event_loop.run_app(&mut app)?;
 
     Ok(())

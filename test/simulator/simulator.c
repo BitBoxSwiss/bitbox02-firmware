@@ -8,7 +8,6 @@
 #include <fcntl.h>
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
-#include <queue.h>
 #include <random.h>
 #include <rust/rust.h>
 #include <sd.h>
@@ -39,16 +38,15 @@ static int get_usb_message_socket(uint8_t* input)
     return read(commfd, input, USB_HID_REPORT_OUT_SIZE);
 }
 
-static void send_usb_message_socket(void)
+static void send_usb_message_socket(RustUsbReportQueue* hww_queue)
 {
-    const uint8_t* data = queue_pull(queue_hww_queue());
-    while (data) {
+    uint8_t data[USB_REPORT_SIZE];
+    while (rust_usb_report_queue_pull(hww_queue, data)) {
         data_len = 256 * (int)data[5] + (int)data[6];
         if (!write(commfd, data, USB_HID_REPORT_OUT_SIZE)) {
             perror("ERROR, could not write to socket");
             exit(1);
         }
-        data = queue_pull(queue_hww_queue());
     }
 }
 
@@ -107,7 +105,12 @@ int main(int argc, char* argv[])
     }
 
     // BitBox02 simulation initialization
-    usb_processing_init();
+    RustUsbReportQueue* hww_queue = rust_usb_report_queue_init();
+    if (hww_queue == NULL) {
+        perror("ERROR, could not allocate HWW queue");
+        return 1;
+    }
+    usb_processing_init(hww_queue);
     printf("USB setup success\n");
 
     hww_setup();
@@ -215,10 +218,10 @@ int main(int argc, char* argv[])
                 // input, then it does not consume any packets but it still calls
                 // the send function to send further USB messages
                 usb_processing_process(usb_processing_hww());
-                send_usb_message_socket();
+                send_usb_message_socket(hww_queue);
                 temp_len -= (USB_HID_REPORT_OUT_SIZE - 5);
             }
-            send_usb_message_socket();
+            send_usb_message_socket(hww_queue);
         }
         close(commfd);
         printf("Socket connection closed\n");
@@ -226,5 +229,6 @@ int main(int argc, char* argv[])
     }
 after_main_loop:
     close(sockfd);
+    rust_usb_report_queue_free(hww_queue);
     return 0;
 }

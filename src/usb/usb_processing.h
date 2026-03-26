@@ -3,7 +3,6 @@
 #ifndef _USB_PROCESSING_H_
 #define _USB_PROCESSING_H_
 
-#include "queue.h"
 #include "usb_frame.h"
 #include "usb_packet.h"
 
@@ -24,12 +23,12 @@ void usb_processing_register_cmds(
  * Prepares USB frames to be send to the host.
  * param[in] data The data is copied into one or more frames
  */
-typedef queue_error_t (*usb_frame_formatter_t)(
+typedef UsbReportQueueError (*usb_frame_formatter_t)(
     const uint8_t cmd,
     const uint8_t* data,
     const uint32_t len,
     const uint32_t cid,
-    struct queue* queue);
+    RustUsbReportQueue* queue);
 
 /**
  * Enqueues a usb packet for processing. Ownership is transferred, and the
@@ -48,8 +47,13 @@ void usb_processing_process(struct usb_processing* ctx);
 
 struct usb_processing* usb_processing_u2f(void);
 struct usb_processing* usb_processing_hww(void);
+RustUsbReportQueue* usb_processing_out_queue(struct usb_processing* ctx);
 
-void usb_processing_init(void);
+void usb_processing_init(RustUsbReportQueue* hww_queue);
+
+#if APP_U2F == 1
+void usb_processing_init_u2f(RustUsbReportQueue* u2f_queue);
+#endif
 
 #if !defined(BOOTLOADER)
 void usb_processing_lock(struct usb_processing* ctx);

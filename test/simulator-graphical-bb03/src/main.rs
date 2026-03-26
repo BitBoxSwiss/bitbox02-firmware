@@ -40,6 +40,7 @@ use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 use bitbox_hal::{Hal, Ui};
 
+use bitbox_usb_report_queue::UsbReportQueue;
 use bitbox03::BitBox03;
 use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
 
@@ -201,9 +202,9 @@ fn my_flush_cb(display: lvgl::LvDisplay, _area: &lvgl::LvArea, _px_map: *mut u8)
     }
 }
 
-fn init_hww(_bitbox: &mut BitBox03, preseed: bool) -> bool {
+fn init_hww(_bitbox: &mut BitBox03, preseed: bool, _hww_queue: &mut UsbReportQueue) -> bool {
     // BitBox02 simulation initialization
-    //bitbox02::usb_processing::init();
+    //bitbox02::usb_processing::init(hww_queue);
     info!("USB setup success");
 
     //bitbox02::hww::setup();
@@ -245,6 +246,7 @@ struct App {
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
     counter: usize,
+    hww_queue: UsbReportQueue,
 }
 
 impl App {
@@ -264,6 +266,7 @@ impl App {
             inbound_out: Default::default(),
             startup_task: Default::default(),
             counter: 0,
+            hww_queue: Default::default(),
         }
     }
 }
@@ -630,18 +633,18 @@ impl ApplicationHandler<UserEvent> for App {
                     self.inbound_out = inbound_out;
                 }
                 // Send data to TCP Client
-                //loop {
-                //    if let Some(data) = bitbox02::queue::pull_hww() {
-                //        if let Some(outbound_in) = &mut self.outbound_in {
-                //            if outbound_in.send(data).is_err() {
-                //                info!("writer thread died and closed channel");
-                //                let _ = self.outbound_in.take();
-                //            }
-                //        }
-                //    } else {
-                //        break;
-                //    }
-                //}
+                loop {
+                    if let Some(data) = self.hww_queue.pull() {
+                        if let Some(outbound_in) = &mut self.outbound_in {
+                            if outbound_in.send(data).is_err() {
+                                info!("writer thread died and closed channel");
+                                let _ = self.outbound_in.take();
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
                 // Business logic
                 bitbox02_rust::async_usb::spin();
                 //bitbox02::usb_processing::process_hww();
@@ -714,7 +717,8 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 
     let args = Args::parse();
 
-    if !init_hww(&mut bitbox, args.preseed) {
+    let mut app = App::new(bitbox);
+    if !init_hww(&mut bitbox, args.preseed, &mut app.hww_queue) {
         return Err(Box::new(AppError::new("Failed to init hww")));
     }
     let event_loop = EventLoop::<UserEvent>::with_user_event().build()?;
@@ -785,7 +789,6 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = App::new(bitbox);
     event_loop.run_app(&mut app)?;
 
     Ok(())

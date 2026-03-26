@@ -4,6 +4,7 @@ use super::Error;
 use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
 use super::pb;
+use super::sighash::DataProducer;
 use crate::hal::ui::ConfirmParams;
 
 use crate::keystore;
@@ -12,6 +13,7 @@ use crate::hal::Ui;
 use crate::workflow::transaction;
 
 use alloc::vec::Vec;
+use bitbox02::ui::{MAX_CONFIRM_BODY_SIZE, truncating_hex_preview_byte_cap};
 use hex_lit::hex;
 use pb::eth_response::Response;
 
@@ -20,7 +22,6 @@ use num_bigint::BigUint;
 
 // 1 ETH = 1e18 wei.
 const WEI_DECIMALS: usize = 18;
-
 pub enum Transaction<'a> {
     Legacy(&'a pb::EthSignRequest),
     Eip1559(&'a pb::EthSignEip1559Request),
@@ -286,29 +287,46 @@ async fn verify_standard_transaction(
             })
             .await?;
 
-        if data_length > 0 {
-            // Streaming mode: data is too large to display, show size instead
-            hal.ui()
-                .confirm(&ConfirmParams {
-                    title: "Transaction\ndata",
-                    body: &alloc::format!("{} bytes\n(too large to\ndisplay)", data_length),
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
+        let display_size = if data_length > 0 {
+            data_length as usize
         } else {
-            // Nonstreaming mode: show hex data
+            request.data().len()
+        };
+        let body = if data_length > 0 {
+            let display_cap = truncating_hex_preview_byte_cap(0, display_size);
+            let mut producer = super::sighash::ChunkingProducer::from_host(data_length);
+            let mut display_buf: Vec<u8> = Vec::new();
+            while let Some(chunk) = producer.next().await? {
+                let n = (display_cap - display_buf.len()).min(chunk.len());
+                display_buf.extend_from_slice(&chunk[..n]);
+                if display_buf.len() >= display_cap {
+                    break;
+                }
+            }
+            hex::encode(display_buf)
+        } else {
+            hex::encode(request.data())
+        };
+        if body.len() > MAX_CONFIRM_BODY_SIZE {
             hal.ui()
                 .confirm(&ConfirmParams {
-                    title: "Transaction\ndata",
-                    body: &hex::encode(request.data()),
-                    scrollable: true,
-                    display_size: request.data().len(),
+                    title: "Warning",
+                    body: "The next value is\ntoo large to display\nin full",
                     accept_is_nextarrow: true,
                     ..Default::default()
                 })
                 .await?;
         }
+        hal.ui()
+            .confirm(&ConfirmParams {
+                title: "Transaction\ndata",
+                body: &body,
+                scrollable: true,
+                display_size,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
@@ -1564,6 +1582,60 @@ mod tests {
     }
 
     #[test]
+    fn test_transaction_data_display_byte_cap() {
+        assert_eq!(truncating_hex_preview_byte_cap(0, 320), 320);
+        assert_eq!(truncating_hex_preview_byte_cap(0, 321), 321);
+        assert_eq!(truncating_hex_preview_byte_cap(0, 10_000), 321);
+    }
+
+    #[test]
+    pub fn test_nonstreaming_large_data_shows_warning_and_display_size() {
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        let test_data: Vec<u8> = (0..321u32).map(|i| (i % 256) as u8).collect();
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        let result = block_on(process(
+            &mut mock_hal,
+            &Transaction::Legacy(&pb::EthSignRequest {
+                coin: pb::EthCoin::Eth as _,
+                keypath: KEYPATH.to_vec(),
+                nonce: hex!("01").to_vec(),
+                gas_price: hex!("04a817c800").to_vec(),
+                gas_limit: hex!("0f4240").to_vec(),
+                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
+                value: b"".to_vec(),
+                data: test_data,
+                host_nonce_commitment: None,
+                chain_id: 1,
+                address_case: pb::EthAddressCase::Mixed as _,
+                data_length: 0,
+            }),
+        ));
+
+        match result {
+            Ok(Response::Sign(ref sig)) => assert_eq!(sig.signature.len(), 65),
+            other => panic!("expected Ok(Sign), got {:?}", other),
+        }
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 321]);
+        assert_eq!(
+            mock_hal.ui.screens[3],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: "The next value is\ntoo large to display\nin full".into(),
+                longtouch: false,
+            }
+        );
+        match &mock_hal.ui.screens[4] {
+            Screen::Confirm { title, body, .. } => {
+                assert_eq!(title, "Transaction\ndata");
+                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+            }
+            _ => panic!("unexpected screen"),
+        }
+    }
+
+    #[test]
     pub fn test_streaming_large_data_legacy() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..10000u32).map(|i| (i % 256) as u8).collect();
@@ -1596,43 +1668,67 @@ mod tests {
             }))
         );
         clear_chunk_responder();
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 10_000]);
         assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Sign transaction on\n\nEthereum".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Unknown\ncontract".into(),
-                    body: "You are signing a\ncontract interaction\nwith large data.".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Unknown\ncontract".into(),
-                    body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Transaction\ndata".into(),
-                    body: "10000 bytes\n(too large to\ndisplay)".into(),
-                    longtouch: false,
-                },
-                Screen::Recipient {
-                    recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
-                    amount: "0 ETH".into(),
-                },
-                Screen::TotalFee {
-                    total: "0.02 ETH".into(),
-                    fee: "0.02 ETH".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true,
-                },
-            ]
+            mock_hal.ui.screens[0],
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[1],
+            Screen::Confirm {
+                title: "Unknown\ncontract".into(),
+                body: "You are signing a\ncontract interaction\nwith large data.".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[2],
+            Screen::Confirm {
+                title: "Unknown\ncontract".into(),
+                body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[3],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: "The next value is\ntoo large to display\nin full".into(),
+                longtouch: false,
+            }
+        );
+        match &mock_hal.ui.screens[4] {
+            Screen::Confirm { title, body, .. } => {
+                assert_eq!(title, "Transaction\ndata");
+                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+            }
+            _ => panic!("unexpected screen"),
+        }
+        assert_eq!(
+            mock_hal.ui.screens[5],
+            Screen::Recipient {
+                recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
+                amount: "0 ETH".into(),
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[6],
+            Screen::TotalFee {
+                total: "0.02 ETH".into(),
+                fee: "0.02 ETH".into(),
+                longtouch: true,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[7],
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            }
         );
     }
 
@@ -1703,43 +1799,67 @@ mod tests {
             }))
         );
         clear_chunk_responder();
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 12_000]);
         assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Sign transaction on\n\nEthereum".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Unknown\ncontract".into(),
-                    body: "You are signing a\ncontract interaction\nwith large data.".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Unknown\ncontract".into(),
-                    body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Transaction\ndata".into(),
-                    body: "12000 bytes\n(too large to\ndisplay)".into(),
-                    longtouch: false,
-                },
-                Screen::Recipient {
-                    recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
-                    amount: "0 ETH".into(),
-                },
-                Screen::TotalFee {
-                    total: "0.02 ETH".into(),
-                    fee: "0.02 ETH".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true,
-                },
-            ]
+            mock_hal.ui.screens[0],
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[1],
+            Screen::Confirm {
+                title: "Unknown\ncontract".into(),
+                body: "You are signing a\ncontract interaction\nwith large data.".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[2],
+            Screen::Confirm {
+                title: "Unknown\ncontract".into(),
+                body: "Only proceed if you\nfully understand\nthe risks involved.".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[3],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: "The next value is\ntoo large to display\nin full".into(),
+                longtouch: false,
+            }
+        );
+        match &mock_hal.ui.screens[4] {
+            Screen::Confirm { title, body, .. } => {
+                assert_eq!(title, "Transaction\ndata");
+                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+            }
+            _ => panic!("unexpected screen"),
+        }
+        assert_eq!(
+            mock_hal.ui.screens[5],
+            Screen::Recipient {
+                recipient: "0x 1122 3344 5566 7788 99Aa bbcC DDeE FF00 1122 3344".into(),
+                amount: "0 ETH".into(),
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[6],
+            Screen::TotalFee {
+                total: "0.02 ETH".into(),
+                fee: "0.02 ETH".into(),
+                longtouch: true,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[7],
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            }
         );
     }
 }

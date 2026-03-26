@@ -23,6 +23,7 @@ members = [
     "streaming-silent-payments",
     "bitbox-aes",
     "fatfs-sys",
+    "platform/bitbox-stm32u5-sys",
     "bitbox-executor",
     "bitbox03",
     "bitbox-lvgl",

@@ -100,3 +100,5 @@ conclude.
 - when editing code, unless otherwise instructed, try to keep the diff small and not do any
   unprompted refactorings or core reorganizations.
 - rust fmt all Rust files you modify, using 2024 edition.
+- git worktrees cannot be used if env var $BITBOX_FW_EXEC_MODE is "docker"
+- if git worktrees are used, run `git submodule init --update` so that building works.

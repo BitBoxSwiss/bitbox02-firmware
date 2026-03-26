@@ -1,0 +1,95 @@
+on:
+  pull_request: # Run CI for PRs on any branch
+  merge_group: # Run CI for the GitHub merge queue
+  workflow_dispatch: # Run CI when manually requested
+  schedule:
+    # Run every week at 8am UTC Saturday
+    - cron: '0 8 * * SAT'
+
+name: Continuous integration
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env: {"RUSTFLAGS": "-D warnings"}
+    strategy:
+      matrix:
+        target:
+          - thumbv6m-none-eabi
+          - thumbv7em-none-eabihf
+        toolchain:
+          - stable
+          - nightly
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          targets: ${{ matrix.target }}
+          toolchain: ${{ matrix.toolchain }}
+      - run: cargo check --target=${{ matrix.target }} --example global_alloc
+      - if: ${{ matrix.toolchain == 'nightly' }}
+        run: cargo check --target=${{ matrix.target }} --examples --all-features
+      - uses: imjohnbo/issue-bot@v3
+        if: |
+          failure()
+          && github.event_name == 'schedule'
+        with:
+          title: CI Failure
+          labels: ci
+          body: |
+            Scheduled CI run failed. Details:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          targets: thumbv7em-none-eabihf
+          toolchain: nightly
+      - name: Install QEMU
+        run: |
+          sudo apt update
+          sudo apt install qemu-system-arm
+      - run: qemu-system-arm --version
+      - run: cargo +nightly run --target thumbv7em-none-eabihf --example llff_integration_test --all-features
+      - run: cargo +nightly run --target thumbv7em-none-eabihf --example tlsf_integration_test --all-features
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
+          toolchain: nightly
+          targets: thumbv6m-none-eabi
+      - run: cargo clippy --all-features --examples --target=thumbv6m-none-eabi -- --deny warnings
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      - run: cargo fmt -- --check
+
+  rustdoc:
+    name: rustdoc
+    runs-on: ubuntu-latest
+    env: {"RUSTDOCFLAGS": "-D warnings"}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: thumbv7em-none-eabihf
+          toolchain: nightly
+      - name: rustdoc
+        run: cargo +nightly rustdoc --all-features

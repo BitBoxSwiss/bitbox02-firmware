@@ -175,6 +175,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-stm32u5"
+version = "0.1.0"
+dependencies = [
+ "bitbox-stm32u5-sys",
+]
+
+[[package]]
 name = "bitbox-stm32u5-sys"
 version = "0.1.0"
 dependencies = [

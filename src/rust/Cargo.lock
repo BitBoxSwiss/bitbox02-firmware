@@ -175,6 +175,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-stm32u5-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "cortex-m-rt",
+]
+
+[[package]]
 name = "bitbox-usb-report-queue"
 version = "0.1.0"
 dependencies = [
@@ -461,6 +469,26 @@ dependencies = [
  "critical-section",
  "embedded-hal",
  "volatile-register",
+]
+
+[[package]]
+name = "cortex-m-rt"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "801d4dec46b34c299ccf6b036717ae0fce602faa4f4fe816d9013b9a7c9f5ba6"
+dependencies = [
+ "cortex-m-rt-macros",
+]
+
+[[package]]
+name = "cortex-m-rt-macros"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e37549a379a9e0e6e576fd208ee60394ccb8be963889eebba3ffe0980364f472"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

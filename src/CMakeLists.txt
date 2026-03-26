@@ -252,7 +252,6 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_custom_target(rust-test
     COMMAND
       ${CMAKE_COMMAND} -E env
-        CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO}
@@ -276,7 +275,6 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_custom_target(rust-clippy
     COMMAND
       ${CMAKE_COMMAND} -E env
-        CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         ${CARGO} clippy
           --workspace
@@ -370,7 +368,6 @@ foreach(type ${RUST_LIBS})
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
       ${CMAKE_COMMAND} -E env
-      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
       CFLAGS=${CARGO_C_FLAGS}
@@ -424,7 +421,6 @@ endforeach()
 if(CMAKE_CROSSCOMPILING)
   add_custom_target(rust-docs
     COMMAND
-      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       ${CMAKE_COMMAND} -E env
       ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND

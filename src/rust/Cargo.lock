@@ -42,7 +42,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.98",
 ]
 
 [[package]]
@@ -202,13 +202,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitbox-u2fhid"
-version = "0.1.0"
-dependencies = [
- "bitbox-usb-report-queue",
-]
-
-[[package]]
 name = "bitbox-stm32u5"
 version = "0.1.0"
 dependencies = [
@@ -221,6 +214,13 @@ version = "0.1.0"
 dependencies = [
  "cc",
  "cortex-m-rt",
+]
+
+[[package]]
+name = "bitbox-u2fhid"
+version = "0.1.0"
+dependencies = [
+ "bitbox-usb-report-queue",
 ]
 
 [[package]]

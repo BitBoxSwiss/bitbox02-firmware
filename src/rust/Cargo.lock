@@ -229,6 +229,7 @@ dependencies = [
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",
+ "bitbox-u2fhid",
  "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-noise",

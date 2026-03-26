@@ -3,8 +3,10 @@ use bitbox_hal as hal;
 pub struct BitBox03System;
 
 impl hal::system::System for BitBox03System {
-    async fn startup() {
-        todo!()
+    async fn startup() {}
+
+    fn is_btconly(&mut self) -> bool {
+        false
     }
 
     fn reboot(&mut self) -> ! {

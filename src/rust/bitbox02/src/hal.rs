@@ -38,6 +38,12 @@ impl BitBox02Hal {
     }
 }
 
+impl Default for BitBox02Hal {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Hal for BitBox02Hal {
     type Ui = ui::BitBox02Ui;
     type Random = random::BitBox02Random;

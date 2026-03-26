@@ -8,7 +8,7 @@ use pb::response::Response;
 
 pub fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let bluetooth = match hal.memory().get_platform().map_err(|_| Error::Memory)? {
-        hal_memory::Platform::BitBox02Plus => {
+        hal_memory::Platform::BitBox02Plus | hal_memory::Platform::BitBox03 => {
             let ble_metadata = hal.memory().ble_get_metadata();
             Some(pb::device_info_response::Bluetooth {
                 firmware_hash: ble_metadata.allowed_firmware_hash.to_vec(),

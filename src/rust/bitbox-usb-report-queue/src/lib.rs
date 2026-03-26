@@ -7,13 +7,11 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 
+// The queue must hold one full worst-case U2FHID message, which can span 129 reports.
+// Keep this value fixed here instead of deriving it from the transport layer.
+// See `bitbox_u2fhid::tests::test_max_reports`.
+const MAX_SIZE: usize = 129;
 const USB_REPORT_SIZE: usize = 64;
-// Keep this in sync with USB_DATA_MAX_LEN in src/usb/usb_frame.h.
-const USB_DATA_MAX_LEN: usize = 7609;
-const USB_REPORT_QUEUE_NUM_REPORTS: usize = USB_DATA_MAX_LEN / USB_REPORT_SIZE;
-// Preserve the previous effective capacity of the manual ring buffer, which
-// kept one slot empty to distinguish full from empty.
-const USB_REPORT_QUEUE_MAX_LEN: usize = USB_REPORT_QUEUE_NUM_REPORTS - 1;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -50,7 +48,7 @@ impl UsbReportQueue {
     }
 
     pub fn push(&mut self, report: &[u8; USB_REPORT_SIZE]) -> UsbReportQueueError {
-        if self.reports.len() >= USB_REPORT_QUEUE_MAX_LEN {
+        if self.reports.len() >= MAX_SIZE {
             return UsbReportQueueError::USB_REPORT_QUEUE_ERR_FULL;
         }
         self.reports.push_back(*report);
@@ -245,7 +243,7 @@ mod tests {
     fn test_overflow_returns_full() {
         let mut queue = UsbReportQueue::new();
 
-        for i in 0..USB_REPORT_QUEUE_MAX_LEN {
+        for i in 0..MAX_SIZE {
             assert!(matches!(
                 queue.push(&report((i % 251) as u8)),
                 UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -262,7 +260,7 @@ mod tests {
     fn test_wraparound_fifo_order() {
         let mut queue = UsbReportQueue::new();
 
-        for i in 0..USB_REPORT_QUEUE_MAX_LEN {
+        for i in 0..MAX_SIZE {
             assert!(matches!(
                 queue.push(&report((i % 251) as u8)),
                 UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -280,7 +278,7 @@ mod tests {
             ));
         }
 
-        for i in 16..USB_REPORT_QUEUE_MAX_LEN {
+        for i in 16..MAX_SIZE {
             assert_eq!(queue.pull().unwrap(), report((i % 251) as u8));
         }
 

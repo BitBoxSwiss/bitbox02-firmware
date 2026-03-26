@@ -26,6 +26,7 @@ members = [
     "bitbox-executor",
     "bitbox03",
     "bitbox-lvgl",
+    "bins/bitbox03-firmware",
 ]
 
 resolver = "2"

@@ -21,6 +21,7 @@ use pb::eth_response::Response;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use bitbox02::ui::{MAX_CONFIRM_BODY_SIZE, truncating_hex_preview_byte_cap};
 
 use sha3::digest::Digest;
 
@@ -32,9 +33,6 @@ use pb::eth_typed_message_value_response::RootObject;
 const DOMAIN_TYPE_NAME: &str = "EIP712Domain";
 
 const MAX_TYPED_MSG_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
-
-// If changed, keep in sync with MAX_LABEL_SIZE.
-const MAX_DISPLAY_SIZE: usize = 640;
 
 fn get_type<'a>(types: &'a [StructType], name: &str) -> Option<&'a StructType> {
     types.iter().find(|t| t.name == name)
@@ -292,21 +290,6 @@ fn format_display_line_body(
     )
 }
 
-/// Returns how many bytes of a streamed `bytes` value to include in the preview body.
-///
-/// The preview is rendered as `<path>: 0x<hex>`. We first compute how many full bytes fit into the
-/// body without truncation. If the full value is longer than that, we include one additional byte
-/// so the body exceeds `MAX_DISPLAY_SIZE` and the UI appends `...`.
-fn streaming_display_byte_cap(display_path: &str, data_length: usize) -> usize {
-    let body_prefix = format!("{}: 0x", format_display_line_prefix(display_path, 0, 1));
-    let hex_chars_budget = MAX_DISPLAY_SIZE.saturating_sub(body_prefix.len());
-    let bytes_that_fit = hex_chars_budget / 2;
-    let needs_ellipsis = data_length > bytes_that_fit;
-    let preview_bytes = bytes_that_fit + usize::from(needs_ellipsis);
-
-    preview_bytes.min(data_length)
-}
-
 #[allow(clippy::too_many_arguments)]
 async fn encode_member<U: sha3::digest::Update>(
     hal: &mut impl crate::hal::Hal,
@@ -361,7 +344,10 @@ async fn encode_member<U: sha3::digest::Update>(
             }
 
             display_size = req.data_length as usize;
-            let display_cap = streaming_display_byte_cap(&display_path, display_size);
+            let display_cap = truncating_hex_preview_byte_cap(
+                format!("{}: 0x", format_display_line_prefix(&display_path, 0, 1)).len(),
+                display_size,
+            );
             let mut producer = super::sighash::ChunkingProducer::from_host(req.data_length);
             let mut keccak = sha3::Keccak256::new();
             let mut display_buf: Vec<u8> = Vec::new();
@@ -387,7 +373,7 @@ async fn encode_member<U: sha3::digest::Update>(
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
             let body = format_display_line_body(&display_path, i, lines.len(), line);
-            if body.len() > MAX_DISPLAY_SIZE {
+            if body.len() > MAX_CONFIRM_BODY_SIZE {
                 hal.ui()
                     .confirm(&ConfirmParams {
                         title: "Warning",
@@ -1148,7 +1134,7 @@ mod tests {
 
     #[test]
     fn test_streaming_display_byte_cap() {
-        let exact_fit = streaming_display_byte_cap("data", 316);
+        let exact_fit = truncating_hex_preview_byte_cap("data: 0x".len(), 316);
         assert_eq!(exact_fit, 316);
         let exact_fit_body = format_display_line_body(
             "data",
@@ -1156,9 +1142,9 @@ mod tests {
             1,
             &format!("0x{}", hex::encode(vec![0u8; exact_fit])),
         );
-        assert_eq!(exact_fit_body.len(), MAX_DISPLAY_SIZE);
+        assert_eq!(exact_fit_body.len(), MAX_CONFIRM_BODY_SIZE);
 
-        let truncated = streaming_display_byte_cap("data", 10_000);
+        let truncated = truncating_hex_preview_byte_cap("data: 0x".len(), 10_000);
         assert_eq!(truncated, 317);
         let truncated_body = format_display_line_body(
             "data",
@@ -1166,7 +1152,7 @@ mod tests {
             1,
             &format!("0x{}", hex::encode(vec![0u8; truncated])),
         );
-        assert!(truncated_body.len() > MAX_DISPLAY_SIZE);
+        assert!(truncated_body.len() > MAX_CONFIRM_BODY_SIZE);
     }
 
     #[test]
@@ -1199,7 +1185,7 @@ mod tests {
 
     #[test]
     fn test_multiline_warning_shown_only_for_overlong_line() {
-        let line2 = "b".repeat(MAX_DISPLAY_SIZE);
+        let line2 = "b".repeat(MAX_CONFIRM_BODY_SIZE);
         let mock_hal = run_single_string_message(format!("ok\n{line2}"));
 
         assert_eq!(
@@ -1246,7 +1232,7 @@ mod tests {
         match &mock_hal.ui.screens[2] {
             Screen::Confirm { title, body, .. } => {
                 assert_eq!(title, "Message (1/1)");
-                assert!(body.len() > MAX_DISPLAY_SIZE);
+                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
             }
             _ => panic!("unexpected screen"),
         }

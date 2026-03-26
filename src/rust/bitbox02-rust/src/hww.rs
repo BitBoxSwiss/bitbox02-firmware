@@ -2,6 +2,7 @@
 
 pub mod api;
 pub mod noise;
+pub mod transport;
 
 use crate::hal::{Memory, Ui};
 use alloc::vec::Vec;

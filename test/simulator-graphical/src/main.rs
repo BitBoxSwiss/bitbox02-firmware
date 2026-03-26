@@ -139,7 +139,7 @@ static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
 fn init_hww(
     preseed: bool,
-) -> Option<bitbox02_rust::simulator::HwwTransport<bitbox02::hal::BitBox02Hal>> {
+) -> Option<bitbox02_rust::hww::transport::HwwTransport<bitbox02::hal::BitBox02Hal>> {
     bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
     bitbox02::screen::splash();
 
@@ -171,7 +171,7 @@ fn init_hww(
     hal.eeprom().setup();
     hal.eeprom().init();
 
-    Some(bitbox02_rust::simulator::hww_transport::<
+    Some(bitbox02_rust::hww::transport::hww_transport::<
         bitbox02::hal::BitBox02Hal,
     >())
 }
@@ -224,7 +224,7 @@ struct App {
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
-    transport: Option<bitbox02_rust::simulator::HwwTransport<bitbox02::hal::BitBox02Hal>>,
+    transport: Option<bitbox02_rust::hww::transport::HwwTransport<bitbox02::hal::BitBox02Hal>>,
     started_at: std::time::Instant,
 }
 

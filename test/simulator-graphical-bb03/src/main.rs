@@ -204,7 +204,7 @@ fn my_flush_cb(display: lvgl::LvDisplay, _area: &lvgl::LvArea, _px_map: *mut u8)
 fn init_hww(
     _bitbox: &mut BitBox03,
     preseed: bool,
-) -> Option<bitbox02_rust::simulator::HwwTransport<BitBox03>> {
+) -> Option<bitbox02_rust::hww::transport::HwwTransport<BitBox03>> {
     //bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
     //bitbox02::screen::splash();
 
@@ -233,7 +233,7 @@ fn init_hww(
         //bitbox.memory().set_initialized().unwrap();
     }
 
-    Some(bitbox02_rust::simulator::hww_transport::<BitBox03>())
+    Some(bitbox02_rust::hww::transport::hww_transport::<BitBox03>())
 }
 
 struct App {
@@ -251,7 +251,7 @@ struct App {
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
     counter: usize,
-    transport: Option<bitbox02_rust::simulator::HwwTransport<BitBox03>>,
+    transport: Option<bitbox02_rust::hww::transport::HwwTransport<BitBox03>>,
     started_at: Instant,
 }
 

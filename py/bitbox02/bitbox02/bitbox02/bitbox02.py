@@ -1367,10 +1367,12 @@ class BitBox02(BitBoxCommonAPI):
         return solana_response
 
     def solana_pub(self, pub_request: solana.SolanaPubRequest) -> solana.SolanaPubResponse:
+        # pylint: disable=no-member
         request = solana.SolanaRequest(pub=pub_request)
         return self._solana_msg_query(request, expected_response="pub").pub
 
     def solana_sign_transaction(self, transaction: solana.SolanaSignTransactionRequest) -> bytes:
+        # pylint: disable=no-member
         request = solana.SolanaRequest(sign_transaction=transaction)
         return self._solana_msg_query(
             request, expected_response="sign_transaction"

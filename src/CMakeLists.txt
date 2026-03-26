@@ -246,7 +246,6 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-
   # Since we build with all features we need to use a separate build directory.
   # Otherwise we invalidate the result from the normal compilation that uses a
   # different set of features.
@@ -258,6 +257,8 @@ if(NOT CMAKE_CROSSCOMPILING)
         # only one test thread because of unsafe concurrent access to `SafeData`, `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex poisoning and very messy output in case of a unit test failure.
         ${CARGO}
           test
+          --workspace
+          --exclude bitbox03-firmware
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
           --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml
@@ -278,6 +279,8 @@ if(NOT CMAKE_CROSSCOMPILING)
         CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         ${CARGO} clippy
+          --workspace
+          --exclude bitbox03-firmware
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
           --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml

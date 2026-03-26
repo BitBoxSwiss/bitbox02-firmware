@@ -9,7 +9,7 @@ pub fn timeout_reset(value: i16) {
     }
 }
 
-pub fn init<const HWW_MAX_SIZE: usize>(hww_queue: &mut UsbReportQueue<HWW_MAX_SIZE>) {
+pub fn init(hww_queue: &mut UsbReportQueue) {
     unsafe {
         bitbox02_sys::usb_processing_init(
             hww_queue
@@ -20,7 +20,7 @@ pub fn init<const HWW_MAX_SIZE: usize>(hww_queue: &mut UsbReportQueue<HWW_MAX_SI
 }
 
 #[cfg(feature = "app-u2f")]
-pub fn init_u2f<const U2F_MAX_SIZE: usize>(u2f_queue: &mut UsbReportQueue<U2F_MAX_SIZE>) {
+pub fn init_u2f(u2f_queue: &mut UsbReportQueue) {
     unsafe {
         bitbox02_sys::usb_processing_init_u2f(
             u2f_queue

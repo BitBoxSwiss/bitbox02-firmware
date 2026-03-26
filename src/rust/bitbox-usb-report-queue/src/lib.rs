@@ -7,6 +7,9 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 
+// The queue must hold one full worst-case U2FHID message, which can span 129 reports.
+// Keep this value fixed here instead of deriving it from the transport layer.
+const MAX_SIZE: usize = 129;
 const USB_REPORT_SIZE: usize = 64;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -19,7 +22,7 @@ pub enum UsbReportQueueError {
 
 type UsbReport = [u8; USB_REPORT_SIZE];
 
-pub struct UsbReportQueue<const MAX_SIZE: usize> {
+pub struct UsbReportQueue {
     reports: VecDeque<UsbReport>,
 }
 
@@ -28,7 +31,7 @@ pub struct RustUsbReportQueue {
     _private: [u8; 0],
 }
 
-impl<const MAX_SIZE: usize> UsbReportQueue<MAX_SIZE> {
+impl UsbReportQueue {
     pub const fn new() -> Self {
         Self {
             reports: VecDeque::new(),
@@ -60,24 +63,24 @@ impl<const MAX_SIZE: usize> UsbReportQueue<MAX_SIZE> {
     }
 }
 
-impl<const MAX_SIZE: usize> Default for UsbReportQueue<MAX_SIZE> {
+impl Default for UsbReportQueue {
     fn default() -> Self {
         Self::new()
     }
 }
 
-unsafe fn queue_mut<'a>(queue: *mut RustUsbReportQueue) -> Option<&'a mut UsbReportQueue<129>> {
+unsafe fn queue_mut<'a>(queue: *mut RustUsbReportQueue) -> Option<&'a mut UsbReportQueue> {
     if queue.is_null() {
         return None;
     }
-    Some(unsafe { &mut *queue.cast::<UsbReportQueue<129>>() })
+    Some(unsafe { &mut *queue.cast::<UsbReportQueue>() })
 }
 
-unsafe fn queue_ref<'a>(queue: *const RustUsbReportQueue) -> Option<&'a UsbReportQueue<129>> {
+unsafe fn queue_ref<'a>(queue: *const RustUsbReportQueue) -> Option<&'a UsbReportQueue> {
     if queue.is_null() {
         return None;
     }
-    Some(unsafe { &*queue.cast::<UsbReportQueue<129>>() })
+    Some(unsafe { &*queue.cast::<UsbReportQueue>() })
 }
 
 /// Allocates a new USB report queue and returns an opaque handle.
@@ -85,7 +88,7 @@ unsafe fn queue_ref<'a>(queue: *const RustUsbReportQueue) -> Option<&'a UsbRepor
 /// The returned pointer must be freed with [`rust_usb_report_queue_free`].
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_usb_report_queue_init() -> *mut RustUsbReportQueue {
-    Box::into_raw(Box::new(UsbReportQueue::<129>::new())).cast::<RustUsbReportQueue>()
+    Box::into_raw(Box::new(UsbReportQueue::new())).cast::<RustUsbReportQueue>()
 }
 
 /// Frees a USB report queue previously created by [`rust_usb_report_queue_init`].
@@ -99,7 +102,7 @@ pub unsafe extern "C" fn rust_usb_report_queue_free(queue: *mut RustUsbReportQue
         return false;
     }
 
-    unsafe { drop(Box::from_raw(queue.cast::<UsbReportQueue<129>>())) };
+    unsafe { drop(Box::from_raw(queue.cast::<UsbReportQueue>())) };
     true
 }
 
@@ -186,16 +189,13 @@ mod tests {
 
     use core::ptr;
 
-    const TEST_MAX_SIZE: usize = 17;
-    type TestUsbReportQueue = UsbReportQueue<TEST_MAX_SIZE>;
-
     fn report(fill: u8) -> UsbReport {
         [fill; USB_REPORT_SIZE]
     }
 
     #[test]
     fn test_push_pull_fifo() {
-        let mut queue = TestUsbReportQueue::new();
+        let mut queue = UsbReportQueue::new();
 
         assert!(matches!(
             queue.push(&report(1)),
@@ -212,13 +212,13 @@ mod tests {
 
     #[test]
     fn test_pull_empty() {
-        let mut queue = TestUsbReportQueue::new();
+        let mut queue = UsbReportQueue::new();
         assert!(queue.pull().is_none());
     }
 
     #[test]
     fn test_peek_does_not_consume() {
-        let mut queue = TestUsbReportQueue::new();
+        let mut queue = UsbReportQueue::new();
         assert!(matches!(
             queue.push(&report(3)),
             UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -229,7 +229,7 @@ mod tests {
 
     #[test]
     fn test_clear_empties_queue() {
-        let mut queue = TestUsbReportQueue::new();
+        let mut queue = UsbReportQueue::new();
         assert!(matches!(
             queue.push(&report(4)),
             UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -240,9 +240,9 @@ mod tests {
 
     #[test]
     fn test_overflow_returns_full() {
-        let mut queue = TestUsbReportQueue::new();
+        let mut queue = UsbReportQueue::new();
 
-        for i in 0..TEST_MAX_SIZE {
+        for i in 0..MAX_SIZE {
             assert!(matches!(
                 queue.push(&report((i % 251) as u8)),
                 UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -257,9 +257,9 @@ mod tests {
 
     #[test]
     fn test_wraparound_fifo_order() {
-        let mut queue = TestUsbReportQueue::new();
+        let mut queue = UsbReportQueue::new();
 
-        for i in 0..TEST_MAX_SIZE {
+        for i in 0..MAX_SIZE {
             assert!(matches!(
                 queue.push(&report((i % 251) as u8)),
                 UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -277,7 +277,7 @@ mod tests {
             ));
         }
 
-        for i in 16..TEST_MAX_SIZE {
+        for i in 16..MAX_SIZE {
             assert_eq!(queue.pull().unwrap(), report((i % 251) as u8));
         }
 
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn test_null_ffi_arguments() {
         let mut out = [0u8; USB_REPORT_SIZE];
-        let mut queue = UsbReportQueue::<129>::new();
+        let mut queue = UsbReportQueue::new();
         let queue = queue.as_mut_ptr();
         assert!(matches!(
             unsafe { rust_usb_report_queue_push(ptr::null_mut(), report(7).as_ptr()) },
@@ -310,8 +310,8 @@ mod tests {
 
     #[test]
     fn test_hww_and_u2f_are_independent() {
-        let mut hww_queue = UsbReportQueue::<129>::new();
-        let mut u2f_queue = UsbReportQueue::<129>::new();
+        let mut hww_queue = UsbReportQueue::new();
+        let mut u2f_queue = UsbReportQueue::new();
         let hww = hww_queue.as_mut_ptr();
         let u2f = u2f_queue.as_mut_ptr();
         let mut out = [0u8; USB_REPORT_SIZE];
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_ffi_pull_and_peek() {
-        let mut queue = UsbReportQueue::<129>::new();
+        let mut queue = UsbReportQueue::new();
         let queue = queue.as_mut_ptr();
         let pushed = report(9);
         let mut out = [0u8; USB_REPORT_SIZE];

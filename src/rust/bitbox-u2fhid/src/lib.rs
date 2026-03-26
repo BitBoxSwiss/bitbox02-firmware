@@ -106,7 +106,7 @@ impl ReceiveState {
 pub struct U2fHid<V> {
     device_info: DeviceInfo,
     vendor_handler: V,
-    out_queue: UsbReportQueue<MAX_REPORTS>,
+    out_queue: UsbReportQueue,
     receive_state: ReceiveState,
     next_cid: u32,
     sending_cid: Option<u32>,
@@ -117,7 +117,7 @@ impl<V: VendorCommandHandler> U2fHid<V> {
         Self {
             device_info,
             vendor_handler,
-            out_queue: UsbReportQueue::<MAX_REPORTS>::new(),
+            out_queue: UsbReportQueue::new(),
             receive_state: ReceiveState::new(),
             next_cid: 1,
             sending_cid: None,

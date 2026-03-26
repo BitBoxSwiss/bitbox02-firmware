@@ -1,2 +1,3 @@
 /py/bitbox02/bitbox02/generated/* linguist-generated=true
 /external/vendor/** linguist-generated=true
+/external/ST/Drivers/** linguist-generated=true

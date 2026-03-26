@@ -61,7 +61,10 @@ pub trait VendorCommandHandler {
         cid: u32,
         cmd: u8,
         payload: &[u8],
+        now_ms: u64,
     ) -> Result<Vec<u8>, ErrorCode>;
+
+    fn tick(&mut self, _now_ms: u64) {}
 }
 
 struct ReceiveState {
@@ -139,6 +142,8 @@ impl<V: VendorCommandHandler> U2fHid<V> {
     }
 
     pub fn tick(&mut self, now_ms: u64) {
+        self.vendor_handler.tick(now_ms);
+
         let Some(deadline_ms) = self.receive_state.deadline_ms else {
             return;
         };
@@ -218,7 +223,7 @@ impl<V: VendorCommandHandler> U2fHid<V> {
         };
 
         if init_copy_len == total_len {
-            self.finish_message();
+            self.finish_message(now_ms);
         }
     }
 
@@ -261,11 +266,11 @@ impl<V: VendorCommandHandler> U2fHid<V> {
             };
 
         if self.receive_state.received_len == self.receive_state.total_len {
-            self.finish_message();
+            self.finish_message(now_ms);
         }
     }
 
-    fn finish_message(&mut self) {
+    fn finish_message(&mut self, now_ms: u64) {
         let cid = self.receive_state.cid;
         let cmd = self.receive_state.cmd;
         let total_len = self.receive_state.total_len;
@@ -273,7 +278,7 @@ impl<V: VendorCommandHandler> U2fHid<V> {
         payload.extend_from_slice(&self.receive_state.buffer[..total_len]);
         self.receive_state.reset();
 
-        let response = self.handle_message(cid, cmd, payload.as_slice());
+        let response = self.handle_message(cid, cmd, payload.as_slice(), now_ms);
         match response {
             Ok(response_payload) => {
                 if self
@@ -290,7 +295,13 @@ impl<V: VendorCommandHandler> U2fHid<V> {
         }
     }
 
-    fn handle_message(&mut self, cid: u32, cmd: u8, payload: &[u8]) -> Result<Vec<u8>, ErrorCode> {
+    fn handle_message(
+        &mut self,
+        cid: u32,
+        cmd: u8,
+        payload: &[u8],
+        now_ms: u64,
+    ) -> Result<Vec<u8>, ErrorCode> {
         match cmd {
             COMMAND_INIT => self.handle_init(cid, payload),
             COMMAND_PING => self.handle_ping(cid, payload),
@@ -302,7 +313,8 @@ impl<V: VendorCommandHandler> U2fHid<V> {
                 if cid == 0 || cid == BROADCAST_CID {
                     return Err(ErrorCode::InvalidCid);
                 }
-                self.vendor_handler.handle_vendor_command(cid, cmd, payload)
+                self.vendor_handler
+                    .handle_vendor_command(cid, cmd, payload, now_ms)
             }
             _ => Err(ErrorCode::InvalidCmd),
         }
@@ -434,6 +446,7 @@ mod tests {
             cid: u32,
             cmd: u8,
             payload: &[u8],
+            _now_ms: u64,
         ) -> Result<Vec<u8>, ErrorCode> {
             self.seen.push((cid, cmd, payload.to_vec()));
             match self.error {

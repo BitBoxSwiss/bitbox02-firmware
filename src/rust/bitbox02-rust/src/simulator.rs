@@ -18,6 +18,7 @@ const HWW_RSP_ACK: u8 = 0;
 const HWW_RSP_NOT_READY: u8 = 1;
 const HWW_RSP_BUSY: u8 = 2;
 const HWW_RSP_NACK: u8 = 3;
+const USB_OUTSTANDING_OP_TIMEOUT_MS: u64 = 500;
 
 pub type HwwTransport<H> = U2fHid<HwwVendorHandler<H>>;
 
@@ -87,11 +88,23 @@ fn encode_hww_response(status: u8, payload: &[u8]) -> Vec<u8> {
 
 pub struct HwwVendorHandler<H> {
     hal: H,
+    deadline_ms: Option<u64>,
 }
 
 impl<H> HwwVendorHandler<H> {
     pub fn new(hal: H) -> Self {
-        Self { hal }
+        Self {
+            hal,
+            deadline_ms: None,
+        }
+    }
+
+    fn refresh_timeout(&mut self, now_ms: u64) {
+        self.deadline_ms = if crate::async_usb::is_idle() {
+            None
+        } else {
+            Some(now_ms.saturating_add(USB_OUTSTANDING_OP_TIMEOUT_MS))
+        };
     }
 }
 
@@ -104,6 +117,7 @@ where
         _cid: u32,
         cmd: u8,
         payload: &[u8],
+        now_ms: u64,
     ) -> Result<Vec<u8>, ErrorCode> {
         if cmd != HWW_CMD {
             return Err(ErrorCode::InvalidCmd);
@@ -124,33 +138,52 @@ where
                 } else {
                     crate::async_usb::spawn(process_packet_with_hal::<H>, body);
                 }
+                self.refresh_timeout(now_ms);
                 crate::async_usb::spin();
                 let mut response = vec![0u8; bitbox_u2fhid::MAX_MESSAGE_SIZE];
-                match crate::async_usb::copy_response(&mut response) {
+                let response = match crate::async_usb::copy_response(&mut response) {
                     Ok(len) => {
                         response.truncate(len);
                         Ok(encode_hww_response(HWW_RSP_ACK, response.as_slice()))
                     }
                     Err(crate::async_usb::CopyResponseErr::NotReady) => Ok(vec![HWW_RSP_NOT_READY]),
                     Err(crate::async_usb::CopyResponseErr::NotRunning) => Ok(vec![HWW_RSP_NACK]),
-                }
+                };
+                self.refresh_timeout(now_ms);
+                response
             }
             HWW_REQ_RETRY => {
                 let mut response = vec![0u8; bitbox_u2fhid::MAX_MESSAGE_SIZE];
-                match crate::async_usb::copy_response(&mut response) {
+                let response = match crate::async_usb::copy_response(&mut response) {
                     Ok(len) => {
                         response.truncate(len);
                         Ok(encode_hww_response(HWW_RSP_ACK, response.as_slice()))
                     }
                     Err(crate::async_usb::CopyResponseErr::NotReady) => Ok(vec![HWW_RSP_NOT_READY]),
                     Err(crate::async_usb::CopyResponseErr::NotRunning) => Ok(vec![HWW_RSP_NACK]),
-                }
+                };
+                self.refresh_timeout(now_ms);
+                response
             }
             HWW_REQ_CANCEL => {
                 let _ = crate::async_usb::cancel();
+                self.refresh_timeout(now_ms);
                 Ok(vec![HWW_RSP_NACK])
             }
             _ => Ok(vec![HWW_RSP_NACK]),
+        }
+    }
+
+    fn tick(&mut self, now_ms: u64) {
+        if crate::async_usb::is_idle() {
+            self.deadline_ms = None;
+            return;
+        }
+        if let Some(deadline_ms) = self.deadline_ms
+            && now_ms > deadline_ms
+        {
+            let _ = crate::async_usb::cancel();
+            self.deadline_ms = None;
         }
     }
 }
@@ -201,7 +234,7 @@ mod tests {
         handler.hal.system.set_btconly(true);
         handler.hal.memory.set_initialized().unwrap();
         let response = handler
-            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_INFO])
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_INFO], 0)
             .unwrap();
         assert!(!response.is_empty());
         assert_eq!(
@@ -219,7 +252,7 @@ mod tests {
         crate::async_usb::spawn(pending_task, &[]);
         let mut handler = handler();
         let response = handler
-            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_CANCEL])
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_CANCEL], 0)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_NACK]);
         assert!(crate::async_usb::is_idle());
@@ -233,7 +266,7 @@ mod tests {
 
         let mut handler = handler();
         let response = handler
-            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY])
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_ACK, 0xaa, 0xbb]);
     }
@@ -247,13 +280,13 @@ mod tests {
 
         let mut handler = HwwVendorHandler::new(TestingHal::new());
         let response = handler
-            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY])
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_ACK, 0xbb]);
         assert!(crate::async_usb::waiting_for_next_request());
 
         let response = handler
-            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0xcc])
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0xcc], 0)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_ACK, 0xdd]);
         assert!(crate::async_usb::is_idle());
@@ -267,9 +300,25 @@ mod tests {
 
         let mut handler = HwwVendorHandler::new(TestingHal::new());
         let response = handler
-            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0x00])
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0x00], 0)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_BUSY]);
         let _ = crate::async_usb::cancel();
+    }
+
+    #[test]
+    fn test_outstanding_request_times_out_without_retry() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(pending_task, &[]);
+        let mut handler = HwwVendorHandler::new(TestingHal::new());
+
+        let response = handler
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
+            .unwrap();
+        assert_eq!(response, vec![HWW_RSP_NOT_READY]);
+        assert!(!crate::async_usb::is_idle());
+
+        bitbox_u2fhid::VendorCommandHandler::tick(&mut handler, USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
+        assert!(crate::async_usb::is_idle());
     }
 }

@@ -2,6 +2,7 @@
 
 pub mod api;
 pub mod noise;
+#[cfg(feature = "simulator-graphical")]
 pub mod transport;
 
 use crate::hal::{Memory, Ui};

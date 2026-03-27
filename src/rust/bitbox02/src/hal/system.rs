@@ -23,6 +23,10 @@ impl System for BitBox02System {
         crate::usb_processing::timeout_reset(value);
     }
 
+    fn is_btconly(&mut self) -> bool {
+        crate::platform::product().contains("btconly")
+    }
+
     #[allow(clippy::empty_loop)]
     fn reboot(&mut self) -> ! {
         unsafe { bitbox02_sys::reboot() }

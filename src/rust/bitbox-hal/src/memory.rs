@@ -33,6 +33,7 @@ pub enum SecurechipType {
 pub enum Platform {
     BitBox02,
     BitBox02Plus,
+    BitBox03,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

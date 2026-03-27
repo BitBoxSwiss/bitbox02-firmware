@@ -180,8 +180,7 @@ where
                 response
             }
             HWW_REQ_CANCEL => {
-                let _ = crate::async_usb::cancel();
-                self.refresh_timeout(now_ms);
+                // TODO: cancel async usb task.
                 Ok(vec![HWW_RSP_NACK])
             }
             _ => Ok(vec![HWW_RSP_NACK]),

@@ -130,8 +130,15 @@ where
         let request = payload[0];
         let body = &payload[1..];
         match request {
-            HWW_REQ_INFO => Ok(info_response(&mut self.hal)),
+            HWW_REQ_INFO => {
+                // HWW_REQ_INFO is treated as a special case: it has a direct response without a
+                // status code, so it can be called independently of the firmware version and
+                // framing protocol. Before v7.0.0, there was no HWW framing layer, and the info
+                // call was an api-call using the same 'i' OP_INFO op code byte.
+                Ok(info_response(&mut self.hal))
+            }
             HWW_REQ_NEW => {
+                // Spawn async task, which is polled in the main loop.
                 if crate::async_usb::waiting_for_next_request() {
                     crate::async_usb::on_next_request(body);
                 } else if !crate::async_usb::is_idle() {
@@ -140,7 +147,13 @@ where
                     crate::async_usb::spawn(process_packet_with_hal::<H>, body);
                 }
                 self.refresh_timeout(now_ms);
+                // Some tasks have an 'early return' path that is not blocking. We spin the task
+                // once so we can return immediately in if there is an early return, so the client
+                // does not have to wait ~200ms for a response that can be made available
+                // immediately.
                 crate::async_usb::spin();
+                // Respond with NOT_READY if the async task needs more time, or ACK with the payload
+                // if the task already completed.
                 let mut response = vec![0u8; bitbox_u2fhid::MAX_MESSAGE_SIZE];
                 let response = match crate::async_usb::copy_response(&mut response) {
                     Ok(len) => {

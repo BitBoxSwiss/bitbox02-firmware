@@ -221,6 +221,19 @@ mod tests {
         unreachable!()
     }
 
+    async fn ready_after_second_spin_task(_usb_in: Vec<u8>) -> Vec<u8> {
+        let mut first_poll = true;
+        core::future::poll_fn(move |_| {
+            if core::mem::take(&mut first_poll) {
+                core::task::Poll::Pending
+            } else {
+                core::task::Poll::Ready(())
+            }
+        })
+        .await;
+        vec![0xaa, 0xbb]
+    }
+
     async fn next_request_task(usb_in: Vec<u8>) -> Vec<u8> {
         assert_eq!(usb_in, vec![0xaa]);
         let next_request = crate::async_usb::next_request(vec![0xbb]).await;
@@ -235,7 +248,6 @@ mod tests {
     }
 
     fn handler() -> HwwVendorHandler<TestingHal<'static>> {
-        let _ = crate::async_usb::cancel();
         HwwVendorHandler::new(TestingHal::new())
     }
 
@@ -280,7 +292,8 @@ mod tests {
             .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_CANCEL], 0)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_NACK]);
-        assert!(crate::async_usb::is_idle());
+        assert!(!crate::async_usb::is_idle());
+        let _ = crate::async_usb::cancel();
     }
 
     #[test]
@@ -335,7 +348,7 @@ mod tests {
     fn test_outstanding_request_times_out_without_retry() {
         let _guard = test_guard();
         crate::async_usb::spawn(pending_task, &[]);
-        let mut handler = HwwVendorHandler::new(TestingHal::new());
+        let mut handler = handler();
 
         let response = handler
             .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
@@ -345,5 +358,44 @@ mod tests {
 
         bitbox_u2fhid::VendorCommandHandler::tick(&mut handler, USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
         assert!(crate::async_usb::is_idle());
+    }
+
+    #[test]
+    fn test_completed_outstanding_request_times_out_without_retry() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(ready_after_second_spin_task, &[]);
+        let mut handler = handler();
+
+        let response = handler
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
+            .unwrap();
+        assert_eq!(response, vec![HWW_RSP_NOT_READY]);
+
+        // Finish the task without letting the host read the final response yet.
+        crate::async_usb::spin();
+        assert!(!crate::async_usb::is_idle());
+
+        bitbox_u2fhid::VendorCommandHandler::tick(&mut handler, USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
+        assert!(crate::async_usb::is_idle());
+
+        let response = handler
+            .handle_vendor_command(
+                1,
+                HWW_CMD,
+                &[HWW_REQ_RETRY],
+                USB_OUTSTANDING_OP_TIMEOUT_MS + 1,
+            )
+            .unwrap();
+        assert_eq!(response, vec![HWW_RSP_NACK]);
+
+        let response = handler
+            .handle_vendor_command(
+                1,
+                HWW_CMD,
+                &[HWW_REQ_NEW],
+                USB_OUTSTANDING_OP_TIMEOUT_MS + 1,
+            )
+            .unwrap();
+        assert_eq!(response[0], HWW_RSP_ACK);
     }
 }

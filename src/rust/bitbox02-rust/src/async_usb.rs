@@ -207,19 +207,17 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
     }
 }
 
-/// Reset all outstanding USB task state. Returns true if there was anything to discard.
+/// Reset all outstanding USB task state.
 ///
 /// This drops a running task, any unread final response, and any pending `next_request()` input.
 /// It is used when the host disappears or when the transport times out waiting for the host to
 /// fetch a response. Call this inside a running task only if you expect that the host may not be
 /// able to read the result (e.g. when resetting the BLE chip as part of a task), so another task
 /// can spawn afterwards immediately instead of being blocked by stale executor state.
-pub fn cancel() -> bool {
-    let had_next_request = NEXT_REQUEST.0.borrow_mut().take().is_some();
+pub fn cancel() {
+    let _ = NEXT_REQUEST.0.borrow_mut().take();
     let mut state = USB_TASK_STATE.0.borrow_mut();
-    let had_state = !matches!(*state, UsbTaskState::Nothing);
     *state = UsbTaskState::Nothing;
-    had_state || had_next_request
 }
 
 /// Must be called during the execution of a usb task. This sends out the response to the host and
@@ -251,7 +249,7 @@ mod tests {
 
     fn test_guard() -> MutexGuard<'static, ()> {
         let guard = TEST_LOCK.lock().unwrap();
-        let _ = cancel();
+        cancel();
         guard
     }
 
@@ -359,7 +357,7 @@ mod tests {
         spin();
         assert!(!is_idle());
 
-        assert!(cancel());
+        cancel();
         assert!(is_idle());
         assert_eq!(
             Err(CopyResponseErr::NotRunning),
@@ -397,7 +395,7 @@ mod tests {
         assert!(waiting_for_next_request());
 
         on_next_request(&[3, 4]);
-        assert!(cancel());
+        cancel();
         assert!(is_idle());
 
         spawn(second_task, &[]);

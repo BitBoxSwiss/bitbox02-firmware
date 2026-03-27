@@ -59,6 +59,6 @@ pub extern "C" fn rust_async_usb_on_request_hww(usb_in: util::bytes::Bytes) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_async_usb_cancel() -> bool {
+pub extern "C" fn rust_async_usb_cancel() {
     bitbox02_rust::async_usb::cancel()
 }

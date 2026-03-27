@@ -195,7 +195,7 @@ where
         if let Some(deadline_ms) = self.deadline_ms
             && now_ms > deadline_ms
         {
-            let _ = crate::async_usb::cancel();
+            crate::async_usb::cancel();
             self.deadline_ms = None;
         }
     }
@@ -243,7 +243,7 @@ mod tests {
 
     fn test_guard() -> MutexGuard<'static, ()> {
         let guard = TEST_LOCK.lock().unwrap();
-        let _ = crate::async_usb::cancel();
+        crate::async_usb::cancel();
         guard
     }
 
@@ -293,7 +293,7 @@ mod tests {
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_NACK]);
         assert!(!crate::async_usb::is_idle());
-        let _ = crate::async_usb::cancel();
+        crate::async_usb::cancel();
     }
 
     #[test]
@@ -312,7 +312,7 @@ mod tests {
     #[test]
     fn test_req_new_routes_follow_up_request() {
         let _guard = test_guard();
-        let _ = crate::async_usb::cancel();
+        crate::async_usb::cancel();
         crate::async_usb::spawn(next_request_task, &[0xaa]);
         crate::async_usb::spin();
 
@@ -333,7 +333,7 @@ mod tests {
     #[test]
     fn test_req_new_while_busy_returns_busy() {
         let _guard = test_guard();
-        let _ = crate::async_usb::cancel();
+        crate::async_usb::cancel();
         crate::async_usb::spawn(pending_task, &[]);
 
         let mut handler = HwwVendorHandler::new(TestingHal::new());
@@ -341,7 +341,7 @@ mod tests {
             .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0x00], 0)
             .unwrap();
         assert_eq!(response, vec![HWW_RSP_BUSY]);
-        let _ = crate::async_usb::cancel();
+        crate::async_usb::cancel();
     }
 
     #[test]

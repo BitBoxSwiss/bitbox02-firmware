@@ -37,7 +37,7 @@ struct SafeNextRequest(RefCell<Option<UsbIn>>);
 unsafe impl Sync for SafeNextRequest {}
 
 /// An option resolving the `next_request()` future. It is `Some(...)` once a request we've been
-/// waiting for arrives. See `next_requset()` for more details.
+/// waiting for arrives. See `next_request()` for more details.
 static NEXT_REQUEST: SafeNextRequest = SafeNextRequest(RefCell::new(None));
 
 /// Describes the global state of an api query. The documentation of
@@ -207,20 +207,19 @@ pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
     }
 }
 
-/// Cancel and drop a running task. Returns true if a task was cancelled, false if no task was
-/// running.
+/// Reset all outstanding USB task state. Returns true if there was anything to discard.
 ///
-/// Call this inside a running task only if you expect that the host may not be able to read the
-/// result (e.g. when resetting the BLE chip as part of a task), so another task can spawn
-/// afterwards immediately (before the timeout auto-cancles it), which currently would run into a
-/// panic until the response was read and the current task concluded. See the comment in `spawn()`
+/// This drops a running task, any unread final response, and any pending `next_request()` input.
+/// It is used when the host disappears or when the transport times out waiting for the host to
+/// fetch a response. Call this inside a running task only if you expect that the host may not be
+/// able to read the result (e.g. when resetting the BLE chip as part of a task), so another task
+/// can spawn afterwards immediately instead of being blocked by stale executor state.
 pub fn cancel() -> bool {
+    let had_next_request = NEXT_REQUEST.0.borrow_mut().take().is_some();
     let mut state = USB_TASK_STATE.0.borrow_mut();
-    if let UsbTaskState::Running(_, _) = *state {
-        *state = UsbTaskState::Nothing;
-        return true;
-    }
-    false
+    let had_state = !matches!(*state, UsbTaskState::Nothing);
+    *state = UsbTaskState::Nothing;
+    had_state || had_next_request
 }
 
 /// Must be called during the execution of a usb task. This sends out the response to the host and
@@ -246,6 +245,15 @@ mod tests {
     extern crate std;
     use super::*;
     use std::prelude::v1::*;
+    use std::sync::{Mutex, MutexGuard};
+
+    static TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn test_guard() -> MutexGuard<'static, ()> {
+        let guard = TEST_LOCK.lock().unwrap();
+        let _ = cancel();
+        guard
+    }
 
     fn assert_panics<F: FnOnce() + std::panic::UnwindSafe>(f: F) {
         assert!(std::panic::catch_unwind(f).is_err());
@@ -254,6 +262,8 @@ mod tests {
     /// Test spawning a task, spinning it, and getting the result.
     #[test]
     fn test_full_cycle() {
+        let _guard = test_guard();
+
         async fn task(usb_in: UsbIn) -> UsbOut {
             assert_eq!(usb_in, [1, 2, 3].to_vec());
             [4, 5, 6, 7].to_vec()
@@ -296,6 +306,8 @@ mod tests {
 
     #[test]
     fn test_next_request() {
+        let _guard = test_guard();
+
         async fn task(usb_in: UsbIn) -> UsbOut {
             assert_eq!(&usb_in, &[1, 2, 3]);
             let next_req = next_request([4, 5, 6, 7].to_vec()).await;
@@ -331,5 +343,72 @@ mod tests {
         // Final response.
         assert_eq!(Ok(3), copy_response(&mut response));
         assert_eq!(&response[..3], &[15, 16, 17]);
+    }
+
+    #[test]
+    fn test_cancel_clears_result_available() {
+        let _guard = test_guard();
+
+        async fn task(_usb_in: UsbIn) -> UsbOut {
+            [4, 5, 6, 7].to_vec()
+        }
+
+        let mut response = [0; 100];
+
+        spawn(task, &[1, 2, 3]);
+        spin();
+        assert!(!is_idle());
+
+        assert!(cancel());
+        assert!(is_idle());
+        assert_eq!(
+            Err(CopyResponseErr::NotRunning),
+            copy_response(&mut response)
+        );
+
+        spawn(task, &[1, 2, 3]);
+        spin();
+        assert_eq!(Ok(4), copy_response(&mut response));
+        assert_eq!(&response[..4], &[4, 5, 6, 7]);
+    }
+
+    #[test]
+    fn test_cancel_clears_pending_next_request() {
+        let _guard = test_guard();
+
+        async fn first_task(_usb_in: UsbIn) -> UsbOut {
+            let next_req = next_request([1, 2].to_vec()).await;
+            assert_eq!(&next_req, &[3, 4]);
+            [5, 6].to_vec()
+        }
+
+        async fn second_task(_usb_in: UsbIn) -> UsbOut {
+            let next_req = next_request([7].to_vec()).await;
+            assert_eq!(&next_req, &[9]);
+            [8].to_vec()
+        }
+
+        let mut response = [0; 100];
+
+        spawn(first_task, &[]);
+        spin();
+        assert_eq!(Ok(2), copy_response(&mut response));
+        assert_eq!(&response[..2], &[1, 2]);
+        assert!(waiting_for_next_request());
+
+        on_next_request(&[3, 4]);
+        assert!(cancel());
+        assert!(is_idle());
+
+        spawn(second_task, &[]);
+        spin();
+        assert_eq!(Ok(1), copy_response(&mut response));
+        assert_eq!(&response[..1], &[7]);
+        assert!(waiting_for_next_request());
+
+        on_next_request(&[9]);
+        spin();
+        assert_eq!(Ok(1), copy_response(&mut response));
+        assert_eq!(&response[..1], &[8]);
     }
 }

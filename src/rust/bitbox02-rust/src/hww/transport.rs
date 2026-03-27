@@ -80,11 +80,17 @@ where
     crate::hww::process_packet(&mut hal, usb_in).await
 }
 
-fn encode_hww_response(status: u8, payload: &[u8]) -> Vec<u8> {
-    let mut response = Vec::with_capacity(payload.len() + 1);
-    response.push(status);
-    response.extend_from_slice(payload);
-    response
+fn encode_hww_response() -> Result<Vec<u8>, ErrorCode> {
+    match crate::async_usb::take_response() {
+        Ok(payload) => {
+            let mut response = Vec::with_capacity(payload.len() + 1);
+            response.push(HWW_RSP_ACK);
+            response.extend_from_slice(&payload);
+            Ok(response)
+        }
+        Err(crate::async_usb::CopyResponseErr::NotReady) => Ok(vec![HWW_RSP_NOT_READY]),
+        Err(crate::async_usb::CopyResponseErr::NotRunning) => Ok(vec![HWW_RSP_NACK]),
+    }
 }
 
 pub struct HwwVendorHandler<H> {
@@ -154,30 +160,12 @@ where
                 crate::async_usb::spin();
                 // Respond with NOT_READY if the async task needs more time, or ACK with the payload
                 // if the task already completed.
-                let mut response = vec![0u8; bitbox_u2fhid::MAX_MESSAGE_SIZE];
-                let response = match crate::async_usb::copy_response(&mut response) {
-                    Ok(len) => {
-                        response.truncate(len);
-                        Ok(encode_hww_response(HWW_RSP_ACK, response.as_slice()))
-                    }
-                    Err(crate::async_usb::CopyResponseErr::NotReady) => Ok(vec![HWW_RSP_NOT_READY]),
-                    Err(crate::async_usb::CopyResponseErr::NotRunning) => Ok(vec![HWW_RSP_NACK]),
-                };
                 self.refresh_timeout(now_ms);
-                response
+                encode_hww_response()
             }
             HWW_REQ_RETRY => {
-                let mut response = vec![0u8; bitbox_u2fhid::MAX_MESSAGE_SIZE];
-                let response = match crate::async_usb::copy_response(&mut response) {
-                    Ok(len) => {
-                        response.truncate(len);
-                        Ok(encode_hww_response(HWW_RSP_ACK, response.as_slice()))
-                    }
-                    Err(crate::async_usb::CopyResponseErr::NotReady) => Ok(vec![HWW_RSP_NOT_READY]),
-                    Err(crate::async_usb::CopyResponseErr::NotRunning) => Ok(vec![HWW_RSP_NACK]),
-                };
                 self.refresh_timeout(now_ms);
-                response
+                encode_hww_response()
             }
             HWW_REQ_CANCEL => {
                 // TODO: cancel async usb task.

@@ -177,32 +177,30 @@ pub enum CopyResponseErr {
 /// To be called in response to the host asking for the result of a
 /// task.
 ///
-/// If a result is available (state = ResultAvailable), this copies
-/// the usb response to `dst` and moves the state to `Nothing`, and
-/// returns the Ok(<number of bytes written>).
+/// If a result is available (state = `ResultAvailable`), this returns the usb response and moves
+/// the state to `Nothing`.
 ///
-/// If there is no task running, returns `Err(CopyResponseErr::NotReady)` if a task is pending and a
-/// response is expected in the future, or `Err(CopyResponseErr::NotRunning)` if no task is running.
-pub fn copy_response(dst: &mut [u8]) -> Result<usize, CopyResponseErr> {
+/// If a task is pending and a response is expected in the future, returns
+/// `Err(CopyResponseErr::NotReady)`. If no task is running, returns
+/// `Err(CopyResponseErr::NotRunning)`.
+pub fn take_response() -> Result<UsbOut, CopyResponseErr> {
     let mut state = USB_TASK_STATE.0.borrow_mut();
-    match *state {
+    match &mut *state {
         UsbTaskState::Nothing => Err(CopyResponseErr::NotRunning),
-        UsbTaskState::Running(Some(_), ref mut next_request_state) => {
+        UsbTaskState::Running(Some(_), next_request_state) => {
             if let WaitingForNextRequestState::SendingResponse(response) = next_request_state {
-                let len = response.len();
-                dst[..len].copy_from_slice(response);
+                let response = core::mem::take(response);
                 *next_request_state = WaitingForNextRequestState::AwaitingRequest;
-                Ok(len)
+                Ok(response)
             } else {
                 Err(CopyResponseErr::NotReady)
             }
         }
         UsbTaskState::Running(_, _) => Err(CopyResponseErr::NotReady),
-        UsbTaskState::ResultAvailable(ref response) => {
-            let len = response.len();
-            dst[..len].copy_from_slice(response);
+        UsbTaskState::ResultAvailable(response) => {
+            let response = core::mem::take(response);
             *state = UsbTaskState::Nothing;
-            Ok(len)
+            Ok(response)
         }
     }
 }
@@ -271,34 +269,24 @@ mod tests {
         }
         // repeated task processing ok
         for _ in 0..3 {
-            let mut response = [0; 100];
-
-            // No task running, can't copy response.
-            assert_eq!(
-                Err(CopyResponseErr::NotRunning),
-                copy_response(&mut response)
-            );
+            // No task running, can't take response.
+            assert_eq!(Err(CopyResponseErr::NotRunning), take_response());
 
             spawn(task, &[1, 2, 3]);
 
             // Can't spawn: task already running.
             assert_spawn_fails();
 
-            // Task not complete, can't copy response.
-            assert_eq!(Err(CopyResponseErr::NotReady), copy_response(&mut response));
+            // Task not complete, can't take response.
+            assert_eq!(Err(CopyResponseErr::NotReady), take_response());
 
             spin();
 
             // Can't spawn: result not fetched yet
             assert_spawn_fails();
 
-            // Response buffer too short.
-            assert_panics(move || {
-                let _ = copy_response(&mut response[..1]);
-            });
-            assert_eq!(Ok(4), copy_response(&mut response));
             // Response ok.
-            assert_eq!(&response[..4], &[4, 5, 6, 7]);
+            assert_eq!(Ok(vec![4, 5, 6, 7]), take_response());
         }
     }
 
@@ -316,13 +304,10 @@ mod tests {
             [15, 16, 17].to_vec()
         }
 
-        let mut response = [0; 100];
-
         spawn(task, &[1, 2, 3]);
         spin();
         // Intermediate response.
-        assert_eq!(Ok(4), copy_response(&mut response));
-        assert_eq!(&response[..4], &[4, 5, 6, 7]);
+        assert_eq!(Ok(vec![4, 5, 6, 7]), take_response());
 
         // Send follow-up request.
         assert!(waiting_for_next_request());
@@ -330,8 +315,7 @@ mod tests {
         spin();
 
         // Intermediate response.
-        assert_eq!(Ok(2), copy_response(&mut response));
-        assert_eq!(&response[..2], &[11, 12]);
+        assert_eq!(Ok(vec![11, 12]), take_response());
 
         // Send follow-up request.
         assert!(waiting_for_next_request());
@@ -339,8 +323,45 @@ mod tests {
         spin();
 
         // Final response.
-        assert_eq!(Ok(3), copy_response(&mut response));
-        assert_eq!(&response[..3], &[15, 16, 17]);
+        assert_eq!(Ok(vec![15, 16, 17]), take_response());
+    }
+
+    #[test]
+    fn test_take_response() {
+        let _guard = test_guard();
+
+        async fn task(_usb_in: UsbIn) -> UsbOut {
+            [4, 5, 6, 7].to_vec()
+        }
+
+        spawn(task, &[1, 2, 3]);
+        spin();
+
+        assert_eq!(Ok(vec![4, 5, 6, 7]), take_response());
+        assert!(is_idle());
+    }
+
+    #[test]
+    fn test_take_response_waiting_for_next_request() {
+        let _guard = test_guard();
+
+        async fn task(_usb_in: UsbIn) -> UsbOut {
+            let next_req = next_request([4, 5, 6, 7].to_vec()).await;
+            assert_eq!(&next_req, &[8, 9, 10]);
+            [11, 12].to_vec()
+        }
+
+        spawn(task, &[1, 2, 3]);
+        spin();
+
+        assert_eq!(Ok(vec![4, 5, 6, 7]), take_response());
+        assert!(waiting_for_next_request());
+
+        on_next_request(&[8, 9, 10]);
+        spin();
+
+        assert_eq!(Ok(vec![11, 12]), take_response());
+        assert!(is_idle());
     }
 
     #[test]
@@ -351,23 +372,17 @@ mod tests {
             [4, 5, 6, 7].to_vec()
         }
 
-        let mut response = [0; 100];
-
         spawn(task, &[1, 2, 3]);
         spin();
         assert!(!is_idle());
 
         cancel();
         assert!(is_idle());
-        assert_eq!(
-            Err(CopyResponseErr::NotRunning),
-            copy_response(&mut response)
-        );
+        assert_eq!(Err(CopyResponseErr::NotRunning), take_response());
 
         spawn(task, &[1, 2, 3]);
         spin();
-        assert_eq!(Ok(4), copy_response(&mut response));
-        assert_eq!(&response[..4], &[4, 5, 6, 7]);
+        assert_eq!(Ok(vec![4, 5, 6, 7]), take_response());
     }
 
     #[test]
@@ -386,12 +401,9 @@ mod tests {
             [8].to_vec()
         }
 
-        let mut response = [0; 100];
-
         spawn(first_task, &[]);
         spin();
-        assert_eq!(Ok(2), copy_response(&mut response));
-        assert_eq!(&response[..2], &[1, 2]);
+        assert_eq!(Ok(vec![1, 2]), take_response());
         assert!(waiting_for_next_request());
 
         on_next_request(&[3, 4]);
@@ -400,13 +412,11 @@ mod tests {
 
         spawn(second_task, &[]);
         spin();
-        assert_eq!(Ok(1), copy_response(&mut response));
-        assert_eq!(&response[..1], &[7]);
+        assert_eq!(Ok(vec![7]), take_response());
         assert!(waiting_for_next_request());
 
         on_next_request(&[9]);
         spin();
-        assert_eq!(Ok(1), copy_response(&mut response));
-        assert_eq!(&response[..1], &[8]);
+        assert_eq!(Ok(vec![8]), take_response());
     }
 }

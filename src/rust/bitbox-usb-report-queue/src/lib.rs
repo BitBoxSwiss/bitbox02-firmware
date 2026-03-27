@@ -9,7 +9,7 @@ use alloc::collections::VecDeque;
 
 // The queue must hold one full worst-case U2FHID message, which can span 129 reports.
 // Keep this value fixed here instead of deriving it from the transport layer.
-// This is equivalent to `MAX_REPORTS` in the bitbox_u2fhid crate.
+// See `bitbox_u2fhid::tests::test_max_reports`.
 const MAX_SIZE: usize = 129;
 const USB_REPORT_SIZE: usize = 64;
 

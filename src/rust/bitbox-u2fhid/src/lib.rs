@@ -8,27 +8,25 @@ use alloc::vec::Vec;
 use bitbox_usb_report_queue::UsbReportQueue;
 
 pub const REPORT_SIZE: usize = 64;
-pub const INIT_HEADER_SIZE: usize = 7;
-pub const CONT_HEADER_SIZE: usize = 5;
-pub const INIT_PAYLOAD_SIZE: usize = REPORT_SIZE - INIT_HEADER_SIZE;
-pub const CONT_PAYLOAD_SIZE: usize = REPORT_SIZE - CONT_HEADER_SIZE;
+const INIT_HEADER_SIZE: usize = 7;
+const CONT_HEADER_SIZE: usize = 5;
+const INIT_PAYLOAD_SIZE: usize = REPORT_SIZE - INIT_HEADER_SIZE;
+const CONT_PAYLOAD_SIZE: usize = REPORT_SIZE - CONT_HEADER_SIZE;
 pub const MAX_MESSAGE_SIZE: usize = INIT_PAYLOAD_SIZE + 128 * CONT_PAYLOAD_SIZE;
-pub const MAX_REPORTS: usize =
-    1 + (MAX_MESSAGE_SIZE - INIT_PAYLOAD_SIZE).div_ceil(CONT_PAYLOAD_SIZE);
-pub const MESSAGE_TIMEOUT_MS: u64 = 500;
+const MESSAGE_TIMEOUT_MS: u64 = 500;
 
-pub const BROADCAST_CID: u32 = 0xffff_ffff;
+const BROADCAST_CID: u32 = 0xffff_ffff;
 
-pub const TYPE_INIT: u8 = 0x80;
-pub const COMMAND_PING: u8 = TYPE_INIT | 0x01;
-pub const COMMAND_MSG: u8 = TYPE_INIT | 0x03;
-pub const COMMAND_LOCK: u8 = TYPE_INIT | 0x04;
-pub const COMMAND_INIT: u8 = TYPE_INIT | 0x06;
-pub const COMMAND_WINK: u8 = TYPE_INIT | 0x08;
-pub const COMMAND_SYNC: u8 = TYPE_INIT | 0x3c;
-pub const COMMAND_ERROR: u8 = TYPE_INIT | 0x3f;
+const TYPE_INIT: u8 = 0x80;
+const COMMAND_PING: u8 = TYPE_INIT | 0x01;
+const COMMAND_MSG: u8 = TYPE_INIT | 0x03;
+const COMMAND_LOCK: u8 = TYPE_INIT | 0x04;
+const COMMAND_INIT: u8 = TYPE_INIT | 0x06;
+const COMMAND_WINK: u8 = TYPE_INIT | 0x08;
+const COMMAND_SYNC: u8 = TYPE_INIT | 0x3c;
+const COMMAND_ERROR: u8 = TYPE_INIT | 0x3f;
 pub const COMMAND_VENDOR_FIRST: u8 = TYPE_INIT | 0x40;
-pub const COMMAND_VENDOR_LAST: u8 = TYPE_INIT | 0x7f;
+const COMMAND_VENDOR_LAST: u8 = TYPE_INIT | 0x7f;
 
 pub const CAPABILITY_WINK: u8 = 0x01;
 
@@ -536,6 +534,9 @@ mod tests {
 
     #[test]
     fn test_max_reports() {
+        const MAX_REPORTS: usize =
+            1 + (MAX_MESSAGE_SIZE - INIT_PAYLOAD_SIZE).div_ceil(CONT_PAYLOAD_SIZE);
+
         assert_eq!(MAX_REPORTS, 129);
     }
 

@@ -21,6 +21,14 @@ pub struct Params {
     pub unit: &'static str,
 }
 
+impl Params {
+    /// Returns the SLIP44 coin type:
+    /// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+    pub fn slip44(&self) -> u32 {
+        self.bip44_coin - HARDENED
+    }
+}
+
 // If there should ever be two networks with the same chain ID, the `get()` function should prompt
 // the user to choose the network they want to interact with.
 const PARAMS: &[Params] = &[

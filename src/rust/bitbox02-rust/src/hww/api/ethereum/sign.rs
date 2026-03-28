@@ -135,6 +135,35 @@ fn parse_erc20(request: &Transaction<'_>) -> Option<([u8; 20], BigUint)> {
     ))
 }
 
+async fn verify_erc20_total_fee(
+    hal: &mut impl crate::hal::Hal,
+    request: &Transaction<'_>,
+    params: &Params,
+    formatted_total: &str,
+) -> Result<(), Error> {
+    let formatted_fee = parse_fee(request, params).format();
+    transaction::verify_total_fee_maybe_warn(hal, formatted_total, &formatted_fee, None).await?;
+    Ok(())
+}
+
+async fn verify_standard_total_fee(
+    hal: &mut impl crate::hal::Hal,
+    request: &Transaction<'_>,
+    params: &Params,
+    amount_value: &BigUint,
+) -> Result<(), Error> {
+    let fee = parse_fee(request, params);
+    let total = Amount {
+        unit: params.unit,
+        decimals: WEI_DECIMALS,
+        value: amount_value.add(&fee.value),
+    };
+    let percentage = calculate_percentage(&fee.value, amount_value);
+    transaction::verify_total_fee_maybe_warn(hal, &total.format(), &fee.format(), percentage)
+        .await?;
+    Ok(())
+}
+
 // For legacy transactions: `fee = gas limit * gas price`
 // For 1559 transactions: `fee = gas limit * max fee per gas` where max fee per gas is composed of the base fee + priority fee
 // In both instances we show the user the max possible fee, but the actual fee paid at execution might be lower
@@ -220,7 +249,6 @@ async fn verify_erc20_transaction(
     erc20_value: BigUint,
 ) -> Result<(), Error> {
     let erc20_params = erc20_params::get(params.chain_id, parse_recipient(request.recipient())?);
-    let formatted_fee = parse_fee(request, params).format();
     let recipient_address = super::address::from_pubkey_hash(&erc20_recipient, request.case()?);
     let recipient_address_display = super::address::format_display_address(&recipient_address);
     let (formatted_value, formatted_total) = match erc20_params {
@@ -240,7 +268,7 @@ async fn verify_erc20_transaction(
     hal.ui()
         .verify_recipient(&recipient_address_display, &formatted_value)
         .await?;
-    transaction::verify_total_fee_maybe_warn(hal, &formatted_total, &formatted_fee, None).await?;
+    verify_erc20_total_fee(hal, request, params, &formatted_total).await?;
     Ok(())
 }
 
@@ -322,15 +350,7 @@ async fn verify_standard_transaction(
         .verify_recipient(&address_display, &amount.format())
         .await?;
 
-    let fee = parse_fee(request, params);
-    let total = Amount {
-        unit: params.unit,
-        decimals: WEI_DECIMALS,
-        value: (&amount.value).add(&fee.value),
-    };
-    let percentage = calculate_percentage(&fee.value, &amount.value);
-    transaction::verify_total_fee_maybe_warn(hal, &total.format(), &fee.format(), percentage)
-        .await?;
+    verify_standard_total_fee(hal, request, params, &amount.value).await?;
     Ok(())
 }
 

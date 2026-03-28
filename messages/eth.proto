@@ -5,6 +5,7 @@ package shiftcrypto.bitbox02;
 
 import "common.proto";
 import "antiklepto.proto";
+import "btc.proto";
 
 // Kept for backwards compatibility. Use chain_id instead, introduced in v9.10.0.
 enum ETHCoin {
@@ -70,6 +71,7 @@ message ETHSignEIP1559Request {
   ETHAddressCase address_case = 11;
   // For streaming: if non-zero, data field should be empty and data will be requested in chunks
   uint32 data_length = 12;
+  BTCPaymentRequestRequest payment_request = 13;
 }
 
 message ETHSignDataRequestChunkResponse {

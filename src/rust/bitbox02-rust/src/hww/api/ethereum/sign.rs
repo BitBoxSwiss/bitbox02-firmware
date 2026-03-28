@@ -629,6 +629,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("289111770dc067895780de3e9b30454e331ba6661f046e9e26431576d7f08a496ffe6deffb07dd8d4713d8c523b6c33b53dd6ef2dc9c394d6e21f64307d2bcf001")
@@ -724,6 +725,7 @@ mod tests {
                     chain_id: 1,
                     address_case: pb::EthAddressCase::Mixed as _,
                     data_length: 0,
+                    payment_request: None,
                 })
             ))
             .is_ok()
@@ -903,6 +905,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("c5d9639a778a3415f63a11c03a58bede6b3cafff4f2ce6ea16411e76fba946f72166f09e313c07e78b7b1fff87450c4321170c02df2d36c44c3a021abf20546001")
@@ -1015,6 +1018,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("3162487880abdea1f352d9a4e3d56066f122f04ff112117c8ca3cd220f1666302dacd5e5e8da4cd39704e33443a9a7f32602d332bb52567c2e34aafe9ed48feb01")
@@ -1088,6 +1092,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("8203d80b600dce8e77cdcb119d45db7f60d7ca34e7369140e92d93919221f85a0a119d2464dfab65833095c12763fed37c072feb29610e1437f388958d77562801")
@@ -1266,6 +1271,7 @@ mod tests {
             chain_id: 1,
             address_case: pb::EthAddressCase::Mixed as _,
             data_length: 0,
+            payment_request: None,
         };
 
         {
@@ -1436,6 +1442,7 @@ mod tests {
                 chain_id: 137,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }),
         ))
         .unwrap();
@@ -1528,6 +1535,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }),
         ));
 
@@ -1549,6 +1557,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 4000,
+                payment_request: None,
             }),
         ));
         clear_chunk_responder();
@@ -1695,6 +1704,7 @@ mod tests {
                     chain_id: 1,
                     address_case: pb::EthAddressCase::Mixed as _,
                     data_length: 12000,
+                    payment_request: None,
                 }),
             )),
             Ok(Response::Sign(pb::EthSignResponse {

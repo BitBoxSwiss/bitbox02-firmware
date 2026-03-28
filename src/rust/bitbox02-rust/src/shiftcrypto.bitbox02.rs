@@ -1590,6 +1590,8 @@ pub struct EthSignEip1559Request {
     /// For streaming: if non-zero, data field should be empty and data will be requested in chunks
     #[prost(uint32, tag = "12")]
     pub data_length: u32,
+    #[prost(message, optional, tag = "13")]
+    pub payment_request: ::core::option::Option<BtcPaymentRequestRequest>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]

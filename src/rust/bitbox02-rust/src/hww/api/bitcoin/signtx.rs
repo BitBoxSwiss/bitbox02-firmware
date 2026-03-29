@@ -1004,13 +1004,17 @@ async fn _process(
                 if payment_request::contains_coin_purchase_memo(&payment_request) {
                     validate_swap_source_account(coin, &validated_script_configs)?;
                 }
-                payment_request::user_verify(hal, coin_params, &payment_request, format_unit)
+                // Only one output per payment request is supported for now, so the
+                // payment-request total equals the current output value.
+                let total_value = tx_output.value;
+                let displayed_source_amount = format_amount(coin_params, format_unit, total_value)?;
+                payment_request::user_verify(hal, &payment_request, &displayed_source_amount)
                     .await?;
-                match payment_request::validate(
+                match payment_request::validate_btc(
                     hal,
                     coin_params,
                     &payment_request,
-                    tx_output.value,
+                    total_value,
                     &address()?,
                 ) {
                     Ok(()) => {}
@@ -3741,9 +3745,8 @@ mod tests {
                 total_amount: output_value,
                 signature: vec![],
             };
-            let coin_params = super::super::params::get(tx.coin);
-            payment_request::tst_sign_payment_request(
-                coin_params,
+            payment_request::tst_sign_payment_request_btc(
+                tx.coin,
                 &mut payment_request,
                 output_value,
                 "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ",
@@ -3916,9 +3919,8 @@ mod tests {
                 total_amount: output_value,
                 signature: vec![],
             };
-            let coin_params = super::super::params::get(tx.coin);
-            payment_request::tst_sign_payment_request(
-                coin_params,
+            payment_request::tst_sign_payment_request_btc(
+                tx.coin,
                 &mut payment_request,
                 output_value,
                 "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ",
@@ -4011,9 +4013,8 @@ mod tests {
                 total_amount: output_value,
                 signature: vec![],
             };
-            let coin_params = super::super::params::get(tx.coin);
-            payment_request::tst_sign_payment_request(
-                coin_params,
+            payment_request::tst_sign_payment_request_btc(
+                tx.coin,
                 &mut payment_request,
                 output_value,
                 "2MvdL2uD2Ubr4Zx8e6CQqNQEHjQ75sGH1NN",

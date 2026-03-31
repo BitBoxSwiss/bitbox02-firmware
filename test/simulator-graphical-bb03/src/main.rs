@@ -43,8 +43,6 @@ use bitbox_hal::{Hal, Ui, system::System};
 use bitbox03::BitBox03;
 use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
 
-// Explicitly link library for its C exports
-extern crate bitbox02_rust_c;
 use bitbox_lvgl as lvgl;
 use lvgl::LvDisplayRenderMode;
 

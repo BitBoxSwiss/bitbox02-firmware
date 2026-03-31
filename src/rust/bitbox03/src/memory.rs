@@ -44,7 +44,7 @@ impl hal::memory::Memory for BitBox03Memory {
     }
 
     fn get_platform(&mut self) -> Result<bitbox_hal::memory::Platform, ()> {
-        todo!()
+        Ok(bitbox_hal::memory::Platform::BitBox03)
     }
 
     fn get_device_name(&mut self) -> alloc::string::String {

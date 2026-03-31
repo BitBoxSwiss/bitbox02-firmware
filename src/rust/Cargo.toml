@@ -3,6 +3,7 @@
 [workspace]
 
 members = [
+    "bitbox-u2fhid",
     "bitbox02-rust-c",
     "bitbox02-rust",
     "bitbox-usb-report-queue",

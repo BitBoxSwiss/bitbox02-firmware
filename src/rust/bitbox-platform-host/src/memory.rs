@@ -3,12 +3,12 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::hal::memory::{
+use bitbox_hal::memory::{
     BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
     SecurechipType,
 };
 
-pub struct TestingMemory {
+pub struct FakeMemory {
     ble_enabled: bool,
     ble_metadata: BleMetadata,
     ble_firmware_slots: [Vec<u8>; 2],
@@ -33,7 +33,7 @@ pub struct TestingMemory {
 // Same as MEMORY_MULTISIG_NUM_ENTRIES in memory.h.
 const MULTISIG_LIMIT: usize = 25;
 
-impl TestingMemory {
+impl FakeMemory {
     pub fn new() -> Self {
         Self {
             ble_enabled: true,
@@ -44,8 +44,8 @@ impl TestingMemory {
                 firmware_checksums: [0; 2],
             },
             ble_firmware_slots: [
-                vec![0xff; crate::hal::memory::BLE_FIRMWARE_MAX_SIZE],
-                vec![0xff; crate::hal::memory::BLE_FIRMWARE_MAX_SIZE],
+                vec![0xff; bitbox_hal::memory::BLE_FIRMWARE_MAX_SIZE],
+                vec![0xff; bitbox_hal::memory::BLE_FIRMWARE_MAX_SIZE],
             ],
             active_ble_firmware_version: "0.0.0".into(),
             securechip_type: SecurechipType::Optiga,
@@ -101,7 +101,7 @@ impl TestingMemory {
     }
 }
 
-impl crate::hal::Memory for TestingMemory {
+impl bitbox_hal::Memory for FakeMemory {
     const BLE_FW_FLASH_CHUNK_SIZE: u32 = 4096;
 
     fn ble_enabled(&mut self) -> bool {
@@ -213,9 +213,7 @@ impl crate::hal::Memory for TestingMemory {
         Ok(())
     }
 
-    fn get_encrypted_seed_and_hmac(
-        &mut self,
-    ) -> Result<(alloc::vec::Vec<u8>, PasswordStretchAlgo), ()> {
+    fn get_encrypted_seed_and_hmac(&mut self) -> Result<(Vec<u8>, PasswordStretchAlgo), ()> {
         self.encrypted_seed_and_hmac.clone().ok_or(())
     }
 

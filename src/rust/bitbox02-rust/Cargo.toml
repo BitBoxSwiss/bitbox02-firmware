@@ -17,6 +17,7 @@ doctest = false
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-da14531 = { path = "../bitbox-da14531" }
 bitbox02 = { path = "../bitbox02" }
+bitbox-platform-host = { path = "../bitbox-platform-host", optional = true }
 bitbox-u2fhid = { path = "../bitbox-u2fhid" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-usb-report-queue = { path = "../bitbox-usb-report-queue" }
@@ -85,6 +86,7 @@ app-litecoin = [
 
 app-u2f = [
   "bitbox-hal/app-u2f",
+  "bitbox-platform-host?/app-u2f",
   "bitbox02/app-u2f",
 ]
 
@@ -96,6 +98,7 @@ app-cardano = [
 ]
 
 testing = [
+  "dep:bitbox-platform-host",
   "bitbox02/testing",
   "bitbox-secp256k1/testing",
   "util/testing"

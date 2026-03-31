@@ -9,6 +9,7 @@ members = [
     "bitbox-usb-report-queue",
     "bitbox-bytequeue",
     "bitbox-da14531",
+    "bitbox-platform-host",
     "bitbox-hal",
     "bitbox-framed-serial-link",
     "util",

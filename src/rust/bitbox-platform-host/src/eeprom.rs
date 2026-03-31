@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub struct TestingEeprom {
+pub struct FakeEeprom {
     pub enabled: bool,
     unlock_attempts: u8,
 }
 
-impl TestingEeprom {
+impl FakeEeprom {
     pub fn new() -> Self {
         Self {
             enabled: true,
@@ -18,7 +18,7 @@ impl TestingEeprom {
     }
 }
 
-impl crate::hal::Eeprom for TestingEeprom {
+impl bitbox_hal::Eeprom for FakeEeprom {
     fn setup(&mut self) {
         self.enabled = true;
         self.unlock_attempts = 0;
@@ -51,11 +51,11 @@ impl crate::hal::Eeprom for TestingEeprom {
 mod tests {
     use super::*;
 
-    use crate::hal::Eeprom;
+    use bitbox_hal::Eeprom;
 
     #[test]
     fn test_disable() {
-        let mut eeprom = TestingEeprom::new();
+        let mut eeprom = FakeEeprom::new();
         assert!(eeprom.enabled);
         eeprom.disable();
         assert!(!eeprom.enabled);
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_unlock_attempts() {
-        let mut eeprom = TestingEeprom::new();
+        let mut eeprom = FakeEeprom::new();
         assert_eq!(eeprom.get_unlock_attempts(), 0);
         eeprom.increment_unlock_attempts();
         eeprom.increment_unlock_attempts();
@@ -76,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_is_enabled() {
-        let mut eeprom = TestingEeprom::new();
+        let mut eeprom = FakeEeprom::new();
         assert!(eeprom.is_enabled());
         eeprom.disable();
         assert!(!eeprom.is_enabled());

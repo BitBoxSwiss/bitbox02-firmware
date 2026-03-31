@@ -4,12 +4,12 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-pub struct TestingSd {
+pub struct FakeSd {
     pub inserted: Option<bool>,
     files: BTreeMap<String, BTreeMap<String, Vec<u8>>>,
 }
 
-impl TestingSd {
+impl FakeSd {
     pub fn new() -> Self {
         Self {
             inserted: None,
@@ -18,7 +18,7 @@ impl TestingSd {
     }
 }
 
-impl crate::hal::Sd for TestingSd {
+impl bitbox_hal::Sd for FakeSd {
     async fn sdcard_inserted(&mut self) -> bool {
         self.inserted.unwrap()
     }
@@ -65,13 +65,13 @@ impl crate::hal::Sd for TestingSd {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hal::Sd;
+    use bitbox_hal::Sd;
     use util::bb02_async::block_on;
 
-    // Quick check if our mock TestingSd implementation makes sense.
+    // Quick check if our mock FakeSd implementation makes sense.
     #[test]
     fn test_sd_list_write_read_erase() {
-        let mut sd = TestingSd::new();
+        let mut sd = FakeSd::new();
         assert_eq!(block_on(sd.list_subdir(None)), Ok(vec![]));
         assert_eq!(block_on(sd.list_subdir(Some("dir1"))), Ok(vec![]));
 

@@ -5,10 +5,10 @@ use alloc::vec::Vec;
 use bitcoin::hashes::Hash;
 use hex_lit::hex;
 
-use crate::hal::memory::PasswordStretchAlgo;
-use crate::hal::securechip::{Error, Model};
+use bitbox_hal::memory::PasswordStretchAlgo;
+use bitbox_hal::securechip::{Error, Model};
 
-pub struct TestingSecureChip {
+pub struct FakeSecureChip {
     // Count how many security events happen. The numbers were obtained by reading the security
     // event counter slot (0xE0C5) on a real device. We can use this to assert how many events
     // were used in unit tests. The number is relevant due to Optiga's throttling mechanism.
@@ -20,9 +20,9 @@ pub struct TestingSecureChip {
     last_attestation_challenge: Option<[u8; 32]>,
 }
 
-impl TestingSecureChip {
+impl FakeSecureChip {
     pub fn new() -> Self {
-        TestingSecureChip {
+        FakeSecureChip {
             event_counter: 0,
             reset_keys_fail_once: false,
             #[cfg(feature = "app-u2f")]
@@ -61,7 +61,7 @@ impl TestingSecureChip {
     }
 }
 
-impl crate::hal::SecureChip for TestingSecureChip {
+impl bitbox_hal::SecureChip for FakeSecureChip {
     fn init_new_password(
         &mut self,
         password: &str,

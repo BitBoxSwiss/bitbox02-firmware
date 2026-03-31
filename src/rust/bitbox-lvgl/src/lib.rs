@@ -83,4 +83,4 @@ pub use widgets::slider::{LvSlider, SliderExt};
 pub use widgets::span::{LvSpan, LvSpanTextError, LvSpangroup, SpangroupExt};
 pub use widgets::spinner::{LvSpinner, SpinnerExt};
 pub use widgets::textarea::{LvTextarea, LvTextareaTextError, TextareaExt};
-pub use widgets::{LvMapError, LvTextError};
+pub use widgets::{LvEventRegistrationError, LvMapError, LvTextError};

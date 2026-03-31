@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use super::util;
+use super::util::LvEventRegistrationError;
 use core::ffi::c_void;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
 
 use crate::{
-    LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvFlexAlign, LvFlexFlow, LvFont,
-    LvGradDir, LvGridAlign, LvOpa, LvStyleSelector, LvTextAlign, LvTextDecor, class, ffi,
+    LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvEventCode, LvFlexAlign, LvFlexFlow,
+    LvFont, LvGradDir, LvGridAlign, LvOpa, LvStyleSelector, LvTextAlign, LvTextDecor, class, ffi,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -129,6 +131,20 @@ pub trait ObjExt {
 
     fn set_height(&self, height: i32) {
         unsafe { ffi::lv_obj_set_height(self.as_ptr(), height) }
+    }
+
+    fn add_event_cb<F>(&self, filter: LvEventCode, cb: F) -> Result<(), LvEventRegistrationError>
+    where
+        F: FnMut() + 'static,
+    {
+        util::add_event_cb(self.as_ptr(), filter, cb)
+    }
+
+    fn add_click_cb<F>(&self, cb: F) -> Result<(), LvEventRegistrationError>
+    where
+        F: FnMut() + 'static,
+    {
+        self.add_event_cb(crate::LvEventCode::LV_EVENT_CLICKED, cb)
     }
 
     /// # Safety
@@ -331,7 +347,21 @@ impl<C: class::LvClass> ObjExt for LvHandle<C> {
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
+
+    use alloc::rc::Rc;
+    use core::cell::Cell;
+    use core::ptr;
+    use std::sync::{Mutex, Once};
+
     use super::*;
+
+    static LVGL_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn init_lvgl() {
+        static INIT: Once = Once::new();
+        INIT.call_once(crate::system::init);
+    }
 
     #[test]
     fn test_style_methods_exist() {
@@ -340,5 +370,85 @@ mod tests {
         let _: fn(&LvObj, LvStyleSelector) -> bool = <LvObj as ObjExt>::remove_style_text_font;
         let _: unsafe fn(&LvObj, Option<&'static u8>, LvStyleSelector) =
             <LvObj as ObjExt>::set_style_bg_image_src::<u8>;
+        let _: fn(&LvObj, crate::LvEventCode, fn()) -> Result<(), crate::LvEventRegistrationError> =
+            <LvObj as ObjExt>::add_event_cb::<fn()>;
+        let _: fn(&LvObj, fn()) -> Result<(), crate::LvEventRegistrationError> =
+            <LvObj as ObjExt>::add_click_cb::<fn()>;
+    }
+
+    #[test]
+    fn test_add_event_cb_invokes_callback() {
+        let _lock = LVGL_TEST_LOCK.lock().unwrap();
+        init_lvgl();
+
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = display.screen_active().unwrap();
+        let obj = LvObj::with_parent(&screen).unwrap();
+        let called = Rc::new(Cell::new(0));
+        let called_cb = Rc::clone(&called);
+        obj.add_event_cb(crate::LvEventCode::LV_EVENT_CLICKED, move || {
+            called_cb.set(called_cb.get() + 1);
+        })
+        .unwrap();
+
+        let result = unsafe {
+            ffi::lv_obj_send_event(
+                obj.as_ptr(),
+                crate::LvEventCode::LV_EVENT_CLICKED,
+                ptr::null_mut(),
+            )
+        };
+        assert_eq!(result, ffi::lv_result_t::LV_RESULT_OK);
+        assert_eq!(called.get(), 1);
+
+        unsafe { obj.delete() };
+    }
+
+    #[test]
+    fn test_add_event_cb_delete_event_invokes_callback() {
+        let _lock = LVGL_TEST_LOCK.lock().unwrap();
+        init_lvgl();
+
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = display.screen_active().unwrap();
+        let obj = LvObj::with_parent(&screen).unwrap();
+        let called = Rc::new(Cell::new(false));
+        let called_cb = Rc::clone(&called);
+        obj.add_event_cb(crate::LvEventCode::LV_EVENT_DELETE, move || {
+            called_cb.set(true);
+        })
+        .unwrap();
+
+        unsafe { obj.delete() };
+
+        assert!(called.get());
+    }
+
+    #[test]
+    fn test_add_event_cb_delete_during_callback_is_safe() {
+        let _lock = LVGL_TEST_LOCK.lock().unwrap();
+        init_lvgl();
+
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = display.screen_active().unwrap();
+        let obj = LvObj::with_parent(&screen).unwrap();
+        let obj_ptr = obj.as_ptr();
+        let called = Rc::new(Cell::new(false));
+        let called_cb = Rc::clone(&called);
+        obj.add_event_cb(crate::LvEventCode::LV_EVENT_CLICKED, move || {
+            called_cb.set(true);
+            unsafe { ffi::lv_obj_delete(obj_ptr) };
+        })
+        .unwrap();
+
+        let result = unsafe {
+            ffi::lv_obj_send_event(
+                obj.as_ptr(),
+                crate::LvEventCode::LV_EVENT_CLICKED,
+                ptr::null_mut(),
+            )
+        };
+        assert_eq!(result, ffi::lv_result_t::LV_RESULT_INVALID);
+        assert!(called.get());
     }
 }

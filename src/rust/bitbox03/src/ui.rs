@@ -1,9 +1,12 @@
+use alloc::rc::Rc;
 use alloc::vec::Vec;
 use bitbox_hal as hal;
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvAlign, LvDisplay, LvHandle, LvLabel, LvObj, LvOpacityLevel, LvPart,
-    LvSpangroup, ObjExt, SpangroupExt,
+    self as lvgl, LabelExt, LvAlign, LvButton, LvDisplay, LvHandle, LvLabel, LvLabelLongMode,
+    LvObj, LvOpacityLevel, LvPart, LvSpangroup, ObjExt, SpangroupExt,
 };
+use core::cell::RefCell;
+use core::task::{Poll, Waker};
 use tracing::info;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
@@ -16,6 +19,16 @@ pub struct BitBox03Ui {
 pub struct BitBox03UiProgress;
 
 pub struct BitBox03UiEmpty;
+
+struct ScreenGuard<'a> {
+    ui: &'a mut BitBox03Ui,
+}
+
+impl Drop for ScreenGuard<'_> {
+    fn drop(&mut self) {
+        self.ui.pop();
+    }
+}
 
 impl hal::ui::Progress for BitBox03UiProgress {
     fn set(&mut self, _progress: f32) {
@@ -32,9 +45,131 @@ impl hal::ui::Ui for BitBox03Ui {
 
     async fn confirm(
         &mut self,
-        _params: &bitbox_hal::ui::ConfirmParams<'_>,
+        params: &bitbox_hal::ui::ConfirmParams<'_>,
     ) -> Result<(), bitbox_hal::ui::UserAbort> {
-        todo!()
+        struct SharedState {
+            waker: Option<Waker>,
+            result: Option<Result<(), hal::ui::UserAbort>>,
+        }
+
+        let shared_state = Rc::new(RefCell::new(SharedState {
+            waker: None,
+            result: None,
+        }));
+
+        let screen = LvObj::new().unwrap();
+        screen.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);
+        screen.set_flex_flow(lvgl::LvFlexFlow::LV_FLEX_FLOW_COLUMN);
+        screen.set_style_bg_color(lvgl::color::black(), 0);
+        screen.set_style_text_color(lvgl::color::white(), 0);
+        screen.set_style_pad_top(40, 0);
+        screen.set_style_pad_right(50, 0);
+        screen.set_style_pad_bottom(40, 0);
+        screen.set_style_pad_left(50, 0);
+        screen.set_style_pad_row(24, 0);
+
+        let title = LvLabel::new(&screen).unwrap();
+        title.set_width(380);
+        title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+        title.set_text(params.title).unwrap();
+        title.set_style_text_font(
+            lvgl::fonts::INTER_BOLD_48,
+            lvgl::LvState::LV_STATE_DEFAULT as u32,
+        );
+
+        let body = LvLabel::new(&screen).unwrap();
+        body.set_width(380);
+        body.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
+        body.set_text(params.body).unwrap();
+        body.set_style_text_font(
+            lvgl::fonts::INTER_REGULAR_32,
+            lvgl::LvState::LV_STATE_DEFAULT as u32,
+        );
+        body.set_style_flex_grow(1, 0);
+
+        let actions = LvObj::with_parent(&screen).unwrap();
+        actions.set_width(380);
+        actions.set_height(72);
+        actions.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);
+        actions.set_flex_flow(lvgl::LvFlexFlow::LV_FLEX_FLOW_ROW);
+        actions.set_style_pad_top(0, 0);
+        actions.set_style_pad_bottom(0, 0);
+        actions.set_style_pad_left(0, 0);
+        actions.set_style_pad_right(0, 0);
+        actions.set_style_pad_column(20, 0);
+        actions.set_style_margin_top(16, 0);
+        actions.set_style_border_width(0, 0);
+        actions.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
+
+        let reject = LvButton::new(&actions).unwrap();
+        reject.set_size(180, 72);
+        reject.set_style_bg_color(lvgl::color::hex(0x30333a), 0);
+        reject.set_style_bg_opa(LvOpacityLevel::LV_OPA_COVER as u8, 0);
+        reject.set_style_border_width(2, 0);
+        reject.set_style_border_color(lvgl::color::white(), 0);
+        let reject_state = Rc::clone(&shared_state);
+        reject
+            .add_click_cb(move || {
+                let mut shared_state = reject_state.borrow_mut();
+                if shared_state.result.is_none() {
+                    shared_state.result = Some(Err(hal::ui::UserAbort));
+                    if let Some(waker) = shared_state.waker.as_ref() {
+                        waker.wake_by_ref();
+                    }
+                }
+            })
+            .expect("failed to register reject callback");
+        let reject_label = LvLabel::new(&reject).unwrap();
+        reject_label.set_text("No").unwrap();
+        reject_label.set_style_text_font(
+            lvgl::fonts::INTER_BOLD_32,
+            lvgl::LvState::LV_STATE_DEFAULT as u32,
+        );
+        reject_label.set_style_text_color(lvgl::color::white(), 0);
+        reject_label.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
+
+        let accept = LvButton::new(&actions).unwrap();
+        accept.set_size(180, 72);
+        accept.set_style_bg_color(lvgl::color::white(), 0);
+        accept.set_style_bg_opa(LvOpacityLevel::LV_OPA_COVER as u8, 0);
+        accept.set_style_border_width(2, 0);
+        accept.set_style_border_color(lvgl::color::black(), 0);
+        let accept_state = Rc::clone(&shared_state);
+        accept
+            .add_click_cb(move || {
+                let mut shared_state = accept_state.borrow_mut();
+                if shared_state.result.is_none() {
+                    shared_state.result = Some(Ok(()));
+                    if let Some(waker) = shared_state.waker.as_ref() {
+                        waker.wake_by_ref();
+                    }
+                }
+            })
+            .expect("failed to register accept callback");
+        let accept_label = LvLabel::new(&accept).unwrap();
+        accept_label.set_text("Yes").unwrap();
+        accept_label.set_style_text_font(
+            lvgl::fonts::INTER_BOLD_32,
+            lvgl::LvState::LV_STATE_DEFAULT as u32,
+        );
+        accept_label.set_style_text_color(lvgl::color::black(), 0);
+        accept_label.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
+
+        let _screen = self.push_guard(screen);
+
+        core::future::poll_fn({
+            let shared_state = &shared_state;
+            move |cx| {
+                let mut shared_state = shared_state.borrow_mut();
+                if let Some(result) = shared_state.result.take() {
+                    Poll::Ready(result)
+                } else {
+                    shared_state.waker = Some(cx.waker().clone());
+                    Poll::Pending
+                }
+            }
+        })
+        .await
     }
 
     async fn verify_recipient(
@@ -71,7 +206,9 @@ impl hal::ui::Ui for BitBox03Ui {
     }
 
     fn reset(&mut self) {
-        todo!()
+        while !self.stack.is_empty() {
+            self.pop();
+        }
     }
 
     fn progress_create(&mut self, _title: &str) -> Self::Progress {
@@ -224,6 +361,11 @@ impl BitBox03Ui {
             display.screen_load(screen);
             unsafe { current.delete() };
         }
+    }
+
+    fn push_guard(&mut self, screen: LvObj) -> ScreenGuard<'_> {
+        self.push(screen);
+        ScreenGuard { ui: self }
     }
 
     pub fn push(&mut self, screen: LvObj) {

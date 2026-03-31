@@ -16,7 +16,7 @@ pub mod spinner;
 pub mod textarea;
 mod util;
 
-pub use util::{LvMapError, LvTextError};
+pub use util::{LvEventRegistrationError, LvMapError, LvTextError};
 
 #[cfg(test)]
 mod tests {

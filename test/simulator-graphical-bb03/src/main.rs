@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
+extern crate alloc;
+
+mod hal;
+
 use clap::Parser;
 use femtovg::{Canvas, ImageFlags, ImageId, ImageSource, Paint, Path, renderer::OpenGl};
 use image::{DynamicImage, Rgba, RgbaImage};
@@ -40,8 +44,8 @@ use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 use bitbox_hal::{Hal, Ui, system::System};
 
-use bitbox03::BitBox03;
 use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
+use hal::BitBox03;
 
 use bitbox_lvgl as lvgl;
 use lvgl::LvDisplayRenderMode;

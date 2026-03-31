@@ -373,6 +373,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-platform-host"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "bitcoin",
+ "hex_lit",
+ "zeroize",
+]
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
@@ -2809,6 +2819,7 @@ dependencies = [
  "bitbox-aes",
  "bitbox-hal",
  "bitbox-lvgl",
+ "bitbox-platform-host",
  "bitbox-usb-report-queue",
  "bitbox02-rust",
  "bitbox03",
@@ -2823,6 +2834,7 @@ dependencies = [
  "tracing-subscriber",
  "util",
  "winit",
+ "zeroize",
 ]
 
 [[package]]

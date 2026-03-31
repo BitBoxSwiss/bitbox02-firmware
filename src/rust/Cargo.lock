@@ -175,6 +175,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-u2fhid"
+version = "0.1.0"
+dependencies = [
+ "bitbox-usb-report-queue",
+]
+
+[[package]]
 name = "bitbox-usb-report-queue"
 version = "0.1.0"
 dependencies = [
@@ -193,6 +200,7 @@ dependencies = [
  "bitbox-usb-report-queue",
  "bitbox02-noise",
  "bitbox02-sys",
+ "fake-hardware",
  "futures-lite",
  "grounded",
  "hex_lit",
@@ -222,6 +230,7 @@ dependencies = [
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-secp256k1",
+ "bitbox-u2fhid",
  "bitbox-usb-report-queue",
  "bitbox02",
  "bitbox02-noise",
@@ -232,6 +241,7 @@ dependencies = [
  "digest",
  "ed25519-dalek",
  "erc20_params",
+ "fake-hardware",
  "futures-lite",
  "hex",
  "hex_lit",
@@ -291,6 +301,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-hal",
  "bitbox-lvgl",
+ "fake-hardware",
  "png-decoder",
  "tracing",
  "zeroize",
@@ -670,6 +681,14 @@ name = "erc20_params"
 version = "0.1.0"
 dependencies = [
  "hex",
+]
+
+[[package]]
+name = "fake-hardware"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "zeroize",
 ]
 
 [[package]]

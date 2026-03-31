@@ -3,6 +3,7 @@
 [workspace]
 
 members = [
+    "bitbox-u2fhid",
     "bitbox02-rust-c",
     "bitbox02-rust",
     "bitbox-usb-report-queue",
@@ -23,6 +24,7 @@ members = [
     "bitbox-executor",
     "bitbox03",
     "bitbox-lvgl",
+    "fake-hardware",
 ]
 
 resolver = "2"

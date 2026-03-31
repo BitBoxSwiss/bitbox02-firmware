@@ -8,12 +8,6 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 
 const USB_REPORT_SIZE: usize = 64;
-// Keep this in sync with USB_DATA_MAX_LEN in src/usb/usb_frame.h.
-const USB_DATA_MAX_LEN: usize = 7609;
-const USB_REPORT_QUEUE_NUM_REPORTS: usize = USB_DATA_MAX_LEN / USB_REPORT_SIZE;
-// Preserve the previous effective capacity of the manual ring buffer, which
-// kept one slot empty to distinguish full from empty.
-const USB_REPORT_QUEUE_MAX_LEN: usize = USB_REPORT_QUEUE_NUM_REPORTS - 1;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -25,7 +19,7 @@ pub enum UsbReportQueueError {
 
 type UsbReport = [u8; USB_REPORT_SIZE];
 
-pub struct UsbReportQueue {
+pub struct UsbReportQueue<const MAX_SIZE: usize> {
     reports: VecDeque<UsbReport>,
 }
 
@@ -34,7 +28,7 @@ pub struct RustUsbReportQueue {
     _private: [u8; 0],
 }
 
-impl UsbReportQueue {
+impl<const MAX_SIZE: usize> UsbReportQueue<MAX_SIZE> {
     pub const fn new() -> Self {
         Self {
             reports: VecDeque::new(),
@@ -50,7 +44,7 @@ impl UsbReportQueue {
     }
 
     pub fn push(&mut self, report: &[u8; USB_REPORT_SIZE]) -> UsbReportQueueError {
-        if self.reports.len() >= USB_REPORT_QUEUE_MAX_LEN {
+        if self.reports.len() >= MAX_SIZE {
             return UsbReportQueueError::USB_REPORT_QUEUE_ERR_FULL;
         }
         self.reports.push_back(*report);
@@ -66,24 +60,24 @@ impl UsbReportQueue {
     }
 }
 
-impl Default for UsbReportQueue {
+impl<const MAX_SIZE: usize> Default for UsbReportQueue<MAX_SIZE> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-unsafe fn queue_mut<'a>(queue: *mut RustUsbReportQueue) -> Option<&'a mut UsbReportQueue> {
+unsafe fn queue_mut<'a>(queue: *mut RustUsbReportQueue) -> Option<&'a mut UsbReportQueue<129>> {
     if queue.is_null() {
         return None;
     }
-    Some(unsafe { &mut *queue.cast::<UsbReportQueue>() })
+    Some(unsafe { &mut *queue.cast::<UsbReportQueue<129>>() })
 }
 
-unsafe fn queue_ref<'a>(queue: *const RustUsbReportQueue) -> Option<&'a UsbReportQueue> {
+unsafe fn queue_ref<'a>(queue: *const RustUsbReportQueue) -> Option<&'a UsbReportQueue<129>> {
     if queue.is_null() {
         return None;
     }
-    Some(unsafe { &*queue.cast::<UsbReportQueue>() })
+    Some(unsafe { &*queue.cast::<UsbReportQueue<129>>() })
 }
 
 /// Allocates a new USB report queue and returns an opaque handle.
@@ -91,7 +85,7 @@ unsafe fn queue_ref<'a>(queue: *const RustUsbReportQueue) -> Option<&'a UsbRepor
 /// The returned pointer must be freed with [`rust_usb_report_queue_free`].
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_usb_report_queue_init() -> *mut RustUsbReportQueue {
-    Box::into_raw(Box::new(UsbReportQueue::new())).cast::<RustUsbReportQueue>()
+    Box::into_raw(Box::new(UsbReportQueue::<129>::new())).cast::<RustUsbReportQueue>()
 }
 
 /// Frees a USB report queue previously created by [`rust_usb_report_queue_init`].
@@ -105,7 +99,7 @@ pub unsafe extern "C" fn rust_usb_report_queue_free(queue: *mut RustUsbReportQue
         return false;
     }
 
-    unsafe { drop(Box::from_raw(queue.cast::<UsbReportQueue>())) };
+    unsafe { drop(Box::from_raw(queue.cast::<UsbReportQueue<129>>())) };
     true
 }
 
@@ -192,13 +186,16 @@ mod tests {
 
     use core::ptr;
 
+    const TEST_MAX_SIZE: usize = 17;
+    type TestUsbReportQueue = UsbReportQueue<TEST_MAX_SIZE>;
+
     fn report(fill: u8) -> UsbReport {
         [fill; USB_REPORT_SIZE]
     }
 
     #[test]
     fn test_push_pull_fifo() {
-        let mut queue = UsbReportQueue::new();
+        let mut queue = TestUsbReportQueue::new();
 
         assert!(matches!(
             queue.push(&report(1)),
@@ -215,13 +212,13 @@ mod tests {
 
     #[test]
     fn test_pull_empty() {
-        let mut queue = UsbReportQueue::new();
+        let mut queue = TestUsbReportQueue::new();
         assert!(queue.pull().is_none());
     }
 
     #[test]
     fn test_peek_does_not_consume() {
-        let mut queue = UsbReportQueue::new();
+        let mut queue = TestUsbReportQueue::new();
         assert!(matches!(
             queue.push(&report(3)),
             UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -232,7 +229,7 @@ mod tests {
 
     #[test]
     fn test_clear_empties_queue() {
-        let mut queue = UsbReportQueue::new();
+        let mut queue = TestUsbReportQueue::new();
         assert!(matches!(
             queue.push(&report(4)),
             UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -243,9 +240,9 @@ mod tests {
 
     #[test]
     fn test_overflow_returns_full() {
-        let mut queue = UsbReportQueue::new();
+        let mut queue = TestUsbReportQueue::new();
 
-        for i in 0..USB_REPORT_QUEUE_MAX_LEN {
+        for i in 0..TEST_MAX_SIZE {
             assert!(matches!(
                 queue.push(&report((i % 251) as u8)),
                 UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -260,9 +257,9 @@ mod tests {
 
     #[test]
     fn test_wraparound_fifo_order() {
-        let mut queue = UsbReportQueue::new();
+        let mut queue = TestUsbReportQueue::new();
 
-        for i in 0..USB_REPORT_QUEUE_MAX_LEN {
+        for i in 0..TEST_MAX_SIZE {
             assert!(matches!(
                 queue.push(&report((i % 251) as u8)),
                 UsbReportQueueError::USB_REPORT_QUEUE_ERR_NONE
@@ -280,7 +277,7 @@ mod tests {
             ));
         }
 
-        for i in 16..USB_REPORT_QUEUE_MAX_LEN {
+        for i in 16..TEST_MAX_SIZE {
             assert_eq!(queue.pull().unwrap(), report((i % 251) as u8));
         }
 
@@ -292,7 +289,7 @@ mod tests {
     #[test]
     fn test_null_ffi_arguments() {
         let mut out = [0u8; USB_REPORT_SIZE];
-        let mut queue = UsbReportQueue::new();
+        let mut queue = UsbReportQueue::<129>::new();
         let queue = queue.as_mut_ptr();
         assert!(matches!(
             unsafe { rust_usb_report_queue_push(ptr::null_mut(), report(7).as_ptr()) },
@@ -313,8 +310,8 @@ mod tests {
 
     #[test]
     fn test_hww_and_u2f_are_independent() {
-        let mut hww_queue = UsbReportQueue::new();
-        let mut u2f_queue = UsbReportQueue::new();
+        let mut hww_queue = UsbReportQueue::<129>::new();
+        let mut u2f_queue = UsbReportQueue::<129>::new();
         let hww = hww_queue.as_mut_ptr();
         let u2f = u2f_queue.as_mut_ptr();
         let mut out = [0u8; USB_REPORT_SIZE];
@@ -339,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_ffi_pull_and_peek() {
-        let mut queue = UsbReportQueue::new();
+        let mut queue = UsbReportQueue::<129>::new();
         let queue = queue.as_mut_ptr();
         let pushed = report(9);
         let mut out = [0u8; USB_REPORT_SIZE];

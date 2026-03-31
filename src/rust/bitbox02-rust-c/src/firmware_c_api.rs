@@ -109,13 +109,12 @@ pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitbox02::memory::{
-        OptigaConfigVersion as MemoryOptigaConfigVersion, SecurechipType as MemorySecurechipType,
-        get_securechip_type, set_optiga_config_version,
-    };
 
     fn setup_memory() {
-        set_optiga_config_version(MemoryOptigaConfigVersion::MEMORY_OPTIGA_CONFIG_V0).unwrap();
+        let mut hal = crate::HalImpl::new();
+        hal.memory()
+            .set_optiga_config_version(OptigaConfigVersion::V0)
+            .unwrap();
     }
 
     #[test]
@@ -141,15 +140,29 @@ mod tests {
 
     #[test]
     fn test_rust_memory_get_securechip_type() {
-        let expected = match get_securechip_type().unwrap() {
-            MemorySecurechipType::Atecc => {
-                rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_ATECC
+        #[cfg(feature = "simulator-graphical")]
+        {
+            for (securechip_type, expected) in [
+                (
+                    SecurechipType::Atecc,
+                    rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_ATECC,
+                ),
+                (
+                    SecurechipType::Optiga,
+                    rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_OPTIGA,
+                ),
+            ] {
+                let mut hal = crate::HalImpl::new();
+                hal.memory().set_securechip_type(securechip_type);
+                assert_eq!(rust_memory_get_securechip_type(), expected);
             }
-            MemorySecurechipType::Optiga => {
-                rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_OPTIGA
-            }
-        };
-        assert_eq!(rust_memory_get_securechip_type(), expected);
+        }
+
+        #[cfg(not(feature = "simulator-graphical"))]
+        assert_eq!(
+            rust_memory_get_securechip_type(),
+            rust_memory_securechip_type_t::RUST_MEMORY_SECURECHIP_TYPE_ATECC,
+        );
     }
 
     #[test]

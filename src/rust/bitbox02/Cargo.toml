@@ -15,6 +15,7 @@ bitbox-hal = { path = "../bitbox-hal" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
 bitbox-usb-report-queue = { path = "../bitbox-usb-report-queue" }
+fake-hardware = { path = "../fake-hardware", optional = true }
 util = {path = "../util"}
 zeroize = { workspace = true }
 bip39 = { workspace = true }
@@ -34,7 +35,7 @@ unit-testing = []
 # Active when the Rust code is compiled to be linked into the C unit tests and simulator.
 c-unit-testing = []
 # Active when building for the graphical simulator
-simulator-graphical = []
+simulator-graphical = ["dep:fake-hardware"]
 
 app-ethereum = []
 app-bitcoin = []

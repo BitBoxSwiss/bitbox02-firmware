@@ -203,6 +203,7 @@ class Platform(enum.Enum):
 
     BITBOX02 = "bitbox02"
     BITBOX02PLUS = "bitbox02-plus"
+    BITBOX03 = "bitbox03"
 
 
 class BitBox02Edition(enum.Enum):
@@ -712,11 +713,15 @@ class BitBoxCommonAPI:
         version_str = version.rstrip(b"\0").decode("ascii")
 
         platform_byte, response = response[0], response[1:]
-        platform = {0x00: Platform.BITBOX02, 0x02: Platform.BITBOX02PLUS}[platform_byte]
+        platform = {
+            0x00: Platform.BITBOX02,
+            0x02: Platform.BITBOX02PLUS,
+            0x03: Platform.BITBOX03,
+        }[platform_byte]
 
         edition_byte, response = response[0], response[1:]
         edition: Union[BitBox02Edition]
-        if platform in (Platform.BITBOX02, Platform.BITBOX02PLUS):
+        if platform in (Platform.BITBOX02, Platform.BITBOX02PLUS, Platform.BITBOX03):
             edition = {0x00: BitBox02Edition.MULTI, 0x01: BitBox02Edition.BTCONLY}[edition_byte]
         else:
             raise Exception("Unknown platform: {}".format(platform))

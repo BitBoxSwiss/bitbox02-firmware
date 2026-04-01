@@ -8,6 +8,7 @@ use tracing::info;
 use util::futures::completion;
 
 mod confirm;
+mod enter_string;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
 
@@ -100,11 +101,14 @@ impl hal::ui::Ui for BitBox03Ui {
 
     async fn enter_string(
         &mut self,
-        _params: &bitbox_hal::ui::EnterStringParams<'_>,
-        _can_cancel: bitbox_hal::ui::CanCancel,
-        _preset: &str,
+        params: &bitbox_hal::ui::EnterStringParams<'_>,
+        can_cancel: bitbox_hal::ui::CanCancel,
+        preset: &str,
     ) -> Result<zeroize::Zeroizing<alloc::string::String>, bitbox_hal::ui::UserAbort> {
-        todo!()
+        self.with_result_screen(|responder| {
+            enter_string::build_enter_string_screen(params, can_cancel, preset, responder)
+        })
+        .await
     }
 
     async fn insert_sdcard(&mut self) -> Result<(), bitbox_hal::ui::UserAbort> {

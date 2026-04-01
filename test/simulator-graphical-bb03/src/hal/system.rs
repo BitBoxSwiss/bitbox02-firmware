@@ -24,6 +24,6 @@ impl hal::system::System for BitBox03System {
     }
 
     fn communication_timeout_reset(&mut self, _value: i16) {
-        todo!()
+        // No-op, there are no blocking operations in the simulator that would require timeout reset.
     }
 }

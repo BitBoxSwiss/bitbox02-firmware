@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 bitbox-lvgl = { path = "../bitbox-lvgl" }
 bitbox-hal = { path = "../bitbox-hal" }
+util = { path = "../util" }
 tracing = { version = "0.1.41", features = ["log"], default-features = false }
 png-decoder = { version="0.2"}
 zeroize = {workspace=true}

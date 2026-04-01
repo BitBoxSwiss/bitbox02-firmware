@@ -618,6 +618,16 @@ impl ApplicationHandler<UserEvent> for App {
                     self.bitbox.ui().switch_to_logo();
                 }
                 let now_ms = self.started_at.elapsed().as_millis() as u64;
+                if let Some(timeout_ms) =
+                    bitbox_hal::system::take_pending_communication_timeout_reset_ms()
+                    && let Some(transport) = self.transport.as_mut()
+                {
+                    bitbox02_rust::hww::transport::apply_communication_timeout_reset(
+                        transport,
+                        now_ms,
+                        u64::from(timeout_ms),
+                    );
+                }
                 // Read data from TCP client
                 let mut inbound_out = self.inbound_out.take();
                 let mut disconnected = false;

@@ -73,7 +73,7 @@ impl hal::ui::Ui for BitBox03Ui {
     }
 
     async fn unlock_animation(&mut self) {
-        todo!()
+        self.status("TODO\nunlock_animation", true).await
     }
 
     async fn status(&mut self, title: &str, status_success: bool) {

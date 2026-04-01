@@ -616,7 +616,7 @@ int atecc_stretch_password(
     // Second KDF does not use the counter and we call it multiple times.
     for (int i = 0; i < KDF_NUM_ITERATIONS; i++) {
         memcpy(kdf_in, stretched_out, 32);
-        securechip_result = securechip_kdf(kdf_in, 32, stretched_out);
+        securechip_result = atecc_kdf(kdf_in, 32, stretched_out);
         if (securechip_result) {
             return securechip_result;
         }

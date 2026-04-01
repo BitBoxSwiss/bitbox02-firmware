@@ -11,28 +11,28 @@ struct SharedState<T> {
     result: Option<T>,
 }
 
-pub struct UiResponder<T> {
+pub struct Responder<T> {
     shared_state: Rc<RefCell<SharedState<T>>>,
 }
 
-pub struct UiResult<T> {
+pub struct Result<T> {
     shared_state: Rc<RefCell<SharedState<T>>>,
 }
 
-pub fn completion<T>() -> (UiResponder<T>, UiResult<T>) {
+pub fn completion<T>() -> (Responder<T>, Result<T>) {
     let shared_state = Rc::new(RefCell::new(SharedState {
         waker: None,
         result: None,
     }));
     (
-        UiResponder {
+        Responder {
             shared_state: Rc::clone(&shared_state),
         },
-        UiResult { shared_state },
+        Result { shared_state },
     )
 }
 
-impl<T> UiResponder<T> {
+impl<T> Responder<T> {
     pub fn resolve(&self, value: T) {
         let mut shared_state = self.shared_state.borrow_mut();
         if shared_state.result.is_none() {
@@ -44,7 +44,7 @@ impl<T> UiResponder<T> {
     }
 }
 
-impl<T> Clone for UiResponder<T> {
+impl<T> Clone for Responder<T> {
     fn clone(&self) -> Self {
         Self {
             shared_state: Rc::clone(&self.shared_state),
@@ -52,7 +52,7 @@ impl<T> Clone for UiResponder<T> {
     }
 }
 
-impl<T> Future for UiResult<T> {
+impl<T> Future for Result<T> {
     type Output = T;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

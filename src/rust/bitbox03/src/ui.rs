@@ -249,7 +249,7 @@ impl BitBox03Ui {
 
     async fn with_result_screen<T, F>(&mut self, build_screen: F) -> T
     where
-        F: FnOnce(completion::UiResponder<T>) -> LvObj,
+        F: FnOnce(completion::Responder<T>) -> LvObj,
     {
         let (responder, result) = completion::completion();
         let screen = build_screen(responder);

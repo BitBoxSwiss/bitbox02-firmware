@@ -5,11 +5,11 @@ use bitbox_lvgl::{
     self as lvgl, LabelExt, LvAlign, LvButton, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel,
     ObjExt,
 };
-use util::futures::completion::UiResponder;
+use util::futures::completion::Responder;
 
 pub(super) fn build_confirm_screen(
     params: &ConfirmParams<'_>,
-    responder: UiResponder<Result<(), UserAbort>>,
+    responder: Responder<Result<(), UserAbort>>,
 ) -> LvObj {
     let screen = LvObj::new().unwrap();
     screen.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);

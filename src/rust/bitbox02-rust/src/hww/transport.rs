@@ -27,6 +27,18 @@ where
     U2fHid::new(HwwVendorHandler::new(H::default()))
 }
 
+pub fn apply_communication_timeout_reset<H>(
+    transport: &mut HwwTransport<H>,
+    now_ms: u64,
+    timeout_ms: u64,
+) where
+    H: Hal + Default + 'static,
+{
+    transport
+        .handler_mut()
+        .apply_communication_timeout_reset(now_ms, timeout_ms);
+}
+
 fn info_response<H: Hal>(hal: &mut H) -> Vec<u8> {
     let version = crate::version::FIRMWARE_VERSION_SHORT.as_bytes();
     let mut response = Vec::with_capacity(version.len() + 5);
@@ -86,6 +98,14 @@ impl<H> HwwVendorHandler<H> {
             None
         } else {
             Some(now_ms.saturating_add(USB_OUTSTANDING_OP_TIMEOUT_MS))
+        };
+    }
+
+    fn apply_communication_timeout_reset(&mut self, now_ms: u64, timeout_ms: u64) {
+        self.deadline_ms = if crate::async_usb::is_idle() {
+            None
+        } else {
+            Some(now_ms.saturating_add(timeout_ms))
         };
     }
 }
@@ -212,6 +232,10 @@ mod tests {
 
     fn handler() -> HwwVendorHandler<TestingHal<'static>> {
         HwwVendorHandler::new(TestingHal::new())
+    }
+
+    fn transport() -> HwwTransport<TestingHal<'static>> {
+        hww_transport::<TestingHal<'static>>()
     }
 
     #[test]
@@ -360,5 +384,52 @@ mod tests {
             )
             .unwrap();
         assert_eq!(response[0], HWW_RSP_ACK);
+    }
+
+    #[test]
+    fn test_communication_timeout_reset_extends_deadline() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(pending_task, &[]);
+        let mut transport = transport();
+
+        apply_communication_timeout_reset(
+            &mut transport,
+            0,
+            u64::from(bitbox_hal::system::communication_timeout_reset_ms(-70)),
+        );
+        assert_eq!(transport.handler().deadline_ms, Some(7500));
+
+        transport.tick(7500);
+        assert!(!crate::async_usb::is_idle());
+
+        transport.tick(7501);
+        assert!(crate::async_usb::is_idle());
+    }
+
+    #[test]
+    fn test_retry_refreshes_extended_timeout_to_default() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(pending_task, &[]);
+        let mut transport = transport();
+
+        apply_communication_timeout_reset(
+            &mut transport,
+            0,
+            u64::from(bitbox_hal::system::communication_timeout_reset_ms(-70)),
+        );
+        assert_eq!(transport.handler().deadline_ms, Some(7500));
+
+        let response = transport
+            .handler_mut()
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 1000)
+            .unwrap();
+        assert_eq!(response, vec![HWW_RSP_NOT_READY]);
+        assert_eq!(transport.handler().deadline_ms, Some(1500));
+
+        transport.tick(1500);
+        assert!(!crate::async_usb::is_idle());
+
+        transport.tick(1501);
+        assert!(crate::async_usb::is_idle());
     }
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 use bitbox_hal as hal;
 
 pub struct BitBox03System;
@@ -20,7 +22,10 @@ impl hal::system::System for BitBox03System {
     fn reset_ble(&mut self) {
         todo!()
     }
-    fn communication_timeout_reset(&mut self, _value: i16) {
-        todo!()
+
+    fn communication_timeout_reset(&mut self, value: i16) {
+        hal::system::request_communication_timeout_reset_ms(
+            hal::system::communication_timeout_reset_ms(value),
+        );
     }
 }

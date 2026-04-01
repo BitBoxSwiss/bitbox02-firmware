@@ -23,7 +23,9 @@ impl hal::system::System for BitBox03System {
         todo!()
     }
 
-    fn communication_timeout_reset(&mut self, _value: i16) {
-        todo!()
+    fn communication_timeout_reset(&mut self, value: i16) {
+        hal::system::request_communication_timeout_reset_ms(
+            hal::system::communication_timeout_reset_ms(value),
+        );
     }
 }

@@ -57,11 +57,12 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
 
 pub fn screen_process() {}
 
-pub async fn status(text: &str, _status_success: bool) {
+pub fn status_create(text: &str, _status_success: bool) -> Component {
     crate::print_stdout(&format!(
         "STATUS SCREEN START\nTITLE: {}\nSTATUS SCREEN END\n",
         text,
     ));
+    Component { is_pushed: false }
 }
 
 pub async fn sdcard() -> SdcardResponse {

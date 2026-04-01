@@ -6,6 +6,7 @@ use bitbox_hal as hal;
 use bitbox_lvgl::LvDisplay;
 use bitbox_platform_host::{
     eeprom::FakeEeprom, memory::FakeMemory, sd::FakeSd, securechip::FakeSecureChip,
+    timer::HostTimer,
 };
 use bitbox03::ui;
 use core::cell::UnsafeCell;
@@ -16,7 +17,7 @@ mod random;
 mod system;
 
 struct BitBox03State {
-    ui: ui::BitBox03Ui,
+    ui: ui::BitBox03Ui<HostTimer>,
     random: random::BitBox03Random,
     sd: FakeSd,
     securechip: FakeSecureChip,
@@ -83,7 +84,7 @@ impl BitBox03 {
 }
 
 impl hal::Hal for BitBox03 {
-    type Ui = ui::BitBox03Ui;
+    type Ui = ui::BitBox03Ui<HostTimer>;
     type Random = random::BitBox03Random;
     type Sd = FakeSd;
     type SecureChip = FakeSecureChip;

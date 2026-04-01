@@ -1,11 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bitbox_hal::System;
+use core::marker::PhantomData;
 use core::time::Duration;
 
-pub struct BitBox02System;
+pub struct BitBox02System<Timer = super::timer::BitBox02Timer> {
+    _timer: PhantomData<Timer>,
+}
 
-impl System for BitBox02System {
+impl<Timer> BitBox02System<Timer> {
+    pub const fn new() -> Self {
+        Self {
+            _timer: PhantomData,
+        }
+    }
+}
+
+impl<Timer> Default for BitBox02System<Timer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<Timer: bitbox_hal::timer::Timer> System for BitBox02System<Timer> {
     async fn startup() {
         let upside_down = crate::ui::choose_orientation().await;
         if upside_down {
@@ -13,7 +30,7 @@ impl System for BitBox02System {
         }
 
         // During this delay the bb02 logotype is shown.
-        crate::delay::delay_for(Duration::from_millis(1300)).await;
+        Timer::delay_for(Duration::from_millis(1300)).await;
 
         // Switch to lockscreen that shows "See the bitbox app" and device name.
         crate::ui::screen_process_waiting_switch_to_lockscreen();

@@ -3,7 +3,6 @@
 #![no_std]
 
 extern crate alloc;
-pub mod delay;
 use core::cell::UnsafeCell;
 mod eeprom;
 pub mod io;
@@ -12,6 +11,7 @@ mod random;
 mod sd;
 mod securechip;
 mod system;
+pub mod timer;
 pub mod ui;
 
 use bitbox_hal as hal;
@@ -78,17 +78,11 @@ impl BitBox03 {
 
 impl hal::Hal for BitBox03 {
     type Ui = ui::BitBox03Ui;
-
     type Random = random::BitBox03Random;
-
     type Sd = sd::BitBox03Sd;
-
     type SecureChip = securechip::BitBox03SecureChip;
-
     type Memory = memory::BitBox03Memory;
-
     type Eeprom = eeprom::BitBox03Eeprom;
-
     type System = system::BitBox03System;
 
     fn as_mut(

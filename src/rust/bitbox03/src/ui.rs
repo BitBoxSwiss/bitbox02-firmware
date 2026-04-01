@@ -6,6 +6,7 @@ use bitbox_lvgl::{
     self as lvgl, LabelExt, LvAlign, LvDisplay, LvHandle, LvLabel, LvObj, LvOpacityLevel, LvPart,
     LvSpangroup, ObjExt, SpangroupExt,
 };
+use core::marker::PhantomData;
 use tracing::info;
 use util::futures::completion;
 
@@ -15,20 +16,21 @@ mod status;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
 
-pub struct BitBox03Ui {
+pub struct BitBox03Ui<Timer = crate::timer::BitBox03Timer> {
     display: Option<LvDisplay>,
     stack: Vec<LvHandle>,
+    _timer: PhantomData<Timer>,
 }
 
 pub struct BitBox03UiProgress;
 
 pub struct BitBox03UiEmpty;
 
-struct ScreenGuard<'a> {
-    ui: &'a mut BitBox03Ui,
+struct ScreenGuard<'a, Timer> {
+    ui: &'a mut BitBox03Ui<Timer>,
 }
 
-impl Drop for ScreenGuard<'_> {
+impl<Timer> Drop for ScreenGuard<'_, Timer> {
     fn drop(&mut self) {
         self.ui.pop();
     }
@@ -42,7 +44,7 @@ impl hal::ui::Progress for BitBox03UiProgress {
 
 impl hal::ui::Empty for BitBox03UiEmpty {}
 
-impl hal::ui::Ui for BitBox03Ui {
+impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     type Progress = BitBox03UiProgress;
 
     type Empty = BitBox03UiEmpty;
@@ -79,7 +81,7 @@ impl hal::ui::Ui for BitBox03Ui {
     async fn status(&mut self, title: &str, status_success: bool) {
         let screen = status::build_status_screen(title, status_success);
         let _screen = self.push_guard(screen);
-        crate::delay::delay_for(Duration::from_millis(2000)).await;
+        Timer::delay_for(Duration::from_millis(2000)).await;
     }
 
     fn print_screen(&mut self, _duration: core::time::Duration, _msg: &str) {
@@ -172,11 +174,12 @@ fn set_background(display: &mut LvDisplay) {
     img.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
 }
 
-impl BitBox03Ui {
-    pub const fn new() -> BitBox03Ui {
+impl<Timer> BitBox03Ui<Timer> {
+    pub const fn new() -> BitBox03Ui<Timer> {
         BitBox03Ui {
             display: None,
             stack: Vec::new(),
+            _timer: PhantomData,
         }
     }
     pub fn init(&mut self, mut display: LvDisplay) {
@@ -251,14 +254,14 @@ impl BitBox03Ui {
         }
     }
 
-    fn push_guard(&mut self, screen: LvObj) -> ScreenGuard<'_> {
+    fn push_guard(&mut self, screen: LvObj) -> ScreenGuard<'_, Timer> {
         self.push(screen);
         ScreenGuard { ui: self }
     }
 
-    async fn with_result_screen<T, F>(&mut self, build_screen: F) -> T
+    async fn with_result_screen<R, F>(&mut self, build_screen: F) -> R
     where
-        F: FnOnce(completion::Responder<T>) -> LvObj,
+        F: FnOnce(completion::Responder<R>) -> LvObj,
     {
         let (responder, result) = completion::completion();
         let screen = build_screen(responder);

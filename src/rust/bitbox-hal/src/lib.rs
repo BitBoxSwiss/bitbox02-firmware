@@ -10,6 +10,7 @@ pub mod random;
 pub mod sd;
 pub mod securechip;
 pub mod system;
+pub mod timer;
 pub mod ui;
 
 pub use eeprom::Eeprom;
@@ -18,6 +19,7 @@ pub use random::Random;
 pub use sd::Sd;
 pub use securechip::SecureChip;
 pub use system::System;
+pub use timer::Timer;
 pub use ui::Ui;
 
 pub struct HalSubsystems<

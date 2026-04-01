@@ -71,7 +71,9 @@ impl hal::ui::Ui for BitBox03Ui {
     }
 
     fn reset(&mut self) {
-        todo!()
+        while !self.stack.is_empty() {
+            self.pop();
+        }
     }
 
     fn progress_create(&mut self, _title: &str) -> Self::Progress {

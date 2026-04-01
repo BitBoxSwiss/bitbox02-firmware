@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use super::super::payment_request;
 use super::Error;
 use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
@@ -135,6 +136,56 @@ fn parse_erc20(request: &Transaction<'_>) -> Option<([u8; 20], BigUint)> {
     ))
 }
 
+async fn verify_erc20_total_fee(
+    hal: &mut impl crate::hal::Hal,
+    request: &Transaction<'_>,
+    params: &Params,
+    formatted_total: &str,
+) -> Result<(), Error> {
+    let formatted_fee = parse_fee(request, params).format();
+    transaction::verify_total_fee_maybe_warn(hal, formatted_total, &formatted_fee, None).await?;
+    Ok(())
+}
+
+async fn verify_standard_total_fee(
+    hal: &mut impl crate::hal::Hal,
+    request: &Transaction<'_>,
+    params: &Params,
+    amount_value: &BigUint,
+) -> Result<(), Error> {
+    let fee = parse_fee(request, params);
+    let total = Amount {
+        unit: params.unit,
+        decimals: WEI_DECIMALS,
+        value: amount_value.add(&fee.value),
+    };
+    let percentage = calculate_percentage(&fee.value, amount_value);
+    transaction::verify_total_fee_maybe_warn(hal, &total.format(), &fee.format(), percentage)
+        .await?;
+    Ok(())
+}
+
+/// Show the shared payment-request recipient UI and validate it against the
+/// source-side facts parsed from the ETH-like transaction.
+async fn verify_payment_request_recipient(
+    hal: &mut impl crate::hal::Hal,
+    params: &Params,
+    payment_request: &pb::BtcPaymentRequestRequest,
+    displayed_source_amount: &str,
+    output_value: &BigUint,
+    output_address: &str,
+) -> Result<(), Error> {
+    payment_request::user_verify(hal, payment_request, displayed_source_amount).await?;
+    match payment_request::validate_eth(hal, params, payment_request, output_value, output_address)
+    {
+        Ok(()) => Ok(()),
+        Err(_) => {
+            hal.ui().status("Invalid\npayment request", true).await;
+            Err(Error::InvalidInput)
+        }
+    }
+}
+
 // For legacy transactions: `fee = gas limit * gas price`
 // For 1559 transactions: `fee = gas limit * max fee per gas` where max fee per gas is composed of the base fee + priority fee
 // In both instances we show the user the max possible fee, but the actual fee paid at execution might be lower
@@ -218,10 +269,34 @@ async fn verify_erc20_transaction(
     params: &Params,
     erc20_recipient: [u8; 20],
     erc20_value: BigUint,
+    payment_request: Option<&pb::BtcPaymentRequestRequest>,
 ) -> Result<(), Error> {
     let erc20_params = erc20_params::get(params.chain_id, parse_recipient(request.recipient())?);
-    let formatted_fee = parse_fee(request, params).format();
     let recipient_address = super::address::from_pubkey_hash(&erc20_recipient, request.case()?);
+    if let Some(payment_request) = payment_request {
+        let token_params = erc20_params.ok_or(Error::InvalidInput)?;
+        let displayed_source_amount = Amount {
+            unit: token_params.unit,
+            decimals: token_params.decimals as _,
+            value: erc20_value.clone(),
+        }
+        .format();
+
+        // For ERC20 transfers, the tx recipient is the token contract. The
+        // actual swap deposit address is the decoded `transfer(...)` recipient.
+        verify_payment_request_recipient(
+            hal,
+            params,
+            payment_request,
+            &displayed_source_amount,
+            &erc20_value,
+            &recipient_address,
+        )
+        .await?;
+        verify_erc20_total_fee(hal, request, params, &displayed_source_amount).await?;
+        return Ok(());
+    }
+
     let recipient_address_display = super::address::format_display_address(&recipient_address);
     let (formatted_value, formatted_total) = match erc20_params {
         Some(erc20_params) => {
@@ -240,7 +315,7 @@ async fn verify_erc20_transaction(
     hal.ui()
         .verify_recipient(&recipient_address_display, &formatted_value)
         .await?;
-    transaction::verify_total_fee_maybe_warn(hal, &formatted_total, &formatted_fee, None).await?;
+    verify_erc20_total_fee(hal, request, params, &formatted_total).await?;
     Ok(())
 }
 
@@ -255,10 +330,40 @@ async fn verify_standard_transaction(
     hal: &mut impl crate::hal::Hal,
     request: &Transaction<'_>,
     params: &Params,
+    payment_request: Option<&pb::BtcPaymentRequestRequest>,
 ) -> Result<(), Error> {
     let recipient = parse_recipient(request.recipient())?;
 
     let data_length = request.data_length();
+
+    if let Some(payment_request) = payment_request {
+        if !request.data().is_empty() || data_length > 0 {
+            return Err(Error::InvalidInput);
+        }
+
+        let address = super::address::from_pubkey_hash(&recipient, request.case()?);
+        let amount_value = BigUint::from_bytes_be(request.value());
+        let displayed_source_amount = Amount {
+            unit: params.unit,
+            decimals: WEI_DECIMALS,
+            value: amount_value.clone(),
+        }
+        .format();
+
+        // Native ETH transfers encode the real deposit address directly in the
+        // tx recipient field.
+        verify_payment_request_recipient(
+            hal,
+            params,
+            payment_request,
+            &displayed_source_amount,
+            &amount_value,
+            &address,
+        )
+        .await?;
+        verify_standard_total_fee(hal, request, params, &amount_value).await?;
+        return Ok(());
+    }
 
     if !request.data().is_empty() || data_length > 0 {
         hal.ui()
@@ -322,15 +427,7 @@ async fn verify_standard_transaction(
         .verify_recipient(&address_display, &amount.format())
         .await?;
 
-    let fee = parse_fee(request, params);
-    let total = Amount {
-        unit: params.unit,
-        decimals: WEI_DECIMALS,
-        value: (&amount.value).add(&fee.value),
-    };
-    let percentage = calculate_percentage(&fee.value, &amount.value);
-    transaction::verify_total_fee_maybe_warn(hal, &total.format(), &fee.format(), percentage)
-        .await?;
+    verify_standard_total_fee(hal, request, params, &amount.value).await?;
     Ok(())
 }
 
@@ -414,10 +511,24 @@ pub async fn _process(
         return Err(Error::InvalidInput);
     }
 
+    // A payment request only changes how the recipient/source
+    // asset is verified within the existing ETH/ERC20 flows.
+    let payment_request = match request {
+        Transaction::Eip1559(eip1559) => eip1559.payment_request.as_ref(),
+        Transaction::Legacy(_) => None,
+    };
     if let Some((erc20_recipient, erc20_value)) = parse_erc20(request) {
-        verify_erc20_transaction(hal, request, &params, erc20_recipient, erc20_value).await?;
+        verify_erc20_transaction(
+            hal,
+            request,
+            &params,
+            erc20_recipient,
+            erc20_value,
+            payment_request,
+        )
+        .await?;
     } else {
-        verify_standard_transaction(hal, request, &params).await?;
+        verify_standard_transaction(hal, request, &params, payment_request).await?;
     }
     hal.ui().status("Transaction\nconfirmed", true).await;
 
@@ -485,7 +596,41 @@ mod tests {
     use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
+    use super::super::super::payment_request;
+    use super::super::address;
     use super::super::sighash::tests::{clear_chunk_responder, setup_chunk_responder};
+
+    // Base payment request fixture for ETH-side swap tests.
+    fn make_eth_swap_payment_request() -> pb::BtcPaymentRequestRequest {
+        pb::BtcPaymentRequestRequest {
+            recipient_name: "Test Merchant".into(),
+            memos: vec![pb::btc_payment_request_request::Memo {
+                memo: Some(pb::btc_payment_request_request::memo::Memo::CoinPurchaseMemo(
+                    pb::btc_payment_request_request::memo::CoinPurchaseMemo {
+                        coin_type: 60,
+                        amount: "0.25 ETH".into(),
+                        address: "0x773A77b9D32589be03f9132AF759e294f7851be9".into(),
+                        address_derivation: Some(
+                            pb::btc_payment_request_request::memo::coin_purchase_memo::AddressDerivation::Eth(
+                                pb::btc_payment_request_request::memo::coin_purchase_memo::EthAddressDerivation {
+                                    keypath: vec![
+                                        44 + HARDENED,
+                                        60 + HARDENED,
+                                        0 + HARDENED,
+                                        0,
+                                        0,
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                )),
+            }],
+            nonce: vec![],
+            total_amount: 0,
+            signature: vec![],
+        }
+    }
 
     #[test]
     pub fn test_parse_recipient() {
@@ -629,6 +774,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("289111770dc067895780de3e9b30454e331ba6661f046e9e26431576d7f08a496ffe6deffb07dd8d4713d8c523b6c33b53dd6ef2dc9c394d6e21f64307d2bcf001")
@@ -724,6 +870,7 @@ mod tests {
                     chain_id: 1,
                     address_case: pb::EthAddressCase::Mixed as _,
                     data_length: 0,
+                    payment_request: None,
                 })
             ))
             .is_ok()
@@ -903,6 +1050,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("c5d9639a778a3415f63a11c03a58bede6b3cafff4f2ce6ea16411e76fba946f72166f09e313c07e78b7b1fff87450c4321170c02df2d36c44c3a021abf20546001")
@@ -947,6 +1095,204 @@ mod tests {
                 }
             ]
         );
+    }
+
+    #[test]
+    fn test_process_eip1559_payment_request_invalid_contract_shape() {
+        // Payment requests only support plain ETH transfers or standard ERC20 transfers.
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("1fdc").to_vec(),
+                    max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                    max_fee_per_gas: hex!("0165a0bc00").to_vec(),
+                    gas_limit: hex!("5208").to_vec(),
+                    recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                    value: hex!("075cf1259e9c4000").to_vec(),
+                    data: b"foo bar".to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                    payment_request: Some(Default::default()),
+                }),
+            )),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            }]
+        );
+    }
+
+    #[test]
+    fn test_process_eip1559_payment_request_plain_eth() {
+        // Native ETH swaps use the tx recipient/value as the signed source-side output.
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+
+        // 0.530564 ETH in wei
+        let value = hex!("075cf1259e9c4000");
+        // value left padded to 32 bytes
+        let output_value = hex!("000000000000000000000000000000000000000000000000075cf1259e9c4000");
+        // recipient address
+        let output_address = address::from_pubkey_hash(
+            &hex!("04f264cf34440313b4a0192a352814fbe927b885"),
+            pb::EthAddressCase::Mixed,
+        );
+        let mut payment_request = make_eth_swap_payment_request();
+        payment_request::tst_sign_payment_request_eth(
+            60,
+            &mut payment_request,
+            &output_value,
+            &output_address,
+        );
+
+        let expected_screens = vec![
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Recipient {
+                recipient: "Test Merchant".into(),
+                amount: "0.530564 ETH".into(),
+            },
+            Screen::Confirm {
+                title: "SWAP".into(),
+                body: "0.530564 ETH\nto\n0.25 ETH".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Receive to".into(),
+                body: "ETH account #1".into(),
+                longtouch: false,
+            },
+            Screen::TotalFee {
+                total: "0.53069 ETH".into(),
+                fee: "0.000126 ETH".into(),
+                longtouch: true,
+            },
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            },
+        ];
+
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("1fdc").to_vec(),
+                    max_priority_fee_per_gas: b"".to_vec(),
+                    max_fee_per_gas: hex!("0165a0bc00").to_vec(),
+                    gas_limit: hex!("5208").to_vec(),
+                    recipient: hex!("04f264cf34440313b4a0192a352814fbe927b885").to_vec(),
+                    value: value.to_vec(),
+                    data: b"".to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                    payment_request: Some(payment_request),
+                }),
+            )),
+            Ok(Response::Sign(pb::EthSignResponse {
+                signature: hex!("289111770dc067895780de3e9b30454e331ba6661f046e9e26431576d7f08a496ffe6deffb07dd8d4713d8c523b6c33b53dd6ef2dc9c394d6e21f64307d2bcf001")
+                    .to_vec()
+            }))
+        );
+        assert_eq!(mock_hal.ui.screens, expected_screens);
+    }
+
+    #[test]
+    fn test_process_eip1559_payment_request_known_erc20() {
+        // Known ERC20 swaps decode the transfer recipient/amount and show the token unit.
+        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
+        // function selector + recipient address (left padded) + token amount
+        let data = hex!(
+            "a9059cbb000000000000000000000000e6ce0a092a99700cd4ccccbb1fedc39cf53e6330000000000000000000000000000000000000000000000000000000000365c040"
+        );
+        let output_value: [u8; 32] = data[36..68].try_into().unwrap();
+        let output_address = address::from_pubkey_hash(
+            &hex!("e6ce0a092a99700cd4ccccbb1fedc39cf53e6330"),
+            pb::EthAddressCase::Mixed,
+        );
+        let mut payment_request = make_eth_swap_payment_request();
+        payment_request::tst_sign_payment_request_eth(
+            60,
+            &mut payment_request,
+            &output_value,
+            &output_address,
+        );
+
+        let expected_screens = vec![
+            Screen::Confirm {
+                title: "".into(),
+                body: "Sign transaction on\n\nEthereum".into(),
+                longtouch: false,
+            },
+            Screen::Recipient {
+                recipient: "Test Merchant".into(),
+                amount: "57 USDT".into(),
+            },
+            Screen::Confirm {
+                title: "SWAP".into(),
+                body: "57 USDT\nto\n0.25 ETH".into(),
+                longtouch: false,
+            },
+            Screen::Confirm {
+                title: "Receive to".into(),
+                body: "ETH account #1".into(),
+                longtouch: false,
+            },
+            Screen::TotalFee {
+                total: "57 USDT".into(),
+                fee: "0.0012658164 ETH".into(),
+                longtouch: true,
+            },
+            Screen::Status {
+                title: "Transaction\nconfirmed".into(),
+                success: true,
+            },
+        ];
+
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            block_on(process(
+                &mut mock_hal,
+                &Transaction::Eip1559(&pb::EthSignEip1559Request {
+                    keypath: KEYPATH.to_vec(),
+                    nonce: hex!("2367").to_vec(),
+                    max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
+                    max_fee_per_gas: hex!("027aca1a80").to_vec(),
+                    gas_limit: hex!("01d048").to_vec(),
+                    recipient: hex!("dac17f958d2ee523a2206206994597c13d831ec7").to_vec(),
+                    value: b"".to_vec(),
+                    data: data.to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 1,
+                    address_case: pb::EthAddressCase::Mixed as _,
+                    data_length: 0,
+                    payment_request: Some(payment_request),
+                }),
+            )),
+            Ok(Response::Sign(pb::EthSignResponse {
+                signature: hex!("3162487880abdea1f352d9a4e3d56066f122f04ff112117c8ca3cd220f1666302dacd5e5e8da4cd39704e33443a9a7f32602d332bb52567c2e34aafe9ed48feb01")
+                    .to_vec()
+            }))
+        );
+        assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
     /// ERC20 transaction: recipient is an ERC20 contract address, and
@@ -1015,6 +1361,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("3162487880abdea1f352d9a4e3d56066f122f04ff112117c8ca3cd220f1666302dacd5e5e8da4cd39704e33443a9a7f32602d332bb52567c2e34aafe9ed48feb01")
@@ -1088,6 +1435,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }))),
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("8203d80b600dce8e77cdcb119d45db7f60d7ca34e7369140e92d93919221f85a0a119d2464dfab65833095c12763fed37c072feb29610e1437f388958d77562801")
@@ -1266,6 +1614,7 @@ mod tests {
             chain_id: 1,
             address_case: pb::EthAddressCase::Mixed as _,
             data_length: 0,
+            payment_request: None,
         };
 
         {
@@ -1436,6 +1785,7 @@ mod tests {
                 chain_id: 137,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }),
         ))
         .unwrap();
@@ -1528,6 +1878,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
+                payment_request: None,
             }),
         ));
 
@@ -1549,6 +1900,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 4000,
+                payment_request: None,
             }),
         ));
         clear_chunk_responder();
@@ -1695,6 +2047,7 @@ mod tests {
                     chain_id: 1,
                     address_case: pb::EthAddressCase::Mixed as _,
                     data_length: 12000,
+                    payment_request: None,
                 }),
             )),
             Ok(Response::Sign(pb::EthSignResponse {

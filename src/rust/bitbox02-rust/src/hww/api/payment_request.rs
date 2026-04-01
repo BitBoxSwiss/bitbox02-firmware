@@ -5,6 +5,8 @@ use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
 use alloc::vec::Vec;
+#[cfg(feature = "app-ethereum")]
+use num_bigint::BigUint;
 
 use pb::btc_payment_request_request::{Memo, memo};
 
@@ -296,6 +298,22 @@ pub fn tst_sign_payment_request_btc(
 
 #[cfg(feature = "testing")]
 #[allow(dead_code)]
+pub fn tst_sign_payment_request_eth(
+    source_coin_type: u32,
+    payment_request: &mut pb::BtcPaymentRequestRequest,
+    total_value_bytes: &[u8; 32],
+    output_address: &str,
+) {
+    tst_sign_payment_request(
+        source_coin_type,
+        payment_request,
+        total_value_bytes,
+        output_address,
+    );
+}
+
+#[cfg(feature = "testing")]
+#[allow(dead_code)]
 fn tst_sign_payment_request(
     source_coin_type: u32,
     payment_request: &mut pb::BtcPaymentRequestRequest,
@@ -336,11 +354,38 @@ pub fn validate_btc(
     output_address: &str,
 ) -> Result<(), ValidationError> {
     let total_value_bytes = total_value.to_le_bytes();
-    validate(
+    if total_value_bytes.as_slice() != payment_request.total_amount.to_le_bytes().as_slice() {
+        return Err(ValidationError::Other);
+    }
+    validate_common(
         hal,
         coin_params.slip44(),
         payment_request,
         &total_value_bytes,
+        output_address,
+    )
+}
+
+/// Validate an ETH/EVM payment request against the parsed source-side transaction.
+#[cfg(feature = "app-ethereum")]
+pub fn validate_eth(
+    hal: &mut impl crate::hal::Hal,
+    coin_params: &super::ethereum::params::Params,
+    payment_request: &pb::BtcPaymentRequestRequest,
+    output_value: &BigUint,
+    output_address: &str,
+) -> Result<(), ValidationError> {
+    let output_value = output_value.to_bytes_be();
+    if output_value.len() > 32 {
+        return Err(ValidationError::Other);
+    }
+    let mut output_value_padded = [0u8; 32];
+    output_value_padded[32 - output_value.len()..].copy_from_slice(&output_value);
+    validate_common(
+        hal,
+        coin_params.slip44(),
+        payment_request,
+        &output_value_padded,
         output_address,
     )
 }
@@ -354,7 +399,7 @@ pub fn validate_btc(
 /// Destination ownership checks for `CoinPurchaseMemo.address` still happen
 /// here, because they are derived from the memo's keypath metadata rather than
 /// from the source transaction itself.
-fn validate(
+fn validate_common(
     #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
     source_coin_type: u32,
     payment_request: &pb::BtcPaymentRequestRequest,
@@ -363,9 +408,6 @@ fn validate(
 ) -> Result<(), ValidationError> {
     let identity =
         find_identity(&payment_request.recipient_name).ok_or(ValidationError::UnknownRecipient)?;
-    if output_value != payment_request.total_amount.to_le_bytes().as_slice() {
-        return Err(ValidationError::Other);
-    }
     if !payment_request.nonce.is_empty() {
         // No support for nonces yet.
         return Err(ValidationError::Other);
@@ -453,6 +495,8 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::hww::api::bitcoin::params;
+    #[cfg(feature = "app-ethereum")]
+    use crate::hww::api::ethereum::params as eth_params;
     use util::bb02_async::block_on;
 
     fn make_text_memo(note: &str) -> Memo {
@@ -677,7 +721,7 @@ mod tests {
         );
 
         assert!(
-            validate(
+            validate_common(
                 &mut mock_hal,
                 source_coin_type,
                 &payment_request,
@@ -713,7 +757,7 @@ mod tests {
                 address,
             );
             assert!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -783,7 +827,7 @@ mod tests {
             );
 
             assert!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -853,7 +897,7 @@ mod tests {
             );
 
             assert!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -889,7 +933,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -922,7 +966,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut TestingHal::new(),
                     source_coin_type,
                     &payment_request,
@@ -955,7 +999,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -1013,7 +1057,7 @@ mod tests {
                     address,
                 );
                 assert!(matches!(
-                    validate(
+                    validate_common(
                         &mut mock_hal,
                         source_coin_type,
                         &payment_request,
@@ -1056,7 +1100,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -1098,7 +1142,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -1140,7 +1184,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -1182,7 +1226,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -1240,7 +1284,7 @@ mod tests {
                 address,
             );
             assert!(matches!(
-                validate(
+                validate_common(
                     &mut mock_hal,
                     source_coin_type,
                     &payment_request,
@@ -1260,7 +1304,7 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(
+            validate_common(
                 &mut mock_hal,
                 source_coin_type,
                 &payment_request,
@@ -1279,11 +1323,11 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(
+            validate_btc(
                 &mut mock_hal,
-                source_coin_type,
+                params::get(pb::BtcCoin::Tbtc),
                 &payment_request,
-                (value + 1).to_le_bytes().as_ref(),
+                value + 1,
                 address
             ),
             Err(ValidationError::Other)
@@ -1298,7 +1342,7 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(
+            validate_common(
                 &mut mock_hal,
                 source_coin_type,
                 &payment_request,
@@ -1317,7 +1361,7 @@ mod tests {
             signature: vec![],
         };
         assert!(matches!(
-            validate(
+            validate_common(
                 &mut mock_hal,
                 source_coin_type,
                 &payment_request,
@@ -1461,6 +1505,107 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    fn test_validate_eth() {
+        let mut mock_hal = TestingHal::new();
+        let params = eth_params::Params {
+            coin: Some(pb::EthCoin::Eth),
+            bip44_coin: 60 + util::bip32::HARDENED,
+            chain_id: 1,
+            name: "Ethereum",
+            unit: "ETH",
+        };
+        let output_value = hex!("000000000000000000000000000000000000000000000000075cf1259e9c4000");
+        let output_address = "0x04F264Cf34440313B4A0192A352814FBe927b885";
+        let mut payment_request = pb::BtcPaymentRequestRequest {
+            recipient_name: "Test Merchant".into(),
+            memos: vec![make_coin_purchase_memo(
+                60,
+                "0.25 ETH",
+                "0x773A77b9D32589be03f9132AF759e294f7851be9",
+                Some(dummy_eth_address_derivation(/*valid=*/ true)),
+            )],
+            nonce: vec![],
+            total_amount: 0,
+            signature: vec![],
+        };
+        tst_sign_payment_request_eth(
+            params.slip44(),
+            &mut payment_request,
+            &output_value,
+            output_address,
+        );
+
+        // Fully normalized 32-byte EVM amount bytes validate as-is.
+        assert!(
+            validate_eth(
+                &mut mock_hal,
+                &params,
+                &payment_request,
+                &BigUint::from_bytes_be(&output_value),
+                output_address,
+            )
+            .is_ok()
+        );
+
+        // Native ETH values may be shorter than 32 bytes.
+        assert!(matches!(
+            validate_eth(
+                &mut TestingHal::new(),
+                &params,
+                &payment_request,
+                &BigUint::from_bytes_be(&output_value[24..]),
+                output_address,
+            ),
+            Ok(())
+        ));
+
+        let wrong_output_value =
+            hex!("000000000000000000000000000000000000000000000000075cf1259e9c4001");
+        // Wrong source amount must produce wrong signature.
+        assert!(matches!(
+            validate_eth(
+                &mut TestingHal::new(),
+                &params,
+                &payment_request,
+                &BigUint::from_bytes_be(&wrong_output_value),
+                output_address,
+            ),
+            Err(ValidationError::InvalidSignature)
+        ));
+
+        //Wrong source-side deposit address must produce wrong signature.
+        assert!(matches!(
+            validate_eth(
+                &mut TestingHal::new(),
+                &params,
+                &payment_request,
+                &BigUint::from_bytes_be(&output_value),
+                "0x1111111111111111111111111111111111111111",
+            ),
+            Err(ValidationError::InvalidSignature)
+        ));
+
+        // Wrong source coin type must produce wrong signature.
+        assert!(matches!(
+            validate_eth(
+                &mut TestingHal::new(),
+                &eth_params::Params {
+                    coin: Some(pb::EthCoin::Eth),
+                    bip44_coin: 1 + util::bip32::HARDENED,
+                    chain_id: 1,
+                    name: "Ethereum",
+                    unit: "ETH",
+                },
+                &payment_request,
+                &BigUint::from_bytes_be(&output_value),
+                output_address,
+            ),
+            Err(ValidationError::InvalidSignature)
+        ));
     }
 
     #[cfg(all(feature = "app-litecoin", feature = "app-ethereum"))]

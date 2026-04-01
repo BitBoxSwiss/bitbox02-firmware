@@ -4,6 +4,7 @@ isort:skip_file
 SPDX-License-Identifier: Apache-2.0"""
 
 from . import antiklepto_pb2
+from . import btc_pb2
 import builtins
 import collections.abc
 from . import common_pb2
@@ -185,6 +186,7 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
     HOST_NONCE_COMMITMENT_FIELD_NUMBER: builtins.int
     ADDRESS_CASE_FIELD_NUMBER: builtins.int
     DATA_LENGTH_FIELD_NUMBER: builtins.int
+    PAYMENT_REQUEST_FIELD_NUMBER: builtins.int
     chain_id: builtins.int
     nonce: builtins.bytes
     """smallest big endian serialization, max. 16 bytes"""
@@ -206,6 +208,8 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
     def keypath(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
     @property
     def host_nonce_commitment(self) -> antiklepto_pb2.AntiKleptoHostNonceCommitment: ...
+    @property
+    def payment_request(self) -> btc_pb2.BTCPaymentRequestRequest: ...
     def __init__(
         self,
         *,
@@ -221,9 +225,10 @@ class ETHSignEIP1559Request(google.protobuf.message.Message):
         host_nonce_commitment: antiklepto_pb2.AntiKleptoHostNonceCommitment | None = ...,
         address_case: global___ETHAddressCase.ValueType = ...,
         data_length: builtins.int = ...,
+        payment_request: btc_pb2.BTCPaymentRequestRequest | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["host_nonce_commitment", b"host_nonce_commitment"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["address_case", b"address_case", "chain_id", b"chain_id", "data", b"data", "data_length", b"data_length", "gas_limit", b"gas_limit", "host_nonce_commitment", b"host_nonce_commitment", "keypath", b"keypath", "max_fee_per_gas", b"max_fee_per_gas", "max_priority_fee_per_gas", b"max_priority_fee_per_gas", "nonce", b"nonce", "recipient", b"recipient", "value", b"value"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["host_nonce_commitment", b"host_nonce_commitment", "payment_request", b"payment_request"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["address_case", b"address_case", "chain_id", b"chain_id", "data", b"data", "data_length", b"data_length", "gas_limit", b"gas_limit", "host_nonce_commitment", b"host_nonce_commitment", "keypath", b"keypath", "max_fee_per_gas", b"max_fee_per_gas", "max_priority_fee_per_gas", b"max_priority_fee_per_gas", "nonce", b"nonce", "payment_request", b"payment_request", "recipient", b"recipient", "value", b"value"]) -> None: ...
 
 global___ETHSignEIP1559Request = ETHSignEIP1559Request
 

@@ -8,7 +8,7 @@ compile_error!(
 mod address;
 mod amount;
 mod keypath;
-mod params;
+pub mod params;
 mod pubrequest;
 mod sighash;
 mod sign;

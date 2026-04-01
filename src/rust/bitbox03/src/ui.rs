@@ -1,3 +1,5 @@
+use core::time::Duration;
+
 use alloc::vec::Vec;
 use bitbox_hal as hal;
 use bitbox_lvgl::{
@@ -9,6 +11,7 @@ use util::futures::completion;
 
 mod confirm;
 mod enter_string;
+mod status;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
 
@@ -73,8 +76,10 @@ impl hal::ui::Ui for BitBox03Ui {
         todo!()
     }
 
-    async fn status(&mut self, _title: &str, _status_success: bool) {
-        todo!()
+    async fn status(&mut self, title: &str, status_success: bool) {
+        let screen = status::build_status_screen(title, status_success);
+        let _screen = self.push_guard(screen);
+        crate::delay::delay_for(Duration::from_millis(2000)).await;
     }
 
     fn print_screen(&mut self, _duration: core::time::Duration, _msg: &str) {

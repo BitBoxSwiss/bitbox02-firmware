@@ -352,16 +352,8 @@ mod tests {
     use alloc::rc::Rc;
     use core::cell::Cell;
     use core::ptr;
-    use std::sync::{Mutex, Once};
 
     use super::*;
-
-    static LVGL_TEST_LOCK: Mutex<()> = Mutex::new(());
-
-    fn init_lvgl() {
-        static INIT: Once = Once::new();
-        INIT.call_once(crate::system::init);
-    }
 
     #[test]
     fn test_style_methods_exist() {
@@ -378,8 +370,7 @@ mod tests {
 
     #[test]
     fn test_add_event_cb_invokes_callback() {
-        let _lock = LVGL_TEST_LOCK.lock().unwrap();
-        init_lvgl();
+        let _lock = crate::test_util::lock_and_init();
 
         let display = crate::LvDisplay::new(16, 16).unwrap();
         let screen = display.screen_active().unwrap();
@@ -406,8 +397,7 @@ mod tests {
 
     #[test]
     fn test_add_event_cb_delete_event_invokes_callback() {
-        let _lock = LVGL_TEST_LOCK.lock().unwrap();
-        init_lvgl();
+        let _lock = crate::test_util::lock_and_init();
 
         let display = crate::LvDisplay::new(16, 16).unwrap();
         let screen = display.screen_active().unwrap();
@@ -426,8 +416,7 @@ mod tests {
 
     #[test]
     fn test_add_event_cb_delete_during_callback_is_safe() {
-        let _lock = LVGL_TEST_LOCK.lock().unwrap();
-        init_lvgl();
+        let _lock = crate::test_util::lock_and_init();
 
         let display = crate::LvDisplay::new(16, 16).unwrap();
         let screen = display.screen_active().unwrap();

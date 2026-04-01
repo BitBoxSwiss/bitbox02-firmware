@@ -3,6 +3,7 @@
 #![no_std]
 
 extern crate alloc;
+pub mod delay;
 use core::cell::UnsafeCell;
 mod eeprom;
 pub mod io;

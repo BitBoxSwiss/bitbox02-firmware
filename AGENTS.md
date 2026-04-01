@@ -100,3 +100,5 @@ conclude.
 - when editing code, unless otherwise instructed, try to keep the diff small and not do any
   unprompted refactorings or core reorganizations.
 - rust fmt all Rust files you modify, using 2024 edition.
+- when working on BitBox03 UI code, do not reach into `bitbox_lvgl` FFI directly from feature code.
+  If needed, add safe idiomatic wrappers to `bitbox-lvgl` first and use those wrappers instead.

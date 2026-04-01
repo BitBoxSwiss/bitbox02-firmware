@@ -42,7 +42,7 @@ use glutin_winit::DisplayBuilder;
 use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
-use bitbox_hal::{Hal, Ui, system::System};
+use bitbox_hal::{Hal, system::System};
 
 use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
 use hal::BitBox03;
@@ -252,7 +252,6 @@ struct App {
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
-    counter: usize,
     transport: Option<bitbox02_rust::hww::transport::HwwTransport<BitBox03>>,
     started_at: Instant,
 }
@@ -273,7 +272,6 @@ impl App {
             outbound_in: Default::default(),
             inbound_out: Default::default(),
             startup_task: Default::default(),
-            counter: 0,
             transport: Default::default(),
             started_at: Instant::now(),
         }
@@ -612,11 +610,6 @@ impl ApplicationHandler<UserEvent> for App {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
         match event {
             UserEvent::WakeUp => {
-                self.counter += 1;
-                if self.counter == 5000 {
-                    info!("test switch to logo (pop)");
-                    self.bitbox.ui().switch_to_logo();
-                }
                 let now_ms = self.started_at.elapsed().as_millis() as u64;
                 // Read data from TCP client
                 let mut inbound_out = self.inbound_out.take();

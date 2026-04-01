@@ -2831,6 +2831,7 @@ dependencies = [
  "glutin-winit",
  "hex",
  "image",
+ "rand",
  "tracing",
  "tracing-subscriber",
  "util",

@@ -628,7 +628,7 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     U2F_AUTHENTICATE_RESP* response = (U2F_AUTHENTICATE_RESP*)&buf;
 
     uint32_t counter;
-    if (!securechip_u2f_counter_inc(&counter)) {
+    if (!rust_securechip_u2f_counter_inc(&counter)) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }

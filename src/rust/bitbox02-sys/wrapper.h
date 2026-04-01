@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <atecc/atecc.h>
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
 #include <da14531/da14531_protocol.h>
@@ -11,13 +12,13 @@
 #include <memory/memory_spi.h>
 #include <memory/smarteeprom.h>
 #include <memory/spi_mem.h>
+#include <optiga/optiga.h>
 #include <platform/driver_init.h>
 #include <platform/platform_init.h>
 #include <random.h>
 #include <reset.h>
 #include <screen.h>
 #include <sd.h>
-#include <securechip/securechip.h>
 #include <system.h>
 #include <time.h>
 #include <u2f.h>

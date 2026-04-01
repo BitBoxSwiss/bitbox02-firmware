@@ -4,7 +4,6 @@
 #define _OPTIGA_H_
 
 /* Optiga Trust M implementation of the secure chip functions. */
-/* See securechip.h for the docstrings of the individual functions. */
 
 #include "compiler_util.h"
 #include "securechip/securechip.h"

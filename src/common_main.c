@@ -11,6 +11,7 @@
 #include "screen.h"
 #include "securechip/securechip.h"
 #include "util.h"
+#include <rust/rust.h>
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
 void __attribute__((noreturn)) __stack_chk_fail(void)
@@ -49,12 +50,12 @@ void common_main(void)
     /* Enable/configure SmartEEPROM. */
     smarteeprom_bb02_config();
 
-    if (!securechip_init()) {
+    if (!rust_securechip_init()) {
         AbortAutoenter("Failed to detect securechip");
     }
-    // securechip_setup must come after memory_setup, so the io/auth keys to be
+    // rust_securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
-    int securechip_result = securechip_setup(&_securechip_interface_functions);
+    int securechip_result = rust_securechip_setup(&_securechip_interface_functions);
     if (securechip_result) {
         char errmsg[100] = {0};
         snprintf(

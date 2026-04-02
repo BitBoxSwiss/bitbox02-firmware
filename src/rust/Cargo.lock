@@ -214,6 +214,8 @@ dependencies = [
  "futures-lite",
  "grounded",
  "hex_lit",
+ "hmac",
+ "sha2",
  "util",
  "zeroize",
 ]

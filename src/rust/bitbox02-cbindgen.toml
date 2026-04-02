@@ -8,6 +8,7 @@ include_version = true
 
 header = '''
 #include "platform/platform_config.h"
+#include "securechip/securechip.h"
 #include "util.h"
 #include <ui/components/confirm.h>
 
@@ -33,6 +34,7 @@ extra_bindings = ["bitbox02", "bitbox02-rust", "util", "bitbox-aes", "bitbox-da1
 exclude = [
   "malloc",
   "free",
+  "Abort",
 ]
 
 [defines]

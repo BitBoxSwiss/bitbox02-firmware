@@ -57,6 +57,8 @@ pub mod display;
 pub mod indev;
 pub mod log;
 pub mod system;
+#[cfg(test)]
+mod test_util;
 pub mod tick;
 pub mod timer;
 mod util;

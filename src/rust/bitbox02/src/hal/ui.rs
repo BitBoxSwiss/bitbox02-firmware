@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::string::String;
+use core::marker::PhantomData;
 use core::time::Duration;
 
 use bitbox_hal::Ui;
@@ -9,7 +10,9 @@ use bitbox_hal::ui::{
     TrinaryChoice, UserAbort,
 };
 
-pub struct BitBox02Ui;
+pub struct BitBox02Ui<Timer = super::timer::BitBox02Timer> {
+    _timer: PhantomData<Timer>,
+}
 
 pub struct BitBox02Progress {
     component: crate::ui::Component,
@@ -72,7 +75,21 @@ fn to_hal_trinary_choice(choice: crate::ui::TrinaryChoice) -> TrinaryChoice {
     }
 }
 
-impl Ui for BitBox02Ui {
+impl<Timer> BitBox02Ui<Timer> {
+    pub const fn new() -> Self {
+        Self {
+            _timer: PhantomData,
+        }
+    }
+}
+
+impl<Timer> Default for BitBox02Ui<Timer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     type Progress = BitBox02Progress;
     type Empty = BitBox02Empty;
 
@@ -127,7 +144,9 @@ impl Ui for BitBox02Ui {
 
     #[inline(always)]
     async fn status(&mut self, title: &str, status_success: bool) {
-        crate::ui::status(title, status_success).await
+        let mut component = crate::ui::status_create(title, status_success);
+        component.screen_stack_push();
+        Timer::delay_for(Duration::from_millis(2000)).await;
     }
 
     fn print_screen(&mut self, duration: Duration, msg: &str) {

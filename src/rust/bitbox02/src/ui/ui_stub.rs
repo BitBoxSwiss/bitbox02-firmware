@@ -50,8 +50,8 @@ pub async fn confirm(_params: &ConfirmParams<'_>) -> ConfirmResponse {
 
 pub fn screen_process() {}
 
-pub async fn status(_text: &str, _status_success: bool) {
-    panic!("not used");
+pub fn status_create(_text: &str, _status_success: bool) -> Component {
+    Component { is_pushed: false }
 }
 
 pub async fn sdcard() -> SdcardResponse {

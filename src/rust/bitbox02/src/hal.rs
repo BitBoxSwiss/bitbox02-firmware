@@ -6,52 +6,53 @@ pub mod random;
 pub mod sd;
 pub mod securechip;
 pub mod system;
+pub mod timer;
 pub mod ui;
 
 use bitbox_hal::Hal;
 
-pub struct BitBox02Hal {
-    ui: ui::BitBox02Ui,
+pub struct BitBox02Hal<Timer = timer::BitBox02Timer> {
+    ui: ui::BitBox02Ui<Timer>,
     sd: sd::BitBox02Sd,
     random: random::BitBox02Random,
     securechip: securechip::BitBox02SecureChip,
     memory: memory::BitBox02Memory,
     eeprom: eeprom::BitBox02Eeprom,
-    system: system::BitBox02System,
+    system: system::BitBox02System<Timer>,
 }
 
-impl grounded::const_init::ConstInit for BitBox02Hal {
+impl<Timer: bitbox_hal::timer::Timer> grounded::const_init::ConstInit for BitBox02Hal<Timer> {
     const VAL: Self = Self::new();
 }
 
-impl BitBox02Hal {
+impl<Timer> BitBox02Hal<Timer> {
     pub const fn new() -> Self {
         Self {
-            ui: ui::BitBox02Ui,
+            ui: ui::BitBox02Ui::new(),
             sd: sd::BitBox02Sd,
             random: random::BitBox02Random,
             securechip: securechip::BitBox02SecureChip,
             memory: memory::BitBox02Memory,
             eeprom: eeprom::BitBox02Eeprom,
-            system: system::BitBox02System,
+            system: system::BitBox02System::new(),
         }
     }
 }
 
-impl Default for BitBox02Hal {
+impl<Timer> Default for BitBox02Hal<Timer> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Hal for BitBox02Hal {
-    type Ui = ui::BitBox02Ui;
+impl<Timer: bitbox_hal::timer::Timer> Hal for BitBox02Hal<Timer> {
+    type Ui = ui::BitBox02Ui<Timer>;
     type Random = random::BitBox02Random;
     type Sd = sd::BitBox02Sd;
     type SecureChip = securechip::BitBox02SecureChip;
     type Memory = memory::BitBox02Memory;
     type Eeprom = eeprom::BitBox02Eeprom;
-    type System = system::BitBox02System;
+    type System = system::BitBox02System<Timer>;
 
     fn as_mut(
         &mut self,

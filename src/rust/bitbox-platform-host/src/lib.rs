@@ -4,8 +4,10 @@
 
 #[macro_use]
 extern crate alloc;
+extern crate std;
 
 pub mod eeprom;
 pub mod memory;
 pub mod sd;
 pub mod securechip;
+pub mod timer;

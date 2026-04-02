@@ -328,6 +328,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-platform-host"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "bitcoin",
+ "hex_lit",
+ "zeroize",
+]
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
@@ -2865,6 +2875,7 @@ name = "simulator-graphical"
 version = "0.1.0"
 dependencies = [
  "bitbox-aes",
+ "bitbox-platform-host",
  "bitbox02",
  "bitbox02-rust",
  "bitbox02-rust-c",

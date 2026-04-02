@@ -44,6 +44,8 @@ use bitbox02_rust::hal::{Eeprom, Hal, Memory, System};
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
 
+type SimulatorHal = bitbox02::hal::BitBox02Hal<bitbox_platform_host::timer::HostTimer>;
+
 static BG: &[u8; 325362] = include_bytes!("../bg.png");
 
 const MARGIN: usize = 20;
@@ -139,7 +141,7 @@ static ACCEPTING_CONNECTIONS: AtomicBool = AtomicBool::new(false);
 
 fn init_hww(
     preseed: bool,
-) -> Option<bitbox02_rust::hww::transport::HwwTransport<bitbox02::hal::BitBox02Hal>> {
+) -> Option<bitbox02_rust::hww::transport::HwwTransport<SimulatorHal>> {
     bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
     bitbox02::screen::splash();
 
@@ -159,7 +161,7 @@ fn init_hww(
     bitbox02::memory::fake_nova();
     info!("Memory setup: success");
 
-    let mut hal = bitbox02::hal::BitBox02Hal::new();
+    let mut hal = SimulatorHal::new();
 
     if preseed {
         let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
@@ -171,9 +173,7 @@ fn init_hww(
     hal.eeprom().setup();
     hal.eeprom().init();
 
-    Some(bitbox02_rust::hww::transport::hww_transport::<
-        bitbox02::hal::BitBox02Hal,
-    >())
+    Some(bitbox02_rust::hww::transport::hww_transport::<SimulatorHal>())
 }
 
 #[derive(Debug)]
@@ -224,7 +224,7 @@ struct App {
     outbound_in: Option<mpsc::Sender<[u8; 64]>>,
     inbound_out: Option<mpsc::Receiver<[u8; 64]>>,
     startup_task: Option<util::bb02_async::Task<'static, ()>>,
-    transport: Option<bitbox02_rust::hww::transport::HwwTransport<bitbox02::hal::BitBox02Hal>>,
+    transport: Option<bitbox02_rust::hww::transport::HwwTransport<SimulatorHal>>,
     started_at: std::time::Instant,
 }
 
@@ -707,7 +707,9 @@ impl ApplicationHandler<UserEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.create_window(event_loop, None)
             .expect("failed to create initial window");
-        self.startup_task = Some(Box::pin(bitbox02::hal::system::BitBox02System::startup()));
+        self.startup_task = Some(Box::pin(
+            bitbox02::hal::system::BitBox02System::<bitbox_platform_host::timer::HostTimer>::startup(),
+        ));
     }
 }
 

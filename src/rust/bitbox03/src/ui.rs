@@ -1,30 +1,36 @@
+use core::time::Duration;
+
 use alloc::vec::Vec;
 use bitbox_hal as hal;
 use bitbox_lvgl::{
     self as lvgl, LabelExt, LvAlign, LvDisplay, LvHandle, LvLabel, LvObj, LvOpacityLevel, LvPart,
     LvSpangroup, ObjExt, SpangroupExt,
 };
+use core::marker::PhantomData;
 use tracing::info;
 use util::futures::completion;
 
 mod confirm;
+mod enter_string;
+mod status;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
 
-pub struct BitBox03Ui {
+pub struct BitBox03Ui<Timer = crate::timer::BitBox03Timer> {
     display: Option<LvDisplay>,
     stack: Vec<LvHandle>,
+    _timer: PhantomData<Timer>,
 }
 
 pub struct BitBox03UiProgress;
 
 pub struct BitBox03UiEmpty;
 
-struct ScreenGuard<'a> {
-    ui: &'a mut BitBox03Ui,
+struct ScreenGuard<'a, Timer> {
+    ui: &'a mut BitBox03Ui<Timer>,
 }
 
-impl Drop for ScreenGuard<'_> {
+impl<Timer> Drop for ScreenGuard<'_, Timer> {
     fn drop(&mut self) {
         self.ui.pop();
     }
@@ -38,7 +44,7 @@ impl hal::ui::Progress for BitBox03UiProgress {
 
 impl hal::ui::Empty for BitBox03UiEmpty {}
 
-impl hal::ui::Ui for BitBox03Ui {
+impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     type Progress = BitBox03UiProgress;
 
     type Empty = BitBox03UiEmpty;
@@ -69,11 +75,13 @@ impl hal::ui::Ui for BitBox03Ui {
     }
 
     async fn unlock_animation(&mut self) {
-        todo!()
+        self.status("TODO\nunlock_animation", true).await
     }
 
-    async fn status(&mut self, _title: &str, _status_success: bool) {
-        todo!()
+    async fn status(&mut self, title: &str, status_success: bool) {
+        let screen = status::build_status_screen(title, status_success);
+        let _screen = self.push_guard(screen);
+        Timer::delay_for(Duration::from_millis(2000)).await;
     }
 
     fn print_screen(&mut self, _duration: core::time::Duration, _msg: &str) {
@@ -100,11 +108,14 @@ impl hal::ui::Ui for BitBox03Ui {
 
     async fn enter_string(
         &mut self,
-        _params: &bitbox_hal::ui::EnterStringParams<'_>,
-        _can_cancel: bitbox_hal::ui::CanCancel,
-        _preset: &str,
+        params: &bitbox_hal::ui::EnterStringParams<'_>,
+        can_cancel: bitbox_hal::ui::CanCancel,
+        preset: &str,
     ) -> Result<zeroize::Zeroizing<alloc::string::String>, bitbox_hal::ui::UserAbort> {
-        todo!()
+        self.with_result_screen(|responder| {
+            enter_string::build_enter_string_screen(params, can_cancel, preset, responder)
+        })
+        .await
     }
 
     async fn insert_sdcard(&mut self) -> Result<(), bitbox_hal::ui::UserAbort> {
@@ -163,11 +174,12 @@ fn set_background(display: &mut LvDisplay) {
     img.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
 }
 
-impl BitBox03Ui {
-    pub const fn new() -> BitBox03Ui {
+impl<Timer> BitBox03Ui<Timer> {
+    pub const fn new() -> BitBox03Ui<Timer> {
         BitBox03Ui {
             display: None,
             stack: Vec::new(),
+            _timer: PhantomData,
         }
     }
     pub fn init(&mut self, mut display: LvDisplay) {
@@ -242,14 +254,14 @@ impl BitBox03Ui {
         }
     }
 
-    fn push_guard(&mut self, screen: LvObj) -> ScreenGuard<'_> {
+    fn push_guard(&mut self, screen: LvObj) -> ScreenGuard<'_, Timer> {
         self.push(screen);
         ScreenGuard { ui: self }
     }
 
-    async fn with_result_screen<T, F>(&mut self, build_screen: F) -> T
+    async fn with_result_screen<R, F>(&mut self, build_screen: F) -> R
     where
-        F: FnOnce(completion::UiResponder<T>) -> LvObj,
+        F: FnOnce(completion::Responder<R>) -> LvObj,
     {
         let (responder, result) = completion::completion();
         let screen = build_screen(responder);

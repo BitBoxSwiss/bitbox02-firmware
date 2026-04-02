@@ -21,7 +21,6 @@ pub mod testing;
 
 pub mod da14531_handler;
 pub mod da14531_protocol;
-pub mod delay;
 #[cfg(feature = "simulator-graphical")]
 pub mod event;
 pub mod hal;

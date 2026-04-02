@@ -13,6 +13,7 @@ use util::futures::completion;
 mod confirm;
 mod enter_string;
 mod status;
+mod unlock_animation;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
 
@@ -75,7 +76,7 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     }
 
     async fn unlock_animation(&mut self) {
-        self.status("TODO\nunlock_animation", true).await
+        unlock_animation::show(self).await
     }
 
     async fn status(&mut self, title: &str, status_success: bool) {

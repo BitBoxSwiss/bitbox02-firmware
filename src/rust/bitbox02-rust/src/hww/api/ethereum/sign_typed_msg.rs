@@ -21,7 +21,6 @@ use pb::eth_response::Response;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use bitbox02::ui::{MAX_CONFIRM_BODY_SIZE, truncating_hex_preview_byte_cap};
 
 use sha3::digest::Digest;
 
@@ -344,7 +343,7 @@ async fn encode_member<U: sha3::digest::Update>(
             }
 
             display_size = req.data_length as usize;
-            let display_cap = truncating_hex_preview_byte_cap(
+            let display_cap = super::truncating_hex_preview_byte_cap(
                 format!("{}: 0x", format_display_line_prefix(&display_path, 0, 1)).len(),
                 display_size,
             );
@@ -373,7 +372,7 @@ async fn encode_member<U: sha3::digest::Update>(
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
             let body = format_display_line_body(&display_path, i, lines.len(), line);
-            if body.len() > MAX_CONFIRM_BODY_SIZE {
+            if body.len() > super::MAX_CONFIRM_BODY_SIZE {
                 hal.ui()
                     .confirm(&ConfirmParams {
                         title: "Warning",
@@ -1134,7 +1133,7 @@ mod tests {
 
     #[test]
     fn test_streaming_display_byte_cap() {
-        let exact_fit = truncating_hex_preview_byte_cap("data: 0x".len(), 316);
+        let exact_fit = super::super::truncating_hex_preview_byte_cap("data: 0x".len(), 316);
         assert_eq!(exact_fit, 316);
         let exact_fit_body = format_display_line_body(
             "data",
@@ -1142,9 +1141,9 @@ mod tests {
             1,
             &format!("0x{}", hex::encode(vec![0u8; exact_fit])),
         );
-        assert_eq!(exact_fit_body.len(), MAX_CONFIRM_BODY_SIZE);
+        assert_eq!(exact_fit_body.len(), super::super::MAX_CONFIRM_BODY_SIZE);
 
-        let truncated = truncating_hex_preview_byte_cap("data: 0x".len(), 10_000);
+        let truncated = super::super::truncating_hex_preview_byte_cap("data: 0x".len(), 10_000);
         assert_eq!(truncated, 317);
         let truncated_body = format_display_line_body(
             "data",
@@ -1152,7 +1151,7 @@ mod tests {
             1,
             &format!("0x{}", hex::encode(vec![0u8; truncated])),
         );
-        assert!(truncated_body.len() > MAX_CONFIRM_BODY_SIZE);
+        assert!(truncated_body.len() > super::super::MAX_CONFIRM_BODY_SIZE);
     }
 
     #[test]
@@ -1185,7 +1184,7 @@ mod tests {
 
     #[test]
     fn test_multiline_warning_shown_only_for_overlong_line() {
-        let line2 = "b".repeat(MAX_CONFIRM_BODY_SIZE);
+        let line2 = "b".repeat(super::super::MAX_CONFIRM_BODY_SIZE);
         let mock_hal = run_single_string_message(format!("ok\n{line2}"));
 
         assert_eq!(
@@ -1232,7 +1231,7 @@ mod tests {
         match &mock_hal.ui.screens[2] {
             Screen::Confirm { title, body, .. } => {
                 assert_eq!(title, "Message (1/1)");
-                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+                assert!(body.len() > super::super::MAX_CONFIRM_BODY_SIZE);
             }
             _ => panic!("unexpected screen"),
         }

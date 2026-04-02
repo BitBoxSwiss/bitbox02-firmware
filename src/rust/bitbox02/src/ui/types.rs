@@ -8,21 +8,6 @@ pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
 // Taking the constant straight from C, as it's excluding the null terminator.
 #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
 pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
-pub const MAX_CONFIRM_BODY_SIZE: usize = MAX_LABEL_SIZE;
-
-/// Returns how many bytes of hex-encoded data to include in a preview body.
-///
-/// The preview body is rendered as `<prefix><hex>`. If the full value is longer than what fits,
-/// one additional byte is included so the body exceeds `MAX_CONFIRM_BODY_SIZE` and the UI appends
-/// `...`.
-pub fn truncating_hex_preview_byte_cap(prefix_len: usize, data_length: usize) -> usize {
-    let hex_chars_budget = MAX_CONFIRM_BODY_SIZE.saturating_sub(prefix_len);
-    let bytes_that_fit = hex_chars_budget / 2;
-    let needs_ellipsis = data_length > bytes_that_fit;
-    let preview_bytes = bytes_that_fit + usize::from(needs_ellipsis);
-
-    preview_bytes.min(data_length)
-}
 
 #[derive(Default)]
 pub enum Font {

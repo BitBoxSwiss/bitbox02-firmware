@@ -11,7 +11,6 @@ mod types;
 #[allow(clippy::module_inception)]
 mod ui;
 
-pub use types::{MAX_CONFIRM_BODY_SIZE, truncating_hex_preview_byte_cap};
 pub use ui::*;
 
 pub mod ugui;

@@ -13,7 +13,6 @@ use crate::hal::Ui;
 use crate::workflow::transaction;
 
 use alloc::vec::Vec;
-use bitbox02::ui::{MAX_CONFIRM_BODY_SIZE, truncating_hex_preview_byte_cap};
 use hex_lit::hex;
 use pb::eth_response::Response;
 
@@ -293,7 +292,7 @@ async fn verify_standard_transaction(
             request.data().len()
         };
         let body = if data_length > 0 {
-            let display_cap = truncating_hex_preview_byte_cap(0, display_size);
+            let display_cap = super::truncating_hex_preview_byte_cap(0, display_size);
             let mut producer = super::sighash::ChunkingProducer::from_host(data_length);
             let mut display_buf: Vec<u8> = Vec::new();
             while let Some(chunk) = producer.next().await? {
@@ -307,7 +306,7 @@ async fn verify_standard_transaction(
         } else {
             hex::encode(request.data())
         };
-        if body.len() > MAX_CONFIRM_BODY_SIZE {
+        if body.len() > super::MAX_CONFIRM_BODY_SIZE {
             hal.ui()
                 .confirm(&ConfirmParams {
                     title: "Warning",
@@ -1583,9 +1582,12 @@ mod tests {
 
     #[test]
     fn test_transaction_data_display_byte_cap() {
-        assert_eq!(truncating_hex_preview_byte_cap(0, 320), 320);
-        assert_eq!(truncating_hex_preview_byte_cap(0, 321), 321);
-        assert_eq!(truncating_hex_preview_byte_cap(0, 10_000), 321);
+        assert_eq!(super::super::truncating_hex_preview_byte_cap(0, 320), 320);
+        assert_eq!(super::super::truncating_hex_preview_byte_cap(0, 321), 321);
+        assert_eq!(
+            super::super::truncating_hex_preview_byte_cap(0, 10_000),
+            321
+        );
     }
 
     #[test]
@@ -1629,7 +1631,7 @@ mod tests {
         match &mock_hal.ui.screens[4] {
             Screen::Confirm { title, body, .. } => {
                 assert_eq!(title, "Transaction\ndata");
-                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+                assert!(body.len() > super::super::MAX_CONFIRM_BODY_SIZE);
             }
             _ => panic!("unexpected screen"),
         }
@@ -1704,7 +1706,7 @@ mod tests {
         match &mock_hal.ui.screens[4] {
             Screen::Confirm { title, body, .. } => {
                 assert_eq!(title, "Transaction\ndata");
-                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+                assert!(body.len() > super::super::MAX_CONFIRM_BODY_SIZE);
             }
             _ => panic!("unexpected screen"),
         }
@@ -1835,7 +1837,7 @@ mod tests {
         match &mock_hal.ui.screens[4] {
             Screen::Confirm { title, body, .. } => {
                 assert_eq!(title, "Transaction\ndata");
-                assert!(body.len() > MAX_CONFIRM_BODY_SIZE);
+                assert!(body.len() > super::super::MAX_CONFIRM_BODY_SIZE);
             }
             _ => panic!("unexpected screen"),
         }

@@ -117,7 +117,7 @@ impl SecureChip for BitBox02SecureChip {
         crate::securechip::attestation_sign(challenge, signature)
     }
 
-    fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
+    async fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
         crate::securechip::monotonic_increments_remaining()
     }
 

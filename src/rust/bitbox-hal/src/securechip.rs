@@ -48,25 +48,54 @@ pub enum SecureChipError {
 }
 
 pub trait SecureChip {
+    /// Prepares the secure chip for a new password and returns the stretched password.
+    ///
+    /// This reinitializes the secure-chip state used for password derivation and returns the same
+    /// 32-byte value as [`stretch_password`] for the same `password` and
+    /// `password_stretch_algo`, but may require fewer secure-chip operations.
     fn init_new_password(
         &mut self,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+
+    /// Stretches `password` using secrets stored in the secure chip.
+    ///
+    /// The returned value is always 32 bytes long. Calling this function increments the relevant
+    /// secure-chip monotonic counter.
     fn stretch_password(
         &mut self,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+
+    /// Runs the secure-chip KDF with `msg` and returns the zeroizing 32-byte result.
+    ///
+    /// This must not increment a monotonic counter.
+    ///
+    /// `msg` must be at most 127 bytes long.
     fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+
+    /// Signs a 32-byte attestation challenge and writes the raw 64-byte P-256 signature to
+    /// `signature`.
     fn attestation_sign(
         &mut self,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()>;
+
+    /// Returns the remaining number of secure-chip monotonic counter increments.
     fn monotonic_increments_remaining(&mut self) -> Result<u32, ()>;
+
+    /// Returns the detected secure-chip model.
     fn model(&mut self) -> Result<Model, ()>;
+
+    /// Resets the secure-chip objects involved in password stretching.
     fn reset_keys(&mut self) -> Result<(), ()>;
+
     #[cfg(feature = "app-u2f")]
+    /// Sets the U2F counter to `counter`.
+    ///
+    /// This is intended for initialization only.
     fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;
 }

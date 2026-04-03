@@ -8,70 +8,70 @@ use bitbox_hal::securechip::{Error, Model, SecureChipError};
 
 pub struct BitBox02SecureChip;
 
-fn to_hal_model(model: crate::securechip::Model) -> Model {
+fn to_hal_model(model: bitbox_securechip::Model) -> Model {
     match model {
-        crate::securechip::Model::ATECC_ATECC608A => Model::Atecc608A,
-        crate::securechip::Model::ATECC_ATECC608B => Model::Atecc608B,
-        crate::securechip::Model::OPTIGA_TRUST_M_V3 => Model::OptigaTrustM3,
+        bitbox_securechip::Model::ATECC_ATECC608A => Model::Atecc608A,
+        bitbox_securechip::Model::ATECC_ATECC608B => Model::Atecc608B,
+        bitbox_securechip::Model::OPTIGA_TRUST_M_V3 => Model::OptigaTrustM3,
     }
 }
 
-fn to_hal_error(error: crate::securechip::Error) -> Error {
+fn to_hal_error(error: bitbox_securechip::Error) -> Error {
     match error {
-        crate::securechip::Error::SecureChip(sc_err) => Error::SecureChip(match sc_err {
-            crate::securechip::SecureChipError::SC_ERR_IFS => SecureChipError::Ifs,
-            crate::securechip::SecureChipError::SC_ERR_INVALID_ARGS => SecureChipError::InvalidArgs,
-            crate::securechip::SecureChipError::SC_ERR_CONFIG_MISMATCH => {
+        bitbox_securechip::Error::SecureChip(sc_err) => Error::SecureChip(match sc_err {
+            bitbox_securechip::SecureChipError::SC_ERR_IFS => SecureChipError::Ifs,
+            bitbox_securechip::SecureChipError::SC_ERR_INVALID_ARGS => SecureChipError::InvalidArgs,
+            bitbox_securechip::SecureChipError::SC_ERR_CONFIG_MISMATCH => {
                 SecureChipError::ConfigMismatch
             }
-            crate::securechip::SecureChipError::SC_ERR_SALT => SecureChipError::Salt,
-            crate::securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD => {
+            bitbox_securechip::SecureChipError::SC_ERR_SALT => SecureChipError::Salt,
+            bitbox_securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD => {
                 SecureChipError::IncorrectPassword
             }
-            crate::securechip::SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO => {
+            bitbox_securechip::SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO => {
                 SecureChipError::InvalidPasswordStretchAlgo
             }
-            crate::securechip::SecureChipError::SC_ERR_MEMORY => SecureChipError::Memory,
-            crate::securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG => {
+            bitbox_securechip::SecureChipError::SC_ERR_MEMORY => SecureChipError::Memory,
+            bitbox_securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG => {
                 SecureChipError::AteccZoneUnlockedConfig
             }
-            crate::securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_DATA => {
+            bitbox_securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_DATA => {
                 SecureChipError::AteccZoneUnlockedData
             }
-            crate::securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_IO => {
+            bitbox_securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_IO => {
                 SecureChipError::AteccSlotUnlockedIo
             }
-            crate::securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_AUTH => {
+            bitbox_securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_AUTH => {
                 SecureChipError::AteccSlotUnlockedAuth
             }
-            crate::securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_ENC => {
+            bitbox_securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_ENC => {
                 SecureChipError::AteccSlotUnlockedEnc
             }
-            crate::securechip::SecureChipError::SC_ATECC_ERR_RESET_KEYS => {
+            bitbox_securechip::SecureChipError::SC_ATECC_ERR_RESET_KEYS => {
                 SecureChipError::AteccResetKeys
             }
-            crate::securechip::SecureChipError::SC_OPTIGA_ERR_CREATE => {
+            bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_CREATE => {
                 SecureChipError::OptigaCreate
             }
-            crate::securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_METADATA => {
+            bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_METADATA => {
                 SecureChipError::OptigaUnexpectedMetadata
             }
-            crate::securechip::SecureChipError::SC_OPTIGA_ERR_PAL => SecureChipError::OptigaPal,
-            crate::securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN => {
+            bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_PAL => SecureChipError::OptigaPal,
+            bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN => {
                 SecureChipError::OptigaUnexpectedLen
             }
         }),
-        crate::securechip::Error::Status(status) => Error::Status(status),
+        bitbox_securechip::Error::Status(status) => Error::Status(status),
     }
 }
 
-fn to_c_password_stretch_algo(algo: PasswordStretchAlgo) -> crate::securechip::PasswordStretchAlgo {
+fn to_c_password_stretch_algo(algo: PasswordStretchAlgo) -> bitbox_securechip::PasswordStretchAlgo {
     match algo {
         PasswordStretchAlgo::V0 => {
-            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0
+            bitbox_securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0
         }
         PasswordStretchAlgo::V1 => {
-            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1
+            bitbox_securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1
         }
     }
 }
@@ -139,15 +139,15 @@ mod tests {
     #[test]
     fn test_to_hal_model() {
         assert_eq!(
-            to_hal_model(crate::securechip::Model::ATECC_ATECC608A),
+            to_hal_model(bitbox_securechip::Model::ATECC_ATECC608A),
             Model::Atecc608A,
         );
         assert_eq!(
-            to_hal_model(crate::securechip::Model::ATECC_ATECC608B),
+            to_hal_model(bitbox_securechip::Model::ATECC_ATECC608B),
             Model::Atecc608B,
         );
         assert_eq!(
-            to_hal_model(crate::securechip::Model::OPTIGA_TRUST_M_V3),
+            to_hal_model(bitbox_securechip::Model::OPTIGA_TRUST_M_V3),
             Model::OptigaTrustM3,
         );
     }
@@ -156,77 +156,77 @@ mod tests {
     fn test_to_hal_error_securechip() {
         let cases = [
             (
-                crate::securechip::SecureChipError::SC_ERR_IFS,
+                bitbox_securechip::SecureChipError::SC_ERR_IFS,
                 SecureChipError::Ifs,
             ),
             (
-                crate::securechip::SecureChipError::SC_ERR_INVALID_ARGS,
+                bitbox_securechip::SecureChipError::SC_ERR_INVALID_ARGS,
                 SecureChipError::InvalidArgs,
             ),
             (
-                crate::securechip::SecureChipError::SC_ERR_CONFIG_MISMATCH,
+                bitbox_securechip::SecureChipError::SC_ERR_CONFIG_MISMATCH,
                 SecureChipError::ConfigMismatch,
             ),
             (
-                crate::securechip::SecureChipError::SC_ERR_SALT,
+                bitbox_securechip::SecureChipError::SC_ERR_SALT,
                 SecureChipError::Salt,
             ),
             (
-                crate::securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD,
+                bitbox_securechip::SecureChipError::SC_ERR_INCORRECT_PASSWORD,
                 SecureChipError::IncorrectPassword,
             ),
             (
-                crate::securechip::SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
+                bitbox_securechip::SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
                 SecureChipError::InvalidPasswordStretchAlgo,
             ),
             (
-                crate::securechip::SecureChipError::SC_ERR_MEMORY,
+                bitbox_securechip::SecureChipError::SC_ERR_MEMORY,
                 SecureChipError::Memory,
             ),
             (
-                crate::securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG,
+                bitbox_securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_CONFIG,
                 SecureChipError::AteccZoneUnlockedConfig,
             ),
             (
-                crate::securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_DATA,
+                bitbox_securechip::SecureChipError::SC_ATECC_ERR_ZONE_UNLOCKED_DATA,
                 SecureChipError::AteccZoneUnlockedData,
             ),
             (
-                crate::securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_IO,
+                bitbox_securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_IO,
                 SecureChipError::AteccSlotUnlockedIo,
             ),
             (
-                crate::securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_AUTH,
+                bitbox_securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_AUTH,
                 SecureChipError::AteccSlotUnlockedAuth,
             ),
             (
-                crate::securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_ENC,
+                bitbox_securechip::SecureChipError::SC_ATECC_ERR_SLOT_UNLOCKED_ENC,
                 SecureChipError::AteccSlotUnlockedEnc,
             ),
             (
-                crate::securechip::SecureChipError::SC_ATECC_ERR_RESET_KEYS,
+                bitbox_securechip::SecureChipError::SC_ATECC_ERR_RESET_KEYS,
                 SecureChipError::AteccResetKeys,
             ),
             (
-                crate::securechip::SecureChipError::SC_OPTIGA_ERR_CREATE,
+                bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_CREATE,
                 SecureChipError::OptigaCreate,
             ),
             (
-                crate::securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_METADATA,
+                bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_METADATA,
                 SecureChipError::OptigaUnexpectedMetadata,
             ),
             (
-                crate::securechip::SecureChipError::SC_OPTIGA_ERR_PAL,
+                bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_PAL,
                 SecureChipError::OptigaPal,
             ),
             (
-                crate::securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN,
+                bitbox_securechip::SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN,
                 SecureChipError::OptigaUnexpectedLen,
             ),
         ];
         for (input, expected) in cases {
             assert_eq!(
-                to_hal_error(crate::securechip::Error::SecureChip(input)),
+                to_hal_error(bitbox_securechip::Error::SecureChip(input)),
                 Error::SecureChip(expected),
             );
         }
@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn test_to_hal_error_status() {
         assert_eq!(
-            to_hal_error(crate::securechip::Error::Status(7)),
+            to_hal_error(bitbox_securechip::Error::Status(7)),
             Error::Status(7)
         );
     }
@@ -244,11 +244,11 @@ mod tests {
     fn test_to_c_password_stretch_algo() {
         assert_eq!(
             to_c_password_stretch_algo(PasswordStretchAlgo::V0),
-            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0,
+            bitbox_securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0,
         );
         assert_eq!(
             to_c_password_stretch_algo(PasswordStretchAlgo::V1),
-            crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
+            bitbox_securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
         );
     }
 

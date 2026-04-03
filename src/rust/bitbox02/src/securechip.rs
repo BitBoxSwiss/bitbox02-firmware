@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub use bitbox_securechip::{Error, Model, PasswordStretchAlgo, SecureChipError};
-
 #[cfg_attr(
     any(
         test,

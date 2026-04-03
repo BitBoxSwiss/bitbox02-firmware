@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::{Error, Model, PasswordStretchAlgo};
 use alloc::vec::Vec;
-use bitbox_securechip::{atecc, optiga};
+use bitbox_securechip::{Error, Model, PasswordStretchAlgo, atecc, optiga};
 use core::ffi::c_int;
 use util::cell::SyncCell;
 use zeroize::Zeroizing;

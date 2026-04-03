@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::*;
 use alloc::vec::Vec;
+use bitbox_securechip::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use hex_lit::hex;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;

@@ -140,6 +140,7 @@ set(PLATFORM-BITBOX02-SOURCES ${PLATFORM-BITBOX02-SOURCES} PARENT_SCOPE)
 
 set(SECURECHIP-SOURCES
   ${CMAKE_SOURCE_DIR}/src/atecc/atecc.c
+  ${CMAKE_SOURCE_DIR}/src/atecc/command.c
   ${CMAKE_SOURCE_DIR}/src/securechip/securechip.c
   ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal.c
   ${CMAKE_SOURCE_DIR}/src/optiga/pal/pal_gpio.c

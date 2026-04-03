@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "atecc.h"
+#include "command.h"
+#include "delay.h"
 #include "hardfault.h"
 #include "securechip/securechip.h"
 #include <i2c_ecc.h>
@@ -394,6 +396,1183 @@ int atecc_setup(const securechip_interface_functions_t* ifs)
     return _verify_config();
 }
 
+typedef enum {
+    _AUTHORIZE_STATE_IDLE = 0,
+    _AUTHORIZE_STATE_NONCE,
+    _AUTHORIZE_STATE_READ_SERIAL,
+    _AUTHORIZE_STATE_CHECKMAC,
+} _authorize_state_t;
+
+typedef struct {
+    _authorize_state_t state;
+    atecc_command_ctx_t command;
+    ATCAPacket packet;
+    uint8_t num_in[NONCE_NUMIN_SIZE];
+    uint8_t rand_out[32];
+    uint8_t serial_block[ATCA_BLOCK_SIZE];
+    atca_temp_key_t temp_key;
+} _authorize_ctx_t;
+
+typedef enum {
+    _SLOT_KDF_STATE_IDLE = 0,
+    _SLOT_KDF_STATE_AUTHORIZE,
+    _SLOT_KDF_STATE_KDF,
+} _slot_kdf_state_t;
+
+typedef struct {
+    _slot_kdf_state_t state;
+    atecc_slot_t slot;
+    const uint8_t* msg;
+    size_t len;
+    uint8_t* out;
+    uint8_t nonce_out[32];
+    _authorize_ctx_t authorize;
+    atecc_command_ctx_t command;
+    ATCAPacket packet;
+} _slot_kdf_ctx_t;
+
+typedef enum {
+    _ROLLKEY_STATE_IDLE = 0,
+    _ROLLKEY_STATE_AUTHORIZE,
+    _ROLLKEY_STATE_NONCE,
+    _ROLLKEY_STATE_DERIVEKEY,
+} _rollkey_state_t;
+
+typedef struct {
+    _rollkey_state_t state;
+    _authorize_ctx_t authorize;
+    atecc_command_ctx_t command;
+    ATCAPacket packet;
+    uint8_t num_in[NONCE_NUMIN_SIZE];
+} _rollkey_ctx_t;
+
+typedef enum {
+    _UPDATE_KDF_KEY_STATE_IDLE = 0,
+    _UPDATE_KDF_KEY_STATE_AUTHORIZE,
+    _UPDATE_KDF_KEY_STATE_READ_CONFIG,
+    _UPDATE_KDF_KEY_STATE_NONCE,
+    _UPDATE_KDF_KEY_STATE_GENDIG,
+    _UPDATE_KDF_KEY_STATE_WRITE,
+} _update_kdf_key_state_t;
+
+typedef struct {
+    _update_kdf_key_state_t state;
+    _authorize_ctx_t authorize;
+    atecc_command_ctx_t command;
+    ATCAPacket packet;
+    uint8_t read_buf[ATCA_BLOCK_SIZE];
+    uint8_t serial_num[ATCA_BLOCK_SIZE];
+    uint8_t new_key[32];
+    uint8_t encryption_key[32];
+    uint8_t nonce_contribution[32];
+    uint8_t rand_out[RANDOM_NUM_SIZE];
+    uint8_t other_data[4];
+    uint8_t cipher_text[ATCA_KEY_SIZE];
+    uint8_t mac[WRITE_MAC_SIZE];
+    atca_temp_key_t temp_key;
+    uint16_t addr;
+} _update_kdf_key_ctx_t;
+
+typedef enum {
+    _RESET_KEYS_STATE_IDLE = 0,
+    _RESET_KEYS_STATE_ROLLKEY,
+    _RESET_KEYS_STATE_UPDATE_KDF_KEY,
+} _reset_keys_state_t;
+
+typedef struct {
+    _reset_keys_state_t state;
+    _rollkey_ctx_t rollkey;
+    _update_kdf_key_ctx_t update_kdf_key;
+} _reset_keys_ctx_t;
+
+typedef enum {
+    _STRETCH_PASSWORD_STATE_IDLE = 0,
+    _STRETCH_PASSWORD_STATE_ROLLKEY_KDF,
+    _STRETCH_PASSWORD_STATE_KDF,
+} _stretch_password_state_t;
+
+typedef struct {
+    _stretch_password_state_t state;
+    const char* password;
+    securechip_password_stretch_algo_t password_stretch_algo;
+    uint8_t* stretched_out;
+    uint8_t password_salted_hashed[32];
+    uint8_t kdf_in[32];
+    size_t iteration;
+    _slot_kdf_ctx_t slot_kdf;
+} _stretch_password_ctx_t;
+
+typedef enum {
+    _INIT_NEW_PASSWORD_STATE_IDLE = 0,
+    _INIT_NEW_PASSWORD_STATE_RESET_KEYS,
+    _INIT_NEW_PASSWORD_STATE_STRETCH_PASSWORD,
+} _init_new_password_state_t;
+
+typedef struct {
+    _init_new_password_state_t state;
+    const char* password;
+    securechip_password_stretch_algo_t password_stretch_algo;
+    uint8_t* stretched_out;
+    _reset_keys_ctx_t reset_keys;
+    _stretch_password_ctx_t stretch_password;
+} _init_new_password_ctx_t;
+
+_Static_assert(sizeof(_slot_kdf_ctx_t) <= ATECC_KDF_ASYNC_CONTEXT_SIZE, "kdf async ctx too small");
+_Static_assert(
+    sizeof(_reset_keys_ctx_t) <= ATECC_RESET_KEYS_ASYNC_CONTEXT_SIZE,
+    "reset keys async ctx too small");
+_Static_assert(
+    sizeof(_stretch_password_ctx_t) <= ATECC_STRETCH_PASSWORD_ASYNC_CONTEXT_SIZE,
+    "stretch password async ctx too small");
+_Static_assert(
+    sizeof(_init_new_password_ctx_t) <= ATECC_INIT_NEW_PASSWORD_ASYNC_CONTEXT_SIZE,
+    "init new password async ctx too small");
+
+#define _KDF_ASYNC_CTX(ctx) ((_slot_kdf_ctx_t*)(void*)(ctx))
+#define _RESET_KEYS_ASYNC_CTX(ctx) ((_reset_keys_ctx_t*)(void*)(ctx))
+#define _STRETCH_PASSWORD_ASYNC_CTX(ctx) ((_stretch_password_ctx_t*)(void*)(ctx))
+#define _INIT_NEW_PASSWORD_ASYNC_CTX(ctx) ((_init_new_password_ctx_t*)(void*)(ctx))
+
+static void _authorize_async_abort(_authorize_ctx_t* ctx);
+static ATCA_STATUS _authorize_async_start(_authorize_ctx_t* ctx, uint16_t* wait_ms_out);
+static ATCA_STATUS _authorize_async_poll(_authorize_ctx_t* ctx, uint16_t* wait_ms_out);
+static void _rollkey_async_abort(_rollkey_ctx_t* ctx);
+static ATCA_STATUS _rollkey_async_start(_rollkey_ctx_t* ctx, uint16_t* wait_ms_out);
+static ATCA_STATUS _rollkey_async_poll(_rollkey_ctx_t* ctx, uint16_t* wait_ms_out);
+static void _update_kdf_key_async_abort(_update_kdf_key_ctx_t* ctx);
+static ATCA_STATUS _update_kdf_key_async_start(_update_kdf_key_ctx_t* ctx, uint16_t* wait_ms_out);
+static ATCA_STATUS _update_kdf_key_async_poll(_update_kdf_key_ctx_t* ctx, uint16_t* wait_ms_out);
+static void _slot_kdf_async_abort(_slot_kdf_ctx_t* ctx);
+static ATCA_STATUS _slot_kdf_async_start(
+    _slot_kdf_ctx_t* ctx,
+    atecc_slot_t slot,
+    const uint8_t* msg,
+    size_t len,
+    uint8_t* out,
+    uint16_t* wait_ms_out);
+static ATCA_STATUS _slot_kdf_async_poll(_slot_kdf_ctx_t* ctx, uint16_t* wait_ms_out);
+
+static ATCADevice _get_atecc_device(void)
+{
+    return atcab_get_device();
+}
+
+static void _clear_authorize_ctx(_authorize_ctx_t* ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static void _clear_rollkey_ctx(_rollkey_ctx_t* ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static void _clear_update_kdf_key_ctx(_update_kdf_key_ctx_t* ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static void _clear_slot_kdf_ctx(_slot_kdf_ctx_t* ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static void _clear_reset_keys_ctx(_reset_keys_ctx_t* ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static void _clear_stretch_password_ctx(_stretch_password_ctx_t* ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static void _clear_init_new_password_ctx(_init_new_password_ctx_t* ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static ATCA_STATUS _start_read_zone(
+    atecc_command_ctx_t* command,
+    ATCAPacket* packet,
+    ATCADevice device,
+    uint8_t zone,
+    uint16_t slot,
+    uint8_t block,
+    uint8_t offset,
+    uint8_t len,
+    uint16_t* wait_ms_out)
+{
+    uint16_t addr;
+    ATCA_STATUS status;
+
+    if (len != 4 && len != 32) {
+        return ATCA_BAD_PARAM;
+    }
+    if ((status = calib_get_addr(zone, slot, block, offset, &addr)) != ATCA_SUCCESS) {
+        return status;
+    }
+    if (len == ATCA_BLOCK_SIZE) {
+        zone |= ATCA_ZONE_READWRITE_32;
+    }
+    packet->param1 = zone;
+    packet->param2 = addr;
+    if ((status = atRead(device->mCommands, packet)) != ATCA_SUCCESS) {
+        return status;
+    }
+    return atecc_command_start(command, packet, device, wait_ms_out);
+}
+
+static ATCA_STATUS _finish_read_zone(const ATCAPacket* packet, uint8_t* data, uint8_t len)
+{
+    if (packet->data[ATCA_COUNT_IDX] < ATCA_PACKET_OVERHEAD + len) {
+        return ATCA_RX_FAIL;
+    }
+    memcpy(data, &packet->data[ATCA_RSP_DATA_IDX], len);
+    return ATCA_SUCCESS;
+}
+
+static ATCA_STATUS _start_nonce_rand(
+    atecc_command_ctx_t* command,
+    ATCAPacket* packet,
+    ATCADevice device,
+    const uint8_t* num_in,
+    uint16_t* wait_ms_out)
+{
+    ATCA_STATUS status;
+
+    packet->param1 = NONCE_MODE_SEED_UPDATE;
+    packet->param2 = 0;
+    memcpy(packet->data, num_in, NONCE_NUMIN_SIZE);
+    if ((status = atNonce(device->mCommands, packet)) != ATCA_SUCCESS) {
+        return status;
+    }
+    return atecc_command_start(command, packet, device, wait_ms_out);
+}
+
+static ATCA_STATUS _finish_nonce_rand(const ATCAPacket* packet, uint8_t* rand_out)
+{
+    if (packet->data[ATCA_COUNT_IDX] < ATCA_PACKET_OVERHEAD + RANDOM_NUM_SIZE) {
+        return ATCA_RX_FAIL;
+    }
+    if (rand_out != NULL) {
+        memcpy(rand_out, &packet->data[ATCA_RSP_DATA_IDX], RANDOM_NUM_SIZE);
+    }
+    return ATCA_SUCCESS;
+}
+
+static ATCA_STATUS _start_checkmac(
+    atecc_command_ctx_t* command,
+    ATCAPacket* packet,
+    ATCADevice device,
+    uint8_t mode,
+    uint16_t key_id,
+    const uint8_t* challenge,
+    const uint8_t* response,
+    const uint8_t* other_data,
+    uint16_t* wait_ms_out)
+{
+    ATCA_STATUS status;
+
+    packet->param1 = mode;
+    packet->param2 = key_id;
+    if (challenge != NULL) {
+        memcpy(&packet->data[0], challenge, CHECKMAC_CLIENT_CHALLENGE_SIZE);
+    } else {
+        memset(&packet->data[0], 0, CHECKMAC_CLIENT_CHALLENGE_SIZE);
+    }
+    memcpy(&packet->data[32], response, CHECKMAC_CLIENT_RESPONSE_SIZE);
+    memcpy(&packet->data[64], other_data, CHECKMAC_OTHER_DATA_SIZE);
+    if ((status = atCheckMAC(device->mCommands, packet)) != ATCA_SUCCESS) {
+        return status;
+    }
+    return atecc_command_start(command, packet, device, wait_ms_out);
+}
+
+static ATCA_STATUS _start_derivekey(
+    atecc_command_ctx_t* command,
+    ATCAPacket* packet,
+    ATCADevice device,
+    uint8_t mode,
+    uint16_t target_key,
+    const uint8_t* mac,
+    uint16_t* wait_ms_out)
+{
+    ATCA_STATUS status;
+
+    packet->param1 = mode;
+    packet->param2 = target_key;
+    if (mac != NULL) {
+        memcpy(packet->data, mac, MAC_SIZE);
+    }
+    if ((status = atDeriveKey(device->mCommands, packet, mac != NULL)) != ATCA_SUCCESS) {
+        return status;
+    }
+    return atecc_command_start(command, packet, device, wait_ms_out);
+}
+
+static ATCA_STATUS _start_gendig(
+    atecc_command_ctx_t* command,
+    ATCAPacket* packet,
+    ATCADevice device,
+    uint8_t zone,
+    uint16_t key_id,
+    const uint8_t* other_data,
+    uint16_t* wait_ms_out)
+{
+    ATCA_STATUS status;
+
+    packet->param1 = zone;
+    packet->param2 = key_id;
+    memcpy(&packet->data[0], other_data, ATCA_WORD_SIZE);
+    if ((status = atGenDig(device->mCommands, packet, true)) != ATCA_SUCCESS) {
+        return status;
+    }
+    return atecc_command_start(command, packet, device, wait_ms_out);
+}
+
+static ATCA_STATUS _start_write(
+    atecc_command_ctx_t* command,
+    ATCAPacket* packet,
+    ATCADevice device,
+    uint8_t zone,
+    uint16_t address,
+    const uint8_t* value,
+    const uint8_t* mac,
+    uint16_t* wait_ms_out)
+{
+    ATCA_STATUS status;
+
+    packet->param1 = zone;
+    packet->param2 = address;
+    if (zone & ATCA_ZONE_READWRITE_32) {
+        memcpy(packet->data, value, 32);
+        if (mac != NULL) {
+            memcpy(&packet->data[32], mac, 32);
+        }
+    } else {
+        memcpy(packet->data, value, 4);
+    }
+    if ((status =
+             atWrite(device->mCommands, packet, mac != NULL && (zone & ATCA_ZONE_READWRITE_32))) !=
+        ATCA_SUCCESS) {
+        return status;
+    }
+    return atecc_command_start(command, packet, device, wait_ms_out);
+}
+
+static ATCA_STATUS _start_kdf(
+    atecc_command_ctx_t* command,
+    ATCAPacket* packet,
+    ATCADevice device,
+    uint8_t mode,
+    uint16_t key_id,
+    uint32_t details,
+    const uint8_t* message,
+    uint16_t* wait_ms_out)
+{
+    ATCA_STATUS status;
+
+    packet->param1 = mode;
+    packet->param2 = key_id;
+    packet->data[0] = details;
+    packet->data[1] = details >> 8;
+    packet->data[2] = details >> 16;
+    packet->data[3] = details >> 24;
+    memcpy(&packet->data[KDF_DETAILS_SIZE], message, packet->data[3]);
+    if ((status = atKDF(device->mCommands, packet)) != ATCA_SUCCESS) {
+        return status;
+    }
+    return atecc_command_start(command, packet, device, wait_ms_out);
+}
+
+static ATCA_STATUS _finish_kdf(const ATCAPacket* packet, uint8_t* out_data, uint8_t* out_nonce)
+{
+    const uint16_t expected = ATCA_PACKET_OVERHEAD + 32 + 32;
+
+    if (packet->data[ATCA_COUNT_IDX] < expected) {
+        return ATCA_RX_FAIL;
+    }
+    memcpy(out_data, &packet->data[ATCA_RSP_DATA_IDX], 32);
+    memcpy(out_nonce, &packet->data[ATCA_RSP_DATA_IDX + 32], 32);
+    return ATCA_SUCCESS;
+}
+
+static ATCA_STATUS _authorize_async_start(_authorize_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    ATCADevice device = _get_atecc_device();
+
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (device == NULL) {
+        return ATCA_COMM_FAIL;
+    }
+    _clear_authorize_ctx(ctx);
+    ctx->state = _AUTHORIZE_STATE_NONCE;
+    return _start_nonce_rand(&ctx->command, &ctx->packet, device, ctx->num_in, wait_ms_out);
+}
+
+static ATCA_STATUS _authorize_async_poll(_authorize_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    static const uint8_t other_data[13] = {0};
+    ATCADevice device = _get_atecc_device();
+    ATCA_STATUS status;
+
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (device == NULL) {
+        _clear_authorize_ctx(ctx);
+        return ATCA_COMM_FAIL;
+    }
+
+    switch (ctx->state) {
+    case _AUTHORIZE_STATE_NONCE: {
+        atca_nonce_in_out_t nonce_params = {
+            .mode = NONCE_MODE_SEED_UPDATE,
+            .zero = 0,
+            .num_in = ctx->num_in,
+            .rand_out = ctx->rand_out,
+            .temp_key = &ctx->temp_key,
+        };
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status != ATCA_SUCCESS) {
+            if (status != ATCA_RX_NO_RESPONSE) {
+                _clear_authorize_ctx(ctx);
+            }
+            return status;
+        }
+        if ((status = _finish_nonce_rand(&ctx->packet, ctx->rand_out)) != ATCA_SUCCESS) {
+            _clear_authorize_ctx(ctx);
+            return status;
+        }
+        if ((status = atcah_nonce(&nonce_params)) != ATCA_SUCCESS) {
+            _clear_authorize_ctx(ctx);
+            return status;
+        }
+        ctx->state = _AUTHORIZE_STATE_READ_SERIAL;
+        return _start_read_zone(
+            &ctx->command,
+            &ctx->packet,
+            device,
+            ATCA_ZONE_CONFIG,
+            0,
+            0,
+            0,
+            ATCA_BLOCK_SIZE,
+            wait_ms_out);
+    }
+    case _AUTHORIZE_STATE_READ_SERIAL: {
+        uint8_t response[32] = {0};
+        UTIL_CLEANUP_32(response);
+        uint8_t auth_key[32] = {0};
+        UTIL_CLEANUP_32(auth_key);
+        atca_check_mac_in_out_t checkmac_params = {
+            .mode = CHECKMAC_MODE_BLOCK2_TEMPKEY,
+            .key_id = ATECC_SLOT_AUTHKEY,
+            .sn = ctx->serial_block,
+            .client_chal = NULL,
+            .client_resp = response,
+            .other_data = other_data,
+            .otp = NULL,
+            .slot_key = auth_key,
+            .target_key = NULL,
+            .temp_key = &ctx->temp_key,
+        };
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status != ATCA_SUCCESS) {
+            if (status != ATCA_RX_NO_RESPONSE) {
+                _clear_authorize_ctx(ctx);
+            }
+            return status;
+        }
+        if ((status = _finish_read_zone(&ctx->packet, ctx->serial_block, ATCA_BLOCK_SIZE)) !=
+            ATCA_SUCCESS) {
+            _clear_authorize_ctx(ctx);
+            return status;
+        }
+        memmove(&ctx->serial_block[4], &ctx->serial_block[8], 5);
+        _interface_functions->get_auth_key(auth_key);
+        if ((status = atcah_check_mac(&checkmac_params)) != ATCA_SUCCESS) {
+            _clear_authorize_ctx(ctx);
+            return status;
+        }
+        ctx->state = _AUTHORIZE_STATE_CHECKMAC;
+        return _start_checkmac(
+            &ctx->command,
+            &ctx->packet,
+            device,
+            checkmac_params.mode,
+            checkmac_params.key_id,
+            checkmac_params.client_chal,
+            checkmac_params.client_resp,
+            checkmac_params.other_data,
+            wait_ms_out);
+    }
+    case _AUTHORIZE_STATE_CHECKMAC:
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status != ATCA_RX_NO_RESPONSE) {
+            _clear_authorize_ctx(ctx);
+        }
+        return status;
+    default:
+        return ATCA_BAD_PARAM;
+    }
+}
+
+static void _authorize_async_abort(_authorize_ctx_t* ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+    atecc_command_abort(&ctx->command);
+    _clear_authorize_ctx(ctx);
+}
+
+static ATCA_STATUS _slot_kdf_async_start(
+    _slot_kdf_ctx_t* ctx,
+    atecc_slot_t slot,
+    const uint8_t* msg,
+    size_t len,
+    uint8_t* out,
+    uint16_t* wait_ms_out)
+{
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (len > 127 || (slot != ATECC_SLOT_ROLLKEY && slot != ATECC_SLOT_KDF) || msg == out) {
+        return (ATCA_STATUS)SC_ERR_INVALID_ARGS;
+    }
+    _clear_slot_kdf_ctx(ctx);
+    ctx->state = _SLOT_KDF_STATE_AUTHORIZE;
+    ctx->slot = slot;
+    ctx->msg = msg;
+    ctx->len = len;
+    ctx->out = out;
+    return _authorize_async_start(&ctx->authorize, wait_ms_out);
+}
+
+static ATCA_STATUS _slot_kdf_async_poll(_slot_kdf_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    ATCADevice device = _get_atecc_device();
+    ATCA_STATUS status;
+
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (device == NULL) {
+        _clear_slot_kdf_ctx(ctx);
+        return ATCA_COMM_FAIL;
+    }
+
+    switch (ctx->state) {
+    case _SLOT_KDF_STATE_AUTHORIZE:
+        status = _authorize_async_poll(&ctx->authorize, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_slot_kdf_ctx(ctx);
+            return status;
+        }
+        ctx->state = _SLOT_KDF_STATE_KDF;
+        return _start_kdf(
+            &ctx->command,
+            &ctx->packet,
+            device,
+            KDF_MODE_SOURCE_SLOT | KDF_MODE_TARGET_OUTPUT_ENC | KDF_MODE_ALG_HKDF,
+            ctx->slot,
+            KDF_DETAILS_HKDF_MSG_LOC_INPUT | (ctx->len << 24),
+            ctx->msg,
+            wait_ms_out);
+    case _SLOT_KDF_STATE_KDF: {
+        uint8_t io_protection_key[32] = {0};
+        UTIL_CLEANUP_32(io_protection_key);
+        atca_io_decrypt_in_out_t io_dec_params = {
+            .io_key = io_protection_key,
+            .out_nonce = ctx->nonce_out,
+            .data = ctx->out,
+            .data_size = 32,
+        };
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_slot_kdf_ctx(ctx);
+            return status;
+        }
+        if ((status = _finish_kdf(&ctx->packet, ctx->out, ctx->nonce_out)) != ATCA_SUCCESS) {
+            _clear_slot_kdf_ctx(ctx);
+            return status;
+        }
+        _interface_functions->get_io_protection_key(io_protection_key);
+        status = atcah_io_decrypt(&io_dec_params);
+        _clear_slot_kdf_ctx(ctx);
+        return status;
+    }
+    default:
+        return ATCA_BAD_PARAM;
+    }
+}
+
+static void _slot_kdf_async_abort(_slot_kdf_ctx_t* ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+    _authorize_async_abort(&ctx->authorize);
+    atecc_command_abort(&ctx->command);
+    _clear_slot_kdf_ctx(ctx);
+}
+
+static ATCA_STATUS _rollkey_async_start(_rollkey_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    _clear_rollkey_ctx(ctx);
+    ctx->state = _ROLLKEY_STATE_AUTHORIZE;
+    return _authorize_async_start(&ctx->authorize, wait_ms_out);
+}
+
+static ATCA_STATUS _rollkey_async_poll(_rollkey_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    ATCADevice device = _get_atecc_device();
+    ATCA_STATUS status;
+
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (device == NULL) {
+        _clear_rollkey_ctx(ctx);
+        return ATCA_COMM_FAIL;
+    }
+
+    switch (ctx->state) {
+    case _ROLLKEY_STATE_AUTHORIZE:
+        status = _authorize_async_poll(&ctx->authorize, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_rollkey_ctx(ctx);
+            return status;
+        }
+        ctx->state = _ROLLKEY_STATE_NONCE;
+        return _start_nonce_rand(&ctx->command, &ctx->packet, device, ctx->num_in, wait_ms_out);
+    case _ROLLKEY_STATE_NONCE:
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_rollkey_ctx(ctx);
+            return status;
+        }
+        ctx->state = _ROLLKEY_STATE_DERIVEKEY;
+        return _start_derivekey(
+            &ctx->command, &ctx->packet, device, 0, ATECC_SLOT_ROLLKEY, NULL, wait_ms_out);
+    case _ROLLKEY_STATE_DERIVEKEY:
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status != ATCA_RX_NO_RESPONSE) {
+            _clear_rollkey_ctx(ctx);
+        }
+        return status;
+    default:
+        return ATCA_BAD_PARAM;
+    }
+}
+
+static void _rollkey_async_abort(_rollkey_ctx_t* ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+    _authorize_async_abort(&ctx->authorize);
+    atecc_command_abort(&ctx->command);
+    _clear_rollkey_ctx(ctx);
+}
+
+static ATCA_STATUS _update_kdf_key_async_start(_update_kdf_key_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    _clear_update_kdf_key_ctx(ctx);
+    _interface_functions->random_32_bytes(ctx->new_key);
+    _interface_functions->get_encryption_key(ctx->encryption_key);
+    _interface_functions->random_32_bytes(ctx->nonce_contribution);
+    ctx->state = _UPDATE_KDF_KEY_STATE_AUTHORIZE;
+    return _authorize_async_start(&ctx->authorize, wait_ms_out);
+}
+
+static ATCA_STATUS _update_kdf_key_async_poll(_update_kdf_key_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    ATCADevice device = _get_atecc_device();
+    ATCA_STATUS status;
+
+    if (ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (device == NULL) {
+        _clear_update_kdf_key_ctx(ctx);
+        return ATCA_COMM_FAIL;
+    }
+
+    switch (ctx->state) {
+    case _UPDATE_KDF_KEY_STATE_AUTHORIZE:
+        status = _authorize_async_poll(&ctx->authorize, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        ctx->state = _UPDATE_KDF_KEY_STATE_READ_CONFIG;
+        return _start_read_zone(
+            &ctx->command,
+            &ctx->packet,
+            device,
+            ATCA_ZONE_CONFIG,
+            0,
+            0,
+            0,
+            ATCA_BLOCK_SIZE,
+            wait_ms_out);
+    case _UPDATE_KDF_KEY_STATE_READ_CONFIG:
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        if ((status = _finish_read_zone(&ctx->packet, ctx->read_buf, ATCA_BLOCK_SIZE)) !=
+            ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        memcpy(ctx->serial_num, ctx->read_buf, sizeof(ctx->serial_num));
+        memmove(&ctx->serial_num[4], &ctx->serial_num[8], 5);
+        ctx->state = _UPDATE_KDF_KEY_STATE_NONCE;
+        return _start_nonce_rand(
+            &ctx->command, &ctx->packet, device, ctx->nonce_contribution, wait_ms_out);
+    case _UPDATE_KDF_KEY_STATE_NONCE: {
+        atca_nonce_in_out_t nonce_params = {
+            .mode = NONCE_MODE_SEED_UPDATE,
+            .zero = 0,
+            .num_in = ctx->nonce_contribution,
+            .rand_out = ctx->rand_out,
+            .temp_key = &ctx->temp_key,
+        };
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        if ((status = _finish_nonce_rand(&ctx->packet, ctx->rand_out)) != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        if ((status = atcah_nonce(&nonce_params)) != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        ctx->other_data[0] = ATCA_GENDIG;
+        ctx->other_data[1] = GENDIG_ZONE_DATA;
+        ctx->other_data[2] = (uint8_t)ATECC_SLOT_ENCRYPTION_KEY;
+        ctx->other_data[3] = (uint8_t)(ATECC_SLOT_ENCRYPTION_KEY >> 8);
+        ctx->state = _UPDATE_KDF_KEY_STATE_GENDIG;
+        return _start_gendig(
+            &ctx->command,
+            &ctx->packet,
+            device,
+            GENDIG_ZONE_DATA,
+            ATECC_SLOT_ENCRYPTION_KEY,
+            ctx->other_data,
+            wait_ms_out);
+    }
+    case _UPDATE_KDF_KEY_STATE_GENDIG: {
+        atca_gen_dig_in_out_t gen_dig_param = {
+            .zone = GENDIG_ZONE_DATA,
+            .key_id = ATECC_SLOT_ENCRYPTION_KEY,
+            .is_key_nomac = false,
+            .sn = ctx->serial_num,
+            .stored_value = ctx->encryption_key,
+            .other_data = ctx->other_data,
+            .temp_key = &ctx->temp_key,
+        };
+        atca_write_mac_in_out_t write_mac_param = {
+            .zone = ATCA_ZONE_DATA | ATCA_ZONE_READWRITE_32 | ATCA_ZONE_ENCRYPTED,
+            .key_id = 0,
+            .sn = ctx->serial_num,
+            .input_data = ctx->new_key,
+            .encrypted_data = ctx->cipher_text,
+            .auth_mac = ctx->mac,
+            .temp_key = &ctx->temp_key,
+        };
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        if ((status = atcah_gen_dig(&gen_dig_param)) != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        if ((status = calib_get_addr(ATCA_ZONE_DATA, ATECC_SLOT_KDF, 0, 0, &ctx->addr)) !=
+            ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        write_mac_param.key_id = ctx->addr;
+        if ((status = atcah_write_auth_mac(&write_mac_param)) != ATCA_SUCCESS) {
+            _clear_update_kdf_key_ctx(ctx);
+            return status;
+        }
+        ctx->state = _UPDATE_KDF_KEY_STATE_WRITE;
+        return _start_write(
+            &ctx->command,
+            &ctx->packet,
+            device,
+            write_mac_param.zone,
+            write_mac_param.key_id,
+            write_mac_param.encrypted_data,
+            write_mac_param.auth_mac,
+            wait_ms_out);
+    }
+    case _UPDATE_KDF_KEY_STATE_WRITE:
+        status = atecc_command_poll(&ctx->command, wait_ms_out);
+        if (status != ATCA_RX_NO_RESPONSE) {
+            _clear_update_kdf_key_ctx(ctx);
+        }
+        return status;
+    default:
+        return ATCA_BAD_PARAM;
+    }
+}
+
+static void _update_kdf_key_async_abort(_update_kdf_key_ctx_t* ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+    _authorize_async_abort(&ctx->authorize);
+    atecc_command_abort(&ctx->command);
+    _clear_update_kdf_key_ctx(ctx);
+}
+
+int atecc_kdf_async_start(
+    atecc_kdf_async_ctx_t* ctx,
+    const uint8_t* msg,
+    size_t len,
+    uint8_t* kdf_out,
+    uint16_t* wait_ms_out)
+{
+    return _slot_kdf_async_start(
+        _KDF_ASYNC_CTX(ctx), ATECC_SLOT_KDF, msg, len, kdf_out, wait_ms_out);
+}
+
+int atecc_kdf_async_poll(atecc_kdf_async_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    return _slot_kdf_async_poll(_KDF_ASYNC_CTX(ctx), wait_ms_out);
+}
+
+void atecc_kdf_async_abort(atecc_kdf_async_ctx_t* ctx)
+{
+    _slot_kdf_async_abort(_KDF_ASYNC_CTX(ctx));
+}
+
+int atecc_reset_keys_async_start(atecc_reset_keys_async_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    _reset_keys_ctx_t* reset_ctx = _RESET_KEYS_ASYNC_CTX(ctx);
+
+    if (reset_ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    _clear_reset_keys_ctx(reset_ctx);
+    reset_ctx->state = _RESET_KEYS_STATE_ROLLKEY;
+    return _rollkey_async_start(&reset_ctx->rollkey, wait_ms_out);
+}
+
+int atecc_reset_keys_async_poll(atecc_reset_keys_async_ctx_t* ctx, uint16_t* wait_ms_out)
+{
+    _reset_keys_ctx_t* reset_ctx = _RESET_KEYS_ASYNC_CTX(ctx);
+    ATCA_STATUS status;
+
+    if (reset_ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+
+    switch (reset_ctx->state) {
+    case _RESET_KEYS_STATE_ROLLKEY:
+        status = _rollkey_async_poll(&reset_ctx->rollkey, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_reset_keys_ctx(reset_ctx);
+            return status;
+        }
+        reset_ctx->state = _RESET_KEYS_STATE_UPDATE_KDF_KEY;
+        return _update_kdf_key_async_start(&reset_ctx->update_kdf_key, wait_ms_out);
+    case _RESET_KEYS_STATE_UPDATE_KDF_KEY:
+        status = _update_kdf_key_async_poll(&reset_ctx->update_kdf_key, wait_ms_out);
+        if (status != ATCA_RX_NO_RESPONSE) {
+            _clear_reset_keys_ctx(reset_ctx);
+        }
+        return status;
+    default:
+        return ATCA_BAD_PARAM;
+    }
+}
+
+void atecc_reset_keys_async_abort(atecc_reset_keys_async_ctx_t* ctx)
+{
+    _reset_keys_ctx_t* reset_ctx = _RESET_KEYS_ASYNC_CTX(ctx);
+
+    _rollkey_async_abort(&reset_ctx->rollkey);
+    _update_kdf_key_async_abort(&reset_ctx->update_kdf_key);
+    _clear_reset_keys_ctx(reset_ctx);
+}
+
+int atecc_stretch_password_async_start(
+    atecc_stretch_password_async_ctx_t* ctx,
+    const char* password,
+    securechip_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out,
+    uint16_t* wait_ms_out)
+{
+    _stretch_password_ctx_t* stretch_ctx = _STRETCH_PASSWORD_ASYNC_CTX(ctx);
+
+    if (stretch_ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (password_stretch_algo != SECURECHIP_PASSWORD_STRETCH_ALGO_V0) {
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
+    _clear_stretch_password_ctx(stretch_ctx);
+    stretch_ctx->password = password;
+    stretch_ctx->password_stretch_algo = password_stretch_algo;
+    stretch_ctx->stretched_out = stretched_out;
+    if (!rust_salt_hash_data(
+            rust_util_bytes((const uint8_t*)password, strlen(password)),
+            "keystore_seed_access_in",
+            rust_util_bytes_mut(
+                stretch_ctx->password_salted_hashed,
+                sizeof(stretch_ctx->password_salted_hashed)))) {
+        _clear_stretch_password_ctx(stretch_ctx);
+        return SC_ERR_SALT;
+    }
+    memcpy(stretch_ctx->kdf_in, stretch_ctx->password_salted_hashed, 32);
+    stretch_ctx->state = _STRETCH_PASSWORD_STATE_ROLLKEY_KDF;
+    return _slot_kdf_async_start(
+        &stretch_ctx->slot_kdf,
+        ATECC_SLOT_ROLLKEY,
+        stretch_ctx->kdf_in,
+        32,
+        stretch_ctx->stretched_out,
+        wait_ms_out);
+}
+
+int atecc_stretch_password_async_poll(
+    atecc_stretch_password_async_ctx_t* ctx,
+    uint16_t* wait_ms_out)
+{
+    _stretch_password_ctx_t* stretch_ctx = _STRETCH_PASSWORD_ASYNC_CTX(ctx);
+    int status;
+
+    if (stretch_ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+
+    switch (stretch_ctx->state) {
+    case _STRETCH_PASSWORD_STATE_ROLLKEY_KDF:
+    case _STRETCH_PASSWORD_STATE_KDF:
+        status = _slot_kdf_async_poll(&stretch_ctx->slot_kdf, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_stretch_password_ctx(stretch_ctx);
+            return status;
+        }
+        if (stretch_ctx->state == _STRETCH_PASSWORD_STATE_ROLLKEY_KDF) {
+            stretch_ctx->state = _STRETCH_PASSWORD_STATE_KDF;
+            stretch_ctx->iteration = 0;
+        }
+        if (stretch_ctx->iteration < KDF_NUM_ITERATIONS) {
+            memcpy(stretch_ctx->kdf_in, stretch_ctx->stretched_out, 32);
+            stretch_ctx->iteration++;
+            return _slot_kdf_async_start(
+                &stretch_ctx->slot_kdf,
+                ATECC_SLOT_KDF,
+                stretch_ctx->kdf_in,
+                32,
+                stretch_ctx->stretched_out,
+                wait_ms_out);
+        }
+        if (!rust_salt_hash_data(
+                rust_util_bytes(
+                    (const uint8_t*)stretch_ctx->password, strlen(stretch_ctx->password)),
+                "keystore_seed_access_out",
+                rust_util_bytes_mut(
+                    stretch_ctx->password_salted_hashed,
+                    sizeof(stretch_ctx->password_salted_hashed)))) {
+            _clear_stretch_password_ctx(stretch_ctx);
+            return SC_ERR_SALT;
+        }
+        rust_hmac_sha256(
+            stretch_ctx->password_salted_hashed,
+            sizeof(stretch_ctx->password_salted_hashed),
+            stretch_ctx->stretched_out,
+            32,
+            stretch_ctx->stretched_out);
+        _clear_stretch_password_ctx(stretch_ctx);
+        return ATCA_SUCCESS;
+    default:
+        return ATCA_BAD_PARAM;
+    }
+}
+
+void atecc_stretch_password_async_abort(atecc_stretch_password_async_ctx_t* ctx)
+{
+    _stretch_password_ctx_t* stretch_ctx = _STRETCH_PASSWORD_ASYNC_CTX(ctx);
+
+    _slot_kdf_async_abort(&stretch_ctx->slot_kdf);
+    _clear_stretch_password_ctx(stretch_ctx);
+}
+
+int atecc_init_new_password_async_start(
+    atecc_init_new_password_async_ctx_t* ctx,
+    const char* password,
+    securechip_password_stretch_algo_t password_stretch_algo,
+    uint8_t* stretched_out,
+    uint16_t* wait_ms_out)
+{
+    _init_new_password_ctx_t* init_ctx = _INIT_NEW_PASSWORD_ASYNC_CTX(ctx);
+
+    if (init_ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+    if (password_stretch_algo != SECURECHIP_PASSWORD_STRETCH_ALGO_V0) {
+        return SC_ERR_INVALID_PASSWORD_STRETCH_ALGO;
+    }
+    _clear_init_new_password_ctx(init_ctx);
+    init_ctx->password = password;
+    init_ctx->password_stretch_algo = password_stretch_algo;
+    init_ctx->stretched_out = stretched_out;
+    init_ctx->state = _INIT_NEW_PASSWORD_STATE_RESET_KEYS;
+    return atecc_reset_keys_async_start(
+        (atecc_reset_keys_async_ctx_t*)&init_ctx->reset_keys, wait_ms_out);
+}
+
+int atecc_init_new_password_async_poll(
+    atecc_init_new_password_async_ctx_t* ctx,
+    uint16_t* wait_ms_out)
+{
+    _init_new_password_ctx_t* init_ctx = _INIT_NEW_PASSWORD_ASYNC_CTX(ctx);
+    int status;
+
+    if (init_ctx == NULL || wait_ms_out == NULL) {
+        return ATCA_BAD_PARAM;
+    }
+
+    switch (init_ctx->state) {
+    case _INIT_NEW_PASSWORD_STATE_RESET_KEYS:
+        status = atecc_reset_keys_async_poll(
+            (atecc_reset_keys_async_ctx_t*)&init_ctx->reset_keys, wait_ms_out);
+        if (status == ATCA_RX_NO_RESPONSE) {
+            return status;
+        }
+        if (status != ATCA_SUCCESS) {
+            _clear_init_new_password_ctx(init_ctx);
+            return SC_ATECC_ERR_RESET_KEYS;
+        }
+        init_ctx->state = _INIT_NEW_PASSWORD_STATE_STRETCH_PASSWORD;
+        return atecc_stretch_password_async_start(
+            (atecc_stretch_password_async_ctx_t*)&init_ctx->stretch_password,
+            init_ctx->password,
+            init_ctx->password_stretch_algo,
+            init_ctx->stretched_out,
+            wait_ms_out);
+    case _INIT_NEW_PASSWORD_STATE_STRETCH_PASSWORD:
+        status = atecc_stretch_password_async_poll(
+            (atecc_stretch_password_async_ctx_t*)&init_ctx->stretch_password, wait_ms_out);
+        if (status != ATCA_RX_NO_RESPONSE) {
+            _clear_init_new_password_ctx(init_ctx);
+        }
+        return status;
+    default:
+        return ATCA_BAD_PARAM;
+    }
+}
+
+void atecc_init_new_password_async_abort(atecc_init_new_password_async_ctx_t* ctx)
+{
+    _init_new_password_ctx_t* init_ctx = _INIT_NEW_PASSWORD_ASYNC_CTX(ctx);
+
+    atecc_reset_keys_async_abort((atecc_reset_keys_async_ctx_t*)&init_ctx->reset_keys);
+    atecc_stretch_password_async_abort(
+        (atecc_stretch_password_async_ctx_t*)&init_ctx->stretch_password);
+    _clear_init_new_password_ctx(init_ctx);
+}
+
+static ATCA_STATUS _sync_rollkey_async(void)
+{
+    _rollkey_ctx_t ctx = {0};
+    ATCA_STATUS status;
+    uint16_t wait_ms = 0;
+
+    status = _rollkey_async_start(&ctx, &wait_ms);
+    while (status == ATCA_RX_NO_RESPONSE) {
+        atca_delay_ms(wait_ms);
+        status = _rollkey_async_poll(&ctx, &wait_ms);
+    }
+    _rollkey_async_abort(&ctx);
+    return status;
+}
+
+static ATCA_STATUS _sync_update_kdf_key_async(void)
+{
+    _update_kdf_key_ctx_t ctx = {0};
+    ATCA_STATUS status;
+    uint16_t wait_ms = 0;
+
+    status = _update_kdf_key_async_start(&ctx, &wait_ms);
+    while (status == ATCA_RX_NO_RESPONSE) {
+        atca_delay_ms(wait_ms);
+        status = _update_kdf_key_async_poll(&ctx, &wait_ms);
+    }
+    _update_kdf_key_async_abort(&ctx);
+    return status;
+}
+
+static int _sync_slot_kdf_async(atecc_slot_t slot, const uint8_t* msg, size_t len, uint8_t* out)
+{
+    _slot_kdf_ctx_t ctx = {0};
+    ATCA_STATUS status;
+    uint16_t wait_ms = 0;
+
+    status = _slot_kdf_async_start(&ctx, slot, msg, len, out, &wait_ms);
+    while (status == ATCA_RX_NO_RESPONSE) {
+        atca_delay_ms(wait_ms);
+        status = _slot_kdf_async_poll(&ctx, &wait_ms);
+    }
+    _slot_kdf_async_abort(&ctx);
+    return status;
+}
+
 /**
  * This performs the CheckMac command on ATECC_SLOT_AUTHKEY. This needs to
  * be called before using any slot requiring auth and whose KeyConfig.AuthKey is
@@ -467,17 +1646,7 @@ static ATCA_STATUS _authorize_key(void)
  */
 static ATCA_STATUS _rollkey(void)
 {
-    ATCA_STATUS result = _authorize_key();
-    if (result != ATCA_SUCCESS) {
-        return result;
-    }
-
-    uint8_t num_in[NONCE_NUMIN_SIZE] = {0};
-    result = atcab_nonce_rand(num_in, NULL);
-    if (result != ATCA_SUCCESS) {
-        return result;
-    }
-    return atcab_derivekey(0, ATECC_SLOT_ROLLKEY, NULL);
+    return _sync_rollkey_async();
 }
 
 /**
@@ -486,84 +1655,12 @@ static ATCA_STATUS _rollkey(void)
  */
 static ATCA_STATUS _update_kdf_key(void)
 {
-    uint8_t new_key[32] = {0};
-    UTIL_CLEANUP_32(new_key);
-    _interface_functions->random_32_bytes(new_key);
-    uint8_t encryption_key[32] = {0};
-    UTIL_CLEANUP_32(encryption_key);
-    _interface_functions->get_encryption_key(encryption_key);
-
-    uint8_t nonce_contribution[32] = {0};
-    UTIL_CLEANUP_32(nonce_contribution);
-    _interface_functions->random_32_bytes(nonce_contribution);
-#if NONCE_NUMIN_SIZE > 32
-    #error "size mismatch"
-#endif
-
-    ATCA_STATUS result = _authorize_key();
-    if (result != ATCA_SUCCESS) {
-        return result;
-    }
-
-    return atcab_write_enc(
-        ATECC_SLOT_KDF, 0, new_key, encryption_key, ATECC_SLOT_ENCRYPTION_KEY, nonce_contribution);
+    return _sync_update_kdf_key_async();
 }
 
 static int _atecc_kdf(atecc_slot_t slot, const uint8_t* msg, size_t len, uint8_t* kdf_out)
 {
-    if (len > 127 || (slot != ATECC_SLOT_ROLLKEY && slot != ATECC_SLOT_KDF)) {
-        return SC_ERR_INVALID_ARGS;
-    }
-    if (msg == kdf_out) {
-        return SC_ERR_INVALID_ARGS;
-    }
-
-    ATCA_STATUS result = _authorize_key();
-    if (result != ATCA_SUCCESS) {
-        return result;
-    }
-
-    uint8_t nonce_out[32] = {0};
-
-    // The result is hkdf_extract with the msg as ikm (input key material) and
-    // the slot key as the salt. hkdf info does not apply, as it is part of
-    // hkdf_expand, which is not performed. hkdf_extract is simply hmac.
-    // Python equivalent:
-    // import hmac, hashlib; hmac.new(slot_key, msg, hashlib.sha256).digest()
-    result = atcab_kdf(
-        KDF_MODE_SOURCE_SLOT | KDF_MODE_TARGET_OUTPUT_ENC | KDF_MODE_ALG_HKDF,
-        slot,
-        KDF_DETAILS_HKDF_MSG_LOC_INPUT | (len << 24), // << 24, not << 25 as
-                                                      // described in the data
-                                                      // sheet.
-        msg,
-        kdf_out,
-        nonce_out);
-
-    // For PRF instead of HKDF, the Python equivalent is (msg = label+seed):
-    // from scapy.layers.tls.crypto.prf import _tls12_SHA256PRF
-    // _tls12_SHA256PRF(slot_key, msg, '', 32)
-    /* result = atcab_kdf( */
-    /*     KDF_MODE_SOURCE_SLOT | KDF_MODE_TARGET_OUTPUT | KDF_MODE_ALG_PRF, */
-    /*     slot, */
-    /*     KDF_DETAILS_PRF_KEY_LEN_32 | (len << 24), */
-    /*     msg, */
-    /*     kdf_out, */
-    /*     nonce_out); */
-    if (result != ATCA_SUCCESS) {
-        return result;
-    }
-    // Output is encrypted with the io protection key.
-    uint8_t io_protection_key[32] = {0};
-    UTIL_CLEANUP_32(io_protection_key);
-    _interface_functions->get_io_protection_key(io_protection_key);
-    atca_io_decrypt_in_out_t io_dec_params = {
-        .io_key = io_protection_key,
-        .out_nonce = nonce_out,
-        .data = kdf_out,
-        .data_size = 32,
-    };
-    return atcah_io_decrypt(&io_dec_params);
+    return _sync_slot_kdf_async(slot, msg, len, kdf_out);
 }
 
 int atecc_kdf(const uint8_t* msg, size_t len, uint8_t* kdf_out)

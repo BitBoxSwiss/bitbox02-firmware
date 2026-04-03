@@ -30,14 +30,6 @@
     #define VERIFY_METADATA 0
 #endif
 
-// Number of times the first kdf slot can be used over the lifetime of the device.
-// The maxmimum does not seem to be specified, so we use something a little below the endurance
-// indication of 600000 updates. See Solution Reference Manual Figure 32.
-#define MONOTONIC_COUNTER_MAX_USE (590000)
-
-// See Solution Reference Manual Table 79 "Data structure arbitrary data object".
-#define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
-
 // This number of KDF iterations on the external kdf slot when stretching the device
 // password using the V0 algorithm.
 #define KDF_NUM_ITERATIONS_V0 (2)

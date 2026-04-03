@@ -42,6 +42,10 @@
 // increments the counter. When the threshold `MONOTONIC_COUNTER_MAX_USE` is reached, further CMAC
 // computations return an error.
 #define OID_COUNTER 0xE120
+// Number of times the first KDF slot can be used over the lifetime of the device. The maximum
+// does not seem to be specified, so we use something a little below the endurance indication of
+// 600000 updates. See Solution Reference Manual Figure 32.
+#define MONOTONIC_COUNTER_MAX_USE (590000)
 
 // The three objects below (`OID_PASSWORD_SECRET`, `OID_PASSWORD`, `OID_COUNTER_PASSWORD`) deal with
 // implementing the small monotonic counter that limits the number of unlocks to a small number.
@@ -72,6 +76,9 @@
 // During development, set this to `LCSO_STATE_CREATION`.
 #define FINAL_LCSO_STATE_V0 LCSO_STATE_OPERATIONAL
 #define FINAL_LCSO_STATE_V1 LCSO_STATE_OPERATIONAL
+
+// See Solution Reference Manual Table 79 "Data structure arbitrary data object".
+#define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
 
 // Maximum size of metadata. See "Metadata Update Identifier":
 // https://github.com/Infineon/optiga-trust-m-overview/blob/98b2b9c178f0391b1ab26b52082899704dab688a/docs/OPTIGA%E2%84%A2%20Trust%20M%20Solution%20Reference%20Manual.md#linka946a953_def2_41cf_850a_74fb7899fe11

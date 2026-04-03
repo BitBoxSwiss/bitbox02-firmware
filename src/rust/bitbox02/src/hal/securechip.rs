@@ -82,7 +82,7 @@ impl SecureChip for BitBox02SecureChip {
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        crate::securechip::init_new_password(
+        crate::securechip::imp::init_new_password(
             password,
             to_c_password_stretch_algo(password_stretch_algo),
         )
@@ -94,7 +94,7 @@ impl SecureChip for BitBox02SecureChip {
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        crate::securechip::stretch_password(
+        crate::securechip::imp::stretch_password(
             password,
             to_c_password_stretch_algo(password_stretch_algo),
         )
@@ -102,7 +102,7 @@ impl SecureChip for BitBox02SecureChip {
     }
 
     fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        crate::securechip::kdf(msg).map_err(to_hal_error)
+        crate::securechip::imp::kdf(msg).map_err(to_hal_error)
     }
 
     fn attestation_sign(
@@ -110,30 +110,31 @@ impl SecureChip for BitBox02SecureChip {
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()> {
-        crate::securechip::attestation_sign(challenge, signature)
+        crate::securechip::imp::attestation_sign(challenge, signature)
     }
 
     fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
-        crate::securechip::monotonic_increments_remaining()
+        crate::securechip::imp::monotonic_increments_remaining()
     }
 
     fn model(&mut self) -> Result<Model, ()> {
-        crate::securechip::model().map(to_hal_model)
+        crate::securechip::imp::model().map(to_hal_model)
     }
 
     fn reset_keys(&mut self) -> Result<(), ()> {
-        crate::securechip::reset_keys()
+        crate::securechip::imp::reset_keys()
     }
 
     #[cfg(feature = "app-u2f")]
     fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
-        crate::securechip::u2f_counter_set(counter)
+        crate::securechip::imp::u2f_counter_set(counter)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hex_lit::hex;
 
     #[test]
     fn test_to_hal_model() {
@@ -248,6 +249,25 @@ mod tests {
         assert_eq!(
             to_c_password_stretch_algo(PasswordStretchAlgo::V1),
             crate::securechip::PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
+        );
+    }
+
+    #[test]
+    fn test_kdf() {
+        let mut securechip = BitBox02SecureChip;
+        let result = securechip.kdf(b"stub input").unwrap();
+        let expected = hex!("3d7caa0407f18f6b15a6202843c883f326d614996df67940af210d91aff5b9c8");
+        assert_eq!(result.as_slice(), expected.as_slice());
+    }
+
+    #[test]
+    fn test_init_new_password_invalid_password_stretch_algo() {
+        let mut securechip = BitBox02SecureChip;
+        assert_eq!(
+            securechip.init_new_password("password", PasswordStretchAlgo::V0),
+            Err(Error::SecureChip(
+                SecureChipError::InvalidPasswordStretchAlgo,
+            )),
         );
     }
 }

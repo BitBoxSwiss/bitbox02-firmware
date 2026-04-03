@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::*;
+use alloc::vec::Vec;
 use hex_lit::hex;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use zeroize::Zeroizing;
 
 const PASSWORD_STRETCH_KEY: &[u8] = b"unit-test";
 const KDF_KEY: [u8; 32] = hex!("d2e1e6b18b6c6b08433edbc1d168c1a0043774a4221877e79ed56684be5ac01b");

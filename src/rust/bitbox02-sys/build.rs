@@ -450,7 +450,7 @@ pub fn main() -> BuildResult<()> {
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let mut definitions = vec!["-DAPP_BTC=1", "-DAPP_LTC=1", "-DAPP_U2F=1", "-DAPP_ETH=1"];
+    let mut definitions = vec!["-DAPP_U2F=1"];
     definitions.extend(&extra_flags);
 
     run_command(

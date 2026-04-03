@@ -36,10 +36,7 @@
  */
 
 #include "pal_i2c.h"
-#include "hal_delay.h"
 #include "hal_i2c_m_sync.h"
-#include "pal_os_timer.h"
-#include "util.h"
 extern struct i2c_m_sync_desc I2C_0;
 
 #define PAL_I2C_MASTER_MAX_BITRATE (400U)
@@ -131,7 +128,6 @@ pal_status_t pal_i2c_write(const pal_i2c_t* p_i2c_context, uint8_t* p_data, uint
 {
     pal_status_t status = PAL_STATUS_FAILURE;
     struct _i2c_m_msg packet;
-    uint8_t retries = 25U;
     int32_t r;
 
     packet.addr = p_i2c_context->slave_address;
@@ -145,10 +141,7 @@ pal_status_t pal_i2c_write(const pal_i2c_t* p_i2c_context, uint8_t* p_data, uint
 
         // Invoke the low level i2c master driver API to write to the bus
         //  !!!OPTIGA_LIB_PORTING_REQUIRED
-        do {
-            r = i2c_m_sync_transfer(p_i2c_context->p_i2c_hw_config, &packet);
-            delay_ms(2U);
-        } while (retries-- && r != I2C_OK);
+        r = i2c_m_sync_transfer(p_i2c_context->p_i2c_hw_config, &packet);
 
         if (r != I2C_OK) {
             // If I2C Master fails to invoke the write operation, invoke upper layer event handler
@@ -204,7 +197,6 @@ pal_status_t pal_i2c_read(const pal_i2c_t* p_i2c_context, uint8_t* p_data, uint1
     // int32_t start = pal_os_timer_get_time_in_milliseconds();
     pal_status_t status = PAL_STATUS_FAILURE;
     struct _i2c_m_msg packet;
-    uint8_t retries = 25U;
     int32_t r;
 
     packet.addr = p_i2c_context->slave_address;
@@ -217,10 +209,7 @@ pal_status_t pal_i2c_read(const pal_i2c_t* p_i2c_context, uint8_t* p_data, uint1
         gp_pal_i2c_current_ctx = p_i2c_context;
 
         // Invoke the low level i2c master driver API to read from the bus
-        do {
-            r = i2c_m_sync_transfer(p_i2c_context->p_i2c_hw_config, &packet);
-            delay_ms(2U);
-        } while (retries-- && r != I2C_OK);
+        r = i2c_m_sync_transfer(p_i2c_context->p_i2c_hw_config, &packet);
 
         if (r != I2C_OK) {
             // If I2C Master fails to invoke the read operation, invoke upper layer event handler

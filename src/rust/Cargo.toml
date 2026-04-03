@@ -17,6 +17,7 @@ members = [
     "bitbox02",
     "bitbox-secp256k1",
     "bitbox02-sys",
+    "bitbox-securechip",
     "bitbox-securechip-sys",
     "bitbox-lvgl-sys",
     "erc20_params",

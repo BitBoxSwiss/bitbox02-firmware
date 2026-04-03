@@ -39,8 +39,8 @@ pub fn init_new_password(
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Zeroizing<Vec<u8>>, Error> {
     if password_stretch_algo != PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1 {
-        return Err(Error::from_status(
-            SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO as i32,
+        return Err(Error::SecureChip(
+            SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
         ));
     }
     Ok(Zeroizing::new(

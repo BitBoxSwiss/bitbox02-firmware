@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::{Error, Model, PasswordStretchAlgo, atecc, optiga};
+use super::{Error, Model, PasswordStretchAlgo};
 use alloc::vec::Vec;
+use bitbox_securechip::{atecc, optiga};
 use core::ffi::c_int;
 use util::cell::SyncCell;
 use zeroize::Zeroizing;
@@ -108,8 +109,8 @@ pub unsafe extern "C" fn rust_securechip_setup(
     ifs: *const bitbox_securechip_sys::securechip_interface_functions_t,
 ) -> c_int {
     match backend() {
-        Backend::Atecc => unsafe { atecc::setup(ifs) },
-        Backend::Optiga => unsafe { optiga::setup(ifs) },
+        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_setup(ifs) },
+        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_setup(ifs) },
     }
 }
 
@@ -127,8 +128,8 @@ pub extern "C" fn rust_securechip_reset_keys() -> bool {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_securechip_gen_attestation_key(pubkey_out: *mut u8) -> bool {
     match backend() {
-        Backend::Atecc => unsafe { atecc::gen_attestation_key(pubkey_out) },
-        Backend::Optiga => unsafe { optiga::gen_attestation_key(pubkey_out) },
+        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_gen_attestation_key(pubkey_out) },
+        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_gen_attestation_key(pubkey_out) },
     }
 }
 
@@ -136,8 +137,8 @@ pub unsafe extern "C" fn rust_securechip_gen_attestation_key(pubkey_out: *mut u8
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_securechip_random(rand_out: *mut u8) -> bool {
     match backend() {
-        Backend::Atecc => unsafe { atecc::random(rand_out) },
-        Backend::Optiga => unsafe { optiga::random(rand_out) },
+        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_random(rand_out) },
+        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_random(rand_out) },
     }
 }
 
@@ -147,8 +148,8 @@ pub unsafe extern "C" fn rust_securechip_random(rand_out: *mut u8) -> bool {
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_securechip_u2f_counter_set(counter: u32) -> bool {
     match backend() {
-        Backend::Atecc => atecc::u2f_counter_set_raw(counter),
-        Backend::Optiga => optiga::u2f_counter_set_raw(counter),
+        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_u2f_counter_set(counter) },
+        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_u2f_counter_set(counter) },
     }
 }
 
@@ -157,7 +158,7 @@ pub extern "C" fn rust_securechip_u2f_counter_set(counter: u32) -> bool {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_securechip_u2f_counter_inc(counter: *mut u32) -> bool {
     match backend() {
-        Backend::Atecc => unsafe { atecc::u2f_counter_inc(counter) },
-        Backend::Optiga => unsafe { optiga::u2f_counter_inc(counter) },
+        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_u2f_counter_inc(counter) },
+        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_u2f_counter_inc(counter) },
     }
 }

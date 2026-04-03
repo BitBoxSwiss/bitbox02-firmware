@@ -70,6 +70,21 @@ impl Error {
 )]
 mod imp;
 
+#[cfg(not(any(
+    test,
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+)))]
+mod atecc;
+#[cfg(not(any(
+    test,
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+)))]
+mod optiga;
+
 /// Signs a 32-byte attestation challenge and writes the raw 64-byte P-256 signature to
 /// `signature`.
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {

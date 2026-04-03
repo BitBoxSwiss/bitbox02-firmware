@@ -105,7 +105,7 @@ pub extern "C" fn rust_securechip_init() -> bool {
 /// backend-specific status codes from CryptoAuthLib or the Optiga library.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_securechip_setup(
-    ifs: *const bitbox02_sys::securechip_interface_functions_t,
+    ifs: *const bitbox_securechip_sys::securechip_interface_functions_t,
 ) -> c_int {
     match backend() {
         Backend::Atecc => unsafe { atecc::setup(ifs) },

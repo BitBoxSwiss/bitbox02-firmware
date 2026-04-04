@@ -26,6 +26,7 @@ try:
     from bitbox02.communication.generated import btc_pb2 as btc
     from bitbox02.communication.generated import cardano_pb2 as cardano
     from bitbox02.communication.generated import mnemonic_pb2 as mnemonic
+    from bitbox02.communication.generated import solana_pb2 as solana
     from bitbox02.communication.generated import bitbox02_system_pb2 as bitbox02_system
     from bitbox02.communication.generated import backup_commands_pb2 as backup
     from bitbox02.communication.generated import common_pb2 as common
@@ -1343,6 +1344,39 @@ class BitBox02(BitBoxCommonAPI):
         return self._cardano_msg_query(
             request, expected_response="sign_transaction"
         ).sign_transaction
+
+    def _solana_msg_query(
+        self, solana_request: solana.SolanaRequest, expected_response: Optional[str] = None
+    ) -> solana.SolanaResponse:
+        """
+        Same as _msg_query, but one nesting deeper for solana messages.
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.solana.CopyFrom(solana_request)
+        solana_response = self._msg_query(request, expected_response="solana").solana
+        if (
+            expected_response is not None
+            and solana_response.WhichOneof("response") != expected_response
+        ):
+            raise Exception(
+                "Unexpected response: {}, expected: {}".format(
+                    solana_response.WhichOneof("response"), expected_response
+                )
+            )
+        return solana_response
+
+    def solana_pub(self, pub_request: solana.SolanaPubRequest) -> solana.SolanaPubResponse:
+        # pylint: disable=no-member
+        request = solana.SolanaRequest(pub=pub_request)
+        return self._solana_msg_query(request, expected_response="pub").pub
+
+    def solana_sign_transaction(self, transaction: solana.SolanaSignTransactionRequest) -> bytes:
+        # pylint: disable=no-member
+        request = solana.SolanaRequest(sign_transaction=transaction)
+        return self._solana_msg_query(
+            request, expected_response="sign_transaction"
+        ).sign_transaction.signature
 
     def _bluetooth_msg_query(
         self, bluetooth_request: bluetooth.BluetoothRequest, expected_response: Optional[str] = None

@@ -11,6 +11,7 @@ set(PROTO_FILES
   cardano.proto
   eth.proto
   mnemonic.proto
+  solana.proto
   system.proto
   perform_attestation.proto
   keystore.proto

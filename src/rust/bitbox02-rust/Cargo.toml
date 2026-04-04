@@ -97,6 +97,10 @@ app-cardano = [
   "ed25519"
 ]
 
+app-solana = [
+  "ed25519"
+]
+
 testing = [
   "dep:bitbox-platform-host",
   "bitbox02/testing",

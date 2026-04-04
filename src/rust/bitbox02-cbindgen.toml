@@ -11,11 +11,6 @@ header = '''
 #include "securechip/securechip.h"
 #include "util.h"
 #include <ui/components/confirm.h>
-
-#if APP_ETH == 1
-#define RUST_APP_ETHEREUM
-#endif
-
 '''
 
 [parse]
@@ -36,6 +31,3 @@ exclude = [
   "free",
   "Abort",
 ]
-
-[defines]
-"feature=app-ethereum" = "RUST_APP_ETHEREUM"

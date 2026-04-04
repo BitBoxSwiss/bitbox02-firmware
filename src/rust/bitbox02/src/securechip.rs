@@ -9,4 +9,6 @@
     ),
     path = "securechip/imp_fake.rs"
 )]
-pub(crate) mod imp;
+mod imp;
+
+pub(crate) use imp::*;

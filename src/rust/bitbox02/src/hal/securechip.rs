@@ -82,7 +82,7 @@ impl SecureChip for BitBox02SecureChip {
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        crate::securechip::imp::init_new_password(
+        crate::securechip::init_new_password(
             password,
             to_c_password_stretch_algo(password_stretch_algo),
         )
@@ -94,7 +94,7 @@ impl SecureChip for BitBox02SecureChip {
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        crate::securechip::imp::stretch_password(
+        crate::securechip::stretch_password(
             password,
             to_c_password_stretch_algo(password_stretch_algo),
         )
@@ -102,7 +102,7 @@ impl SecureChip for BitBox02SecureChip {
     }
 
     fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        crate::securechip::imp::kdf(msg).map_err(to_hal_error)
+        crate::securechip::kdf(msg).map_err(to_hal_error)
     }
 
     fn attestation_sign(
@@ -110,24 +110,24 @@ impl SecureChip for BitBox02SecureChip {
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()> {
-        crate::securechip::imp::attestation_sign(challenge, signature)
+        crate::securechip::attestation_sign(challenge, signature)
     }
 
     fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
-        crate::securechip::imp::monotonic_increments_remaining()
+        crate::securechip::monotonic_increments_remaining()
     }
 
     fn model(&mut self) -> Result<Model, ()> {
-        crate::securechip::imp::model().map(to_hal_model)
+        crate::securechip::model().map(to_hal_model)
     }
 
     fn reset_keys(&mut self) -> Result<(), ()> {
-        crate::securechip::imp::reset_keys()
+        crate::securechip::reset_keys()
     }
 
     #[cfg(feature = "app-u2f")]
     fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
-        crate::securechip::imp::u2f_counter_set(counter)
+        crate::securechip::u2f_counter_set(counter)
     }
 }
 

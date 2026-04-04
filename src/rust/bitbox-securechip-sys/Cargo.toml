@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-securechip-sys"
+version = "0.1.0"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2024"
+description = "Rust bindings for securechip C code BitBox firmware"
+license = "Apache-2.0"

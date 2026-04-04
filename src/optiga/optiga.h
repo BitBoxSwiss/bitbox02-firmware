@@ -12,7 +12,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <rust/rust.h> // for MAX_UNLOCK_ATTEMPTS
+// Keep in sync with MAX_UNLOCK_ATTEMPTS in keystore.rs.
+#ifndef MAX_UNLOCK_ATTEMPTS
+    #define MAX_UNLOCK_ATTEMPTS 10
+#endif
 
 // The Data Object IDs we use.
 

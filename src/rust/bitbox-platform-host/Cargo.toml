@@ -10,7 +10,7 @@ license = "Apache-2.0"
 [dependencies]
 bitbox-hal = { path = "../bitbox-hal" }
 bitcoin = { workspace = true }
-hex_lit = { workspace = true, features = ["rust_v_1_46"] }
+hex_lit = { workspace = true }
 zeroize = { workspace = true }
 
 [features]

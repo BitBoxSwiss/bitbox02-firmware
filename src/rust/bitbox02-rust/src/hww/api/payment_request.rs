@@ -157,6 +157,7 @@ pub async fn user_verify(
                     .confirm(&ConfirmParams {
                         title: "SWAP",
                         body: &swap_body,
+                        scrollable: true,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })

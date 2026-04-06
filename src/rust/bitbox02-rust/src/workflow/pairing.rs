@@ -37,17 +37,16 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
-    use util::bb02_async::block_on;
 
     use alloc::boxed::Box;
 
-    #[test]
-    fn test_confirm() {
+    #[async_test::test]
+    async fn test_confirm() {
         let mut mock_hal = TestingHal::new();
 
-        assert!(block_on(confirm(
+        assert!(confirm(
             &mut mock_hal,
-            b"\x59\x28\x9b\xdb\xbb\xb6\xb6\x8e\x8f\x12\x7f\x49\xa5\x25\xb0\x30\x13\x50\x0b\x3c\x1a\xf2\x62\x6f\x40\x07\xeb\xe4\x4f\x09\xc8\x6b")).is_ok());
+            b"\x59\x28\x9b\xdb\xbb\xb6\xb6\x8e\x8f\x12\x7f\x49\xa5\x25\xb0\x30\x13\x50\x0b\x3c\x1a\xf2\x62\x6f\x40\x07\xeb\xe4\x4f\x09\xc8\x6b").await.is_ok());
 
         assert_eq!(
             mock_hal.ui.screens,

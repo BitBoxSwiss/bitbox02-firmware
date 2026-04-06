@@ -118,8 +118,10 @@ simulator-graphical = [
 firmware = []
 
 [dev-dependencies]
+async_test = { path = "../async_test" }
 serde = { workspace = true }
 serde_json = { workspace = true }
+util = { path = "../util", features = ["testing"] }
 
 [build-dependencies]
 serde_json = { workspace = true }

@@ -224,7 +224,6 @@ mod tests {
     use super::*;
 
     use crate::hal::memory::{BleFirmwareSlot, BleMetadata};
-    use util::bb02_async::block_on;
 
     struct MockFuncs {
         chunk_requests: Vec<(u32, u32)>,
@@ -269,8 +268,8 @@ mod tests {
     }
 
     /// Verifies that successful upgrades request host chunks with exact offset/length boundaries.
-    #[test]
-    fn test_process_upgrade_helper_chunk_streaming() {
+    #[async_test::test]
+    async fn test_process_upgrade_helper_chunk_streaming() {
         struct Test<'a> {
             firmware_length: u32,
             expected_chunk_requests: &'a [(u32, u32)],
@@ -326,7 +325,7 @@ mod tests {
                 Sha256::digest(vec![0; test.firmware_length as usize]).into();
 
             assert_eq!(
-                block_on(process_upgrade_helper(
+                process_upgrade_helper(
                     &mut memory,
                     &mut mock_funcs,
                     &mut progress,
@@ -334,7 +333,8 @@ mod tests {
                         firmware_length: test.firmware_length,
                     },
                     &allowed_hash,
-                )),
+                )
+                .await,
                 Ok(Response::Success(pb::BluetoothSuccess {}))
             );
             assert_eq!(mock_funcs.chunk_requests, test.expected_chunk_requests);
@@ -347,8 +347,8 @@ mod tests {
     }
 
     /// Verifies that a successful upgrade writes firmware bytes to the inactive slot and updates BLE metadata.
-    #[test]
-    fn test_process_upgrade_helper_success_updates_metadata_and_slot_data() {
+    #[async_test::test]
+    async fn test_process_upgrade_helper_success_updates_metadata_and_slot_data() {
         let mut memory = crate::hal::testing::TestingMemory::new();
         let initial_metadata = make_metadata(0);
         memory.set_ble_metadata(&initial_metadata).unwrap();
@@ -362,7 +362,7 @@ mod tests {
         let mut progress = TestProgress::default();
 
         assert_eq!(
-            block_on(process_upgrade_helper(
+            process_upgrade_helper(
                 &mut memory,
                 &mut mock_funcs,
                 &mut progress,
@@ -370,7 +370,8 @@ mod tests {
                     firmware_length: firmware.len() as u32,
                 },
                 &allowed_hash,
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::BluetoothSuccess {}))
         );
         assert_eq!(mock_funcs.chunk_requests, vec![(0, 4096), (4096, 5)]);
@@ -402,8 +403,8 @@ mod tests {
     }
 
     /// Verifies that when slot 1 is active, a successful upgrade targets slot 0 and flips active index.
-    #[test]
-    fn test_process_upgrade_helper_success_uses_first_slot_if_second_is_active() {
+    #[async_test::test]
+    async fn test_process_upgrade_helper_success_uses_first_slot_if_second_is_active() {
         let mut memory = crate::hal::testing::TestingMemory::new();
         let initial_metadata = make_metadata(1);
         memory.set_ble_metadata(&initial_metadata).unwrap();
@@ -416,7 +417,7 @@ mod tests {
         let mut progress = TestProgress::default();
 
         assert_eq!(
-            block_on(process_upgrade_helper(
+            process_upgrade_helper(
                 &mut memory,
                 &mut mock_funcs,
                 &mut progress,
@@ -424,7 +425,8 @@ mod tests {
                     firmware_length: firmware.len() as u32,
                 },
                 &allowed_hash,
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::BluetoothSuccess {}))
         );
         assert_eq!(mock_funcs.chunk_requests, vec![(0, 3)]);

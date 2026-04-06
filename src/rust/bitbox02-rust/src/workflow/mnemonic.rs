@@ -382,7 +382,6 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::{TestingRandom, TestingUi};
-    use util::bb02_async::block_on;
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
@@ -416,8 +415,8 @@ mod tests {
         assert_eq!(unique.len(), choices.len());
     }
 
-    #[test]
-    fn test_show_and_confirm_mnemonic() {
+    #[async_test::test]
+    async fn test_show_and_confirm_mnemonic() {
         let words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
             .split(' ')
             .collect();
@@ -425,20 +424,20 @@ mod tests {
         let mut random = TestingRandom::new();
         ui.prepare_show_and_confirm_mnemonic(&mut random, words.len());
 
-        let result = block_on(show_and_confirm_mnemonic(&mut ui, &mut random, &words));
+        let result = show_and_confirm_mnemonic(&mut ui, &mut random, &words).await;
         assert!(result.is_ok());
         TestingUi::assert_show_and_confirm_mnemonic_screens(&ui.screens, &words);
     }
 
-    #[test]
-    fn test_get() {
+    #[async_test::test]
+    async fn test_get() {
         let words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
             .split(' ')
             .collect();
         let mut ui = TestingUi::new();
         ui.prepare_get_mnemonic_24_words(&words);
 
-        let result = block_on(get(&mut ui));
+        let result = get(&mut ui).await;
         assert!(result.is_ok());
         let mnemonic = match result {
             Ok(mnemonic) => mnemonic,

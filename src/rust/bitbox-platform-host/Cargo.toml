@@ -17,4 +17,5 @@ zeroize = { workspace = true }
 app-u2f = ["bitbox-hal/app-u2f"]
 
 [dev-dependencies]
+async_test = { path = "../async_test" }
 util = { path = "../util", features = ["testing"] }

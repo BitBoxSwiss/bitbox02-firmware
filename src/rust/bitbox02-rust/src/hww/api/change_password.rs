@@ -44,24 +44,23 @@ mod tests {
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
     use hex_lit::hex;
-    use util::bb02_async::block_on;
 
     // Test the intended success path
-    #[test]
-    fn test_process_success() {
+    #[async_test::test]
+    async fn test_process_success() {
         //set up dummy (initialized, retained seed and bip39-seed)
         mock_memory();
         let seed = hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c");
         let old_password = "old_password";
         let new_password = "new_password";
 
+        let mut prompt_counter = 0u32;
         let mut hal = TestingHal::new();
         keystore::encrypt_and_store_seed(&mut hal, &seed, old_password).unwrap();
-        block_on(unlock::unlock_bip39(&mut hal, &seed));
+        unlock::unlock_bip39(&mut hal, &seed).await;
         hal.memory.set_initialized().unwrap();
 
         // Allow exactly 3 prompts
-        let mut prompt_counter = 0u32;
         hal.ui.set_enter_string(Box::new(|params| {
             prompt_counter += 1;
             match prompt_counter {
@@ -83,7 +82,7 @@ mod tests {
         // reset the chip counter
         hal.securechip.event_counter_reset();
         // call process
-        let result = block_on(process(&mut hal));
+        let result = process(&mut hal).await;
         // assert success
         assert_eq!(result, Ok(Response::Success(pb::Success {})));
         // assert correct screens
@@ -111,12 +110,13 @@ mod tests {
         // check that the old password is no longer valid
         keystore::lock();
         assert!(matches!(
-            block_on(keystore::unlock(&mut hal, old_password)),
+            keystore::unlock(&mut hal, old_password).await,
             Err(keystore::Error::IncorrectPassword)
         ));
         // check that the new password is valid
         assert_eq!(
-            block_on(keystore::unlock(&mut hal, new_password))
+            keystore::unlock(&mut hal, new_password)
+                .await
                 .unwrap()
                 .as_slice(),
             seed.as_slice()
@@ -127,20 +127,20 @@ mod tests {
     }
 
     // Test that we fail if the unlock fails
-    #[test]
-    fn test_process_unlock_failure() {
+    #[async_test::test]
+    async fn test_process_unlock_failure() {
         mock_memory();
 
         let seed = hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c");
         let correct_password = "correct_password";
 
+        let mut prompt_counter = 0u32;
         let mut hal = TestingHal::new();
         keystore::encrypt_and_store_seed(&mut hal, &seed, correct_password).unwrap();
-        block_on(unlock::unlock_bip39(&mut hal, &seed));
+        unlock::unlock_bip39(&mut hal, &seed).await;
         hal.memory.set_initialized().unwrap();
         keystore::lock();
 
-        let mut prompt_counter = 0u32;
         hal.ui.set_enter_string(Box::new(|params| {
             prompt_counter += 1;
             assert_eq!(params.title, "Unlock device");
@@ -148,7 +148,7 @@ mod tests {
         }));
 
         hal.securechip.event_counter_reset();
-        let result = block_on(process(&mut hal));
+        let result = process(&mut hal).await;
 
         assert_eq!(result, Err(Error::Generic));
         assert_eq!(
@@ -170,7 +170,8 @@ mod tests {
 
         // check that the old password is still valid
         assert_eq!(
-            block_on(keystore::unlock(&mut hal, correct_password))
+            keystore::unlock(&mut hal, correct_password)
+                .await
                 .unwrap()
                 .as_slice(),
             seed.as_slice()
@@ -181,8 +182,8 @@ mod tests {
     }
 
     // Test that we fail if the confirm password mismatch
-    #[test]
-    fn test_process_confirm_password_mismatch() {
+    #[async_test::test]
+    async fn test_process_confirm_password_mismatch() {
         mock_memory();
 
         let seed = hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c");
@@ -190,13 +191,13 @@ mod tests {
         let first_password = "first_password";
         let second_password = "mismatch";
 
+        let mut prompt_counter = 0u32;
         let mut hal = TestingHal::new();
         keystore::encrypt_and_store_seed(&mut hal, &seed, old_password).unwrap();
-        block_on(unlock::unlock_bip39(&mut hal, &seed));
+        unlock::unlock_bip39(&mut hal, &seed).await;
         hal.memory.set_initialized().unwrap();
         keystore::lock();
 
-        let mut prompt_counter = 0u32;
         hal.ui.set_enter_string(Box::new(|params| {
             prompt_counter += 1;
             match prompt_counter {
@@ -215,12 +216,13 @@ mod tests {
                 _ => panic!("unexpected password prompt"),
             }
         }));
-        let result = block_on(process(&mut hal));
+        let result = process(&mut hal).await;
 
         assert_eq!(result, Err(Error::Generic));
         // check that the old password is still valid
         assert_eq!(
-            block_on(keystore::unlock(&mut hal, old_password))
+            keystore::unlock(&mut hal, old_password)
+                .await
                 .unwrap()
                 .as_slice(),
             seed.as_slice()

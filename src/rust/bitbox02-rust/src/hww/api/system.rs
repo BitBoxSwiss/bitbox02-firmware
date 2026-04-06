@@ -35,33 +35,32 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
-    use crate::hal::testing::ui::Screen;
-    use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
-    #[test]
+    #[async_test::test]
     #[should_panic(expected = "reboot_to_bootloader called")]
-    pub fn test_reboot_to_bootloader() {
-        block_on(reboot_to_bootloader(
+    async fn test_reboot_to_bootloader() {
+        reboot_to_bootloader(
             &mut TestingHal::new(),
             &pb::RebootRequest {
                 purpose: Purpose::Upgrade as _,
             },
-        ))
+        )
+        .await
         .unwrap();
     }
 
-    #[test]
-    pub fn test_reboot_to_bootloader_aborted() {
+    #[async_test::test]
+    async fn test_reboot_to_bootloader_aborted() {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(reboot_to_bootloader(
+            reboot_to_bootloader(
                 &mut mock_hal,
                 &pb::RebootRequest {
                     purpose: Purpose::Upgrade as _
                 }
-            )),
+            )
+            .await,
             Err(Error::UserAbort),
         );
     }

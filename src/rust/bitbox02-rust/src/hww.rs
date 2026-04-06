@@ -216,11 +216,11 @@ mod tests {
     }
 
     /// Can't unlock when the device is not initialized yet (not seeded).
-    #[test]
-    fn test_cant_unlock() {
+    #[async_test::test]
+    async fn test_cant_unlock() {
         mock_memory();
         assert_eq!(
-            block_on(process_packet(&mut TestingHal::new(), vec![OP_UNLOCK])),
+            process_packet(&mut TestingHal::new(), vec![OP_UNLOCK]).await,
             [OP_STATUS_FAILURE_UNINITIALIZED].to_vec()
         );
     }
@@ -352,8 +352,8 @@ mod tests {
     }
 
     /// Can initiate noise and send the Reboot protobuf request when the device is initialized.
-    #[test]
-    fn test_reboot_when_initialized() {
+    #[async_test::test]
+    async fn test_reboot_when_initialized() {
         mock_memory();
 
         let mut make_request = init_noise();
@@ -438,7 +438,7 @@ mod tests {
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
         assert_eq!(
-            block_on(process_packet(&mut mock_hal, vec![OP_UNLOCK])),
+            process_packet(&mut mock_hal, vec![OP_UNLOCK]).await,
             [OP_STATUS_SUCCESS].to_vec()
         );
         assert!(!crate::keystore::is_locked());

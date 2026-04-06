@@ -77,10 +77,9 @@ mod tests {
     use crate::keystore;
     use crate::keystore::testing::mock_unlocked;
     use bitbox02::testing::mock_memory;
-    use util::bb02_async::block_on;
 
-    #[test]
-    fn test_reset_success() {
+    #[async_test::test]
+    async fn test_reset_success() {
         mock_memory();
 
         let mut hal = TestingHal::new();
@@ -98,7 +97,7 @@ mod tests {
         hal.securechip.u2f_counter_set(42).unwrap();
 
         hal.securechip.event_counter_reset();
-        block_on(reset(&mut hal, true));
+        reset(&mut hal, true).await;
         // Secure chip operations happened as expected: reset_keys() was retried once, but only the
         // successful call increments the event counter.
         assert_eq!(hal.securechip.get_event_counter(), 3);
@@ -123,12 +122,12 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_reset_status_failure() {
+    #[async_test::test]
+    async fn test_reset_status_failure() {
         mock_memory();
 
         let mut hal = TestingHal::new();
-        block_on(reset(&mut hal, false));
+        reset(&mut hal, false).await;
 
         assert_eq!(
             hal.ui.screens,

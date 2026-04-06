@@ -224,12 +224,12 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
     use hex_lit::hex;
 
-    #[test]
-    fn test_unlock_success() {
+    #[async_test::test]
+    async fn test_unlock_success() {
+        let mut password_entered = false;
         let mut mock_hal = TestingHal::new();
 
         // Set up an initialized wallet with password
@@ -245,14 +245,12 @@ mod tests {
         // Lock the keystore to simulate the normal locked state
         crate::keystore::lock();
 
-        let mut password_entered = false;
-
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
             Ok("password".into())
         }));
         mock_hal.securechip.event_counter_reset();
-        assert_eq!(block_on(unlock(&mut mock_hal)), Ok(()));
+        assert_eq!(unlock(&mut mock_hal).await, Ok(()));
         // 6 for keystore unlock, 1 for keystore bip39 unlock.
         assert_eq!(mock_hal.securechip.get_event_counter(), 6);
 
@@ -271,8 +269,9 @@ mod tests {
         assert!(password_entered);
     }
 
-    #[test]
-    fn test_unlock_keystore_wrong_password() {
+    #[async_test::test]
+    async fn test_unlock_keystore_wrong_password() {
+        let mut password_entered = false;
         let mut mock_hal = TestingHal::new();
 
         // Set up an initialized wallet with password
@@ -288,8 +287,6 @@ mod tests {
         // Lock the keystore to simulate the normal locked state
         crate::keystore::lock();
 
-        let mut password_entered = false;
-
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
             Ok("wrong password".into())
@@ -297,7 +294,7 @@ mod tests {
 
         mock_hal.securechip.event_counter_reset();
         assert!(matches!(
-            block_on(unlock_keystore(&mut mock_hal, "title", CanCancel::No,)),
+            unlock_keystore(&mut mock_hal, "title", CanCancel::No,).await,
             Err(UnlockError::IncorrectPassword),
         ));
         assert_eq!(mock_hal.securechip.get_event_counter(), 4);
@@ -317,8 +314,9 @@ mod tests {
         assert!(password_entered);
     }
 
-    #[test]
-    fn test_unlock_keystore_warning_before_password() {
+    #[async_test::test]
+    async fn test_unlock_keystore_warning_before_password() {
+        let mut password_entered = false;
         let mut mock_hal = TestingHal::new();
 
         // Set up an initialized wallet with password
@@ -336,15 +334,13 @@ mod tests {
 
         mock_hal.eeprom.set_unlock_attempts_for_testing(1);
 
-        let mut password_entered = false;
-
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
             Ok("wrong password".into())
         }));
 
         assert!(matches!(
-            block_on(unlock_keystore(&mut mock_hal, "title", CanCancel::No,)),
+            unlock_keystore(&mut mock_hal, "title", CanCancel::No,).await,
             Err(UnlockError::IncorrectPassword),
         ));
 
@@ -367,8 +363,8 @@ mod tests {
         assert!(password_entered);
     }
 
-    #[test]
-    fn test_unlock_keystore_last_attempt_warning() {
+    #[async_test::test]
+    async fn test_unlock_keystore_last_attempt_warning() {
         let mut mock_hal = TestingHal::new();
 
         mock_hal
@@ -378,7 +374,7 @@ mod tests {
         mock_hal.ui.abort_nth(0);
 
         assert!(matches!(
-            block_on(unlock_keystore(&mut mock_hal, "title", CanCancel::No,)),
+            unlock_keystore(&mut mock_hal, "title", CanCancel::No,).await,
             Err(UnlockError::UserAbort),
         ));
 

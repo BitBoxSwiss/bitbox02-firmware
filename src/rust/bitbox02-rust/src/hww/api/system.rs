@@ -40,23 +40,15 @@ mod tests {
     use util::bb02_async::block_on;
 
     #[test]
+    #[should_panic(expected = "reboot_to_bootloader called")]
     pub fn test_reboot_to_bootloader() {
-        let reboot_called = std::panic::catch_unwind(|| {
-            block_on(reboot_to_bootloader(
-                &mut TestingHal::new(),
-                &pb::RebootRequest {
-                    purpose: Purpose::Upgrade as _,
-                },
-            ))
-            .unwrap();
-        });
-        match reboot_called {
-            Ok(()) => panic!("reboot_to_bootloader was not called"),
-            Err(msg) => assert_eq!(
-                msg.downcast_ref::<&str>(),
-                Some(&"reboot_to_bootloader called")
-            ),
-        }
+        block_on(reboot_to_bootloader(
+            &mut TestingHal::new(),
+            &pb::RebootRequest {
+                purpose: Purpose::Upgrade as _,
+            },
+        ))
+        .unwrap();
     }
 
     #[test]

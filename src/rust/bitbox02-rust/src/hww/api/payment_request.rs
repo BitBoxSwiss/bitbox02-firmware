@@ -25,23 +25,29 @@ const MAX_MEMOS_NUM: usize = 3;
 
 struct Identity {
     name: &'static str,
-    public_key: &'static [u8],
+    public_keys: &'static [[u8; 33]],
 }
 
 const IDENTITIES: &[Identity] = &[
     Identity {
         name: "POCKET",
-        public_key: &hex!("022902b4ede482a907ce16a1c634145e728f1de4f249043a8be47df27db9320c2c"),
+        public_keys: &[hex!(
+            "022902b4ede482a907ce16a1c634145e728f1de4f249043a8be47df27db9320c2c"
+        )],
     },
     Identity {
         name: "SWAPKIT",
-        public_key: &hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff"),
+        public_keys: &[hex!(
+            "03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff"
+        )],
     },
     #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
     Identity {
         name: "Test Merchant",
         // private_key: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        public_key: &hex!("02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02"),
+        public_keys: &[hex!(
+            "02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02"
+        )],
     },
 ];
 
@@ -345,6 +351,19 @@ fn ecdsa_verify(sig64: &[u8], msg32: &[u8], pubkey33: &[u8]) -> Result<(), Valid
         .map_err(|_| ValidationError::InvalidSignature)
 }
 
+fn ecdsa_verify_any(
+    sig64: &[u8],
+    msg32: &[u8],
+    pubkeys33: &[[u8; 33]],
+) -> Result<(), ValidationError> {
+    for pubkey33 in pubkeys33.iter() {
+        if ecdsa_verify(sig64, msg32, pubkey33).is_ok() {
+            return Ok(());
+        }
+    }
+    Err(ValidationError::InvalidSignature)
+}
+
 /// Validate a BTC payment request against the parsed BTC output total.
 pub fn validate_btc(
     #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
@@ -486,7 +505,7 @@ fn validate_common(
         output_value,
         output_address,
     )?;
-    ecdsa_verify(&payment_request.signature, &sighash, identity.public_key)
+    ecdsa_verify_any(&payment_request.signature, &sighash, identity.public_keys)
 }
 
 #[cfg(test)]
@@ -562,7 +581,7 @@ mod tests {
         let swapkit_identity = find_identity("SWAPKIT (Provider)").unwrap();
         assert_eq!(swapkit_identity.name, "SWAPKIT");
         assert_eq!(
-            swapkit_identity.public_key,
+            swapkit_identity.public_keys[0],
             hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff")
         );
 
@@ -572,6 +591,39 @@ mod tests {
         assert_eq!(find_identity("SwapKit").unwrap().name, "SWAPKIT");
 
         assert!(find_identity("Provider").is_none());
+    }
+
+    #[test]
+    fn test_ecdsa_verify_any() {
+        const TEST_MATCHING_PUBKEY: [u8; 33] =
+            hex!("02e5a018b3a2e155316109d9cdc5eab739759c0e07e0c00bf9fccb8237fe4d7f02");
+        const TEST_WRONG_PUBKEY: [u8; 33] =
+            hex!("022902b4ede482a907ce16a1c634145e728f1de4f249043a8be47df27db9320c2c");
+        const TEST_OTHER_WRONG_PUBKEY: [u8; 33] =
+            hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff");
+        const TEST_PUBKEYS_MATCHING_LAST: [[u8; 33]; 2] = [TEST_WRONG_PUBKEY, TEST_MATCHING_PUBKEY];
+        const TEST_PUBKEYS_NO_MATCH: [[u8; 33]; 2] = [TEST_WRONG_PUBKEY, TEST_OTHER_WRONG_PUBKEY];
+
+        let privkey =
+            secp256k1::SecretKey::from_slice(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+        let msg32 = [0x11; 32];
+        let msg = secp256k1::Message::from_digest_slice(&msg32).unwrap();
+        let sig = SECP256K1.sign_ecdsa(&msg, &privkey).serialize_compact();
+
+        let identity = Identity {
+            name: "Test Identity",
+            public_keys: &TEST_PUBKEYS_MATCHING_LAST,
+        };
+        assert!(ecdsa_verify_any(&sig, &msg32, identity.public_keys).is_ok());
+
+        let identity = Identity {
+            name: "Test Identity",
+            public_keys: &TEST_PUBKEYS_NO_MATCH,
+        };
+        assert!(matches!(
+            ecdsa_verify_any(&sig, &msg32, identity.public_keys),
+            Err(ValidationError::InvalidSignature)
+        ));
     }
 
     #[test]

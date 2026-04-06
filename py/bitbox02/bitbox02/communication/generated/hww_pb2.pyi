@@ -16,6 +16,7 @@ import google.protobuf.message
 from . import keystore_pb2
 from . import mnemonic_pb2
 from . import perform_attestation_pb2
+from . import solana_pb2
 from . import system_pb2
 import typing
 
@@ -81,6 +82,7 @@ class Request(google.protobuf.message.Message):
     BIP85_FIELD_NUMBER: builtins.int
     BLUETOOTH_FIELD_NUMBER: builtins.int
     CHANGE_PASSWORD_FIELD_NUMBER: builtins.int
+    SOLANA_FIELD_NUMBER: builtins.int
     @property
     def device_name(self) -> bitbox02_system_pb2.SetDeviceNameRequest:
         """removed: RandomNumberRequest random_number = 1;"""
@@ -141,6 +143,8 @@ class Request(google.protobuf.message.Message):
     def bluetooth(self) -> bluetooth_pb2.BluetoothRequest: ...
     @property
     def change_password(self) -> bitbox02_system_pb2.ChangePasswordRequest: ...
+    @property
+    def solana(self) -> solana_pb2.SolanaRequest: ...
     def __init__(
         self,
         *,
@@ -172,10 +176,11 @@ class Request(google.protobuf.message.Message):
         bip85: keystore_pb2.BIP85Request | None = ...,
         bluetooth: bluetooth_pb2.BluetoothRequest | None = ...,
         change_password: bitbox02_system_pb2.ChangePasswordRequest | None = ...,
+        solana: solana_pb2.SolanaRequest | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_pub", b"btc_pub", "btc_sign_init", b"btc_sign_init", "btc_sign_input", b"btc_sign_input", "btc_sign_output", b"btc_sign_output", "cardano", b"cardano", "change_password", b"change_password", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "create_backup", b"create_backup", "device_info", b"device_info", "device_language", b"device_language", "device_name", b"device_name", "electrum_encryption_key", b"electrum_encryption_key", "eth", b"eth", "fingerprint", b"fingerprint", "insert_remove_sdcard", b"insert_remove_sdcard", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "reboot", b"reboot", "request", b"request", "reset", b"reset", "restore_backup", b"restore_backup", "restore_from_mnemonic", b"restore_from_mnemonic", "set_mnemonic_passphrase_enabled", b"set_mnemonic_passphrase_enabled", "set_password", b"set_password", "show_mnemonic", b"show_mnemonic"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_pub", b"btc_pub", "btc_sign_init", b"btc_sign_init", "btc_sign_input", b"btc_sign_input", "btc_sign_output", b"btc_sign_output", "cardano", b"cardano", "change_password", b"change_password", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "create_backup", b"create_backup", "device_info", b"device_info", "device_language", b"device_language", "device_name", b"device_name", "electrum_encryption_key", b"electrum_encryption_key", "eth", b"eth", "fingerprint", b"fingerprint", "insert_remove_sdcard", b"insert_remove_sdcard", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "reboot", b"reboot", "request", b"request", "reset", b"reset", "restore_backup", b"restore_backup", "restore_from_mnemonic", b"restore_from_mnemonic", "set_mnemonic_passphrase_enabled", b"set_mnemonic_passphrase_enabled", "set_password", b"set_password", "show_mnemonic", b"show_mnemonic"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["request", b"request"]) -> typing.Literal["device_name", "device_language", "device_info", "set_password", "create_backup", "show_mnemonic", "btc_pub", "btc_sign_init", "btc_sign_input", "btc_sign_output", "insert_remove_sdcard", "check_sdcard", "set_mnemonic_passphrase_enabled", "list_backups", "restore_backup", "perform_attestation", "reboot", "check_backup", "eth", "reset", "restore_from_mnemonic", "fingerprint", "btc", "electrum_encryption_key", "cardano", "bip85", "bluetooth", "change_password"] | None: ...
+    def HasField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_pub", b"btc_pub", "btc_sign_init", b"btc_sign_init", "btc_sign_input", b"btc_sign_input", "btc_sign_output", b"btc_sign_output", "cardano", b"cardano", "change_password", b"change_password", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "create_backup", b"create_backup", "device_info", b"device_info", "device_language", b"device_language", "device_name", b"device_name", "electrum_encryption_key", b"electrum_encryption_key", "eth", b"eth", "fingerprint", b"fingerprint", "insert_remove_sdcard", b"insert_remove_sdcard", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "reboot", b"reboot", "request", b"request", "reset", b"reset", "restore_backup", b"restore_backup", "restore_from_mnemonic", b"restore_from_mnemonic", "set_mnemonic_passphrase_enabled", b"set_mnemonic_passphrase_enabled", "set_password", b"set_password", "show_mnemonic", b"show_mnemonic", "solana", b"solana"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_pub", b"btc_pub", "btc_sign_init", b"btc_sign_init", "btc_sign_input", b"btc_sign_input", "btc_sign_output", b"btc_sign_output", "cardano", b"cardano", "change_password", b"change_password", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "create_backup", b"create_backup", "device_info", b"device_info", "device_language", b"device_language", "device_name", b"device_name", "electrum_encryption_key", b"electrum_encryption_key", "eth", b"eth", "fingerprint", b"fingerprint", "insert_remove_sdcard", b"insert_remove_sdcard", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "reboot", b"reboot", "request", b"request", "reset", b"reset", "restore_backup", b"restore_backup", "restore_from_mnemonic", b"restore_from_mnemonic", "set_mnemonic_passphrase_enabled", b"set_mnemonic_passphrase_enabled", "set_password", b"set_password", "show_mnemonic", b"show_mnemonic", "solana", b"solana"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["request", b"request"]) -> typing.Literal["device_name", "device_language", "device_info", "set_password", "create_backup", "show_mnemonic", "btc_pub", "btc_sign_init", "btc_sign_input", "btc_sign_output", "insert_remove_sdcard", "check_sdcard", "set_mnemonic_passphrase_enabled", "list_backups", "restore_backup", "perform_attestation", "reboot", "check_backup", "eth", "reset", "restore_from_mnemonic", "fingerprint", "btc", "electrum_encryption_key", "cardano", "bip85", "bluetooth", "change_password", "solana"] | None: ...
 
 global___Request = Request
 
@@ -199,6 +204,7 @@ class Response(google.protobuf.message.Message):
     CARDANO_FIELD_NUMBER: builtins.int
     BIP85_FIELD_NUMBER: builtins.int
     BLUETOOTH_FIELD_NUMBER: builtins.int
+    SOLANA_FIELD_NUMBER: builtins.int
     @property
     def success(self) -> global___Success: ...
     @property
@@ -233,6 +239,8 @@ class Response(google.protobuf.message.Message):
     def bip85(self) -> keystore_pb2.BIP85Response: ...
     @property
     def bluetooth(self) -> bluetooth_pb2.BluetoothResponse: ...
+    @property
+    def solana(self) -> solana_pb2.SolanaResponse: ...
     def __init__(
         self,
         *,
@@ -252,9 +260,10 @@ class Response(google.protobuf.message.Message):
         cardano: cardano_pb2.CardanoResponse | None = ...,
         bip85: keystore_pb2.BIP85Response | None = ...,
         bluetooth: bluetooth_pb2.BluetoothResponse | None = ...,
+        solana: solana_pb2.SolanaResponse | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_sign_next", b"btc_sign_next", "cardano", b"cardano", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "device_info", b"device_info", "electrum_encryption_key", b"electrum_encryption_key", "error", b"error", "eth", b"eth", "fingerprint", b"fingerprint", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "pub", b"pub", "response", b"response", "success", b"success"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_sign_next", b"btc_sign_next", "cardano", b"cardano", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "device_info", b"device_info", "electrum_encryption_key", b"electrum_encryption_key", "error", b"error", "eth", b"eth", "fingerprint", b"fingerprint", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "pub", b"pub", "response", b"response", "success", b"success"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["response", b"response"]) -> typing.Literal["success", "error", "device_info", "pub", "btc_sign_next", "list_backups", "check_backup", "perform_attestation", "check_sdcard", "eth", "fingerprint", "btc", "electrum_encryption_key", "cardano", "bip85", "bluetooth"] | None: ...
+    def HasField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_sign_next", b"btc_sign_next", "cardano", b"cardano", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "device_info", b"device_info", "electrum_encryption_key", b"electrum_encryption_key", "error", b"error", "eth", b"eth", "fingerprint", b"fingerprint", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "pub", b"pub", "response", b"response", "solana", b"solana", "success", b"success"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["bip85", b"bip85", "bluetooth", b"bluetooth", "btc", b"btc", "btc_sign_next", b"btc_sign_next", "cardano", b"cardano", "check_backup", b"check_backup", "check_sdcard", b"check_sdcard", "device_info", b"device_info", "electrum_encryption_key", b"electrum_encryption_key", "error", b"error", "eth", b"eth", "fingerprint", b"fingerprint", "list_backups", b"list_backups", "perform_attestation", b"perform_attestation", "pub", b"pub", "response", b"response", "solana", b"solana", "success", b"success"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["response", b"response"]) -> typing.Literal["success", "error", "device_info", "pub", "btc_sign_next", "list_backups", "check_backup", "perform_attestation", "check_sdcard", "eth", "fingerprint", "btc", "electrum_encryption_key", "cardano", "bip85", "bluetooth", "solana"] | None: ...
 
 global___Response = Response

@@ -37,9 +37,10 @@ const IDENTITIES: &[Identity] = &[
     },
     Identity {
         name: "SWAPKIT",
-        public_keys: &[hex!(
-            "03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff"
-        )],
+        public_keys: &[
+            hex!("02bf5740a2b794b33d73358d7313e9cb260058f3ac6c886fcc388d9f3f0b48a90d"),
+            hex!("02b985055ff600a6b1d30ddf6020693ce9fe8db55e5a0e27dc6144eb48040ce517"),
+        ],
     },
     #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
     Identity {
@@ -580,9 +581,14 @@ mod tests {
 
         let swapkit_identity = find_identity("SWAPKIT (Provider)").unwrap();
         assert_eq!(swapkit_identity.name, "SWAPKIT");
+        assert_eq!(swapkit_identity.public_keys.len(), 2);
         assert_eq!(
             swapkit_identity.public_keys[0],
-            hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff")
+            hex!("02bf5740a2b794b33d73358d7313e9cb260058f3ac6c886fcc388d9f3f0b48a90d")
+        );
+        assert_eq!(
+            swapkit_identity.public_keys[1],
+            hex!("02b985055ff600a6b1d30ddf6020693ce9fe8db55e5a0e27dc6144eb48040ce517")
         );
 
         assert_eq!(find_identity("SWAPKIT Provider").unwrap().name, "SWAPKIT");

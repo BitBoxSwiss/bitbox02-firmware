@@ -6,8 +6,8 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::RefCell;
-use core::task::Poll;
-use util::bb02_async::{Task, spin as spin_task};
+use core::task::{Context, Poll, Waker};
+use util::bb02_async::Task;
 use util::futures::completion;
 
 type UsbOut = Vec<u8>;
@@ -135,7 +135,8 @@ pub fn spin() {
         _ => None,
     };
     if let Some(ref mut task) = popped_task {
-        let spin_result = spin_task(task);
+        let context = &mut Context::from_waker(Waker::noop());
+        let spin_result = task.as_mut().poll(context);
         if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
             // The task was cancelled while it was running, so there is nothing to do with the
             // result.

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::boxed::Box;
-use core::cell::RefCell;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
@@ -17,25 +16,6 @@ pub fn spin<O>(task: &mut Task<O>) -> Poll<O> {
     let waker = crate::waker_fn::waker_fn(|| {});
     let context = &mut Context::from_waker(&waker);
     task.as_mut().poll(context)
-}
-
-/// Implements the Option future, see `option()`.
-pub struct AsyncOption<'a, O>(&'a RefCell<Option<O>>);
-
-impl<O> core::future::Future for AsyncOption<'_, O> {
-    type Output = O;
-    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.0.borrow_mut().take() {
-            None => Poll::Pending,
-            Some(output) => Poll::Ready(output),
-        }
-    }
-}
-
-/// Waits for an option to contain a value and returns that value, leaving `None` in its place.
-/// E.g. `assert_eq!(option(&Some(42)).await, 42)`.
-pub fn option<O>(option: &RefCell<Option<O>>) -> AsyncOption<'_, O> {
-    AsyncOption(option)
 }
 
 /// Polls a future until the result is available.

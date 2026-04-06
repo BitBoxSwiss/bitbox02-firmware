@@ -120,6 +120,7 @@ firmware = []
 [dev-dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt"] }
 
 [build-dependencies]
 serde_json = { workspace = true }

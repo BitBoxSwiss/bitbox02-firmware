@@ -60,11 +60,10 @@ mod tests {
     use super::*;
 
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
-    #[test]
-    pub fn test_process_xpubs() {
+    #[tokio::test]
+    pub async fn test_process_xpubs() {
         mock_unlocked_using_mnemonic(
             "sleep own lobster state clean thrive tail exist cactus bitter pass soccer clinic riot dream turkey before sport action praise tunnel hood donate man",
             "",
@@ -73,7 +72,7 @@ mod tests {
         let mut mock_hal = crate::hal::testing::TestingHal::new();
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(process_xpubs(&mut mock_hal, &pb::BtcXpubsRequest {
+            process_xpubs(&mut mock_hal, &pb::BtcXpubsRequest {
                 coin: BtcCoin::Btc as _,
                 xpub_type: XPubType::Xpub as _,
                 keypaths: vec![
@@ -87,7 +86,7 @@ mod tests {
                         keypath: vec![49 + HARDENED, HARDENED, HARDENED],
                     },
                 ],
-            })),
+            }).await,
             Ok(Response::Pubs(pb::PubsResponse {
                 pubs: vec![
                     "xpub6CNbmcHwZDudAvCAZVE5kejUoFD63mbkRbRMA2HoF9oNWsCofni87gJKp31qZJ9FsCMQR2vK9AS51mT8dgUMGsHW6SfaAKb4eSzpqJn7zwK".into(),
@@ -100,7 +99,7 @@ mod tests {
 
         // Different output type
         assert_eq!(
-            block_on(process_xpubs(&mut crate::hal::testing::TestingHal::new(),&pb::BtcXpubsRequest {
+            process_xpubs(&mut crate::hal::testing::TestingHal::new(),&pb::BtcXpubsRequest {
                 coin: BtcCoin::Btc as _,
                 xpub_type: XPubType::Tpub as _,
                 keypaths: vec![
@@ -108,7 +107,7 @@ mod tests {
                         keypath: vec![84 + HARDENED, HARDENED, HARDENED],
                     },
                 ],
-            })),
+            }).await,
             Ok(Response::Pubs(pb::PubsResponse {
                 pubs: vec![
                     "tpubDCkEHr7dGVs5SiP21gDAxa4r8NJk3A6oyE1eWaLwb4ZGG9sWk1ZDG7yA456d5o6Vf6tK2cSBgGG7hwwk2YKbAJjoA3QsqrFJEQbEbLKkt5w".into(),
@@ -118,7 +117,7 @@ mod tests {
 
         // Different coin
         assert_eq!(
-            block_on(process_xpubs(&mut crate::hal::testing::TestingHal::new(),&pb::BtcXpubsRequest {
+            process_xpubs(&mut crate::hal::testing::TestingHal::new(),&pb::BtcXpubsRequest {
                 coin: BtcCoin::Ltc as _,
                 xpub_type: XPubType::Xpub as _,
                 keypaths: vec![
@@ -126,7 +125,7 @@ mod tests {
                         keypath: vec![84 + HARDENED, 2+HARDENED, HARDENED],
                     },
                 ],
-            })),
+            }).await,
             Ok(Response::Pubs(pb::PubsResponse {
                 pubs: vec![
                     "xpub6DEKPXTV5HQNcJNGWcSCsdEc2zzoXUHy1L678r3ux3CN2iHqxwKgFaxnzs73nr33VR7SNTDaqFzeyMwHocBEa4j96LEoKacL38N6RAXS3hP".into(),
@@ -136,12 +135,12 @@ mod tests {
     }
 
     // Can get up to 20 xpubs and not more..
-    #[test]
-    pub fn test_process_limit() {
+    #[tokio::test]
+    pub async fn test_process_limit() {
         mock_unlocked();
 
         // At limit
-        let result = block_on(process_xpubs(
+        let result = process_xpubs(
             &mut crate::hal::testing::TestingHal::new(),
             &pb::BtcXpubsRequest {
                 coin: BtcCoin::Btc as _,
@@ -152,7 +151,8 @@ mod tests {
                     })
                     .collect(),
             },
-        ))
+        )
+        .await
         .unwrap();
         match result {
             Response::Pubs(pubs) => assert_eq!(pubs.pubs.len(), 20),
@@ -161,7 +161,7 @@ mod tests {
 
         // Over limit
         assert_eq!(
-            block_on(process_xpubs(
+            process_xpubs(
                 &mut crate::hal::testing::TestingHal::new(),
                 &pb::BtcXpubsRequest {
                     coin: BtcCoin::Btc as _,
@@ -172,16 +172,17 @@ mod tests {
                         })
                         .collect(),
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
     }
 
-    #[test]
-    pub fn test_process_invalid_keypath() {
+    #[tokio::test]
+    pub async fn test_process_invalid_keypath() {
         mock_unlocked();
         assert_eq!(
-            block_on(process_xpubs(
+            process_xpubs(
                 &mut crate::hal::testing::TestingHal::new(),
                 &pb::BtcXpubsRequest {
                     coin: BtcCoin::Ltc as _,
@@ -190,7 +191,8 @@ mod tests {
                         keypath: vec![84 + HARDENED, 0 + HARDENED, HARDENED],
                     },],
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
     }

@@ -18,3 +18,4 @@ app-u2f = ["bitbox-hal/app-u2f"]
 
 [dev-dependencies]
 util = { path = "../util", features = ["testing"] }
+tokio = { workspace = true, features = ["macros", "rt"] }

@@ -31,17 +31,16 @@ mod tests {
     use crate::hal::{Memory, testing::TestingHal};
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
-    use util::bb02_async::block_on;
 
-    #[test]
-    pub fn test_reset() {
+    #[tokio::test]
+    pub async fn test_reset() {
         mock_memory();
 
         // User aborted confirmation.
         let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_device_name("test device name").unwrap();
         mock_hal.ui.abort_nth(0);
-        assert_eq!(block_on(process(&mut mock_hal)), Err(Error::Generic));
+        assert_eq!(process(&mut mock_hal).await, Err(Error::Generic));
         assert_eq!(
             mock_hal.ui.screens,
             vec![Screen::Confirm {
@@ -59,7 +58,7 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_device_name("test device name").unwrap();
         assert_eq!(
-            block_on(process(&mut mock_hal)),
+            process(&mut mock_hal).await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(

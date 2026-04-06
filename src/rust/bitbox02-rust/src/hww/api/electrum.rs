@@ -43,20 +43,19 @@ mod tests {
 
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
-    #[test]
-    pub fn test_process() {
+    #[tokio::test]
+    pub async fn test_process() {
         mock_unlocked();
 
         // All good.
         assert_eq!(
-            block_on(process(&mut crate::hal::testing::TestingHal::new(),&pb::ElectrumEncryptionKeyRequest {
+            process(&mut crate::hal::testing::TestingHal::new(),&pb::ElectrumEncryptionKeyRequest {
                 keypath: vec![
                     ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE,
                     ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_TWO
                 ]
-            })),
+            }).await,
             Ok(Response::ElectrumEncryptionKey(
                 pb::ElectrumEncryptionKeyResponse {
                     key: "xpub6AWqZzUWTTxAzVFXAavh7oX2apTkQAnjX9FU5pUMMjHiFzHLGLVWx9tAVvocV8c2WeoL7sUj2gZmdp3rDWaqmugZdSCYQVHCxCsVajQP7Cx".into()
@@ -66,18 +65,19 @@ mod tests {
 
         // Invalid keypath.
         assert_eq!(
-            block_on(process(
+            process(
                 &mut crate::hal::testing::TestingHal::new(),
                 &pb::ElectrumEncryptionKeyRequest {
                     keypath: vec![ELECTRUM_WALLET_ENCRYPTION_KEYPATH_LEVEL_ONE, 0]
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
 
         // Invalid keypath (wrong length).
         assert_eq!(
-            block_on(process(
+            process(
                 &mut crate::hal::testing::TestingHal::new(),
                 &pb::ElectrumEncryptionKeyRequest {
                     keypath: vec![
@@ -86,7 +86,8 @@ mod tests {
                         0
                     ]
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
     }

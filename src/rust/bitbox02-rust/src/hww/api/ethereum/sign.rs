@@ -593,7 +593,6 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     use super::super::super::payment_request;
@@ -710,8 +709,8 @@ mod tests {
     }
 
     /// Standard ETH transaction with no data field.
-    #[test]
-    pub fn test_process_standard_transaction() {
+    #[tokio::test]
+    pub async fn test_process_standard_transaction() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
@@ -738,7 +737,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
+            process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("1fdc").to_vec(),
@@ -751,7 +750,7 @@ mod tests {
                 chain_id: 0,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("c3ae24c167e216cfb75c72b5e03ef97acc2b607f3acf63865f80960f76f656470f8e23f1d2788fb0070e28c2a5c8aaf15b5dbf30b40907ff6c5068fdcbc11a2d00")
                     .to_vec()
@@ -761,7 +760,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("1fdc").to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -775,7 +774,7 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
                 payment_request: None,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("289111770dc067895780de3e9b30454e331ba6661f046e9e26431576d7f08a496ffe6deffb07dd8d4713d8c523b6c33b53dd6ef2dc9c394d6e21f64307d2bcf001")
                     .to_vec()
@@ -785,15 +784,15 @@ mod tests {
     }
 
     /// Test a transaction with an unusually high fee.
-    #[test]
-    fn test_high_fee_warning() {
+    #[tokio::test]
+    async fn test_high_fee_warning() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
         assert!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &Transaction::Legacy(&pb::EthSignRequest {
                     coin: pb::EthCoin::Eth as _,
@@ -811,7 +810,8 @@ mod tests {
                     address_case: pb::EthAddressCase::Mixed as _,
                     data_length: 0,
                 })
-            ))
+            )
+            .await
             .is_ok()
         );
 
@@ -846,14 +846,14 @@ mod tests {
     }
 
     /// Test an EIP-1559 transaction with an unusually high fee.
-    #[test]
-    fn test_high_fee_warning_eip1559() {
+    #[tokio::test]
+    async fn test_high_fee_warning_eip1559() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &Transaction::Eip1559(&pb::EthSignEip1559Request {
                     keypath: KEYPATH.to_vec(),
@@ -872,7 +872,8 @@ mod tests {
                     data_length: 0,
                     payment_request: None,
                 })
-            ))
+            )
+            .await
             .is_ok()
         );
 
@@ -907,13 +908,13 @@ mod tests {
     }
 
     /// Standard ETH transaction on an unusual keypath (Sepolia on mainnet keypath)
-    #[test]
-    pub fn test_process_warn_unusual_keypath() {
+    #[tokio::test]
+    pub async fn test_process_warn_unusual_keypath() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        block_on(process(
+        process(
             &mut mock_hal,
             &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -929,7 +930,8 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
             }),
-        ))
+        )
+        .await
         .unwrap();
 
         assert_eq!(
@@ -963,14 +965,14 @@ mod tests {
     }
 
     /// Standard ETH transaction with an unknown data field.
-    #[test]
-    pub fn test_process_standard_transaction_with_data() {
+    #[tokio::test]
+    pub async fn test_process_standard_transaction_with_data() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
+            process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("1fdc").to_vec(),
@@ -983,7 +985,7 @@ mod tests {
                 chain_id: 0,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("7d3f3713e3cf1082791d5c0fc68ec29eaff5e1ee8467a8ec547dc796e85a79042b7c01692fb72f5576ab50dcaa621ad1eeabd9975973b86256f40c6f8550ef4400")
                     .to_vec()
@@ -1030,14 +1032,14 @@ mod tests {
     }
 
     /// EIP-1559 ETH transaction with an unknown data field.
-    #[test]
-    pub fn test_process_eip1559_transaction_with_data() {
+    #[tokio::test]
+    pub async fn test_process_eip1559_transaction_with_data() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("1fdc").to_vec(),
                 max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
@@ -1051,7 +1053,7 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
                 payment_request: None,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("c5d9639a778a3415f63a11c03a58bede6b3cafff4f2ce6ea16411e76fba946f72166f09e313c07e78b7b1fff87450c4321170c02df2d36c44c3a021abf20546001")
                     .to_vec()
@@ -1097,14 +1099,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_process_eip1559_payment_request_invalid_contract_shape() {
+    #[tokio::test]
+    async fn test_process_eip1559_payment_request_invalid_contract_shape() {
         // Payment requests only support plain ETH transfers or standard ERC20 transfers.
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &Transaction::Eip1559(&pb::EthSignEip1559Request {
                     keypath: KEYPATH.to_vec(),
@@ -1121,7 +1123,8 @@ mod tests {
                     data_length: 0,
                     payment_request: Some(Default::default()),
                 }),
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
         assert_eq!(
@@ -1134,8 +1137,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_process_eip1559_payment_request_plain_eth() {
+    #[tokio::test]
+    async fn test_process_eip1559_payment_request_plain_eth() {
         // Native ETH swaps use the tx recipient/value as the signed source-side output.
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
@@ -1189,7 +1192,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &Transaction::Eip1559(&pb::EthSignEip1559Request {
                     keypath: KEYPATH.to_vec(),
@@ -1206,7 +1209,7 @@ mod tests {
                     data_length: 0,
                     payment_request: Some(payment_request),
                 }),
-            )),
+            ).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("289111770dc067895780de3e9b30454e331ba6661f046e9e26431576d7f08a496ffe6deffb07dd8d4713d8c523b6c33b53dd6ef2dc9c394d6e21f64307d2bcf001")
                     .to_vec()
@@ -1215,8 +1218,8 @@ mod tests {
         assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
-    #[test]
-    fn test_process_eip1559_payment_request_known_erc20() {
+    #[tokio::test]
+    async fn test_process_eip1559_payment_request_known_erc20() {
         // Known ERC20 swaps decode the transfer recipient/amount and show the token unit.
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         // function selector + recipient address (left padded) + token amount
@@ -1269,7 +1272,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &Transaction::Eip1559(&pb::EthSignEip1559Request {
                     keypath: KEYPATH.to_vec(),
@@ -1286,7 +1289,7 @@ mod tests {
                     data_length: 0,
                     payment_request: Some(payment_request),
                 }),
-            )),
+            ).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("3162487880abdea1f352d9a4e3d56066f122f04ff112117c8ca3cd220f1666302dacd5e5e8da4cd39704e33443a9a7f32602d332bb52567c2e34aafe9ed48feb01")
                     .to_vec()
@@ -1297,8 +1300,8 @@ mod tests {
 
     /// ERC20 transaction: recipient is an ERC20 contract address, and
     /// the data field contains an ERC20 transfer method invocation.
-    #[test]
-    pub fn test_process_standard_erc20_transaction() {
+    #[tokio::test]
+    pub async fn test_process_standard_erc20_transaction() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         let expected_screens = vec![
@@ -1325,7 +1328,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
+            process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::RopstenEth as _, // ignored because chain_id > 0
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("2367").to_vec(),
@@ -1338,7 +1341,7 @@ mod tests {
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("674e9a0170eee0ca8c406ec9a7df2e3a6bdd179cf69385800e1fd378e7cfb19c4d55162c547b04d1818e43901691aec988ef75cd67d9bb301d14902fd6e6929201")
                     .to_vec()
@@ -1348,7 +1351,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("2367").to_vec(),
                 max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
@@ -1362,7 +1365,7 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
                 payment_request: None,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("3162487880abdea1f352d9a4e3d56066f122f04ff112117c8ca3cd220f1666302dacd5e5e8da4cd39704e33443a9a7f32602d332bb52567c2e34aafe9ed48feb01")
                     .to_vec()
@@ -1372,8 +1375,8 @@ mod tests {
     }
 
     /// An ERC20 transaction which is not in our list of supported ERC20 tokens.
-    #[test]
-    pub fn test_process_standard_unknown_erc20_transaction() {
+    #[tokio::test]
+    pub async fn test_process_standard_unknown_erc20_transaction() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         let expected_screens = vec![
@@ -1399,7 +1402,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
+            process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("b9").to_vec(),
@@ -1412,7 +1415,7 @@ mod tests {
                 chain_id: 0,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("ec6e530c8ee25434fc440e9ac0f888e9c63cf07ebcf1c2f8a83e2e8c39832c551512716f6e1a8b66ce3811a726bcb244664ef26f98ee35c0c9db4caab073985600")
                     .to_vec()
@@ -1422,7 +1425,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
+            process(&mut mock_hal, &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("b9").to_vec(),
                 max_priority_fee_per_gas: b"".to_vec(),
@@ -1436,7 +1439,7 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
                 payment_request: None,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("8203d80b600dce8e77cdcb119d45db7f60d7ca34e7369140e92d93919221f85a0a119d2464dfab65833095c12763fed37c072feb29610e1437f388958d77562801")
                     .to_vec()
@@ -1445,8 +1448,8 @@ mod tests {
         assert_eq!(mock_hal.ui.screens, expected_screens);
     }
 
-    #[test]
-    pub fn test_process_unhappy() {
+    #[tokio::test]
+    pub async fn test_process_unhappy() {
         let valid_request = pb::EthSignRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
@@ -1466,11 +1469,9 @@ mod tests {
             // Check that the above is valid before making invalid variants.
             mock_unlocked();
             assert!(
-                block_on(process(
-                    &mut TestingHal::new(),
-                    &Transaction::Legacy(&valid_request)
-                ))
-                .is_ok()
+                process(&mut TestingHal::new(), &Transaction::Legacy(&valid_request))
+                    .await
+                    .is_ok()
             );
         }
 
@@ -1479,10 +1480,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.coin = 100;
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1492,10 +1494,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1505,10 +1508,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.keypath = vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 100];
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1518,10 +1522,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.data = vec![0; 6145];
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1531,10 +1536,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![b'a'; 21];
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1544,10 +1550,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.recipient = vec![0; 20];
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Legacy(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1558,7 +1565,7 @@ mod tests {
                 let mut mock_hal = TestingHal::new();
                 mock_hal.ui.abort_nth(i);
                 assert_eq!(
-                    block_on(process(&mut mock_hal, &Transaction::Legacy(&valid_request))),
+                    process(&mut mock_hal, &Transaction::Legacy(&valid_request)).await,
                     Err(Error::UserAbort)
                 );
                 let mut expected_screens = [
@@ -1590,17 +1597,14 @@ mod tests {
             // Keystore locked.
             keystore::lock();
             assert_eq!(
-                block_on(process(
-                    &mut TestingHal::new(),
-                    &Transaction::Legacy(&valid_request)
-                )),
+                process(&mut TestingHal::new(), &Transaction::Legacy(&valid_request)).await,
                 Err(Error::Generic)
             );
         }
     }
 
-    #[test]
-    pub fn test_process_unhappy_eip1559() {
+    #[tokio::test]
+    pub async fn test_process_unhappy_eip1559() {
         let valid_request = pb::EthSignEip1559Request {
             keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
             nonce: hex!("1fdc").to_vec(),
@@ -1621,10 +1625,11 @@ mod tests {
             // Check that the above is valid before making invalid variants.
             mock_unlocked();
             assert!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Eip1559(&valid_request)
-                ))
+                )
+                .await
                 .is_ok()
             );
         }
@@ -1634,10 +1639,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.chain_id = 0;
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Eip1559(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1647,10 +1653,11 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.max_fee_per_gas = hex!("000165a0bc00").to_vec();
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Eip1559(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1660,24 +1667,25 @@ mod tests {
             let mut invalid_request = valid_request.clone();
             invalid_request.max_priority_fee_per_gas = hex!("003b9aca00").to_vec();
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &Transaction::Eip1559(&invalid_request)
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
     }
 
     /// Unknown chain ID (network params not hardcoded in in the firmware).
-    #[test]
-    pub fn test_process_unknown_network() {
+    #[tokio::test]
+    pub async fn test_process_unknown_network() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
+            process(&mut mock_hal, &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 nonce: hex!("1fdc").to_vec(),
@@ -1690,7 +1698,7 @@ mod tests {
                 chain_id: 12345,
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
-            }))),
+            })).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("b1b6b34e15a0309ddc2603df4c4038ea8665ed85d3f2c81e7f1aa0254b2138720d601f4219fb29ab3d5ff776eae1be1526b467e2b0e630e8e634a4da4a822e3900").to_vec()
             }))
@@ -1726,14 +1734,14 @@ mod tests {
     }
 
     /// Test that the chain confirmation screen appears for known non-mainnet networks.
-    #[test]
-    pub fn test_chain_confirmation() {
+    #[tokio::test]
+    pub async fn test_chain_confirmation() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         // Test with Arbitrum (chain_id 42161)
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        block_on(process(
+        process(
             &mut mock_hal,
             &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -1749,7 +1757,8 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
             }),
-        ))
+        )
+        .await
         .unwrap();
 
         assert_eq!(
@@ -1763,14 +1772,14 @@ mod tests {
     }
 
     /// Test that EIP-1559 transactions also get the chain confirmation screen
-    #[test]
-    pub fn test_chain_confirmation_for_eip1559() {
+    #[tokio::test]
+    pub async fn test_chain_confirmation_for_eip1559() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         // Test with Polygon network (chain_id 137)
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        block_on(process(
+        process(
             &mut mock_hal,
             &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
@@ -1787,7 +1796,8 @@ mod tests {
                 data_length: 0,
                 payment_request: None,
             }),
-        ))
+        )
+        .await
         .unwrap();
         assert_eq!(
             mock_hal.ui.screens[0],
@@ -1799,14 +1809,14 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_streaming_equivalence_legacy() {
+    #[tokio::test]
+    pub async fn test_streaming_equivalence_legacy() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..4000u32).map(|i| (i % 256) as u8).collect();
 
         mock_unlocked();
         let mut mock_hal_nonstreaming = TestingHal::new();
-        let nonstreaming_result = block_on(process(
+        let nonstreaming_result = process(
             &mut mock_hal_nonstreaming,
             &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -1822,12 +1832,13 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 0,
             }),
-        ));
+        )
+        .await;
 
         setup_chunk_responder(test_data.clone());
         mock_unlocked();
         let mut mock_hal_streaming = TestingHal::new();
-        let streaming_result = block_on(process(
+        let streaming_result = process(
             &mut mock_hal_streaming,
             &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -1843,7 +1854,8 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 4000,
             }),
-        ));
+        )
+        .await;
         clear_chunk_responder();
 
         assert!(nonstreaming_result.is_ok());
@@ -1856,14 +1868,14 @@ mod tests {
         }
     }
 
-    #[test]
-    pub fn test_streaming_equivalence_eip1559() {
+    #[tokio::test]
+    pub async fn test_streaming_equivalence_eip1559() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..4000u32).map(|i| (i % 256) as u8).collect();
 
         mock_unlocked();
         let mut mock_hal_nonstreaming = TestingHal::new();
-        let nonstreaming_result = block_on(process(
+        let nonstreaming_result = process(
             &mut mock_hal_nonstreaming,
             &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
@@ -1880,12 +1892,13 @@ mod tests {
                 data_length: 0,
                 payment_request: None,
             }),
-        ));
+        )
+        .await;
 
         setup_chunk_responder(test_data.clone());
         mock_unlocked();
         let mut mock_hal_streaming = TestingHal::new();
-        let streaming_result = block_on(process(
+        let streaming_result = process(
             &mut mock_hal_streaming,
             &Transaction::Eip1559(&pb::EthSignEip1559Request {
                 keypath: KEYPATH.to_vec(),
@@ -1902,7 +1915,8 @@ mod tests {
                 data_length: 4000,
                 payment_request: None,
             }),
-        ));
+        )
+        .await;
         clear_chunk_responder();
 
         assert!(nonstreaming_result.is_ok());
@@ -1915,8 +1929,8 @@ mod tests {
         }
     }
 
-    #[test]
-    pub fn test_streaming_large_data_legacy() {
+    #[tokio::test]
+    pub async fn test_streaming_large_data_legacy() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..10000u32).map(|i| (i % 256) as u8).collect();
 
@@ -1924,7 +1938,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &Transaction::Legacy(&pb::EthSignRequest {
                     coin: pb::EthCoin::Eth as _,
@@ -1941,7 +1955,7 @@ mod tests {
                     address_case: pb::EthAddressCase::Mixed as _,
                     data_length: 10000,
                 }),
-            )),
+            ).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("f00a05084c540bb69b9d0d1e7783a0fe315ffc3ffdc0edc32a3d0e9d00f9d8a86c7b5c36fc136062adc1857e2edcf73eb75138d5390ed807b2cb0b90652fef2201")
                     .to_vec()
@@ -1988,15 +2002,15 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_streaming_1_byte_legacy() {
+    #[tokio::test]
+    pub async fn test_streaming_1_byte_legacy() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = vec![0x42];
 
         setup_chunk_responder(test_data);
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(
+        let result = process(
             &mut mock_hal,
             &Transaction::Legacy(&pb::EthSignRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -2012,7 +2026,8 @@ mod tests {
                 address_case: pb::EthAddressCase::Mixed as _,
                 data_length: 1,
             }),
-        ));
+        )
+        .await;
         clear_chunk_responder();
         match result {
             Ok(Response::Sign(ref sig)) => {
@@ -2022,8 +2037,8 @@ mod tests {
         }
     }
 
-    #[test]
-    pub fn test_streaming_large_data_eip1559() {
+    #[tokio::test]
+    pub async fn test_streaming_large_data_eip1559() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..12000u32).map(|i| (i % 256) as u8).collect();
 
@@ -2031,7 +2046,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &Transaction::Eip1559(&pb::EthSignEip1559Request {
                     keypath: KEYPATH.to_vec(),
@@ -2049,7 +2064,7 @@ mod tests {
                     data_length: 12000,
                     payment_request: None,
                 }),
-            )),
+            ).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!("dc853640b4a75390b5b59478c18b1fba135025bf40bb41d54f95d35628443e1900376e1be2916829be4cbb0d897cc69ad80987a57a489254d561dfd3071a0db101")
                     .to_vec()

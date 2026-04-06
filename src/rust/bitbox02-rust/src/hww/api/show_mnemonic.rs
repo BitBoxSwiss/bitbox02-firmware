@@ -66,14 +66,13 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::hal::testing::{TestingHal, TestingUi};
     use bitbox02::testing::mock_memory;
-    use util::bb02_async::block_on;
 
     const MNEMONIC: &str = "shy parrot age monkey rhythm snake mystery burden topic hello mouse script gesture tattoo demand float verify shoe recycle cool network better aspect list";
 
     /// When not yet initialized, we show the mnemonic without a password check. This happens during
     /// wallet setup.
-    #[test]
-    fn test_process_uninitialized() {
+    #[tokio::test]
+    async fn test_process_uninitialized() {
         mock_memory();
         let mut mock_hal = TestingHal::new();
         crate::keystore::encrypt_and_store_seed(
@@ -95,7 +94,7 @@ mod tests {
 
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(process(&mut mock_hal)),
+            process(&mut mock_hal).await,
             Ok(Response::Success(pb::Success {}))
         );
         // 1 operation for one copy_seed() to get the seed to display it.
@@ -130,9 +129,10 @@ mod tests {
         );
     }
     /// When initialized, a password check is prompted before displaying the mnemonic.
-    #[test]
-    fn test_process_initialized() {
+    #[tokio::test]
+    async fn test_process_initialized() {
         mock_memory();
+        let mut password_entered: bool = false;
         let mut mock_hal = TestingHal::new();
         crate::keystore::encrypt_and_store_seed(
             &mut mock_hal,
@@ -145,8 +145,6 @@ mod tests {
 
         mock_hal.memory.set_initialized().unwrap();
 
-        let mut password_entered: bool = false;
-
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
             Ok("password".into())
@@ -157,7 +155,7 @@ mod tests {
 
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(process(&mut mock_hal)),
+            process(&mut mock_hal).await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 4);
@@ -196,8 +194,8 @@ mod tests {
 
     /// When initialized, a password check is prompted before displaying the mnemonic.
     /// This tests that we fail early if the wrong password is entered.
-    #[test]
-    fn test_process_initialized_wrong_password() {
+    #[tokio::test]
+    async fn test_process_initialized_wrong_password() {
         mock_memory();
 
         let mut mock_hal = TestingHal::new();
@@ -217,7 +215,7 @@ mod tests {
             .set_enter_string(Box::new(|_params| Ok("wrong password".into())));
 
         mock_hal.securechip.event_counter_reset();
-        assert_eq!(block_on(process(&mut mock_hal)), Err(Error::Generic));
+        assert_eq!(process(&mut mock_hal).await, Err(Error::Generic));
         assert_eq!(mock_hal.securechip.get_event_counter(), 4);
 
         assert_eq!(

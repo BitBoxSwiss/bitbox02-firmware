@@ -39,12 +39,11 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use bitbox02::testing::mock_memory;
-    use util::bb02_async::block_on;
 
     use alloc::boxed::Box;
 
-    #[test]
-    fn test_process() {
+    #[tokio::test]
+    async fn test_process() {
         mock_memory();
         keystore::lock();
         let mut counter = 0u32;
@@ -61,12 +60,13 @@ mod tests {
 
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 6);
@@ -78,8 +78,8 @@ mod tests {
     }
 
     /// Shorter host entropy results in shorter seed.
-    #[test]
-    fn test_process_16_bytes() {
+    #[tokio::test]
+    async fn test_process_16_bytes() {
         mock_memory();
         keystore::lock();
         let mut mock_hal = TestingHal::new();
@@ -87,12 +87,13 @@ mod tests {
             .ui
             .set_enter_string(Box::new(|_params| Ok("password".into())));
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaa".to_vec(),
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert!(!keystore::is_locked());
@@ -100,8 +101,8 @@ mod tests {
     }
 
     /// Invalid host entropy size.
-    #[test]
-    fn test_process_invalid_host_entropy() {
+    #[tokio::test]
+    async fn test_process_invalid_host_entropy() {
         mock_memory();
         keystore::lock();
         let mut mock_hal = TestingHal::new();
@@ -110,19 +111,20 @@ mod tests {
             .set_enter_string(Box::new(|_params| Ok("password".into())));
         assert!(keystore::is_locked());
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaaa".to_vec(),
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
         assert!(keystore::is_locked());
     }
 
-    #[test]
-    fn test_process_2nd_password_doesnt_match() {
+    #[tokio::test]
+    async fn test_process_2nd_password_doesnt_match() {
         mock_memory();
         keystore::lock();
         let mut counter = 0u32;
@@ -136,12 +138,13 @@ mod tests {
             })
         }));
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetPasswordRequest {
                     entropy: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_vec(),
                 }
-            )),
+            )
+            .await,
             Err(Error::Generic),
         );
         assert!(keystore::is_locked());

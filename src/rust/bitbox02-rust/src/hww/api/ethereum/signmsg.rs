@@ -97,27 +97,26 @@ mod tests {
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
     use hex_lit::hex;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
     const MESSAGE: &str = "message";
     const EXPECTED_ADDRESS: &str = "0x 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9";
 
-    #[test]
-    pub fn test_process() {
+    #[tokio::test]
+    pub async fn test_process() {
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &pb::EthSignMessageRequest {
+            process(&mut mock_hal, &pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
                 keypath: KEYPATH.to_vec(),
                 msg: MESSAGE.as_bytes().to_vec(),
                 host_nonce_commitment: None,
                 chain_id: 0,
-            })),
+            }).await,
             Ok(Response::Sign(pb::EthSignResponse {
                 signature: hex!(
                     "34885e9374375a12e8c5186ef9870b036b2bd251b3f20b979511912dd41894725c0a504a3419ae21d69e2243ca18e9c6eee75b2e16ea57b4f647fd106be83fd201"
@@ -142,13 +141,13 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_process_warn_unusual_keypath() {
+    #[tokio::test]
+    pub async fn test_process_warn_unusual_keypath() {
         const SIGNATURE: [u8; 64] = [b'1'; 64];
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        block_on(process(
+        process(
             &mut mock_hal,
             &pb::EthSignMessageRequest {
                 coin: pb::EthCoin::Eth as _,
@@ -157,7 +156,8 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 11155111,
             },
-        ))
+        )
+        .await
         .unwrap();
         assert_eq!(
             mock_hal.ui.screens,
@@ -181,8 +181,8 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_process_user_aborted() {
+    #[tokio::test]
+    pub async fn test_process_user_aborted() {
         let request = pb::EthSignMessageRequest {
             coin: pb::EthCoin::Eth as _,
             keypath: KEYPATH.to_vec(),
@@ -198,7 +198,7 @@ mod tests {
         // User abort address verification.
         mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(process(&mut mock_hal, &request)),
+            process(&mut mock_hal, &request).await,
             Err(Error::UserAbort)
         );
         assert_eq!(
@@ -215,7 +215,7 @@ mod tests {
         // User abort message verification.
         mock_hal.ui.abort_nth(1);
         assert_eq!(
-            block_on(process(&mut mock_hal, &request)),
+            process(&mut mock_hal, &request).await,
             Err(Error::UserAbort)
         );
         assert_eq!(
@@ -235,13 +235,13 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_process_failures() {
+    #[tokio::test]
+    pub async fn test_process_failures() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
         // Message too long
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::EthSignMessageRequest {
                     coin: pb::EthCoin::Eth as _,
@@ -250,14 +250,15 @@ mod tests {
                     host_nonce_commitment: None,
                     chain_id: 0,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Keystore locked.
         keystore::lock();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::EthSignMessageRequest {
                     coin: pb::EthCoin::Eth as _,
@@ -266,7 +267,8 @@ mod tests {
                     host_nonce_commitment: None,
                     chain_id: 0,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
     }

@@ -423,24 +423,22 @@ mod tests {
     use super::*;
     use crate::hal::Ui;
 
-    use util::bb02_async::block_on;
-
-    #[test]
-    fn test_quiz_choices_queue() {
+    #[tokio::test]
+    async fn test_quiz_choices_queue() {
         let mut ui = TestingUi::new();
         ui.push_quiz_choice(1);
         assert!(matches!(
-            block_on(ui.quiz_mnemonic_word(&["a", "b", "c"], "01")),
+            ui.quiz_mnemonic_word(&["a", "b", "c"], "01").await,
             Ok(1)
         ));
     }
 
-    #[test]
-    fn test_quiz_choice_records_screen() {
+    #[tokio::test]
+    async fn test_quiz_choice_records_screen() {
         let mut ui = TestingUi::new();
         ui.push_quiz_choice(2);
         assert!(matches!(
-            block_on(ui.quiz_mnemonic_word(&["x", "bar", "y"], "02")),
+            ui.quiz_mnemonic_word(&["x", "bar", "y"], "02").await,
             Ok(2)
         ));
         assert_eq!(
@@ -453,18 +451,18 @@ mod tests {
         );
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "quiz choice 9 out of bounds for 1 choices")]
-    fn test_quiz_choice_out_of_bounds_panics() {
+    async fn test_quiz_choice_out_of_bounds_panics() {
         let mut ui = TestingUi::new();
         ui.push_quiz_choice(9);
-        let _ = block_on(ui.quiz_mnemonic_word(&["a"], "01"));
+        let _ = ui.quiz_mnemonic_word(&["a"], "01").await;
     }
 
-    #[test]
+    #[tokio::test]
     #[should_panic(expected = "quiz_mnemonic_word called without queued choice")]
-    fn test_quiz_choice_without_state_panics() {
+    async fn test_quiz_choice_without_state_panics() {
         let mut ui = TestingUi::new();
-        let _ = block_on(ui.quiz_mnemonic_word(&["a"], "01"));
+        let _ = ui.quiz_mnemonic_word(&["a"], "01").await;
     }
 }

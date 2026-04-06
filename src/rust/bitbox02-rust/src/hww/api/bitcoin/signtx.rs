@@ -1340,7 +1340,6 @@ mod tests {
     use alloc::boxed::Box;
     use hex_lit::hex;
     use pb::btc_payment_request_request::{Memo, memo};
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     fn extract_next(response: &Response) -> &pb::BtcSignNextResponse {
@@ -1718,8 +1717,8 @@ mod tests {
             }));
     }
 
-    #[test]
-    pub fn test_sign_init_fail() {
+    #[tokio::test]
+    pub async fn test_sign_init_fail() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
 
         let init_req_valid = pb::BtcSignInitRequest {
@@ -1745,7 +1744,7 @@ mod tests {
             // test keystore locked
             crate::keystore::lock();
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_valid,)),
+                process(&mut TestingHal::new(), &init_req_valid,).await,
                 Err(Error::InvalidState)
             );
         }
@@ -1757,7 +1756,7 @@ mod tests {
             init_req_invalid.coin = pb::BtcCoin::Ltc as _;
             init_req_invalid.format_unit = FormatUnit::Sat as _;
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1767,7 +1766,7 @@ mod tests {
             for version in 3..10 {
                 init_req_invalid.version = version;
                 assert_eq!(
-                    block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                    process(&mut TestingHal::new(), &init_req_invalid).await,
                     Err(Error::InvalidInput)
                 );
             }
@@ -1777,7 +1776,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.locktime = 500000000;
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1786,7 +1785,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.num_inputs = 0;
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1795,7 +1794,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.num_outputs = 0;
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1804,7 +1803,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.coin = 4; // BtcCoin is defined from 0 to 3.
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1813,7 +1812,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs[0].keypath[2] = HARDENED + 100;
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1822,7 +1821,7 @@ mod tests {
             let mut init_req_invalid = init_req_valid.clone();
             init_req_invalid.script_configs = vec![];
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1849,7 +1848,7 @@ mod tests {
                 },
             ];
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1910,14 +1909,14 @@ mod tests {
                 },
             ];
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
         {
             // no taproot in Litecoin
             assert_eq!(
-                block_on(process(
+                process(
                     &mut TestingHal::new(),
                     &pb::BtcSignInitRequest {
                         coin: pb::BtcCoin::Ltc as _,
@@ -1937,7 +1936,8 @@ mod tests {
                         format_unit: FormatUnit::Default as _,
                         contains_silent_payment_outputs: false,
                     }
-                )),
+                )
+                .await,
                 Err(Error::InvalidInput)
             );
         }
@@ -1953,14 +1953,14 @@ mod tests {
                 keypath: vec![],
             }];
             assert_eq!(
-                block_on(process(&mut TestingHal::new(), &init_req_invalid)),
+                process(&mut TestingHal::new(), &init_req_invalid).await,
                 Err(Error::InvalidInput)
             );
         }
     }
 
-    #[test]
-    pub fn test_process() {
+    #[tokio::test]
+    pub async fn test_process() {
         static mut UI_COUNTER: u32 = 0;
         static mut PREVTX_REQUESTED: u32 = 0;
 
@@ -1986,12 +1986,11 @@ mod tests {
                 }));
 
             mock_unlocked();
-            let tx = transaction.borrow();
-            let mut init_request = tx.init_request();
+            let mut init_request = transaction.borrow().init_request();
             init_request.format_unit = format_unit as _;
 
             let mut mock_hal = TestingHal::new();
-            let result = block_on(process(&mut mock_hal, &init_request));
+            let result = process(&mut mock_hal, &init_request).await;
 
             assert_eq!(
                 mock_hal.ui.screens,
@@ -2100,13 +2099,16 @@ mod tests {
                 }
                 _ => panic!("wrong result"),
             }
-            assert_eq!(unsafe { PREVTX_REQUESTED }, tx.inputs.len() as u32);
+            assert_eq!(
+                unsafe { PREVTX_REQUESTED },
+                transaction.borrow().inputs.len() as u32
+            );
         }
     }
 
     /// Test that receiving an unexpected message from the host results in an invalid state error.
-    #[test]
-    pub fn test_invalid_state() {
+    #[tokio::test]
+    pub async fn test_invalid_state() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         mock_unlocked();
@@ -2120,17 +2122,15 @@ mod tests {
                 Ok(Request::BtcSignInput(tx.borrow().inputs[0].input.clone()))
             }));
 
-        let result = block_on(process(
-            &mut TestingHal::new(),
-            &transaction.borrow().init_request(),
-        ));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidState));
         assert_eq!(unsafe { COUNTER }, 2);
     }
 
     /// Test signing if all inputs are of type P2WPKH-P2SH.
-    #[test]
-    pub fn test_script_type_p2wpkh_p2sh() {
+    #[tokio::test]
+    pub async fn test_script_type_p2wpkh_p2sh() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         for input in transaction.borrow_mut().inputs.iter_mut() {
@@ -2153,7 +2153,7 @@ mod tests {
             }),
             keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
         };
-        let result = block_on(process(&mut TestingHal::new(), &init_request));
+        let result = process(&mut TestingHal::new(), &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2169,8 +2169,8 @@ mod tests {
     }
 
     /// Test signing if all inputs are of type P2TR.
-    #[test]
-    pub fn test_script_type_p2tr() {
+    #[tokio::test]
+    pub async fn test_script_type_p2tr() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         for input in transaction.borrow_mut().inputs.iter_mut() {
@@ -2204,7 +2204,7 @@ mod tests {
             }),
             keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
         };
-        let result = block_on(process(&mut TestingHal::new(), &init_request));
+        let result = process(&mut TestingHal::new(), &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -2222,8 +2222,8 @@ mod tests {
 
     /// Test signing if with mixed inputs, one of them being taproot. Previous transactions of all
     /// inputs should be streamed in this case.
-    #[test]
-    pub fn test_script_type_p2tr_mixed() {
+    #[tokio::test]
+    pub async fn test_script_type_p2tr_mixed() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
@@ -2253,7 +2253,7 @@ mod tests {
                 }),
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
-        assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
+        assert!(process(&mut TestingHal::new(), &init_request).await.is_ok());
         assert_eq!(
             unsafe { PREVTX_REQUESTED },
             transaction.borrow().inputs.len() as u32
@@ -2263,24 +2263,22 @@ mod tests {
     /// Test signing UTXOs with high keypath address indices. Even though we don't support verifying
     /// receive addresses at these indices (to mitigate ransom attacks), we should still be able to
     /// spend them.
-    #[test]
-    pub fn test_spend_high_address_index() {
+    #[tokio::test]
+    pub async fn test_spend_high_address_index() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.keypath[4] = 100000;
 
         mock_host_responder(transaction.clone());
         mock_unlocked();
-        let result = block_on(process(
-            &mut TestingHal::new(),
-            &transaction.borrow().init_request(),
-        ));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut TestingHal::new(), &init_request).await;
         assert!(result.is_ok());
     }
 
     /// Test invalid input cases.
-    #[test]
-    pub fn test_invalid_input() {
+    #[tokio::test]
+    pub async fn test_invalid_input() {
         enum TestCase {
             // all inputs should be the same coin type.
             WrongCoinInput,
@@ -2381,17 +2379,15 @@ mod tests {
             }
             mock_host_responder(transaction.clone());
             mock_unlocked();
-            let result = block_on(process(
-                &mut TestingHal::new(),
-                &transaction.borrow().init_request(),
-            ));
+            let init_request = transaction.borrow().init_request();
+            let result = process(&mut TestingHal::new(), &init_request).await;
             assert_eq!(result, Err(Error::InvalidInput));
         }
     }
 
     /// Test signing with mixed input types.
-    #[test]
-    pub fn test_mixed_inputs() {
+    #[tokio::test]
+    pub async fn test_mixed_inputs() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
@@ -2409,29 +2405,31 @@ mod tests {
                 }),
                 keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
-        assert!(block_on(process(&mut TestingHal::new(), &init_request)).is_ok());
+        assert!(process(&mut TestingHal::new(), &init_request).await.is_ok());
     }
 
-    #[test]
-    fn test_user_aborts() {
+    #[tokio::test]
+    async fn test_user_aborts() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         mock_host_responder(transaction.clone());
         // We go through all possible user confirmations and abort one of them at a time.
-        for counter in 0..transaction.borrow().total_confirmations {
+        let total_confirmations = transaction.borrow().total_confirmations;
+        for counter in 0..total_confirmations {
             let mut mock_hal = TestingHal::new();
             mock_hal.ui.abort_nth(counter as usize);
             mock_unlocked();
+            let init_request = transaction.borrow().init_request();
             assert_eq!(
-                block_on(process(&mut mock_hal, &transaction.borrow().init_request())),
+                process(&mut mock_hal, &init_request).await,
                 Err(Error::UserAbort)
             );
         }
     }
 
     /// Check workflow when a locktime applies.
-    #[test]
-    fn test_locktime() {
+    #[tokio::test]
+    async fn test_locktime() {
         struct Test {
             coin: pb::BtcCoin,
             locktime: u32,
@@ -2501,7 +2499,7 @@ mod tests {
             init_request.locktime = test_case.locktime;
 
             let mut mock_hal = TestingHal::new();
-            let result = block_on(process(&mut mock_hal, &init_request));
+            let result = process(&mut mock_hal, &init_request).await;
             let mut found_locktime = false;
             for screen in mock_hal.ui.screens.iter() {
                 match screen {
@@ -2521,8 +2519,8 @@ mod tests {
     }
 
     // Test a transaction with an unusually high fee.
-    #[test]
-    fn test_high_fee_warning() {
+    #[tokio::test]
+    async fn test_high_fee_warning() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().outputs[1].value = 1034567890;
@@ -2530,10 +2528,11 @@ mod tests {
         transaction.borrow_mut().total_confirmations += 1;
         mock_host_responder(transaction.clone());
         mock_unlocked();
-        let tx = transaction.borrow();
+        let init_request = transaction.borrow().init_request();
+        let total_confirmations = transaction.borrow().total_confirmations;
 
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &tx.init_request())).is_ok());
+        assert!(process(&mut mock_hal, &init_request).await.is_ok());
 
         assert!(mock_hal.ui.screens.contains(&Screen::TotalFee {
             total: "13.39999900 BTC".into(),
@@ -2547,14 +2546,14 @@ mod tests {
         );
         assert_eq!(
             mock_hal.ui.screens.len() as u32,
-            tx.total_confirmations + 1 // plus status screen
+            total_confirmations + 1 // plus status screen
         );
     }
 
     // Test a P2TR output. It is not part of the default test transaction because Taproot is not
     // active on Litecoin yet.
-    #[test]
-    fn test_p2tr_output() {
+    #[tokio::test]
+    async fn test_p2tr_output() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::P2tr as _;
@@ -2564,7 +2563,8 @@ mod tests {
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &transaction.borrow().init_request()));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut mock_hal, &init_request).await;
         assert_eq!(
             mock_hal.ui.screens[0],
             Screen::Recipient {
@@ -2589,8 +2589,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_silent_payment_output() {
+    #[tokio::test]
+    async fn test_silent_payment_output() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 
@@ -2637,7 +2637,7 @@ mod tests {
             });
 
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &init_request)).is_ok());
+        assert!(process(&mut mock_hal, &init_request).await.is_ok());
 
         assert_eq!(
             mock_hal.ui.screens[0],
@@ -2649,8 +2649,8 @@ mod tests {
     }
 
     // Test an output that is sending to the same account, but is not a change output by keypath.
-    #[test]
-    fn test_self_send_non_change_output_same_account() {
+    #[tokio::test]
+    async fn test_self_send_non_change_output_same_account() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().outputs[5].keypath[3] = 0;
@@ -2658,8 +2658,8 @@ mod tests {
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
-
-        let result = block_on(process(&mut mock_hal, &transaction.borrow().init_request()));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut mock_hal, &init_request).await;
         assert_eq!(
             mock_hal.ui.screens[4],
             Screen::Recipient {
@@ -2688,8 +2688,8 @@ mod tests {
     }
 
     // Test an output that is sending to another account of our keystore.
-    #[test]
-    fn test_self_send_different_account() {
+    #[tokio::test]
+    async fn test_self_send_different_account() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         const DIFFERENT_ACCOUNT: u32 = 20 + HARDENED;
@@ -2698,8 +2698,8 @@ mod tests {
         transaction.borrow_mut().outputs[5].output_script_config_index = Some(0);
         mock_host_responder(transaction.clone());
         mock_unlocked();
-        let tx = transaction.borrow();
-        let mut init_request = tx.init_request();
+        let coin = transaction.borrow().coin;
+        let mut init_request = transaction.borrow().init_request();
         init_request.output_script_configs = vec![pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {
                 config: Some(pb::btc_script_config::Config::SimpleType(
@@ -2708,13 +2708,13 @@ mod tests {
             }),
             keypath: vec![
                 84 + HARDENED,
-                super::super::params::get(tx.coin).bip44_coin,
+                super::super::params::get(coin).bip44_coin,
                 DIFFERENT_ACCOUNT,
             ],
         }];
 
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &init_request)).is_ok());
+        assert!(process(&mut mock_hal, &init_request).await.is_ok());
 
         assert_eq!(
             mock_hal.ui.screens[4],
@@ -2726,8 +2726,8 @@ mod tests {
     }
 
     /// Exercise the antiklepto protocol
-    #[test]
-    fn test_antiklepto() {
+    #[tokio::test]
+    async fn test_antiklepto() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         let host_nonce = hex!("abababababababababababababababababababababababababababababababab");
@@ -2745,10 +2745,8 @@ mod tests {
             .host_nonce_commitment = Some(host_nonce_commitment);
         mock_host_responder(transaction.clone());
         mock_unlocked();
-        let result = block_on(process(
-            &mut TestingHal::new(),
-            &transaction.borrow().init_request(),
-        ));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut TestingHal::new(), &init_request).await;
         match result {
             Ok(Response::Btc(pb::BtcResponse {
                 response: Some(pb::btc_response::Response::SignNext(next)),
@@ -2766,8 +2764,8 @@ mod tests {
     }
 
     /// The sum of the inputs in the 2nd pass can't be higher than in the first for all inputs.
-    #[test]
-    fn test_input_sum_changes() {
+    #[tokio::test]
+    async fn test_input_sum_changes() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         static mut PASS2_INPUT_REQUESTS_COUNTER: u32 = 0;
@@ -2802,10 +2800,8 @@ mod tests {
             }))
         };
         mock_unlocked();
-        let result = block_on(process(
-            &mut TestingHal::new(),
-            &transaction.borrow().init_request(),
-        ));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
         // Only one input in the 2nd pass was requested, meaning the process failed after validating
         // the amount in the first input.
@@ -2814,8 +2810,8 @@ mod tests {
 
     /// At the last input, the sum of the inputs in the 2nd pass must be the same as the sum of the
     /// inputs in the first pass.
-    #[test]
-    fn test_input_sum_last_mismatch() {
+    #[tokio::test]
+    async fn test_input_sum_last_mismatch() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         static mut PASS2_INPUT_REQUESTS_COUNTER: u32 = 0;
@@ -2844,10 +2840,8 @@ mod tests {
             }))
         };
         mock_unlocked();
-        let result = block_on(process(
-            &mut TestingHal::new(),
-            &transaction.borrow().init_request(),
-        ));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
         // All inputs were requested, the failure happens when comparing the sums of the two passes
         // at the end.
@@ -2858,8 +2852,8 @@ mod tests {
     }
 
     /// Outgoing sum overflows.
-    #[test]
-    fn test_overflow_output_out() {
+    #[tokio::test]
+    async fn test_overflow_output_out() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
@@ -2881,16 +2875,14 @@ mod tests {
             }))
         };
         mock_unlocked();
-        let result = block_on(process(
-            &mut TestingHal::new(),
-            &transaction.borrow().init_request(),
-        ));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
     /// Outgoing change overflows.
-    #[test]
-    fn test_overflow_output_ours() {
+    #[tokio::test]
+    async fn test_overflow_output_ours() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
@@ -2912,15 +2904,13 @@ mod tests {
             }))
         };
         mock_unlocked();
-        let result = block_on(process(
-            &mut TestingHal::new(),
-            &transaction.borrow().init_request(),
-        ));
+        let init_request = transaction.borrow().init_request();
+        let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
-    #[test]
-    fn test_multisig_p2wsh() {
+    #[tokio::test]
+    async fn test_multisig_p2wsh() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
         mock_host_responder(transaction.clone());
 
@@ -2978,7 +2968,7 @@ mod tests {
             }
         };
 
-        let result = block_on(process(&mut mock_hal, &init_request));
+        let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3027,8 +3017,8 @@ mod tests {
     }
 
     /// If the multisig has not been registered before, signing fails.
-    #[test]
-    fn test_multisig_not_registered() {
+    #[tokio::test]
+    async fn test_multisig_not_registered() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
         mock_host_responder(transaction.clone());
         mock_unlocked_using_mnemonic(
@@ -3075,13 +3065,13 @@ mod tests {
             }
         };
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &init_request)),
+            process(&mut TestingHal::new(), &init_request).await,
             Err(Error::InvalidInput)
         );
     }
 
-    #[test]
-    fn test_multisig_p2wsh_p2sh() {
+    #[tokio::test]
+    async fn test_multisig_p2wsh_p2sh() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
         for input in transaction.borrow_mut().inputs.iter_mut() {
             input.input.keypath[3] = 1 + HARDENED;
@@ -3147,7 +3137,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&mut mock_hal, &init_request));
+        let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3162,8 +3152,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_multisig_large() {
+    #[tokio::test]
+    async fn test_multisig_large() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
 
         mock_host_responder(transaction.clone());
@@ -3231,7 +3221,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
-        let result = block_on(process(&mut mock_hal, &init_request));
+        let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3246,8 +3236,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_policy() {
+    #[tokio::test]
+    async fn test_policy() {
         let mut mock_hal = TestingHal::new();
 
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
@@ -3293,12 +3283,10 @@ mod tests {
             .multisig_set_by_hash(&hash, "test policy account name")
             .unwrap();
 
-        let result = block_on(process(
-            &mut mock_hal,
-            &transaction
-                .borrow()
-                .init_request_policy(policy, keypath_account),
-        ));
+        let init_request = transaction
+            .borrow()
+            .init_request_policy(policy, keypath_account);
+        let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3369,8 +3357,8 @@ mod tests {
 
     /// Same as `test_policy()`, but for a tr() Taproot policy.
     /// We check that the previous transactions are not streamed as they are not needed for Taproot.
-    #[test]
-    fn test_policy_tr() {
+    #[tokio::test]
+    async fn test_policy_tr() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
 
         let tx = transaction.clone();
@@ -3417,12 +3405,10 @@ mod tests {
             .multisig_set_by_hash(&hash32, "test policy account name")
             .unwrap();
 
-        let result = block_on(process(
-            &mut mock_hal,
-            &transaction
-                .borrow()
-                .init_request_policy(policy, keypath_account),
-        ));
+        let init_request = transaction
+            .borrow()
+            .init_request_policy(policy, keypath_account);
+        let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3439,8 +3425,8 @@ mod tests {
     }
 
     // Tests that unspendable internal Taproot keys are displayed as such.
-    #[test]
-    fn test_policy_tr_unspendable_internal_key() {
+    #[tokio::test]
+    async fn test_policy_tr_unspendable_internal_key() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
 
         mock_host_responder(transaction.clone());
@@ -3484,15 +3470,10 @@ mod tests {
             .multisig_set_by_hash(&hash32, "test policy account name")
             .unwrap();
 
-        assert!(
-            block_on(process(
-                &mut mock_hal,
-                &transaction
-                    .borrow()
-                    .init_request_policy(policy, keypath_account),
-            ))
-            .is_ok()
-        );
+        let init_request = transaction
+            .borrow()
+            .init_request_policy(policy, keypath_account);
+        assert!(process(&mut mock_hal, &init_request).await.is_ok());
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -3555,8 +3536,8 @@ mod tests {
     }
 
     /// Test that a policy with derivations other than `/**` work.
-    #[test]
-    fn test_policy_different_multipath_derivations() {
+    #[tokio::test]
+    async fn test_policy_different_multipath_derivations() {
         let policy_str = "wsh(multi(2,@0/<10;11>/*,@1/<20;21>/*))";
 
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
@@ -3599,12 +3580,10 @@ mod tests {
             .multisig_set_by_hash(&hash32, "test policy account name")
             .unwrap();
 
-        let result = block_on(process(
-            &mut mock_hal,
-            &transaction
-                .borrow()
-                .init_request_policy(policy, keypath_account),
-        ));
+        let init_request = transaction
+            .borrow()
+            .init_request_policy(policy, keypath_account);
+        let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
                 assert!(next.has_signature);
@@ -3619,8 +3598,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_policy_wrong_account_keypath() {
+    #[tokio::test]
+    async fn test_policy_wrong_account_keypath() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
         mock_host_responder(transaction.clone());
 
@@ -3659,20 +3638,18 @@ mod tests {
             .multisig_set_by_hash(&hash32, "test policy account name")
             .unwrap();
 
+        let init_request = transaction
+            .borrow()
+            .init_request_policy(policy, wrong_keypath_account);
         assert_eq!(
-            block_on(process(
-                &mut mock_hal,
-                &transaction
-                    .borrow()
-                    .init_request_policy(policy, wrong_keypath_account)
-            )),
+            process(&mut mock_hal, &init_request).await,
             Err(Error::InvalidInput)
         );
     }
 
     /// Avoid change keypaths with a too high address index.
-    #[test]
-    fn test_policy_wrong_change_keypath() {
+    #[tokio::test]
+    async fn test_policy_wrong_change_keypath() {
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
         transaction.borrow_mut().outputs[0].keypath[5] = 10000; // Too high change address index.
         mock_host_responder(transaction.clone());
@@ -3711,19 +3688,17 @@ mod tests {
             .multisig_set_by_hash(&hash32, "test policy account name")
             .unwrap();
 
+        let init_request = transaction
+            .borrow()
+            .init_request_policy(policy, keypath_account);
         assert_eq!(
-            block_on(process(
-                &mut mock_hal,
-                &transaction
-                    .borrow()
-                    .init_request_policy(policy, keypath_account)
-            )),
+            process(&mut mock_hal, &init_request).await,
             Err(Error::InvalidInput)
         );
     }
 
-    #[test]
-    pub fn test_payment_request() {
+    #[tokio::test]
+    pub async fn test_payment_request() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 
@@ -3760,7 +3735,7 @@ mod tests {
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &init_request));
+        let result = process(&mut mock_hal, &init_request).await;
         assert!(result.is_ok());
 
         assert_eq!(
@@ -3890,8 +3865,8 @@ mod tests {
     }
 
     #[cfg(feature = "app-ethereum")]
-    #[test]
-    pub fn test_swap_payment_request() {
+    #[tokio::test]
+    pub async fn test_swap_payment_request() {
         // End-to-end swap signing: swap screens appear, then the regular BTC confirmations continue.
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
@@ -3933,7 +3908,7 @@ mod tests {
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &init_request));
+        let result = process(&mut mock_hal, &init_request).await;
         assert!(result.is_ok());
 
         assert_eq!(
@@ -3984,8 +3959,8 @@ mod tests {
     }
 
     #[cfg(feature = "app-ethereum")]
-    #[test]
-    pub fn test_swap_payment_request_unsupported_source_coin() {
+    #[tokio::test]
+    pub async fn test_swap_payment_request_unsupported_source_coin() {
         // Swap UI is restricted to BTC/LTC source accounts; other BTC-like coins must fail early.
         let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(
             pb::BtcCoin::Tbtc,
@@ -4027,13 +4002,13 @@ mod tests {
         let init_request = transaction.borrow().init_request();
 
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &init_request)),
+            process(&mut TestingHal::new(), &init_request).await,
             Err(Error::InvalidInput)
         );
     }
 
-    #[test]
-    fn test_op_return() {
+    #[tokio::test]
+    async fn test_op_return() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 
@@ -4053,7 +4028,7 @@ mod tests {
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &init_request));
+        let result = process(&mut mock_hal, &init_request).await;
 
         match result {
             Ok(Response::BtcSignNext(next)) => {
@@ -4071,8 +4046,8 @@ mod tests {
         assert!(mock_hal.ui.contains_confirm("OP_RETURN", "hello world"));
     }
 
-    #[test]
-    fn test_op_return_nonascii() {
+    #[tokio::test]
+    async fn test_op_return_nonascii() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 
@@ -4092,7 +4067,7 @@ mod tests {
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &init_request));
+        let result = process(&mut mock_hal, &init_request).await;
         assert!(result.is_ok());
 
         assert!(
@@ -4102,8 +4077,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_op_return_fail_nonzero_value() {
+    #[tokio::test]
+    async fn test_op_return_fail_nonzero_value() {
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 
@@ -4124,7 +4099,7 @@ mod tests {
 
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &init_request)),
+            process(&mut mock_hal, &init_request).await,
             Err(Error::InvalidInput)
         );
     }

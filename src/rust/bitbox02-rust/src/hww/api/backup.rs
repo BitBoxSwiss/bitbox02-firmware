@@ -156,11 +156,10 @@ mod tests {
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::boxed::Box;
     use bitbox02::testing::mock_memory;
-    use util::bb02_async::block_on;
 
     /// Test backup creation on a uninitialized keystore.
-    #[test]
-    pub fn test_create_uninitialized() {
+    #[tokio::test]
+    pub async fn test_create_uninitialized() {
         const EXPECTED_TIMESTMAP: u32 = 1601281809;
 
         // All good.
@@ -171,13 +170,14 @@ mod tests {
         mock_hal.sd.inserted = Some(true);
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(create(
+            create(
                 &mut mock_hal,
                 &pb::CreateBackupRequest {
                     timestamp: EXPECTED_TIMESTMAP,
                     timezone_offset: 18000,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 1);
@@ -198,10 +198,7 @@ mod tests {
         );
 
         assert_eq!(
-            block_on(check(
-                &mut mock_hal,
-                &pb::CheckBackupRequest { silent: true }
-            )),
+            check(&mut mock_hal, &pb::CheckBackupRequest { silent: true }).await,
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
                 id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into()
             }))
@@ -209,19 +206,19 @@ mod tests {
     }
 
     /// Test backup creation on a initialized keystore. The sdcard does not contain the backup yet.
-    #[test]
-    pub fn test_create_initialized_new() {
+    #[tokio::test]
+    pub async fn test_create_initialized_new() {
         const TIMESTMAP: u32 = 1601281809;
 
         mock_memory();
 
+        let mut password_entered: bool = false;
         let mut mock_hal = TestingHal::new();
         let seed = hex::decode("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044")
             .unwrap();
         crate::keystore::encrypt_and_store_seed(&mut mock_hal, &seed, "password").unwrap();
         mock_hal.memory.set_initialized().unwrap();
 
-        let mut password_entered: bool = false;
         mock_hal.sd.inserted = Some(true);
         mock_hal.ui.set_enter_string(Box::new(|_params| {
             password_entered = true;
@@ -229,13 +226,14 @@ mod tests {
         }));
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(create(
+            create(
                 &mut mock_hal,
                 &pb::CreateBackupRequest {
                     timestamp: TIMESTMAP,
                     timezone_offset: 18000,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 4);
@@ -256,10 +254,7 @@ mod tests {
 
         mock_hal.ui.remove_enter_string(); // no more password entry needed
         assert_eq!(
-            block_on(check(
-                &mut mock_hal,
-                &pb::CheckBackupRequest { silent: true }
-            )),
+            check(&mut mock_hal, &pb::CheckBackupRequest { silent: true }).await,
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
                 id: backup::id(&seed),
             }))
@@ -271,8 +266,8 @@ mod tests {
 
     /// Use backup file fixtures generated using firmware v9.12.0 and perform tests on it. This
     /// should catch regressions when changing backup loading/verification in the firmware code.
-    #[test]
-    fn test_fixture() {
+    #[tokio::test]
+    async fn test_fixture() {
         const EXPECTED_ID: &str =
             "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
         mock_memory();
@@ -288,19 +283,19 @@ mod tests {
         // above seed.
         let backup_fixture_v9_12_0: Vec<u8> = hex::decode("0a6c0a6a0a2017834e53e17370800c0bc49b49ef3f1309df104d7239db5bbd093c90eefc995112110891bec6fb0512094d7920426974426f782233081012208af64d31126a39b98f59708a3a463e5b000000000000000000000000000000001891bec6fb05220776392e31332e30").unwrap();
         for i in 0..3 {
-            block_on(mock_hal.sd.write_bin(
-                &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),
-                EXPECTED_ID,
-                &backup_fixture_v9_12_0,
-            ))
-            .unwrap();
+            mock_hal
+                .sd
+                .write_bin(
+                    &format!("backup_Mon_2020-09-28T08-30-09Z_{}.bin", i),
+                    EXPECTED_ID,
+                    &backup_fixture_v9_12_0,
+                )
+                .await
+                .unwrap();
         }
         // Check that the loaded seed matches the backup.
         assert_eq!(
-            block_on(check(
-                &mut mock_hal,
-                &pb::CheckBackupRequest { silent: false }
-            )),
+            check(&mut mock_hal, &pb::CheckBackupRequest { silent: false }).await,
             Ok(Response::CheckBackup(pb::CheckBackupResponse {
                 id: EXPECTED_ID.into()
             }))
@@ -326,8 +321,8 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_list() {
+    #[tokio::test]
+    pub async fn test_list() {
         const EXPECTED_TIMESTAMP: u32 = 1601281809;
 
         const DEVICE_NAME_1: &str = "test device name";
@@ -338,7 +333,7 @@ mod tests {
 
         // No backups yet.
         assert_eq!(
-            block_on(list(&mut mock_hal)),
+            list(&mut mock_hal).await,
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![]
             }))
@@ -353,18 +348,19 @@ mod tests {
 
         mock_hal.memory.set_device_name(DEVICE_NAME_1).unwrap();
         assert!(
-            block_on(create(
+            create(
                 &mut mock_hal,
                 &pb::CreateBackupRequest {
                     timestamp: EXPECTED_TIMESTAMP,
                     timezone_offset: 18000,
                 }
-            ))
+            )
+            .await
             .is_ok()
         );
 
         assert_eq!(
-            block_on(list(&mut mock_hal)),
+            list(&mut mock_hal).await,
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![pb::BackupInfo {
                     id: "41233dfbad010723dbbb93514b7b81016b73f8aa35c5148e1b478f60d5750dce".into(),
@@ -388,18 +384,19 @@ mod tests {
 
         mock_hal.memory.set_device_name(DEVICE_NAME_2).unwrap();
         assert!(
-            block_on(create(
+            create(
                 &mut mock_hal,
                 &pb::CreateBackupRequest {
                     timestamp: EXPECTED_TIMESTAMP,
                     timezone_offset: 18000,
                 }
-            ))
+            )
+            .await
             .is_ok()
         );
 
         assert_eq!(
-            block_on(list(&mut mock_hal)),
+            list(&mut mock_hal).await,
             Ok(Response::ListBackups(pb::ListBackupsResponse {
                 info: vec![
                     pb::BackupInfo {

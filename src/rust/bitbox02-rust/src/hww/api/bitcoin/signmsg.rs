@@ -132,13 +132,12 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     const MESSAGE: &str = "message";
 
-    #[test]
-    pub fn test_p2wpkh() {
+    #[tokio::test]
+    pub async fn test_p2wpkh() {
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -154,7 +153,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &request)),
+            process(&mut mock_hal, &request).await,
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x0f\x1d\x54\x2a\x9e\x2f\x37\x4e\xfe\xd4\x57\x8c\xaa\x84\x72\xd1\xc3\x12\x68\xfb\x89\x2d\x39\xa6\x15\x44\x59\x18\x5b\x2d\x35\x4d\x3b\x2b\xff\xf0\xe1\x61\x5c\x77\x25\x73\x4f\x43\x13\x4a\xb4\x51\x6b\x7e\x7c\xb3\x9d\x2d\xba\xaa\x5f\x4e\x8b\x8a\xff\x9f\x97\xd0\x00".to_vec(),
             }))
@@ -181,8 +180,8 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_p2wpkh_testnet() {
+    #[tokio::test]
+    pub async fn test_p2wpkh_testnet() {
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Tbtc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -197,7 +196,7 @@ mod tests {
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &request)).is_ok());
+        assert!(process(&mut mock_hal, &request).await.is_ok());
         assert_eq!(
             mock_hal.ui.screens,
             vec![
@@ -220,8 +219,8 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_p2wpkh_p2sh() {
+    #[tokio::test]
+    pub async fn test_p2wpkh_p2sh() {
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -237,7 +236,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(&mut mock_hal, &request)),
+            process(&mut mock_hal, &request).await,
             Ok(Response::SignMessage(pb::BtcSignMessageResponse {
                 signature: b"\x87\x19\x05\x3c\x29\xff\xcf\x54\x31\x40\x69\x86\x75\x8a\xc8\xed\x80\x1c\xff\x3d\x61\x46\xe4\x8c\x46\x25\x75\xb6\x47\x34\x46\xf8\x44\xf1\x38\x7d\x48\xe1\x36\x88\x42\x09\x43\xfa\x8e\x4f\x0a\x23\xaa\x2e\x49\xa8\x3a\xf8\x88\x52\x2c\xec\xa9\x05\x0b\xe6\xc3\x47\x00".to_vec(),
             }))
@@ -264,8 +263,8 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_process_user_aborted() {
+    #[tokio::test]
+    pub async fn test_process_user_aborted() {
         let request = pb::BtcSignMessageRequest {
             coin: BtcCoin::Btc as _,
             script_config: Some(pb::BtcScriptConfigWithKeypath {
@@ -284,7 +283,7 @@ mod tests {
         // Basic info dialog aborted.
         mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(process(&mut mock_hal, &request)),
+            process(&mut mock_hal, &request).await,
             Err(Error::UserAbort)
         );
         assert_eq!(
@@ -301,7 +300,7 @@ mod tests {
         mock_hal.ui.abort_nth(1);
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut mock_hal, &request)),
+            process(&mut mock_hal, &request).await,
             Err(Error::UserAbort)
         );
         assert_eq!(mock_hal.ui.screens.len(), 2);
@@ -310,18 +309,18 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.abort_nth(2);
         assert_eq!(
-            block_on(process(&mut mock_hal, &request)),
+            process(&mut mock_hal, &request).await,
             Err(Error::UserAbort)
         );
         assert_eq!(mock_hal.ui.screens.len(), 3);
     }
 
-    #[test]
-    pub fn test_process_failures() {
+    #[tokio::test]
+    pub async fn test_process_failures() {
         const KEYPATH: &[u32] = &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0];
         // Invalid coin
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: -1,
@@ -334,13 +333,14 @@ mod tests {
                     msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Invalid script type (invalid simple type)
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
@@ -353,13 +353,14 @@ mod tests {
                     msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Invalid script type (taproot not supported)
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
@@ -372,13 +373,14 @@ mod tests {
                     msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Invalid script type (multisig not supported)
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
@@ -393,13 +395,14 @@ mod tests {
                     msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Message too long
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
@@ -412,14 +415,15 @@ mod tests {
                     msg: [0; 1025].to_vec(),
                     host_nonce_commitment: None,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Invalid keypath
         mock_unlocked();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Btc as _,
@@ -432,13 +436,14 @@ mod tests {
                     msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
         // Invalid keypath (mainnet keypath on testnet)
         mock_unlocked();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::BtcSignMessageRequest {
                     coin: BtcCoin::Tbtc as _,
@@ -451,7 +456,8 @@ mod tests {
                     msg: MESSAGE.as_bytes().to_vec(),
                     host_nonce_commitment: None,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
     }

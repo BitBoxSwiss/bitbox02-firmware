@@ -31,20 +31,20 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
-    #[test]
-    pub fn test_reset() {
+    #[tokio::test]
+    pub async fn test_reset() {
         // already inserted.
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::InsertCard as _,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
 
@@ -52,12 +52,13 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(false);
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::RemoveCard as _,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
 
@@ -65,12 +66,13 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(false);
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::InsertCard as _,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
 
@@ -78,12 +80,13 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         mock_hal.sd.inserted = Some(true);
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::InsertRemoveSdCardRequest {
                     action: SdCardAction::RemoveCard as _,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
     }

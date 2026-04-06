@@ -66,37 +66,40 @@ impl bitbox_hal::Sd for FakeSd {
 mod tests {
     use super::*;
     use bitbox_hal::Sd;
-    use util::bb02_async::block_on;
 
     // Quick check if our mock FakeSd implementation makes sense.
-    #[test]
-    fn test_sd_list_write_read_erase() {
+    #[tokio::test]
+    async fn test_sd_list_write_read_erase() {
         let mut sd = FakeSd::new();
-        assert_eq!(block_on(sd.list_subdir(None)), Ok(vec![]));
-        assert_eq!(block_on(sd.list_subdir(Some("dir1"))), Ok(vec![]));
+        assert_eq!(sd.list_subdir(None).await, Ok(vec![]));
+        assert_eq!(sd.list_subdir(Some("dir1")).await, Ok(vec![]));
 
-        assert!(block_on(sd.load_bin("file1.txt", "dir1")).is_err());
-        assert!(block_on(sd.write_bin("file1.txt", "dir1", b"data")).is_ok());
-        assert_eq!(block_on(sd.list_subdir(None)), Ok(vec!["dir1".into()]));
+        assert!(sd.load_bin("file1.txt", "dir1").await.is_err());
+        assert!(sd.write_bin("file1.txt", "dir1", b"data").await.is_ok());
+        assert_eq!(sd.list_subdir(None).await, Ok(vec!["dir1".into()]));
         assert_eq!(
-            block_on(sd.list_subdir(Some("dir1"))),
+            sd.list_subdir(Some("dir1")).await,
             Ok(vec!["file1.txt".into()])
         );
         assert_eq!(
-            block_on(sd.load_bin("file1.txt", "dir1"))
-                .unwrap()
-                .as_slice(),
+            sd.load_bin("file1.txt", "dir1").await.unwrap().as_slice(),
             b"data"
         );
-        assert!(block_on(sd.write_bin("file1.txt", "dir1", b"replaced data")).is_ok());
+        assert!(
+            sd.write_bin("file1.txt", "dir1", b"replaced data")
+                .await
+                .is_ok()
+        );
         assert_eq!(
-            block_on(sd.load_bin("file1.txt", "dir1"))
-                .unwrap()
-                .as_slice(),
+            sd.load_bin("file1.txt", "dir1").await.unwrap().as_slice(),
             b"replaced data"
         );
-        assert!(block_on(sd.erase_file_in_subdir("doesnt-exist.txt", "dir1")).is_err());
-        assert!(block_on(sd.erase_file_in_subdir("file1.txt", "dir1")).is_ok());
-        assert_eq!(block_on(sd.list_subdir(Some("dir1"))), Ok(vec![]));
+        assert!(
+            sd.erase_file_in_subdir("doesnt-exist.txt", "dir1")
+                .await
+                .is_err()
+        );
+        assert!(sd.erase_file_in_subdir("file1.txt", "dir1").await.is_ok());
+        assert_eq!(sd.list_subdir(Some("dir1")).await, Ok(vec![]));
     }
 }

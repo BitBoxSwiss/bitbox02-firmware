@@ -147,10 +147,9 @@ mod tests {
     use super::*;
     use crate::hal::testing::TestingHal;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
-    #[test]
-    fn test_enter_default_to_digits_atecc() {
+    #[tokio::test]
+    async fn test_enter_default_to_digits_atecc() {
         let mut hal = TestingHal::new();
         hal.memory.set_securechip_type(SecurechipType::Atecc);
         hal.ui.set_enter_string(Box::new(|params| {
@@ -158,19 +157,20 @@ mod tests {
             Ok("pw".into())
         }));
 
-        let password = block_on(enter(
+        let password = enter(
             &mut hal,
             "Enter password",
             PasswordType::DevicePassword,
             CanCancel::No,
-        ))
+        )
+        .await
         .unwrap();
 
         assert_eq!(password.as_str(), "pw");
     }
 
-    #[test]
-    fn test_enter_default_to_digits_optiga() {
+    #[tokio::test]
+    async fn test_enter_default_to_digits_optiga() {
         let mut hal = TestingHal::new();
         hal.memory.set_securechip_type(SecurechipType::Optiga);
         hal.ui.set_enter_string(Box::new(|params| {
@@ -178,29 +178,31 @@ mod tests {
             Ok("pw".into())
         }));
 
-        let password = block_on(enter(
+        let password = enter(
             &mut hal,
             "Enter password",
             PasswordType::DevicePassword,
             CanCancel::No,
-        ))
+        )
+        .await
         .unwrap();
 
         assert_eq!(password.as_str(), "pw");
     }
 
-    #[test]
-    fn test_enter_cancelled() {
+    #[tokio::test]
+    async fn test_enter_cancelled() {
         let mut hal = TestingHal::new();
         hal.memory.set_securechip_type(SecurechipType::Atecc);
         hal.ui.set_enter_string(Box::new(|_params| Err(UserAbort)));
 
-        let result = block_on(enter(
+        let result = enter(
             &mut hal,
             "Enter password",
             PasswordType::DevicePassword,
             CanCancel::Yes,
-        ));
+        )
+        .await;
 
         assert!(matches!(result, Err(EnterError::Cancelled)));
         assert!(

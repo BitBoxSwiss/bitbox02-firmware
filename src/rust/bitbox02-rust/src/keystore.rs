@@ -861,7 +861,6 @@ mod tests {
 
     use bitbox02::testing::mock_memory;
     use testing::{TEST_MNEMONIC, mock_unlocked, mock_unlocked_using_mnemonic};
-    use util::bb02_async::block_on;
 
     use bitcoin::secp256k1;
 
@@ -983,8 +982,8 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_re_encrypt_seed_changes_password() {
+    #[tokio::test]
+    async fn test_re_encrypt_seed_changes_password() {
         mock_memory();
         lock();
 
@@ -995,16 +994,17 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "old_password").is_ok());
 
         // Step 2: Unlock with initial password and set up BIP39
-        let unlocked_seed = block_on(unlock(&mut mock_hal, "old_password")).unwrap();
+        let unlocked_seed = unlock(&mut mock_hal, "old_password").await.unwrap();
         assert_eq!(unlocked_seed.as_slice(), seed.as_slice());
 
         assert!(
-            block_on(unlock_bip39(
+            unlock_bip39(
                 &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                 &seed,
                 "",
                 async || {},
-            ))
+            )
+            .await
             .is_ok()
         );
 
@@ -1014,17 +1014,17 @@ mod tests {
         // Step 4: Lock and verify old password no longer works
         lock();
         assert!(matches!(
-            block_on(unlock(&mut mock_hal, "old_password")),
+            unlock(&mut mock_hal, "old_password").await,
             Err(Error::IncorrectPassword)
         ));
 
         // Step 5: Verify new password works
-        let unlocked_seed_new = block_on(unlock(&mut mock_hal, "new_password")).unwrap();
+        let unlocked_seed_new = unlock(&mut mock_hal, "new_password").await.unwrap();
         assert_eq!(unlocked_seed_new.as_slice(), seed.as_slice());
     }
 
-    #[test]
-    fn test_re_encrypt_seed_preserves_seeds_and_fingerprint() {
+    #[tokio::test]
+    async fn test_re_encrypt_seed_preserves_seeds_and_fingerprint() {
         mock_memory();
         lock();
 
@@ -1035,12 +1035,13 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password1").is_ok());
 
         assert!(
-            block_on(unlock_bip39(
+            unlock_bip39(
                 &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                 &seed,
                 "",
                 async || {},
-            ))
+            )
+            .await
             .is_ok()
         );
 
@@ -1066,8 +1067,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_re_encrypt_seed_invalid_seed_size() {
+    #[tokio::test]
+    async fn test_re_encrypt_seed_invalid_seed_size() {
         mock_memory();
         lock();
 
@@ -1076,15 +1077,16 @@ mod tests {
 
         // Initial setup
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
-        block_on(unlock(&mut mock_hal, "password")).unwrap();
+        unlock(&mut mock_hal, "password").await.unwrap();
 
         assert!(
-            block_on(unlock_bip39(
+            unlock_bip39(
                 &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                 &seed,
                 "",
                 async || {},
-            ))
+            )
+            .await
             .is_ok()
         );
 
@@ -1168,8 +1170,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_lock() {
+    #[tokio::test]
+    async fn test_lock() {
         let mut mock_hal = TestingHal::new();
         lock();
         assert!(is_locked());
@@ -1178,12 +1180,13 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         assert!(is_locked()); // still locked, it is only unlocked after unlock_bip39.
         assert!(
-            block_on(unlock_bip39(
+            unlock_bip39(
                 &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                 &seed,
                 "foo",
                 async || {},
-            ))
+            )
+            .await
             .is_ok()
         );
         assert!(!is_locked());
@@ -1191,15 +1194,15 @@ mod tests {
         assert!(is_locked());
     }
 
-    #[test]
-    fn test_unlock() {
+    #[tokio::test]
+    async fn test_unlock() {
         mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
 
         assert!(matches!(
-            block_on(unlock(&mut mock_hal, "password")),
+            unlock(&mut mock_hal, "password").await,
             Err(Error::Unseeded)
         ));
 
@@ -1220,9 +1223,7 @@ mod tests {
         // First call: unlock. The first one does a seed rentention (1 securechip event).
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(unlock(&mut mock_hal, "password"))
-                .unwrap()
-                .as_slice(),
+            unlock(&mut mock_hal, "password").await.unwrap().as_slice(),
             seed
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 5);
@@ -1233,9 +1234,7 @@ mod tests {
             // so it ends up needing one secure chip operation less.
             mock_hal.securechip.event_counter_reset();
             assert_eq!(
-                block_on(unlock(&mut mock_hal, "password"))
-                    .unwrap()
-                    .as_slice(),
+                unlock(&mut mock_hal, "password").await.unwrap().as_slice(),
                 seed
             );
             assert_eq!(mock_hal.securechip.get_event_counter(), 4);
@@ -1256,7 +1255,7 @@ mod tests {
         // First 9 wrong attempts.
         for i in 1..MAX_UNLOCK_ATTEMPTS {
             assert!(matches!(
-                block_on(unlock(&mut mock_hal, "invalid password")),
+                unlock(&mut mock_hal, "invalid password").await,
                 Err(Error::IncorrectPassword)
             ));
             assert_eq!(
@@ -1270,20 +1269,20 @@ mod tests {
         }
         // Last attempt, triggers reset.
         assert!(matches!(
-            block_on(unlock(&mut mock_hal, "invalid password")),
+            unlock(&mut mock_hal, "invalid password").await,
             Err(Error::MaxAttemptsExceeded),
         ));
         // Last wrong attempt locks & resets. There is no more seed.
         assert!(!mock_hal.memory.is_seeded());
         assert!(copy_seed(&mut mock_hal).is_err());
         assert!(matches!(
-            block_on(unlock(&mut mock_hal, "password")),
+            unlock(&mut mock_hal, "password").await,
             Err(Error::Unseeded)
         ));
     }
 
-    #[test]
-    fn test_unlock_lockout_while_locked() {
+    #[tokio::test]
+    async fn test_unlock_lockout_while_locked() {
         mock_memory();
         lock();
 
@@ -1301,7 +1300,7 @@ mod tests {
 
         for attempt in 1..MAX_UNLOCK_ATTEMPTS {
             assert!(matches!(
-                block_on(unlock(&mut mock_hal, "invalid password")),
+                unlock(&mut mock_hal, "invalid password").await,
                 Err(Error::IncorrectPassword),
             ));
 
@@ -1315,14 +1314,14 @@ mod tests {
         }
 
         assert!(matches!(
-            block_on(unlock(&mut mock_hal, "invalid password")),
+            unlock(&mut mock_hal, "invalid password").await,
             Err(Error::MaxAttemptsExceeded)
         ));
         assert!(is_locked());
         assert!(copy_seed(&mut mock_hal).is_err());
         assert!(!mock_hal.memory.is_seeded());
         assert!(matches!(
-            block_on(unlock(&mut mock_hal, "password")),
+            unlock(&mut mock_hal, "password").await,
             Err(Error::Unseeded)
         ));
     }
@@ -1330,8 +1329,8 @@ mod tests {
     /// Ensures that if the recorded unlock attempts already reached the maximum before calling
     /// `unlock()`, the keystore immediately returns `MaxAttemptsExceeded` without performing any
     /// secure chip operations.
-    #[test]
-    fn test_unlock_preexisting_lockout() {
+    #[tokio::test]
+    async fn test_unlock_preexisting_lockout() {
         mock_memory();
         lock();
 
@@ -1354,7 +1353,7 @@ mod tests {
         assert_eq!(mock_hal.eeprom.get_unlock_attempts(), MAX_UNLOCK_ATTEMPTS);
 
         assert!(matches!(
-            block_on(unlock(&mut mock_hal, "password")),
+            unlock(&mut mock_hal, "password").await,
             Err(Error::MaxAttemptsExceeded)
         ));
         assert!(is_locked());
@@ -1364,8 +1363,8 @@ mod tests {
 
     /// Ensures the failed-attempt counter resets once a correct password is entered while the
     /// keystore is locked, so a later wrong attempt after relocking still sees the full allowance.
-    #[test]
-    fn test_unlock_failed_attempts_reset_locked() {
+    #[tokio::test]
+    async fn test_unlock_failed_attempts_reset_locked() {
         mock_memory();
         lock();
 
@@ -1379,21 +1378,19 @@ mod tests {
         assert!(encrypt_and_store_seed(&mut mock_hal, &seed, "password").is_ok());
         lock();
 
-        fn wrong_attempt(hal: &mut impl crate::hal::Hal) {
+        async fn wrong_attempt(hal: &mut impl crate::hal::Hal) {
             assert!(matches!(
-                block_on(unlock(hal, "wrong")),
+                unlock(hal, "wrong").await,
                 Err(Error::IncorrectPassword)
             ));
             assert_eq!(get_remaining_unlock_attempts(hal), MAX_UNLOCK_ATTEMPTS - 1);
         }
 
-        wrong_attempt(&mut mock_hal);
+        wrong_attempt(&mut mock_hal).await;
         assert!(copy_seed(&mut mock_hal).is_err());
 
         assert_eq!(
-            block_on(unlock(&mut mock_hal, "password"))
-                .unwrap()
-                .as_slice(),
+            unlock(&mut mock_hal, "password").await.unwrap().as_slice(),
             seed
         );
         assert!(copy_seed(&mut mock_hal).is_ok());
@@ -1401,15 +1398,15 @@ mod tests {
         lock();
         assert!(copy_seed(&mut mock_hal).is_err());
 
-        wrong_attempt(&mut mock_hal);
+        wrong_attempt(&mut mock_hal).await;
         assert!(copy_seed(&mut mock_hal).is_err());
         assert!(mock_hal.memory.is_seeded());
     }
 
     /// Ensures the failed-attempt counter resets when the keystore stays unlocked throughout, so
     /// interleaving wrong attempts with successful unlocks cannot exhaust the counter prematurely.
-    #[test]
-    fn test_unlock_failed_attempts_reset_unlocked() {
+    #[tokio::test]
+    async fn test_unlock_failed_attempts_reset_unlocked() {
         mock_memory();
         lock();
 
@@ -1424,39 +1421,35 @@ mod tests {
         lock();
 
         assert_eq!(
-            block_on(unlock(&mut mock_hal, "password"))
-                .unwrap()
-                .as_slice(),
+            unlock(&mut mock_hal, "password").await.unwrap().as_slice(),
             seed
         );
         assert!(copy_seed(&mut mock_hal).is_ok());
 
-        fn wrong_attempt(hal: &mut impl crate::hal::Hal) {
+        async fn wrong_attempt(hal: &mut impl crate::hal::Hal) {
             assert!(matches!(
-                block_on(unlock(hal, "wrong")),
+                unlock(hal, "wrong").await,
                 Err(Error::IncorrectPassword)
             ));
             assert_eq!(get_remaining_unlock_attempts(hal), MAX_UNLOCK_ATTEMPTS - 1);
         }
 
-        wrong_attempt(&mut mock_hal);
+        wrong_attempt(&mut mock_hal).await;
         assert!(copy_seed(&mut mock_hal).is_ok());
 
         assert_eq!(
-            block_on(unlock(&mut mock_hal, "password"))
-                .unwrap()
-                .as_slice(),
+            unlock(&mut mock_hal, "password").await.unwrap().as_slice(),
             seed
         );
         assert!(copy_seed(&mut mock_hal).is_ok());
 
-        wrong_attempt(&mut mock_hal);
+        wrong_attempt(&mut mock_hal).await;
         assert!(copy_seed(&mut mock_hal).is_ok());
         assert!(mock_hal.memory.is_seeded());
     }
 
-    #[test]
-    fn test_unlock_migrate_password_algo() {
+    #[tokio::test]
+    async fn test_unlock_migrate_password_algo() {
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1495,9 +1488,7 @@ mod tests {
         // Unlock will migrate from V0 to V1.
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(unlock(&mut mock_hal, password))
-                .unwrap()
-                .as_slice(),
+            unlock(&mut mock_hal, password).await.unwrap().as_slice(),
             seed
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 9);
@@ -1510,24 +1501,20 @@ mod tests {
 
         // Password check still works
         assert_eq!(
-            block_on(unlock(&mut mock_hal, "password"))
-                .unwrap()
-                .as_slice(),
+            unlock(&mut mock_hal, "password").await.unwrap().as_slice(),
             seed
         );
 
         // Unlocking from scratch still works
         lock();
         assert_eq!(
-            block_on(unlock(&mut mock_hal, "password"))
-                .unwrap()
-                .as_slice(),
+            unlock(&mut mock_hal, "password").await.unwrap().as_slice(),
             seed
         );
     }
 
-    #[test]
-    fn test_unlock_bip39() {
+    #[tokio::test]
+    async fn test_unlock_bip39() {
         mock_memory();
         lock();
         let mut mock_hal = TestingHal::new();
@@ -1543,12 +1530,13 @@ mod tests {
         assert!(root_fingerprint().is_err());
         // Incorrect seed passed
         assert!(
-            block_on(unlock_bip39(
+            unlock_bip39(
                 &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                 b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "foo",
                 async || {},
-            ))
+            )
+            .await
             .is_err()
         );
         // Correct seed passed.
@@ -1560,12 +1548,13 @@ mod tests {
 
         mock_hal.securechip.event_counter_reset();
         assert!(
-            block_on(unlock_bip39(
+            unlock_bip39(
                 &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                 &seed,
                 "foo",
                 async || {},
-            ))
+            )
+            .await
             .is_ok()
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 1);
@@ -1909,8 +1898,8 @@ mod tests {
         assert!(bip85_ln(&mut TestingHal::new(), HARDENED).is_err());
     }
 
-    #[test]
-    fn test_fixtures() {
+    #[tokio::test]
+    async fn test_fixtures() {
         struct Test {
             seed_len: usize,
             mnemonic_passphrase: &'static str,
@@ -1967,12 +1956,13 @@ mod tests {
             let mut mock_hal = TestingHal::new();
 
             assert!(
-                block_on(unlock_bip39(
+                unlock_bip39(
                     &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                     seed,
                     test.mnemonic_passphrase,
                     async || {},
-                ))
+                )
+                .await
                 .is_err()
             );
 
@@ -1984,12 +1974,13 @@ mod tests {
 
             mock_hal.securechip.event_counter_reset();
             assert!(
-                block_on(unlock_bip39(
+                unlock_bip39(
                     &mut KeystoreHalImpl::from_hal(&mut mock_hal),
                     seed,
                     test.mnemonic_passphrase,
                     async || {},
-                ))
+                )
+                .await
                 .is_ok()
             );
             assert_eq!(mock_hal.securechip.get_event_counter(), 1);
@@ -2135,8 +2126,8 @@ mod tests {
     }
 
     // Functional test to store seeds, lock/unlock, retrieve seed.
-    #[test]
-    fn test_seeds() {
+    #[tokio::test]
+    async fn test_seeds() {
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
 
         for seed_size in [16, 24, 32] {
@@ -2161,7 +2152,7 @@ mod tests {
 
             // Wrong password.
             assert!(matches!(
-                block_on(unlock(&mut mock_hal, "bar")),
+                unlock(&mut mock_hal, "bar").await,
                 Err(Error::IncorrectPassword)
             ));
             assert_eq!(get_remaining_unlock_attempts(&mut mock_hal), 9);
@@ -2169,7 +2160,7 @@ mod tests {
             // Correct password. First time: unlock. After unlock, it becomes a password check.
             for _ in 0..3 {
                 assert_eq!(
-                    block_on(unlock(&mut mock_hal, "foo")).unwrap().as_slice(),
+                    unlock(&mut mock_hal, "foo").await.unwrap().as_slice(),
                     &seed[..seed_size]
                 );
             }

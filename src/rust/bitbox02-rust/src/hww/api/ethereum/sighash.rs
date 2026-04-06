@@ -356,7 +356,6 @@ pub mod tests {
     use alloc::boxed::Box;
     use alloc::string::String;
     use serde::Deserialize;
-    use util::bb02_async::block_on;
 
     pub fn setup_chunk_responder(data: Vec<u8>) {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(
@@ -413,8 +412,8 @@ pub mod tests {
 
     const DATA_THRESHOLD: usize = 6144;
 
-    #[test]
-    fn test_compute_eip1559() {
+    #[tokio::test]
+    async fn test_compute_eip1559() {
         let json_data = include_str!("testdata/eip1559_tests.json");
         let tests: Vec<Eip1559TestCase> = serde_json::from_str(json_data).unwrap();
 
@@ -440,7 +439,7 @@ pub mod tests {
                     value: &value,
                     data: &mut producer,
                 };
-                let result = block_on(compute_eip1559(&mut params)).unwrap();
+                let result = compute_eip1559(&mut params).await.unwrap();
                 assert_eq!(
                     result, expected_sighash,
                     "EIP1559 test {} failed (ChunkingProducer::from_data)",
@@ -459,7 +458,7 @@ pub mod tests {
                     value: &value,
                     data: &mut producer,
                 };
-                let result = block_on(compute_eip1559(&mut params)).unwrap();
+                let result = compute_eip1559(&mut params).await.unwrap();
                 assert_eq!(
                     result, expected_sighash,
                     "EIP1559 test {} failed (ChunkingProducer::from_host)",
@@ -470,8 +469,8 @@ pub mod tests {
         }
     }
 
-    #[test]
-    fn test_compute_legacy() {
+    #[tokio::test]
+    async fn test_compute_legacy() {
         let json_data = include_str!("testdata/legacy_tests.json");
         let tests: Vec<LegacyTestCase> = serde_json::from_str(json_data).unwrap();
 
@@ -495,7 +494,7 @@ pub mod tests {
                     data: &mut producer,
                     chain_id: test.chain_id,
                 };
-                let result = block_on(compute_legacy(&mut params)).unwrap();
+                let result = compute_legacy(&mut params).await.unwrap();
                 assert_eq!(
                     result, expected_sighash,
                     "Legacy test {} failed (ChunkingProducer::from_data)",
@@ -513,7 +512,7 @@ pub mod tests {
                     data: &mut producer,
                     chain_id: test.chain_id,
                 };
-                let result = block_on(compute_legacy(&mut params)).unwrap();
+                let result = compute_legacy(&mut params).await.unwrap();
                 assert_eq!(
                     result, expected_sighash,
                     "Legacy test {} failed (ChunkingProducer::from_host)",
@@ -524,53 +523,53 @@ pub mod tests {
         }
     }
 
-    #[test]
-    fn test_chunking_producer_inline_empty() {
+    #[tokio::test]
+    async fn test_chunking_producer_inline_empty() {
         let mut producer = ChunkingProducer::from_data(&[]);
         assert_eq!(producer.len(), 0);
 
-        let chunk = block_on(producer.next());
+        let chunk = producer.next().await;
         assert_eq!(chunk, Ok(Some(vec![])));
 
-        let chunk2 = block_on(producer.next());
+        let chunk2 = producer.next().await;
         assert_eq!(chunk2, Ok(None));
     }
 
-    #[test]
-    fn test_chunking_producer_inline_single_byte() {
+    #[tokio::test]
+    async fn test_chunking_producer_inline_single_byte() {
         let mut producer = ChunkingProducer::from_data(&[0x42]);
         assert_eq!(producer.len(), 1);
-        assert_eq!(block_on(producer.first_byte()).unwrap(), 0x42);
+        assert_eq!(producer.first_byte().await.unwrap(), 0x42);
 
-        let chunk = block_on(producer.next());
+        let chunk = producer.next().await;
         assert_eq!(chunk, Ok(Some(vec![0x42])));
 
-        let chunk2 = block_on(producer.next());
+        let chunk2 = producer.next().await;
         assert_eq!(chunk2, Ok(None));
     }
 
-    #[test]
-    fn test_chunking_producer_inline_4096_bytes() {
+    #[tokio::test]
+    async fn test_chunking_producer_inline_4096_bytes() {
         let data = vec![0xAB; 4096];
         let mut producer = ChunkingProducer::from_data(&data);
         assert_eq!(producer.len(), 4096);
-        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xAB);
+        assert_eq!(producer.first_byte().await.unwrap(), 0xAB);
 
-        let chunk = block_on(producer.next());
+        let chunk = producer.next().await;
         assert_eq!(chunk, Ok(Some(data.clone())));
 
-        let chunk2 = block_on(producer.next());
+        let chunk2 = producer.next().await;
         assert_eq!(chunk2, Ok(None));
     }
 
-    #[test]
-    fn test_chunking_producer_inline_10kb() {
+    #[tokio::test]
+    async fn test_chunking_producer_inline_10kb() {
         let data = vec![0xCD; 10000];
         let mut producer = ChunkingProducer::from_data(&data);
         assert_eq!(producer.len(), 10000);
-        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xCD);
+        assert_eq!(producer.first_byte().await.unwrap(), 0xCD);
 
-        let chunk = block_on(producer.next());
+        let chunk = producer.next().await;
         assert_eq!(chunk, Ok(Some(data)));
     }
 
@@ -582,61 +581,61 @@ pub mod tests {
         assert_eq!(ChunkingProducer::from_host(10000).len(), 10000);
     }
 
-    #[test]
-    fn test_chunking_producer_single_chunk() {
+    #[tokio::test]
+    async fn test_chunking_producer_single_chunk() {
         let data = vec![0xAB; 100];
         setup_chunk_responder(data.clone());
 
         let mut producer = ChunkingProducer::from_host(100);
         assert_eq!(producer.len(), 100);
 
-        let chunk = block_on(producer.next()).unwrap();
+        let chunk = producer.next().await.unwrap();
         assert_eq!(chunk, Some(data));
-        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xAB);
+        assert_eq!(producer.first_byte().await.unwrap(), 0xAB);
 
-        let chunk2 = block_on(producer.next()).unwrap();
+        let chunk2 = producer.next().await.unwrap();
         assert_eq!(chunk2, None);
 
         clear_chunk_responder();
     }
 
-    #[test]
-    fn test_chunking_producer_multiple_chunks() {
+    #[tokio::test]
+    async fn test_chunking_producer_multiple_chunks() {
         let data = vec![0xCD; 10000];
         setup_chunk_responder(data);
 
         let mut producer = ChunkingProducer::from_host(10000);
         assert_eq!(producer.len(), 10000);
 
-        let chunk1 = block_on(producer.next()).unwrap().unwrap();
+        let chunk1 = producer.next().await.unwrap().unwrap();
         assert_eq!(chunk1.len(), 4096);
 
-        let chunk2 = block_on(producer.next()).unwrap().unwrap();
+        let chunk2 = producer.next().await.unwrap().unwrap();
         assert_eq!(chunk2.len(), 4096);
 
-        let chunk3 = block_on(producer.next()).unwrap().unwrap();
+        let chunk3 = producer.next().await.unwrap().unwrap();
         assert_eq!(chunk3.len(), 1808);
 
-        let chunk4 = block_on(producer.next()).unwrap();
+        let chunk4 = producer.next().await.unwrap();
         assert_eq!(chunk4, None);
 
         clear_chunk_responder();
     }
 
-    #[test]
-    fn test_chunking_producer_first_byte_before_next() {
+    #[tokio::test]
+    async fn test_chunking_producer_first_byte_before_next() {
         let data = vec![0xEF];
         setup_chunk_responder(data);
 
         let mut producer = ChunkingProducer::from_host(1);
         assert_eq!(producer.len(), 1);
 
-        assert_eq!(block_on(producer.first_byte()).unwrap(), 0xEF);
+        assert_eq!(producer.first_byte().await.unwrap(), 0xEF);
 
-        let chunk = block_on(producer.next()).unwrap();
+        let chunk = producer.next().await.unwrap();
         assert_eq!(chunk, Some(vec![0xEF]));
 
-        let chunk2 = block_on(producer.next()).unwrap();
+        let chunk2 = producer.next().await.unwrap();
         assert_eq!(chunk2, None);
 
         clear_chunk_responder();

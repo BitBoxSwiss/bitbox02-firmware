@@ -498,7 +498,6 @@ mod tests {
     use crate::hww::api::bitcoin::params;
     #[cfg(feature = "app-ethereum")]
     use crate::hww::api::ethereum::params as eth_params;
-    use util::bb02_async::block_on;
 
     fn make_text_memo(note: &str) -> Memo {
         Memo {
@@ -1373,11 +1372,11 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_user_verify_text_memos() {
+    #[async_test::test]
+    async fn test_user_verify_text_memos() {
         // Baseline Pocket flow: recipient screen, memo intro, memo contents.
         let mut mock_hal = TestingHal::new();
-        block_on(user_verify(
+        user_verify(
             &mut mock_hal,
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "POCKET".into(),
@@ -1387,7 +1386,8 @@ mod tests {
                 signature: vec![],
             },
             "12.34567890 BTC",
-        ))
+        )
+        .await
         .unwrap();
 
         assert_eq!(
@@ -1412,11 +1412,11 @@ mod tests {
     }
 
     #[cfg(feature = "app-ethereum")]
-    #[test]
-    fn test_user_verify_swap() {
+    #[async_test::test]
+    async fn test_user_verify_swap() {
         // Happy-path swap flow: recipient screen plus two swap-specific confirms.
         let mut mock_hal = TestingHal::new();
-        block_on(user_verify(
+        user_verify(
             &mut mock_hal,
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "SWAPKIT (Provider)".into(),
@@ -1431,7 +1431,8 @@ mod tests {
                 signature: vec![],
             },
             "0.25000000 BTC",
-        ))
+        )
+        .await
         .unwrap();
 
         assert_eq!(
@@ -1456,11 +1457,11 @@ mod tests {
     }
 
     #[cfg(feature = "app-litecoin")]
-    #[test]
-    fn test_user_verify_swap_btc_destination() {
+    #[async_test::test]
+    async fn test_user_verify_swap_btc_destination() {
         // BTC -> LTC swap
         let mut mock_hal = TestingHal::new();
-        block_on(user_verify(
+        user_verify(
             &mut mock_hal,
             &pb::BtcPaymentRequestRequest {
                 recipient_name: "SWAPKIT (Provider)".into(),
@@ -1484,7 +1485,8 @@ mod tests {
                 signature: vec![],
             },
             "0.25000000 BTC",
-        ))
+        )
+        .await
         .unwrap();
 
         assert_eq!(
@@ -1610,8 +1612,8 @@ mod tests {
     }
 
     #[cfg(all(feature = "app-litecoin", feature = "app-ethereum"))]
-    #[test]
-    fn test_user_verify_swap_invalid() {
+    #[async_test::test]
+    async fn test_user_verify_swap_invalid() {
         // Invalid swap requests that user_verify must reject because the
         // UI cannot render them safely.
         for payment_request in [
@@ -1689,11 +1691,7 @@ mod tests {
         ] {
             let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(user_verify(
-                    &mut mock_hal,
-                    &payment_request,
-                    "0.25000000 BTC",
-                )),
+                user_verify(&mut mock_hal, &payment_request, "0.25000000 BTC",).await,
                 Err(Error::InvalidInput)
             );
         }

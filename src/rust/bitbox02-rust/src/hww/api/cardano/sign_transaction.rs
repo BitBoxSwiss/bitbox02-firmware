@@ -330,7 +330,6 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     use pb::cardano_sign_transaction_request::{Certificate, certificate, certificate::Cert};
@@ -381,8 +380,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_normal_tx() {
+    #[async_test::test]
+    async fn test_sign_normal_tx() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -433,7 +432,7 @@ mod tests {
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -480,8 +479,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_stake_registration() {
+    #[async_test::test]
+    async fn test_sign_stake_registration() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![
@@ -535,7 +534,7 @@ mod tests {
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -586,8 +585,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_stake_deregistration() {
+    #[async_test::test]
+    async fn test_sign_stake_deregistration() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![
@@ -632,7 +631,7 @@ mod tests {
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -678,8 +677,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_vote_delegation() {
+    #[async_test::test]
+    async fn test_sign_vote_delegation() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![
@@ -722,7 +721,7 @@ mod tests {
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -764,8 +763,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_withdrawal() {
+    #[async_test::test]
+    async fn test_sign_withdrawal() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![
@@ -803,7 +802,7 @@ mod tests {
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -846,8 +845,8 @@ mod tests {
     }
 
     /// Test that ttl=0 is not included in the transaction if allow_ttl_zero is false. Up to v9.8.0, ttl was not included if it was zero.
-    #[test]
-    fn test_sign_tx_no_ttl() {
+    #[async_test::test]
+    async fn test_sign_tx_no_ttl() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -880,7 +879,7 @@ mod tests {
         };
 
         mock_unlocked();
-        let result = block_on(process(&mut TestingHal::new(), &tx)).unwrap();
+        let result = process(&mut TestingHal::new(), &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -895,8 +894,8 @@ mod tests {
     /// Test that ttl=0 is included in the transaction if allow_ttl_zero is true. Up to v9.8.0, ttl was not included if it was zero.
     /// ttl=0 also means the transaction cannot be mined.
     /// Also test other configurations where the transaction cannot be mined.
-    #[test]
-    fn test_sign_non_mineable_tx() {
+    #[async_test::test]
+    async fn test_sign_non_mineable_tx() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -933,7 +932,7 @@ mod tests {
         // Second, test with allow_zero_ttl=true, meaning that a zero ttl will be included as 0.
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -973,8 +972,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_tx_valid_interval_start() {
+    #[async_test::test]
+    async fn test_sign_tx_valid_interval_start() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -1009,7 +1008,7 @@ mod tests {
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &tx)).is_ok());
+        assert!(process(&mut mock_hal, &tx).await.is_ok());
         assert_eq!(
             mock_hal.ui.screens[0],
             Screen::Confirm {
@@ -1020,8 +1019,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_tx_invalid_interval_start() {
+    #[async_test::test]
+    async fn test_sign_tx_invalid_interval_start() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -1058,7 +1057,7 @@ mod tests {
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &tx)).is_ok());
+        assert!(process(&mut mock_hal, &tx).await.is_ok());
         assert_eq!(
             mock_hal.ui.screens[0],
             Screen::Confirm {
@@ -1069,8 +1068,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_tx_tokens() {
+    #[async_test::test]
+    async fn test_sign_tx_tokens() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -1138,7 +1137,7 @@ mod tests {
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
-        let result = block_on(process(&mut mock_hal, &tx)).unwrap();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {
@@ -1189,8 +1188,8 @@ mod tests {
     }
 
     // Test a transaction with an unusually high fee.
-    #[test]
-    fn test_high_fee_warning() {
+    #[async_test::test]
+    async fn test_high_fee_warning() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -1225,7 +1224,7 @@ mod tests {
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
-        assert!(block_on(process(&mut mock_hal, &tx)).is_ok());
+        assert!(process(&mut mock_hal, &tx).await.is_ok());
         assert!(
             mock_hal
                 .ui
@@ -1233,8 +1232,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign_tx_tag_cbor_sets() {
+    #[async_test::test]
+    async fn test_sign_tx_tag_cbor_sets() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
             inputs: vec![pb::cardano_sign_transaction_request::Input {
@@ -1267,7 +1266,7 @@ mod tests {
             ..Default::default()
         };
         mock_unlocked();
-        let result = block_on(process(&mut TestingHal::new(), &tx)).unwrap();
+        let result = process(&mut TestingHal::new(), &tx).await.unwrap();
         assert_eq!(
             result,
             Response::SignTransaction(pb::CardanoSignTransactionResponse {

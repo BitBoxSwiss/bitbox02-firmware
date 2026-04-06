@@ -37,21 +37,21 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
-    #[test]
-    pub fn test_set_device_name() {
+    #[async_test::test]
+    pub async fn test_set_device_name() {
         const SOME_NAME: &str = "foo";
 
         // All good.
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetDeviceNameRequest {
                     name: SOME_NAME.into()
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(
@@ -68,12 +68,13 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetDeviceNameRequest {
                     name: SOME_NAME.into()
                 }
-            )),
+            )
+            .await,
             Err(Error::UserAbort)
         );
         assert_eq!(
@@ -87,34 +88,37 @@ mod tests {
 
         // Non-ascii character.
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::SetDeviceNameRequest {
                     name: "emoji are 😃, 😭, and 😈".into()
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Non-printable character.
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::SetDeviceNameRequest {
                     name: "foo\nbar".into()
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
         // Too long.
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::SetDeviceNameRequest {
                     name: core::str::from_utf8(&[b'a'; 500]).unwrap().into()
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
     }

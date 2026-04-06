@@ -679,7 +679,6 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     use alloc::boxed::Box;
@@ -754,11 +753,11 @@ mod tests {
         ]
     }
 
-    fn run_single_message_typed_msg(
+    async fn run_single_message_typed_msg(
         member_type: MemberType,
         message_obj: Object<'static>,
     ) -> TestingHal<'static> {
-        let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+        let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
             vec![
                 StructType {
                     name: "EIP712Domain".into(),
@@ -772,32 +771,27 @@ mod tests {
             "Msg",
             Object::Struct(vec![Object::String("test")]),
             Object::Struct(vec![message_obj]),
-        )));
+        ));
         {
             let typed_msg = typed_msg.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                let typed_msg = typed_msg.borrow();
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        let typed_msg = typed_msg.borrow();
         let mut mock_hal = TestingHal::new();
-        block_on(eip712_sighash(
-            &mut mock_hal,
-            &typed_msg.types,
-            typed_msg.primary_type,
-        ))
-        .unwrap();
+        eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
+            .await
+            .unwrap();
         mock_hal
     }
 
-    fn run_single_string_message(message: String) -> TestingHal<'static> {
+    async fn run_single_string_message(message: String) -> TestingHal<'static> {
         let message = Box::leak(message.into_boxed_str());
-        run_single_message_typed_msg(mk_type(DataType::String), Object::String(message))
+        run_single_message_typed_msg(mk_type(DataType::String), Object::String(message)).await
     }
 
-    fn run_single_streaming_bytes_message(data: Vec<u8>) -> TestingHal<'static> {
-        run_single_message_typed_msg(mk_type(DataType::Bytes), Object::StreamingBytes(data))
+    async fn run_single_streaming_bytes_message(data: Vec<u8>) -> TestingHal<'static> {
+        run_single_message_typed_msg(mk_type(DataType::Bytes), Object::StreamingBytes(data)).await
     }
 
     /// A utility structure to build domain/message objects for testing.
@@ -1169,11 +1163,11 @@ mod tests {
         assert!(truncated_body.len() > MAX_DISPLAY_SIZE);
     }
 
-    #[test]
-    fn test_multiline_warning_not_shown_when_each_line_fits() {
+    #[async_test::test]
+    async fn test_multiline_warning_not_shown_when_each_line_fits() {
         let line1 = "a".repeat(400);
         let line2 = "b".repeat(300);
-        let mock_hal = run_single_string_message(format!("{line1}\n{line2}"));
+        let mock_hal = run_single_string_message(format!("{line1}\n{line2}")).await;
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -1197,10 +1191,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_multiline_warning_shown_only_for_overlong_line() {
+    #[async_test::test]
+    async fn test_multiline_warning_shown_only_for_overlong_line() {
         let line2 = "b".repeat(MAX_DISPLAY_SIZE);
-        let mock_hal = run_single_string_message(format!("ok\n{line2}"));
+        let mock_hal = run_single_string_message(format!("ok\n{line2}")).await;
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -1229,10 +1223,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_streaming_bytes_show_display_size_and_truncated_body() {
+    #[async_test::test]
+    async fn test_streaming_bytes_show_display_size_and_truncated_body() {
         let data: Vec<u8> = (0u8..=255).cycle().take(10_000).collect();
-        let mock_hal = run_single_streaming_bytes_message(data);
+        let mock_hal = run_single_streaming_bytes_message(data).await;
 
         assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 10_000]);
         assert_eq!(
@@ -1273,9 +1267,9 @@ mod tests {
     }
 
     /// Test computation of the domain separator, which is `hashStruct(domain)`.
-    #[test]
-    fn test_domain_separator() {
-        let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+    #[async_test::test]
+    async fn test_domain_separator() {
+        let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
             make_types(),
             "Mail",
             Object::Struct(vec![
@@ -1285,17 +1279,15 @@ mod tests {
                 Object::String("0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"),
             ]),
             Object::Struct(vec![]),
-        )));
+        ));
         {
             let typed_msg = typed_msg.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                let typed_msg = typed_msg.borrow();
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        let typed_msg = typed_msg.borrow();
         let mut mock_hal = TestingHal::new();
-        let domain_separator = block_on(hash_struct(
+        let domain_separator = hash_struct(
             &mut mock_hal,
             &typed_msg.types,
             RootObject::Domain,
@@ -1303,7 +1295,8 @@ mod tests {
             &[],
             &[],
             None,
-        ))
+        )
+        .await
         .unwrap();
         assert_eq!(
             domain_separator,
@@ -1418,8 +1411,8 @@ mod tests {
     ///
     /// console.log("sighash:", util.TypedDataUtils.eip712Hash(msgParams, 'V4').toString('hex'));
     /// ```
-    #[test]
-    fn test_exhaustive_data() {
+    #[async_test::test]
+    async fn test_exhaustive_data() {
         const EXPECTED_DIALOGS: &[(&str, &str)] = &[
             ("Domain (1/4)", "name: Ether Mail"),
             ("Domain (2/4)", "version: 1"),
@@ -1589,7 +1582,7 @@ mod tests {
         let bytes32 = b"\xd0\xf0\x29\x88\xfd\x88\x15\x65\xe9\x27\xc7\x47\x3c\x28\x73\x22\xdb\x16\x69\x01\xba\xc0\x3b\xef\x55\xd7\xa5\x2a\x5c\x75\x0a\xb4";
         let bigint256_positive = b"\x7f\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
         let bigint256_negative = b"\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-        let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+        let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
             vec![
                 StructType {
                     name: "EIP712Domain".into(),
@@ -1810,23 +1803,18 @@ mod tests {
                     ]),
                 ]),
             ]),
-        )));
+        ));
 
         {
             let typed_msg = typed_msg.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                let typed_msg = typed_msg.borrow();
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        let typed_msg = typed_msg.borrow();
         let mut mock_hal = TestingHal::new();
-        let sighash = block_on(eip712_sighash(
-            &mut mock_hal,
-            &typed_msg.types,
-            typed_msg.primary_type,
-        ))
-        .unwrap();
+        let sighash = eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
+            .await
+            .unwrap();
         assert_eq!(
             sighash,
             *b"\x0e\xfe\x31\xa8\x81\x9b\x6c\x38\x1c\x9e\x97\xcf\xd2\x99\x5a\xa6\xf2\x1e\x4a\x72\x87\x9a\xc1\x31\xb2\xf6\x48\xd0\x83\x28\x1c\x83",
@@ -1874,9 +1862,9 @@ mod tests {
     ///
     /// console.log("sighash:", util.TypedDataUtils.eip712Hash(msgParams, 'V4').toString('hex'));
     /// ```
-    #[test]
-    fn test_no_message() {
-        let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+    #[async_test::test]
+    async fn test_no_message() {
+        let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
             vec![StructType {
                 name: "EIP712Domain".into(),
                 members: vec![
@@ -1898,21 +1886,20 @@ mod tests {
                 Object::String("0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"),
             ]),
             Object::Struct(vec![]),
-        )));
+        ));
 
         {
             let typed_msg = typed_msg.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                let typed_msg = typed_msg.borrow();
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        let typed_msg = typed_msg.borrow();
-        let sighash = block_on(eip712_sighash(
+        let sighash = eip712_sighash(
             &mut TestingHal::new(),
             &typed_msg.types,
             typed_msg.primary_type,
-        ))
+        )
+        .await
         .unwrap();
         assert_eq!(
             sighash,
@@ -1995,8 +1982,8 @@ mod tests {
     /// Verify streaming and inline sighashes match expected values, verify display screens,
     /// and optionally verify signatures. Test vectors generated by
     /// testdata/gen_typed_msg_streaming_tests.js using @metamask/eth-sig-util v4.0.1.
-    #[test]
-    fn test_streaming_equivalence() {
+    #[async_test::test]
+    async fn test_streaming_equivalence() {
         let tests = load_streaming_test_cases();
         for tc in &tests {
             let expected: [u8; 32] = decode_hex(&tc.expected_sighash).try_into().unwrap();
@@ -2019,23 +2006,22 @@ mod tests {
                     }
                     _ => panic!("unhandled field_type in test data: {}", tc.field_type),
                 };
-                let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+                let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
                     types.clone(),
                     primary_type,
                     build_domain_object(&tc.domain, &types),
                     Object::Struct(vec![inline_value]),
-                )));
+                ));
                 let typed_msg_clone = typed_msg.clone();
                 *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                    let typed_msg = typed_msg_clone.borrow();
-                    Ok(typed_msg.handle_host_response(&response).unwrap())
+                    Ok(typed_msg_clone.handle_host_response(&response).unwrap())
                 }));
-                let typed_msg = typed_msg.borrow();
-                let inline_sighash = block_on(eip712_sighash(
+                let inline_sighash = eip712_sighash(
                     &mut TestingHal::new(),
                     &typed_msg.types,
                     typed_msg.primary_type,
-                ))
+                )
+                .await
                 .unwrap();
                 assert_eq!(
                     inline_sighash, expected,
@@ -2047,25 +2033,21 @@ mod tests {
             // Streaming sighash + display verification (bytes only).
             if tc.field_type == "bytes" {
                 let data: Vec<u8> = decode_hex(&tc.message_data);
-                let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+                let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
                     types.clone(),
                     primary_type,
                     build_domain_object(&tc.domain, &types),
                     Object::Struct(vec![Object::StreamingBytes(data.clone())]),
-                )));
+                ));
                 let typed_msg_clone = typed_msg.clone();
                 *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                    let typed_msg = typed_msg_clone.borrow();
-                    Ok(typed_msg.handle_host_response(&response).unwrap())
+                    Ok(typed_msg_clone.handle_host_response(&response).unwrap())
                 }));
-                let typed_msg = typed_msg.borrow();
                 let mut mock_hal = TestingHal::new();
-                let streaming_sighash = block_on(eip712_sighash(
-                    &mut mock_hal,
-                    &typed_msg.types,
-                    typed_msg.primary_type,
-                ))
-                .unwrap();
+                let streaming_sighash =
+                    eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
+                        .await
+                        .unwrap();
                 assert_eq!(
                     streaming_sighash, expected,
                     "streaming sighash mismatch for: {}",
@@ -2087,25 +2069,21 @@ mod tests {
                 );
             } else if tc.field_type == "string" {
                 let data_static: &'static str = Box::leak(tc.message_data.clone().into_boxed_str());
-                let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+                let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
                     types.clone(),
                     primary_type,
                     build_domain_object(&tc.domain, &types),
                     Object::Struct(vec![Object::String(data_static)]),
-                )));
+                ));
                 let typed_msg_clone = typed_msg.clone();
                 *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                    let typed_msg = typed_msg_clone.borrow();
-                    Ok(typed_msg.handle_host_response(&response).unwrap())
+                    Ok(typed_msg_clone.handle_host_response(&response).unwrap())
                 }));
-                let typed_msg = typed_msg.borrow();
                 let mut mock_hal = TestingHal::new();
-                let sighash = block_on(eip712_sighash(
-                    &mut mock_hal,
-                    &typed_msg.types,
-                    typed_msg.primary_type,
-                ))
-                .unwrap();
+                let sighash =
+                    eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
+                        .await
+                        .unwrap();
                 assert_eq!(
                     sighash, expected,
                     "sighash mismatch for: {}",
@@ -2133,20 +2111,19 @@ mod tests {
                 mock_unlocked();
                 let data: Vec<u8> = decode_hex(&tc.message_data);
                 let expected_sig = decode_hex(expected_sig_hex);
-                let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+                let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
                     types.clone(),
                     primary_type,
                     build_domain_object(&tc.domain, &types),
                     Object::Struct(vec![Object::StreamingBytes(data.clone())]),
-                )));
+                ));
                 let typed_msg_clone = typed_msg.clone();
                 *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                    let typed_msg = typed_msg_clone.borrow();
-                    Ok(typed_msg.handle_host_response(&response).unwrap())
+                    Ok(typed_msg_clone.handle_host_response(&response).unwrap())
                 }));
                 let mut mock_hal = TestingHal::new();
                 assert_eq!(
-                    block_on(process(
+                    process(
                         &mut mock_hal,
                         &pb::EthSignTypedMessageRequest {
                             chain_id: 1,
@@ -2155,7 +2132,8 @@ mod tests {
                             primary_type: tc.primary_type.clone(),
                             host_nonce_commitment: None,
                         }
-                    )),
+                    )
+                    .await,
                     Ok(Response::Sign(pb::EthSignResponse {
                         signature: expected_sig,
                     })),
@@ -2189,9 +2167,9 @@ mod tests {
     }
 
     /// Streaming is rejected for non-streamable types (e.g. uint).
-    #[test]
-    fn test_streaming_rejected_for_uint() {
-        let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+    #[async_test::test]
+    async fn test_streaming_rejected_for_uint() {
+        let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
             vec![
                 StructType {
                     name: "EIP712Domain".into(),
@@ -2205,28 +2183,22 @@ mod tests {
             "Msg",
             Object::Struct(vec![Object::String("test")]),
             Object::Struct(vec![Object::StreamingBytes(vec![0x01; 100])]),
-        )));
+        ));
         {
             let typed_msg = typed_msg.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                let typed_msg = typed_msg.borrow();
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        let typed_msg = typed_msg.borrow();
         let mut mock_hal = TestingHal::new();
-        let result = block_on(eip712_sighash(
-            &mut mock_hal,
-            &typed_msg.types,
-            typed_msg.primary_type,
-        ));
+        let result = eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type).await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
     /// Streaming is rejected for fixed-size bytes (e.g. bytes32).
-    #[test]
-    fn test_streaming_rejected_for_fixed_bytes() {
-        let typed_msg = alloc::rc::Rc::new(core::cell::RefCell::new(TypedMessage::new(
+    #[async_test::test]
+    async fn test_streaming_rejected_for_fixed_bytes() {
+        let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
             vec![
                 StructType {
                     name: "EIP712Domain".into(),
@@ -2240,27 +2212,21 @@ mod tests {
             "Msg",
             Object::Struct(vec![Object::String("test")]),
             Object::Struct(vec![Object::StreamingBytes(vec![0x01; 32])]),
-        )));
+        ));
         {
             let typed_msg = typed_msg.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
-                let typed_msg = typed_msg.borrow();
                 Ok(typed_msg.handle_host_response(&response).unwrap())
             }));
         }
-        let typed_msg = typed_msg.borrow();
         let mut mock_hal = TestingHal::new();
-        let result = block_on(eip712_sighash(
-            &mut mock_hal,
-            &typed_msg.types,
-            typed_msg.primary_type,
-        ));
+        let result = eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type).await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
     /// data_length exceeding the max is rejected.
-    #[test]
-    fn test_streaming_exceeding_max_rejected() {
+    #[async_test::test]
+    async fn test_streaming_exceeding_max_rejected() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
             Some(Box::new(|response| match &response {
                 pb::response::Response::Eth(pb::EthResponse {
@@ -2300,13 +2266,13 @@ mod tests {
             },
         ];
         let mut mock_hal = TestingHal::new();
-        let result = block_on(eip712_sighash(&mut mock_hal, &types, "Msg"));
+        let result = eip712_sighash(&mut mock_hal, &types, "Msg").await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
     /// Both value and data_length non-empty is rejected.
-    #[test]
-    fn test_streaming_value_and_data_length_both_set_rejected() {
+    #[async_test::test]
+    async fn test_streaming_value_and_data_length_both_set_rejected() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(|response| {
             match &response {
                 pb::response::Response::Eth(pb::EthResponse {
@@ -2348,7 +2314,7 @@ mod tests {
             },
         ];
         let mut mock_hal = TestingHal::new();
-        let result = block_on(eip712_sighash(&mut mock_hal, &types, "Msg"));
+        let result = eip712_sighash(&mut mock_hal, &types, "Msg").await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 }

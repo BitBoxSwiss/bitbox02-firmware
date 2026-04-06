@@ -329,10 +329,9 @@ mod tests {
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     use pb::btc_script_config::multisig::ScriptType as MultisigScriptType;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
-    #[test]
-    pub fn test_xpub() {
+    #[async_test::test]
+    pub async fn test_xpub() {
         struct Test<'a> {
             mnemonic: &'a str,
             coin: BtcCoin,
@@ -477,7 +476,7 @@ mod tests {
             };
 
             assert_eq!(
-                block_on(process_pub(&mut TestingHal::new(), &req)),
+                process_pub(&mut TestingHal::new(), &req).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
                 })),
@@ -489,7 +488,7 @@ mod tests {
 
             let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(process_pub(&mut mock_hal, &req)),
+                process_pub(&mut mock_hal, &req).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_xpub.into(),
                 })),
@@ -510,12 +509,12 @@ mod tests {
 
             let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(process_pub(&mut mock_hal, &pb::BtcPubRequest {
+                process_pub(&mut mock_hal, &pb::BtcPubRequest {
                     coin: BtcCoin::Btc as _,
                     keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
                     display: false,
                     output: Some(Output::XpubType(XPubType::Xpub as _)),
-                })),
+                }).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
                 }))
@@ -538,12 +537,12 @@ mod tests {
 
             let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(process_pub(&mut mock_hal, &pb::BtcPubRequest {
+                process_pub(&mut mock_hal, &pb::BtcPubRequest {
                     coin: BtcCoin::Btc as _,
                     keypath: [1 + HARDENED, 2 + HARDENED, 3 + HARDENED, 4].to_vec(),
                     display: true,
                     output: Some(Output::XpubType(XPubType::Xpub as _)),
-                })),
+                }).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: "xpub6DdW7n2P4Ht8m9DNumbzVKPU4yXoBMR9mm39q6tGp8PHGgNTJWL3fBdoUS4E8tP9XmyK4F85ApxLEBTB6f3fJf3Ujk5PaqssRuTLsRVTn6E".into(),
                 }))
@@ -574,15 +573,23 @@ mod tests {
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&mut TestingHal::new(), &req_invalid)).is_err());
+        assert!(
+            process_pub(&mut TestingHal::new(), &req_invalid)
+                .await
+                .is_err()
+        );
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Rbtc as i32 + 1;
-        assert!(block_on(process_pub(&mut TestingHal::new(), &req_invalid)).is_err());
+        assert!(
+            process_pub(&mut TestingHal::new(), &req_invalid)
+                .await
+                .is_err()
+        );
     }
 
-    #[test]
-    pub fn test_address_simple() {
+    #[async_test::test]
+    pub async fn test_address_simple() {
         struct Test<'a> {
             mnemonic: &'a str,
             coin: BtcCoin,
@@ -798,7 +805,7 @@ mod tests {
             // Without display.
             mock_unlocked_using_mnemonic(test.mnemonic, "");
             assert_eq!(
-                block_on(process_pub(&mut TestingHal::new(), &req)),
+                process_pub(&mut TestingHal::new(), &req).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),
@@ -809,7 +816,7 @@ mod tests {
             mock_unlocked_using_mnemonic(test.mnemonic, "");
             let mut mock_hal = TestingHal::new();
             assert_eq!(
-                block_on(process_pub(&mut mock_hal, &req)),
+                process_pub(&mut mock_hal, &req).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into()
                 })),
@@ -835,22 +842,34 @@ mod tests {
                 config: Some(Config::SimpleType(SimpleType::P2wpkhP2sh as _)),
             })),
         };
-        assert!(block_on(process_pub(&mut TestingHal::new(), &req)).is_ok());
+        assert!(process_pub(&mut TestingHal::new(), &req).await.is_ok());
         // -- Wrong coin: MIN-1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Btc as i32 - 1;
-        assert!(block_on(process_pub(&mut TestingHal::new(), &req_invalid)).is_err());
+        assert!(
+            process_pub(&mut TestingHal::new(), &req_invalid)
+                .await
+                .is_err()
+        );
         // -- Wrong coin: MAX + 1
         let mut req_invalid = req.clone();
         req_invalid.coin = BtcCoin::Tltc as i32 + 1;
-        assert!(block_on(process_pub(&mut TestingHal::new(), &req_invalid)).is_err());
+        assert!(
+            process_pub(&mut TestingHal::new(), &req_invalid)
+                .await
+                .is_err()
+        );
         // -- Wrong keypath
         let mut req_invalid = req.clone();
         req_invalid.keypath = [49 + HARDENED, 0 + HARDENED, 1 + HARDENED, 1, 10000].to_vec();
-        assert!(block_on(process_pub(&mut TestingHal::new(), &req_invalid)).is_err());
+        assert!(
+            process_pub(&mut TestingHal::new(), &req_invalid)
+                .await
+                .is_err()
+        );
         // -- No taproot in Litecoin
         assert!(
-            block_on(process_pub(
+            process_pub(
                 &mut TestingHal::new(),
                 &pb::BtcPubRequest {
                     coin: BtcCoin::Ltc as _,
@@ -860,13 +879,14 @@ mod tests {
                         config: Some(Config::SimpleType(SimpleType::P2tr as _)),
                     })),
                 }
-            ))
+            )
+            .await
             .is_err()
         );
     }
 
-    #[test]
-    pub fn test_address_multisig() {
+    #[async_test::test]
+    pub async fn test_address_multisig() {
         static mut UI_COUNTER: u32 = 0;
         struct Test<'a> {
             coin: BtcCoin,
@@ -1042,7 +1062,7 @@ mod tests {
                 })),
             };
             assert_eq!(
-                block_on(process_pub(&mut mock_hal, &req)),
+                process_pub(&mut mock_hal, &req).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),
@@ -1070,8 +1090,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_address_policy() {
+    #[async_test::test]
+    async fn test_address_policy() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -1212,7 +1232,7 @@ mod tests {
                 })),
             };
             assert_eq!(
-                block_on(process_pub(&mut mock_hal, &req)),
+                process_pub(&mut mock_hal, &req).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into(),
                 })),

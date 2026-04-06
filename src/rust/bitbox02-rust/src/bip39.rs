@@ -72,7 +72,6 @@ pub extern "C" fn rust_get_bip39_word(idx: u16, mut out: util::bytes::BytesMut) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use util::bb02_async::block_on;
 
     #[test]
     fn test_rust_get_bip39_word() {
@@ -181,8 +180,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_derive_bip39_seed() {
+    #[async_test::test]
+    async fn test_derive_bip39_seed() {
         struct Test {
             seed: &'static str,
             passphrase: &'static str,
@@ -235,7 +234,7 @@ mod tests {
         for test in tests {
             let seed = hex::decode(test.seed).unwrap();
             let (bip39_seed, root_fingerprint) =
-                block_on(derive_seed(&seed, test.passphrase, async || {}));
+                derive_seed(&seed, test.passphrase, async || {}).await;
             assert_eq!(hex::encode(bip39_seed).as_str(), test.expected_bip39_seed);
             assert_eq!(
                 hex::encode(root_fingerprint).as_str(),

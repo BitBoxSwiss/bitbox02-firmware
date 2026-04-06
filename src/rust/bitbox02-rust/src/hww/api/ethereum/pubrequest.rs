@@ -92,11 +92,10 @@ mod tests {
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
     use hex_lit::hex;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
-    #[test]
-    pub fn test_process_xpub() {
+    #[async_test::test]
+    pub async fn test_process_xpub() {
         const EXPECTED_XPUB: &str = "xpub6FNKHYBc1HTwuwZcj4dz7xiG1kN7Hs3v7efYmgtzu1Gv6wJXxaCnFdQDRodbQpJKwdeVBf1RRNHARa6FsUMTCuRe2gKR7xCkSDdnppUp9oW";
         let request = pb::EthPubRequest {
             output_type: OutputType::Xpub as _,
@@ -110,7 +109,7 @@ mod tests {
         // All good.
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &request)),
+            process(&mut TestingHal::new(), &request).await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: EXPECTED_XPUB.into()
             }))
@@ -120,20 +119,20 @@ mod tests {
         let mut invalid_request = request.clone();
         invalid_request.keypath[1] = 61 + HARDENED;
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &invalid_request)),
+            process(&mut TestingHal::new(), &invalid_request).await,
             Err(Error::InvalidInput)
         );
 
         // xpub fetching/encoding failed.
         keystore::lock();
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &request)),
+            process(&mut TestingHal::new(), &request).await,
             Err(Error::InvalidInput)
         );
     }
 
-    #[test]
-    pub fn test_process_address() {
+    #[async_test::test]
+    pub async fn test_process_address() {
         const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
         const DISPLAY_ADDRESS: &str = "0x 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9";
 
@@ -149,7 +148,7 @@ mod tests {
         // All good.
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &request)),
+            process(&mut TestingHal::new(), &request).await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
@@ -159,7 +158,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
@@ -169,7 +168,8 @@ mod tests {
                     contract_address: b"".to_vec(),
                     chain_id: 0,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
@@ -187,7 +187,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
@@ -197,7 +197,8 @@ mod tests {
                     contract_address: b"".to_vec(),
                     chain_id: 11155111,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
@@ -221,7 +222,7 @@ mod tests {
         // Keystore locked.
         keystore::lock();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
@@ -231,7 +232,8 @@ mod tests {
                     contract_address: b"".to_vec(),
                     chain_id: 0,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
 
@@ -239,7 +241,7 @@ mod tests {
         let mut invalid_request = request.clone();
         invalid_request.coin = 100;
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &invalid_request)),
+            process(&mut TestingHal::new(), &invalid_request).await,
             Err(Error::InvalidInput)
         );
 
@@ -247,13 +249,13 @@ mod tests {
         let mut invalid_request = request.clone();
         invalid_request.keypath[1] = 61 + HARDENED;
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &invalid_request)),
+            process(&mut TestingHal::new(), &invalid_request).await,
             Err(Error::InvalidInput)
         );
 
         // Wrong keypath (account too high)
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
@@ -263,13 +265,14 @@ mod tests {
                     contract_address: b"".to_vec(),
                     chain_id: 0,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
     }
 
-    #[test]
-    pub fn test_process_erc20_address() {
+    #[async_test::test]
+    pub async fn test_process_erc20_address() {
         const ADDRESS: &str = "0x773A77b9D32589be03f9132AF759e294f7851be9";
         const DISPLAY_ADDRESS: &str = "0x 773A 77b9 D325 89be 03f9 132A F759 e294 f785 1be9";
         const CONTRACT_ADDRESS: [u8; 20] = hex!("dac17f958d2ee523a2206206994597c13d831ec7");
@@ -286,7 +289,7 @@ mod tests {
         // All good.
         mock_unlocked();
         assert_eq!(
-            block_on(process(&mut TestingHal::new(), &request)),
+            process(&mut TestingHal::new(), &request).await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
@@ -296,7 +299,7 @@ mod tests {
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
@@ -306,7 +309,8 @@ mod tests {
                     contract_address: CONTRACT_ADDRESS.to_vec(),
                     chain_id: 0,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: ADDRESS.into()
             }))
@@ -322,7 +326,7 @@ mod tests {
 
         // ERC20 params not found / invalid contract address.
         assert_eq!(
-            block_on(process(
+            process(
                 &mut TestingHal::new(),
                 &pb::EthPubRequest {
                     output_type: OutputType::Address as _,
@@ -332,7 +336,8 @@ mod tests {
                     contract_address: b"aaaaaaaaaaaaaaaaaaaa".to_vec(),
                     chain_id: 0,
                 }
-            )),
+            )
+            .await,
             Err(Error::InvalidInput)
         );
     }

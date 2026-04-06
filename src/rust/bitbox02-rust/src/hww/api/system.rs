@@ -35,41 +35,32 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
-    use crate::hal::testing::ui::Screen;
-    use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
-    #[test]
-    pub fn test_reboot_to_bootloader() {
-        let reboot_called = std::panic::catch_unwind(|| {
-            block_on(reboot_to_bootloader(
-                &mut TestingHal::new(),
-                &pb::RebootRequest {
-                    purpose: Purpose::Upgrade as _,
-                },
-            ))
-            .unwrap();
-        });
-        match reboot_called {
-            Ok(()) => panic!("reboot_to_bootloader was not called"),
-            Err(msg) => assert_eq!(
-                msg.downcast_ref::<&str>(),
-                Some(&"reboot_to_bootloader called")
-            ),
-        }
+    #[async_test::test]
+    #[should_panic(expected = "reboot_to_bootloader called")]
+    async fn test_reboot_to_bootloader() {
+        reboot_to_bootloader(
+            &mut TestingHal::new(),
+            &pb::RebootRequest {
+                purpose: Purpose::Upgrade as _,
+            },
+        )
+        .await
+        .unwrap();
     }
 
-    #[test]
-    pub fn test_reboot_to_bootloader_aborted() {
+    #[async_test::test]
+    async fn test_reboot_to_bootloader_aborted() {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(reboot_to_bootloader(
+            reboot_to_bootloader(
                 &mut mock_hal,
                 &pb::RebootRequest {
                     purpose: Purpose::Upgrade as _
                 }
-            )),
+            )
+            .await,
             Err(Error::UserAbort),
         );
     }

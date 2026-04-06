@@ -39,19 +39,19 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
 
-    #[test]
-    pub fn test_mnemonic_passphrase_enabled() {
+    #[async_test::test]
+    pub async fn test_mnemonic_passphrase_enabled() {
         // All good.
 
         // Enable:
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetMnemonicPassphraseEnabledRequest { enabled: true }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(
@@ -67,10 +67,11 @@ mod tests {
         // Disable:
         mock_hal.ui.screens.clear();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetMnemonicPassphraseEnabledRequest { enabled: false }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(
@@ -87,10 +88,11 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         mock_hal.ui.abort_nth(0);
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::SetMnemonicPassphraseEnabledRequest { enabled: true }
-            )),
+            )
+            .await,
             Err(Error::UserAbort)
         );
     }

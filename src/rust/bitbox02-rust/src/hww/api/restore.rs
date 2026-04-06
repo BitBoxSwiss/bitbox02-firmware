@@ -159,13 +159,12 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use bitbox02::memory;
-    use util::bb02_async::block_on;
 
     use alloc::boxed::Box;
     use alloc::vec::Vec;
 
-    #[test]
-    fn test_from_mnemonic() {
+    #[async_test::test]
+    async fn test_from_mnemonic() {
         crate::keystore::lock();
         let mnemonic_words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
             .split(' ')
@@ -185,13 +184,14 @@ mod tests {
 
         mock_hal.securechip.event_counter_reset();
         assert_eq!(
-            block_on(from_mnemonic(
+            from_mnemonic(
                 &mut mock_hal,
                 &pb::RestoreFromMnemonicRequest {
                     timestamp: 0,
                     timezone_offset: 0,
                 }
-            )),
+            )
+            .await,
             Ok(Response::Success(pb::Success {}))
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 5);

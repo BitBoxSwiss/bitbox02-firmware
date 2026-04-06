@@ -417,7 +417,6 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
     use alloc::boxed::Box;
-    use util::bb02_async::block_on;
     use util::bip32::HARDENED;
 
     #[test]
@@ -506,15 +505,16 @@ mod tests {
         }
     }
 
-    fn do_pkh_skh(keypath_payment: &[u32], keypath_stake: &[u32]) -> Result<Response, Error> {
-        block_on(process(
+    async fn do_pkh_skh(keypath_payment: &[u32], keypath_stake: &[u32]) -> Result<Response, Error> {
+        process(
             &mut TestingHal::new(),
             &pb::CardanoAddressRequest {
                 network: CardanoNetwork::CardanoMainnet as _,
                 display: false,
                 script_config: Some(make_pkh_skh(keypath_payment, keypath_stake)),
             },
-        ))
+        )
+        .await
     }
 
     #[test]
@@ -537,15 +537,16 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_process_failures() {
+    #[async_test::test]
+    async fn test_process_failures() {
         // All good
         mock_unlocked();
         assert_eq!(
             do_pkh_skh(
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
-            ),
+            )
+            .await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs".into()
             }))
@@ -557,7 +558,8 @@ mod tests {
             do_pkh_skh(
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
-            ),
+            )
+            .await,
             Err(Error::Generic)
         );
 
@@ -567,7 +569,8 @@ mod tests {
             do_pkh_skh(
                 &[1815 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
                 &[1815 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
-            ),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
 
@@ -577,7 +580,8 @@ mod tests {
             do_pkh_skh(
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED + 1, 2, 0],
-            ),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
 
@@ -587,27 +591,29 @@ mod tests {
             do_pkh_skh(
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 1, 0],
-            ),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
         assert_eq!(
             do_pkh_skh(
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
                 &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 1],
-            ),
+            )
+            .await,
             Err(Error::InvalidInput),
         );
     }
 
-    #[test]
-    fn test_process_confirm() {
+    #[async_test::test]
+    async fn test_process_confirm() {
         const EXPECTED: &str = "addr1q90tlskd4mh5kncmul7vx887j30tjtfgvap5n0g0rf9qqc7znmndrdhe7rwvqkw5c7mqnp4a3yflnvu6kff7l5dungvqmvu6hs";
         const EXPECTED_DISPLAYED: &str = "addr1 q90t lskd 4mh5 kncm ul7v x887 j30t jtfg vap5 n0g0 rf9q qc7z nmnd rdhe 7rwv qkw5 c7mq np4a 3yfl nvu6 kff7 l5du ngvq mvu6 hs";
 
         mock_unlocked();
         let mut mock_hal = TestingHal::new();
         assert_eq!(
-            block_on(process(
+            process(
                 &mut mock_hal,
                 &pb::CardanoAddressRequest {
                     network: CardanoNetwork::CardanoMainnet as _,
@@ -617,7 +623,8 @@ mod tests {
                         &[1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0]
                     )),
                 }
-            )),
+            )
+            .await,
             Ok(Response::Pub(pb::PubResponse {
                 r#pub: EXPECTED.into()
             }))
@@ -632,8 +639,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_process_table() {
+    #[async_test::test]
+    async fn test_process_table() {
         struct Test<'a> {
             keypath_payment: &'a [u32],
             keypath_stake: &'a [u32],
@@ -665,7 +672,7 @@ mod tests {
         mock_unlocked();
         for test in tests {
             assert_eq!(
-                do_pkh_skh(test.keypath_payment, test.keypath_stake),
+                do_pkh_skh(test.keypath_payment, test.keypath_stake).await,
                 Ok(Response::Pub(pb::PubResponse {
                     r#pub: test.expected_address.into()
                 }))

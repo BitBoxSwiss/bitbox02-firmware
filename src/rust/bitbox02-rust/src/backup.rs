@@ -280,8 +280,6 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use core::convert::TryInto;
 
-    use util::bb02_async::block_on;
-
     #[test]
     fn test_id() {
         // Seeds of different lengths (16, 24, 32 bytes)
@@ -300,27 +298,19 @@ mod tests {
         assert_eq!(id(&seed_32), expected_output_32);
     }
 
-    fn _test_create_load(seed: &[u8]) {
+    async fn _test_create_load(seed: &[u8]) {
         let mut mock_hal = TestingHal::new();
         let timestamp = 1601281809;
         let birthdate = timestamp - 32400;
         assert!(
-            block_on(create(
-                &mut mock_hal,
-                seed,
-                "test name",
-                timestamp,
-                birthdate
-            ))
-            .is_ok()
+            create(&mut mock_hal, seed, "test name", timestamp, birthdate)
+                .await
+                .is_ok()
         );
         let dir = id(seed);
+        assert_eq!(mock_hal.sd.list_subdir(None).await, Ok(vec![dir.clone()]));
         assert_eq!(
-            block_on(mock_hal.sd.list_subdir(None)),
-            Ok(vec![dir.clone()])
-        );
-        assert_eq!(
-            block_on(mock_hal.sd.list_subdir(Some(&dir))),
+            mock_hal.sd.list_subdir(Some(&dir)).await,
             Ok(vec![
                 "backup_Mon_2020-09-28T08-30-09Z_0.bin".into(),
                 "backup_Mon_2020-09-28T08-30-09Z_1.bin".into(),
@@ -330,17 +320,12 @@ mod tests {
 
         // Recreating using same timestamp is not allowed and doesn't change the backups.
         assert!(
-            block_on(create(
-                &mut mock_hal,
-                seed,
-                "new name",
-                timestamp,
-                birthdate
-            ))
-            .is_err()
+            create(&mut mock_hal, seed, "new name", timestamp, birthdate)
+                .await
+                .is_err()
         );
         assert_eq!(
-            block_on(mock_hal.sd.list_subdir(Some(&dir))),
+            mock_hal.sd.list_subdir(Some(&dir)).await,
             Ok(vec![
                 "backup_Mon_2020-09-28T08-30-09Z_0.bin".into(),
                 "backup_Mon_2020-09-28T08-30-09Z_1.bin".into(),
@@ -348,14 +333,12 @@ mod tests {
             ])
         );
 
-        let contents: [zeroize::Zeroizing<Vec<u8>>; 3] =
-            block_on(mock_hal.sd.list_subdir(Some(&dir)))
-                .unwrap()
-                .iter()
-                .map(|file| block_on(mock_hal.sd.load_bin(file, &dir)).unwrap())
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap();
+        let files = mock_hal.sd.list_subdir(Some(&dir)).await.unwrap();
+        let mut contents = alloc::vec::Vec::with_capacity(files.len());
+        for file in files.iter() {
+            contents.push(mock_hal.sd.load_bin(file, &dir).await.unwrap());
+        }
+        let contents: [zeroize::Zeroizing<Vec<u8>>; 3] = contents.try_into().unwrap();
         assert!(
             contents[0].as_slice() == contents[1].as_slice()
                 && contents[0].as_slice() == contents[2].as_slice()
@@ -363,17 +346,12 @@ mod tests {
 
         // Recreating the backup removes the previous files.
         assert!(
-            block_on(create(
-                &mut mock_hal,
-                seed,
-                "new name",
-                timestamp + 1,
-                birthdate
-            ))
-            .is_ok()
+            create(&mut mock_hal, seed, "new name", timestamp + 1, birthdate)
+                .await
+                .is_ok()
         );
         assert_eq!(
-            block_on(mock_hal.sd.list_subdir(Some(&dir))),
+            mock_hal.sd.list_subdir(Some(&dir)).await,
             Ok(vec![
                 "backup_Mon_2020-09-28T08-30-10Z_0.bin".into(),
                 "backup_Mon_2020-09-28T08-30-10Z_1.bin".into(),
@@ -381,19 +359,19 @@ mod tests {
             ])
         );
 
-        let (backup_data, metadata) = block_on(load(&mut mock_hal, &dir)).unwrap();
+        let (backup_data, metadata) = load(&mut mock_hal, &dir).await.unwrap();
         assert_eq!(backup_data.get_seed(), seed);
         assert_eq!(backup_data.0.birthdate, birthdate);
         assert_eq!(metadata.name.as_str(), "new name");
         assert_eq!(metadata.timestamp, timestamp + 1);
     }
 
-    #[test]
-    fn test_create_load() {
+    #[async_test::test]
+    async fn test_create_load() {
         // Test for seeds of different size.
-        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c\x03\xbf\x74\x3a\xa5\xde\xe3\x7e"[..]);
-        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c"[..]);
-        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09"[..]);
+        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c\x03\xbf\x74\x3a\xa5\xde\xe3\x7e"[..]).await;
+        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c"[..]).await;
+        _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09"[..]).await;
     }
 
     #[test]

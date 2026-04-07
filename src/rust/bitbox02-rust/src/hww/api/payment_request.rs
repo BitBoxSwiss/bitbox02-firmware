@@ -522,7 +522,7 @@ mod tests {
         assert_eq!(swapkit_identity.name, "SWAPKIT");
         assert_eq!(
             swapkit_identity.public_key,
-            hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff")
+            hex!("02bf5740a2b794b33d73358d7313e9cb260058f3ac6c886fcc388d9f3f0b48a90d")
         );
 
         assert_eq!(find_identity("SWAPKIT Provider").unwrap().name, "SWAPKIT");

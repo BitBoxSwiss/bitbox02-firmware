@@ -30,6 +30,9 @@ the host.
 Use `./scripts/dev_exec.sh <command>` only for project-specific commands that depend on the project
 toolchain or compiler environment.
 
+In practice, the repository `make` targets in this file are project-specific toolchain commands.
+When running from the host, invoke them via `./scripts/dev_exec.sh make <target>`.
+
 Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. Prefer changing CWD
 with CLI args like `tar -C <PATH>` or `cargo build --manifest-path <PATH>`. If
 a command genuinely needs shell features such as pipes, pass an explicit shell
@@ -40,6 +43,11 @@ as the command, e.g.  `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
 - `make unit-test && make run-unit-tests`:  build and run the C cmocka/CTest suite with ASan/UBSan.
 - `make run-rust-unit-tests`: build and run the Rust unit tests
 - `make run-rust-clippy`: lint Rust code with the workspace configuration.
+- When invoking the above `make` targets from the host, prefer
+  `./scripts/dev_exec.sh make <target>`.
+- Rust tests may also be run directly with `cargo test`:
+  -  From the repository root on the host, use
+     `./scripts/dev_exec.sh cargo test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
 
 ## Coding Style & Naming Conventions
 `.clang-format` (Chromium base, 4-space indent, Linux braces) and `.clang-tidy` govern C/C++. Use

@@ -7,6 +7,8 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+
+### v9.26.0
 - Improve experience of moving back and forth when entering password characters
 - Ethereum: add data streaming support for transactions and EIP-712 typed messages with large data
 - Ethereum: allow EIP-712 typed message signing without anti-klepto host nonce commitment

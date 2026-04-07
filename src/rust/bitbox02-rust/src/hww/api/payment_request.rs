@@ -35,7 +35,7 @@ const IDENTITIES: &[Identity] = &[
     },
     Identity {
         name: "SWAPKIT",
-        public_key: &hex!("03098cba9cde720171796a5c58cb774b0cd19deb62e9b51df5967aefeba34632ff"),
+        public_key: &hex!("02bf5740a2b794b33d73358d7313e9cb260058f3ac6c886fcc388d9f3f0b48a90d"),
     },
     #[cfg(any(feature = "testing", feature = "c-unit-testing"))]
     Identity {

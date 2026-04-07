@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <stdint.h>
+
 #include <da14531/da14531.h>
 #include <da14531/da14531_handler.h>
 #include <da14531/da14531_protocol.h>
 #include <delay.h>
+#include <flags.h>
 #include <hww.h>
 #include <memory/bitbox02_smarteeprom.h>
 #include <memory/memory.h>
@@ -50,6 +53,9 @@
 #include <usb/usb_processing.h>
 #include <util.h>
 #include <utils_ringbuffer.h>
+
+static const uintptr_t BITBOX02_FLASH_BOOT_START = FLASH_BOOT_START;
+static const uintptr_t BITBOX02_FLASH_BOOT_LEN = FLASH_BOOT_LEN;
 
 #if defined(TESTING)
     #include <fake_memory.h>

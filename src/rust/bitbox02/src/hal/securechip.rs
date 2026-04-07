@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use bitbox_hal::SecureChip;
 use bitbox_hal::memory::PasswordStretchAlgo;
@@ -77,6 +77,10 @@ fn to_c_password_stretch_algo(algo: PasswordStretchAlgo) -> bitbox_securechip::P
 }
 
 impl SecureChip for BitBox02SecureChip {
+    fn random(&mut self) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+        crate::securechip::random().map_err(to_hal_error)
+    }
+
     fn init_new_password(
         &mut self,
         password: &str,

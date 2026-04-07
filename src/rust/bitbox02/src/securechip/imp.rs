@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use bitbox_securechip::{Error, Model, PasswordStretchAlgo, atecc, optiga};
 use core::ffi::c_int;
 use util::cell::SyncCell;
@@ -22,6 +22,13 @@ pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Resul
     match backend() {
         Backend::Atecc => atecc::attestation_sign(challenge, signature),
         Backend::Optiga => optiga::attestation_sign(challenge, signature),
+    }
+}
+
+pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+    match backend() {
+        Backend::Atecc => atecc::random(),
+        Backend::Optiga => optiga::random(),
     }
 }
 
@@ -136,8 +143,8 @@ pub unsafe extern "C" fn rust_securechip_gen_attestation_key(pubkey_out: *mut u8
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_securechip_random(rand_out: *mut u8) -> bool {
     match backend() {
-        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_random(rand_out) },
-        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_random(rand_out) },
+        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_random(rand_out) == 0 },
+        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_random(rand_out) == 0 },
     }
 }
 

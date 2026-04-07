@@ -11,6 +11,8 @@ const ALLOWLIST_VARS: &[&str] = &[
     "BIP39_WORDLIST_LEN",
     "da14531_handler_current_product",
     "da14531_handler_current_product_len",
+    "BITBOX02_FLASH_BOOT_LEN",
+    "BITBOX02_FLASH_BOOT_START",
     "font_font_a_11X10",
     "font_font_a_9X9",
     "font_monogram_5X9",

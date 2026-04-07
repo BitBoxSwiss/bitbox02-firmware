@@ -3,6 +3,7 @@
 #[cfg(feature = "ed25519")]
 pub mod ed25519;
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -36,6 +37,7 @@ pub trait KeystoreHal {
     fn memory(&mut self) -> &mut Self::Memory;
     fn random(&mut self) -> &mut Self::Random;
     fn securechip(&mut self) -> &mut Self::SecureChip;
+    fn random_and_securechip(&mut self) -> (&mut Self::Random, &mut Self::SecureChip);
 }
 
 pub struct KeystoreHalImpl<'a, E: Eeprom, M: Memory, R: Random, S: SecureChip> {
@@ -98,6 +100,10 @@ impl<E: Eeprom, M: Memory, R: Random, S: SecureChip> KeystoreHal
     fn securechip(&mut self) -> &mut Self::SecureChip {
         self.securechip
     }
+
+    fn random_and_securechip(&mut self) -> (&mut Self::Random, &mut Self::SecureChip) {
+        (self.random, self.securechip)
+    }
 }
 
 #[derive(Debug)]
@@ -125,6 +131,11 @@ impl core::convert::From<securechip::Error> for Error {
             securechip::Error::Status(status) => Error::SecureChip(status),
         }
     }
+}
+
+fn random_32_bytes(hal: &mut impl KeystoreHal) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+    let (random, securechip) = hal.random_and_securechip();
+    crate::random::random_32_bytes(random, securechip).map_err(Into::into)
 }
 
 #[derive(Copy, Clone)]
@@ -166,19 +177,14 @@ impl RetainedEncryptedBuffer {
         data: &[u8],
         purpose: &'static str,
     ) -> Result<Self, Error> {
-        let rand: [u8; 32] = hal
-            .random()
-            .random_32_bytes()
-            .as_slice()
-            .try_into()
-            .unwrap();
+        let rand: [u8; 32] = random_32_bytes(hal)?.as_slice().try_into().unwrap();
         let encryption_key = stretch_retained_seed_encryption_key(
             hal,
             &rand,
             &format!("{}_in", purpose),
             &format!("{}_out", purpose),
         )?;
-        let iv_rand = hal.random().random_32_bytes();
+        let iv_rand = random_32_bytes(hal)?;
         let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
         let encrypted = bitbox_aes::encrypt_with_hmac(iv, &encryption_key, data);
         Ok(RetainedEncryptedBuffer {
@@ -313,7 +319,7 @@ fn encrypt_and_store_seed_internal(
         .securechip()
         .init_new_password(password, password_stretch_algo)?;
 
-    let iv_rand = hal.random().random_32_bytes();
+    let iv_rand = crate::random::random_32_bytes_from_hal(hal)?;
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
     let encrypted = bitbox_aes::encrypt_with_hmac(iv, &secret, seed);
 
@@ -538,7 +544,7 @@ pub fn create_and_store_seed(
         return Err(Error::SeedSize);
     }
 
-    let mut seed_vec = hal.random().random_32_bytes();
+    let mut seed_vec = crate::random::random_32_bytes_from_hal(hal)?;
     let seed = &mut seed_vec[..seed_len];
 
     // Mix in host entropy.
@@ -805,7 +811,7 @@ pub fn secp256k1_schnorr_sign(
             .map_err(|_| ())?;
     }
 
-    let aux_rand = hal.random().random_32_bytes();
+    let aux_rand = crate::random::random_32_bytes_from_hal(hal).map_err(|_| ())?;
     let sig = SECP256K1.sign_schnorr_with_aux_rand(
         &bitcoin::secp256k1::Message::from_digest(*msg),
         &keypair,
@@ -856,8 +862,9 @@ pub mod testing {
 mod tests {
     use super::*;
 
-    use crate::hal::testing::TestingHal;
+    use crate::hal::testing::{TestingHal, TestingRandom};
     use hex_lit::hex;
+    use sha2::Digest;
 
     use bitbox02::testing::mock_memory;
     use testing::{TEST_MNEMONIC, mock_unlocked, mock_unlocked_using_mnemonic};
@@ -926,15 +933,23 @@ mod tests {
             ));
         }
 
-        // Hack to get the random bytes that will be used.
+        // Mock the randomness that will be used.
         let seed_random = [0x34; 32];
+        let securechip_random =
+            hex!("1111111111111111222222222222222233333333333333334444444444444444");
+        let factory_randomness = TestingRandom::FACTORY_RANDOMNESS;
 
         // Derived from mock_salt_root and "password".
         let password_salted_hashed =
             hex!("e8c70a20d9108fbb9454b1b8e2d7373e78cbaf9de025ab2d4f4d3c7a6711694c");
 
-        // expected_seed = seed_random ^ host_entropy ^ password_salted_hashed
-        let expected_seed: Vec<u8> = seed_random
+        // expected_seed =
+        // sha256(seed_random ^ securechip_random ^ factory_randomness) ^ host_entropy ^
+        // password_salted_hashed
+        let mixed_random: [u8; 32] =
+            core::array::from_fn(|i| seed_random[i] ^ securechip_random[i] ^ factory_randomness[i]);
+        let expected_random: [u8; 32] = sha2::Sha256::digest(mixed_random).into();
+        let expected_seed: Vec<u8> = expected_random
             .into_iter()
             .zip(host_entropy.iter())
             .zip(password_salted_hashed)
@@ -946,6 +961,7 @@ mod tests {
             hal.memory.set_salt_root(&mock_salt_root);
 
             hal.random.mock_next(seed_random);
+            hal.securechip.mock_random(securechip_random);
             assert!(create_and_store_seed(&mut hal, "password", &host_entropy[..size]).is_ok());
             assert_eq!(
                 copy_seed(&mut hal).unwrap().as_slice(),
@@ -1243,7 +1259,7 @@ mod tests {
         // Also check that the retained seed was encrypted with the expected encryption key.
         let decrypted = {
             let expected_retained_seed_secret =
-                hex!("b156be416530c6fc00018844161774a3546a53ac6dd4a0462608838e216008f7");
+                hex!("15964d70dc2075025c46db12843b4c5a68f54c4809b4e2e078e88b9a4a3106ff");
             bitbox_aes::decrypt_with_hmac(
                 &expected_retained_seed_secret,
                 RETAINED_SEED.read().unwrap().encrypted_seed.as_slice(),
@@ -1572,7 +1588,7 @@ mod tests {
         // Check that the retained bip39 seed was encrypted with the expected encryption key.
         let decrypted = {
             let expected_retained_bip39_seed_secret =
-                hex!("856d9a8c1ea42a69ae76324244ace674397ff1360a4ba4c85ffbd42cee8a7f29");
+                hex!("e0985ca64ab7b7a70d9c890d87aed1c1dc35ad2bd7f88785b37696610fea8ead");
             bitbox_aes::decrypt_with_hmac(
                 &expected_retained_bip39_seed_secret,
                 RETAINED_BIP39_SEED

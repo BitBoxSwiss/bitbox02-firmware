@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use bitbox_securechip::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use hex_lit::hex;
 use hmac::{Hmac, Mac};
@@ -26,6 +26,10 @@ fn hmac_sha256(key: &[u8], data: &[u8]) -> [u8; 32] {
 
 pub fn attestation_sign(_challenge: &[u8; 32], _signature: &mut [u8; 64]) -> Result<(), ()> {
     Err(())
+}
+
+pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+    Ok(Box::new(Zeroizing::new([0u8; 32])))
 }
 
 pub fn monotonic_increments_remaining() -> Result<u32, ()> {

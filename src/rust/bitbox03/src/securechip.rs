@@ -3,6 +3,13 @@ use bitbox_hal as hal;
 pub struct BitBox03SecureChip;
 
 impl hal::securechip::SecureChip for BitBox03SecureChip {
+    fn random(
+        &mut self,
+    ) -> Result<alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>>, bitbox_hal::securechip::Error>
+    {
+        todo!()
+    }
+
     fn init_new_password(
         &mut self,
         _password: &str,

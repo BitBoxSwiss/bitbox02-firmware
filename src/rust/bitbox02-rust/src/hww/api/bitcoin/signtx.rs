@@ -3927,11 +3927,6 @@ mod tests {
                     body: "12.34567890 BTC\nto\n0.25 ETH".into(),
                     longtouch: false,
                 },
-                Screen::Confirm {
-                    title: "Receive to".into(),
-                    body: "ETH account #1".into(),
-                    longtouch: false,
-                },
                 Screen::Recipient {
                     recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),
                     amount: "0.00006000 BTC".into(),

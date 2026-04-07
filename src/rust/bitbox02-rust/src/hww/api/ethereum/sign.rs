@@ -1174,11 +1174,6 @@ mod tests {
                 body: "0.530564 ETH\nto\n0.25 ETH".into(),
                 longtouch: false,
             },
-            Screen::Confirm {
-                title: "Receive to".into(),
-                body: "ETH account #1".into(),
-                longtouch: false,
-            },
             Screen::TotalFee {
                 total: "0.53069 ETH".into(),
                 fee: "0.000126 ETH".into(),
@@ -1252,11 +1247,6 @@ mod tests {
             Screen::Confirm {
                 title: "SWAP".into(),
                 body: "57 USDT\nto\n0.25 ETH".into(),
-                longtouch: false,
-            },
-            Screen::Confirm {
-                title: "Receive to".into(),
-                body: "ETH account #1".into(),
                 longtouch: false,
             },
             Screen::TotalFee {

@@ -153,53 +153,12 @@ pub async fn user_verify(
                     "{displayed_source_amount}\nto\n{}",
                     coin_purchase_memo.amount
                 );
+                let _ = parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
                 hal.ui()
                     .confirm(&ConfirmParams {
                         title: "SWAP",
                         body: &swap_body,
                         scrollable: true,
-                        accept_is_nextarrow: true,
-                        ..Default::default()
-                    })
-                    .await?;
-                let (_, destination_unit) = parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
-                let address_derivation = coin_purchase_memo
-                    .address_derivation
-                    .as_ref()
-                    .ok_or(Error::InvalidInput)?;
-                let destination_account = match address_derivation {
-                    memo::coin_purchase_memo::AddressDerivation::Eth(eth) => {
-                        eth.keypath
-                            .get(2)
-                            .ok_or(Error::InvalidInput)?
-                            .checked_sub(util::bip32::HARDENED)
-                            .ok_or(Error::InvalidInput)?
-                            + 1
-                    }
-                    memo::coin_purchase_memo::AddressDerivation::Btc(btc) => {
-                        if !matches!(
-                            (coin_purchase_memo.coin_type, destination_unit),
-                            (0, "BTC") | (2, "LTC")
-                        ) {
-                            return Err(Error::InvalidInput);
-                        }
-
-                        let script_config =
-                            btc.script_config.as_ref().ok_or(Error::InvalidInput)?;
-
-                        script_config
-                            .keypath
-                            .get(2)
-                            .ok_or(Error::InvalidInput)?
-                            .checked_sub(util::bip32::HARDENED)
-                            .ok_or(Error::InvalidInput)?
-                            + 1
-                    }
-                };
-                hal.ui()
-                    .confirm(&ConfirmParams {
-                        title: "Receive to",
-                        body: &format!("{destination_unit} account #{destination_account}"),
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
@@ -1447,11 +1406,6 @@ mod tests {
                     body: "0.25000000 BTC\nto\n0.25 ETH".into(),
                     longtouch: false,
                 },
-                Screen::Confirm {
-                    title: "Receive to".into(),
-                    body: "ETH account #1".into(),
-                    longtouch: false,
-                },
             ]
         );
     }
@@ -1499,11 +1453,6 @@ mod tests {
                 Screen::Confirm {
                     title: "SWAP".into(),
                     body: "0.25000000 BTC\nto\n0.25 LTC".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Receive to".into(),
-                    body: "LTC account #1".into(),
                     longtouch: false,
                 },
             ]
@@ -1614,86 +1563,23 @@ mod tests {
     #[cfg(all(feature = "app-litecoin", feature = "app-ethereum"))]
     #[async_test::test]
     async fn test_user_verify_swap_invalid() {
-        // Invalid swap requests that user_verify must reject because the
-        // UI cannot render them safely.
-        for payment_request in [
-            // Missing destination derivation, so "Receive to" cannot be built.
-            pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
-                memos: vec![make_coin_purchase_memo(60, "0.25 ETH", "0x123", None)],
-                nonce: vec![],
-                total_amount: 25000000,
-                signature: vec![],
-            },
-            // Destination keypath is too short to contain an account element.
-            pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
-                memos: vec![make_coin_purchase_memo(
-                    60,
-                    "0.25 ETH",
-                    "0x123",
-                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
-                        memo::coin_purchase_memo::EthAddressDerivation {
-                            keypath: vec![44 + util::bip32::HARDENED, 60 + util::bip32::HARDENED],
-                        },
-                    )),
-                )],
-                nonce: vec![],
-                total_amount: 25000000,
-                signature: vec![],
-            },
-            // BTC-like derivation requires script_config.
-            pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
-                memos: vec![make_coin_purchase_memo(
-                    0,
-                    "0.25 BTC",
-                    "bc1qdestination",
-                    Some(memo::coin_purchase_memo::AddressDerivation::Btc(
-                        memo::coin_purchase_memo::BtcAddressDerivation {
-                            script_config: None,
-                        },
-                    )),
-                )],
-                nonce: vec![],
-                total_amount: 25000000,
-                signature: vec![],
-            },
-            // BTC-like destination keypath is too short to contain an account element.
-            pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
-                memos: vec![make_coin_purchase_memo(
-                    0,
-                    "0.25 BTC",
-                    "bc1qdestination",
-                    Some(dummy_btc_address_derivation(
-                        pb::btc_script_config::SimpleType::P2wpkh,
-                        &[84 + util::bip32::HARDENED, 0 + util::bip32::HARDENED],
-                    )),
-                )],
-                nonce: vec![],
-                total_amount: 25000000,
-                signature: vec![],
-            },
-            // Display amount must be exactly "<positive-decimal> <unit>".
-            pb::BtcPaymentRequestRequest {
-                recipient_name: "SWAPKIT (Provider)".into(),
-                memos: vec![make_coin_purchase_memo(
-                    60,
-                    "foo bar baz",
-                    "0x123",
-                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
-                )],
-                nonce: vec![],
-                total_amount: 25000000,
-                signature: vec![],
-            },
-        ] {
-            let mut mock_hal = TestingHal::new();
-            assert_eq!(
-                user_verify(&mut mock_hal, &payment_request, "0.25000000 BTC",).await,
-                Err(Error::InvalidInput)
-            );
-        }
+        // Display amount must be exactly "<positive-decimal> <unit>".
+        let payment_request = pb::BtcPaymentRequestRequest {
+            recipient_name: "SWAPKIT (Provider)".into(),
+            memos: vec![make_coin_purchase_memo(
+                60,
+                "foo bar baz",
+                "0x123",
+                Some(dummy_eth_address_derivation(/*valid=*/ true)),
+            )],
+            nonce: vec![],
+            total_amount: 25000000,
+            signature: vec![],
+        };
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            user_verify(&mut mock_hal, &payment_request, "0.25000000 BTC",).await,
+            Err(Error::InvalidInput),
+        );
     }
 }

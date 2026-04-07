@@ -1023,7 +1023,7 @@ async fn _process(
                         return Err(Error::Disabled);
                     }
                     Err(_) => {
-                        hal.ui().status("Invalid\npayment request", true).await;
+                        hal.ui().status("Invalid\npayment request", false).await;
                         return Err(Error::InvalidInput);
                     }
                 }

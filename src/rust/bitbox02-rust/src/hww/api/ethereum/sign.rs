@@ -183,7 +183,7 @@ async fn verify_payment_request_recipient(
     {
         Ok(()) => Ok(()),
         Err(_) => {
-            hal.ui().status("Invalid\npayment request", true).await;
+            hal.ui().status("Invalid\npayment request", false).await;
             Err(Error::InvalidInput)
         }
     }

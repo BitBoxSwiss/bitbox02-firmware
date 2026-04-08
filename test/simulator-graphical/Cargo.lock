@@ -346,6 +346,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-securechip"
+version = "0.1.0"
+dependencies = [
+ "bitbox-securechip-sys",
+ "util",
+ "zeroize",
+]
+
+[[package]]
+name = "bitbox-securechip-sys"
+version = "0.1.0"
+
+[[package]]
 name = "bitbox-u2fhid"
 version = "0.1.0"
 dependencies = [
@@ -367,6 +380,8 @@ dependencies = [
  "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-securechip",
+ "bitbox-securechip-sys",
  "bitbox-usb-report-queue",
  "bitbox02-noise",
  "bitbox02-sys",

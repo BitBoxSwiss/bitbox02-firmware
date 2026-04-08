@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::*;
+use alloc::vec::Vec;
+use bitbox_securechip::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use hex_lit::hex;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use zeroize::Zeroizing;
 
 const PASSWORD_STRETCH_KEY: &[u8] = b"unit-test";
 const KDF_KEY: [u8; 32] = hex!("d2e1e6b18b6c6b08433edbc1d168c1a0043774a4221877e79ed56684be5ac01b");
@@ -39,8 +41,8 @@ pub fn init_new_password(
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Zeroizing<Vec<u8>>, Error> {
     if password_stretch_algo != PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1 {
-        return Err(Error::from_status(
-            SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO as i32,
+        return Err(Error::SecureChip(
+            SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
         ));
     }
     Ok(Zeroizing::new(

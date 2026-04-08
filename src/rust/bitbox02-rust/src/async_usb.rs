@@ -6,11 +6,14 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::RefCell;
-use core::task::Poll;
-use util::bb02_async::{Task, option, spin as spin_task};
+use core::future::Future;
+use core::pin::Pin;
+use core::task::{Context, Poll, Waker};
+use util::futures::completion;
 
 type UsbOut = Vec<u8>;
 type UsbIn = Vec<u8>;
+type UsbTask = Pin<Box<dyn Future<Output = UsbOut> + 'static>>;
 
 /// If a task is running (see `UsbTaskState`), this state is active and manages waiting for another
 /// request from the host in an async fashion. This allows to have multi-request workflows in async.
@@ -24,26 +27,15 @@ enum WaitingForNextRequestState {
     /// Since we have a strict request<->response model, we always need to send a response before
     /// getting another request. In this state, we are ready to send a response and are waiting for
     /// the host to fetch it.
-    SendingResponse(UsbOut),
+    SendingResponse(UsbOut, completion::Responder<UsbIn>),
     /// Host got the response, now we are waiting for the next request by the host.
-    AwaitingRequest,
+    AwaitingRequest(completion::Responder<UsbIn>),
 }
-
-/// A safer version of `Option<UsbIn>`. RefCell so we cannot accidentally borrow illegally.
-struct SafeNextRequest(RefCell<Option<UsbIn>>);
-
-/// Safety: this implements Sync even though it is not thread safe. This is okay, as we
-/// run only in a single thread in the BitBox02.
-unsafe impl Sync for SafeNextRequest {}
-
-/// An option resolving the `next_request()` future. It is `Some(...)` once a request we've been
-/// waiting for arrives. See `next_request()` for more details.
-static NEXT_REQUEST: SafeNextRequest = SafeNextRequest(RefCell::new(None));
 
 /// Describes the global state of an api query. The documentation of
 /// the variants apply to the HWW stack, but have analogous meaning in
 /// the U2F stack.
-enum UsbTaskState<'a> {
+enum UsbTaskState {
     /// Waiting for a new query, nothing to do.
     Nothing,
     /// A query came in which launched a task, which is now running (e.g. user is entering a
@@ -56,7 +48,7 @@ enum UsbTaskState<'a> {
     ///
     /// The second element manages waiting for another request while processing a request, allowing
     /// multi-request workflows.
-    Running(Option<Task<'a, UsbOut>>, WaitingForNextRequestState),
+    Running(Option<UsbTask>, WaitingForNextRequestState),
     /// The task has finished and written the result, so the USB response is available. We are now
     /// waiting for the host to fetch it (HWW_REQ_RETRY). For short-circuited or non-async api
     /// calls, the result might be returned immediately in response to HWW_REQ_NEW.
@@ -64,7 +56,7 @@ enum UsbTaskState<'a> {
 }
 
 /// A safer version of UsbTaskState. RefCell so we cannot accidentally borrow illegally.
-struct SafeUsbTaskState(RefCell<UsbTaskState<'static>>);
+struct SafeUsbTaskState(RefCell<UsbTaskState>);
 
 /// Safety: this implements Sync even though it is not thread safe. This is okay, as we
 /// run only in a single thread in the BitBox02.
@@ -85,7 +77,7 @@ where
     let mut state = USB_TASK_STATE.0.borrow_mut();
     match *state {
         UsbTaskState::Nothing => {
-            let task: Task<UsbOut> = Box::pin(workflow(usb_in.to_vec()));
+            let task: UsbTask = Box::pin(workflow(usb_in.to_vec()));
 
             *state = UsbTaskState::Running(Some(task), WaitingForNextRequestState::Idle);
         }
@@ -101,7 +93,7 @@ where
 pub fn waiting_for_next_request() -> bool {
     matches!(
         *USB_TASK_STATE.0.borrow(),
-        UsbTaskState::Running(Some(_), WaitingForNextRequestState::AwaitingRequest)
+        UsbTaskState::Running(Some(_), WaitingForNextRequestState::AwaitingRequest(_))
     )
 }
 
@@ -113,14 +105,15 @@ pub fn is_idle() -> bool {
 /// this, otherwise this function panics.
 pub fn on_next_request(usb_in: &[u8]) {
     let mut state = USB_TASK_STATE.0.borrow_mut();
-    match *state {
+    match &mut *state {
         UsbTaskState::Running(
             Some(_),
-            ref mut next_request_state @ WaitingForNextRequestState::AwaitingRequest,
+            next_request_state @ WaitingForNextRequestState::AwaitingRequest(_),
         ) => {
-            // Resolve NEXT_REQUEST future.
-            *NEXT_REQUEST.0.borrow_mut() = Some(usb_in.to_vec());
-
+            let WaitingForNextRequestState::AwaitingRequest(responder) = next_request_state else {
+                unreachable!();
+            };
+            responder.resolve(usb_in.to_vec());
             *next_request_state = WaitingForNextRequestState::Idle;
         }
         _ => panic!("on_next_request: wrong state"),
@@ -144,7 +137,8 @@ pub fn spin() {
         _ => None,
     };
     if let Some(ref mut task) = popped_task {
-        let spin_result = spin_task(task);
+        let context = &mut Context::from_waker(Waker::noop());
+        let spin_result = task.as_mut().poll(context);
         if matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing) {
             // The task was cancelled while it was running, so there is nothing to do with the
             // result.
@@ -188,12 +182,15 @@ pub fn take_response() -> Result<UsbOut, CopyResponseErr> {
     match &mut *state {
         UsbTaskState::Nothing => Err(CopyResponseErr::NotRunning),
         UsbTaskState::Running(Some(_), next_request_state) => {
-            if let WaitingForNextRequestState::SendingResponse(response) = next_request_state {
-                let response = core::mem::take(response);
-                *next_request_state = WaitingForNextRequestState::AwaitingRequest;
-                Ok(response)
-            } else {
-                Err(CopyResponseErr::NotReady)
+            match core::mem::replace(next_request_state, WaitingForNextRequestState::Idle) {
+                WaitingForNextRequestState::SendingResponse(response, responder) => {
+                    *next_request_state = WaitingForNextRequestState::AwaitingRequest(responder);
+                    Ok(response)
+                }
+                next_request_state_value => {
+                    *next_request_state = next_request_state_value;
+                    Err(CopyResponseErr::NotReady)
+                }
             }
         }
         UsbTaskState::Running(_, _) => Err(CopyResponseErr::NotReady),
@@ -213,7 +210,6 @@ pub fn take_response() -> Result<UsbOut, CopyResponseErr> {
 /// able to read the result (e.g. when resetting the BLE chip as part of a task), so another task
 /// can spawn afterwards immediately instead of being blocked by stale executor state.
 pub fn cancel() {
-    let _ = NEXT_REQUEST.0.borrow_mut().take();
     let mut state = USB_TASK_STATE.0.borrow_mut();
     *state = UsbTaskState::Nothing;
 }
@@ -223,17 +219,19 @@ pub fn cancel() {
 pub async fn next_request(response: UsbOut) -> UsbIn {
     // Scope so that `state` is dropped before `.await`, see
     // https://rust-lang.github.io/rust-clippy/master/index.html#await_holding_refcell_ref
-    {
+    let result = {
         let mut state = USB_TASK_STATE.0.borrow_mut();
+        let (responder, result) = completion::completion();
         match *state {
             UsbTaskState::Running(None, ref mut next_request_state) => {
-                *next_request_state = WaitingForNextRequestState::SendingResponse(response);
+                *next_request_state =
+                    WaitingForNextRequestState::SendingResponse(response, responder);
             }
             _ => panic!("next_request() called in wrong state"),
         }
-    }
-
-    option(&NEXT_REQUEST.0).await
+        result
+    };
+    result.await
 }
 
 #[cfg(test)]

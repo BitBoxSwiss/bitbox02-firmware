@@ -296,6 +296,16 @@ name = "bitbox-bytequeue"
 version = "0.1.0"
 
 [[package]]
+name = "bitbox-core-utils"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "digest",
+ "sha2",
+ "zeroize",
+]
+
+[[package]]
 name = "bitbox-da14531"
 version = "0.1.0"
 dependencies = [
@@ -412,6 +422,7 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox-bytequeue",
+ "bitbox-core-utils",
  "bitbox-da14531",
  "bitbox-executor",
  "bitbox-hal",
@@ -452,6 +463,7 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox-bytequeue",
+ "bitbox-core-utils",
  "bitbox-da14531",
  "bitbox-framed-serial-link",
  "bitbox-hal",

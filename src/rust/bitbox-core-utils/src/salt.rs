@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 
-use crate::hal::Memory;
+use bitbox_hal::Memory;
 use sha2::Digest;
 use zeroize::Zeroizing;
 
@@ -29,8 +29,7 @@ pub fn hash_data(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hal::testing::TestingMemory;
-    use core::convert::TryInto;
+    use bitbox_platform_host::memory::FakeMemory;
     use hex_lit::hex;
 
     const MOCK_SALT_ROOT: [u8; 32] =
@@ -38,7 +37,7 @@ mod tests {
 
     #[test]
     fn test_hash_data() {
-        let mut memory = TestingMemory::new();
+        let mut memory = FakeMemory::new();
         memory.set_salt_root(&MOCK_SALT_ROOT);
 
         let data = hex!("001122334455667788");
@@ -50,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_hash_data_empty_inputs() {
-        let mut memory = TestingMemory::new();
+        let mut memory = FakeMemory::new();
         memory.set_salt_root(&MOCK_SALT_ROOT);
 
         let expected = hex!("2dbb05dd73d94edba6946611aaca367f76c809e96f20499ad674e596050f9833");

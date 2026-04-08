@@ -35,7 +35,7 @@ impl TestingRandom {
     }
 }
 
-impl crate::hal::Random for TestingRandom {
+impl bitbox_hal::Random for TestingRandom {
     fn factory_randomness(&mut self) -> &'static [u8; 32] {
         &Self::FACTORY_RANDOMNESS
     }
@@ -48,7 +48,7 @@ impl crate::hal::Random for TestingRandom {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hal::Random;
+    use bitbox_hal::Random;
     use hex_lit::hex;
 
     #[test]

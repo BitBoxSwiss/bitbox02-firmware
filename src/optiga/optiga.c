@@ -1863,15 +1863,15 @@ bool optiga_monotonic_increments_remaining(uint32_t* remaining_out)
 }
 
 // rand_out must be 32 bytes
-bool optiga_random(uint8_t* rand_out)
+int optiga_random(uint8_t* rand_out)
 {
     optiga_lib_status_t res =
         optiga_ops_crypt_random_sync(_crypt, OPTIGA_RNG_TYPE_TRNG, rand_out, 32);
     if (res != OPTIGA_CRYPT_SUCCESS) {
         util_log("optiga_random failed: %x", res);
-        return false;
+        return res;
     }
-    return true;
+    return 0;
 }
 
 #if APP_U2F == 1 || FACTORYSETUP == 1

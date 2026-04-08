@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{Error, Model, PasswordStretchAlgo, SecureChipError};
-use alloc::{vec, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use zeroize::Zeroizing;
 
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
@@ -13,6 +13,15 @@ pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Resul
     }
 }
 
+pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+    let mut result = Box::new(Zeroizing::new([0u8; 32]));
+    let status = unsafe { bitbox_securechip_sys::atecc_random(result.as_mut_ptr()) };
+    if status == 0 {
+        Ok(result)
+    } else {
+        Err(Error::from_status(status))
+    }
+}
 pub fn monotonic_increments_remaining() -> Result<u32, ()> {
     let mut result = 0u32;
     match unsafe { bitbox_securechip_sys::atecc_monotonic_increments_remaining(&mut result) } {

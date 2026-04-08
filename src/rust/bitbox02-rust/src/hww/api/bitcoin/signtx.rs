@@ -2211,7 +2211,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "74fa05435a838a76ab34105f783d8d69136977b85df4644dec6afc85bba669ddb7c127d7a5a6d3cb406843b6e4366a276872228bb9efa4e3c22cfd07be3198b5"
+                        "87f00346f53b11e03175eaf5254e3aec432bfd9585465c83fb483e8ddaf0893b0460d764711b4adf5865419d06116abc174b1578372e11fcd41cd2db18c306a7"
                     )
                 );
             }
@@ -3415,7 +3415,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "63bb140c52b30f8625219dac0951cad4a6c1c2c5c6a014be40fd46a80ab77207780626f7d568e885f26484bbc3624714a26234a0da5236775cbfae5ed7a6ad8d"
+                        "d2816fd56495bac5815283381775e0a0dec837a5d646a0e5602c2451ed173ffae16d10bfe391458aa9499dd908fe6ab669ef571f8a78e98ea8de27d82013a76d"
                     )
                 );
             }

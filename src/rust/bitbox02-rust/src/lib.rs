@@ -28,6 +28,7 @@ pub mod keystore;
     not(any(feature = "c-unit-testing", feature = "simulator-graphical"))
 ))]
 pub mod main_loop;
+pub mod random;
 pub mod reset;
 pub mod salt;
 pub mod secp256k1;

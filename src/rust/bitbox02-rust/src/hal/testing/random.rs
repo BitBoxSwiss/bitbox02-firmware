@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-
-use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 
 use bitcoin::hashes::{Hash, sha256};
+use hex_lit::hex;
 
 pub struct TestingRandom {
     mock_next_values: VecDeque<[u8; 32]>,
@@ -11,6 +10,9 @@ pub struct TestingRandom {
 }
 
 impl TestingRandom {
+    pub const FACTORY_RANDOMNESS: [u8; 32] =
+        hex!("f71df5932e61dbaab9b9eca90e59c4b45ec91fadf803db15578c260c608eb46b");
+
     pub fn new() -> Self {
         Self {
             mock_next_values: VecDeque::new(),
@@ -34,8 +36,8 @@ impl TestingRandom {
 }
 
 impl crate::hal::Random for TestingRandom {
-    fn random_32_bytes(&mut self) -> Box<zeroize::Zeroizing<[u8; 32]>> {
-        Box::new(zeroize::Zeroizing::new(self.next_value()))
+    fn factory_randomness(&mut self) -> &'static [u8; 32] {
+        &Self::FACTORY_RANDOMNESS
     }
 
     fn mcu_32_bytes(&mut self, out: &mut [u8; 32]) {
@@ -48,21 +50,6 @@ mod tests {
     use super::*;
     use crate::hal::Random;
     use hex_lit::hex;
-
-    #[test]
-    fn test_random() {
-        let mut random = TestingRandom::new();
-        let first = random.random_32_bytes();
-        let second = random.random_32_bytes();
-        assert_eq!(
-            first.as_slice(),
-            &hex!("b40711a88c7039756fb8a73827eabe2c0fe5a0346ca7e0a104adc0fc764f528d"),
-        );
-        assert_eq!(
-            second.as_slice(),
-            &hex!("433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a"),
-        );
-    }
 
     #[test]
     fn test_mcu_32_bytes() {
@@ -79,5 +66,14 @@ mod tests {
             second,
             hex!("433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a"),
         );
+    }
+
+    #[test]
+    fn test_factory_randomness() {
+        let mut random = TestingRandom::new();
+        let first = random.factory_randomness();
+        let second = random.factory_randomness();
+        assert_eq!(first, &TestingRandom::FACTORY_RANDOMNESS);
+        assert_eq!(second, &TestingRandom::FACTORY_RANDOMNESS);
     }
 }

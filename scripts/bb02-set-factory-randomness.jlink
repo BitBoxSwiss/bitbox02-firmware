@@ -1,0 +1,9 @@
+// Factory randomness at FLASH_BOOT_START + FLASH_BOOT_LEN - 32 = 0xdfe0 (57312).
+// Writes the following 32-byte value in a single flash download:
+// df7b42ab6789d2f2ea16455acaab81e0d7eed33d8e195b9589fa3107814b944d
+mem 0xdfe0 0x20
+// Always use read-modify-write so only this small range is updated.
+exec SetFlashDLNoRMWThreshold = 0xFFFFFFFF
+loadfile scripts/bb02-set-factory-randomness.bin 0xdfe0 noreset
+mem 0xdfe0 0x20
+q

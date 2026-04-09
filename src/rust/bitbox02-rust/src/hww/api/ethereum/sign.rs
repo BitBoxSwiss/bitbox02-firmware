@@ -1230,10 +1230,10 @@ mod tests {
                 recipient: "Test Merchant".into(),
                 amount: "0.530564 ETH".into(),
             },
-            Screen::Confirm {
-                title: "SWAP".into(),
-                body: "0.530564 ETH\nto\n0.25 ETH".into(),
-                longtouch: false,
+            Screen::Swap {
+                title: "Swap".into(),
+                from: "0.530564 ETH".into(),
+                to: "0.25 ETH".into(),
             },
             Screen::TotalFee {
                 total: "0.53069 ETH".into(),
@@ -1305,10 +1305,10 @@ mod tests {
                 recipient: "Test Merchant".into(),
                 amount: "57 USDT".into(),
             },
-            Screen::Confirm {
-                title: "SWAP".into(),
-                body: "57 USDT\nto\n0.25 ETH".into(),
-                longtouch: false,
+            Screen::Swap {
+                title: "Swap".into(),
+                from: "57 USDT".into(),
+                to: "0.25 ETH".into(),
             },
             Screen::TotalFee {
                 total: "57 USDT".into(),

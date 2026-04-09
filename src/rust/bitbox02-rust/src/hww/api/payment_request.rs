@@ -4,6 +4,7 @@ use super::Error;
 use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 #[cfg(feature = "app-ethereum")]
 use num_bigint::BigUint;
@@ -22,6 +23,8 @@ use bitcoin::secp256k1;
 
 // Arbitrary limit on number of memos that a payment request can show to the user.
 const MAX_MEMOS_NUM: usize = 3;
+// Keep in sync with `hww/api/ethereum/amount.rs`.
+const COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE: usize = 13;
 
 struct Identity {
     name: &'static str,
@@ -110,6 +113,32 @@ fn parse_coin_purchase_amount(amount: &str) -> Result<(&str, &str), Error> {
     Ok((destination_amount, destination_unit))
 }
 
+/// Formats a coin purchase amount for display on the swap screen.
+///
+/// This matches the truncation budget used by Ethereum amount formatting, but only truncates after
+/// the decimal point so integer digits are always preserved.
+fn format_coin_purchase_amount_for_display(amount: &str) -> Result<String, Error> {
+    let (destination_amount, destination_unit) = parse_coin_purchase_amount(amount)?;
+
+    if destination_amount.len() <= COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE {
+        return Ok(amount.into());
+    }
+
+    let Some(decimal_position) = destination_amount.find('.') else {
+        return Ok(amount.into());
+    };
+
+    if decimal_position + 1 >= COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE {
+        return Ok(amount.into());
+    }
+
+    Ok(format!(
+        "{}... {}",
+        &destination_amount[..COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE],
+        destination_unit,
+    ))
+}
+
 /// Prompt the user to verify the payment request UI flow.
 /// The caller is responsible for formatting `payment_request.total_amount`
 /// into the final display string for the sent amount, e.g. `"0.1 BTC"`.
@@ -149,19 +178,14 @@ pub async fn user_verify(
             Memo {
                 memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
             } => {
-                let swap_body = format!(
-                    "{displayed_source_amount}\nto\n{}",
-                    coin_purchase_memo.amount
-                );
-                let _ = parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
+                let displayed_destination_amount =
+                    format_coin_purchase_amount_for_display(&coin_purchase_memo.amount)?;
                 hal.ui()
-                    .confirm(&ConfirmParams {
-                        title: "SWAP",
-                        body: &swap_body,
-                        scrollable: true,
-                        accept_is_nextarrow: true,
-                        ..Default::default()
-                    })
+                    .confirm_swap(
+                        "Swap",
+                        displayed_source_amount,
+                        &displayed_destination_amount,
+                    )
                     .await?;
             }
             _ => return Err(Error::InvalidInput),
@@ -561,6 +585,34 @@ mod tests {
         ] {
             assert_eq!(parse_coin_purchase_amount(amount), Err(Error::InvalidInput));
         }
+    }
+
+    #[test]
+    fn test_format_coin_purchase_amount_for_display() {
+        assert_eq!(
+            format_coin_purchase_amount_for_display("0.25 ETH"),
+            Ok("0.25 ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("12.45678901234 ETH"),
+            Ok("12.4567890123... ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("1.2345678901234 BTC"),
+            Ok("1.23456789012... BTC".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("12345678901234 ETH"),
+            Ok("12345678901234 ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("123456789012.34 ETH"),
+            Ok("123456789012.34 ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("foo ETH"),
+            Err(Error::InvalidInput)
+        );
     }
 
     #[test]
@@ -1401,10 +1453,49 @@ mod tests {
                     recipient: "SWAPKIT (Provider)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
-                Screen::Confirm {
-                    title: "SWAP".into(),
-                    body: "0.25000000 BTC\nto\n0.25 ETH".into(),
-                    longtouch: false,
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "0.25 ETH".into(),
+                },
+            ]
+        );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[async_test::test]
+    async fn test_user_verify_swap_truncated_destination_amount() {
+        let mut mock_hal = TestingHal::new();
+        user_verify(
+            &mut mock_hal,
+            &pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "12.45678901234 ETH",
+                    "0x123",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            "0.25000000 BTC",
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "SWAPKIT (Provider)".into(),
+                    amount: "0.25000000 BTC".into(),
+                },
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "12.4567890123... ETH".into(),
                 },
             ]
         );
@@ -1450,10 +1541,10 @@ mod tests {
                     recipient: "SWAPKIT (Provider)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
-                Screen::Confirm {
-                    title: "SWAP".into(),
-                    body: "0.25000000 BTC\nto\n0.25 LTC".into(),
-                    longtouch: false,
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "0.25 LTC".into(),
                 },
             ]
         );

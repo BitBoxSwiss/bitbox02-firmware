@@ -3922,10 +3922,10 @@ mod tests {
                     recipient: "Test Merchant".into(),
                     amount: "12.34567890 BTC".into(),
                 },
-                Screen::Confirm {
-                    title: "SWAP".into(),
-                    body: "12.34567890 BTC\nto\n0.25 ETH".into(),
-                    longtouch: false,
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "12.34567890 BTC".into(),
+                    to: "0.25 ETH".into(),
                 },
                 Screen::Recipient {
                     recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),

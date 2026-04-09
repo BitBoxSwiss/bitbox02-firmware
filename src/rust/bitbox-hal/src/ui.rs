@@ -76,6 +76,9 @@ pub trait Ui {
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort>;
 
+    /// Returns `Ok(())` if the user accepts the swap, `Err(UserAbort)` if the user rejects it.
+    async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort>;
+
     async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort>;
 
     async fn verify_total_fee(

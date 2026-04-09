@@ -117,6 +117,14 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     #[inline(always)]
+    async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort> {
+        match crate::ui::confirm_swap(title, from, to).await {
+            crate::ui::ConfirmResponse::Approved => Ok(()),
+            crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),
+        }
+    }
+
+    #[inline(always)]
     async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
         match crate::ui::confirm_transaction_address(amount, recipient).await {
             crate::ui::ConfirmResponse::Approved => Ok(()),

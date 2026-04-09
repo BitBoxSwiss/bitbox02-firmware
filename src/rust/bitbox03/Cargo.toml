@@ -12,4 +12,4 @@ png-decoder = { version="0.2"}
 zeroize = {workspace=true}
 
 [features]
-app-u2f = []
+app-u2f = ["bitbox-hal/app-u2f"]

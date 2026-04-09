@@ -5,7 +5,7 @@ use alloc::boxed::Box;
 use bitbox_hal::Memory;
 use zeroize::Zeroizing;
 
-pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
+pub async fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match unsafe {
         bitbox_securechip_sys::atecc_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
     } {

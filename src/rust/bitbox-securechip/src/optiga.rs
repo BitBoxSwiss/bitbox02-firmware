@@ -6,6 +6,8 @@ use bitbox_hal::{Memory, Random};
 use util::sha2::{hmac_sha256, hmac_sha256_overwrite, sha256};
 use zeroize::Zeroizing;
 
+mod der;
+
 #[cfg(not(test))]
 #[path = "optiga/ops.rs"]
 mod ops;
@@ -340,13 +342,14 @@ async fn stretch_password_v1(
     )
 }
 
-pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
-    match unsafe {
-        bitbox_securechip_sys::optiga_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
-    } {
-        true => Ok(()),
-        false => Err(()),
-    }
+pub async fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
+    let sig_der = ops::crypt_ecdsa_sign(
+        challenge,
+        bitbox_securechip_sys::optiga_key_id::OPTIGA_KEY_ID_E0F1,
+    )
+    .await
+    .map_err(|_| ())?;
+    der::parse_optiga_signature(sig_der.as_slice(), signature)
 }
 
 pub async fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
@@ -514,6 +517,21 @@ mod tests {
         // Provides a fixed salt root for deterministic hash_data() results.
         memory.set_salt_root(&SALT_ROOT_FIXED);
         (guard, memory)
+    }
+
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_attestation_sign() {
+        let (_guard, _memory) = setup_test();
+        let mut signature = [0u8; 64];
+        attestation_sign(&[0x42; 32], &mut signature).await.unwrap();
+        assert_eq!(
+            signature,
+            hex!(
+                "0000000000000000000000000000000000000000000000000000000000001234\
+                 000000000000000000000000000000000000000000000000000000000000abcd"
+            ),
+        );
     }
 
     // Expected stretched_out for password "pw" for the V0 algorithm given the deterministic fake

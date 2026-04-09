@@ -19,10 +19,10 @@ fn backend() -> Backend {
     BACKEND.read().unwrap()
 }
 
-pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
+pub async fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match backend() {
-        Backend::Atecc => atecc::attestation_sign(challenge, signature),
-        Backend::Optiga => optiga::attestation_sign(challenge, signature),
+        Backend::Atecc => atecc::attestation_sign(challenge, signature).await,
+        Backend::Optiga => optiga::attestation_sign(challenge, signature).await,
     }
 }
 

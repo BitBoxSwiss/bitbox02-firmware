@@ -39,7 +39,7 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    fn attestation_sign(
+    async fn attestation_sign(
         &mut self,
         _challenge: &[u8; 32],
         _signature: &mut [u8; 64],

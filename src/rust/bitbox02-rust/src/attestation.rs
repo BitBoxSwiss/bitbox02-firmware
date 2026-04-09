@@ -11,7 +11,7 @@ pub struct Data {
     pub challenge_signature: [u8; 64],
 }
 
-pub fn perform(hal: &mut impl crate::hal::Hal, host_challenge: [u8; 32]) -> Result<Data, ()> {
+pub async fn perform(hal: &mut impl crate::hal::Hal, host_challenge: [u8; 32]) -> Result<Data, ()> {
     let mut result = Data {
         bootloader_hash: [0; 32],
         device_pubkey: [0; 64],
@@ -27,7 +27,8 @@ pub fn perform(hal: &mut impl crate::hal::Hal, host_challenge: [u8; 32]) -> Resu
     result.bootloader_hash = hal.memory().get_attestation_bootloader_hash();
     let hash: [u8; 32] = Sha256::digest(host_challenge).into();
     hal.securechip()
-        .attestation_sign(&hash, &mut result.challenge_signature)?;
+        .attestation_sign(&hash, &mut result.challenge_signature)
+        .await?;
     Ok(result)
 }
 
@@ -37,8 +38,8 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use sha2::{Digest, Sha256};
 
-    #[test]
-    fn test_perform_success() {
+    #[async_test::test]
+    async fn test_perform_success() {
         let mut hal = TestingHal::new();
 
         let expected_pubkey = [0x55u8; 64];
@@ -59,7 +60,7 @@ mod tests {
 
         let host_challenge = [0x42u8; 32];
 
-        let data = perform(&mut hal, host_challenge).unwrap();
+        let data = perform(&mut hal, host_challenge).await.unwrap();
 
         assert_eq!(data.device_pubkey, expected_pubkey);
         assert_eq!(data.certificate, expected_certificate);
@@ -74,14 +75,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_perform_attestation_not_set() {
+    #[async_test::test]
+    async fn test_perform_attestation_not_set() {
         let mut hal = TestingHal::new();
         let host_challenge = [0u8; 32];
 
         // No attestation data configured on hal.memory(),
         // so get_attestation_pubkey_and_certificate should fail
         // and perform() should propagate Err(()).
-        assert!(perform(&mut hal, host_challenge).is_err());
+        assert!(perform(&mut hal, host_challenge).await.is_err());
     }
 }

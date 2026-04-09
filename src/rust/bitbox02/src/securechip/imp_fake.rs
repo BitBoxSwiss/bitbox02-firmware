@@ -24,7 +24,7 @@ fn hmac_sha256(key: &[u8], data: &[u8]) -> [u8; 32] {
     out
 }
 
-pub fn attestation_sign(_challenge: &[u8; 32], _signature: &mut [u8; 64]) -> Result<(), ()> {
+pub async fn attestation_sign(_challenge: &[u8; 32], _signature: &mut [u8; 64]) -> Result<(), ()> {
     Err(())
 }
 

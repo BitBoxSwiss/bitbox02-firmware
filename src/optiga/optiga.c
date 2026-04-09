@@ -1295,23 +1295,6 @@ bool optiga_gen_attestation_key(uint8_t* pubkey_out)
     return true;
 }
 
-bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out)
-{
-    uint8_t sig_der[70] = {0};
-    uint16_t sig_der_size = sizeof(sig_der);
-    optiga_lib_status_t res = optiga_ops_crypt_ecdsa_sign_sync(
-        _crypt, challenge, 32, OPTIGA_KEY_ID_E0F1, sig_der, &sig_der_size);
-    if (res != OPTIGA_CRYPT_SUCCESS) {
-        util_log("sign failed: %x", res);
-        return false;
-    }
-    // Parse signature, see Solution Reference Manual 6.2.2,
-    // example for ECC NIST-P256 signature.
-    // The R/S components are
-    return rust_der_parse_optiga_signature(
-        rust_util_bytes(sig_der, sig_der_size), rust_util_bytes_mut(signature_out, 64));
-}
-
 optiga_util_t* optiga_util_instance(void)
 {
     return _util;

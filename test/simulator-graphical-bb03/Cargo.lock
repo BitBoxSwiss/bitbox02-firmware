@@ -436,6 +436,7 @@ dependencies = [
  "bitbox-hal",
  "bitbox-securechip-sys",
  "critical-section",
+ "der",
  "grounded",
  "util",
  "zeroize",
@@ -1064,6 +1065,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "der"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7c1832837b905bbfb5101e07cc24c8deddf52f93225eee6ead5f4d63d53ddcb"
 
 [[package]]
 name = "deranged"

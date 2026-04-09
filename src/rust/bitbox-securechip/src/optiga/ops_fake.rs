@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::Error;
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
+use hex_lit::hex;
 use std::sync::{LazyLock, Mutex, MutexGuard};
 use zeroize::Zeroizing;
 
@@ -191,6 +192,14 @@ pub(super) async fn crypt_generate_auth_code(
     random_data: &mut [u8; 32],
 ) -> Result<(), Error> {
     crypt_generate_auth_code_sync(rng_type, random_data)
+}
+
+pub(super) async fn crypt_ecdsa_sign(
+    _digest: &[u8; super::KDF_LEN],
+    _private_key: bitbox_securechip_sys::optiga_key_id_t,
+) -> Result<Vec<u8>, Error> {
+    const SIG_DER: [u8; 9] = hex!("02021234020300abcd");
+    Ok(SIG_DER.to_vec())
 }
 
 pub(super) async fn crypt_hmac_verify(

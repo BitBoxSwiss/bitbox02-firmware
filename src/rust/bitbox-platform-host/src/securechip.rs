@@ -145,7 +145,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         )))
     }
 
-    fn attestation_sign(
+    async fn attestation_sign(
         &mut self,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],

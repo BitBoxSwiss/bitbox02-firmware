@@ -55,14 +55,6 @@ optiga_lib_status_t optiga_ops_crypt_ecc_generate_keypair_sync(
     uint8_t* public_key,
     uint16_t* public_key_length);
 
-optiga_lib_status_t optiga_ops_crypt_ecdsa_sign_sync(
-    optiga_crypt_t* me,
-    const uint8_t* digest,
-    uint8_t digest_length,
-    optiga_key_id_t private_key,
-    uint8_t* signature,
-    uint16_t* signature_length);
-
 optiga_lib_status_t optiga_ops_crypt_random_sync(
     optiga_crypt_t* me,
     optiga_rng_type_t rng_type,

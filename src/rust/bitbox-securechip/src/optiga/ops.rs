@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{Error, SecureChipError};
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 use core::cell::UnsafeCell;
 use core::future::poll_fn;
 use core::task::{Poll, Waker};
@@ -454,6 +454,59 @@ pub(super) async fn crypt_generate_auth_code(
     RANDOM.copy_to_slice(random_data);
     RANDOM.zeroize();
     Ok(())
+}
+
+pub(super) async fn crypt_ecdsa_sign(
+    digest: &[u8; super::KDF_LEN],
+    private_key: bitbox_securechip_sys::optiga_key_id_t,
+) -> Result<Vec<u8>, Error> {
+    const ECDSA_SIGNATURE_MAX_LEN: usize = 70;
+
+    // Static because the Optiga library keeps raw pointers to the input, output and length until
+    // the async callback completes, and the Rust future may be dropped before that happens.
+    static DIGEST: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
+    static SIGNATURE: StaticBytes<ECDSA_SIGNATURE_MAX_LEN> = StaticBytes::const_init();
+    static SIGNATURE_LEN: GroundedCell<u16> = GroundedCell::const_init();
+
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+
+    DIGEST.copy_from_slice(digest);
+    SIGNATURE.clear();
+    unsafe {
+        SIGNATURE_LEN.get().write(ECDSA_SIGNATURE_MAX_LEN as u16);
+    }
+    let result = run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_crypt_ecdsa_sign(
+            crypt,
+            DIGEST.as_mut_ptr(),
+            super::KDF_LEN as u8,
+            private_key,
+            SIGNATURE.as_mut_ptr(),
+            SIGNATURE_LEN.get(),
+        )
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32));
+    if let Err(err) = result {
+        DIGEST.zeroize();
+        SIGNATURE.zeroize();
+        return Err(err);
+    }
+
+    let signature_len = unsafe { SIGNATURE_LEN.get().read() as usize };
+    if signature_len > ECDSA_SIGNATURE_MAX_LEN {
+        DIGEST.zeroize();
+        SIGNATURE.zeroize();
+        return Err(Error::SecureChip(
+            SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN,
+        ));
+    }
+
+    let mut signature = alloc::vec![0; signature_len];
+    SIGNATURE.copy_to_slice(signature.as_mut_slice());
+    DIGEST.zeroize();
+    SIGNATURE.zeroize();
+    Ok(signature)
 }
 
 pub(super) async fn crypt_hmac_verify(

@@ -89,7 +89,7 @@ pub trait SecureChip {
 
     /// Signs a 32-byte attestation challenge and writes the raw 64-byte P-256 signature to
     /// `signature`.
-    fn attestation_sign(
+    async fn attestation_sign(
         &mut self,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],

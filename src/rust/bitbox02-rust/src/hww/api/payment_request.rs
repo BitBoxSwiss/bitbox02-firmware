@@ -387,6 +387,18 @@ fn validate_common(
                 Some(memo::coin_purchase_memo::AddressDerivation::Eth(_eth)) => {
                     #[cfg(feature = "app-ethereum")]
                     {
+                        if !super::ethereum::params::is_valid_payment_request_coin_type(
+                            coin_purchase_memo.coin_type,
+                        ) {
+                            return Err(ValidationError::Other);
+                        }
+                        let expected_bip44 = coin_purchase_memo
+                            .coin_type
+                            .checked_add(util::bip32::HARDENED)
+                            .ok_or(ValidationError::Other)?;
+                        if _eth.keypath.get(1) != Some(&expected_bip44) {
+                            return Err(ValidationError::Other);
+                        }
                         let derived_address = super::ethereum::derive_address(hal, &_eth.keypath)
                             .map_err(|_| ValidationError::Other)?;
                         if derived_address != coin_purchase_memo.address {
@@ -455,6 +467,8 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::hww::api::bitcoin::params;
+    #[cfg(feature = "app-ethereum")]
+    use crate::hww::api::ethereum;
     #[cfg(feature = "app-ethereum")]
     use crate::hww::api::ethereum::params as eth_params;
 
@@ -868,6 +882,98 @@ mod tests {
         }
 
         // Unhappy cases:
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // ETH destinations must use a supported mainnet coin_type from ethereum::params.
+            let destination_keypath = &[
+                44 + util::bip32::HARDENED,
+                1 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let destination_address =
+                ethereum::derive_address(&mut mock_hal, destination_keypath).unwrap();
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    1,
+                    "0.25 ETH",
+                    &destination_address,
+                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                        memo::coin_purchase_memo::EthAddressDerivation {
+                            keypath: destination_keypath.to_vec(),
+                        },
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
+            assert!(matches!(
+                validate_common(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
+                Err(ValidationError::Other)
+            ));
+        }
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // ETH destination keypath must match the memo coin_type.
+            let destination_keypath = &[
+                44 + util::bip32::HARDENED,
+                1 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let destination_address =
+                ethereum::derive_address(&mut mock_hal, destination_keypath).unwrap();
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    &destination_address,
+                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                        memo::coin_purchase_memo::EthAddressDerivation {
+                            keypath: destination_keypath.to_vec(),
+                        },
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
+            assert!(matches!(
+                validate_common(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                ),
+                Err(ValidationError::Other)
+            ));
+        }
 
         #[cfg(feature = "app-ethereum")]
         {

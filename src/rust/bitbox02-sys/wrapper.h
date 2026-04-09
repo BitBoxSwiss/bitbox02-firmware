@@ -25,6 +25,7 @@
 #include <u2f/u2f_packet.h>
 #include <uart.h>
 #include <ui/components/confirm.h>
+#include <ui/components/confirm_swap.h>
 #include <ui/components/confirm_transaction.h>
 #include <ui/components/empty.h>
 #include <ui/components/label.h>

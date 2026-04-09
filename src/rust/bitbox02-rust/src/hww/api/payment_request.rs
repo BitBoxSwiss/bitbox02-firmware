@@ -149,19 +149,9 @@ pub async fn user_verify(
             Memo {
                 memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
             } => {
-                let swap_body = format!(
-                    "{displayed_source_amount}\nto\n{}",
-                    coin_purchase_memo.amount
-                );
                 let _ = parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
                 hal.ui()
-                    .confirm(&ConfirmParams {
-                        title: "SWAP",
-                        body: &swap_body,
-                        scrollable: true,
-                        accept_is_nextarrow: true,
-                        ..Default::default()
-                    })
+                    .confirm_swap("Swap", displayed_source_amount, &coin_purchase_memo.amount)
                     .await?;
             }
             _ => return Err(Error::InvalidInput),
@@ -1401,10 +1391,10 @@ mod tests {
                     recipient: "SWAPKIT (Provider)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
-                Screen::Confirm {
-                    title: "SWAP".into(),
-                    body: "0.25000000 BTC\nto\n0.25 ETH".into(),
-                    longtouch: false,
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "0.25 ETH".into(),
                 },
             ]
         );
@@ -1450,10 +1440,10 @@ mod tests {
                     recipient: "SWAPKIT (Provider)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
-                Screen::Confirm {
-                    title: "SWAP".into(),
-                    body: "0.25000000 BTC\nto\n0.25 LTC".into(),
-                    longtouch: false,
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "0.25 LTC".into(),
                 },
             ]
         );

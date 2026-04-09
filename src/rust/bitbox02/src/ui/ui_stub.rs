@@ -75,6 +75,10 @@ pub async fn confirm_transaction_address(_amount: &str, _address: &str) -> Confi
     panic!("not used");
 }
 
+pub async fn confirm_swap(_title: &str, _from: &str, _to: &str) -> ConfirmResponse {
+    panic!("not used");
+}
+
 pub async fn confirm_transaction_fee(
     _amount: &str,
     _fee: &str,

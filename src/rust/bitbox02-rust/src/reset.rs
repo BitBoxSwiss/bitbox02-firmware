@@ -43,7 +43,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     {
         let mut u2f_ok = false;
         for _ in 0..5 {
-            if hal.securechip().u2f_counter_set(0).is_ok() {
+            if hal.securechip().u2f_counter_set(0).await.is_ok() {
                 u2f_ok = true;
                 break;
             }
@@ -98,7 +98,7 @@ mod tests {
         hal.securechip.mock_reset_keys_fails();
 
         // Simulate a non-zero U2F counter before reset.
-        hal.securechip.u2f_counter_set(42).unwrap();
+        hal.securechip.u2f_counter_set(42).await.unwrap();
 
         hal.securechip.event_counter_reset();
         reset(&mut hal, true).await;

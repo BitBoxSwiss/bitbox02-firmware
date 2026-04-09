@@ -142,8 +142,13 @@ impl SecureChip for BitBox02SecureChip {
     }
 
     #[cfg(feature = "app-u2f")]
-    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
-        crate::securechip::u2f_counter_set(counter)
+    async fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
+        crate::securechip::u2f_counter_set(counter).await
+    }
+
+    #[cfg(feature = "app-u2f")]
+    async fn u2f_counter_inc(&mut self) -> Result<u32, ()> {
+        crate::securechip::u2f_counter_inc().await
     }
 }
 

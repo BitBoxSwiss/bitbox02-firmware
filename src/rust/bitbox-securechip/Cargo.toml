@@ -20,6 +20,7 @@ zeroize = { workspace = true }
 
 [features]
 app-u2f = []
+factory-setup = []
 
 [dev-dependencies]
 async_test = { path = "../async_test" }

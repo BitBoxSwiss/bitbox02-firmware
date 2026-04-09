@@ -179,9 +179,15 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
     }
 
     #[cfg(feature = "app-u2f")]
-    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
+    async fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
         self.u2f_counter = counter;
         Ok(())
+    }
+
+    #[cfg(feature = "app-u2f")]
+    async fn u2f_counter_inc(&mut self) -> Result<u32, ()> {
+        self.u2f_counter = self.u2f_counter.wrapping_add(1);
+        Ok(self.u2f_counter)
     }
 }
 
@@ -200,5 +206,16 @@ mod tests {
         let second = securechip.random().await.unwrap();
         assert_eq!(first.as_slice(), &expected);
         assert_eq!(second.as_slice(), &[0u8; 32]);
+    }
+
+    #[cfg(feature = "app-u2f")]
+    #[async_test::test]
+    async fn test_u2f_counter_inc() {
+        let mut securechip = FakeSecureChip::new();
+        assert_eq!(securechip.get_u2f_counter(), 0);
+        assert_eq!(securechip.u2f_counter_inc().await.unwrap(), 1);
+        assert_eq!(securechip.get_u2f_counter(), 1);
+        assert_eq!(securechip.u2f_counter_inc().await.unwrap(), 2);
+        assert_eq!(securechip.get_u2f_counter(), 2);
     }
 }

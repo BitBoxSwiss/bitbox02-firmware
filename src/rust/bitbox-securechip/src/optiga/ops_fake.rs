@@ -27,6 +27,7 @@ const OPTIGA_UTIL_ERROR_MEMORY_INSUFFICIENT: i32 =
 struct FakeState {
     oid_password: [u8; super::KDF_LEN],
     oid_password_set: bool,
+    oid_arbitrary_data: [u8; super::ARBITRARY_DATA_LEN],
     oid_counter_password_buf: [u8; 8],
     oid_counter_hmac_writeprotected_buf: [u8; 8],
     authorized_password: bool,
@@ -39,6 +40,7 @@ impl Default for FakeState {
         Self {
             oid_password: [0; super::KDF_LEN],
             oid_password_set: false,
+            oid_arbitrary_data: [0; super::ARBITRARY_DATA_LEN],
             oid_counter_password_buf: [0; 8],
             oid_counter_hmac_writeprotected_buf: [0; 8],
             authorized_password: false,
@@ -149,6 +151,13 @@ pub(super) async fn util_read_data(oid: u16, offset: u16, out: &mut [u8]) -> Res
                 return Err(Error::from_status(OPTIGA_UTIL_ERROR_MEMORY_INSUFFICIENT));
             }
             out.fill(0);
+            Ok(())
+        }
+        super::OID_ARBITRARY_DATA => {
+            if out.len() != super::ARBITRARY_DATA_LEN {
+                return Err(Error::from_status(OPTIGA_UTIL_ERROR_MEMORY_INSUFFICIENT));
+            }
+            out.copy_from_slice(&state.oid_arbitrary_data);
             Ok(())
         }
         _ => Err(Error::from_status(OPTIGA_UTIL_ERROR_INVALID_INPUT)),
@@ -299,6 +308,13 @@ pub(super) fn util_write_data_sync(
         }
         super::OID_PASSWORD_SECRET => {
             assert_eq!(buffer, PASSWORD_SECRET_FIXED.as_slice());
+            Ok(())
+        }
+        super::OID_ARBITRARY_DATA => {
+            if buffer.len() != super::ARBITRARY_DATA_LEN {
+                return Err(Error::from_status(OPTIGA_UTIL_ERROR_INVALID_INPUT));
+            }
+            state.oid_arbitrary_data.copy_from_slice(buffer);
             Ok(())
         }
         // Accept other writes without emulating full semantics (counter reset, hmac key, etc.).

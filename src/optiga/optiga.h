@@ -94,11 +94,5 @@ USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
 USE_RESULT bool optiga_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT optiga_util_t* optiga_util_instance(void);
 USE_RESULT optiga_crypt_t* optiga_crypt_instance(void);
-#if APP_U2F == 1 || FACTORYSETUP == 1
-USE_RESULT bool optiga_u2f_counter_set(uint32_t counter);
-#endif
-#if APP_U2F == 1
-USE_RESULT bool optiga_u2f_counter_inc(uint32_t* counter);
-#endif
 
 #endif // _OPTIGA_H_

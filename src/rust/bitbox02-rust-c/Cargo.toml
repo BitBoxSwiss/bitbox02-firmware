@@ -118,6 +118,6 @@ app-cardano = [
   "bitbox02-rust/app-cardano",
 ]
 
-factory-setup = []
+factory-setup = ["bitbox02/factory-setup"]
 
 rtt = ["util/rtt"]

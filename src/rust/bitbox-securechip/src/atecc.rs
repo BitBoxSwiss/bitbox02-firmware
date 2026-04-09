@@ -93,10 +93,19 @@ pub fn kdf(msg: &[u8; 32]) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     }
 }
 
-#[cfg(feature = "app-u2f")]
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
 pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
     match unsafe { bitbox_securechip_sys::atecc_u2f_counter_set(counter) } {
         true => Ok(()),
+        false => Err(()),
+    }
+}
+
+#[cfg(feature = "app-u2f")]
+pub fn u2f_counter_inc() -> Result<u32, ()> {
+    let mut counter = 0;
+    match unsafe { bitbox_securechip_sys::atecc_u2f_counter_inc(&mut counter) } {
+        true => Ok(counter),
         false => Err(()),
     }
 }

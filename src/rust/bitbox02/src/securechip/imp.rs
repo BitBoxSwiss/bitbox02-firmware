@@ -81,11 +81,19 @@ pub async fn kdf(msg: &[u8; 32]) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     }
 }
 
-#[cfg(feature = "app-u2f")]
-pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+pub async fn u2f_counter_set(counter: u32) -> Result<(), ()> {
     match backend() {
         Backend::Atecc => atecc::u2f_counter_set(counter),
-        Backend::Optiga => optiga::u2f_counter_set(counter),
+        Backend::Optiga => optiga::u2f_counter_set(counter).await,
+    }
+}
+
+#[cfg(feature = "app-u2f")]
+pub async fn u2f_counter_inc() -> Result<u32, ()> {
+    match backend() {
+        Backend::Atecc => atecc::u2f_counter_inc(),
+        Backend::Optiga => optiga::u2f_counter_inc().await,
     }
 }
 
@@ -160,20 +168,24 @@ pub unsafe extern "C" fn rust_securechip_random(rand_out: *mut u8) -> bool {
 /// Sets the U2F counter to `counter`.
 ///
 /// This is intended for initialization only.
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_securechip_u2f_counter_set(counter: u32) -> bool {
-    match backend() {
-        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_u2f_counter_set(counter) },
-        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_u2f_counter_set(counter) },
-    }
+    util::bb02_async::block_on(u2f_counter_set(counter)).is_ok()
 }
 
 #[cfg(feature = "app-u2f")]
-/// Increments the U2F counter and writes the current value to `counter`.
+/// Increments the U2F counter and writes the new value to `counter`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_securechip_u2f_counter_inc(counter: *mut u32) -> bool {
-    match backend() {
-        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_u2f_counter_inc(counter) },
-        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_u2f_counter_inc(counter) },
+    assert!(!counter.is_null());
+    match util::bb02_async::block_on(u2f_counter_inc()) {
+        Ok(current) => {
+            unsafe {
+                *counter = current;
+            }
+            true
+        }
+        Err(()) => false,
     }
 }

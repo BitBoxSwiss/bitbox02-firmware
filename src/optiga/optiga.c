@@ -468,30 +468,7 @@ static int _reset_counter(uint16_t oid, uint32_t limit)
 }
 #endif
 
-#if APP_U2F == 1 || FACTORYSETUP == 1
-static bool _read_arbitrary_data(arbitrary_data_t* data_out)
-{
-    memset(data_out->bytes, 0x00, sizeof(data_out->bytes));
-    uint16_t len = sizeof(data_out->bytes);
-    optiga_lib_status_t res =
-        optiga_ops_util_read_data_sync(_util, OID_ARBITRARY_DATA, 0, data_out->bytes, &len);
-    if (res != OPTIGA_UTIL_SUCCESS) {
-        util_log("could not read arbitrary data: %x", res);
-        return false;
-    }
-    if (len != sizeof(data_out->bytes)) {
-        util_log(
-            "arbitrary data: expected to read size %d, but read %d. Data read: %s",
-            (int)sizeof(data_out->bytes),
-            (int)len,
-            util_dbg_hex(data_out->bytes, len));
-        return false;
-    }
-    return true;
-}
-#endif
-
-#if APP_U2F == 1 || FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
+#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
 static int _write_arbitrary_data(const arbitrary_data_t* data)
 {
     optiga_lib_status_t res = optiga_ops_util_write_data_sync(
@@ -1304,29 +1281,3 @@ optiga_crypt_t* optiga_crypt_instance(void)
 {
     return _crypt;
 }
-
-#if APP_U2F == 1 || FACTORYSETUP == 1
-bool optiga_u2f_counter_set(uint32_t counter)
-{
-    arbitrary_data_t data = {0};
-    if (!_read_arbitrary_data(&data)) {
-        return false;
-    }
-    data.fields.u2f_counter = counter;
-    return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
-}
-#endif
-
-#if APP_U2F == 1
-bool optiga_u2f_counter_inc(uint32_t* counter)
-{
-    arbitrary_data_t data = {0};
-    if (!_read_arbitrary_data(&data)) {
-        return false;
-    }
-    data.fields.u2f_counter += 1;
-    *counter = data.fields.u2f_counter;
-
-    return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
-}
-#endif

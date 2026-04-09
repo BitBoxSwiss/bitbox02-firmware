@@ -16,6 +16,8 @@ mod ops;
 mod ops;
 
 const OID_AES_SYMKEY: u16 = bitbox_securechip_sys::OID_AES_SYMKEY as u16;
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+const OID_ARBITRARY_DATA: u16 = bitbox_securechip_sys::OID_ARBITRARY_DATA as u16;
 const OID_COUNTER: u16 = bitbox_securechip_sys::OID_COUNTER as u16;
 const OID_COUNTER_HMAC_WRITEPROTECTED: u16 =
     bitbox_securechip_sys::OID_COUNTER_HMAC_WRITEPROTECTED as u16;
@@ -26,6 +28,9 @@ const OID_PASSWORD: u16 = bitbox_securechip_sys::OID_PASSWORD as u16;
 const OID_PASSWORD_SECRET: u16 = bitbox_securechip_sys::OID_PASSWORD_SECRET as u16;
 const MONOTONIC_COUNTER_MAX_USE: u32 = bitbox_securechip_sys::MONOTONIC_COUNTER_MAX_USE;
 const SMALL_MONOTONIC_COUNTER_MAX_USE: u32 = bitbox_securechip_sys::SMALL_MONOTONIC_COUNTER_MAX_USE;
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+const ARBITRARY_DATA_LEN: usize =
+    bitbox_securechip_sys::ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE as usize;
 const KDF_LEN: usize = 32;
 const OPTIGA_HMAC_SHA_256: bitbox_securechip_sys::optiga_hmac_type_t =
     bitbox_securechip_sys::optiga_hmac_type::OPTIGA_HMAC_SHA_256;
@@ -44,6 +49,47 @@ const OPTIGA_SYMMETRIC_CMAC: bitbox_securechip_sys::optiga_symmetric_encryption_
 
 fn zeroed_secret<const N: usize>() -> Box<Zeroizing<[u8; N]>> {
     Box::new(Zeroizing::new([0; N]))
+}
+
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+struct ArbitraryData {
+    bytes: [u8; ARBITRARY_DATA_LEN],
+}
+
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+impl ArbitraryData {
+    fn new() -> Self {
+        Self {
+            bytes: [0; ARBITRARY_DATA_LEN],
+        }
+    }
+
+    #[cfg(feature = "app-u2f")]
+    fn u2f_counter(&self) -> u32 {
+        u32::from_le_bytes(self.bytes[..4].try_into().unwrap())
+    }
+
+    fn set_u2f_counter(&mut self, counter: u32) {
+        self.bytes[..4].copy_from_slice(&counter.to_le_bytes());
+    }
+}
+
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+async fn read_arbitrary_data() -> Result<ArbitraryData, Error> {
+    let mut data = ArbitraryData::new();
+    ops::util_read_data(OID_ARBITRARY_DATA, 0, &mut data.bytes).await?;
+    Ok(data)
+}
+
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+async fn write_arbitary_data(data: &ArbitraryData) -> Result<(), Error> {
+    ops::util_write_data(
+        OID_ARBITRARY_DATA,
+        bitbox_securechip_sys::OPTIGA_UTIL_ERASE_AND_WRITE as u8,
+        0,
+        &data.bytes,
+    )
+    .await
 }
 
 fn key_id_from_oid(oid: u16) -> bitbox_securechip_sys::optiga_key_id_t {
@@ -473,12 +519,20 @@ pub async fn kdf(msg: &[u8; KDF_LEN]) -> Result<Box<Zeroizing<[u8; 32]>>, Error>
     Ok(result)
 }
 
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+pub async fn u2f_counter_set(counter: u32) -> Result<(), ()> {
+    let mut data = read_arbitrary_data().await.map_err(|_| ())?;
+    data.set_u2f_counter(counter);
+    write_arbitary_data(&data).await.map_err(|_| ())
+}
+
 #[cfg(feature = "app-u2f")]
-pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
-    match unsafe { bitbox_securechip_sys::optiga_u2f_counter_set(counter) } {
-        true => Ok(()),
-        false => Err(()),
-    }
+pub async fn u2f_counter_inc() -> Result<u32, ()> {
+    let mut data = read_arbitrary_data().await.map_err(|_| ())?;
+    let counter = data.u2f_counter().wrapping_add(1);
+    data.set_u2f_counter(counter);
+    write_arbitary_data(&data).await.map_err(|_| ())?;
+    Ok(counter)
 }
 
 pub fn model() -> Result<Model, ()> {
@@ -532,6 +586,25 @@ mod tests {
                  000000000000000000000000000000000000000000000000000000000000abcd"
             ),
         );
+    }
+
+    #[cfg(feature = "app-u2f")]
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_u2f_counter_set() {
+        let (_guard, _memory) = setup_test();
+        u2f_counter_set(42).await.unwrap();
+        assert_eq!(read_arbitrary_data().await.unwrap().u2f_counter(), 42);
+    }
+
+    #[cfg(feature = "app-u2f")]
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_u2f_counter_inc() {
+        let (_guard, _memory) = setup_test();
+        u2f_counter_set(42).await.unwrap();
+        assert_eq!(u2f_counter_inc().await.unwrap(), 43);
+        assert_eq!(read_arbitrary_data().await.unwrap().u2f_counter(), 43);
     }
 
     // Expected stretched_out for password "pw" for the V0 algorithm given the deterministic fake

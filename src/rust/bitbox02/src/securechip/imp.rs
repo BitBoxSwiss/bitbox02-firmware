@@ -130,7 +130,7 @@ pub unsafe extern "C" fn rust_securechip_setup(
 ) -> c_int {
     match backend() {
         Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_setup(ifs) },
-        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_setup(ifs) },
+        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_setup() },
     }
 }
 

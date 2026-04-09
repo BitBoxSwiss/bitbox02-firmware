@@ -30,22 +30,8 @@
     #define VERIFY_METADATA 0
 #endif
 
-// Struct stored in the arbitrary data object.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpacked"
-#pragma GCC diagnostic ignored "-Wattributes"
-typedef union {
-    struct __attribute__((__packed__)) {
-        uint32_t u2f_counter;
-    } fields;
-    uint8_t bytes[ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE];
-} arbitrary_data_t;
-#pragma GCC diagnostic pop
-
 static optiga_util_t* _util;
 static optiga_crypt_t* _crypt;
-
-static const securechip_interface_functions_t* _ifs = NULL;
 
 #define TAG_LCSO 0xC0
 
@@ -469,15 +455,10 @@ static int _reset_counter(uint16_t oid, uint32_t limit)
 #endif
 
 #if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
-static int _write_arbitrary_data(const arbitrary_data_t* data)
+static int _write_arbitrary_data(const uint8_t* data, size_t data_len)
 {
     optiga_lib_status_t res = optiga_ops_util_write_data_sync(
-        _util,
-        OID_ARBITRARY_DATA,
-        OPTIGA_UTIL_ERASE_AND_WRITE,
-        0,
-        &data->bytes[0],
-        sizeof(data->bytes));
+        _util, OID_ARBITRARY_DATA, OPTIGA_UTIL_ERASE_AND_WRITE, 0, data, data_len);
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("could not write arbitrary %x", res);
     }
@@ -695,8 +676,8 @@ static int _configure_object_arbitrary_data(void)
     }
 
     // Initialize arbitrary data, all zeroes.
-    const arbitrary_data_t arbitrary_data = {0};
-    int write_res = _write_arbitrary_data(&arbitrary_data);
+    const uint8_t arbitrary_data[ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE] = {0};
+    int write_res = _write_arbitrary_data(arbitrary_data, sizeof(arbitrary_data));
     if (write_res != OPTIGA_LIB_SUCCESS) {
         util_log("could not initialize arbitrary data");
         return write_res;
@@ -1180,13 +1161,8 @@ static int _verify_metadata_config(void)
 }
 #endif
 
-int optiga_setup(const securechip_interface_functions_t* ifs)
+int optiga_setup(void)
 {
-    if (ifs == NULL) {
-        return SC_ERR_IFS;
-    }
-    _ifs = ifs;
-
     util_log("optiga_setup");
 
     // A timer is used to provide the OPTIGA library with the ability to schedule work on the main

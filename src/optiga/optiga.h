@@ -90,7 +90,7 @@ typedef struct optiga_crypt optiga_crypt_t;
 // Two extra bytes for the `0x20 <len>` header bytes.
 #define METADATA_MAX_SIZE (44 + 2)
 
-USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
+USE_RESULT int optiga_setup(void);
 USE_RESULT bool optiga_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT optiga_util_t* optiga_util_instance(void);
 USE_RESULT optiga_crypt_t* optiga_crypt_instance(void);

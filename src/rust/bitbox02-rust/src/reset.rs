@@ -25,7 +25,10 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     for _ in 0..5 {
         let result = {
             let subsystems = hal.as_mut();
-            subsystems.securechip.reset_keys(subsystems.memory).await
+            subsystems
+                .securechip
+                .reset_keys(subsystems.random, subsystems.memory)
+                .await
         };
         if result.is_ok() {
             reset_ok = true;

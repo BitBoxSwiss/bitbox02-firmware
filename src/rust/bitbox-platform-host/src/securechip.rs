@@ -72,7 +72,7 @@ impl FakeSecureChip {
 }
 
 impl bitbox_hal::SecureChip for FakeSecureChip {
-    fn random(&mut self) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+    async fn random(&mut self) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         Ok(Box::new(zeroize::Zeroizing::new(
             self.mock_random_values.pop_front().unwrap_or([0u8; 32]),
         )))
@@ -80,6 +80,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
 
     async fn init_new_password(
         &mut self,
+        _random: &mut impl bitbox_hal::Random,
         _memory: &mut impl bitbox_hal::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
@@ -163,7 +164,11 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         Ok(Model::Atecc608B)
     }
 
-    async fn reset_keys(&mut self, _memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
+    async fn reset_keys(
+        &mut self,
+        _random: &mut impl bitbox_hal::Random,
+        _memory: &mut impl bitbox_hal::Memory,
+    ) -> Result<(), ()> {
         if self.reset_keys_fail_once {
             self.reset_keys_fail_once = false;
             Err(())
@@ -186,13 +191,13 @@ mod tests {
     use bitbox_hal::SecureChip;
     use hex_lit::hex;
 
-    #[test]
-    fn test_mock_random() {
+    #[async_test::test]
+    async fn test_mock_random() {
         let mut securechip = FakeSecureChip::new();
         let expected = hex!("00112233445566778899aabbccddeefffedcba98765432100123456789abcdef");
         securechip.mock_random(expected);
-        let first = securechip.random().unwrap();
-        let second = securechip.random().unwrap();
+        let first = securechip.random().await.unwrap();
+        let second = securechip.random().await.unwrap();
         assert_eq!(first.as_slice(), &expected);
         assert_eq!(second.as_slice(), &[0u8; 32]);
     }

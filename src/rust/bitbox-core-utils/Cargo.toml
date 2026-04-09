@@ -14,5 +14,7 @@ sha2 = { workspace = true }
 zeroize = { workspace = true }
 
 [dev-dependencies]
+async_test = { path = "../async_test" }
 bitbox-platform-host = { path = "../bitbox-platform-host" }
 hex_lit = { workspace = true }
+util = { path = "../util", features = ["testing"] }

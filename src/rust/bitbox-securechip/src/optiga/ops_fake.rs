@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::Error;
+use alloc::boxed::Box;
 use std::sync::{LazyLock, Mutex, MutexGuard};
+use zeroize::Zeroizing;
 
 //------------------------------------------------------------------------------
 // Fixed test vectors / keys (deterministic fakes).
@@ -211,18 +213,27 @@ pub(super) async fn crypt_clear_auto_state(secret: u16) -> Result<(), Error> {
     crypt_clear_auto_state_sync(secret)
 }
 
-pub(super) fn ifs_random_32_bytes(rand_out: &mut [u8; super::KDF_LEN]) -> Result<(), Error> {
+pub(super) async fn crypt_random(
+    _rng_type: bitbox_securechip_sys::optiga_rng_type_t,
+    out: &mut [u8; 32],
+) -> Result<(), Error> {
+    *out = [0u8; 32];
+    Ok(())
+}
+
+pub(super) fn random_32_bytes(
+    _random: &mut impl bitbox_hal::Random,
+    _mixin: &[u8; super::KDF_LEN],
+) -> Result<Box<Zeroizing<[u8; super::KDF_LEN]>>, Error> {
     let mut state = lock_state();
-    // There are only three calls to this at the moment, all in init_new_password.
     let src = match state.random_ctr {
-        0 => &KDF_HMAC_KEY_FIXED,
-        1 => &PASSWORD_SECRET_FIXED,
-        2 => &KDF_HMAC_WRITEPROTECTED_KEY_FIXED,
+        0 => KDF_HMAC_KEY_FIXED,
+        1 => PASSWORD_SECRET_FIXED,
+        2 => KDF_HMAC_WRITEPROTECTED_KEY_FIXED,
         _ => unreachable!(),
     };
-    rand_out.copy_from_slice(src);
     state.random_ctr = (state.random_ctr + 1) % 3;
-    Ok(())
+    Ok(Box::new(Zeroizing::new(src)))
 }
 
 pub(super) fn util_write_data_sync(

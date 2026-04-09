@@ -2,7 +2,7 @@
 
 use crate::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use alloc::boxed::Box;
-use bitbox_hal::Memory;
+use bitbox_hal::{Memory, Random};
 use util::sha2::{hmac_sha256, hmac_sha256_overwrite, sha256};
 use zeroize::Zeroizing;
 
@@ -349,14 +349,10 @@ pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Resul
     }
 }
 
-pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+pub async fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     let mut result = zeroed_secret::<32>();
-    let status = unsafe { bitbox_securechip_sys::optiga_random(result.as_mut_ptr()) };
-    if status == 0 {
-        Ok(result)
-    } else {
-        Err(Error::from_status(status))
-    }
+    ops::crypt_random(OPTIGA_RNG_TYPE_TRNG, &mut result).await?;
+    Ok(result)
 }
 
 pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
@@ -371,7 +367,7 @@ pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     Ok(MONOTONIC_COUNTER_MAX_USE - counter)
 }
 
-pub async fn reset_keys(memory: &mut impl Memory) -> Result<(), ()> {
+pub async fn reset_keys(random: &mut impl Random, memory: &mut impl Memory) -> Result<(), ()> {
     // This resets `OID_AES_SYMKEY` and the `OID_HMAC`/`OID_HMAC_WRITEPROTECTED` keys, as well as
     // the `OID_PASSWORD_SECRET` and `OID_PASSWORD` keys. A password is needed because updating the
     // `OID_PASSWORD` key requires auth using the `OID_PASSWORD_SECRET` key, but any password is
@@ -379,6 +375,7 @@ pub async fn reset_keys(memory: &mut impl Memory) -> Result<(), ()> {
     //
     // We reset using V1, the latest algorithm. It covers resetting everything from V0 as well.
     init_new_password(
+        random,
         memory,
         "",
         PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
@@ -389,6 +386,7 @@ pub async fn reset_keys(memory: &mut impl Memory) -> Result<(), ()> {
 }
 
 pub async fn init_new_password(
+    random: &mut impl Random,
     memory: &mut impl Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
@@ -401,9 +399,9 @@ pub async fn init_new_password(
     }
 
     let mut stretched = zeroed_secret::<KDF_LEN>();
-    let mut new_hmac_key = zeroed_secret::<KDF_LEN>();
-    ops::ifs_random_32_bytes(&mut new_hmac_key)?;
     // Set new HMAC key.
+    let securechip_random = self::random().await?;
+    let new_hmac_key = ops::random_32_bytes(random, &securechip_random)?;
     ops::util_write_data(
         OID_HMAC,
         bitbox_securechip_sys::OPTIGA_UTIL_ERASE_AND_WRITE as u8,
@@ -415,8 +413,8 @@ pub async fn init_new_password(
     ops::crypt_symmetric_generate_key(OPTIGA_SYMMETRIC_AES_256, OPTIGA_KEY_USAGE_ENCRYPTION)
         .await?;
 
-    let mut password_secret = zeroed_secret::<KDF_LEN>();
-    ops::ifs_random_32_bytes(&mut password_secret)?;
+    let securechip_random = self::random().await?;
+    let password_secret = ops::random_32_bytes(random, &securechip_random)?;
     ops::util_write_data(
         OID_PASSWORD_SECRET,
         bitbox_securechip_sys::OPTIGA_UTIL_ERASE_AND_WRITE as u8,
@@ -425,8 +423,8 @@ pub async fn init_new_password(
     )
     .await?;
 
-    let mut new_hmac_writeprotected_key = zeroed_secret::<KDF_LEN>();
-    ops::ifs_random_32_bytes(&mut new_hmac_writeprotected_key)?;
+    let securechip_random = self::random().await?;
+    let new_hmac_writeprotected_key = ops::random_32_bytes(random, &securechip_random)?;
 
     let mut auth_password = zeroed_secret::<KDF_LEN>();
     v1_get_auth_password(
@@ -494,6 +492,21 @@ mod tests {
     // Fixed test vectors / keys (deterministic fakes).
 
     const SALT_ROOT_FIXED: [u8; 32] = [0x42; 32];
+
+    struct TestRandom;
+
+    // Unused in these unit tests. The fake `ops::random_32_bytes()` implementation ignores the
+    // HAL RNG and returns fixed test vectors instead.
+    impl bitbox_hal::Random for TestRandom {
+        fn factory_randomness(&mut self) -> &'static [u8; 32] {
+            unreachable!("unused in optiga unit tests")
+        }
+
+        fn mcu_32_bytes(&mut self, _out: &mut [u8; 32]) {
+            unreachable!("unused in optiga unit tests")
+        }
+    }
+
     fn setup_test() -> (std::sync::MutexGuard<'static, ()>, FakeMemory) {
         let guard = ops::test_lock();
         ops::test_reset();
@@ -718,8 +731,10 @@ mod tests {
     // Attempts after init are special because the PASSWORD_COUNTER init/threshold are offset by 1.
     async fn test_optiga_password_v1_stretch_exhaust_fails_after_init() {
         let (_guard, mut memory) = setup_test();
+        let mut random = TestRandom;
 
         let stretched = init_new_password(
+            &mut random,
             &mut memory,
             "pw",
             PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
@@ -792,8 +807,10 @@ mod tests {
     // that doing a correct attempt resets the counters.
     async fn test_optiga_password_v1() {
         let (_guard, mut memory) = setup_test();
+        let mut random = TestRandom;
 
         let stretched = init_new_password(
+            &mut random,
             &mut memory,
             "pw",
             PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::boxed::Box;
-use bitbox_hal::Memory;
+use bitbox_hal::{Memory, Random};
 use bitbox_securechip::{Error, Model, PasswordStretchAlgo, atecc, optiga};
 use core::ffi::c_int;
 use util::cell::SyncCell;
@@ -26,10 +26,10 @@ pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Resul
     }
 }
 
-pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+pub async fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     match backend() {
         Backend::Atecc => atecc::random(),
-        Backend::Optiga => optiga::random(),
+        Backend::Optiga => optiga::random().await,
     }
 }
 
@@ -40,21 +40,24 @@ pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     }
 }
 
-pub async fn reset_keys(memory: &mut impl Memory) -> Result<(), ()> {
+pub async fn reset_keys(random: &mut impl Random, memory: &mut impl Memory) -> Result<(), ()> {
     match backend() {
         Backend::Atecc => atecc::reset_keys(),
-        Backend::Optiga => optiga::reset_keys(memory).await,
+        Backend::Optiga => optiga::reset_keys(random, memory).await,
     }
 }
 
 pub async fn init_new_password(
+    random: &mut impl Random,
     memory: &mut impl Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     match backend() {
         Backend::Atecc => atecc::init_new_password(memory, password, password_stretch_algo),
-        Backend::Optiga => optiga::init_new_password(memory, password, password_stretch_algo).await,
+        Backend::Optiga => {
+            optiga::init_new_password(random, memory, password, password_stretch_algo).await
+        }
     }
 }
 
@@ -126,8 +129,9 @@ pub unsafe extern "C" fn rust_securechip_setup(
 /// Resets the secure-chip objects involved in password stretching.
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_securechip_reset_keys() -> bool {
+    let mut random = crate::hal::random::BitBox02Random;
     let mut memory = crate::hal::memory::BitBox02Memory;
-    util::bb02_async::block_on(reset_keys(&mut memory)).is_ok()
+    util::bb02_async::block_on(reset_keys(&mut random, &mut memory)).is_ok()
 }
 
 /// Generates a new device attestation key and writes the public key to `pubkey_out`.
@@ -142,9 +146,14 @@ pub unsafe extern "C" fn rust_securechip_gen_attestation_key(pubkey_out: *mut u8
 /// Fills `rand_out` with 32 bytes of randomness from the secure chip.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_securechip_random(rand_out: *mut u8) -> bool {
-    match backend() {
-        Backend::Atecc => unsafe { bitbox_securechip_sys::atecc_random(rand_out) == 0 },
-        Backend::Optiga => unsafe { bitbox_securechip_sys::optiga_random(rand_out) == 0 },
+    match util::bb02_async::block_on(random()) {
+        Ok(random) => {
+            unsafe {
+                core::ptr::copy_nonoverlapping(random.as_ptr(), rand_out, 32);
+            }
+            true
+        }
+        Err(_) => false,
     }
 }
 

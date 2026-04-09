@@ -109,6 +109,5 @@ USE_RESULT bool optiga_u2f_counter_set(uint32_t counter);
 #if APP_U2F == 1
 USE_RESULT bool optiga_u2f_counter_inc(uint32_t* counter);
 #endif
-USE_RESULT bool optiga_model(securechip_model_t* model_out);
 
 #endif // _OPTIGA_H_

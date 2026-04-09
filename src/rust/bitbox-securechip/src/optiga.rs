@@ -4,6 +4,11 @@ use crate::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use alloc::{boxed::Box, vec, vec::Vec};
 use zeroize::Zeroizing;
 
+mod ops;
+
+const OID_COUNTER: u16 = bitbox_securechip_sys::OID_COUNTER as u16;
+const MONOTONIC_COUNTER_MAX_USE: u32 = bitbox_securechip_sys::MONOTONIC_COUNTER_MAX_USE;
+
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match unsafe {
         bitbox_securechip_sys::optiga_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
@@ -22,12 +27,16 @@ pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
         Err(Error::from_status(status))
     }
 }
-pub fn monotonic_increments_remaining() -> Result<u32, ()> {
-    let mut result = 0u32;
-    match unsafe { bitbox_securechip_sys::optiga_monotonic_increments_remaining(&mut result) } {
-        true => Ok(result),
-        false => Err(()),
+pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
+    let mut counter_buf = [0; 4];
+    ops::util_read_data(OID_COUNTER, 0, &mut counter_buf)
+        .await
+        .map_err(|_| ())?;
+    let counter = u32::from_be_bytes(counter_buf);
+    if counter > MONOTONIC_COUNTER_MAX_USE {
+        panic!("optiga monotonic counter larger than max");
     }
+    Ok(MONOTONIC_COUNTER_MAX_USE - counter)
 }
 
 pub fn reset_keys() -> Result<(), ()> {

@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 const ALLOWLIST_TYPES: &[&str] = &[
+    "optiga_lib_status_t",
+    "optiga_util_t",
     "securechip_error_t",
     "securechip_interface_functions_t",
     "securechip_model_t",
@@ -29,13 +31,25 @@ const ALLOWLIST_FNS: &[&str] = &[
     "optiga_gen_attestation_key",
     "optiga_init_new_password",
     "optiga_kdf_external",
-    "optiga_monotonic_increments_remaining",
+    "optiga_ops_get_status",
+    "optiga_ops_set_status_busy",
     "optiga_random",
     "optiga_reset_keys",
     "optiga_setup",
     "optiga_stretch_password",
     "optiga_u2f_counter_inc",
     "optiga_u2f_counter_set",
+    "optiga_util_instance",
+    "optiga_util_read_data",
+];
+
+const ALLOWLIST_VARS: &[&str] = &[
+    "ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE",
+    "MONOTONIC_COUNTER_MAX_USE",
+    "OID_COUNTER",
+    "OPTIGA_LIB_BUSY",
+    "OPTIGA_LIB_SUCCESS",
+    "OPTIGA_UTIL_SUCCESS",
 ];
 
 const RUSTIFIED_ENUMS: &[&str] = &[
@@ -53,6 +67,8 @@ pub fn main() -> BuildResult<()> {
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
     let repo_root = manifest_dir.join("../../..");
     let src_dir = repo_root.join("src");
+    let external_dir = repo_root.join("external");
+    let optiga_include_dir = external_dir.join("optiga-trust-m/include");
     let wrapper = manifest_dir.join("wrapper.h");
     if !wrapper.is_file() {
         return Err("wrapper.h not found".into());
@@ -64,14 +80,20 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed(src_dir.join("platform"));
     emit_rerun_if_changed(src_dir.join("securechip"));
     emit_rerun_if_changed(src_dir.join("compiler_util.h"));
+    emit_rerun_if_changed(external_dir.join("optiga_config.h"));
+    emit_rerun_if_changed(external_dir.join("optiga-trust-m/config"));
+    emit_rerun_if_changed(&optiga_include_dir);
 
     let target = env::var("TARGET").expect("TARGET not set");
     let cross_compiling = target == "thumbv7em-none-eabi";
+    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
+    let arm_sysroot = format!("--sysroot={arm_sysroot}");
 
     let mut extra_flags = if cross_compiling {
         vec![
             // Generate bindings for the firmware target ABI, not the host ABI.
             "--target=thumbv7em-none-eabi",
+            &arm_sysroot,
             // The firmware C code is compiled with arm-none-eabi-gcc, which uses
             // -fshort-enums by default. Bindgen must match those enum sizes.
             "-fshort-enums",
@@ -94,6 +116,7 @@ pub fn main() -> BuildResult<()> {
     let mut definitions = vec![
         // Expose the U2F counter declarations guarded by APP_U2F in atecc.h/optiga.h.
         "-DAPP_U2F=1",
+        "-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"",
     ];
     definitions.extend(&extra_flags);
 
@@ -113,6 +136,11 @@ pub fn main() -> BuildResult<()> {
                     .flat_map(|item| ["--allowlist-type", item]),
             )
             .args(
+                ALLOWLIST_VARS
+                    .iter()
+                    .flat_map(|item| ["--allowlist-var", item]),
+            )
+            .args(
                 RUSTIFIED_ENUMS
                     .iter()
                     .flat_map(|item| ["--rustified-enum", item]),
@@ -120,7 +148,41 @@ pub fn main() -> BuildResult<()> {
             .arg(&wrapper)
             .arg("--")
             .args(&definitions)
-            .arg(format!("-I{}", src_dir.display())),
+            .arg(format!("-I{}", src_dir.display()))
+            .arg(format!("-I{}", external_dir.display()))
+            .arg(format!(
+                "-I{}",
+                external_dir.join("optiga-trust-m/config").display()
+            ))
+            .arg(format!("-I{}", optiga_include_dir.display()))
+            .arg(format!(
+                "-I{}",
+                external_dir.join("optiga-trust-m/include/cmd").display()
+            ))
+            .arg(format!(
+                "-I{}",
+                external_dir.join("optiga-trust-m/include/common").display()
+            ))
+            .arg(format!(
+                "-I{}",
+                external_dir
+                    .join("optiga-trust-m/include/ifx_i2c")
+                    .display()
+            ))
+            .arg(format!(
+                "-I{}",
+                external_dir.join("optiga-trust-m/include/pal").display()
+            ))
+            .arg(format!(
+                "-I{}",
+                external_dir.join("optiga-trust-m/include/comms").display()
+            ))
+            .arg(format!(
+                "-I{}",
+                external_dir
+                    .join("optiga-trust-m/external/mbedtls/include")
+                    .display()
+            )),
         "run bindgen",
     )?;
 

@@ -1845,21 +1845,9 @@ bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out)
         rust_util_bytes(sig_der, sig_der_size), rust_util_bytes_mut(signature_out, 64));
 }
 
-bool optiga_monotonic_increments_remaining(uint32_t* remaining_out)
+optiga_util_t* optiga_util_instance(void)
 {
-    uint8_t buf[4] = {0};
-    uint16_t size = sizeof(buf);
-    optiga_lib_status_t res = optiga_ops_util_read_data_sync(_util, OID_COUNTER, 0, buf, &size);
-    if (res != OPTIGA_LIB_SUCCESS) {
-        return false;
-    }
-
-    uint32_t counter = optiga_common_get_uint32(buf);
-    if (counter > MONOTONIC_COUNTER_MAX_USE) {
-        Abort("optiga monotonic counter larget than max");
-    }
-    *remaining_out = MONOTONIC_COUNTER_MAX_USE - counter;
-    return true;
+    return _util;
 }
 
 // rand_out must be 32 bytes

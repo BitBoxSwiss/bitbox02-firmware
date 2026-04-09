@@ -32,7 +32,7 @@ pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     Ok(Box::new(Zeroizing::new([0u8; 32])))
 }
 
-pub fn monotonic_increments_remaining() -> Result<u32, ()> {
+pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     Ok(1)
 }
 

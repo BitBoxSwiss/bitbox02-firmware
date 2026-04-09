@@ -118,7 +118,7 @@ impl SecureChip for BitBox02SecureChip {
     }
 
     async fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
-        crate::securechip::monotonic_increments_remaining()
+        crate::securechip::monotonic_increments_remaining().await
     }
 
     fn model(&mut self) -> Result<Model, ()> {

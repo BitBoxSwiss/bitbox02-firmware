@@ -10,6 +10,8 @@ license = "Apache-2.0"
 
 [dependencies]
 bitbox-securechip-sys = { path = "../bitbox-securechip-sys" }
+critical-section = { version = "1.2.0", default-features = false, features = [] }
+grounded = { workspace = true }
 util = { path = "../util" }
 zeroize = { workspace = true }
 

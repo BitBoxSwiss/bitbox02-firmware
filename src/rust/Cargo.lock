@@ -212,6 +212,8 @@ name = "bitbox-securechip"
 version = "0.1.0"
 dependencies = [
  "bitbox-securechip-sys",
+ "critical-section",
+ "grounded",
  "util",
  "zeroize",
 ]

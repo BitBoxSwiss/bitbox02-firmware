@@ -90,6 +90,14 @@ pub async fn confirm_transaction_address(_amount: &str, _address: &str) -> Confi
     ConfirmResponse::Approved
 }
 
+pub async fn confirm_swap(_title: &str, _from: &str, _to: &str) -> ConfirmResponse {
+    crate::print_stdout(&format!(
+        "CONFIRM SWAP SCREEN START\nTITLE: {}\nFROM: {}\nTO: {}\nCONFIRM SWAP SCREEN END\n",
+        _title, _from, _to
+    ));
+    ConfirmResponse::Approved
+}
+
 pub async fn confirm_transaction_fee(
     _amount: &str,
     _fee: &str,

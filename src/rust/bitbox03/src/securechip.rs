@@ -10,8 +10,9 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    fn init_new_password(
+    async fn init_new_password(
         &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
         _password: &str,
         _password_stretch_algo: bitbox_hal::memory::PasswordStretchAlgo,
     ) -> Result<alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>>, bitbox_hal::securechip::Error>
@@ -19,8 +20,9 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    fn stretch_password(
+    async fn stretch_password(
         &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
         _password: &str,
         _password_stretch_algo: bitbox_hal::memory::PasswordStretchAlgo,
     ) -> Result<alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>>, bitbox_hal::securechip::Error>
@@ -52,7 +54,7 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    fn reset_keys(&mut self) -> Result<(), ()> {
+    async fn reset_keys(&mut self, _memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
         todo!()
     }
 

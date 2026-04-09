@@ -24,9 +24,10 @@ futures-lite = { workspace = true }
 grounded = { workspace = true }
 hmac = { workspace = true }
 sha2 = { workspace = true }
-hex_lit = { workspace = true }
+hex_lit = { workspace = true, features = ["rust_v_1_46"] }
 
 [dev-dependencies]
+async_test = { path = "../async_test" }
 bitbox-aes = { path = "../bitbox-aes" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
 

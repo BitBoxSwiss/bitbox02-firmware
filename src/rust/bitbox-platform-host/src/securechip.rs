@@ -75,8 +75,9 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         )))
     }
 
-    fn init_new_password(
+    async fn init_new_password(
         &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
@@ -95,8 +96,9 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         )))
     }
 
-    fn stretch_password(
+    async fn stretch_password(
         &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
@@ -152,7 +154,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         Ok(Model::Atecc608B)
     }
 
-    fn reset_keys(&mut self) -> Result<(), ()> {
+    async fn reset_keys(&mut self, _memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
         if self.reset_keys_fail_once {
             self.reset_keys_fail_once = false;
             Err(())

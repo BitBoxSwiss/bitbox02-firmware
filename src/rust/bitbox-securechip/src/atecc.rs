@@ -2,6 +2,7 @@
 
 use crate::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use alloc::boxed::Box;
+use bitbox_hal::Memory;
 use zeroize::Zeroizing;
 
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
@@ -38,6 +39,7 @@ pub fn reset_keys() -> Result<(), ()> {
 }
 
 pub fn init_new_password(
+    _memory: &mut impl Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
@@ -59,6 +61,7 @@ pub fn init_new_password(
 }
 
 pub fn stretch_password(
+    _memory: &mut impl Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::boxed::Box;
+use bitbox_hal::Memory;
 use bitbox_securechip::{Error, Model, PasswordStretchAlgo, atecc, optiga};
 use core::ffi::c_int;
 use util::cell::SyncCell;
@@ -39,30 +40,32 @@ pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     }
 }
 
-pub fn reset_keys() -> Result<(), ()> {
+pub async fn reset_keys(memory: &mut impl Memory) -> Result<(), ()> {
     match backend() {
         Backend::Atecc => atecc::reset_keys(),
-        Backend::Optiga => optiga::reset_keys(),
+        Backend::Optiga => optiga::reset_keys(memory).await,
     }
 }
 
-pub fn init_new_password(
+pub async fn init_new_password(
+    memory: &mut impl Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     match backend() {
-        Backend::Atecc => atecc::init_new_password(password, password_stretch_algo),
-        Backend::Optiga => optiga::init_new_password(password, password_stretch_algo),
+        Backend::Atecc => atecc::init_new_password(memory, password, password_stretch_algo),
+        Backend::Optiga => optiga::init_new_password(memory, password, password_stretch_algo).await,
     }
 }
 
-pub fn stretch_password(
+pub async fn stretch_password(
+    memory: &mut impl Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     match backend() {
-        Backend::Atecc => atecc::stretch_password(password, password_stretch_algo),
-        Backend::Optiga => optiga::stretch_password(password, password_stretch_algo),
+        Backend::Atecc => atecc::stretch_password(memory, password, password_stretch_algo),
+        Backend::Optiga => optiga::stretch_password(memory, password, password_stretch_algo).await,
     }
 }
 
@@ -123,11 +126,8 @@ pub unsafe extern "C" fn rust_securechip_setup(
 /// Resets the secure-chip objects involved in password stretching.
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_securechip_reset_keys() -> bool {
-    match backend() {
-        Backend::Atecc => atecc::reset_keys(),
-        Backend::Optiga => optiga::reset_keys(),
-    }
-    .is_ok()
+    let mut memory = crate::hal::memory::BitBox02Memory;
+    util::bb02_async::block_on(reset_keys(&mut memory)).is_ok()
 }
 
 /// Generates a new device attestation key and writes the public key to `pubkey_out`.

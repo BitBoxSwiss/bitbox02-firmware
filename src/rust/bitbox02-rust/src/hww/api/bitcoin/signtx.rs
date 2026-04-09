@@ -15,6 +15,7 @@ use crate::secp256k1::SECP256K1;
 use crate::workflow::transaction;
 use crate::xpubcache::{Bip32XpubCache, Compute};
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -86,7 +87,7 @@ async fn get_tx_input(
     index: u32,
     response: &mut NextResponse,
 ) -> Result<pb::BtcSignInputRequest, Error> {
-    let request = get_request(NextType::Input, index, None, response).await?;
+    let request = Box::pin(get_request(NextType::Input, index, None, response)).await?;
     response.wrap = false;
     match request {
         Request::BtcSignInput(request) => Ok(request),
@@ -100,7 +101,7 @@ async fn get_prevtx_init(
 ) -> Result<pb::BtcPrevTxInitRequest, Error> {
     response.next.r#type = NextType::PrevtxInit as _;
     response.next.index = index;
-    let request = get_request(NextType::PrevtxInit, index, None, response).await?;
+    let request = Box::pin(get_request(NextType::PrevtxInit, index, None, response)).await?;
     response.wrap = true;
     match request {
         Request::Btc(pb::BtcRequest {
@@ -115,12 +116,12 @@ async fn get_prevtx_input(
     prevtx_input_index: u32,
     response: &mut NextResponse,
 ) -> Result<pb::BtcPrevTxInputRequest, Error> {
-    let request = get_request(
+    let request = Box::pin(get_request(
         NextType::PrevtxInput,
         input_index,
         Some(prevtx_input_index),
         response,
-    )
+    ))
     .await?;
     response.wrap = true;
     match request {
@@ -136,12 +137,12 @@ async fn get_prevtx_output(
     prevtx_output_index: u32,
     response: &mut NextResponse,
 ) -> Result<pb::BtcPrevTxOutputRequest, Error> {
-    let request = get_request(
+    let request = Box::pin(get_request(
         NextType::PrevtxOutput,
         output_index,
         Some(prevtx_output_index),
         response,
-    )
+    ))
     .await?;
     response.wrap = true;
     match request {
@@ -156,7 +157,7 @@ async fn get_tx_output(
     index: u32,
     response: &mut NextResponse,
 ) -> Result<pb::BtcSignOutputRequest, Error> {
-    let request = get_request(NextType::Output, index, None, response).await?;
+    let request = Box::pin(get_request(NextType::Output, index, None, response)).await?;
     response.wrap = false;
     match request {
         Request::BtcSignOutput(request) => Ok(request),
@@ -168,7 +169,7 @@ async fn get_payment_request(
     index: u32,
     response: &mut NextResponse,
 ) -> Result<pb::BtcPaymentRequestRequest, Error> {
-    let request = get_request(NextType::PaymentRequest, index, None, response).await?;
+    let request = Box::pin(get_request(NextType::PaymentRequest, index, None, response)).await?;
     response.wrap = true;
     match request {
         Request::Btc(pb::BtcRequest {
@@ -182,7 +183,7 @@ async fn get_antiklepto_host_nonce(
     index: u32,
     response: &mut NextResponse,
 ) -> Result<pb::AntiKleptoSignatureRequest, Error> {
-    let request = get_request(NextType::HostNonce, index, None, response).await?;
+    let request = Box::pin(get_request(NextType::HostNonce, index, None, response)).await?;
     response.wrap = true;
     match request {
         Request::Btc(pb::BtcRequest {
@@ -309,7 +310,9 @@ async fn sighash_script(
                 SimpleType::P2wpkhP2sh | SimpleType::P2wpkh => {
                     // See https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#specification, item 5:
                     // > For P2WPKH witness program, the scriptCode is 0x1976a914{20-byte-pubkey-hash}88ac.
-                    let pubkey_hash160 = xpub_cache.get_xpub(hal, keypath).await?.pubkey_hash160();
+                    let pubkey_hash160 = Box::pin(xpub_cache.get_xpub(hal, keypath))
+                        .await?
+                        .pubkey_hash160();
                     let mut result = Vec::<u8>::new();
                     result.extend_from_slice(b"\x76\xa9\x14");
                     result.extend_from_slice(&pubkey_hash160);
@@ -347,7 +350,7 @@ async fn handle_prevtx(
     progress_component: &mut impl Progress,
     next_response: &mut NextResponse,
 ) -> Result<(), Error> {
-    let prevtx_init = get_prevtx_init(input_index, next_response).await?;
+    let prevtx_init = Box::pin(get_prevtx_init(input_index, next_response)).await?;
 
     if prevtx_init.num_inputs < 1
         || prevtx_init.num_outputs < 1
@@ -369,7 +372,12 @@ async fn handle_prevtx(
             (input_index as f32 + subprogress) * step
         });
 
-        let prevtx_input = get_prevtx_input(input_index, prevtx_input_index, next_response).await?;
+        let prevtx_input = Box::pin(get_prevtx_input(
+            input_index,
+            prevtx_input_index,
+            next_response,
+        ))
+        .await?;
         hasher.update(prevtx_input.prev_out_hash.as_slice());
         hasher.update(prevtx_input.prev_out_index.to_le_bytes());
         hasher.update(serialize(&VarInt(
@@ -389,8 +397,12 @@ async fn handle_prevtx(
             (input_index as f32 + subprogress) * step
         });
 
-        let prevtx_output =
-            get_prevtx_output(input_index, prevtx_output_index, next_response).await?;
+        let prevtx_output = Box::pin(get_prevtx_output(
+            input_index,
+            prevtx_output_index,
+            next_response,
+        ))
+        .await?;
         if prevtx_output_index == input.prev_out_index
             && input.prev_out_value != prevtx_output.value
         {
@@ -438,7 +450,8 @@ async fn validate_script_config<'a>(
                 }),
             keypath,
         } => {
-            let parsed_policy = super::policies::parse(hal, policy, coin_params.coin).await?;
+            let parsed_policy =
+                Box::pin(super::policies::parse(hal, policy, coin_params.coin)).await?;
             let name = parsed_policy
                 .name(hal, coin_params)?
                 .ok_or(Error::InvalidInput)?;
@@ -481,7 +494,7 @@ async fn validate_script_configs<'a>(
 ) -> Result<Vec<ValidatedScriptConfigWithKeypath<'a>>, Error> {
     let mut validated = Vec::with_capacity(script_configs.len());
     for config in script_configs.iter() {
-        validated.push(validate_script_config(hal, config, coin_params).await?);
+        validated.push(Box::pin(validate_script_config(hal, config, coin_params)).await?);
     }
     Ok(validated)
 }
@@ -495,7 +508,8 @@ async fn validate_input_script_configs<'a>(
         return Err(Error::InvalidInput);
     }
 
-    let script_configs = validate_script_configs(hal, coin_params, script_configs).await?;
+    let script_configs =
+        Box::pin(validate_script_configs(hal, coin_params, script_configs)).await?;
 
     // If there are multiple script configs, only SimpleType (single sig, no additional inputs)
     // configs are allowed, so e.g. mixing p2wpkh and pw2wpkh-p2sh is okay, but mixing p2wpkh with
@@ -713,10 +727,18 @@ async fn _process(
     if request.num_inputs < 1 || request.num_outputs < 1 {
         return Err(Error::InvalidInput);
     }
-    let validated_script_configs =
-        validate_input_script_configs(hal, coin_params, &request.script_configs).await?;
-    let validated_output_script_configs =
-        validate_script_configs(hal, coin_params, &request.output_script_configs).await?;
+    let validated_script_configs = Box::pin(validate_input_script_configs(
+        hal,
+        coin_params,
+        &request.script_configs,
+    ))
+    .await?;
+    let validated_output_script_configs = Box::pin(validate_script_configs(
+        hal,
+        coin_params,
+        &request.output_script_configs,
+    ))
+    .await?;
 
     let mut xpub_cache = Bip32XpubCache::new(Compute::Once);
     setup_xpub_cache(&mut xpub_cache, &request.script_configs);
@@ -761,7 +783,7 @@ async fn _process(
             .unwrap()
             .set((input_index as f32) / (request.num_inputs as f32));
 
-        let tx_input = get_tx_input(input_index, &mut next_response).await?;
+        let tx_input = Box::pin(get_tx_input(input_index, &mut next_response)).await?;
         let script_config_account = validated_script_configs
             .get(tx_input.script_config_index as usize)
             .ok_or(Error::InvalidInput)?;
@@ -793,33 +815,37 @@ async fn _process(
 
         // https://github.com/bitcoin/bips/blob/bb8dc57da9b3c6539b88378348728a2ff43f7e9c/bip-0341.mediawiki#common-signature-message
         // accumulate `sha_scriptpubkeys`
-        let pk_script = common::Payload::from(
+        let pk_script = Box::pin(common::Payload::from(
             hal,
             &mut xpub_cache,
             coin_params,
             &tx_input.keypath,
             script_config_account,
-        )
+        ))
         .await?
         .pk_script(coin_params)?;
         hasher_scriptpubkeys.update(serialize(&VarInt(pk_script.len() as u64)));
         hasher_scriptpubkeys.update(pk_script.as_slice());
 
         if !taproot_only {
-            handle_prevtx(
+            Box::pin(handle_prevtx(
                 input_index,
                 &tx_input,
                 request.num_inputs,
                 progress_component.as_mut().unwrap(),
                 &mut next_response,
-            )
+            ))
             .await?;
         }
 
         if let Some(ref mut silent_payment) = silent_payment {
             let keypair = bitcoin::key::UntweakedKeypair::from_seckey_slice(
                 SECP256K1,
-                &crate::keystore::secp256k1_get_private_key(hal, &tx_input.keypath).await?,
+                &Box::pin(crate::keystore::secp256k1_get_private_key(
+                    hal,
+                    &tx_input.keypath,
+                ))
+                .await?,
             )
             .unwrap();
             // For Taproot, only key path spends are allowed in silent payments, and we need to
@@ -871,7 +897,7 @@ async fn _process(
 
     let mut hasher_outputs = Sha256::new();
     for output_index in 0..request.num_outputs {
-        let tx_output = get_tx_output(output_index, &mut next_response).await?;
+        let tx_output = Box::pin(get_tx_output(output_index, &mut next_response)).await?;
         if output_index == 0 {
             // Stop rendering inputs progress update.
             drop(progress_component.take());
@@ -913,13 +939,13 @@ async fn _process(
                 keypath::ReceiveSpend::Receive,
             )?;
 
-            common::Payload::from(
+            Box::pin(common::Payload::from(
                 hal,
                 &mut xpub_cache,
                 coin_params,
                 &tx_output.keypath,
                 script_config_account,
-            )
+            ))
             .await?
         } else {
             // Take payload from provided output.
@@ -1001,8 +1027,11 @@ async fn _process(
                 if payment_request_seen {
                     return Err(Error::InvalidInput);
                 }
-                let payment_request: pb::BtcPaymentRequestRequest =
-                    get_payment_request(output_payment_request_index, &mut next_response).await?;
+                let payment_request: pb::BtcPaymentRequestRequest = Box::pin(get_payment_request(
+                    output_payment_request_index,
+                    &mut next_response,
+                ))
+                .await?;
                 if payment_request::contains_coin_purchase_memo(&payment_request) {
                     validate_swap_source_account(coin, &validated_script_configs)?;
                 }
@@ -1010,15 +1039,19 @@ async fn _process(
                 // payment-request total equals the current output value.
                 let total_value = tx_output.value;
                 let displayed_source_amount = format_amount(coin_params, format_unit, total_value)?;
-                payment_request::user_verify(hal, &payment_request, &displayed_source_amount)
-                    .await?;
-                match payment_request::validate_btc(
+                Box::pin(payment_request::user_verify(
+                    hal,
+                    &payment_request,
+                    &displayed_source_amount,
+                ))
+                .await?;
+                match Box::pin(payment_request::validate_btc(
                     hal,
                     coin_params,
                     &payment_request,
                     total_value,
                     &address()?,
-                )
+                ))
                 .await
                 {
                     Ok(()) => {}
@@ -1151,12 +1184,12 @@ async fn _process(
     } else {
         Some(100. * (fee as f64) / (outputs_sum_out as f64))
     };
-    transaction::verify_total_fee_maybe_warn(
+    Box::pin(transaction::verify_total_fee_maybe_warn(
         hal,
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
         fee_percentage,
-    )
+    ))
     .await?;
     hal.ui().status("Transaction\nconfirmed", true).await;
 
@@ -1176,7 +1209,7 @@ async fn _process(
     // Will contain the sum of all spent output values in the second inputs pass.
     let mut inputs_sum_pass2: u64 = 0;
     for input_index in 0..request.num_inputs {
-        let tx_input = get_tx_input(input_index, &mut next_response).await?;
+        let tx_input = Box::pin(get_tx_input(input_index, &mut next_response)).await?;
         let script_config_account = validated_script_configs
             .get(tx_input.script_config_index as usize)
             .ok_or(Error::InvalidInput)?;
@@ -1202,7 +1235,7 @@ async fn _process(
                 ValidatedScriptConfig::SimpleType(SimpleType::P2tr) => {
                     // This is a BIP-86 spend, so we tweak the private key by the hash of the public
                     // key only, as there is no Taproot merkle root.
-                    let xpub = xpub_cache.get_xpub(hal, &tx_input.keypath).await?;
+                    let xpub = Box::pin(xpub_cache.get_xpub(hal, &tx_input.keypath)).await?;
                     let pubkey = bitcoin::PublicKey::from_slice(xpub.public_key())
                         .map_err(|_| Error::Generic)?;
                     TaprootSpendInfo::KeySpend(bitcoin::TapTweakHash::from_key_and_tweak(
@@ -1216,9 +1249,12 @@ async fn _process(
                     // first tweak the private key to match the Taproot output key. For leaf
                     // scripts, we do not tweak.
 
-                    parsed_policy
-                        .taproot_spend_info(hal, &mut xpub_cache, &tx_input.keypath)
-                        .await?
+                    Box::pin(parsed_policy.taproot_spend_info(
+                        hal,
+                        &mut xpub_cache,
+                        &tx_input.keypath,
+                    ))
+                    .await?
                 }
                 _ => return Err(Error::Generic),
             };
@@ -1239,7 +1275,7 @@ async fn _process(
             });
 
             next_response.next.has_signature = true;
-            next_response.next.signature = crate::keystore::secp256k1_schnorr_sign(
+            next_response.next.signature = Box::pin(crate::keystore::secp256k1_schnorr_sign(
                 hal,
                 &tx_input.keypath,
                 &sighash,
@@ -1248,7 +1284,7 @@ async fn _process(
                 } else {
                     None
                 },
-            )
+            ))
             .await?
             .to_vec();
         } else {
@@ -1261,12 +1297,12 @@ async fn _process(
                 hash_sequence: Sha256::digest(hash_sequence).into(),
                 outpoint_hash: tx_input.prev_out_hash.as_slice().try_into().unwrap(),
                 outpoint_index: tx_input.prev_out_index,
-                sighash_script: &sighash_script(
+                sighash_script: &Box::pin(sighash_script(
                     hal,
                     &mut xpub_cache,
                     script_config_account,
                     &tx_input.keypath,
-                )
+                ))
                 .await?,
                 prevout_value: tx_input.prev_out_value,
                 sequence: tx_input.sequence,
@@ -1275,8 +1311,11 @@ async fn _process(
                 sighash_flags: SIGHASH_ALL,
             });
 
-            let private_key =
-                crate::keystore::secp256k1_get_private_key(hal, &tx_input.keypath).await?;
+            let private_key = Box::pin(crate::keystore::secp256k1_get_private_key(
+                hal,
+                &tx_input.keypath,
+            ))
+            .await?;
             // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
             let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
                 Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
@@ -1293,7 +1332,7 @@ async fn _process(
                             commitment: signer_commitment.to_vec(),
                         });
 
-                    get_antiklepto_host_nonce(input_index, &mut next_response)
+                    Box::pin(get_antiklepto_host_nonce(input_index, &mut next_response))
                         .await?
                         .host_nonce
                         .as_slice()

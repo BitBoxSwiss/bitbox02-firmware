@@ -221,9 +221,16 @@ dependencies = [
 name = "bitbox-securechip"
 version = "0.1.0"
 dependencies = [
+ "async_test",
+ "bitbox-core-utils",
+ "bitbox-hal",
+ "bitbox-platform-host",
  "bitbox-securechip-sys",
  "critical-section",
  "grounded",
+ "hex_lit",
+ "hmac",
+ "sha2",
  "util",
  "zeroize",
 ]
@@ -250,6 +257,7 @@ dependencies = [
 name = "bitbox02"
 version = "0.1.0"
 dependencies = [
+ "async_test",
  "bip39",
  "bitbox-aes",
  "bitbox-bytequeue",

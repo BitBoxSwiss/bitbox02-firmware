@@ -129,6 +129,13 @@ pub fn is_known_network(coin: Option<EthCoin>, chain_id: u64) -> bool {
     get(coin, chain_id).is_some()
 }
 
+/// Returns true if the coin type is allowed in ETH CoinPurchaseMemo payment requests.
+///
+/// This is derived from the local network table, but excludes the testnet coin type `1`.
+pub(crate) fn is_valid_payment_request_coin_type(coin_type: u32) -> bool {
+    coin_type != 1 && PARAMS.iter().any(|params| params.slip44() == coin_type)
+}
+
 /// Get the chain parameters by `coin` or `chain_id`. If `chain_id` is non-zero, `coin` is
 /// ignored. If `coin` is None. `chain_id` alone is used.
 ///
@@ -195,5 +202,13 @@ mod tests {
         assert!(get(Some(EthCoin::Eth), 2).is_none());
         assert!(get(None, 2).is_none());
         assert!(get(None, 0).is_none());
+    }
+
+    #[test]
+    pub fn test_is_valid_payment_request_coin_type() {
+        assert!(is_valid_payment_request_coin_type(60));
+        assert!(!is_valid_payment_request_coin_type(1));
+        assert!(!is_valid_payment_request_coin_type(0));
+        assert!(!is_valid_payment_request_coin_type(61));
     }
 }

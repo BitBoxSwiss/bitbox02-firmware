@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 bitbox-hal = { path = "../bitbox-hal" }
+bitbox-core-utils = { path = "../bitbox-core-utils" }
 bitbox-da14531 = { path = "../bitbox-da14531" }
 bitbox02 = { path = "../bitbox02" }
 bitbox-platform-host = { path = "../bitbox-platform-host", optional = true }

@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-pub mod random;
 pub mod system;
 pub mod ui;
 
 pub use bitbox_platform_host::eeprom::FakeEeprom as TestingEeprom;
 pub use bitbox_platform_host::memory::FakeMemory as TestingMemory;
+pub use bitbox_platform_host::random::TestingRandom;
 pub use bitbox_platform_host::sd::FakeSd as TestingSd;
 pub use bitbox_platform_host::securechip::FakeSecureChip as TestingSecureChip;
-pub use random::TestingRandom;
 pub use system::TestingSystem;
 pub use ui::{Screen, TestingUi};
 

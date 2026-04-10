@@ -135,7 +135,7 @@ impl core::convert::From<securechip::Error> for Error {
 
 fn random_32_bytes(hal: &mut impl KeystoreHal) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
     let (random, securechip) = hal.random_and_securechip();
-    crate::random::random_32_bytes(random, securechip).map_err(Into::into)
+    bitbox_core_utils::random::random_32_bytes(random, securechip).map_err(Into::into)
 }
 
 #[derive(Copy, Clone)]
@@ -256,8 +256,9 @@ fn verify_seed(
 }
 
 fn hash_seed(hal: &mut impl KeystoreHal, seed: &[u8]) -> Result<[u8; 32], Error> {
-    let salted_key = crate::salt::hash_data(hal.memory(), &[], "keystore_retain_seed_hash")
-        .map_err(|_| Error::Salt)?;
+    let salted_key =
+        bitbox_core_utils::salt::hash_data(hal.memory(), &[], "keystore_retain_seed_hash")
+            .map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_key.as_slice());
     engine.input(seed);
@@ -319,7 +320,7 @@ fn encrypt_and_store_seed_internal(
         .securechip()
         .init_new_password(password, password_stretch_algo)?;
 
-    let iv_rand = crate::random::random_32_bytes_from_hal(hal)?;
+    let iv_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal)?;
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
     let encrypted = bitbox_aes::encrypt_with_hmac(iv, &secret, seed);
 
@@ -544,7 +545,7 @@ pub fn create_and_store_seed(
         return Err(Error::SeedSize);
     }
 
-    let mut seed_vec = crate::random::random_32_bytes_from_hal(hal)?;
+    let mut seed_vec = bitbox_core_utils::random::random_32_bytes_from_hal(hal)?;
     let seed = &mut seed_vec[..seed_len];
 
     // Mix in host entropy.
@@ -553,7 +554,7 @@ pub fn create_and_store_seed(
     }
 
     // Mix in entropy derived from the user password.
-    let password_salted_hashed = crate::salt::hash_data(
+    let password_salted_hashed = bitbox_core_utils::salt::hash_data(
         hal.memory(),
         password.as_bytes(),
         "keystore_seed_generation",
@@ -693,12 +694,12 @@ pub fn stretch_retained_seed_encryption_key(
     purpose_in: &str,
     purpose_out: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-    let salted_in = crate::salt::hash_data(hal.memory(), encryption_key, purpose_in)
+    let salted_in = bitbox_core_utils::salt::hash_data(hal.memory(), encryption_key, purpose_in)
         .map_err(|_| Error::Salt)?;
 
     let kdf = hal.securechip().kdf(salted_in.as_slice())?;
 
-    let salted_out = crate::salt::hash_data(hal.memory(), encryption_key, purpose_out)
+    let salted_out = bitbox_core_utils::salt::hash_data(hal.memory(), encryption_key, purpose_out)
         .map_err(|_| Error::Salt)?;
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_out.as_slice());
@@ -811,7 +812,7 @@ pub fn secp256k1_schnorr_sign(
             .map_err(|_| ())?;
     }
 
-    let aux_rand = crate::random::random_32_bytes_from_hal(hal).map_err(|_| ())?;
+    let aux_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal).map_err(|_| ())?;
     let sig = SECP256K1.sign_schnorr_with_aux_rand(
         &bitcoin::secp256k1::Message::from_digest(*msg),
         &keypair,

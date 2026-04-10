@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-core-utils"
+version = "0.1.0"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+edition = "2024"
+license = "Apache-2.0"
+
+[dependencies]
+bitbox-hal = { path = "../bitbox-hal" }
+digest = { workspace = true }
+sha2 = { workspace = true }
+zeroize = { workspace = true }
+
+[dev-dependencies]
+bitbox-platform-host = { path = "../bitbox-platform-host" }
+hex_lit = { workspace = true }

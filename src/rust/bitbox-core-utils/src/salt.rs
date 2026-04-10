@@ -2,7 +2,7 @@
 
 use alloc::vec::Vec;
 
-use crate::hal::Memory;
+use bitbox_hal::Memory;
 use sha2::Digest;
 use zeroize::Zeroizing;
 
@@ -29,8 +29,7 @@ pub fn hash_data(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hal::testing::TestingHal;
-    use core::convert::TryInto;
+    use bitbox_platform_host::memory::FakeMemory;
     use hex_lit::hex;
 
     const MOCK_SALT_ROOT: [u8; 32] =
@@ -38,24 +37,24 @@ mod tests {
 
     #[test]
     fn test_hash_data() {
-        let mut mock_hal = TestingHal::new();
-        mock_hal.memory.set_salt_root(&MOCK_SALT_ROOT);
+        let mut memory = FakeMemory::new();
+        memory.set_salt_root(&MOCK_SALT_ROOT);
 
         let data = hex!("001122334455667788");
         let expected = hex!("62db8dcd47ddf8e81809c377ed96643855d3052bb73237100ca81f0f5a7611e6");
 
-        let hash = hash_data(&mut mock_hal.memory, &data, "test purpose").unwrap();
+        let hash = hash_data(&mut memory, &data, "test purpose").unwrap();
         assert_eq!(hash.as_slice(), &expected);
     }
 
     #[test]
     fn test_hash_data_empty_inputs() {
-        let mut mock_hal = TestingHal::new();
-        mock_hal.memory.set_salt_root(&MOCK_SALT_ROOT);
+        let mut memory = FakeMemory::new();
+        memory.set_salt_root(&MOCK_SALT_ROOT);
 
         let expected = hex!("2dbb05dd73d94edba6946611aaca367f76c809e96f20499ad674e596050f9833");
 
-        let hash = hash_data(&mut mock_hal.memory, &[], "").unwrap();
+        let hash = hash_data(&mut memory, &[], "").unwrap();
         assert_eq!(hash.as_slice(), &expected);
     }
 }

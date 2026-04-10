@@ -82,6 +82,12 @@ impl<const N: usize> StaticBytes<N> {
         }
     }
 
+    fn copy_from_slice(&self, data: &[u8]) {
+        unsafe {
+            core::ptr::copy_nonoverlapping(data.as_ptr(), self.as_mut_ptr(), data.len());
+        }
+    }
+
     fn copy_to_slice(&self, out: &mut [u8]) {
         unsafe {
             core::ptr::copy_nonoverlapping(self.as_mut_ptr(), out.as_mut_ptr(), out.len());
@@ -288,5 +294,56 @@ pub(super) async fn util_read_data(oid: u16, offset: u16, out: &mut [u8]) -> Res
     }
     BUF.copy_to_slice(out);
     BUF.zeroize();
+    Ok(())
+}
+
+pub(super) async fn crypt_hmac(
+    hmac_type: bitbox_securechip_sys::optiga_hmac_type_t,
+    secret: u16,
+    msg: &[u8; super::KDF_LEN],
+    mac_out: &mut [u8; super::KDF_LEN],
+) -> Result<(), Error> {
+    // Static because the Optiga library keeps raw pointers to the input, output and length until
+    // the async callback completes, and the Rust future may be dropped before that happens.
+    static INPUT: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
+    static MAC: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
+    static MAC_LEN: GroundedCell<u32> = GroundedCell::const_init();
+
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+
+    INPUT.copy_from_slice(msg);
+    MAC.clear();
+    unsafe {
+        MAC_LEN.get().write(super::KDF_LEN as u32);
+    }
+    let result = run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_crypt_hmac(
+            crypt,
+            hmac_type,
+            secret,
+            INPUT.as_mut_ptr(),
+            super::KDF_LEN as u32,
+            MAC.as_mut_ptr(),
+            MAC_LEN.get(),
+        )
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32));
+    if let Err(err) = result {
+        INPUT.zeroize();
+        MAC.zeroize();
+        return Err(err);
+    }
+
+    if unsafe { MAC_LEN.get().read() as usize } != super::KDF_LEN {
+        INPUT.zeroize();
+        MAC.zeroize();
+        return Err(Error::SecureChip(
+            SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN,
+        ));
+    }
+    MAC.copy_to_slice(mac_out);
+    INPUT.zeroize();
+    MAC.zeroize();
     Ok(())
 }

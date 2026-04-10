@@ -108,7 +108,7 @@ async fn process_bip39(hal: &mut impl crate::hal::Hal) -> Result<(), Error> {
         })
         .await?;
 
-    let mnemonic = keystore::bip85_bip39(hal, num_words, index)?;
+    let mnemonic = keystore::bip85_bip39(hal, num_words, index).await?;
     let words: Vec<&str> = mnemonic.split(' ').collect();
     {
         let crate::hal::HalSubsystems { ui, random, .. } = hal.as_mut();
@@ -142,6 +142,7 @@ async fn process_ln(
         .await?;
 
     Ok(keystore::bip85_ln(hal, account_number)
+        .await
         .map_err(|_| Error::Generic)?
         .to_vec())
 }

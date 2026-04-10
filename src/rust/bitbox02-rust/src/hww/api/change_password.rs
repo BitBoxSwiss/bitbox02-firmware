@@ -26,7 +26,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
     let new_password = password::enter_twice(hal).await?;
 
     // Re-encrypt seed with new password
-    if let Err(err) = keystore::re_encrypt_seed(hal, &seed, &new_password) {
+    if let Err(err) = keystore::re_encrypt_seed(hal, &seed, &new_password).await {
         hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
@@ -56,7 +56,9 @@ mod tests {
 
         let mut prompt_counter = 0u32;
         let mut hal = TestingHal::new();
-        keystore::encrypt_and_store_seed(&mut hal, &seed, old_password).unwrap();
+        keystore::encrypt_and_store_seed(&mut hal, &seed, old_password)
+            .await
+            .unwrap();
         unlock::unlock_bip39(&mut hal, &seed).await;
         hal.memory.set_initialized().unwrap();
 
@@ -136,7 +138,9 @@ mod tests {
 
         let mut prompt_counter = 0u32;
         let mut hal = TestingHal::new();
-        keystore::encrypt_and_store_seed(&mut hal, &seed, correct_password).unwrap();
+        keystore::encrypt_and_store_seed(&mut hal, &seed, correct_password)
+            .await
+            .unwrap();
         unlock::unlock_bip39(&mut hal, &seed).await;
         hal.memory.set_initialized().unwrap();
         keystore::lock();
@@ -193,7 +197,9 @@ mod tests {
 
         let mut prompt_counter = 0u32;
         let mut hal = TestingHal::new();
-        keystore::encrypt_and_store_seed(&mut hal, &seed, old_password).unwrap();
+        keystore::encrypt_and_store_seed(&mut hal, &seed, old_password)
+            .await
+            .unwrap();
         unlock::unlock_bip39(&mut hal, &seed).await;
         hal.memory.set_initialized().unwrap();
         keystore::lock();

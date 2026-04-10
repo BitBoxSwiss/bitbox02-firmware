@@ -26,7 +26,7 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    fn kdf(
+    async fn kdf(
         &mut self,
         _msg: &[u8; 32],
     ) -> Result<alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>>, bitbox_hal::securechip::Error>

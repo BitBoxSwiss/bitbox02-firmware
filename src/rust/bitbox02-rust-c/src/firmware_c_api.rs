@@ -97,7 +97,9 @@ pub extern "C" fn rust_memory_get_io_protection_key(mut key_out: BytesMut) {
 #[cfg(feature = "app-u2f")]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_keystore_get_u2f_seed(mut seed_out: util::bytes::BytesMut) -> bool {
-    match bitbox02_rust::keystore::get_u2f_seed(&mut crate::HalImpl::new()) {
+    match util::bb02_async::block_on(bitbox02_rust::keystore::get_u2f_seed(
+        &mut crate::HalImpl::new(),
+    )) {
         Ok(seed) => {
             seed_out.as_mut().copy_from_slice(&seed);
             true

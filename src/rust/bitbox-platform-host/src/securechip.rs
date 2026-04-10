@@ -119,7 +119,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         ))
     }
 
-    fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+    async fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += 1;
 
         use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};

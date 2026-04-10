@@ -36,7 +36,7 @@ fn check_enabled(coin: BtcCoin) -> Result<(), Error> {
 
 /// Checks if the key is our key by comparing the root fingerprints
 /// and deriving and comparing the xpub at the keypath.
-fn is_our_key(
+async fn is_our_key(
     hal: &mut impl crate::hal::Hal,
     key: &pb::KeyOriginInfo,
     our_root_fingerprint: &[u8],
@@ -48,7 +48,9 @@ fn is_our_key(
             xpub: Some(xpub),
             ..
         } if root_fingerprint.as_slice() == our_root_fingerprint => {
-            let our_xpub = crate::keystore::get_xpub_once(hal, keypath)?.serialize(None)?;
+            let our_xpub = crate::keystore::get_xpub_once(hal, keypath)
+                .await?
+                .serialize(None)?;
             let maybe_our_xpub = bip32::Xpub::from(xpub).serialize(None)?;
             Ok(our_xpub == maybe_our_xpub)
         }
@@ -557,7 +559,7 @@ impl ParsedPolicy<'_> {
     /// This works because all keypaths are distinct per BIP-388, and checked by `validate_keys()`,
     /// so they keypath alone is sufficient to figure out if we are using key path or script
     /// path, and if the latter, which leaf exactly.
-    pub fn taproot_spend_info(
+    pub async fn taproot_spend_info(
         &self,
         hal: &mut impl crate::hal::Hal,
         xpub_cache: &mut Bip32XpubCache,
@@ -565,7 +567,7 @@ impl ParsedPolicy<'_> {
     ) -> Result<TaprootSpendInfo, Error> {
         match self.derive_at_keypath(keypath)? {
             Descriptor::Tr(tr) => {
-                let xpub = xpub_cache.get_xpub(hal, keypath)?;
+                let xpub = xpub_cache.get_xpub(hal, keypath).await?;
                 let is_keypath_spend =
                     xpub.public_key() == tr.inner.internal_key().inner.serialize();
 
@@ -670,7 +672,7 @@ impl ParsedPolicy<'_> {
 ///
 /// The parsed output keeps the key strings as is (e.g. "@0/**"). They will be processed and
 /// replaced with actual pubkeys in a later step.
-pub fn parse<'a>(
+pub async fn parse<'a>(
     hal: &mut impl crate::hal::Hal,
     policy: &'a Policy,
     coin: BtcCoin,
@@ -683,11 +685,10 @@ pub fn parse<'a>(
     let desc = policy.policy.as_str();
     let our_root_fingerprint = crate::keystore::root_fingerprint()?;
 
-    let is_our_key: Vec<bool> = policy
-        .keys
-        .iter()
-        .map(|key| is_our_key(hal, key, &our_root_fingerprint))
-        .collect::<Result<Vec<bool>, ()>>()?;
+    let mut is_our_key_result = Vec::with_capacity(policy.keys.len());
+    for key in policy.keys.iter() {
+        is_our_key_result.push(is_our_key(hal, key, &our_root_fingerprint).await?);
+    }
 
     let parsed = match desc.as_bytes() {
         // Match wsh(...).
@@ -703,7 +704,7 @@ pub fn parse<'a>(
                 .map_err(|_| Error::InvalidInput)?;
             ParsedPolicy {
                 policy,
-                is_our_key,
+                is_our_key: is_our_key_result.clone(),
                 descriptor: Descriptor::Wsh(Wsh { miniscript_expr }),
             }
         }
@@ -717,7 +718,7 @@ pub fn parse<'a>(
 
             ParsedPolicy {
                 policy,
-                is_our_key,
+                is_our_key: is_our_key_result,
                 descriptor: Descriptor::Tr(Tr { inner: tr }),
             }
         }
@@ -808,9 +809,10 @@ mod tests {
     }
 
     // Creates a policy for one of our own keys at keypath.
-    fn make_our_key(keypath: &[u32]) -> pb::KeyOriginInfo {
+    async fn make_our_key(keypath: &[u32]) -> pb::KeyOriginInfo {
         let our_xpub =
             crate::keystore::get_xpub_once(&mut crate::hal::testing::TestingHal::new(), keypath)
+                .await
                 .unwrap();
         pb::KeyOriginInfo {
             root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
@@ -858,8 +860,8 @@ mod tests {
 
     // Tests that iter_pk() iterates the pubkeys from left to right as they appear in the
     // descriptor.
-    #[test]
-    fn test_iter_pk_left_to_right() {
+    #[async_test::test]
+    async fn test_iter_pk_left_to_right() {
         mock_unlocked();
         struct Test {
             policy: &'static str,
@@ -887,7 +889,7 @@ mod tests {
                 &[
                     make_key(SOME_XPUB_1),
                     make_key(SOME_XPUB_2),
-                    make_our_key(KEYPATH_ACCOUNT),
+                    make_our_key(KEYPATH_ACCOUNT).await,
                 ],
             );
             let pks: Vec<String> = parse(
@@ -895,6 +897,7 @@ mod tests {
                 &policy,
                 BtcCoin::Tbtc,
             )
+            .await
             .unwrap()
             .iter_pk()
             .collect();
@@ -902,14 +905,18 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_wsh_miniscript() {
+    #[async_test::test]
+    async fn test_parse_wsh_miniscript() {
         let coin = BtcCoin::Tbtc;
         let mut mock_hal = crate::hal::testing::TestingHal::new();
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
         // Parse a valid example and check that the keys are collected as is as strings.
         let policy = make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key));
-        match &parse(&mut mock_hal, &policy, coin).unwrap().descriptor {
+        match &parse(&mut mock_hal, &policy, coin)
+            .await
+            .unwrap()
+            .descriptor
+        {
             Descriptor::Wsh(Wsh {
                 miniscript_expr, ..
             }) => {
@@ -926,7 +933,11 @@ mod tests {
             "wsh(or_b(pk(@0/**),s:pk(@1/**)))",
             &[our_key.clone(), make_key(SOME_XPUB_1)],
         );
-        match &parse(&mut mock_hal, &policy, coin).unwrap().descriptor {
+        match &parse(&mut mock_hal, &policy, coin)
+            .await
+            .unwrap()
+            .descriptor
+        {
             Descriptor::Wsh(Wsh {
                 miniscript_expr, ..
             }) => {
@@ -945,6 +956,7 @@ mod tests {
                 &make_policy("unknown(pk(@0/**))", core::slice::from_ref(&our_key)),
                 coin
             )
+            .await
             .unwrap_err(),
             Error::InvalidInput,
         );
@@ -956,6 +968,7 @@ mod tests {
                 &make_policy("wsh(unknown(@0/**))", core::slice::from_ref(&our_key)),
                 coin
             )
+            .await
             .unwrap_err(),
             Error::InvalidInput,
         );
@@ -970,16 +983,17 @@ mod tests {
                 ),
                 coin
             )
+            .await
             .unwrap_err(),
             Error::InvalidInput,
         );
     }
 
-    #[test]
-    fn test_parse() {
+    #[async_test::test]
+    async fn test_parse() {
         mock_unlocked();
 
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
         let coin = BtcCoin::Tbtc;
 
         // All good.
@@ -989,6 +1003,7 @@ mod tests {
                 &make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key)),
                 coin
             )
+            .await
             .is_ok()
         );
 
@@ -1006,6 +1021,7 @@ mod tests {
                 ),
                 coin
             )
+            .await
             .is_ok()
         );
 
@@ -1016,21 +1032,26 @@ mod tests {
                     &mut crate::hal::testing::TestingHal::new(),
                     &make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key)),
                     coin
-                ),
+                )
+                .await,
                 Err(Error::InvalidInput)
             ));
         }
 
         // Too many keys.
-        let many_keys: Vec<pb::KeyOriginInfo> = (0..=20)
-            .map(|i| make_our_key(&[48 + HARDENED, 1 + HARDENED, i + HARDENED, 3 + HARDENED]))
-            .collect();
+        let mut many_keys = Vec::new();
+        for i in 0..=20 {
+            many_keys.push(
+                make_our_key(&[48 + HARDENED, 1 + HARDENED, i + HARDENED, 3 + HARDENED]).await,
+            );
+        }
         assert!(matches!(
             parse(
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy("wsh(pk(@0/**))", &many_keys),
                 coin
-            ),
+            )
+            .await,
             Err(Error::InvalidInput)
         ));
 
@@ -1040,7 +1061,8 @@ mod tests {
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy("wsh(pk(@0/**))", &[make_key(SOME_XPUB_1)]),
                 coin
-            ),
+            )
+            .await,
             Err(Error::InvalidInput)
         ));
 
@@ -1052,7 +1074,8 @@ mod tests {
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy("wsh(pk(@0/**))", &[wrong_key]),
                 coin
-            ),
+            )
+            .await,
             Err(Error::InvalidInput)
         ));
 
@@ -1069,7 +1092,8 @@ mod tests {
                     ]
                 ),
                 coin
-            ),
+            )
+            .await,
             Err(Error::InvalidInput)
         ));
 
@@ -1089,7 +1113,8 @@ mod tests {
                     ]
                 ),
                 coin
-            ),
+            )
+            .await,
             Err(Error::InvalidInput)
         ));
 
@@ -1099,7 +1124,8 @@ mod tests {
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy("wsh(pk(@0/**))", &[our_key.clone(), make_key(SOME_XPUB_1)]),
                 coin
-            ),
+            )
+            .await,
             Err(Error::InvalidInput)
         ));
 
@@ -1109,35 +1135,48 @@ mod tests {
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy("wsh(pk(@1/**))", core::slice::from_ref(&our_key)),
                 coin
-            ),
+            )
+            .await,
             Err(Error::InvalidInput)
         ));
     }
 
-    #[test]
-    fn test_parse_check_dups_in_policy_wsh() {
+    #[async_test::test]
+    async fn test_parse_check_dups_in_policy_wsh() {
         mock_unlocked();
 
         let coin = BtcCoin::Tbtc;
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
 
         // Ok, one key.
         let pol = make_policy("wsh(pk(@0/**))", core::slice::from_ref(&our_key));
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_ok());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_ok()
+        );
 
         // Ok, two keys.
         let pol = make_policy(
             "wsh(or_b(pk(@0/**),s:pk(@1/**)))",
             &[our_key.clone(), make_key(SOME_XPUB_1)],
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_ok());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_ok()
+        );
 
         // Ok, one key with different derivations
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;3>/*)))",
             core::slice::from_ref(&our_key),
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_ok());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_ok()
+        );
 
         // Duplicate path, one time in change, one time in receive. While the keys technically are
         // never duplicate in the final miniscript with the pubkeys inserted, we still prohibit it,
@@ -1147,58 +1186,90 @@ mod tests {
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<1;2>/*)))",
             core::slice::from_ref(&our_key),
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
 
         // Duplicate key inside policy.
         let pol = make_policy(
             "wsh(or_b(pk(@0/**),s:pk(@0/**)))",
             core::slice::from_ref(&our_key),
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
 
         // Duplicate key inside policy (same change and receive).
         let pol = make_policy("wsh(pk(@0/<0;0>/*))", core::slice::from_ref(&our_key));
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
 
         // Duplicate key inside policy, using different notations for the same thing.
         let pol = make_policy(
             "wsh(or_b(pk(@0/**),s:pk(@0/<0;1>/*)))",
             core::slice::from_ref(&our_key),
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
 
         // Duplicate key inside policy, using same receive but different change.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<0;2>/*)))",
             core::slice::from_ref(&our_key),
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
 
         // Duplicate key inside policy, using same change but different receive.
         let pol = make_policy(
             "wsh(or_b(pk(@0/<0;1>/*),s:pk(@0/<2;1>/*)))",
             core::slice::from_ref(&our_key),
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
     }
 
-    #[test]
-    fn test_parse_check_dups_in_policy_tr() {
+    #[async_test::test]
+    async fn test_parse_check_dups_in_policy_tr() {
         mock_unlocked();
 
         let coin = BtcCoin::Tbtc;
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
 
         // Ok, only internal key.
         let pol = make_policy("tr(@0/**)", core::slice::from_ref(&our_key));
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_ok());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_ok()
+        );
 
         // Ok, one leaf with one key.
         let pol = make_policy(
             "tr(@0/**,pk(@1/**))",
             &[our_key.clone(), make_key(SOME_XPUB_1)],
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_ok());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_ok()
+        );
 
         // Ok, one leaf with two keys.
         let pol = make_policy(
@@ -1209,32 +1280,48 @@ mod tests {
                 make_key(SOME_XPUB_2),
             ],
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_ok());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_ok()
+        );
 
         // Duplicate keys across internal key and multiple leafs. Technically okay, but prohibited
         // by BIP-388.
         let pol = make_policy("tr(@0/**,pk(@0/**))", core::slice::from_ref(&our_key));
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
 
         // Duplicate key in one leaf script.
         let pol = make_policy(
             "tr(@0/**,or_b(pk(@1/**),s:pk(@1/**)))",
             &[our_key.clone(), make_key(SOME_XPUB_1)],
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
 
         // Duplicate key inside one leaf script, using same receive but different change.
         let pol = make_policy(
             "tr(@0/**,or_b(pk(@1/<0;1>/*),s:pk(@1/<0;2>/*)))",
             &[our_key.clone(), make_key(SOME_XPUB_1)],
         );
-        assert!(parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin).is_err());
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &pol, coin)
+                .await
+                .is_err()
+        );
     }
 
-    #[test]
-    fn test_get_change_and_address_index() {
+    #[async_test::test]
+    async fn test_get_change_and_address_index() {
         mock_unlocked();
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
         let some_key = make_key(SOME_XPUB_1);
 
         assert_eq!(
@@ -1373,14 +1460,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_wsh_witness_script() {
+    #[async_test::test]
+    async fn test_wsh_witness_script() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
 
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
         let our_xpub = bip32::Xpub::from(our_key.xpub.as_ref().unwrap());
 
         let some_key = make_key(SOME_XPUB_1);
@@ -1388,12 +1475,19 @@ mod tests {
         let address_index = 5;
         let coin = BtcCoin::Tbtc;
 
-        let witness_script = |pol: &str, keys: &[pb::KeyOriginInfo], is_change: bool| {
+        async fn witness_script(
+            pol: &str,
+            keys: &[pb::KeyOriginInfo],
+            is_change: bool,
+            address_index: u32,
+            coin: BtcCoin,
+        ) -> String {
             let derived = parse(
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy(pol, keys),
                 coin,
             )
+            .await
             .unwrap()
             .derive(is_change, address_index)
             .unwrap();
@@ -1401,13 +1495,19 @@ mod tests {
                 Descriptor::Wsh(wsh) => hex::encode(wsh.witness_script()),
                 _ => panic!("expected wsh"),
             }
-        };
-        let witness_script_at_keypath = |pol: &str, keys: &[pb::KeyOriginInfo], keypath: &[u32]| {
+        }
+        async fn witness_script_at_keypath(
+            pol: &str,
+            keys: &[pb::KeyOriginInfo],
+            keypath: &[u32],
+            coin: BtcCoin,
+        ) -> String {
             let derived = parse(
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy(pol, keys),
                 coin,
             )
+            .await
             .unwrap()
             .derive_at_keypath(keypath)
             .unwrap();
@@ -1415,10 +1515,17 @@ mod tests {
                 Descriptor::Wsh(wsh) => hex::encode(wsh.witness_script()),
                 _ => panic!("expected wsh"),
             }
-        };
+        }
 
         // pk(key) => <key> OP_CHECKSIG
-        let result = witness_script("wsh(pk(@0/**))", core::slice::from_ref(&our_key), false);
+        let result = witness_script(
+            "wsh(pk(@0/**))",
+            core::slice::from_ref(&our_key),
+            false,
+            address_index,
+            coin,
+        )
+        .await;
         let expected_derived_pubkey =
             "039d626054b8fd7e8371ee7341549846cc7703b5530d6b7ddc08dc8a3b78455924";
         assert_eq!(
@@ -1436,7 +1543,10 @@ mod tests {
                 "wsh(multi(1,@0/<10;11>/*,@1/<20;21>/*))",
                 &[our_key.clone(), some_key.clone()],
                 false,
-            );
+                address_index,
+                coin,
+            )
+            .await;
             let expected_derived_pubkey1 =
                 "0290ad738002018d6e9551603f1913983bd52145e3a026b79b133b9d36bacc7f25";
             let expected_derived_pubkey2 =
@@ -1468,7 +1578,9 @@ mod tests {
                         10,
                         address_index,
                     ],
-                ),
+                    coin,
+                )
+                .await,
                 expected_witness_script,
             );
         }
@@ -1478,7 +1590,10 @@ mod tests {
                 "wsh(multi(1,@0/<10;11>/*,@1/<20;21>/*))",
                 &[our_key.clone(), some_key.clone()],
                 true,
-            );
+                address_index,
+                coin,
+            )
+            .await;
             let expected_derived_pubkey1 =
                 "038294e6b0f046e869c3211b8c937ccb19ab0913e3170b7ec32d07d241d97d0e07";
             let expected_derived_pubkey2 =
@@ -1510,7 +1625,9 @@ mod tests {
                         11,
                         address_index,
                     ],
-                ),
+                    coin,
+                )
+                .await,
                 expected_witness_script,
             );
         }
@@ -1518,14 +1635,14 @@ mod tests {
 
     // Test BIP-86 first test vector:
     // https://github.com/bitcoin/bips/blob/85cda4e225b4d5fd7aff403f69d827f23f6afbbc/bip-0086.mediawiki#test-vectors
-    #[test]
-    fn test_tr_bip86() {
+    #[async_test::test]
+    async fn test_tr_bip86() {
         mock_unlocked_using_mnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             "",
         );
         let coin = BtcCoin::Tbtc;
-        let our_key = make_our_key(&[86 + HARDENED, HARDENED, HARDENED]);
+        let our_key = make_our_key(&[86 + HARDENED, HARDENED, HARDENED]).await;
 
         let (is_change, address_index) = (false, 0);
         let derived = parse(
@@ -1533,6 +1650,7 @@ mod tests {
             &make_policy("tr(@0/**)", core::slice::from_ref(&our_key)),
             coin,
         )
+        .await
         .unwrap()
         .derive(is_change, address_index)
         .unwrap();
@@ -1547,37 +1665,49 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_tr_output_key() {
+    #[async_test::test]
+    async fn test_tr_output_key() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
 
         let coin = BtcCoin::Tbtc;
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
 
-        let output_key =
-            |pol: &str, keys: &[pb::KeyOriginInfo], is_change: bool, address_index: u32| {
-                let derived = parse(
-                    &mut crate::hal::testing::TestingHal::new(),
-                    &make_policy(pol, keys),
-                    coin,
-                )
-                .unwrap()
-                .derive(is_change, address_index)
-                .unwrap();
-                match derived {
-                    Descriptor::Tr(tr) => hex::encode(tr.output_key()),
-                    _ => panic!("expected tr"),
-                }
-            };
-        let output_key_at_keypath = |pol: &str, keys: &[pb::KeyOriginInfo], keypath: &[u32]| {
+        async fn output_key(
+            pol: &str,
+            keys: &[pb::KeyOriginInfo],
+            is_change: bool,
+            address_index: u32,
+            coin: BtcCoin,
+        ) -> String {
             let derived = parse(
                 &mut crate::hal::testing::TestingHal::new(),
                 &make_policy(pol, keys),
                 coin,
             )
+            .await
+            .unwrap()
+            .derive(is_change, address_index)
+            .unwrap();
+            match derived {
+                Descriptor::Tr(tr) => hex::encode(tr.output_key()),
+                _ => panic!("expected tr"),
+            }
+        }
+        async fn output_key_at_keypath(
+            pol: &str,
+            keys: &[pb::KeyOriginInfo],
+            keypath: &[u32],
+            coin: BtcCoin,
+        ) -> String {
+            let derived = parse(
+                &mut crate::hal::testing::TestingHal::new(),
+                &make_policy(pol, keys),
+                coin,
+            )
+            .await
             .unwrap()
             .derive_at_keypath(keypath)
             .unwrap();
@@ -1585,7 +1715,7 @@ mod tests {
                 Descriptor::Tr(tr) => hex::encode(tr.output_key()),
                 _ => panic!("expected tr"),
             }
-        };
+        }
 
         // Test receive path and change path using relative and full keypaths.
         {
@@ -1596,11 +1726,25 @@ mod tests {
                 "b014ba52b642976b952dd028a763a05d039199e87e0c8e9559aa215793b77bd9";
             let desc = "tr(@0/<10;11>/*,{pk(@0/<20;21>/*),pk(@0/<30;31>/*)})";
             assert_eq!(
-                output_key(desc, core::slice::from_ref(&our_key), false, ADDRESS_INDEX),
+                output_key(
+                    desc,
+                    core::slice::from_ref(&our_key),
+                    false,
+                    ADDRESS_INDEX,
+                    coin,
+                )
+                .await,
                 expected_receive
             );
             assert_eq!(
-                output_key(desc, core::slice::from_ref(&our_key), true, ADDRESS_INDEX),
+                output_key(
+                    desc,
+                    core::slice::from_ref(&our_key),
+                    true,
+                    ADDRESS_INDEX,
+                    coin,
+                )
+                .await,
                 expected_change
             );
             for receive in [10, 20, 30] {
@@ -1616,7 +1760,9 @@ mod tests {
                             receive,
                             ADDRESS_INDEX,
                         ],
-                    ),
+                        coin,
+                    )
+                    .await,
                     expected_receive,
                 );
             }
@@ -1633,19 +1779,21 @@ mod tests {
                             change,
                             ADDRESS_INDEX,
                         ],
-                    ),
+                        coin,
+                    )
+                    .await,
                     expected_change,
                 );
             }
         }
     }
 
-    #[test]
-    fn test_get_leaf_hash_by_pubkey() {
+    #[async_test::test]
+    async fn test_get_leaf_hash_by_pubkey() {
         mock_unlocked();
 
         let coin = BtcCoin::Tbtc;
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
         let policy = make_policy(
             "tr(@0/**,{pk(@1/**),pk(@2/**)})",
             &[
@@ -1655,6 +1803,7 @@ mod tests {
             ],
         );
         let derived = parse(&mut crate::hal::testing::TestingHal::new(), &policy, coin)
+            .await
             .unwrap()
             .derive(false, 0)
             .unwrap();
@@ -1694,19 +1843,19 @@ mod tests {
         assert_eq!(tr.get_leaf_hash_by_pubkey(&unknown_pk), None);
     }
 
-    #[test]
-    fn test_taproot_spend_info() {
+    #[async_test::test]
+    async fn test_taproot_spend_info() {
         mock_unlocked();
 
         let coin = BtcCoin::Tbtc;
-        let our_key = make_our_key(KEYPATH_ACCOUNT);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
         let policy = make_policy(
             "tr(@0/<0;1>/*,pk(@0/<2;3>/*))",
             core::slice::from_ref(&our_key),
         );
 
         let mut hal = crate::hal::testing::TestingHal::new();
-        let parsed_policy = parse(&mut hal, &policy, coin).unwrap();
+        let parsed_policy = parse(&mut hal, &policy, coin).await.unwrap();
 
         const ADDRESS_INDEX: u32 = 5;
         let mut xpub_cache = Bip32XpubCache::new(crate::xpubcache::Compute::Once);
@@ -1720,6 +1869,7 @@ mod tests {
             .collect();
         match parsed_policy
             .taproot_spend_info(&mut hal, &mut xpub_cache, &keypath_internal)
+            .await
             .unwrap()
         {
             TaprootSpendInfo::KeySpend(tweak) => {
@@ -1740,6 +1890,7 @@ mod tests {
             .collect();
         match parsed_policy
             .taproot_spend_info(&mut hal, &mut xpub_cache, &keypath_leaf)
+            .await
             .unwrap()
         {
             TaprootSpendInfo::ScriptSpend(leaf_hash) => {
@@ -1758,13 +1909,15 @@ mod tests {
             .chain([4, ADDRESS_INDEX])
             .collect();
         assert!(matches!(
-            parsed_policy.taproot_spend_info(&mut hal, &mut xpub_cache, &keypath_invalid),
+            parsed_policy
+                .taproot_spend_info(&mut hal, &mut xpub_cache, &keypath_invalid)
+                .await,
             Err(Error::InvalidInput)
         ));
     }
 
-    #[test]
-    fn test_get_hash() {
+    #[async_test::test]
+    async fn test_get_hash() {
         // Fixture below verified with:
         // import hashlib
         // import base58
@@ -1794,7 +1947,7 @@ mod tests {
 
         let pol = make_policy(
             "wsh(multi(2,@0/**,@1/**))",
-            &[make_our_key(KEYPATH_ACCOUNT), make_key(SOME_XPUB_1)],
+            &[make_our_key(KEYPATH_ACCOUNT).await, make_key(SOME_XPUB_1)],
         );
 
         assert_eq!(
@@ -1815,8 +1968,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_tr_unspendable_internal_key() {
+    #[async_test::test]
+    async fn test_tr_unspendable_internal_key() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -1832,7 +1985,7 @@ mod tests {
             keypath: vec![48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 2 + HARDENED],
             xpub: Some(parse_xpub("tpubDExA3EC3iAsPxPhFn4j6gMiVup6V2eH3qKyk69RcTc9TTNRfFYVPad8bJD5FCHVQxyBT4izKsvr7Btd2R4xmQ1hZkvsqGBaeE82J71uTK4N").unwrap()),
         };
-        let k2 = make_our_key(KEYPATH_ACCOUNT);
+        let k2 = make_our_key(KEYPATH_ACCOUNT).await;
 
         {
             let policy_str = "tr(@0/<0;1>/*,{and_v(v:multi_a(1,@1/<2;3>/*,@2/<2;3>/*),older(2)),multi_a(2,@1/<0;1>/*,@2/<0;1>/*)})";
@@ -1842,6 +1995,7 @@ mod tests {
                 &policy,
                 BtcCoin::Tbtc,
             )
+            .await
             .unwrap();
             assert_eq!(
                 parsed_policy.taproot_is_unspendable_internal_key(),
@@ -1861,6 +2015,7 @@ mod tests {
                 &policy,
                 BtcCoin::Tbtc,
             )
+            .await
             .unwrap();
             assert_eq!(
                 parsed_policy.taproot_is_unspendable_internal_key(),

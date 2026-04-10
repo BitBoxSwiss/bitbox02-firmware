@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 const ALLOWLIST_TYPES: &[&str] = &[
+    "optiga_crypt_t",
+    "optiga_hmac_type_t",
     "optiga_lib_status_t",
     "optiga_util_t",
     "securechip_error_t",
@@ -28,9 +30,10 @@ const ALLOWLIST_FNS: &[&str] = &[
     "atecc_u2f_counter_inc",
     "atecc_u2f_counter_set",
     "optiga_attestation_sign",
+    "optiga_crypt_hmac",
+    "optiga_crypt_instance",
     "optiga_gen_attestation_key",
     "optiga_init_new_password",
-    "optiga_kdf_external",
     "optiga_ops_get_status",
     "optiga_ops_set_status_busy",
     "optiga_random",
@@ -47,12 +50,14 @@ const ALLOWLIST_VARS: &[&str] = &[
     "ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE",
     "MONOTONIC_COUNTER_MAX_USE",
     "OID_COUNTER",
+    "OID_HMAC",
     "OPTIGA_LIB_BUSY",
     "OPTIGA_LIB_SUCCESS",
     "OPTIGA_UTIL_SUCCESS",
 ];
 
 const RUSTIFIED_ENUMS: &[&str] = &[
+    "optiga_hmac_type",
     "securechip_password_stretch_algo_t",
     "securechip_error_t",
     "securechip_model_t",

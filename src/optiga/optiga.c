@@ -1850,6 +1850,11 @@ optiga_util_t* optiga_util_instance(void)
     return _util;
 }
 
+optiga_crypt_t* optiga_crypt_instance(void)
+{
+    return _crypt;
+}
+
 // rand_out must be 32 bytes
 int optiga_random(uint8_t* rand_out)
 {

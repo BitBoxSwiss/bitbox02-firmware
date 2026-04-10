@@ -238,6 +238,7 @@ mod tests {
             &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
             "password",
         )
+        .await
         .unwrap();
 
         mock_hal.memory.set_initialized().unwrap();
@@ -258,6 +259,7 @@ mod tests {
 
         assert_eq!(
             crate::keystore::copy_bip39_seed(&mut mock_hal)
+                .await
                 .unwrap()
                 .as_slice(),
             &hex!(
@@ -280,6 +282,7 @@ mod tests {
             &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
             "password",
         )
+        .await
         .unwrap();
 
         mock_hal.memory.set_initialized().unwrap();
@@ -300,7 +303,7 @@ mod tests {
         assert_eq!(mock_hal.securechip.get_event_counter(), 4);
 
         // Checks that the device is locked.
-        assert!(crate::keystore::copy_seed(&mut mock_hal).is_err());
+        assert!(crate::keystore::copy_seed(&mut mock_hal).await.is_err());
 
         assert_eq!(
             mock_hal.ui.screens,
@@ -325,6 +328,7 @@ mod tests {
             &hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c"),
             "password",
         )
+        .await
         .unwrap();
 
         mock_hal.memory.set_initialized().unwrap();

@@ -13,6 +13,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Ethereum: add data streaming support for transactions and EIP-712 typed messages with large data
 - Ethereum: allow EIP-712 typed message signing without anti-klepto host nonce commitment
 - Improve address display by grouping addresses into groups of 4 characters
+- Add support for swaps in payment requests
 
 ### v9.25.0
 - BitBox02 Nova: improved password stretching algorithm

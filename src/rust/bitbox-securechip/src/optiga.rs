@@ -100,9 +100,5 @@ pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
 }
 
 pub fn model() -> Result<Model, ()> {
-    let mut model = core::mem::MaybeUninit::uninit();
-    match unsafe { bitbox_securechip_sys::optiga_model(model.as_mut_ptr()) } {
-        true => Ok(unsafe { model.assume_init() }),
-        false => Err(()),
-    }
+    Ok(Model::OPTIGA_TRUST_M_V3)
 }

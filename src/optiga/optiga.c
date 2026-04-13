@@ -1899,9 +1899,3 @@ bool optiga_u2f_counter_inc(uint32_t* counter)
     return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
 }
 #endif
-
-bool optiga_model(securechip_model_t* model_out)
-{
-    *model_out = OPTIGA_TRUST_M_V3;
-    return true;
-}

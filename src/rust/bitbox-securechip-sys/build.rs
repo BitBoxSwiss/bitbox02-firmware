@@ -29,7 +29,6 @@ const ALLOWLIST_FNS: &[&str] = &[
     "optiga_gen_attestation_key",
     "optiga_init_new_password",
     "optiga_kdf_external",
-    "optiga_model",
     "optiga_monotonic_increments_remaining",
     "optiga_random",
     "optiga_reset_keys",

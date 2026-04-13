@@ -12,6 +12,7 @@ members = [
     "bitbox-da14531",
     "bitbox-platform-host",
     "bitbox-hal",
+    "bitbox-core-utils",
     "bitbox-framed-serial-link",
     "util",
     "bitbox02-noise",

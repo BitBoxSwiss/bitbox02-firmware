@@ -2,7 +2,7 @@
 
 use alloc::boxed::Box;
 
-use crate::hal::{Hal, Random, SecureChip, securechip};
+use bitbox_hal::{Hal, Random, SecureChip, securechip};
 use digest::FixedOutput;
 use sha2::Digest;
 
@@ -33,7 +33,7 @@ pub fn random_32_bytes(
 pub fn random_32_bytes_from_hal(
     hal: &mut impl Hal,
 ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, securechip::Error> {
-    let crate::hal::HalSubsystems {
+    let bitbox_hal::HalSubsystems {
         random, securechip, ..
     } = hal.as_mut();
     random_32_bytes(random, securechip)
@@ -42,23 +42,24 @@ pub fn random_32_bytes_from_hal(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hal::testing::{TestingHal, TestingRandom};
+    use bitbox_platform_host::random::TestingRandom;
+    use bitbox_platform_host::securechip::FakeSecureChip;
     use hex_lit::hex;
 
     #[test]
     fn test_random_32_bytes() {
-        let mut mock_hal = TestingHal::new();
+        let mut hal_random = TestingRandom::new();
+        let mut hal_securechip = FakeSecureChip::new();
         let mcu_random = hex!("00112233445566778899aabbccddeefffedcba98765432100123456789abcdef");
         let securechip_random =
             hex!("102030405060708090a0b0c0d0e0f0000f1e2d3c4b5a69788796a5b4c3d2e1f0");
         let factory_randomness = TestingRandom::FACTORY_RANDOMNESS;
 
-        mock_hal.random.mock_next(mcu_random);
-        mock_hal.securechip.mock_random(securechip_random);
-        assert_eq!(mock_hal.random.factory_randomness(), &factory_randomness);
+        hal_random.mock_next(mcu_random);
+        hal_securechip.mock_random(securechip_random);
+        assert_eq!(hal_random.factory_randomness(), &factory_randomness);
 
-        let (hal_random, hal_securechip) = (&mut mock_hal.random, &mut mock_hal.securechip);
-        let result = random_32_bytes(hal_random, hal_securechip).unwrap();
+        let result = random_32_bytes(&mut hal_random, &mut hal_securechip).unwrap();
 
         /* Reproduce expected with Python:
         import hashlib

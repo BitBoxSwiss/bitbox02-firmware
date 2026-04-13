@@ -8,6 +8,7 @@ extern crate std;
 
 pub mod eeprom;
 pub mod memory;
+pub mod random;
 pub mod sd;
 pub mod securechip;
 pub mod timer;

@@ -16,10 +16,10 @@ impl Amount<'_> {
     /// ellipsis ('...')  are appended.
     ///
     /// Example:
-    /// - unit: FOO,
+    /// - unit: ETH,
     /// - decimals: 18,
     /// - value: 38723987932742983742983742
-    /// - returns: "38723987.9327... LOL"
+    /// - returns: "38723987.9327... ETH"
     pub fn format(&self) -> String {
         // Truncate the number at this many chars and append '...' if truncated.
         // Empirically found to fit on one line on the screen (including unit).
@@ -61,64 +61,64 @@ mod tests {
                 // 0
                 bigendian: b"",
                 decimals: 6,
-                unit: "LOL",
-                expected_result: "0 LOL",
+                unit: "ETH",
+                expected_result: "0 ETH",
             },
             Test {
                 // 1000000
                 bigendian: b"\x0f\x42\x40",
                 decimals: 6,
-                unit: "LOL",
-                expected_result: "1 LOL",
+                unit: "ETH",
+                expected_result: "1 ETH",
             },
             Test {
                 // 1100000
                 bigendian: b"\x10\xc8\xe0",
                 decimals: 6,
-                unit: "LOL",
-                expected_result: "1.1 LOL",
+                unit: "ETH",
+                expected_result: "1.1 ETH",
             },
             Test {
                 // 38723987932742983742983742
                 bigendian: b"\x20\x08\x1f\x97\x9a\x5c\x8d\x47\x29\x0e\x3e",
                 decimals: 18,
-                unit: "LOL",
-                expected_result: "38723987.9327... LOL",
+                unit: "ETH",
+                expected_result: "38723987.9327... ETH",
             },
             Test {
                 // 123456
                 bigendian: b"\x01\xe2\x40",
                 decimals: 8,
-                unit: "LOL",
-                expected_result: "0.00123456 LOL",
+                unit: "ETH",
+                expected_result: "0.00123456 ETH",
             },
             Test {
                 // 123456
                 bigendian: b"\x01\xe2\x40",
                 decimals: 8,
-                unit: "LOL",
-                expected_result: "0.00123456 LOL",
+                unit: "ETH",
+                expected_result: "0.00123456 ETH",
             },
             Test {
                 // 124567890123
                 bigendian: b"\x1d\x00\xd3\x28\xcb",
                 decimals: 10,
-                unit: "LOL",
-                expected_result: "12.4567890123 LOL",
+                unit: "ETH",
+                expected_result: "12.4567890123 ETH",
             },
             Test {
                 // 1245678901234
                 bigendian: b"\x01\x22\x08\x3f\x97\xf2",
                 decimals: 11,
-                unit: "LOL",
-                expected_result: "12.4567890123... LOL",
+                unit: "ETH",
+                expected_result: "12.4567890123... ETH",
             },
             Test {
                 // 123456
                 bigendian: b"\x01\xe2\x40",
                 decimals: 0,
-                unit: "LOL",
-                expected_result: "123456 LOL",
+                unit: "ETH",
+                expected_result: "123456 ETH",
             },
         ];
 

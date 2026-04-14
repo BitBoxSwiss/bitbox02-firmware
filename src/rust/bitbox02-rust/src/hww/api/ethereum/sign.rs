@@ -1200,6 +1200,7 @@ mod tests {
 
     #[async_test::test]
     async fn test_process_eip1559_payment_request_plain_eth() {
+        mock_unlocked();
         // Native ETH swaps use the tx recipient/value as the signed source-side output.
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
 
@@ -1276,6 +1277,7 @@ mod tests {
 
     #[async_test::test]
     async fn test_process_eip1559_payment_request_known_erc20() {
+        mock_unlocked();
         // Known ERC20 swaps decode the transfer recipient/amount and show the token unit.
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         // function selector + recipient address (left padded) + token amount

@@ -1205,8 +1205,8 @@ mod tests {
 
         // 0.530564 ETH in wei
         let value = hex!("075cf1259e9c4000");
-        // value left padded to 32 bytes
-        let output_value = hex!("000000000000000000000000000000000000000000000000075cf1259e9c4000");
+        // value serialized as 32-byte little endian
+        let output_value = hex!("00409c9e25f15c07000000000000000000000000000000000000000000000000");
         // recipient address
         let output_address = address::from_pubkey_hash(
             &hex!("04f264cf34440313b4a0192a352814fbe927b885"),
@@ -1282,7 +1282,10 @@ mod tests {
         let data = hex!(
             "a9059cbb000000000000000000000000e6ce0a092a99700cd4ccccbb1fedc39cf53e6330000000000000000000000000000000000000000000000000000000000365c040"
         );
-        let output_value: [u8; 32] = data[36..68].try_into().unwrap();
+        let output_value_be: [u8; 32] = data[36..68].try_into().unwrap();
+        let output_value =
+            payment_request::serialize_eth_output_value(&BigUint::from_bytes_be(&output_value_be))
+                .unwrap();
         let output_address = address::from_pubkey_hash(
             &hex!("e6ce0a092a99700cd4ccccbb1fedc39cf53e6330"),
             pb::EthAddressCase::Mixed,

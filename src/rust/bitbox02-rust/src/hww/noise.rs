@@ -11,20 +11,20 @@ const OP_HER_COMEZ_TEH_HANDSHAEK: u8 = b'H';
 pub const OP_NOISE_MSG: u8 = b'n';
 
 /// A safer version of the noise state. RefCell so we cannot accidentally borrow illegally.
-struct SafeNoiseState(RefCell<bitbox02_noise::State>);
+struct SafeNoiseState(RefCell<bitbox_noise::State>);
 
 /// Safety: this implements Sync even though it is not thread safe. This is okay, as we run only in
 /// a single thread in the BitBox02.
 unsafe impl Sync for SafeNoiseState {}
 
 /// Global noise state, enforcing a proper handshake.
-static NOISE_STATE: SafeNoiseState = SafeNoiseState(RefCell::new(bitbox02_noise::State::Nothing));
+static NOISE_STATE: SafeNoiseState = SafeNoiseState(RefCell::new(bitbox_noise::State::Nothing));
 
 #[derive(Debug)]
 pub struct Error;
 
-impl core::convert::From<bitbox02_noise::Error> for Error {
-    fn from(_error: bitbox02_noise::Error) -> Self {
+impl core::convert::From<bitbox_noise::Error> for Error {
+    fn from(_error: bitbox_noise::Error) -> Self {
         Error
     }
 }
@@ -65,7 +65,7 @@ pub(crate) async fn process(
             // we started a new session in the middle of something.
             hal.ui().reset();
             let static_private_key =
-                bitbox02_noise::Sensitive::from(hal.memory().get_noise_static_private_key()?);
+                bitbox_noise::Sensitive::from(hal.memory().get_noise_static_private_key()?);
 
             NOISE_STATE
                 .0
@@ -76,11 +76,11 @@ pub(crate) async fn process(
         Some((&OP_HER_COMEZ_TEH_HANDSHAEK, rest)) => {
             let mut state = NOISE_STATE.0.borrow_mut();
             match state.handshake(rest)? {
-                bitbox02_noise::HandshakeResult::Response(msg) => {
+                bitbox_noise::HandshakeResult::Response(msg) => {
                     usb_out.extend(msg);
                     Ok(())
                 }
-                bitbox02_noise::HandshakeResult::Done => {
+                bitbox_noise::HandshakeResult::Done => {
                     let already_verified = hal
                         .memory()
                         .check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);

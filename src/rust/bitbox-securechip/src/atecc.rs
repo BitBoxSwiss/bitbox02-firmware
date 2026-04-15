@@ -79,7 +79,7 @@ pub fn stretch_password(
     }
 }
 
-pub fn kdf(msg: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
+pub fn kdf(msg: &[u8; 32]) -> Result<Zeroizing<Vec<u8>>, Error> {
     let mut result = Zeroizing::new(vec![0u8; 32]);
     let status =
         unsafe { bitbox_securechip_sys::atecc_kdf(msg.as_ptr(), msg.len(), result.as_mut_ptr()) };

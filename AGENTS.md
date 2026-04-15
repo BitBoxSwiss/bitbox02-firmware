@@ -27,6 +27,9 @@ for the current scope.
 Run regular Unix commands such as `git`, `rg`, `grep`, `ls`, `find`, `sed`, and `cat` directly on
 the host.
 
+Cargo commands for the Rust workspace, such as `cargo test`, `cargo check`, and `cargo clippy`, may
+also be run directly on the host by passing `--manifest-path src/rust/Cargo.toml`.
+
 Use `./scripts/dev_exec.sh <command>` only for project-specific commands that depend on the project
 toolchain or compiler environment.
 
@@ -34,9 +37,8 @@ In practice, the repository `make` targets in this file are project-specific too
 When running from the host, invoke them via `./scripts/dev_exec.sh make <target>`.
 
 Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. Prefer changing CWD
-with CLI args like `tar -C <PATH>` or `cargo build --manifest-path <PATH>`. If
-a command genuinely needs shell features such as pipes, pass an explicit shell
-as the command, e.g.  `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
+with CLI args like `tar -C <PATH>`. If a command genuinely needs shell features such as pipes, pass
+an explicit shell as the command, e.g. `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
 
 - `make firmware` / `make bootloader`: compile firmware or bootloader ELFs into `build/`.
 - `make simulator`: build the Linux simulator under `build-build-noasan/bin/`.
@@ -45,9 +47,11 @@ as the command, e.g.  `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
 - `make run-rust-clippy`: lint Rust code with the workspace configuration.
 - When invoking the above `make` targets from the host, prefer
   `./scripts/dev_exec.sh make <target>`.
-- Rust tests may also be run directly with `cargo test`:
+- Rust workspace commands may also be run directly with `cargo`, without `./scripts/dev_exec.sh`:
   -  From the repository root on the host, use
-     `./scripts/dev_exec.sh cargo test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
+     `cargo test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
+  -  For checks, use
+     `cargo check --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features`.
 
 ## Coding Style & Naming Conventions
 `.clang-format` (Chromium base, 4-space indent, Linux braces) and `.clang-tidy` govern C/C++. Use

@@ -38,7 +38,7 @@ pub unsafe extern "C" fn rust_salt_hash_data(
     let mut hal = crate::HalImpl::new();
     match bitbox_core_utils::salt::hash_data(hal.memory(), data.as_ref(), purpose_str) {
         Ok(hash) => {
-            hash_out.as_mut()[..32].copy_from_slice(&hash);
+            hash_out.as_mut()[..32].copy_from_slice(hash.as_slice());
             true
         }
         Err(()) => false,

@@ -119,7 +119,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         ))
     }
 
-    fn kdf(&mut self, msg: &[u8; 32]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += 1;
 
         use bitcoin::hashes::{HashEngine, Hmac, HmacEngine, sha256};
@@ -128,9 +128,9 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         ));
         engine.input(msg);
         let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-        Ok(zeroize::Zeroizing::new(
-            hmac_result.to_byte_array().to_vec(),
-        ))
+        Ok(Box::new(zeroize::Zeroizing::new(
+            hmac_result.to_byte_array(),
+        )))
     }
 
     fn attestation_sign(

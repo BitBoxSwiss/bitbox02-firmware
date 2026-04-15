@@ -15,7 +15,7 @@ members = [
     "bitbox-core-utils",
     "bitbox-framed-serial-link",
     "util",
-    "bitbox02-noise",
+    "bitbox-noise",
     "bitbox02",
     "bitbox-secp256k1",
     "bitbox02-sys",

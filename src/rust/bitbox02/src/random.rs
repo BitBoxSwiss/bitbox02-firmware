@@ -23,7 +23,7 @@ pub extern "C" fn rust_noise_generate_static_private_key(
     mut private_key_out: util::bytes::BytesMut,
 ) {
     let mut random = crate::hal::random::BitBox02Random;
-    let key = bitbox02_noise::genkey(&mut random);
+    let key = bitbox_noise::genkey(&mut random);
     private_key_out.as_mut().copy_from_slice(&key[..]);
 }
 
@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn test_generate_static_private_key() {
         let mut random = crate::hal::random::BitBox02Random;
-        let key = bitbox02_noise::genkey(&mut random);
+        let key = bitbox_noise::genkey(&mut random);
         assert_eq!(key[0] & 0b111, 0);
         assert_eq!(key[31] & 0b1000_0000, 0);
         assert_eq!(key[31] & 0b0100_0000, 0b0100_0000);

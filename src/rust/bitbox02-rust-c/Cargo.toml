@@ -16,7 +16,7 @@ bitbox-da14531 = { path = "../bitbox-da14531" }
 bitbox-aes = { path = "../bitbox-aes", optional = true }
 bitbox02 = { path = "../bitbox02" }
 bitbox-hal = { path = "../bitbox-hal" }
-bitbox02-noise = { path = "../bitbox02-noise", optional = true }
+bitbox-noise = { path = "../bitbox-noise", optional = true }
 cortex-m = { workspace = true }
 util = { path = "../util" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
@@ -66,13 +66,13 @@ target-c-unit-tests = [
 ]
 
 platform-bitbox02 = []
-platform-bitbox02plus = ["util/sha2", "bitbox02-noise", "bitbox02-rust"]
+platform-bitbox02plus = ["util/sha2", "bitbox-noise", "bitbox02-rust"]
 
 bootloader = []
 firmware = [
   "bitbox02-rust",
   "bitbox02-rust/firmware",
-  "bitbox02-noise",
+  "bitbox-noise",
   "util/sha2",
   "util/firmware",
   "der",

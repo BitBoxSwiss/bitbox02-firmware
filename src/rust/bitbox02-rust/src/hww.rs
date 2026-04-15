@@ -147,7 +147,7 @@ mod tests {
             block_on(process_packet(&mut TestingHal::new(), b"h".to_vec())),
             [OP_STATUS_SUCCESS].to_vec()
         );
-        let mut host_noise = bitbox02_noise::testing::make_mock_host();
+        let mut host_noise = bitbox_noise::testing::make_mock_host();
         let host_handshake_1 = host_noise.write_message_vec(b"").unwrap();
         let bb02_handshake_1 = {
             let result = block_on(process_packet(&mut TestingHal::new(), {
@@ -182,7 +182,7 @@ mod tests {
 
             // Handshake hash as computed by the host. Should be the same as computed on the
             // device. The pairing code is derived from that.
-            let handshake_hash: bitbox02_noise::HandshakeHash =
+            let handshake_hash: bitbox_noise::HandshakeHash =
                 host_noise.get_hash().try_into().unwrap();
 
             let mut mock_hal = TestingHal::new();

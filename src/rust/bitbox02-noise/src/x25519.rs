@@ -3,22 +3,36 @@
 //! This module implements the X25519 trait needed by noise_protocol
 //! by using the x25519_dalek crate. It is adapted from
 //! https://github.com/sopium/noise-rust/blob/76fb694f06b429879c264087f496958a99710356/noise-rust-crypto/src/lib.rs#L31,
-//! but uses a pluggable random number generator to generate keys.
+//! but uses the HAL random source to generate keys.
 
-use core::ops::{Deref, DerefMut};
+use bitbox_hal::Random;
+use core::ops::Deref;
 use noise_protocol::U8Array;
 use noise_rust_crypto::sensitive::Sensitive;
 
-pub trait Random32 {
-    fn mcu_32_bytes(out: &mut [u8; 32]);
-}
-
-pub struct X25519<R: Random32>(core::marker::PhantomData<R>);
+pub struct X25519;
 
 pub type PrivateKey = [u8; 32];
 pub type PublicKey = [u8; 32];
 
-impl<R: Random32> noise_protocol::DH for X25519<R> {
+/// Generate a fresh x25519 private key by reading 32 random bytes from the HAL and applying
+/// the standard clamping.
+pub fn genkey(random: &mut impl Random) -> Sensitive<PrivateKey> {
+    let mut k: Sensitive<PrivateKey> = Sensitive::new();
+    random.mcu_32_bytes(&mut k);
+
+    // Copied from: https://github.com/sopium/noise-rust/blob/76fb694f06b429879c264087f496958a99710356/noise-rust-crypto/src/lib.rs#L49-L51
+    // which in turn copied it from:
+    // https://github.com/dalek-cryptography/x25519-dalek/blob/ecd6be674850a99ad26404f6aa29b0cf79642b97/src/x25519.rs#L162-L164
+    // which is also in our vendored deps: `vendor/x25519-dalek/src/x25519.rs`.
+    k[0] &= 248;
+    k[31] &= 127;
+    k[31] |= 64;
+
+    k
+}
+
+impl noise_protocol::DH for X25519 {
     type Key = Sensitive<PrivateKey>;
     type Pubkey = PublicKey;
     type Output = [u8; 32];
@@ -28,18 +42,7 @@ impl<R: Random32> noise_protocol::DH for X25519<R> {
     }
 
     fn genkey() -> Self::Key {
-        let mut k = Self::Key::new();
-        R::mcu_32_bytes(k.deref_mut());
-
-        // Copied from: https://github.com/sopium/noise-rust/blob/76fb694f06b429879c264087f496958a99710356/noise-rust-crypto/src/lib.rs#L49-L51
-        // which in turn copied it from:
-        // https://github.com/dalek-cryptography/x25519-dalek/blob/ecd6be674850a99ad26404f6aa29b0cf79642b97/src/x25519.rs#L162-L164
-        // which is also in our vendored deps: `vendor/x25519-dalek/src/x25519.rs`.
-        k[0] &= 248;
-        k[31] &= 127;
-        k[31] |= 64;
-
-        k
+        panic!("implicit X25519 key generation is unsupported; generate keys explicitly")
     }
 
     fn pubkey(k: &Self::Key) -> Self::Pubkey {

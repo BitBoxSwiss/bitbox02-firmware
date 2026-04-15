@@ -95,6 +95,9 @@ pub trait Memory {
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<(), ()>;
     fn reset_hww(&mut self) -> Result<(), ()>;
+    fn get_noise_static_private_key(&mut self) -> Result<zeroize::Zeroizing<[u8; 32]>, ()>;
+    fn check_noise_remote_static_pubkey(&mut self, pubkey: &[u8; 32]) -> bool;
+    fn add_noise_remote_static_pubkey(&mut self, pubkey: &[u8; 32]) -> Result<(), ()>;
     fn get_io_protection_key(&mut self, out: &mut [u8; 32]);
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()>;
     fn get_attestation_pubkey_and_certificate(

@@ -100,6 +100,19 @@ impl hal::memory::Memory for BitBox03Memory {
     fn reset_hww(&mut self) -> Result<(), ()> {
         todo!()
     }
+
+    fn get_noise_static_private_key(&mut self) -> Result<zeroize::Zeroizing<[u8; 32]>, ()> {
+        todo!()
+    }
+
+    fn check_noise_remote_static_pubkey(&mut self, _pubkey: &[u8; 32]) -> bool {
+        todo!()
+    }
+
+    fn add_noise_remote_static_pubkey(&mut self, _pubkey: &[u8; 32]) -> Result<(), ()> {
+        todo!()
+    }
+
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<alloc::vec::Vec<u8>>, ()> {
         todo!()
     }

@@ -21,6 +21,9 @@ pub struct FakeMemory {
     mnemonic_passphrase_enabled: bool,
     seed_birthdate: u32,
     encrypted_seed_and_hmac: Option<(Vec<u8>, PasswordStretchAlgo)>,
+    noise_static_private_key_generation: u8,
+    noise_static_private_key: [u8; 32],
+    noise_remote_static_pubkeys: Vec<[u8; 32]>,
     device_name: Option<String>,
     salt_root: [u8; 32],
     attestation_device_pubkey: Option<[u8; 64]>,
@@ -32,6 +35,15 @@ pub struct FakeMemory {
 
 // Same as MEMORY_MULTISIG_NUM_ENTRIES in memory.h.
 const MULTISIG_LIMIT: usize = 25;
+const NOISE_REMOTE_STATIC_PUBKEYS_LIMIT: usize = 5;
+
+fn make_noise_static_private_key(generation: u8) -> [u8; 32] {
+    let mut key = [generation.wrapping_add(1); 32];
+    key[0] &= 248;
+    key[31] &= 127;
+    key[31] |= 64;
+    key
+}
 
 impl FakeMemory {
     pub fn new() -> Self {
@@ -56,6 +68,9 @@ impl FakeMemory {
             mnemonic_passphrase_enabled: false,
             seed_birthdate: 0,
             encrypted_seed_and_hmac: None,
+            noise_static_private_key_generation: 0,
+            noise_static_private_key: make_noise_static_private_key(0),
+            noise_remote_static_pubkeys: Vec::new(),
             device_name: None,
             salt_root: *b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             attestation_device_pubkey: None,
@@ -237,8 +252,34 @@ impl bitbox_hal::Memory for FakeMemory {
         self.mnemonic_passphrase_enabled = false;
         self.seed_birthdate = 0;
         self.encrypted_seed_and_hmac = None;
+        self.noise_static_private_key_generation =
+            self.noise_static_private_key_generation.wrapping_add(1);
+        self.noise_static_private_key =
+            make_noise_static_private_key(self.noise_static_private_key_generation);
+        self.noise_remote_static_pubkeys = Vec::new();
         self.device_name = None;
         self.multisig_entries = Vec::new();
+        Ok(())
+    }
+
+    fn get_noise_static_private_key(&mut self) -> Result<zeroize::Zeroizing<[u8; 32]>, ()> {
+        Ok(zeroize::Zeroizing::new(self.noise_static_private_key))
+    }
+
+    fn check_noise_remote_static_pubkey(&mut self, pubkey: &[u8; 32]) -> bool {
+        self.noise_remote_static_pubkeys
+            .iter()
+            .any(|stored_pubkey| stored_pubkey == pubkey)
+    }
+
+    fn add_noise_remote_static_pubkey(&mut self, pubkey: &[u8; 32]) -> Result<(), ()> {
+        if self.check_noise_remote_static_pubkey(pubkey) {
+            return Ok(());
+        }
+        if self.noise_remote_static_pubkeys.len() == NOISE_REMOTE_STATIC_PUBKEYS_LIMIT {
+            self.noise_remote_static_pubkeys.remove(0);
+        }
+        self.noise_remote_static_pubkeys.push(*pubkey);
         Ok(())
     }
 

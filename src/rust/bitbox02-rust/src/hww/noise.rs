@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::Ui;
+use crate::hal::{Memory, Ui};
 use crate::workflow::pairing;
 use alloc::vec::Vec;
-use bitbox02::memory;
 use core::cell::RefCell;
 
 const OP_I_CAN_HAS_HANDSHAEK: u8 = b'h';
@@ -70,7 +69,7 @@ pub(crate) async fn process(
                 .0
                 .borrow_mut()
                 .init(bitbox02_noise::Sensitive::from(
-                    memory::get_noise_static_private_key()?,
+                    hal.memory().get_noise_static_private_key()?,
                 ));
             Ok(())
         }
@@ -82,8 +81,9 @@ pub(crate) async fn process(
                     Ok(())
                 }
                 bitbox02_noise::HandshakeResult::Done => {
-                    let already_verified =
-                        memory::check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);
+                    let already_verified = hal
+                        .memory()
+                        .check_noise_remote_static_pubkey(&state.remote_static_pubkey()?);
                     // When communicating over BLE, we don't require noise pairing code
                     // confirmation, as BLE already requires pairing with a pairing code.
                     if crate::communication_mode::ble_enabled(hal) || already_verified {
@@ -109,7 +109,8 @@ pub(crate) async fn process(
                         // If this fails, we continue anyway, as the communication still works (just the
                         // pubkey is not stored and we need to perform the pairing verification again
                         // next time).
-                        memory::add_noise_remote_static_pubkey(&state.remote_static_pubkey()?)
+                        hal.memory()
+                            .add_noise_remote_static_pubkey(&state.remote_static_pubkey()?)
                     };
                     Ok(())
                 }

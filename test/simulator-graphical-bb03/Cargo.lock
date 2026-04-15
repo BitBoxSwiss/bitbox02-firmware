@@ -464,6 +464,7 @@ dependencies = [
 name = "bitbox02-noise"
 version = "0.1.0"
 dependencies = [
+ "bitbox-hal",
  "noise-protocol",
  "noise-rust-crypto",
  "x25519-dalek",

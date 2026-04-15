@@ -11,7 +11,7 @@ const OP_HER_COMEZ_TEH_HANDSHAEK: u8 = b'H';
 pub const OP_NOISE_MSG: u8 = b'n';
 
 /// A safer version of the noise state. RefCell so we cannot accidentally borrow illegally.
-struct SafeNoiseState(RefCell<bitbox02_noise::State<bitbox02::random::BB02Random32>>);
+struct SafeNoiseState(RefCell<bitbox02_noise::State>);
 
 /// Safety: this implements Sync even though it is not thread safe. This is okay, as we run only in
 /// a single thread in the BitBox02.
@@ -64,13 +64,13 @@ pub(crate) async fn process(
             // Pairing is the start of a session, so we clean the screen stack in case
             // we started a new session in the middle of something.
             hal.ui().reset();
+            let static_private_key =
+                bitbox02_noise::Sensitive::from(hal.memory().get_noise_static_private_key()?);
 
             NOISE_STATE
                 .0
                 .borrow_mut()
-                .init(bitbox02_noise::Sensitive::from(
-                    hal.memory().get_noise_static_private_key()?,
-                ));
+                .init(static_private_key, hal.random());
             Ok(())
         }
         Some((&OP_HER_COMEZ_TEH_HANDSHAEK, rest)) => {

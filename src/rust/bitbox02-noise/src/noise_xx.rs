@@ -3,13 +3,15 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::x25519::{PrivateKey, PublicKey, Random32, X25519};
+use bitbox_hal::Random;
+
+use crate::x25519::{PrivateKey, PublicKey, X25519, genkey};
 use noise_rust_crypto::{ChaCha20Poly1305, Sha256, sensitive::Sensitive};
 
 /// Specialization of noise_protocol::HandshakeState, picking the implementations for Diffie
 /// Hellman, Cipher and Hash.
 /// cbindgen:ignore
-pub type HandshakeState<R> = noise_protocol::HandshakeState<X25519<R>, ChaCha20Poly1305, Sha256>;
+pub type HandshakeState = noise_protocol::HandshakeState<X25519, ChaCha20Poly1305, Sha256>;
 
 /// Common handshake hash that can be derived by both parties. The pairing code is derived from it.
 pub type HandshakeHash = [u8; 32];
@@ -19,11 +21,11 @@ pub type HandshakeHash = [u8; 32];
 /// The required state flow is:
 ///
 /// `Nothing --init()--> Initialized --handshake()--> Initialized --handshake() --> Ready.`
-pub enum State<R: Random32> {
+pub enum State {
     /// Noise not in use yet.
     Nothing,
     /// Initialized, ready for handhshake messages.
-    Initialized(HandshakeState<R>),
+    Initialized(HandshakeState),
     /// Handshake is completed. Ready to confirm the pairing and process messages.
     Ready {
         /// Defaults to true. No encryption/decryption is possible until `set_pairing_verified()` is
@@ -70,7 +72,7 @@ impl core::convert::From<noise_protocol::Error> for Error {
     }
 }
 
-impl<R: Random32> State<R> {
+impl State {
     /// Can be called at any time to reset the state.
     pub fn reset(&mut self) {
         *self = State::Nothing;
@@ -79,14 +81,16 @@ impl<R: Random32> State<R> {
     /// Can be called at any time to start waiting for a new communication channel.
     ///
     /// `static_private_key` is the local static key. It can be generated using
-    /// `generate_static_private_key()`.
-    pub fn init(&mut self, static_private_key: Sensitive<PrivateKey>) {
+    /// `genkey()` with a HAL random source and then persisted. `random` is used to generate a
+    /// fresh ephemeral private key for each session.
+    pub fn init(&mut self, static_private_key: Sensitive<PrivateKey>, random: &mut impl Random) {
+        let ephemeral_private_key = genkey(random);
         let hs = HandshakeState::new(
             noise_protocol::patterns::noise_xx(),
             false, /* is_initiator = false; the app is the initiator */
             &b"Noise_XX_25519_ChaChaPoly_SHA256"[..],
             Some(static_private_key),
-            None,
+            Some(ephemeral_private_key),
             None,
             None,
         );
@@ -221,6 +225,7 @@ impl<R: Random32> State<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::{MockRandom, make_mock_host};
 
     impl HandshakeResult {
         fn response(self) -> Result<Vec<u8>, ()> {
@@ -237,21 +242,14 @@ mod tests {
         }
     }
 
-    enum MockRandom32 {}
-    impl Random32 for MockRandom32 {
-        fn mcu_32_bytes(out: &mut [u8; 32]) {
-            out.copy_from_slice(b"llllllllllllllllllllllllllllllll")
-        }
-    }
-
     #[test]
     pub fn test_full() {
-        use noise_protocol::DH;
-        let bb02_static_key = X25519::<MockRandom32>::genkey();
+        let mut bb02_random = MockRandom;
+        let bb02_static_key = genkey(&mut bb02_random);
 
-        let mut host = crate::testing::make_host();
-        let mut bb02 = State::<MockRandom32>::Nothing;
-        bb02.init(bb02_static_key);
+        let mut host = make_mock_host();
+        let mut bb02 = State::Nothing;
+        bb02.init(bb02_static_key, &mut bb02_random);
 
         let host_handshake_1 = host.write_message_vec(b"").unwrap();
         let bb02_handshake_1 = bb02

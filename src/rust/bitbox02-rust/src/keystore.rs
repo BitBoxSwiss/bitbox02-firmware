@@ -697,7 +697,9 @@ pub fn stretch_retained_seed_encryption_key(
     let salted_in = bitbox_core_utils::salt::hash_data(hal.memory(), encryption_key, purpose_in)
         .map_err(|_| Error::Salt)?;
 
-    let kdf = hal.securechip().kdf(salted_in.as_slice())?;
+    let kdf = hal
+        .securechip()
+        .kdf(salted_in.as_slice().try_into().unwrap())?;
 
     let salted_out = bitbox_core_utils::salt::hash_data(hal.memory(), encryption_key, purpose_out)
         .map_err(|_| Error::Salt)?;

@@ -28,7 +28,7 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
 
     fn kdf(
         &mut self,
-        _msg: &[u8],
+        _msg: &[u8; 32],
     ) -> Result<zeroize::Zeroizing<alloc::vec::Vec<u8>>, bitbox_hal::securechip::Error> {
         todo!()
     }

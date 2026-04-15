@@ -76,8 +76,8 @@ pub trait SecureChip {
     ///
     /// This must not increment a monotonic counter.
     ///
-    /// `msg` must be at most 127 bytes long.
-    fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+    /// `msg` must be 32 bytes long.
+    fn kdf(&mut self, msg: &[u8; 32]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
 
     /// Signs a 32-byte attestation challenge and writes the raw 64-byte P-256 signature to
     /// `signature`.

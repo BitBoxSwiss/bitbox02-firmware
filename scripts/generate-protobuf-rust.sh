@@ -19,6 +19,12 @@ prost-build-proto \
     "${ROOT_DIR}/messages" \
     "${TMP_DIR}"
 
+rustfmt \
+    --edition 2024 \
+    "${ROOT_DIR}/src/rust/bitbox-proto/src/lib.rs" \
+    "${TMP_DIR}/shiftcrypto.bitbox02.rs" \
+    "${TMP_DIR}/shiftcrypto.bitbox02.backups.rs"
+
 for filename in \
     "shiftcrypto.bitbox02.rs" \
     "shiftcrypto.bitbox02.backups.rs"

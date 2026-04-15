@@ -68,7 +68,7 @@ pub fn stretch_password(
 
 /// Perform the secure chip KDF with the message in `msg` and return the zeroizing 32-byte
 /// result.
-pub fn kdf(msg: &[u8; 32]) -> Result<Zeroizing<Vec<u8>>, Error> {
+pub fn kdf(msg: &[u8; 32]) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     match backend() {
         Backend::Atecc => atecc::kdf(msg),
         Backend::Optiga => optiga::kdf(msg),

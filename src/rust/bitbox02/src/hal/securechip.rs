@@ -105,7 +105,7 @@ impl SecureChip for BitBox02SecureChip {
         .map_err(to_hal_error)
     }
 
-    fn kdf(&mut self, msg: &[u8; 32]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         crate::securechip::kdf(msg).map_err(to_hal_error)
     }
 

@@ -86,6 +86,20 @@ jobs:
           ./.ci/check-tidy
           make run-rust-clippy
 
+  protobuf-drift:
+    runs-on: ubuntu-22.04
+    container:
+      image: ${{ inputs.container-repo }}:${{ inputs.container-version }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+
+      - name: Mark directory as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Check protobuf Rust bindings
+        run: ./.ci/check-protobuf
+
   unit-tests:
     runs-on: ubuntu-22.04
     container:
@@ -140,6 +154,9 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rust-src-dir: src/rust
+
+      - name: install prost-build-proto
+        run: cargo install --path tools/prost-build-proto --locked
 
       - name: Run rust unit-tests
         run: make run-rust-unit-tests
@@ -274,7 +291,10 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rust-src-dir: src/rust
-          components: rust-src
+          components: rust-src rustfmt
+
+      - name: install prost-build-proto
+        run: cargo install --path tools/prost-build-proto --locked
 
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}

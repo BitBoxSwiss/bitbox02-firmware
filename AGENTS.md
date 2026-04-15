@@ -51,13 +51,16 @@ an explicit shell as the command, e.g. `./scripts/dev_exec.sh bash -lc 'cat vers
      `cargo test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
   -  For checks, use
      `cargo check --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features`.
+  -  If you modify `messages/*.proto`, run `make generate-protobufs` before direct Rust `cargo`
+     commands. Plain `cargo test`/`cargo check` does not regenerate the protobuf outputs.
 
 ## Coding Style & Naming Conventions
 `.clang-format` (Chromium base, 4-space indent, Linux braces) and `.clang-tidy` govern C/C++. Use
 `snake_case` for symbols, `PascalCase` for types, and `ALL_CAPS` for macros. Python utilities follow
 `.pylintrc` rules (100-column limit, explicit imports). Rust crates rely on `rustfmt.toml` and the
 pinned toolchain in `rust-toolchain.toml`; keep module paths aligned with `src/rust` and regenerate
-bindings (`cbindgen`, protobuf) when interfaces change.
+bindings (`cbindgen`, protobuf) when interfaces change. When changing protobuf interfaces, run
+`make generate-protobufs`.
 
 * For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code.
 * For Python changes, run `./scripts/dev_exec.sh ./scripts/format-python` to format the code.

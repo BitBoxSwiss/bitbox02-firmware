@@ -107,12 +107,10 @@ unit-test: | build-build
 # Must compile C tests before running them
 run-unit-tests: | build-build
 	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test
-generate-protobufs: | build-build-noasan
-	$(MAKE) -C build-build-noasan generate-protobufs
 # Only one test thread because of unsafe concurrent access to `SafeData`,
 # `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex
 # poisoning and very messy output in case of a unit test failure.
-run-rust-unit-tests: generate-protobufs
+run-rust-unit-tests:
 	cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1
 run-rust-clippy: | build-build-noasan
 	${MAKE} -C build-build-noasan rust-clippy
@@ -179,6 +177,8 @@ dockerdev:
 	./scripts/dockerenv.sh
 dockerrel:
 	./scripts/dockerenv.sh release
+generate-protobufs:
+	./scripts/generate-protobuf-rust.sh
 generate-atecc608-config:
 	cd tools/atecc608 && go run main.go
 ci:

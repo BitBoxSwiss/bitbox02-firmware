@@ -5,12 +5,7 @@
 // When compiling for testing we allow certain warnings.
 #![cfg_attr(test, allow(unused_imports, dead_code))]
 
-mod pb {
-    include!("./shiftcrypto.bitbox02.rs");
-}
-mod pb_backup {
-    include!("./shiftcrypto.bitbox02.backups.rs");
-}
+pub use bitbox_proto::{pb, pb_backup};
 
 pub mod async_usb;
 pub mod attestation;

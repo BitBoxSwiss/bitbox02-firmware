@@ -602,29 +602,26 @@ fn setup_xpub_cache(cache: &mut Bip32XpubCache, script_configs: &[pb::BtcScriptC
     }
 }
 
-impl TryFrom<pb::BtcCoin> for streaming_silent_payments::Network {
-    type Error = Error;
-    fn try_from(value: pb::BtcCoin) -> Result<streaming_silent_payments::Network, Self::Error> {
-        match value {
-            pb::BtcCoin::Btc => Ok(streaming_silent_payments::Network::Btc),
-            pb::BtcCoin::Tbtc => Ok(streaming_silent_payments::Network::Tbtc),
-            _ => Err(Error::InvalidInput),
-        }
+fn silent_payments_network(
+    value: pb::BtcCoin,
+) -> Result<streaming_silent_payments::Network, Error> {
+    match value {
+        pb::BtcCoin::Btc => Ok(streaming_silent_payments::Network::Btc),
+        pb::BtcCoin::Tbtc => Ok(streaming_silent_payments::Network::Tbtc),
+        _ => Err(Error::InvalidInput),
     }
 }
 
-impl From<&pb::btc_script_config::SimpleType> for streaming_silent_payments::InputType {
-    fn from(value: &pb::btc_script_config::SimpleType) -> streaming_silent_payments::InputType {
-        match value {
-            pb::btc_script_config::SimpleType::P2wpkhP2sh => {
-                streaming_silent_payments::InputType::P2wpkhP2sh
-            }
-            pb::btc_script_config::SimpleType::P2wpkh => {
-                streaming_silent_payments::InputType::P2wpkh
-            }
-            pb::btc_script_config::SimpleType::P2tr => {
-                streaming_silent_payments::InputType::P2trKeypathSpend
-            }
+fn silent_payments_input_type(
+    value: &pb::btc_script_config::SimpleType,
+) -> streaming_silent_payments::InputType {
+    match value {
+        pb::btc_script_config::SimpleType::P2wpkhP2sh => {
+            streaming_silent_payments::InputType::P2wpkhP2sh
+        }
+        pb::btc_script_config::SimpleType::P2wpkh => streaming_silent_payments::InputType::P2wpkh,
+        pb::btc_script_config::SimpleType::P2tr => {
+            streaming_silent_payments::InputType::P2trKeypathSpend
         }
     }
 }
@@ -640,7 +637,7 @@ impl<'a> TryFrom<&'a ValidatedScriptConfigWithKeypath<'a>>
             ValidatedScriptConfigWithKeypath {
                 config: ValidatedScriptConfig::SimpleType(simple_type),
                 ..
-            } => Ok(simple_type.into()),
+            } => Ok(silent_payments_input_type(simple_type)),
             _ => Err(Error::InvalidInput),
         }
     }
@@ -749,7 +746,10 @@ async fn _process(
     let taproot_only = validated_script_configs.iter().all(is_taproot);
 
     let mut silent_payment = if request.contains_silent_payment_outputs {
-        Some(SilentPayment::new(SECP256K1, coin.try_into()?))
+        Some(SilentPayment::new(
+            SECP256K1,
+            silent_payments_network(coin)?,
+        ))
     } else {
         None
     };

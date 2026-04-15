@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./scripts/generate-protobuf-rust.sh
+git diff --exit-code -- src/rust/bitbox-proto

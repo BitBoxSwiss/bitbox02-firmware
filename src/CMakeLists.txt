@@ -247,7 +247,6 @@ add_custom_target(rust-cbindgen
 
 # Test rust crates that contain business logic. Avoid testing crates that depend on hardware.
 if(NOT CMAKE_CROSSCOMPILING)
-
   add_custom_target(rust-clippy
     COMMAND
       ${CMAKE_COMMAND} -E env
@@ -276,7 +275,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_SOURCE_DIR}/rust
     )
-  add_dependencies(rust-clippy rust-cbindgen generate-protobufs)
+  add_dependencies(rust-clippy rust-cbindgen)
 endif()
 
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
@@ -373,7 +372,7 @@ foreach(type ${RUST_LIBS})
   )
   add_custom_target(${type}-rust-target DEPENDS ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
   add_library(${type}_rust_c STATIC IMPORTED GLOBAL)
-  add_dependencies(${type}_rust_c ${type}-rust-target generate-protobufs)
+  add_dependencies(${type}_rust_c ${type}-rust-target)
   set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
   # Add the include directory to find rust/rust.h
   target_include_directories(${type}_rust_c INTERFACE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/rust/fatfs-sys/depend/fatfs/source)

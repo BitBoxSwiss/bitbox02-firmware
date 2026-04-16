@@ -117,3 +117,5 @@ conclude.
 - rust fmt all Rust files you modify, using 2024 edition.
 - when working on BitBox03 UI code, do not reach into `bitbox_lvgl` FFI directly from feature code.
   If needed, add safe idiomatic wrappers to `bitbox-lvgl` first and use those wrappers instead.
+- git worktrees cannot be used if env var $BITBOX_FW_EXEC_MODE is "docker"
+- if git worktrees are used, run `git submodule init --update` so that building works.

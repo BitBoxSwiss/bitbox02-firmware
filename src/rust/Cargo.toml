@@ -26,9 +26,13 @@ members = [
     "streaming-silent-payments",
     "bitbox-aes",
     "fatfs-sys",
+    "bitbox-board-stm32u5-dk",
+    "bitbox-platform-stm32u5",
+    "bitbox-platform-stm32u5-sys",
     "bitbox-executor",
     "bitbox03",
     "bitbox-lvgl",
+    "bins/bitbox03-firmware",
 ]
 
 resolver = "2"

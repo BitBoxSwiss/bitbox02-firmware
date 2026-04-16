@@ -18,13 +18,29 @@ const HWW_RSP_BUSY: u8 = 2;
 const HWW_RSP_NACK: u8 = 3;
 const USB_OUTSTANDING_OP_TIMEOUT_MS: u64 = 500;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum HwwTransportMode {
+    Full,
+    InfoOnly,
+}
+
 pub type HwwTransport<H> = U2fHid<HwwVendorHandler<H>>;
 
 pub fn hww_transport<H>() -> HwwTransport<H>
 where
     H: Hal + Default + 'static,
 {
-    U2fHid::new(HwwVendorHandler::new(H::default()))
+    U2fHid::new(HwwVendorHandler::new(H::default(), HwwTransportMode::Full))
+}
+
+pub fn hww_transport_info_only<H>() -> HwwTransport<H>
+where
+    H: Hal + Default + 'static,
+{
+    U2fHid::new(HwwVendorHandler::new(
+        H::default(),
+        HwwTransportMode::InfoOnly,
+    ))
 }
 
 fn info_response<H: Hal>(hal: &mut H) -> Vec<u8> {
@@ -70,13 +86,15 @@ fn encode_hww_response() -> Result<Vec<u8>, ErrorCode> {
 
 pub struct HwwVendorHandler<H> {
     hal: H,
+    mode: HwwTransportMode,
     deadline_ms: Option<u64>,
 }
 
 impl<H> HwwVendorHandler<H> {
-    pub fn new(hal: H) -> Self {
+    fn new(hal: H, mode: HwwTransportMode) -> Self {
         Self {
             hal,
+            mode,
             deadline_ms: None,
         }
     }
@@ -118,6 +136,7 @@ where
                 // call was an api-call using the same 'i' OP_INFO op code byte.
                 Ok(info_response(&mut self.hal))
             }
+            _ if self.mode == HwwTransportMode::InfoOnly => Ok(vec![HWW_RSP_NACK]),
             HWW_REQ_NEW => {
                 // Spawn async task, which is polled in the main loop.
                 if crate::async_usb::waiting_for_next_request() {
@@ -211,7 +230,11 @@ mod tests {
     }
 
     fn handler() -> HwwVendorHandler<TestingHal<'static>> {
-        HwwVendorHandler::new(TestingHal::new())
+        HwwVendorHandler::new(TestingHal::new(), HwwTransportMode::Full)
+    }
+
+    fn info_only_handler() -> HwwVendorHandler<TestingHal<'static>> {
+        HwwVendorHandler::new(TestingHal::new(), HwwTransportMode::InfoOnly)
     }
 
     #[test]
@@ -247,6 +270,30 @@ mod tests {
     }
 
     #[test]
+    fn test_info_only_transport_rejects_non_info_requests() {
+        let _guard = test_guard();
+        let mut handler = info_only_handler();
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0x00], 0)
+                .unwrap(),
+            vec![HWW_RSP_NACK]
+        );
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
+                .unwrap(),
+            vec![HWW_RSP_NACK]
+        );
+        assert_eq!(
+            handler
+                .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_CANCEL], 0)
+                .unwrap(),
+            vec![HWW_RSP_NACK]
+        );
+    }
+
+    #[test]
     fn test_req_cancel() {
         let _guard = test_guard();
         crate::async_usb::spawn(pending_task, &[]);
@@ -279,7 +326,7 @@ mod tests {
         crate::async_usb::spawn(next_request_task, &[0xaa]);
         crate::async_usb::spin();
 
-        let mut handler = HwwVendorHandler::new(TestingHal::new());
+        let mut handler = HwwVendorHandler::new(TestingHal::new(), HwwTransportMode::Full);
         let response = handler
             .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
             .unwrap();
@@ -299,7 +346,7 @@ mod tests {
         crate::async_usb::cancel();
         crate::async_usb::spawn(pending_task, &[]);
 
-        let mut handler = HwwVendorHandler::new(TestingHal::new());
+        let mut handler = HwwVendorHandler::new(TestingHal::new(), HwwTransportMode::Full);
         let response = handler
             .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_NEW, 0x00], 0)
             .unwrap();

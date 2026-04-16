@@ -113,7 +113,7 @@ generate-protobufs: | build-build-noasan
 # `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex
 # poisoning and very messy output in case of a unit test failure.
 run-rust-unit-tests: generate-protobufs
-	cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1
+	cargo test --manifest-path src/rust/Cargo.toml --all-features --workspace --exclude bitbox03-firmware -- --test-threads 1
 run-rust-clippy: | build-build-noasan
 	${MAKE} -C build-build-noasan rust-clippy
 # Must run tests before creating coverage report
@@ -192,3 +192,14 @@ clean:
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
 	(cd external; ./vendor-rust.sh)
+
+# It is important that cargo is executed from `src/rust` so that it loads the
+# configration for the vendored dependencies.
+bitbox03-firmware:
+	 (cd src/rust; cargo build --config ./bins/bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware)
+	 arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	 arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+bitbox03-firmware-release:
+	 (cd src/rust; cargo build --config ./bins/bitbox03-firmware/.cargo/config.toml -p bitbox03-firmware --release)
+	 arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	 arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware

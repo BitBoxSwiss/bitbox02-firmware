@@ -128,7 +128,7 @@ jobs:
           submodules: recursive
 
       - name: Install system dependencies
-        run: brew install cbindgen bindgen hidapi
+        run: brew install cbindgen bindgen hidapi gcc-arm-embedded
 
       - name: Install protoc
         uses: arduino/setup-protoc@v3

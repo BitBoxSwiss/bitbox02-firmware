@@ -1,6 +1,14 @@
 use bitbox_hal as hal;
 
-pub struct BitBox03Memory;
+pub struct BitBox03Memory {
+    initialized: bool,
+}
+
+impl BitBox03Memory {
+    pub const fn new() -> Self {
+        Self { initialized: false }
+    }
+}
 
 impl hal::memory::Memory for BitBox03Memory {
     const BLE_FW_FLASH_CHUNK_SIZE: u32 = 0;
@@ -76,11 +84,12 @@ impl hal::memory::Memory for BitBox03Memory {
     }
 
     fn is_initialized(&mut self) -> bool {
-        todo!()
+        self.initialized
     }
 
     fn set_initialized(&mut self) -> Result<(), ()> {
-        todo!()
+        self.initialized = true;
+        Ok(())
     }
 
     fn get_encrypted_seed_and_hmac(
@@ -155,5 +164,20 @@ impl hal::memory::Memory for BitBox03Memory {
 
     fn get_io_protection_key(&mut self, _out: &mut [u8; 32]) {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bitbox_hal::{Hal, Memory};
+
+    #[test]
+    fn test_initialized() {
+        crate::state().memory.initialized = false;
+
+        let mut bitbox = crate::BitBox03::new();
+        assert!(!bitbox.memory().is_initialized());
+        bitbox.memory().set_initialized().unwrap();
+        assert!(bitbox.memory().is_initialized());
     }
 }

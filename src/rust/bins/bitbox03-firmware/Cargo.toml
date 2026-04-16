@@ -1,0 +1,21 @@
+[package]
+name = "bitbox03-firmware"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitbox-lvgl = { path = "../../bitbox-lvgl", features = ["st-ltdc"] }
+bitbox-hal = { path="../../bitbox-hal"}
+bitbox-executor = { path = "../../bitbox-executor" }
+bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
+bitbox02-rust = { path = "../../bitbox02-rust", features = ["firmware"] }
+bitbox03 = { path = "../../bitbox03" }
+bitbox-board-stm32u5-dk = { path = "../../bitbox-board-stm32u5-dk" }
+cortex-m-rt = "0.7"
+cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
+arrayvec = {version = "0.7", default-features = false}
+embedded-alloc = { version = "0.7" }
+stm32u5 = { version = "0.16", features = ["stm32u5a9"]}
+
+[build-dependencies]
+cc = { version = "1.2", features = ["parallel"] }

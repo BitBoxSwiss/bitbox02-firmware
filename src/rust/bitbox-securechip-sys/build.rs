@@ -60,6 +60,31 @@ const RUSTIFIED_ENUMS: &[&str] = &[
 
 type BuildResult<T> = Result<T, String>;
 
+fn detect_sysroot() -> BuildResult<String> {
+    let output = Command::new("arm-none-eabi-gcc")
+        .arg("--print-sysroot")
+        .output()
+        .map_err(|err| format!("failed to detect sysroot using arm-none-eabi-gcc: {err}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "failed to detect sysroot using arm-none-eabi-gcc: compiler exited with status {}",
+            output.status
+        ));
+    }
+    let sysroot = String::from_utf8(output.stdout).map_err(|_| {
+        "failed to detect sysroot using arm-none-eabi-gcc: invalid utf-8".to_owned()
+    })?;
+    let sysroot = sysroot.trim();
+    if sysroot.is_empty() {
+        Err(
+            "failed to detect sysroot using arm-none-eabi-gcc: compiler returned an empty sysroot"
+                .to_owned(),
+        )
+    } else {
+        Ok(sysroot.to_owned())
+    }
+}
+
 pub fn main() -> BuildResult<()> {
     ensure_command_exists("bindgen")?;
 
@@ -85,18 +110,15 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed(&optiga_include_dir);
 
     let target = env::var("TARGET").expect("TARGET not set");
-    let cross_compiling = target == "thumbv7em-none-eabi";
-    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
-    let arm_sysroot = format!("--sysroot={arm_sysroot}");
-
-    let mut extra_flags = if cross_compiling {
+    let mut extra_flags: Vec<String> = if target.starts_with("thumb") {
+        let sysroot = detect_sysroot()?;
         vec![
             // Generate bindings for the firmware target ABI, not the host ABI.
-            "--target=thumbv7em-none-eabi",
-            &arm_sysroot,
+            format!("--target={target}"),
+            format!("--sysroot={sysroot}"),
             // The firmware C code is compiled with arm-none-eabi-gcc, which uses
             // -fshort-enums by default. Bindgen must match those enum sizes.
-            "-fshort-enums",
+            "-fshort-enums".to_owned(),
         ]
     } else {
         vec![]
@@ -105,7 +127,7 @@ pub fn main() -> BuildResult<()> {
     if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
         for flag in rustflags.split('\x1f') {
             if flag == "-Dwarnings" {
-                extra_flags.push("-Werror");
+                extra_flags.push("-Werror".to_owned());
             }
         }
     }
@@ -115,10 +137,10 @@ pub fn main() -> BuildResult<()> {
 
     let mut definitions = vec![
         // Expose the U2F counter declarations guarded by APP_U2F in atecc.h/optiga.h.
-        "-DAPP_U2F=1",
-        "-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"",
+        "-DAPP_U2F=1".to_owned(),
+        "-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"".to_owned(),
     ];
-    definitions.extend(&extra_flags);
+    definitions.extend(extra_flags);
 
     run_command(
         Command::new("bindgen")

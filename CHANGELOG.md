@@ -8,6 +8,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 
+### v9.26.1
+- Fix a payment request validation issue
+
 ### v9.26.0
 - Improve experience of moving back and forth when entering password characters
 - Ethereum: add data streaming support for transactions and EIP-712 typed messages with large data

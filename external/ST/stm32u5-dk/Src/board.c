@@ -20,6 +20,7 @@
 #include "board.h"
 #include "adc.h"
 #include "dsihost.h"
+#include "flash.h"
 #include "gpu2d.h"
 #include "hspi.h"
 #include "i2c.h"
@@ -158,6 +159,7 @@ int board_init(void)
   MX_DSIHOST_DSI_Init();
   MX_LTDC_Init();
   MX_USBX_Device_Init();
+  MX_FLASH_Init();
   /* USER CODE BEGIN 2 */
   // ^- The call to MX_DSIHOST_DSI_Init() must be done before MX_LTDC_Init().
   

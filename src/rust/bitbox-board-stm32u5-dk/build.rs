@@ -16,6 +16,7 @@ const BOARD_SOURCES: &[&str] = &[
     "stm32u5-dk/Src/board.c",
     "stm32u5-dk/Src/sdmmc.c",
     "stm32u5-dk/Src/system_stm32u5xx.c",
+    "stm32u5-dk/Src/flash.c",
 ];
 
 const ST_DEFINES: &[&str] = &[

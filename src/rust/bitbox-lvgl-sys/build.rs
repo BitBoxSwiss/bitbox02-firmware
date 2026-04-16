@@ -91,7 +91,7 @@ fn main() -> Result<(), &'static str> {
     }
 
     const INCLUDES: &[&str] = &[
-        "Core/Inc",
+        "stm32u5-dk/Inc",
         "Drivers/STM32U5xx_HAL_Driver/Inc",
         "Drivers/STM32U5xx_HAL_Driver/Inc/Legacy",
         "Drivers/CMSIS/Device/ST/STM32U5xx/Include",

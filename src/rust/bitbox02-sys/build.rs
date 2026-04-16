@@ -290,6 +290,34 @@ const FAKEHARDWARE_SOURCES: &[&str] = &[
 
 type BuildResult<T> = Result<T, String>;
 
+fn detect_sysroot(target: &str) -> BuildResult<String> {
+    let output = Command::new("arm-none-eabi-gcc")
+        .arg("--print-sysroot")
+        .output()
+        .map_err(|err| {
+            format!("failed to detect sysroot for target {target} using arm-none-eabi-gcc: {err}")
+        })?;
+    if !output.status.success() {
+        return Err(format!(
+            "failed to detect sysroot for target {target} using arm-none-eabi-gcc: compiler exited with status {}",
+            output.status
+        ));
+    }
+    let sysroot = String::from_utf8(output.stdout).map_err(|_| {
+        format!(
+            "failed to detect sysroot for target {target} using arm-none-eabi-gcc: invalid utf-8"
+        )
+    })?;
+    let sysroot = sysroot.trim();
+    if sysroot.is_empty() {
+        Err(format!(
+            "failed to detect sysroot for target {target} using arm-none-eabi-gcc: compiler returned an empty sysroot"
+        ))
+    } else {
+        Ok(sysroot.to_owned())
+    }
+}
+
 pub fn main() -> BuildResult<()> {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let repo_root = manifest_dir
@@ -325,30 +353,33 @@ pub fn main() -> BuildResult<()> {
     ensure_command_exists("bindgen")?;
 
     let target = env::var("TARGET").expect("TARGET not set");
-    let cross_compiling = target == "thumbv7em-none-eabi";
+    let cross_compiling = target.starts_with("thumb");
 
-    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
-    let arm_sysroot = format!("--sysroot={arm_sysroot}");
-
-    let mut extra_flags = if cross_compiling {
-        vec![
-            "-D__SAMD51J20A__",
-            "--target=thumbv7em-none-eabi",
-            "-mcpu=cortex-m4",
-            "-mthumb",
-            "-mfloat-abi=soft",
-            &arm_sysroot,
-            "-fshort-enums",
-        ]
+    let mut extra_flags: Vec<String> = if cross_compiling {
+        let sysroot = detect_sysroot(&target)?;
+        let flags = vec![
+            "-D__SAMD51J20A__".to_owned(),
+            format!("--target={target}"),
+            "-mcpu=cortex-m4".to_owned(),
+            "-mthumb".to_owned(),
+            "-mfloat-abi=soft".to_owned(),
+            format!("--sysroot={sysroot}"),
+            "-fshort-enums".to_owned(),
+        ];
+        flags
     } else {
-        vec!["-DTESTING", "-D_UNIT_TEST_", "-DPRODUCT_BITBOX_MULTI=1"]
+        vec![
+            "-DTESTING".to_owned(),
+            "-D_UNIT_TEST_".to_owned(),
+            "-DPRODUCT_BITBOX_MULTI=1".to_owned(),
+        ]
     };
 
     // If user enables -Dwarnings for rust we also want to enable -Werror for C.
     if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
         for flag in rustflags.split('\x1f') {
             if flag == "-Dwarnings" {
-                extra_flags.push("-Werror");
+                extra_flags.push("-Werror".to_owned());
             }
         }
     }
@@ -372,9 +403,14 @@ pub fn main() -> BuildResult<()> {
     ];
 
     let generated_headers_dir = if cross_compiling {
-        env::var("CMAKE_CURRENT_BINARY_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| out_dir.join("../../../../../.."))
+        match env::var("CMAKE_CURRENT_BINARY_DIR") {
+            Ok(dir) => PathBuf::from(dir),
+            Err(_) => {
+                ensure_command_exists("cbindgen")?;
+                generate_native_headers(&repo_root, &out_dir)?;
+                out_dir.clone()
+            }
+        }
     } else {
         ensure_command_exists("cbindgen")?;
         generate_native_headers(&repo_root, &out_dir)?;
@@ -421,8 +457,8 @@ pub fn main() -> BuildResult<()> {
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let mut definitions = vec!["-DAPP_U2F=1"];
-    definitions.extend(&extra_flags);
+    let mut definitions = vec!["-DAPP_U2F=1".to_owned()];
+    definitions.extend(extra_flags);
 
     run_command(
         Command::new("bindgen")

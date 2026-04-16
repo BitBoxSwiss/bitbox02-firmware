@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-platform-stm32u5-sys"
+version = "0.1.0"
+edition = "2024"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+description = "Rust bindings for the STM32U5 platform in bitbox02-firmware"
+license = "Apache-2.0"
+
+[dependencies]
+# Set stack pointer in startup code
+cortex-m-rt = { version = "0.7", features = ["set-sp", "device"]}
+
+[build-dependencies]
+cc = { version = "1.2", features = ["parallel"] }

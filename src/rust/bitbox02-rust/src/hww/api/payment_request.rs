@@ -285,13 +285,13 @@ pub fn tst_sign_payment_request_btc(
 pub fn tst_sign_payment_request_eth(
     source_coin_type: u32,
     payment_request: &mut pb::BtcPaymentRequestRequest,
-    total_value_bytes: &[u8; 32],
+    total_value_le_bytes: &[u8; 32],
     output_address: &str,
 ) {
     tst_sign_payment_request(
         source_coin_type,
         payment_request,
-        total_value_bytes,
+        total_value_le_bytes,
         output_address,
     );
 }
@@ -359,12 +359,7 @@ pub fn validate_eth(
     output_value: &BigUint,
     output_address: &str,
 ) -> Result<(), ValidationError> {
-    let output_value = output_value.to_bytes_be();
-    if output_value.len() > 32 {
-        return Err(ValidationError::Other);
-    }
-    let mut output_value_padded = [0u8; 32];
-    output_value_padded[32 - output_value.len()..].copy_from_slice(&output_value);
+    let output_value_padded = serialize_eth_output_value(output_value)?;
     validate_common(
         hal,
         coin_params.slip44(),
@@ -372,6 +367,17 @@ pub fn validate_eth(
         &output_value_padded,
         output_address,
     )
+}
+
+#[cfg(feature = "app-ethereum")]
+pub fn serialize_eth_output_value(output_value: &BigUint) -> Result<[u8; 32], ValidationError> {
+    let output_value = output_value.to_bytes_le();
+    if output_value.len() > 32 {
+        return Err(ValidationError::Other);
+    }
+    let mut output_value_padded = [0u8; 32];
+    output_value_padded[..output_value.len()].copy_from_slice(&output_value);
+    Ok(output_value_padded)
 }
 
 /// Validate that the parsed source-side transaction matches the signed payment request.
@@ -720,6 +726,15 @@ mod tests {
                 "1806caf7c518aad69eb38f25fd418d507c6a3e01719a7d77be94cd50a2790872"
             );
         }
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    fn test_serialize_eth_output_value() {
+        assert_eq!(
+            serialize_eth_output_value(&BigUint::from_bytes_le(&hex!("00409c9e25f15c07"))).unwrap(),
+            hex!("00409c9e25f15c07000000000000000000000000000000000000000000000000")
+        );
     }
 
     #[test]
@@ -1659,6 +1674,7 @@ mod tests {
     #[cfg(feature = "app-ethereum")]
     #[test]
     fn test_validate_eth() {
+        crate::keystore::testing::mock_unlocked();
         let mut mock_hal = TestingHal::new();
         let params = eth_params::Params {
             coin: Some(pb::EthCoin::Eth),
@@ -1667,7 +1683,7 @@ mod tests {
             name: "Ethereum",
             unit: "ETH",
         };
-        let output_value = hex!("000000000000000000000000000000000000000000000000075cf1259e9c4000");
+        let output_value = hex!("00409c9e25f15c07000000000000000000000000000000000000000000000000");
         let output_address = "0x04F264Cf34440313B4A0192A352814FBe927b885";
         let mut payment_request = pb::BtcPaymentRequestRequest {
             recipient_name: "Test Merchant".into(),
@@ -1694,7 +1710,7 @@ mod tests {
                 &mut mock_hal,
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value),
+                &BigUint::from_bytes_le(&output_value),
                 output_address,
             )
             .is_ok()
@@ -1706,21 +1722,21 @@ mod tests {
                 &mut TestingHal::new(),
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value[24..]),
+                &BigUint::from_bytes_le(&output_value[..8]),
                 output_address,
             ),
             Ok(())
         ));
 
         let wrong_output_value =
-            hex!("000000000000000000000000000000000000000000000000075cf1259e9c4001");
+            hex!("01409c9e25f15c07000000000000000000000000000000000000000000000000");
         // Wrong source amount must produce wrong signature.
         assert!(matches!(
             validate_eth(
                 &mut TestingHal::new(),
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&wrong_output_value),
+                &BigUint::from_bytes_le(&wrong_output_value),
                 output_address,
             ),
             Err(ValidationError::InvalidSignature)
@@ -1732,7 +1748,7 @@ mod tests {
                 &mut TestingHal::new(),
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value),
+                &BigUint::from_bytes_le(&output_value),
                 "0x1111111111111111111111111111111111111111",
             ),
             Err(ValidationError::InvalidSignature)
@@ -1750,7 +1766,7 @@ mod tests {
                     unit: "ETH",
                 },
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value),
+                &BigUint::from_bytes_le(&output_value),
                 output_address,
             ),
             Err(ValidationError::InvalidSignature)

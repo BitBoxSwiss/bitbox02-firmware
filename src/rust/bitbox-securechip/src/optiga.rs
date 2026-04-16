@@ -8,6 +8,10 @@ mod ops;
 
 const OID_COUNTER: u16 = bitbox_securechip_sys::OID_COUNTER as u16;
 const MONOTONIC_COUNTER_MAX_USE: u32 = bitbox_securechip_sys::MONOTONIC_COUNTER_MAX_USE;
+const OID_HMAC: u16 = bitbox_securechip_sys::OID_HMAC as u16;
+const KDF_LEN: usize = 32;
+const OPTIGA_HMAC_SHA_256: bitbox_securechip_sys::optiga_hmac_type_t =
+    bitbox_securechip_sys::optiga_hmac_type::OPTIGA_HMAC_SHA_256;
 
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match unsafe {
@@ -27,6 +31,7 @@ pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
         Err(Error::from_status(status))
     }
 }
+
 pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     let mut counter_buf = [0; 4];
     ops::util_read_data(OID_COUNTER, 0, &mut counter_buf)
@@ -88,16 +93,10 @@ pub fn stretch_password(
     }
 }
 
-pub fn kdf(msg: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
-    let mut result = Zeroizing::new(vec![0u8; 32]);
-    let status = unsafe {
-        bitbox_securechip_sys::optiga_kdf_external(msg.as_ptr(), msg.len(), result.as_mut_ptr())
-    };
-    if status == 0 {
-        Ok(result)
-    } else {
-        Err(Error::from_status(status))
-    }
+pub async fn kdf(msg: &[u8; KDF_LEN]) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+    let mut result = Box::new(Zeroizing::new([0u8; 32]));
+    ops::crypt_hmac(OPTIGA_HMAC_SHA_256, OID_HMAC, msg, result.as_mut()).await?;
+    Ok(result)
 }
 
 #[cfg(feature = "app-u2f")]

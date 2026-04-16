@@ -65,8 +65,8 @@ pub fn stretch_password(
 
 /// Perform the secure chip KDF with the message in `msg` and return the zeroizing 32-byte
 /// result.
-pub fn kdf(msg: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
-    Ok(Zeroizing::new(hmac_sha256(&KDF_KEY, msg).to_vec()))
+pub async fn kdf(msg: &[u8; 32]) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+    Ok(Box::new(Zeroizing::new(hmac_sha256(&KDF_KEY, msg))))
 }
 
 #[cfg(feature = "app-u2f")]

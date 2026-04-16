@@ -247,7 +247,7 @@ pub async fn confirm_extended(
 /// - no two xpubs are the same.
 ///
 /// keypath: account-level keypath, e.g. m/48'/0'/10'/2'
-pub fn validate(
+pub async fn validate(
     hal: &mut impl crate::hal::Hal,
     multisig: &Multisig,
     keypath: &[u32],
@@ -262,7 +262,9 @@ pub fn validate(
         return Err(Error::InvalidInput);
     }
 
-    let our_xpub = crate::keystore::get_xpub_once(hal, keypath)?.serialize(None)?;
+    let our_xpub = crate::keystore::get_xpub_once(hal, keypath)
+        .await?
+        .serialize(None)?;
     let maybe_our_xpub =
         bip32::Xpub::from(&multisig.xpubs[multisig.our_xpub_index as usize]).serialize(None)?;
     if our_xpub != maybe_our_xpub {
@@ -560,8 +562,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_validate() {
+    #[async_test::test]
+    async fn test_validate() {
         let keypath = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 2 + HARDENED];
         let our_xpub_str = "xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF";
         let multisig = Multisig {
@@ -579,14 +581,14 @@ mod tests {
 
         // Keystore locked.
         crate::keystore::lock();
-        assert!(validate(&mut mock_hal, &multisig, keypath).is_err());
+        assert!(validate(&mut mock_hal, &multisig, keypath).await.is_err());
 
         // Ok.
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
         );
-        assert!(validate(&mut mock_hal, &multisig, keypath).is_ok());
+        assert!(validate(&mut mock_hal, &multisig, keypath).await.is_ok());
         // Ok at arbitrary keypath.
         assert!(validate(&mut mock_hal,&Multisig {
             threshold: 1,
@@ -597,7 +599,7 @@ mod tests {
             ],
             our_xpub_index: 1,
             script_type: ScriptType::P2wsh as _,
-        }, &[45 + HARDENED]).is_ok());
+        }, &[45 + HARDENED]).await.is_ok());
 
         {
             // number of cosigners too large
@@ -621,7 +623,7 @@ mod tests {
                 "xpub6ECHc4kmTC2tQg2ZoAoazwyag9C4V6yFsZEhjwMJixdVNsUibot6uEvsZY38ZLVqWCtyc9gbzFEwHQLHCT8EiDDKSNNsFAB8NQYRgkiAQwu",
                 "xpub6F7CaxXzBCtvXwpRi61KYyhBRkgT1856ujHV5AbJK6ySCUYoDruBH6Pnsi6eHkDiuKuAJ2tSc9x3emP7aax9Dc3u7nP7RCQXEjLKihQu6w1",
             ].iter().map(|s| parse_xpub(s).unwrap()).collect();
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
         }
 
         {
@@ -629,21 +631,21 @@ mod tests {
 
             let mut invalid = multisig.clone();
             invalid.xpubs = vec![];
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
             invalid.our_xpub_index = 0;
             invalid.xpubs = vec![parse_xpub(our_xpub_str).unwrap()];
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
         }
 
         {
             // threshold larger than number of cosigners
             let mut invalid = multisig.clone();
             invalid.threshold = 3;
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
 
             // threshold zero
             invalid.threshold = 0;
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
         }
 
         {
@@ -651,7 +653,7 @@ mod tests {
             // bounds).
             let mut invalid = multisig.clone();
             invalid.our_xpub_index = 2;
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
         }
 
         {
@@ -659,7 +661,7 @@ mod tests {
 
             let mut invalid = multisig.clone();
             invalid.xpubs[1] = parse_xpub("xpub6FNT7x2ZEBMhs4jvZJSEBV2qBCBnRidNsyqe7inT9V2wmEn4sqidTEudB4dVSvEjXz2NytcymwWJb8PPYExRycNf9SH8fAHzPWUsQJAmbR3").unwrap();
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
         }
 
         {
@@ -667,7 +669,7 @@ mod tests {
 
             let mut invalid = multisig.clone();
             invalid.xpubs[0] = invalid.xpubs[1].clone();
-            assert!(validate(&mut mock_hal, &invalid, keypath).is_err());
+            assert!(validate(&mut mock_hal, &invalid, keypath).await.is_err());
         }
     }
 

@@ -30,7 +30,7 @@ async fn process_address(
         Some(erc20_params::get(params.chain_id, address).ok_or(Error::InvalidInput)?)
     };
 
-    let address = super::derive_address(hal, &request.keypath)?;
+    let address = super::derive_address(hal, &request.keypath).await?;
 
     if request.display {
         let address_display = super::address::format_display_address(&address);
@@ -53,7 +53,7 @@ async fn process_address(
     Ok(Response::Pub(pb::PubResponse { r#pub: address }))
 }
 
-fn process_xpub(
+async fn process_xpub(
     hal: &mut impl crate::hal::Hal,
     request: &pb::EthPubRequest,
 ) -> Result<Response, Error> {
@@ -66,6 +66,7 @@ fn process_xpub(
         return Err(Error::InvalidInput);
     }
     let xpub = keystore::get_xpub_twice(hal, &request.keypath)
+        .await
         .or(Err(Error::InvalidInput))?
         .serialize_str(bip32::XPubType::Xpub)?;
 
@@ -79,7 +80,7 @@ pub async fn process(
     let output_type = OutputType::try_from(request.output_type)?;
     match output_type {
         OutputType::Address => process_address(hal, request).await,
-        OutputType::Xpub => process_xpub(hal, request),
+        OutputType::Xpub => process_xpub(hal, request).await,
     }
 }
 

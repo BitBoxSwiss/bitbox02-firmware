@@ -105,8 +105,8 @@ impl SecureChip for BitBox02SecureChip {
         .map_err(to_hal_error)
     }
 
-    fn kdf(&mut self, msg: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        crate::securechip::kdf(msg).map_err(to_hal_error)
+    async fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+        crate::securechip::kdf(msg).await.map_err(to_hal_error)
     }
 
     fn attestation_sign(
@@ -259,8 +259,9 @@ mod tests {
     #[test]
     fn test_kdf() {
         let mut securechip = BitBox02SecureChip;
-        let result = securechip.kdf(b"stub input").unwrap();
-        let expected = hex!("3d7caa0407f18f6b15a6202843c883f326d614996df67940af210d91aff5b9c8");
+        let msg = [0u8; 32];
+        let result = util::bb02_async::block_on(securechip.kdf(&msg)).unwrap();
+        let expected = hex!("1c723ccd9597e76deb55f9fd6808014007bcb3d67fc060f1149aefb9be88f423");
         assert_eq!(result.as_slice(), expected.as_slice());
     }
 

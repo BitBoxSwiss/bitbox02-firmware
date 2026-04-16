@@ -114,7 +114,7 @@ pub async fn process_register_script_config(
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
             let name = get_name(hal, request).await?;
-            super::multisig::validate(hal, multisig, keypath)?;
+            super::multisig::validate(hal, multisig, keypath).await?;
             let xpub_type = XPubType::try_from(request.xpub_type)?;
             super::multisig::confirm_extended(
                 hal,
@@ -142,7 +142,7 @@ pub async fn process_register_script_config(
             let coin = BtcCoin::try_from(*coin)?;
             let coin_params = params::get(coin);
             let name = get_name(hal, request).await?;
-            let parsed = super::policies::parse(hal, policy, coin)?;
+            let parsed = super::policies::parse(hal, policy, coin).await?;
             parsed
                 .confirm(
                     hal,

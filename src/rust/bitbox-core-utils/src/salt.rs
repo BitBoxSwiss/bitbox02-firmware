@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::vec::Vec;
+use alloc::boxed::Box;
 
 use bitbox_hal::Memory;
-use sha2::Digest;
+use sha2::{Digest, digest::FixedOutput};
 use zeroize::Zeroizing;
 
 /// Creates `SHA256(salt_root || purpose || data)`, where `salt_root` is a persisted value that
@@ -15,15 +15,17 @@ pub fn hash_data(
     memory: &mut impl Memory,
     data: &[u8],
     purpose: &str,
-) -> Result<Zeroizing<Vec<u8>>, ()> {
+) -> Result<Box<Zeroizing<[u8; 32]>>, ()> {
     let salt_root = memory.get_salt_root()?;
 
+    let mut result = Box::new(Zeroizing::new([0u8; 32]));
     let mut hasher = sha2::Sha256::new();
     hasher.update(salt_root.as_slice());
     hasher.update(purpose.as_bytes());
     hasher.update(data);
 
-    Ok(Zeroizing::new(hasher.finalize().to_vec()))
+    FixedOutput::finalize_into(hasher, result.as_mut_slice().into());
+    Ok(result)
 }
 
 #[cfg(test)]

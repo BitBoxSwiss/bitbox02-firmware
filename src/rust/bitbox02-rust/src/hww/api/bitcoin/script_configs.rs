@@ -105,8 +105,8 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_self_transfer_representation_policy() {
+    #[async_test::test]
+    async fn test_self_transfer_representation_policy() {
         let mut mock_hal = crate::hal::testing::TestingHal::new();
         let keypath = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
         let policy = pb::btc_script_config::Policy {
@@ -115,7 +115,12 @@ mod tests {
                 pb::KeyOriginInfo {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath.to_vec(),
-                    xpub: Some(crate::keystore::get_xpub_once(&mut mock_hal,keypath).unwrap().into()),
+                    xpub: Some(
+                        crate::keystore::get_xpub_once(&mut mock_hal, keypath)
+                            .await
+                            .unwrap()
+                            .into(),
+                    ),
                 },
                 pb::KeyOriginInfo {
                     root_fingerprint: vec![],
@@ -125,8 +130,9 @@ mod tests {
             ],
         };
 
-        let parsed_policy =
-            super::super::policies::parse(&mut mock_hal, &policy, pb::BtcCoin::Btc).unwrap();
+        let parsed_policy = super::super::policies::parse(&mut mock_hal, &policy, pb::BtcCoin::Btc)
+            .await
+            .unwrap();
         let config = ValidatedScriptConfigWithKeypath {
             keypath,
             config: ValidatedScriptConfig::Policy {

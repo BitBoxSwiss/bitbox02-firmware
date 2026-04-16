@@ -18,8 +18,8 @@ fn hmac_sha512(key: &[u8], msg: &[u8]) -> [u8; 64] {
 /// This implements a derivation compatible with Ledger according to
 /// https://github.com/LedgerHQ/orakolo/blob/0b2d5e669ec61df9a824df9fa1a363060116b490/src/python/orakolo/HDEd25519.py.
 /// Returns 96 bytes. It will contain a 64 byte expanded ed25519 private key followed by a 32 byte chain code.
-fn get_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let bip39_seed = crate::keystore::copy_bip39_seed(hal)?;
+async fn get_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let bip39_seed = crate::keystore::copy_bip39_seed(hal).await?;
     let mut seed_out = zeroize::Zeroizing::new(vec![0u8; 96]);
     let first64: &mut [u8] = &mut seed_out.as_mut_slice()[..64];
     first64.copy_from_slice(&bip39_seed);
@@ -46,8 +46,8 @@ fn get_seed(hal: &mut impl crate::hal::Hal) -> Result<zeroize::Zeroizing<Vec<u8>
     Ok(seed_out)
 }
 
-fn get_xprv(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<Xprv<Sha512>, ()> {
-    let root = get_seed(hal)?;
+async fn get_xprv(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<Xprv<Sha512>, ()> {
+    let root = get_seed(hal).await?;
     Ok(Xprv::<Sha512>::from_normalize(
         &root[..ED25519_EXPANDED_SECRET_KEY_SIZE],
         &root[ED25519_EXPANDED_SECRET_KEY_SIZE..],
@@ -55,13 +55,16 @@ fn get_xprv(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<Xprv<Sha5
     .derive_path(keypath))
 }
 
-pub fn get_xpub(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<Xpub<Sha512>, ()> {
-    Ok(get_xprv(hal, keypath)?.public())
+pub async fn get_xpub(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<Xpub<Sha512>, ()> {
+    Ok(get_xprv(hal, keypath).await?.public())
 }
 
-pub fn get_xpub_twice(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<Xpub<Sha512>, ()> {
-    let xpub = get_xpub(hal, keypath)?;
-    let xpub2 = get_xpub(hal, keypath)?;
+pub async fn get_xpub_twice(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+) -> Result<Xpub<Sha512>, ()> {
+    let xpub = get_xpub(hal, keypath).await?;
+    let xpub2 = get_xpub(hal, keypath).await?;
     if xpub.pubkey_bytes() == xpub2.pubkey_bytes() && xpub.chain_code() == xpub2.chain_code() {
         Ok(xpub)
     } else {
@@ -74,12 +77,12 @@ pub struct SignResult {
     pub public_key: ed25519_dalek::VerifyingKey,
 }
 
-pub fn sign(
+pub async fn sign(
     hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
     msg: &[u8; 32],
 ) -> Result<SignResult, ()> {
-    let xprv = get_xprv(hal, keypath)?;
+    let xprv = get_xprv(hal, keypath).await?;
     let secret_key =
         ed25519_dalek::hazmat::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key());
     let public_key = ed25519_dalek::VerifyingKey::from(&secret_key);
@@ -116,8 +119,8 @@ mod tests {
         assert_eq!(hasher.finalize(), sha2::Sha512::digest(b"baz"));
     }
 
-    #[test]
-    fn test_get_seed() {
+    #[async_test::test]
+    async fn test_get_seed() {
         // Test vectors taken from:
         // https://github.com/cardano-foundation/CIPs/blob/6c249ef48f8f5b32efc0ec768fadf4321f3173f2/CIP-0003/Ledger.md#test-vectors
         // See also: https://github.com/cardano-foundation/CIPs/pull/132
@@ -129,7 +132,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_seed(&mut mock_hal).unwrap().as_slice(),
+            get_seed(&mut mock_hal).await.unwrap().as_slice(),
             &hex!(
                 "a08cf85b564ecf3b947d8d4321fb96d70ee7bb760877e371899b14e2ccf88658104b884682b57efd97decbb318a45c05a527b9cc5c2f64f7352935a049ceea60680d52308194ccef2a18e6812b452a5815fbd7f5babc083856919aaf668fe7e4"
             ),
@@ -141,7 +144,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_seed(&mut mock_hal).unwrap().as_slice(),
+            get_seed(&mut mock_hal).await.unwrap().as_slice(),
             &hex!(
                 "587c6774357ecbf840d4db6404ff7af016dace0400769751ad2abfc77b9a3844cc71702520ef1a4d1b68b91187787a9b8faab0a9bb6b160de541b6ee62469901fc0beda0975fe4763beabd83b7051a5fd5cbce5b88e82c4bbaca265014e524bd"
             ),
@@ -152,24 +155,24 @@ mod tests {
             "foo",
         );
         assert_eq!(
-            get_seed(&mut mock_hal).unwrap().as_slice(),
+            get_seed(&mut mock_hal).await.unwrap().as_slice(),
             &hex!(
                 "f053a1e752de5c26197b60f032a4809f08bb3e5d90484fe42024be31efcba7578d914d3ff992e21652fee6a4d99f6091006938fac2c0c0f9d2de0ba64b754e92a4f3723f23472077aa4cd4dd8a8a175dba07ea1852dad1cf268c61a2679c3890"
             ),
         );
     }
 
-    #[test]
-    fn test_get_xpub() {
+    #[async_test::test]
+    async fn test_get_xpub() {
         crate::keystore::lock();
 
         let mut mock_hal = crate::hal::testing::TestingHal::new();
 
-        assert!(get_xpub(&mut mock_hal, &[]).is_err());
+        assert!(get_xpub(&mut mock_hal, &[]).await.is_err());
 
         mock_unlocked();
 
-        let xpub = get_xpub(&mut mock_hal, &[]).unwrap();
+        let xpub = get_xpub(&mut mock_hal, &[]).await.unwrap();
         assert_eq!(
             xpub.pubkey_bytes(),
             &hex!("1cc2c80d6fb03ec09e8a268baa45d4ca2afe5c5ac4db3ee29c7ad23755abdc14")
@@ -179,7 +182,9 @@ mod tests {
             &hex!("f0a5910642d0779817402e5e7a755495e744f55cf11e49eefd22a460e9b2f753")
         );
 
-        let xpub = get_xpub(&mut mock_hal, &[10 + HARDENED_OFFSET, 10]).unwrap();
+        let xpub = get_xpub(&mut mock_hal, &[10 + HARDENED_OFFSET, 10])
+            .await
+            .unwrap();
         assert_eq!(
             xpub.pubkey_bytes(),
             &hex!("ab58bd947e2bf664a7c066de2ef0240efc24f36efd502df88393e196af3c918e")
@@ -190,15 +195,15 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_get_xpub_twice() {
+    #[async_test::test]
+    async fn test_get_xpub_twice() {
         crate::keystore::lock();
         let mut mock_hal = crate::hal::testing::TestingHal::new();
 
-        assert!(get_xpub_twice(&mut mock_hal, &[]).is_err());
+        assert!(get_xpub_twice(&mut mock_hal, &[]).await.is_err());
 
         mock_unlocked();
-        let xpub = get_xpub_twice(&mut mock_hal, &[]).unwrap();
+        let xpub = get_xpub_twice(&mut mock_hal, &[]).await.unwrap();
         assert_eq!(
             xpub.pubkey_bytes(),
             &hex!("1cc2c80d6fb03ec09e8a268baa45d4ca2afe5c5ac4db3ee29c7ad23755abdc14")
@@ -209,16 +214,16 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_get_xprv() {
+    #[async_test::test]
+    async fn test_get_xprv() {
         crate::keystore::lock();
 
         let mut mock_hal = crate::hal::testing::TestingHal::new();
 
-        assert!(get_xprv(&mut mock_hal, &[]).is_err());
+        assert!(get_xprv(&mut mock_hal, &[]).await.is_err());
 
         mock_unlocked();
-        let xprv = get_xprv(&mut mock_hal, &[]).unwrap();
+        let xprv = get_xprv(&mut mock_hal, &[]).await.unwrap();
         assert_eq!(
             xprv.expanded_secret_key().as_slice(),
             &hex!(
@@ -226,7 +231,9 @@ mod tests {
             )
         );
 
-        let xprv = get_xprv(&mut mock_hal, &[10 + HARDENED_OFFSET, 10]).unwrap();
+        let xprv = get_xprv(&mut mock_hal, &[10 + HARDENED_OFFSET, 10])
+            .await
+            .unwrap();
         assert_eq!(
             xprv.expanded_secret_key().as_slice(),
             &hex!(
@@ -235,8 +242,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sign() {
+    #[async_test::test]
+    async fn test_sign() {
         let msg = &[0u8; 32];
         crate::keystore::lock();
         assert!(
@@ -245,6 +252,7 @@ mod tests {
                 &[10 + HARDENED_OFFSET, 10],
                 msg
             )
+            .await
             .is_err()
         );
 
@@ -254,6 +262,7 @@ mod tests {
             &[10 + HARDENED_OFFSET, 10],
             msg,
         )
+        .await
         .unwrap();
         assert_eq!(
             sig.public_key.as_ref(),

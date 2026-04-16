@@ -24,11 +24,11 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
     let password = password::enter_twice(hal).await?;
-    if let Err(err) = keystore::create_and_store_seed(hal, &password, entropy) {
+    if let Err(err) = keystore::create_and_store_seed(hal, &password, entropy).await {
         hal.ui().status(&format!("Error\n{:?}", err), false).await;
         return Err(Error::Generic);
     }
-    let seed = keystore::copy_seed(hal)?;
+    let seed = keystore::copy_seed(hal).await?;
     unlock::unlock_bip39(hal, &seed).await;
     Ok(Response::Success(pb::Success {}))
 }
@@ -71,7 +71,7 @@ mod tests {
         );
         assert_eq!(mock_hal.securechip.get_event_counter(), 6);
         assert!(!keystore::is_locked());
-        assert!(keystore::copy_seed(&mut mock_hal).unwrap().len() == 32);
+        assert!(keystore::copy_seed(&mut mock_hal).await.unwrap().len() == 32);
 
         drop(mock_hal); // to remove mutable borrow of counter
         assert_eq!(counter, 2);
@@ -97,7 +97,7 @@ mod tests {
             Ok(Response::Success(pb::Success {}))
         );
         assert!(!keystore::is_locked());
-        assert!(keystore::copy_seed(&mut mock_hal).unwrap().len() == 16);
+        assert!(keystore::copy_seed(&mut mock_hal).await.unwrap().len() == 16);
     }
 
     /// Invalid host entropy size.

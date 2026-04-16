@@ -20,7 +20,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         let seed = if hal.memory().is_initialized() {
             unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?
         } else {
-            crate::keystore::copy_seed(hal)?
+            crate::keystore::copy_seed(hal).await?
         };
 
         crate::bip39::mnemonic_from_seed(&seed)?
@@ -82,6 +82,7 @@ mod tests {
                 .as_slice(),
             "password",
         )
+        .await
         .unwrap();
 
         assert!(!mock_hal.memory.is_initialized());
@@ -141,6 +142,7 @@ mod tests {
                 .as_slice(),
             "password",
         )
+        .await
         .unwrap();
 
         mock_hal.memory.set_initialized().unwrap();
@@ -207,6 +209,7 @@ mod tests {
                 .as_slice(),
             "password",
         )
+        .await
         .unwrap();
 
         mock_hal.memory.set_initialized().unwrap();

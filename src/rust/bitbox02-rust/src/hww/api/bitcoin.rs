@@ -113,6 +113,7 @@ async fn xpub(
             .await?
     }
     let xpub = keystore::get_xpub_twice(hal, keypath)
+        .await
         .or(Err(Error::InvalidInput))?
         .serialize_str(xpub_type)?;
     if display {
@@ -135,7 +136,7 @@ async fn xpub(
     Ok(Response::Pub(pb::PubResponse { r#pub: xpub }))
 }
 
-pub fn derive_address_simple(
+pub async fn derive_address_simple(
     hal: &mut impl crate::hal::Hal,
     coin: BtcCoin,
     simple_type: SimpleType,
@@ -156,7 +157,8 @@ pub fn derive_address_simple(
         coin_params,
         simple_type,
         keypath,
-    )?
+    )
+    .await?
     .address(coin_params)?)
 }
 
@@ -168,7 +170,7 @@ async fn address_simple(
     keypath: &[u32],
     display: bool,
 ) -> Result<Response, Error> {
-    let address = derive_address_simple(hal, coin, simple_type, keypath)?;
+    let address = derive_address_simple(hal, coin, simple_type, keypath).await?;
     if display {
         let address_formatted = util::strings::format_address(&address);
         let confirm_params = ConfirmParams {
@@ -194,7 +196,7 @@ pub async fn address_multisig(
     keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
         .or(Err(Error::InvalidInput))?;
     let account_keypath = &keypath[..keypath.len() - 2];
-    multisig::validate(hal, multisig, account_keypath)?;
+    multisig::validate(hal, multisig, account_keypath).await?;
     let name = match multisig::get_name(hal, coin, multisig, account_keypath)? {
         Some(name) => name,
         None => return Err(Error::InvalidInput),
@@ -237,7 +239,7 @@ async fn address_policy(
     keypath::validate_address_policy(keypath, keypath::ReceiveSpend::Receive)
         .or(Err(Error::InvalidInput))?;
 
-    let parsed = policies::parse(hal, policy, coin)?;
+    let parsed = policies::parse(hal, policy, coin).await?;
 
     let name = parsed.name(hal, coin_params)?.ok_or(Error::InvalidInput)?;
 
@@ -1108,6 +1110,7 @@ mod tests {
             keypath: KEYPATH_ACCOUNT_TESTNET.to_vec(),
             xpub: Some(
                 crate::keystore::get_xpub_once(&mut TestingHal::new(), KEYPATH_ACCOUNT_TESTNET)
+                    .await
                     .unwrap()
                     .into(),
             ),
@@ -1117,6 +1120,7 @@ mod tests {
             keypath: KEYPATH_ACCOUNT_MAINNET.to_vec(),
             xpub: Some(
                 crate::keystore::get_xpub_once(&mut TestingHal::new(), KEYPATH_ACCOUNT_MAINNET)
+                    .await
                     .unwrap()
                     .into(),
             ),

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 use bitbox_securechip::{Error, Model, PasswordStretchAlgo, atecc, optiga};
 use core::ffi::c_int;
 use util::cell::SyncCell;
@@ -49,7 +49,7 @@ pub fn reset_keys() -> Result<(), ()> {
 pub fn init_new_password(
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
-) -> Result<Zeroizing<Vec<u8>>, Error> {
+) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     match backend() {
         Backend::Atecc => atecc::init_new_password(password, password_stretch_algo),
         Backend::Optiga => optiga::init_new_password(password, password_stretch_algo),
@@ -59,7 +59,7 @@ pub fn init_new_password(
 pub fn stretch_password(
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
-) -> Result<Zeroizing<Vec<u8>>, Error> {
+) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     match backend() {
         Backend::Atecc => atecc::stretch_password(password, password_stretch_algo),
         Backend::Optiga => optiga::stretch_password(password, password_stretch_algo),

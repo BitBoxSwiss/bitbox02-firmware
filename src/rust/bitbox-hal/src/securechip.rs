@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 
 use super::memory::PasswordStretchAlgo;
 
@@ -61,7 +61,7 @@ pub trait SecureChip {
         &mut self,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error>;
 
     /// Stretches `password` using secrets stored in the secure chip.
     ///
@@ -71,7 +71,7 @@ pub trait SecureChip {
         &mut self,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error>;
 
     /// Runs the secure-chip KDF with `msg` and returns the zeroizing 32-byte result.
     ///

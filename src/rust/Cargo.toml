@@ -96,3 +96,8 @@ incremental = true
 [profile.test]
 debug-assertions = true
 overflow-checks = true
+
+# Speed up `cargo test`
+lto = false
+codegen-units = 256
+opt-level = 0

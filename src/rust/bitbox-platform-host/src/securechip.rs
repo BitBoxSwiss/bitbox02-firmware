@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::boxed::Box;
 use alloc::collections::VecDeque;
-use alloc::{boxed::Box, vec::Vec};
 
 use bitcoin::hashes::Hash;
 use hex_lit::hex;
@@ -75,11 +75,12 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         )))
     }
 
-    fn init_new_password(
+    async fn init_new_password(
         &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += 3;
 
         let key: &'static [u8] = match password_stretch_algo {
@@ -90,16 +91,17 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         let mut engine = HmacEngine::<sha256::Hash>::new(key);
         engine.input(password.as_bytes());
         let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-        Ok(zeroize::Zeroizing::new(
-            hmac_result.to_byte_array().to_vec(),
-        ))
+        Ok(Box::new(zeroize::Zeroizing::new(
+            hmac_result.to_byte_array(),
+        )))
     }
 
-    fn stretch_password(
+    async fn stretch_password(
         &mut self,
+        _memory: &mut impl bitbox_hal::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += match password_stretch_algo {
             PasswordStretchAlgo::V0 => 5,
             PasswordStretchAlgo::V1 => 4,
@@ -114,9 +116,9 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         let mut engine = HmacEngine::<sha256::Hash>::new(key);
         engine.input(password.as_bytes());
         let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-        Ok(zeroize::Zeroizing::new(
-            hmac_result.to_byte_array().to_vec(),
-        ))
+        Ok(Box::new(zeroize::Zeroizing::new(
+            hmac_result.to_byte_array(),
+        )))
     }
 
     async fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
@@ -152,7 +154,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         Ok(Model::Atecc608B)
     }
 
-    fn reset_keys(&mut self) -> Result<(), ()> {
+    async fn reset_keys(&mut self, _memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
         if self.reset_keys_fail_once {
             self.reset_keys_fail_once = false;
             Err(())

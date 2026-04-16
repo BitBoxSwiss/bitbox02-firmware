@@ -9,11 +9,20 @@ description = "Safe Rust bindings for securechip code in BitBox firmware"
 license = "Apache-2.0"
 
 [dependencies]
+bitbox-hal = { path = "../bitbox-hal" }
+bitbox-core-utils = { path = "../bitbox-core-utils" }
 bitbox-securechip-sys = { path = "../bitbox-securechip-sys" }
 critical-section = { version = "1.2.0", default-features = false, features = [] }
 grounded = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
 util = { path = "../util" }
 zeroize = { workspace = true }
 
 [features]
 app-u2f = []
+
+[dev-dependencies]
+async_test = { path = "../async_test" }
+bitbox-platform-host = { path = "../bitbox-platform-host" }
+hex_lit = { workspace = true, features = ["rust_v_1_46"] }

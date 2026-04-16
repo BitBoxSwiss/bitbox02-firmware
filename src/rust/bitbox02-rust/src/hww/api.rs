@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::pb;
+use alloc::boxed::Box;
 
 pub(super) mod error;
 
@@ -64,11 +65,11 @@ async fn process_api_btc(
     request: &Request,
 ) -> Result<Response, Error> {
     match request {
-        Request::BtcPub(request) => bitcoin::process_pub(hal, request).await,
-        Request::BtcSignInit(request) => bitcoin::signtx::process(hal, request).await,
+        Request::BtcPub(request) => Box::pin(bitcoin::process_pub(hal, request)).await,
+        Request::BtcSignInit(request) => Box::pin(bitcoin::signtx::process(hal, request)).await,
         Request::Btc(pb::BtcRequest {
             request: Some(request),
-        }) => bitcoin::process_api(hal, request)
+        }) => Box::pin(bitcoin::process_api(hal, request))
             .await
             .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) })),
         _ => Err(Error::Generic),
@@ -188,7 +189,7 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         Request::Fingerprint(pb::RootFingerprintRequest {}) => rootfingerprint::process(),
         request @ Request::BtcPub(_)
         | request @ Request::Btc(_)
-        | request @ Request::BtcSignInit(_) => process_api_btc(hal, request).await,
+        | request @ Request::BtcSignInit(_) => Box::pin(process_api_btc(hal, request)).await,
 
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 
 use super::memory::PasswordStretchAlgo;
 
@@ -57,21 +57,25 @@ pub trait SecureChip {
     /// This reinitializes the secure-chip state used for password derivation and returns the same
     /// 32-byte value as [`stretch_password`] for the same `password` and
     /// `password_stretch_algo`, but may require fewer secure-chip operations.
-    fn init_new_password(
+    ///
+    /// `memory` is used for persistent secrets needed during derivation, such as the salt root.
+    async fn init_new_password(
         &mut self,
+        memory: &mut impl super::memory::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error>;
 
     /// Stretches `password` using secrets stored in the secure chip.
     ///
     /// The returned value is always 32 bytes long. Calling this function increments the relevant
     /// secure-chip monotonic counter.
-    fn stretch_password(
+    async fn stretch_password(
         &mut self,
+        memory: &mut impl super::memory::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error>;
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error>;
 
     /// Runs the secure-chip KDF with `msg` and returns the zeroizing 32-byte result.
     ///
@@ -95,7 +99,7 @@ pub trait SecureChip {
     fn model(&mut self) -> Result<Model, ()>;
 
     /// Resets the secure-chip objects involved in password stretching.
-    fn reset_keys(&mut self) -> Result<(), ()>;
+    async fn reset_keys(&mut self, memory: &mut impl super::memory::Memory) -> Result<(), ()>;
 
     #[cfg(feature = "app-u2f")]
     /// Sets the U2F counter to `counter`.

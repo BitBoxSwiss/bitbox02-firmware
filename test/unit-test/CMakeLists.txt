@@ -35,8 +35,6 @@ else()
      ""
      random
      "-Wl,--wrap=rand,--wrap=rust_sha256"
-     optiga
-     "-Wl,--wrap=rust_salt_hash_data"
      ui_components
      ""
      ui_util
@@ -72,26 +70,6 @@ else()
     target_include_directories(${EXE} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
-    if(TEST_NAME STREQUAL "optiga")
-      target_sources(${EXE} PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/optiga/optiga.c
-      )
-      # Needed by optiga-trust-m headers used by src/optiga/optiga.c.
-      target_include_directories(${EXE} SYSTEM PRIVATE
-        ${CMAKE_SOURCE_DIR}/external
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/config
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include/cmd
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include/common
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include/ifx_i2c
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include/pal
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/include/comms
-        ${CMAKE_SOURCE_DIR}/external/optiga-trust-m/external/mbedtls/include
-      )
-      # Optiga config must be defined both when compiling the optiga lib, and also when compiling
-      # our sources.
-      target_compile_definitions(${EXE} PRIVATE OPTIGA_LIB_EXTERNAL="optiga_config.h")
-    endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()
 endif()

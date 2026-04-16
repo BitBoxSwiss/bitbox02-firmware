@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::boxed::Box;
 use alloc::collections::VecDeque;
-use alloc::{boxed::Box, vec::Vec};
 
 #[cfg(all(feature = "simulator-graphical", not(feature = "testing")))]
 use bitbox_hal::Timer;
@@ -82,7 +82,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         &mut self,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += 3;
 
         let key: &'static [u8] = match password_stretch_algo {
@@ -93,16 +93,16 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         let mut engine = HmacEngine::<sha256::Hash>::new(key);
         engine.input(password.as_bytes());
         let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-        Ok(zeroize::Zeroizing::new(
-            hmac_result.to_byte_array().to_vec(),
-        ))
+        Ok(Box::new(zeroize::Zeroizing::new(
+            hmac_result.to_byte_array(),
+        )))
     }
 
     fn stretch_password(
         &mut self,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         self.event_counter += match password_stretch_algo {
             PasswordStretchAlgo::V0 => 5,
             PasswordStretchAlgo::V1 => 4,
@@ -117,9 +117,9 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         let mut engine = HmacEngine::<sha256::Hash>::new(key);
         engine.input(password.as_bytes());
         let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-        Ok(zeroize::Zeroizing::new(
-            hmac_result.to_byte_array().to_vec(),
-        ))
+        Ok(Box::new(zeroize::Zeroizing::new(
+            hmac_result.to_byte_array(),
+        )))
     }
 
     async fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {

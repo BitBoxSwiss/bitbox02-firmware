@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{Error, Model, PasswordStretchAlgo, SecureChipError};
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::boxed::Box;
 use zeroize::Zeroizing;
 
 pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
@@ -40,10 +40,10 @@ pub fn reset_keys() -> Result<(), ()> {
 pub fn init_new_password(
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
-) -> Result<Zeroizing<Vec<u8>>, Error> {
+) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     let password = util::strings::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
-    let mut stretched = Zeroizing::new(vec![0u8; 32]);
+    let mut stretched = Box::new(Zeroizing::new([0u8; 32]));
     let status = unsafe {
         bitbox_securechip_sys::atecc_init_new_password(
             password.as_ptr().cast(),
@@ -61,10 +61,10 @@ pub fn init_new_password(
 pub fn stretch_password(
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
-) -> Result<Zeroizing<Vec<u8>>, Error> {
+) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     let password = util::strings::str_to_cstr_vec_zeroizing(password)
         .map_err(|_| Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS))?;
-    let mut stretched = Zeroizing::new(vec![0u8; 32]);
+    let mut stretched = Box::new(Zeroizing::new([0u8; 32]));
     let status = unsafe {
         bitbox_securechip_sys::atecc_stretch_password(
             password.as_ptr().cast(),

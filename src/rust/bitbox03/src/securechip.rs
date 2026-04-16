@@ -14,7 +14,8 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         &mut self,
         _password: &str,
         _password_stretch_algo: bitbox_hal::memory::PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<alloc::vec::Vec<u8>>, bitbox_hal::securechip::Error> {
+    ) -> Result<alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>>, bitbox_hal::securechip::Error>
+    {
         todo!()
     }
 
@@ -22,7 +23,8 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         &mut self,
         _password: &str,
         _password_stretch_algo: bitbox_hal::memory::PasswordStretchAlgo,
-    ) -> Result<zeroize::Zeroizing<alloc::vec::Vec<u8>>, bitbox_hal::securechip::Error> {
+    ) -> Result<alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>>, bitbox_hal::securechip::Error>
+    {
         todo!()
     }
 

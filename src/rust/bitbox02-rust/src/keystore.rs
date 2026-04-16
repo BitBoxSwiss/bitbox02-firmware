@@ -237,14 +237,10 @@ pub fn is_locked() -> bool {
 
 fn verify_seed(
     hal: &mut impl crate::hal::Hal,
-    encryption_key: &[u8],
+    encryption_key: &[u8; 32],
     expected_seed: &[u8],
     expected_password_stretch_also: memory::PasswordStretchAlgo,
 ) -> bool {
-    if encryption_key.len() != 32 {
-        return false;
-    }
-
     let (cipher, password_stretch_algo) = match hal.memory().get_encrypted_seed_and_hmac() {
         Ok(cipher) => cipher,
         Err(_) => return false,
@@ -328,7 +324,7 @@ async fn encrypt_and_store_seed_internal(
 
     let iv_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal)?;
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
-    let encrypted = bitbox_aes::encrypt_with_hmac(iv, &secret, seed);
+    let encrypted = bitbox_aes::encrypt_with_hmac(iv, secret.as_slice(), seed);
 
     if encrypted.len() > u8::MAX as usize {
         panic!("encrypted seed length overflow");
@@ -338,7 +334,7 @@ async fn encrypt_and_store_seed_internal(
         .set_encrypted_seed_and_hmac(&encrypted, password_stretch_algo)
         .map_err(|_| Error::Memory)?;
 
-    if !verify_seed(hal, &secret, seed, password_stretch_algo) {
+    if !verify_seed(hal, secret.as_ref(), seed, password_stretch_algo) {
         hal.memory().reset_hww().map_err(|_| Error::Memory)?;
         return Err(Error::Memory);
     }
@@ -433,7 +429,7 @@ fn get_and_decrypt_seed(
     let secret = hal
         .securechip()
         .stretch_password(password, password_stretch_algo)?;
-    let seed = match bitbox_aes::decrypt_with_hmac(&secret, &encrypted) {
+    let seed = match bitbox_aes::decrypt_with_hmac(secret.as_slice(), &encrypted) {
         Ok(seed) => seed,
         Err(()) => return Err(Error::IncorrectPassword),
     };
@@ -1565,7 +1561,7 @@ mod tests {
                     .unwrap();
                 let iv: &[u8; 16] = &[0xaau8; 16];
 
-                bitbox_aes::encrypt_with_hmac(iv, &secret, &seed)
+                bitbox_aes::encrypt_with_hmac(iv, secret.as_slice(), &seed)
             };
 
             mock_hal

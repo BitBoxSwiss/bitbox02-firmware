@@ -39,7 +39,7 @@ if git --no-pager diff --diff-filter=d --name-only ${TARGET_BRANCH} HEAD | grep 
 	exit 1
 fi
 
-RUST_SOURCES=$(git ls-files | grep "^src/rust.*\.rs\$" | grep -v "^src/rust/vendor" | grep -v "^src/rust/bitbox02-rust/src/shiftcrypto\.bitbox02\.rs$")
+RUST_SOURCES=$(git ls-files | grep "^src/rust.*\.rs\$" | grep -v "^src/rust/vendor")
 if [ -n "$RUST_SOURCES" ] ; then
 	"$RUSTFMT" --check $RUST_SOURCES
 fi

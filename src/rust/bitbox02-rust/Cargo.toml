@@ -14,6 +14,7 @@ license = "Apache-2.0"
 doctest = false
 
 [dependencies]
+bitbox-proto = { path = "../bitbox-proto" }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-core-utils = { path = "../bitbox-core-utils" }
 bitbox-da14531 = { path = "../bitbox-da14531" }

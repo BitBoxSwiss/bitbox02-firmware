@@ -5,6 +5,7 @@
 members = [
     "async_test",
     "bitbox-u2fhid",
+    "bitbox-proto",
     "bitbox02-rust-c",
     "bitbox02-rust",
     "bitbox-usb-report-queue",

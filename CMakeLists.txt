@@ -294,17 +294,10 @@ if(SANITIZE_UNDEFINED)
     string(APPEND CARGO_C_FLAGS " -fsanitize=undefined")
 endif()
 
-# protoc is used to generate API messages
-find_program(PROTOC protoc)
-if (PROTOC STREQUAL "PROTOC-NOTFOUND")
-  message(FATAL_ERROR "Could not find 'protoc'.")
-endif()
-
 #-----------------------------------------------------------------------------
 # Build
 
 add_subdirectory(external)
-add_subdirectory(messages)
 add_subdirectory(src)
 add_subdirectory(scripts)
 

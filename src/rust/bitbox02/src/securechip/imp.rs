@@ -32,10 +32,10 @@ pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     }
 }
 
-pub fn monotonic_increments_remaining() -> Result<u32, ()> {
+pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     match backend() {
         Backend::Atecc => atecc::monotonic_increments_remaining(),
-        Backend::Optiga => optiga::monotonic_increments_remaining(),
+        Backend::Optiga => optiga::monotonic_increments_remaining().await,
     }
 }
 

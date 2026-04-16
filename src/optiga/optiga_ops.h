@@ -8,6 +8,8 @@
 #include <stdint.h>
 
 optiga_lib_status_t optiga_ops_create(optiga_util_t** util_out, optiga_crypt_t** crypt_out);
+optiga_lib_status_t optiga_ops_get_status(void);
+void optiga_ops_set_status_busy(void);
 
 optiga_lib_status_t optiga_ops_util_read_data_sync(
     optiga_util_t* me,

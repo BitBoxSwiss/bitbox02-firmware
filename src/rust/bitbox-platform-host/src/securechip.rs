@@ -144,7 +144,7 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         Ok(())
     }
 
-    fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
+    async fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
         Ok(1)
     }
 

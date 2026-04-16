@@ -41,7 +41,7 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
+    async fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
         todo!()
     }
 

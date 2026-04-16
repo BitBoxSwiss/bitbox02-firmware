@@ -12,6 +12,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct optiga_util optiga_util_t;
+
 // Keep in sync with MAX_UNLOCK_ATTEMPTS in keystore.rs.
 #ifndef MAX_UNLOCK_ATTEMPTS
     #define MAX_UNLOCK_ATTEMPTS 10
@@ -101,7 +103,7 @@ USE_RESULT int optiga_stretch_password(
 USE_RESULT bool optiga_reset_keys(void);
 USE_RESULT bool optiga_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
-USE_RESULT bool optiga_monotonic_increments_remaining(uint32_t* remaining_out);
+USE_RESULT optiga_util_t* optiga_util_instance(void);
 USE_RESULT int optiga_random(uint8_t* rand_out);
 #if APP_U2F == 1 || FACTORYSETUP == 1
 USE_RESULT bool optiga_u2f_counter_set(uint32_t counter);

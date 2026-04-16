@@ -156,7 +156,7 @@ fn can_call(hal: &mut impl crate::hal::Hal, request: &Request) -> bool {
 async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Result<Response, Error> {
     match request {
         Request::Reboot(request) => system::reboot_to_bootloader(hal, request).await,
-        Request::DeviceInfo(_) => device_info::process(hal),
+        Request::DeviceInfo(_) => device_info::process(hal).await,
         Request::DeviceName(request) => set_device_name::process(hal, request).await,
         Request::SetPassword(request) => set_password::process(hal, request).await,
         Request::ChangePassword(_) => change_password::process(hal).await,

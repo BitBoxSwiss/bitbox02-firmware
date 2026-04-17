@@ -5,6 +5,13 @@ use bitbox_hal::Random;
 pub struct BitBox02Random;
 
 impl Random for BitBox02Random {
+    // C simulator still uses this.
+    #[cfg(feature = "c-unit-testing")]
+    fn factory_randomness(&mut self) -> &'static [u8; 32] {
+        &[0; 32]
+    }
+
+    #[cfg(not(feature = "c-unit-testing"))]
     #[inline(always)]
     fn factory_randomness(&mut self) -> &'static [u8; 32] {
         let addr =

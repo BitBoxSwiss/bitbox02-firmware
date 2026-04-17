@@ -48,6 +48,8 @@ pub enum Screen {
         choices: Vec<String>,
         selected: u8,
     },
+    UnlockAnimationPaused,
+    UnlockAnimationPlayed,
     More,
 }
 
@@ -78,9 +80,12 @@ pub struct NoopEmpty;
 
 impl Empty for NoopEmpty {}
 
+pub struct NoopUnlockAnimation;
+
 impl Ui for TestingUi<'_> {
     type Progress = NoopProgress;
     type Empty = NoopEmpty;
+    type UnlockAnimation = NoopUnlockAnimation;
 
     fn progress_create(&mut self, _title: &str) -> Self::Progress {
         NoopProgress
@@ -88,6 +93,11 @@ impl Ui for TestingUi<'_> {
 
     fn empty_create(&mut self) -> Self::Empty {
         NoopEmpty
+    }
+
+    fn unlock_animation_create(&mut self) -> Self::UnlockAnimation {
+        self.screens.push(Screen::UnlockAnimationPaused);
+        NoopUnlockAnimation
     }
 
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort> {
@@ -159,7 +169,9 @@ impl Ui for TestingUi<'_> {
         Ok(())
     }
 
-    async fn unlock_animation(&mut self) {}
+    async fn unlock_animation_play(&mut self, _animation: Self::UnlockAnimation) {
+        self.screens.push(Screen::UnlockAnimationPlayed);
+    }
 
     async fn status(&mut self, title: &str, status_success: bool) {
         self.screens.push(Screen::Status {
@@ -512,5 +524,16 @@ mod tests {
             ui.confirm_swap("Swap", "1 BTC", "2 ETH").await,
             Err(UserAbort)
         ));
+    }
+
+    #[async_test::test]
+    async fn test_unlock_animation_records_screen() {
+        let mut ui = TestingUi::new();
+        let animation = ui.unlock_animation_create();
+        ui.unlock_animation_play(animation).await;
+        assert_eq!(
+            ui.screens,
+            vec![Screen::UnlockAnimationPaused, Screen::UnlockAnimationPlayed]
+        );
     }
 }

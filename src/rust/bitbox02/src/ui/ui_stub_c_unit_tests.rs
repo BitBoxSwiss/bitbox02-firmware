@@ -122,7 +122,21 @@ pub fn empty_create() -> Component {
     Component { is_pushed: false }
 }
 
-pub async fn unlock_animation() {}
+pub struct UnlockAnimation {
+    _component: Component,
+}
+
+pub fn unlock_animation_create() -> UnlockAnimation {
+    let mut component = Component { is_pushed: false };
+    component.screen_stack_push();
+    UnlockAnimation {
+        _component: component,
+    }
+}
+
+impl UnlockAnimation {
+    pub async fn play(self) {}
+}
 
 pub async fn choose_orientation() -> bool {
     false

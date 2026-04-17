@@ -8,6 +8,7 @@
 #include <ui/screen_process.h>
 #include <ui/ui_util.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -29,6 +30,7 @@
 
 typedef struct {
     int frame;
+    bool playing;
     void (*on_done)(void*);
     void* on_done_param;
 } data_t;
@@ -152,6 +154,16 @@ static const uint8_t* _get_frame(int frame_idx)
 static void _render(component_t* component)
 {
     data_t* data = (data_t*)component->data;
+    if (!data->playing) {
+        position_t pos = {
+            .left = (SCREEN_WIDTH - LOCK_ANIMATION_FRAME_WIDTH) / 2,
+            .top = (SCREEN_HEIGHT - LOCK_ANIMATION_FRAME_HEIGHT) / 2};
+        dimension_t dim = {
+            .width = LOCK_ANIMATION_FRAME_WIDTH, .height = LOCK_ANIMATION_FRAME_HEIGHT};
+        in_buffer_t image = {.data = _get_frame(0), .len = LOCK_ANIMATION_FRAME_SIZE};
+        graphics_draw_image(&pos, &dim, &image);
+        return;
+    }
     int frame = data->frame / SLOWDOWN_FACTOR;
 
     if (frame >= LOCK_ANIMATION_N_FRAMES + LOCK_ANIMATION_FRAMES_STOP_TIME) {
@@ -200,4 +212,10 @@ component_t* unlock_animation_create(void (*on_done)(void*), void* on_done_param
     component->dimension.width = SCREEN_WIDTH;
     component->dimension.height = SCREEN_HEIGHT;
     return component;
+}
+
+void unlock_animation_play(component_t* component)
+{
+    data_t* data = (data_t*)component->data;
+    data->playing = true;
 }

@@ -49,6 +49,7 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     type Progress = BitBox03UiProgress;
 
     type Empty = BitBox03UiEmpty;
+    type UnlockAnimation = BitBox03UiEmpty;
 
     async fn confirm(
         &mut self,
@@ -90,7 +91,7 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
         todo!()
     }
 
-    async fn unlock_animation(&mut self) {
+    async fn unlock_animation_play(&mut self, _animation: Self::UnlockAnimation) {
         self.status("TODO\nunlock_animation", true).await
     }
 
@@ -119,6 +120,10 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     }
 
     fn empty_create(&mut self) -> Self::Empty {
+        todo!()
+    }
+
+    fn unlock_animation_create(&mut self) -> Self::UnlockAnimation {
         todo!()
     }
 

@@ -603,6 +603,68 @@ pub async fn confirm_transaction_address(amount: &str, address: &str) -> Confirm
     .await
 }
 
+pub async fn confirm_swap(title: &str, from: &str, to: &str) -> ConfirmResponse {
+    let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
+
+    // Shared between the async context and the c callback
+    struct SharedState {
+        waker: Option<Waker>,
+        result: Option<ConfirmResponse>,
+    }
+    let shared_state = Box::new(RefCell::new(SharedState {
+        waker: None,
+        result: None,
+    }));
+    let shared_state_ptr = shared_state.as_ref() as *const RefCell<SharedState> as *mut c_void;
+
+    unsafe extern "C" fn callback(result: bool, user_data: *mut c_void) {
+        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let mut shared_state = shared_state.borrow_mut();
+        if shared_state.result.is_none() {
+            shared_state.result = Some(if result {
+                ConfirmResponse::Approved
+            } else {
+                ConfirmResponse::Cancelled
+            });
+            if let Some(waker) = shared_state.waker.as_ref() {
+                waker.wake_by_ref();
+            }
+        }
+    }
+
+    let component = unsafe {
+        bitbox02_sys::confirm_swap_create(
+            util::strings::str_to_cstr_vec(title).unwrap().as_ptr(), // copied in C
+            util::strings::str_to_cstr_vec(from).unwrap().as_ptr(),  // copied in C
+            util::strings::str_to_cstr_vec(to).unwrap().as_ptr(),    // copied in C
+            Some(callback),
+            shared_state_ptr, // passed to callback as `user_data`.
+        )
+    };
+
+    let mut component = Component {
+        component,
+        is_pushed: false,
+    };
+    component.screen_stack_push();
+
+    core::future::poll_fn({
+        let shared_state = &shared_state;
+        move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result.take() {
+                Poll::Ready(result)
+            } else {
+                // Store the waker so the callback can wake up this task
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    })
+    .await
+}
+
 pub async fn confirm_transaction_fee(amount: &str, fee: &str, longtouch: bool) -> ConfirmResponse {
     let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
 

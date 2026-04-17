@@ -1,5 +1,6 @@
 use core::time::Duration;
 
+use alloc::format;
 use alloc::vec::Vec;
 use bitbox_hal as hal;
 use bitbox_lvgl::{
@@ -55,6 +56,21 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     ) -> Result<(), bitbox_hal::ui::UserAbort> {
         self.with_result_screen(|responder| confirm::build_confirm_screen(params, responder))
             .await
+    }
+
+    async fn confirm_swap(
+        &mut self,
+        title: &str,
+        from: &str,
+        to: &str,
+    ) -> Result<(), bitbox_hal::ui::UserAbort> {
+        let body = format!("from\n{from}\n\nto\n{to}");
+        self.confirm(&bitbox_hal::ui::ConfirmParams {
+            title,
+            body: &body,
+            ..Default::default()
+        })
+        .await
     }
 
     async fn verify_recipient(

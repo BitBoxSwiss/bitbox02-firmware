@@ -64,7 +64,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
         hal.system().reset_ble();
     }
 
-    #[cfg(not(feature = "testing"))]
+    #[cfg(not(any(feature = "testing", feature = "c-unit-testing")))]
     hal.system().reboot();
 }
 

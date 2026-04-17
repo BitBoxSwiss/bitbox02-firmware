@@ -330,7 +330,7 @@ fn ecdsa_verify(sig64: &[u8], msg32: &[u8], pubkey33: &[u8]) -> Result<(), Valid
 }
 
 /// Validate a BTC payment request against the parsed BTC output total.
-pub fn validate_btc(
+pub async fn validate_btc(
     #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
     coin_params: &super::bitcoin::params::Params,
     payment_request: &pb::BtcPaymentRequestRequest,
@@ -348,11 +348,12 @@ pub fn validate_btc(
         &total_value_bytes,
         output_address,
     )
+    .await
 }
 
 /// Validate an ETH/EVM payment request against the parsed source-side transaction.
 #[cfg(feature = "app-ethereum")]
-pub fn validate_eth(
+pub async fn validate_eth(
     hal: &mut impl crate::hal::Hal,
     coin_params: &super::ethereum::params::Params,
     payment_request: &pb::BtcPaymentRequestRequest,
@@ -367,6 +368,7 @@ pub fn validate_eth(
         &output_value_padded,
         output_address,
     )
+    .await
 }
 
 #[cfg(feature = "app-ethereum")]
@@ -389,7 +391,7 @@ pub fn serialize_eth_output_value(output_value: &BigUint) -> Result<[u8; 32], Va
 /// Destination ownership checks for `CoinPurchaseMemo.address` still happen
 /// here, because they are derived from the memo's keypath metadata rather than
 /// from the source transaction itself.
-fn validate_common(
+async fn validate_common(
     #[cfg_attr(not(feature = "app-ethereum"), allow(unused_variables))] hal: &mut impl crate::hal::Hal,
     source_coin_type: u32,
     payment_request: &pb::BtcPaymentRequestRequest,
@@ -430,6 +432,7 @@ fn validate_common(
                             return Err(ValidationError::Other);
                         }
                         let derived_address = super::ethereum::derive_address(hal, &_eth.keypath)
+                            .await
                             .map_err(|_| ValidationError::Other)?;
                         if derived_address != coin_purchase_memo.address {
                             return Err(ValidationError::AddressMismatch);
@@ -469,6 +472,7 @@ fn validate_common(
                             simple_type,
                             &script_config.keypath,
                         )
+                        .await
                         .map_err(|_| ValidationError::Other)?;
 
                         if derived_address != coin_purchase_memo.address {
@@ -737,8 +741,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_validate() {
+    #[async_test::test]
+    async fn test_validate() {
         let source_coin_type = params::get(pb::BtcCoin::Tbtc).slip44();
         let mut mock_hal = TestingHal::new();
 
@@ -768,6 +772,7 @@ mod tests {
                 &value_bytes,
                 address
             )
+            .await
             .is_ok()
         );
 
@@ -804,6 +809,7 @@ mod tests {
                     &value_bytes,
                     address
                 )
+                .await
                 .is_ok()
             );
         }
@@ -824,6 +830,7 @@ mod tests {
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &source_keypath,
             )
+            .await
             .unwrap();
 
             let destination_keypath = [
@@ -839,6 +846,7 @@ mod tests {
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &destination_keypath,
             )
+            .await
             .unwrap();
 
             let source_coin_type = params::get(pb::BtcCoin::Btc).slip44();
@@ -874,6 +882,7 @@ mod tests {
                     &value_bytes,
                     &source_address,
                 )
+                .await
                 .is_ok()
             );
         }
@@ -894,6 +903,7 @@ mod tests {
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &source_keypath,
             )
+            .await
             .unwrap();
 
             let destination_keypath = [
@@ -909,6 +919,7 @@ mod tests {
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &destination_keypath,
             )
+            .await
             .unwrap();
 
             let source_coin_type = params::get(pb::BtcCoin::Ltc).slip44();
@@ -944,6 +955,7 @@ mod tests {
                     &value_bytes,
                     &source_address,
                 )
+                .await
                 .is_ok()
             );
         }
@@ -960,8 +972,9 @@ mod tests {
                 0,
                 0,
             ];
-            let destination_address =
-                ethereum::derive_address(&mut mock_hal, destination_keypath).unwrap();
+            let destination_address = ethereum::derive_address(&mut mock_hal, destination_keypath)
+                .await
+                .unwrap();
             let mut payment_request = pb::BtcPaymentRequestRequest {
                 recipient_name: "Test Merchant".into(),
                 memos: vec![make_coin_purchase_memo(
@@ -991,7 +1004,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1006,8 +1020,9 @@ mod tests {
                 0,
                 0,
             ];
-            let destination_address =
-                ethereum::derive_address(&mut mock_hal, destination_keypath).unwrap();
+            let destination_address = ethereum::derive_address(&mut mock_hal, destination_keypath)
+                .await
+                .unwrap();
             let mut payment_request = pb::BtcPaymentRequestRequest {
                 recipient_name: "Test Merchant".into(),
                 memos: vec![make_coin_purchase_memo(
@@ -1037,7 +1052,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1071,7 +1087,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1104,7 +1121,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::AddressMismatch)
             ));
         }
@@ -1137,7 +1155,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1195,7 +1214,8 @@ mod tests {
                         &payment_request,
                         &value_bytes,
                         address
-                    ),
+                    )
+                    .await,
                     Err(ValidationError::Other)
                 ));
             }
@@ -1238,7 +1258,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::AddressMismatch)
             ));
         }
@@ -1280,7 +1301,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1322,7 +1344,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1364,7 +1387,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1422,7 +1446,8 @@ mod tests {
                     &payment_request,
                     &value_bytes,
                     address
-                ),
+                )
+                .await,
                 Err(ValidationError::Other)
             ));
         }
@@ -1442,7 +1467,8 @@ mod tests {
                 &payment_request,
                 &value_bytes,
                 address
-            ),
+            )
+            .await,
             Err(ValidationError::UnknownRecipient)
         ));
 
@@ -1461,7 +1487,8 @@ mod tests {
                 &payment_request,
                 value + 1,
                 address
-            ),
+            )
+            .await,
             Err(ValidationError::Other)
         ));
 
@@ -1480,7 +1507,8 @@ mod tests {
                 &payment_request,
                 &value_bytes,
                 address
-            ),
+            )
+            .await,
             Err(ValidationError::Other)
         ));
 
@@ -1499,7 +1527,8 @@ mod tests {
                 &payment_request,
                 &value_bytes,
                 address
-            ),
+            )
+            .await,
             Err(ValidationError::InvalidSignature)
         ));
     }
@@ -1672,8 +1701,8 @@ mod tests {
     }
 
     #[cfg(feature = "app-ethereum")]
-    #[test]
-    fn test_validate_eth() {
+    #[async_test::test]
+    async fn test_validate_eth() {
         crate::keystore::testing::mock_unlocked();
         let mut mock_hal = TestingHal::new();
         let params = eth_params::Params {
@@ -1713,6 +1742,7 @@ mod tests {
                 &BigUint::from_bytes_le(&output_value),
                 output_address,
             )
+            .await
             .is_ok()
         );
 
@@ -1724,7 +1754,8 @@ mod tests {
                 &payment_request,
                 &BigUint::from_bytes_le(&output_value[..8]),
                 output_address,
-            ),
+            )
+            .await,
             Ok(())
         ));
 
@@ -1738,7 +1769,8 @@ mod tests {
                 &payment_request,
                 &BigUint::from_bytes_le(&wrong_output_value),
                 output_address,
-            ),
+            )
+            .await,
             Err(ValidationError::InvalidSignature)
         ));
 
@@ -1750,7 +1782,8 @@ mod tests {
                 &payment_request,
                 &BigUint::from_bytes_le(&output_value),
                 "0x1111111111111111111111111111111111111111",
-            ),
+            )
+            .await,
             Err(ValidationError::InvalidSignature)
         ));
 
@@ -1768,7 +1801,8 @@ mod tests {
                 &payment_request,
                 &BigUint::from_bytes_le(&output_value),
                 output_address,
-            ),
+            )
+            .await,
             Err(ValidationError::InvalidSignature)
         ));
     }

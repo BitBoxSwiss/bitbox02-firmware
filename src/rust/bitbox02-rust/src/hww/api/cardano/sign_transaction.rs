@@ -47,12 +47,12 @@ fn format_value(params: &params::Params, value: u64) -> String {
     )
 }
 
-fn make_shelley_witness(
+async fn make_shelley_witness(
     hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
     tx_body_hash: &[u8; 32],
 ) -> Result<ShelleyWitness, ()> {
-    let result = ed25519::sign(hal, keypath, tx_body_hash)?;
+    let result = ed25519::sign(hal, keypath, tx_body_hash).await?;
     Ok(ShelleyWitness {
         public_key: result.public_key.as_ref().to_vec(),
         signature: result.signature.to_vec(),
@@ -230,7 +230,8 @@ async fn _process(
                         params,
                         config,
                         Some(bip44_account),
-                    )?;
+                    )
+                    .await?;
                     if encoded_address != output.encoded_address {
                         return Err(Error::InvalidInput);
                     }
@@ -291,7 +292,7 @@ async fn _process(
 
     let tx_body_hash: [u8; 32] = {
         let mut hasher = Blake2bVar::new(32).unwrap();
-        cbor::encode_transaction_body(hal, request, cbor::HashedWriter::new(&mut hasher))?;
+        cbor::encode_transaction_body(hal, request, cbor::HashedWriter::new(&mut hasher)).await?;
 
         let mut out = [0u8; 32];
         hasher.finalize_variable(&mut out).or(Err(Error::Generic))?;
@@ -303,7 +304,7 @@ async fn _process(
 
     let mut shelley_witnesses: Vec<ShelleyWitness> = Vec::with_capacity(signing_keypaths.len());
     for keypath in signing_keypaths {
-        shelley_witnesses.push(make_shelley_witness(hal, keypath, &tx_body_hash)?);
+        shelley_witnesses.push(make_shelley_witness(hal, keypath, &tx_body_hash).await?);
     }
 
     Ok(Response::SignTransaction(

@@ -334,6 +334,16 @@ name = "bitbox-bytequeue"
 version = "0.1.0"
 
 [[package]]
+name = "bitbox-core-utils"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "digest",
+ "sha2",
+ "zeroize",
+]
+
+[[package]]
 name = "bitbox-da14531"
 version = "0.1.0"
 dependencies = [
@@ -384,6 +394,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-noise"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "noise-protocol",
+ "noise-rust-crypto",
+ "x25519-dalek",
+]
+
+[[package]]
 name = "bitbox-platform-host"
 version = "0.1.0"
 dependencies = [
@@ -400,6 +420,21 @@ dependencies = [
  "bitcoin",
  "cc",
 ]
+
+[[package]]
+name = "bitbox-securechip"
+version = "0.1.0"
+dependencies = [
+ "bitbox-securechip-sys",
+ "critical-section",
+ "grounded",
+ "util",
+ "zeroize",
+]
+
+[[package]]
+name = "bitbox-securechip-sys"
+version = "0.1.0"
 
 [[package]]
 name = "bitbox-u2fhid"
@@ -423,8 +458,10 @@ dependencies = [
  "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-noise",
+ "bitbox-securechip",
+ "bitbox-securechip-sys",
  "bitbox-usb-report-queue",
- "bitbox02-noise",
  "bitbox02-sys",
  "futures-lite",
  "grounded",
@@ -436,15 +473,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitbox02-noise"
-version = "0.1.0"
-dependencies = [
- "noise-protocol",
- "noise-rust-crypto",
- "x25519-dalek",
-]
-
-[[package]]
 name = "bitbox02-rust"
 version = "0.1.0"
 dependencies = [
@@ -453,14 +481,15 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox-bytequeue",
+ "bitbox-core-utils",
  "bitbox-da14531",
  "bitbox-executor",
  "bitbox-hal",
+ "bitbox-noise",
  "bitbox-secp256k1",
  "bitbox-u2fhid",
  "bitbox-usb-report-queue",
  "bitbox02",
- "bitbox02-noise",
  "bitcoin",
  "bitcoin_hashes",
  "blake2",

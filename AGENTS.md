@@ -27,6 +27,9 @@ for the current scope.
 Run regular Unix commands such as `git`, `rg`, `grep`, `ls`, `find`, `sed`, and `cat` directly on
 the host.
 
+Cargo commands for the Rust workspace, such as `cargo test`, `cargo check`, and `cargo clippy`, may
+also be run directly on the host by passing `--manifest-path src/rust/Cargo.toml`.
+
 Use `./scripts/dev_exec.sh <command>` only for project-specific commands that depend on the project
 toolchain or compiler environment.
 
@@ -34,27 +37,30 @@ In practice, the repository `make` targets in this file are project-specific too
 When running from the host, invoke them via `./scripts/dev_exec.sh make <target>`.
 
 Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. Prefer changing CWD
-with CLI args like `tar -C <PATH>` or `cargo build --manifest-path <PATH>`. If
-a command genuinely needs shell features such as pipes, pass an explicit shell
-as the command, e.g.  `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
+with CLI args like `tar -C <PATH>`. If a command genuinely needs shell features such as pipes, pass
+an explicit shell as the command, e.g. `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.
 
 - `make firmware` / `make bootloader`: compile firmware or bootloader ELFs into `build/`.
 - `make simulator`: build the Linux simulator under `build-build-noasan/bin/`.
 - `make unit-test && make run-unit-tests`:  build and run the C cmocka/CTest suite with ASan/UBSan.
-- `make run-rust-unit-tests`: build and run the Rust unit tests
 - `make run-rust-clippy`: lint Rust code with the workspace configuration.
 - When invoking the above `make` targets from the host, prefer
   `./scripts/dev_exec.sh make <target>`.
-- Rust tests may also be run directly with `cargo test`:
+- Rust workspace commands may also be run directly with `cargo`, without `./scripts/dev_exec.sh`:
   -  From the repository root on the host, use
-     `./scripts/dev_exec.sh cargo test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
+     `cargo test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
+  -  For checks, use
+     `cargo check --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features`.
+  -  If you modify `messages/*.proto`, run `make generate-protobufs` before direct Rust `cargo`
+     commands. Plain `cargo test`/`cargo check` does not regenerate the protobuf outputs.
 
 ## Coding Style & Naming Conventions
 `.clang-format` (Chromium base, 4-space indent, Linux braces) and `.clang-tidy` govern C/C++. Use
 `snake_case` for symbols, `PascalCase` for types, and `ALL_CAPS` for macros. Python utilities follow
 `.pylintrc` rules (100-column limit, explicit imports). Rust crates rely on `rustfmt.toml` and the
 pinned toolchain in `rust-toolchain.toml`; keep module paths aligned with `src/rust` and regenerate
-bindings (`cbindgen`, protobuf) when interfaces change.
+bindings (`cbindgen`, protobuf) when interfaces change. When changing protobuf interfaces, run
+`make generate-protobufs`.
 
 * For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code.
 * For Python changes, run `./scripts/dev_exec.sh ./scripts/format-python` to format the code.
@@ -65,12 +71,13 @@ bindings (`cbindgen`, protobuf) when interfaces change.
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware
 behavior is mocked; follow the `test_<feature>.c` naming pattern and update CMake lists. Rust crates
 use standard `tests/` modules or `#[cfg(test)]` blocks. Before opening a PR, run both `make
-run-unit-tests` and `make run-rust-unit-tests`, and refresh `make coverage` for cryptography or
-security-sensitive areas.
+run-unit-tests` and `cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1`,
+and refresh `make coverage` for cryptography or security-sensitive areas.
 
 - in Rust unit tests, prefer .unwrap() over .expect().
 - In Rust unit tests, if testing a function foo, name the test `test_foo` (or `test_foo_xyz` if it
   needs qualifiers).
+- if a Rust unit test involves futures, use `#[async_test::test] async fn test_...`.
 - in Rust unit tests, prefer .as_slice() instead of `&*` for wrapped/zeroized Vec<u8>.
 - in Rust unit tests, prefer `hex!` literals for byte arrays/constants.
 

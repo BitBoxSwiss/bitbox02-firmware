@@ -30,14 +30,6 @@
     #define VERIFY_METADATA 0
 #endif
 
-// Number of times the first kdf slot can be used over the lifetime of the device.
-// The maxmimum does not seem to be specified, so we use something a little below the endurance
-// indication of 600000 updates. See Solution Reference Manual Figure 32.
-#define MONOTONIC_COUNTER_MAX_USE (590000)
-
-// See Solution Reference Manual Table 79 "Data structure arbitrary data object".
-#define ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE 140
-
 // This number of KDF iterations on the external kdf slot when stretching the device
 // password using the V0 algorithm.
 #define KDF_NUM_ITERATIONS_V0 (2)
@@ -1853,33 +1845,26 @@ bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out)
         rust_util_bytes(sig_der, sig_der_size), rust_util_bytes_mut(signature_out, 64));
 }
 
-bool optiga_monotonic_increments_remaining(uint32_t* remaining_out)
+optiga_util_t* optiga_util_instance(void)
 {
-    uint8_t buf[4] = {0};
-    uint16_t size = sizeof(buf);
-    optiga_lib_status_t res = optiga_ops_util_read_data_sync(_util, OID_COUNTER, 0, buf, &size);
-    if (res != OPTIGA_LIB_SUCCESS) {
-        return false;
-    }
+    return _util;
+}
 
-    uint32_t counter = optiga_common_get_uint32(buf);
-    if (counter > MONOTONIC_COUNTER_MAX_USE) {
-        Abort("optiga monotonic counter larget than max");
-    }
-    *remaining_out = MONOTONIC_COUNTER_MAX_USE - counter;
-    return true;
+optiga_crypt_t* optiga_crypt_instance(void)
+{
+    return _crypt;
 }
 
 // rand_out must be 32 bytes
-bool optiga_random(uint8_t* rand_out)
+int optiga_random(uint8_t* rand_out)
 {
     optiga_lib_status_t res =
         optiga_ops_crypt_random_sync(_crypt, OPTIGA_RNG_TYPE_TRNG, rand_out, 32);
     if (res != OPTIGA_CRYPT_SUCCESS) {
         util_log("optiga_random failed: %x", res);
-        return false;
+        return res;
     }
-    return true;
+    return 0;
 }
 
 #if APP_U2F == 1 || FACTORYSETUP == 1
@@ -1907,9 +1892,3 @@ bool optiga_u2f_counter_inc(uint32_t* counter)
     return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
 }
 #endif
-
-bool optiga_model(securechip_model_t* model_out)
-{
-    *model_out = OPTIGA_TRUST_M_V3;
-    return true;
-}

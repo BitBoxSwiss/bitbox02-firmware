@@ -29,6 +29,7 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
     let xpub = keystore::get_xpub_twice(hal, keypath)
+        .await
         .or(Err(Error::InvalidInput))?
         .serialize_str(bip32::XPubType::Xpub)?;
 

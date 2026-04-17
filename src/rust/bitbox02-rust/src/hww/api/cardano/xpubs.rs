@@ -12,7 +12,7 @@ use super::keypath::validate_account_shelley;
 /// Return the xpub at the request keypath.
 ///
 /// 64 bytes: 32 bytes public key + 32 bytes chain code.
-pub fn process(
+pub async fn process(
     hal: &mut impl crate::hal::Hal,
     request: &pb::CardanoXpubsRequest,
 ) -> Result<Response, Error> {
@@ -20,7 +20,7 @@ pub fn process(
     for pb::Keypath { keypath } in &request.keypaths {
         validate_account_shelley(keypath)?;
 
-        let xpub = crate::keystore::ed25519::get_xpub_twice(hal, keypath)?;
+        let xpub = crate::keystore::ed25519::get_xpub_twice(hal, keypath).await?;
         let mut xpub_bytes = Vec::with_capacity(64);
         xpub_bytes.extend_from_slice(xpub.pubkey_bytes());
         xpub_bytes.extend_from_slice(xpub.chain_code());
@@ -37,14 +37,15 @@ mod tests {
     use hex_lit::hex;
     use util::bip32::HARDENED;
 
-    #[test]
-    fn test_process() {
+    #[async_test::test]
+    async fn test_process() {
         crate::keystore::lock();
         assert_eq!(
             process(
                 &mut crate::hal::testing::TestingHal::new(),
                 &pb::CardanoXpubsRequest { keypaths: vec![] }
-            ),
+            )
+            .await,
             Ok(Response::Xpubs(pb::CardanoXpubsResponse { xpubs: vec![] })),
         );
 
@@ -57,7 +58,8 @@ mod tests {
                         keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED]
                     }],
                 }
-            ),
+            )
+            .await,
             Err(Error::Generic),
         );
 
@@ -75,7 +77,8 @@ mod tests {
                         }
                     ],
                 }
-            ),
+            )
+            .await,
             Ok(Response::Xpubs(pb::CardanoXpubsResponse {
                 xpubs: vec![
                     hex!(
@@ -115,7 +118,8 @@ mod tests {
                             keypath: invalid_keypath.to_vec(),
                         },],
                     }
-                ),
+                )
+                .await,
                 Err(Error::InvalidInput),
             );
         }

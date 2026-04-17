@@ -2,6 +2,7 @@
 
 #include "optiga_ops.h"
 
+#include <rust/rust.h>
 #include <securechip/securechip.h>
 #include <util.h>
 
@@ -13,6 +14,17 @@ static void _optiga_lib_callback(void* callback_ctx, optiga_lib_status_t event)
 {
     (void)callback_ctx;
     _optiga_lib_status = event;
+    rust_optiga_callback_wake();
+}
+
+optiga_lib_status_t optiga_ops_get_status(void)
+{
+    return _optiga_lib_status;
+}
+
+void optiga_ops_set_status_busy(void)
+{
+    _optiga_lib_status = OPTIGA_LIB_BUSY;
 }
 
 optiga_lib_status_t optiga_ops_create(optiga_util_t** util_out, optiga_crypt_t** crypt_out)

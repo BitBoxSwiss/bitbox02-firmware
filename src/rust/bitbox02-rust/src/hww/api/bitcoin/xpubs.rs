@@ -47,7 +47,7 @@ pub async fn process_xpubs(
             .map_err(|_| Error::InvalidInput)?;
     }
 
-    let xpubs = crate::keystore::get_xpubs_twice(hal, &keypaths)?;
+    let xpubs = crate::keystore::get_xpubs_twice(hal, &keypaths).await?;
     let xpub_strings: Vec<String> = xpubs
         .iter()
         .map(|xpub| xpub.serialize_str(xpub_type))

@@ -10,7 +10,9 @@ license = "Apache-2.0"
 
 [dependencies]
 bitbox02-sys = {path="../bitbox02-sys"}
-bitbox02-noise = { path = "../bitbox02-noise" }
+bitbox-securechip = { path = "../bitbox-securechip" }
+bitbox-securechip-sys = { path = "../bitbox-securechip-sys" }
+bitbox-noise = { path = "../bitbox-noise" }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
@@ -41,4 +43,4 @@ simulator-graphical = []
 app-ethereum = []
 app-bitcoin = []
 app-litecoin = []
-app-u2f = ["bitbox-hal/app-u2f"]
+app-u2f = ["bitbox-hal/app-u2f", "bitbox-securechip/app-u2f"]

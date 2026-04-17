@@ -12,12 +12,15 @@ members = [
     "bitbox-da14531",
     "bitbox-platform-host",
     "bitbox-hal",
+    "bitbox-core-utils",
     "bitbox-framed-serial-link",
     "util",
-    "bitbox02-noise",
+    "bitbox-noise",
     "bitbox02",
     "bitbox-secp256k1",
     "bitbox02-sys",
+    "bitbox-securechip",
+    "bitbox-securechip-sys",
     "bitbox-lvgl-sys",
     "erc20_params",
     "streaming-silent-payments",
@@ -52,7 +55,7 @@ hmac = { version = "0.12.1", default-features = false, features = ["reset"] }
 keccak = { version = "0.1.4", default-features = false, features = ["no_unroll"] }
 zeroize = "1.7.0"
 futures-lite = { version = "2.6.1", default-features = false }
-hex_lit = { version = "0.1.1", default-features = false }
+hex_lit = { version = "0.1.1", default-features = false, features = ["rust_v_1_46"]  }
 crc = "3.0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -93,3 +96,8 @@ incremental = true
 [profile.test]
 debug-assertions = true
 overflow-checks = true
+
+# Speed up `cargo test`
+lto = false
+codegen-units = 256
+opt-level = 0

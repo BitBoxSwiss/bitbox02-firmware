@@ -40,6 +40,7 @@ use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 use bitbox02::ui::ugui::UG_COLOR;
 use bitbox02_rust::hal::{Eeprom, Hal, Memory, System};
+use util::bb02_async::block_on;
 
 // Explicitly link library for its C exports
 extern crate bitbox02_rust_c;
@@ -166,7 +167,10 @@ fn init_hww(
     if preseed {
         let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
         let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
-        bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
+        block_on(bitbox02_rust::keystore::encrypt_and_store_seed(
+            &mut hal, &seed, "",
+        ))
+        .unwrap();
         hal.memory().set_initialized().unwrap();
     }
 

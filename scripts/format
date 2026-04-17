@@ -15,14 +15,12 @@ VERBOSE=${VERBOSE:-NO}
 command -v ${CLANGFORMAT} >/dev/null 2>&1 || { echo >&2 "${CLANGFORMAT} is missing"; exit 1; }
 
 # TODO: Put all external code in "external"
-FILES=$(find src/ test/ \
-	\( \
-		-path src/ui/fonts -o \
-		-path external/vendor -o \
-		-path src/rust/bitbox-secp256k1/depend -o \
-		-path src/rust/fatfs-sys/depend -o \
-		-name "ugui*" \
-	\) -prune -o \( -name "*.c" -o -name "*.h" \) -print)
+FILES=$(git ls-files src test | \
+	grep -E '\.(c|h)$' | \
+	grep -v -E '^src/ui/fonts/' | \
+	grep -v -E '^src/rust/bitbox-secp256k1/depend/' | \
+	grep -v -E '^src/rust/fatfs-sys/depend/' | \
+	grep -v -E '/ugui')
 
 if [ "${VERBOSE}" != "NO" ] ; then
 	echo ${FILES}

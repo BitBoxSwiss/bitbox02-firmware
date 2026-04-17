@@ -180,6 +180,7 @@ async fn verify_payment_request_recipient(
 ) -> Result<(), Error> {
     payment_request::user_verify(hal, payment_request, displayed_source_amount).await?;
     match payment_request::validate_eth(hal, params, payment_request, output_value, output_address)
+        .await
     {
         Ok(()) => Ok(()),
         Err(_) => {
@@ -600,7 +601,8 @@ pub async fn _process(
         // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
         Some(pb::AntiKleptoHostNonceCommitment { commitment }) => {
             let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
-                &keystore::secp256k1_get_private_key(hal, request.keypath())?
+                &keystore::secp256k1_get_private_key(hal, request.keypath())
+                    .await?
                     .as_slice()
                     .try_into()
                     .unwrap(),
@@ -619,7 +621,8 @@ pub async fn _process(
         None => [0; 32],
     };
     let sign_result = crate::secp256k1::secp256k1_sign(
-        &keystore::secp256k1_get_private_key(hal, request.keypath())?
+        &keystore::secp256k1_get_private_key(hal, request.keypath())
+            .await?
             .as_slice()
             .try_into()
             .unwrap(),

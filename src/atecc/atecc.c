@@ -672,14 +672,16 @@ bool atecc_monotonic_increments_remaining(uint32_t* remaining_out)
     return true;
 }
 
-bool atecc_random(uint8_t* rand_out)
+int atecc_random(uint8_t* rand_out)
 {
+    ATCA_STATUS result = ATCA_GEN_FAIL;
     for (int retries = 0; retries < 5; retries++) {
-        if (atcab_random(rand_out) == ATCA_SUCCESS) {
-            return true;
+        result = atcab_random(rand_out);
+        if (result == ATCA_SUCCESS) {
+            return 0;
         }
     }
-    return false;
+    return result;
 }
 
 #if APP_U2F == 1 || FACTORYSETUP == 1

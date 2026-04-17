@@ -147,7 +147,7 @@ mod tests {
             block_on(process_packet(&mut TestingHal::new(), b"h".to_vec())),
             [OP_STATUS_SUCCESS].to_vec()
         );
-        let mut host_noise = bitbox02_noise::testing::make_host();
+        let mut host_noise = bitbox_noise::testing::make_mock_host();
         let host_handshake_1 = host_noise.write_message_vec(b"").unwrap();
         let bb02_handshake_1 = {
             let result = block_on(process_packet(&mut TestingHal::new(), {
@@ -182,7 +182,7 @@ mod tests {
 
             // Handshake hash as computed by the host. Should be the same as computed on the
             // device. The pairing code is derived from that.
-            let handshake_hash: bitbox02_noise::HandshakeHash =
+            let handshake_hash: bitbox_noise::HandshakeHash =
                 host_noise.get_hash().try_into().unwrap();
 
             let mut mock_hal = TestingHal::new();
@@ -468,8 +468,8 @@ mod tests {
     }
 
     /// Test creating a seed, backing it up on SD, checking the backup, and restoring from the that backup.
-    #[test]
-    fn test_backup_create_check_list_restore() {
+    #[async_test::test]
+    async fn test_backup_create_check_list_restore() {
         // Test everything with a 32 and 16 byte seed (determined by the host entropy when creating the seed).
         for host_entropy in &[
             &b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"[..],
@@ -536,7 +536,7 @@ mod tests {
                 ]
             );
 
-            let seed = crate::keystore::copy_seed(&mut mock_hal).unwrap();
+            let seed = crate::keystore::copy_seed(&mut mock_hal).await.unwrap();
             assert_eq!(seed.len(), host_entropy.len());
             mock_hal.ui = crate::hal::testing::TestingUi::new();
             assert!(matches!(
@@ -708,7 +708,10 @@ mod tests {
             );
 
             // Restored seed is the same as the seed that was backed up.
-            assert_eq!(seed, crate::keystore::copy_seed(&mut mock_hal).unwrap());
+            assert_eq!(
+                seed,
+                crate::keystore::copy_seed(&mut mock_hal).await.unwrap()
+            );
         }
     }
 }

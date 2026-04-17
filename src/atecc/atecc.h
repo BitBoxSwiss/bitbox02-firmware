@@ -26,7 +26,7 @@ USE_RESULT bool atecc_reset_keys(void);
 USE_RESULT bool atecc_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT bool atecc_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
 USE_RESULT bool atecc_monotonic_increments_remaining(uint32_t* remaining_out);
-USE_RESULT bool atecc_random(uint8_t* rand_out);
+USE_RESULT int atecc_random(uint8_t* rand_out);
 #if APP_U2F == 1 || FACTORYSETUP == 1
 USE_RESULT bool atecc_u2f_counter_set(uint32_t counter);
 #endif

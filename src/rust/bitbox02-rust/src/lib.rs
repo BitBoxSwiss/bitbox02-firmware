@@ -29,7 +29,6 @@ pub mod keystore;
 ))]
 pub mod main_loop;
 pub mod reset;
-pub mod salt;
 pub mod secp256k1;
 #[cfg(feature = "app-u2f")]
 mod u2f;

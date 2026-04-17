@@ -107,8 +107,13 @@ unit-test: | build-build
 # Must compile C tests before running them
 run-unit-tests: | build-build
 	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test
-run-rust-unit-tests: | build-build-noasan
-	${MAKE} -C build-build-noasan rust-test
+generate-protobufs: | build-build-noasan
+	$(MAKE) -C build-build-noasan generate-protobufs
+# Only one test thread because of unsafe concurrent access to `SafeData`,
+# `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex
+# poisoning and very messy output in case of a unit test failure.
+run-rust-unit-tests: generate-protobufs
+	cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1
 run-rust-clippy: | build-build-noasan
 	${MAKE} -C build-build-noasan rust-clippy
 # Must run tests before creating coverage report
@@ -152,6 +157,8 @@ jlink-flash-set-securechip-optiga:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-securechip-optiga.jlink
 jlink-flash-set-bb02plus:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-bb02plus.jlink
+jlink-flash-bb02-set-factory-randomness:
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/bb02-set-factory-randomness.jlink
 jlink-erase-firmware-quick:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/erase-firmware-quick.jlink
 jlink-gdb-server:

@@ -327,13 +327,13 @@ impl<'a> TestingUi<'a> {
     /// Push one mocked 16-bit random value in the format consumed by
     /// `workflow::mnemonic::create_random_unique_words()` (its local `rand16`
     /// helper reads the first two bytes big-endian).
-    pub fn mock_next_u16(random: &mut super::random::TestingRandom, value: u16) {
+    pub fn mock_next_u16(random: &mut super::TestingRandom, value: u16) {
         random.mock_next(Self::u16_to_rand(value));
     }
 
     /// Configure random values for one `create_random_unique_words()` call so that
     /// the correct answer is placed at choice index 2 in a 5-entry list.
-    pub fn prepare_mnemonic_quiz_word_random(random: &mut super::random::TestingRandom) {
+    pub fn prepare_mnemonic_quiz_word_random(random: &mut super::TestingRandom) {
         for value in [2u16, 0, 1, 2, 3] {
             Self::mock_next_u16(random, value);
         }
@@ -344,7 +344,7 @@ impl<'a> TestingUi<'a> {
     /// This prepares the quiz so the correct answer is always at choice index 2.
     pub fn prepare_show_and_confirm_mnemonic(
         &mut self,
-        random: &mut super::random::TestingRandom,
+        random: &mut super::TestingRandom,
         num_words: usize,
     ) {
         for _ in 0..num_words {

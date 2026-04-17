@@ -5,6 +5,7 @@ use super::pb;
 
 use crate::xpubcache::Bip32XpubCache;
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -68,7 +69,7 @@ pub struct Payload {
 }
 
 impl Payload {
-    pub fn from_simple(
+    pub async fn from_simple(
         hal: &mut impl crate::hal::Hal,
         xpub_cache: &mut Bip32XpubCache,
         params: &Params,
@@ -77,12 +78,19 @@ impl Payload {
     ) -> Result<Self, Error> {
         match simple_type {
             SimpleType::P2wpkh => Ok(Payload {
-                data: xpub_cache.get_xpub(hal, keypath)?.pubkey_hash160(),
+                data: xpub_cache.get_xpub(hal, keypath).await?.pubkey_hash160(),
                 output_type: BtcOutputType::P2wpkh,
             }),
             SimpleType::P2wpkhP2sh => {
-                let payload_p2wpkh =
-                    Payload::from_simple(hal, xpub_cache, params, SimpleType::P2wpkh, keypath)?;
+                // Box::pin gives the recursive async call a finite size, allowing recursion here.
+                let payload_p2wpkh = Box::pin(Payload::from_simple(
+                    hal,
+                    xpub_cache,
+                    params,
+                    SimpleType::P2wpkh,
+                    keypath,
+                ))
+                .await?;
                 let pkscript_p2wpkh = payload_p2wpkh.pk_script(params)?;
                 Ok(Payload {
                     data: bitcoin::hashes::hash160::Hash::hash(&pkscript_p2wpkh)
@@ -95,7 +103,8 @@ impl Payload {
                 if params.taproot_support {
                     Ok(Payload {
                         data: xpub_cache
-                            .get_xpub(hal, keypath)?
+                            .get_xpub(hal, keypath)
+                            .await?
                             .schnorr_bip86_pubkey()?
                             .to_vec(),
                         output_type: BtcOutputType::P2tr,
@@ -178,16 +187,16 @@ impl Payload {
 
     /// Computes the payload data from a script config. The payload can then be used generate a
     /// pkScript or an address.
-    pub fn from(
+    pub async fn from(
         hal: &mut impl crate::hal::Hal,
         xpub_cache: &mut Bip32XpubCache,
         params: &Params,
         keypath: &[u32],
-        script_config_account: &ValidatedScriptConfigWithKeypath,
+        script_config_account: &ValidatedScriptConfigWithKeypath<'_>,
     ) -> Result<Self, Error> {
         match &script_config_account.config {
             ValidatedScriptConfig::SimpleType(simple_type) => {
-                Self::from_simple(hal, xpub_cache, params, *simple_type, keypath)
+                Self::from_simple(hal, xpub_cache, params, *simple_type, keypath).await
             }
             ValidatedScriptConfig::Multisig { multisig, .. } => Self::from_multisig(
                 params,
@@ -561,8 +570,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_payload_simple() {
+    #[async_test::test]
+    async fn test_payload_simple() {
         mock_unlocked_using_mnemonic(
             "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
             "",
@@ -578,6 +587,7 @@ mod tests {
                 SimpleType::P2wpkh,
                 &[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
             )
+            .await
             .unwrap()
             .data
             .as_slice(),
@@ -593,6 +603,7 @@ mod tests {
                 SimpleType::P2wpkhP2sh,
                 &[49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
             )
+            .await
             .unwrap()
             .data
             .as_slice(),
@@ -608,6 +619,7 @@ mod tests {
                 SimpleType::P2tr,
                 &[86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
             )
+            .await
             .unwrap()
             .data
             .as_slice(),

@@ -44,6 +44,41 @@ impl Drop for Component {
     }
 }
 
+struct UnlockAnimationSharedState {
+    waker: Option<Waker>,
+    result: Option<()>,
+}
+
+pub struct UnlockAnimation {
+    component: Component,
+    shared_state: Box<RefCell<UnlockAnimationSharedState>>,
+}
+
+impl UnlockAnimation {
+    pub async fn play(self) {
+        let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
+        unsafe {
+            bitbox02_sys::unlock_animation_play(self.component.component);
+        }
+
+        let UnlockAnimation {
+            component: _component,
+            shared_state,
+        } = self;
+        core::future::poll_fn(move |cx| {
+            let mut shared_state = shared_state.borrow_mut();
+
+            if let Some(result) = shared_state.result.take() {
+                Poll::Ready(result)
+            } else {
+                shared_state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        })
+        .await
+    }
+}
+
 pub async fn trinary_input_string(
     params: &TrinaryInputStringParams<'_>,
     can_cancel: bool,
@@ -757,22 +792,16 @@ pub fn empty_create() -> Component {
     }
 }
 
-pub async fn unlock_animation() {
-    let _no_screensaver = crate::screen_saver::ScreensaverInhibitor::new();
-
-    // Shared between the async context and the c callback
-    struct SharedState {
-        waker: Option<Waker>,
-        result: Option<()>,
-    }
-    let shared_state = Box::new(RefCell::new(SharedState {
+pub fn unlock_animation_create() -> UnlockAnimation {
+    let shared_state = Box::new(RefCell::new(UnlockAnimationSharedState {
         waker: None,
         result: None,
     }));
-    let shared_state_ptr = shared_state.as_ref() as *const RefCell<SharedState> as *mut c_void;
+    let shared_state_ptr =
+        shared_state.as_ref() as *const RefCell<UnlockAnimationSharedState> as *mut c_void;
 
     unsafe extern "C" fn callback(user_data: *mut c_void) {
-        let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
+        let shared_state = unsafe { &*(user_data as *mut RefCell<UnlockAnimationSharedState>) };
         let mut shared_state = shared_state.borrow_mut();
         if shared_state.result.is_none() {
             shared_state.result = Some(());
@@ -795,21 +824,10 @@ pub async fn unlock_animation() {
     };
     component.screen_stack_push();
 
-    core::future::poll_fn({
-        let shared_state = &shared_state;
-        move |cx| {
-            let mut shared_state = shared_state.borrow_mut();
-
-            if let Some(result) = shared_state.result.take() {
-                Poll::Ready(result)
-            } else {
-                // Store the waker so the callback can wake up this task
-                shared_state.waker = Some(cx.waker().clone());
-                Poll::Pending
-            }
-        }
-    })
-    .await
+    UnlockAnimation {
+        component,
+        shared_state,
+    }
 }
 
 pub async fn choose_orientation() -> bool {

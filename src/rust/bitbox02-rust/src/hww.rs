@@ -309,10 +309,14 @@ mod tests {
         .unwrap();
         assert_eq!(
             mock_hal.ui.screens,
-            vec![Screen::Status {
-                title: "Success".into(),
-                success: true,
-            }]
+            vec![
+                Screen::Status {
+                    title: "Success".into(),
+                    success: true,
+                },
+                Screen::UnlockAnimationPaused,
+                Screen::UnlockAnimationPlayed,
+            ]
         );
 
         assert!(!crate::keystore::is_locked());
@@ -500,10 +504,14 @@ mod tests {
             .unwrap();
             assert_eq!(
                 mock_hal.ui.screens,
-                vec![Screen::Status {
-                    title: "Success".into(),
-                    success: true,
-                }]
+                vec![
+                    Screen::Status {
+                        title: "Success".into(),
+                        success: true,
+                    },
+                    Screen::UnlockAnimationPaused,
+                    Screen::UnlockAnimationPlayed,
+                ]
             );
 
             mock_hal.ui = crate::hal::testing::TestingUi::new();
@@ -703,7 +711,9 @@ mod tests {
                     Screen::Status {
                         title: "Success".into(),
                         success: true,
-                    }
+                    },
+                    Screen::UnlockAnimationPaused,
+                    Screen::UnlockAnimationPlayed,
                 ]
             );
 

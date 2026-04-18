@@ -463,6 +463,7 @@ dependencies = [
  "bitbox-securechip-sys",
  "bitbox-usb-report-queue",
  "bitbox02-sys",
+ "futures-core",
  "futures-lite",
  "grounded",
  "hex_lit",

@@ -131,7 +131,6 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
-    use bitbox02::testing::mock_memory;
     use util::bb02_async::block_on;
 
     use prost::Message;
@@ -218,7 +217,6 @@ mod tests {
     /// Can't unlock when the device is not initialized yet (not seeded).
     #[async_test::test]
     async fn test_cant_unlock() {
-        mock_memory();
         assert_eq!(
             process_packet(&mut TestingHal::new(), vec![OP_UNLOCK]).await,
             [OP_STATUS_FAILURE_UNINITIALIZED].to_vec()
@@ -228,7 +226,6 @@ mod tests {
     /// Test establishing a noise channel and sending/receiving an API request over it.
     #[test]
     fn test_noise() {
-        mock_memory();
         let mut make_request = init_noise();
         let request = crate::pb::Request {
             request: Some(crate::pb::request::Request::ListBackups(
@@ -251,8 +248,6 @@ mod tests {
     /// Can initiate noise and send the Reboot protobuf request when the device is not seeded.
     #[test]
     fn test_reboot_when_uninitialized() {
-        mock_memory();
-
         let mut make_request = init_noise();
         let request = crate::pb::Request {
             request: Some(crate::pb::request::Request::Reboot(
@@ -286,8 +281,6 @@ mod tests {
     /// Can initiate noise and send the Reboot protobuf request when the device is seeded.
     #[test]
     fn test_reboot_when_seeded() {
-        mock_memory();
-
         let mut make_request = init_noise();
 
         let mut mock_hal = TestingHal::new();
@@ -354,8 +347,6 @@ mod tests {
     /// Can initiate noise and send the Reboot protobuf request when the device is initialized.
     #[async_test::test]
     async fn test_reboot_when_initialized() {
-        mock_memory();
-
         let mut make_request = init_noise();
 
         crate::keystore::lock();
@@ -476,7 +467,6 @@ mod tests {
             &b"aaaaaaaaaaaaaaaa"[..],
         ] {
             crate::keystore::lock();
-            mock_memory();
 
             let mut make_request = init_noise();
             let mut mock_hal = TestingHal::new();

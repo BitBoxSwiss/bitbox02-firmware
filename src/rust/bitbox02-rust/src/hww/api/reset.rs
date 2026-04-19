@@ -30,12 +30,9 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::hal::{Memory, testing::TestingHal};
     use alloc::boxed::Box;
-    use bitbox02::testing::mock_memory;
 
     #[async_test::test]
     pub async fn test_reset() {
-        mock_memory();
-
         // User aborted confirmation.
         let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_device_name("test device name").unwrap();

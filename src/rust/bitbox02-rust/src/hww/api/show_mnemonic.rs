@@ -65,7 +65,6 @@ mod tests {
 
     use crate::hal::testing::ui::Screen;
     use crate::hal::testing::{TestingHal, TestingUi};
-    use bitbox02::testing::mock_memory;
 
     const MNEMONIC: &str = "shy parrot age monkey rhythm snake mystery burden topic hello mouse script gesture tattoo demand float verify shoe recycle cool network better aspect list";
 
@@ -73,7 +72,6 @@ mod tests {
     /// wallet setup.
     #[async_test::test]
     async fn test_process_uninitialized() {
-        mock_memory();
         let mut mock_hal = TestingHal::new();
         crate::keystore::encrypt_and_store_seed(
             &mut mock_hal,
@@ -132,7 +130,6 @@ mod tests {
     /// When initialized, a password check is prompted before displaying the mnemonic.
     #[async_test::test]
     async fn test_process_initialized() {
-        mock_memory();
         let mut password_entered: bool = false;
         let mut mock_hal = TestingHal::new();
         crate::keystore::encrypt_and_store_seed(
@@ -198,8 +195,6 @@ mod tests {
     /// This tests that we fail early if the wrong password is entered.
     #[async_test::test]
     async fn test_process_initialized_wrong_password() {
-        mock_memory();
-
         let mut mock_hal = TestingHal::new();
 
         crate::keystore::encrypt_and_store_seed(

@@ -86,6 +86,8 @@ typedef union {
 #pragma GCC diagnostic pop
 
 static const securechip_interface_functions_t* _interface_functions = NULL;
+static uint8_t _serial_number[ATCA_SERIAL_NUM_SIZE] = {0};
+static bool _serial_number_cached = false;
 
 /** \brief initialize an I2C interface using given config.
  * \param[in] hal - opaque ptr to HAL data
@@ -391,7 +393,16 @@ int atecc_setup(const securechip_interface_functions_t* ifs)
     }
 #endif
 
-    return _verify_config();
+    int verify_config_result = _verify_config();
+    if (verify_config_result != ATCA_SUCCESS) {
+        return verify_config_result;
+    }
+    result = atcab_read_serial_number(_serial_number);
+    if (result != ATCA_SUCCESS) {
+        return result;
+    }
+    _serial_number_cached = true;
+    return ATCA_SUCCESS;
 }
 
 /**
@@ -425,10 +436,8 @@ static ATCA_STATUS _authorize_key(void)
     uint8_t response[32] = {0};
     const uint8_t other_data[13] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    uint8_t sn[9] = {0};
-    result = atcab_read_serial_number(sn);
-    if (result != ATCA_SUCCESS) {
-        return result;
+    if (!_serial_number_cached) {
+        return ATCA_NOT_INITIALIZED;
     }
 
     uint8_t auth_key[32] = {0};
@@ -438,7 +447,7 @@ static ATCA_STATUS _authorize_key(void)
         // First SHA block from slot key, Second SHA block from TempKey.
         .mode = CHECKMAC_MODE_BLOCK2_TEMPKEY,
         .key_id = ATECC_SLOT_AUTHKEY,
-        .sn = sn,
+        .sn = _serial_number,
         .client_chal = NULL, // unused in this mode
         .client_resp = response,
         .other_data = other_data,

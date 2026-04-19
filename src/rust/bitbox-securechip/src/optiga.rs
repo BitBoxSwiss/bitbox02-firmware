@@ -535,7 +535,7 @@ pub async fn u2f_counter_inc() -> Result<u32, ()> {
     Ok(counter)
 }
 
-pub fn model() -> Result<Model, ()> {
+pub async fn model() -> Result<Model, ()> {
     Ok(Model::OPTIGA_TRUST_M_V3)
 }
 

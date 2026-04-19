@@ -38,7 +38,7 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         version: crate::version::FIRMWARE_VERSION_SHORT.into(),
         mnemonic_passphrase_enabled: hal.memory().is_mnemonic_passphrase_enabled(),
         monotonic_increments_remaining: hal.securechip().monotonic_increments_remaining().await?,
-        securechip_model: match hal.securechip().model()? {
+        securechip_model: match hal.securechip().model().await? {
             securechip::Model::Atecc608A => "ATECC608A".into(),
             securechip::Model::Atecc608B => "ATECC608B".into(),
             securechip::Model::OptigaTrustM3 => "OPTIGA_TRUST_M_V3".into(),

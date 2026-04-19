@@ -26,9 +26,14 @@ pub async fn perform(hal: &mut impl crate::hal::Hal, host_challenge: [u8; 32]) -
     )?;
     result.bootloader_hash = hal.memory().get_attestation_bootloader_hash();
     let hash: [u8; 32] = Sha256::digest(host_challenge).into();
-    hal.securechip()
-        .attestation_sign(&hash, &mut result.challenge_signature)
-        .await?;
+    {
+        let crate::hal::HalSubsystems {
+            securechip, memory, ..
+        } = hal.as_mut();
+        securechip
+            .attestation_sign(memory, &hash, &mut result.challenge_signature)
+            .await?;
+    }
     Ok(result)
 }
 

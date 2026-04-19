@@ -227,8 +227,16 @@ impl Memory for BitBox02Memory {
         crate::memory::add_noise_remote_static_pubkey(pubkey)
     }
 
+    fn get_auth_key(&mut self, out: &mut [u8; 32]) {
+        crate::memory::get_auth_key(out)
+    }
+
     fn get_io_protection_key(&mut self, out: &mut [u8; 32]) {
         crate::memory::get_io_protection_key(out)
+    }
+
+    fn get_encryption_key(&mut self, out: &mut [u8; 32]) {
+        crate::memory::get_encryption_key(out)
     }
 
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

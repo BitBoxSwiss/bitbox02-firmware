@@ -4,6 +4,7 @@ use super::Error;
 use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 #[cfg(feature = "app-ethereum")]
 use num_bigint::BigUint;
@@ -22,6 +23,8 @@ use bitcoin::secp256k1;
 
 // Arbitrary limit on number of memos that a payment request can show to the user.
 const MAX_MEMOS_NUM: usize = 3;
+// Keep in sync with `hww/api/ethereum/amount.rs`.
+const COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE: usize = 13;
 
 struct Identity {
     name: &'static str,
@@ -110,6 +113,32 @@ fn parse_coin_purchase_amount(amount: &str) -> Result<(&str, &str), Error> {
     Ok((destination_amount, destination_unit))
 }
 
+/// Formats a coin purchase amount for display on the swap screen.
+///
+/// This matches the truncation budget used by Ethereum amount formatting, but only truncates after
+/// the decimal point so integer digits are always preserved.
+fn format_coin_purchase_amount_for_display(amount: &str) -> Result<String, Error> {
+    let (destination_amount, destination_unit) = parse_coin_purchase_amount(amount)?;
+
+    if destination_amount.len() <= COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE {
+        return Ok(amount.into());
+    }
+
+    let Some(decimal_position) = destination_amount.find('.') else {
+        return Ok(amount.into());
+    };
+
+    if decimal_position + 1 >= COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE {
+        return Ok(amount.into());
+    }
+
+    Ok(format!(
+        "{}... {}",
+        &destination_amount[..COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE],
+        destination_unit,
+    ))
+}
+
 /// Prompt the user to verify the payment request UI flow.
 /// The caller is responsible for formatting `payment_request.total_amount`
 /// into the final display string for the sent amount, e.g. `"0.1 BTC"`.
@@ -149,19 +178,14 @@ pub async fn user_verify(
             Memo {
                 memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
             } => {
-                let swap_body = format!(
-                    "{displayed_source_amount}\nto\n{}",
-                    coin_purchase_memo.amount
-                );
-                let _ = parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
+                let displayed_destination_amount =
+                    format_coin_purchase_amount_for_display(&coin_purchase_memo.amount)?;
                 hal.ui()
-                    .confirm(&ConfirmParams {
-                        title: "SWAP",
-                        body: &swap_body,
-                        scrollable: true,
-                        accept_is_nextarrow: true,
-                        ..Default::default()
-                    })
+                    .confirm_swap(
+                        "Swap",
+                        displayed_source_amount,
+                        &displayed_destination_amount,
+                    )
                     .await?;
             }
             _ => return Err(Error::InvalidInput),
@@ -261,13 +285,13 @@ pub fn tst_sign_payment_request_btc(
 pub fn tst_sign_payment_request_eth(
     source_coin_type: u32,
     payment_request: &mut pb::BtcPaymentRequestRequest,
-    total_value_bytes: &[u8; 32],
+    total_value_le_bytes: &[u8; 32],
     output_address: &str,
 ) {
     tst_sign_payment_request(
         source_coin_type,
         payment_request,
-        total_value_bytes,
+        total_value_le_bytes,
         output_address,
     );
 }
@@ -336,12 +360,7 @@ pub async fn validate_eth(
     output_value: &BigUint,
     output_address: &str,
 ) -> Result<(), ValidationError> {
-    let output_value = output_value.to_bytes_be();
-    if output_value.len() > 32 {
-        return Err(ValidationError::Other);
-    }
-    let mut output_value_padded = [0u8; 32];
-    output_value_padded[32 - output_value.len()..].copy_from_slice(&output_value);
+    let output_value_padded = serialize_eth_output_value(output_value)?;
     validate_common(
         hal,
         coin_params.slip44(),
@@ -350,6 +369,17 @@ pub async fn validate_eth(
         output_address,
     )
     .await
+}
+
+#[cfg(feature = "app-ethereum")]
+pub fn serialize_eth_output_value(output_value: &BigUint) -> Result<[u8; 32], ValidationError> {
+    let output_value = output_value.to_bytes_le();
+    if output_value.len() > 32 {
+        return Err(ValidationError::Other);
+    }
+    let mut output_value_padded = [0u8; 32];
+    output_value_padded[..output_value.len()].copy_from_slice(&output_value);
+    Ok(output_value_padded)
 }
 
 /// Validate that the parsed source-side transaction matches the signed payment request.
@@ -389,6 +419,18 @@ async fn validate_common(
                 Some(memo::coin_purchase_memo::AddressDerivation::Eth(_eth)) => {
                     #[cfg(feature = "app-ethereum")]
                     {
+                        if !super::ethereum::params::is_valid_payment_request_coin_type(
+                            coin_purchase_memo.coin_type,
+                        ) {
+                            return Err(ValidationError::Other);
+                        }
+                        let expected_bip44 = coin_purchase_memo
+                            .coin_type
+                            .checked_add(util::bip32::HARDENED)
+                            .ok_or(ValidationError::Other)?;
+                        if _eth.keypath.get(1) != Some(&expected_bip44) {
+                            return Err(ValidationError::Other);
+                        }
                         let derived_address = super::ethereum::derive_address(hal, &_eth.keypath)
                             .await
                             .map_err(|_| ValidationError::Other)?;
@@ -459,6 +501,8 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::hww::api::bitcoin::params;
+    #[cfg(feature = "app-ethereum")]
+    use crate::hww::api::ethereum;
     #[cfg(feature = "app-ethereum")]
     use crate::hww::api::ethereum::params as eth_params;
 
@@ -568,6 +612,34 @@ mod tests {
     }
 
     #[test]
+    fn test_format_coin_purchase_amount_for_display() {
+        assert_eq!(
+            format_coin_purchase_amount_for_display("0.25 ETH"),
+            Ok("0.25 ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("12.45678901234 ETH"),
+            Ok("12.4567890123... ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("1.2345678901234 BTC"),
+            Ok("1.23456789012... BTC".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("12345678901234 ETH"),
+            Ok("12345678901234 ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("123456789012.34 ETH"),
+            Ok("123456789012.34 ETH".into())
+        );
+        assert_eq!(
+            format_coin_purchase_amount_for_display("foo ETH"),
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[test]
     fn test_sighash() {
         let source_coin_type = params::get(pb::BtcCoin::Tbtc).slip44();
         let output_value = 123456u64.to_le_bytes().to_vec();
@@ -658,6 +730,15 @@ mod tests {
                 "1806caf7c518aad69eb38f25fd418d507c6a3e01719a7d77be94cd50a2790872"
             );
         }
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[test]
+    fn test_serialize_eth_output_value() {
+        assert_eq!(
+            serialize_eth_output_value(&BigUint::from_bytes_le(&hex!("00409c9e25f15c07"))).unwrap(),
+            hex!("00409c9e25f15c07000000000000000000000000000000000000000000000000")
+        );
     }
 
     #[async_test::test]
@@ -880,6 +961,102 @@ mod tests {
         }
 
         // Unhappy cases:
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // ETH destinations must use a supported mainnet coin_type from ethereum::params.
+            let destination_keypath = &[
+                44 + util::bip32::HARDENED,
+                1 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let destination_address = ethereum::derive_address(&mut mock_hal, destination_keypath)
+                .await
+                .unwrap();
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    1,
+                    "0.25 ETH",
+                    &destination_address,
+                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                        memo::coin_purchase_memo::EthAddressDerivation {
+                            keypath: destination_keypath.to_vec(),
+                        },
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
+            assert!(matches!(
+                validate_common(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                )
+                .await,
+                Err(ValidationError::Other)
+            ));
+        }
+
+        #[cfg(feature = "app-ethereum")]
+        {
+            // ETH destination keypath must match the memo coin_type.
+            let destination_keypath = &[
+                44 + util::bip32::HARDENED,
+                1 + util::bip32::HARDENED,
+                0 + util::bip32::HARDENED,
+                0,
+                0,
+            ];
+            let destination_address = ethereum::derive_address(&mut mock_hal, destination_keypath)
+                .await
+                .unwrap();
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "0.25 ETH",
+                    &destination_address,
+                    Some(memo::coin_purchase_memo::AddressDerivation::Eth(
+                        memo::coin_purchase_memo::EthAddressDerivation {
+                            keypath: destination_keypath.to_vec(),
+                        },
+                    )),
+                )],
+                nonce: vec![],
+                total_amount: value,
+                signature: vec![],
+            };
+            tst_sign_payment_request(
+                source_coin_type,
+                &mut payment_request,
+                &value_bytes,
+                address,
+            );
+            assert!(matches!(
+                validate_common(
+                    &mut mock_hal,
+                    source_coin_type,
+                    &payment_request,
+                    &value_bytes,
+                    address
+                )
+                .await,
+                Err(ValidationError::Other)
+            ));
+        }
 
         #[cfg(feature = "app-ethereum")]
         {
@@ -1426,10 +1603,49 @@ mod tests {
                     recipient: "SWAPKIT (Provider)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
-                Screen::Confirm {
-                    title: "SWAP".into(),
-                    body: "0.25000000 BTC\nto\n0.25 ETH".into(),
-                    longtouch: false,
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "0.25 ETH".into(),
+                },
+            ]
+        );
+    }
+
+    #[cfg(feature = "app-ethereum")]
+    #[async_test::test]
+    async fn test_user_verify_swap_truncated_destination_amount() {
+        let mut mock_hal = TestingHal::new();
+        user_verify(
+            &mut mock_hal,
+            &pb::BtcPaymentRequestRequest {
+                recipient_name: "SWAPKIT (Provider)".into(),
+                memos: vec![make_coin_purchase_memo(
+                    60,
+                    "12.45678901234 ETH",
+                    "0x123",
+                    Some(dummy_eth_address_derivation(/*valid=*/ true)),
+                )],
+                nonce: vec![],
+                total_amount: 25000000,
+                signature: vec![],
+            },
+            "0.25000000 BTC",
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Recipient {
+                    recipient: "SWAPKIT (Provider)".into(),
+                    amount: "0.25000000 BTC".into(),
+                },
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "12.4567890123... ETH".into(),
                 },
             ]
         );
@@ -1475,10 +1691,10 @@ mod tests {
                     recipient: "SWAPKIT (Provider)".into(),
                     amount: "0.25000000 BTC".into(),
                 },
-                Screen::Confirm {
-                    title: "SWAP".into(),
-                    body: "0.25000000 BTC\nto\n0.25 LTC".into(),
-                    longtouch: false,
+                Screen::Swap {
+                    title: "Swap".into(),
+                    from: "0.25000000 BTC".into(),
+                    to: "0.25 LTC".into(),
                 },
             ]
         );
@@ -1487,6 +1703,7 @@ mod tests {
     #[cfg(feature = "app-ethereum")]
     #[async_test::test]
     async fn test_validate_eth() {
+        crate::keystore::testing::mock_unlocked();
         let mut mock_hal = TestingHal::new();
         let params = eth_params::Params {
             coin: Some(pb::EthCoin::Eth),
@@ -1495,7 +1712,7 @@ mod tests {
             name: "Ethereum",
             unit: "ETH",
         };
-        let output_value = hex!("000000000000000000000000000000000000000000000000075cf1259e9c4000");
+        let output_value = hex!("00409c9e25f15c07000000000000000000000000000000000000000000000000");
         let output_address = "0x04F264Cf34440313B4A0192A352814FBe927b885";
         let mut payment_request = pb::BtcPaymentRequestRequest {
             recipient_name: "Test Merchant".into(),
@@ -1522,7 +1739,7 @@ mod tests {
                 &mut mock_hal,
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value),
+                &BigUint::from_bytes_le(&output_value),
                 output_address,
             )
             .await
@@ -1535,7 +1752,7 @@ mod tests {
                 &mut TestingHal::new(),
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value[24..]),
+                &BigUint::from_bytes_le(&output_value[..8]),
                 output_address,
             )
             .await,
@@ -1543,14 +1760,14 @@ mod tests {
         ));
 
         let wrong_output_value =
-            hex!("000000000000000000000000000000000000000000000000075cf1259e9c4001");
+            hex!("01409c9e25f15c07000000000000000000000000000000000000000000000000");
         // Wrong source amount must produce wrong signature.
         assert!(matches!(
             validate_eth(
                 &mut TestingHal::new(),
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&wrong_output_value),
+                &BigUint::from_bytes_le(&wrong_output_value),
                 output_address,
             )
             .await,
@@ -1563,7 +1780,7 @@ mod tests {
                 &mut TestingHal::new(),
                 &params,
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value),
+                &BigUint::from_bytes_le(&output_value),
                 "0x1111111111111111111111111111111111111111",
             )
             .await,
@@ -1582,7 +1799,7 @@ mod tests {
                     unit: "ETH",
                 },
                 &payment_request,
-                &BigUint::from_bytes_be(&output_value),
+                &BigUint::from_bytes_le(&output_value),
                 output_address,
             )
             .await,

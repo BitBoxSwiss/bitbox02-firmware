@@ -23,6 +23,11 @@ pub enum Screen {
         fee: String,
         longtouch: bool,
     },
+    Swap {
+        title: String,
+        from: String,
+        to: String,
+    },
     Recipient {
         recipient: String,
         amount: String,
@@ -91,6 +96,22 @@ impl Ui for TestingUi<'_> {
             title: params.title.into(),
             body: params.body.into(),
             longtouch: params.longtouch,
+        });
+        if self
+            ._abort_nth
+            .as_ref()
+            .is_some_and(|&n| self.screens.len() - 1 == n)
+        {
+            return Err(UserAbort);
+        }
+        Ok(())
+    }
+
+    async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort> {
+        self.screens.push(Screen::Swap {
+            title: title.into(),
+            from: from.into(),
+            to: to.into(),
         });
         if self
             ._abort_nth
@@ -464,5 +485,32 @@ mod tests {
     async fn test_quiz_choice_without_state_panics() {
         let mut ui = TestingUi::new();
         let _ = ui.quiz_mnemonic_word(&["a"], "01").await;
+    }
+
+    #[async_test::test]
+    async fn test_confirm_swap_records_screen() {
+        let mut ui = TestingUi::new();
+        assert!(matches!(
+            ui.confirm_swap("Swap", "1 BTC", "2 ETH").await,
+            Ok(())
+        ));
+        assert_eq!(
+            ui.screens,
+            vec![Screen::Swap {
+                title: "Swap".into(),
+                from: "1 BTC".into(),
+                to: "2 ETH".into(),
+            }]
+        );
+    }
+
+    #[async_test::test]
+    async fn test_confirm_swap_abort() {
+        let mut ui = TestingUi::new();
+        ui.abort_nth(0);
+        assert!(matches!(
+            ui.confirm_swap("Swap", "1 BTC", "2 ETH").await,
+            Err(UserAbort)
+        ));
     }
 }

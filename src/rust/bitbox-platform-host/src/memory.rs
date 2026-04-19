@@ -283,8 +283,16 @@ impl bitbox_hal::Memory for FakeMemory {
         Ok(())
     }
 
-    fn get_io_protection_key(&mut self, _out: &mut [u8; 32]) {
-        panic!("unused")
+    fn get_auth_key(&mut self, out: &mut [u8; 32]) {
+        *out = [0; 32];
+    }
+
+    fn get_io_protection_key(&mut self, out: &mut [u8; 32]) {
+        *out = [0; 32];
+    }
+
+    fn get_encryption_key(&mut self, out: &mut [u8; 32]) {
+        *out = [0; 32];
     }
 
     fn get_salt_root(&mut self) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {

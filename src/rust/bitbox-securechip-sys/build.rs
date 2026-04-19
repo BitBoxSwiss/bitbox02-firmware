@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 const ALLOWLIST_TYPES: &[&str] = &[
+    "atecc_slot_t",
     "bool_t",
     "optiga_crypt_t",
     "optiga_hmac_type_t",
@@ -17,24 +18,40 @@ const ALLOWLIST_TYPES: &[&str] = &[
     "optiga_symmetric_key_type_t",
     "optiga_util_t",
     "securechip_error_t",
-    "securechip_interface_functions_t",
     "securechip_model_t",
     "securechip_password_stretch_algo_t",
 ];
 
 const ALLOWLIST_FNS: &[&str] = &[
-    "atecc_attestation_sign",
+    "atecc_auth_compute_response",
+    "atecc_cmd_read_block_response",
+    "atecc_cmd_read_counter_response",
+    "atecc_cmd_read_info_response",
+    "atecc_cmd_read_kdf_response",
+    "atecc_cmd_read_random_response",
+    "atecc_cmd_read_sign_response",
+    "atecc_cmd_start_checkmac",
+    "atecc_cmd_start_counter_read",
+    "atecc_cmd_start_derivekey_rollkey",
+    "atecc_cmd_start_gendig_encryption_key",
+    "atecc_cmd_start_info_revision",
+    "atecc_cmd_start_kdf",
+    "atecc_cmd_start_nonce_load_msgdigest",
+    "atecc_cmd_start_nonce_rand",
+    "atecc_cmd_start_random",
+    "atecc_cmd_start_read_block",
+    "atecc_cmd_start_sign_attestation",
+    "atecc_cmd_start_write_encrypted_block",
     "atecc_gen_attestation_key",
-    "atecc_init_new_password",
-    "atecc_kdf",
-    "atecc_model",
-    "atecc_monotonic_increments_remaining",
-    "atecc_random",
-    "atecc_reset_keys",
+    "atecc_io_apply_gendig",
+    "atecc_io_decrypt_block",
+    "atecc_io_prepare_encrypted_write",
+    "atecc_io_prepare_tempkey",
+    "atecc_kdf_decrypt",
+    "atecc_ops_get_status",
+    "atecc_ops_get_poll_delay_ms",
+    "atecc_ops_poll",
     "atecc_setup",
-    "atecc_stretch_password",
-    "atecc_u2f_counter_inc",
-    "atecc_u2f_counter_set",
     "optiga_crypt_clear_auto_state",
     "optiga_crypt_ecdsa_sign",
     "optiga_crypt_generate_auth_code",
@@ -54,8 +71,10 @@ const ALLOWLIST_FNS: &[&str] = &[
 ];
 
 const ALLOWLIST_VARS: &[&str] = &[
+    "ATECC_OPS_STATUS_BUSY",
     "ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE",
     "MONOTONIC_COUNTER_MAX_USE",
+    "NONCE_NUMIN_SIZE",
     "OID_AES_SYMKEY",
     "OID_ARBITRARY_DATA",
     "OID_COUNTER",
@@ -79,6 +98,7 @@ const ALLOWLIST_VARS: &[&str] = &[
 ];
 
 const RUSTIFIED_ENUMS: &[&str] = &[
+    "atecc_slot_t",
     "optiga_hmac_type",
     "optiga_hmac_type_t",
     "optiga_key_id",
@@ -188,6 +208,10 @@ pub fn main() -> BuildResult<()> {
             .args(&definitions)
             .arg(format!("-I{}", src_dir.display()))
             .arg(format!("-I{}", external_dir.display()))
+            .arg(format!(
+                "-I{}",
+                external_dir.join("cryptoauthlib/lib").display()
+            ))
             .arg(format!(
                 "-I{}",
                 external_dir.join("optiga-trust-m/config").display()

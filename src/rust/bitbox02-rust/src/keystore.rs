@@ -37,6 +37,7 @@ pub trait KeystoreHal {
     fn memory(&mut self) -> &mut Self::Memory;
     fn random(&mut self) -> &mut Self::Random;
     fn securechip(&mut self) -> &mut Self::SecureChip;
+    fn memory_and_securechip(&mut self) -> (&mut Self::Memory, &mut Self::SecureChip);
     fn random_and_securechip(&mut self) -> (&mut Self::Random, &mut Self::SecureChip);
 }
 
@@ -99,6 +100,10 @@ impl<E: Eeprom, M: Memory, R: Random, S: SecureChip> KeystoreHal
 
     fn securechip(&mut self) -> &mut Self::SecureChip {
         self.securechip
+    }
+
+    fn memory_and_securechip(&mut self) -> (&mut Self::Memory, &mut Self::SecureChip) {
+        (self.memory, self.securechip)
     }
 
     fn random_and_securechip(&mut self) -> (&mut Self::Random, &mut Self::SecureChip) {
@@ -743,7 +748,10 @@ pub async fn stretch_retained_seed_encryption_key(
     let salted_in = bitbox_core_utils::salt::hash_data(hal.memory(), encryption_key, purpose_in)
         .map_err(|_| Error::Salt)?;
 
-    let kdf = hal.securechip().kdf(&salted_in).await?;
+    let kdf = {
+        let (memory, securechip) = hal.memory_and_securechip();
+        securechip.kdf(memory, &salted_in).await?
+    };
 
     let salted_out = bitbox_core_utils::salt::hash_data(hal.memory(), encryption_key, purpose_out)
         .map_err(|_| Error::Salt)?;

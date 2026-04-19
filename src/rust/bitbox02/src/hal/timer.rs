@@ -15,29 +15,28 @@ impl bitbox_hal::timer::Timer for BitBox02Timer {
     #[cfg(not(feature = "c-unit-testing"))]
     async fn delay_for(duration: Duration) {
         use alloc::boxed::Box;
-        use core::cell::RefCell;
         use core::ffi::c_void;
-        use core::task::{Poll, Waker};
+        use core::sync::atomic::{AtomicBool, Ordering};
+        use core::task::Poll;
+        use futures_core::task::__internal::AtomicWaker;
 
         let mut bitbox02_delay = bitbox02_sys::delay_t { id: 0 };
 
         // Shared between the async context and the c callback
         struct SharedState {
-            waker: Option<Waker>,
-            result: Option<()>,
+            waker: AtomicWaker,
+            done: AtomicBool,
         }
-        let shared_state = Box::new(RefCell::new(SharedState {
-            waker: None,
-            result: None,
-        }));
-        let shared_state_ptr = shared_state.as_ref() as *const RefCell<SharedState> as *mut c_void;
+        let shared_state = Box::new(SharedState {
+            waker: AtomicWaker::new(),
+            done: AtomicBool::new(false),
+        });
+
+        let shared_state_ptr = shared_state.as_ref() as *const SharedState as *mut c_void;
         unsafe extern "C" fn callback(user_data: *mut c_void) {
-            let shared_state = unsafe { &*(user_data as *mut RefCell<SharedState>) };
-            let mut shared_state = shared_state.borrow_mut();
-            shared_state.result = Some(());
-            if let Some(waker) = shared_state.waker.as_ref() {
-                waker.wake_by_ref();
-            }
+            let shared_state = unsafe { &*(user_data as *mut SharedState) };
+            shared_state.done.store(true, Ordering::Release);
+            shared_state.waker.wake();
         }
         unsafe {
             bitbox02_sys::delay_init_ms(
@@ -59,12 +58,16 @@ impl bitbox_hal::timer::Timer for BitBox02Timer {
         core::future::poll_fn({
             let shared_state = &shared_state;
             move |cx| {
-                let mut shared_state = shared_state.borrow_mut();
+                if shared_state.done.load(Ordering::Acquire) {
+                    return Poll::Ready(());
+                }
 
-                if let Some(result) = shared_state.result {
-                    Poll::Ready(result)
+                // Register first, then re-check the completion flag so a callback that fires
+                // between the first load and the registration cannot be missed.
+                shared_state.waker.register(cx.waker());
+                if shared_state.done.load(Ordering::Acquire) {
+                    Poll::Ready(())
                 } else {
-                    shared_state.waker = Some(cx.waker().clone());
                     Poll::Pending
                 }
             }

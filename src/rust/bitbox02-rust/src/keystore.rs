@@ -891,7 +891,6 @@ mod tests {
     use hex_lit::hex;
     use sha2::Digest;
 
-    use bitbox02::testing::mock_memory;
     use testing::{TEST_MNEMONIC, mock_unlocked, mock_unlocked_using_mnemonic};
 
     use bitcoin::secp256k1;
@@ -931,7 +930,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_encrypt_and_store_seed_invalid_size() {
-        mock_memory();
         lock();
         assert!(matches!(
             encrypt_and_store_seed(&mut TestingHal::new(), &[0; 31], "foo").await,
@@ -1014,7 +1012,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_re_encrypt_seed() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1029,7 +1026,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_re_encrypt_seed_changes_password() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1078,7 +1074,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_re_encrypt_seed_preserves_seeds_and_fingerprint() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1130,7 +1125,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_re_encrypt_seed_invalid_seed_size() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1164,7 +1158,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_retain_bip39_seed() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1189,7 +1182,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_retain_bip39_seed_overwrites_previous() {
-        mock_memory();
         lock();
         let mut mock_hal = TestingHal::new();
         let bip39_seed1 = hex!(
@@ -1227,7 +1219,6 @@ mod tests {
     // but before creating a backup, in which case a new seed is created.
     #[async_test::test]
     async fn test_create_and_unlock_twice() {
-        mock_memory();
         lock();
 
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
@@ -1279,7 +1270,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_unlock() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1370,7 +1360,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_unlock_lockout_while_locked() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1422,7 +1411,6 @@ mod tests {
     /// secure chip operations.
     #[async_test::test]
     async fn test_unlock_preexisting_lockout() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1460,7 +1448,6 @@ mod tests {
     /// keystore is locked, so a later wrong attempt after relocking still sees the full allowance.
     #[async_test::test]
     async fn test_unlock_failed_attempts_reset_locked() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1506,7 +1493,6 @@ mod tests {
     /// interleaving wrong attempts with successful unlocks cannot exhaust the counter prematurely.
     #[async_test::test]
     async fn test_unlock_failed_attempts_reset_unlocked() {
-        mock_memory();
         lock();
 
         let mut mock_hal = TestingHal::new();
@@ -1618,7 +1604,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_unlock_bip39() {
-        mock_memory();
         lock();
         let mut mock_hal = TestingHal::new();
 
@@ -1917,7 +1902,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_stretch_retained_seed_encryption_key_success() {
-        mock_memory();
         let mut mock_hal = TestingHal::new();
         let salt_root = hex!("0000000000000000111111111111111122222222222222223333333333333333");
         mock_hal.memory.set_salt_root(&salt_root);
@@ -1940,7 +1924,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_stretch_retained_seed_encryption_key_salt_error() {
-        mock_memory();
         let mut mock_hal = TestingHal::new();
         mock_hal.memory.set_salt_root(&[0xffu8; 32]);
 
@@ -2107,7 +2090,6 @@ mod tests {
         ];
 
         for test in tests {
-            mock_memory();
             lock();
             let seed = &seed[..test.seed_len];
 
@@ -2298,7 +2280,6 @@ mod tests {
         let seed = hex!("cb33c20cea62a5c277527e2002da82e6e2b37450a755143a540a54cea8da9044");
 
         for seed_size in [16, 24, 32] {
-            mock_memory();
             lock();
 
             let mut mock_hal = TestingHal::new();

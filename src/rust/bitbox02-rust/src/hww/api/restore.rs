@@ -158,7 +158,6 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
-    use bitbox02::memory;
 
     use alloc::boxed::Box;
     use alloc::vec::Vec;

@@ -38,13 +38,11 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
-    use bitbox02::testing::mock_memory;
 
     use alloc::boxed::Box;
 
     #[async_test::test]
     async fn test_process() {
-        mock_memory();
         keystore::lock();
         let mut counter = 0u32;
         let mut mock_hal = TestingHal::new();
@@ -80,7 +78,6 @@ mod tests {
     /// Shorter host entropy results in shorter seed.
     #[async_test::test]
     async fn test_process_16_bytes() {
-        mock_memory();
         keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal
@@ -103,7 +100,6 @@ mod tests {
     /// Invalid host entropy size.
     #[async_test::test]
     async fn test_process_invalid_host_entropy() {
-        mock_memory();
         keystore::lock();
         let mut mock_hal = TestingHal::new();
         mock_hal
@@ -125,7 +121,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_process_2nd_password_doesnt_match() {
-        mock_memory();
         keystore::lock();
         let mut counter = 0u32;
         let mut mock_hal = TestingHal::new();

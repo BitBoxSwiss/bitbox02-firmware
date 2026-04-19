@@ -42,14 +42,12 @@ mod tests {
     use crate::hal::{Memory, testing::TestingHal};
     use crate::workflow::unlock;
     use alloc::boxed::Box;
-    use bitbox02::testing::mock_memory;
     use hex_lit::hex;
 
     // Test the intended success path
     #[async_test::test]
     async fn test_process_success() {
         //set up dummy (initialized, retained seed and bip39-seed)
-        mock_memory();
         let seed = hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c");
         let old_password = "old_password";
         let new_password = "new_password";
@@ -131,8 +129,6 @@ mod tests {
     // Test that we fail if the unlock fails
     #[async_test::test]
     async fn test_process_unlock_failure() {
-        mock_memory();
-
         let seed = hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c");
         let correct_password = "correct_password";
 
@@ -188,8 +184,6 @@ mod tests {
     // Test that we fail if the confirm password mismatch
     #[async_test::test]
     async fn test_process_confirm_password_mismatch() {
-        mock_memory();
-
         let seed = hex!("c7940c13479b8d9a6498f4e50d5a42e0d617bc8e8ac9f2b8cecf97e94c2b035c");
         let old_password = "old_password";
         let first_password = "first_password";

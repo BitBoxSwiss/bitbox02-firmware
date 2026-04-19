@@ -76,12 +76,9 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore;
     use crate::keystore::testing::mock_unlocked;
-    use bitbox02::testing::mock_memory;
 
     #[async_test::test]
     async fn test_reset_success() {
-        mock_memory();
-
         let mut hal = TestingHal::new();
 
         keystore::lock();
@@ -124,8 +121,6 @@ mod tests {
 
     #[async_test::test]
     async fn test_reset_status_failure() {
-        mock_memory();
-
         let mut hal = TestingHal::new();
         reset(&mut hal, false).await;
 

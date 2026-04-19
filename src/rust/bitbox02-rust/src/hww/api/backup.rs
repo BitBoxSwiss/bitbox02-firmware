@@ -155,7 +155,6 @@ mod tests {
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::boxed::Box;
-    use bitbox02::testing::mock_memory;
 
     /// Test backup creation on a uninitialized keystore.
     #[async_test::test]
@@ -163,7 +162,6 @@ mod tests {
         const EXPECTED_TIMESTMAP: u32 = 1601281809;
 
         // All good.
-        mock_memory();
         mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
@@ -209,8 +207,6 @@ mod tests {
     #[async_test::test]
     pub async fn test_create_initialized_new() {
         const TIMESTMAP: u32 = 1601281809;
-
-        mock_memory();
 
         let mut password_entered: bool = false;
         let mut mock_hal = TestingHal::new();
@@ -272,7 +268,6 @@ mod tests {
     async fn test_fixture() {
         const EXPECTED_ID: &str =
             "577782fdfffbe314b23acaeefc39ad5e8641fba7e7dbe418a35956a879a67dd2";
-        mock_memory();
         mock_unlocked_using_mnemonic(
             "memory raven era cave phone system dice come mechanic split moon repeat",
             "",
@@ -342,7 +337,6 @@ mod tests {
         );
 
         // Create one backup.
-        mock_memory();
         mock_unlocked_using_mnemonic(
             "purity concert above invest pigeon category peace tuition hazard vivid latin since legal speak nation session onion library travel spell region blast estate stay",
             "",
@@ -378,7 +372,6 @@ mod tests {
         // because the above backup creation set the initialized flag.
         mock_hal.memory.reset_hww().unwrap();
 
-        mock_memory();
         mock_unlocked_using_mnemonic(
             "goddess item rack improve shaft occur actress rib emerge salad rich blame model glare lounge stable electric height scrub scrub oyster now dinner oven",
             "",

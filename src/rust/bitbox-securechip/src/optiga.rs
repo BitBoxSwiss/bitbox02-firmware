@@ -53,17 +53,11 @@ fn key_id_from_oid(oid: u16) -> bitbox_securechip_sys::optiga_key_id_t {
 
 async fn authorize(oid_auth: u16, auth_secret: &[u8; KDF_LEN]) -> Result<(), Error> {
     let mut random_data = zeroed_secret::<KDF_LEN>();
-    ops::crypt_generate_auth_code(OPTIGA_RNG_TYPE_TRNG, random_data.as_mut_slice()).await?;
+    ops::crypt_generate_auth_code(OPTIGA_RNG_TYPE_TRNG, &mut random_data).await?;
 
     let mut hmac = zeroed_secret::<KDF_LEN>();
     hmac_sha256(auth_secret, random_data.as_slice(), &mut hmac);
-    ops::crypt_hmac_verify(
-        OPTIGA_HMAC_SHA_256,
-        oid_auth,
-        random_data.as_slice(),
-        hmac.as_slice(),
-    )
-    .await
+    ops::crypt_hmac_verify(OPTIGA_HMAC_SHA_256, oid_auth, &random_data, &hmac).await
 }
 
 async fn reset_counter(oid: u16, limit: u32) -> Result<(), Error> {
@@ -92,7 +86,7 @@ async fn kdf_internal(msg: &[u8; KDF_LEN], kdf_out: &mut [u8; KDF_LEN]) -> Resul
         OPTIGA_SYMMETRIC_CMAC,
         key_id_from_oid(OID_AES_SYMKEY),
         msg,
-        mac_out.as_mut_slice(),
+        &mut mac_out,
     )
     .await?;
 

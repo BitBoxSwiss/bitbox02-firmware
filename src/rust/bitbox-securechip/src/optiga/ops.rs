@@ -384,8 +384,8 @@ pub(super) async fn util_write_data(
 pub(super) async fn crypt_symmetric_encrypt(
     encryption_mode: bitbox_securechip_sys::optiga_symmetric_encryption_mode_t,
     symmetric_key_oid: bitbox_securechip_sys::optiga_key_id_t,
-    plain_data: &[u8],
-    encrypted_data: &mut [u8],
+    plain_data: &[u8; super::KDF_LEN],
+    encrypted_data: &mut [u8; 16],
 ) -> Result<(), Error> {
     // Static because the Optiga library keeps raw pointers to the input, output and length until
     // the async callback completes, and the Rust future may be dropped before that happens.
@@ -393,18 +393,13 @@ pub(super) async fn crypt_symmetric_encrypt(
     static OUTPUT: StaticBytes<16> = StaticBytes::const_init();
     static OUTPUT_LEN: GroundedCell<u32> = GroundedCell::const_init();
 
-    if plain_data.len() > super::KDF_LEN || encrypted_data.len() > 16 {
-        return Err(Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS));
-    }
-
     let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
-    let input_len: u32 = plain_data.len().try_into().unwrap();
-    let requested_output_len = encrypted_data.len();
+    let input_len = super::KDF_LEN as u32;
 
     INPUT.copy_from_slice(plain_data);
     OUTPUT.clear();
     unsafe {
-        OUTPUT_LEN.get().write(requested_output_len as u32);
+        OUTPUT_LEN.get().write(16);
     }
     let result = run_async_op(|| unsafe {
         bitbox_securechip_sys::optiga_crypt_symmetric_encrypt(
@@ -429,7 +424,7 @@ pub(super) async fn crypt_symmetric_encrypt(
         return Err(err);
     }
 
-    if unsafe { OUTPUT_LEN.get().read() as usize } != requested_output_len {
+    if unsafe { OUTPUT_LEN.get().read() } != 16 {
         INPUT.zeroize();
         OUTPUT.zeroize();
         return Err(Error::SecureChip(
@@ -444,18 +439,13 @@ pub(super) async fn crypt_symmetric_encrypt(
 
 pub(super) async fn crypt_generate_auth_code(
     rng_type: bitbox_securechip_sys::optiga_rng_type_t,
-    random_data: &mut [u8],
+    random_data: &mut [u8; 32],
 ) -> Result<(), Error> {
     // Static because the Optiga library keeps a raw pointer to the output buffer until the async
     // callback completes, and the Rust future may be dropped before that happens.
-    static RANDOM: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
-
-    if random_data.len() > super::KDF_LEN {
-        return Err(Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS));
-    }
+    static RANDOM: StaticBytes<32> = StaticBytes::const_init();
 
     let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
-    let random_data_len: u16 = random_data.len().try_into().unwrap();
 
     RANDOM.clear();
     let result = run_async_op(|| unsafe {
@@ -465,7 +455,7 @@ pub(super) async fn crypt_generate_auth_code(
             core::ptr::null(),
             0,
             RANDOM.as_mut_ptr(),
-            random_data_len,
+            32,
         )
     })
     .await
@@ -483,21 +473,15 @@ pub(super) async fn crypt_generate_auth_code(
 pub(super) async fn crypt_hmac_verify(
     hmac_type: bitbox_securechip_sys::optiga_hmac_type_t,
     secret: u16,
-    input_data: &[u8],
-    hmac: &[u8],
+    input_data: &[u8; super::KDF_LEN],
+    hmac: &[u8; super::KDF_LEN],
 ) -> Result<(), Error> {
     // Static because the Optiga library keeps raw pointers to the input buffers until the async
     // callback completes, and the Rust future may be dropped before that happens.
     static INPUT: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
     static HMAC: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
 
-    if input_data.len() > super::KDF_LEN || hmac.len() > super::KDF_LEN {
-        return Err(Error::SecureChip(SecureChipError::SC_ERR_INVALID_ARGS));
-    }
-
     let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
-    let input_data_len: u32 = input_data.len().try_into().unwrap();
-    let hmac_len: u32 = hmac.len().try_into().unwrap();
 
     INPUT.copy_from_slice(input_data);
     HMAC.copy_from_slice(hmac);
@@ -507,9 +491,9 @@ pub(super) async fn crypt_hmac_verify(
             hmac_type,
             secret,
             INPUT.as_mut_ptr(),
-            input_data_len,
+            super::KDF_LEN as u32,
             HMAC.as_mut_ptr(),
-            hmac_len,
+            super::KDF_LEN as u32,
         )
     })
     .await

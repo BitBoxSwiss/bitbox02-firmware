@@ -14,8 +14,6 @@ const AUTH_CODE_RANDOM_FIXED: [u8; super::KDF_LEN] = [0x77; super::KDF_LEN];
 const OPTIGA_CRYPT_ERROR: i32 = bitbox_securechip_sys::OPTIGA_CRYPT_ERROR as i32;
 const OPTIGA_CRYPT_ERROR_INVALID_INPUT: i32 =
     bitbox_securechip_sys::OPTIGA_CRYPT_ERROR_INVALID_INPUT as i32;
-const OPTIGA_CRYPT_ERROR_MEMORY_INSUFFICIENT: i32 =
-    bitbox_securechip_sys::OPTIGA_CRYPT_ERROR_MEMORY_INSUFFICIENT as i32;
 const OPTIGA_UTIL_ERROR: i32 = bitbox_securechip_sys::OPTIGA_UTIL_ERROR as i32;
 const OPTIGA_UTIL_ERROR_INVALID_INPUT: i32 =
     bitbox_securechip_sys::OPTIGA_UTIL_ERROR_INVALID_INPUT as i32;
@@ -157,7 +155,7 @@ pub(super) async fn util_read_data(oid: u16, offset: u16, out: &mut [u8]) -> Res
 pub(super) async fn crypt_hmac(
     hmac_type: bitbox_securechip_sys::optiga_hmac_type_t,
     secret: u16,
-    msg: &[u8],
+    msg: &[u8; super::KDF_LEN],
     mac_out: &mut [u8; super::KDF_LEN],
 ) -> Result<(), Error> {
     crypt_hmac_sync(hmac_type, secret, msg, mac_out)
@@ -175,8 +173,8 @@ pub(super) async fn util_write_data(
 pub(super) async fn crypt_symmetric_encrypt(
     encryption_mode: bitbox_securechip_sys::optiga_symmetric_encryption_mode_t,
     symmetric_key_oid: bitbox_securechip_sys::optiga_key_id_t,
-    plain_data: &[u8],
-    encrypted_data: &mut [u8],
+    plain_data: &[u8; super::KDF_LEN],
+    encrypted_data: &mut [u8; 16],
 ) -> Result<(), Error> {
     crypt_symmetric_encrypt_sync(
         encryption_mode,
@@ -188,7 +186,7 @@ pub(super) async fn crypt_symmetric_encrypt(
 
 pub(super) async fn crypt_generate_auth_code(
     rng_type: bitbox_securechip_sys::optiga_rng_type_t,
-    random_data: &mut [u8],
+    random_data: &mut [u8; 32],
 ) -> Result<(), Error> {
     crypt_generate_auth_code_sync(rng_type, random_data)
 }
@@ -196,8 +194,8 @@ pub(super) async fn crypt_generate_auth_code(
 pub(super) async fn crypt_hmac_verify(
     hmac_type: bitbox_securechip_sys::optiga_hmac_type_t,
     secret: u16,
-    input_data: &[u8],
-    hmac: &[u8],
+    input_data: &[u8; super::KDF_LEN],
+    hmac: &[u8; super::KDF_LEN],
 ) -> Result<(), Error> {
     crypt_hmac_verify_sync(hmac_type, secret, input_data, hmac)
 }
@@ -291,15 +289,12 @@ pub(super) fn util_write_data_sync(
 pub(super) fn crypt_hmac_sync(
     hmac_type: bitbox_securechip_sys::optiga_hmac_type_t,
     secret: u16,
-    input_data: &[u8],
-    mac_out: &mut [u8],
+    input_data: &[u8; super::KDF_LEN],
+    mac_out: &mut [u8; super::KDF_LEN],
 ) -> Result<(), Error> {
     // Use hmac_sha256 with a different fixed key and msg as the value.
     if hmac_type != super::OPTIGA_HMAC_SHA_256 {
         return Err(Error::from_status(OPTIGA_CRYPT_ERROR_INVALID_INPUT));
-    }
-    if mac_out.len() != super::KDF_LEN {
-        return Err(Error::from_status(OPTIGA_CRYPT_ERROR_MEMORY_INSUFFICIENT));
     }
 
     let mut state = lock_state();
@@ -327,8 +322,8 @@ pub(super) fn crypt_hmac_sync(
 pub(super) fn crypt_symmetric_encrypt_sync(
     encryption_mode: bitbox_securechip_sys::optiga_symmetric_encryption_mode_t,
     symmetric_key_oid: bitbox_securechip_sys::optiga_key_id_t,
-    plain_data: &[u8],
-    encrypted_data: &mut [u8],
+    plain_data: &[u8; super::KDF_LEN],
+    encrypted_data: &mut [u8; 16],
 ) -> Result<(), Error> {
     // Use hmac_sha256 with a fixed key and msg as the value, truncated to 16 bytes.
     if encryption_mode != super::OPTIGA_SYMMETRIC_CMAC
@@ -336,10 +331,6 @@ pub(super) fn crypt_symmetric_encrypt_sync(
     {
         return Err(Error::from_status(OPTIGA_CRYPT_ERROR_INVALID_INPUT));
     }
-    if encrypted_data.len() != 16 {
-        return Err(Error::from_status(OPTIGA_CRYPT_ERROR_MEMORY_INSUFFICIENT));
-    }
-
     let out = compute_hmac(&KDF_CMAC_KEY_FIXED, plain_data);
     encrypted_data.copy_from_slice(&out[..16]);
     Ok(())
@@ -360,12 +351,9 @@ pub(super) fn crypt_symmetric_generate_key_sync(
 
 pub(super) fn crypt_generate_auth_code_sync(
     rng_type: bitbox_securechip_sys::optiga_rng_type_t,
-    random_data: &mut [u8],
+    random_data: &mut [u8; 32],
 ) -> Result<(), Error> {
     if rng_type != super::OPTIGA_RNG_TYPE_TRNG {
-        return Err(Error::from_status(OPTIGA_CRYPT_ERROR_INVALID_INPUT));
-    }
-    if random_data.len() != super::KDF_LEN {
         return Err(Error::from_status(OPTIGA_CRYPT_ERROR_INVALID_INPUT));
     }
     random_data.copy_from_slice(&AUTH_CODE_RANDOM_FIXED);
@@ -375,13 +363,10 @@ pub(super) fn crypt_generate_auth_code_sync(
 pub(super) fn crypt_hmac_verify_sync(
     hmac_type: bitbox_securechip_sys::optiga_hmac_type_t,
     secret: u16,
-    input_data: &[u8],
-    hmac: &[u8],
+    input_data: &[u8; super::KDF_LEN],
+    hmac: &[u8; super::KDF_LEN],
 ) -> Result<(), Error> {
     if hmac_type != super::OPTIGA_HMAC_SHA_256 {
-        return Err(Error::from_status(OPTIGA_CRYPT_ERROR_INVALID_INPUT));
-    }
-    if input_data.len() != super::KDF_LEN || hmac.len() != super::KDF_LEN {
         return Err(Error::from_status(OPTIGA_CRYPT_ERROR_INVALID_INPUT));
     }
 
@@ -408,7 +393,7 @@ pub(super) fn crypt_hmac_verify_sync(
     };
 
     let computed = compute_hmac(key, input_data);
-    if computed != hmac {
+    if computed.as_slice() != hmac.as_slice() {
         return Err(Error::from_status(super::OPTIGA_HMAC_VERIFY_FAIL));
     }
 

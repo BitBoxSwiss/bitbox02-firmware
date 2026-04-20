@@ -68,6 +68,8 @@ fn main() -> Result<(), &'static str> {
     println!("cargo::rerun-if-changed={}", lvgl_dir.display());
 
     let target = env::var("TARGET").expect("TARGET not set");
+    let target_os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS not set");
+    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
 
     let mut cflags = vec![format!("-I{}", lvgl_dir.display())];
     let mut cmake_build = cmake::Config::new(&lvgl_dir);
@@ -160,6 +162,13 @@ fn main() -> Result<(), &'static str> {
     let dst = cmake_build.build();
     println!("cargo::rustc-link-search=native={}/lib", dst.display());
     println!("cargo::rustc-link-lib=static=lvgl");
+    if !target.starts_with("thumb") {
+        match (target_os.as_str(), target_env.as_str()) {
+            ("macos", _) | ("ios", _) => println!("cargo::rustc-link-lib=dylib=c++"),
+            ("windows", "msvc") => {}
+            _ => println!("cargo::rustc-link-lib=dylib=stdc++"),
+        }
+    }
 
     let mut fonts = cc::Build::new();
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_32.c"));

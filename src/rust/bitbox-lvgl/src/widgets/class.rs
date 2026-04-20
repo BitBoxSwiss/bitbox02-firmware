@@ -19,7 +19,6 @@ pub struct ImageTag;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CanvasTag;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ArcTag;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

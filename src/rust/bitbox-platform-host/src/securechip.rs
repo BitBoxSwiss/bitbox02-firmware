@@ -3,6 +3,9 @@
 use alloc::collections::VecDeque;
 use alloc::{boxed::Box, vec::Vec};
 
+#[cfg(all(feature = "simulator-graphical", not(feature = "testing")))]
+use bitbox_hal::Timer;
+
 use bitcoin::hashes::Hash;
 use hex_lit::hex;
 
@@ -128,6 +131,12 @@ impl bitbox_hal::SecureChip for FakeSecureChip {
         ));
         engine.input(msg);
         let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+
+        // Keep KDF completion visibly delayed on the host so unlock animation start/play can be
+        // manually tested in the graphical simulators.
+        #[cfg(all(feature = "simulator-graphical", not(feature = "testing")))]
+        crate::timer::HostTimer::delay_for(core::time::Duration::from_millis(1000)).await;
+
         Ok(Box::new(zeroize::Zeroizing::new(
             hmac_result.to_byte_array(),
         )))

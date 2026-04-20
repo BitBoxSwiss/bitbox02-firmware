@@ -77,6 +77,7 @@ async fn kdf_hmac(
     msg: &[u8; KDF_LEN],
     mac_out: &mut [u8; KDF_LEN],
 ) -> Result<(), Error> {
+    // Equivalent to Python: `hmac.new(key, msg, hashlib.sha256).digest()`.
     ops::crypt_hmac(OPTIGA_HMAC_SHA_256, optiga_oid, msg, mac_out).await
 }
 

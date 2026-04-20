@@ -165,6 +165,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "trinary_choice_create",
     "trinary_input_string_create",
     "trinary_input_string_set_input",
+    "unlock_animation_play",
     "u2f_packet_init",
     "u2f_packet_process",
     "u2f_packet_timeout_get",

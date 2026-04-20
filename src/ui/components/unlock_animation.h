@@ -6,5 +6,6 @@
 #include <ui/component.h>
 
 component_t* unlock_animation_create(void (*on_done)(void*), void* on_done_param);
+void unlock_animation_play(component_t* component);
 
 #endif

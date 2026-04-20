@@ -78,6 +78,7 @@ pub use widgets::class;
 pub use widgets::image::ImageExt;
 pub use widgets::keyboard::{KeyboardExt, LvKeyboard, LvKeyboardMapEntry, keyboard_def_event_cb};
 pub use widgets::label::{LabelExt, LvLabel, LvLabelTextError};
+pub use widgets::lottie::{LottieExt, LvLottie, LvLottieCreateError};
 pub use widgets::obj;
 pub use widgets::obj::LvObj;
 pub use widgets::obj::{LvHandle, LvTypeError, ObjExt};

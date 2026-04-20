@@ -9,6 +9,7 @@ pub mod class;
 pub mod image;
 pub mod keyboard;
 pub mod label;
+pub mod lottie;
 pub mod obj;
 pub mod slider;
 pub mod span;

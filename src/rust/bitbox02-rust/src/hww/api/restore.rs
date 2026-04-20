@@ -56,8 +56,10 @@ pub async fn from_file(
     }
 
     let password = password::enter_twice(hal).await?;
+    let unlock_animation = hal.ui().unlock_animation_create();
     let seed = data.get_seed();
     if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, seed, &password).await {
+        drop(unlock_animation);
         hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;
@@ -79,7 +81,7 @@ pub async fn from_file(
     // Ignore non-critical error.
     let _ = hal.memory().set_device_name(&metadata.name);
 
-    unlock::unlock_bip39(hal, seed).await;
+    unlock::unlock_bip39(hal, seed, unlock_animation).await;
     Ok(Response::Success(pb::Success {}))
 }
 
@@ -132,8 +134,10 @@ pub async fn from_mnemonic(
             Ok(password) => break password,
         }
     };
+    let unlock_animation = hal.ui().unlock_animation_create();
 
     if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, &seed, &password).await {
+        drop(unlock_animation);
         hal.ui()
             .status(&format!("Could not\nrestore backup\n{:?}", err), false)
             .await;
@@ -149,7 +153,7 @@ pub async fn from_mnemonic(
 
     hal.memory().set_initialized().or(Err(Error::Memory))?;
 
-    unlock::unlock_bip39(hal, &seed).await;
+    unlock::unlock_bip39(hal, &seed, unlock_animation).await;
     Ok(Response::Success(pb::Success {}))
 }
 

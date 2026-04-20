@@ -92,6 +92,7 @@ impl<Timer> Default for BitBox02Ui<Timer> {
 impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     type Progress = BitBox02Progress;
     type Empty = BitBox02Empty;
+    type UnlockAnimation = crate::ui::UnlockAnimation;
 
     fn progress_create(&mut self, title: &str) -> Self::Progress {
         let mut component = crate::ui::progress_create(title);
@@ -105,6 +106,10 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
         BitBox02Empty {
             _component: component,
         }
+    }
+
+    fn unlock_animation_create(&mut self) -> Self::UnlockAnimation {
+        crate::ui::unlock_animation_create()
     }
 
     #[inline(always)]
@@ -146,8 +151,8 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     #[inline(always)]
-    async fn unlock_animation(&mut self) {
-        crate::ui::unlock_animation().await
+    async fn unlock_animation_play(&mut self, animation: Self::UnlockAnimation) {
+        animation.play().await
     }
 
     #[inline(always)]

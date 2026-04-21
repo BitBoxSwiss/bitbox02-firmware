@@ -160,23 +160,7 @@ async fn reclaim_detached_op() {
     }
 
     let mut guard = AsyncOpGuard::new();
-    poll_fn(|cx| {
-        let status = unsafe { bitbox_securechip_sys::optiga_ops_get_status() };
-        if status == bitbox_securechip_sys::OPTIGA_LIB_BUSY as _ {
-            WAKER.register(cx.waker());
-            let status = unsafe { bitbox_securechip_sys::optiga_ops_get_status() };
-            if status == bitbox_securechip_sys::OPTIGA_LIB_BUSY as _ {
-                Poll::Pending
-            } else {
-                WAKER.clear();
-                Poll::Ready(())
-            }
-        } else {
-            WAKER.clear();
-            Poll::Ready(())
-        }
-    })
-    .await;
+    let _ = wait_until_not_busy().await;
     guard.disarm();
     WAKER.clear();
     STATE.write(AsyncOpState::Idle);
@@ -226,13 +210,7 @@ async fn run_async_op(
     result
 }
 
-async fn wait(
-    initial_status: bitbox_securechip_sys::optiga_lib_status_t,
-) -> Result<(), bitbox_securechip_sys::optiga_lib_status_t> {
-    if initial_status != bitbox_securechip_sys::OPTIGA_LIB_SUCCESS as _ {
-        return Err(initial_status);
-    }
-
+async fn wait_until_not_busy() -> bitbox_securechip_sys::optiga_lib_status_t {
     poll_fn(|cx| {
         let status = unsafe { bitbox_securechip_sys::optiga_ops_get_status() };
         if status == bitbox_securechip_sys::OPTIGA_LIB_BUSY as _ {
@@ -242,22 +220,29 @@ async fn wait(
             let status = unsafe { bitbox_securechip_sys::optiga_ops_get_status() };
             if status == bitbox_securechip_sys::OPTIGA_LIB_BUSY as _ {
                 Poll::Pending
-            } else if status == bitbox_securechip_sys::OPTIGA_LIB_SUCCESS as _ {
-                WAKER.clear();
-                Poll::Ready(Ok(()))
             } else {
                 WAKER.clear();
-                Poll::Ready(Err(status))
+                Poll::Ready(status)
             }
-        } else if status == bitbox_securechip_sys::OPTIGA_LIB_SUCCESS as _ {
-            WAKER.clear();
-            Poll::Ready(Ok(()))
         } else {
             WAKER.clear();
-            Poll::Ready(Err(status))
+            Poll::Ready(status)
         }
     })
     .await
+}
+
+async fn wait(
+    initial_status: bitbox_securechip_sys::optiga_lib_status_t,
+) -> Result<(), bitbox_securechip_sys::optiga_lib_status_t> {
+    if initial_status != bitbox_securechip_sys::OPTIGA_LIB_SUCCESS as _ {
+        return Err(initial_status);
+    }
+
+    match wait_until_not_busy().await {
+        status if status == bitbox_securechip_sys::OPTIGA_LIB_SUCCESS as _ => Ok(()),
+        status => Err(status),
+    }
 }
 
 pub(super) async fn util_read_data(oid: u16, offset: u16, out: &mut [u8]) -> Result<(), Error> {

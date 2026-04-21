@@ -36,11 +36,12 @@ pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     Ok(1)
 }
 
-pub fn reset_keys() -> Result<(), ()> {
+pub async fn reset_keys(_memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
     Ok(())
 }
 
-pub fn init_new_password(
+pub async fn init_new_password(
+    _memory: &mut impl bitbox_hal::Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
@@ -55,7 +56,8 @@ pub fn init_new_password(
     ))))
 }
 
-pub fn stretch_password(
+pub async fn stretch_password(
+    _memory: &mut impl bitbox_hal::Memory,
     password: &str,
     _password_stretch_algo: PasswordStretchAlgo,
 ) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {

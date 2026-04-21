@@ -318,9 +318,13 @@ async fn encrypt_and_store_seed_internal(
 
     let password_stretch_algo = default_password_stretch_algo(hal)?;
 
-    let secret = hal
-        .securechip()
-        .init_new_password(password, password_stretch_algo)?;
+    let secret = {
+        let subsystems = hal.as_mut();
+        subsystems
+            .securechip
+            .init_new_password(subsystems.memory, password, password_stretch_algo)
+            .await?
+    };
 
     let iv_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal)?;
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
@@ -414,7 +418,7 @@ fn check_retained_seed(hal: &mut impl KeystoreHal, seed: &[u8]) -> Result<(), ()
     Ok(())
 }
 
-fn get_and_decrypt_seed(
+async fn get_and_decrypt_seed(
     hal: &mut impl crate::hal::Hal,
     password: &str,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
@@ -426,9 +430,13 @@ fn get_and_decrypt_seed(
     // wrong, so it already returns an error here. The ATECC stretches the password without checking
     // if the password is correct, and we determine if it is correct in the seed decryption
     // step below.
-    let secret = hal
-        .securechip()
-        .stretch_password(password, password_stretch_algo)?;
+    let secret = {
+        let subsystems = hal.as_mut();
+        subsystems
+            .securechip
+            .stretch_password(subsystems.memory, password, password_stretch_algo)
+            .await?
+    };
     let seed = match bitbox_aes::decrypt_with_hmac(secret.as_slice(), &encrypted) {
         Ok(seed) => seed,
         Err(()) => return Err(Error::IncorrectPassword),
@@ -458,7 +466,7 @@ pub async fn unlock(
     }
     hal.system().communication_timeout_reset(LONG_TIMEOUT);
     hal.eeprom().increment_unlock_attempts();
-    let seed = match get_and_decrypt_seed(hal, password) {
+    let seed = match get_and_decrypt_seed(hal, password).await {
         Ok(seed) => seed,
         err @ Err(_) => {
             if get_remaining_unlock_attempts(hal) == 0 {
@@ -1557,7 +1565,12 @@ mod tests {
             let encrypted = {
                 let secret = mock_hal
                     .securechip
-                    .stretch_password(password, memory::PasswordStretchAlgo::V0)
+                    .stretch_password(
+                        &mut mock_hal.memory,
+                        password,
+                        memory::PasswordStretchAlgo::V0,
+                    )
+                    .await
                     .unwrap();
                 let iv: &[u8; 16] = &[0xaau8; 16];
 

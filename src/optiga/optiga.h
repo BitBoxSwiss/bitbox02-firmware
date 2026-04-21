@@ -9,7 +9,6 @@
 #include "securechip/securechip.h"
 #include <platform/platform_config.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
 typedef struct optiga_util optiga_util_t;
@@ -92,20 +91,11 @@ typedef struct optiga_crypt optiga_crypt_t;
 #define METADATA_MAX_SIZE (44 + 2)
 
 USE_RESULT int optiga_setup(const securechip_interface_functions_t* ifs);
-USE_RESULT int optiga_kdf_external(const uint8_t* msg, size_t len, uint8_t* mac_out);
-USE_RESULT int optiga_init_new_password(
-    const char* password,
-    securechip_password_stretch_algo_t password_stretch_algo,
-    uint8_t* stretched_out);
-USE_RESULT int optiga_stretch_password(
-    const char* password,
-    securechip_password_stretch_algo_t password_stretch_algo,
-    uint8_t* stretched_out);
-USE_RESULT bool optiga_reset_keys(void);
 USE_RESULT bool optiga_gen_attestation_key(uint8_t* pubkey_out);
 USE_RESULT bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out);
 USE_RESULT optiga_util_t* optiga_util_instance(void);
 USE_RESULT optiga_crypt_t* optiga_crypt_instance(void);
+USE_RESULT bool optiga_ifs_random_32_bytes(uint8_t* rand_out);
 USE_RESULT int optiga_random(uint8_t* rand_out);
 #if APP_U2F == 1 || FACTORYSETUP == 1
 USE_RESULT bool optiga_u2f_counter_set(uint32_t counter);

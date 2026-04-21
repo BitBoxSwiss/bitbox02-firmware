@@ -7,6 +7,32 @@ use core::ffi::{c_uchar, c_void};
 use sha2::Digest;
 use sha2::Sha256;
 
+fn sha256_result(data: &[u8]) -> [u8; 32] {
+    Sha256::digest(data).into()
+}
+
+fn hmac_sha256_result(key: &[u8], data: &[u8]) -> [u8; 32] {
+    use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256};
+
+    let mut engine = HmacEngine::<sha256::Hash>::new(key);
+    engine.input(data);
+    let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
+    hmac_result.to_byte_array()
+}
+
+pub fn sha256(data: &[u8], out: &mut [u8; 32]) {
+    out.copy_from_slice(&sha256_result(data));
+}
+
+pub fn hmac_sha256(key: &[u8], data: &[u8], out: &mut [u8; 32]) {
+    out.copy_from_slice(&hmac_sha256_result(key, data));
+}
+
+pub fn hmac_sha256_overwrite(key: &[u8], out: &mut [u8; 32]) {
+    let result = hmac_sha256_result(key, out);
+    out.copy_from_slice(&result);
+}
+
 /// Result must be freed by calling `rust_sha256_finish()` or `rust_sha256_free()`.
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_sha256_new() -> *mut c_void {
@@ -47,13 +73,12 @@ pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_u
 /// `data` must be a valid buffer for `len` bytes. `out` must be 32 bytes long.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_sha256(data: *const c_void, len: usize, out: *mut c_uchar) {
-    let hash = {
+    let result = {
         let data = unsafe { core::slice::from_raw_parts(data as *const u8, len) };
-        Sha256::digest(data)
+        sha256_result(data)
     };
-
     let out = unsafe { core::slice::from_raw_parts_mut(out, 32) };
-    out.copy_from_slice(&hash[..]);
+    out.copy_from_slice(&result);
 }
 
 /// # Safety
@@ -71,18 +96,11 @@ pub unsafe extern "C" fn rust_hmac_sha256(
     data_len: usize,
     out: *mut c_uchar,
 ) {
-    use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256};
-
-    let result: [u8; 32] = {
+    let result = {
         let key = unsafe { core::slice::from_raw_parts(key as *const u8, key_len) };
         let data = unsafe { core::slice::from_raw_parts(data as *const u8, data_len) };
-
-        let mut engine = HmacEngine::<sha256::Hash>::new(key);
-        engine.input(data);
-        let hmac_result: Hmac<sha256::Hash> = Hmac::from_engine(engine);
-        hmac_result.to_byte_array()
+        hmac_sha256_result(key, data)
     };
-
     let out = unsafe { core::slice::from_raw_parts_mut(out, 32) };
     out.copy_from_slice(&result);
 }

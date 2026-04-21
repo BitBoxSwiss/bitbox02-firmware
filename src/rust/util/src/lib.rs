@@ -17,7 +17,7 @@ mod waker_fn;
 #[cfg(feature = "p256")]
 mod p256;
 #[cfg(feature = "sha2")]
-mod sha2;
+pub mod sha2;
 
 // for `format!`
 #[macro_use]

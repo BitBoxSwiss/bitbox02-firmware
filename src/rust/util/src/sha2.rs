@@ -13,8 +13,10 @@ pub extern "C" fn rust_sha256_new() -> *mut c_void {
     Box::into_raw(Box::new(Sha256::new())) as *mut _
 }
 
-/// Safety: ctx must be a valid sha256 context produced by `rust_sha256_new()`. `data` must be a
-/// valid buffer for `len` bytes.
+/// # Safety
+///
+/// `ctx` must be a valid sha256 context produced by `rust_sha256_new()`. `data` must be a valid
+/// buffer for `len` bytes.
 // NOTE: we specifically do not use util::Bytes, as it disallows NULL. Our data can be 0 though, as
 // the booloader starts at 0 and is hashed.
 #[unsafe(no_mangle)]
@@ -25,9 +27,11 @@ pub unsafe extern "C" fn rust_sha256_update(ctx: *mut c_void, data: *const c_voi
     unsafe { (*ctx).update(data) };
 }
 
-/// Safety: ctx must be a pointer to a valid sha256 context produced by `rust_sha256_new()`.
-/// `out` must be 32 bytes long.
-/// After this, the hasher is dropped and `ctx` is set to NULL and must not be used anymore.
+/// # Safety
+///
+/// `ctx` must be a pointer to a valid sha256 context produced by `rust_sha256_new()`. `out` must
+/// be 32 bytes long. After this, the hasher is dropped and `ctx` is set to NULL and must not be
+/// used anymore.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_uchar) {
     let out = unsafe { core::slice::from_raw_parts_mut(out, 32) };
@@ -38,7 +42,9 @@ pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_u
     unsafe { *ctx = core::ptr::null_mut() };
 }
 
-/// Safety: data must be valid buffer for `len` bytes. `out` must be 32 bytes long.
+/// # Safety
+///
+/// `data` must be a valid buffer for `len` bytes. `out` must be 32 bytes long.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_sha256(data: *const c_void, len: usize, out: *mut c_uchar) {
     let hash = {
@@ -50,9 +56,10 @@ pub unsafe extern "C" fn rust_sha256(data: *const c_void, len: usize, out: *mut 
     out.copy_from_slice(&hash[..]);
 }
 
-/// Safety: `key` and `data` must be valid buffers of the corresponding sizes. `out` must be 32
-/// bytes long.
+/// # Safety
 ///
+/// `key` and `data` must be valid buffers of the corresponding sizes. `out` must be 32 bytes
+/// long.
 /// `out` may overlap with `data` (and/or `key`). This is supported safely: the HMAC is computed
 /// first and only then written to `out`.
 #[cfg(feature = "firmware")]
@@ -80,9 +87,10 @@ pub unsafe extern "C" fn rust_hmac_sha256(
     out.copy_from_slice(&result);
 }
 
-/// Safety: `key` and `data` must be a valid buffers of the corresponding sizes. `out` must be 64
-/// bytes long.
+/// # Safety
 ///
+/// `key` and `data` must be valid buffers of the corresponding sizes. `out` must be 64 bytes
+/// long.
 /// `out` may overlap with `data` (and/or `key`). This is supported safely: the HMAC is computed
 /// first and only then written to `out`.
 #[cfg(feature = "firmware")]

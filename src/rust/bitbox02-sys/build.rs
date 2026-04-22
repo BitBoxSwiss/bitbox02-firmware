@@ -131,7 +131,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "platform_product",
     "printf",
     "progress_create",
-    "progress_set",
+    "progress_set_fraction",
     "random_32_bytes_mcu",
     "random_32_bytes",
     "random_fake_reset",

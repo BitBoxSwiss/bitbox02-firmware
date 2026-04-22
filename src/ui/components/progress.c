@@ -10,15 +10,17 @@
 #include <string.h>
 
 typedef struct {
-    float progress;
+    uint16_t filled_width;
 } data_t;
 
 static void _render(component_t* component)
 {
     const data_t* data = (const data_t*)component->data;
     const uint16_t bar_height = 5;
-    UG_FillFrame(
-        0, SCREEN_HEIGHT - bar_height, SCREEN_WIDTH * data->progress, SCREEN_HEIGHT, C_WHITE);
+    if (data->filled_width > 0) {
+        UG_FillFrame(
+            0, SCREEN_HEIGHT - bar_height, data->filled_width - 1, SCREEN_HEIGHT - 1, C_WHITE);
+    }
 
     ui_util_component_render_subcomponents(component);
 }
@@ -49,8 +51,8 @@ component_t* progress_create(const char* title)
     return component;
 }
 
-void progress_set(component_t* component, float progress)
+void progress_set_fraction(component_t* component, uint32_t numerator, uint32_t denominator)
 {
     data_t* data = (data_t*)component->data;
-    data->progress = progress;
+    data->filled_width = (uint16_t)((uint64_t)SCREEN_WIDTH * numerator / denominator);
 }

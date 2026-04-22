@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 use bitbox_securechip::{Error, Model, PasswordStretchAlgo, SecureChipError};
 use hex_lit::hex;
 use hmac::{Hmac, Mac};
@@ -36,31 +36,35 @@ pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     Ok(1)
 }
 
-pub fn reset_keys() -> Result<(), ()> {
+pub async fn reset_keys(_memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
     Ok(())
 }
 
-pub fn init_new_password(
+pub async fn init_new_password(
+    _memory: &mut impl bitbox_hal::Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,
-) -> Result<Zeroizing<Vec<u8>>, Error> {
+) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     if password_stretch_algo != PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V1 {
         return Err(Error::SecureChip(
             SecureChipError::SC_ERR_INVALID_PASSWORD_STRETCH_ALGO,
         ));
     }
-    Ok(Zeroizing::new(
-        hmac_sha256(PASSWORD_STRETCH_KEY, password.as_bytes()).to_vec(),
-    ))
+    Ok(Box::new(Zeroizing::new(hmac_sha256(
+        PASSWORD_STRETCH_KEY,
+        password.as_bytes(),
+    ))))
 }
 
-pub fn stretch_password(
+pub async fn stretch_password(
+    _memory: &mut impl bitbox_hal::Memory,
     password: &str,
     _password_stretch_algo: PasswordStretchAlgo,
-) -> Result<Zeroizing<Vec<u8>>, Error> {
-    Ok(Zeroizing::new(
-        hmac_sha256(PASSWORD_STRETCH_KEY, password.as_bytes()).to_vec(),
-    ))
+) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+    Ok(Box::new(Zeroizing::new(hmac_sha256(
+        PASSWORD_STRETCH_KEY,
+        password.as_bytes(),
+    ))))
 }
 
 /// Perform the secure chip KDF with the message in `msg` and return the zeroizing 32-byte

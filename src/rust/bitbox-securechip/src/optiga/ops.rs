@@ -332,3 +332,201 @@ pub(super) async fn crypt_hmac(
     MAC.zeroize();
     Ok(())
 }
+
+pub(super) async fn util_write_data(
+    oid: u16,
+    write_type: u8,
+    offset: u16,
+    buffer: &[u8],
+) -> Result<(), Error> {
+    // Static because the Optiga library keeps a raw pointer to the input buffer until the async
+    // callback completes, and the Rust future may be dropped before that happens.
+    static INPUT: StaticBytes<ASYNC_BUF_MAX_SIZE> = StaticBytes::const_init();
+
+    if buffer.len() > ASYNC_BUF_MAX_SIZE {
+        panic!("optiga async write larger than max supported size");
+    }
+    let input_len: u16 = buffer.len().try_into().unwrap();
+    let util = unsafe { bitbox_securechip_sys::optiga_util_instance() };
+
+    INPUT.copy_from_slice(buffer);
+    let result = run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_util_write_data(
+            util,
+            oid,
+            write_type,
+            offset,
+            INPUT.as_mut_ptr(),
+            input_len,
+        )
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32));
+    INPUT.zeroize();
+    result
+}
+
+pub(super) async fn crypt_symmetric_encrypt(
+    encryption_mode: bitbox_securechip_sys::optiga_symmetric_encryption_mode_t,
+    symmetric_key_oid: bitbox_securechip_sys::optiga_key_id_t,
+    plain_data: &[u8; super::KDF_LEN],
+    encrypted_data: &mut [u8; 16],
+) -> Result<(), Error> {
+    // Static because the Optiga library keeps raw pointers to the input, output and length until
+    // the async callback completes, and the Rust future may be dropped before that happens.
+    static INPUT: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
+    static OUTPUT: StaticBytes<16> = StaticBytes::const_init();
+    static OUTPUT_LEN: GroundedCell<u32> = GroundedCell::const_init();
+
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let input_len = super::KDF_LEN as u32;
+
+    INPUT.copy_from_slice(plain_data);
+    OUTPUT.clear();
+    unsafe {
+        OUTPUT_LEN.get().write(16);
+    }
+    let result = run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_crypt_symmetric_encrypt(
+            crypt,
+            encryption_mode,
+            symmetric_key_oid,
+            INPUT.as_mut_ptr(),
+            input_len,
+            core::ptr::null(),
+            0,
+            core::ptr::null(),
+            0,
+            OUTPUT.as_mut_ptr(),
+            OUTPUT_LEN.get(),
+        )
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32));
+    if let Err(err) = result {
+        INPUT.zeroize();
+        OUTPUT.zeroize();
+        return Err(err);
+    }
+
+    if unsafe { OUTPUT_LEN.get().read() } != 16 {
+        INPUT.zeroize();
+        OUTPUT.zeroize();
+        return Err(Error::SecureChip(
+            SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN,
+        ));
+    }
+    OUTPUT.copy_to_slice(encrypted_data);
+    INPUT.zeroize();
+    OUTPUT.zeroize();
+    Ok(())
+}
+
+pub(super) async fn crypt_generate_auth_code(
+    rng_type: bitbox_securechip_sys::optiga_rng_type_t,
+    random_data: &mut [u8; 32],
+) -> Result<(), Error> {
+    // Static because the Optiga library keeps a raw pointer to the output buffer until the async
+    // callback completes, and the Rust future may be dropped before that happens.
+    static RANDOM: StaticBytes<32> = StaticBytes::const_init();
+
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+
+    RANDOM.clear();
+    let result = run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_crypt_generate_auth_code(
+            crypt,
+            rng_type,
+            core::ptr::null(),
+            0,
+            RANDOM.as_mut_ptr(),
+            32,
+        )
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32));
+    if let Err(err) = result {
+        RANDOM.zeroize();
+        return Err(err);
+    }
+
+    RANDOM.copy_to_slice(random_data);
+    RANDOM.zeroize();
+    Ok(())
+}
+
+pub(super) async fn crypt_hmac_verify(
+    hmac_type: bitbox_securechip_sys::optiga_hmac_type_t,
+    secret: u16,
+    input_data: &[u8; super::KDF_LEN],
+    hmac: &[u8; super::KDF_LEN],
+) -> Result<(), Error> {
+    // Static because the Optiga library keeps raw pointers to the input buffers until the async
+    // callback completes, and the Rust future may be dropped before that happens.
+    static INPUT: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
+    static HMAC: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
+
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+
+    INPUT.copy_from_slice(input_data);
+    HMAC.copy_from_slice(hmac);
+    let result = run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_crypt_hmac_verify(
+            crypt,
+            hmac_type,
+            secret,
+            INPUT.as_mut_ptr(),
+            super::KDF_LEN as u32,
+            HMAC.as_mut_ptr(),
+            super::KDF_LEN as u32,
+        )
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32));
+    INPUT.zeroize();
+    HMAC.zeroize();
+    result
+}
+
+pub(super) async fn crypt_symmetric_generate_key(
+    key_type: bitbox_securechip_sys::optiga_symmetric_key_type_t,
+    key_usage: bitbox_securechip_sys::optiga_key_usage_t,
+) -> Result<(), Error> {
+    // Static because the Optiga library keeps a raw pointer to the key id output until the async
+    // callback completes, and the Rust future may be dropped before that happens.
+    static KEYID: GroundedCell<bitbox_securechip_sys::optiga_key_id_t> = GroundedCell::uninit();
+
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+
+    unsafe {
+        KEYID
+            .get()
+            .write(super::key_id_from_oid(super::OID_AES_SYMKEY));
+    }
+    run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_crypt_symmetric_generate_key(
+            crypt,
+            key_type,
+            key_usage as u8,
+            0,
+            KEYID.get().cast(),
+        )
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32))
+}
+
+pub(super) async fn crypt_clear_auto_state(secret: u16) -> Result<(), Error> {
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    run_async_op(|| unsafe { bitbox_securechip_sys::optiga_crypt_clear_auto_state(crypt, secret) })
+        .await
+        .map_err(|status| Error::from_status(status as i32))
+}
+
+pub(super) fn ifs_random_32_bytes(rand_out: &mut [u8; super::KDF_LEN]) -> Result<(), Error> {
+    if unsafe { bitbox_securechip_sys::optiga_ifs_random_32_bytes(rand_out.as_mut_ptr()) } {
+        Ok(())
+    } else {
+        Err(Error::SecureChip(SecureChipError::SC_ERR_IFS))
+    }
+}

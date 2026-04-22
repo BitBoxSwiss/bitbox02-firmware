@@ -3,6 +3,8 @@
 #![no_std]
 
 extern crate alloc;
+#[cfg(test)]
+extern crate std;
 
 use bitbox_securechip_sys as ffi;
 

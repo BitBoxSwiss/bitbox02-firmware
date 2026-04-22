@@ -432,6 +432,8 @@ dependencies = [
 name = "bitbox-securechip"
 version = "0.1.0"
 dependencies = [
+ "bitbox-core-utils",
+ "bitbox-hal",
  "bitbox-securechip-sys",
  "critical-section",
  "grounded",
@@ -3384,6 +3386,7 @@ dependencies = [
  "critical-section",
  "hex",
  "num-bigint",
+ "sha2",
  "time",
  "zeroize",
 ]

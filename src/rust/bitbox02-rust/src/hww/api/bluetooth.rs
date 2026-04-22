@@ -97,7 +97,7 @@ async fn process_upgrade_helper<M: Memory>(
         memory.ble_firmware_flash_chunk(inactive_slot, chunk_index, &chunk)?;
 
         // Update progress.
-        progress.set((chunk_index + 1) as f32 / (num_chunks as f32));
+        progress.set_fraction(chunk_index + 1, num_chunks);
     }
 
     let firmware_hash: [u8; 32] = firmware_hasher.finalize().into();
@@ -242,8 +242,8 @@ mod tests {
     }
 
     impl Progress for TestProgress {
-        fn set(&mut self, progress: f32) {
-            self.values.push(progress);
+        fn set_fraction(&mut self, numerator: u32, denominator: u32) {
+            self.values.push(numerator as f32 / denominator as f32);
         }
     }
 

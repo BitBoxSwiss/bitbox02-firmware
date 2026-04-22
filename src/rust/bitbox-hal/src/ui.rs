@@ -62,8 +62,9 @@ pub enum CanCancel {
 }
 
 pub trait Progress {
-    /// Set progress. `progress` should be in the range `[0.0, 1.0]`.
-    fn set(&mut self, progress: f32);
+    /// Set progress as a fraction. `denominator` must be non-zero and
+    /// `numerator <= denominator`.
+    fn set_fraction(&mut self, numerator: u32, denominator: u32);
 }
 
 pub trait Empty {}

@@ -19,8 +19,8 @@ pub struct BitBox02Progress {
 }
 
 impl HalProgress for BitBox02Progress {
-    fn set(&mut self, progress: f32) {
-        crate::ui::progress_set(&mut self.component, progress);
+    fn set_fraction(&mut self, numerator: u32, denominator: u32) {
+        crate::ui::progress_set_fraction(&mut self.component, numerator, denominator);
     }
 }
 

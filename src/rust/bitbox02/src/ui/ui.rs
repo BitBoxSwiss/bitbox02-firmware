@@ -781,8 +781,8 @@ pub fn progress_create(title: &str) -> Component {
     }
 }
 
-pub fn progress_set(component: &mut Component, progress: f32) {
-    unsafe { bitbox02_sys::progress_set(component.component, progress) }
+pub fn progress_set_fraction(component: &mut Component, numerator: u32, denominator: u32) {
+    unsafe { bitbox02_sys::progress_set_fraction(component.component, numerator, denominator) }
 }
 
 pub fn empty_create() -> Component {

@@ -358,6 +358,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-proto"
+version = "0.1.0"
+dependencies = [
+ "prost",
+]
+
+[[package]]
 name = "bitbox-secp256k1"
 version = "0.1.0"
 dependencies = [
@@ -431,6 +438,7 @@ dependencies = [
  "bitbox-executor",
  "bitbox-hal",
  "bitbox-noise",
+ "bitbox-proto",
  "bitbox-secp256k1",
  "bitbox-u2fhid",
  "bitbox-usb-report-queue",

@@ -167,7 +167,7 @@ async fn reclaim_detached_op() {
     STATE.write(AsyncOpState::Idle);
 }
 
-async fn begin_async_op() -> Result<(), bitbox_securechip_sys::optiga_lib_status_t> {
+async fn begin_async_op() -> AsyncOpGuard {
     loop {
         match STATE.read() {
             AsyncOpState::Idle => {
@@ -178,7 +178,7 @@ async fn begin_async_op() -> Result<(), bitbox_securechip_sys::optiga_lib_status
                 unsafe {
                     bitbox_securechip_sys::optiga_ops_set_status_busy();
                 }
-                return Ok(());
+                return AsyncOpGuard::new();
             }
             AsyncOpState::Running => {
                 // Sequential callers are required. If we are asked to start another operation
@@ -200,12 +200,11 @@ fn end_async_op() {
     STATE.write(AsyncOpState::Idle);
 }
 
-async fn run_async_op(
-    launch: impl FnOnce() -> bitbox_securechip_sys::optiga_lib_status_t,
+async fn wait_with_cleanup(
+    mut guard: AsyncOpGuard,
+    initial_status: bitbox_securechip_sys::optiga_lib_status_t,
 ) -> Result<(), bitbox_securechip_sys::optiga_lib_status_t> {
-    begin_async_op().await?;
-    let mut guard = AsyncOpGuard::new();
-    let result = wait(launch()).await;
+    let result = wait(initial_status).await;
     guard.disarm();
     end_async_op();
     result
@@ -262,7 +261,8 @@ pub(super) async fn util_read_data(oid: u16, offset: u16, out: &mut [u8]) -> Res
     unsafe {
         LEN.get().write(requested_len);
     }
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_util_read_data(util, oid, offset, BUF.as_mut_ptr(), LEN.get())
     })
     .await
@@ -302,7 +302,8 @@ pub(super) async fn crypt_hmac(
     unsafe {
         MAC_LEN.get().write(super::KDF_LEN as u32);
     }
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_crypt_hmac(
             crypt,
             hmac_type,
@@ -351,7 +352,8 @@ pub(super) async fn util_write_data(
     let util = unsafe { bitbox_securechip_sys::optiga_util_instance() };
 
     INPUT.copy_from_slice(buffer);
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_util_write_data(
             util,
             oid,
@@ -387,7 +389,8 @@ pub(super) async fn crypt_symmetric_encrypt(
     unsafe {
         OUTPUT_LEN.get().write(16);
     }
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_crypt_symmetric_encrypt(
             crypt,
             encryption_mode,
@@ -434,7 +437,8 @@ pub(super) async fn crypt_generate_auth_code(
     let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
 
     RANDOM.clear();
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_crypt_generate_auth_code(
             crypt,
             rng_type,
@@ -475,7 +479,8 @@ pub(super) async fn crypt_ecdsa_sign(
     unsafe {
         SIGNATURE_LEN.get().write(ECDSA_SIGNATURE_MAX_LEN as u16);
     }
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_crypt_ecdsa_sign(
             crypt,
             DIGEST.as_mut_ptr(),
@@ -524,7 +529,8 @@ pub(super) async fn crypt_hmac_verify(
 
     INPUT.copy_from_slice(input_data);
     HMAC.copy_from_slice(hmac);
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_crypt_hmac_verify(
             crypt,
             hmac_type,
@@ -557,7 +563,8 @@ pub(super) async fn crypt_symmetric_generate_key(
             .get()
             .write(super::key_id_from_oid(super::OID_AES_SYMKEY));
     }
-    run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_crypt_symmetric_generate_key(
             crypt,
             key_type,
@@ -572,9 +579,12 @@ pub(super) async fn crypt_symmetric_generate_key(
 
 pub(super) async fn crypt_clear_auto_state(secret: u16) -> Result<(), Error> {
     let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
-    run_async_op(|| unsafe { bitbox_securechip_sys::optiga_crypt_clear_auto_state(crypt, secret) })
-        .await
-        .map_err(|status| Error::from_status(status as i32))
+    let guard = begin_async_op().await;
+    wait_with_cleanup(guard, unsafe {
+        bitbox_securechip_sys::optiga_crypt_clear_auto_state(crypt, secret)
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32))
 }
 
 pub(super) async fn crypt_random(
@@ -588,7 +598,8 @@ pub(super) async fn crypt_random(
     let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
 
     BUF.clear();
-    let result = run_async_op(|| unsafe {
+    let guard = begin_async_op().await;
+    let result = wait_with_cleanup(guard, unsafe {
         bitbox_securechip_sys::optiga_crypt_random(crypt, rng_type, BUF.as_mut_ptr(), 32)
     })
     .await

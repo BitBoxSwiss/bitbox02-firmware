@@ -1146,16 +1146,12 @@ async fn _process(
     let fee: u64 = total_out
         .checked_sub(outputs_sum_out)
         .ok_or(Error::InvalidInput)?;
-    let fee_percentage: Option<f64> = if outputs_sum_out == 0 {
-        None
-    } else {
-        Some(100. * (fee as f64) / (outputs_sum_out as f64))
-    };
+    let fee_percentage = transaction::warning_fee_percentage(fee, outputs_sum_out);
     transaction::verify_total_fee_maybe_warn(
         hal,
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
-        fee_percentage,
+        fee_percentage.as_deref(),
     )
     .await?;
     hal.ui().status("Transaction\nconfirmed", true).await;

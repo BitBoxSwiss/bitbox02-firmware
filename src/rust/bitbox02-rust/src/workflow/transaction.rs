@@ -6,19 +6,32 @@ use crate::hal::ui::UserAbort;
 
 use alloc::string::String;
 
-fn format_percentage(p: f64) -> String {
-    let int: u64 = num_traits::float::FloatCore::round(p * 10.) as _;
-    util::decimal::format_no_trim(int, 1)
+fn format_percentage_tenths(tenths: u128) -> String {
+    format!("{}.{}", tenths / 10, tenths % 10)
+}
+
+pub fn warning_fee_percentage(fee: u64, amount: u64) -> Option<String> {
+    if amount == 0 {
+        return None;
+    }
+    let fee = fee as u128;
+    let amount = amount as u128;
+    if fee * 10 < amount {
+        return None;
+    }
+    Some(format_percentage_tenths((fee * 1000 + amount / 2) / amount))
+}
+
+fn format_percentage_text(fee_percentage: &str) -> String {
+    format!("The fee is {}%\nthe send amount.\nProceed?", fee_percentage)
 }
 
 pub async fn verify_total_fee_maybe_warn(
     hal: &mut impl crate::hal::Hal,
     total: &str,
     fee: &str,
-    fee_percentage: Option<f64>,
+    fee_percentage: Option<&str>,
 ) -> Result<(), UserAbort> {
-    const FEE_WARNING_THRESHOLD: f64 = 10.;
-    let fee_percentage = fee_percentage.filter(|&f| f >= FEE_WARNING_THRESHOLD);
     let longtouch = fee_percentage.is_none();
     hal.ui().verify_total_fee(total, fee, longtouch).await?;
 
@@ -26,10 +39,7 @@ pub async fn verify_total_fee_maybe_warn(
         hal.ui()
             .confirm(&ConfirmParams {
                 title: "High fee",
-                body: &format!(
-                    "The fee is {}%\nthe send amount.\nProceed?",
-                    format_percentage(fee_percentage)
-                ),
+                body: &format_percentage_text(fee_percentage),
                 longtouch: true,
                 ..Default::default()
             })
@@ -43,11 +53,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_format_percentage() {
-        assert_eq!(format_percentage(0.), "0.0");
-        assert_eq!(format_percentage(10.0), "10.0");
-        assert_eq!(format_percentage(10.1), "10.1");
-        assert_eq!(format_percentage(10.14), "10.1");
-        assert_eq!(format_percentage(10.15), "10.2");
+    fn test_warning_fee_percentage() {
+        assert_eq!(warning_fee_percentage(1, 0), None);
+        assert_eq!(warning_fee_percentage(0, 100), None);
+        assert_eq!(warning_fee_percentage(9, 100), None);
+        assert_eq!(warning_fee_percentage(3, 4), Some("75.0".into()));
+        assert_eq!(warning_fee_percentage(10, 100), Some("10.0".into()));
+        assert_eq!(warning_fee_percentage(101, 1000), Some("10.1".into()));
+        assert_eq!(warning_fee_percentage(1014, 10000), Some("10.1".into()));
+        assert_eq!(warning_fee_percentage(1015, 10000), Some("10.2".into()));
+        assert_eq!(warning_fee_percentage(995, 10000), None);
+        assert_eq!(warning_fee_percentage(909, 1000), Some("90.9".into()));
     }
 }

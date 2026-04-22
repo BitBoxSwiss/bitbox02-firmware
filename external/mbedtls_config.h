@@ -63,7 +63,8 @@
 #define MBEDTLS_SSL_OUT_CONTENT_LEN             1024
 
 /* Save RAM at the expense of ROM */
-#define MBEDTLS_AES_ROM_TABLES
+// #define MBEDTLS_AES_ROM_TABLES
+
 #define MBEDTLS_AES_FEWER_TABLES
 #define MBEDTLS_SHA256_SMALLER
 

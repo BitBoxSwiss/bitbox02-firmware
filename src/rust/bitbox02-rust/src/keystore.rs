@@ -133,9 +133,13 @@ impl core::convert::From<securechip::Error> for Error {
     }
 }
 
-fn random_32_bytes(hal: &mut impl KeystoreHal) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+async fn random_32_bytes(
+    hal: &mut impl KeystoreHal,
+) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
     let (random, securechip) = hal.random_and_securechip();
-    bitbox_core_utils::random::random_32_bytes(random, securechip).map_err(Into::into)
+    bitbox_core_utils::random::random_32_bytes(random, securechip)
+        .await
+        .map_err(Into::into)
 }
 
 #[derive(Copy, Clone)]
@@ -177,7 +181,7 @@ impl RetainedEncryptedBuffer {
         data: &[u8],
         purpose: &'static str,
     ) -> Result<Self, Error> {
-        let rand: [u8; 32] = random_32_bytes(hal)?.as_slice().try_into().unwrap();
+        let rand: [u8; 32] = random_32_bytes(hal).await?.as_slice().try_into().unwrap();
         let encryption_key = stretch_retained_seed_encryption_key(
             hal,
             &rand,
@@ -185,7 +189,7 @@ impl RetainedEncryptedBuffer {
             &format!("{}_out", purpose),
         )
         .await?;
-        let iv_rand = random_32_bytes(hal)?;
+        let iv_rand = random_32_bytes(hal).await?;
         let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
         let encrypted = bitbox_aes::encrypt_with_hmac(iv, &encryption_key, data);
         Ok(RetainedEncryptedBuffer {
@@ -322,11 +326,16 @@ async fn encrypt_and_store_seed_internal(
         let subsystems = hal.as_mut();
         subsystems
             .securechip
-            .init_new_password(subsystems.memory, password, password_stretch_algo)
+            .init_new_password(
+                subsystems.random,
+                subsystems.memory,
+                password,
+                password_stretch_algo,
+            )
             .await?
     };
 
-    let iv_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal)?;
+    let iv_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal).await?;
     let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
     let encrypted = bitbox_aes::encrypt_with_hmac(iv, secret.as_slice(), seed);
 
@@ -561,7 +570,7 @@ pub async fn create_and_store_seed(
         return Err(Error::SeedSize);
     }
 
-    let mut seed_vec = bitbox_core_utils::random::random_32_bytes_from_hal(hal)?;
+    let mut seed_vec = bitbox_core_utils::random::random_32_bytes_from_hal(hal).await?;
     let seed = &mut seed_vec[..seed_len];
 
     // Mix in host entropy.
@@ -834,7 +843,9 @@ pub async fn secp256k1_schnorr_sign(
             .map_err(|_| ())?;
     }
 
-    let aux_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal).map_err(|_| ())?;
+    let aux_rand = bitbox_core_utils::random::random_32_bytes_from_hal(hal)
+        .await
+        .map_err(|_| ())?;
     let sig = SECP256K1.sign_schnorr_with_aux_rand(
         &bitcoin::secp256k1::Message::from_digest(*msg),
         &keypair,

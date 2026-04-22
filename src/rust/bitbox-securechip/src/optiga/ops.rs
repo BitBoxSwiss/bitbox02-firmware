@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{Error, SecureChipError};
+use alloc::boxed::Box;
 use core::cell::UnsafeCell;
 use core::future::poll_fn;
 use core::task::{Poll, Waker};
 use grounded::uninit::{GroundedArrayCell, GroundedCell};
 use util::cell::SyncCell;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 const ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE: usize =
     bitbox_securechip_sys::ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE as usize;
@@ -523,10 +524,37 @@ pub(super) async fn crypt_clear_auto_state(secret: u16) -> Result<(), Error> {
         .map_err(|status| Error::from_status(status as i32))
 }
 
-pub(super) fn ifs_random_32_bytes(rand_out: &mut [u8; super::KDF_LEN]) -> Result<(), Error> {
-    if unsafe { bitbox_securechip_sys::optiga_ifs_random_32_bytes(rand_out.as_mut_ptr()) } {
-        Ok(())
-    } else {
-        Err(Error::SecureChip(SecureChipError::SC_ERR_IFS))
+pub(super) async fn crypt_random(
+    rng_type: bitbox_securechip_sys::optiga_rng_type_t,
+    out: &mut [u8; 32],
+) -> Result<(), Error> {
+    // Static because the Optiga library keeps a raw pointer to this buffer until the async
+    // callback completes, and the Rust future may be dropped before that happens.
+    static BUF: StaticBytes<32> = StaticBytes::const_init();
+
+    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+
+    BUF.clear();
+    let result = run_async_op(|| unsafe {
+        bitbox_securechip_sys::optiga_crypt_random(crypt, rng_type, BUF.as_mut_ptr(), 32)
+    })
+    .await
+    .map_err(|status| Error::from_status(status as i32));
+    if let Err(err) = result {
+        BUF.zeroize();
+        return Err(err);
     }
+
+    BUF.copy_to_slice(out);
+    BUF.zeroize();
+    Ok(())
+}
+
+pub(super) fn random_32_bytes(
+    random: &mut impl bitbox_hal::Random,
+    mixin: &[u8; super::KDF_LEN],
+) -> Result<Box<Zeroizing<[u8; super::KDF_LEN]>>, Error> {
+    Ok(bitbox_core_utils::random::random_32_bytes_with_mixin(
+        random, mixin,
+    ))
 }

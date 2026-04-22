@@ -3,7 +3,7 @@ use bitbox_hal as hal;
 pub struct BitBox03SecureChip;
 
 impl hal::securechip::SecureChip for BitBox03SecureChip {
-    fn random(
+    async fn random(
         &mut self,
     ) -> Result<alloc::boxed::Box<zeroize::Zeroizing<[u8; 32]>>, bitbox_hal::securechip::Error>
     {
@@ -12,6 +12,7 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
 
     async fn init_new_password(
         &mut self,
+        _random: &mut impl bitbox_hal::Random,
         _memory: &mut impl bitbox_hal::Memory,
         _password: &str,
         _password_stretch_algo: bitbox_hal::memory::PasswordStretchAlgo,
@@ -54,7 +55,11 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    async fn reset_keys(&mut self, _memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
+    async fn reset_keys(
+        &mut self,
+        _random: &mut impl bitbox_hal::Random,
+        _memory: &mut impl bitbox_hal::Memory,
+    ) -> Result<(), ()> {
         todo!()
     }
 

@@ -77,17 +77,19 @@ fn to_c_password_stretch_algo(algo: PasswordStretchAlgo) -> bitbox_securechip::P
 }
 
 impl SecureChip for BitBox02SecureChip {
-    fn random(&mut self) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
-        crate::securechip::random().map_err(to_hal_error)
+    async fn random(&mut self) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+        crate::securechip::random().await.map_err(to_hal_error)
     }
 
     async fn init_new_password(
         &mut self,
+        random: &mut impl bitbox_hal::Random,
         memory: &mut impl bitbox_hal::Memory,
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
         crate::securechip::init_new_password(
+            random,
             memory,
             password,
             to_c_password_stretch_algo(password_stretch_algo),
@@ -131,8 +133,12 @@ impl SecureChip for BitBox02SecureChip {
         crate::securechip::model().map(to_hal_model)
     }
 
-    async fn reset_keys(&mut self, memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
-        crate::securechip::reset_keys(memory).await
+    async fn reset_keys(
+        &mut self,
+        random: &mut impl bitbox_hal::Random,
+        memory: &mut impl bitbox_hal::Memory,
+    ) -> Result<(), ()> {
+        crate::securechip::reset_keys(random, memory).await
     }
 
     #[cfg(feature = "app-u2f")]
@@ -144,7 +150,20 @@ impl SecureChip for BitBox02SecureChip {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bitbox_hal::Random;
     use hex_lit::hex;
+
+    struct TestRandom;
+
+    impl Random for TestRandom {
+        fn factory_randomness(&mut self) -> &'static [u8; 32] {
+            &[0; 32]
+        }
+
+        fn mcu_32_bytes(&mut self, out: &mut [u8; 32]) {
+            *out = [0; 32];
+        }
+    }
 
     #[test]
     fn test_to_hal_model() {
@@ -274,10 +293,16 @@ mod tests {
     #[async_test::test]
     async fn test_init_new_password_invalid_password_stretch_algo() {
         let mut securechip = BitBox02SecureChip;
+        let mut random = TestRandom;
         let mut memory = crate::hal::memory::BitBox02Memory;
         assert_eq!(
             securechip
-                .init_new_password(&mut memory, "password", PasswordStretchAlgo::V0)
+                .init_new_password(
+                    &mut random,
+                    &mut memory,
+                    "password",
+                    PasswordStretchAlgo::V0
+                )
                 .await,
             Err(Error::SecureChip(
                 SecureChipError::InvalidPasswordStretchAlgo,

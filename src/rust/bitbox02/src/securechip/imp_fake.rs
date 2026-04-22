@@ -28,7 +28,7 @@ pub fn attestation_sign(_challenge: &[u8; 32], _signature: &mut [u8; 64]) -> Res
     Err(())
 }
 
-pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
+pub async fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     Ok(Box::new(Zeroizing::new([0u8; 32])))
 }
 
@@ -36,11 +36,15 @@ pub async fn monotonic_increments_remaining() -> Result<u32, ()> {
     Ok(1)
 }
 
-pub async fn reset_keys(_memory: &mut impl bitbox_hal::Memory) -> Result<(), ()> {
+pub async fn reset_keys(
+    _random: &mut impl bitbox_hal::Random,
+    _memory: &mut impl bitbox_hal::Memory,
+) -> Result<(), ()> {
     Ok(())
 }
 
 pub async fn init_new_password(
+    _random: &mut impl bitbox_hal::Random,
     _memory: &mut impl bitbox_hal::Memory,
     password: &str,
     password_stretch_algo: PasswordStretchAlgo,

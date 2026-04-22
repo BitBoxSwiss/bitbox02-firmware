@@ -1322,27 +1322,6 @@ optiga_crypt_t* optiga_crypt_instance(void)
     return _crypt;
 }
 
-bool optiga_ifs_random_32_bytes(uint8_t* rand_out)
-{
-    if (_ifs == NULL || rand_out == NULL) {
-        return false;
-    }
-    _ifs->random_32_bytes(rand_out);
-    return true;
-}
-
-// rand_out must be 32 bytes
-int optiga_random(uint8_t* rand_out)
-{
-    optiga_lib_status_t res =
-        optiga_ops_crypt_random_sync(_crypt, OPTIGA_RNG_TYPE_TRNG, rand_out, 32);
-    if (res != OPTIGA_CRYPT_SUCCESS) {
-        util_log("optiga_random failed: %x", res);
-        return res;
-    }
-    return 0;
-}
-
 #if APP_U2F == 1 || FACTORYSETUP == 1
 bool optiga_u2f_counter_set(uint32_t counter)
 {

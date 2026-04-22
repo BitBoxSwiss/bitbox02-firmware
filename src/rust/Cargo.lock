@@ -126,11 +126,13 @@ version = "0.1.0"
 name = "bitbox-core-utils"
 version = "0.1.0"
 dependencies = [
+ "async_test",
  "bitbox-hal",
  "bitbox-platform-host",
  "digest",
  "hex_lit",
  "sha2",
+ "util",
  "zeroize",
 ]
 

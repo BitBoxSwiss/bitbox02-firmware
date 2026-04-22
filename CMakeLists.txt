@@ -135,7 +135,7 @@ set(CARGO_C_FLAGS "")
 string(APPEND CMAKE_C_FLAGS " -std=c11 -pipe")
 if(CMAKE_CROSSCOMPILING)
   set(CMAKE_C_FLAGS "\
-    ${CMAKE_C_FLAGS} -mcpu=cortex-m4 -mthumb -mlong-calls \
+    ${CMAKE_C_FLAGS} -mcpu=cortex-m4 -mthumb \
     -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fomit-frame-pointer -D__SAMD51J20A__ \
     "
   )
@@ -147,7 +147,7 @@ if(CMAKE_CROSSCOMPILING)
   )
 
   string(APPEND CARGO_C_FLAGS "\
-    -mlong-calls -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fomit-frame-pointer -D__SAMD51J20A")
+    -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fomit-frame-pointer -D__SAMD51J20A")
 endif()
 
 # Optimize for size by default

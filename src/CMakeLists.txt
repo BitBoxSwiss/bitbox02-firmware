@@ -219,7 +219,7 @@ if(CMAKE_CROSSCOMPILING)
   set(RUST_TARGET_ARCH_DIR ${RUST_TARGET_ARCH})
   set(RUST_TARGET_ARCH_ARG --target ${RUST_TARGET_ARCH})
   set(RUST_CARGO_FLAGS ${RUST_CARGO_FLAGS} -Zbuild-std=core,alloc -Zbuild-std-features=optimize_for_size)
-  string(JOIN " " RUSTFLAGS "${RUSTFLAGS}" "-Zunstable-options -Cpanic=immediate-abort")
+  string(JOIN " " RUSTFLAGS "${RUSTFLAGS}" "-Zunstable-options -Zfmt-debug=none -Cpanic=immediate-abort")
 else()
   set(RUST_TARGET_ARCH_DIR .)
 endif()
@@ -259,7 +259,9 @@ if(NOT CMAKE_CROSSCOMPILING)
           --target-dir ${RUST_BINARY_DIR}/clippy
           --release
           --tests
-          -- # disabled linters:
+          -- # enabled linters:
+            -W clippy::use_debug
+            # disabled linters:
             -A clippy::large_enum_variant
             -A clippy::identity_op
             -A clippy::new_without_default

@@ -14,7 +14,7 @@ pub extern "C" fn rust_util_uint8_to_hex(buf: Bytes, mut out: BytesMut) {
     // https://github.com/rust-lang/rust/issues/83925
     match hex::encode_to_slice(bytes, &mut out.as_mut()[..hexlen]) {
         Ok(()) => {}
-        Err(err) => panic!("{:?}", err),
+        Err(_) => panic!("hex encoding failed"),
     }
     // Null terminator.
     out.as_mut()[hexlen] = 0;

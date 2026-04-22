@@ -121,6 +121,21 @@ pub enum Error {
     Decrypt,
 }
 
+pub fn format_error(error: &Error) -> String {
+    match error {
+        Error::InvalidState => "InvalidState".into(),
+        Error::CannotUnlockBIP39 => "CannotUnlockBIP39".into(),
+        Error::IncorrectPassword => "IncorrectPassword".into(),
+        Error::MaxAttemptsExceeded => "MaxAttemptsExceeded".into(),
+        Error::Unseeded => "Unseeded".into(),
+        Error::Memory => "Memory".into(),
+        Error::SecureChip(code) => format!("SecureChip({})", code),
+        Error::SeedSize => "SeedSize".into(),
+        Error::Salt => "Salt".into(),
+        Error::Decrypt => "Decrypt".into(),
+    }
+}
+
 impl core::convert::From<securechip::Error> for Error {
     fn from(error: securechip::Error) -> Self {
         match error {

@@ -123,7 +123,10 @@ pub async fn unlock_keystore(
             Err(UnlockError::IncorrectPassword)
         }
         Err(err) => {
-            let msg = format!("keystore unlock failed\n{:?}", err);
+            let msg = format!(
+                "keystore unlock failed\n{}",
+                crate::keystore::format_error(&err)
+            );
             hal.ui().status(&msg, false).await;
             Err(UnlockError::Generic)
         }

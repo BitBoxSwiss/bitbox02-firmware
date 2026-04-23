@@ -1,23 +1,67 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -x
-set -e
+set -euo pipefail
 
-# Disallow some symbols in the final binary that we don't want.
-if arm-none-eabi-nm build/bin/firmware.elf | grep -q "float_to_decimal_common_shortest"; then
-    echo "Rust fmt float formatting like {.1} adds significant binary bloat."
-    echo "Use something simpler like (float*10).round() as u64, then format with util::decimal::format"
-    exit 1
+elf=build/bin/firmware.elf
+if [[ ! -f "$elf" ]]; then
+    echo "ELF file not found: $elf" >&2
+    exit 2
 fi
-if arm-none-eabi-nm build/bin/firmware.elf | grep -q "strftime"; then
-    echo "strftime adds significant binary bloat. Use custom formatting like in `format_dateimte()`."
-    exit 1
-fi
-if arm-none-eabi-nm build/bin/firmware.elf | grep -q "sha26sha512"; then
-    # sha26sha512 is a mangled Rust symbol standing for `sha2::sha512`.
-    # One can use rustfilt to see the demangled symbols:
-    # cargo install rustfilt; arm-none-eabi-nm build/bin/firmware.elf | rustfilt
-    echo "sha2::Sha512 adds significant binary bloat."
-    echo "Only use it if there is no other sha512 impl available that is smaller."
-    exit 1
-fi
+
+# Disallow symbols in the final linked ELF that indicate expensive code paths.
+symbols=$(arm-none-eabi-nm -C "$elf")
+failed=0
+
+check_symbols() {
+    local name=$1
+    local pattern=$2
+    shift 2
+
+    local matches
+    matches=$(grep -E "$pattern" <<<"$symbols" || true)
+    if [[ -z "$matches" ]]; then
+        return
+    fi
+
+    echo "Found unwanted symbols for: $name" >&2
+    echo "$matches" | sed -n '1,20p' >&2
+    for line in "$@"; do
+        echo "$line" >&2
+    done
+    echo >&2
+    failed=1
+}
+
+check_symbols \
+    "Rust float formatting" \
+    "float_to_decimal_common_shortest" \
+    "Rust fmt float formatting like {:.1} adds significant binary bloat." \
+    "Use integer arithmetic and format the resulting integer parts explicitly."
+
+check_symbols \
+    "strftime" \
+    "(^|[[:space:]])strftime($|[[:space:]])" \
+    "strftime adds significant binary bloat." \
+    "Use custom formatting like in format_datetime()."
+
+check_symbols \
+    "sha2::Sha512" \
+    "sha26sha512|sha2::sha512" \
+    "sha2::Sha512 adds significant binary bloat." \
+    "Only use it if there is no other sha512 implementation available that is smaller."
+
+# Some f64 helpers are already pulled in by the existing C snprintf/newlib path.
+# Keep this check to helpers that are absent after the integer fee/progress changes.
+check_symbols \
+    "software f64 comparison/conversion helpers" \
+    "(__aeabi_dcmp[[:alnum:]_]*|__aeabi_d2(i|l|ul)z|compiler_builtins::float::cmp)" \
+    "Software f64 comparison/conversion helpers add significant binary bloat." \
+    "Use integer arithmetic in firmware code instead."
+
+check_symbols \
+    "software f32 arithmetic helpers" \
+    "(__aeabi_f(add|sub|mul|div)|__(add|sub|mul|div|neg)sf3|compiler_builtins::float::(add|sub|mul|div)::.*f32)" \
+    "Software f32 arithmetic helpers add significant binary bloat." \
+    "Use integer arithmetic in firmware code instead."
+
+exit "$failed"

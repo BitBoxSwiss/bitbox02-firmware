@@ -73,10 +73,7 @@ fn main() -> Result<(), &'static str> {
     let mut cmake_build = cmake::Config::new(&lvgl_dir);
 
     let lv_conf = match env::var("LV_CONF_PATH") {
-        Err(_) => {
-            println!("cargo::warning=LV_CONF_PATH missing, not using config file.");
-            manifest_dir.join("lv_conf.h")
-        }
+        Err(_) => manifest_dir.join("lv_conf.h"),
         Ok(lv_conf) => {
             let lv_conf: PathBuf = lv_conf.into();
             lv_conf.canonicalize().expect("canonicalizing LV_CONF")

@@ -2,6 +2,9 @@ set(CMAKE_SYSTEM_NAME "Generic")
 set(CMAKE_SYSTEM_PROCESSOR "arm")
 
 set(CMAKE_C_COMPILER "arm-none-eabi-gcc")
+set(CMAKE_AR "arm-none-eabi-gcc-ar")
+set(CMAKE_NM "arm-none-eabi-gcc-nm")
+set(CMAKE_RANLIB "arm-none-eabi-gcc-ranlib")
 
 # Search for programs in the build host directories
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

@@ -89,7 +89,7 @@ pub trait SecureChip {
 
     /// Signs a 32-byte attestation challenge and writes the raw 64-byte P-256 signature to
     /// `signature`.
-    fn attestation_sign(
+    async fn attestation_sign(
         &mut self,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
@@ -112,5 +112,9 @@ pub trait SecureChip {
     /// Sets the U2F counter to `counter`.
     ///
     /// This is intended for initialization only.
-    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;
+    async fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;
+
+    #[cfg(feature = "app-u2f")]
+    /// Increments the U2F counter and returns the new value.
+    async fn u2f_counter_inc(&mut self) -> Result<u32, ()>;
 }

@@ -5,7 +5,7 @@ use alloc::boxed::Box;
 use bitbox_hal::Memory;
 use zeroize::Zeroizing;
 
-pub fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
+pub async fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) -> Result<(), ()> {
     match unsafe {
         bitbox_securechip_sys::atecc_attestation_sign(challenge.as_ptr(), signature.as_mut_ptr())
     } {
@@ -93,10 +93,19 @@ pub fn kdf(msg: &[u8; 32]) -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     }
 }
 
-#[cfg(feature = "app-u2f")]
+#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
 pub fn u2f_counter_set(counter: u32) -> Result<(), ()> {
     match unsafe { bitbox_securechip_sys::atecc_u2f_counter_set(counter) } {
         true => Ok(()),
+        false => Err(()),
+    }
+}
+
+#[cfg(feature = "app-u2f")]
+pub fn u2f_counter_inc() -> Result<u32, ()> {
+    let mut counter = 0;
+    match unsafe { bitbox_securechip_sys::atecc_u2f_counter_inc(&mut counter) } {
+        true => Ok(counter),
         false => Err(()),
     }
 }

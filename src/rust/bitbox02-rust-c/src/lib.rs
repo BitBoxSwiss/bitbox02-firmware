@@ -18,8 +18,6 @@ pub mod async_usb;
 ))]
 mod communication_mode;
 #[cfg(feature = "firmware")]
-mod der;
-#[cfg(feature = "firmware")]
 mod firmware_c_api;
 #[cfg(feature = "factory-setup")]
 mod secp256k1;

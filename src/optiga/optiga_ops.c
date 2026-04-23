@@ -150,21 +150,6 @@ optiga_lib_status_t optiga_ops_crypt_ecc_generate_keypair_sync(
     return res;
 }
 
-optiga_lib_status_t optiga_ops_crypt_ecdsa_sign_sync(
-    optiga_crypt_t* me,
-    const uint8_t* digest,
-    uint8_t digest_length,
-    optiga_key_id_t private_key,
-    uint8_t* signature,
-    uint16_t* signature_length)
-{
-    _optiga_lib_status = OPTIGA_LIB_BUSY;
-    optiga_lib_status_t res = optiga_crypt_ecdsa_sign(
-        me, digest, digest_length, private_key, signature, signature_length);
-    _WAIT(res, _optiga_lib_status);
-    return res;
-}
-
 optiga_lib_status_t optiga_ops_crypt_random_sync(
     optiga_crypt_t* me,
     optiga_rng_type_t rng_type,

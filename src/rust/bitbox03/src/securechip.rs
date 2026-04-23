@@ -39,7 +39,7 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
         todo!()
     }
 
-    fn attestation_sign(
+    async fn attestation_sign(
         &mut self,
         _challenge: &[u8; 32],
         _signature: &mut [u8; 64],
@@ -64,7 +64,12 @@ impl hal::securechip::SecureChip for BitBox03SecureChip {
     }
 
     #[cfg(feature = "app-u2f")]
-    fn u2f_counter_set(&mut self, _counter: u32) -> Result<(), ()> {
+    async fn u2f_counter_set(&mut self, _counter: u32) -> Result<(), ()> {
+        todo!()
+    }
+
+    #[cfg(feature = "app-u2f")]
+    async fn u2f_counter_inc(&mut self) -> Result<u32, ()> {
         todo!()
     }
 }

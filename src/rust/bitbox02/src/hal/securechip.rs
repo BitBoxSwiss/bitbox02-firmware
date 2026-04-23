@@ -117,12 +117,12 @@ impl SecureChip for BitBox02SecureChip {
         crate::securechip::kdf(msg).await.map_err(to_hal_error)
     }
 
-    fn attestation_sign(
+    async fn attestation_sign(
         &mut self,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()> {
-        crate::securechip::attestation_sign(challenge, signature)
+        crate::securechip::attestation_sign(challenge, signature).await
     }
 
     async fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
@@ -142,8 +142,13 @@ impl SecureChip for BitBox02SecureChip {
     }
 
     #[cfg(feature = "app-u2f")]
-    fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
-        crate::securechip::u2f_counter_set(counter)
+    async fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
+        crate::securechip::u2f_counter_set(counter).await
+    }
+
+    #[cfg(feature = "app-u2f")]
+    async fn u2f_counter_inc(&mut self) -> Result<u32, ()> {
+        crate::securechip::u2f_counter_inc().await
     }
 }
 

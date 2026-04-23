@@ -30,22 +30,8 @@
     #define VERIFY_METADATA 0
 #endif
 
-// Struct stored in the arbitrary data object.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpacked"
-#pragma GCC diagnostic ignored "-Wattributes"
-typedef union {
-    struct __attribute__((__packed__)) {
-        uint32_t u2f_counter;
-    } fields;
-    uint8_t bytes[ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE];
-} arbitrary_data_t;
-#pragma GCC diagnostic pop
-
 static optiga_util_t* _util;
 static optiga_crypt_t* _crypt;
-
-static const securechip_interface_functions_t* _ifs = NULL;
 
 #define TAG_LCSO 0xC0
 
@@ -468,39 +454,11 @@ static int _reset_counter(uint16_t oid, uint32_t limit)
 }
 #endif
 
-#if APP_U2F == 1 || FACTORYSETUP == 1
-static bool _read_arbitrary_data(arbitrary_data_t* data_out)
-{
-    memset(data_out->bytes, 0x00, sizeof(data_out->bytes));
-    uint16_t len = sizeof(data_out->bytes);
-    optiga_lib_status_t res =
-        optiga_ops_util_read_data_sync(_util, OID_ARBITRARY_DATA, 0, data_out->bytes, &len);
-    if (res != OPTIGA_UTIL_SUCCESS) {
-        util_log("could not read arbitrary data: %x", res);
-        return false;
-    }
-    if (len != sizeof(data_out->bytes)) {
-        util_log(
-            "arbitrary data: expected to read size %d, but read %d. Data read: %s",
-            (int)sizeof(data_out->bytes),
-            (int)len,
-            util_dbg_hex(data_out->bytes, len));
-        return false;
-    }
-    return true;
-}
-#endif
-
-#if APP_U2F == 1 || FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
-static int _write_arbitrary_data(const arbitrary_data_t* data)
+#if FACTORYSETUP == 1 || FACTORY_DURING_PROD == 1
+static int _write_arbitrary_data(const uint8_t* data, size_t data_len)
 {
     optiga_lib_status_t res = optiga_ops_util_write_data_sync(
-        _util,
-        OID_ARBITRARY_DATA,
-        OPTIGA_UTIL_ERASE_AND_WRITE,
-        0,
-        &data->bytes[0],
-        sizeof(data->bytes));
+        _util, OID_ARBITRARY_DATA, OPTIGA_UTIL_ERASE_AND_WRITE, 0, data, data_len);
     if (res != OPTIGA_LIB_SUCCESS) {
         util_log("could not write arbitrary %x", res);
     }
@@ -718,8 +676,8 @@ static int _configure_object_arbitrary_data(void)
     }
 
     // Initialize arbitrary data, all zeroes.
-    const arbitrary_data_t arbitrary_data = {0};
-    int write_res = _write_arbitrary_data(&arbitrary_data);
+    const uint8_t arbitrary_data[ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE] = {0};
+    int write_res = _write_arbitrary_data(arbitrary_data, sizeof(arbitrary_data));
     if (write_res != OPTIGA_LIB_SUCCESS) {
         util_log("could not initialize arbitrary data");
         return write_res;
@@ -1203,13 +1161,8 @@ static int _verify_metadata_config(void)
 }
 #endif
 
-int optiga_setup(const securechip_interface_functions_t* ifs)
+int optiga_setup(void)
 {
-    if (ifs == NULL) {
-        return SC_ERR_IFS;
-    }
-    _ifs = ifs;
-
     util_log("optiga_setup");
 
     // A timer is used to provide the OPTIGA library with the ability to schedule work on the main
@@ -1295,23 +1248,6 @@ bool optiga_gen_attestation_key(uint8_t* pubkey_out)
     return true;
 }
 
-bool optiga_attestation_sign(const uint8_t* challenge, uint8_t* signature_out)
-{
-    uint8_t sig_der[70] = {0};
-    uint16_t sig_der_size = sizeof(sig_der);
-    optiga_lib_status_t res = optiga_ops_crypt_ecdsa_sign_sync(
-        _crypt, challenge, 32, OPTIGA_KEY_ID_E0F1, sig_der, &sig_der_size);
-    if (res != OPTIGA_CRYPT_SUCCESS) {
-        util_log("sign failed: %x", res);
-        return false;
-    }
-    // Parse signature, see Solution Reference Manual 6.2.2,
-    // example for ECC NIST-P256 signature.
-    // The R/S components are
-    return rust_der_parse_optiga_signature(
-        rust_util_bytes(sig_der, sig_der_size), rust_util_bytes_mut(signature_out, 64));
-}
-
 optiga_util_t* optiga_util_instance(void)
 {
     return _util;
@@ -1321,29 +1257,3 @@ optiga_crypt_t* optiga_crypt_instance(void)
 {
     return _crypt;
 }
-
-#if APP_U2F == 1 || FACTORYSETUP == 1
-bool optiga_u2f_counter_set(uint32_t counter)
-{
-    arbitrary_data_t data = {0};
-    if (!_read_arbitrary_data(&data)) {
-        return false;
-    }
-    data.fields.u2f_counter = counter;
-    return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
-}
-#endif
-
-#if APP_U2F == 1
-bool optiga_u2f_counter_inc(uint32_t* counter)
-{
-    arbitrary_data_t data = {0};
-    if (!_read_arbitrary_data(&data)) {
-        return false;
-    }
-    data.fields.u2f_counter += 1;
-    *counter = data.fields.u2f_counter;
-
-    return _write_arbitrary_data(&data) == OPTIGA_LIB_SUCCESS;
-}
-#endif

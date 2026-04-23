@@ -15,10 +15,12 @@ bitbox-securechip-sys = { path = "../bitbox-securechip-sys" }
 critical-section = { workspace = true }
 grounded = { workspace = true }
 util = { path = "../util", features = ["sha2"] }
+der = { version = "0.7.9", default-features = false }
 zeroize = { workspace = true }
 
 [features]
 app-u2f = []
+factory-setup = []
 
 [dev-dependencies]
 async_test = { path = "../async_test" }

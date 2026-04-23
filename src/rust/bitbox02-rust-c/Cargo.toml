@@ -20,7 +20,6 @@ bitbox-noise = { path = "../bitbox-noise", optional = true }
 cortex-m = { workspace = true }
 util = { path = "../util" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
-der =  { version = "0.7.9", default-features = false, optional = true }
 hex = { workspace = true }
 grounded = { workspace = true }
 sha2 = { workspace = true, optional = true }
@@ -75,7 +74,6 @@ firmware = [
   "bitbox-noise",
   "util/sha2",
   "util/firmware",
-  "der",
   "bitbox-aes",
 ]
 
@@ -120,6 +118,6 @@ app-cardano = [
   "bitbox02-rust/app-cardano",
 ]
 
-factory-setup = []
+factory-setup = ["bitbox02/factory-setup"]
 
 rtt = ["util/rtt"]

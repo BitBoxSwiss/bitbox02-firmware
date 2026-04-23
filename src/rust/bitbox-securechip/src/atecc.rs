@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{Error, Model, PasswordStretchAlgo, SecureChipError};
-use alloc::boxed::Box;
+use alloc::{boxed::Box, format, string::String};
 use bitbox_hal::{Memory, Random, timer::Timer};
 use bitbox_securechip_sys::atecc_slot_t as Slot;
+use core::fmt::Write;
 use core::sync::atomic::{AtomicBool, Ordering};
 use util::sha2::hmac_sha256_overwrite;
 use zeroize::Zeroizing;
@@ -395,6 +396,200 @@ pub async fn model<T: Timer>() -> Result<Model, ()> {
     } else {
         Model::ATECC_ATECC608A
     })
+}
+
+fn manual_selftest_print_hex(print: &mut impl FnMut(&str), label: &str, bytes: &[u8]) {
+    for (chunk_index, chunk) in bytes.chunks(32).enumerate() {
+        let mut msg = String::new();
+        if bytes.len() <= 32 {
+            writeln!(&mut msg, "{label} ok").unwrap();
+        } else {
+            writeln!(&mut msg, "{label}[{chunk_index}] ok").unwrap();
+        }
+        for byte in chunk {
+            write!(&mut msg, "{byte:02x}").unwrap();
+        }
+        print(&msg);
+    }
+}
+
+fn manual_selftest_print_unit(print: &mut impl FnMut(&str), label: &str, result: Result<(), ()>) {
+    match result {
+        Ok(()) => print(&format!("{label}\nok")),
+        Err(()) => print(&format!("{label}\nerr")),
+    }
+}
+
+fn manual_selftest_model_name(model: Model) -> &'static str {
+    match model {
+        Model::ATECC_ATECC608A => "ATECC608A",
+        Model::ATECC_ATECC608B => "ATECC608B",
+        Model::OPTIGA_TRUST_M_V3 => "optiga?",
+    }
+}
+
+fn manual_selftest_generate_attestation_key(
+    memory: &mut impl Memory,
+    print: &mut impl FnMut(&str),
+) -> Option<[u8; 64]> {
+    let auth_key = load_auth_key(memory);
+    let mut pubkey = [0u8; 64];
+    if unsafe {
+        bitbox_securechip_sys::atecc_gen_attestation_key(auth_key.as_ptr(), pubkey.as_mut_ptr())
+    } {
+        manual_selftest_print_hex(print, "attest_pubkey", &pubkey);
+        Some(pubkey)
+    } else {
+        print("attest_gen_key\nerr");
+        None
+    }
+}
+
+fn manual_selftest_verify_attestation_signature(
+    pubkey: &[u8; 64],
+    challenge: &[u8; 32],
+    signature: &[u8; 64],
+) -> Result<(), ()> {
+    use p256::ecdsa::signature::hazmat::PrehashVerifier;
+
+    let mut sec1_pubkey = [0u8; 65];
+    sec1_pubkey[0] = 0x04;
+    sec1_pubkey[1..].copy_from_slice(pubkey);
+    let verifying_key = p256::ecdsa::VerifyingKey::from_sec1_bytes(&sec1_pubkey).map_err(|_| ())?;
+    let signature = p256::ecdsa::Signature::from_slice(signature).map_err(|_| ())?;
+    verifying_key
+        .verify_prehash(challenge, &signature)
+        .map_err(|_| ())
+}
+
+/// Runs a manual public ATECC API smoke-test and reports every result through `print`.
+///
+/// This is intended for temporary on-device diagnostics. The key-reset and password-init steps
+/// mutate the secure-chip password-stretching keys, and the U2F steps mutate the U2F counter.
+pub async fn manual_selftest<T: Timer>(
+    random: &mut impl Random,
+    memory: &mut impl Memory,
+    mut print: impl FnMut(&str),
+) {
+    print("ATECC self-test\nstart");
+
+    match model::<T>().await {
+        Ok(model) => print(&format!("model ok\n{}", manual_selftest_model_name(model))),
+        Err(()) => print("model\nerr"),
+    }
+
+    match self::random::<T>().await {
+        Ok(random) => manual_selftest_print_hex(&mut print, "random", random.as_slice()),
+        Err(err) => print(&format!("random\nerr {}", status_from_error(err))),
+    }
+
+    match monotonic_increments_remaining::<T>().await {
+        Ok(remaining) => print(&format!("mono_remaining ok\n{remaining}")),
+        Err(()) => print("mono_remaining\nerr"),
+    }
+
+    let kdf_msg = [0x11; 32];
+    manual_selftest_print_hex(&mut print, "kdf_msg", &kdf_msg);
+    match kdf::<T>(memory, &kdf_msg).await {
+        Ok(kdf_out) => manual_selftest_print_hex(&mut print, "kdf", kdf_out.as_slice()),
+        Err(err) => print(&format!("kdf\nerr {}", status_from_error(err))),
+    }
+
+    let challenge = [0x22; 32];
+    let mut signature = [0u8; 64];
+    if let Some(attestation_pubkey) = manual_selftest_generate_attestation_key(memory, &mut print) {
+        manual_selftest_print_hex(&mut print, "attest_msg", &challenge);
+        match attestation_sign::<T>(memory, &challenge, &mut signature).await {
+            Ok(()) => {
+                manual_selftest_print_hex(&mut print, "attest_sig", &signature);
+                manual_selftest_print_unit(
+                    &mut print,
+                    "attest_verify",
+                    manual_selftest_verify_attestation_signature(
+                        &attestation_pubkey,
+                        &challenge,
+                        &signature,
+                    ),
+                );
+            }
+            Err(()) => print("attest_sign\nerr"),
+        }
+    }
+
+    print("reset_keys\nmutates keys");
+    manual_selftest_print_unit(
+        &mut print,
+        "reset_keys",
+        reset_keys::<T>(random, memory).await,
+    );
+
+    let password = "atecc-selftest";
+    print("init_new_password\nmutates keys");
+    let initialized_password = match init_new_password::<T>(
+        random,
+        memory,
+        password,
+        PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0,
+    )
+    .await
+    {
+        Ok(stretched) => {
+            manual_selftest_print_hex(&mut print, "init_new_pw", stretched.as_slice());
+            Some(stretched)
+        }
+        Err(err) => {
+            print(&format!("init_new_pw\nerr {}", status_from_error(err)));
+            None
+        }
+    };
+
+    match stretch_password::<T>(
+        memory,
+        password,
+        PasswordStretchAlgo::SECURECHIP_PASSWORD_STRETCH_ALGO_V0,
+    )
+    .await
+    {
+        Ok(stretched) => {
+            manual_selftest_print_hex(&mut print, "stretch_pw", stretched.as_slice());
+            if let Some(initialized_password) = initialized_password {
+                if initialized_password.as_slice() == stretched.as_slice() {
+                    print("stretch_cmp\nmatch");
+                } else {
+                    print("stretch_cmp\nmismatch");
+                }
+            }
+        }
+        Err(err) => print(&format!("stretch_pw\nerr {}", status_from_error(err))),
+    }
+
+    #[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+    {
+        print("u2f_counter_set\nmutates counter");
+        manual_selftest_print_unit(
+            &mut print,
+            "u2f_counter_set",
+            u2f_counter_set::<T>(random, memory, 1).await,
+        );
+    }
+
+    #[cfg(feature = "app-u2f")]
+    match u2f_counter_inc::<T>(random, memory).await {
+        Ok(counter) => print(&format!("u2f_counter_inc ok\n{counter}")),
+        Err(()) => print("u2f_counter_inc\nerr"),
+    }
+
+    #[cfg(not(any(feature = "app-u2f", feature = "factory-setup")))]
+    {
+        print("u2f_counter_set\nskip: feature off");
+    }
+
+    #[cfg(not(feature = "app-u2f"))]
+    {
+        print("u2f_counter_inc\nskip: feature off");
+    }
+
+    print("ATECC self-test\ndone");
 }
 
 #[cfg(test)]

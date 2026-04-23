@@ -258,9 +258,10 @@ if(NOT CMAKE_CROSSCOMPILING)
           --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml
           --target-dir ${RUST_BINARY_DIR}/clippy
           --release
-          --tests
-          -- # enabled linters:
+          --tests --
+            # enabled linters:
             -W clippy::use_debug
+            -W clippy::large_futures
             # disabled linters:
             -A clippy::large_enum_variant
             -A clippy::identity_op

@@ -27,7 +27,9 @@ pub async fn process(
     let unlock_animation = hal.ui().unlock_animation_create();
     if let Err(err) = keystore::create_and_store_seed(hal, &password, entropy).await {
         drop(unlock_animation);
-        hal.ui().status(&format!("Error\n{:?}", err), false).await;
+        hal.ui()
+            .status(&format!("Error\n{}", keystore::format_error(&err)), false)
+            .await;
         return Err(Error::Generic);
     }
     let seed = keystore::copy_seed(hal).await?;

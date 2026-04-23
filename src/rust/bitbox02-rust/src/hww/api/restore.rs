@@ -61,7 +61,13 @@ pub async fn from_file(
     if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, seed, &password).await {
         drop(unlock_animation);
         hal.ui()
-            .status(&format!("Could not\nrestore backup\n{:?}", err), false)
+            .status(
+                &format!(
+                    "Could not\nrestore backup\n{}",
+                    crate::keystore::format_error(&err)
+                ),
+                false,
+            )
             .await;
         return Err(Error::Generic);
     }
@@ -139,7 +145,13 @@ pub async fn from_mnemonic(
     if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, &seed, &password).await {
         drop(unlock_animation);
         hal.ui()
-            .status(&format!("Could not\nrestore backup\n{:?}", err), false)
+            .status(
+                &format!(
+                    "Could not\nrestore backup\n{}",
+                    crate::keystore::format_error(&err)
+                ),
+                false,
+            )
             .await;
         return Err(Error::Generic);
     };

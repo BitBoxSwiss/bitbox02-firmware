@@ -24,6 +24,17 @@ pub enum Error {
     Check,
 }
 
+pub fn format_error(error: &Error) -> &'static str {
+    match error {
+        Error::Generic => "Generic",
+        Error::Stale => "Stale",
+        Error::SdList => "SdList",
+        Error::SdRead => "SdRead",
+        Error::SdWrite => "SdWrite",
+        Error::Check => "Check",
+    }
+}
+
 #[derive(Default)]
 pub struct BackupData(pub Box<pb_backup::BackupData>);
 

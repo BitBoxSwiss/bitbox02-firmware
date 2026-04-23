@@ -124,7 +124,10 @@ pub async fn create(
             Ok(Response::Success(pb::Success {}))
         }
         Err(err) => {
-            let msg = format!("Backup not created\nPlease contact\nsupport ({:?})", err);
+            let msg = format!(
+                "Backup not created\nPlease contact\nsupport ({})",
+                backup::format_error(&err)
+            );
             hal.ui().status(&msg, false).await;
             Err(Error::Generic)
         }

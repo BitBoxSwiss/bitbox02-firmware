@@ -27,7 +27,9 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
 
     // Re-encrypt seed with new password
     if let Err(err) = keystore::re_encrypt_seed(hal, &seed, &new_password).await {
-        hal.ui().status(&format!("Error\n{:?}", err), false).await;
+        hal.ui()
+            .status(&format!("Error\n{}", keystore::format_error(&err)), false)
+            .await;
         return Err(Error::Generic);
     }
 

@@ -21,7 +21,7 @@
     #include <u2f.h>
 #endif
 
-uint32_t __stack_chk_guard = 0;
+uint32_t __attribute__((used, externally_visible)) __stack_chk_guard = 0;
 
 int main(void)
 {

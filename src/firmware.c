@@ -21,6 +21,8 @@
     #include <u2f.h>
 #endif
 
+// GCC LTO needs externally_visible; clang-tidy parses with Clang and does not support it.
+// NOLINTNEXTLINE(clang-diagnostic-unknown-attributes)
 uint32_t __attribute__((used, externally_visible)) __stack_chk_guard = 0;
 
 int main(void)

@@ -14,7 +14,9 @@
 #include <rust/rust.h>
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
-void __attribute__((noreturn, used, externally_visible, no_stack_protector)) __stack_chk_fail(void)
+// GCC LTO needs externally_visible; clang-tidy parses with Clang and does not support it.
+// NOLINTNEXTLINE(clang-diagnostic-unknown-attributes)
+void __attribute__((noreturn, used, externally_visible)) __stack_chk_fail(void)
 {
     Abort("Stack smashing detected");
     while (1) {

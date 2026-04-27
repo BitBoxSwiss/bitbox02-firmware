@@ -41,6 +41,15 @@ project(bitbox02 C)
 
 # nosys is set in arm.cmake so that `project(c)` above works. Remove it since it interferes with compile options
 if(CMAKE_CROSSCOMPILING)
+  if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    message(FATAL_ERROR
+      "Firmware C LTO currently requires GCC. The stack-protector symbols use "
+      "GCC's externally_visible attribute so GCC LTO does not internalize or "
+      "drop __stack_chk_fail/__stack_chk_guard. Clang does not support that "
+      "attribute; add and verify compiler-specific symbol-retention handling "
+      "before enabling firmware C LTO with a non-GNU compiler."
+    )
+  endif()
   string(REPLACE "--specs=nosys.specs" "" CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
 endif()
 
@@ -141,9 +150,8 @@ if(CMAKE_CROSSCOMPILING)
   )
   # Allow gc-sections at linking stage. (TODO: move to targets that use that linking option)
   string(APPEND CMAKE_C_FLAGS " -ffunction-sections -fdata-sections")
-  string(APPEND CMAKE_C_FLAGS " -flto")
   set(CMAKE_C_LINK_FLAGS "\
-    ${CMAKE_C_LINK_FLAGS} -mcpu=cortex-m4 -mthumb  -Wl,--gc-sections -flto \
+    ${CMAKE_C_LINK_FLAGS} -mcpu=cortex-m4 -mthumb  -Wl,--gc-sections \
     "
   )
 

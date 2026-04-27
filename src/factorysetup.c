@@ -811,7 +811,7 @@ static uint8_t _root_pubkey_bytes[][ROOT_PUBKEY_SIZE] = {
     },
 };
 
-uint32_t __attribute__((used, externally_visible)) __stack_chk_guard = 0;
+uint32_t __stack_chk_guard = 0;
 
 typedef enum {
     OP_SET_ATTESTATION_SALT = 'a',

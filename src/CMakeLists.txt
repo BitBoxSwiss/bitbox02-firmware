@@ -416,6 +416,7 @@ if(CMAKE_CROSSCOMPILING)
   foreach(bootloader ${BOOTLOADERS})
     set(elf ${bootloader}.elf)
     add_executable(${elf} ${BOOTLOADER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+    target_compile_options(${elf} PRIVATE -fno-lto)
     target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_U2F=0")
@@ -483,6 +484,13 @@ if(CMAKE_CROSSCOMPILING)
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
+    # Static libraries are LTO-capable for firmware size, but only firmware images do the LTO link.
+    if(firmware STREQUAL "factory-setup")
+      target_compile_options(${elf} PRIVATE -fno-lto)
+    else()
+      target_compile_options(${elf} PRIVATE -flto -ffat-lto-objects)
+      target_link_libraries(${elf} PRIVATE -flto)
+    endif()
     # Must manually link against C so that malloc can find _sbrk
     target_link_libraries(${elf}
       PRIVATE

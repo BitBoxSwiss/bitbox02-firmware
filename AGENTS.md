@@ -54,6 +54,13 @@ an explicit shell as the command, e.g. `./scripts/dev_exec.sh bash -lc 'cat vers
   -  If you modify `messages/*.proto`, run `make generate-protobufs` before direct Rust `cargo`
      commands. Plain `cargo test`/`cargo check` does not regenerate the protobuf outputs.
 
+You may use `make -j$(nproc)` to speed up compilation. Do not use `make -j` without specfiying the
+number of processing units.
+
+Never run multiple `make` commands in parallel. For example, instead of
+`make -j$(nproc) firmware bootloader factory-setup`, run them one after the other: `make -j$(nproc) firmware; make -j$(nproc) bootloader; make -j$(nproc) factory-setup`.
+
+
 ## Coding Style & Naming Conventions
 `.clang-format` (Chromium base, 4-space indent, Linux braces) and `.clang-tidy` govern C/C++. Use
 `snake_case` for symbols, `PascalCase` for types, and `ALL_CAPS` for macros. Python utilities follow

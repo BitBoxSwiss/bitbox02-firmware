@@ -359,15 +359,15 @@ async fn handle_prevtx(
     let mut hasher = Sha256::new();
     hasher.update(prevtx_init.version.to_le_bytes());
 
+    let prevtx_total_ios = prevtx_init.num_inputs + prevtx_init.num_outputs;
+
     hasher.update(serialize(&VarInt(prevtx_init.num_inputs as u64)));
     for prevtx_input_index in 0..prevtx_init.num_inputs {
         // Update progress.
-        progress_component.set({
-            let step = 1f32 / (num_inputs as f32);
-            let subprogress: f32 = (prevtx_input_index as f32)
-                / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
-            (input_index as f32 + subprogress) * step
-        });
+        progress_component.set_fraction(
+            input_index * prevtx_total_ios + prevtx_input_index,
+            num_inputs * prevtx_total_ios,
+        );
 
         let prevtx_input = get_prevtx_input(input_index, prevtx_input_index, next_response).await?;
         hasher.update(prevtx_input.prev_out_hash.as_slice());
@@ -382,12 +382,10 @@ async fn handle_prevtx(
     hasher.update(serialize(&VarInt(prevtx_init.num_outputs as u64)));
     for prevtx_output_index in 0..prevtx_init.num_outputs {
         // Update progress.
-        progress_component.set({
-            let step = 1f32 / (num_inputs as f32);
-            let subprogress: f32 = (prevtx_init.num_inputs + prevtx_output_index) as f32
-                / (prevtx_init.num_inputs + prevtx_init.num_outputs) as f32;
-            (input_index as f32 + subprogress) * step
-        });
+        progress_component.set_fraction(
+            input_index * prevtx_total_ios + prevtx_init.num_inputs + prevtx_output_index,
+            num_inputs * prevtx_total_ios,
+        );
 
         let prevtx_output =
             get_prevtx_output(input_index, prevtx_output_index, next_response).await?;
@@ -759,7 +757,7 @@ async fn _process(
         progress_component
             .as_mut()
             .unwrap()
-            .set((input_index as f32) / (request.num_inputs as f32));
+            .set_fraction(input_index, request.num_inputs);
 
         let tx_input = get_tx_input(input_index, &mut next_response).await?;
         let script_config_account = validated_script_configs
@@ -846,7 +844,7 @@ async fn _process(
     }
 
     // The progress for loading the inputs is 100%.
-    progress_component.as_mut().unwrap().set(1.);
+    progress_component.as_mut().unwrap().set_fraction(1, 1);
 
     let hash_prevouts = hasher_prevouts.finalize();
     let hash_sequence = hasher_sequence.finalize();
@@ -1146,16 +1144,12 @@ async fn _process(
     let fee: u64 = total_out
         .checked_sub(outputs_sum_out)
         .ok_or(Error::InvalidInput)?;
-    let fee_percentage: Option<f64> = if outputs_sum_out == 0 {
-        None
-    } else {
-        Some(100. * (fee as f64) / (outputs_sum_out as f64))
-    };
+    let fee_percentage = transaction::warning_fee_percentage(fee, outputs_sum_out);
     transaction::verify_total_fee_maybe_warn(
         hal,
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
-        fee_percentage,
+        fee_percentage.as_deref(),
     )
     .await?;
     hal.ui().status("Transaction\nconfirmed", true).await;
@@ -1316,7 +1310,7 @@ async fn _process(
 
         // Update progress.
         if let Some(ref mut c) = progress_component {
-            c.set((input_index + 1) as f32 / (request.num_inputs as f32));
+            c.set_fraction(input_index + 1, request.num_inputs);
         }
     }
 

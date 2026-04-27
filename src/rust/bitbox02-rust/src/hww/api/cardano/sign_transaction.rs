@@ -278,12 +278,12 @@ async fn _process(
             })
             .await?;
     } else {
-        let fee_percentage: f64 = 100. * (request.fee as f64) / (total as f64);
+        let fee_percentage = transaction::warning_fee_percentage(request.fee, total);
         transaction::verify_total_fee_maybe_warn(
             hal,
             &format_value(params, total + request.fee),
             &format_value(params, request.fee),
-            Some(fee_percentage),
+            fee_percentage.as_deref(),
         )
         .await?;
     }

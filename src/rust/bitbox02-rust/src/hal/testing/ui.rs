@@ -73,7 +73,7 @@ pub struct TestingUi<'a> {
 pub struct NoopProgress;
 
 impl Progress for NoopProgress {
-    fn set(&mut self, _progress: f32) {}
+    fn set_fraction(&mut self, _numerator: u32, _denominator: u32) {}
 }
 
 pub struct NoopEmpty;

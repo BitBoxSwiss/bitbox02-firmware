@@ -163,8 +163,13 @@ async fn verify_standard_total_fee(
         value: amount_value.add(&fee.value),
     };
     let percentage = calculate_percentage(&fee.value, amount_value);
-    transaction::verify_total_fee_maybe_warn(hal, &total.format(), &fee.format(), percentage)
-        .await?;
+    transaction::verify_total_fee_maybe_warn(
+        hal,
+        &total.format(),
+        &fee.format(),
+        percentage.as_deref(),
+    )
+    .await?;
     Ok(())
 }
 

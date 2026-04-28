@@ -323,13 +323,11 @@ pub(crate) fn get_io_protection_key(out: &mut [u8; 32]) {
     unsafe { bitbox02_sys::memory_get_io_protection_key(out.as_mut_ptr()) }
 }
 
-#[cfg(test)]
-fn get_authorization_key(out: &mut [u8; 32]) {
+pub(crate) fn get_auth_key(out: &mut [u8; 32]) {
     unsafe { bitbox02_sys::memory_get_authorization_key(out.as_mut_ptr()) }
 }
 
-#[cfg(test)]
-fn get_encryption_key(out: &mut [u8; 32]) {
+pub(crate) fn get_encryption_key(out: &mut [u8; 32]) {
     unsafe { bitbox02_sys::memory_get_encryption_key(out.as_mut_ptr()) }
 }
 
@@ -764,22 +762,22 @@ mod tests {
         assert!(memory_setup(memory_setup_rand_mock_test_functional));
 
         let mut io_protection_key = [0u8; 32];
-        let mut authorization_key = [0u8; 32];
+        let mut auth_key = [0u8; 32];
         let mut encryption_key = [0u8; 32];
 
         get_io_protection_key(&mut io_protection_key);
-        get_authorization_key(&mut authorization_key);
+        get_auth_key(&mut auth_key);
         get_encryption_key(&mut encryption_key);
 
         let expected_io_protection_key =
             hex!("866b7a17a54a694eb6ea57d6754f76bc257cdd6bffc392813bbbd9fbedd5b145");
-        let expected_authorization_key =
+        let expected_auth_key =
             hex!("42b36c8396572dcde005d737ddad0036deb3f02351f460c43901fa520530b7d2");
         let expected_encryption_key =
             hex!("f4ee396cee35c5eccff2c9c7e9f0decbd1c82324f4b61c8ceeab819129abaf9c");
 
         assert_eq!(io_protection_key, expected_io_protection_key);
-        assert_eq!(authorization_key, expected_authorization_key);
+        assert_eq!(auth_key, expected_auth_key);
         assert_eq!(encryption_key, expected_encryption_key);
 
         assert!(memory_setup(memory_setup_rand_mock_test_functional));
@@ -789,11 +787,11 @@ mod tests {
         assert!(bootloader_set_flags(bitbox02_sys::secfalse_u8 as u8, true));
 
         get_io_protection_key(&mut io_protection_key);
-        get_authorization_key(&mut authorization_key);
+        get_auth_key(&mut auth_key);
         get_encryption_key(&mut encryption_key);
 
         assert_eq!(io_protection_key, expected_io_protection_key);
-        assert_eq!(authorization_key, expected_authorization_key);
+        assert_eq!(auth_key, expected_auth_key);
         assert_eq!(encryption_key, expected_encryption_key);
     }
 

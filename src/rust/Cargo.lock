@@ -239,6 +239,7 @@ dependencies = [
  "der",
  "grounded",
  "hex_lit",
+ "p256",
  "util",
  "zeroize",
 ]

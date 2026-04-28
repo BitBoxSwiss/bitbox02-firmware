@@ -16,6 +16,7 @@ critical-section = { workspace = true }
 grounded = { workspace = true }
 util = { path = "../util", features = ["sha2"] }
 der = { version = "0.7.9", default-features = false }
+p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"] }
 zeroize = { workspace = true }
 
 [features]

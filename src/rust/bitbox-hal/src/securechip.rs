@@ -84,13 +84,22 @@ pub trait SecureChip {
     ///
     /// This must not increment a monotonic counter.
     ///
+    /// `memory` is used for persistent secrets needed by some secure-chip backends.
+    ///
     /// `msg` must be 32 bytes long.
-    async fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error>;
+    async fn kdf(
+        &mut self,
+        memory: &mut impl super::memory::Memory,
+        msg: &[u8; 32],
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error>;
 
     /// Signs a 32-byte attestation challenge and writes the raw 64-byte P-256 signature to
     /// `signature`.
+    ///
+    /// `memory` is used for persistent secrets needed by some secure-chip backends.
     async fn attestation_sign(
         &mut self,
+        memory: &mut impl super::memory::Memory,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()>;
@@ -99,7 +108,7 @@ pub trait SecureChip {
     async fn monotonic_increments_remaining(&mut self) -> Result<u32, ()>;
 
     /// Returns the detected secure-chip model.
-    fn model(&mut self) -> Result<Model, ()>;
+    async fn model(&mut self) -> Result<Model, ()>;
 
     /// Resets the secure-chip objects involved in password stretching.
     async fn reset_keys(
@@ -111,10 +120,27 @@ pub trait SecureChip {
     #[cfg(feature = "app-u2f")]
     /// Sets the U2F counter to `counter`.
     ///
+    /// `random` is used by some secure-chip backends for authenticated encrypted writes.
+    ///
+    /// `memory` is used for persistent secrets needed by some secure-chip backends.
+    ///
     /// This is intended for initialization only.
-    async fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()>;
+    async fn u2f_counter_set(
+        &mut self,
+        random: &mut impl super::random::Random,
+        memory: &mut impl super::memory::Memory,
+        counter: u32,
+    ) -> Result<(), ()>;
 
     #[cfg(feature = "app-u2f")]
     /// Increments the U2F counter and returns the new value.
-    async fn u2f_counter_inc(&mut self) -> Result<u32, ()>;
+    ///
+    /// `random` is used by some secure-chip backends for authenticated encrypted writes.
+    ///
+    /// `memory` is used for persistent secrets needed by some secure-chip backends.
+    async fn u2f_counter_inc(
+        &mut self,
+        random: &mut impl super::random::Random,
+        memory: &mut impl super::memory::Memory,
+    ) -> Result<u32, ()>;
 }

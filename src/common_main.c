@@ -32,13 +32,6 @@ static const memory_interface_functions_t _memory_interface_functions = {
     .random_32_bytes = random_32_bytes_mcu,
 };
 
-static const securechip_interface_functions_t _securechip_interface_functions = {
-    .get_auth_key = memory_get_authorization_key,
-    .get_io_protection_key = memory_get_io_protection_key,
-    .get_encryption_key = memory_get_encryption_key,
-    .random_32_bytes = random_32_bytes,
-};
-
 void common_main(void)
 {
     mpu_bitbox02_init();
@@ -55,7 +48,7 @@ void common_main(void)
     }
     // rust_securechip_setup must come after memory_setup, so the io/auth keys to be
     // used are already initialized.
-    int securechip_result = rust_securechip_setup(&_securechip_interface_functions);
+    int securechip_result = rust_securechip_setup();
     if (securechip_result) {
         char errmsg[100] = {0};
         snprintf(

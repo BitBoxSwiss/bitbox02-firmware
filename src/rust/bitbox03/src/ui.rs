@@ -38,7 +38,7 @@ impl<Timer> Drop for ScreenGuard<'_, Timer> {
 }
 
 impl hal::ui::Progress for BitBox03UiProgress {
-    fn set(&mut self, _progress: f32) {
+    fn set_fraction(&mut self, _numerator: u32, _denominator: u32) {
         todo!()
     }
 }

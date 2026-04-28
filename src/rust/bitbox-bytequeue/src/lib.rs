@@ -6,6 +6,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
+use util::bytes::Bytes;
 
 pub struct ByteQueue {
     queue: VecDeque<u8>,
@@ -37,6 +38,18 @@ impl ByteQueue {
             panic!("bytequeue overflow");
         }
         self.queue.push_back(data);
+    }
+
+    /// Pushes all bytes to the back of the queue.
+    ///
+    /// Returns `false` if inserting would exceed the initial capacity. In that case, no bytes are
+    /// inserted.
+    pub fn try_put_slice(&mut self, data: &[u8]) -> bool {
+        if data.len() > self.initial_capacity - self.queue.len() {
+            return false;
+        }
+        self.queue.extend(data.iter().copied());
+        true
     }
 
     /// Pops one byte from the front of the queue.
@@ -133,6 +146,24 @@ pub unsafe extern "C" fn rust_bytequeue_put(rb: *mut RustByteQueue, data: u8) {
     }
 }
 
+/// Pushes all bytes to the back of the queue.
+///
+/// Returns false if inserting would exceed the queue capacity. In that case, no bytes are inserted.
+///
+/// # Safety
+/// `rb` must be either null or a valid pointer to a [`ByteQueue`] for the
+/// duration of this call. If non-null, the pointed-to bytequeue must not be
+/// aliased for mutable access elsewhere.
+///
+/// `data` must reference a valid byte buffer for the duration of this call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rust_bytequeue_try_put_slice(rb: *mut RustByteQueue, data: Bytes) -> bool {
+    let Some(rb) = (unsafe { bytequeue_mut(rb) }) else {
+        return false;
+    };
+    rb.try_put_slice(data.as_ref())
+}
+
 /// Returns the current number of queued bytes.
 ///
 /// # Safety
@@ -167,6 +198,7 @@ mod tests {
     use super::*;
 
     use core::ptr;
+    use util::bytes::rust_util_bytes;
 
     struct TestByteQueue {
         ptr: *mut RustByteQueue,
@@ -225,6 +257,19 @@ mod tests {
     }
 
     #[test]
+    fn test_bytequeue_try_put_slice_overflow_is_atomic() {
+        let mut rb = ByteQueue::with_capacity(3);
+        rb.put(1);
+        assert!(rb.try_put_slice(&[2]));
+        assert!(!rb.try_put_slice(&[3, 4]));
+
+        assert_eq!(rb.num(), 2);
+        assert_eq!(rb.get(), Some(1));
+        assert_eq!(rb.get(), Some(2));
+        assert_eq!(rb.get(), None);
+    }
+
+    #[test]
     fn test_rust_bytequeue_init_free() {
         let rb = rust_bytequeue_init(0);
         assert!(!rb.is_null());
@@ -248,6 +293,31 @@ mod tests {
 
             assert!(rust_bytequeue_get(rb.ptr, &mut out));
             assert_eq!(out, 3);
+        }
+    }
+
+    #[test]
+    fn test_rust_bytequeue_try_put_slice_overflow_is_atomic() {
+        let rb = TestByteQueue::with_capacity(3);
+        let data = [1, 2];
+        let too_much = [3, 4];
+        unsafe {
+            assert!(rust_bytequeue_try_put_slice(
+                rb.ptr,
+                rust_util_bytes(data.as_ptr(), data.len())
+            ));
+            assert!(!rust_bytequeue_try_put_slice(
+                rb.ptr,
+                rust_util_bytes(too_much.as_ptr(), too_much.len())
+            ));
+            assert_eq!(rust_bytequeue_num(rb.ptr), 2);
+
+            let mut out = 0;
+            assert!(rust_bytequeue_get(rb.ptr, &mut out));
+            assert_eq!(out, 1);
+            assert!(rust_bytequeue_get(rb.ptr, &mut out));
+            assert_eq!(out, 2);
+            assert!(!rust_bytequeue_get(rb.ptr, &mut out));
         }
     }
 

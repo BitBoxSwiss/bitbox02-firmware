@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Fixed a crash when listing many backups over Bluetooth
 
 ### v9.26.1
 - Fix a payment request validation issue

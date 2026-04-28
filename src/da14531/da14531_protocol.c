@@ -346,10 +346,11 @@ struct da14531_protocol_frame* da14531_protocol_poll(
         int len = da14531_protocol_format(
             &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_BLE_DATA, *hww_data, 64);
         ASSERT(len <= (int)sizeof(tmp));
-        util_log("out: %s", util_dbg_hex(*hww_data, 64));
-        for (int i = 0; i < len; i++) {
-            rust_bytequeue_put(out_queue, tmp[i]);
+        if (!rust_bytequeue_try_put_slice(out_queue, rust_util_bytes(tmp, len))) {
+            util_log("bytequeue full");
+            return NULL;
         }
+        util_log("out: %s", util_dbg_hex(*hww_data, 64));
         *hww_data = NULL;
     }
     struct da14531_protocol_frame* frame = NULL;

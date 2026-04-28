@@ -294,6 +294,9 @@ dependencies = [
 [[package]]
 name = "bitbox-bytequeue"
 version = "0.1.0"
+dependencies = [
+ "util",
+]
 
 [[package]]
 name = "bitbox-da14531"

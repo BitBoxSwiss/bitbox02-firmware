@@ -205,7 +205,9 @@ aux_source_directory(optiga-trust-m/external/mbedtls/library MBEDTLS_FILES)
 aux_source_directory(optiga-trust-m/src/comms/ifx_i2c SRC_COMMS_IFX_I2C_FILES)
 aux_source_directory(optiga-trust-m/src/crypt SRC_CRYPT_FILES)
 aux_source_directory(optiga-trust-m/src/util SRC_UTIL_FILES)
-set(PAL_FILES optiga-trust-m/extras/pal/pal_crypt_mbedtls.c)
+# Keep a repo-owned copy of external/optiga-trust-m/extras/pal/pal_crypt_mbedtls.c,
+# adjusted to use our own SHA256/HMAC implementation for pal_crypt_tls_prf_sha256().
+set(PAL_FILES ${PROJECT_SOURCE_DIR}/src/optiga/pal/pal_crypt_bitbox.c)
 add_library(optiga EXCLUDE_FROM_ALL
   ${SRC_CMD_FILES}
   ${SRC_COMMON_FILES}

@@ -44,14 +44,15 @@ fn truncating_hex_preview_byte_cap(prefix_len: usize, data_length: usize) -> usi
 pub(crate) async fn derive_address(
     hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
+    compute: crate::keystore::Compute,
 ) -> Result<alloc::string::String, Error> {
     if !keypath::is_valid_keypath_address(keypath) {
         return Err(Error::InvalidInput);
     }
-    let pubkey = crate::keystore::get_xpub(hal, keypath, crate::keystore::Compute::Twice)
+    let xpub = crate::keystore::get_xpub(hal, keypath, compute)
         .await
-        .or(Err(Error::InvalidInput))?
-        .pubkey_uncompressed()?;
+        .or(Err(Error::InvalidInput))?;
+    let pubkey = xpub.pubkey_uncompressed().or(Err(Error::InvalidInput))?;
     Ok(address::from_pubkey(&pubkey))
 }
 
@@ -126,7 +127,9 @@ mod tests {
 
         // Standard Ethereum keypath
         let keypath = vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        let address = derive_address(&mut hal, &keypath).await.unwrap();
+        let address = derive_address(&mut hal, &keypath, crate::keystore::Compute::Twice)
+            .await
+            .unwrap();
 
         // This is the expected address for the mock keystore seed with this keypath
         assert_eq!(address, "0x773A77b9D32589be03f9132AF759e294f7851be9");
@@ -138,7 +141,7 @@ mod tests {
 
         // Invalid keypath (too short)
         let keypath = vec![44 + HARDENED, 60 + HARDENED];
-        let result = derive_address(&mut hal, &keypath).await;
+        let result = derive_address(&mut hal, &keypath, crate::keystore::Compute::Twice).await;
 
         assert!(matches!(result, Err(Error::InvalidInput)));
     }

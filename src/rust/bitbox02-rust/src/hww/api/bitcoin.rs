@@ -141,6 +141,7 @@ pub async fn derive_address_simple(
     coin: BtcCoin,
     simple_type: SimpleType,
     keypath: &[u32],
+    compute: crate::keystore::Compute,
 ) -> Result<String, Error> {
     let coin_params = params::get(coin);
     keypath::validate_address_simple(
@@ -153,7 +154,7 @@ pub async fn derive_address_simple(
     .or(Err(Error::InvalidInput))?;
     Ok(common::Payload::from_simple(
         hal,
-        &mut crate::xpubcache::XpubCache::new(crate::keystore::Compute::Twice),
+        &mut crate::xpubcache::XpubCache::new(compute),
         coin_params,
         simple_type,
         keypath,
@@ -170,7 +171,14 @@ async fn address_simple(
     keypath: &[u32],
     display: bool,
 ) -> Result<Response, Error> {
-    let address = derive_address_simple(hal, coin, simple_type, keypath).await?;
+    let address = derive_address_simple(
+        hal,
+        coin,
+        simple_type,
+        keypath,
+        crate::keystore::Compute::Twice,
+    )
+    .await?;
     if display {
         let address_formatted = util::strings::format_address(&address);
         let confirm_params = ConfirmParams {

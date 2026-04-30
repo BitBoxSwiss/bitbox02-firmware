@@ -30,7 +30,8 @@ async fn process_address(
         Some(erc20_params::get(params.chain_id, address).ok_or(Error::InvalidInput)?)
     };
 
-    let address = super::derive_address(hal, &request.keypath).await?;
+    let address =
+        super::derive_address(hal, &request.keypath, crate::keystore::Compute::Twice).await?;
 
     if request.display {
         let address_display = super::address::format_display_address(&address);

@@ -1,0 +1,20 @@
+[package]
+name = "bitbox03-boot1"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitbox-boot-utils = { path = "../../bitbox-boot-utils" }
+bitbox-executor = { path = "../../bitbox-executor" }
+bitbox-board-stm32u5-dk = { path = "../../bitbox-board-stm32u5-dk" }
+bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
+bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
+bitbox-u2fhid = { path = "../../bitbox-u2fhid" }
+bitbox03-boot-utils = { path = "../../bitbox03-boot-utils" }
+cortex-m = { workspace = true }
+cortex-m-rt = "0.7"
+embedded-alloc = { version = "0.7" }
+sha2 = { workspace = true }
+
+[build-dependencies]
+bitbox-board-stm32u5-dk-build = { path = "../../bitbox-board-stm32u5-dk-build" }

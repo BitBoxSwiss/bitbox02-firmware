@@ -1,0 +1,21 @@
+[package]
+name = "bitbox03-factorysetup"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+#bitcoin = { workspace = true }
+bitbox-securechip = { path = "../../bitbox-securechip" }
+bitbox-board-stm32u5-dk = { path = "../../bitbox-board-stm32u5-dk" }
+bitbox-boot-utils = { path = "../../bitbox-boot-utils" }
+bitbox03-boot-utils = { path = "../../bitbox03-boot-utils" }
+bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
+bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
+cortex-m = { workspace = true }
+cortex-m-rt = "0.7"
+embedded-alloc = { version = "0.7" }
+rtt-target = "0.6.1"
+sha2 = { workspace = true }
+
+[build-dependencies]
+bitbox-board-stm32u5-dk-build = { path = "../../bitbox-board-stm32u5-dk-build" }

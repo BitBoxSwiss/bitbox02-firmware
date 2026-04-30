@@ -14,6 +14,13 @@ pub async fn attestation_sign(challenge: &[u8; 32], signature: &mut [u8; 64]) ->
     }
 }
 
+pub fn gen_attestation_key(pubkey_out: &mut [u8; 64]) -> Result<(), ()> {
+    match unsafe { bitbox_securechip_sys::atecc_gen_attestation_key(pubkey_out.as_mut_ptr()) } {
+        true => Ok(()),
+        false => Err(()),
+    }
+}
+
 pub fn random() -> Result<Box<Zeroizing<[u8; 32]>>, Error> {
     let mut result = Box::new(Zeroizing::new([0u8; 32]));
     let status = unsafe { bitbox_securechip_sys::atecc_random(result.as_mut_ptr()) };

@@ -74,6 +74,13 @@ impl ArbitraryData {
     }
 }
 
+//pub fn gen_attestation_key(pubkey_out: &mut [u8; 64]) -> Result<(), ()> {
+//    match unsafe { bitbox_securechip_sys::optiga_gen_attestation_key(pubkey_out.as_mut_ptr()) } {
+//        true => Ok(()),
+//        false => Err(()),
+//    }
+//}
+//
 #[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
 async fn read_arbitrary_data() -> Result<ArbitraryData, Error> {
     let mut data = ArbitraryData::new();

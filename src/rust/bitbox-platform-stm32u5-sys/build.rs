@@ -1,0 +1,237 @@
+// SPDX-License-Identifier: Apache-2.0
+
+use std::env;
+use std::fs;
+use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+const ST_SOURCES: &[&str] = &[
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_adc.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_adc_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dma.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dma_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_i2c.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_i2c_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_rcc.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_rcc_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_cortex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_hash.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_hash_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_flash.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_xspi.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_flash_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_gpio.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_exti.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_pwr.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_pwr_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_gtzc.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_icache.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_xspi.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dlyb.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_ospi.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_sdmmc.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_sd.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_sd_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_mmc.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_mmc_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_sdio.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_uart.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_uart_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_hcd.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_pcd.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_pcd_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_usb.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_gpu2d.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_ltdc.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_ltdc_ex.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dsi.c",
+    "stm32u5-dk/Src/usart.c",
+    "stm32u5-dk/Src/hash.c",
+    "stm32u5-dk/Src/usb_otg.c",
+    "USBX/App/app_usbx_device.c",
+    "USBX/App/ux_device_customhid.c",
+    "USBX/App/ux_device_descriptors.c",
+];
+
+const ST_DEFINES: &[&str] = &[
+    "USE_HAL_DRIVER",
+    "STM32U5A9xx",
+    "UX_INCLUDE_USER_DEFINE_FILE",
+];
+const ST_DEBUG_DEFINES: &[(&str, &str)] = &[("USE_FULL_ASSERT", "1U")];
+
+const ST_INCLUDES: &[&str] = &[
+    "stm32u5-dk/Inc",
+    "Drivers/STM32U5xx_HAL_Driver/Inc",
+    "Drivers/STM32U5xx_HAL_Driver/Inc/Legacy",
+    "Drivers/CMSIS/Device/ST/STM32U5xx/Include",
+    "Drivers/CMSIS/Include",
+    "USBX/App",
+    "USBX/Target",
+    "Middlewares/ST/usbx/common/core/inc",
+    "Middlewares/ST/usbx/common/usbx_device_classes/inc",
+    "Middlewares/ST/usbx/common/usbx_stm32_device_controllers",
+    "Middlewares/ST/usbx/ports/generic/inc",
+];
+
+const USBX_SOURCE_DIRS: &[&str] = &[
+    "Middlewares/ST/usbx/common/core/src",
+    "Middlewares/ST/usbx/common/usbx_stm32_device_controllers",
+];
+
+fn collect_sources(dir: &Path, prefix: Option<&str>) -> Result<Vec<PathBuf>, &'static str> {
+    let entries = fs::read_dir(dir).map_err(|_| "failed to read USBX source directory")?;
+    let mut paths = vec![];
+    for entry in entries {
+        let path = entry
+            .map_err(|_| "failed to inspect USBX source directory entry")?
+            .path();
+        if path.extension().and_then(|s| s.to_str()) != Some("c") {
+            continue;
+        }
+        if let Some(prefix) = prefix {
+            let Some(file_name) = path.file_name().and_then(|s| s.to_str()) else {
+                continue;
+            };
+            if !file_name.starts_with(prefix) {
+                continue;
+            }
+        }
+        paths.push(path);
+    }
+    paths.sort();
+    Ok(paths)
+}
+
+fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(), &'static str> {
+    let res = Command::new("bindgen")
+        .arg("--output")
+        .arg(output)
+        .arg("--use-core")
+        .arg("--with-derive-default")
+        .arg("--no-layout-tests")
+        .arg("--rustified-enum")
+        .arg(".*")
+        .arg(wrapper)
+        .arg("--")
+        .args(clang_args)
+        .output()
+        .expect("failed to run bindgen");
+
+    if !res.status.success() {
+        println!(
+            "bindgen-out:\n{}\n\nbindgen-err:\n{}",
+            std::str::from_utf8(&res.stdout).unwrap_or("invalid utf8"),
+            std::str::from_utf8(&res.stderr).unwrap_or("invalid utf8"),
+        );
+        return Err("bindgen failed");
+    }
+    Ok(())
+}
+
+fn is_release_profile() -> bool {
+    env::var("PROFILE").expect("PROFILE not set") == "release"
+}
+
+fn main() -> Result<(), &'static str> {
+    println!("cargo::rerun-if-changed=wrapper.h");
+    println!("cargo::rerun-if-env-changed=PROFILE");
+
+    let manifest_dir =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
+    let repo_root = manifest_dir.join("../../..");
+    let st_root = repo_root.join("external/ST");
+
+    if !st_root.is_dir() {
+        return Err("external/ST not found");
+    }
+
+    for source in ST_SOURCES {
+        println!(
+            "cargo::rerun-if-changed={}",
+            st_root.join(source).as_path().display()
+        );
+    }
+    for source_dir in USBX_SOURCE_DIRS {
+        println!(
+            "cargo::rerun-if-changed={}",
+            st_root.join(source_dir).as_path().display()
+        );
+    }
+    println!(
+        "cargo::rerun-if-changed={}",
+        st_root
+            .join("Middlewares/ST/usbx/common/usbx_device_classes/src")
+            .display()
+    );
+    for include in ST_INCLUDES {
+        println!(
+            "cargo::rerun-if-changed={}",
+            st_root.join(include).as_path().display()
+        );
+    }
+
+    if let Err(err) = Command::new("bindgen").arg("--version").output() {
+        if err.kind() == ErrorKind::NotFound {
+            return Err("`bindgen` executable was not found. Check your PATH.");
+        }
+        return Err("failed to execute `bindgen --version`");
+    }
+
+    let include_paths: Vec<PathBuf> = ST_INCLUDES.iter().map(|p| st_root.join(p)).collect();
+
+    let release_profile = is_release_profile();
+    let mut clang_args: Vec<String> = ST_DEFINES.iter().map(|d| format!("-D{d}")).collect();
+    if !release_profile {
+        clang_args.extend(
+            ST_DEBUG_DEFINES
+                .iter()
+                .map(|(key, value)| format!("-D{key}={value}")),
+        );
+    }
+    clang_args.extend(
+        include_paths
+            .iter()
+            .map(|p| format!("-I{}", p.as_path().display())),
+    );
+    // Parse headers as Cortex-M33, matching the ST project that generated these files.
+    clang_args.push("--target=thumbv8m.main-none-eabihf".to_owned());
+
+    let wrapper = manifest_dir.join("wrapper.h");
+    if !wrapper.is_file() {
+        return Err("wrapper.h not found");
+    }
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let out_path = out_dir.join("bindings.rs");
+    run_bindgen(&wrapper, &out_path, &clang_args)?;
+
+    // ST sources are Cortex-M only and do not compile as host objects.
+    let target = env::var("TARGET").expect("TARGET not set");
+    if target.starts_with("thumb") {
+        let mut source_paths: Vec<PathBuf> = ST_SOURCES.iter().map(|p| st_root.join(p)).collect();
+        for source_dir in USBX_SOURCE_DIRS {
+            source_paths.extend(collect_sources(&st_root.join(source_dir), None)?);
+        }
+        source_paths.extend(collect_sources(
+            &st_root.join("Middlewares/ST/usbx/common/usbx_device_classes/src"),
+            Some("ux_device_class_hid"),
+        )?);
+        let mut build = cc::Build::new();
+        build.files(&source_paths);
+        for def in ST_DEFINES {
+            build.define(def, None);
+        }
+        if !release_profile {
+            for (key, value) in ST_DEBUG_DEFINES {
+                build.define(key, Some(*value));
+            }
+        }
+        build.includes(&include_paths);
+        // Suppress warnings in third-party sources.
+        build.flag_if_supported("-w");
+        build.compile("st_drivers");
+    }
+    Ok(())
+}

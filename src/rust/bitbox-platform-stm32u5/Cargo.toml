@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-platform-stm32u5"
+version = "0.1.0"
+edition = "2024"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+description = "Idiomatic Rust bindings for the STM32U5 platform in bitbox02-firmware"
+license = "Apache-2.0"
+
+[dependencies]
+bitbox-mcu-stm32u5 = { path = "../bitbox-mcu-stm32u5" }
+bitbox-platform-stm32u5-sys = { path = "../bitbox-platform-stm32u5-sys" }
+cortex-m = { workspace = true }
+# Set stack pointer and vector offset in startup code to make it easier to run
+# firmware from debugger / non-bootloader environments. Not strictly necessary
+# in release builds.
+cortex-m-rt = { version = "0.7", features = ["set-sp", "set-vtor", "device"]}

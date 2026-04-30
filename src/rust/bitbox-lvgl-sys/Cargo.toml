@@ -7,8 +7,11 @@ edition = "2024"
 license = "Apache-2.0"
 description = "Rust bindings for LVGL in bitbox02-firmware"
 
+[features]
+config-firmware = []
+st-ltdc = []
+
 [build-dependencies]
-cmake = "0.1"
 cc = "1.2"
 
 [lib]

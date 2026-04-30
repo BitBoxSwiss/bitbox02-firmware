@@ -3,12 +3,10 @@
 # This makefile is used as a command runner and not for tracking dependencies between recipies
 
 UNAME_S := $(shell uname -s)
+SYSROOT := $(shell arm-none-eabi-gcc --print-sysroot)
 
 .DEFAULT_GOAL := firmware
 SANITIZE ?= ON
-
-bootstrap:
-	git submodule update --init --recursive
 
 build/Makefile:
 	mkdir -p build
@@ -107,11 +105,6 @@ unit-test: | build-build
 # Must compile C tests before running them
 run-unit-tests: | build-build
 	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test
-# Only one test thread because of unsafe concurrent access to `SafeData`,
-# `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex
-# poisoning and very messy output in case of a unit test failure.
-run-rust-unit-tests:
-	cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1
 run-rust-clippy: | build-build-noasan
 	${MAKE} -C build-build-noasan rust-clippy
 # Must run tests before creating coverage report
@@ -192,3 +185,44 @@ clean:
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
 	(cd external; ./vendor-rust.sh)
+
+# It is important that cargo is executed from `src/rust` so that it loads the
+# configration for the vendored dependencies.
+bitbox03-firmware:
+	(cd src/rust; cargo build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --features rtt)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+bitbox03-firmware-release:
+	(cd src/rust; cargo build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --release)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+bitbox03-factorysetup:
+	(cd src/rust; cargo build -p bitbox03-factorysetup --target=thumbv8m.main-none-eabihf)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-factorysetup
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-factorysetup
+bitbox03-factorysetup-release:
+	(cd src/rust; cargo build -p bitbox03-factorysetup --target=thumbv8m.main-none-eabihf --release)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
+bitbox03-boot0:
+	(cd src/rust; cargo build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --features rtt)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
+bitbox03-boot0-release:
+	(cd src/rust; cargo build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --release)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
+bitbox03-boot1:
+	(cd src/rust; cargo build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --features rtt)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+bitbox03-boot1-release:
+	(cd src/rust; cargo build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --release)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+flash-bitbox03-boot0-openocd:
+	./scripts/flash-bitbox03-boot0-openocd.sh
+flash-bitbox03-boot1-openocd:
+	./scripts/flash-bitbox03-boot1-openocd.sh
+bootstrap:
+	./scripts/bootstrap.sh

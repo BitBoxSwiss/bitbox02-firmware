@@ -1,0 +1,9 @@
+[package]
+name = "bitbox-boot-utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cortex-m = { workspace = true }
+sha2 = { workspace = true }
+p256 = { version = "0.13.2", default-features = false, features = ["arithmetic", "ecdsa"] }

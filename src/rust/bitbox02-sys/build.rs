@@ -328,30 +328,31 @@ pub fn main() -> BuildResult<()> {
     ensure_command_exists("bindgen")?;
 
     let target = env::var("TARGET").expect("TARGET not set");
-    let cross_compiling = target == "thumbv7em-none-eabi";
+    let cross_compiling = target.starts_with("thumb");
 
-    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
-    let arm_sysroot = format!("--sysroot={arm_sysroot}");
-
-    let mut extra_flags = if cross_compiling {
-        vec![
-            "-D__SAMD51J20A__",
-            "--target=thumbv7em-none-eabi",
-            "-mcpu=cortex-m4",
-            "-mthumb",
-            "-mfloat-abi=soft",
-            &arm_sysroot,
-            "-fshort-enums",
-        ]
+    let mut extra_flags: Vec<String> = if cross_compiling {
+        let flags = vec![
+            "-D__SAMD51J20A__".to_owned(),
+            format!("--target={target}"),
+            "-mcpu=cortex-m4".to_owned(),
+            "-mthumb".to_owned(),
+            "-mfloat-abi=soft".to_owned(),
+            "-fshort-enums".to_owned(),
+        ];
+        flags
     } else {
-        vec!["-DTESTING", "-D_UNIT_TEST_", "-DPRODUCT_BITBOX_MULTI=1"]
+        vec![
+            "-DTESTING".to_owned(),
+            "-D_UNIT_TEST_".to_owned(),
+            "-DPRODUCT_BITBOX_MULTI=1".to_owned(),
+        ]
     };
 
     // If user enables -Dwarnings for rust we also want to enable -Werror for C.
     if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
         for flag in rustflags.split('\x1f') {
             if flag == "-Dwarnings" {
-                extra_flags.push("-Werror");
+                extra_flags.push("-Werror".to_owned());
             }
         }
     }
@@ -375,9 +376,14 @@ pub fn main() -> BuildResult<()> {
     ];
 
     let generated_headers_dir = if cross_compiling {
-        env::var("CMAKE_CURRENT_BINARY_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| out_dir.join("../../../../../.."))
+        match env::var("CMAKE_CURRENT_BINARY_DIR") {
+            Ok(dir) => PathBuf::from(dir),
+            Err(_) => {
+                ensure_command_exists("cbindgen")?;
+                generate_native_headers(&repo_root, &out_dir)?;
+                out_dir.clone()
+            }
+        }
     } else {
         ensure_command_exists("cbindgen")?;
         generate_native_headers(&repo_root, &out_dir)?;
@@ -424,8 +430,8 @@ pub fn main() -> BuildResult<()> {
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let mut definitions = vec!["-DAPP_U2F=1"];
-    definitions.extend(&extra_flags);
+    let mut definitions = vec!["-DAPP_U2F=1".to_owned()];
+    definitions.extend(extra_flags);
 
     run_command(
         Command::new("bindgen")

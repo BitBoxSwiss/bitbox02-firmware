@@ -27,9 +27,20 @@ members = [
     "streaming-silent-payments",
     "bitbox-aes",
     "fatfs-sys",
+    "bitbox-mcu-stm32u5",
+    "bitbox-board-stm32u5-dk",
+    "bitbox-board-stm32u5-dk-build",
+    "bitbox-platform-stm32u5",
+    "bitbox-platform-stm32u5-sys",
     "bitbox-executor",
+    "bitbox-boot-utils",
+    "bitbox03-boot-utils",
     "bitbox03",
     "bitbox-lvgl",
+    "bins/bitbox03-factorysetup",
+    "bins/bitbox03-boot0",
+    "bins/bitbox03-boot1",
+    "bins/bitbox03-firmware",
 ]
 
 resolver = "2"
@@ -64,7 +75,7 @@ grounded = { version = "0.2.0", default-features = false, features = ["critical-
 critical-section = { version = "1.2.0", default-features = false }
 
 [patch.crates-io]
-rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }
+rtt-target = { path = "../../../rtt-target/rtt-target" }
 
 [profile.release]
 # This only affects the .elf output. Debug info is stripped from the final .bin.

@@ -1,11 +1,6 @@
 [source.crates-io]
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"]
-git = "https://github.com/probe-rs/rtt-target.git"
-rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
-replace-with = "vendored-sources"
-
 [source."git+https://github.com/BitBoxSwiss/rust-bip32-ed25519?tag=v0.2.1"]
 git = "https://github.com/BitBoxSwiss/rust-bip32-ed25519"
 tag = "v0.2.1"
@@ -25,3 +20,11 @@ directory = "../../external/vendor"
 # test/simulator-graphical*/CMakeLists.txt for CMake-based builds.
 # See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
 rustflags = ["--cfg", "rust_secp_no_symbol_renaming"]
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+rustflags = [
+  "-C", "linker-plugin-lto",
+  # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
+  # See https://github.com/rust-embedded/cortex-m-quickstart/pull/95
+  "-C", "link-arg=--nmagic",
+]

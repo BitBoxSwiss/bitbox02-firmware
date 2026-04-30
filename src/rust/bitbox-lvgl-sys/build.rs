@@ -5,6 +5,8 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+include!("lvgl_sources.rs");
+
 fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(), &'static str> {
     let res = Command::new("bindgen")
         .arg("--output")
@@ -30,23 +32,11 @@ fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(
     Ok(())
 }
 
-fn sysroot() -> String {
-    if let Ok(output) = cc::Build::new()
-        .get_compiler()
-        .to_command()
-        .arg("-print-sysroot")
-        .output()
-    {
-        let sysroot = String::from_utf8(output.stdout).expect("invalid utf-8");
-        sysroot.trim().to_owned()
-    } else {
-        panic!("Could not determine sysroot");
-    }
-}
-
 fn main() -> Result<(), &'static str> {
     println!("cargo::rerun-if-changed=wrapper.h");
-    println!("cargo::rerun-if-env-changed=LV_CONF_PATH");
+    println!("cargo::rerun-if-changed=lvgl_sources.rs");
+    println!("cargo::rerun-if-env-changed=CARGO_FEATURE_ST_LTDC");
+    println!("cargo::rerun-if-env-changed=CARGO_FEATURE_CONFIG_FIRMWARE");
 
     let manifest_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
@@ -67,58 +57,46 @@ fn main() -> Result<(), &'static str> {
     println!("cargo::rerun-if-changed={}", lvgl_header.display());
     println!("cargo::rerun-if-changed={}", lvgl_dir.display());
 
+    let st_ltdc_enabled = env::var_os("CARGO_FEATURE_ST_LTDC").is_some();
+    let firmware_enabled = env::var_os("CARGO_FEATURE_CONFIG_FIRMWARE").is_some();
     let target = env::var("TARGET").expect("TARGET not set");
 
-    let mut cflags = vec![format!("-I{}", lvgl_dir.display())];
-    let mut cmake_build = cmake::Config::new(&lvgl_dir);
-
-    let lv_conf = match env::var("LV_CONF_PATH") {
-        Err(_) => manifest_dir.join("lv_conf.h"),
-        Ok(lv_conf) => {
-            let lv_conf: PathBuf = lv_conf.into();
-            lv_conf.canonicalize().expect("canonicalizing LV_CONF")
-        }
-    };
-    println!("cargo::rerun-if-changed={}", lv_conf.display());
-    cmake_build.define("LV_BUILD_CONF_PATH", &lv_conf);
-
-    if target.starts_with("thumb") {
-        let sysroot = sysroot();
-        cflags.push(format!("--sysroot={}", sysroot.trim()));
-    }
-
-    const INCLUDES: &[&str] = &[
-        "Core/Inc",
-        "Drivers/STM32U5xx_HAL_Driver/Inc",
-        "Drivers/STM32U5xx_HAL_Driver/Inc/Legacy",
-        "Drivers/CMSIS/Device/ST/STM32U5xx/Include",
-        "Drivers/CMSIS/Include",
+    let mut cflags = vec![
+        format!("-I{}", lvgl_dir.display()),
+        "-DLV_KCONFIG_IGNORE".to_owned(),
+        "-DLV_LVGL_H_INCLUDE_SIMPLE".to_owned(),
     ];
-    let st_root = repo_root.join("external/ST");
-    for inc in INCLUDES {
-        let inc_full = st_root.join(inc);
-        cmake_build.cflag(format!("-I{}", inc_full.display()));
+    if st_ltdc_enabled {
+        cflags.push("-DLV_USE_ST_LTDC=1".to_owned());
+        cflags.push("-DUSE_HAL_DRIVER".to_owned());
+        cflags.push("-DSTM32U5A9xx".to_owned());
     }
-    cmake_build.cflag("-w");
+
+    let lv_conf = manifest_dir.join("lv_conf.h");
+    println!("cargo::rerun-if-changed={}", lv_conf.display());
+
+    if st_ltdc_enabled {
+        const INCLUDES: &[&str] = &[
+            "stm32u5-dk/Inc",
+            "Drivers/STM32U5xx_HAL_Driver/Inc",
+            "Drivers/STM32U5xx_HAL_Driver/Inc/Legacy",
+            "Drivers/CMSIS/Device/ST/STM32U5xx/Include",
+            "Drivers/CMSIS/Include",
+        ];
+        let st_root = repo_root.join("external/ST");
+        for inc in INCLUDES {
+            let inc_full = st_root.join(inc);
+            cflags.push(format!("-I{}", inc_full.display()));
+        }
+    }
     let debug = env::var("PROFILE").unwrap() == "debug";
-    if debug {
-        cmake_build.cflag("-g");
-    }
-    cmake_build.define("CONFIG_LV_BUILD_EXAMPLES", "OFF");
-    cmake_build.define("CONFIG_LV_BUILD_DEMOS", "OFF");
 
     if target.starts_with("thumb") {
         let nema_gfx_include = lvgl_dir.join("libs/nema_gfx/include");
         if nema_gfx_include.join("nema_core.h").is_file() {
-            cmake_build.cflag(format!("-I{}", nema_gfx_include.display()));
+            cflags.push(format!("-I{}", nema_gfx_include.display()));
         }
-        cmake_build.define(
-            "CMAKE_EXE_LINKER_FLAGS",
-            "--specs=nosys.specs --specs=nano.specs",
-        );
-        cmake_build.cflag("-DUSE_HAL_DRIVER");
-        cmake_build.cflag("-DSTM32U5A9xx");
-        cmake_build.cflag("-Os");
+        cflags.push("-Os".to_owned());
         let nema_gfx_lib_dir = lvgl_dir.join("libs/nema_gfx/lib/core/cortex_m33_revC/gcc");
         let nema_gfx_lib = nema_gfx_lib_dir.join("libnemagfx-float-abi-hard.a");
         if nema_gfx_lib.is_file() {
@@ -146,17 +124,32 @@ fn main() -> Result<(), &'static str> {
         "-DLV_CONF_INCLUDE_SIMPLE".to_owned(),
     ];
 
-    for cflag in &cflags {
-        cmake_build.cflag(cflag);
-        c_args.push(cflag.into());
+    if firmware_enabled {
+        c_args.push("-DBITBOX_LVGL_CONF_FIRMWARE".to_owned());
     }
+
+    c_args.extend(cflags.iter().cloned());
 
     clang_args.extend(c_args.iter().cloned());
 
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
-    let dst = cmake_build.build();
-    println!("cargo::rustc-link-search=native={}/lib", dst.display());
-    println!("cargo::rustc-link-lib=static=lvgl");
+
+    let mut lvgl_build = cc::Build::new();
+    for source in LVGL_C_FILES {
+        lvgl_build.file(lvgl_dir.join(source));
+    }
+    if st_ltdc_enabled {
+        for source in LVGL_ST_LTDC_C_FILES {
+            lvgl_build.file(lvgl_dir.join(source));
+        }
+    }
+    for flag in &c_args {
+        lvgl_build.flag(flag);
+    }
+    lvgl_build.warnings(false);
+    lvgl_build.extra_warnings(false);
+    lvgl_build.debug(debug);
+    lvgl_build.compile("lvgl");
 
     let mut fonts = cc::Build::new();
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_32.c"));

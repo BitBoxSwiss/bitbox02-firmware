@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-board-stm32u5-dk-build"
+version = "0.1.0"
+edition = "2024"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+description = "Build helpers for the STM32U5 DK board support"
+license = "Apache-2.0"
+
+[dependencies]
+cc = { version = "1.2", features = ["parallel"] }

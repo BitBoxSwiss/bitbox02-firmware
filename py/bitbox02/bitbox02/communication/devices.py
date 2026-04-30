@@ -19,6 +19,8 @@ BITBOX02PLUS_MULTI_BOOTLOADER = "BitBox02 Nova Multi bl"
 BITBOX02PLUS_BTC_BOOTLOADER = "BitBox02 Nova BTC-only bl"
 BITBOX02PLUS_MULTI = "BitBox02 Nova Multi"
 BITBOX02PLUS_BTC = "BitBox02 Nova BTC-only"
+BITBOX03_MULTI = "BitBox03 Multi"
+BITBOX03_BTC = "BitBox03 BTC-only"
 
 
 class TooManyFoundException(Exception):
@@ -49,8 +51,8 @@ def get_devices(product_string: str, interface_number: int = 0) -> List[DeviceIn
     return [
         info
         for info in hid.enumerate()
-        if info["vendor_id"] == 0x03EB
-        and info["product_id"] in (0x2402, 0x2403)
+        if info["vendor_id"] in (0x03EB, 0x0483)
+        and info["product_id"] in (0x2402, 0x2403, 0x5710)
         and (info["usage_page"] == 0xFFFF or info["interface_number"] == interface_number)
         and info["product_string"] == product_string
     ]
@@ -107,6 +109,8 @@ def get_any_bitbox02s() -> List[DeviceInfo]:
     devices.extend(get_bitbox02btc_devices())
     devices.extend(get_devices(BITBOX02PLUS_MULTI))
     devices.extend(get_devices(BITBOX02PLUS_BTC))
+    devices.extend(get_devices(BITBOX03_MULTI))
+    devices.extend(get_devices(BITBOX03_BTC))
     return devices
 
 

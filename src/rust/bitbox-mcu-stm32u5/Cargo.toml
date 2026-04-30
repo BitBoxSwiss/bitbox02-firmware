@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-mcu-stm32u5"
+version = "0.1.0"
+edition = "2024"
+authors = ["Shift Crypto AG <support@bitbox.swiss>"]
+description = "Selected STM32U5 PAC for bitbox02-firmware"
+license = "Apache-2.0"
+
+[dependencies]
+stm32u5 = { version = "0.16", features = ["stm32u5a9"] }

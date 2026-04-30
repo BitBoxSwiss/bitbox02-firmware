@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use std::env;
 use std::path::PathBuf;
 
 const SOURCES: &[&str] = &["source/ff.c", "source/ffunicode.c"];
 
-fn main() {
+fn main() -> Result<(), String> {
     let dep_dir = PathBuf::from("depend/fatfs");
+    let _target = env::var("TARGET").expect("TARGET not set");
 
     println!(
         "cargo::rerun-if-changed={}",
@@ -20,4 +22,5 @@ fn main() {
         .flag_if_supported("-w");
 
     build.compile("fatfs");
+    Ok(())
 }

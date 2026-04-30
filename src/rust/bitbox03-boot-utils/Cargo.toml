@@ -1,0 +1,7 @@
+[package]
+name = "bitbox03-boot-utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitbox-boot-utils = { path = "../bitbox-boot-utils" }

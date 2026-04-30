@@ -3,7 +3,9 @@
 #![no_std]
 
 extern crate alloc;
+
 use core::cell::UnsafeCell;
+
 mod eeprom;
 pub mod io;
 mod memory;
@@ -14,8 +16,16 @@ mod system;
 pub mod timer;
 pub mod ui;
 
+pub use bitbox_boot_utils::{BOOT_ARGS, BootArgs, BootCommand};
+pub mod immutable {
+    pub use bitbox03_boot_utils::{ImmutablePage, build_immutable_page_bytes};
+}
 use bitbox_hal as hal;
 use bitbox_lvgl::LvDisplay;
+pub use memory::{
+    get_attestation_bootloader_hash, get_stored_attestation_device_pubkey,
+    set_attestation_bootloader_hash, set_attestation_certificate, set_attestation_device_pubkey,
+};
 
 struct BitBox03State {
     ui: ui::BitBox03Ui,
@@ -34,7 +44,7 @@ impl BitBox03State {
             random: random::BitBox03Random {},
             sd: sd::BitBox03Sd {},
             securechip: securechip::BitBox03SecureChip {},
-            memory: memory::BitBox03Memory {},
+            memory: memory::BitBox03Memory::new(),
             eeprom: eeprom::BitBox03Eeprom::new(),
             system: system::BitBox03System {},
         }

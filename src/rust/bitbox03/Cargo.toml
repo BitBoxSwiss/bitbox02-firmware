@@ -4,12 +4,18 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bitbox-boot-utils = { path = "../bitbox-boot-utils" }
+bitbox03-boot-utils = { path = "../bitbox03-boot-utils" }
 bitbox-lvgl = { path = "../bitbox-lvgl" }
 bitbox-hal = { path = "../bitbox-hal" }
 util = { path = "../util" }
 tracing = { version = "0.1.41", features = ["log"], default-features = false }
-png-decoder = { version="0.2"}
-zeroize = {workspace=true}
+png-decoder = { version = "0.2" }
+zeroize = { workspace = true }
+
+[target.'cfg(target_arch = "arm")'.dependencies]
+cortex-m = { workspace = true }
+bitbox-platform-stm32u5 = { path = "../bitbox-platform-stm32u5" }
 
 [features]
 app-u2f = ["bitbox-hal/app-u2f"]

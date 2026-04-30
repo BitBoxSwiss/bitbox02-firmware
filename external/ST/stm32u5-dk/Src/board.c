@@ -146,19 +146,19 @@ int board_init(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_ADC4_Init();
-  MX_USART1_UART_Init();
-  MX_HSPI1_Init();
-  MX_I2C3_Init();
-  MX_I2C5_Init();
-  MX_ICACHE_Init();
-  MX_OCTOSPI1_Init();
-  MX_SDMMC1_MMC_Init();
-  MX_GPU2D_Init();
-  MX_DSIHOST_DSI_Init();
-  MX_LTDC_Init();
-  MX_USBX_Device_Init();
+  //MX_GPIO_Init();
+  //MX_ADC4_Init();
+  //MX_USART1_UART_Init();
+  //MX_HSPI1_Init();
+  //MX_I2C3_Init();
+  //MX_I2C5_Init();
+  //MX_ICACHE_Init();
+  //MX_OCTOSPI1_Init();
+  //MX_SDMMC1_MMC_Init();
+  //MX_GPU2D_Init();
+  //MX_DSIHOST_DSI_Init();
+  //MX_LTDC_Init();
+  //MX_USBX_Device_Init();
   MX_FLASH_Init();
   /* USER CODE BEGIN 2 */
   // ^- The call to MX_DSIHOST_DSI_Init() must be done before MX_LTDC_Init().
@@ -231,7 +231,7 @@ int board_init_essentials(void)
   SystemClock_Config();
   PeriphCommonClock_Config();
 
-  MX_USART1_UART_Init();
+  //MX_USART1_UART_Init();
 
   return 0;
 }

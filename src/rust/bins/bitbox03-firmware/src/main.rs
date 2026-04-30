@@ -159,8 +159,8 @@ fn main() -> ! {
     let mut before = unsafe { bitbox_platform_stm32u5::ffi::HAL_GetTick() };
     loop {
         sleep_timer.start_timeout(Duration::from_millis(SLEEP_DURATION_MS));
-        usbx::process();
-        usbx::poll();
+        //usbx::process();
+        //usbx::poll();
         while EXECUTOR.try_tick() {}
         //lvgl::timer::handler();
         sleep_timer.wait_event_or_timeout();

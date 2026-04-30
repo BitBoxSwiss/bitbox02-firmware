@@ -65,7 +65,7 @@ async fn process_xpub(
     if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let xpub = keystore::get_xpub_twice(hal, &request.keypath)
+    let xpub = keystore::get_xpub(hal, &request.keypath, keystore::Compute::Twice)
         .await
         .or(Err(Error::InvalidInput))?
         .serialize_str(bip32::XPubType::Xpub)?;

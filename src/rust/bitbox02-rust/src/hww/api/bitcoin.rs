@@ -112,7 +112,7 @@ async fn xpub(
             })
             .await?
     }
-    let xpub = keystore::get_xpub_twice(hal, keypath)
+    let xpub = keystore::get_xpub(hal, keypath, keystore::Compute::Twice)
         .await
         .or(Err(Error::InvalidInput))?
         .serialize_str(xpub_type)?;
@@ -153,7 +153,7 @@ pub async fn derive_address_simple(
     .or(Err(Error::InvalidInput))?;
     Ok(common::Payload::from_simple(
         hal,
-        &mut crate::xpubcache::XpubCache::new(crate::xpubcache::Compute::Twice),
+        &mut crate::xpubcache::XpubCache::new(crate::keystore::Compute::Twice),
         coin_params,
         simple_type,
         keypath,
@@ -1109,20 +1109,28 @@ mod tests {
             root_fingerprint: keystore::root_fingerprint().unwrap(),
             keypath: KEYPATH_ACCOUNT_TESTNET.to_vec(),
             xpub: Some(
-                crate::keystore::get_xpub_once(&mut TestingHal::new(), KEYPATH_ACCOUNT_TESTNET)
-                    .await
-                    .unwrap()
-                    .into(),
+                crate::keystore::get_xpub(
+                    &mut TestingHal::new(),
+                    KEYPATH_ACCOUNT_TESTNET,
+                    crate::keystore::Compute::Once,
+                )
+                .await
+                .unwrap()
+                .into(),
             ),
         };
         let our_key_mainnet = pb::KeyOriginInfo {
             root_fingerprint: keystore::root_fingerprint().unwrap(),
             keypath: KEYPATH_ACCOUNT_MAINNET.to_vec(),
             xpub: Some(
-                crate::keystore::get_xpub_once(&mut TestingHal::new(), KEYPATH_ACCOUNT_MAINNET)
-                    .await
-                    .unwrap()
-                    .into(),
+                crate::keystore::get_xpub(
+                    &mut TestingHal::new(),
+                    KEYPATH_ACCOUNT_MAINNET,
+                    crate::keystore::Compute::Once,
+                )
+                .await
+                .unwrap()
+                .into(),
             ),
         };
         let some_key = pb::KeyOriginInfo {

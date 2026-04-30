@@ -48,7 +48,7 @@ pub(crate) async fn derive_address(
     if !keypath::is_valid_keypath_address(keypath) {
         return Err(Error::InvalidInput);
     }
-    let pubkey = crate::keystore::get_xpub_twice(hal, keypath)
+    let pubkey = crate::keystore::get_xpub(hal, keypath, crate::keystore::Compute::Twice)
         .await
         .or(Err(Error::InvalidInput))?
         .pubkey_uncompressed()?;

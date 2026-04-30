@@ -48,7 +48,7 @@ async fn is_our_key(
             xpub: Some(xpub),
             ..
         } if root_fingerprint.as_slice() == our_root_fingerprint => {
-            let our_xpub = crate::keystore::get_xpub_once(hal, keypath)
+            let our_xpub = crate::keystore::get_xpub(hal, keypath, crate::keystore::Compute::Once)
                 .await?
                 .serialize(None)?;
             let maybe_our_xpub = bip32::Xpub::from(xpub).serialize(None)?;
@@ -810,10 +810,13 @@ mod tests {
 
     // Creates a policy for one of our own keys at keypath.
     async fn make_our_key(keypath: &[u32]) -> pb::KeyOriginInfo {
-        let our_xpub =
-            crate::keystore::get_xpub_once(&mut crate::hal::testing::TestingHal::new(), keypath)
-                .await
-                .unwrap();
+        let our_xpub = crate::keystore::get_xpub(
+            &mut crate::hal::testing::TestingHal::new(),
+            keypath,
+            crate::keystore::Compute::Once,
+        )
+        .await
+        .unwrap();
         pb::KeyOriginInfo {
             root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
             keypath: keypath.to_vec(),
@@ -1858,7 +1861,7 @@ mod tests {
         let parsed_policy = parse(&mut hal, &policy, coin).await.unwrap();
 
         const ADDRESS_INDEX: u32 = 5;
-        let mut xpub_cache = Bip32XpubCache::new(crate::xpubcache::Compute::Once);
+        let mut xpub_cache = Bip32XpubCache::new(crate::keystore::Compute::Once);
 
         // Internal key results in a key path spend. The internal key is ` @0/<0;1>/*`, so `/0/5`
         // selects that one as `0` matches the first multipath index of that key.

@@ -11,9 +11,10 @@ use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeyp
 use super::{bip143, bip341, common, keypath};
 
 use crate::hal::Ui;
+use crate::keystore::Compute;
 use crate::secp256k1::SECP256K1;
 use crate::workflow::transaction;
-use crate::xpubcache::{Bip32XpubCache, Compute};
+use crate::xpubcache::Bip32XpubCache;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -1875,10 +1876,14 @@ mod tests {
             let multisig = pb::btc_script_config::Multisig {
                 threshold: 1,
                 xpubs: vec![
-                    crate::keystore::get_xpub_once(&mut TestingHal::new(), keypath)
-                        .await
-                        .unwrap()
-                        .into(),
+                    crate::keystore::get_xpub(
+                        &mut TestingHal::new(),
+                        keypath,
+                        crate::keystore::Compute::Once,
+                    )
+                    .await
+                    .unwrap()
+                    .into(),
                     parse_xpub("xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLKX8Q8keZPd67kRGmrD1WJj").unwrap(),
                 ],
                 our_xpub_index: 0,
@@ -3283,10 +3288,14 @@ mod tests {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
                     xpub: Some(
-                        crate::keystore::get_xpub_once(&mut mock_hal, keypath_account)
-                            .await
-                            .unwrap()
-                            .into(),
+                        crate::keystore::get_xpub(
+                            &mut mock_hal,
+                            keypath_account,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .unwrap()
+                        .into(),
                     ),
                 },
                 pb::KeyOriginInfo {
@@ -3408,10 +3417,14 @@ mod tests {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
                     xpub: Some(
-                        crate::keystore::get_xpub_once(&mut TestingHal::new(), keypath_account)
-                            .await
-                            .unwrap()
-                            .into(),
+                        crate::keystore::get_xpub(
+                            &mut TestingHal::new(),
+                            keypath_account,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .unwrap()
+                        .into(),
                     ),
                 },
                 pb::KeyOriginInfo {
@@ -3483,10 +3496,14 @@ mod tests {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
                     xpub: Some(
-                        crate::keystore::get_xpub_once(&mut TestingHal::new(), keypath_account)
-                            .await
-                            .unwrap()
-                            .into(),
+                        crate::keystore::get_xpub(
+                            &mut TestingHal::new(),
+                            keypath_account,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .unwrap()
+                        .into(),
                     ),
                 },
             ],
@@ -3593,10 +3610,14 @@ mod tests {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
                     xpub: Some(
-                        crate::keystore::get_xpub_once(&mut TestingHal::new(), keypath_account)
-                            .await
-                            .unwrap()
-                            .into(),
+                        crate::keystore::get_xpub(
+                            &mut TestingHal::new(),
+                            keypath_account,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .unwrap()
+                        .into(),
                     ),
                 },
                 pb::KeyOriginInfo {
@@ -3656,10 +3677,14 @@ mod tests {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
                     xpub: Some(
-                        crate::keystore::get_xpub_once(&mut TestingHal::new(), keypath_account)
-                            .await
-                            .unwrap()
-                            .into(),
+                        crate::keystore::get_xpub(
+                            &mut TestingHal::new(),
+                            keypath_account,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .unwrap()
+                        .into(),
                     ),
                 },
                 pb::KeyOriginInfo {
@@ -3711,10 +3736,14 @@ mod tests {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath_account.to_vec(),
                     xpub: Some(
-                        crate::keystore::get_xpub_once(&mut TestingHal::new(), keypath_account)
-                            .await
-                            .unwrap()
-                            .into(),
+                        crate::keystore::get_xpub(
+                            &mut TestingHal::new(),
+                            keypath_account,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .unwrap()
+                        .into(),
                     ),
                 },
                 pb::KeyOriginInfo {

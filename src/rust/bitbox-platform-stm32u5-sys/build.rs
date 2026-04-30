@@ -60,6 +60,7 @@ const ST_DEFINES: &[&str] = &[
     "STM32U5A9xx",
     "UX_INCLUDE_USER_DEFINE_FILE",
 ];
+const ST_DEBUG_DEFINES: &[(&str, &str)] = &[("USE_FULL_ASSERT", "1U")];
 
 const ST_INCLUDES: &[&str] = &[
     "stm32u5-dk/Inc",
@@ -130,8 +131,13 @@ fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(
     Ok(())
 }
 
+fn is_release_profile() -> bool {
+    env::var("PROFILE").expect("PROFILE not set") == "release"
+}
+
 fn main() -> Result<(), &'static str> {
     println!("cargo::rerun-if-changed=wrapper.h");
+    println!("cargo::rerun-if-env-changed=PROFILE");
 
     let manifest_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
@@ -176,7 +182,15 @@ fn main() -> Result<(), &'static str> {
 
     let include_paths: Vec<PathBuf> = ST_INCLUDES.iter().map(|p| st_root.join(p)).collect();
 
+    let release_profile = is_release_profile();
     let mut clang_args: Vec<String> = ST_DEFINES.iter().map(|d| format!("-D{d}")).collect();
+    if !release_profile {
+        clang_args.extend(
+            ST_DEBUG_DEFINES
+                .iter()
+                .map(|(key, value)| format!("-D{key}={value}")),
+        );
+    }
     clang_args.extend(
         include_paths
             .iter()
@@ -208,6 +222,11 @@ fn main() -> Result<(), &'static str> {
         build.files(&source_paths);
         for def in ST_DEFINES {
             build.define(def, None);
+        }
+        if !release_profile {
+            for (key, value) in ST_DEBUG_DEFINES {
+                build.define(key, Some(*value));
+            }
         }
         build.includes(&include_paths);
         // Suppress warnings in third-party sources.

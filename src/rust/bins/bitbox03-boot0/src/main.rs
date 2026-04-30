@@ -3,15 +3,12 @@
 #![no_std]
 #![no_main]
 
-use bitbox_board_stm32u5_dk::ffi;
 use bitbox_boot_utils::{
     BOOT1_ADDR, BOOT1_MAX_LEN, Boot1Manifest, DFU_METADATA_ADDR, FLASH_BASE_NS, FLASH_PAGE_SIZE,
-    FLASH_TOTAL_SIZE, IMAGE_HEADER_MAGIC_BOOT1, IMMUTABLE_PAGE_ADDR, bootload, halt,
-    vector_table_from_signed_image_with_hasher,
+    FLASH_TOTAL_SIZE, IMAGE_HEADER_MAGIC_BOOT1, bootload, halt, vector_table_from_image_header,
 };
 use bitbox_mcu_stm32u5 as _;
-use bitbox_platform_stm32u5::{flash, hash};
-use bitbox03_boot_utils::ImmutablePage;
+use bitbox_platform_stm32u5::{ffi, flash, hash};
 use core::panic::PanicInfo;
 use cortex_m_rt::entry;
 
@@ -22,6 +19,11 @@ fn panic(info: &PanicInfo) -> ! {
     loop {
         cortex_m::asm::wfe();
     }
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn assert_failed(_file: *mut u8, _line: u32) {
+    halt();
 }
 
 fn read_manifest() -> Option<Boot1Manifest> {
@@ -90,19 +92,9 @@ fn main() -> ! {
         }
     }
 
-    let Ok(root_pubkeys) =
-        ImmutablePage::from_address(IMMUTABLE_PAGE_ADDR).map(|page| page.root_pubkeys)
+    let Ok(vector_table) =
+        vector_table_from_image_header(BOOT1_ADDR, BOOT1_MAX_LEN, IMAGE_HEADER_MAGIC_BOOT1)
     else {
-        halt();
-    };
-
-    let Ok(vector_table) = vector_table_from_signed_image_with_hasher(
-        BOOT1_ADDR,
-        BOOT1_MAX_LEN,
-        IMAGE_HEADER_MAGIC_BOOT1,
-        &root_pubkeys,
-        |header, payload| hash::double_sha256_two_parts(header, payload).map_err(|_| ()),
-    ) else {
         halt();
     };
 
@@ -112,7 +104,7 @@ fn main() -> ! {
 #[entry]
 fn entry() -> ! {
     unsafe {
-        ffi::board_init_essentials();
+        ffi::HAL_Init();
     }
     bitbox03_boot_utils::rtt_logger_init!();
 

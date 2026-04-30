@@ -449,7 +449,6 @@ dependencies = [
 name = "bitbox03-boot0"
 version = "0.1.0"
 dependencies = [
- "bitbox-board-stm32u5-dk",
  "bitbox-board-stm32u5-dk-build",
  "bitbox-boot-utils",
  "bitbox-mcu-stm32u5",

@@ -4,6 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 const ST_DEFINES: &[&str] = &["USE_HAL_DRIVER", "STM32U5A9xx"];
+const ST_DEBUG_DEFINES: &[(&str, &str)] = &[("USE_FULL_ASSERT", "1U")];
 
 const ST_INCLUDES: &[&str] = &[
     "stm32u5-dk/Inc",
@@ -14,6 +15,8 @@ const ST_INCLUDES: &[&str] = &[
 ];
 
 pub fn build_hal_overrides_object(repo_root: &Path, out_dir: &Path) {
+    println!("cargo::rerun-if-env-changed=PROFILE");
+
     let st_root = repo_root.join("external/ST");
     let source = st_root.join("stm32u5-dk/Src/stm32u5xx_hal_msp.c");
     let output = out_dir.join("hal_overrides.o");
@@ -29,6 +32,11 @@ pub fn build_hal_overrides_object(repo_root: &Path, out_dir: &Path) {
     let mut build = cc::Build::new();
     for define in ST_DEFINES {
         build.define(define, None);
+    }
+    if std::env::var("PROFILE").expect("PROFILE not set") != "release" {
+        for (key, value) in ST_DEBUG_DEFINES {
+            build.define(key, Some(*value));
+        }
     }
     for include in ST_INCLUDES {
         build.include(st_root.join(include));

@@ -8,7 +8,6 @@ rtt = ["bitbox03-boot-utils/rtt", "dep:rtt-target"]
 
 [dependencies]
 bitbox-boot-utils = { path = "../../bitbox-boot-utils" }
-bitbox-board-stm32u5-dk = { path = "../../bitbox-board-stm32u5-dk" }
 bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
 bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
 bitbox03-boot-utils = { path = "../../bitbox03-boot-utils" }

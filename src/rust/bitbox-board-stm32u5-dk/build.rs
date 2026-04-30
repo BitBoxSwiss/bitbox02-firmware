@@ -23,6 +23,7 @@ const ST_DEFINES: &[&str] = &[
     "STM32U5A9xx",
     "UX_INCLUDE_USER_DEFINE_FILE",
 ];
+const ST_DEBUG_DEFINES: &[(&str, &str)] = &[("USE_FULL_ASSERT", "1U")];
 
 const ST_INCLUDES: &[&str] = &[
     "stm32u5-dk/Inc",
@@ -40,6 +41,7 @@ const ST_INCLUDES: &[&str] = &[
 
 fn main() {
     println!("cargo::rerun-if-changed=memory.x");
+    println!("cargo::rerun-if-env-changed=PROFILE");
 
     let manifest_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
@@ -74,6 +76,11 @@ fn main() {
     build.files(&source_paths);
     for define in ST_DEFINES {
         build.define(define, None);
+    }
+    if env::var("PROFILE").expect("PROFILE not set") != "release" {
+        for (key, value) in ST_DEBUG_DEFINES {
+            build.define(key, Some(*value));
+        }
     }
     for include in ST_INCLUDES {
         build.include(st_root.join(include));

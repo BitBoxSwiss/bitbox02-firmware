@@ -3,6 +3,24 @@
 
 set -euo pipefail
 
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd -- "$script_dir/.." && pwd)"
+rust_dir="$repo_root/src/rust"
+rust_toolchain_file="$rust_dir/rust-toolchain.toml"
+
+if ! command -v rustup >/dev/null; then
+    echo "rustup not found" >&2
+    exit 1
+fi
+
+if [ ! -f "$rust_toolchain_file" ]; then
+    echo "Rust toolchain file not found: $rust_toolchain_file" >&2
+    exit 1
+fi
+
+echo "Installing Rust toolchain from $rust_toolchain_file"
+(cd "$rust_dir" && rustup toolchain install --profile minimal)
+
 config_dir=".cargo"
 config_file="$config_dir/config.toml"
 

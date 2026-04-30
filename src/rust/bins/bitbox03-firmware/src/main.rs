@@ -11,7 +11,6 @@ use bitbox03::BOOT_ARGS;
 use core::panic::PanicInfo;
 use core::time::Duration;
 use cortex_m_rt::entry;
-use rtt_target::ChannelMode;
 
 use bitbox_lvgl::{self as lvgl, LvDisplay};
 
@@ -106,23 +105,6 @@ fn now_ms() -> u64 {
     unsafe { bitbox_board_stm32u5_dk::ffi::HAL_GetTick() as u64 }
 }
 
-fn rtt_init() {
-    let channels = rtt_target::rtt_init! {
-        up: {
-            0: {
-                size: 1024,
-                mode: ChannelMode::NoBlockSkip,
-                name: "Terminal",
-                section: ".segger_rtt_buf",
-            }
-        }
-        section_cb: ".segger_rtt"
-    };
-    rtt_target::set_print_channel(channels.up.0);
-    // Change to Debug/Trace for more output
-    rtt_target::init_logger_with_level(log::LevelFilter::Trace);
-}
-
 async fn usb_hww_task() {
     let (mut usb_out, mut usb_in) = usbx::custom_hid();
     let mut hww = bitbox02_rust::hww::transport::hww_transport::<bitbox03::BitBox03>();
@@ -193,7 +175,7 @@ unsafe fn entry() -> ! {
 
     // Initialize vendor drivers
     unsafe { bitbox_board_stm32u5_dk::ffi::board_init() };
-    rtt_init();
+    bitbox03_boot_utils::rtt_logger_init!(true);
     log::info!("RTT initialized");
 
     // Initializing the heap must come super early

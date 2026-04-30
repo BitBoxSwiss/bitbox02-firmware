@@ -11,15 +11,14 @@ use bitbox_boot_utils::{
 };
 use bitbox_mcu_stm32u5 as _;
 use bitbox_platform_stm32u5::flash;
-use bitbox_platform_stm32u5::uart::Uart;
 use bitbox03_boot_utils::{ImmutablePage, build_immutable_page_bytes};
-use core::fmt::Write;
 use core::panic::PanicInfo;
 use cortex_m_rt::entry;
 use sha2::{Digest, Sha256};
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    log::error!("{info}");
     cortex_m::asm::bkpt();
     loop {
         cortex_m::asm::wfe();
@@ -112,8 +111,7 @@ fn flash_boot1_from_manifest(manifest: &Boot1Manifest) -> Result<(), ()> {
 }
 
 fn main() -> ! {
-    let mut uart = Uart::default();
-    let _ = writeln!(&mut uart, "[b0] init");
+    log::debug!("[b0] init");
 
     if let Some(manifest) = read_manifest() {
         if !manifest_is_plausible(&manifest) {
@@ -152,6 +150,7 @@ fn entry() -> ! {
     unsafe {
         ffi::board_init_essentials();
     }
+    bitbox03_boot_utils::rtt_logger_init!(false);
 
     main()
 }

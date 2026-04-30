@@ -6,6 +6,50 @@ use bitbox_boot_utils::{
     FLASH_PAGE_SIZE, IMAGE_SIGNATURE_COUNT, IMMUTABLE_PAGE_MAGIC, IMMUTABLE_PAGE_VERSION,
     P256_PUBLIC_KEY_LEN,
 };
+#[doc(hidden)]
+pub use log;
+#[doc(hidden)]
+pub use rtt_target;
+
+#[macro_export]
+macro_rules! rtt_logger_init {
+    ($reuse_if_initialized:literal) => {{
+        let channels = $crate::rtt_target::rtt_init! {
+            up: {
+                0: {
+                    size: 1024,
+                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                    name: "Terminal",
+                    section: ".segger_rtt_buf",
+                }
+                1: {
+                    size: 1024,
+                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                    name: "API Response",
+                    section: ".segger_rtt_buf",
+                }
+            }
+            down: {
+                0: {
+                    size: 16,
+                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                    name: "Terminal",
+                    section: ".segger_rtt_buf",
+                }
+                1: {
+                    size: 1024,
+                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                    name: "API Request",
+                    section: ".segger_rtt_buf",
+                }
+            }
+            section_cb: ".segger_rtt"
+            reuse_if_initialized: $reuse_if_initialized
+        };
+        $crate::rtt_target::set_print_channel(channels.up.0);
+        $crate::rtt_target::init_logger_with_level($crate::log::LevelFilter::Trace);
+    }};
+}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(C)]

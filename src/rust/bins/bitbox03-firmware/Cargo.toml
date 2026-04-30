@@ -10,6 +10,7 @@ bitbox-executor = { path = "../../bitbox-executor" }
 bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
 bitbox02-rust = { path = "../../bitbox02-rust", features = ["firmware"] }
 bitbox03 = { path = "../../bitbox03" }
+bitbox03-boot-utils = { path = "../../bitbox03-boot-utils" }
 bitbox-board-stm32u5-dk = { path = "../../bitbox-board-stm32u5-dk" }
 bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
 cortex-m-rt = "0.7"

@@ -15,18 +15,17 @@ use bitbox_executor::Executor;
 use bitbox_mcu_stm32u5 as _;
 use bitbox_mcu_stm32u5::pac::interrupt;
 use bitbox_platform_stm32u5::flash;
-use bitbox_platform_stm32u5::uart::Uart;
 use bitbox_platform_stm32u5::usbx::{self, Endpoint, EndpointError, EndpointIn, EndpointOut};
 use bitbox_u2fhid::REPORT_SIZE;
 use bitbox03_boot1::transport::bootloader_transport_arm;
-use core::fmt::Write;
 use core::panic::PanicInfo;
 use cortex_m_rt::entry;
 
 use embedded_alloc::LlffHeap as Heap;
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    log::error!("{info}");
     cortex_m::asm::bkpt();
     loop {
         cortex_m::asm::wfe();
@@ -130,8 +129,8 @@ fn main() -> ! {
     unsafe {
         embedded_alloc::init!(HEAP, 128 * 1024);
     }
-    let mut uart = Uart::default();
-    let _ = writeln!(&mut uart, "[b1] init");
+    bitbox03_boot_utils::rtt_logger_init!(true);
+    log::debug!("[b1] init");
 
     if clear_dfu_metadata().is_err() {
         halt();
@@ -140,7 +139,7 @@ fn main() -> ! {
     match BOOT_ARGS.command() {
         Some(BootCommand::BootloaderWait) => {
             BOOT_ARGS.clear();
-            let _ = writeln!(&mut uart, "[b1] waiting on usb");
+            log::debug!("[b1] waiting on usb");
             usb_wait();
         }
         Some(_) => halt(),

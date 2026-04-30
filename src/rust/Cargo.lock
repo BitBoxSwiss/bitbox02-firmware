@@ -441,6 +441,8 @@ name = "bitbox03-boot-utils"
 version = "0.1.0"
 dependencies = [
  "bitbox-boot-utils",
+ "log",
+ "rtt-target",
 ]
 
 [[package]]
@@ -455,6 +457,8 @@ dependencies = [
  "bitbox03-boot-utils",
  "cortex-m",
  "cortex-m-rt",
+ "log",
+ "rtt-target",
  "sha2",
 ]
 
@@ -473,6 +477,8 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "embedded-alloc",
+ "log",
+ "rtt-target",
  "sha2",
 ]
 
@@ -508,6 +514,7 @@ dependencies = [
  "bitbox-platform-stm32u5",
  "bitbox02-rust",
  "bitbox03",
+ "bitbox03-boot-utils",
  "cortex-m",
  "cortex-m-rt",
  "embedded-alloc",

@@ -12,8 +12,7 @@ this module and use CAS loop instead.
 Refs:
 - x86 and amd64 instruction reference https://www.felixcloutier.com/x86
 
-Generated asm:
-- x86_64 https://godbolt.org/z/ETa1MGTP3
+See tests/asm-test/asm/portable-atomic for generated assembly.
 */
 
 #[cfg(not(portable_atomic_no_asm))]
@@ -21,8 +20,8 @@ use core::arch::asm;
 use core::sync::atomic::Ordering;
 
 use super::core_atomic::{
-    AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicIsize, AtomicU16, AtomicU32, AtomicU64,
-    AtomicU8, AtomicUsize,
+    AtomicI8, AtomicI16, AtomicI32, AtomicI64, AtomicIsize, AtomicPtr, AtomicU8, AtomicU16,
+    AtomicU32, AtomicU64, AtomicUsize,
 };
 
 #[cfg(target_pointer_width = "32")]
@@ -36,6 +35,42 @@ macro_rules! ptr_modifier {
     () => {
         ""
     };
+}
+
+#[cfg(feature = "fallback")]
+#[cfg(any(
+    test,
+    not(all(
+        target_arch = "x86_64",
+        any(target_feature = "cmpxchg16b", portable_atomic_target_feature = "cmpxchg16b"),
+    )),
+))]
+#[inline]
+pub(crate) fn sc_fence() {
+    let p = core::cell::UnsafeCell::new(core::mem::MaybeUninit::<usize>::uninit());
+    // SAFETY: raw pointer passed in is valid because we got it from a reference.
+    unsafe {
+        // Equivalent to `mfence`, but is up to 3.1x faster on Coffee Lake and up to 2.4x faster on Raptor Lake-H at least in simple cases.
+        // - https://github.com/taiki-e/portable-atomic/pull/156
+        // - LLVM uses `lock or` https://godbolt.org/z/vv6rjzfYd
+        // - Windows uses `xchg` for x86_32 for MemoryBarrier https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-memorybarrier
+        // - MSVC STL uses `lock inc` https://github.com/microsoft/STL/pull/740
+        // - boost uses `lock or` https://github.com/boostorg/atomic/commit/559eba81af71386cedd99f170dc6101c6ad7bf22
+        #[cfg(target_pointer_width = "64")]
+        asm!(
+            concat!("xchg qword ptr [{p", ptr_modifier!(), "}], {tmp}"),
+            p = in(reg) p.get(),
+            tmp = out(reg) _,
+            options(nostack, preserves_flags),
+        );
+        #[cfg(target_pointer_width = "32")]
+        asm!(
+            concat!("xchg dword ptr [{p", ptr_modifier!(), "}], {tmp:e}"),
+            p = in(reg) p.get(),
+            tmp = out(reg) _,
+            options(nostack, preserves_flags),
+        );
+    }
 }
 
 macro_rules! atomic_int {
@@ -121,7 +156,9 @@ impl AtomicU64 {
 }
 
 macro_rules! atomic_bit_opts {
-    ($atomic_type:ident, $int_type:ident, $val_modifier:tt, $ptr_size:tt) => {
+    (
+        $([$($generics:tt)*])? $atomic_type:ident, $int_type:ident, $val_modifier:tt, $ptr_size:tt
+    ) => {
         // LLVM 14 and older don't support generating `lock bt{s,r,c}`.
         // LLVM 15 only supports generating `lock bt{s,r,c}` for immediate bit offsets.
         // LLVM 16+ can generate `lock bt{s,r,c}` for both immediate and register bit offsets.
@@ -130,7 +167,7 @@ macro_rules! atomic_bit_opts {
         #[cfg(not(portable_atomic_pre_llvm_16))]
         impl_default_bit_opts!($atomic_type, $int_type);
         #[cfg(portable_atomic_pre_llvm_16)]
-        impl $atomic_type {
+        impl $(<$($generics)*>)? $atomic_type $(<$($generics)*>)? {
             // `<integer>::BITS` requires Rust 1.53
             const BITS: u32 = (core::mem::size_of::<$int_type>() * 8) as u32;
             #[inline]
@@ -230,7 +267,11 @@ impl_default_bit_opts!(AtomicU64, u64);
 atomic_bit_opts!(AtomicIsize, isize, ":e", "dword");
 #[cfg(target_pointer_width = "32")]
 atomic_bit_opts!(AtomicUsize, usize, ":e", "dword");
+#[cfg(target_pointer_width = "32")]
+atomic_bit_opts!([T] AtomicPtr, usize, ":e", "dword");
 #[cfg(target_pointer_width = "64")]
 atomic_bit_opts!(AtomicIsize, isize, "", "qword");
 #[cfg(target_pointer_width = "64")]
 atomic_bit_opts!(AtomicUsize, usize, "", "qword");
+#[cfg(target_pointer_width = "64")]
+atomic_bit_opts!([T] AtomicPtr, usize, "", "qword");

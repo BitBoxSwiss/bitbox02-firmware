@@ -4,10 +4,14 @@
 
 use core::sync::atomic::Ordering;
 
+#[cfg(valgrind)]
+use crabgrind::memcheck;
+
 use crate::tests::helper;
 
 macro_rules! __test_atomic_common {
     ($atomic_type:ty, $value_type:ty) => {
+        use std::mem;
         #[test]
         fn assert_auto_traits() {
             fn _assert<T: Send + Sync + Unpin + std::panic::UnwindSafe>() {}
@@ -15,9 +19,9 @@ macro_rules! __test_atomic_common {
         }
         #[test]
         fn alignment() {
-            // https://github.com/rust-lang/rust/blob/1.80.0/library/core/tests/atomic.rs#L250
-            assert_eq!(core::mem::align_of::<$atomic_type>(), core::mem::size_of::<$atomic_type>());
-            assert_eq!(core::mem::size_of::<$atomic_type>(), core::mem::size_of::<$value_type>());
+            // https://github.com/rust-lang/rust/blob/1.84.0/library/core/tests/atomic.rs#L252
+            assert_eq!(mem::align_of::<$atomic_type>(), mem::size_of::<$atomic_type>());
+            assert_eq!(mem::size_of::<$atomic_type>(), mem::size_of::<$value_type>());
         }
         #[test]
         fn is_lock_free() {
@@ -83,36 +87,44 @@ macro_rules! __test_atomic_int_load_store {
                 VAR.store(10, store_order);
                 let a = <$atomic_type>::new(1);
                 assert_eq!(a.load(load_order), 1);
-                a.store(2, store_order);
-                assert_eq!(a.load(load_order), 2);
+                a.store($int_type::MIN, store_order);
+                assert_eq!(a.load(load_order), $int_type::MIN);
+                a.store($int_type::MAX, store_order);
+                assert_eq!(a.load(load_order), $int_type::MAX);
             }
         }
     };
     ($atomic_type:ty, $int_type:ident) => {
         __test_atomic_int_load_store!($atomic_type, $int_type, single_thread);
+
+        use std::{collections::BTreeSet, time::Instant, vec, vec::Vec};
+
         use crossbeam_utils::thread;
-        use std::{collections::BTreeSet, vec, vec::Vec};
+
         #[test]
         fn stress_load_store() {
-            let (iterations, threads) = stress_test_config();
-            let data1 = (0..iterations).map(|_| fastrand::$int_type(..)).collect::<Vec<_>>();
+            let mut rng = fastrand::Rng::new();
+            let (iterations, threads) = stress_test_config(&mut rng);
+            let data1 = (0..iterations).map(|_| rng.$int_type(..)).collect::<Vec<_>>();
             let set = data1.iter().copied().collect::<BTreeSet<_>>();
-            let a = <$atomic_type>::new(data1[fastrand::usize(0..iterations)]);
-            let now = &std::time::Instant::now();
+            let a = <$atomic_type>::new(data1[rng.usize(0..iterations)]);
+            let now = &Instant::now();
             thread::scope(|s| {
                 for _ in 0..threads {
                     s.spawn(|_| {
+                        let mut rng = fastrand::Rng::new();
                         let now = *now;
                         for i in 0..iterations {
-                            a.store(data1[i], rand_store_ordering());
+                            a.store(data1[i], rand_store_ordering(&mut rng));
                         }
                         std::eprintln!("store end={:?}", now.elapsed());
                     });
                     s.spawn(|_| {
+                        let mut rng = fastrand::Rng::new();
                         let now = *now;
                         let mut v = vec![0; iterations];
                         for i in 0..iterations {
-                            v[i] = a.load(rand_load_ordering());
+                            v[i] = a.load(rand_load_ordering(&mut rng));
                         }
                         std::eprintln!("load end={:?}", now.elapsed());
                         for v in v {
@@ -220,8 +232,11 @@ macro_rules! __test_atomic_bool_load_store {
 macro_rules! __test_atomic_ptr_load_store {
     ($atomic_type:ty, single_thread) => {
         __test_atomic_common!($atomic_type, *mut u8);
-        use crate::tests::helper::{self, *};
+
         use std::ptr;
+
+        use crate::tests::helper::{self, *};
+
         #[test]
         fn accessor() {
             let mut v = 1;
@@ -272,15 +287,27 @@ macro_rules! __test_atomic_int {
     ($atomic_type:ty, $int_type:ident, single_thread) => {
         #[test]
         fn swap() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(5);
             test_swap_ordering(|order| a.swap(5, order));
             for &order in &helper::SWAP_ORDERINGS {
                 assert_eq!(a.swap(10, order), 5);
-                assert_eq!(a.swap(5, order), 10);
+                assert_eq!(a.swap($int_type::MIN, order), 10);
+                assert_eq!(a.swap($int_type::MAX, order), $int_type::MIN);
+                assert_eq!(a.swap(5, order), $int_type::MAX);
             }
         }
         #[test]
         fn compare_exchange() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(5);
             test_compare_exchange_ordering(|success, failure| {
                 a.compare_exchange(5, 5, success, failure)
@@ -295,6 +322,11 @@ macro_rules! __test_atomic_int {
         }
         #[test]
         fn compare_exchange_weak() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(4);
             test_compare_exchange_ordering(|success, failure| {
                 a.compare_exchange_weak(4, 4, success, failure)
@@ -315,52 +347,120 @@ macro_rules! __test_atomic_int {
         }
         #[test]
         fn fetch_add() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(0);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(&a);
+            }
             test_swap_ordering(|order| a.fetch_add(0, order));
             for &order in &helper::SWAP_ORDERINGS {
                 let a = <$atomic_type>::new(0);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_add(10, order), 0);
                 assert_eq!(a.load(Ordering::Relaxed), 10);
                 let a = <$atomic_type>::new($int_type::MAX);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_add(1, order), $int_type::MAX);
                 assert_eq!(a.load(Ordering::Relaxed), $int_type::MAX.wrapping_add(1));
             }
         }
         #[test]
         fn add() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(0);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(&a);
+            }
             test_swap_ordering(|order| a.add(0, order));
             for &order in &helper::SWAP_ORDERINGS {
                 let a = <$atomic_type>::new(0);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 a.add(10, order);
                 assert_eq!(a.load(Ordering::Relaxed), 10);
                 let a = <$atomic_type>::new($int_type::MAX);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 a.add(1, order);
                 assert_eq!(a.load(Ordering::Relaxed), $int_type::MAX.wrapping_add(1));
             }
         }
         #[test]
         fn fetch_sub() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(20);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(&a);
+            }
             test_swap_ordering(|order| a.fetch_sub(0, order));
             for &order in &helper::SWAP_ORDERINGS {
                 let a = <$atomic_type>::new(20);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_sub(10, order), 20);
                 assert_eq!(a.load(Ordering::Relaxed), 10);
                 let a = <$atomic_type>::new($int_type::MIN);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_sub(1, order), $int_type::MIN);
                 assert_eq!(a.load(Ordering::Relaxed), $int_type::MIN.wrapping_sub(1));
             }
         }
         #[test]
         fn sub() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(20);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(&a);
+            }
             test_swap_ordering(|order| a.sub(0, order));
             for &order in &helper::SWAP_ORDERINGS {
                 let a = <$atomic_type>::new(20);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 a.sub(10, order);
                 assert_eq!(a.load(Ordering::Relaxed), 10);
                 let a = <$atomic_type>::new($int_type::MIN);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 a.sub(1, order);
                 assert_eq!(a.load(Ordering::Relaxed), $int_type::MIN.wrapping_sub(1));
             }
@@ -387,6 +487,11 @@ macro_rules! __test_atomic_int {
         }
         #[test]
         fn fetch_nand() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") {
+                return;
+            }
             let a = <$atomic_type>::new(0x13);
             test_swap_ordering(|order| a.fetch_nand(0x31, order));
             for &order in &helper::SWAP_ORDERINGS {
@@ -437,40 +542,96 @@ macro_rules! __test_atomic_int {
         }
         #[test]
         fn fetch_max() {
+            // TODO(gcc): failure: https://github.com/rust-lang/rustc_codegen_gcc/issues/821#issuecomment-3793567607
+            if option_env!("RUSTC_CODEGEN_GCC").unwrap_or_default() == "1"
+                && $int_type::MIN == 0
+                && mem::size_of::<$int_type>() <= 8
+            {
+                return;
+            }
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(23);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(&a);
+            }
             test_swap_ordering(|order| a.fetch_max(23, order));
             for &order in &helper::SWAP_ORDERINGS {
                 let a = <$atomic_type>::new(23);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_max(22, order), 23);
                 assert_eq!(a.load(Ordering::Relaxed), 23);
                 assert_eq!(a.fetch_max(24, order), 23);
                 assert_eq!(a.load(Ordering::Relaxed), 24);
                 let a = <$atomic_type>::new(0);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_max(1, order), 0);
                 assert_eq!(a.load(Ordering::Relaxed), 1);
                 assert_eq!(a.fetch_max(0, order), 1);
                 assert_eq!(a.load(Ordering::Relaxed), 1);
                 let a = <$atomic_type>::new(!0);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_max(0, order), !0);
                 assert_eq!(a.load(Ordering::Relaxed), core::cmp::max(!0, 0));
             }
         }
         #[test]
         fn fetch_min() {
+            // TODO(gcc): failure: https://github.com/rust-lang/rustc_codegen_gcc/issues/821#issuecomment-3793567607
+            if option_env!("RUSTC_CODEGEN_GCC").unwrap_or_default() == "1"
+                && $int_type::MIN == 0
+                && mem::size_of::<$int_type>() <= 8
+            {
+                return;
+            }
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(23);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(&a);
+            }
             test_swap_ordering(|order| a.fetch_min(23, order));
             for &order in &helper::SWAP_ORDERINGS {
                 let a = <$atomic_type>::new(23);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_min(24, order), 23);
                 assert_eq!(a.load(Ordering::Relaxed), 23);
                 assert_eq!(a.fetch_min(22, order), 23);
                 assert_eq!(a.load(Ordering::Relaxed), 22);
                 let a = <$atomic_type>::new(1);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_min(0, order), 1);
                 assert_eq!(a.load(Ordering::Relaxed), 0);
                 assert_eq!(a.fetch_min(1, order), 0);
                 assert_eq!(a.load(Ordering::Relaxed), 0);
                 let a = <$atomic_type>::new(!0);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
                 assert_eq!(a.fetch_min(0, order), !0);
                 assert_eq!(a.load(Ordering::Relaxed), core::cmp::min(!0, 0));
             }
@@ -497,6 +658,11 @@ macro_rules! __test_atomic_int {
         }
         #[test]
         fn fetch_neg() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(5);
             test_swap_ordering(|order| a.fetch_neg(order));
             for &order in &helper::SWAP_ORDERINGS {
@@ -514,6 +680,11 @@ macro_rules! __test_atomic_int {
         }
         #[test]
         fn neg() {
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
             let a = <$atomic_type>::new(5);
             test_swap_ordering(|order| a.neg(order));
             for &order in &helper::SWAP_ORDERINGS {
@@ -567,6 +738,11 @@ macro_rules! __test_atomic_int {
         }
         ::quickcheck::quickcheck! {
             fn quickcheck_swap(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
                     assert_eq!(a.swap(y, order), x);
@@ -575,6 +751,11 @@ macro_rules! __test_atomic_int {
                 true
             }
             fn quickcheck_compare_exchange(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 #[cfg(all(
                     target_arch = "arm",
                     not(any(target_feature = "v6", portable_atomic_target_feature = "v6")),
@@ -583,12 +764,13 @@ macro_rules! __test_atomic_int {
                     // TODO: LLVM bug:
                     // https://github.com/llvm/llvm-project/issues/61880
                     // https://github.com/taiki-e/portable-atomic/issues/2
-                    if core::mem::size_of::<$int_type>() <= 2 {
+                    if mem::size_of::<$int_type>() <= 2 {
                         return true;
                     }
                 }
+                let mut rng = fastrand::Rng::new();
                 let z = loop {
-                    let z = fastrand::$int_type(..);
+                    let z = rng.$int_type(..);
                     if z != y {
                         break z;
                     }
@@ -603,44 +785,96 @@ macro_rules! __test_atomic_int {
                 true
             }
             fn quickcheck_fetch_add(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_add(y, order), x);
                     assert_eq!(a.load(Ordering::Relaxed), x.wrapping_add(y));
                     let a = <$atomic_type>::new(y);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_add(x, order), y);
                     assert_eq!(a.load(Ordering::Relaxed), y.wrapping_add(x));
                 }
                 true
             }
             fn quickcheck_add(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     a.add(y, order);
                     assert_eq!(a.load(Ordering::Relaxed), x.wrapping_add(y));
                     let a = <$atomic_type>::new(y);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     a.add(x, order);
                     assert_eq!(a.load(Ordering::Relaxed), y.wrapping_add(x));
                 }
                 true
             }
             fn quickcheck_fetch_sub(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_sub(y, order), x);
                     assert_eq!(a.load(Ordering::Relaxed), x.wrapping_sub(y));
                     let a = <$atomic_type>::new(y);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_sub(x, order), y);
                     assert_eq!(a.load(Ordering::Relaxed), y.wrapping_sub(x));
                 }
                 true
             }
             fn quickcheck_sub(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     a.sub(y, order);
                     assert_eq!(a.load(Ordering::Relaxed), x.wrapping_sub(y));
                     let a = <$atomic_type>::new(y);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     a.sub(x, order);
                     assert_eq!(a.load(Ordering::Relaxed), y.wrapping_sub(x));
                 }
@@ -669,6 +903,11 @@ macro_rules! __test_atomic_int {
                 true
             }
             fn quickcheck_fetch_nand(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
                     assert_eq!(a.fetch_nand(y, order), x);
@@ -724,22 +963,62 @@ macro_rules! __test_atomic_int {
                 true
             }
             fn quickcheck_fetch_max(x: $int_type, y: $int_type) -> bool {
+                // TODO(gcc): failure: https://github.com/rust-lang/rustc_codegen_gcc/issues/821#issuecomment-3793567607
+                if option_env!("RUSTC_CODEGEN_GCC").unwrap_or_default() == "1"
+                    && $int_type::MIN == 0
+                    && mem::size_of::<$int_type>() <= 8
+                {
+                    return true;
+                }
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_max(y, order), x);
                     assert_eq!(a.load(Ordering::Relaxed), core::cmp::max(x, y));
                     let a = <$atomic_type>::new(y);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_max(x, order), y);
                     assert_eq!(a.load(Ordering::Relaxed), core::cmp::max(y, x));
                 }
                 true
             }
             fn quickcheck_fetch_min(x: $int_type, y: $int_type) -> bool {
+                // TODO(gcc): failure: https://github.com/rust-lang/rustc_codegen_gcc/issues/821#issuecomment-3793567607
+                if option_env!("RUSTC_CODEGEN_GCC").unwrap_or_default() == "1"
+                    && $int_type::MIN == 0
+                    && mem::size_of::<$int_type>() <= 8
+                {
+                    return true;
+                }
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_min(y, order), x);
                     assert_eq!(a.load(Ordering::Relaxed), core::cmp::min(x, y));
                     let a = <$atomic_type>::new(y);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.fetch_min(x, order), y);
                     assert_eq!(a.load(Ordering::Relaxed), core::cmp::min(y, x));
                 }
@@ -766,6 +1045,23 @@ macro_rules! __test_atomic_int {
                 true
             }
             fn quickcheck_fetch_neg(x: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
+                #[cfg(all(
+                    target_arch = "arm",
+                    not(any(target_feature = "v6", portable_atomic_target_feature = "v6")),
+                ))]
+                {
+                    // TODO: LLVM bug:
+                    // https://github.com/llvm/llvm-project/issues/61880
+                    // https://github.com/taiki-e/portable-atomic/issues/2
+                    if mem::size_of::<$int_type>() <= 2 {
+                        return true;
+                    }
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
                     assert_eq!(a.fetch_neg(order), x);
@@ -776,6 +1072,11 @@ macro_rules! __test_atomic_int {
                 true
             }
             fn quickcheck_neg(x: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
                     a.neg(order);
@@ -822,36 +1123,44 @@ macro_rules! __test_atomic_int {
 
         #[test]
         fn stress_swap() {
-            let (iterations, threads) = stress_test_config();
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
+            let mut rng = fastrand::Rng::new();
+            let (iterations, threads) = stress_test_config(&mut rng);
             let data1 = &(0..threads)
-                .map(|_| (0..iterations).map(|_| fastrand::$int_type(..)).collect::<Vec<_>>())
+                .map(|_| (0..iterations).map(|_| rng.$int_type(..)).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             let data2 = &(0..threads)
-                .map(|_| (0..iterations).map(|_| fastrand::$int_type(..)).collect::<Vec<_>>())
+                .map(|_| (0..iterations).map(|_| rng.$int_type(..)).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             let set = &data1
                 .iter()
                 .flat_map(|v| v.iter().copied())
                 .chain(data2.iter().flat_map(|v| v.iter().copied()))
                 .collect::<BTreeSet<_>>();
-            let a = &<$atomic_type>::new(data2[0][fastrand::usize(0..iterations)]);
-            let now = &std::time::Instant::now();
+            let a = &<$atomic_type>::new(data2[0][rng.usize(0..iterations)]);
+            let now = &Instant::now();
             thread::scope(|s| {
                 for thread in 0..threads {
                     if thread % 2 == 0 {
                         s.spawn(move |_| {
+                            let mut rng = fastrand::Rng::new();
                             let now = *now;
                             for i in 0..iterations {
-                                a.store(data1[thread][i], rand_store_ordering());
+                                a.store(data1[thread][i], rand_store_ordering(&mut rng));
                             }
                             std::eprintln!("store end={:?}", now.elapsed());
                         });
                     } else {
                         s.spawn(|_| {
+                            let mut rng = fastrand::Rng::new();
                             let now = *now;
                             let mut v = vec![0; iterations];
                             for i in 0..iterations {
-                                v[i] = a.load(rand_load_ordering());
+                                v[i] = a.load(rand_load_ordering(&mut rng));
                             }
                             std::eprintln!("load end={:?}", now.elapsed());
                             for v in v {
@@ -860,10 +1169,11 @@ macro_rules! __test_atomic_int {
                         });
                     }
                     s.spawn(move |_| {
+                        let mut rng = fastrand::Rng::new();
                         let now = *now;
                         let mut v = vec![0; iterations];
                         for i in 0..iterations {
-                            v[i] = a.swap(data2[thread][i], rand_swap_ordering());
+                            v[i] = a.swap(data2[thread][i], rand_swap_ordering(&mut rng));
                         }
                         std::eprintln!("swap end={:?}", now.elapsed());
                         for v in v {
@@ -876,34 +1186,46 @@ macro_rules! __test_atomic_int {
         }
         #[test]
         fn stress_compare_exchange() {
-            let (iterations, threads) = stress_test_config();
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
+            let mut rng = fastrand::Rng::new();
+            let (iterations, threads) = stress_test_config(&mut rng);
             let data1 = &(0..threads)
-                .map(|_| (0..iterations).map(|_| fastrand::$int_type(..)).collect::<Vec<_>>())
+                .map(|_| (0..iterations).map(|_| rng.$int_type(..)).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             let data2 = &(0..threads)
-                .map(|_| (0..iterations).map(|_| fastrand::$int_type(..)).collect::<Vec<_>>())
+                .map(|_| (0..iterations).map(|_| rng.$int_type(..)).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             let set = &data1
                 .iter()
                 .flat_map(|v| v.iter().copied())
                 .chain(data2.iter().flat_map(|v| v.iter().copied()))
                 .collect::<BTreeSet<_>>();
-            let a = &<$atomic_type>::new(data2[0][fastrand::usize(0..iterations)]);
-            let now = &std::time::Instant::now();
+            let a = &<$atomic_type>::new(data2[0][rng.usize(0..iterations)]);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(a);
+            }
+            let now = &Instant::now();
             thread::scope(|s| {
                 for thread in 0..threads {
                     s.spawn(move |_| {
+                        let mut rng = fastrand::Rng::new();
                         let now = *now;
                         for i in 0..iterations {
-                            a.store(data1[thread][i], rand_store_ordering());
+                            a.store(data1[thread][i], rand_store_ordering(&mut rng));
                         }
                         std::eprintln!("store end={:?}", now.elapsed());
                     });
                     s.spawn(|_| {
+                        let mut rng = fastrand::Rng::new();
                         let now = *now;
                         let mut v = vec![data2[0][0]; iterations];
                         for i in 0..iterations {
-                            v[i] = a.load(rand_load_ordering());
+                            v[i] = a.load(rand_load_ordering(&mut rng));
                         }
                         std::eprintln!("load end={:?}", now.elapsed());
                         for v in v {
@@ -911,16 +1233,17 @@ macro_rules! __test_atomic_int {
                         }
                     });
                     s.spawn(move |_| {
+                        let mut rng = fastrand::Rng::new();
                         let now = *now;
                         let mut v = vec![data2[0][0]; iterations];
                         for i in 0..iterations {
                             let old = if i % 2 == 0 {
-                                fastrand::$int_type(..)
+                                rng.$int_type(..)
                             } else {
                                 a.load(Ordering::Relaxed)
                             };
                             let new = data2[thread][i];
-                            let o = rand_compare_exchange_ordering();
+                            let o = rand_compare_exchange_ordering(&mut rng);
                             match a.compare_exchange(old, new, o.0, o.1) {
                                 Ok(r) => assert_eq!(old, r),
                                 Err(r) => v[i] = r,
@@ -1010,6 +1333,20 @@ macro_rules! __test_atomic_float {
         }
         #[test]
         fn fetch_max() {
+            if mem::size_of::<$float_type>() == 16
+                && cfg!(any(
+                    target_arch = "arm",
+                    target_arch = "mips",
+                    target_arch = "mips32r6",
+                    target_arch = "mips64",
+                    target_arch = "mips64r6",
+                    target_vendor = "apple",
+                    windows,
+                ))
+            {
+                // TODO(f128):
+                return;
+            }
             let a = <$atomic_type>::new(23.);
             test_swap_ordering(|order| a.fetch_max(23., order));
             for &order in &helper::SWAP_ORDERINGS {
@@ -1022,6 +1359,20 @@ macro_rules! __test_atomic_float {
         }
         #[test]
         fn fetch_min() {
+            if mem::size_of::<$float_type>() == 16
+                && cfg!(any(
+                    target_arch = "arm",
+                    target_arch = "mips",
+                    target_arch = "mips32r6",
+                    target_arch = "mips64",
+                    target_arch = "mips64r6",
+                    target_vendor = "apple",
+                    windows,
+                ))
+            {
+                // TODO(f128):
+                return;
+            }
             let a = <$atomic_type>::new(23.);
             test_swap_ordering(|order| a.fetch_min(23., order));
             for &order in &helper::SWAP_ORDERINGS {
@@ -1066,8 +1417,21 @@ macro_rules! __test_atomic_float {
                 true
             }
             fn quickcheck_compare_exchange(x: $float_type, y: $float_type) -> bool {
+                #[cfg(all(
+                    target_arch = "arm",
+                    not(any(target_feature = "v6", portable_atomic_target_feature = "v6")),
+                ))]
+                {
+                    // TODO: LLVM bug:
+                    // https://github.com/llvm/llvm-project/issues/61880
+                    // https://github.com/taiki-e/portable-atomic/issues/2
+                    if mem::size_of::<$float_type>() <= 2 {
+                        return true;
+                    }
+                }
+                let mut rng = fastrand::Rng::new();
                 let z = loop {
-                    let z = fastrand::$float_type();
+                    let z = float_rand::$float_type(&mut rng);
                     if z != y {
                         break z;
                     }
@@ -1115,6 +1479,20 @@ macro_rules! __test_atomic_float {
                 true
             }
             fn quickcheck_fetch_max(x: $float_type, y: $float_type) -> bool {
+                if mem::size_of::<$float_type>() == 16
+                    && cfg!(any(
+                        target_arch = "arm",
+                        target_arch = "mips",
+                        target_arch = "mips32r6",
+                        target_arch = "mips64",
+                        target_arch = "mips64r6",
+                        target_vendor = "apple",
+                        windows,
+                    ))
+                {
+                    // TODO(f128):
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
                     assert_float_op_eq!(a.fetch_max(y, order), x);
@@ -1126,6 +1504,20 @@ macro_rules! __test_atomic_float {
                 true
             }
             fn quickcheck_fetch_min(x: $float_type, y: $float_type) -> bool {
+                if mem::size_of::<$float_type>() == 16
+                    && cfg!(any(
+                        target_arch = "arm",
+                        target_arch = "mips",
+                        target_arch = "mips32r6",
+                        target_arch = "mips64",
+                        target_arch = "mips64r6",
+                        target_vendor = "apple",
+                        windows,
+                    ))
+                {
+                    // TODO(f128):
+                    return true;
+                }
                 for &order in &helper::SWAP_ORDERINGS {
                     let a = <$atomic_type>::new(x);
                     assert_float_op_eq!(a.fetch_min(y, order), x);
@@ -1328,6 +1720,10 @@ macro_rules! __test_atomic_bool {
                 let z = !y;
                 for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
                     let a = <$atomic_type>::new(x);
+                    #[cfg(valgrind)]
+                    if IMP_EMU_SUB_WORD_CAS {
+                        mark_aligned_defined(&a);
+                    }
                     assert_eq!(a.compare_exchange(x, y, success, failure).unwrap(), x);
                     assert_eq!(a.load(Ordering::Relaxed), y);
                     assert_eq!(a.compare_exchange(z, x, success, failure).unwrap_err(), y);
@@ -1344,6 +1740,8 @@ macro_rules! __test_atomic_bool {
 }
 macro_rules! __test_atomic_ptr {
     ($atomic_type:ty, single_thread) => {
+        #[allow(unused_imports)]
+        use sptr::Strict as _; // for old rustc
         #[test]
         fn swap() {
             let a = <$atomic_type>::new(ptr::null_mut());
@@ -1395,357 +1793,7 @@ macro_rules! __test_atomic_ptr {
                 assert_eq!(a.load(Ordering::Relaxed), x as *mut _);
             }
         }
-        ::quickcheck::quickcheck! {
-            fn quickcheck_swap(x: usize, y: usize) -> bool {
-                let x = sptr::invalid_mut(x);
-                let y = sptr::invalid_mut(y);
-                for &order in &helper::SWAP_ORDERINGS {
-                    let a = <$atomic_type>::new(x);
-                    assert_eq!(a.swap(y, order), x);
-                    assert_eq!(a.swap(x, order), y);
-                }
-                true
-            }
-            fn quickcheck_compare_exchange(x: usize, y: usize) -> bool {
-                let z = loop {
-                    let z = fastrand::usize(..);
-                    if z != y {
-                        break z;
-                    }
-                };
-                let x = sptr::invalid_mut(x);
-                let y = sptr::invalid_mut(y);
-                let z = sptr::invalid_mut(z);
-                for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
-                    let a = <$atomic_type>::new(x);
-                    assert_eq!(a.compare_exchange(x, y, success, failure).unwrap(), x);
-                    assert_eq!(a.load(Ordering::Relaxed), y);
-                    assert_eq!(a.compare_exchange(z, x, success, failure).unwrap_err(), y);
-                    assert_eq!(a.load(Ordering::Relaxed), y);
-                }
-                true
-            }
-        }
-    };
-    ($atomic_type:ty) => {
-        __test_atomic_ptr!($atomic_type, single_thread);
-        // TODO: multi thread
-    };
-}
-
-macro_rules! __test_atomic_int_pub {
-    ($atomic_type:ty, $int_type:ident) => {
-        __test_atomic_pub_common!($atomic_type, $int_type);
-        use std::{boxed::Box, mem};
-        #[test]
-        fn fetch_update() {
-            let a = <$atomic_type>::new(7);
-            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
-            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
-                let a = <$atomic_type>::new(7);
-                assert_eq!(a.fetch_update(success, failure, |_| None), Err(7));
-                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1)), Ok(7));
-                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1)), Ok(8));
-                assert_eq!(a.load(Ordering::SeqCst), 9);
-            }
-        }
-        #[test]
-        fn impls() {
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            const INTO_INNER: $int_type = {
-                let a = <$atomic_type>::new(10);
-                a.into_inner()
-            };
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            const GET_MUT: $atomic_type = {
-                let mut a = <$atomic_type>::new(10);
-                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
-                *a.get_mut() = 5;
-                a
-            };
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            {
-                assert_eq!(INTO_INNER, 10);
-            }
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            {
-                assert_eq!(GET_MUT.into_inner(), 5);
-            }
-            let a = <$atomic_type>::default();
-            let b = <$atomic_type>::from(0);
-            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
-            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
-            assert_eq!(a.into_inner(), 0);
-            assert_eq!(b.into_inner(), 0);
-
-            unsafe {
-                let ptr: *mut Align16<$int_type> = Box::into_raw(Box::new(Align16(0)));
-                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
-                {
-                    let a = <$atomic_type>::from_ptr(ptr.cast::<$int_type>());
-                    *a.as_ptr() = 1;
-                }
-                assert_eq!((*ptr).0, 1);
-                drop(Box::from_raw(ptr));
-            }
-        }
-        ::quickcheck::quickcheck! {
-            fn quickcheck_fetch_update(x: $int_type, y: $int_type) -> bool {
-                let z = loop {
-                    let z = fastrand::$int_type(..);
-                    if z != y {
-                        break z;
-                    }
-                };
-                for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
-                    let a = <$atomic_type>::new(x);
-                    assert_eq!(
-                        a.fetch_update(success, failure, |_| Some(y))
-                        .unwrap(),
-                        x
-                    );
-                    assert_eq!(
-                        a.fetch_update(success, failure, |_| Some(z))
-                        .unwrap(),
-                        y
-                    );
-                    assert_eq!(a.load(Ordering::Relaxed), z);
-                    assert_eq!(
-                        a.fetch_update(success, failure, |z| if z == y { Some(z) } else { None })
-                        .unwrap_err(),
-                        z
-                    );
-                    assert_eq!(a.load(Ordering::Relaxed), z);
-                }
-                true
-            }
-        }
-    };
-}
-macro_rules! __test_atomic_float_pub {
-    ($atomic_type:ty, $float_type:ident) => {
-        __test_atomic_pub_common!($atomic_type, $float_type);
-        use std::{boxed::Box, mem};
-        #[test]
-        fn fetch_update() {
-            let a = <$atomic_type>::new(7.);
-            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
-            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
-                let a = <$atomic_type>::new(7.);
-                assert_eq!(a.fetch_update(success, failure, |_| None), Err(7.));
-                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1.)), Ok(7.));
-                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1.)), Ok(8.));
-                assert_eq!(a.load(Ordering::SeqCst), 9.);
-            }
-        }
-        #[test]
-        fn impls() {
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            const INTO_INNER: $float_type = {
-                let a = <$atomic_type>::new(10.);
-                a.into_inner()
-            };
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            const GET_MUT: $atomic_type = {
-                let mut a = <$atomic_type>::new(10.);
-                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
-                *a.get_mut() = 5.;
-                a
-            };
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            {
-                assert_eq!(INTO_INNER, 10.);
-            }
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            {
-                assert_eq!(GET_MUT.into_inner(), 5.);
-            }
-            let a = <$atomic_type>::default();
-            let b = <$atomic_type>::from(0.);
-            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
-            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
-            assert_eq!(a.into_inner(), 0.);
-            assert_eq!(b.into_inner(), 0.);
-
-            unsafe {
-                let ptr: *mut Align16<$float_type> = Box::into_raw(Box::new(Align16(0.)));
-                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
-                {
-                    let a = <$atomic_type>::from_ptr(ptr.cast::<$float_type>());
-                    *a.as_ptr() = 1.;
-                }
-                assert_eq!((*ptr).0, 1.);
-                drop(Box::from_raw(ptr));
-            }
-        }
-    };
-}
-macro_rules! __test_atomic_bool_pub {
-    ($atomic_type:ty) => {
-        __test_atomic_pub_common!($atomic_type, bool);
-        use std::{boxed::Box, mem};
-        #[test]
-        fn fetch_nand() {
-            let a = <$atomic_type>::new(true);
-            test_swap_ordering(|order| assert_eq!(a.fetch_nand(false, order), true));
-            for &order in &helper::SWAP_ORDERINGS {
-                let a = <$atomic_type>::new(true);
-                assert_eq!(a.fetch_nand(false, order), true);
-                assert_eq!(a.load(Ordering::Relaxed), true);
-                let a = <$atomic_type>::new(true);
-                assert_eq!(a.fetch_nand(true, order), true);
-                assert_eq!(a.load(Ordering::Relaxed) as usize, 0);
-                assert_eq!(a.load(Ordering::Relaxed), false);
-                let a = <$atomic_type>::new(false);
-                assert_eq!(a.fetch_nand(false, order), false);
-                assert_eq!(a.load(Ordering::Relaxed), true);
-                let a = <$atomic_type>::new(false);
-                assert_eq!(a.fetch_nand(true, order), false);
-                assert_eq!(a.load(Ordering::Relaxed), true);
-            }
-        }
-        #[test]
-        fn fetch_not() {
-            let a = <$atomic_type>::new(true);
-            test_swap_ordering(|order| a.fetch_not(order));
-            for &order in &helper::SWAP_ORDERINGS {
-                let a = <$atomic_type>::new(true);
-                assert_eq!(a.fetch_not(order), true);
-                assert_eq!(a.load(Ordering::Relaxed), false);
-                let a = <$atomic_type>::new(false);
-                assert_eq!(a.fetch_not(order), false);
-                assert_eq!(a.load(Ordering::Relaxed), true);
-            }
-        }
-        #[test]
-        fn not() {
-            let a = <$atomic_type>::new(true);
-            test_swap_ordering(|order| a.fetch_not(order));
-            for &order in &helper::SWAP_ORDERINGS {
-                let a = <$atomic_type>::new(true);
-                a.not(order);
-                assert_eq!(a.load(Ordering::Relaxed), false);
-                let a = <$atomic_type>::new(false);
-                a.not(order);
-                assert_eq!(a.load(Ordering::Relaxed), true);
-            }
-        }
-        #[test]
-        fn fetch_update() {
-            let a = <$atomic_type>::new(false);
-            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
-            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
-                let a = <$atomic_type>::new(false);
-                assert_eq!(a.fetch_update(success, failure, |_| None), Err(false));
-                assert_eq!(a.fetch_update(success, failure, |x| Some(!x)), Ok(false));
-                assert_eq!(a.fetch_update(success, failure, |x| Some(!x)), Ok(true));
-                assert_eq!(a.load(Ordering::SeqCst), false);
-            }
-        }
-        #[test]
-        fn impls() {
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            const INTO_INNER: bool = {
-                let a = <$atomic_type>::new(true);
-                a.into_inner()
-            };
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            const GET_MUT: $atomic_type = {
-                let mut a = <$atomic_type>::new(true);
-                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
-                *a.get_mut() = false;
-                a
-            };
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            {
-                assert_eq!(INTO_INNER, true);
-            }
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            {
-                assert_eq!(GET_MUT.into_inner(), false);
-            }
-            let a = <$atomic_type>::default();
-            let b = <$atomic_type>::from(false);
-            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
-            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
-            assert_eq!(a.into_inner(), false);
-            assert_eq!(b.into_inner(), false);
-
-            unsafe {
-                let ptr: *mut bool = Box::into_raw(Box::new(false));
-                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
-                {
-                    let a = <$atomic_type>::from_ptr(ptr);
-                    *a.as_ptr() = true;
-                }
-                assert_eq!((*ptr), true);
-                drop(Box::from_raw(ptr));
-            }
-        }
-    };
-}
-macro_rules! __test_atomic_ptr_pub {
-    ($atomic_type:ty) => {
-        __test_atomic_pub_common!($atomic_type, *mut u8);
-        #[allow(unused_imports)]
-        use sptr::Strict; // for old rustc
-        use std::{boxed::Box, mem};
-        #[test]
-        fn fetch_update() {
-            let a = <$atomic_type>::new(ptr::null_mut());
-            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
-            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
-                let a = <$atomic_type>::new(ptr::null_mut());
-                assert_eq!(a.fetch_update(success, failure, |_| None), Err(ptr::null_mut()));
-                assert_eq!(
-                    a.fetch_update(success, failure, |_| Some(&a as *const _ as *mut _)),
-                    Ok(ptr::null_mut())
-                );
-                assert_eq!(a.load(Ordering::SeqCst), &a as *const _ as *mut _);
-            }
-        }
-        #[test]
-        fn impls() {
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            const INTO_INNER: *mut u8 = {
-                let a = <$atomic_type>::new(ptr::null_mut());
-                a.into_inner()
-            };
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            const GET_MUT: $atomic_type = {
-                let mut a = <$atomic_type>::new(ptr::null_mut());
-                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
-                *a.get_mut() = ptr::null_mut::<u8>().wrapping_add(1);
-                a
-            };
-            #[cfg(not(portable_atomic_no_const_transmute))]
-            {
-                assert!(INTO_INNER.is_null());
-            }
-            #[cfg(not(portable_atomic_no_const_mut_refs))]
-            {
-                assert_eq!(GET_MUT.into_inner(), ptr::null_mut::<u8>().wrapping_add(1));
-            }
-            let a = <$atomic_type>::default();
-            let b = <$atomic_type>::from(ptr::null_mut());
-            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
-            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
-            assert_eq!(std::format!("{:p}", a), std::format!("{:p}", a.load(Ordering::SeqCst)));
-            assert_eq!(a.into_inner(), ptr::null_mut());
-            assert_eq!(b.into_inner(), ptr::null_mut());
-
-            unsafe {
-                let ptr: *mut Align16<*mut u8> = Box::into_raw(Box::new(Align16(ptr::null_mut())));
-                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
-                {
-                    let a = <$atomic_type>::from_ptr(ptr.cast::<*mut u8>());
-                    *a.as_ptr() = ptr::null_mut::<u8>().wrapping_add(1);
-                }
-                assert_eq!((*ptr).0, ptr::null_mut::<u8>().wrapping_add(1));
-                drop(Box::from_raw(ptr));
-            }
-        }
-        // https://github.com/rust-lang/rust/blob/1.80.0/library/core/tests/atomic.rs#L130-L213
+        // https://github.com/rust-lang/rust/blob/1.84.0/library/core/tests/atomic.rs#L130-L213
         #[test]
         fn ptr_add_null() {
             let atom = AtomicPtr::<i64>::new(core::ptr::null_mut());
@@ -1865,6 +1913,490 @@ macro_rules! __test_atomic_ptr_pub {
                 // Toggle a tag bit on the pointer.
                 atom.bit_toggle(0, order);
                 assert_eq!(atom.load(Ordering::Relaxed).addr() & 1, 1);
+            }
+        }
+        ::quickcheck::quickcheck! {
+            fn quickcheck_swap(x: usize, y: usize) -> bool {
+                let x = sptr::invalid_mut(x);
+                let y = sptr::invalid_mut(y);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(a.swap(y, order), x);
+                    assert_eq!(a.swap(x, order), y);
+                }
+                true
+            }
+            fn quickcheck_compare_exchange(x: usize, y: usize) -> bool {
+                let mut rng = fastrand::Rng::new();
+                let z = loop {
+                    let z = rng.usize(..);
+                    if z != y {
+                        break z;
+                    }
+                };
+                let x = sptr::invalid_mut(x);
+                let y = sptr::invalid_mut(y);
+                let z = sptr::invalid_mut(z);
+                for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(a.compare_exchange(x, y, success, failure).unwrap(), x);
+                    assert_eq!(a.load(Ordering::Relaxed), y);
+                    assert_eq!(a.compare_exchange(z, x, success, failure).unwrap_err(), y);
+                    assert_eq!(a.load(Ordering::Relaxed), y);
+                }
+                true
+            }
+            fn quickcheck_fetch_byte_add(x: usize, y: usize) -> bool {
+                let x = sptr::invalid_mut(x);
+                let y = sptr::invalid_mut::<u8>(y);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(a.fetch_byte_add(y.addr(), order), x);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr().wrapping_add(y.addr()));
+                    let a = <$atomic_type>::new(y);
+                    assert_eq!(a.fetch_byte_add(x.addr(), order), y);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), y.addr().wrapping_add(x.addr()));
+                }
+                true
+            }
+            fn quickcheck_fetch_byte_sub(x: usize, y: usize) -> bool {
+                let x = sptr::invalid_mut(x);
+                let y = sptr::invalid_mut::<u8>(y);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(a.fetch_byte_sub(y.addr(), order), x);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr().wrapping_sub(y.addr()));
+                    let a = <$atomic_type>::new(y);
+                    assert_eq!(a.fetch_byte_sub(x.addr(), order), y);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), y.addr().wrapping_sub(x.addr()));
+                }
+                true
+            }
+            fn quickcheck_fetch_and(x: usize, y: usize) -> bool {
+                let x = sptr::invalid_mut(x);
+                let y = sptr::invalid_mut::<u8>(y);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(a.fetch_and(y.addr(), order), x);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr() & y.addr());
+                    let a = <$atomic_type>::new(y);
+                    assert_eq!(a.fetch_and(x.addr(), order), y);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), y.addr() & x.addr());
+                }
+                true
+            }
+            fn quickcheck_fetch_or(x: usize, y: usize) -> bool {
+                let x = sptr::invalid_mut(x);
+                let y = sptr::invalid_mut::<u8>(y);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(a.fetch_or(y.addr(), order), x);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr() | y.addr());
+                    let a = <$atomic_type>::new(y);
+                    assert_eq!(a.fetch_or(x.addr(), order), y);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), y.addr() | x.addr());
+                }
+                true
+            }
+            fn quickcheck_fetch_xor(x: usize, y: usize) -> bool {
+                let x = sptr::invalid_mut(x);
+                let y = sptr::invalid_mut::<u8>(y);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(a.fetch_xor(y.addr(), order), x);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr() ^ y.addr());
+                    let a = <$atomic_type>::new(y);
+                    assert_eq!(a.fetch_xor(x.addr(), order), y);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), y.addr() ^ x.addr());
+                }
+                true
+            }
+            fn quickcheck_bit_set(x: usize, bit: u32) -> bool {
+                let x = sptr::invalid_mut(x);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    let b = a.bit_set(bit, order);
+                    let mask = <usize>::wrapping_shl(1, bit);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr() | mask);
+                    assert_eq!(b, x.addr() & mask != 0);
+                }
+                true
+            }
+            fn quickcheck_bit_clear(x: usize, bit: u32) -> bool {
+                let x = sptr::invalid_mut(x);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    let b = a.bit_clear(bit, order);
+                    let mask = <usize>::wrapping_shl(1, bit);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr() & !mask);
+                    assert_eq!(b, x.addr() & mask != 0);
+                }
+                true
+            }
+            fn quickcheck_bit_toggle(x: usize, bit: u32) -> bool {
+                let x = sptr::invalid_mut(x);
+                for &order in &helper::SWAP_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    let b = a.bit_toggle(bit, order);
+                    let mask = <usize>::wrapping_shl(1, bit);
+                    assert_eq!(a.load(Ordering::Relaxed).addr(), x.addr() ^ mask);
+                    assert_eq!(b, x.addr() & mask != 0);
+                }
+                true
+            }
+        }
+    };
+    ($atomic_type:ty) => {
+        __test_atomic_ptr!($atomic_type, single_thread);
+        // TODO: multi thread
+    };
+}
+
+macro_rules! __test_atomic_int_pub {
+    ($atomic_type:ty, $int_type:ident) => {
+        __test_atomic_pub_common!($atomic_type, $int_type);
+        use std::boxed::Box;
+        #[test]
+        fn fetch_update() {
+            // TODO(gcc): failure
+            if option_env!("RUSTC_CODEGEN_GCC").unwrap_or_default() == "1"
+                && !cfg!(debug_assertions)
+            {
+                return;
+            }
+            // TODO(riscv): wrong result (as of Valgrind 3.26)
+            #[cfg(valgrind)]
+            if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                return;
+            }
+            let a = <$atomic_type>::new(7);
+            #[cfg(valgrind)]
+            if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                mark_aligned_defined(&a);
+            }
+            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
+            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
+                let a = <$atomic_type>::new(7);
+                #[cfg(valgrind)]
+                if IMP_EMU_SUB_WORD_CAS && mem::size_of::<$int_type>() <= 2 {
+                    mark_aligned_defined(&a);
+                }
+                assert_eq!(a.fetch_update(success, failure, |_| None), Err(7));
+                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1)), Ok(7));
+                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1)), Ok(8));
+                assert_eq!(a.load(Ordering::SeqCst), 9);
+            }
+        }
+        #[test]
+        fn impls() {
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            const INTO_INNER: $int_type = {
+                let a = <$atomic_type>::new(10);
+                a.into_inner()
+            };
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            const GET_MUT: $atomic_type = {
+                let mut a = <$atomic_type>::new(10);
+                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
+                *a.get_mut() = 5;
+                a
+            };
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            {
+                assert_eq!(INTO_INNER, 10);
+            }
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            {
+                assert_eq!(GET_MUT.into_inner(), 5);
+            }
+            let a = <$atomic_type>::default();
+            let b = <$atomic_type>::from(0);
+            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
+            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
+            assert_eq!(a.into_inner(), 0);
+            assert_eq!(b.into_inner(), 0);
+
+            unsafe {
+                let ptr: *mut Align16<$int_type> = Box::into_raw(Box::new(Align16(0)));
+                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
+                {
+                    let a = <$atomic_type>::from_ptr(ptr.cast::<$int_type>());
+                    *a.as_ptr() = 1;
+                }
+                assert_eq!((*ptr).0, 1);
+                drop(Box::from_raw(ptr));
+            }
+        }
+        ::quickcheck::quickcheck! {
+            fn quickcheck_fetch_update(x: $int_type, y: $int_type) -> bool {
+                // TODO(riscv): wrong result (as of Valgrind 3.26)
+                #[cfg(valgrind)]
+                if cfg!(target_arch = "riscv64") && mem::size_of::<$int_type>() <= 2 {
+                    return true;
+                }
+                let mut rng = fastrand::Rng::new();
+                let z = loop {
+                    let z = rng.$int_type(..);
+                    if z != y {
+                        break z;
+                    }
+                };
+                for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
+                    let a = <$atomic_type>::new(x);
+                    assert_eq!(
+                        a.fetch_update(success, failure, |_| Some(y))
+                        .unwrap(),
+                        x
+                    );
+                    assert_eq!(
+                        a.fetch_update(success, failure, |_| Some(z))
+                        .unwrap(),
+                        y
+                    );
+                    assert_eq!(a.load(Ordering::Relaxed), z);
+                    assert_eq!(
+                        a.fetch_update(success, failure, |z| if z == y { Some(z) } else { None })
+                        .unwrap_err(),
+                        z
+                    );
+                    assert_eq!(a.load(Ordering::Relaxed), z);
+                }
+                true
+            }
+        }
+    };
+}
+macro_rules! __test_atomic_float_pub {
+    ($atomic_type:ty, $float_type:ident) => {
+        __test_atomic_pub_common!($atomic_type, $float_type);
+        use std::boxed::Box;
+        #[test]
+        fn fetch_update() {
+            let a = <$atomic_type>::new(7.);
+            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
+            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
+                let a = <$atomic_type>::new(7.);
+                assert_eq!(a.fetch_update(success, failure, |_| None), Err(7.));
+                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1.)), Ok(7.));
+                assert_eq!(a.fetch_update(success, failure, |x| Some(x + 1.)), Ok(8.));
+                assert_eq!(a.load(Ordering::SeqCst), 9.);
+            }
+        }
+        #[test]
+        fn impls() {
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            const INTO_INNER: $float_type = {
+                let a = <$atomic_type>::new(10.);
+                a.into_inner()
+            };
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            const GET_MUT: $atomic_type = {
+                let mut a = <$atomic_type>::new(10.);
+                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
+                *a.get_mut() = 5.;
+                a
+            };
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            {
+                assert_eq!(INTO_INNER, 10.);
+            }
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            {
+                assert_eq!(GET_MUT.into_inner(), 5.);
+            }
+            let a = <$atomic_type>::default();
+            let b = <$atomic_type>::from(0.);
+            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
+            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
+            assert_eq!(a.into_inner(), 0.);
+            assert_eq!(b.into_inner(), 0.);
+
+            unsafe {
+                let ptr: *mut Align16<$float_type> = Box::into_raw(Box::new(Align16(0.)));
+                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
+                {
+                    let a = <$atomic_type>::from_ptr(ptr.cast::<$float_type>());
+                    *a.as_ptr() = 1.;
+                }
+                assert_eq!((*ptr).0, 1.);
+                drop(Box::from_raw(ptr));
+            }
+        }
+    };
+}
+macro_rules! __test_atomic_bool_pub {
+    ($atomic_type:ty) => {
+        __test_atomic_pub_common!($atomic_type, bool);
+        use std::boxed::Box;
+        #[test]
+        fn fetch_nand() {
+            let a = <$atomic_type>::new(true);
+            test_swap_ordering(|order| assert_eq!(a.fetch_nand(false, order), true));
+            for &order in &helper::SWAP_ORDERINGS {
+                let a = <$atomic_type>::new(true);
+                assert_eq!(a.fetch_nand(false, order), true);
+                assert_eq!(a.load(Ordering::Relaxed), true);
+                let a = <$atomic_type>::new(true);
+                assert_eq!(a.fetch_nand(true, order), true);
+                assert_eq!(a.load(Ordering::Relaxed) as usize, 0);
+                assert_eq!(a.load(Ordering::Relaxed), false);
+                let a = <$atomic_type>::new(false);
+                assert_eq!(a.fetch_nand(false, order), false);
+                assert_eq!(a.load(Ordering::Relaxed), true);
+                let a = <$atomic_type>::new(false);
+                assert_eq!(a.fetch_nand(true, order), false);
+                assert_eq!(a.load(Ordering::Relaxed), true);
+            }
+        }
+        #[test]
+        fn fetch_not() {
+            let a = <$atomic_type>::new(true);
+            test_swap_ordering(|order| a.fetch_not(order));
+            for &order in &helper::SWAP_ORDERINGS {
+                let a = <$atomic_type>::new(true);
+                assert_eq!(a.fetch_not(order), true);
+                assert_eq!(a.load(Ordering::Relaxed), false);
+                let a = <$atomic_type>::new(false);
+                assert_eq!(a.fetch_not(order), false);
+                assert_eq!(a.load(Ordering::Relaxed), true);
+            }
+        }
+        #[test]
+        fn not() {
+            let a = <$atomic_type>::new(true);
+            test_swap_ordering(|order| a.fetch_not(order));
+            for &order in &helper::SWAP_ORDERINGS {
+                let a = <$atomic_type>::new(true);
+                a.not(order);
+                assert_eq!(a.load(Ordering::Relaxed), false);
+                let a = <$atomic_type>::new(false);
+                a.not(order);
+                assert_eq!(a.load(Ordering::Relaxed), true);
+            }
+        }
+        #[test]
+        fn fetch_update() {
+            // TODO(gcc): failure
+            if option_env!("RUSTC_CODEGEN_GCC").unwrap_or_default() == "1"
+                && !cfg!(debug_assertions)
+            {
+                return;
+            }
+            let a = <$atomic_type>::new(false);
+            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
+            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
+                let a = <$atomic_type>::new(false);
+                assert_eq!(a.fetch_update(success, failure, |_| None), Err(false));
+                assert_eq!(a.fetch_update(success, failure, |x| Some(!x)), Ok(false));
+                assert_eq!(a.fetch_update(success, failure, |x| Some(!x)), Ok(true));
+                assert_eq!(a.load(Ordering::SeqCst), false);
+            }
+        }
+        #[test]
+        fn impls() {
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            const INTO_INNER: bool = {
+                let a = <$atomic_type>::new(true);
+                a.into_inner()
+            };
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            const GET_MUT: $atomic_type = {
+                let mut a = <$atomic_type>::new(true);
+                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
+                *a.get_mut() = false;
+                a
+            };
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            {
+                assert_eq!(INTO_INNER, true);
+            }
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            {
+                assert_eq!(GET_MUT.into_inner(), false);
+            }
+            let a = <$atomic_type>::default();
+            let b = <$atomic_type>::from(false);
+            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
+            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
+            assert_eq!(a.into_inner(), false);
+            assert_eq!(b.into_inner(), false);
+
+            unsafe {
+                let ptr: *mut bool = Box::into_raw(Box::new(false));
+                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
+                {
+                    let a = <$atomic_type>::from_ptr(ptr);
+                    *a.as_ptr() = true;
+                }
+                assert_eq!((*ptr), true);
+                drop(Box::from_raw(ptr));
+            }
+        }
+    };
+}
+macro_rules! __test_atomic_ptr_pub {
+    ($atomic_type:ty) => {
+        __test_atomic_pub_common!($atomic_type, *mut u8);
+        use std::boxed::Box;
+        #[test]
+        fn fetch_update() {
+            // TODO(gcc): failure
+            if option_env!("RUSTC_CODEGEN_GCC").unwrap_or_default() == "1"
+                && !cfg!(debug_assertions)
+            {
+                return;
+            }
+            let a = <$atomic_type>::new(ptr::null_mut());
+            test_compare_exchange_ordering(|set, fetch| a.fetch_update(set, fetch, |x| Some(x)));
+            for &(success, failure) in &helper::COMPARE_EXCHANGE_ORDERINGS {
+                let a = <$atomic_type>::new(ptr::null_mut());
+                assert_eq!(a.fetch_update(success, failure, |_| None), Err(ptr::null_mut()));
+                assert_eq!(
+                    a.fetch_update(success, failure, |_| Some(&a as *const _ as *mut _)),
+                    Ok(ptr::null_mut())
+                );
+                assert_eq!(a.load(Ordering::SeqCst), &a as *const _ as *mut _);
+            }
+        }
+        #[test]
+        fn impls() {
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            const INTO_INNER: *mut u8 = {
+                let a = <$atomic_type>::new(ptr::null_mut());
+                a.into_inner()
+            };
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            const GET_MUT: $atomic_type = {
+                let mut a = <$atomic_type>::new(ptr::null_mut());
+                let _ = unsafe { <$atomic_type>::from_ptr(a.as_ptr()) };
+                *a.get_mut() = ptr::null_mut::<u8>().wrapping_add(1);
+                a
+            };
+            #[cfg(not(portable_atomic_no_const_transmute))]
+            {
+                assert!(INTO_INNER.is_null());
+            }
+            #[cfg(not(portable_atomic_no_const_mut_refs))]
+            {
+                assert_eq!(GET_MUT.into_inner(), ptr::null_mut::<u8>().wrapping_add(1));
+            }
+            let a = <$atomic_type>::default();
+            let b = <$atomic_type>::from(ptr::null_mut());
+            assert_eq!(a.load(Ordering::SeqCst), b.load(Ordering::SeqCst));
+            assert_eq!(std::format!("{:?}", a), std::format!("{:?}", a.load(Ordering::SeqCst)));
+            assert_eq!(std::format!("{:p}", a), std::format!("{:p}", a.load(Ordering::SeqCst)));
+            assert_eq!(a.into_inner(), ptr::null_mut());
+            assert_eq!(b.into_inner(), ptr::null_mut());
+
+            unsafe {
+                let ptr: *mut Align16<*mut u8> = Box::into_raw(Box::new(Align16(ptr::null_mut())));
+                assert!(ptr as usize % mem::align_of::<$atomic_type>() == 0);
+                {
+                    let a = <$atomic_type>::from_ptr(ptr.cast::<*mut u8>());
+                    *a.as_ptr() = ptr::null_mut::<u8>().wrapping_add(1);
+                }
+                assert_eq!((*ptr).0, ptr::null_mut::<u8>().wrapping_add(1));
+                drop(Box::from_raw(ptr));
             }
         }
     };
@@ -2082,8 +2614,8 @@ pub(crate) fn assert_panic<T: std::fmt::Debug>(f: impl FnOnce() -> T) -> std::st
         .cloned()
         .unwrap_or_else(|| msg.downcast_ref::<&'static str>().copied().unwrap().into())
 }
-pub(crate) fn rand_load_ordering() -> Ordering {
-    helper::LOAD_ORDERINGS[fastrand::usize(0..helper::LOAD_ORDERINGS.len())]
+pub(crate) fn rand_load_ordering(rng: &mut fastrand::Rng) -> Ordering {
+    helper::LOAD_ORDERINGS[rng.usize(0..helper::LOAD_ORDERINGS.len())]
 }
 pub(crate) fn test_load_ordering<T: std::fmt::Debug>(f: impl Fn(Ordering) -> T) {
     for &order in &helper::LOAD_ORDERINGS {
@@ -2101,8 +2633,8 @@ pub(crate) fn test_load_ordering<T: std::fmt::Debug>(f: impl Fn(Ordering) -> T) 
         );
     }
 }
-pub(crate) fn rand_store_ordering() -> Ordering {
-    helper::STORE_ORDERINGS[fastrand::usize(0..helper::STORE_ORDERINGS.len())]
+pub(crate) fn rand_store_ordering(rng: &mut fastrand::Rng) -> Ordering {
+    helper::STORE_ORDERINGS[rng.usize(0..helper::STORE_ORDERINGS.len())]
 }
 pub(crate) fn test_store_ordering<T: std::fmt::Debug>(f: impl Fn(Ordering) -> T) {
     for &order in &helper::STORE_ORDERINGS {
@@ -2120,8 +2652,8 @@ pub(crate) fn test_store_ordering<T: std::fmt::Debug>(f: impl Fn(Ordering) -> T)
         );
     }
 }
-pub(crate) fn rand_compare_exchange_ordering() -> (Ordering, Ordering) {
-    helper::COMPARE_EXCHANGE_ORDERINGS[fastrand::usize(0..helper::COMPARE_EXCHANGE_ORDERINGS.len())]
+pub(crate) fn rand_compare_exchange_ordering(rng: &mut fastrand::Rng) -> (Ordering, Ordering) {
+    helper::COMPARE_EXCHANGE_ORDERINGS[rng.usize(0..helper::COMPARE_EXCHANGE_ORDERINGS.len())]
 }
 pub(crate) fn test_compare_exchange_ordering<T: std::fmt::Debug>(
     f: impl Fn(Ordering, Ordering) -> T,
@@ -2149,8 +2681,8 @@ pub(crate) fn test_compare_exchange_ordering<T: std::fmt::Debug>(
         }
     }
 }
-pub(crate) fn rand_swap_ordering() -> Ordering {
-    helper::SWAP_ORDERINGS[fastrand::usize(0..helper::SWAP_ORDERINGS.len())]
+pub(crate) fn rand_swap_ordering(rng: &mut fastrand::Rng) -> Ordering {
+    helper::SWAP_ORDERINGS[rng.usize(0..helper::SWAP_ORDERINGS.len())]
 }
 pub(crate) fn test_swap_ordering<T: std::fmt::Debug>(f: impl Fn(Ordering) -> T) {
     for &order in &helper::SWAP_ORDERINGS {
@@ -2158,7 +2690,7 @@ pub(crate) fn test_swap_ordering<T: std::fmt::Debug>(f: impl Fn(Ordering) -> T) 
     }
 }
 // for stress test generated by __test_atomic_* macros
-pub(crate) fn stress_test_config() -> (usize, usize) {
+pub(crate) fn stress_test_config(rng: &mut fastrand::Rng) -> (usize, usize) {
     let iterations = if cfg!(miri) {
         50
     } else if cfg!(debug_assertions) {
@@ -2166,10 +2698,27 @@ pub(crate) fn stress_test_config() -> (usize, usize) {
     } else {
         25_000
     };
-    let threads = if cfg!(debug_assertions) { 2 } else { fastrand::usize(2..=8) };
+    let threads = if cfg!(debug_assertions) { 2 } else { rng.usize(2..=8) };
     std::eprintln!("threads={}", threads);
     (iterations, threads)
 }
+
+// true if the current implementation implements sub-word atomics using word-size CAS.
+#[cfg(valgrind)]
+pub(crate) const IMP_EMU_SUB_WORD_CAS: bool = cfg!(target_arch = "s390x");
+
+#[cfg(valgrind)]
+#[inline(always)]
+pub(crate) fn mark_aligned_defined<T: ?Sized>(a: &T) {
+    assert!(size_of_val(a) <= 2);
+    memcheck::mark_mem(
+        (a as *const T as *mut core::ffi::c_void).map_addr(|a| a & !3),
+        4,
+        memcheck::MemState::Defined,
+    )
+    .unwrap();
+}
+
 fn skip_should_panic_test() -> bool {
     // Miri's panic handling is slow
     // MSAN false positive: https://gist.github.com/taiki-e/dd6269a8ffec46284fdc764a4849f884
@@ -2181,7 +2730,7 @@ fn skip_should_panic_test() -> bool {
 
 // For -C panic=abort -Z panic_abort_tests: https://github.com/rust-lang/rust/issues/67650
 fn is_panic_abort() -> bool {
-    build_context::PANIC.contains("abort")
+    !matches!(build_context::PANIC, "unwind" | "") // cfg(panic) requires Rust 1.60
 }
 
 pub(crate) const LOAD_ORDERINGS: [Ordering; 3] =
@@ -2213,11 +2762,11 @@ pub(crate) struct Align16<T>(pub(crate) T);
 
 // Test the cases that should not fail if the memory ordering is implemented correctly.
 // This is still not exhaustive and only tests a few cases.
-// This currently only supports 32-bit or more integers.
 macro_rules! __stress_test_acquire_release {
     (should_pass, $int_type:ident, $write:ident, $load_order:ident, $store_order:ident) => {
         paste::paste! {
             #[test]
+            #[cfg_attr(all(debug_assertions, not(miri)), ignore = "slow in some environments")] // debug mode is slow.
             #[allow(clippy::cast_possible_truncation)]
             fn [<load_ $load_order:lower _ $write _ $store_order:lower>]() {
                 __stress_test_acquire_release!([<Atomic $int_type:camel>],
@@ -2231,7 +2780,7 @@ macro_rules! __stress_test_acquire_release {
             // of iterations are needed, but this test is slow in some environments.
             // So, ignore on non-Miri environments by default. See also catch_unwind_on_weak_memory_arch.
             #[test]
-            #[cfg_attr(not(miri), ignore)]
+            #[cfg_attr(not(miri), ignore = "slow in some environments")]
             #[allow(clippy::cast_possible_truncation)]
             fn [<load_ $load_order:lower _ $write _ $store_order:lower>]() {
                 can_panic("a=", || __stress_test_acquire_release!([<Atomic $int_type:camel>],
@@ -2240,17 +2789,20 @@ macro_rules! __stress_test_acquire_release {
         }
     };
     ($atomic_type:ident, $int_type:ident, $write:ident, $load_order:ident, $store_order:ident) => {{
-        use super::*;
-        use crossbeam_utils::thread;
         use std::{
-            convert::TryFrom,
+            convert::TryFrom as _,
             sync::atomic::{AtomicUsize, Ordering},
         };
+
+        use crossbeam_utils::thread;
+
+        use super::*;
+
         let mut n: usize = if cfg!(miri) { 10 } else { 50_000 };
         // This test is relatively fast because it spawns only one thread, but
         // the iterations are limited to a maximum value of integers.
         if $int_type::try_from(n).is_err() {
-            n = $int_type::MAX as usize;
+            n = ($int_type::MAX as usize).checked_add(1).unwrap();
         }
         let a = &$atomic_type::new(0);
         let b = &AtomicUsize::new(0);
@@ -2281,7 +2833,7 @@ macro_rules! __stress_test_seqcst {
             // it creates two threads for each iteration.
             // So, ignore on QEMU by default.
             #[test]
-            #[cfg_attr(qemu, ignore)]
+            #[cfg_attr(any(all(debug_assertions, not(miri)), qemu), ignore = "slow in some environments")] // debug mode is slow.
             fn [<load_ $load_order:lower _ $write _ $store_order:lower>]() {
                 __stress_test_seqcst!([<Atomic $int_type:camel>],
                     $write, $load_order, $store_order);
@@ -2295,7 +2847,7 @@ macro_rules! __stress_test_seqcst {
             // it creates two threads for each iteration.
             // So, ignore on non-Miri environments by default. See also catch_unwind_on_non_seqcst_arch.
             #[test]
-            #[cfg_attr(not(miri), ignore)]
+            #[cfg_attr(not(miri), ignore = "slow in some environments")]
             fn [<load_ $load_order:lower _ $write _ $store_order:lower>]() {
                 can_panic("c=2", || __stress_test_seqcst!([<Atomic $int_type:camel>],
                     $write, $load_order, $store_order));
@@ -2303,9 +2855,12 @@ macro_rules! __stress_test_seqcst {
         }
     };
     ($atomic_type:ident, $write:ident, $load_order:ident, $store_order:ident) => {{
-        use super::*;
-        use crossbeam_utils::thread;
         use std::sync::atomic::{AtomicUsize, Ordering};
+
+        use crossbeam_utils::thread;
+
+        use super::*;
+
         let n: usize = if cfg!(miri) {
             8
         } else if cfg!(valgrind)
@@ -2410,8 +2965,6 @@ pub(crate) fn catch_unwind_on_non_seqcst_arch(pat: &str, f: impl Fn()) {
 }
 macro_rules! stress_test_load_store {
     ($int_type:ident) => {
-        // debug mode is slow.
-        #[cfg(any(not(debug_assertions), miri))]
         paste::paste! {
             #[allow(
                 clippy::alloc_instead_of_core,
@@ -2455,8 +3008,6 @@ macro_rules! stress_test_load_store {
 macro_rules! stress_test {
     ($int_type:ident) => {
         stress_test_load_store!($int_type);
-        // debug mode is slow.
-        #[cfg(any(not(debug_assertions), miri))]
         paste::paste! {
             #[allow(
                 clippy::alloc_instead_of_core,
@@ -2508,4 +3059,22 @@ macro_rules! stress_test {
             }
         }
     };
+}
+
+#[cfg(feature = "float")]
+pub(crate) mod float_rand {
+    #[cfg(portable_atomic_unstable_f16)]
+    pub(crate) fn f16(rng: &mut fastrand::Rng) -> f16 {
+        f16::from_bits(rng.u16(..))
+    }
+    pub(crate) fn f32(rng: &mut fastrand::Rng) -> f32 {
+        f32::from_bits(rng.u32(..))
+    }
+    pub(crate) fn f64(rng: &mut fastrand::Rng) -> f64 {
+        f64::from_bits(rng.u64(..))
+    }
+    #[cfg(portable_atomic_unstable_f128)]
+    pub(crate) fn f128(rng: &mut fastrand::Rng) -> f128 {
+        f128::from_bits(rng.u128(..))
+    }
 }

@@ -431,9 +431,13 @@ async fn validate_common(
                         if _eth.keypath.get(1) != Some(&expected_bip44) {
                             return Err(ValidationError::Other);
                         }
-                        let derived_address = super::ethereum::derive_address(hal, &_eth.keypath)
-                            .await
-                            .map_err(|_| ValidationError::Other)?;
+                        let derived_address = super::ethereum::derive_address(
+                            hal,
+                            &_eth.keypath,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .map_err(|_| ValidationError::Other)?;
                         if derived_address != coin_purchase_memo.address {
                             return Err(ValidationError::AddressMismatch);
                         }
@@ -471,6 +475,7 @@ async fn validate_common(
                             destination_coin,
                             simple_type,
                             &script_config.keypath,
+                            crate::keystore::Compute::Once,
                         )
                         .await
                         .map_err(|_| ValidationError::Other)?;
@@ -801,6 +806,7 @@ mod tests {
                 &value_bytes,
                 address,
             );
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 validate_common(
                     &mut mock_hal,
@@ -812,6 +818,7 @@ mod tests {
                 .await
                 .is_ok()
             );
+            assert_eq!(mock_hal.securechip.get_event_counter(), 1);
         }
 
         #[cfg(feature = "app-litecoin")]
@@ -829,6 +836,7 @@ mod tests {
                 pb::BtcCoin::Btc,
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &source_keypath,
+                crate::keystore::Compute::Once,
             )
             .await
             .unwrap();
@@ -845,6 +853,7 @@ mod tests {
                 pb::BtcCoin::Ltc,
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &destination_keypath,
+                crate::keystore::Compute::Once,
             )
             .await
             .unwrap();
@@ -874,6 +883,7 @@ mod tests {
                 &source_address,
             );
 
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 validate_common(
                     &mut mock_hal,
@@ -885,6 +895,7 @@ mod tests {
                 .await
                 .is_ok()
             );
+            assert_eq!(mock_hal.securechip.get_event_counter(), 1);
         }
 
         #[cfg(feature = "app-litecoin")]
@@ -902,6 +913,7 @@ mod tests {
                 pb::BtcCoin::Ltc,
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &source_keypath,
+                crate::keystore::Compute::Once,
             )
             .await
             .unwrap();
@@ -918,6 +930,7 @@ mod tests {
                 pb::BtcCoin::Btc,
                 pb::btc_script_config::SimpleType::P2wpkh,
                 &destination_keypath,
+                crate::keystore::Compute::Once,
             )
             .await
             .unwrap();
@@ -947,6 +960,7 @@ mod tests {
                 &source_address,
             );
 
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 validate_common(
                     &mut mock_hal,
@@ -958,6 +972,7 @@ mod tests {
                 .await
                 .is_ok()
             );
+            assert_eq!(mock_hal.securechip.get_event_counter(), 1);
         }
 
         // Unhappy cases:
@@ -972,9 +987,13 @@ mod tests {
                 0,
                 0,
             ];
-            let destination_address = ethereum::derive_address(&mut mock_hal, destination_keypath)
-                .await
-                .unwrap();
+            let destination_address = ethereum::derive_address(
+                &mut mock_hal,
+                destination_keypath,
+                crate::keystore::Compute::Once,
+            )
+            .await
+            .unwrap();
             let mut payment_request = pb::BtcPaymentRequestRequest {
                 recipient_name: "Test Merchant".into(),
                 memos: vec![make_coin_purchase_memo(
@@ -1020,9 +1039,13 @@ mod tests {
                 0,
                 0,
             ];
-            let destination_address = ethereum::derive_address(&mut mock_hal, destination_keypath)
-                .await
-                .unwrap();
+            let destination_address = ethereum::derive_address(
+                &mut mock_hal,
+                destination_keypath,
+                crate::keystore::Compute::Once,
+            )
+            .await
+            .unwrap();
             let mut payment_request = pb::BtcPaymentRequestRequest {
                 recipient_name: "Test Merchant".into(),
                 memos: vec![make_coin_purchase_memo(

@@ -262,7 +262,7 @@ pub async fn validate(
         return Err(Error::InvalidInput);
     }
 
-    let our_xpub = crate::keystore::get_xpub_once(hal, keypath)
+    let our_xpub = crate::keystore::get_xpub(hal, keypath, crate::keystore::Compute::Once)
         .await?
         .serialize(None)?;
     let maybe_our_xpub =

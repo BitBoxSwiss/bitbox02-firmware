@@ -51,7 +51,14 @@ pub async fn process(
     }
 
     // Keypath and script_config are validated in address_simple().
-    let address = super::derive_address_simple(hal, coin, simple_type, keypath).await?;
+    let address = super::derive_address_simple(
+        hal,
+        coin,
+        simple_type,
+        keypath,
+        crate::keystore::Compute::Twice,
+    )
+    .await?;
     let address_formatted = util::strings::format_address(&address);
 
     let basic_info = format!("Coin: {}", super::params::get(coin).name);

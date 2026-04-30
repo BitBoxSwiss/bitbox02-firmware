@@ -177,12 +177,6 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-execute_process(
-  COMMAND ${CMAKE_C_COMPILER} --print-sysroot
-  OUTPUT_VARIABLE CMAKE_SYSROOT
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
 message(STATUS "\n\n=============================================")
 message(STATUS "            - General -")
 message(STATUS "Firmware version:       ${FIRMWARE_VERSION_FULL}")
@@ -195,7 +189,6 @@ message(STATUS "Processor:              ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "             - Build -")
 message(STATUS "Compiler version:       ${CMAKE_C_COMPILER_ID} ${C_COMPILER_VERSION}")
 message(STATUS "Compiler:               ${CMAKE_C_COMPILER}")
-message(STATUS "Sysroot:                ${CMAKE_SYSROOT}")
 message(STATUS "Target triple:          ${TARGET_TRIPLE}")
 message(STATUS "Compiler cache:         ${CMAKE_C_COMPILER_LAUNCHER}")
 message(STATUS "Linker:                 ${CMAKE_LINKER}")

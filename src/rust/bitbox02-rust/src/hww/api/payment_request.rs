@@ -801,6 +801,7 @@ mod tests {
                 &value_bytes,
                 address,
             );
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 validate_common(
                     &mut mock_hal,
@@ -812,6 +813,7 @@ mod tests {
                 .await
                 .is_ok()
             );
+            assert_eq!(mock_hal.securechip.get_event_counter(), 2);
         }
 
         #[cfg(feature = "app-litecoin")]
@@ -874,6 +876,7 @@ mod tests {
                 &source_address,
             );
 
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 validate_common(
                     &mut mock_hal,
@@ -885,6 +888,7 @@ mod tests {
                 .await
                 .is_ok()
             );
+            assert_eq!(mock_hal.securechip.get_event_counter(), 2);
         }
 
         #[cfg(feature = "app-litecoin")]
@@ -947,6 +951,7 @@ mod tests {
                 &source_address,
             );
 
+            mock_hal.securechip.event_counter_reset();
             assert!(
                 validate_common(
                     &mut mock_hal,
@@ -958,6 +963,7 @@ mod tests {
                 .await
                 .is_ok()
             );
+            assert_eq!(mock_hal.securechip.get_event_counter(), 2);
         }
 
         // Unhappy cases:

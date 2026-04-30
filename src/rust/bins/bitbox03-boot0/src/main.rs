@@ -150,7 +150,7 @@ fn entry() -> ! {
     unsafe {
         ffi::board_init_essentials();
     }
-    bitbox03_boot_utils::rtt_logger_init!(false);
+    bitbox03_boot_utils::rtt_logger_init!();
 
     main()
 }

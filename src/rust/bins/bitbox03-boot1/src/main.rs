@@ -129,7 +129,7 @@ fn main() -> ! {
     unsafe {
         embedded_alloc::init!(HEAP, 128 * 1024);
     }
-    bitbox03_boot_utils::rtt_logger_init!(true);
+    bitbox03_boot_utils::rtt_logger_init!();
     log::debug!("[b1] init");
 
     if clear_dfu_metadata().is_err() {

@@ -13,7 +13,7 @@ pub use rtt_target;
 
 #[macro_export]
 macro_rules! rtt_logger_init {
-    ($reuse_if_initialized:literal) => {{
+    () => {{
         let channels = $crate::rtt_target::rtt_init! {
             up: {
                 0: {
@@ -44,7 +44,7 @@ macro_rules! rtt_logger_init {
                 }
             }
             section_cb: ".segger_rtt"
-            reuse_if_initialized: $reuse_if_initialized
+            reuse_if_initialized: true
         };
         $crate::rtt_target::set_print_channel(channels.up.0);
         $crate::rtt_target::init_logger_with_level($crate::log::LevelFilter::Trace);

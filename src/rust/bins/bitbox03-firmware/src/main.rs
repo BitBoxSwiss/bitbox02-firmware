@@ -175,7 +175,7 @@ unsafe fn entry() -> ! {
 
     // Initialize vendor drivers
     unsafe { bitbox_board_stm32u5_dk::ffi::board_init() };
-    bitbox03_boot_utils::rtt_logger_init!(true);
+    bitbox03_boot_utils::rtt_logger_init!();
     log::info!("RTT initialized");
 
     // Initializing the heap must come super early

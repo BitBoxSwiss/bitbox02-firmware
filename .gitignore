@@ -10,6 +10,7 @@
 compile_commands.json
 compile_flags.txt
 .vscode
+.cargo/config.toml
 .DS_Store
 
 # gnu global

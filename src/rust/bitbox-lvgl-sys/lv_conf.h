@@ -25,7 +25,11 @@
  *====================*/
 
 /** Color depth: 1 (I1), 8 (L8), 16 (RGB565), 24 (RGB888), 32 (XRGB8888) */
-#define LV_COLOR_DEPTH 16
+#ifndef BITBOX_LVGL_CONF_FIRMWARE
+    #define LV_COLOR_DEPTH 32
+#else
+    #define LV_COLOR_DEPTH 16
+#endif
 
 /*=========================
    STDLIB WRAPPER SETTINGS
@@ -86,7 +90,11 @@
  *====================*/
 
 /** Default display refresh, input device read and animation step period. */
-#define LV_DEF_REFR_PERIOD  33      /**< [ms] */
+#ifdef BITBOX_LVGL_CONF_FIRMWARE
+    #define LV_DEF_REFR_PERIOD  8      /**< [ms] */
+#else
+    #define LV_DEF_REFR_PERIOD  17      /**< [ms] */
+#endif
 
 /** Default Dots Per Inch. Used to initialize default sizes such as widgets sized, style paddings.
  * (Not so important, you can adjust it to modify default sizes and spaces.) */
@@ -172,16 +180,31 @@
      * - bitmaps with transparency may use ARGB8888
      */
     #define LV_DRAW_SW_SUPPORT_RGB565       1
+#ifdef BITBOX_LVGL_CONF_FIRMWARE
+    #define LV_DRAW_SW_SUPPORT_RGB565_SWAPPED       0
+    #define LV_DRAW_SW_SUPPORT_RGB565A8     0
+    #define LV_DRAW_SW_SUPPORT_RGB888       0
+    #define LV_DRAW_SW_SUPPORT_XRGB8888     0
+#else
     #define LV_DRAW_SW_SUPPORT_RGB565_SWAPPED       1
     #define LV_DRAW_SW_SUPPORT_RGB565A8     1
     #define LV_DRAW_SW_SUPPORT_RGB888       1
     #define LV_DRAW_SW_SUPPORT_XRGB8888     1
+#endif
     #define LV_DRAW_SW_SUPPORT_ARGB8888     1
+#ifdef BITBOX_LVGL_CONF_FIRMWARE
+    #define LV_DRAW_SW_SUPPORT_ARGB8888_PREMULTIPLIED 0
+    #define LV_DRAW_SW_SUPPORT_L8           0
+    #define LV_DRAW_SW_SUPPORT_AL88         0
+    #define LV_DRAW_SW_SUPPORT_A8           0
+    #define LV_DRAW_SW_SUPPORT_I1           0
+#else
     #define LV_DRAW_SW_SUPPORT_ARGB8888_PREMULTIPLIED 1
     #define LV_DRAW_SW_SUPPORT_L8           1
     #define LV_DRAW_SW_SUPPORT_AL88         1
     #define LV_DRAW_SW_SUPPORT_A8           1
     #define LV_DRAW_SW_SUPPORT_I1           1
+#endif
 
     /* The threshold of the luminance to consider a pixel as
      * active in indexed color format */
@@ -234,7 +257,11 @@
     /** Select which NemaGFX HAL to use. Possible options:
      * - LV_NEMA_HAL_CUSTOM
      * - LV_NEMA_HAL_STM32 */
+#ifdef BITBOX_LVGL_CONF_FIRMWARE
+    #define LV_USE_NEMA_HAL LV_NEMA_HAL_STM32
+#else
     #define LV_USE_NEMA_HAL LV_NEMA_HAL_CUSTOM
+#endif
     #if LV_USE_NEMA_HAL == LV_NEMA_HAL_STM32
         #define LV_NEMA_STM32_HAL_INCLUDE <stm32u5xx_hal.h>
     #endif
@@ -367,7 +394,11 @@
 /** Accelerate blends, fills, etc. with STM32 DMA2D */
 #define LV_USE_DRAW_DMA2D 0
 #if LV_USE_DRAW_DMA2D
+#ifdef BITBOX_LVGL_CONF_FIRMWARE
+    #define LV_DRAW_DMA2D_HAL_INCLUDE "stm32u5xx_hal.h"
+#else
     #define LV_DRAW_DMA2D_HAL_INCLUDE "stm32h7xx_hal.h"
+#endif
 
     /* if enabled, the user is required to call `lv_draw_dma2d_transfer_complete_interrupt_handler`
      * upon receiving the DMA2D global interrupt
@@ -417,7 +448,7 @@
      *  - LV_LOG_LEVEL_ERROR    Log only critical issues, when system may fail.
      *  - LV_LOG_LEVEL_USER     Log only custom log messages added by the user.
      *  - LV_LOG_LEVEL_NONE     Do not log anything. */
-    #define LV_LOG_LEVEL LV_LOG_LEVEL_WARN
+    #define LV_LOG_LEVEL LV_LOG_LEVEL_INFO
 
     /** - 1: Print log with 'printf';
      *  - 0: User needs to register a callback with `lv_log_register_print_cb()`. */
@@ -930,7 +961,11 @@
 #endif
 
 /** LODEPNG decoder library */
-#define LV_USE_LODEPNG 0
+#ifdef BITBOX_LVGL_CONF_FIRMWARE
+    #define LV_USE_LODEPNG 1
+#else
+    #define LV_USE_LODEPNG 0
+#endif
 
 /** PNG decoder(libpng) library */
 #define LV_USE_LIBPNG 0
@@ -1350,10 +1385,14 @@
 #define LV_USE_RENESAS_GLCDC    0
 
 /** Driver for ST LTDC */
-#define LV_USE_ST_LTDC    0
+#ifndef LV_USE_ST_LTDC
+    #define LV_USE_ST_LTDC    0
+#endif
 #if LV_USE_ST_LTDC
     /* Only used for partial. */
-    #define LV_ST_LTDC_USE_DMA2D_FLUSH 0
+    #ifndef LV_ST_LTDC_USE_DMA2D_FLUSH
+        #define LV_ST_LTDC_USE_DMA2D_FLUSH 0
+    #endif
 #endif
 
 /** Driver for NXP ELCDIF */

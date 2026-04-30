@@ -27,6 +27,44 @@ impl LvDisplay {
         NonNull::new(unsafe { ffi::lv_display_create(hor_res, ver_res) }).map(|raw| Self { raw })
     }
 
+    #[cfg(all(feature = "st-ltdc", target_os = "none"))]
+    pub fn st_ltdc_create_direct<T, const N: usize>(
+        fb1: &'static mut [T; N],
+        fb2: Option<&'static mut [T; N]>,
+        layer_idx: u32,
+    ) -> Result<Self, LvDisplayBufferError> {
+        if N == 0 || core::mem::size_of::<T>() == 0 {
+            return Err(LvDisplayBufferError::EmptyBuffer);
+        }
+        if !(fb1.as_ptr() as usize).is_multiple_of(LV_DRAW_BUFFER_ALIGNMENT) {
+            return Err(LvDisplayBufferError::UnalignedBuffer);
+        }
+        if let Some(fb2) = fb2.as_ref()
+            && !(fb2.as_ptr() as usize).is_multiple_of(LV_DRAW_BUFFER_ALIGNMENT)
+        {
+            return Err(LvDisplayBufferError::UnalignedBuffer);
+        }
+        if core::mem::size_of::<[T; N]>() > u32::MAX as usize {
+            return Err(LvDisplayBufferError::BufferTooLarge);
+        }
+
+        unsafe {
+            Self::from_raw(ffi::lv_st_ltdc_create_direct(
+                fb1.as_mut_ptr().cast(),
+                fb2.map_or(core::ptr::null_mut(), |fb| fb.as_mut_ptr().cast()),
+                layer_idx,
+            ))
+        }
+        .ok_or(LvDisplayBufferError::InvalidSize)
+    }
+
+    /// # Safety
+    /// `raw` must point to a live LVGL display handle managed by LVGL for the lifetime of the
+    /// returned wrapper.
+    pub unsafe fn from_raw(raw: *mut ffi::lv_display_t) -> Option<Self> {
+        NonNull::new(raw).map(|raw| Self { raw })
+    }
+
     pub fn as_ptr(&self) -> *mut ffi::lv_display_t {
         self.raw.as_ptr()
     }

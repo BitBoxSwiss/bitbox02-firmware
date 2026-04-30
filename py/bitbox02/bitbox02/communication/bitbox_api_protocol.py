@@ -18,7 +18,14 @@ import semver
 from .devices import parse_device_version, DeviceInfo
 
 from .communication import TransportLayer
-from .devices import BITBOX02MULTI, BITBOX02BTC, BITBOX02PLUS_MULTI, BITBOX02PLUS_BTC
+from .devices import (
+    BITBOX02MULTI,
+    BITBOX02BTC,
+    BITBOX02PLUS_MULTI,
+    BITBOX02PLUS_BTC,
+    BITBOX03_MULTI,
+    BITBOX03_BTC,
+)
 
 try:
     from .generated import hww_pb2 as hww
@@ -563,9 +570,9 @@ class BitBoxCommonAPI:
 
         if device_info is not None:
             version = device_info["serial_number"]
-            if device_info["product_string"] in (BITBOX02MULTI, BITBOX02PLUS_MULTI):
+            if device_info["product_string"] in (BITBOX02MULTI, BITBOX02PLUS_MULTI, BITBOX03_MULTI):
                 edition = BitBox02Edition.MULTI
-            elif device_info["product_string"] in (BITBOX02BTC, BITBOX02PLUS_BTC):
+            elif device_info["product_string"] in (BITBOX02BTC, BITBOX02PLUS_BTC, BITBOX03_BTC):
                 edition = BitBox02Edition.BTCONLY
             else:
                 raise Exception("Invalid product string")

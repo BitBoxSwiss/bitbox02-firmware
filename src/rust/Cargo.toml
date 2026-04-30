@@ -75,7 +75,7 @@ grounded = { version = "0.2.0", default-features = false, features = ["critical-
 critical-section = { version = "1.2.0", default-features = false }
 
 [patch.crates-io]
-rtt-target = { path = "/home/niklas/projects/shift/rtt-target/rtt-target" }
+rtt-target = { path = "../../../rtt-target/rtt-target" }
 
 [profile.release]
 # This only affects the .elf output. Debug info is stripped from the final .bin.

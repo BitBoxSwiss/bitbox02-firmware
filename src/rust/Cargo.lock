@@ -459,7 +459,6 @@ dependencies = [
  "cortex-m-rt",
  "log",
  "rtt-target",
- "sha2",
 ]
 
 [[package]]

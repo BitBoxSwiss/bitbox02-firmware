@@ -51,6 +51,15 @@ INCLUDE device.x
 /* # Interrupt vectors */
 EXTERN(__INTERRUPTS); /* `static` variable similar to `__EXCEPTIONS` */
 
+PHDRS
+{
+  flash PT_LOAD FLAGS(5);
+  boot_arg PT_LOAD FLAGS(6);
+  rtt PT_LOAD FLAGS(6);
+  data PT_LOAD FLAGS(6);
+  bss PT_LOAD FLAGS(6);
+}
+
 /* # Pre-initialization function */
 /* If the user overrides this using the `pre_init!` macro or by creating a `__pre_init` function,
    then the function this points to will be called before the RAM is initialized. */
@@ -86,7 +95,7 @@ SECTIONS
 
     /* Device specific interrupts */
     KEEP(*(.vector_table.interrupts)); /* this is the `__INTERRUPTS` symbol */
-  } > FLASH
+  } > FLASH :flash
 
   PROVIDE(_stext = ADDR(.vector_table) + SIZEOF(.vector_table));
 
@@ -105,7 +114,7 @@ SECTIONS
 
     . = ALIGN(4); /* Pad .text to the alignment to workaround overlapping load section bug in old lld */
     __etext = .;
-  } > FLASH
+  } > FLASH :flash
 
   /* ### .rodata */
   .rodata : ALIGN(4)
@@ -119,7 +128,7 @@ SECTIONS
        section will have the correct alignment. */
     . = ALIGN(4);
     __erodata = .;
-  } > FLASH
+  } > FLASH :flash
 
   /* ## Sections in RAM */
   /* ### .boot_arg */
@@ -128,7 +137,7 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.boot_arg .boot_arg.*));
     . = ALIGN(4);
-  } > BOOT_ARGS
+  } > BOOT_ARGS :boot_arg
 
   /* ### .data */
   .data : ALIGN(4)
@@ -137,7 +146,7 @@ SECTIONS
     __sdata = .;
     *(.data .data.*);
     . = ALIGN(4); /* 4-byte align the end (VMA) of this section */
-  } > RAM AT>FLASH
+  } > RAM AT>FLASH :data
   /* Allow sections from user `memory.x` injected using `INSERT AFTER .data` to
    * use the .data loading mechanism by pushing __edata. Note: do not change
    * output region or load region in those user sections! */
@@ -157,7 +166,7 @@ SECTIONS
     __veneer_base = .;
     *(.gnu.sgstubs*)
     . = ALIGN(32);
-  } > FLASH
+  } > FLASH :flash
   /* Place `__veneer_limit` outside the `.gnu.sgstubs` section because veneers are
    * always inserted last in the section, which would otherwise be _after_ the `__veneer_limit` symbol.
    */
@@ -172,7 +181,7 @@ SECTIONS
     *(.bss .bss.*);
     *(COMMON); /* Uninitialized C statics */
     . = ALIGN(4); /* 4-byte align the end (VMA) of this section */
-  } > RAM
+  } > RAM :bss
   /* Allow sections from user `memory.x` injected using `INSERT AFTER .bss` to
    * use the .bss zeroing mechanism by pushing __ebss. Note: do not change
    * output region or load region in those user sections! */
@@ -187,7 +196,7 @@ SECTIONS
     *(.uninit .uninit.*);
     . = ALIGN(4);
     __euninit = .;
-  } > RAM
+  } > RAM :bss
 
   /* Place the heap right after `.uninit` in RAM */
   PROVIDE(__sheap = __euninit);
@@ -201,7 +210,7 @@ SECTIONS
   .got (NOLOAD) :
   {
     KEEP(*(.got .got.*));
-  }
+  } :bss
 
   /* ## Discarded sections */
   /DISCARD/ :

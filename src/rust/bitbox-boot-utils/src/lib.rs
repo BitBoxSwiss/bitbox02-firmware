@@ -311,7 +311,24 @@ fn image_header(
     Ok(header)
 }
 
-fn image_hash(slot_address: usize, slot_len: usize, header: &ImageHeader) -> Result<[u8; 32], ()> {
+fn software_image_hash(header_signed_bytes: &[u8], payload: &[u8]) -> Result<[u8; 32], ()> {
+    let mut hasher = Sha256::new();
+    hasher.update(header_signed_bytes);
+    hasher.update(payload);
+    let first_hash = hasher.finalize();
+    let second_hash = Sha256::digest(first_hash);
+
+    let mut hash = [0u8; 32];
+    hash.copy_from_slice(&second_hash);
+    Ok(hash)
+}
+
+fn image_hash_with(
+    slot_address: usize,
+    slot_len: usize,
+    header: &ImageHeader,
+    hasher: impl FnOnce(&[u8], &[u8]) -> Result<[u8; 32], ()>,
+) -> Result<[u8; 32], ()> {
     if header.code_size == IMAGE_HEADER_INVALID_CODE_SIZE {
         return Err(());
     }
@@ -327,15 +344,7 @@ fn image_hash(slot_address: usize, slot_len: usize, header: &ImageHeader) -> Res
     let payload = unsafe {
         core::slice::from_raw_parts((slot_address + IMAGE_HEADER_LEN) as *const u8, payload_len)
     };
-    let mut hasher = Sha256::new();
-    hasher.update(header.signed_bytes());
-    hasher.update(payload);
-    let first_hash = hasher.finalize();
-    let second_hash = Sha256::digest(first_hash);
-
-    let mut hash = [0u8; 32];
-    hash.copy_from_slice(&second_hash);
-    Ok(hash)
+    hasher(header.signed_bytes(), payload)
 }
 
 fn verify_signature(
@@ -363,6 +372,22 @@ pub fn vector_table_from_signed_image(
     expected_magic: [u8; 4],
     pubkeys: &[[u8; P256_PUBLIC_KEY_LEN]; IMAGE_SIGNATURE_COUNT],
 ) -> Result<*const u32, ()> {
+    vector_table_from_signed_image_with_hasher(
+        slot_address,
+        slot_len,
+        expected_magic,
+        pubkeys,
+        software_image_hash,
+    )
+}
+
+pub fn vector_table_from_signed_image_with_hasher(
+    slot_address: usize,
+    slot_len: usize,
+    expected_magic: [u8; 4],
+    pubkeys: &[[u8; P256_PUBLIC_KEY_LEN]; IMAGE_SIGNATURE_COUNT],
+    hasher: impl FnOnce(&[u8], &[u8]) -> Result<[u8; 32], ()>,
+) -> Result<*const u32, ()> {
     let header = image_header(slot_address, slot_len, expected_magic)?;
     let vector_table = (slot_address + IMAGE_HEADER_LEN) as *const u32;
 
@@ -370,7 +395,7 @@ pub fn vector_table_from_signed_image(
         return Ok(vector_table);
     }
 
-    let hash = image_hash(slot_address, slot_len, &header)?;
+    let hash = image_hash_with(slot_address, slot_len, &header, hasher)?;
     let mut valid = 0usize;
     for (signature, pubkey) in header.signatures.iter().zip(pubkeys.iter()) {
         if signature.iter().all(|byte| *byte == 0) {
@@ -598,6 +623,24 @@ mod tests {
             image.len(),
             IMAGE_HEADER_MAGIC_FIRMWARE,
             &pubkeys,
+        )
+        .unwrap();
+
+        assert_eq!(
+            vector_table,
+            unsafe { image.as_ptr().add(IMAGE_HEADER_LEN) } as *const u32
+        );
+
+        let vector_table = vector_table_from_signed_image_with_hasher(
+            image.as_ptr() as usize,
+            image.len(),
+            IMAGE_HEADER_MAGIC_FIRMWARE,
+            &pubkeys,
+            |header_signed_bytes, hashed_payload| {
+                assert_eq!(header_signed_bytes, &header[..ImageHeader::SIGNED_DATA_LEN]);
+                assert_eq!(hashed_payload, payload);
+                Ok(hash)
+            },
         )
         .unwrap();
 

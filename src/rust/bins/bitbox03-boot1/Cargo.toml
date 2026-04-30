@@ -3,6 +3,9 @@ name = "bitbox03-boot1"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+rtt = ["bitbox03-boot-utils/rtt", "dep:rtt-target"]
+
 [dependencies]
 bitbox-boot-utils = { path = "../../bitbox-boot-utils" }
 bitbox-executor = { path = "../../bitbox-executor" }
@@ -15,7 +18,7 @@ cortex-m = { workspace = true }
 cortex-m-rt = "0.7"
 embedded-alloc = { version = "0.7" }
 log = { version = "0.4.22", default-features = false }
-rtt-target = { version = "0.6.1", features = ["log"] }
+rtt-target = { version = "0.6.1", features = ["log"], optional = true }
 sha2 = { workspace = true }
 
 [build-dependencies]

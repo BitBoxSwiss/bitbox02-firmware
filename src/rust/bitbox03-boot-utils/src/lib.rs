@@ -7,47 +7,52 @@ use bitbox_boot_utils::{
     P256_PUBLIC_KEY_LEN,
 };
 #[doc(hidden)]
+#[cfg(feature = "rtt")]
 pub use log;
 #[doc(hidden)]
+#[cfg(feature = "rtt")]
 pub use rtt_target;
 
 #[macro_export]
 macro_rules! rtt_logger_init {
     () => {{
-        let channels = $crate::rtt_target::rtt_init! {
-            up: {
-                0: {
-                    size: 1024,
-                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
-                    name: "Terminal",
-                    section: ".segger_rtt_buf",
+        #[cfg(feature = "rtt")]
+        {
+            let channels = $crate::rtt_target::rtt_init! {
+                up: {
+                    0: {
+                        size: 1024,
+                        mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                        name: "Terminal",
+                        section: ".segger_rtt_buf",
+                    }
+                    1: {
+                        size: 1024,
+                        mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                        name: "API Response",
+                        section: ".segger_rtt_buf",
+                    }
                 }
-                1: {
-                    size: 1024,
-                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
-                    name: "API Response",
-                    section: ".segger_rtt_buf",
+                down: {
+                    0: {
+                        size: 16,
+                        mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                        name: "Terminal",
+                        section: ".segger_rtt_buf",
+                    }
+                    1: {
+                        size: 1024,
+                        mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
+                        name: "API Request",
+                        section: ".segger_rtt_buf",
+                    }
                 }
-            }
-            down: {
-                0: {
-                    size: 16,
-                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
-                    name: "Terminal",
-                    section: ".segger_rtt_buf",
-                }
-                1: {
-                    size: 1024,
-                    mode: $crate::rtt_target::ChannelMode::NoBlockSkip,
-                    name: "API Request",
-                    section: ".segger_rtt_buf",
-                }
-            }
-            section_cb: ".segger_rtt"
-            reuse_if_initialized: true
-        };
-        $crate::rtt_target::set_print_channel(channels.up.0);
-        $crate::rtt_target::init_logger_with_level($crate::log::LevelFilter::Trace);
+                section_cb: ".segger_rtt"
+                reuse_if_initialized: true
+            };
+            $crate::rtt_target::set_print_channel(channels.up.0);
+            $crate::rtt_target::init_logger_with_level($crate::log::LevelFilter::Trace);
+        }
     }};
 }
 

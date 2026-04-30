@@ -18,6 +18,7 @@ const ST_SOURCES: &[&str] = &[
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_rcc_ex.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_cortex.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_hash.c",
+    "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_hash_ex.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_flash.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_xspi.c",
     "Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_flash_ex.c",

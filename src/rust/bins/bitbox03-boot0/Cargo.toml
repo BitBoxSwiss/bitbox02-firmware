@@ -3,6 +3,9 @@ name = "bitbox03-boot0"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+rtt = ["bitbox03-boot-utils/rtt", "dep:rtt-target"]
+
 [dependencies]
 bitbox-boot-utils = { path = "../../bitbox-boot-utils" }
 bitbox-board-stm32u5-dk = { path = "../../bitbox-board-stm32u5-dk" }
@@ -12,8 +15,7 @@ bitbox03-boot-utils = { path = "../../bitbox03-boot-utils" }
 cortex-m = { workspace = true }
 cortex-m-rt = "0.7"
 log = { version = "0.4.22", default-features = false }
-rtt-target = { version = "0.6.1", features = ["log"] }
-sha2 = { workspace = true }
+rtt-target = { version = "0.6.1", features = ["log"], optional = true }
 
 [build-dependencies]
 bitbox-board-stm32u5-dk-build = { path = "../../bitbox-board-stm32u5-dk-build" }

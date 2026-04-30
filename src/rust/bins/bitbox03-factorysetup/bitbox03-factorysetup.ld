@@ -10,14 +10,14 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.segger_rtt .segger_rtt.*));
     . = ALIGN(4);
-  } > FACTORYSETUP_RTT
+  } > FACTORYSETUP_RTT :rtt
 
   .segger_rtt_buf (NOLOAD) : ALIGN(4)
   {
     . = ALIGN(4);
     KEEP(*(.segger_rtt_buf .segger_rtt_buf.*));
     . = ALIGN(4);
-  } > FACTORYSETUP_RTT
+  } > FACTORYSETUP_RTT :rtt
 } INSERT BEFORE .vector_table;
 
 INCLUDE bitbox03-common.ld

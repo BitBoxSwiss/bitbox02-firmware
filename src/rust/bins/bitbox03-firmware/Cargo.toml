@@ -3,6 +3,9 @@ name = "bitbox03-firmware"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+rtt = ["bitbox03-boot-utils/rtt", "dep:rtt-target"]
+
 [dependencies]
 bitbox-lvgl = { path = "../../bitbox-lvgl", features = ["config-firmware", "st-ltdc"] }
 bitbox-hal = { path="../../bitbox-hal"}
@@ -18,6 +21,6 @@ cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
 arrayvec = {version = "0.7", default-features = false}
 embedded-alloc = { version = "0.7" }
 log = { version = "0.4.22", default-features = false }
-rtt-target = { version = "0.6.1", features = ["log"] }
+rtt-target = { version = "0.6.1", features = ["log"], optional = true }
 [build-dependencies]
 bitbox-board-stm32u5-dk-build = { path = "../../bitbox-board-stm32u5-dk-build" }

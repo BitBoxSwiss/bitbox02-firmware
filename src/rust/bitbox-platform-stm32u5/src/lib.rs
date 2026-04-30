@@ -15,6 +15,7 @@ pub mod ffi {
 }
 
 pub mod flash;
+pub mod hash;
 pub mod otp;
 pub mod timer;
 pub mod uart;

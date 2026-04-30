@@ -3,7 +3,10 @@ name = "bitbox03-boot-utils"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+rtt = ["dep:log", "dep:rtt-target"]
+
 [dependencies]
 bitbox-boot-utils = { path = "../bitbox-boot-utils" }
-log = { version = "0.4.22", default-features = false }
-rtt-target = { version = "0.6.1", features = ["log"] }
+log = { version = "0.4.22", default-features = false, optional = true }
+rtt-target = { version = "0.6.1", features = ["log"], optional = true }

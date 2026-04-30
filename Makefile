@@ -189,7 +189,7 @@ vendor-rust-deps:
 # It is important that cargo is executed from `src/rust` so that it loads the
 # configration for the vendored dependencies.
 bitbox03-firmware:
-	(cd src/rust; cargo build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf)
+	(cd src/rust; cargo build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --features rtt)
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
 bitbox03-firmware-release:
@@ -205,7 +205,7 @@ bitbox03-factorysetup-release:
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
 bitbox03-boot0:
-	(cd src/rust; cargo build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf)
+	(cd src/rust; cargo build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --features rtt)
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
 bitbox03-boot0-release:
@@ -213,7 +213,7 @@ bitbox03-boot0-release:
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
 bitbox03-boot1:
-	(cd src/rust; cargo build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf)
+	(cd src/rust; cargo build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --features rtt)
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
 bitbox03-boot1-release:

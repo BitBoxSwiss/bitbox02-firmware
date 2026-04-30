@@ -9,7 +9,7 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.image_header .image_header.*));
     . = ALIGN(4);
-  } > HEADER
+  } > HEADER :flash
 } INSERT BEFORE .vector_table;
 
 SECTIONS
@@ -19,14 +19,14 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.segger_rtt .segger_rtt.*));
     . = ALIGN(4);
-  } > RAM
+  } > RAM :rtt
 
   .segger_rtt_buf (NOLOAD) : ALIGN(4)
   {
     . = ALIGN(4);
     KEEP(*(.segger_rtt_buf .segger_rtt_buf.*));
     . = ALIGN(4);
-  } > RAM
+  } > RAM :rtt
 } INSERT BEFORE .data;
 
 PROVIDE(_flash_start = ORIGIN(HEADER) + LENGTH(HEADER));

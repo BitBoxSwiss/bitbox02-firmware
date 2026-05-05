@@ -197,12 +197,12 @@ impl RetainedEncryptedBuffer {
         purpose: &'static str,
     ) -> Result<Self, Error> {
         let rand: [u8; 32] = random_32_bytes(hal).await?.as_slice().try_into().unwrap();
-        let encryption_key = stretch_retained_seed_encryption_key(
+        let encryption_key = Box::pin(stretch_retained_seed_encryption_key(
             hal,
             &rand,
             &format!("{}_in", purpose),
             &format!("{}_out", purpose),
-        )
+        ))
         .await?;
         let iv_rand = random_32_bytes(hal).await?;
         let iv: &[u8; 16] = iv_rand.first_chunk::<16>().unwrap();
@@ -218,12 +218,12 @@ impl RetainedEncryptedBuffer {
         &self,
         hal: &mut impl KeystoreHal,
     ) -> Result<zeroize::Zeroizing<Vec<u8>>, Error> {
-        let encryption_key = stretch_retained_seed_encryption_key(
+        let encryption_key = Box::pin(stretch_retained_seed_encryption_key(
             hal,
             &self.unstretched_encryption_key,
             &format!("{}_in", self.purpose),
             &format!("{}_out", self.purpose),
-        )
+        ))
         .await?;
         bitbox_aes::decrypt_with_hmac(&encryption_key, self.encrypted_seed.as_slice())
             .map_err(|_| Error::Decrypt)

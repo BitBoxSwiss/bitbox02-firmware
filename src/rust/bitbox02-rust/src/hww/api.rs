@@ -31,7 +31,8 @@ mod set_password;
 mod show_mnemonic;
 mod system;
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
+use core::{future::Future, pin::Pin};
 
 use error::{Error, make_error};
 use pb::request::Request;
@@ -39,6 +40,8 @@ use pb::response::Response;
 use prost::Message;
 
 use crate::hal::{Memory, Sd};
+
+type ResponseFuture<'a> = Pin<Box<dyn Future<Output = Result<Response, Error>> + 'a>>;
 
 /// Encodes a protobuf Response message.
 pub fn encode(response: Response) -> Vec<u8> {
@@ -59,28 +62,30 @@ pub fn decode(input: &[u8]) -> Result<Request, Error> {
 }
 
 #[cfg(any(feature = "app-bitcoin", feature = "app-litecoin"))]
-async fn process_api_btc(
-    hal: &mut impl crate::hal::Hal,
-    request: &Request,
-) -> Result<Response, Error> {
+fn process_api_btc<'a, H>(hal: &'a mut H, request: &'a Request) -> ResponseFuture<'a>
+where
+    H: crate::hal::Hal + 'a,
+{
     match request {
-        Request::BtcPub(request) => bitcoin::process_pub(hal, request).await,
-        Request::BtcSignInit(request) => bitcoin::signtx::process(hal, request).await,
+        Request::BtcPub(request) => Box::pin(bitcoin::process_pub(hal, request)),
+        Request::BtcSignInit(request) => Box::pin(bitcoin::signtx::process(hal, request)),
         Request::Btc(pb::BtcRequest {
             request: Some(request),
-        }) => bitcoin::process_api(hal, request)
-            .await
-            .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) })),
-        _ => Err(Error::Generic),
+        }) => Box::pin(async move {
+            bitcoin::process_api(hal, request)
+                .await
+                .map(|r| Response::Btc(pb::BtcResponse { response: Some(r) }))
+        }),
+        _ => Box::pin(async { Err(Error::Generic) }),
     }
 }
 
 #[cfg(not(any(feature = "app-bitcoin", feature = "app-litecoin")))]
-async fn process_api_btc(
-    _hal: &mut impl crate::hal::Hal,
-    _request: &Request,
-) -> Result<Response, Error> {
-    Err(Error::Disabled)
+fn process_api_btc<'a, H>(_hal: &'a mut H, _request: &'a Request) -> ResponseFuture<'a>
+where
+    H: crate::hal::Hal + 'a,
+{
+    Box::pin(async { Err(Error::Disabled) })
 }
 
 /// Checks if the device is ready to accept/handle an api endpoint.
@@ -153,58 +158,71 @@ fn can_call(hal: &mut impl crate::hal::Hal, request: &Request) -> bool {
 }
 
 /// Handle a protobuf api call.
-async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Result<Response, Error> {
+fn process_api<'a, H>(hal: &'a mut H, request: &'a Request) -> ResponseFuture<'a>
+where
+    H: crate::hal::Hal + 'a,
+{
     match request {
-        Request::Reboot(request) => system::reboot_to_bootloader(hal, request).await,
-        Request::DeviceInfo(_) => device_info::process(hal).await,
-        Request::DeviceName(request) => set_device_name::process(hal, request).await,
-        Request::SetPassword(request) => set_password::process(hal, request).await,
-        Request::ChangePassword(_) => change_password::process(hal).await,
-        Request::Reset(_) => reset::process(hal).await,
+        Request::Reboot(request) => Box::pin(system::reboot_to_bootloader(hal, request)),
+        Request::DeviceInfo(_) => Box::pin(device_info::process(hal)),
+        Request::DeviceName(request) => Box::pin(set_device_name::process(hal, request)),
+        Request::SetPassword(request) => Box::pin(set_password::process(hal, request)),
+        Request::ChangePassword(_) => Box::pin(change_password::process(hal)),
+        Request::Reset(_) => Box::pin(reset::process(hal)),
         Request::SetMnemonicPassphraseEnabled(request) => {
-            set_mnemonic_passphrase_enabled::process(hal, request).await
+            Box::pin(set_mnemonic_passphrase_enabled::process(hal, request))
         }
-        Request::InsertRemoveSdcard(request) => sdcard::process(hal, request).await,
-        Request::ListBackups(_) => backup::list(hal).await,
-        Request::CheckSdcard(_) => Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
-            inserted: hal.sd().sdcard_inserted().await,
-        })),
-        Request::CheckBackup(request) => backup::check(hal, request).await,
-        Request::CreateBackup(request) => backup::create(hal, request).await,
-        Request::RestoreBackup(request) => restore::from_file(hal, request).await,
-        Request::ShowMnemonic(_) => show_mnemonic::process(hal).await,
-        Request::RestoreFromMnemonic(request) => restore::from_mnemonic(hal, request).await,
-        Request::ElectrumEncryptionKey(request) => electrum::process(hal, request).await,
+        Request::InsertRemoveSdcard(request) => Box::pin(sdcard::process(hal, request)),
+        Request::ListBackups(_) => Box::pin(backup::list(hal)),
+        Request::CheckSdcard(_) => Box::pin(async move {
+            Ok(Response::CheckSdcard(pb::CheckSdCardResponse {
+                inserted: hal.sd().sdcard_inserted().await,
+            }))
+        }),
+        Request::CheckBackup(request) => Box::pin(backup::check(hal, request)),
+        Request::CreateBackup(request) => Box::pin(backup::create(hal, request)),
+        Request::RestoreBackup(request) => Box::pin(restore::from_file(hal, request)),
+        Request::ShowMnemonic(_) => Box::pin(show_mnemonic::process(hal)),
+        Request::RestoreFromMnemonic(request) => Box::pin(restore::from_mnemonic(hal, request)),
+        Request::ElectrumEncryptionKey(request) => Box::pin(electrum::process(hal, request)),
 
         #[cfg(feature = "app-ethereum")]
         Request::Eth(pb::EthRequest {
             request: Some(request),
-        }) => ethereum::process_api(hal, request)
-            .await
-            .map(|r| Response::Eth(pb::EthResponse { response: Some(r) })),
+        }) => Box::pin(async move {
+            ethereum::process_api(hal, request)
+                .await
+                .map(|r| Response::Eth(pb::EthResponse { response: Some(r) }))
+        }),
         #[cfg(not(feature = "app-ethereum"))]
-        Request::Eth(_) => Err(Error::Disabled),
+        Request::Eth(_) => Box::pin(async { Err(Error::Disabled) }),
 
-        Request::Fingerprint(pb::RootFingerprintRequest {}) => rootfingerprint::process(),
+        Request::Fingerprint(pb::RootFingerprintRequest {}) => {
+            Box::pin(async { rootfingerprint::process() })
+        }
         request @ Request::BtcPub(_)
         | request @ Request::Btc(_)
-        | request @ Request::BtcSignInit(_) => process_api_btc(hal, request).await,
+        | request @ Request::BtcSignInit(_) => process_api_btc(hal, request),
 
         #[cfg(feature = "app-cardano")]
         Request::Cardano(pb::CardanoRequest {
             request: Some(request),
-        }) => cardano::process_api(hal, request)
-            .await
-            .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) })),
+        }) => Box::pin(async move {
+            cardano::process_api(hal, request)
+                .await
+                .map(|r| Response::Cardano(pb::CardanoResponse { response: Some(r) }))
+        }),
         #[cfg(not(feature = "app-cardano"))]
-        Request::Cardano(_) => Err(Error::Disabled),
-        Request::Bip85(request) => bip85::process(hal, request).await,
+        Request::Cardano(_) => Box::pin(async { Err(Error::Disabled) }),
+        Request::Bip85(request) => Box::pin(bip85::process(hal, request)),
         Request::Bluetooth(pb::BluetoothRequest {
             request: Some(request),
-        }) => bluetooth::process_api(hal, request)
-            .await
-            .map(|r| Response::Bluetooth(pb::BluetoothResponse { response: Some(r) })),
-        _ => Err(Error::InvalidInput),
+        }) => Box::pin(async move {
+            bluetooth::process_api(hal, request)
+                .await
+                .map(|r| Response::Bluetooth(pb::BluetoothResponse { response: Some(r) }))
+        }),
+        _ => Box::pin(async { Err(Error::InvalidInput) }),
     }
 }
 

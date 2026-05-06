@@ -126,13 +126,8 @@ ENV PATH=/opt/lcov-1.14/bin:$PATH
 # Install rust compiler
 ENV PATH=/opt/cargo/bin:$PATH
 ENV RUSTUP_HOME=/opt/rustup
-COPY src/rust/rust-toolchain.toml /tmp/rust-toolchain.toml
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' /tmp/rust-toolchain.toml) -y
-RUN rustup target add thumbv7em-none-eabi
-RUN rustup target add thumbv8m.main-none-eabihf
-RUN rustup component add rustfmt
-RUN rustup component add clippy
-RUN rustup component add rust-src
+COPY src/rust/rust-toolchain.toml rust-toolchain.toml
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | CARGO_HOME=/opt/cargo sh -s -- --default-toolchain $(grep -oP '(?<=channel = ")[^"]+' rust-toolchain.toml) -y
 RUN CARGO_HOME=/opt/cargo cargo install cbindgen --version 0.29.2 --locked
 RUN CARGO_HOME=/opt/cargo cargo install bindgen-cli --version 0.72.1 --locked
 

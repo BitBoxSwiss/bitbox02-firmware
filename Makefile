@@ -191,4 +191,4 @@ clean:
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
-	(cd external; ./vendor-rust.sh)
+	./external/vendor-rust.sh

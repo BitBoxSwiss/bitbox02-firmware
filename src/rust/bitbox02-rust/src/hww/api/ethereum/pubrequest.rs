@@ -30,7 +30,8 @@ async fn process_address(
         Some(erc20_params::get(params.chain_id, address).ok_or(Error::InvalidInput)?)
     };
 
-    let address = super::derive_address(hal, &request.keypath).await?;
+    let address =
+        super::derive_address(hal, &request.keypath, crate::keystore::Compute::Twice).await?;
 
     if request.display {
         let address_display = super::address::format_display_address(&address);
@@ -65,7 +66,7 @@ async fn process_xpub(
     if !super::keypath::is_valid_keypath_xpub(&request.keypath) {
         return Err(Error::InvalidInput);
     }
-    let xpub = keystore::get_xpub_twice(hal, &request.keypath)
+    let xpub = keystore::get_xpub(hal, &request.keypath, keystore::Compute::Twice)
         .await
         .or(Err(Error::InvalidInput))?
         .serialize_str(bip32::XPubType::Xpub)?;

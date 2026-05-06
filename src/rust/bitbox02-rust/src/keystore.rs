@@ -652,13 +652,17 @@ pub async fn secp256k1_get_private_key_twice(
     }
 }
 
-/// Can be used only if the keystore is unlocked. Returns the derived xpub,
-/// using bip32 derivation. Derivation is done from the xprv master, so hardened
-/// derivation is allowed.
-pub async fn get_xpub_once(
-    hal: &mut impl crate::hal::Hal,
-    keypath: &[u32],
-) -> Result<bip32::Xpub, ()> {
+#[derive(Copy, Clone)]
+pub enum Compute {
+    /// The xpub is derived once. Use for non-critical operations like signing a transaction,
+    /// where a compute error will lead to an invalid signature only.
+    Once,
+    /// The xpub is derived twice, to mitigate the risk of bitflips or similar compute corruption.
+    /// Used for critical operations, like delivering xpubs to the host.
+    Twice,
+}
+
+async fn derive_xpub(hal: &mut impl crate::hal::Hal, keypath: &[u32]) -> Result<bip32::Xpub, ()> {
     let xpriv = get_xprv(hal, keypath).await?;
     let xpub = bitcoin::bip32::Xpub::from_priv(SECP256K1, &xpriv.xprv);
     Ok(bip32::Xpub::from(xpub))
@@ -667,20 +671,27 @@ pub async fn get_xpub_once(
 /// Can be used only if the keystore is unlocked. Returns the derived xpub,
 /// using bip32 derivation. Derivation is done from the xprv master, so hardened
 /// derivation is allowed.
-pub async fn get_xpub_twice(
+pub async fn get_xpub(
     hal: &mut impl crate::hal::Hal,
     keypath: &[u32],
+    compute: Compute,
 ) -> Result<bip32::Xpub, ()> {
-    let res1 = get_xpub_once(hal, keypath).await?;
-    let res2 = get_xpub_once(hal, keypath).await?;
-    if res1 != res2 {
-        return Err(());
+    match compute {
+        Compute::Once => derive_xpub(hal, keypath).await,
+        Compute::Twice => {
+            let res1 = derive_xpub(hal, keypath).await?;
+            let res2 = derive_xpub(hal, keypath).await?;
+            if res1 != res2 {
+                return Err(());
+            }
+            Ok(res1)
+        }
     }
-    Ok(res1)
 }
 
-/// Gets multiple xpubs at once. This is better than multiple calls to `get_xpub_twice()` as it only
-/// uses two secure chip operations in total, instead of two per xpub.
+/// Gets multiple xpubs at once. This is better than multiple calls to
+/// `get_xpub(Compute::Twice)` as it only uses two secure chip operations in total, instead of two
+/// per xpub.
 pub async fn get_xpubs_twice(
     hal: &mut impl crate::hal::Hal,
     keypaths: &[&[u32]],
@@ -1788,7 +1799,7 @@ mod tests {
     }
 
     #[async_test::test]
-    async fn test_get_xpub_twice() {
+    async fn test_get_xpub() {
         let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
         // Also test with unhardened and non-zero elements.
         let keypath_5 = &[44 + HARDENED, 1 + HARDENED, 10 + HARDENED, 1, 100];
@@ -1796,7 +1807,11 @@ mod tests {
         let mut mock_hal = TestingHal::new();
 
         lock();
-        assert!(get_xpub_twice(&mut mock_hal, keypath).await.is_err());
+        assert!(
+            get_xpub(&mut mock_hal, keypath, Compute::Twice)
+                .await
+                .is_err()
+        );
 
         // 24 words
         mock_unlocked_using_mnemonic(
@@ -1807,7 +1822,7 @@ mod tests {
         mock_hal.securechip.event_counter_reset();
 
         assert_eq!(
-            get_xpub_twice(&mut mock_hal, &[])
+            get_xpub(&mut mock_hal, &[], Compute::Twice)
                 .await
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
@@ -1818,7 +1833,7 @@ mod tests {
         assert_eq!(mock_hal.securechip.get_event_counter(), 2);
 
         assert_eq!(
-            get_xpub_twice(&mut mock_hal, keypath)
+            get_xpub(&mut mock_hal, keypath, Compute::Twice)
                 .await
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
@@ -1826,7 +1841,7 @@ mod tests {
             "xpub6Cj6NNCGj2CRPHvkuEG1rbW3nrNCAnLjaoTg1P67FCGoahSsbg9WQ7YaMEEP83QDxt2kZ3hTPAPpGdyEZcfAC1C75HfR66UbjpAb39f4PnG",
         );
         assert_eq!(
-            get_xpub_twice(&mut mock_hal, keypath_5)
+            get_xpub(&mut mock_hal, keypath_5, Compute::Twice)
                 .await
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
@@ -1840,7 +1855,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub_twice(&mut mock_hal, keypath)
+            get_xpub(&mut mock_hal, keypath, Compute::Twice)
                 .await
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
@@ -1854,7 +1869,7 @@ mod tests {
             "",
         );
         assert_eq!(
-            get_xpub_twice(&mut mock_hal, keypath)
+            get_xpub(&mut mock_hal, keypath, Compute::Twice)
                 .await
                 .unwrap()
                 .serialize_str(bip32::XPubType::Xpub)
@@ -2172,7 +2187,9 @@ mod tests {
             let keypath = &[44 + HARDENED, 0 + HARDENED, 0 + HARDENED];
 
             mock_hal.securechip.event_counter_reset();
-            let xpub = get_xpub_once(&mut mock_hal, keypath).await.unwrap();
+            let xpub = get_xpub(&mut mock_hal, keypath, Compute::Once)
+                .await
+                .unwrap();
             assert_eq!(mock_hal.securechip.get_event_counter(), 1);
 
             assert_eq!(

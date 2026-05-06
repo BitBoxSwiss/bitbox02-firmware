@@ -4,16 +4,7 @@ use super::keystore;
 
 use crate::bip32;
 use alloc::{boxed::Box, vec::Vec};
-
-#[derive(Copy, Clone)]
-pub enum Compute {
-    /// The xpubs are derived once. Use for non-critical operations like signing a transaction,
-    /// where a compute error will lead to an invalid signature only.
-    Once,
-    /// The xpubs are derive twice, to mitigate the risk of bitflips or similar compute corruption.
-    /// Used for critical operations, like delivering xpubs to the host.
-    Twice,
-}
+use keystore::Compute;
 
 #[allow(async_fn_in_trait)]
 pub trait Xpub: Sized {
@@ -139,10 +130,7 @@ impl Xpub for bip32::Xpub {
         keypath: &[u32],
         compute: Compute,
     ) -> Result<Self, ()> {
-        match compute {
-            Compute::Once => keystore::get_xpub_once(hal, keypath).await,
-            Compute::Twice => keystore::get_xpub_twice(hal, keypath).await,
-        }
+        keystore::get_xpub(hal, keypath, compute).await
     }
 }
 
@@ -193,7 +181,7 @@ mod tests {
 
         type MockCache = XpubCache<MockXpub>;
 
-        let mut cache = MockCache::new(crate::xpubcache::Compute::Once);
+        let mut cache = MockCache::new(crate::keystore::Compute::Once);
 
         assert_eq!(
             cache
@@ -282,7 +270,7 @@ mod tests {
 
     #[async_test::test]
     async fn test_bip32_xpub_cache() {
-        let mut cache = Bip32XpubCache::new(crate::xpubcache::Compute::Twice);
+        let mut cache = Bip32XpubCache::new(crate::keystore::Compute::Twice);
         cache.add_keypath(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 1]);
         cache.add_keypath(&[84 + HARDENED, 0 + HARDENED, 0 + HARDENED]);
 

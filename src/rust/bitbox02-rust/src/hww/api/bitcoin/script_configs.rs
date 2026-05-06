@@ -116,10 +116,14 @@ mod tests {
                     root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
                     keypath: keypath.to_vec(),
                     xpub: Some(
-                        crate::keystore::get_xpub_once(&mut mock_hal, keypath)
-                            .await
-                            .unwrap()
-                            .into(),
+                        crate::keystore::get_xpub(
+                            &mut mock_hal,
+                            keypath,
+                            crate::keystore::Compute::Once,
+                        )
+                        .await
+                        .unwrap()
+                        .into(),
                     ),
                 },
                 pb::KeyOriginInfo {

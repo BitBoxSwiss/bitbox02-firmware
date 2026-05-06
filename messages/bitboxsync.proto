@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+package shiftcrypto.bitbox02;
+
+message BitBoxSyncIdentityRequest {}
+
+message BitBoxSyncIdentityResponse {
+  bytes auth_public_key = 1;
+  bytes wrap_public_key = 2;
+}
+
+message BitBoxSyncSignLoginIntentRequest {
+  bytes challenge = 1;
+}
+
+message BitBoxSyncSignRefreshIntentRequest {
+  bytes challenge = 1;
+}
+
+message BitBoxSyncSignRevokeAllTokensIntentRequest {
+  bytes challenge = 1;
+}
+
+message BitBoxSyncSignCreateNamespaceInviteIntentRequest {
+  bytes challenge = 1;
+  bytes namespace_id = 2;
+  bytes invite_id = 3;
+  bytes invite_server_secret_hash = 4;
+  uint64 expires_at = 5;
+  uint32 max_accepted = 6;
+}
+
+message BitBoxSyncSignJoinRequestIntentRequest {
+  bytes namespace_id = 1;
+  bytes invite_id = 2;
+  string server_origin = 3;
+  uint64 expires_at = 4;
+}
+
+message BitBoxSyncUnwrapNamespaceDEKRequest {
+  bytes namespace_id = 1;
+  bytes wrapped_dek = 2;
+}
+
+message BitBoxSyncSignatureResponse {
+  bytes signature = 1;
+}
+
+message BitBoxSyncUnwrapNamespaceDEKResponse {
+  bytes namespace_dek = 1;
+}
+
+message BitBoxSyncRequest {
+  oneof request {
+    BitBoxSyncIdentityRequest identity = 1;
+    BitBoxSyncSignLoginIntentRequest sign_login_intent = 2;
+    BitBoxSyncSignRefreshIntentRequest sign_refresh_intent = 3;
+    BitBoxSyncSignRevokeAllTokensIntentRequest sign_revoke_all_tokens_intent = 4;
+    BitBoxSyncSignCreateNamespaceInviteIntentRequest sign_create_namespace_invite_intent = 5;
+    BitBoxSyncSignJoinRequestIntentRequest sign_join_request_intent = 6;
+    BitBoxSyncUnwrapNamespaceDEKRequest unwrap_namespace_dek = 7;
+  }
+}
+
+message BitBoxSyncResponse {
+  oneof response {
+    BitBoxSyncIdentityResponse identity = 1;
+    BitBoxSyncSignatureResponse signature = 2;
+    BitBoxSyncUnwrapNamespaceDEKResponse unwrap_namespace_dek = 3;
+  }
+}

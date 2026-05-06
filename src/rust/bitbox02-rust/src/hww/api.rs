@@ -17,6 +17,7 @@ mod cardano;
 
 mod backup;
 mod bip85;
+mod bitboxsync;
 mod bluetooth;
 mod change_password;
 mod device_info;
@@ -143,6 +144,7 @@ fn can_call(hal: &mut impl crate::hal::Hal, request: &Request) -> bool {
         | Request::Reset(_)
         | Request::Cardano(_)
         | Request::Bip85(_)
+        | Request::BitboxSync(_)
         | Request::ChangePassword(_) => {
             matches!(state, State::InitializedAndUnlocked)
         }
@@ -199,6 +201,7 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
         Request::Bip85(request) => bip85::process(hal, request).await,
+        Request::BitboxSync(request) => bitboxsync::process(hal, request).await,
         Request::Bluetooth(pb::BluetoothRequest {
             request: Some(request),
         }) => bluetooth::process_api(hal, request)

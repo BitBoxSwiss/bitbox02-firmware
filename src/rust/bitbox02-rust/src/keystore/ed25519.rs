@@ -6,6 +6,9 @@ use crate::hash::Sha512;
 use bip32_ed25519::{ED25519_EXPANDED_SECRET_KEY_SIZE, Xprv, Xpub};
 
 use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
+use digest::Digest;
+use ed25519_dalek::VerifyingKey;
+use ed25519_dalek::hazmat::{ExpandedSecretKey, raw_sign};
 
 fn hmac_sha512(key: &[u8], msg: &[u8]) -> [u8; 64] {
     let mut engine = HmacEngine::<sha512::Hash>::new(key);
@@ -74,7 +77,22 @@ pub async fn get_xpub_twice(
 
 pub struct SignResult {
     pub signature: [u8; 64],
-    pub public_key: ed25519_dalek::VerifyingKey,
+    pub public_key: VerifyingKey,
+}
+
+/// Expands a 32-byte Ed25519 seed using the firmware's compact SHA-512 implementation.
+pub fn expanded_secret_key_from_seed(seed: &[u8; 32]) -> ExpandedSecretKey {
+    let hash = Sha512::digest(seed);
+    ExpandedSecretKey::from_bytes(hash.as_ref())
+}
+
+/// Signs `msg` with an expanded Ed25519 secret key using the firmware's compact SHA-512 implementation.
+pub fn sign_with_expanded_secret_key(secret_key: &ExpandedSecretKey, msg: &[u8]) -> SignResult {
+    let public_key = VerifyingKey::from(secret_key);
+    SignResult {
+        signature: raw_sign::<Sha512>(secret_key, msg, &public_key).to_bytes(),
+        public_key,
+    }
 }
 
 pub async fn sign(
@@ -83,14 +101,8 @@ pub async fn sign(
     msg: &[u8; 32],
 ) -> Result<SignResult, ()> {
     let xprv = get_xprv(hal, keypath).await?;
-    let secret_key =
-        ed25519_dalek::hazmat::ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key());
-    let public_key = ed25519_dalek::VerifyingKey::from(&secret_key);
-    Ok(SignResult {
-        signature: ed25519_dalek::hazmat::raw_sign::<Sha512>(&secret_key, msg, &public_key)
-            .to_bytes(),
-        public_key,
-    })
+    let secret_key = ExpandedSecretKey::from_bytes(&xprv.expanded_secret_key());
+    Ok(sign_with_expanded_secret_key(&secret_key, msg))
 }
 
 #[cfg(test)]

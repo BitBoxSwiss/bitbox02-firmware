@@ -198,3 +198,17 @@ clean:
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
 	./external/vendor-rust.sh
+
+# It is important that cargo is executed from `src/rust` so that it loads the
+# configuration for the vendored dependencies.
+bitbox03-boot0:
+	(cd src/rust; cargo bitbox03-boot0-stm32u5a9j-dk)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
+bitbox03-boot0-release:
+	(cd src/rust; cargo bitbox03-boot0-stm32u5a9j-dk-release)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
+
+flash-bitbox03-boot0-openocd:
+	./scripts/flash-bitbox03-boot0-openocd.sh

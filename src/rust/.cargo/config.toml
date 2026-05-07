@@ -26,3 +26,5 @@ bitbox03-boot0-stm32u5a9j-dk = "build -p bitbox03-boot0 --target=thumbv8m.main-n
 bitbox03-boot0-stm32u5a9j-dk-release = "build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"
 bitbox03-boot1-stm32u5a9j-dk = "build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk,rtt"
 bitbox03-boot1-stm32u5a9j-dk-release = "build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"
+bitbox03-firmware-stm32u5a9j-dk = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk,rtt"
+bitbox03-firmware-stm32u5a9j-dk-release = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"

@@ -213,6 +213,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-platform-stm32u5-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "bitbox-proto"
 version = "0.1.0"
 dependencies = [

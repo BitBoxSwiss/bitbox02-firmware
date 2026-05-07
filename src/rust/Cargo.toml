@@ -8,6 +8,7 @@ members = [
     "bitbox-proto",
     "bitbox02-rust-c",
     "bitbox02-rust",
+    "bitbox03-memory",
     "bitbox-debug",
     "bitbox-usb-report-queue",
     "bitbox-bytequeue",

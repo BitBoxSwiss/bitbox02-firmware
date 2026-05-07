@@ -219,6 +219,16 @@ bitbox03-boot1-release:
 	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+bitbox03-firmware:
+	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+bitbox03-firmware-release:
+	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk-release)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
 
 flash-bitbox03-boot0-openocd:
 	./scripts/flash-bitbox03-boot0-openocd.sh

@@ -1,0 +1,29 @@
+[package]
+name = "bitbox03-factorysetup"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "bitbox03-factorysetup"
+path = "src/main.rs"
+test = false
+bench = false
+
+[features]
+board-stm32u5a9j-dk = [
+    "dep:bitbox-board-stm32u5a9j-dk",
+    "dep:bitbox-board-stm32u5a9j-dk-build",
+]
+
+[dependencies]
+bitbox-board-stm32u5a9j-dk = { path = "../../bitbox-board-stm32u5a9j-dk", optional = true }
+bitbox-debug = { path = "../../bitbox-debug", features = ["rtt"] }
+bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
+bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
+bitbox-platform-stm32u5-sys = { path = "../../bitbox-platform-stm32u5-sys" }
+cortex-m = { workspace = true }
+cortex-m-rt = "0.7"
+log = { version = "0.4.22", default-features = false }
+
+[build-dependencies]
+bitbox-board-stm32u5a9j-dk-build = { path = "../../bitbox-board-stm32u5a9j-dk-build", optional = true }

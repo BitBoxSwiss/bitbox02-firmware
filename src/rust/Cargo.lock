@@ -158,6 +158,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-debug"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rtt-target",
+]
+
+[[package]]
 name = "bitbox-executor"
 version = "0.1.0"
 dependencies = [
@@ -1091,6 +1099,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "once_cell"
+version = "1.21.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+dependencies = [
+ "critical-section",
+ "portable-atomic",
+]
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1138,9 +1156,9 @@ dependencies = [
 
 [[package]]
 name = "portable-atomic"
-version = "1.10.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
+checksum = "c33a9471896f1c69cecef8d20cbe2f7accd12527ce60845ff44c153bb2a21b49"
 dependencies = [
  "critical-section",
 ]
@@ -1219,10 +1237,12 @@ dependencies = [
 
 [[package]]
 name = "rtt-target"
-version = "0.6.1"
-source = "git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5#117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
+version = "0.6.2"
+source = "git+https://github.com/BitBoxSwiss/rtt-target?rev=c04cef567e77ee263ee0621c07202dff6a73ef45#c04cef567e77ee263ee0621c07202dff6a73ef45"
 dependencies = [
  "critical-section",
+ "log",
+ "once_cell",
  "portable-atomic",
  "ufmt-write",
 ]

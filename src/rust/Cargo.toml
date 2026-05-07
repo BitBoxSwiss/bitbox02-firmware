@@ -8,6 +8,7 @@ members = [
     "bitbox-proto",
     "bitbox02-rust-c",
     "bitbox02-rust",
+    "bitbox-debug",
     "bitbox-usb-report-queue",
     "bitbox-bytequeue",
     "bitbox-da14531",
@@ -68,7 +69,7 @@ grounded = { version = "0.2.0", default-features = false, features = ["critical-
 critical-section = { version = "1.2.0", default-features = false }
 
 [patch.crates-io]
-rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }
+rtt-target = { git = "https://github.com/BitBoxSwiss/rtt-target", rev = "c04cef567e77ee263ee0621c07202dff6a73ef45" }
 
 [profile.release]
 # This only affects the .elf output. Debug info is stripped from the final .bin.

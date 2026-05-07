@@ -219,6 +219,7 @@ jobs:
           - factory-setup
           - firmware-debug
           - bitbox03-boot0
+          - bitbox03-boot1
           - simulator
           - simulator-graphical
           - simulator-graphical-bb03

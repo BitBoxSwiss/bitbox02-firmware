@@ -454,6 +454,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox03-boot1"
+version = "0.1.0"
+dependencies = [
+ "bitbox-board-stm32u5a9j-dk",
+ "bitbox-boot-utils",
+ "bitbox-debug",
+ "bitbox-platform-stm32u5",
+ "cortex-m-rt",
+ "log",
+]
+
+[[package]]
 name = "bitcoin"
 version = "0.32.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

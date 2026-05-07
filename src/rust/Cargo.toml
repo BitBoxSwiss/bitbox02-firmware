@@ -5,6 +5,7 @@
 members = [
     "async_test",
     "bins/bitbox03-boot0",
+    "bins/bitbox03-boot1",
     "bitbox-aes",
     "bitbox-board-stm32u5a9j-dk",
     "bitbox-board-stm32u5a9j-dk-build",

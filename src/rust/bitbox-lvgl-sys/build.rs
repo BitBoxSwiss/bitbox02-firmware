@@ -5,6 +5,8 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+const ARM_NONE_EABI_GCC: &str = "arm-none-eabi-gcc";
+
 const LVGL_C_FILES: &[&str] = &[
     // Core
     "src/core/lv_group.c",
@@ -204,6 +206,27 @@ fn run_bindgen(wrapper: &Path, output: &Path, clang_args: &[String]) -> Result<(
     Ok(())
 }
 
+fn arm_none_eabi_sysroot() -> Result<String, &'static str> {
+    let output = Command::new(ARM_NONE_EABI_GCC)
+        .arg("--print-sysroot")
+        .output()
+        .map_err(|err| {
+            if err.kind() == ErrorKind::NotFound {
+                "`arm-none-eabi-gcc` executable was not found. Check your PATH."
+            } else {
+                "failed to execute `arm-none-eabi-gcc --print-sysroot`"
+            }
+        })?;
+    if !output.status.success() {
+        return Err("`arm-none-eabi-gcc --print-sysroot` failed");
+    }
+    let sysroot = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if sysroot.is_empty() {
+        return Err("`arm-none-eabi-gcc --print-sysroot` returned an empty sysroot");
+    }
+    Ok(sysroot)
+}
+
 fn main() -> Result<(), &'static str> {
     println!("cargo::rerun-if-changed=wrapper.h");
 
@@ -238,13 +261,24 @@ fn main() -> Result<(), &'static str> {
         return Err("failed to execute `bindgen --version`");
     }
 
-    let cflags = [
+    let target = env::var("TARGET").expect("TARGET not set");
+    let cflags = vec![
         format!("-I{}", lvgl_dir.display()),
         "-DLV_KCONFIG_IGNORE".to_owned(),
         "-DLV_LVGL_H_INCLUDE_SIMPLE".to_owned(),
         format!("-DLV_CONF_PATH=\"{}\"", lv_conf.display()),
         "-DLV_CONF_INCLUDE_SIMPLE".to_owned(),
     ];
+    let mut bindgen_clang_args = cflags.clone();
+    let sysroot = if target.starts_with("thumb") {
+        Some(arm_none_eabi_sysroot()?)
+    } else {
+        None
+    };
+    if target.starts_with("thumb") {
+        bindgen_clang_args.push(format!("--target={target}"));
+        bindgen_clang_args.push(format!("--sysroot={}", sysroot.as_deref().unwrap()));
+    }
 
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
 
@@ -254,6 +288,9 @@ fn main() -> Result<(), &'static str> {
     }
     for flag in &cflags {
         lvgl_build.flag(flag);
+    }
+    if let Some(sysroot) = sysroot.as_deref() {
+        lvgl_build.flag(format!("--sysroot={sysroot}"));
     }
     lvgl_build.warnings(false);
     lvgl_build.extra_warnings(false);
@@ -268,6 +305,9 @@ fn main() -> Result<(), &'static str> {
     for flag in &cflags {
         fonts.flag(flag);
     }
+    if let Some(sysroot) = sysroot.as_deref() {
+        fonts.flag(format!("--sysroot={sysroot}"));
+    }
     fonts.compile("lvgl_fonts");
-    run_bindgen(&wrapper, &out_path, &cflags)
+    run_bindgen(&wrapper, &out_path, &bindgen_clang_args)
 }

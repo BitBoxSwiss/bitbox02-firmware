@@ -220,6 +220,7 @@ jobs:
           - firmware-debug
           - bitbox03-boot0
           - bitbox03-boot1
+          - bitbox03-firmware
           - simulator
           - simulator-graphical
           - simulator-graphical-bb03

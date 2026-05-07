@@ -51,15 +51,6 @@ INCLUDE device.x
 /* # Interrupt vectors */
 EXTERN(__INTERRUPTS); /* `static` variable similar to `__EXCEPTIONS` */
 
-PHDRS
-{
-  flash PT_LOAD FLAGS(5);
-  boot_arg PT_LOAD FLAGS(6);
-  rtt PT_LOAD FLAGS(6);
-  data PT_LOAD FLAGS(6);
-  bss PT_LOAD FLAGS(6);
-}
-
 /* # Pre-initialization function */
 /* If the user overrides this using the `pre_init!` macro or by creating a `__pre_init` function,
    then the function this points to will be called before the RAM is initialized. */
@@ -74,7 +65,7 @@ SECTIONS
 
   /* ## Sections in FLASH */
   /* ### Vector table */
-  .vector_table _flash_start :
+  .vector_table _image_payload_start :
   {
     __vector_table = .;
 
@@ -95,7 +86,7 @@ SECTIONS
 
     /* Device specific interrupts */
     KEEP(*(.vector_table.interrupts)); /* this is the `__INTERRUPTS` symbol */
-  } > FLASH :flash
+  } > FLASH
 
   PROVIDE(_stext = ADDR(.vector_table) + SIZEOF(.vector_table));
 
@@ -114,7 +105,7 @@ SECTIONS
 
     . = ALIGN(4); /* Pad .text to the alignment to workaround overlapping load section bug in old lld */
     __etext = .;
-  } > FLASH :flash
+  } > FLASH
 
   /* ### .rodata */
   .rodata : ALIGN(4)
@@ -128,7 +119,49 @@ SECTIONS
        have the correct alignment. */
     . = ALIGN(4);
     __erodata = .;
-  } > FLASH :flash
+  } > FLASH
+
+  /* ## Sections in RAM */
+  /* ### .boot_arg */
+  .boot_arg (NOLOAD) : ALIGN(4)
+  {
+    . = ALIGN(4);
+    KEEP(*(.boot_arg .boot_arg.*));
+    . = ALIGN(4);
+  } > BOOT_ARGS
+
+  /* ### .segger_rtt */
+  .segger_rtt (NOLOAD) : ALIGN(4)
+  {
+    . = ALIGN(4);
+    KEEP(*(.segger_rtt .segger_rtt.*));
+    . = ALIGN(4);
+  } > RAM
+
+  /* ### .segger_rtt_buf */
+  .segger_rtt_buf (NOLOAD) : ALIGN(4)
+  {
+    . = ALIGN(4);
+    KEEP(*(.segger_rtt_buf .segger_rtt_buf.*));
+    . = ALIGN(4);
+  } > RAM
+
+  /* ### .data */
+  .data : ALIGN(4)
+  {
+    . = ALIGN(4);
+    __sdata = .;
+    *(.data .data.*);
+    . = ALIGN(4); /* 4-byte align the end (VMA) of this section */
+  } > RAM AT>FLASH
+  /* Allow sections from user `memory.x` injected using `INSERT AFTER .data` to
+   * use the .data loading mechanism by pushing __edata. Note: do not change
+   * output region or load region in those user sections! */
+  . = ALIGN(4);
+  __edata = .;
+
+  /* LMA of .data */
+  __sidata = LOADADDR(.data);
 
   /* ### .gnu.sgstubs
      This section contains the TrustZone-M veneers put there by the Arm GNU linker. */
@@ -140,54 +173,12 @@ SECTIONS
     __veneer_base = .;
     *(.gnu.sgstubs*)
     . = ALIGN(32);
-  } > FLASH :flash
+  } > FLASH
   /* Place `__veneer_limit` outside the `.gnu.sgstubs` section because veneers are
    * always inserted last in the section, which would otherwise be _after_ the `__veneer_limit` symbol.
    */
   . = ALIGN(32);
   __veneer_limit = .;
-
-  /* ## Sections in RAM */
-  /* ### .boot_arg */
-  .boot_arg (NOLOAD) : ALIGN(4)
-  {
-    . = ALIGN(4);
-    KEEP(*(.boot_arg .boot_arg.*));
-    . = ALIGN(4);
-  } > BOOT_ARGS :boot_arg
-
-  /* ### .segger_rtt */
-  .segger_rtt (NOLOAD) : ALIGN(4)
-  {
-    . = ALIGN(4);
-    KEEP(*(.segger_rtt .segger_rtt.*));
-    . = ALIGN(4);
-  } > RAM :rtt
-
-  /* ### .segger_rtt_buf */
-  .segger_rtt_buf (NOLOAD) : ALIGN(4)
-  {
-    . = ALIGN(4);
-    KEEP(*(.segger_rtt_buf .segger_rtt_buf.*));
-    . = ALIGN(4);
-  } > RAM :rtt
-
-  /* ### .data */
-  .data : ALIGN(4)
-  {
-    . = ALIGN(4);
-    __sdata = .;
-    *(.data .data.*);
-    . = ALIGN(4); /* 4-byte align the end (VMA) of this section */
-  } > RAM AT>FLASH :data
-  /* Allow sections from user `memory.x` injected using `INSERT AFTER .data` to
-   * use the .data loading mechanism by pushing __edata. Note: do not change
-   * output region or load region in those user sections! */
-  . = ALIGN(4);
-  __edata = .;
-
-  /* LMA of .data */
-  __sidata = LOADADDR(.data);
 
   /* ### .bss */
   .bss (NOLOAD) : ALIGN(4)
@@ -197,7 +188,7 @@ SECTIONS
     *(.bss .bss.*);
     *(COMMON); /* Uninitialized C statics */
     . = ALIGN(4); /* 4-byte align the end (VMA) of this section */
-  } > RAM :bss
+  } > RAM
   /* Allow sections from user `memory.x` injected using `INSERT AFTER .bss` to
    * use the .bss zeroing mechanism by pushing __ebss. Note: do not change
    * output region or load region in those user sections! */
@@ -212,7 +203,7 @@ SECTIONS
     *(.uninit .uninit.*);
     . = ALIGN(4);
     __euninit = .;
-  } > RAM :bss
+  } > RAM
 
   /* Place the heap right after `.uninit` in RAM */
   PROVIDE(__sheap = __euninit);
@@ -226,7 +217,7 @@ SECTIONS
   .got (NOLOAD) :
   {
     KEEP(*(.got .got.*));
-  } :bss
+  }
 
   /* ## Discarded sections */
   /DISCARD/ :
@@ -243,8 +234,8 @@ SECTIONS
 ASSERT(ADDR(.vector_table) % 1024 == 0, "
 ERROR(cortex-m-rt): the vector table must be 1024-byte aligned");
 
-ASSERT(_flash_start % 4 == 0, "
-ERROR(cortex-m-rt): the start of the FLASH image must be 4-byte aligned");
+ASSERT(_image_payload_start % 4 == 0, "
+ERROR(cortex-m-rt): the start of the image payload must be 4-byte aligned");
 
 ASSERT(ORIGIN(FLASH) % 4 == 0, "
 ERROR(cortex-m-rt): the start of the FLASH region must be 4-byte aligned");
@@ -280,18 +271,55 @@ ERROR(cortex-m-rt): stack end address is not below stack start.");
 
 /* ## .vector_table
  *
+ * In stage1 and firmware the vector_table is offset by the header size so it
+ * is not at ORIGIN(FLASH)
+ *
  * If the *start* of exception vectors is not 8 bytes past the start of the
  * vector table, then we somehow did not place the reset vector, which should
  * live 4 bytes past the start of the vector table.
  */
-ASSERT(ADDR(.vector_table) == _flash_start, "
-ERROR(cortex-m-rt): The vector table must be placed at the start of the FLASH image.");
+ASSERT(ADDR(.vector_table) == _image_payload_start, "
+ERROR(cortex-m-rt): The vector table must be placed at the start of the image payload.");
 
 ASSERT(__exceptions == ADDR(.vector_table) + 0x8, "
 BUG(cortex-m-rt): the reset vector is missing");
 
+ASSERT(__eexceptions == ADDR(.vector_table) + 0x40, "
+BUG(cortex-m-rt): the exception vectors are missing");
+
+
+/* The check for the interrupts has been removed as there are targets like
+ * stage0 bootloader that don't use interrupts. */
+/*
+ASSERT(SIZEOF(.vector_table) > 0x40, "
+ERROR(cortex-m-rt): The interrupt vectors are missing.
+Possible solutions, from most likely to less likely:
+- Link to a svd2rust generated device crate
+- Check that you actually use the device/hal/bsp crate in your code
+- Disable the 'device' feature of cortex-m-rt to build a generic application (a dependency
+may be enabling it)
+- Supply the interrupt handlers yourself. Check the documentation for details.");
+*/
+
 ASSERT(ADDR(.segger_rtt) == ORIGIN(RAM), "
 ERROR(bitbox03): RTT control block must start immediately after BOOT_ARGS.");
 
+/* ## .text */
+ASSERT(ADDR(.vector_table) + SIZEOF(.vector_table) <= _stext, "
+ERROR(cortex-m-rt): The .text section can't be placed inside the .vector_table section
+Set _stext to an address greater than the end of .vector_table (See output of `nm`)");
+
+ASSERT(_stext > ORIGIN(FLASH) && _stext < ORIGIN(FLASH) + LENGTH(FLASH), "
+ERROR(cortex-m-rt): The .text section must be placed inside the FLASH memory.
+Set _stext to an address within the FLASH region.");
+
 ASSERT(SIZEOF(.segger_rtt) + SIZEOF(.segger_rtt_buf) <= 4K, "
 ERROR(bitbox03): RTT sections do not fit into the reserved RTT window.");
+
+/* # Other checks */
+ASSERT(SIZEOF(.got) == 0, "
+ERROR(cortex-m-rt): .got section detected in the input object files
+Dynamic relocations are not supported. If you are linking to C code compiled using
+the 'cc' crate then modify your build script to compile the C code _without_
+the -fPIC flag. See the documentation of the `cc::Build.pic` method for details.");
+/* Do not exceed this mark in the error messages above                                    | */

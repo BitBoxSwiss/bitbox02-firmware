@@ -13,7 +13,7 @@ SECTIONS
   } > FLASH :flash
 } INSERT BEFORE .vector_table;
 
-PROVIDE(_flash_start = ORIGIN(FLASH) + IMAGE_HEADER_LEN);
+PROVIDE(_image_payload_start = ORIGIN(FLASH) + IMAGE_HEADER_LEN);
 
 INCLUDE bitbox03-common.ld
 

@@ -13,6 +13,11 @@ pub const SRAM4_LEN: usize = 16 * 1024;
 pub const GRAM_ADDR: usize = 0xa000_0000;
 pub const GRAM_LEN: usize = 64 * 1024 * 1024;
 
+pub const FACTORYSETUP_RAM_ADDR: usize = RAM_ADDR;
+pub const FACTORYSETUP_RAM_LEN: usize = 256 * 1024 - BOOT_ARGS_LEN;
+pub const FACTORYSETUP_RAM_CODE_ADDR: usize = FACTORYSETUP_RAM_ADDR + FACTORYSETUP_RAM_LEN;
+pub const FACTORYSETUP_RAM_CODE_LEN: usize = 512 * 1024;
+
 pub const BOOT0_ADDR: usize = 0x0800_2000;
 pub const BOOT0_MAX_LEN: usize = 56 * 1024;
 pub const BOOT1_ADDR: usize = 0x0801_0000;
@@ -42,6 +47,12 @@ const _: () = {
     assert!(SRAM4_LEN == 16 * 1024);
     assert!(GRAM_ADDR == 0xa000_0000);
     assert!(GRAM_LEN == 64 * 1024 * 1024);
+
+    assert!(FACTORYSETUP_RAM_ADDR == 0x2000_0200);
+    assert!(FACTORYSETUP_RAM_LEN == 0x0003_FE00);
+    assert!(FACTORYSETUP_RAM_CODE_ADDR == 0x2004_0000);
+    assert!(FACTORYSETUP_RAM_CODE_LEN == 512 * 1024);
+    assert!(FACTORYSETUP_RAM_CODE_ADDR + FACTORYSETUP_RAM_CODE_LEN <= RAM_ADDR + RAM_LEN);
 
     assert!(IMMUTABLE_PAGE_ADDR == 0x0800_0000);
     assert!(BOOT0_ADDR == 0x0800_2000);

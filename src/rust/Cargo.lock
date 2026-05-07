@@ -119,6 +119,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-board-stm32u5a9j-dk"
+version = "0.1.0"
+dependencies = [
+ "bitbox-platform-stm32u5-sys",
+ "cc",
+]
+
+[[package]]
 name = "bitbox-bytequeue"
 version = "0.1.0"
 dependencies = [

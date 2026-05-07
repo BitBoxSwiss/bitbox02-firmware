@@ -11,6 +11,7 @@ members = [
     "bitbox-usb-report-queue",
     "bitbox-bytequeue",
     "bitbox-da14531",
+    "bitbox-board-stm32u5a9j-dk",
     "bitbox-platform-host",
     "bitbox-platform-stm32u5-sys",
     "bitbox-platform-stm32u5",

@@ -239,7 +239,7 @@ fn main() -> Result<(), &'static str> {
     }
     emit_bindgen_env_rerun_if_changed();
 
-    let cflags = [
+    let cflags = vec![
         format!("-I{}", lvgl_dir.display()),
         "-DLV_KCONFIG_IGNORE".to_owned(),
         "-DLV_LVGL_H_INCLUDE_SIMPLE".to_owned(),

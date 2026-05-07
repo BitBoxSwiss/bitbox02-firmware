@@ -9,6 +9,7 @@ members = [
     "bitbox02-rust-c",
     "bitbox02-rust",
     "bins/bitbox03-boot0",
+    "bins/bitbox03-boot1",
     "bitbox03-memory",
     "bitbox-debug",
     "bitbox-usb-report-queue",

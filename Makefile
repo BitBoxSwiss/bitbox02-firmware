@@ -203,6 +203,18 @@ bitbox03-boot0-release:
 	(cd src/rust; cargo bitbox03-boot0-stm32u5a9j-dk-release)
 	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
 	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
+bitbox03-boot1:
+	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+bitbox03-boot1-release:
+	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk-release)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
 
 flash-bitbox03-boot0-openocd:
 	./scripts/flash-bitbox03-boot0-openocd.sh
+flash-bitbox03-boot1-openocd:
+	./scripts/flash-bitbox03-boot1-openocd.sh

@@ -16,6 +16,8 @@ members = [
     "bitbox-mcu-stm32u5",
     "bitbox-noise",
     "bitbox-platform-host",
+    "bitbox-platform-stm32u5",
+    "bitbox-platform-stm32u5-sys",
     "bitbox-proto",
     "bitbox-secp256k1",
     "bitbox-securechip",

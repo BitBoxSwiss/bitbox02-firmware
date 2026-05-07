@@ -1,0 +1,24 @@
+[build]
+# Use our own copy of libsecp256k1-zpk instead of the one bundled with secp256k1-sys, also in `cargo
+# test` and other cargo-based builds. This is replicated in src/CMakeLists.txt,
+# test/simulator-graphical*/CMakeLists.txt for CMake-based builds.
+# See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
+rustflags = ["--cfg", "rust_secp_no_symbol_renaming"]
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+rustflags = [
+    "--cfg", "rust_secp_no_symbol_renaming",
+    "-C", "linker-plugin-lto",
+    # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
+    # See https://github.com/rust-embedded/cortex-m-quickstart/pull/95
+    "-C", "link-arg=--nmagic",
+]
+
+[env]
+# The Rust profiles enable LTO, and `cc` forwards that to C objects. Use LLVM
+# tools for ARM C objects so linker-plugin LTO stays in the same toolchain.
+# `cc` replaces target hyphens, but not dots.
+"CC_thumbv8m.main_none_eabihf" = "clang-21"
+"AR_thumbv8m.main_none_eabihf" = "llvm-ar-21"
+"RANLIB_thumbv8m.main_none_eabihf" = "llvm-ranlib-21"
+"CFLAGS_thumbv8m.main-none-eabihf" = { value = "-mcpu=cortex-m33 -flto" }

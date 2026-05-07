@@ -1,6 +1,27 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use std::env;
 use std::path::PathBuf;
+use std::process::Command;
+
+const ARM_NONE_EABI_GCC: &str = "arm-none-eabi-gcc";
+
+fn arm_none_eabi_sysroot() -> String {
+    let output = Command::new(ARM_NONE_EABI_GCC)
+        .arg("--print-sysroot")
+        .output()
+        .expect("get arm-none-eabi-gcc sysroot");
+    assert!(
+        output.status.success(),
+        "arm-none-eabi-gcc --print-sysroot failed"
+    );
+    let sysroot = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    assert!(
+        !sysroot.is_empty(),
+        "arm-none-eabi-gcc --print-sysroot returned an empty sysroot"
+    );
+    sysroot
+}
 
 fn main() {
     let secp_dir = PathBuf::from("depend/secp256k1-zkp");
@@ -14,6 +35,10 @@ fn main() {
     println!("cargo::rerun-if-changed={}", callbacks.display());
 
     let mut build = cc::Build::new();
+    let target = env::var("TARGET").expect("TARGET not set");
+    if target.starts_with("thumb") {
+        build.flag(format!("--sysroot={}", arm_none_eabi_sysroot()));
+    }
     build
         .file(secp_dir.join("src/secp256k1.c"))
         .file(secp_dir.join("src/precomputed_ecmult.c"))

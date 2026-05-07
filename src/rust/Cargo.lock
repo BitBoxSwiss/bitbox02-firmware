@@ -435,8 +435,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox03-boot0"
+version = "0.1.0"
+dependencies = [
+ "bitbox-boot-utils",
+ "bitbox-debug",
+ "bitbox-platform-stm32u5",
+ "bitbox03-memory",
+ "cortex-m-rt",
+ "log",
+]
+
+[[package]]
 name = "bitbox03-memory"
 version = "0.1.0"
+dependencies = [
+ "bitbox-board-stm32u5a9j-dk",
+]
 
 [[package]]
 name = "bitcoin"

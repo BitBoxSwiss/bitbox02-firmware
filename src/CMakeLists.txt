@@ -255,6 +255,7 @@ if(NOT CMAKE_CROSSCOMPILING)
         ${CARGO} clippy
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
+          --workspace
           --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml
           --target-dir ${RUST_BINARY_DIR}/clippy
           --release

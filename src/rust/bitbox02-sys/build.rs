@@ -293,6 +293,8 @@ const FAKEHARDWARE_SOURCES: &[&str] = &[
 
 type BuildResult<T> = Result<T, String>;
 
+const ARM_NONE_EABI_GCC: &str = "arm-none-eabi-gcc";
+
 pub fn main() -> BuildResult<()> {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let repo_root = manifest_dir
@@ -328,30 +330,33 @@ pub fn main() -> BuildResult<()> {
     ensure_command_exists("bindgen")?;
 
     let target = env::var("TARGET").expect("TARGET not set");
-    let cross_compiling = target == "thumbv7em-none-eabi";
-
-    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
-    let arm_sysroot = format!("--sysroot={arm_sysroot}");
+    let cross_compiling = target.starts_with("thumb");
 
     let mut extra_flags = if cross_compiling {
+        let target_arg = format!("--target={target}");
+        let arm_sysroot = format!("--sysroot={}", arm_none_eabi_sysroot()?);
         vec![
-            "-D__SAMD51J20A__",
-            "--target=thumbv7em-none-eabi",
-            "-mcpu=cortex-m4",
-            "-mthumb",
-            "-mfloat-abi=soft",
-            &arm_sysroot,
-            "-fshort-enums",
+            "-D__SAMD51J20A__".to_owned(),
+            target_arg,
+            "-mcpu=cortex-m4".to_owned(),
+            "-mthumb".to_owned(),
+            "-mfloat-abi=soft".to_owned(),
+            arm_sysroot,
+            "-fshort-enums".to_owned(),
         ]
     } else {
-        vec!["-DTESTING", "-D_UNIT_TEST_", "-DPRODUCT_BITBOX_MULTI=1"]
+        vec![
+            "-DTESTING".to_owned(),
+            "-D_UNIT_TEST_".to_owned(),
+            "-DPRODUCT_BITBOX_MULTI=1".to_owned(),
+        ]
     };
 
     // If user enables -Dwarnings for rust we also want to enable -Werror for C.
     if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
         for flag in rustflags.split('\x1f') {
             if flag == "-Dwarnings" {
-                extra_flags.push("-Werror");
+                extra_flags.push("-Werror".to_owned());
             }
         }
     }
@@ -424,8 +429,8 @@ pub fn main() -> BuildResult<()> {
 
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
-    let mut definitions = vec!["-DAPP_U2F=1"];
-    definitions.extend(&extra_flags);
+    let mut definitions = vec!["-DAPP_U2F=1".to_owned()];
+    definitions.extend(extra_flags);
 
     run_command(
         Command::new("bindgen")
@@ -525,6 +530,18 @@ fn ensure_command_exists(command: &str) -> BuildResult<()> {
         }
         Err(err) => Err(format!("failed to run `{command} --version`: {err}")),
     }
+}
+
+fn arm_none_eabi_sysroot() -> BuildResult<String> {
+    let output = run_command(
+        Command::new(ARM_NONE_EABI_GCC).arg("--print-sysroot"),
+        "get arm-none-eabi-gcc sysroot",
+    )?;
+    let sysroot = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if sysroot.is_empty() {
+        return Err("`arm-none-eabi-gcc --print-sysroot` returned an empty sysroot".into());
+    }
+    Ok(sysroot)
 }
 
 fn run_command(command: &mut Command, context: &str) -> BuildResult<Output> {

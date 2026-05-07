@@ -98,6 +98,8 @@ const RUSTIFIED_ENUMS: &[&str] = &[
 
 type BuildResult<T> = Result<T, String>;
 
+const ARM_NONE_EABI_GCC: &str = "arm-none-eabi-gcc";
+
 pub fn main() -> BuildResult<()> {
     ensure_command_exists("bindgen")?;
 
@@ -123,18 +125,18 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed(&optiga_include_dir);
 
     let target = env::var("TARGET").expect("TARGET not set");
-    let cross_compiling = target == "thumbv7em-none-eabi";
-    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
-    let arm_sysroot = format!("--sysroot={arm_sysroot}");
+    let cross_compiling = target.starts_with("thumb");
 
     let mut extra_flags = if cross_compiling {
+        let target_arg = format!("--target={target}");
+        let arm_sysroot = format!("--sysroot={}", arm_none_eabi_sysroot()?);
         vec![
             // Generate bindings for the firmware target ABI, not the host ABI.
-            "--target=thumbv7em-none-eabi",
-            &arm_sysroot,
+            target_arg,
+            arm_sysroot,
             // The firmware C code is compiled with arm-none-eabi-gcc, which uses
             // -fshort-enums by default. Bindgen must match those enum sizes.
-            "-fshort-enums",
+            "-fshort-enums".to_owned(),
         ]
     } else {
         vec![]
@@ -143,7 +145,7 @@ pub fn main() -> BuildResult<()> {
     if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
         for flag in rustflags.split('\x1f') {
             if flag == "-Dwarnings" {
-                extra_flags.push("-Werror");
+                extra_flags.push("-Werror".to_owned());
             }
         }
     }
@@ -153,10 +155,10 @@ pub fn main() -> BuildResult<()> {
 
     let mut definitions = vec![
         // Expose the U2F counter declarations guarded by APP_U2F in atecc.h/optiga.h.
-        "-DAPP_U2F=1",
-        "-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"",
+        "-DAPP_U2F=1".to_owned(),
+        "-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"".to_owned(),
     ];
-    definitions.extend(&extra_flags);
+    definitions.extend(extra_flags);
 
     run_command(
         Command::new("bindgen")
@@ -239,6 +241,18 @@ fn ensure_command_exists(command: &str) -> BuildResult<()> {
         }
         Err(err) => Err(format!("failed to run `{command} --version`: {err}")),
     }
+}
+
+fn arm_none_eabi_sysroot() -> BuildResult<String> {
+    let output = run_command(
+        Command::new(ARM_NONE_EABI_GCC).arg("--print-sysroot"),
+        "get arm-none-eabi-gcc sysroot",
+    )?;
+    let sysroot = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if sysroot.is_empty() {
+        return Err("`arm-none-eabi-gcc --print-sysroot` returned an empty sysroot".into());
+    }
+    Ok(sysroot)
 }
 
 fn run_command(command: &mut Command, context: &str) -> BuildResult<Output> {

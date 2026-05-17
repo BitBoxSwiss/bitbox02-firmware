@@ -176,6 +176,7 @@ set_property(TARGET asf4-drivers PROPERTY INTERFACE_LINK_LIBRARIES "")
     ${CMAKE_CURRENT_SOURCE_DIR} # for the BitBox02-custom "atca_config.h"
     )
   target_compile_options(cryptoauthlib PRIVATE
+    -flto -ffat-lto-objects
     -Wno-pedantic -Wno-incompatible-pointer-types -Wno-unused-parameter -Wno-unused-variable -Wno-cast-qual
     -Wno-switch-default -Wno-format-nonliteral -Wno-missing-prototypes -Wno-missing-declarations
   )
@@ -218,7 +219,7 @@ add_library(optiga EXCLUDE_FROM_ALL
 )
 target_compile_definitions(optiga PRIVATE MBEDTLS_USER_CONFIG_FILE="mbedtls_config.h")
 # Ignore warnings in external lib.
-target_compile_options(optiga PRIVATE "-w")
+target_compile_options(optiga PRIVATE "-w" -flto -ffat-lto-objects)
 target_compile_definitions(optiga PRIVATE OPTIGA_LIB_EXTERNAL="optiga_config.h")
 target_include_directories(optiga SYSTEM PUBLIC
   optiga-trust-m/config

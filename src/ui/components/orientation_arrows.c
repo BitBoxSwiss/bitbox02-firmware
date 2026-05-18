@@ -125,8 +125,8 @@ static void _render(component_t* component)
             component_t* sc_rotate = component->sub_components.sub_components[2];
             sc_rotate->f->render(sc_rotate);
         } else {
-            component_t* sc_rotate_reverse = component->sub_components.sub_components[3];
-            sc_rotate_reverse->f->render(sc_rotate_reverse);
+            component_t* sc_rotate = component->sub_components.sub_components[2];
+            ui_util_component_render_rotated_180(sc_rotate);
         }
         data->enable_touch = true;
     }
@@ -176,19 +176,11 @@ component_t* orientation_arrows_create(void (*done_callback)(bool, void*), void*
     component_t* button_top = button_create_wide(TEXT, top_slider, _flip, orientation);
     component_t* rotate = image_create(
         IMAGE_ROTATE, sizeof(IMAGE_ROTATE), IMAGE_ROTATE_W, IMAGE_ROTATE_H, CENTER, orientation);
-    component_t* rotate_reverse = image_create(
-        IMAGE_ROTATE_REVERSE,
-        sizeof(IMAGE_ROTATE),
-        IMAGE_ROTATE_W,
-        IMAGE_ROTATE_H,
-        CENTER,
-        orientation);
 
     // Order/presence is important and affects rendering `sc->f->render(sc)`;
     ui_util_add_sub_component(orientation, button_bottom);
     ui_util_add_sub_component(orientation, button_top);
     ui_util_add_sub_component(orientation, rotate);
-    ui_util_add_sub_component(orientation, rotate_reverse);
 
     return orientation;
 }

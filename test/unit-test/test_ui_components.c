@@ -15,11 +15,29 @@
 #include <ui/components/left_arrow.h>
 #include <ui/components/right_arrow.h>
 #include <ui/components/status.h>
+#include <ui/fonts/arial_fonts.h>
 #include <ui/fonts/monogram_5X9.h>
+#include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 
 #include "fake_component.h"
 #include "mock_qtouch.h"
+
+static UG_GUI gui;
+
+static void _set_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
+{
+    (void)x;
+    (void)y;
+    (void)color;
+}
+
+static int _setup(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
+    return 0;
+}
 
 static void _cb(void* user_data)
 {
@@ -158,5 +176,5 @@ int main(void)
         cmocka_unit_test(test_ui_components_status),
         cmocka_unit_test(test_ui_components_confirm)};
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    return cmocka_run_group_tests(tests, _setup, NULL);
 }

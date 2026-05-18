@@ -52,6 +52,7 @@
 #include <stdbool.h>
 #include <ui/oled/oled.h>
 #include <util.h>
+#include <utils_assert.h>
 #include "ugui.h"
 
 /* Pointer to the gui */
@@ -69,9 +70,8 @@ static ug_rotation_t rotation = {0};
 
 static void _UG_PSet(UG_S16 x, UG_S16 y, UG_COLOR c)
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
+
     if (rotation.active) {
         x = rotation.x + rotation.width - 1 - (x - rotation.x);
         y = rotation.y + rotation.height - 1 - (y - rotation.y);
@@ -179,9 +179,7 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
 static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const char *str,
                     int autobreak, int calconly )
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16 xp, yp;
     UG_U8 cw;
@@ -235,9 +233,9 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
 UG_S16 UG_Init( UG_GUI *g, void (*p)(UG_S16, UG_S16, UG_COLOR),
                 const UG_FONT *font, UG_S16 x, UG_S16 y )
 {
-    if (g == NULL || p == NULL || font == NULL) {
-        return 0;
-    }
+    ASSERT(g != NULL);
+    ASSERT(p != NULL);
+    ASSERT(font != NULL);
 
     g->pset = p;
     g->x_dim = x;
@@ -255,23 +253,22 @@ UG_S16 UG_Init( UG_GUI *g, void (*p)(UG_S16, UG_S16, UG_COLOR),
 
 void UG_FontSelect( const UG_FONT *font )
 {
-    if (gui && font) {
-        gui->font = *font;
-    }
+    ASSERT(gui != NULL);
+    ASSERT(font != NULL);
+
+    gui->font = *font;
 }
 
 void UG_FillScreen( UG_COLOR c )
 {
-    if (gui) {
-        UG_FillFrame(0, 0, gui->x_dim - 1, gui->y_dim - 1, c);
-    }
+    ASSERT(gui != NULL);
+
+    UG_FillFrame(0, 0, gui->x_dim - 1, gui->y_dim - 1, c);
 }
 
 void UG_FillFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16 n, m;
 
@@ -295,9 +292,7 @@ void UG_FillFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
 
 void UG_FillRoundFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 r, UG_COLOR c )
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16  x, y, xd;
 
@@ -382,16 +377,14 @@ void UG_DrawRoundFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 r, UG
 
 void UG_DrawPixel( UG_S16 x0, UG_S16 y0, UG_COLOR c )
 {
-    if (gui) {
-        _UG_PSet(x0, y0, c);
-    }
+    ASSERT(gui != NULL);
+
+    _UG_PSet(x0, y0, c);
 }
 
 void UG_DrawCircle( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c )
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16 x, y, xd, yd, e;
 
@@ -472,9 +465,7 @@ void UG_FillCircle( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c )
 
 void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c )
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16 x, y, xd, yd, e;
 
@@ -540,9 +531,7 @@ void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c )
 
 void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16 n, dx, dy, sgndx, sgndy, dxabs, dyabs, x, y, drawx, drawy;
 
@@ -604,9 +593,7 @@ void UG_MeasureStringNoBreak(UG_S16 *xout, UG_S16 *yout, const char *str)
  */
 void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     *xout = 0;
     *yout = 0;
@@ -653,9 +640,10 @@ static UG_S16 _word_width(const char* p) {
 //
 // str_out capacity must be at least strlen(str) + 1.
 void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width) {
-    if (gui == NULL || str == NULL || str_out == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
+    ASSERT(str != NULL);
+    ASSERT(str_out != NULL);
+
     const char* start = str;
     const UG_FONT* font = &gui->font;
     UG_S16 x = 0;
@@ -722,7 +710,10 @@ void UG_RenderRotated180(
     UG_RenderCallback render,
     void* ctx)
 {
-    if (gui == NULL || render == NULL || width <= 0 || height <= 0) {
+    ASSERT(gui != NULL);
+    ASSERT(render != NULL);
+
+    if (width <= 0 || height <= 0) {
         return;
     }
 
@@ -757,9 +748,7 @@ void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str)
  * Auto-break is disabled with this feature.
  */
 void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, const char *str) {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16 calc_width;
     if (x == 0 && width == 0) {
@@ -803,9 +792,7 @@ void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, cons
 
 void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *str)
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     UG_S16 calc_width;
     if (x == 0 && width == 0) {
@@ -817,57 +804,51 @@ void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *st
 
 void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc )
 {
-    if (gui == NULL) {
-        return;
-    }
+    ASSERT(gui != NULL);
 
     _UG_PutChar(chr, x, y, fc, bc, &gui->font);
 }
 
 void UG_SetForecolor( UG_COLOR c )
 {
-    if (gui) {
-        gui->fore_color = c;
-    }
+    ASSERT(gui != NULL);
+
+    gui->fore_color = c;
 }
 
 void UG_SetBackcolor( UG_COLOR c )
 {
-    if (gui) {
-        gui->back_color = c;
-    }
+    ASSERT(gui != NULL);
+
+    gui->back_color = c;
 }
 
 UG_S16 UG_GetXDim( void )
 {
-    if (gui == NULL) {
-        return 0;
-    }
+    ASSERT(gui != NULL);
 
     return gui->x_dim;
 }
 
 UG_S16 UG_GetYDim( void )
 {
-    if (gui == NULL) {
-        return 0;
-    }
+    ASSERT(gui != NULL);
 
     return gui->y_dim;
 }
 
 void UG_FontSetHSpace( UG_U16 s )
 {
-    if (gui) {
-        gui->char_h_space = s;
-    }
+    ASSERT(gui != NULL);
+
+    gui->char_h_space = s;
 }
 
 void UG_FontSetVSpace( UG_U16 s )
 {
-    if (gui) {
-        gui->char_v_space = s;
-    }
+    ASSERT(gui != NULL);
+
+    gui->char_v_space = s;
 }
 
 void UG_SendBuffer(void) {

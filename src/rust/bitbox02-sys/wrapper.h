@@ -22,6 +22,7 @@
 #include <sd.h>
 #include <system.h>
 #include <time.h>
+#include <touch/gestures.h>
 #include <u2f.h>
 #include <u2f/u2f_packet.h>
 #include <uart.h>
@@ -29,6 +30,7 @@
 #include <ui/components/confirm_swap.h>
 #include <ui/components/confirm_transaction.h>
 #include <ui/components/empty.h>
+#include <ui/components/knight_rider.h>
 #include <ui/components/label.h>
 #include <ui/components/menu.h>
 #include <ui/components/orientation_arrows.h>
@@ -60,7 +62,6 @@ static const uintptr_t BITBOX02_FLASH_BOOT_LEN = FLASH_BOOT_LEN;
 
 #if defined(TESTING)
     #include <fake_memory.h>
-    #include <touch/gestures.h>
     #include <ui/event.h>
     #include <ui/event_handler.h>
 #endif

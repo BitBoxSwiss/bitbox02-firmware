@@ -61,7 +61,6 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/ui/components/left_arrow.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/icon_button.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_gesture.c
-    ${CMAKE_SOURCE_DIR}/src/ui/components/label.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/confirm_swap.c
     ${CMAKE_SOURCE_DIR}/src/ui/components/keyboard_switch.c

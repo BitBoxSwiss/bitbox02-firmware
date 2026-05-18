@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+mod label;
 mod types;
 
 #[cfg_attr(feature = "unit-testing", path = "ui/ui_stub.rs")]

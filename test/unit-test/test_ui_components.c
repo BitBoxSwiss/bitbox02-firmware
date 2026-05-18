@@ -45,6 +45,16 @@ static void test_ui_components_label(void** state)
     component_t* label = label_create("Test", NULL, CENTER, mock_component);
     assert_non_null(label);
     assert_ui_component_functions(label);
+
+    component_t* label_offset = label_create_offset("Test", NULL, CENTER, 5, 7, mock_component);
+    assert_non_null(label_offset);
+    assert_ui_component_functions(label_offset);
+    assert_int_equal(label_offset->position.left, label->position.left + 5);
+    assert_int_equal(label_offset->position.top, label->position.top + 7);
+
+    label_update(label, "Updated");
+
+    label_offset->f->cleanup(label_offset);
     label->f->cleanup(label);
 
     mock_component->f->cleanup(mock_component);

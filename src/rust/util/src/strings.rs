@@ -25,10 +25,17 @@ pub unsafe fn str_from_null_terminated_ptr<'a>(
     unsafe { core::ffi::CStr::from_ptr(ptr.cast()).to_str().or(Err(())) }
 }
 
-/// truncate_str truncates string `s` to `len` chars. If `s` is
-/// shorter than `len`, the string is returned unchanged (no panics).
+/// truncate_str truncates string `s` to at most `len` bytes without splitting a utf-8 code point.
+/// If `s` is shorter than `len`, the string is returned unchanged.
 pub fn truncate_str(s: &str, len: usize) -> &str {
-    if s.len() > len { &s[..len] } else { s }
+    if s.len() <= len {
+        return s;
+    }
+    let mut end = len;
+    while !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    &s[..end]
 }
 
 /// Converts a Rust string to a null terminated C string by appending a null
@@ -130,6 +137,10 @@ mod tests {
         assert_eq!(truncate_str("test", 4), "test");
         assert_eq!(truncate_str("test", 5), "test");
         assert_eq!(truncate_str("test", 6), "test");
+        assert_eq!(truncate_str("äbc", 0), "");
+        assert_eq!(truncate_str("äbc", 1), "");
+        assert_eq!(truncate_str("äbc", 2), "ä");
+        assert_eq!(truncate_str("äbc", 3), "äb");
     }
 
     #[test]

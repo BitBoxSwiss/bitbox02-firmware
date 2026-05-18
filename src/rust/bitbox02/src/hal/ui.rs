@@ -165,7 +165,7 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     fn print_screen(&mut self, duration: Duration, msg: &str) {
         crate::screen_clear();
         crate::ug_font_select_9x9();
-        crate::ug_put_string(0, 0, msg, false);
+        crate::ug_put_string(0, 0, msg);
         crate::ug_send_buffer();
         crate::delay(duration);
     }

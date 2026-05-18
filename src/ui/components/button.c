@@ -21,7 +21,6 @@ typedef struct {
     char text[20];
     slider_location_t location;
     bool span_over_slider;
-    bool upside_down;
     void (*callback)(component_t*);
 } button_data_t;
 
@@ -39,8 +38,7 @@ static void _render(component_t* component)
         component->position.top,
         component->dimension.width,
         component->dimension.height,
-        data->text,
-        data->upside_down);
+        data->text);
     UG_FontSetHSpace(1);
 }
 
@@ -74,8 +72,7 @@ static component_t* _button_create(
     const char* text,
     const slider_location_t location,
     void (*callback)(component_t*),
-    component_t* parent,
-    bool upside_down)
+    component_t* parent)
 {
     button_data_t* data = malloc(sizeof(button_data_t));
     if (!data) {
@@ -83,7 +80,6 @@ static component_t* _button_create(
     }
     memset(data, 0, sizeof(button_data_t));
     data->location = location;
-    data->upside_down = upside_down;
     data->span_over_slider = false;
 
     component_t* button = malloc(sizeof(component_t));
@@ -104,10 +100,9 @@ static component_t* _button_create_wide(
     const char* text,
     const slider_location_t location,
     void (*callback)(component_t*),
-    component_t* parent,
-    bool upside_down)
+    component_t* parent)
 {
-    component_t* button = _button_create(text, location, callback, parent, upside_down);
+    component_t* button = _button_create(text, location, callback, parent);
 
     button_data_t* data = (button_data_t*)button->data;
     data->span_over_slider = true;
@@ -124,10 +119,9 @@ static component_t* _button_create_at_position(
     const slider_location_t location,
     const uint8_t screen_position,
     void (*callback)(component_t*),
-    component_t* parent,
-    bool upside_down)
+    component_t* parent)
 {
-    component_t* button = _button_create(text, location, callback, parent, upside_down);
+    component_t* button = _button_create(text, location, callback, parent);
 
     int16_t pos = screen_position - button->dimension.width / 2;
     if (pos < 0) {
@@ -152,7 +146,7 @@ component_t* button_create(
     void (*callback)(component_t*),
     component_t* parent)
 {
-    return _button_create_at_position(text, location, screen_position, callback, parent, false);
+    return _button_create_at_position(text, location, screen_position, callback, parent);
 }
 
 component_t* button_create_wide(
@@ -161,26 +155,7 @@ component_t* button_create_wide(
     void (*callback)(component_t*),
     component_t* parent)
 {
-    return _button_create_wide(text, location, callback, parent, false);
-}
-
-component_t* button_create_upside_down(
-    const char* text,
-    const slider_location_t location,
-    const uint8_t screen_position,
-    void (*callback)(component_t*),
-    component_t* parent)
-{
-    return _button_create_at_position(text, location, screen_position, callback, parent, true);
-}
-
-component_t* button_create_wide_upside_down(
-    const char* text,
-    const slider_location_t location,
-    void (*callback)(component_t*),
-    component_t* parent)
-{
-    return _button_create_wide(text, location, callback, parent, true);
+    return _button_create_wide(text, location, callback, parent);
 }
 
 void button_update(component_t* button, const char* text, void (*callback)(component_t*))

@@ -7,6 +7,7 @@
 
 #include <hardfault.h>
 #include <screen.h>
+#include <ui/ui_util.h>
 #include <util.h>
 
 #include <string.h>
@@ -56,6 +57,15 @@ static void _stay(component_t* component)
     }
 }
 
+static void _render_button(component_t* button, bool rotated)
+{
+    if (rotated) {
+        ui_util_component_render_rotated_180(button);
+    } else {
+        button->f->render(button);
+    }
+}
+
 static void _render(component_t* component)
 {
     orientation_data_t* data = (orientation_data_t*)component->data;
@@ -88,7 +98,7 @@ static void _render(component_t* component)
             component_t* sc = component->sub_components.sub_components[i];
             sc->position.top =
                 i ? MIN(0, y - 12) : SCREEN_HEIGHT - sc->dimension.height - MIN(0, y - 12);
-            sc->f->render(sc);
+            _render_button(sc, i);
         }
     } else {
         // Render sub-components
@@ -109,7 +119,7 @@ static void _render(component_t* component)
             // Bounce text
             component_t* sc = component->sub_components.sub_components[i];
             sc->position.top = i ? y : SCREEN_HEIGHT - sc->dimension.height - y;
-            sc->f->render(sc);
+            _render_button(sc, i);
         }
         if ((data->screen_count - period / 4) % period < period / 2) {
             component_t* sc_rotate = component->sub_components.sub_components[2];
@@ -162,9 +172,8 @@ component_t* orientation_arrows_create(void (*done_callback)(bool, void*), void*
     orientation->position.top = 0;
     orientation->position.left = 0;
 
-    component_t* button_normal = button_create_wide(TEXT, bottom_slider, _stay, orientation);
-    component_t* button_upside_down =
-        button_create_wide_upside_down(TEXT, top_slider, _flip, orientation);
+    component_t* button_bottom = button_create_wide(TEXT, bottom_slider, _stay, orientation);
+    component_t* button_top = button_create_wide(TEXT, top_slider, _flip, orientation);
     component_t* rotate = image_create(
         IMAGE_ROTATE, sizeof(IMAGE_ROTATE), IMAGE_ROTATE_W, IMAGE_ROTATE_H, CENTER, orientation);
     component_t* rotate_reverse = image_create(
@@ -176,8 +185,8 @@ component_t* orientation_arrows_create(void (*done_callback)(bool, void*), void*
         orientation);
 
     // Order/presence is important and affects rendering `sc->f->render(sc)`;
-    ui_util_add_sub_component(orientation, button_normal);
-    ui_util_add_sub_component(orientation, button_upside_down);
+    ui_util_add_sub_component(orientation, button_bottom);
+    ui_util_add_sub_component(orientation, button_top);
     ui_util_add_sub_component(orientation, rotate);
     ui_util_add_sub_component(orientation, rotate_reverse);
 

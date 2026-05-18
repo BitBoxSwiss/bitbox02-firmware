@@ -35,7 +35,7 @@ void screen_print_debug(const char* message, int duration)
     snprintf(print, sizeof(print), "%s", message);
     screen_clear();
     UG_FontSelect(&font_font_a_9X9);
-    UG_PutString(0, 0, print, false);
+    UG_PutString(0, 0, print);
     UG_SendBuffer();
 #ifndef TESTING
     if (duration > 0) delay_ms(duration);

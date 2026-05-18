@@ -57,8 +57,30 @@
 /* Pointer to the gui */
 static UG_GUI *gui = NULL;
 
+typedef struct {
+    bool active;
+    UG_S16 x;
+    UG_S16 y;
+    UG_S16 width;
+    UG_S16 height;
+} ug_rotation_t;
+
+static ug_rotation_t rotation = {0};
+
+static void _UG_PSet(UG_S16 x, UG_S16 y, UG_COLOR c)
+{
+    if (gui == NULL) {
+        return;
+    }
+    if (rotation.active) {
+        x = rotation.x + rotation.width - 1 - (x - rotation.x);
+        y = rotation.y + rotation.height - 1 - (y - rotation.y);
+    }
+    gui->pset(x, y, c);
+}
+
 static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
-                         const UG_FONT *font, bool inverted, bool transparent)
+                         const UG_FONT *font, bool transparent)
 {
     UG_U16 i, j, k, xo, yo, c, bn, actual_char_width;
     UG_U8 b, bt;
@@ -100,7 +122,7 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
         return;
     }
 
-    yo = inverted ? (y + font->char_height) : y;
+    yo = y;
     bn = font->char_width;
     if ( !bn ) {
         return;
@@ -119,33 +141,24 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
     if (font->font_type == FONT_TYPE_1BPP) {
         index = (bt - font->start_char) * font->char_height * bn;
         for ( j = 0; j < font->char_height; j++ ) {
-            xo = inverted ? (x + actual_char_width) : x;
+            xo = x;
             c = actual_char_width;
             for ( i = 0; i < bn; i++ ) {
                 b = font->p[index++];
                 for ( k = 0; (k < 8) && c; k++ ) {
                     if ( b & 0x01 ) {
-                        gui->pset(xo, yo, fc);
+                        _UG_PSet(xo, yo, fc);
                     } else if ( !transparent ) {
-                        gui->pset(xo, yo, bc);
+                        _UG_PSet(xo, yo, bc);
                     }
                     b >>= 1;
-                    if (inverted) {
-                        xo--;
-                    } else {
-                        xo++;
-                    }
+                    xo++;
                     c--;
                 }
             }
-            if (inverted) {
-                yo--;
-            } else {
-                yo++;
-            }
+            yo++;
         }
     } else if (font->font_type == FONT_TYPE_8BPP) {
-        // inversion not supported
         index = (bt - font->start_char) * font->char_height * font->char_width;
         for ( j = 0; j < font->char_height; j++ ) {
             xo = x;
@@ -154,7 +167,7 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
                 color = ((((fc & 0xFF) * b + (bc & 0xFF) * (256 - b)) >> 8) & 0xFF) |//Blue component
                         ((((fc & 0xFF00) * b + (bc & 0xFF00) * (256 - b)) >> 8)  & 0xFF00) |//Green component
                         ((((fc & 0xFF0000) * b + (bc & 0xFF0000) * (256 - b)) >> 8) & 0xFF0000); //Red component
-                gui->pset(xo, yo, color);
+                _UG_PSet(xo, yo, color);
                 xo++;
             }
             index += font->char_width - actual_char_width;
@@ -164,7 +177,7 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
 }
 
 static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const char *str,
-                    int autobreak, int calconly, bool inverted )
+                    int autobreak, int calconly )
 {
     if (gui == NULL) {
         return;
@@ -181,7 +194,7 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
     const int str_length = strlens(str);
 
     for (int i = 0; i < str_length; i++) {
-        chr = (char)(inverted ? str[str_length - 1 - i] : str[i]);
+        chr = str[i];
         if (chr != '\n' && (chr < gui->font.start_char || chr > gui->font.end_char)) {
             continue;
         }
@@ -203,7 +216,7 @@ static void _UG_PutString( UG_S16 x, UG_S16 y, UG_S16 *xout, UG_S16 *yout, const
         }
 
         if (!calconly) {
-            UG_PutChar(chr, xp, yp, gui->fore_color, gui->back_color, inverted);
+            UG_PutChar(chr, xp, yp, gui->fore_color, gui->back_color);
         }
 
         xp += cw + gui->char_h_space;
@@ -234,6 +247,7 @@ UG_S16 UG_Init( UG_GUI *g, void (*p)(UG_S16, UG_S16, UG_COLOR),
     g->char_v_space = 1;
     g->fore_color = C_WHITE;
     g->back_color = C_BLACK;
+    rotation.active = false;
 
     gui = g;
     return 1;
@@ -274,7 +288,7 @@ void UG_FillFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
 
     for ( m = y1; m <= y2; m++ ) {
         for ( n = x1; n <= x2; n++ ) {
-            gui->pset(n, m, c);
+            _UG_PSet(n, m, c);
         }
     }
 }
@@ -369,7 +383,7 @@ void UG_DrawRoundFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 r, UG
 void UG_DrawPixel( UG_S16 x0, UG_S16 y0, UG_COLOR c )
 {
     if (gui) {
-        gui->pset(x0, y0, c);
+        _UG_PSet(x0, y0, c);
     }
 }
 
@@ -398,14 +412,14 @@ void UG_DrawCircle( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c )
     y = 0;
 
     while ( x >= y ) {
-        gui->pset(x0 - x, y0 + y, c);
-        gui->pset(x0 - x, y0 - y, c);
-        gui->pset(x0 + x, y0 + y, c);
-        gui->pset(x0 + x, y0 - y, c);
-        gui->pset(x0 - y, y0 + x, c);
-        gui->pset(x0 - y, y0 - x, c);
-        gui->pset(x0 + y, y0 + x, c);
-        gui->pset(x0 + y, y0 - x, c);
+        _UG_PSet(x0 - x, y0 + y, c);
+        _UG_PSet(x0 - x, y0 - y, c);
+        _UG_PSet(x0 + x, y0 + y, c);
+        _UG_PSet(x0 + x, y0 - y, c);
+        _UG_PSet(x0 - y, y0 + x, c);
+        _UG_PSet(x0 - y, y0 - x, c);
+        _UG_PSet(x0 + y, y0 + x, c);
+        _UG_PSet(x0 + y, y0 - x, c);
 
         y++;
         e += yd;
@@ -483,34 +497,34 @@ void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c )
     while ( x >= y ) {
         // Q1
         if ( s & 0x01 ) {
-            gui->pset(x0 + x, y0 - y, c);
+            _UG_PSet(x0 + x, y0 - y, c);
         }
         if ( s & 0x02 ) {
-            gui->pset(x0 + y, y0 - x, c);
+            _UG_PSet(x0 + y, y0 - x, c);
         }
 
         // Q2
         if ( s & 0x04 ) {
-            gui->pset(x0 - y, y0 - x, c);
+            _UG_PSet(x0 - y, y0 - x, c);
         }
         if ( s & 0x08 ) {
-            gui->pset(x0 - x, y0 - y, c);
+            _UG_PSet(x0 - x, y0 - y, c);
         }
 
         // Q3
         if ( s & 0x10 ) {
-            gui->pset(x0 - x, y0 + y, c);
+            _UG_PSet(x0 - x, y0 + y, c);
         }
         if ( s & 0x20 ) {
-            gui->pset(x0 - y, y0 + x, c);
+            _UG_PSet(x0 - y, y0 + x, c);
         }
 
         // Q4
         if ( s & 0x40 ) {
-            gui->pset(x0 + y, y0 + x, c);
+            _UG_PSet(x0 + y, y0 + x, c);
         }
         if ( s & 0x80 ) {
-            gui->pset(x0 + x, y0 + y, c);
+            _UG_PSet(x0 + x, y0 + y, c);
         }
 
         y++;
@@ -543,7 +557,7 @@ void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
     drawx = x1;
     drawy = y1;
 
-    gui->pset(drawx, drawy, c);
+    _UG_PSet(drawx, drawy, c);
 
     if ( dxabs >= dyabs ) {
         for ( n = 0; n < dxabs; n++ ) {
@@ -553,7 +567,7 @@ void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
                 drawy += sgndy;
             }
             drawx += sgndx;
-            gui->pset(drawx, drawy, c);
+            _UG_PSet(drawx, drawy, c);
         }
     } else {
         for ( n = 0; n < dyabs; n++ ) {
@@ -563,14 +577,14 @@ void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
                 drawx += sgndx;
             }
             drawy += sgndy;
-            gui->pset(drawx, drawy, c);
+            _UG_PSet(drawx, drawy, c);
         }
     }
 }
 
 void UG_MeasureString(UG_S16 *xout, UG_S16 *yout, const char *str)
 {
-    _UG_PutString(0, 0, xout, yout, str, 1, 1, false);
+    _UG_PutString(0, 0, xout, yout, str, 1, 1);
 }
 
 /**
@@ -579,7 +593,7 @@ void UG_MeasureString(UG_S16 *xout, UG_S16 *yout, const char *str)
  */
 void UG_MeasureStringNoBreak(UG_S16 *xout, UG_S16 *yout, const char *str)
 {
-    _UG_PutString(0, 0, xout, yout, str, 0, 1, false);
+    _UG_PutString(0, 0, xout, yout, str, 0, 1);
 }
 
 /**
@@ -605,7 +619,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
     for (c = str; *c != '\0'; c++) {
         if (*c == '\n') {
             snprintf(line, sizeof(line), "%.*s", (int)(c - start), start);
-            _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1, false);
+            _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1);
             *yout += calc_height_line;
             *yout += gui->char_v_space;
             *xout = MAX(*xout, calc_width_line);
@@ -613,7 +627,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
         }
     }
     snprintf(line, sizeof(line), "%.*s", (int)(c - start), start);
-    _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1, false);
+    _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1);
     *yout += calc_height_line;
     *yout += gui->char_v_space;
     *xout = MAX(*xout, calc_width_line);
@@ -700,14 +714,38 @@ void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width) {
     }
 }
 
-void UG_PutString( UG_S16 x, UG_S16 y, const char *str, bool inverted)
+void UG_RenderRotated180(
+    UG_S16 x,
+    UG_S16 y,
+    UG_S16 width,
+    UG_S16 height,
+    UG_RenderCallback render,
+    void* ctx)
 {
-    _UG_PutString(x, y, NULL, NULL, str, 1, 0, inverted);
+    if (gui == NULL || render == NULL || width <= 0 || height <= 0) {
+        return;
+    }
+
+    const ug_rotation_t previous_rotation = rotation;
+    rotation = (ug_rotation_t){
+        .active = true,
+        .x = x,
+        .y = y,
+        .width = width,
+        .height = height,
+    };
+    render(ctx);
+    rotation = previous_rotation;
 }
 
-void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str, bool inverted)
+void UG_PutString( UG_S16 x, UG_S16 y, const char *str)
 {
-    _UG_PutString(x, y, NULL, NULL, str, 0, 0, inverted);
+    _UG_PutString(x, y, NULL, NULL, str, 1, 0);
+}
+
+void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str)
+{
+    _UG_PutString(x, y, NULL, NULL, str, 0, 0);
 }
 
 /**
@@ -718,7 +756,7 @@ void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str, bool inverted)
  *   the overflowing lines on top of each other.
  * Auto-break is disabled with this feature.
  */
-void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, const char *str, bool inverted) {
+void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, const char *str) {
     if (gui == NULL) {
         return;
     }
@@ -753,17 +791,17 @@ void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, cons
     snprintf(lines[current_line], sizeof(lines[current_line]), "%.*s", (int)(c - start), start);
 
     // calculate the height of each line
-    _UG_PutString(0, 0, NULL, &calc_height, "W", 0, 1, inverted);
+    _UG_PutString(0, 0, NULL, &calc_height, "W", 0, 1);
     y = y + (height - ((calc_height + gui->char_v_space) * num_lines)) / 2;
     for (uint16_t i = 0; i < num_lines; i++) {
         UG_S16 current_y = y + (i * (calc_height + gui->char_v_space));
-        _UG_PutString(0, 0, &calc_width, NULL, lines[i], 0, 1, inverted);
+        _UG_PutString(0, 0, &calc_width, NULL, lines[i], 0, 1);
         UG_S16 pos_x = x + (width - calc_width) / 2;
-        _UG_PutString(pos_x, current_y, NULL, NULL, lines[i], 0, 0, inverted);
+        _UG_PutString(pos_x, current_y, NULL, NULL, lines[i], 0, 0);
     }
 }
 
-void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *str, bool inverted)
+void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *str)
 {
     if (gui == NULL) {
         return;
@@ -773,26 +811,26 @@ void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *st
     if (x == 0 && width == 0) {
         width = gui->x_dim - 1;
     }
-    _UG_PutString(x, y, &calc_width, NULL, str, 0, 1, inverted);
-    _UG_PutString(x + (width - calc_width) / 2, y, NULL, NULL, str, 0, 0, inverted);
+    _UG_PutString(x, y, &calc_width, NULL, str, 0, 1);
+    _UG_PutString(x + (width - calc_width) / 2, y, NULL, NULL, str, 0, 0);
 }
 
-void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc, bool inverted )
+void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc )
 {
     if (gui == NULL) {
         return;
     }
 
-    _UG_PutChar(chr, x, y, fc, bc, &gui->font, inverted, false);
+    _UG_PutChar(chr, x, y, fc, bc, &gui->font, false);
 }
 
-void UG_PutCharTransparent( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, bool inverted )
+void UG_PutCharTransparent( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc )
 {
     if (gui == NULL) {
         return;
     }
 
-    _UG_PutChar(chr, x, y, fc, 0x00, &gui->font, inverted, true);
+    _UG_PutChar(chr, x, y, fc, 0x00, &gui->font, true);
 }
 
 void UG_SetForecolor( UG_COLOR c )

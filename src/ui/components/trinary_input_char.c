@@ -231,12 +231,7 @@ static void _render(component_t* component)
             continue;
         }
         UG_PutChar(
-            element->character,
-            element->x,
-            element->y,
-            screen_front_color,
-            screen_back_color,
-            false);
+            element->character, element->x, element->y, screen_front_color, screen_back_color);
     }
     ui_util_component_render_subcomponents(component);
 }

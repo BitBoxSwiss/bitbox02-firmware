@@ -194,7 +194,7 @@ static void _render(component_t* component)
             if (chr == '\0') {
                 UG_FillCircle(string_x + 3, string_y + 4, 2, screen_front_color);
             } else {
-                UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color, false);
+                UG_PutChar(chr, string_x, string_y, screen_front_color, screen_back_color);
             }
         }
         string_x += width + 1;
@@ -208,7 +208,7 @@ static void _render(component_t* component)
     if (data->target_x < STRING_POS_X_START) {
         // HACK: blank out the chars rendered at this position first.
         UG_FillFrame(0, STRING_POS_Y, 11, STRING_POS_Y + _font->char_height, screen_back_color);
-        UG_PutString(0, STRING_POS_Y, "...", false);
+        UG_PutString(0, STRING_POS_Y, "...");
     }
 
     // Render sub-components

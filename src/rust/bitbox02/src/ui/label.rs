@@ -67,10 +67,20 @@ static COMPONENT_FUNCTIONS: ffi::component_functions_t = ffi::component_function
 
 fn copy_truncated_text(text: &[u8], out: &mut [u8; TEXT_LEN]) {
     out.fill(0);
-    let copied_len = text.len().min(MAX_LABEL_SIZE);
+    let copied_len = utf8_truncate_len(text, MAX_LABEL_SIZE);
     out[..copied_len].copy_from_slice(&text[..copied_len]);
     if text.len() > MAX_LABEL_SIZE {
-        out[MAX_LABEL_SIZE..MAX_LABEL_SIZE + ELLIPSIS.len()].copy_from_slice(ELLIPSIS);
+        out[copied_len..copied_len + ELLIPSIS.len()].copy_from_slice(ELLIPSIS);
+    }
+}
+
+fn utf8_truncate_len(text: &[u8], max_len: usize) -> usize {
+    if text.len() <= max_len {
+        return text.len();
+    }
+    match core::str::from_utf8(&text[..max_len]) {
+        Ok(_) => max_len,
+        Err(err) => err.valid_up_to(),
     }
 }
 
@@ -493,6 +503,45 @@ mod tests {
         assert_eq!(&out[..MAX_LABEL_SIZE], &[b'a'; MAX_LABEL_SIZE]);
         assert_eq!(out[MAX_LABEL_SIZE], 0);
         assert_eq!(out[MAX_LABEL_SIZE + 1], 0);
+    }
+
+    #[test]
+    fn test_copy_truncated_text_utf8_boundary() {
+        let mut out = [0; TEXT_LEN];
+        let mut input = [b'a'; MAX_LABEL_SIZE + 2];
+        input[MAX_LABEL_SIZE - 1] = 0xc3;
+        input[MAX_LABEL_SIZE] = 0xa9;
+        input[MAX_LABEL_SIZE + 1] = b'x';
+
+        copy_truncated_text(&input, &mut out);
+
+        assert_eq!(&out[..MAX_LABEL_SIZE - 1], &[b'a'; MAX_LABEL_SIZE - 1]);
+        assert_eq!(
+            &out[MAX_LABEL_SIZE - 1..MAX_LABEL_SIZE - 1 + ELLIPSIS.len()],
+            ELLIPSIS
+        );
+        assert_eq!(out[MAX_LABEL_SIZE - 1 + ELLIPSIS.len()], 0);
+        assert!(CStr::from_bytes_until_nul(&out).unwrap().to_str().is_ok());
+    }
+
+    #[test]
+    fn test_copy_truncated_text_utf8_boundary_exact() {
+        let mut out = [0; TEXT_LEN];
+        let mut input = [b'a'; MAX_LABEL_SIZE + 1];
+        input[MAX_LABEL_SIZE - 2] = 0xc3;
+        input[MAX_LABEL_SIZE - 1] = 0xa9;
+        input[MAX_LABEL_SIZE] = b'x';
+
+        copy_truncated_text(&input, &mut out);
+
+        assert_eq!(&out[..MAX_LABEL_SIZE - 2], &[b'a'; MAX_LABEL_SIZE - 2]);
+        assert_eq!(&out[MAX_LABEL_SIZE - 2..MAX_LABEL_SIZE], "é".as_bytes());
+        assert_eq!(
+            &out[MAX_LABEL_SIZE..MAX_LABEL_SIZE + ELLIPSIS.len()],
+            ELLIPSIS
+        );
+        assert_eq!(out[MAX_LABEL_SIZE + ELLIPSIS.len()], 0);
+        assert!(CStr::from_bytes_until_nul(&out).unwrap().to_str().is_ok());
     }
 
     #[test]

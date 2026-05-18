@@ -123,7 +123,6 @@ void UG_MeasureStringCentered( UG_S16 *xout, UG_S16 *yout, const char *str);
 void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *str);
 void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, const char *str);
 void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc );
-void UG_PutCharTransparent( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc );
 void UG_SetForecolor( UG_COLOR c );
 void UG_SetBackcolor( UG_COLOR c );
 UG_S16 UG_GetXDim( void );

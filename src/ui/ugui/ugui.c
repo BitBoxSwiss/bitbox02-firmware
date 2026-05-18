@@ -80,7 +80,7 @@ static void _UG_PSet(UG_S16 x, UG_S16 y, UG_COLOR c)
 }
 
 static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
-                         const UG_FONT *font, bool transparent)
+                         const UG_FONT *font)
 {
     UG_U16 i, j, k, xo, yo, c, bn, actual_char_width;
     UG_U8 b, bt;
@@ -148,7 +148,7 @@ static void _UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc,
                 for ( k = 0; (k < 8) && c; k++ ) {
                     if ( b & 0x01 ) {
                         _UG_PSet(xo, yo, fc);
-                    } else if ( !transparent ) {
+                    } else {
                         _UG_PSet(xo, yo, bc);
                     }
                     b >>= 1;
@@ -821,16 +821,7 @@ void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc )
         return;
     }
 
-    _UG_PutChar(chr, x, y, fc, bc, &gui->font, false);
-}
-
-void UG_PutCharTransparent( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc )
-{
-    if (gui == NULL) {
-        return;
-    }
-
-    _UG_PutChar(chr, x, y, fc, 0x00, &gui->font, true);
+    _UG_PutChar(chr, x, y, fc, bc, &gui->font);
 }
 
 void UG_SetForecolor( UG_COLOR c )

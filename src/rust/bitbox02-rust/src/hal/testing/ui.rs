@@ -7,8 +7,10 @@ use crate::hal::ui::{
 
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
+use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::cell::RefCell;
 use core::time::Duration;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -53,6 +55,12 @@ pub enum Screen {
     More,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct ProgressScreen {
+    pub title: String,
+    pub values: Vec<f32>,
+}
+
 type EnterStringCb<'a> = Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, UserAbort> + 'a>;
 type MenuCb<'a> = Box<dyn FnMut(&[&str], Option<&str>) -> Result<u8, UserAbort> + 'a>;
 type TrinaryChoiceCb<'a> =
@@ -64,16 +72,24 @@ pub struct TestingUi<'a> {
     _abort_nth: Option<usize>,
     pub screens: Vec<Screen>,
     pub confirm_display_sizes: Vec<usize>,
+    progress_screens: Rc<RefCell<Vec<ProgressScreen>>>,
     _enter_string: Option<EnterStringCb<'a>>,
     _menu: Option<MenuCb<'a>>,
     _trinary_choice: Option<TrinaryChoiceCb<'a>>,
     _quiz_choices: VecDeque<u8>,
 }
 
-pub struct NoopProgress;
+pub struct TestingProgress {
+    progress_screens: Rc<RefCell<Vec<ProgressScreen>>>,
+    index: usize,
+}
 
-impl Progress for NoopProgress {
-    fn set(&mut self, _progress: f32) {}
+impl Progress for TestingProgress {
+    fn set(&mut self, progress: f32) {
+        self.progress_screens.borrow_mut()[self.index]
+            .values
+            .push(progress);
+    }
 }
 
 pub struct NoopEmpty;
@@ -83,12 +99,23 @@ impl Empty for NoopEmpty {}
 pub struct NoopUnlockAnimation;
 
 impl Ui for TestingUi<'_> {
-    type Progress = NoopProgress;
+    type Progress = TestingProgress;
     type Empty = NoopEmpty;
     type UnlockAnimation = NoopUnlockAnimation;
 
-    fn progress_create(&mut self, _title: &str) -> Self::Progress {
-        NoopProgress
+    fn progress_create(&mut self, title: &str) -> Self::Progress {
+        let index = {
+            let mut progress_screens = self.progress_screens.borrow_mut();
+            progress_screens.push(ProgressScreen {
+                title: title.into(),
+                values: vec![],
+            });
+            progress_screens.len() - 1
+        };
+        TestingProgress {
+            progress_screens: self.progress_screens.clone(),
+            index,
+        }
     }
 
     fn empty_create(&mut self) -> Self::Empty {
@@ -274,12 +301,17 @@ impl<'a> TestingUi<'a> {
         Self {
             screens: vec![],
             confirm_display_sizes: vec![],
+            progress_screens: Rc::new(RefCell::new(vec![])),
             _abort_nth: None,
             _enter_string: None,
             _menu: None,
             _trinary_choice: None,
             _quiz_choices: VecDeque::new(),
         }
+    }
+
+    pub fn progress_screens(&self) -> Vec<ProgressScreen> {
+        self.progress_screens.borrow().clone()
     }
 
     /// Make the `n`-th workflow (0-indexed) fail with a user abort. If that workflow cannot be

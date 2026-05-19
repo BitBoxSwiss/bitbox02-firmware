@@ -460,8 +460,13 @@ async fn encode_member<U: sha3::digest::Update>(
             let mut producer = super::sighash::ChunkingProducer::from_host(req.data_length)
                 .with_preview(display_cap);
             let mut keccak = sha3::Keccak256::new();
-            while let Some(chunk) = producer.next().await? {
-                keccak.update(&chunk);
+            {
+                let mut progress = hal.ui().progress_create("Loading data...");
+                let mut producer =
+                    super::sighash::ProgressProducer::new(&mut producer, &mut progress);
+                while let Some(chunk) = producer.next().await? {
+                    keccak.update(&chunk);
+                }
             }
             hasher.update(&keccak.finalize());
 
@@ -812,6 +817,13 @@ mod tests {
     use alloc::boxed::Box;
 
     use pb::eth_sign_typed_message_request::Member;
+
+    fn assert_progress_screen(mock_hal: &TestingHal<'_>, expected_values: &[(u32, u32)]) {
+        let progress_screens = mock_hal.ui.progress_screens();
+        assert_eq!(progress_screens.len(), 1);
+        assert_eq!(progress_screens[0].title, "Loading data...");
+        assert_eq!(progress_screens[0].values.as_slice(), expected_values);
+    }
 
     fn mk_type(data_type: DataType) -> MemberType {
         MemberType {
@@ -1455,6 +1467,7 @@ mod tests {
         let line2 = "b".repeat(MAX_CONFIRM_BODY_SIZE);
         let mock_hal = run_single_string_message(format!("ok\n{line2}")).await;
 
+        assert!(mock_hal.ui.progress_screens().is_empty());
         assert_eq!(
             mock_hal.ui.screens,
             vec![
@@ -1516,6 +1529,10 @@ mod tests {
         let data: Vec<u8> = (0u8..=255).cycle().take(10_000).collect();
         let mock_hal = run_single_streaming_bytes_message(data).await;
 
+        assert_progress_screen(
+            &mock_hal,
+            &[(4096, 10_000), (8192, 10_000), (10_000, 10_000)],
+        );
         assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 10_000]);
         assert_eq!(
             mock_hal.ui.screens[1],
@@ -1532,6 +1549,16 @@ mod tests {
             }
             _ => panic!("unexpected screen"),
         }
+    }
+
+    #[async_test::test]
+    async fn test_inline_bytes_no_progress() {
+        let data: &'static [u8] = Box::leak(vec![0x01, 0x02, 0x03].into_boxed_slice());
+        let mock_hal =
+            run_single_message_typed_msg("data", mk_type(DataType::Bytes), Object::Bytes(data))
+                .await;
+
+        assert!(mock_hal.ui.progress_screens().is_empty());
     }
 
     #[test]

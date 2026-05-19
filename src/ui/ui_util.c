@@ -37,6 +37,23 @@ void ui_util_component_render_subcomponents(component_t* component)
     }
 }
 
+static void _render_component(void* ctx)
+{
+    component_t* component = (component_t*)ctx;
+    component->f->render(component);
+}
+
+void ui_util_component_render_rotated_180(component_t* component)
+{
+    UG_RenderRotated180(
+        component->position.left,
+        component->position.top,
+        component->dimension.width,
+        component->dimension.height,
+        _render_component,
+        component);
+}
+
 /**
  * A utility function that cleans up the current component and all sub-components.
  * @param[in] component The cleaned up component.

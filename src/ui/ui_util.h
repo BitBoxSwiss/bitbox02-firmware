@@ -36,6 +36,13 @@ void ui_util_add_sub_component(component_t* parent, component_t* child);
 void ui_util_component_render_subcomponents(component_t* component);
 
 /**
+ * A utility function that renders the component rotated by 180 degrees inside its current
+ * component bounds.
+ * @param[in] component The rendered component.
+ */
+void ui_util_component_render_rotated_180(component_t* component);
+
+/**
  * A utility function that cleans up the current component and all sub-components.
  * @param[in] component The cleaned up component.
  */

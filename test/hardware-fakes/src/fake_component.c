@@ -20,12 +20,6 @@ static const component_functions_t FAKE_COMPONENT_FUNCTIONS = {
 
 /********************************** Create Instance **********************************/
 
-/**
- * Creates a label with the given font either upside down or normal.
- * @param[in] text The text of the label.
- * @param[in] upside_down Whether the text should be rotated 180 degree or not.
- * @param[in] font The font of the label.
- */
 component_t* fake_component_create(void)
 {
     component_t* fake = malloc(sizeof(component_t));

@@ -316,7 +316,7 @@ static void _render_message(const char* message, int duration)
     char print[100];
     snprintf(print, sizeof(print), "%s", message);
     UG_ClearBuffer();
-    UG_PutString(0, 0, print, false);
+    UG_PutString(0, 0, print);
     UG_SendBuffer();
     delay_ms(duration);
 }
@@ -326,20 +326,20 @@ void bootloader_render_default_screen(void)
     UG_ClearBuffer();
     _load_logo();
 #if PLATFORM_BITBOX02PLUS == 1
-    UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp", false);
+    UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp");
     if (rust_communication_mode_ble_enabled() &&
         da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
         char buf[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
         memory_random_name(buf);
-        UG_PutString(0, SCREEN_HEIGHT - 9, buf, false);
+        UG_PutString(0, SCREEN_HEIGHT - 9, buf);
     } else if (_is_app_flash_empty) {
-        UG_PutString(0, SCREEN_HEIGHT - 9, "Let's get started!", false);
+        UG_PutString(0, SCREEN_HEIGHT - 9, "Let's get started!");
     }
 #else
     if (_is_app_flash_empty) {
-        UG_PutString(0, SCREEN_HEIGHT - 9 * 2, "Let's get started!", false);
+        UG_PutString(0, SCREEN_HEIGHT - 9 * 2, "Let's get started!");
     }
-    UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp", false);
+    UG_PutString(0, SCREEN_HEIGHT - 9, "See the BitBoxApp");
 #endif
     UG_SendBuffer();
 }
@@ -360,14 +360,14 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     UG_ClearBuffer();
     uint16_t check_width = IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT / 2 - 1;
     if (confirmed) {
-        UG_PutString(15, 0, "Confirm on app", false);
+        UG_PutString(15, 0, "Confirm on app");
     } else {
-        UG_PutString(30, 0, "Pairing code", false);
+        UG_PutString(30, 0, "Pairing code");
         image_cross(SCREEN_WIDTH / 16, 0, IMAGE_DEFAULT_CROSS_HEIGHT);
         image_checkmark(SCREEN_WIDTH * 15 / 16 - check_width, 0, IMAGE_DEFAULT_CHECKMARK_HEIGHT);
     }
     UG_FontSelect(&font_monogram_5X9);
-    UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str, false);
+    UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str);
     UG_FontSelect(&font_font_a_9X9);
     UG_SendBuffer();
 }
@@ -380,7 +380,7 @@ static void _render_progress(float progress)
     if (progress > 0) {
         char label[5] = {0};
         snprintf(label, sizeof(label), "%2d%%", (int)(100 * progress));
-        UG_PutString(0, SCREEN_HEIGHT - 9 * 2, label, false);
+        UG_PutString(0, SCREEN_HEIGHT - 9 * 2, label);
         _load_progress_bar(progress);
     } else {
         _load_arrow(0, SCREEN_HEIGHT - 16, 10);
@@ -389,7 +389,7 @@ static void _render_progress(float progress)
     if (_is_app_flash_empty) {
         msg = "INSTALLING";
     }
-    UG_PutString(SCREEN_WIDTH / 2 - 3, SCREEN_HEIGHT - 9 * 2, msg, false);
+    UG_PutString(SCREEN_WIDTH / 2 - 3, SCREEN_HEIGHT - 9 * 2, msg);
     UG_SendBuffer();
 }
 
@@ -423,18 +423,15 @@ static void _render_hash(const char* title, const uint8_t* hash)
 
     for (uint8_t i = 1; i <= seconds; i++) {
         UG_ClearBuffer();
-        UG_PutString(0, 0, title, false);
+        UG_PutString(0, 0, title);
 
         snprintf(timer_buf, sizeof(timer_buf), "%ds", seconds - i);
         UG_MeasureString(&timer_str_width, NULL, timer_buf);
         UG_PutString(
-            SCREEN_WIDTH - timer_str_width,
-            SCREEN_HEIGHT - f_regular->char_height,
-            timer_buf,
-            false);
+            SCREEN_WIDTH - timer_str_width, SCREEN_HEIGHT - f_regular->char_height, timer_buf);
 
         UG_FontSelect(f_mono);
-        UG_PutString(0, title_margin + f_regular->char_height, hash_multiline, false);
+        UG_PutString(0, title_margin + f_regular->char_height, hash_multiline);
 
         UG_FontSelect(f_regular);
 
@@ -1005,14 +1002,14 @@ static void _check_init(boot_data_t* data)
 static bool _devdevice_enter(secbool_u32 firmware_verified)
 {
     UG_ClearBuffer();
-    UG_PutString(0, 0, "    <Enter bootloader>", false);
-    UG_PutString(0, SCREEN_HEIGHT / 2 - 11, "DEV DEVICE", false);
-    UG_PutString(0, SCREEN_HEIGHT / 2 + 2, "NOT FOR VALUE", false);
+    UG_PutString(0, 0, "    <Enter bootloader>");
+    UG_PutString(0, SCREEN_HEIGHT / 2 - 11, "DEV DEVICE");
+    UG_PutString(0, SCREEN_HEIGHT / 2 + 2, "NOT FOR VALUE");
     // Check that the firmware's reset handler isn't invalid.
     if (((uint32_t*)FLASH_APP_START)[1] != 0xffffffff) {
-        UG_PutString(0, SCREEN_HEIGHT - 9, "        <Continue>", false);
+        UG_PutString(0, SCREEN_HEIGHT - 9, "        <Continue>");
     } else {
-        UG_PutString(0, SCREEN_HEIGHT - 9, "    No firmware found", false);
+        UG_PutString(0, SCREEN_HEIGHT - 9, "    No firmware found");
     }
     #if PLATFORM_BITBOX02PLUS == 1
     struct da14531_firmware_version version;
@@ -1020,7 +1017,7 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     if (res) {
         char buf[50];
         snprintf(buf, sizeof(buf), "ble: %d (%s)", version.version, util_dbg_hex(version.hash, 4));
-        UG_PutString(0, SCREEN_HEIGHT - 18, buf, false);
+        UG_PutString(0, SCREEN_HEIGHT - 18, buf);
     }
     #endif
     uint16_t ypos = SCREEN_HEIGHT / 2 - 4;

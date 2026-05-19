@@ -107,15 +107,22 @@ void UG_FillCircle( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_COLOR c );
 void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c );
 void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );
 void UG_WrapTitleString(const char* str, char* str_out, UG_S16 width);
-void UG_PutString( UG_S16 x, UG_S16 y, const char *str, bool inverted);
-void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str, bool inverted);
+typedef void (*UG_RenderCallback)(void* ctx);
+void UG_RenderRotated180(
+    UG_S16 x,
+    UG_S16 y,
+    UG_S16 width,
+    UG_S16 height,
+    UG_RenderCallback render,
+    void* ctx);
+void UG_PutString( UG_S16 x, UG_S16 y, const char *str);
+void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str);
 void UG_MeasureString( UG_S16 *xout, UG_S16 *yout, const char *str);
 void UG_MeasureStringNoBreak(UG_S16 *xout, UG_S16 *yout, const char *str);
 void UG_MeasureStringCentered( UG_S16 *xout, UG_S16 *yout, const char *str);
-void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *str, bool inverted);
-void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, const char *str, bool inverted);
-void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc, bool inverted );
-void UG_PutCharTransparent( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, bool inverted );
+void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *str);
+void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, const char *str);
+void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc );
 void UG_SetForecolor( UG_COLOR c );
 void UG_SetBackcolor( UG_COLOR c );
 UG_S16 UG_GetXDim( void );

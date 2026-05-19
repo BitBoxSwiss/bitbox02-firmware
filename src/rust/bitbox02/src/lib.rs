@@ -49,7 +49,7 @@ pub mod usb_processing;
 pub use bitbox02_sys::buffer_t;
 use core::time::Duration;
 
-pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
+pub fn ug_put_string(x: i16, y: i16, input: &str) {
     unsafe {
         bitbox02_sys::UG_PutString(
             x,
@@ -58,7 +58,6 @@ pub fn ug_put_string(x: i16, y: i16, input: &str, inverted: bool) {
                 .unwrap()
                 .as_ptr()
                 .cast(),
-            inverted,
         );
     }
 }

@@ -281,6 +281,7 @@ struct PreparedStreamingStandardData {
 }
 
 async fn prepare_streaming_standard_data(
+    hal: &mut impl crate::hal::Hal,
     chain_id: u64,
     request: &Transaction<'_>,
 ) -> Result<PreparedStreamingStandardData, Error> {
@@ -288,11 +289,17 @@ async fn prepare_streaming_standard_data(
     let display_cap = truncating_hex_preview_byte_cap(0, display_size);
     let mut producer = super::sighash::ChunkingProducer::from_host(request.data_length())
         .with_preview(display_cap);
-    let hash = match request {
-        Transaction::Legacy(legacy) => {
-            hash_legacy_with_producer(chain_id, legacy, &mut producer).await?
+    let hash = {
+        let mut progress = hal.ui().progress_create("Loading data...");
+        let mut producer = super::sighash::ProgressProducer::new(&mut producer, &mut progress);
+        match request {
+            Transaction::Legacy(legacy) => {
+                hash_legacy_with_producer(chain_id, legacy, &mut producer).await?
+            }
+            Transaction::Eip1559(eip1559) => {
+                hash_eip1559_with_producer(eip1559, &mut producer).await?
+            }
         }
-        Transaction::Eip1559(eip1559) => hash_eip1559_with_producer(eip1559, &mut producer).await?,
     };
     Ok(PreparedStreamingStandardData {
         body: hex::encode(producer.preview()),
@@ -439,7 +446,7 @@ async fn verify_standard_transaction(
             .await?;
 
         let (display_size, body) = if data_length > 0 {
-            let prepared = prepare_streaming_standard_data(params.chain_id, request).await?;
+            let prepared = prepare_streaming_standard_data(hal, params.chain_id, request).await?;
             let display_size = prepared.display_size;
             let body = prepared.body.clone();
             prepared_streaming_data = Some(prepared);
@@ -662,6 +669,16 @@ mod tests {
     use super::super::sighash::tests::{
         clear_chunk_responder, setup_chunk_responder, setup_counting_chunk_responder,
     };
+
+    fn assert_progress_screen(mock_hal: &TestingHal<'_>, expected_values: &[f32]) {
+        let progress_screens = mock_hal.ui.progress_screens();
+        assert_eq!(progress_screens.len(), 1);
+        assert_eq!(progress_screens[0].title, "Loading data...");
+        assert_eq!(progress_screens[0].values.len(), expected_values.len());
+        for (actual, expected) in progress_screens[0].values.iter().zip(expected_values) {
+            assert!((actual - expected).abs() < 1e-6);
+        }
+    }
 
     // Base payment request fixture for ETH-side swap tests.
     fn make_eth_swap_payment_request() -> pb::BtcPaymentRequestRequest {
@@ -2034,6 +2051,7 @@ mod tests {
             }
             _ => panic!("unexpected screen"),
         }
+        assert!(mock_hal.ui.progress_screens().is_empty());
     }
 
     #[async_test::test]
@@ -2070,6 +2088,7 @@ mod tests {
             }))
         );
         clear_chunk_responder();
+        assert_progress_screen(&mock_hal, &[4096.0 / 10_000.0, 8192.0 / 10_000.0, 1.0]);
         assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 10_000]);
         assert_eq!(
             mock_hal.ui.screens[0],
@@ -2167,6 +2186,7 @@ mod tests {
             }
             other => panic!("expected Ok(Sign), got {:?}", other),
         }
+        assert_progress_screen(&mock_hal, &[1.0]);
     }
 
     #[async_test::test]
@@ -2203,6 +2223,7 @@ mod tests {
             }))
         );
         clear_chunk_responder();
+        assert_progress_screen(&mock_hal, &[4096.0 / 12_000.0, 8192.0 / 12_000.0, 1.0]);
         assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0, 0, 0, 12_000]);
         assert_eq!(
             mock_hal.ui.screens,

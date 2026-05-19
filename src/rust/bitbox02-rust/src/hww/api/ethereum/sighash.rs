@@ -11,6 +11,8 @@ use core::pin::Pin;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::hal::ui::Progress;
+
 use super::Error;
 
 /// An async producer/generator of a bytes array. This is used to be able to accumulate the RLP hash
@@ -24,6 +26,48 @@ pub trait DataProducer {
     /// `Ok(None)` when there are no more chunks, or `Err` on failure.
     fn next<'a>(&'a mut self)
     -> Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, Error>> + 'a>>;
+}
+
+pub struct ProgressProducer<'a, P: Progress> {
+    producer: &'a mut dyn DataProducer,
+    progress: &'a mut P,
+    consumed: u32,
+}
+
+impl<'a, P: Progress> ProgressProducer<'a, P> {
+    pub fn new(producer: &'a mut dyn DataProducer, progress: &'a mut P) -> Self {
+        Self {
+            producer,
+            progress,
+            consumed: 0,
+        }
+    }
+}
+
+impl<P: Progress> DataProducer for ProgressProducer<'_, P> {
+    fn len(&self) -> u32 {
+        self.producer.len()
+    }
+
+    fn first_byte<'a>(&'a mut self) -> Pin<Box<dyn Future<Output = Result<u8, Error>> + 'a>> {
+        self.producer.first_byte()
+    }
+
+    fn next<'a>(
+        &'a mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, Error>> + 'a>> {
+        Box::pin(async move {
+            let chunk = self.producer.next().await?;
+            if let Some(chunk) = &chunk {
+                let total = self.producer.len();
+                self.consumed = self.consumed.saturating_add(chunk.len() as u32).min(total);
+                if total > 0 {
+                    self.progress.set(self.consumed as f32 / total as f32);
+                }
+            }
+            Ok(chunk)
+        })
+    }
 }
 
 pub struct Preview {

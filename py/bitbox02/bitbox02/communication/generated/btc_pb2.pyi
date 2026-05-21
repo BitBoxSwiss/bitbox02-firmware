@@ -339,6 +339,7 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     FORMAT_UNIT_FIELD_NUMBER: builtins.int
     CONTAINS_SILENT_PAYMENT_OUTPUTS_FIELD_NUMBER: builtins.int
     OUTPUT_SCRIPT_CONFIGS_FIELD_NUMBER: builtins.int
+    BIP322_MESSAGE_FIELD_NUMBER: builtins.int
     coin: global___BTCCoin.ValueType
     version: builtins.int
     """must be 1 or 2"""
@@ -348,6 +349,12 @@ class BTCSignInitRequest(google.protobuf.message.Message):
     """must be <500000000"""
     format_unit: global___BTCSignInitRequest.FormatUnit.ValueType
     contains_silent_payment_outputs: builtins.bool
+    bip322_message: builtins.bytes
+    """BIP-322: If set, this is a BIP-322 message signing request. The device will
+    verify the virtual transaction structure and show message-signing UI.
+    Carries the message from the PSBT global field
+    PSBT_GLOBAL_GENERIC_SIGNED_MESSAGE (0x09) defined in BIP-322 v1.0.0.
+    """
     @property
     def script_configs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BTCScriptConfigWithKeypath]:
         """used script configs in inputs and changes"""
@@ -370,8 +377,11 @@ class BTCSignInitRequest(google.protobuf.message.Message):
         format_unit: global___BTCSignInitRequest.FormatUnit.ValueType = ...,
         contains_silent_payment_outputs: builtins.bool = ...,
         output_script_configs: collections.abc.Iterable[global___BTCScriptConfigWithKeypath] | None = ...,
+        bip322_message: builtins.bytes | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["coin", b"coin", "contains_silent_payment_outputs", b"contains_silent_payment_outputs", "format_unit", b"format_unit", "locktime", b"locktime", "num_inputs", b"num_inputs", "num_outputs", b"num_outputs", "output_script_configs", b"output_script_configs", "script_configs", b"script_configs", "version", b"version"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_bip322_message", b"_bip322_message", "bip322_message", b"bip322_message"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_bip322_message", b"_bip322_message", "bip322_message", b"bip322_message", "coin", b"coin", "contains_silent_payment_outputs", b"contains_silent_payment_outputs", "format_unit", b"format_unit", "locktime", b"locktime", "num_inputs", b"num_inputs", "num_outputs", b"num_outputs", "output_script_configs", b"output_script_configs", "script_configs", b"script_configs", "version", b"version"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_bip322_message", b"_bip322_message"]) -> typing.Literal["bip322_message"] | None: ...
 
 global___BTCSignInitRequest = BTCSignInitRequest
 

@@ -21,6 +21,64 @@ use bitcoin::consensus::encode::{VarInt, serialize};
 
 const MAX_MESSAGE_SIZE: usize = 1024;
 
+/// Compute the legacy "Bitcoin Signed Message" signature (ECDSA).
+///
+/// Returns a 65-byte signature: 64 bytes secp256k1 compact (R, S) + 1 byte recovery id.
+async fn sign_legacy(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+    msg: &[u8],
+    host_nonce_commitment: &Option<pb::AntiKleptoHostNonceCommitment>,
+) -> Result<Vec<u8>, Error> {
+    // See
+    // https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L355-L358.
+    // This is the message format that is widespread for p2pkh addresses.
+    // Electrum re-used it for p2wpkh-p2sh and p2wpkh addresses.
+    let mut extended_msg: Vec<u8> = Vec::new();
+    extended_msg.extend(b"\x18Bitcoin Signed Message:\n");
+    extended_msg.extend(serialize(&VarInt(msg.len() as _)));
+    extended_msg.extend(msg);
+
+    let sighash: [u8; 32] = Sha256::digest(Sha256::digest(extended_msg)).into();
+
+    let host_nonce = match host_nonce_commitment {
+        // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
+        Some(pb::AntiKleptoHostNonceCommitment { commitment }) => {
+            let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
+                keystore::secp256k1_get_private_key(hal, keypath)
+                    .await?
+                    .as_slice()
+                    .try_into()
+                    .unwrap(),
+                &sighash,
+                commitment
+                    .as_slice()
+                    .try_into()
+                    .or(Err(Error::InvalidInput))?,
+            )?;
+
+            // Send signer commitment to host and wait for the host nonce from the host.
+            super::antiklepto_get_host_nonce(signer_commitment).await?
+        }
+
+        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+        None => [0; 32],
+    };
+
+    let sign_result = crate::secp256k1::secp256k1_sign(
+        keystore::secp256k1_get_private_key(hal, keypath)
+            .await?
+            .as_slice()
+            .try_into()
+            .unwrap(),
+        &sighash,
+        Some(&host_nonce),
+    )?;
+    let mut signature: Vec<u8> = sign_result.signature.to_vec();
+    signature.push(sign_result.recid);
+    Ok(signature)
+}
+
 /// Process a sign message request.
 ///
 /// The result contains a 65 byte signature. The first 64 bytes are the secp256k1 signature in
@@ -81,52 +139,7 @@ pub async fn process(
 
     verify_message::verify(hal, "Sign message", "Sign", &request.msg, true).await?;
 
-    // See
-    // https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L355-L358.
-    // This is the message format that is widespread for p2pkh addresses.
-    // Electrum re-used it for p2wpkh-p2sh and p2wpkh addresses.
-    let mut msg: Vec<u8> = Vec::new();
-    msg.extend(b"\x18Bitcoin Signed Message:\n");
-    msg.extend(serialize(&VarInt(request.msg.len() as _)));
-    msg.extend(&request.msg);
-
-    let sighash: [u8; 32] = Sha256::digest(Sha256::digest(msg)).into();
-
-    let host_nonce = match request.host_nonce_commitment {
-        // Engage in the anti-klepto protocol if the host sends a host nonce commitment.
-        Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
-            let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
-                keystore::secp256k1_get_private_key(hal, keypath)
-                    .await?
-                    .as_slice()
-                    .try_into()
-                    .unwrap(),
-                &sighash,
-                commitment
-                    .as_slice()
-                    .try_into()
-                    .or(Err(Error::InvalidInput))?,
-            )?;
-
-            // Send signer commitment to host and wait for the host nonce from the host.
-            super::antiklepto_get_host_nonce(signer_commitment).await?
-        }
-
-        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
-        None => [0; 32],
-    };
-
-    let sign_result = crate::secp256k1::secp256k1_sign(
-        keystore::secp256k1_get_private_key(hal, keypath)
-            .await?
-            .as_slice()
-            .try_into()
-            .unwrap(),
-        &sighash,
-        Some(&host_nonce),
-    )?;
-    let mut signature: Vec<u8> = sign_result.signature.to_vec();
-    signature.push(sign_result.recid);
+    let signature = sign_legacy(hal, keypath, &request.msg, &request.host_nonce_commitment).await?;
 
     Ok(Response::SignMessage(pb::BtcSignMessageResponse {
         signature,

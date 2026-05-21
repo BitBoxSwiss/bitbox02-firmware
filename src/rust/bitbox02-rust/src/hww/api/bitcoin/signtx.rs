@@ -8,12 +8,12 @@ use super::super::payment_request;
 use super::common::format_amount;
 use super::policies::TaprootSpendInfo;
 use super::script_configs::{ValidatedScriptConfig, ValidatedScriptConfigWithKeypath};
-use super::{bip143, bip341, common, keypath};
+use super::{bip143, bip322, bip341, common, keypath};
 
 use crate::hal::Ui;
 use crate::keystore::Compute;
 use crate::secp256k1::SECP256K1;
-use crate::workflow::transaction;
+use crate::workflow::{transaction, verify_message};
 use crate::xpubcache::Bip32XpubCache;
 
 use alloc::string::String;
@@ -750,6 +750,161 @@ async fn sign_ecdsa_input(
     Ok(sign_result.signature.to_vec())
 }
 
+/// Handle a BIP-322 message signing request received through the signtx streaming protocol.
+///
+/// This is called from `_process` when `bip322_message` is set in the init request.
+/// It follows the same streaming protocol (get_tx_input/get_tx_output) but shows
+/// message-signing UI instead of transaction UI.
+async fn process_bip322(
+    hal: &mut impl crate::hal::Hal,
+    request: &pb::BtcSignInitRequest,
+    message: &[u8],
+    coin: pb::BtcCoin,
+    validated_script_configs: &[ValidatedScriptConfigWithKeypath<'_>],
+    mut xpub_cache: Bip32XpubCache,
+    mut next_response: NextResponse,
+) -> Result<Response, Error> {
+    bip322::validate_init(request)?;
+
+    let coin_params = super::params::get(coin);
+
+    // Phase 1: Receive the single input.
+    let tx_input = get_tx_input(0, &mut next_response).await?;
+    let script_config_account = validated_script_configs
+        .get(tx_input.script_config_index as usize)
+        .ok_or(Error::InvalidInput)?;
+
+    // Validate keypath.
+    validate_keypath(
+        coin_params,
+        script_config_account,
+        &tx_input.keypath,
+        keypath::ReceiveSpend::Spend,
+    )?;
+
+    // Derive the scriptPubKey from the script config to validate the to_spend txid.
+    let script_pubkey = common::Payload::from(
+        hal,
+        &mut xpub_cache,
+        coin_params,
+        &tx_input.keypath,
+        script_config_account,
+    )
+    .await?
+    .pk_script(coin_params)?;
+
+    bip322::validate_input(&tx_input, message, &script_pubkey)?;
+
+    // Phase 2: Receive and validate the single OP_RETURN output.
+    let tx_output = get_tx_output(0, &mut next_response).await?;
+    bip322::validate_output(&tx_output)?;
+
+    // Phase 3: Message signing UI.
+    let address = common::Payload::from(
+        hal,
+        &mut xpub_cache,
+        coin_params,
+        &tx_input.keypath,
+        script_config_account,
+    )
+    .await?
+    .address(coin_params)?;
+    let address_formatted = util::strings::format_address(&address);
+
+    let basic_info = format!("Coin: {}", coin_params.name);
+    hal.ui()
+        .confirm(&ConfirmParams {
+            title: "Sign message",
+            body: &basic_info,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+    hal.ui()
+        .confirm(&ConfirmParams {
+            title: "Address",
+            body: &address_formatted,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await?;
+
+    verify_message::verify(hal, "Sign message", "Sign", message, true).await?;
+
+    // Phase 4: Sign the input (second pass).
+    let tx_input = get_tx_input(0, &mut next_response).await?;
+    validate_keypath(
+        coin_params,
+        script_config_account,
+        &tx_input.keypath,
+        keypath::ReceiveSpend::Spend,
+    )?;
+
+    // The sighash algorithm has to match what a BIP-322 verifier will use when it runs the
+    // resulting signature through the standard script interpreter: BIP-341 for taproot, BIP-143
+    // for v0 segwit (P2WPKH, P2WPKH-P2SH, P2WSH, P2WSH-P2SH). Signing the BIP-341 sighash with
+    // ECDSA against a P2WPKH script would silently produce a signature that no verifier
+    // accepts.
+    //
+    // Pass through version/locktime/sequence from the request so that full-format BIP-322
+    // signatures (e.g. with timelocks) compute the correct sighash. For the simple format the
+    // host sends version=0, locktime=0, sequence=0.
+    if is_taproot(script_config_account) {
+        if tx_input.host_nonce_commitment.is_some() {
+            return Err(Error::InvalidInput);
+        }
+        let sighash = bip322::sighash(
+            message,
+            &script_pubkey,
+            request.version,
+            request.locktime,
+            tx_input.sequence,
+            bip322::SighashMode::Taproot,
+        );
+        let spend_info = get_taproot_spend_info(
+            hal,
+            &mut xpub_cache,
+            script_config_account,
+            &tx_input.keypath,
+        )
+        .await?;
+        next_response.next.signature =
+            sign_taproot_input(hal, &tx_input.keypath, &sighash, &spend_info).await?;
+    } else {
+        let script_code =
+            sighash_script(hal, &mut xpub_cache, script_config_account, &tx_input.keypath).await?;
+        let sighash = bip322::sighash(
+            message,
+            &script_pubkey,
+            request.version,
+            request.locktime,
+            tx_input.sequence,
+            bip322::SighashMode::SegwitV0 {
+                script_code: &script_code,
+            },
+        );
+
+        // sign_ecdsa_input may engage the anti-klepto exchange which resets next_response.next
+        // via get_request. We therefore set has_signature only AFTER it returns.
+        next_response.next.signature = sign_ecdsa_input(
+            hal,
+            &tx_input.keypath,
+            &sighash,
+            &tx_input.host_nonce_commitment,
+            0,
+            &mut next_response,
+        )
+        .await?;
+    }
+    next_response.next.has_signature = true;
+
+    // Phase 5: Done.
+    next_response.next.r#type = NextType::Done as _;
+    Ok(next_response.to_protobuf())
+}
+
 /// Singing flow:
 ///
 /// init
@@ -805,13 +960,16 @@ async fn _process(
     let coin_params = super::params::get(coin);
     // Validate the format_unit.
     let format_unit = FormatUnit::try_from(request.format_unit)?;
+
+    let is_bip322 = request.bip322_message.is_some();
+
     // Currently we do not support time-based nlocktime
     if request.locktime >= 500000000 {
         return Err(Error::InvalidInput);
     }
-    // Currently only support version 1 or version 2 tx.
+    // Version 1 or 2 for normal tx, version 0 allowed for BIP-322.
     // Version 2: https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
-    if request.version != 1 && request.version != 2 {
+    if request.version != 1 && request.version != 2 && !(is_bip322 && request.version == 0) {
         return Err(Error::InvalidInput);
     }
     if request.num_inputs < 1 || request.num_outputs < 1 {
@@ -824,6 +982,24 @@ async fn _process(
 
     let mut xpub_cache = Bip32XpubCache::new(Compute::Once);
     setup_xpub_cache(&mut xpub_cache, &request.script_configs);
+
+    // BIP-322 message signing: branch into dedicated handler.
+    if let Some(ref message) = request.bip322_message {
+        let next_response = NextResponse {
+            next: Default::default(),
+            wrap: false,
+        };
+        return process_bip322(
+            hal,
+            request,
+            message,
+            coin,
+            &validated_script_configs,
+            xpub_cache,
+            next_response,
+        )
+        .await;
+    }
 
     // For now we only allow one payment request with one output per transaction.  In the future,
     // this could be extended to allow multiple outputs per payment request (payment request
@@ -1328,9 +1504,9 @@ async fn _process(
                 },
             });
 
-            next_response.next.has_signature = true;
             next_response.next.signature =
                 sign_taproot_input(hal, &tx_input.keypath, &sighash, &spend_info).await?;
+            next_response.next.has_signature = true;
         } else {
             // Sign all other supported inputs.
 
@@ -1355,7 +1531,8 @@ async fn _process(
                 sighash_flags: SIGHASH_ALL,
             });
 
-            next_response.next.has_signature = true;
+            // sign_ecdsa_input may engage the anti-klepto exchange which resets next_response.next
+            // via get_request. We therefore set has_signature only AFTER it returns.
             next_response.next.signature = sign_ecdsa_input(
                 hal,
                 &tx_input.keypath,
@@ -1365,6 +1542,7 @@ async fn _process(
                 &mut next_response,
             )
             .await?;
+            next_response.next.has_signature = true;
         }
 
         // Update progress.
@@ -1693,6 +1871,7 @@ mod tests {
                     .outputs
                     .iter()
                     .any(|output| output.silent_payment.is_some()),
+                bip322_message: None,
             }
         }
 
@@ -1716,6 +1895,7 @@ mod tests {
                 locktime: self.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                bip322_message: None,
             }
         }
 
@@ -1800,6 +1980,7 @@ mod tests {
             locktime: 0,
             format_unit: FormatUnit::Default as _,
             contains_silent_payment_outputs: false,
+            bip322_message: None,
         };
 
         {
@@ -2008,6 +2189,7 @@ mod tests {
                         locktime: 0,
                         format_unit: FormatUnit::Default as _,
                         contains_silent_payment_outputs: false,
+                        bip322_message: None,
                     }
                 )
                 .await,
@@ -2331,6 +2513,95 @@ mod tests {
             unsafe { PREVTX_REQUESTED },
             transaction.borrow().inputs.len() as u32
         );
+    }
+
+    /// Test BIP-322 message signing through the signtx streaming flow for a P2SH-P2WPKH
+    /// (BIP-49 nested SegWit) address. The host sends a `bip322_message` in the init request,
+    /// then streams the to_sign virtual transaction (single input spending to_spend, single
+    /// OP_RETURN output). The device signs with ECDSA and returns a 64-byte compact signature.
+    #[async_test::test]
+    pub async fn test_bip322_p2sh_p2wpkh() {
+        let coin = pb::BtcCoin::Btc;
+        let bip44_coin = super::super::params::get(coin).bip44_coin;
+        let keypath_account = vec![49 + HARDENED, bip44_coin, 0 + HARDENED];
+        let keypath = vec![49 + HARDENED, bip44_coin, 0 + HARDENED, 0, 0];
+        let message = b"BIP-322 streaming test message".to_vec();
+
+        mock_unlocked();
+
+        // Derive the scriptPubKey for the P2SH-P2WPKH address at the signing keypath, then
+        // compute the expected to_spend.txid the firmware will check against `prev_out_hash`.
+        let coin_params = super::super::params::get(coin);
+        let mut helper_hal = TestingHal::new();
+        let mut helper_xpub_cache = Bip32XpubCache::new(Compute::Twice);
+        let script_pubkey = common::Payload::from_simple(
+            &mut helper_hal,
+            &mut helper_xpub_cache,
+            coin_params,
+            SimpleType::P2wpkhP2sh,
+            &keypath,
+        )
+        .await
+        .unwrap()
+        .pk_script(coin_params)
+        .unwrap();
+        let to_spend_txid = bip322::create_to_spend_txid(&message, &script_pubkey);
+
+        let input = pb::BtcSignInputRequest {
+            prev_out_hash: to_spend_txid.to_vec(),
+            prev_out_index: 0,
+            prev_out_value: 0,
+            sequence: 0,
+            keypath: keypath.clone(),
+            script_config_index: 0,
+            host_nonce_commitment: None,
+        };
+        let output = pb::BtcSignOutputRequest {
+            ours: false,
+            r#type: pb::BtcOutputType::OpReturn as _,
+            value: 0,
+            ..Default::default()
+        };
+
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response: Response| {
+                let next = extract_next(&response);
+                match NextType::try_from(next.r#type).unwrap() {
+                    NextType::Input => Ok(Request::BtcSignInput(input.clone())),
+                    NextType::Output => Ok(Request::BtcSignOutput(output.clone())),
+                    other => panic!("unexpected next type: {:?}", other),
+                }
+            }));
+
+        let init_request = pb::BtcSignInitRequest {
+            coin: coin as _,
+            script_configs: vec![pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(
+                        SimpleType::P2wpkhP2sh as _,
+                    )),
+                }),
+                keypath: keypath_account,
+            }],
+            output_script_configs: vec![],
+            version: 0,
+            num_inputs: 1,
+            num_outputs: 1,
+            locktime: 0,
+            format_unit: FormatUnit::Default as _,
+            contains_silent_payment_outputs: false,
+            bip322_message: Some(message),
+        };
+
+        let result = process(&mut TestingHal::new(), &init_request).await;
+        match result {
+            Ok(Response::BtcSignNext(next)) => {
+                assert!(next.has_signature);
+                // ECDSA compact signature: R (32 bytes) + S (32 bytes), no recid.
+                assert_eq!(next.signature.len(), 64);
+            }
+            _ => panic!("wrong result: {:?}", result),
+        }
     }
 
     /// Test signing UTXOs with high keypath address indices. Even though we don't support verifying
@@ -3038,6 +3309,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                bip322_message: None,
             }
         };
 
@@ -3135,6 +3407,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                bip322_message: None,
             }
         };
         assert_eq!(
@@ -3208,6 +3481,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                bip322_message: None,
             }
         };
         let result = process(&mut mock_hal, &init_request).await;
@@ -3292,6 +3566,7 @@ mod tests {
                 locktime: tx.locktime,
                 format_unit: FormatUnit::Default as _,
                 contains_silent_payment_outputs: false,
+                bip322_message: None,
             }
         };
         let result = process(&mut mock_hal, &init_request).await;

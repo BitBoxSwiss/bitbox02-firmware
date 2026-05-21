@@ -6,10 +6,12 @@
 # pylint: disable=too-many-lines
 
 import argparse
+import hashlib
 import socket
 import pprint
 import sys
 from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
+import base58
 import base64
 import binascii
 import textwrap
@@ -53,6 +55,37 @@ def eprint(*args: Any, **kwargs: Any) -> None:
     """
     kwargs.setdefault("file", sys.stderr)
     print(*args, **kwargs)
+
+
+def _bip322_to_spend_txid(msg: bytes, script_pubkey: bytes) -> bytes:
+    """Compute the BIP-322 to_spend.txid for the given message and scriptPubKey.
+
+    See BIP-322 v1.0.0 §"Full" for the to_spend transaction structure. Returns the raw
+    double-SHA256 (txid in internal byte order, matching the firmware's `prev_out_hash` field).
+    """
+    # BIP-340 tagged hash with tag "BIP0322-signed-message".
+    tag = hashlib.sha256(b"BIP0322-signed-message").digest()
+    msg_hash = hashlib.sha256(tag + tag + msg).digest()
+
+    # Serialize the to_spend transaction:
+    #   nVersion=0, vin[0]={null prevout, scriptSig=OP_0 PUSH32 <msg_hash>, nSequence=0},
+    #   vout[0]={value=0, scriptPubKey=script_pubkey}, nLockTime=0.
+    tx = bytearray()
+    tx += (0).to_bytes(4, "little")  # nVersion
+    tx += b"\x01"  # vin count
+    tx += b"\x00" * 32  # prevout.hash
+    tx += (0xFFFFFFFF).to_bytes(4, "little")  # prevout.n
+    tx += b"\x22"  # scriptSig length: 34 bytes
+    tx += b"\x00\x20" + msg_hash  # OP_0 PUSH32 <msg_hash>
+    tx += (0).to_bytes(4, "little")  # nSequence
+    tx += b"\x01"  # vout count
+    tx += (0).to_bytes(8, "little")  # vout.value
+    assert len(script_pubkey) < 0xFD, "scriptPubKey too long for single-byte varint"
+    tx += bytes([len(script_pubkey)])  # scriptPubKey length
+    tx += script_pubkey
+    tx += (0).to_bytes(4, "little")  # nLockTime
+
+    return hashlib.sha256(hashlib.sha256(bytes(tx)).digest()).digest()
 
 
 def ask_user(
@@ -947,6 +980,7 @@ class SendMessage:
             coin: "bitbox02.btc.BTCCoin.V",
             keypath: Sequence[int],
             script_config: bitbox02.btc.BTCScriptConfig,
+            taproot: bool = False,
         ) -> None:
             address = self._device.btc_address(
                 coin=coin, keypath=keypath, script_config=script_config, display=False
@@ -968,7 +1002,85 @@ class SendMessage:
                     ),
                     msg_bytes,
                 )
+
+                # Taproot uses BIP-322 which already comes fully encoded.
+                if taproot:
+                    print("Signature:", sig65.decode("ascii"))
+                    return
+
                 print("Signature:", base64.b64encode(sig65).decode("ascii"))
+            except UserAbortException:
+                print("Aborted by user")
+
+        def sign_via_signtx_p2sh_p2wpkh(
+            coin: "bitbox02.btc.BTCCoin.V", keypath: Sequence[int]
+        ) -> None:
+            """Sign a BIP-322 message for a P2SH-P2WPKH address through the signtx
+            streaming flow (host sends `bip322_message` in the init request).
+            """
+            script_config = bitbox02.btc.BTCScriptConfig(
+                simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+            )
+            address = self._device.btc_address(
+                coin=coin,
+                keypath=keypath,
+                script_config=script_config,
+                display=False,
+            )
+            print("Address:", address)
+
+            msg = input(r"Message to sign (\n = newline): ")
+            if msg.startswith("0x"):
+                msg_bytes = binascii.unhexlify(msg[2:])
+            else:
+                msg_bytes = msg.replace(r"\n", "\n").encode("utf-8")
+
+            # Derive the scriptPubKey from the P2SH address: OP_HASH160 PUSH20 <hash> OP_EQUAL.
+            # base58check_decode gives [version_byte || 20-byte-hash].
+            decoded = base58.b58decode_check(address)
+            assert len(decoded) == 21
+            p2sh_hash = decoded[1:]
+            script_pubkey = b"\xa9\x14" + p2sh_hash + b"\x87"
+
+            # Compute to_spend.txid (per BIP-322).
+            to_spend_txid = _bip322_to_spend_txid(msg_bytes, script_pubkey)
+
+            # The signtx flow uses the BIP-44 account-level keypath in the script_configs and
+            # the full keypath in the input.
+            account_keypath = list(keypath[:3])
+            tx_input: bitbox02.BTCInputType = {
+                "prev_out_hash": to_spend_txid,
+                "prev_out_index": 0,
+                "prev_out_value": 0,
+                "sequence": 0,
+                "keypath": list(keypath),
+                "script_config_index": 0,
+                "prev_tx": None,
+            }
+            op_return_output = bitbox02.BTCOutputExternal(
+                output_type=bitbox02.btc.BTCOutputType.OP_RETURN,
+                output_payload=b"",
+                value=0,
+            )
+            try:
+                sigs = self._device.btc_sign(
+                    coin,
+                    [
+                        bitbox02.btc.BTCScriptConfigWithKeypath(
+                            script_config=script_config, keypath=account_keypath
+                        )
+                    ],
+                    inputs=[tx_input],
+                    outputs=[op_return_output],
+                    version=0,
+                    locktime=0,
+                    bip322_message=msg_bytes,
+                )
+                _, sig = sigs[0]
+                # The device returns the raw 64-byte ECDSA compact signature for the to_sign
+                # input. To produce a full BIP-322 "ful" signature, the host assembles the
+                # signed to_sign transaction and base64-encodes it with the `ful` prefix.
+                print("ECDSA signature (R||S):", sig.hex())
             except UserAbortException:
                 print("Aborted by user")
 
@@ -979,6 +1091,19 @@ class SendMessage:
             )
             sign(bitbox02.btc.BTC, keypath, script_config)
 
+        def sign_mainnet_tr() -> None:
+            keypath = [86 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            script_config = bitbox02.btc.BTCScriptConfig(
+                simple_type=bitbox02.btc.BTCScriptConfig.P2TR
+            )
+            sign(bitbox02.btc.BTC, keypath, script_config, True)
+
+        def sign_mainnet_p2sh_p2wpkh_signtx() -> None:
+            sign_via_signtx_p2sh_p2wpkh(
+                bitbox02.btc.BTC,
+                [49 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+            )
+
         def sign_testnet() -> None:
             keypath = [49 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0]
             script_config = bitbox02.btc.BTCScriptConfig(
@@ -986,9 +1111,19 @@ class SendMessage:
             )
             sign(bitbox02.btc.TBTC, keypath, script_config)
 
+        def sign_testnet_tr() -> None:
+            keypath = [86 + HARDENED, 1 + HARDENED, 0 + HARDENED, 0, 0]
+            script_config = bitbox02.btc.BTCScriptConfig(
+                simple_type=bitbox02.btc.BTCScriptConfig.P2TR
+            )
+            sign(bitbox02.btc.TBTC, keypath, script_config, True)
+
         choices = (
             ("Mainnet", sign_mainnet),
+            ("Mainnet TR (BIP-322 via signmsg)", sign_mainnet_tr),
+            ("Mainnet P2SH-P2WPKH (BIP-322 via signtx)", sign_mainnet_p2sh_p2wpkh_signtx),
             ("Testnet", sign_testnet),
+            ("Testnet TR (BIP-322 via signmsg)", sign_testnet_tr),
         )
         choice = ask_user(choices)
         if callable(choice):

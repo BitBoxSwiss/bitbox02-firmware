@@ -644,6 +644,112 @@ impl<'a> TryFrom<&'a ValidatedScriptConfigWithKeypath<'a>>
     }
 }
 
+/// Compute the TaprootSpendInfo for a taproot input.
+///
+/// For SimpleType::P2tr this is a BIP-86 key-path spend (tweak by hash of pubkey, no merkle root).
+/// For Policy with a Taproot descriptor, it delegates to the parsed policy.
+async fn get_taproot_spend_info(
+    hal: &mut impl crate::hal::Hal,
+    xpub_cache: &mut Bip32XpubCache,
+    script_config_account: &ValidatedScriptConfigWithKeypath<'_>,
+    keypath: &[u32],
+) -> Result<TaprootSpendInfo, Error> {
+    match &script_config_account.config {
+        ValidatedScriptConfig::SimpleType(SimpleType::P2tr) => {
+            // This is a BIP-86 spend, so we tweak the private key by the hash of the public
+            // key only, as there is no Taproot merkle root.
+            let xpub = xpub_cache.get_xpub(hal, keypath).await?;
+            let pubkey =
+                bitcoin::PublicKey::from_slice(xpub.public_key()).map_err(|_| Error::Generic)?;
+            Ok(TaprootSpendInfo::KeySpend(
+                bitcoin::TapTweakHash::from_key_and_tweak(pubkey.into(), None),
+            ))
+        }
+        ValidatedScriptConfig::Policy { parsed_policy, .. } => {
+            // Get the Taproot tweak based on whether we spend using the internal key (key
+            // path spend) or if we spend using a leaf script. For key path spends, we must
+            // first tweak the private key to match the Taproot output key. For leaf
+            // scripts, we do not tweak.
+
+            Ok(parsed_policy
+                .taproot_spend_info(hal, xpub_cache, keypath)
+                .await?)
+        }
+        _ => return Err(Error::Generic),
+    }
+}
+
+/// Sign a taproot input given its sighash and spend info.
+///
+/// Returns the 64-byte Schnorr signature.
+async fn sign_taproot_input(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+    sighash: &[u8; 32],
+    spend_info: &TaprootSpendInfo,
+) -> Result<Vec<u8>, Error> {
+    Ok(crate::keystore::secp256k1_schnorr_sign(
+        hal,
+        keypath,
+        &sighash,
+        if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {
+            Some(tweak_hash.as_byte_array())
+        } else {
+            None
+        },
+    )
+    .await?
+    .to_vec())
+}
+
+/// Sign an ECDSA input given its sighash, handling the anti-klepto protocol if needed.
+///
+/// Returns the 64-byte compact signature (R, S).
+async fn sign_ecdsa_input(
+    hal: &mut impl crate::hal::Hal,
+    keypath: &[u32],
+    sighash: &[u8; 32],
+    host_nonce_commitment: &Option<pb::AntiKleptoHostNonceCommitment>,
+    input_index: u32,
+    next_response: &mut NextResponse,
+) -> Result<Vec<u8>, Error> {
+    let private_key = crate::keystore::secp256k1_get_private_key(hal, keypath).await?;
+    // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
+    let host_nonce: [u8; 32] = match host_nonce_commitment {
+        Some(pb::AntiKleptoHostNonceCommitment { commitment }) => {
+            let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
+                private_key.as_slice().try_into().unwrap(),
+                sighash,
+                commitment
+                    .as_slice()
+                    .try_into()
+                    .or(Err(Error::InvalidInput))?,
+            )?;
+            next_response.next.anti_klepto_signer_commitment =
+                Some(pb::AntiKleptoSignerCommitment {
+                    commitment: signer_commitment.to_vec(),
+                });
+
+            get_antiklepto_host_nonce(input_index, next_response)
+                .await?
+                .host_nonce
+                .as_slice()
+                .try_into()
+                .or(Err(Error::InvalidInput))?
+        }
+        // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+        None => [0; 32],
+    };
+
+    let sign_result = crate::secp256k1::secp256k1_sign(
+        private_key.as_slice().try_into().unwrap(),
+        sighash,
+        Some(&host_nonce),
+    )?;
+    drop(private_key);
+    Ok(sign_result.signature.to_vec())
+}
+
 /// Singing flow:
 ///
 /// init
@@ -1199,30 +1305,13 @@ async fn _process(
                 return Err(Error::InvalidInput);
             }
 
-            let spend_info = match &script_config_account.config {
-                ValidatedScriptConfig::SimpleType(SimpleType::P2tr) => {
-                    // This is a BIP-86 spend, so we tweak the private key by the hash of the public
-                    // key only, as there is no Taproot merkle root.
-                    let xpub = xpub_cache.get_xpub(hal, &tx_input.keypath).await?;
-                    let pubkey = bitcoin::PublicKey::from_slice(xpub.public_key())
-                        .map_err(|_| Error::Generic)?;
-                    TaprootSpendInfo::KeySpend(bitcoin::TapTweakHash::from_key_and_tweak(
-                        pubkey.into(),
-                        None,
-                    ))
-                }
-                ValidatedScriptConfig::Policy { parsed_policy, .. } => {
-                    // Get the Taproot tweak based on whether we spend using the internal key (key
-                    // path spend) or if we spend using a leaf script. For key path spends, we must
-                    // first tweak the private key to match the Taproot output key. For leaf
-                    // scripts, we do not tweak.
-
-                    parsed_policy
-                        .taproot_spend_info(hal, &mut xpub_cache, &tx_input.keypath)
-                        .await?
-                }
-                _ => return Err(Error::Generic),
-            };
+            let spend_info = get_taproot_spend_info(
+                hal,
+                &mut xpub_cache,
+                script_config_account,
+                &tx_input.keypath,
+            )
+            .await?;
             let sighash = bip341::sighash(&bip341::Args {
                 version: request.version,
                 locktime: request.locktime,
@@ -1240,18 +1329,8 @@ async fn _process(
             });
 
             next_response.next.has_signature = true;
-            next_response.next.signature = crate::keystore::secp256k1_schnorr_sign(
-                hal,
-                &tx_input.keypath,
-                &sighash,
-                if let TaprootSpendInfo::KeySpend(tweak_hash) = &spend_info {
-                    Some(tweak_hash.as_byte_array())
-                } else {
-                    None
-                },
-            )
-            .await?
-            .to_vec();
+            next_response.next.signature =
+                sign_taproot_input(hal, &tx_input.keypath, &sighash, &spend_info).await?;
         } else {
             // Sign all other supported inputs.
 
@@ -1276,43 +1355,16 @@ async fn _process(
                 sighash_flags: SIGHASH_ALL,
             });
 
-            let private_key =
-                crate::keystore::secp256k1_get_private_key(hal, &tx_input.keypath).await?;
-            // Engage in the Anti-Klepto protocol if the host sends a host nonce commitment.
-            let host_nonce: [u8; 32] = match tx_input.host_nonce_commitment {
-                Some(pb::AntiKleptoHostNonceCommitment { ref commitment }) => {
-                    let signer_commitment = crate::secp256k1::secp256k1_nonce_commit(
-                        private_key.as_slice().try_into().unwrap(),
-                        &sighash,
-                        commitment
-                            .as_slice()
-                            .try_into()
-                            .or(Err(Error::InvalidInput))?,
-                    )?;
-                    next_response.next.anti_klepto_signer_commitment =
-                        Some(pb::AntiKleptoSignerCommitment {
-                            commitment: signer_commitment.to_vec(),
-                        });
-
-                    get_antiklepto_host_nonce(input_index, &mut next_response)
-                        .await?
-                        .host_nonce
-                        .as_slice()
-                        .try_into()
-                        .or(Err(Error::InvalidInput))?
-                }
-                // Return signature directly without the anti-klepto protocol, for backwards compatibility.
-                None => [0; 32],
-            };
-
-            let sign_result = crate::secp256k1::secp256k1_sign(
-                private_key.as_slice().try_into().unwrap(),
-                &sighash,
-                Some(&host_nonce),
-            )?;
-            drop(private_key);
             next_response.next.has_signature = true;
-            next_response.next.signature = sign_result.signature.to_vec();
+            next_response.next.signature = sign_ecdsa_input(
+                hal,
+                &tx_input.keypath,
+                &sighash,
+                &tx_input.host_nonce_commitment,
+                input_index,
+                &mut next_response,
+            )
+            .await?;
         }
 
         // Update progress.

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 - `device_info()`: add the installed stage0 version, or `None` if absent
+- Bitcoin: `btc_sign_msg()` signs messages with taproot (P2TR) keys, as BIP-322 simple signatures
+- Bitcoin: add `bip322_message` to `btc_sign()` to sign BIP-322 messages and proofs of funds
 - Bitcoin: fix signing Taproot wallet policies and avoid requiring previous transactions
   when all inputs are Taproot
 - Validate ECDSA signatures and recovery IDs in Anti-Klepto and direct signing flows

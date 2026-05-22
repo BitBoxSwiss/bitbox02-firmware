@@ -491,12 +491,20 @@ async fn validate_input_script_configs<'a>(
     hal: &mut impl crate::hal::Hal,
     coin_params: &super::params::Params,
     script_configs: &'a [pb::BtcScriptConfigWithKeypath],
+    is_bip322: bool,
 ) -> Result<Vec<ValidatedScriptConfigWithKeypath<'a>>, Error> {
     if script_configs.is_empty() {
         return Err(Error::InvalidInput);
     }
 
     let script_configs = validate_script_configs(hal, coin_params, script_configs).await?;
+
+    // BIP-322 is message signing, not spending — the to_sign virtual transaction is just a
+    // sighash carrier and nothing leaves the wallet. Using "Spend from" as the title for the
+    // multisig/policy confirmation in that flow would be misleading; reuse the same
+    // "Sign message" header that process_bip322 puts on the address and message screens so
+    // the whole BIP-322 confirmation sequence reads consistently.
+    let confirm_title = if is_bip322 { "Sign message" } else { "Spend from" };
 
     // If there are multiple script configs, only SimpleType (single sig, no additional inputs)
     // configs are allowed, so e.g. mixing p2wpkh and pw2wpkh-p2sh is okay, but mixing p2wpkh with
@@ -511,7 +519,7 @@ async fn validate_input_script_configs<'a>(
         },
     ] = script_configs.as_slice()
     {
-        super::multisig::confirm(hal, "Spend from", coin_params, name, multisig).await?;
+        super::multisig::confirm(hal, confirm_title, coin_params, name, multisig).await?;
         return Ok(script_configs);
     }
 
@@ -537,7 +545,7 @@ async fn validate_input_script_configs<'a>(
         parsed_policy
             .confirm(
                 hal,
-                "Spend from",
+                confirm_title,
                 coin_params,
                 name,
                 super::policies::Mode::Basic,
@@ -976,7 +984,8 @@ async fn _process(
         return Err(Error::InvalidInput);
     }
     let validated_script_configs =
-        validate_input_script_configs(hal, coin_params, &request.script_configs).await?;
+        validate_input_script_configs(hal, coin_params, &request.script_configs, is_bip322)
+            .await?;
     let validated_output_script_configs =
         validate_script_configs(hal, coin_params, &request.output_script_configs).await?;
 

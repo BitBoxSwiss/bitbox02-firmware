@@ -13,6 +13,7 @@ members = [
     "bitbox-hal",
     "bitbox-lvgl",
     "bitbox-lvgl-sys",
+    "bitbox-mcu-stm32u5",
     "bitbox-noise",
     "bitbox-platform-host",
     "bitbox-proto",

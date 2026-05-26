@@ -191,6 +191,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-mcu-stm32u5"
+version = "0.1.0"
+dependencies = [
+ "stm32u5",
+]
+
+[[package]]
 name = "bitbox-noise"
 version = "0.1.0"
 dependencies = [
@@ -537,6 +544,26 @@ dependencies = [
  "critical-section",
  "embedded-hal",
  "volatile-register",
+]
+
+[[package]]
+name = "cortex-m-rt"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "801d4dec46b34c299ccf6b036717ae0fce602faa4f4fe816d9013b9a7c9f5ba6"
+dependencies = [
+ "cortex-m-rt-macros",
+]
+
+[[package]]
+name = "cortex-m-rt-macros"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e37549a379a9e0e6e576fd208ee60394ccb8be963889eebba3ffe0980364f472"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1325,6 +1352,18 @@ checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest",
  "rand_core",
+]
+
+[[package]]
+name = "stm32u5"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d618b263f62f04405cb1a67976740dd89dfe82eb70f42811dc63ce24b09198f"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "vcell",
 ]
 
 [[package]]

@@ -13,6 +13,7 @@ members = [
     "bitbox-da14531",
     "bitbox-platform-host",
     "bitbox-platform-stm32u5-sys",
+    "bitbox-mcu-stm32u5",
     "bitbox-hal",
     "bitbox-core-utils",
     "bitbox-framed-serial-link",

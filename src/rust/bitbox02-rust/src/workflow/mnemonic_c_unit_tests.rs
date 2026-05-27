@@ -11,6 +11,7 @@ pub async fn show_and_confirm_mnemonic(
     _ui: &mut impl crate::hal::Ui,
     _random: &mut impl crate::hal::Random,
     words: &[&str],
+    _language: crate::hal::memory::Language,
 ) -> Result<(), UserAbort> {
     for word in words.iter() {
         std::println!("{}", word);
@@ -20,7 +21,14 @@ pub async fn show_and_confirm_mnemonic(
     Ok(())
 }
 
-pub async fn get(_ui: &mut impl crate::hal::Ui) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+pub async fn get(ui: &mut impl crate::hal::Ui) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+    get_with_language(ui, crate::hal::memory::Language::English).await
+}
+
+pub async fn get_with_language(
+    _ui: &mut impl crate::hal::Ui,
+    _language: crate::hal::memory::Language,
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
     let words = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
     std::println!("Restored from recovery words below:");
     std::println!("{}", words);

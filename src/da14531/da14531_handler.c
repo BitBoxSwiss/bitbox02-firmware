@@ -186,8 +186,10 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
             pairing_code_int /= 10;
         }
         // util_log("da14531: show/confirm pairing code: %s", pairing_code);
+        char pairing_title[32] = {0};
+        rust_i18n_translate_copy("Pairing code", pairing_title, sizeof(pairing_title));
         const confirm_params_t confirm_params = {
-            .title = "Pairing code",
+            .title = pairing_title,
             .body = pairing_code,
             .font = &font_monogram_16,
         };

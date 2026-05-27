@@ -3,9 +3,12 @@
 use super::Error;
 use super::pb;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use pb::EthCoin;
 
 use crate::hal::Ui;
+
+use alloc::string::ToString;
 
 use util::bip32::HARDENED;
 
@@ -153,18 +156,26 @@ pub async fn get_and_warn_unknown(
             if chain_id == 0 {
                 Err(Error::InvalidInput)
             } else {
+                let title = crate::tr!(hal, "Warning");
+                let body = crate::tr_format!(
+                    hal,
+                    "Unknown network\nwith chain ID:\n{}",
+                    &[&chain_id.to_string()],
+                );
                 hal.ui()
                     .confirm(&ConfirmParams {
-                        title: "Warning",
-                        body: &format!("Unknown network\nwith chain ID:\n{}", chain_id),
+                        title: &title,
+                        body: &body,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
                     .await?;
+                let title = crate::tr!(hal, "Warning");
+                let body = crate::tr!(hal, "Only proceed if\nyou recognize\nthis chain ID.");
                 hal.ui()
                     .confirm(&ConfirmParams {
-                        title: "Warning",
-                        body: "Only proceed if\nyou recognize\nthis chain ID.",
+                        title: &title,
+                        body: &body,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })

@@ -3,8 +3,10 @@
 use crate::general::abort;
 use crate::hal::ui::{CanCancel, ConfirmParams};
 use crate::hal::{Memory, Ui};
+use crate::i18n::I18n as _;
 use crate::workflow::password;
 
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 /// Confirm the entered mnemonic passphrase with the user. Returns true if the user confirmed it,
@@ -18,9 +20,13 @@ async fn confirm_mnemonic_passphrase(
         return Ok(());
     }
 
+    let body = crate::tr!(
+        hal,
+        "You will be asked to\nvisually confirm your\npassphrase now."
+    );
     let params = ConfirmParams {
         title: "",
-        body: "You will be asked to\nvisually confirm your\npassphrase now.",
+        body: &body,
         accept_only: true,
         accept_is_nextarrow: true,
         ..Default::default()
@@ -28,8 +34,9 @@ async fn confirm_mnemonic_passphrase(
 
     hal.ui().confirm(&params).await?;
 
+    let title = crate::tr!(hal, "Confirm");
     let params = ConfirmParams {
-        title: "Confirm",
+        title: &title,
         body: passphrase,
         font: crate::hal::ui::Font::Password11X12,
         scrollable: true,
@@ -73,15 +80,24 @@ async fn maybe_confirm_remaining_unlock_attempts(
     // password is entered. This might be confusing UX if it happened, but it's an extreme edge
     // case, so we purposefully don't deal with this here.
 
-    let body: alloc::string::String = if remaining == 1 {
-        "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong.".into()
+    let body: String = if remaining == 1 {
+        crate::tr!(
+            hal,
+            "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong."
+        )
+        .into_owned()
     } else {
-        format!("You have {}\npassword attempts\nleft.", remaining)
+        crate::tr_format!(
+            hal,
+            "You have {}\npassword attempts\nleft.",
+            &[&remaining.to_string()],
+        )
     };
+    let title = crate::tr!(hal, "WARNING");
 
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "WARNING",
+            title: &title,
             body: &body,
             accept_is_nextarrow: true,
             longtouch: remaining == 1,
@@ -119,13 +135,15 @@ pub async fn unlock_keystore(
     match crate::keystore::unlock(hal, &password).await {
         Ok(seed) => Ok(seed),
         Err(crate::keystore::Error::IncorrectPassword) => {
-            hal.ui().status("Wrong password", false).await;
+            let status = crate::tr!(hal, "Wrong password");
+            hal.ui().status(&status, false).await;
             Err(UnlockError::IncorrectPassword)
         }
         Err(err) => {
-            let msg = format!(
+            let msg = crate::tr_format!(
+                hal,
                 "keystore unlock failed\n{}",
-                crate::keystore::format_error(&err)
+                &[&crate::keystore::format_error(&err)],
             );
             hal.ui().status(&msg, false).await;
             Err(UnlockError::Generic)
@@ -151,9 +169,10 @@ pub async fn unlock_bip39<H: crate::hal::Hal>(
     if hal.memory().is_mnemonic_passphrase_enabled() {
         // Loop until the user confirms.
         loop {
+            let title = crate::tr!(hal, "Optional passphrase");
             mnemonic_passphrase = password::enter(
                 hal,
-                "Optional passphrase",
+                &title,
                 password::PasswordType::Bip39Passphrase,
                 CanCancel::No,
             )
@@ -164,7 +183,8 @@ pub async fn unlock_bip39<H: crate::hal::Hal>(
                 break;
             }
 
-            hal.ui().status("Please try again", false).await;
+            let status = crate::tr!(hal, "Please try again");
+            hal.ui().status(&status, false).await;
         }
     }
 
@@ -223,7 +243,8 @@ pub async fn unlock(hal: &mut impl crate::hal::Hal) -> Result<(), ()> {
 
     // Loop unlock until the password is correct or the device resets.
     loop {
-        if let Ok(seed) = unlock_keystore(hal, "Enter password", CanCancel::No).await {
+        let title = crate::tr!(hal, "Enter password");
+        if let Ok(seed) = unlock_keystore(hal, &title, CanCancel::No).await {
             unlock_bip39(hal, &seed, unlock_animation).await;
             return Ok(());
         }

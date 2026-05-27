@@ -8,6 +8,7 @@
 #include "label.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <ui/fonts/arial_fonts.h>
 #include <ui/ugui/ugui.h>
@@ -80,12 +81,14 @@ component_t* confirm_create(
     confirm->dimension.height = SCREEN_HEIGHT;
 
     if (params->display_size) {
-        char size_label[20];
+        char size_label[24];
+        char size[10] = {0};
+        rust_i18n_translate_copy("Size", size, sizeof(size));
         // Ignore warning, %u works for 32bit but not 64 bit (unit tests). %zu does not work with
         // our compiler.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat"
-        snprintf(size_label, sizeof(size_label), "Size: %uB", params->display_size);
+        snprintf(size_label, sizeof(size_label), "%s: %uB", size, params->display_size);
 #pragma GCC diagnostic pop
         ui_util_add_sub_component(
             confirm, label_create(size_label, params->font, LEFT_BOTTOM, confirm));

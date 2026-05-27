@@ -4,6 +4,7 @@ use super::Error;
 use super::params;
 use super::pb;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 
 use alloc::string::String;
 
@@ -63,20 +64,23 @@ async fn get_name(
     request: &pb::BtcRegisterScriptConfigRequest,
 ) -> Result<String, Error> {
     let name = if request.name.is_empty() {
+        let title = crate::tr!(hal, "Register");
+        let body = crate::tr!(hal, "Please name this\naccount");
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Register",
-                body: "Please name this\naccount",
+                title: &title,
+                body: &body,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
             .await?;
 
+        let title = crate::tr!(hal, "Enter account name");
         let name = hal
             .ui()
             .enter_string(
                 &crate::hal::ui::EnterStringParams {
-                    title: "Enter account name",
+                    title: &title,
                     longtouch: true,
                     ..Default::default()
                 },
@@ -101,7 +105,7 @@ pub async fn process_register_script_config(
     hal: &mut impl crate::hal::Hal,
     request: &pb::BtcRegisterScriptConfigRequest,
 ) -> Result<Response, Error> {
-    let title = "Register";
+    let title = crate::tr!(hal, "Register");
     match request.registration.as_ref() {
         Some(pb::BtcScriptConfigRegistration {
             coin,
@@ -118,7 +122,7 @@ pub async fn process_register_script_config(
             let xpub_type = XPubType::try_from(request.xpub_type)?;
             super::multisig::confirm_extended(
                 hal,
-                title,
+                &title,
                 coin_params,
                 &name,
                 multisig,
@@ -128,7 +132,8 @@ pub async fn process_register_script_config(
             .await?;
             let hash = super::multisig::get_hash(coin, multisig, SortXpubs::Yes, keypath)?;
             hal.memory().multisig_set_by_hash(&hash, &name)?;
-            hal.ui().status("Multisig account\nregistered", true).await;
+            let status = crate::tr!(hal, "Multisig account\nregistered");
+            hal.ui().status(&status, true).await;
             Ok(Response::Success(pb::BtcSuccess {}))
         }
         Some(pb::BtcScriptConfigRegistration {
@@ -146,7 +151,7 @@ pub async fn process_register_script_config(
             parsed
                 .confirm(
                     hal,
-                    title,
+                    &title,
                     coin_params,
                     &name,
                     super::policies::Mode::Advanced,
@@ -154,7 +159,8 @@ pub async fn process_register_script_config(
                 .await?;
             let hash = super::policies::get_hash(coin, policy)?;
             hal.memory().multisig_set_by_hash(&hash, &name)?;
-            hal.ui().status("Policy\nregistered", true).await;
+            let status = crate::tr!(hal, "Policy\nregistered");
+            hal.ui().status(&status, true).await;
             Ok(Response::Success(pb::BtcSuccess {}))
         }
         // Only multisig and policy registration supported for now.

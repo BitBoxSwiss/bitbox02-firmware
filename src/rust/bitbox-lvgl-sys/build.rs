@@ -257,6 +257,7 @@ fn main() -> Result<(), &'static str> {
     }
     lvgl_build.warnings(false);
     lvgl_build.extra_warnings(false);
+    lvgl_build.flag_if_supported("-Wno-psabi");
     lvgl_build.debug(debug);
     lvgl_build.compile("lvgl");
 

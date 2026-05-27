@@ -30,6 +30,11 @@ typedef enum {
     MEMORY_PASSWORD_STRETCH_ALGO_V1,
 } memory_password_stretch_algo_t;
 
+typedef enum {
+    MEMORY_DEVICE_LANGUAGE_EN = 0,
+    MEMORY_DEVICE_LANGUAGE_DE = 1,
+} memory_device_language_t;
+
 typedef struct {
     void (*const random_32_bytes)(uint8_t* buf_out);
 } memory_interface_functions_t;
@@ -76,6 +81,9 @@ USE_RESULT bool memory_set_device_name(const char* name);
 // - "BitBox ABCD" for Bluetooth-enabled BitBoxes, where ABCD are four random uppercase letters.
 //    The name is cached in RAM, so the same random name is returned until reboot.
 void memory_get_device_name(char* name_out);
+
+USE_RESULT bool memory_set_device_language(memory_device_language_t language);
+memory_device_language_t memory_get_device_language(void);
 
 /**
  * Sets the seed's birthdate to a unix timestamp.

@@ -28,6 +28,7 @@ pub mod hid_hww;
 #[cfg(feature = "app-u2f")]
 pub mod hid_u2f;
 pub mod hww;
+pub mod i18n;
 pub mod memory;
 pub mod platform;
 pub mod random;

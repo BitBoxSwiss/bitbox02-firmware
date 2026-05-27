@@ -4,6 +4,7 @@ use super::Error;
 use super::params::Params;
 use super::pb;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 
 use pb::BtcCoin;
 use pb::btc_register_script_config_request::XPubType;
@@ -13,7 +14,7 @@ use crate::bip32;
 
 use crate::hal::{Memory, Ui};
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use sha2::{Digest, Sha256};
@@ -127,15 +128,19 @@ pub async fn confirm(
     name: &str,
     multisig: &Multisig,
 ) -> Result<(), Error> {
+    let body = crate::tr_format!(
+        hal,
+        "{}-of-{}\n{} multisig",
+        &[
+            &multisig.threshold.to_string(),
+            &multisig.xpubs.len().to_string(),
+            params.name,
+        ],
+    );
     hal.ui()
         .confirm(&ConfirmParams {
             title,
-            body: &format!(
-                "{}-of-{}\n{} multisig",
-                multisig.threshold,
-                multisig.xpubs.len(),
-                params.name
-            ),
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -176,17 +181,21 @@ pub async fn confirm_extended(
     let script_type = ScriptType::try_from(multisig.script_type)?;
 
     confirm(hal, title, params, name, multisig).await?;
+    let body = crate::tr_format!(
+        hal,
+        "{}\nat\n{}",
+        &[
+            match ScriptType::try_from(multisig.script_type)? {
+                ScriptType::P2wsh => "p2wsh",
+                ScriptType::P2wshP2sh => "p2wsh-p2sh",
+            },
+            &util::bip32::to_string(keypath),
+        ],
+    );
     hal.ui()
         .confirm(&ConfirmParams {
             title,
-            body: &format!(
-                "{}\nat\n{}",
-                match ScriptType::try_from(multisig.script_type)? {
-                    ScriptType::P2wsh => "p2wsh",
-                    ScriptType::P2wshP2sh => "p2wsh-p2sh",
-                },
-                util::bip32::to_string(keypath)
-            ),
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -214,20 +223,23 @@ pub async fn confirm_extended(
         let xpub_str = bip32::Xpub::from(xpub)
             .serialize_str(output_xpub_type)
             .or(Err(Error::InvalidInput))?;
+        let body = if i == multisig.our_xpub_index as usize {
+            crate::tr_format!(
+                hal,
+                "Cosigner {}/{} (this device): {}",
+                &[&(i + 1).to_string(), &num_cosigners.to_string(), &xpub_str],
+            )
+        } else {
+            crate::tr_format!(
+                hal,
+                "Cosigner {}/{}: {}",
+                &[&(i + 1).to_string(), &num_cosigners.to_string(), &xpub_str],
+            )
+        };
         hal.ui()
             .confirm(&ConfirmParams {
                 title,
-                body: (if i == multisig.our_xpub_index as usize {
-                    format!(
-                        "Cosigner {}/{} (this device): {}",
-                        i + 1,
-                        num_cosigners,
-                        xpub_str
-                    )
-                } else {
-                    format!("Cosigner {}/{}: {}", i + 1, num_cosigners, xpub_str)
-                })
-                .as_str(),
+                body: &body,
                 scrollable: true,
                 longtouch: i == num_cosigners - 1,
                 accept_is_nextarrow: true,

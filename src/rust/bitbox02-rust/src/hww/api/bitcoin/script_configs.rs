@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 
 use super::Error;
 use super::pb;
 use pb::btc_script_config::{Multisig, SimpleType};
 
 use super::policies::ParsedPolicy;
+use crate::hal::memory::Language;
 
 use util::bip32::HARDENED;
 
@@ -32,19 +33,21 @@ pub struct ValidatedScriptConfigWithKeypath<'a> {
 impl ValidatedScriptConfigWithKeypath<'_> {
     /// Get a string representation of the account script config to show to the user when they send
     /// coins to an address belonging to the same keystore.
-    pub fn self_transfer_representation(&self) -> Result<String, Error> {
+    pub fn self_transfer_representation(&self, language: Language) -> Result<String, Error> {
         match self {
             ValidatedScriptConfigWithKeypath {
                 keypath,
                 config: ValidatedScriptConfig::SimpleType(_),
             } => {
                 let keypath_account_element = keypath.get(2).ok_or(Error::Generic)?;
-                Ok(format!(
+                Ok(crate::i18n::format(
+                    language,
                     "This BitBox (account #{})",
-                    keypath_account_element
+                    &[&(keypath_account_element
                         .checked_sub(HARDENED)
                         .ok_or(Error::Generic)?
-                        + 1
+                        + 1)
+                    .to_string()],
                 ))
             }
             ValidatedScriptConfigWithKeypath {
@@ -54,7 +57,7 @@ impl ValidatedScriptConfigWithKeypath<'_> {
             | ValidatedScriptConfigWithKeypath {
                 config: ValidatedScriptConfig::Policy { name, .. },
                 ..
-            } => Ok(format!("This BitBox - {}", name)),
+            } => Ok(crate::i18n::format(language, "This BitBox - {}", &[name])),
         }
     }
 }
@@ -74,7 +77,9 @@ mod tests {
                 config: ValidatedScriptConfig::SimpleType(simple_type),
             };
             assert_eq!(
-                config.self_transfer_representation().unwrap(),
+                config
+                    .self_transfer_representation(Language::English)
+                    .unwrap(),
                 "This BitBox (account #11)"
             )
         }
@@ -100,7 +105,10 @@ mod tests {
         };
 
         assert_eq!(
-            config.self_transfer_representation().unwrap().as_str(),
+            config
+                .self_transfer_representation(Language::English)
+                .unwrap()
+                .as_str(),
             "This BitBox - test multisig account name",
         )
     }
@@ -146,7 +154,10 @@ mod tests {
         };
 
         assert_eq!(
-            config.self_transfer_representation().unwrap().as_str(),
+            config
+                .self_transfer_representation(Language::English)
+                .unwrap()
+                .as_str(),
             "This BitBox - test policy account name",
         )
     }

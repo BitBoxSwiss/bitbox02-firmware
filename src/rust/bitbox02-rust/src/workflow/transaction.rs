@@ -3,6 +3,7 @@
 use crate::hal::Ui;
 use crate::hal::ui::ConfirmParams;
 use crate::hal::ui::UserAbort;
+use crate::i18n::I18n as _;
 
 use alloc::string::String;
 
@@ -23,13 +24,16 @@ pub async fn verify_total_fee_maybe_warn(
     hal.ui().verify_total_fee(total, fee, longtouch).await?;
 
     if let Some(fee_percentage) = fee_percentage {
+        let title = crate::tr!(hal, "High fee");
+        let body = crate::tr_format!(
+            hal,
+            "The fee is {}%\nthe send amount.\nProceed?",
+            &[&format_percentage(fee_percentage)],
+        );
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "High fee",
-                body: &format!(
-                    "The fee is {}%\nthe send amount.\nProceed?",
-                    format_percentage(fee_percentage)
-                ),
+                title: &title,
+                body: &body,
                 longtouch: true,
                 ..Default::default()
             })

@@ -86,7 +86,7 @@ typedef union {
         uint8_t bitmask; // inverse bitmask, BITMASK_* bits
         uint8_t failed_unlock_attempts; // starts at 0xFF (0 failed attempts), counting downwards
         uint8_t password_stretch_algo; // see `memory_password_stretch_algo_t`.
-        uint8_t reserved[1];
+        uint8_t device_language; // see `memory_device_language_t`. 0xFF defaults to English.
         uint8_t noise_static_private_key[32]; // CURVE25519
         uint8_t noise_remote_static_pubkeys[5][NOISE_PUBKEY_SIZE]; // 5 pubkey slots
         uint8_t salt_root[32];
@@ -272,6 +272,32 @@ void memory_get_device_name(char* name_out)
         }
     } else {
         snprintf(name_out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", chunk.fields.device_name);
+    }
+}
+
+bool memory_set_device_language(memory_device_language_t language)
+{
+    if (language != MEMORY_DEVICE_LANGUAGE_EN && language != MEMORY_DEVICE_LANGUAGE_DE) {
+        return false;
+    }
+    chunk_1_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_1, chunk_bytes);
+    chunk.fields.device_language = (uint8_t)language;
+    return _write_chunk(CHUNK_1, chunk.bytes);
+}
+
+memory_device_language_t memory_get_device_language(void)
+{
+    chunk_1_t chunk = {0};
+    CLEANUP_CHUNK(chunk);
+    _read_chunk(CHUNK_1, chunk_bytes);
+    switch (chunk.fields.device_language) {
+    case MEMORY_DEVICE_LANGUAGE_DE:
+        return MEMORY_DEVICE_LANGUAGE_DE;
+    case MEMORY_DEVICE_LANGUAGE_EN:
+    default:
+        return MEMORY_DEVICE_LANGUAGE_EN;
     }
 }
 

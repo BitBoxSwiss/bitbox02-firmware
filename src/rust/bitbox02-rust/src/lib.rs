@@ -17,6 +17,7 @@ pub mod general;
 pub mod hal;
 pub mod hash;
 pub mod hww;
+pub mod i18n;
 pub mod keystore;
 #[cfg(all(
     feature = "firmware",

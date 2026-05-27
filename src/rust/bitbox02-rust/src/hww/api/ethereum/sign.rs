@@ -9,9 +9,9 @@ use super::sighash::DataProducer;
 use super::truncating_hex_preview_byte_cap;
 use crate::hal::ui::ConfirmParams;
 
-use crate::keystore;
-
 use crate::hal::Ui;
+use crate::i18n::I18n as _;
+use crate::keystore;
 use crate::workflow::confirm;
 use crate::workflow::transaction;
 
@@ -189,7 +189,8 @@ async fn verify_payment_request_recipient(
     {
         Ok(()) => Ok(()),
         Err(_) => {
-            hal.ui().status("Invalid\npayment request", false).await;
+            let status = crate::tr!(hal, "Invalid\npayment request");
+            hal.ui().status(&status, false).await;
             Err(Error::InvalidInput)
         }
     }
@@ -304,7 +305,8 @@ async fn prepare_streaming_standard_data(
     let mut producer = super::sighash::ChunkingProducer::from_host(request.data_length())
         .with_preview(display_cap);
     let hash = {
-        let mut progress = hal.ui().progress_create("Loading data...");
+        let title = crate::tr!(hal, "Loading data...");
+        let mut progress = hal.ui().progress_create(&title);
         let mut producer = super::sighash::ProgressProducer::new(&mut producer, &mut progress);
         match request {
             Transaction::Legacy(legacy) => {
@@ -355,9 +357,10 @@ async fn verify_erc20_transaction(
     {
         let contract_address = super::address::from_pubkey_hash(&contract, request.case()?);
         let contract_address_display = super::address::format_display_address(&contract_address);
+        let title = crate::tr!(hal, "Token\ncontract");
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Token\ncontract",
+                title: &title,
                 body: &contract_address_display,
                 scrollable: true,
                 accept_is_nextarrow: true,
@@ -403,7 +406,10 @@ async fn verify_erc20_transaction(
             // ERC20 token: fee has a different unit (ETH), so the total is just the value again.
             (value.clone(), value.clone())
         }
-        None => ("Unknown token".into(), "Unknown amount".into()),
+        None => (
+            crate::tr!(hal, "Unknown token").into_owned(),
+            crate::tr!(hal, "Unknown amount").into_owned(),
+        ),
     };
     hal.ui()
         .verify_recipient(&recipient_address_display, &formatted_value)
@@ -460,26 +466,39 @@ async fn verify_standard_transaction(
 
     let mut prepared_streaming_data = None;
     if !request.data().is_empty() || data_length > 0 {
+        let title = crate::tr!(hal, "Unknown\ncontract");
+        let body = if data_length > 0 {
+            crate::tr!(
+                hal,
+                "You are signing a\ncontract interaction\nwith large data."
+            )
+        } else {
+            crate::tr!(hal, "You will be shown\nthe raw\ntransaction data.")
+        };
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Unknown\ncontract",
-                body: if data_length > 0 {
-                    "You are signing a\ncontract interaction\nwith large data."
-                } else {
-                    "You will be shown\nthe raw\ntransaction data."
-                },
+                title: &title,
+                body: &body,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
             .await?;
+        let title = crate::tr!(hal, "Unknown\ncontract");
+        let body = if data_length > 0 {
+            crate::tr!(
+                hal,
+                "Only proceed if you\nfully understand\nthe risks involved."
+            )
+        } else {
+            crate::tr!(
+                hal,
+                "Only proceed if you\nunderstand exactly\nwhat the data means."
+            )
+        };
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Unknown\ncontract",
-                body: if data_length > 0 {
-                    "Only proceed if you\nfully understand\nthe risks involved."
-                } else {
-                    "Only proceed if you\nunderstand exactly\nwhat the data means."
-                },
+                title: &title,
+                body: &body,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -494,10 +513,11 @@ async fn verify_standard_transaction(
         } else {
             (request.data().len(), hex::encode(request.data()))
         };
+        let title = crate::tr!(hal, "Transaction\ndata");
         confirm::confirm_value(
             hal,
             &ConfirmParams {
-                title: "Transaction\ndata",
+                title: &title,
                 body: &body,
                 scrollable: true,
                 display_size,
@@ -537,9 +557,10 @@ pub async fn _process(
 
     // Show chain confirmation only for known networks
     if super::params::is_known_network(request.coin()?, request.chain_id()) {
+        let body = crate::tr_format!(hal, "Sign transaction on\n\n{}", &[params.name]);
         hal.ui()
             .confirm(&ConfirmParams {
-                body: &format!("Sign transaction on\n\n{}", params.name),
+                body: &body,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -626,7 +647,8 @@ pub async fn _process(
         precomputed_standard_hash =
             verify_standard_transaction(hal, request, &params, payment_request).await?;
     }
-    hal.ui().status("Transaction\nconfirmed", true).await;
+    let status = crate::tr!(hal, "Transaction\nconfirmed");
+    hal.ui().status(&status, true).await;
 
     let hash: [u8; 32] = match precomputed_standard_hash {
         Some(hash) => hash,
@@ -683,7 +705,8 @@ pub async fn process(
 ) -> Result<Response, Error> {
     let result = _process(hal, request).await;
     if let Err(Error::UserAbort) = result {
-        hal.ui().status("Transaction\ncanceled", false).await;
+        let status = crate::tr!(hal, "Transaction\ncanceled");
+        hal.ui().status(&status, false).await;
     }
     result
 }

@@ -679,7 +679,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
     UG_S16 calc_width_line = 0;
     UG_S16 calc_height_line = 0;
     const char* c;
-    const uint8_t max_line = 128;
+    enum { max_line = 128 };
     char line[max_line];
     const char* start = str;
     for (c = str; *c != '\0'; c++) {
@@ -859,33 +859,28 @@ void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, cons
         if (*c == '\n') {
             num_lines++;
         }
-        // Limit num_lines to avoid stack overflows
         if (num_lines > UG_MAX_LINE_ROWS) {
             break;
         }
     }
-    uint8_t current_line = 0;
-    const uint8_t max_line = UG_MAX_LINE_COLS;
-    char lines[num_lines][max_line];
-    const char* start = str;
-    for (c = str; *c != '\0'; c++) {
-        if (*c == '\n' && current_line < UG_MAX_LINE_ROWS) {
-            _copy_slice(
-                lines[current_line], sizeof(lines[current_line]), start, (size_t)(c - start));
-            current_line++;
-            start = c + 1;
-        }
-    }
-    _copy_slice(lines[current_line], sizeof(lines[current_line]), start, (size_t)(c - start));
 
     // calculate the height of each line
     _UG_PutString(0, 0, NULL, &calc_height, "W", 0, 1);
     y = y + (height - ((calc_height + gui->char_v_space) * num_lines)) / 2;
+    char line[UG_MAX_LINE_COLS];
+    const char* start = str;
     for (uint16_t i = 0; i < num_lines; i++) {
+        for (c = start; *c != '\0'; c++) {
+            if (*c == '\n' && i < UG_MAX_LINE_ROWS) {
+                break;
+            }
+        }
+        _copy_slice(line, sizeof(line), start, (size_t)(c - start));
         UG_S16 current_y = y + (i * (calc_height + gui->char_v_space));
-        _UG_PutString(0, 0, &calc_width, NULL, lines[i], 0, 1);
+        _UG_PutString(0, 0, &calc_width, NULL, line, 0, 1);
         UG_S16 pos_x = x + (width - calc_width) / 2;
-        _UG_PutString(pos_x, current_y, NULL, NULL, lines[i], 0, 0);
+        _UG_PutString(pos_x, current_y, NULL, NULL, line, 0, 0);
+        start = *c == '\n' ? c + 1 : c;
     }
 }
 

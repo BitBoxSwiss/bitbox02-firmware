@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::format;
 use alloc::string::String;
 use core::marker::PhantomData;
 use core::time::Duration;
@@ -152,9 +151,10 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     #[inline(always)]
     async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort> {
         if !crate::ui::transaction_amount_fits(from) || !crate::ui::transaction_amount_fits(to) {
-            let from_title = format!("{title} from");
+            let language = crate::memory::get_device_language();
+            let from_title = crate::i18n::format(language, "{} from", &[title]);
             self.review_value(&from_title, from, false).await?;
-            let to_title = format!("{title} to");
+            let to_title = crate::i18n::format(language, "{} to", &[title]);
             return self.review_value(&to_title, to, false).await;
         }
         match crate::ui::confirm_swap(title, from, to).await {
@@ -166,8 +166,10 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     #[inline(always)]
     async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
         if !crate::ui::transaction_amount_fits(amount) {
-            self.review_value("Amount", amount, false).await?;
-            return self.review_value("Recipient", recipient, false).await;
+            let title = crate::i18n::translate_current("Amount");
+            self.review_value(&title, amount, false).await?;
+            let title = crate::i18n::translate_current("Recipient");
+            return self.review_value(&title, recipient, false).await;
         }
         match crate::ui::confirm_transaction_address(amount, recipient).await {
             crate::ui::ConfirmResponse::Approved => Ok(()),
@@ -183,8 +185,10 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
         longtouch: bool,
     ) -> Result<(), UserAbort> {
         if !crate::ui::transaction_amount_fits(total) || !crate::ui::transaction_fee_fits(fee) {
-            self.review_value("Total", total, false).await?;
-            return self.review_value("Fee", fee, longtouch).await;
+            let title = crate::i18n::translate_current("Total");
+            self.review_value(&title, total, false).await?;
+            let title = crate::i18n::translate_current("Fee");
+            return self.review_value(&title, fee, longtouch).await;
         }
         match crate::ui::confirm_transaction_fee(total, fee, longtouch).await {
             crate::ui::ConfirmResponse::Approved => Ok(()),
@@ -280,12 +284,13 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort> {
+        let cancel_confirm_title = crate::i18n::translate_current("Recovery\nwords");
         match crate::ui::menu(crate::ui::MenuParams {
             words,
             title: None,
             select_word: false,
             continue_on_last: true,
-            cancel_confirm_title: Some("Recovery\nwords"),
+            cancel_confirm_title: Some(&cancel_confirm_title),
         })
         .await
         {
@@ -296,12 +301,13 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort> {
+        let cancel_confirm_title = crate::i18n::translate_current("Recovery\nwords");
         match crate::ui::menu(crate::ui::MenuParams {
             words: choices,
             title: Some(title),
             select_word: true,
             continue_on_last: false,
-            cancel_confirm_title: Some("Recovery\nwords"),
+            cancel_confirm_title: Some(&cancel_confirm_title),
         })
         .await
         {

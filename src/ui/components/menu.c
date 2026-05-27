@@ -9,6 +9,7 @@
 #include "right_arrow.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <touch/gestures.h>
 
@@ -96,8 +97,10 @@ static void _update_positions(component_t* menu, int32_t velocity)
 
     if (data->index == data->length - 1 && data->continue_on_last_cb != NULL &&
         data->continue_on_last_button == NULL) {
+        char continue_label[20] = {0};
+        rust_i18n_translate_copy("Continue", continue_label, sizeof(continue_label));
         data->continue_on_last_button =
-            button_create("Continue", top_slider, SCREEN_WIDTH - 23, _continue, menu);
+            button_create(continue_label, top_slider, SCREEN_WIDTH - 23, _continue, menu);
         ui_util_add_sub_component(menu, data->continue_on_last_button);
     }
 }
@@ -268,8 +271,10 @@ component_t* menu_create(
     }
 
     if (select_word_cb != NULL) {
+        char select_label[20] = {0};
+        rust_i18n_translate_copy("Select", select_label, sizeof(select_label));
         ui_util_add_sub_component(
-            menu, button_create("Select", bottom_slider, SCREEN_WIDTH / 2, _select, menu));
+            menu, button_create(select_label, bottom_slider, SCREEN_WIDTH / 2, _select, menu));
     }
 
     if (cancel_cb != NULL) {

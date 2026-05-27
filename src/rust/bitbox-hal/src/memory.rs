@@ -37,6 +37,12 @@ pub enum Platform {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Language {
+    English,
+    German,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
     InvalidInput,
     Full,

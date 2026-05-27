@@ -17,6 +17,7 @@ doctest = false
 bitbox-proto = { path = "../bitbox-proto" }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-core-utils = { path = "../bitbox-core-utils" }
+bitbox-i18n = { path = "../bitbox-i18n" }
 bitbox-da14531 = { path = "../bitbox-da14531" }
 bitbox02 = { path = "../bitbox02" }
 bitbox-platform-host = { path = "../bitbox-platform-host", optional = true }

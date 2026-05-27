@@ -36,6 +36,8 @@ message DeviceInfoResponse {
   string password_stretching_algo = 8;
   // Marketing version of the installed stage1 bootloader. Not present on legacy bootloaders.
   optional string bootloader_version = 9;
+  // Current UI language code, e.g. "en" or "de". Empty on firmware without language support.
+  string language = 10;
 }
 
 message InsertRemoveSDCardRequest {

@@ -4,6 +4,7 @@ use super::Error;
 use super::params::Params;
 use crate::hal::Ui;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use util::bip32::HARDENED;
 
 const ACCOUNT_MAX: u32 = 99; // 100 accounts
@@ -27,9 +28,10 @@ pub async fn warn_unusual_keypath(
         return Err(Error::InvalidInput);
     }
     if keypath[1] != params.bip44_coin {
-        let body = format!(
+        let body = crate::tr_format!(
+            hal,
             "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
-            util::bip32::to_string(keypath)
+            &[&util::bip32::to_string(keypath)],
         );
         return Ok(hal
             .ui()

@@ -2,6 +2,7 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::{ConfirmParams, UserAbort};
+use crate::i18n::I18n as _;
 
 pub(crate) use crate::hal::ui::MAX_CONFIRM_BODY_SIZE;
 
@@ -15,10 +16,12 @@ pub(crate) async fn confirm_value(
     params: &ConfirmParams<'_>,
 ) -> Result<(), UserAbort> {
     if params.body.len() > MAX_CONFIRM_BODY_SIZE {
+        let title = crate::tr!(hal, "Warning");
+        let body = hal.tr(TRUNCATION_WARNING_BODY);
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Warning",
-                body: TRUNCATION_WARNING_BODY,
+                title: &title,
+                body: &body,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })

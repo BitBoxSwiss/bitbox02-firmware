@@ -5,12 +5,13 @@
 extern crate alloc;
 
 use crate::HalImpl;
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use bitbox02_rust::async_usb::{on_next_request, spawn, waiting_for_next_request};
 
 async fn process_packet_with_hal(usb_in: Vec<u8>) -> Vec<u8> {
     let mut hal = HalImpl::new();
-    bitbox02_rust::hww::process_packet(&mut hal, usb_in).await
+    Box::pin(bitbox02_rust::hww::process_packet(&mut hal, usb_in)).await
 }
 
 #[unsafe(no_mangle)]

@@ -3,6 +3,7 @@
 use super::Error;
 use super::pb;
 
+use crate::i18n::I18n as _;
 use crate::keystore;
 
 use crate::workflow::verify_message;
@@ -39,7 +40,9 @@ pub async fn process(
     // abort errors.
     super::pubrequest::process(hal, &pub_request).await?;
 
-    verify_message::verify(hal, "Sign message", "Sign", &request.msg, true).await?;
+    let title = crate::tr!(hal, "Sign message");
+    let accept = crate::tr!(hal, "Sign");
+    verify_message::verify(hal, &title, &accept, &request.msg, true).await?;
 
     // Construct message to be signed. There is no standard for this. We match what MyEtherWallet,
     // Trezor, etc. do, e.g.:

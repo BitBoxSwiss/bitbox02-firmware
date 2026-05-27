@@ -20,6 +20,7 @@ members = [
     "bitbox-executor",
     "bitbox-framed-serial-link",
     "bitbox-hal",
+    "bitbox-i18n",
     "bitbox-lvgl",
     "bitbox-lvgl-sys",
     "bitbox-mcu-stm32u5",

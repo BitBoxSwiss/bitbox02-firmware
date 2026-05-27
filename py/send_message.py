@@ -318,6 +318,21 @@ class SendMessage:
             info = self._device.device_info()
             print(f"New device name: {info['name']}")
 
+    def _change_language_workflow(self) -> None:
+        choice = ask_user(
+            (
+                ("English", lambda: self._device.set_device_language("en")),
+                ("German", lambda: self._device.set_device_language("de")),
+            )
+        )
+        if callable(choice):
+            try:
+                choice()
+            except UserAbortException:
+                eprint("Aborted by user")
+            else:
+                print("Device language changed.")
+
     def _setup_workflow(self) -> None:
         """TODO: Document"""
         self._change_name_workflow()
@@ -1871,6 +1886,7 @@ class SendMessage:
             ("Restore from backup", self._restore_backup_workflow),
             ("Restore from mnemonic", self._restore_from_mnemonic),
             ("List device info", self._list_device_info),
+            ("Change device language", self._change_language_workflow),
             ("Reboot into bootloader", self._reboot),
             ("Check if SD card inserted", self._check_sd_presence),
             ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
@@ -1888,6 +1904,7 @@ class SendMessage:
         choices = (
             ("List device info", self._list_device_info),
             ("Change device name", self._change_name_workflow),
+            ("Change device language", self._change_language_workflow),
             ("Get root fingerprint", self._get_root_fingerprint),
             ("Retrieve zpub of first account", self._display_zpub),
             ("Retrieve multiple xpubs", self._btc_xpubs),

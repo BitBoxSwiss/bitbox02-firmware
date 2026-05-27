@@ -14,6 +14,7 @@ use super::truncating_hex_preview_byte_cap;
 
 use crate::hal::Ui;
 use crate::hal::ui::{ConfirmParams, Font};
+use crate::i18n::I18n as _;
 use crate::keystore;
 use crate::workflow::confirm;
 
@@ -389,9 +390,17 @@ fn confirm_title(root_object: RootObject) -> &'static str {
     }
 }
 
-fn format_display_line_prefix(display_path: &str, line_num: usize, num_lines: usize) -> String {
+fn format_display_line_prefix(
+    display_path: &str,
+    line_num: usize,
+    num_lines: usize,
+    line_suffix: Option<&str>,
+) -> String {
     if num_lines > 1 {
-        format!("{display_path}, line {}/{}", line_num + 1, num_lines)
+        match line_suffix {
+            Some(line_suffix) => format!("{display_path}{line_suffix}"),
+            None => format!("{display_path}, line {}/{}", line_num + 1, num_lines),
+        }
     } else {
         display_path.to_string()
     }
@@ -402,10 +411,11 @@ fn format_display_line_body(
     line_num: usize,
     num_lines: usize,
     line: &str,
+    line_suffix: Option<&str>,
 ) -> String {
     format!(
         "{}: {}",
-        format_display_line_prefix(display_path, line_num, num_lines),
+        format_display_line_prefix(display_path, line_num, num_lines, line_suffix),
         line
     )
 }
@@ -464,14 +474,19 @@ async fn encode_member<U: sha3::digest::Update>(
 
             display_size = req.data_length as usize;
             let display_cap = truncating_hex_preview_byte_cap(
-                format!("{}: 0x", format_display_line_prefix(&display_path, 0, 1)).len(),
+                format!(
+                    "{}: 0x",
+                    format_display_line_prefix(&display_path, 0, 1, None)
+                )
+                .len(),
                 display_size,
             );
             let mut producer = super::sighash::ChunkingProducer::from_host(req.data_length)
                 .with_preview(display_cap);
             let mut keccak = sha3::Keccak256::new();
             {
-                let mut progress = hal.ui().progress_create("Loading data...");
+                let title = crate::tr!(hal, "Loading data...");
+                let mut progress = hal.ui().progress_create(&title);
                 let mut producer =
                     super::sighash::ProgressProducer::new(&mut producer, &mut progress);
                 while let Some(chunk) = producer.next().await? {
@@ -494,15 +509,29 @@ async fn encode_member<U: sha3::digest::Update>(
         // Display value, splitting multi-line strings into separate screens.
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
-            let body = format_display_line_body(&display_path, i, lines.len(), line);
+            let line_suffix = (lines.len() > 1).then(|| {
+                crate::tr_format!(
+                    hal,
+                    ", line {}/{}",
+                    &[&(i + 1).to_string(), &lines.len().to_string()],
+                )
+            });
+            let body = format_display_line_body(
+                &display_path,
+                i,
+                lines.len(),
+                line,
+                line_suffix.as_deref(),
+            );
+            let title = format!(
+                "{}{}",
+                hal.tr(confirm_title(context.root_object)),
+                context.title_suffix.as_deref().unwrap_or("")
+            );
             confirm::confirm_value(
                 hal,
                 &ConfirmParams {
-                    title: &format!(
-                        "{}{}",
-                        confirm_title(context.root_object),
-                        context.title_suffix.as_deref().unwrap_or("")
-                    ),
+                    title: &title,
                     body: &body,
                     scrollable: true,
                     display_size,
@@ -536,23 +565,22 @@ async fn hash_array(
 
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
+    let title = format!(
+        "{}{}",
+        hal.tr(confirm_title(context.root_object)),
+        context.title_suffix.as_deref().unwrap_or("")
+    );
+    let list_description = if array_size == 0 {
+        crate::tr!(hal, "(empty list)").into_owned()
+    } else {
+        crate::tr_format!(hal, "list with {} elements", &[&array_size.to_string()])
+    };
+    let body = format!("{}: {}", context.formatted_path.join("."), list_description);
     confirm::confirm_value(
         hal,
         &ConfirmParams {
-            title: &format!(
-                "{}{}",
-                confirm_title(context.root_object),
-                context.title_suffix.as_deref().unwrap_or("")
-            ),
-            body: &format!(
-                "{}: {}",
-                context.formatted_path.join("."),
-                if array_size == 0 {
-                    "(empty list)".into()
-                } else {
-                    format!("list with {} elements", array_size)
-                }
-            ),
+            title: &title,
+            body: &body,
             scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
@@ -718,10 +746,15 @@ pub async fn process(
 
     let cached_chain_id = validate_chain_id(request).await?;
     if cached_chain_id.is_none() {
+        let title = crate::tr!(hal, "Warning");
+        let body = crate::tr!(
+            hal,
+            "Typed data has no chain ID. Message is valid for every chain."
+        );
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Warning",
-                body: "Typed data has no chain ID. Message is valid for every chain.",
+                title: &title,
+                body: &body,
                 scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
@@ -749,10 +782,11 @@ pub async fn process(
     )
     .await?;
 
+    let title = crate::tr!(hal, "Message type");
     confirm::confirm_value(
         hal,
         &ConfirmParams {
-            title: "Message type",
+            title: &title,
             body: &request.primary_type,
             scrollable: true,
             accept_is_nextarrow: true,
@@ -769,9 +803,10 @@ pub async fn process(
     )
     .await?;
 
+    let body = crate::tr!(hal, "Sign data?");
     hal.ui()
         .confirm(&ConfirmParams {
-            body: "Sign data?",
+            body: &body,
             longtouch: true,
             ..Default::default()
         })
@@ -1493,6 +1528,7 @@ mod tests {
             0,
             1,
             &format!("0x{}", hex::encode(vec![0u8; exact_fit])),
+            None,
         );
         assert_eq!(exact_fit_body.len(), MAX_CONFIRM_BODY_SIZE);
 
@@ -1503,6 +1539,7 @@ mod tests {
             0,
             1,
             &format!("0x{}", hex::encode(vec![0u8; truncated])),
+            None,
         );
         assert!(truncated_body.len() > MAX_CONFIRM_BODY_SIZE);
     }

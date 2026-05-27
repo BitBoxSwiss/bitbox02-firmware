@@ -16,6 +16,7 @@ bitbox-noise = { path = "../bitbox-noise" }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }
+bitbox-i18n = { path = "../bitbox-i18n" }
 bitbox-usb-report-queue = { path = "../bitbox-usb-report-queue" }
 util = {path = "../util"}
 zeroize = { workspace = true }

@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x62itbox02_system.proto\x12\x14shiftcrypto.bitbox02\"\x14\n\x12\x43heckSDCardRequest\"\'\n\x13\x43heckSDCardResponse\x12\x10\n\x08inserted\x18\x01 \x01(\x08\"\x13\n\x11\x44\x65viceInfoRequest\"\xb2\x03\n\x12\x44\x65viceInfoResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0binitialized\x18\x02 \x01(\x08\x12\x0f\n\x07version\x18\x03 \x01(\t\x12#\n\x1bmnemonic_passphrase_enabled\x18\x04 \x01(\x08\x12&\n\x1emonotonic_increments_remaining\x18\x05 \x01(\r\x12\x18\n\x10securechip_model\x18\x06 \x01(\t\x12J\n\tbluetooth\x18\x07 \x01(\x0b\x32\x32.shiftcrypto.bitbox02.DeviceInfoResponse.BluetoothH\x00\x88\x01\x01\x12 \n\x18password_stretching_algo\x18\x08 \x01(\t\x12\x1f\n\x12\x62ootloader_version\x18\t \x01(\tH\x01\x88\x01\x01\x1aM\n\tBluetooth\x12\x15\n\rfirmware_hash\x18\x01 \x01(\x0c\x12\x18\n\x10\x66irmware_version\x18\x02 \x01(\t\x12\x0f\n\x07\x65nabled\x18\x03 \x01(\x08\x42\x0c\n\n_bluetoothB\x15\n\x13_bootloader_version\"\x9b\x01\n\x19InsertRemoveSDCardRequest\x12L\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32<.shiftcrypto.bitbox02.InsertRemoveSDCardRequest.SDCardAction\"0\n\x0cSDCardAction\x12\x0f\n\x0bREMOVE_CARD\x10\x00\x12\x0f\n\x0bINSERT_CARD\x10\x01\"\x0e\n\x0cResetRequest\",\n\x18SetDeviceLanguageRequest\x12\x10\n\x08language\x18\x01 \x01(\t\"$\n\x14SetDeviceNameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"%\n\x12SetPasswordRequest\x12\x0f\n\x07\x65ntropy\x18\x01 \x01(\x0c\"\x17\n\x15\x43hangePasswordRequestb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x62itbox02_system.proto\x12\x14shiftcrypto.bitbox02\"\x14\n\x12\x43heckSDCardRequest\"\'\n\x13\x43heckSDCardResponse\x12\x10\n\x08inserted\x18\x01 \x01(\x08\"\x13\n\x11\x44\x65viceInfoRequest\"\xe1\x03\n\x12\x44\x65viceInfoResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0binitialized\x18\x02 \x01(\x08\x12\x0f\n\x07version\x18\x03 \x01(\t\x12#\n\x1bmnemonic_passphrase_enabled\x18\x04 \x01(\x08\x12&\n\x1emonotonic_increments_remaining\x18\x05 \x01(\r\x12\x18\n\x10securechip_model\x18\x06 \x01(\t\x12J\n\tbluetooth\x18\x07 \x01(\x0b\x32\x32.shiftcrypto.bitbox02.DeviceInfoResponse.BluetoothH\x00\x88\x01\x01\x12 \n\x18password_stretching_algo\x18\x08 \x01(\t\x12\x1f\n\x12\x62ootloader_version\x18\t \x01(\tH\x01\x88\x01\x01\x12\x10\n\x08language\x18\n \x01(\t\x12\x1b\n\x13supported_languages\x18\x0b \x03(\t\x1aM\n\tBluetooth\x12\x15\n\rfirmware_hash\x18\x01 \x01(\x0c\x12\x18\n\x10\x66irmware_version\x18\x02 \x01(\t\x12\x0f\n\x07\x65nabled\x18\x03 \x01(\x08\x42\x0c\n\n_bluetoothB\x15\n\x13_bootloader_version\"\x9b\x01\n\x19InsertRemoveSDCardRequest\x12L\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32<.shiftcrypto.bitbox02.InsertRemoveSDCardRequest.SDCardAction\"0\n\x0cSDCardAction\x12\x0f\n\x0bREMOVE_CARD\x10\x00\x12\x0f\n\x0bINSERT_CARD\x10\x01\"\x0e\n\x0cResetRequest\",\n\x18SetDeviceLanguageRequest\x12\x10\n\x08language\x18\x01 \x01(\t\"$\n\x14SetDeviceNameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"%\n\x12SetPasswordRequest\x12\x0f\n\x07\x65ntropy\x18\x01 \x01(\x0c\"\x17\n\x15\x43hangePasswordRequestb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'bitbox02_system_pb2', globals())
@@ -27,21 +27,21 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _DEVICEINFOREQUEST._serialized_start=110
   _DEVICEINFOREQUEST._serialized_end=129
   _DEVICEINFORESPONSE._serialized_start=132
-  _DEVICEINFORESPONSE._serialized_end=566
-  _DEVICEINFORESPONSE_BLUETOOTH._serialized_start=452
-  _DEVICEINFORESPONSE_BLUETOOTH._serialized_end=529
-  _INSERTREMOVESDCARDREQUEST._serialized_start=569
-  _INSERTREMOVESDCARDREQUEST._serialized_end=724
-  _INSERTREMOVESDCARDREQUEST_SDCARDACTION._serialized_start=676
-  _INSERTREMOVESDCARDREQUEST_SDCARDACTION._serialized_end=724
-  _RESETREQUEST._serialized_start=726
-  _RESETREQUEST._serialized_end=740
-  _SETDEVICELANGUAGEREQUEST._serialized_start=742
-  _SETDEVICELANGUAGEREQUEST._serialized_end=786
-  _SETDEVICENAMEREQUEST._serialized_start=788
-  _SETDEVICENAMEREQUEST._serialized_end=824
-  _SETPASSWORDREQUEST._serialized_start=826
-  _SETPASSWORDREQUEST._serialized_end=863
-  _CHANGEPASSWORDREQUEST._serialized_start=865
-  _CHANGEPASSWORDREQUEST._serialized_end=888
+  _DEVICEINFORESPONSE._serialized_end=613
+  _DEVICEINFORESPONSE_BLUETOOTH._serialized_start=499
+  _DEVICEINFORESPONSE_BLUETOOTH._serialized_end=576
+  _INSERTREMOVESDCARDREQUEST._serialized_start=616
+  _INSERTREMOVESDCARDREQUEST._serialized_end=771
+  _INSERTREMOVESDCARDREQUEST_SDCARDACTION._serialized_start=723
+  _INSERTREMOVESDCARDREQUEST_SDCARDACTION._serialized_end=771
+  _RESETREQUEST._serialized_start=773
+  _RESETREQUEST._serialized_end=787
+  _SETDEVICELANGUAGEREQUEST._serialized_start=789
+  _SETDEVICELANGUAGEREQUEST._serialized_end=833
+  _SETDEVICENAMEREQUEST._serialized_start=835
+  _SETDEVICENAMEREQUEST._serialized_end=871
+  _SETPASSWORDREQUEST._serialized_start=873
+  _SETPASSWORDREQUEST._serialized_end=910
+  _CHANGEPASSWORDREQUEST._serialized_start=912
+  _CHANGEPASSWORDREQUEST._serialized_end=935
 # @@protoc_insertion_point(module_scope)

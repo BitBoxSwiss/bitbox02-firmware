@@ -119,6 +119,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_supported_languages() {
+        for (index, &code) in SUPPORTED_LANGUAGES.iter().enumerate() {
+            assert!(!SUPPORTED_LANGUAGES[..index].contains(&code));
+            assert_eq!(language_code(language_from_code(code).unwrap()), code);
+        }
+    }
+
+    #[test]
     fn test_language_from_code() {
         assert_eq!(language_from_code("en"), Some(Language::English));
         assert_eq!(language_from_code("EN-us"), Some(Language::English));

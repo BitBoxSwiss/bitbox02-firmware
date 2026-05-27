@@ -2,6 +2,7 @@
 
 use super::Error;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use crate::pb;
 
 use pb::response::Response;
@@ -9,9 +10,11 @@ use pb::response::Response;
 use crate::hal::Ui;
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
+    let title = crate::tr!(hal, "RESET");
+    let body = crate::tr!(hal, "Proceed to\nfactory reset?");
     let params = ConfirmParams {
-        title: "RESET",
-        body: "Proceed to\nfactory reset?",
+        title: &title,
+        body: &body,
         longtouch: true,
         ..Default::default()
     };

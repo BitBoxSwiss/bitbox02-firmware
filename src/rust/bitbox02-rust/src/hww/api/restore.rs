@@ -2,6 +2,7 @@
 
 use super::Error;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use crate::pb;
 
 use pb::response::Response;
@@ -16,9 +17,10 @@ pub async fn from_file(
     request: &pb::RestoreBackupRequest,
 ) -> Result<Response, Error> {
     // This is a separate screen because 'Restore backup?' does not fit in the title field.
+    let body = crate::tr!(hal, "Restore backup?");
     hal.ui()
         .confirm(&ConfirmParams {
-            body: "Restore backup?",
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -27,14 +29,16 @@ pub async fn from_file(
     let (data, metadata) = match crate::backup::load(hal, &request.id).await {
         Ok(d) => d,
         Err(_) => {
-            hal.ui().status("Could not\nrestore backup", false).await;
+            let status = crate::tr!(hal, "Could not\nrestore backup");
+            hal.ui().status(&status, false).await;
             return Err(Error::Generic);
         }
     };
 
+    let body = crate::tr_format!(hal, "Name: {}. ID: {}", &[&metadata.name, &request.id]);
     hal.ui()
         .confirm(&ConfirmParams {
-            body: &format!("Name: {}. ID: {}", &metadata.name, &request.id),
+            body: &body,
             scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
@@ -43,11 +47,12 @@ pub async fn from_file(
 
     #[cfg(feature = "app-u2f")]
     {
-        let datetime_string =
-            util::datetime::format_datetime(request.timestamp, request.timezone_offset, false)
-                .map_err(|_| Error::InvalidInput)?;
+        let datetime_string = hal
+            .tr_datetime(request.timestamp, request.timezone_offset, false)
+            .map_err(|_| Error::InvalidInput)?;
+        let title = crate::tr!(hal, "Is now?");
         let params = ConfirmParams {
-            title: "Is now?",
+            title: &title,
             body: &datetime_string,
             accept_is_nextarrow: true,
             ..Default::default()
@@ -60,15 +65,10 @@ pub async fn from_file(
     let seed = data.get_seed();
     if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, seed, &password).await {
         drop(unlock_animation);
-        hal.ui()
-            .status(
-                &format!(
-                    "Could not\nrestore backup\n{}",
-                    crate::keystore::format_error(&err)
-                ),
-                false,
-            )
-            .await;
+        let mut status = crate::tr!(hal, "Could not\nrestore backup").into_owned();
+        status.push('\n');
+        status.push_str(&crate::keystore::format_error(&err));
+        hal.ui().status(&status, false).await;
         return Err(Error::Generic);
     }
 
@@ -101,11 +101,13 @@ pub async fn from_mnemonic(
 ) -> Result<Response, Error> {
     #[cfg(feature = "app-u2f")]
     {
-        let datetime_string = util::datetime::format_datetime(timestamp, timezone_offset, false)
+        let datetime_string = hal
+            .tr_datetime(timestamp, timezone_offset, false)
             .map_err(|_| Error::InvalidInput)?;
+        let title = crate::tr!(hal, "Is now?");
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Is now?",
+                title: &title,
                 body: &datetime_string,
                 accept_is_nextarrow: true,
                 ..Default::default()
@@ -113,25 +115,29 @@ pub async fn from_mnemonic(
             .await?;
     }
 
-    let mnemonic = crate::workflow::mnemonic::get(hal.ui()).await?;
+    let language = hal.memory().get_device_language();
+    let mnemonic = crate::workflow::mnemonic::get_with_language(hal.ui(), language).await?;
     let seed = match crate::bip39::mnemonic_to_seed(&mnemonic) {
         Ok(seed) => seed,
         Err(()) => {
-            hal.ui().status("Recovery words\ninvalid", false).await;
+            let status = crate::tr!(hal, "Recovery words\ninvalid");
+            hal.ui().status(&status, false).await;
             return Err(Error::Generic);
         }
     };
-    hal.ui().status("Recovery words\nvalid", true).await;
+    let status = crate::tr!(hal, "Recovery words\nvalid");
+    hal.ui().status(&status, true).await;
 
     // If entering password fails (repeat password does not match the first), we don't want to abort
     // the process immediately. We break out only if the user confirms.
     let password = loop {
         match password::enter_twice(hal).await {
             Err(password::EnterTwiceError::DoNotMatch) => {
+                let body = crate::tr!(hal, "Passwords\ndo not match.\nTry again?");
                 hal.ui()
                     .confirm(&ConfirmParams {
                         title: "",
-                        body: "Passwords\ndo not match.\nTry again?",
+                        body: &body,
                         ..Default::default()
                     })
                     .await?;
@@ -144,15 +150,10 @@ pub async fn from_mnemonic(
 
     if let Err(err) = crate::keystore::encrypt_and_store_seed(hal, &seed, &password).await {
         drop(unlock_animation);
-        hal.ui()
-            .status(
-                &format!(
-                    "Could not\nrestore backup\n{}",
-                    crate::keystore::format_error(&err)
-                ),
-                false,
-            )
-            .await;
+        let mut status = crate::tr!(hal, "Could not\nrestore backup").into_owned();
+        status.push('\n');
+        status.push_str(&crate::keystore::format_error(&err));
+        hal.ui().status(&status, false).await;
         return Err(Error::Generic);
     };
 

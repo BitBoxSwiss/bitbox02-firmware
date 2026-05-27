@@ -2,6 +2,7 @@
 
 use super::Error;
 use crate::hal::ui::{CanCancel, ConfirmParams};
+use crate::i18n::I18n as _;
 use crate::pb;
 
 use pb::response::Response;
@@ -12,24 +13,25 @@ use crate::workflow::{password, unlock};
 
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     // Process confirmation and instruction for user
+    let body = crate::tr!(hal, "Proceed to\nchange password?");
     hal.ui()
         .confirm(&ConfirmParams {
             title: "",
-            body: "Proceed to\nchange password?",
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
         .await?;
     // Unlock with old password
-    let seed = unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?;
+    let title = crate::tr!(hal, "Unlock device");
+    let seed = unlock::unlock_keystore(hal, &title, CanCancel::Yes).await?;
     // Enter and confirm new password
     let new_password = password::enter_twice(hal).await?;
 
     // Re-encrypt seed with new password
     if let Err(err) = keystore::re_encrypt_seed(hal, &seed, &new_password).await {
-        hal.ui()
-            .status(&format!("Error\n{}", keystore::format_error(&err)), false)
-            .await;
+        let status = crate::tr_format!(hal, "Error\n{}", &[&keystore::format_error(&err)]);
+        hal.ui().status(&status, false).await;
         return Err(Error::Generic);
     }
 

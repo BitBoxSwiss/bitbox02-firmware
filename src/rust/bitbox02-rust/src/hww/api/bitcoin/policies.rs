@@ -4,11 +4,12 @@ use super::Error;
 use super::params::Params;
 use super::pb;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use pb::BtcCoin;
 
 use pb::btc_script_config::Policy;
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use core::str::FromStr;
@@ -386,18 +387,24 @@ impl ParsedPolicy<'_> {
         mode: Mode,
     ) -> Result<(), Error> {
         let policy = self.policy;
+        let body = crate::tr_format!(
+            hal,
+            "{}\npolicy with\n{} keys",
+            &[params.name, &policy.keys.len().to_string()],
+        );
         hal.ui()
             .confirm(&ConfirmParams {
                 title,
-                body: &format!("{}\npolicy with\n{} keys", params.name, policy.keys.len(),),
+                body: &body,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
             .await?;
 
+        let name_title = crate::tr!(hal, "Name");
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Name",
+                title: &name_title,
                 body: name,
                 scrollable: true,
                 accept_is_nextarrow: true,
@@ -406,10 +413,11 @@ impl ParsedPolicy<'_> {
             .await?;
 
         if matches!(mode, Mode::Basic) {
+            let body = crate::tr!(hal, "Show policy\ndetails?");
             if let Err(crate::hal::ui::UserAbort) = hal
                 .ui()
                 .confirm(&ConfirmParams {
-                    body: "Show policy\ndetails?",
+                    body: &body,
                     accept_is_nextarrow: true,
                     ..Default::default()
                 })
@@ -419,9 +427,10 @@ impl ParsedPolicy<'_> {
             }
         }
 
+        let policy_title = crate::tr!(hal, "Policy");
         hal.ui()
             .confirm(&ConfirmParams {
-                title: "Policy",
+                title: &policy_title,
                 body: &policy.policy,
                 scrollable: true,
                 accept_is_nextarrow: true,
@@ -463,13 +472,18 @@ impl ParsedPolicy<'_> {
                 _ => return Err(Error::InvalidInput),
             };
             if self.is_our_key[i] {
-                key_str = format!("This device: {}", key_str)
+                key_str = crate::tr_format!(hal, "This device: {}", &[&key_str])
             } else if Some(i) == taproot_unspendable_internal_key_index {
-                key_str = format!("Provably unspendable: {}", key_str)
+                key_str = crate::tr_format!(hal, "Provably unspendable: {}", &[&key_str])
             }
+            let key_title = crate::tr_format!(
+                hal,
+                "Key {}/{}",
+                &[&(i + 1).to_string(), &num_keys.to_string()]
+            );
             hal.ui()
                 .confirm(&ConfirmParams {
-                    title: &format!("Key {}/{}", i + 1, num_keys),
+                    title: &key_title,
                     body: key_str.as_str(),
                     scrollable: true,
                     longtouch: i == num_keys - 1 && matches!(mode, Mode::Advanced),

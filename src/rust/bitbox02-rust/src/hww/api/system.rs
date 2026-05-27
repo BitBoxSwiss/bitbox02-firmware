@@ -2,6 +2,7 @@
 
 use super::Error;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use crate::pb;
 
 use pb::reboot_request::Purpose;
@@ -13,16 +14,17 @@ pub async fn reboot_to_bootloader(
     hal: &mut impl crate::hal::Hal,
     &pb::RebootRequest { purpose }: &pb::RebootRequest,
 ) -> Result<Response, Error> {
+    let body = match Purpose::try_from(purpose) {
+        Ok(Purpose::Upgrade) => crate::tr!(hal, "Proceed to upgrade?"),
+        Ok(Purpose::Settings) => crate::tr!(hal, "Go to\nstartup settings?"),
+        // No error, if new client library sends a purpose that we don't understand,
+        // we reboot anyway.
+        Err(_) => crate::tr!(hal, "Reboot?"),
+    };
     hal.ui()
         .confirm(&ConfirmParams {
             title: "",
-            body: match Purpose::try_from(purpose) {
-                Ok(Purpose::Upgrade) => "Proceed to upgrade?",
-                Ok(Purpose::Settings) => "Go to\nstartup settings?",
-                // No error, if new client library sends a purpose that we don't understand,
-                // we reboot anyway.
-                Err(_) => "Reboot?",
-            },
+            body: &body,
             ..Default::default()
         })
         .await?;

@@ -5,8 +5,8 @@ use alloc::vec::Vec;
 
 use bitbox_hal::Memory;
 use bitbox_hal::memory::{
-    BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
-    SecurechipType,
+    BleFirmwareSlot, BleMetadata, Error, Language, OptigaConfigVersion, PasswordStretchAlgo,
+    Platform, SecurechipType,
 };
 
 pub struct BitBox02Memory;
@@ -165,6 +165,14 @@ impl Memory for BitBox02Memory {
 
     fn set_device_name(&mut self, name: &str) -> Result<(), Error> {
         crate::memory::set_device_name(name).map_err(to_hal_error)
+    }
+
+    fn get_device_language(&mut self) -> Language {
+        crate::memory::get_device_language()
+    }
+
+    fn set_device_language(&mut self, language: Language) -> Result<(), Error> {
+        crate::memory::set_device_language(language).map_err(to_hal_error)
     }
 
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool {

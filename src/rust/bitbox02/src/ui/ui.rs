@@ -481,11 +481,12 @@ pub async fn menu(params: MenuParams<'_>) -> MenuResponse {
             MenuResponse::Cancel => match cancel_confirm_title {
                 None => return MenuResponse::Cancel,
                 Some(title) => {
+                    let body = crate::i18n::translate_current("Do you really\nwant to cancel?");
                     // `ConfirmResponse::Cancelled` means _do not cancel_,
                     // stay in the same menu component.
                     match confirm(&ConfirmParams {
                         title,
-                        body: "Do you really\nwant to cancel?",
+                        body: &body,
                         ..Default::default()
                     })
                     .await

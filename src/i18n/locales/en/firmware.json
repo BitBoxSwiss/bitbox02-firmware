@@ -1,0 +1,327 @@
+{
+  "cancel": {
+    "confirmCancel": "Do you really\nwant to cancel?"
+  },
+  "confirm": {
+    "size": "Size"
+  },
+  "hww": {
+    "backup": {
+      "check": {
+        "id": "ID?",
+        "invalid": "Backup missing\nor invalid",
+        "name": "Name?",
+        "valid": "Backup valid"
+      },
+      "create": {
+        "fail": "Backup not created\nPlease contact\nsupport ({})",
+        "isToday": "Is today?",
+        "success": "Backup created",
+        "unlock": "Unlock device"
+      }
+    },
+    "bip85": {
+      "confirmAdvanced": {
+        "body": "This is an advanced feature. Proceed only if you know what you are doing.",
+        "title": "BIP-85"
+      },
+      "confirmDerivation": {
+        "body": "Derive BIP-39\nmnemonic?",
+        "title": "BIP-85"
+      },
+      "createLightning": "Create\nLightning wallet\non host device?",
+      "finished": "Finished",
+      "howManyWords": "How many words?",
+      "index": {
+        "enter": "Enter index",
+        "invalid": "Invalid index",
+        "more": "More",
+        "select": "Select index",
+        "status": "Index: {}"
+      },
+      "keypath": "Keypath",
+      "wordCount": "{} words"
+    },
+    "bitcoin": {
+      "atAccount": "{}\naccount #{}",
+      "atPath": "{}\nat\n{}",
+      "multisig": {
+        "cosigner": {
+          "other": "Cosigner {}/{}: {}",
+          "self": "Cosigner {}/{} (this device): {}"
+        },
+        "scriptAtPath": "{}\nat\n{}",
+        "threshold": "{}-of-{}\n{} multisig"
+      },
+      "paymentRequest": {
+        "memo": "Memo",
+        "memoFrom": "Memo from\n\n{}"
+      },
+      "policies": {
+        "info": "{}\npolicy with\n{} keys",
+        "key": "Key {}/{}",
+        "name": "Name",
+        "provablyUnspendable": "Provably unspendable: {}",
+        "showDetails": "Show policy\ndetails?",
+        "thisDevice": "This device: {}",
+        "title": "Policy"
+      },
+      "receiveTo": "Receive to",
+      "registration": {
+        "enterAccountName": "Enter account name",
+        "multisigRegistered": "Multisig account\nregistered",
+        "policyRegistered": "Policy\nregistered",
+        "registerAccount": {
+          "body": "Please name this\naccount",
+          "title": "Register"
+        },
+        "title": "Register"
+      },
+      "scriptConfigs": {
+        "thisBitBox": "This BitBox - {}",
+        "thisBitBoxAccount": "This BitBox (account #{})"
+      },
+      "signMessage": {
+        "address": "Address",
+        "coin": "Coin: {}",
+        "sign": "Sign",
+        "signMessage": "Sign message"
+      },
+      "signTx": {
+        "invalidPaymentRequest": "Invalid\npayment request",
+        "loadingTx": "Loading transaction...",
+        "locktime": "Locktime on block:\n{}\n{}",
+        "multipleChangeWarning": {
+          "body": "There are {}\nchange outputs.\nProceed?",
+          "title": "Warning"
+        },
+        "rbf": {
+          "false": "Transaction is not RBF",
+          "true": "Transaction is RBF"
+        },
+        "signingTx": "Signing transaction...",
+        "spendFrom": "Spend from",
+        "thisBitBoxSame": "This BitBox (same account)",
+        "txCanceled": "Transaction\ncanceled",
+        "txConfirmed": "Transaction\nconfirmed"
+      },
+      "unusualKeypathWarning": {
+        "body": "Warning: unusual keypath {}. Proceed only if you know what you are doing.",
+        "title": "Export xpub"
+      }
+    },
+    "bluetooth": {
+      "confirmUpgrade": {
+        "body": "Upgrade\nfirmware?",
+        "title": "Bluetooth"
+      },
+      "disabled": "Bluetooth\ndisabled",
+      "enabled": "Bluetooth\nenabled",
+      "setDisable": "Disable Bluetooth?",
+      "setEnable": "Enable Bluetooth?",
+      "upgrade": {
+        "fail": "Upgrade failed",
+        "progress": "Upgrading...",
+        "success": "Upgrade\nsuccessful"
+      }
+    },
+    "changePassword": {
+      "confirm": "Proceed to\nchange password?",
+      "error": "Error\n{}"
+    },
+    "cardano": {
+      "signTransaction": {
+        "alwaysAbstain": "Always Abstain",
+        "alwaysNoConfidence": "Always No Confidence",
+        "amountAsset": "Amount: {}. Asset: {}",
+        "canBeMinedFrom": "Can be mined from",
+        "canBeMinedUntil": "Can be mined until",
+        "cannotBeMined": "Transaction\ncannot be\nmined",
+        "delegateStaking": "Delegate staking for account #{} to pool {}?",
+        "delegateVoting": "Delegate voting for account #{} to type {}?",
+        "delegateVotingDrep": "Delegate voting for account #{} to type {} and drep {}?",
+        "fee": "Fee\n{}",
+        "keyHash": "Key Hash",
+        "registerStakingKey": "Register staking key for account #{}?",
+        "scriptHash": "Script Hash",
+        "sendToken": "Send token",
+        "slotInEpoch": "{}\nslot {} in\nepoch {}",
+        "stopStakeDelegation": "Stop stake delegation for account #{}?",
+        "txCanceled": "Transaction\ncanceled",
+        "txConfirmed": "Transaction\nconfirmed",
+        "withdrawInStakingRewards": "Withdraw {} in staking rewards for account #{}?"
+      }
+    },
+    "ethereum": {
+      "keypath": {
+        "unusualKeypath": "Warning: unusual keypath {}. Proceed only if you know what you are doing."
+      },
+      "network": {
+        "recognizeChainId": "Only proceed if\nyou recognize\nthis chain ID.",
+        "unknownChainId": "Unknown network\nwith chain ID:\n{}"
+      },
+      "sign": {
+        "signOn": "Sign transaction on\n\n{}",
+        "txCanceled": "Transaction\ncanceled",
+        "txConfirmed": "Transaction\nconfirmed",
+        "unknownAmount": "Unknown amount",
+        "unknownContract": {
+          "confirm": {
+            "body": "You will be shown\nthe raw\ntransaction data.",
+            "title": "Unknown\ncontract"
+          },
+          "confirmAdvancedStreaming": "Only proceed if you\nfully understand\nthe risks involved.",
+          "confirmAdvanced": "Only proceed if you\nunderstand exactly\nwhat the data means.",
+          "confirmStreaming": "You are signing a\ncontract interaction\nwith large data.",
+          "tooLarge": "The next value is\ntoo large to display\nin full",
+          "transactionData": "Transaction\ndata"
+        },
+        "unknownToken": "Unknown token"
+      },
+      "signMsg": {
+        "sign": "Sign",
+        "signMessage": "Sign message"
+      },
+      "signTypedMsg": {
+        "Message": "Message",
+        "domain": "Domain",
+        "empyList": "(empty list)",
+        "line": ", line {}/{}",
+        "listWithElements": "list with {} elements",
+        "signData": "Sign data?",
+        "unknown": "Unknown"
+      }
+    },
+    "reset": {
+      "body": "Proceed to\nfactory reset?",
+      "status": "Device reset",
+      "title": "RESET"
+    },
+    "restore": {
+      "backupName": "Name: {}. ID: {}",
+      "confirmRestore": "Restore backup?",
+      "error": "Could not\nrestore backup",
+      "invalidWords": "Recovery words\ninvalid",
+      "isNow": "Is now?",
+      "passwordMismatch": "Passwords\ndo not match.\nTry again?",
+      "validWords": "Recovery words\nvalid"
+    },
+    "setMnemonicPassphrase": {
+      "disable": "Disable",
+      "enable": "Enable",
+      "optionalPassphrase": "Optional\npassphrase"
+    },
+    "setDeviceName": {
+      "title": "Name"
+    },
+    "setDeviceLanguage": {
+      "confirm": "Change language\nto {}?",
+      "english": "English",
+      "german": "German"
+    },
+    "setPassword": {
+      "repeat": "Repeat password",
+      "set": "Set password"
+    },
+    "showMnemonic": {
+      "backupCreated": "Backup created",
+      "doNotShareWarning": {
+        "body": "DO NOT share your\nrecovery words with\nanyone!",
+        "title": "Warning"
+      },
+      "unlockDevice": "Unlock device",
+      "writeDown": {
+        "body": "Please write down\nthe following words",
+        "title": "Recovery\nwords"
+      }
+    },
+    "system": {
+      "reboot": "Reboot?",
+      "rebootToBootloader": "Go to\nstartup settings?",
+      "upgrade": "Proceed to upgrade?"
+    }
+  },
+  "infoCentered": {
+    "skip": "Skip"
+  },
+  "lockscreen": "See the BitBoxApp",
+  "menu": {
+    "continue": "Continue",
+    "select": "Select"
+  },
+  "mnemonic": {
+    "backToWords": "Back to\nrecovery words",
+    "cancelRestore": "Cancel restore",
+    "choose": "Choose",
+    "confirmCancel": {
+      "body": "Do you really\nwant to cancel?",
+      "title": "Restore"
+    },
+    "confirmEachWord": "Please confirm\neach word",
+    "editPrevious": "Edit previous word",
+    "enterWords": "Enter {} words",
+    "howManyWords": "How many words?",
+    "incorrectWord": "Incorrect word\nTry again",
+    "invalidCheckRestart": "Invalid. Check\nrecovery words.\nRestart?",
+    "noneOfThem": "None of them",
+    "wordIndex": "{} of {}",
+    "wordsFollow": "{} words follow"
+  },
+  "orientation": "Tap this side",
+  "pairing": {
+    "pairingCode": "Pairing code"
+  },
+  "password": {
+    "characterWarning": {
+      "body": "Your password\n has fewer than\n 4 characters.\nContinue?",
+      "title": "WARNING"
+    },
+    "confirmCancel": "Do you really\nwant to cancel?",
+    "mismatch": "Passwords\ndo not match",
+    "repeat": "Repeat password",
+    "set": "Set password",
+    "success": "Success"
+  },
+  "sdcard": {
+    "insertToContinue": "Insert SD card\nto continue"
+  },
+  "transaction": {
+    "confirmTransaction": {
+      "fee": "Fee",
+      "total": "Total"
+    },
+    "highFeeWarning": {
+      "body": "The fee is {}%\nthe send amount.\nProceed?",
+      "title": "High fee"
+    }
+  },
+  "u2f": {
+    "auth": "U2F auth",
+    "register": "U2F register",
+    "use": "Use U2F?"
+  },
+  "paymentRequest": {
+    "swap": "Swap"
+  },
+  "verifyMessage": {
+    "dataHex": "{}\ndata (hex)"
+  },
+  "unlock": {
+    "enterPassword": "Enter password",
+    "keystoreUnlockFailed": "keystore unlock failed\n{}",
+    "passphrase": {
+      "confirm": "Confirm",
+      "doubleCheck": "You will be asked to\nvisually confirm your\npassphrase now.",
+      "title": "Optional passphrase",
+      "tryAgain": "Please try again"
+    },
+    "remainingAttempts": {
+      "last": "This is your LAST\npassword attempt.\nDevice will reset\nif password is wrong.",
+      "other": "You have {}\npassword attempts\nleft.",
+      "title": "WARNING"
+    },
+    "wrongPassword": {
+      "base": "Wrong password"
+    }
+  }
+}

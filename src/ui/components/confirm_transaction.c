@@ -7,6 +7,7 @@
 #include "ui_images.h"
 
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <stdbool.h>
 #include <string.h>
@@ -120,8 +121,10 @@ static component_t* _confirm_transaction_create(
             confirm, label_create_scrollable_offset(address, NULL, CENTER, 0, 20, confirm));
     }
     if (strlens(fee)) {
+        char fee_label[MAX_LABEL_SIZE + 1] = {0};
+        rust_i18n_translate_copy("Fee", fee_label, sizeof(fee_label));
         ui_util_add_sub_component(
-            confirm, label_create_offset("Fee", &font_font_a_9X9, CENTER_TOP, 0, 38, confirm));
+            confirm, label_create_offset(fee_label, &font_font_a_9X9, CENTER_TOP, 0, 38, confirm));
 
         ui_util_add_sub_component(
             confirm, label_create_offset(fee, &font_font_a_9X9, CENTER_TOP, 0, 50, confirm));
@@ -131,8 +134,10 @@ static component_t* _confirm_transaction_create(
         amount_font = &font_font_a_9X9;
     }
     if (verify_total) {
+        char total_label[MAX_LABEL_SIZE + 1] = {0};
+        rust_i18n_translate_copy("Total", total_label, sizeof(total_label));
         ui_util_add_sub_component(
-            confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));
+            confirm, label_create_offset(total_label, NULL, CENTER_TOP, 0, 8, confirm));
         ui_util_add_sub_component(
             confirm, label_create_offset(amount, amount_font, CENTER_TOP, 0, 22, confirm));
     } else {

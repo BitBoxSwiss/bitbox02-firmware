@@ -10,6 +10,7 @@ Checks: >-
   -readability-isolate-declaration,
   -readability-identifier-length,
   -readability-function-cognitive-complexity,
+  -readability-implicit-bool-conversion,
   -bugprone-reserved-identifier,
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,

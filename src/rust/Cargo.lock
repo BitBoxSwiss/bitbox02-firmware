@@ -211,6 +211,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-i18n"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "serde_json",
+]
+
+[[package]]
 name = "bitbox-lvgl"
 version = "0.1.0"
 dependencies = [

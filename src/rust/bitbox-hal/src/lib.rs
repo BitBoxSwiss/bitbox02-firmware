@@ -5,6 +5,7 @@
 extern crate alloc;
 
 pub mod eeprom;
+pub mod filesystem;
 pub mod memory;
 pub mod random;
 pub mod sd;
@@ -14,6 +15,7 @@ pub mod timer;
 pub mod ui;
 
 pub use eeprom::Eeprom;
+pub use filesystem::Filesystem;
 pub use memory::Memory;
 pub use random::Random;
 pub use sd::Sd;

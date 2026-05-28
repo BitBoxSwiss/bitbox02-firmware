@@ -3,6 +3,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use bitbox_hal::filesystem::{
+    DataPartition, Error as FsError, MountPolicy, Result as FsResult, Volume,
+};
 use bitbox_hal::memory::{
     BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
     SecurechipType,
@@ -31,6 +34,8 @@ pub struct FakeMemory {
     attestation_root_pubkey_identifier: Option<[u8; 32]>,
     attestation_bootloader_hash: [u8; 32],
     multisig_entries: Vec<([u8; 32], String)>,
+    filesystem_formatted: [bool; 2],
+    filesystem_files: [Vec<(String, Vec<u8>)>; 2],
 }
 
 // Same as MEMORY_MULTISIG_NUM_ENTRIES in memory.h.
@@ -78,6 +83,8 @@ impl FakeMemory {
             attestation_root_pubkey_identifier: None,
             attestation_bootloader_hash: [0; 32],
             multisig_entries: Vec::new(),
+            filesystem_formatted: [false; 2],
+            filesystem_files: [Vec::new(), Vec::new()],
         }
     }
 
@@ -113,6 +120,117 @@ impl FakeMemory {
             BleFirmwareSlot::First => &self.ble_firmware_slots[0],
             BleFirmwareSlot::Second => &self.ble_firmware_slots[1],
         }
+    }
+}
+
+fn partition_index(partition: DataPartition) -> usize {
+    match partition {
+        DataPartition::Vendor => 0,
+        DataPartition::User => 1,
+    }
+}
+
+fn validate_path(path: &str) -> FsResult<()> {
+    if path.is_empty() || !path.is_ascii() || path.as_bytes().contains(&0) {
+        return Err(FsError::InvalidInput);
+    }
+    Ok(())
+}
+
+struct FakeVolume<'a> {
+    files: &'a mut Vec<(String, Vec<u8>)>,
+}
+
+impl FakeVolume<'_> {
+    fn file_index(&self, path: &str) -> Option<usize> {
+        self.files
+            .iter()
+            .position(|(stored_path, _)| stored_path == path)
+    }
+}
+
+impl Volume for FakeVolume<'_> {
+    fn read_file(&mut self, path: &str, out: &mut Vec<u8>) -> FsResult<()> {
+        validate_path(path)?;
+        let Some((_, data)) = self
+            .files
+            .iter()
+            .find(|(stored_path, _)| stored_path == path)
+        else {
+            return Err(FsError::NoSuchEntry);
+        };
+        out.clear();
+        out.extend_from_slice(data);
+        Ok(())
+    }
+
+    fn write_file(&mut self, path: &str, data: &[u8]) -> FsResult<()> {
+        validate_path(path)?;
+        if let Some(index) = self.file_index(path) {
+            self.files[index].1.clear();
+            self.files[index].1.extend_from_slice(data);
+        } else {
+            self.files.push((String::from(path), data.to_vec()));
+        }
+        Ok(())
+    }
+
+    fn remove_file(&mut self, path: &str) -> FsResult<()> {
+        validate_path(path)?;
+        let Some(index) = self.file_index(path) else {
+            return Err(FsError::NoSuchEntry);
+        };
+        self.files.remove(index);
+        Ok(())
+    }
+
+    fn rename(&mut self, from: &str, to: &str) -> FsResult<()> {
+        validate_path(from)?;
+        validate_path(to)?;
+        if self.file_index(to).is_some() {
+            return Err(FsError::AlreadyExists);
+        }
+        let Some(index) = self.file_index(from) else {
+            return Err(FsError::NoSuchEntry);
+        };
+        self.files[index].0 = String::from(to);
+        Ok(())
+    }
+
+    fn exists(&mut self, path: &str) -> FsResult<bool> {
+        validate_path(path)?;
+        Ok(self.file_index(path).is_some())
+    }
+}
+
+impl bitbox_hal::filesystem::Filesystem for FakeMemory {
+    fn with_volume<R, F>(
+        &mut self,
+        partition: DataPartition,
+        policy: MountPolicy,
+        f: F,
+    ) -> FsResult<R>
+    where
+        F: FnOnce(&mut dyn Volume) -> FsResult<R>,
+    {
+        let index = partition_index(partition);
+        if !self.filesystem_formatted[index] {
+            match policy {
+                MountPolicy::MountOnly => return Err(FsError::Corrupt),
+                MountPolicy::FormatIfEmpty => self.filesystem_formatted[index] = true,
+            }
+        }
+        let mut volume = FakeVolume {
+            files: &mut self.filesystem_files[index],
+        };
+        f(&mut volume)
+    }
+
+    fn format_volume(&mut self, partition: DataPartition) -> FsResult<()> {
+        let index = partition_index(partition);
+        self.filesystem_files[index].clear();
+        self.filesystem_formatted[index] = true;
+        Ok(())
     }
 }
 
@@ -361,5 +479,84 @@ impl bitbox_hal::Memory for FakeMemory {
             .iter()
             .find(|(existing_hash, _)| existing_hash == hash)
             .map(|(_, name)| name.clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bitbox_hal::filesystem::Filesystem;
+
+    #[test]
+    fn test_filesystem_format_if_empty() {
+        let mut memory = FakeMemory::new();
+        assert_eq!(
+            memory.with_volume(DataPartition::User, MountPolicy::MountOnly, |_| Ok(())),
+            Err(FsError::Corrupt)
+        );
+
+        memory
+            .with_volume(DataPartition::User, MountPolicy::FormatIfEmpty, |volume| {
+                volume.write_file("settings.bin", b"user")?;
+                Ok(())
+            })
+            .unwrap();
+
+        let mut out = Vec::new();
+        memory
+            .with_volume(DataPartition::User, MountPolicy::MountOnly, |volume| {
+                volume.read_file("settings.bin", &mut out)
+            })
+            .unwrap();
+        assert_eq!(out, b"user");
+    }
+
+    #[test]
+    fn test_filesystem_partitions_are_isolated() {
+        let mut memory = FakeMemory::new();
+        memory.format_volume(DataPartition::Vendor).unwrap();
+        memory.format_volume(DataPartition::User).unwrap();
+
+        memory
+            .with_volume(DataPartition::Vendor, MountPolicy::MountOnly, |volume| {
+                volume.write_file("data.bin", b"vendor")
+            })
+            .unwrap();
+        memory
+            .with_volume(DataPartition::User, MountPolicy::MountOnly, |volume| {
+                volume.write_file("data.bin", b"user")
+            })
+            .unwrap();
+
+        let mut out = Vec::new();
+        memory
+            .with_volume(DataPartition::Vendor, MountPolicy::MountOnly, |volume| {
+                volume.read_file("data.bin", &mut out)
+            })
+            .unwrap();
+        assert_eq!(out, b"vendor");
+
+        memory
+            .with_volume(DataPartition::User, MountPolicy::MountOnly, |volume| {
+                volume.read_file("data.bin", &mut out)
+            })
+            .unwrap();
+        assert_eq!(out, b"user");
+    }
+
+    #[test]
+    fn test_filesystem_rename_and_remove() {
+        let mut memory = FakeMemory::new();
+        memory
+            .with_volume(DataPartition::User, MountPolicy::FormatIfEmpty, |volume| {
+                volume.write_file("old.bin", b"data")?;
+                volume.rename("old.bin", "new.bin")?;
+                assert!(!volume.exists("old.bin")?);
+                assert!(volume.exists("new.bin")?);
+                volume.remove_file("new.bin")?;
+                assert!(!volume.exists("new.bin")?);
+                Ok(())
+            })
+            .unwrap();
     }
 }

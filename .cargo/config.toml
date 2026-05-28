@@ -21,4 +21,4 @@ rustflags = [
 "CC_thumbv8m.main_none_eabihf" = "clang-21"
 "AR_thumbv8m.main_none_eabihf" = "llvm-ar-21"
 "RANLIB_thumbv8m.main_none_eabihf" = "llvm-ranlib-21"
-"CFLAGS_thumbv8m.main-none-eabihf" = { value = "-mcpu=cortex-m33 -flto" }
+"CFLAGS_thumbv8m.main-none-eabihf" = { value = "-mcpu=cortex-m33 -flto --sysroot=/usr/local/arm-none-eabi" }

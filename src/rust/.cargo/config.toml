@@ -1,6 +1,11 @@
 [source.crates-io]
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/BitBoxSwiss/littlefs2-sys.git?branch=bitbox/optional-bindgen"]
+git = "https://github.com/BitBoxSwiss/littlefs2-sys.git"
+branch = "bitbox/optional-bindgen"
+replace-with = "vendored-sources"
+
 [source."git+https://github.com/BitBoxSwiss/rtt-target?rev=c04cef567e77ee263ee0621c07202dff6a73ef45"]
 git = "https://github.com/BitBoxSwiss/rtt-target"
 rev = "c04cef567e77ee263ee0621c07202dff6a73ef45"

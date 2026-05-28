@@ -124,6 +124,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-platform-stm32u5-sys",
  "cc",
+ "littlefs2",
 ]
 
 [[package]]
@@ -426,8 +427,10 @@ dependencies = [
 name = "bitbox03"
 version = "0.1.0"
 dependencies = [
+ "bitbox-board-stm32u5a9j-dk",
  "bitbox-hal",
  "bitbox-lvgl",
+ "littlefs2",
  "png-decoder",
  "tracing",
  "util",
@@ -547,6 +550,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46afbd2983a5d5a7bd740ccb198caf5b82f45c40c09c0eed36052d91cb92e719"
 
 [[package]]
+name = "bitflags"
+version = "2.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4512299f36f043ab09a583e57bceb5a5aab7a73db1805848e8fef3c9e8c78b3"
+
+[[package]]
 name = "blake2"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -563,6 +572,12 @@ checksum = "69cce20737498f97b993470a6e536b8523f0af7892a4f928cceb1ac5e52ebe7e"
 dependencies = [
  "generic-array",
 ]
+
+[[package]]
+name = "byteorder"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
@@ -773,6 +788,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "delog"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed991f9823b19e8a0380e198dcbb6aa6ac82727b40bfecd2c6cc634f46b7e01c"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -950,6 +974,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash32"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47d60b12902ba28e2730cd37e95b8c9223af2808df9e902d4df49588d1470606"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
+name = "heapless"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25ba4bd83f9415b58b4ed8dc5714c76e626a105be4646c02630ad730ad3b5aa4"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1032,6 +1075,37 @@ name = "libc"
 version = "0.2.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
+
+[[package]]
+name = "littlefs2"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c8022e5141ceff5b7b12897113f54fc9dac5ad36402c787941c97272b9241eb"
+dependencies = [
+ "bitflags",
+ "delog",
+ "generic-array",
+ "heapless",
+ "littlefs2-core",
+ "littlefs2-sys",
+]
+
+[[package]]
+name = "littlefs2-core"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0dd2d1cad5532f5e11b0fd871b8a981885efd3fdaec0427c0d637322ae09efbf"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
+name = "littlefs2-sys"
+version = "0.3.2"
+source = "git+https://github.com/BitBoxSwiss/littlefs2-sys.git?branch=bitbox%2Foptional-bindgen#8eaf0fbc7eca5e3ab6ea9a50e519c536e901f538"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "log"
@@ -1469,6 +1543,12 @@ dependencies = [
  "digest",
  "rand_core",
 ]
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "stm32u5"

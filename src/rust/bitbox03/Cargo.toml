@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bitbox-board-stm32u5a9j-dk = { path = "../bitbox-board-stm32u5a9j-dk", optional = true }
 bitbox-lvgl = { path = "../bitbox-lvgl" }
 bitbox-hal = { path = "../bitbox-hal" }
+littlefs2 = { workspace = true, optional = true }
 util = { path = "../util" }
 tracing = { version = "0.1.41", features = ["log"], default-features = false }
 png-decoder = { version="0.2"}
@@ -13,3 +15,4 @@ zeroize = {workspace=true}
 
 [features]
 app-u2f = ["bitbox-hal/app-u2f"]
+board-stm32u5a9j-dk = ["dep:bitbox-board-stm32u5a9j-dk", "dep:littlefs2"]

@@ -1,0 +1,31 @@
+--- lfs.c	2025-04-14 12:03:45.959258416 +0200
++++ lfs.c.patched	2025-04-14 12:03:23.044370382 +0200
+@@ -4521,15 +4521,20 @@
+             }
+ 
+             // this is where we get the block_count from disk if block_count=0
+-            if (lfs->cfg->block_count
+-                    && superblock.block_count != lfs->cfg->block_count) {
+-                LFS_ERROR("Invalid block count (%"PRIu32" != %"PRIu32")",
+-                        superblock.block_count, lfs->cfg->block_count);
+-                err = LFS_ERR_INVAL;
+-                goto cleanup;
+-            }
++            // 
++            // if (lfs->cfg->block_count
++            //         && superblock.block_count != lfs->cfg->block_count) {
++            //     LFS_ERROR("Invalid block count (%"PRIu32" != %"PRIu32")",
++            //             superblock.block_count, lfs->cfg->block_count);
++            //     err = LFS_ERR_INVAL;
++            //     goto cleanup;
++            // }
+ 
+-            lfs->block_count = superblock.block_count;
++            if (lfs->cfg->block_count) {
++                lfs->block_count = lfs->cfg->block_count;
++            } else {
++                lfs->block_count = superblock.block_count;
++            }
+ 
+             if (superblock.block_size != lfs->cfg->block_size) {
+                 LFS_ERROR("Invalid block size (%"PRIu32" != %"PRIu32")",

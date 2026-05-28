@@ -74,8 +74,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 grounded = { version = "0.2.0", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.2.0", default-features = false }
+littlefs2 = { version = "0.7.1", default-features = false, features = ["c-stubs"] }
 
 [patch.crates-io]
+littlefs2-sys = { git = "https://github.com/BitBoxSwiss/littlefs2-sys.git", branch = "bitbox/optional-bindgen" }
 rtt-target = { git = "https://github.com/BitBoxSwiss/rtt-target", rev = "c04cef567e77ee263ee0621c07202dff6a73ef45" }
 
 [profile.release]

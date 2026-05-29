@@ -29,6 +29,8 @@ else()
   # Tests
 
   set(TEST_LIST
+     bootloader_format
+     ""
      cleanup
      "-Wl,--wrap=util_cleanup_32"
      gestures
@@ -70,6 +72,9 @@ else()
     target_include_directories(${EXE} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
+    if(TEST_NAME STREQUAL "bootloader_format")
+      target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_format.c)
+    endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()
 endif()

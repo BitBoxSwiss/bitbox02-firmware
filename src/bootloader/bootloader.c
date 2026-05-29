@@ -313,10 +313,8 @@ static void _load_progress_bar(float progress)
 
 static void _render_message(const char* message, int duration)
 {
-    char print[100];
-    snprintf(print, sizeof(print), "%s", message);
     UG_ClearBuffer();
-    UG_PutString(0, 0, print);
+    UG_PutString(0, 0, message);
     UG_SendBuffer();
     delay_ms(duration);
 }

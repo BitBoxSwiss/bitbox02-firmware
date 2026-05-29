@@ -84,6 +84,13 @@ check_production_bootloader() {
         "$rust_fmt_symbol_pattern" \
         "Rust format!/write! formatting pulls in significant bootloader bloat." \
         "Avoid Rust formatting in production bootloaders; use fixed-format helpers instead."
+
+    check_symbols \
+        "$elf" \
+        "Rust SHA-256" \
+        "sha26sha256|sha2::sha256::compress256" \
+        "The RustCrypto SHA-256 implementation pulls in significant production bootloader bloat." \
+        "Use the existing PUKCC SHA-256 implementation in production bootloaders instead."
 }
 
 firmware_elf=build/bin/firmware.elf

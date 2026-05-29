@@ -11,9 +11,9 @@
 component_t* progress_create(const char* title);
 
 /**
- * Set the progress.
- * @param[in] progress value must be in [0, 1].
+ * Set the progress as an exact fraction.
+ * @param[in] denominator must be non-zero.
  */
-void progress_set(component_t* component, float progress);
+void progress_set_fraction(component_t* component, uint32_t numerator, uint32_t denominator);
 
 #endif

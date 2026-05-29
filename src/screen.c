@@ -102,7 +102,11 @@ void screen_init(
 {
     _mirror_fn = mirror_fn;
     _clear_fn = clear_fn;
+#ifdef BOOTLOADER
+    UG_Init(&guioled, pixel_fn, &font_font_a_9X9, SCREEN_WIDTH, SCREEN_HEIGHT);
+#else
     UG_Init(&guioled, pixel_fn, &font_font_a_11X10, SCREEN_WIDTH, SCREEN_HEIGHT);
+#endif
 }
 
 void screen_clear(void)

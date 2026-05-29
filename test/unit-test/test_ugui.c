@@ -80,11 +80,28 @@ static void _test_ugui_render_rotated_180(void** state)
     assert_int_equal(last_y, 24);
 }
 
+static void _test_ugui_measure_string_centered(void** state)
+{
+    (void)state;
+    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
+
+    UG_S16 centered_width = 0;
+    UG_S16 centered_height = 0;
+    UG_S16 single_line_width = 0;
+    UG_S16 single_line_height = 0;
+    UG_MeasureStringCentered(&centered_width, &centered_height, "A\nAA");
+    UG_MeasureStringNoBreak(&single_line_width, &single_line_height, "AA");
+
+    assert_int_equal(centered_width, single_line_width);
+    assert_int_equal(centered_height, 2 * single_line_height + 2 * gui.char_v_space);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(_test_ugui_word_wrap),
         cmocka_unit_test(_test_ugui_render_rotated_180),
+        cmocka_unit_test(_test_ugui_measure_string_centered),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -59,6 +59,9 @@ static void test_timer(void** state)
 
     bootloader_format_timer(out, sizeof(out), 9);
     assert_string_equal(out, "9s");
+
+    bootloader_format_timer(out, sizeof(out), 10);
+    assert_string_equal(out, "10s");
 }
 
 static void test_unknown_command(void** state)

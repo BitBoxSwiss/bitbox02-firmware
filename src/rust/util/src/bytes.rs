@@ -2,6 +2,46 @@
 
 use core::ffi::c_uchar;
 
+/// Format an unsigned integer as ASCII decimal into `out`.
+///
+/// The formatted number is left-padded to `min_width` with `pad`, null-terminated,
+/// and the byte length excluding the null terminator is returned.
+///
+/// Panics if `out` cannot fit the formatted number and null terminator.
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_format_uint(
+    mut out: BytesMut,
+    value: u32,
+    min_width: u8,
+    pad: c_uchar,
+) -> usize {
+    let mut digit_count = 1;
+    let mut remaining = value;
+    while remaining >= 10 {
+        digit_count += 1;
+        remaining /= 10;
+    }
+
+    let formatted_len = core::cmp::max(digit_count, min_width as usize);
+    let out = out.as_mut();
+    assert!(formatted_len < out.len());
+
+    out[formatted_len] = 0;
+
+    let mut value = value;
+    let mut out_pos = formatted_len;
+    loop {
+        out_pos -= 1;
+        out[out_pos] = b'0' + (value % 10) as u8;
+        value /= 10;
+        if value == 0 {
+            break;
+        }
+    }
+    out[..out_pos].fill(pad);
+    formatted_len
+}
+
 /// Convert bytes to hex representation
 ///
 /// * `buf` - bytes to convert to hex.
@@ -170,5 +210,48 @@ mod tests {
             unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
         );
         assert_eq!(string, "0102030e0fff\0xxxxxxxxxxxxxxxxxxxxxxx");
+    }
+
+    #[test]
+    fn test_format_uint() {
+        let mut string = String::from("xxxxxxxxxxx");
+        let len = rust_format_uint(
+            unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+            0,
+            1,
+            b'0',
+        );
+        assert_eq!(len, 1);
+        assert_eq!(string, "0\0xxxxxxxxx");
+
+        let mut string = String::from("xxxxxxxxxxx");
+        let len = rust_format_uint(
+            unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+            42,
+            4,
+            b'0',
+        );
+        assert_eq!(len, 4);
+        assert_eq!(string, "0042\0xxxxxx");
+
+        let mut string = String::from("xxxxxxxxxxx");
+        let len = rust_format_uint(
+            unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+            7,
+            2,
+            b' ',
+        );
+        assert_eq!(len, 2);
+        assert_eq!(string, " 7\0xxxxxxxx");
+
+        let mut string = String::from("xxxxxxxxxxx");
+        let len = rust_format_uint(
+            unsafe { rust_util_bytes_mut(string.as_mut_ptr(), string.len()) },
+            u32::MAX,
+            1,
+            b'0',
+        );
+        assert_eq!(len, 10);
+        assert_eq!(string, "4294967295\0");
     }
 }

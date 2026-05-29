@@ -74,6 +74,9 @@ else()
     )
     if(TEST_NAME STREQUAL "bootloader_format")
       target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_format.c)
+      target_include_directories(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
+      )
     endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()

@@ -242,7 +242,7 @@ jobs:
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
 
       - name: Check unwanted symbols
-        if: matrix.target == 'firmware' && !cancelled()
+        if: (matrix.target == 'firmware' || (startsWith(matrix.target, 'bootloader') && endsWith(matrix.target, 'production'))) && !cancelled()
         run: ./.ci/check-unwanted-symbols
 
       - name: Print hashes

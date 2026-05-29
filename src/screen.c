@@ -32,7 +32,7 @@ slider_location_t bottom_slider = 0;
 void screen_print_debug(const char* message, int duration)
 {
     char print[100];
-    snprintf(print, sizeof(print), "%s", message);
+    util_strlcpy(print, message, sizeof(print));
     screen_clear();
     UG_FontSelect(&font_font_a_9X9);
     UG_PutString(0, 0, print);

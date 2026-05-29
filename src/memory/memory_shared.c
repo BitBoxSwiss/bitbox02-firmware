@@ -249,17 +249,11 @@ void memory_random_name(char* name_out)
             letters[i] = 'A' + (random[i] % 26);
         }
 
-        // Format into cached name
-        snprintf(
-            cached_name,
-            MEMORY_DEVICE_MAX_LEN_WITH_NULL,
-            "BitBox %c%c%c%c",
-            letters[0],
-            letters[1],
-            letters[2],
-            letters[3]);
+        memcpy(cached_name, "BitBox ", sizeof("BitBox ") - 1);
+        memcpy(&cached_name[sizeof("BitBox ") - 1], letters, sizeof(letters));
+        cached_name[sizeof("BitBox ") - 1 + sizeof(letters)] = '\0';
     }
 
     // Copy cached result to output
-    snprintf(name_out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", cached_name);
+    memcpy(name_out, cached_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL);
 }

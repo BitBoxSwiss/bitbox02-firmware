@@ -93,7 +93,7 @@ pub fn progress_create(_title: &str) -> Component {
     Component { is_pushed: false }
 }
 
-pub fn progress_set(_component: &mut Component, _progress: f32) {}
+pub fn progress_set_fraction(_component: &mut Component, _numerator: u32, _denominator: u32) {}
 
 pub fn empty_create() -> Component {
     Component { is_pushed: false }

@@ -5,6 +5,8 @@
 members = [
     "async_test",
     "bitbox-aes",
+    "bitbox-board-stm32u5a9j-dk",
+    "bitbox-board-stm32u5a9j-dk-sys",
     "bitbox-bytequeue",
     "bitbox-core-utils",
     "bitbox-da14531",

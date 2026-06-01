@@ -15,10 +15,10 @@ BB02BTC_BOOTLOADER = "bb02btc-bootloader"
 BITBOX02MULTI = "BitBox02"
 BITBOX02BTC = "BitBox02BTC"
 
-BITBOX02NOVA_MULTI_BOOTLOADER = "BitBox02 Nova Multi bl"
-BITBOX02NOVA_BTC_BOOTLOADER = "BitBox02 Nova BTC-only bl"
-BITBOX02NOVA_MULTI = "BitBox02 Nova Multi"
-BITBOX02NOVA_BTC = "BitBox02 Nova BTC-only"
+BITBOX02PLUS_MULTI_BOOTLOADER = "BitBox02 Nova Multi bl"
+BITBOX02PLUS_BTC_BOOTLOADER = "BitBox02 Nova BTC-only bl"
+BITBOX02PLUS_MULTI = "BitBox02 Nova Multi"
+BITBOX02PLUS_BTC = "BitBox02 Nova BTC-only"
 
 
 class TooManyFoundException(Exception):
@@ -105,8 +105,8 @@ def get_any_bitbox02s() -> List[DeviceInfo]:
     """
     devices = get_bitbox02multi_devices()
     devices.extend(get_bitbox02btc_devices())
-    devices.extend(get_devices(BITBOX02NOVA_MULTI))
-    devices.extend(get_devices(BITBOX02NOVA_BTC))
+    devices.extend(get_devices(BITBOX02PLUS_MULTI))
+    devices.extend(get_devices(BITBOX02PLUS_BTC))
     return devices
 
 
@@ -134,8 +134,8 @@ def get_any_bitbox02_bootloaders() -> List[DeviceInfo]:
     """
     devices = get_bitbox02multi_bootloaders()
     devices.extend(get_bitbox02btc_bootloaders())
-    devices.extend(get_devices(BITBOX02NOVA_MULTI_BOOTLOADER))
-    devices.extend(get_devices(BITBOX02NOVA_BTC_BOOTLOADER))
+    devices.extend(get_devices(BITBOX02PLUS_MULTI_BOOTLOADER))
+    devices.extend(get_devices(BITBOX02PLUS_BTC_BOOTLOADER))
     return devices
 
 

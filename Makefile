@@ -49,6 +49,10 @@ firmware: | build
 	$(MAKE) -C build firmware.elf
 firmware-btc: | build
 	$(MAKE) -C build firmware-btc.elf
+firmware-nova: | build
+	$(MAKE) -C build firmware-nova.elf
+firmware-nova-btc: | build
+	$(MAKE) -C build firmware-nova-btc.elf
 firmware-debug: | build-debug
 	$(MAKE) -C build-debug firmware.elf
 

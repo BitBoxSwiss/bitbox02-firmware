@@ -317,6 +317,8 @@ set(DEVDEVICE-BOOTLOADERS
 set(FIRMWARES
   firmware # Firmware MULTI
   firmware-btc # Firmware BTC-ONLY
+  firmware-nova # Firmware NOVA MULTI
+  firmware-nova-btc # Firmware NOVA BTC-ONLY
   factory-setup # Factory-setup
   )
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
@@ -534,6 +536,14 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+
+  target_sources(firmware-nova.elf PRIVATE firmware.c)
+  target_compile_definitions(firmware-nova.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_U2F=1")
+  target_sources(firmware-nova.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+
+  target_sources(firmware-nova-btc.elf PRIVATE firmware.c)
+  target_compile_definitions(firmware-nova-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
+  target_sources(firmware-nova-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_U2F=0")

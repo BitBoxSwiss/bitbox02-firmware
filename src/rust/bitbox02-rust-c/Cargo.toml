@@ -46,6 +46,8 @@ target-bb02p-bl-btconly-development = ["bootloader", "platform-bitbox02nova"]
 target-bb02p-bl-btconly-production = ["bootloader", "platform-bitbox02nova"]
 target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
 target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
+target-firmware-nova = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
+target-firmware-nova-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
 target-factory-setup = [
   # enable these features
   "factory-setup",

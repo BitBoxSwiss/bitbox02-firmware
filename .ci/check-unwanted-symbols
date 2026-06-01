@@ -93,12 +93,11 @@ check_production_bootloader() {
         "Use the existing PUKCC SHA-256 implementation in production bootloaders instead."
 }
 
-firmware_elf=build/bin/firmware.elf
-if [[ -f "$firmware_elf" ]]; then
-    check_firmware "$firmware_elf"
-fi
-
 shopt -s nullglob
+for firmware_elf in build/bin/firmware*.elf; do
+    check_firmware "$firmware_elf"
+done
+
 for bootloader_elf in build/bin/*-bl-*-production.elf; do
     check_production_bootloader "$bootloader_elf"
 done

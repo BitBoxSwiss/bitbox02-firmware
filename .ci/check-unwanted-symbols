@@ -2,20 +2,18 @@
 
 set -euo pipefail
 
-elf=build/bin/firmware.elf
-if [[ ! -f "$elf" ]]; then
-    echo "ELF file not found: $elf" >&2
-    exit 2
-fi
-
 # Disallow symbols in the final linked ELF that indicate expensive code paths.
-symbols=$(arm-none-eabi-nm -C "$elf")
 failed=0
+checked=0
 
 check_symbols() {
-    local name=$1
-    local pattern=$2
-    shift 2
+    local elf=$1
+    local name=$2
+    local pattern=$3
+    shift 3
+
+    local symbols
+    symbols=$(arm-none-eabi-nm -C "$elf")
 
     local matches
     matches=$(grep -E "$pattern" <<<"$symbols" || true)
@@ -23,7 +21,7 @@ check_symbols() {
         return
     fi
 
-    echo "Found unwanted symbols for: $name" >&2
+    echo "Found unwanted symbols for: $name in $elf" >&2
     echo "$matches" | sed -n '1,20p' >&2
     for line in "$@"; do
         echo "$line" >&2
@@ -32,28 +30,83 @@ check_symbols() {
     failed=1
 }
 
-check_symbols \
-    "Rust float formatting" \
-    "float_to_decimal_common_shortest" \
-    "Rust fmt float formatting like {:.1} adds significant binary bloat." \
-    "Use integer arithmetic and format the resulting integer parts explicitly."
+check_firmware() {
+    local elf=$1
+    checked=1
 
-check_symbols \
-    "strftime" \
-    "(^|[[:space:]])strftime($|[[:space:]])" \
-    "strftime adds significant binary bloat." \
-    "Use custom formatting like in format_datetime()."
+    check_symbols \
+        "$elf" \
+        "Rust float formatting" \
+        "float_to_decimal_common_shortest" \
+        "Rust fmt float formatting like {:.1} adds significant binary bloat." \
+        "Use integer arithmetic and format the resulting integer parts explicitly."
 
-check_symbols \
-    "sha2::Sha512" \
-    "sha26sha512|sha2::sha512" \
-    "sha2::Sha512 adds significant binary bloat." \
-    "Only use it if there is no other sha512 implementation available that is smaller."
+    check_symbols \
+        "$elf" \
+        "strftime" \
+        "(^|[[:space:]])strftime($|[[:space:]])" \
+        "strftime adds significant binary bloat." \
+        "Use custom formatting like in format_datetime()."
 
-check_symbols \
-    "software f32 arithmetic helpers" \
-    "(__aeabi_f(add|sub|mul|div)|__(add|sub|mul|div|neg)sf3|compiler_builtins::float::(add|sub|mul|div)::.*f32)" \
-    "Software f32 arithmetic helpers add significant binary bloat." \
-    "Use integer arithmetic in firmware code instead."
+    check_symbols \
+        "$elf" \
+        "sha2::Sha512" \
+        "sha26sha512|sha2::sha512" \
+        "sha2::Sha512 adds significant binary bloat." \
+        "Only use it if there is no other sha512 implementation available that is smaller."
+
+    check_symbols \
+        "$elf" \
+        "software f32 arithmetic helpers" \
+        "(__aeabi_f(add|sub|mul|div)|__(add|sub|mul|div|neg)sf3|compiler_builtins::float::(add|sub|mul|div)::.*f32)" \
+        "Software f32 arithmetic helpers add significant binary bloat." \
+        "Use integer arithmetic in firmware code instead."
+}
+
+check_production_bootloader() {
+    local elf=$1
+    checked=1
+
+    local printf_symbol_pattern
+    printf_symbol_pattern='(^|[[:space:]])(_?(asiprintf|asnprintf|asprintf|fprintf|iprintf|printf|siprintf|sniprintf|snprintf|sprintf|vasiprintf|vasnprintf|vasprintf|vfprintf|vfiprintf|vprintf|vsiprintf|vsniprintf|vsnprintf|vsprintf)(_r)?|_printf_common|_printf_i|_svfprintf_r|_svfiprintf_r|__sprint_r|__ssputs_r)([.$[:space:]]|$)'
+    check_symbols \
+        "$elf" \
+        "stdio formatting" \
+        "$printf_symbol_pattern" \
+        "snprintf/printf pulls in significant bootloader bloat." \
+        "Avoid stdio formatting in production bootloaders; use fixed-format helpers instead."
+
+    local rust_fmt_symbol_pattern
+    rust_fmt_symbol_pattern='(^|[[:space:]])(alloc::fmt::|core::fmt::|<alloc::string::String as core::fmt::Write>)'
+    check_symbols \
+        "$elf" \
+        "Rust formatting" \
+        "$rust_fmt_symbol_pattern" \
+        "Rust format!/write! formatting pulls in significant bootloader bloat." \
+        "Avoid Rust formatting in production bootloaders; use fixed-format helpers instead."
+
+    check_symbols \
+        "$elf" \
+        "Rust SHA-256" \
+        "sha26sha256|sha2::sha256::compress256" \
+        "The RustCrypto SHA-256 implementation pulls in significant production bootloader bloat." \
+        "Use the existing PUKCC SHA-256 implementation in production bootloaders instead."
+}
+
+firmware_elf=build/bin/firmware.elf
+if [[ -f "$firmware_elf" ]]; then
+    check_firmware "$firmware_elf"
+fi
+
+shopt -s nullglob
+for bootloader_elf in build/bin/*-bl-*-production.elf; do
+    check_production_bootloader "$bootloader_elf"
+done
+shopt -u nullglob
+
+if [[ "$checked" == 0 ]]; then
+    echo "No checked ELF files found in build/bin" >&2
+    exit 2
+fi
 
 exit "$failed"

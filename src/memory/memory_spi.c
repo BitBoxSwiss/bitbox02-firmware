@@ -8,6 +8,9 @@
 #include <rust/rust.h>
 #include <util.h>
 #include <utils_assert.h>
+#ifdef BOOTLOADER
+    #include <pukcc/pukcc.h>
+#endif
 
 bool memory_spi_get_active_ble_firmware(
     uint8_t** firmware_out,
@@ -32,7 +35,15 @@ bool memory_spi_get_active_ble_firmware(
             return false;
         }
         uint8_t fw_hash[32] = {0};
+#ifdef BOOTLOADER
+        if (pukcc_sha256_compute(*firmware_out, size, fw_hash) != 0) {
+            free(*firmware_out);
+            *firmware_out = NULL;
+            return false;
+        }
+#else
         rust_sha256(*firmware_out, size, fw_hash);
+#endif
         if (!MEMEQ(fw_hash, metadata.allowed_firmware_hash, 32)) {
             free(*firmware_out);
             *firmware_out = NULL;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "bootloader.h"
+#include "bootloader_format.h"
 #include "bootloader_version.h"
 #include "mpu_regions.h"
 #include "pac_ext.h"
@@ -313,10 +314,8 @@ static void _load_progress_bar(float progress)
 
 static void _render_message(const char* message, int duration)
 {
-    char print[100];
-    snprintf(print, sizeof(print), "%s", message);
     UG_ClearBuffer();
-    UG_PutString(0, 0, print);
+    UG_PutString(0, 0, message);
     UG_SendBuffer();
     delay_ms(duration);
 }
@@ -356,7 +355,7 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
     memcpy(&pairing_code_int, &bootloader_pairing_code_bytes[0], sizeof(pairing_code_int));
     pairing_code_int %= 1000000;
     char code_str[10] = {0};
-    snprintf(code_str, sizeof(code_str), "%06u", (unsigned)pairing_code_int);
+    bootloader_format_pairing_code(code_str, sizeof(code_str), pairing_code_int);
     UG_ClearBuffer();
     uint16_t check_width = IMAGE_DEFAULT_CHECKMARK_HEIGHT + IMAGE_DEFAULT_CHECKMARK_HEIGHT / 2 - 1;
     if (confirmed) {
@@ -379,7 +378,7 @@ static void _render_progress(float progress)
     _load_logo();
     if (progress > 0) {
         char label[5] = {0};
-        snprintf(label, sizeof(label), "%2d%%", (int)(100 * progress));
+        bootloader_format_progress(label, sizeof(label), progress);
         UG_PutString(0, SCREEN_HEIGHT - 9 * 2, label);
         _load_progress_bar(progress);
     } else {
@@ -412,20 +411,13 @@ static void _render_hash(const char* title, const uint8_t* hash)
     UG_S16 timer_str_width = 0;
     // 4 lines à 16 chars, 3 newline chars, one null terminator.
     char hash_multiline[4 * 16 + 3 + 1] = {0};
-    snprintf(
-        hash_multiline,
-        sizeof(hash_multiline),
-        "%.16s\n%.16s\n%.16s\n%.16s",
-        &hash_hex[0],
-        &hash_hex[16],
-        &hash_hex[32],
-        &hash_hex[48]);
+    bootloader_format_hash_multiline(hash_multiline, sizeof(hash_multiline), hash_hex);
 
     for (uint8_t i = 1; i <= seconds; i++) {
         UG_ClearBuffer();
         UG_PutString(0, 0, title);
 
-        snprintf(timer_buf, sizeof(timer_buf), "%ds", seconds - i);
+        bootloader_format_timer(timer_buf, sizeof(timer_buf), seconds - i);
         UG_MeasureString(&timer_str_width, NULL, timer_buf);
         UG_PutString(
             SCREEN_WIDTH - timer_str_width, SCREEN_HEIGHT - f_regular->char_height, timer_buf);
@@ -919,7 +911,7 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         len = _report_status(OP_STATUS_ERR_INVALID_CMD, output);
         _loading_ready = false;
         char msg[100];
-        snprintf(msg, 100, "Command: %u unknown", input[0]);
+        bootloader_format_unknown_command(msg, sizeof(msg), input[0]);
         _render_message(msg, 1000);
         break;
     }

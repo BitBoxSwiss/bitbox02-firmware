@@ -28,6 +28,17 @@ void util_zero(volatile void* dst, size_t len)
 #endif
 }
 
+void util_strlcpy(char* dst, const char* src, size_t dst_len)
+{
+    if (dst_len == 0) {
+        return;
+    }
+    size_t len = strlen(src);
+    size_t copy_len = MIN(len, dst_len - 1);
+    memcpy(dst, src, copy_len);
+    dst[copy_len] = '\0';
+}
+
 void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
     rust_util_uint8_to_hex(

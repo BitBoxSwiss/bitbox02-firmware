@@ -50,6 +50,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <stdbool.h>
+#include <string.h>
 #include <ui/oled/oled.h>
 #include <util.h>
 #include <utils_assert.h>
@@ -67,6 +68,16 @@ typedef struct {
 } ug_rotation_t;
 
 static ug_rotation_t rotation = {0};
+
+static void _copy_slice(char* out, size_t out_len, const char* start, size_t len)
+{
+    if (out_len == 0) {
+        return;
+    }
+    const size_t copy_len = MIN(len, out_len - 1);
+    memcpy(out, start, copy_len);
+    out[copy_len] = '\0';
+}
 
 static void _UG_PSet(UG_S16 x, UG_S16 y, UG_COLOR c)
 {
@@ -605,7 +616,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
     const char* start = str;
     for (c = str; *c != '\0'; c++) {
         if (*c == '\n') {
-            snprintf(line, sizeof(line), "%.*s", (int)(c - start), start);
+            _copy_slice(line, sizeof(line), start, (size_t)(c - start));
             _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1);
             *yout += calc_height_line;
             *yout += gui->char_v_space;
@@ -613,7 +624,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
             start = c + 1;
         }
     }
-    snprintf(line, sizeof(line), "%.*s", (int)(c - start), start);
+    _copy_slice(line, sizeof(line), start, (size_t)(c - start));
     _UG_PutString(0, 0, &calc_width_line, &calc_height_line, line, 0, 1);
     *yout += calc_height_line;
     *yout += gui->char_v_space;
@@ -772,12 +783,13 @@ void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, cons
     const char* start = str;
     for (c = str; *c != '\0'; c++) {
         if (*c == '\n' && current_line < UG_MAX_LINE_ROWS) {
-            snprintf(lines[current_line], sizeof(lines[current_line]), "%.*s", (int)(c - start), start);
+            _copy_slice(
+                lines[current_line], sizeof(lines[current_line]), start, (size_t)(c - start));
             current_line++;
             start = c + 1;
         }
     }
-    snprintf(lines[current_line], sizeof(lines[current_line]), "%.*s", (int)(c - start), start);
+    _copy_slice(lines[current_line], sizeof(lines[current_line]), start, (size_t)(c - start));
 
     // calculate the height of each line
     _UG_PutString(0, 0, NULL, &calc_height, "W", 0, 1);

@@ -5,6 +5,8 @@
 members = [
     "async_test",
     "bitbox-aes",
+    "bitbox-board-stm32u5a9j-dk",
+    "bitbox-board-stm32u5a9j-dk-sys",
     "bitbox-bytequeue",
     "bitbox-core-utils",
     "bitbox-da14531",
@@ -89,7 +91,7 @@ opt-level = 'z'
 # Set lto="thin" to get faster builds
 lto = true
 # Enabling debug assertions will increase binary size
-debug-assertions = false
+debug-assertions = true
 # Enabling overflow checks will increase binary size
 overflow-checks = false
 # Set to maximally 256 to compile more in parallel

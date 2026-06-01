@@ -53,12 +53,9 @@ void platform_init(void)
             #error "unknown product"
         #endif
     #else
-        // Currently we have one firmware for both BB02 and BB02_NOVA, and only the
-        // PRODUCT_BITBOX_MULTI/BTCONLY definitions apply. The PRODUCT_BITBOX_NOVA_MULTI/BTCONLY
-        // defs currently only apply in the bootloader, which we don't need here.
-        #if PRODUCT_BITBOX_MULTI == 1
+        #if (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_NOVA_MULTI == 1)
             #define PRODUCT_STRING_SUFFIX "multi"
-        #elif PRODUCT_BITBOX_BTCONLY == 1
+        #elif (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_NOVA_BTCONLY == 1)
             #define PRODUCT_STRING_SUFFIX "btconly"
         #elif PRODUCT_BITBOX02_FACTORYSETUP == 1
             // Dummy, not actually needed, but this file is currently needlessly compiled for

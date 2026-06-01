@@ -35,7 +35,7 @@
             0x03, /* bDescriptorType */                                                          \
             'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', \
             0, 'v', 0, 'a', 0, ' ', 0, 'F', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, 'r', 0, 'y', 0,
-#elif PRODUCT_BITBOX_BTCONLY == 1
+#elif PRODUCT_BITBOX_NOVA_BTCONLY == 1
     #define USB_DESC_BB02NOVA_IPRODUCT_STR_DESC                                                  \
         46, /* bLength */                                                                        \
             0x03, /* bDescriptorType */                                                          \

@@ -85,9 +85,10 @@ static size_t _api_info(uint8_t* buf)
     current++;
 
     // 1 byte edition code
-#if PRODUCT_BITBOX_MULTI == 1 || PRODUCT_BITBOX02_FACTORYSETUP == 1
+#if (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_NOVA_MULTI == 1) || \
+    (PRODUCT_BITBOX02_FACTORYSETUP == 1)
     *current = 0x00;
-#elif PRODUCT_BITBOX_BTCONLY == 1
+#elif (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_NOVA_BTCONLY == 1)
     *current = 0x01;
 #endif
     current++;

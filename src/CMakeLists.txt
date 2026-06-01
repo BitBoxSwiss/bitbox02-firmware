@@ -538,11 +538,11 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-nova.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-nova.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_U2F=1")
+  target_compile_definitions(firmware-nova.elf PRIVATE PRODUCT_BITBOX_NOVA_MULTI "APP_U2F=1")
   target_sources(firmware-nova.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(firmware-nova-btc.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-nova-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
+  target_compile_definitions(firmware-nova-btc.elf PRIVATE PRODUCT_BITBOX_NOVA_BTCONLY "APP_U2F=0")
   target_sources(firmware-nova-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)

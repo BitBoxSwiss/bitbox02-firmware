@@ -127,7 +127,7 @@ USE_RESULT uint8_t memory_get_screen_type(void);
 USE_RESULT uint8_t memory_get_securechip_type(void);
 
 #define MEMORY_PLATFORM_BITBOX02 0xFF
-#define MEMORY_PLATFORM_BITBOX02_PLUS 0x01
+#define MEMORY_PLATFORM_BITBOX02_NOVA 0x01
 USE_RESULT uint8_t memory_get_platform(void);
 
 // data must be at least MEMORY_BLE_BOND_DB_LEN long

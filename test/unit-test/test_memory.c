@@ -379,12 +379,12 @@ static void _test_memory_reset_hww(void** state)
 
 static void _test_memory_reset_hww_ble(void** state)
 {
-    // Make the platform BitBox02 Plus so that the BLE branch in
+    // Make the platform BitBox02 Nova so that the BLE branch in
     // memory_reset_hww() is executed.
     EMPTYCHUNK(empty_shared_chunk);
     chunk_shared_t shared_chunk = {0};
     memcpy(shared_chunk.bytes, empty_shared_chunk, CHUNK_SIZE);
-    shared_chunk.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    shared_chunk.fields.platform = MEMORY_PLATFORM_BITBOX02_NOVA;
 
     // First shared bootdata read is used by memory_get_platform()
     will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk.bytes);
@@ -402,7 +402,7 @@ static void _test_memory_reset_hww_ble(void** state)
     // Second shared bootdata read is used inside the BLE branch of memory_reset_hww()
     chunk_shared_t shared_chunk2 = {0};
     memcpy(shared_chunk2.bytes, empty_shared_chunk, CHUNK_SIZE);
-    shared_chunk2.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    shared_chunk2.fields.platform = MEMORY_PLATFORM_BITBOX02_NOVA;
     will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk2.bytes);
 
     // Build expected shared chunk after BLE re-initialization
@@ -460,7 +460,7 @@ static void _test_memory_get_device_name_default_bluetooth(void** state)
     EMPTYCHUNK(empty_shared_chunk);
     chunk_shared_t shared_chunk = {0};
     memcpy(shared_chunk.bytes, empty_shared_chunk, CHUNK_SIZE);
-    shared_chunk.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    shared_chunk.fields.platform = MEMORY_PLATFORM_BITBOX02_NOVA;
     will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk.bytes);
 
     will_return(__wrap_random_32_bytes_mcu, entropy);

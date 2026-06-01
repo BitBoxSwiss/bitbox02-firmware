@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef _USB_DESC_BITBOX02_PLUS_H_
-#define _USB_DESC_BITBOX02_PLUS_H_
+#ifndef _USB_DESC_BITBOX02_NOVA_H_
+#define _USB_DESC_BITBOX02_NOVA_H_
 
 #include "usb_desc_common.h"
 #include "usb_size.h"
@@ -14,15 +14,15 @@
 #endif
 
 #if defined(BOOTLOADER)
-    #if PRODUCT_BITBOX_PLUS_BTCONLY == 1
-        #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                             \
+    #if PRODUCT_BITBOX_NOVA_BTCONLY == 1
+        #define USB_DESC_BB02NOVA_IPRODUCT_STR_DESC                                             \
             52, /* bLength */                                                                   \
                 0x03, /* bDescriptorType */                                                     \
                 'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, \
                 'o', 0, 'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, \
                 'l', 0, 'y', 0, ' ', 0, 'b', 0, 'l', 0,
     #else
-        #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                             \
+        #define USB_DESC_BB02NOVA_IPRODUCT_STR_DESC                                             \
             46, /* bLength */                                                                   \
                 0x03, /* bDescriptorType */                                                     \
                 'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, \
@@ -30,34 +30,34 @@
                 'b', 0, 'l', 0,
     #endif
 #elif FACTORYSETUP == 1
-    #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                  \
+    #define USB_DESC_BB02NOVA_IPRODUCT_STR_DESC                                                  \
         44, /* bLength */                                                                        \
             0x03, /* bDescriptorType */                                                          \
             'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', \
             0, 'v', 0, 'a', 0, ' ', 0, 'F', 0, 'a', 0, 'c', 0, 't', 0, 'o', 0, 'r', 0, 'y', 0,
 #elif PRODUCT_BITBOX_BTCONLY == 1
-    #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                  \
+    #define USB_DESC_BB02NOVA_IPRODUCT_STR_DESC                                                  \
         46, /* bLength */                                                                        \
             0x03, /* bDescriptorType */                                                          \
             'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', \
             0, 'v', 0, 'a', 0, ' ', 0, 'B', 0, 'T', 0, 'C', 0, '-', 0, 'o', 0, 'n', 0, 'l', 0,   \
             'y', 0,
 #else
-    #define USB_DESC_BB02PLUS_IPRODUCT_STR_DESC                                                  \
+    #define USB_DESC_BB02NOVA_IPRODUCT_STR_DESC                                                  \
         40, /* bLength */                                                                        \
             0x03, /* bDescriptorType */                                                          \
             'B', 0, 'i', 0, 't', 0, 'B', 0, 'o', 0, 'x', 0, '0', 0, '2', 0, ' ', 0, 'N', 0, 'o', \
             0, 'v', 0, 'a', 0, ' ', 0, 'M', 0, 'u', 0, 'l', 0, 't', 0, 'i', 0,
 #endif
 
-#define USB_STR_DESC_BB02PLUS           \
+#define USB_STR_DESC_BB02NOVA           \
     USB_DESC_LANGID_DESC                \
     USB_DESC_IMANUFACT_STR_DESC         \
-    USB_DESC_BB02PLUS_IPRODUCT_STR_DESC \
+    USB_DESC_BB02NOVA_IPRODUCT_STR_DESC \
     USB_DESC_ISERIALNUM_STR_DESC
 
-#define USB_DESC_BB02PLUS_HWW_REPORT_LEN 34
-#define USB_DESC_BB02PLUS_HWW_REPORT                               \
+#define USB_DESC_BB02NOVA_HWW_REPORT_LEN 34
+#define USB_DESC_BB02NOVA_HWW_REPORT                               \
     0x06, 0xff, 0xff, /* USAGE_PAGE (Vendor Defined) */            \
         0x09, 0x01, /* USAGE (HID Generic Device) */               \
         0xa1, 0x01, /* COLLECTION (Application) */ /* In Report */ \
@@ -75,16 +75,16 @@
         0x91, 0x02, /* OUTPUT (Data,Var,Abs) */                    \
         0xc0 /* END_COLLECTION */
 
-//  ** If add an interface, adjust USB_DESC_BB02PLUS_WTOTALLEN **
-// TODO: USB_DESC_BB02PLUS_D_MAX_EP_N doesn't exist, but there is CONF_USB_D_NUM_EP_SP
+//  ** If add an interface, adjust USB_DESC_BB02NOVA_WTOTALLEN **
+// TODO: USB_DESC_BB02NOVA_D_MAX_EP_N doesn't exist, but there is CONF_USB_D_NUM_EP_SP
 // (= supported endpoints) - is that the one that needs to change?
-//  ** If add more endpoints, adjust USB_DESC_BB02PLUS_D_MAX_EP_N  **
+//  ** If add more endpoints, adjust USB_DESC_BB02NOVA_D_MAX_EP_N  **
 #if APP_U2F == 0
-    #define USB_DESC_BB02PLUS_FS \
-        USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_STR_DESC_BB02PLUS
+    #define USB_DESC_BB02NOVA_FS \
+        USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_STR_DESC_BB02NOVA
 #else
-    #define USB_DESC_BB02PLUS_FS \
-        USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_U2F, USB_STR_DESC_BB02PLUS
+    #define USB_DESC_BB02NOVA_FS \
+        USB_DEV_DESC, USB_DESC_CONFIG, USB_DESC_IFACE_HWW, USB_DESC_IFACE_U2F, USB_STR_DESC_BB02NOVA
 #endif
 
 #endif

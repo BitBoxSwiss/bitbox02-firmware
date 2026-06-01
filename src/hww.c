@@ -48,9 +48,9 @@ typedef struct {
  * 1 byte: platform code:
  * - 0x00 - BitBox02
  * - 0x01 - BitBoxBase (deprecated)
- * - 0x02 - BitBox02Plus
+ * - 0x02 - BitBox02Nova
  * 1 byte: edition code:
- * - For the BitBox02 and BitBox02Plus edition:
+ * - For the BitBox02 and BitBox02Nova edition:
  * - - 0x00 - Multi
  * - - 0x01 - Bitcoin-only
  * - For the BitBoxBase platform (deprecated):
@@ -75,7 +75,7 @@ static size_t _api_info(uint8_t* buf)
 
     // 1 byte platform code
     switch (memory_get_platform()) {
-    case MEMORY_PLATFORM_BITBOX02_PLUS:
+    case MEMORY_PLATFORM_BITBOX02_NOVA:
         *current = 0x02;
         break;
     default:

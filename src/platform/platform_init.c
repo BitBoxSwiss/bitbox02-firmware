@@ -28,7 +28,7 @@ void platform_init(void)
 {
     oled_init();
 #if !(defined(BOOTLOADER) && PLATFORM_BITBOX02 == 1)
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         uart_init();
     }
 #endif
@@ -38,23 +38,23 @@ void platform_init(void)
 #if !defined(BOOTLOADER)
     sd_mmc_start();
 #endif
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         spi_mem_protected_area_lock();
     }
 }
 
-#if !(defined(BOOTLOADER) && PLATFORM_BITBOX02PLUS == 0)
+#if !(defined(BOOTLOADER) && PLATFORM_BITBOX02NOVA == 0)
     #if defined(BOOTLOADER)
-        #if PRODUCT_BITBOX_PLUS_MULTI == 1
+        #if PRODUCT_BITBOX_NOVA_MULTI == 1
             #define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"" BOOTLOADER_VERSION "\"}"
-        #elif PRODUCT_BITBOX_PLUS_BTCONLY == 1
+        #elif PRODUCT_BITBOX_NOVA_BTCONLY == 1
             #define DEVICE_MODE "{\"p\":\"bb02p-bl-btconly\",\"v\":\"" BOOTLOADER_VERSION "\"}"
         #else
             #error "unknown product"
         #endif
     #else
-        // Currently we have one firmware for both BB02 and BB02_PLUS, and only the
-        // PRODUCT_BITBOX_MULTI/BTCONLY definitions apply. The PRODUCT_BITBOX_PLUS_MULTI/BTCONLY
+        // Currently we have one firmware for both BB02 and BB02_NOVA, and only the
+        // PRODUCT_BITBOX_MULTI/BTCONLY definitions apply. The PRODUCT_BITBOX_NOVA_MULTI/BTCONLY
         // defs currently only apply in the bootloader, which we don't need here.
         #if PRODUCT_BITBOX_MULTI == 1
             #define PRODUCT_STRING_SUFFIX "multi"

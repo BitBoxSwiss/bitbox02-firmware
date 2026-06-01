@@ -18,7 +18,7 @@ import semver
 from .devices import parse_device_version, DeviceInfo
 
 from .communication import TransportLayer
-from .devices import BITBOX02MULTI, BITBOX02BTC, BITBOX02PLUS_MULTI, BITBOX02PLUS_BTC
+from .devices import BITBOX02MULTI, BITBOX02BTC, BITBOX02NOVA_MULTI, BITBOX02NOVA_BTC
 
 try:
     from .generated import hww_pb2 as hww
@@ -202,7 +202,7 @@ class Platform(enum.Enum):
     """Available hardware platforms"""
 
     BITBOX02 = "bitbox02"
-    BITBOX02PLUS = "bitbox02-plus"
+    BITBOX02NOVA = "bitbox02-plus"
     BITBOX03 = "bitbox03"
 
 
@@ -563,9 +563,9 @@ class BitBoxCommonAPI:
 
         if device_info is not None:
             version = device_info["serial_number"]
-            if device_info["product_string"] in (BITBOX02MULTI, BITBOX02PLUS_MULTI):
+            if device_info["product_string"] in (BITBOX02MULTI, BITBOX02NOVA_MULTI):
                 edition = BitBox02Edition.MULTI
-            elif device_info["product_string"] in (BITBOX02BTC, BITBOX02PLUS_BTC):
+            elif device_info["product_string"] in (BITBOX02BTC, BITBOX02NOVA_BTC):
                 edition = BitBox02Edition.BTCONLY
             else:
                 raise Exception("Invalid product string")
@@ -715,13 +715,13 @@ class BitBoxCommonAPI:
         platform_byte, response = response[0], response[1:]
         platform = {
             0x00: Platform.BITBOX02,
-            0x02: Platform.BITBOX02PLUS,
+            0x02: Platform.BITBOX02NOVA,
             0x03: Platform.BITBOX03,
         }[platform_byte]
 
         edition_byte, response = response[0], response[1:]
         edition: Union[BitBox02Edition]
-        if platform in (Platform.BITBOX02, Platform.BITBOX02PLUS, Platform.BITBOX03):
+        if platform in (Platform.BITBOX02, Platform.BITBOX02NOVA, Platform.BITBOX03):
             edition = {0x00: BitBox02Edition.MULTI, 0x01: BitBox02Edition.BTCONLY}[edition_byte]
         else:
             raise Exception("Unknown platform: {}".format(platform))

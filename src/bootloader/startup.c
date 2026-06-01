@@ -14,11 +14,11 @@
 #include <usb/class/hid/hww/hid_hww.h>
 #include <usb/usb_processing.h>
 
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02NOVA == 1
     #include <qtouch.h>
 #endif
 
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
     #include <da14531/da14531.h>
     #include <da14531/da14531_handler.h>
     #include <da14531/da14531_protocol.h>
@@ -26,14 +26,14 @@
     #include <memory/memory_shared.h>
     #include <uart.h>
 
-    #if PRODUCT_BITBOX_PLUS_MULTI == 1
+    #if PRODUCT_BITBOX_NOVA_MULTI == 1
         #define DEVICE_MODE "{\"p\":\"bb02p-bl-multi\",\"v\":\"" BOOTLOADER_VERSION "\"}"
-    #elif PRODUCT_BITBOX_PLUS_BTCONLY == 1
+    #elif PRODUCT_BITBOX_NOVA_BTCONLY == 1
         #define DEVICE_MODE "{\"p\":\"bb02p-bl-btconly\",\"v\":\"" BOOTLOADER_VERSION "\"}"
     #else
         #error "unknown product"
     #endif
-#endif // PLATFORM_BITBOX02PLUS == 1
+#endif // PLATFORM_BITBOX02NOVA == 1
 
 extern void __attribute__((noreturn)) __stack_chk_fail(void);
 void __attribute__((noreturn)) __stack_chk_fail(void)
@@ -45,7 +45,7 @@ void __attribute__((noreturn)) __stack_chk_fail(void)
 
 uint32_t __stack_chk_guard = 0;
 
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
 extern volatile bool measurement_done_touch;
 int bootloader_pairing_request = false;
 uint8_t bootloader_pairing_code_bytes[4] = {0};
@@ -69,7 +69,7 @@ int main(void)
     platform_init();
     __stack_chk_guard = rand_sync_read32(&RAND_0);
     screen_init(oled_set_pixel, oled_mirror, oled_clear_buffer);
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02NOVA == 1
     qtouch_init();
 #endif
     bootloader_jump();
@@ -79,7 +79,7 @@ int main(void)
     uint8_t hww_data_buf[USB_REPORT_SIZE] = {0};
     USB_FRAME hww_frame = {0};
 
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
     uint8_t uart_read_buf[USART_0_BUFFER_SIZE] = {0};
     uint16_t uart_read_buf_len = 0;
 
@@ -117,7 +117,7 @@ int main(void)
 
     while (1) {
         // Do UART I/O
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
         if (rust_communication_mode_ble_enabled()) {
             if (uart_read_buf_len < sizeof(uart_read_buf) ||
                 rust_bytequeue_num(uart_write_queue) > 0) {
@@ -134,7 +134,7 @@ int main(void)
         }
         if (!hww_data && hid_hww_read((uint8_t*)&hww_frame)) {
             usb_packet_process(&hww_frame);
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
             if (rust_communication_mode_ble_enabled()) {
                 // Enqueue a power down command to the da14531
                 rust_da14531_power_down(uart_write_queue);
@@ -147,7 +147,7 @@ int main(void)
             }
 #endif
         }
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
         if (rust_communication_mode_ble_enabled()) {
             struct da14531_protocol_frame* frame = da14531_protocol_poll(
                 &uart_read_buf[0], &uart_read_buf_len, &hww_data, uart_write_queue);
@@ -159,7 +159,7 @@ int main(void)
         }
 #endif
 
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
         if (!rust_communication_mode_ble_enabled()) {
 #endif
             if (hww_data) {
@@ -167,12 +167,12 @@ int main(void)
                     hww_data = NULL;
                 }
             }
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
         }
 #endif
         usb_processing_process(usb_processing_hww());
 
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
         qtouch_process();
         if (bootloader_pairing_request) {
             if (!measurement_done_touch) {

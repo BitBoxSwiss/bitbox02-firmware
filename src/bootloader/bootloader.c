@@ -26,12 +26,12 @@
 #include <usb/usb_processing.h>
 #include <util.h>
 
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02NOVA == 1
     #include <memory/memory_spi.h>
     #include <qtouch/qtouch.h>
 #endif
 
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
     #include <da14531/da14531.h>
     #include <da14531/da14531_protocol.h>
     #include <uart.h>
@@ -133,7 +133,7 @@ static const uint8_t _empty_bare_flash_hash[SHA256_DIGEST_LENGTH] = {
     #error "FLASH_APP_LEN changed; recompute _empty_bare_flash_hash"
 #endif
 
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
 extern struct RustByteQueue* uart_write_queue;
 #endif
 
@@ -180,7 +180,7 @@ static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] 
         0xf0, 0xca, 0xde, 0x45, 0xd6, 0x1c, 0x51, 0x4d, 0x86, 0x09, 0xfc, 0xa7, 0x64, 0x1c, 0x9e, 0xe2,
     }
 };
-#elif PRODUCT_BITBOX_PLUS_BTCONLY == 1
+#elif PRODUCT_BITBOX_NOVA_BTCONLY == 1
 static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
     {
         0x42, 0xeb, 0x2f, 0xfa, 0x68, 0xd8, 0xc4, 0x62, 0x5a, 0x01, 0x2b, 0x46, 0x7f, 0x04, 0x4a, 0xfc,
@@ -201,7 +201,7 @@ static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] 
         0x1d, 0xc3, 0xd6, 0x6b, 0xc5, 0x51, 0x54, 0x67, 0xba, 0xb1, 0xc1, 0xcb, 0x24, 0x48, 0xa8, 0x7a,
     }
 };
-#elif PRODUCT_BITBOX_PLUS_MULTI == 1
+#elif PRODUCT_BITBOX_NOVA_MULTI == 1
 static const uint8_t _root_pubkeys[BOOT_NUM_ROOT_SIGNING_KEYS][BOOT_PUBKEY_LEN] = { // order is important
     {
         0x5e, 0x1b, 0x09, 0x1c, 0x8f, 0x71, 0x15, 0xaf, 0xd3, 0x3c, 0x0b, 0x72, 0xe4, 0x4b, 0x3e, 0xd0,
@@ -324,7 +324,7 @@ void bootloader_render_default_screen(void)
 {
     UG_ClearBuffer();
     _load_logo();
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
     UG_PutString(0, SCREEN_HEIGHT - 9 * 2 - 5, "See the BitBoxApp");
     if (rust_communication_mode_ble_enabled() &&
         da14531_connected_state < DA14531_CONNECTED_CONNECTED_SECURED) {
@@ -343,7 +343,7 @@ void bootloader_render_default_screen(void)
     UG_SendBuffer();
 }
 
-#if PLATFORM_BITBOX02PLUS
+#if PLATFORM_BITBOX02NOVA
 extern bool bootloader_pairing_request;
 extern uint8_t bootloader_pairing_code_bytes[4];
 
@@ -878,7 +878,7 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
         break;
 
     case OP_REBOOT: {
-#if PLATFORM_BITBOX02PLUS == 1
+#if PLATFORM_BITBOX02NOVA == 1
         rust_da14531_set_product(rust_util_bytes(NULL, 0), uart_write_queue);
         //  Send it now, because we are about to reset ourselves
         while (rust_bytequeue_num(uart_write_queue)) {
@@ -1003,7 +1003,7 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     } else {
         UG_PutString(0, SCREEN_HEIGHT - 9, "    No firmware found");
     }
-    #if PLATFORM_BITBOX02PLUS == 1
+    #if PLATFORM_BITBOX02NOVA == 1
     struct da14531_firmware_version version;
     bool res = memory_spi_get_active_ble_firmware_version(&version);
     if (res) {

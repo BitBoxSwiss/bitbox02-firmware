@@ -1002,7 +1002,7 @@ static void _api_msg(const uint8_t* input, size_t in_len, uint8_t* output, size_
         _reset_mcu();
         break;
     case OP_BLE_RESULT:
-        if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
             output[2] = _ble_result;
             out_len++;
         } else {
@@ -1172,7 +1172,7 @@ int main(void)
         }
     }
 
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         _ble_result = _setup_ble();
     }
 

@@ -36,7 +36,7 @@ int main(void)
     qtouch_init();
     common_main();
     bitbox02_smarteeprom_init();
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         da14531_protocol_init();
     }
     rust_main_loop();

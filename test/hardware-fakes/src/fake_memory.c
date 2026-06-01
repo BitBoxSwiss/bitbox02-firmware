@@ -70,7 +70,7 @@ bool fake_memory_nova(void)
 {
     chunk_shared_t shared = {0};
     memory_read_shared_bootdata_fake(shared.bytes);
-    shared.fields.platform = MEMORY_PLATFORM_BITBOX02_PLUS;
+    shared.fields.platform = MEMORY_PLATFORM_BITBOX02_NOVA;
     shared.fields.securechip_type = MEMORY_SECURECHIP_TYPE_OPTIGA;
     if (!memory_write_to_address_fake(FLASH_SHARED_DATA_START, 0, shared.bytes)) {
         return false;

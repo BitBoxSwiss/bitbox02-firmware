@@ -14,8 +14,8 @@ import sys
 MAGIC_LEN = 4
 MAGIC_MULTI = struct.pack(">I", 0x653F362B)
 MAGIC_BTCONLY = struct.pack(">I", 0x11233B0B)
-MAGIC_BITBOX02PLUS_MULTI = struct.pack(">I", 0x5B648CEB)
-MAGIC_BITBOX02PLUS_BTCONLY = struct.pack(">I", 0x48714774)
+MAGIC_BITBOX02NOVA_MULTI = struct.pack(">I", 0x5B648CEB)
+MAGIC_BITBOX02NOVA_BTCONLY = struct.pack(">I", 0x48714774)
 
 MAX_FIRMWARE_SIZE = 884736
 NUM_ROOT_KEYS = 3
@@ -49,9 +49,9 @@ def main() -> int:
         print("This is a BitBox02 Multi firmware.")
     elif magic == MAGIC_BTCONLY:
         print("This is a BitBox02 Bitcoin-only firmware.")
-    elif magic == MAGIC_BITBOX02PLUS_MULTI:
+    elif magic == MAGIC_BITBOX02NOVA_MULTI:
         print("This is a BitBox02 Nova Multi firmware")
-    elif magic == MAGIC_BITBOX02PLUS_BTCONLY:
+    elif magic == MAGIC_BITBOX02NOVA_BTCONLY:
         print("This is a BitBox02 Nova Bitcoin-only firmware.")
     else:
         print(

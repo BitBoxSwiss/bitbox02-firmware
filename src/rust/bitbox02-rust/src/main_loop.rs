@@ -170,7 +170,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
 
         if STARTUP_COMPLETE.swap(false, Ordering::Relaxed) {
             // hww handler in usb_process must be setup before we can allow ble connections
-            if let Ok(crate::hal::memory::Platform::BitBox02Plus) = hal.memory().get_platform() {
+            if let Ok(crate::hal::memory::Platform::BitBox02Nova) = hal.memory().get_platform() {
                 let product = bitbox02::platform::product();
                 bitbox02::da14531_handler::set_product(product);
                 bitbox_da14531::set_product(product, &mut uart_write_queue)

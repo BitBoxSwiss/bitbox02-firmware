@@ -263,7 +263,7 @@ void memory_get_device_name(char* name_out)
     _read_chunk(CHUNK_1, chunk_bytes);
     if (chunk.fields.device_name[0] == 0xFF ||
         !rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
-        if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+        if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
             // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
             // identified if multiple BitBoxes are advertising at the same time.
             memory_random_name(name_out);
@@ -383,7 +383,7 @@ bool memory_reset_hww(void)
     bool res = _write_chunk(CHUNK_1, chunk.bytes);
 
     // Reset bond-db and reinitialize IRK and identity address
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         uint8_t random_bytes[32];
         _interface_functions->random_32_bytes(&random_bytes[0]);
         chunk_shared_t chunk_shared = {0};

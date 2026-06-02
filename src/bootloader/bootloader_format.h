@@ -36,6 +36,18 @@ void bootloader_format_hash_multiline(char* out, size_t out_len, const char* has
 void bootloader_format_timer(char* out, size_t out_len, uint8_t seconds);
 
 /**
+ * Format the BLE firmware version line shown in the dev bootloader menu.
+ *
+ * The first four hash bytes are printed. out_len must be at least
+ * sizeof("ble: 65535 (00112233)").
+ */
+void bootloader_format_ble_firmware_version(
+    char* out,
+    size_t out_len,
+    uint16_t version,
+    const uint8_t* hash);
+
+/**
  * Format an unknown bootloader command message.
  *
  * out_len must be at least sizeof("Command: 255 unknown").

@@ -1007,8 +1007,8 @@ static bool _devdevice_enter(secbool_u32 firmware_verified)
     struct da14531_firmware_version version;
     bool res = memory_spi_get_active_ble_firmware_version(&version);
     if (res) {
-        char buf[50];
-        snprintf(buf, sizeof(buf), "ble: %d (%s)", version.version, util_dbg_hex(version.hash, 4));
+        char buf[sizeof("ble: 65535 (00112233)")];
+        bootloader_format_ble_firmware_version(buf, sizeof(buf), version.version, version.hash);
         UG_PutString(0, SCREEN_HEIGHT - 18, buf);
     }
     #endif

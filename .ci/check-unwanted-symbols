@@ -63,7 +63,7 @@ check_firmware() {
         "Use integer arithmetic in firmware code instead."
 }
 
-check_production_bootloader() {
+check_bootloader() {
     local elf=$1
     checked=1
 
@@ -74,7 +74,7 @@ check_production_bootloader() {
         "stdio formatting" \
         "$printf_symbol_pattern" \
         "snprintf/printf pulls in significant bootloader bloat." \
-        "Avoid stdio formatting in production bootloaders; use fixed-format helpers instead."
+        "Avoid stdio formatting in bootloaders; use fixed-format helpers instead."
 
     local rust_fmt_symbol_pattern
     rust_fmt_symbol_pattern='(^|[[:space:]])(alloc::fmt::|core::fmt::|<alloc::string::String as core::fmt::Write>)'
@@ -83,14 +83,14 @@ check_production_bootloader() {
         "Rust formatting" \
         "$rust_fmt_symbol_pattern" \
         "Rust format!/write! formatting pulls in significant bootloader bloat." \
-        "Avoid Rust formatting in production bootloaders; use fixed-format helpers instead."
+        "Avoid Rust formatting in bootloaders; use fixed-format helpers instead."
 
     check_symbols \
         "$elf" \
         "Rust SHA-256" \
         "sha26sha256|sha2::sha256::compress256" \
-        "The RustCrypto SHA-256 implementation pulls in significant production bootloader bloat." \
-        "Use the existing PUKCC SHA-256 implementation in production bootloaders instead."
+        "The RustCrypto SHA-256 implementation pulls in significant bootloader bloat." \
+        "Use the existing PUKCC SHA-256 implementation in bootloaders instead."
 }
 
 firmware_elf=build/bin/firmware.elf
@@ -99,8 +99,8 @@ if [[ -f "$firmware_elf" ]]; then
 fi
 
 shopt -s nullglob
-for bootloader_elf in build/bin/*-bl-*-production.elf; do
-    check_production_bootloader "$bootloader_elf"
+for bootloader_elf in build/bin/bb02-bl-*.elf build/bin/bb02p-bl-*.elf; do
+    check_bootloader "$bootloader_elf"
 done
 shopt -u nullglob
 

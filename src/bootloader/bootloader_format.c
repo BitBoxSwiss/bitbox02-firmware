@@ -4,6 +4,7 @@
 
 #include <rust/rust.h>
 #include <string.h>
+#include <util.h>
 #include <utils_assert.h>
 
 void bootloader_format_pairing_code(char* out, size_t out_len, uint32_t pairing_code)
@@ -38,6 +39,25 @@ void bootloader_format_timer(char* out, size_t out_len, uint8_t seconds)
         rust_format_uint(rust_util_bytes_mut((uint8_t*)out, out_len - 1), seconds, 1, '0');
     out[out_pos++] = 's';
     out[out_pos] = '\0';
+}
+
+void bootloader_format_ble_firmware_version(
+    char* out,
+    size_t out_len,
+    uint16_t version,
+    const uint8_t* hash)
+{
+    ASSERT(out_len >= sizeof("ble: 65535 (00112233)"));
+
+    util_strlcpy(out, "ble: ", out_len);
+    size_t out_pos = strlen(out);
+    out_pos += rust_format_uint(
+        rust_util_bytes_mut((uint8_t*)&out[out_pos], out_len - out_pos), version, 1, '0');
+    util_strlcpy(&out[out_pos], " (", out_len - out_pos);
+    out_pos = strlen(out);
+    util_uint8_to_hex(hash, 4, &out[out_pos]);
+    out_pos += 8;
+    util_strlcpy(&out[out_pos], ")", out_len - out_pos);
 }
 
 void bootloader_format_unknown_command(char* out, size_t out_len, uint8_t command)

@@ -2810,21 +2810,19 @@ mod tests {
                 let next = extract_next(&response);
                 match NextType::try_from(next.r#type).unwrap() {
                     NextType::Output => unsafe { PASS2 = true },
-                    NextType::Input => {
-                        if unsafe { PASS2 } {
-                            unsafe { PASS2_INPUT_REQUESTS_COUNTER += 1 }
-                            if next.index == 0 {
-                                let mut input = tx.inputs[next.index as usize].input.clone();
-                                // Amount in first input in pass2 is bigger than the the sum of all
-                                // inputs in the first pass, which fails immediately.
-                                input.prev_out_value = tx
-                                    .inputs
-                                    .iter()
-                                    .map(|inp| inp.input.prev_out_value)
-                                    .sum::<u64>()
-                                    + 1;
-                                return Ok(Request::BtcSignInput(input));
-                            }
+                    NextType::Input if unsafe { PASS2 } => {
+                        unsafe { PASS2_INPUT_REQUESTS_COUNTER += 1 }
+                        if next.index == 0 {
+                            let mut input = tx.inputs[next.index as usize].input.clone();
+                            // Amount in first input in pass2 is bigger than the the sum of all
+                            // inputs in the first pass, which fails immediately.
+                            input.prev_out_value = tx
+                                .inputs
+                                .iter()
+                                .map(|inp| inp.input.prev_out_value)
+                                .sum::<u64>()
+                                + 1;
+                            return Ok(Request::BtcSignInput(input));
                         }
                     }
                     _ => {}
@@ -2856,15 +2854,13 @@ mod tests {
                 let next = extract_next(&response);
                 match NextType::try_from(next.r#type).unwrap() {
                     NextType::Output => unsafe { PASS2 = true },
-                    NextType::Input => {
-                        if unsafe { PASS2 } {
-                            unsafe { PASS2_INPUT_REQUESTS_COUNTER += 1 }
-                            if next.index == 0 {
-                                let mut input = tx.inputs[next.index as usize].input.clone();
-                                // errors even if we decrease the amount
-                                input.prev_out_value -= 1;
-                                return Ok(Request::BtcSignInput(input));
-                            }
+                    NextType::Input if unsafe { PASS2 } => {
+                        unsafe { PASS2_INPUT_REQUESTS_COUNTER += 1 }
+                        if next.index == 0 {
+                            let mut input = tx.inputs[next.index as usize].input.clone();
+                            // errors even if we decrease the amount
+                            input.prev_out_value -= 1;
+                            return Ok(Request::BtcSignInput(input));
                         }
                     }
                     _ => {}

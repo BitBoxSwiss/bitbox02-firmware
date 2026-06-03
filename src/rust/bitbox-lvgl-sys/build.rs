@@ -245,6 +245,7 @@ fn main() -> Result<(), &'static str> {
         format!("-DLV_CONF_PATH=\"{}\"", lv_conf.display()),
         "-DLV_CONF_INCLUDE_SIMPLE".to_owned(),
     ];
+    let bindgen_clang_args = cflags.to_vec();
 
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set")).join("bindings.rs");
 
@@ -269,5 +270,5 @@ fn main() -> Result<(), &'static str> {
         fonts.flag(flag);
     }
     fonts.compile("lvgl_fonts");
-    run_bindgen(&wrapper, &out_path, &cflags)
+    run_bindgen(&wrapper, &out_path, &bindgen_clang_args)
 }

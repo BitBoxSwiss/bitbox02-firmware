@@ -27,8 +27,10 @@ for the current scope.
 Run regular Unix commands such as `git`, `rg`, `grep`, `ls`, `find`, `sed`, and `cat` directly on
 the host.
 
-Cargo commands for the Rust workspace, such as `cargo test`, `cargo check`, and `cargo clippy`, may
-also be run directly on the host by passing `--manifest-path src/rust/Cargo.toml`.
+Cargo commands for the Rust workspace must be invoked through `./scripts/cargo-wrapper`, e.g.
+`./scripts/cargo-wrapper test`, `./scripts/cargo-wrapper check`, or
+`./scripts/cargo-wrapper clippy`. They may be run directly on the host by passing
+`--manifest-path src/rust/Cargo.toml`.
 
 Use `./scripts/dev_exec.sh <command>` only for project-specific commands that depend on the project
 toolchain or compiler environment.
@@ -46,13 +48,15 @@ an explicit shell as the command, e.g. `./scripts/dev_exec.sh bash -lc 'cat vers
 - `make run-rust-clippy`: lint Rust code with the workspace configuration.
 - When invoking the above `make` targets from the host, prefer
   `./scripts/dev_exec.sh make <target>`.
-- Rust workspace commands may also be run directly with `cargo`, without `./scripts/dev_exec.sh`:
+- Rust workspace commands may also be run directly with `./scripts/cargo-wrapper`, without
+  `./scripts/dev_exec.sh`:
   -  From the repository root on the host, use
-     `cargo test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
+     `./scripts/cargo-wrapper test --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features -- --test-threads 1`.
   -  For checks, use
-     `cargo check --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features`.
-  -  If you modify `messages/*.proto`, run `make generate-protobufs` before direct Rust `cargo`
-     commands. Plain `cargo test`/`cargo check` does not regenerate the protobuf outputs.
+     `./scripts/cargo-wrapper check --manifest-path src/rust/Cargo.toml [ -p <crate> ] --all-features`.
+  -  If you modify `messages/*.proto`, run `make generate-protobufs` before direct Rust workspace
+     commands. Plain `./scripts/cargo-wrapper test`/`./scripts/cargo-wrapper check` does not
+     regenerate the protobuf outputs.
 
 You may use `make -j$(nproc)` to speed up compilation. Do not use `make -j` without specfiying the
 number of processing units.
@@ -72,13 +76,15 @@ bindings (`cbindgen`, protobuf) when interfaces change. When changing protobuf i
 * For C code changes, run `./scripts/dev_exec.sh ./scripts/format` to format the code.
 * For Python changes, run `./scripts/dev_exec.sh ./scripts/format-python` to format the code.
 * For Rust code changes, run
-  `./scripts/dev_exec.sh cargo fmt --manifest-path src/rust/Cargo.toml --all` to format the code.
+  `./scripts/dev_exec.sh ./scripts/cargo-wrapper fmt --manifest-path src/rust/Cargo.toml --all`
+  to format the code.
 
 ## Testing Guidelines
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware
 behavior is mocked; follow the `test_<feature>.c` naming pattern and update CMake lists. Rust crates
 use standard `tests/` modules or `#[cfg(test)]` blocks. Before opening a PR, run both `make
-run-unit-tests` and `cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1`,
+run-unit-tests` and
+`./scripts/cargo-wrapper test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1`,
 and refresh `make coverage` for cryptography or security-sensitive areas.
 
 - in Rust unit tests, prefer .unwrap() over .expect().

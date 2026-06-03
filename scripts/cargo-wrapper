@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+target="${CARGO_BUILD_TARGET:-${TARGET:-}}"
+args=("$@")
+
+for ((i = 0; i < ${#args[@]}; i++)); do
+    case "${args[i]}" in
+    --target=*) target="${args[i]#--target=}" ;;
+    --target)
+        if ((i + 1 < ${#args[@]})); then
+            target="${args[i + 1]}"
+        fi
+        ;;
+    esac
+done
+
+bindgen_extra_args=()
+
+if [[ -n "${target}" ]]; then
+    bindgen_extra_args+=("--target=${target}")
+fi
+
+if [[ "${target}" == thumb* ]]; then
+    bindgen_extra_args+=("--sysroot=$(arm-none-eabi-gcc -print-sysroot)" "-fshort-enums" "-mthumb")
+
+    if [[ "${target}" == thumbv7* ]]; then
+        bindgen_extra_args+=("-mcpu=cortex-m4" "-mfloat-abi=soft")
+    fi
+fi
+
+if ((${#bindgen_extra_args[@]} > 0)); then
+    bindgen_env_name="BINDGEN_EXTRA_CLANG_ARGS_${target}"
+    bindgen_env_name_normalized="BINDGEN_EXTRA_CLANG_ARGS_${target//-/_}"
+    existing_bindgen_args="$(printenv "${bindgen_env_name}" 2>/dev/null || true)"
+    if [[ -z "${existing_bindgen_args}" ]]; then
+        existing_bindgen_args="$(printenv "${bindgen_env_name_normalized}" 2>/dev/null || true)"
+    fi
+    if [[ -z "${existing_bindgen_args}" ]]; then
+        existing_bindgen_args="${BINDGEN_EXTRA_CLANG_ARGS:-}"
+    fi
+
+    bindgen_args="${bindgen_extra_args[*]}"
+    if [[ -n "${existing_bindgen_args}" ]]; then
+        bindgen_args="${existing_bindgen_args} ${bindgen_args}"
+    fi
+
+    exec env \
+        "${bindgen_env_name}=${bindgen_args}" \
+        "${bindgen_env_name_normalized}=${bindgen_args}" \
+        cargo "$@"
+fi
+
+exec cargo "$@"

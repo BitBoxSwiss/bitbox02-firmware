@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cc="${CC:-clang-21}"
+
+resolved_cc="$(command -v -- "$cc" 2>/dev/null || printf '%s\n' "$cc")"
+resolved_cc="$(readlink -f -- "$resolved_cc" 2>/dev/null || printf '%s\n' "$resolved_cc")"
+
+# GCC-based ARM toolchains already know their sysroot. Clang needs it explicitly
+# so it can find the ARM C headers while keeping the path host-independent.
+if [[ "$(basename -- "$resolved_cc")" == *gcc* ]]; then
+    exec "$cc" "$@"
+fi
+
+sysroot="$(arm-none-eabi-gcc -print-sysroot)"
+exec "$cc" "--sysroot=${sysroot}" "$@"

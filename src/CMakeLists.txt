@@ -205,6 +205,7 @@ set(BOOTLOADER-SOURCES
 find_program(CBINDGEN cbindgen)
 # cargo is the rust build system and dependency manager
 find_program(CARGO cargo)
+set(CARGO_WRAPPER ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/cargo-wrapper)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(RUST_PROFILE "debug")
@@ -233,7 +234,7 @@ set(LIBBITBOX02_RUST ${LIBBITBOX02_RUST} PARENT_SCOPE)
 add_custom_target(rust-cbindgen
   COMMAND
     ${CMAKE_COMMAND} -E env
-      CARGO_BIN=${CARGO}
+      CARGO_BIN=${CARGO_WRAPPER}
       CBINDGEN_BIN=${CBINDGEN}
       bash
       ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_rust_header.sh
@@ -251,9 +252,8 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_custom_target(rust-clippy
     COMMAND
       ${CMAKE_COMMAND} -E env
-        CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
-        ${CARGO} clippy
+        ${CARGO_WRAPPER} clippy
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
           --all-features
           --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml
@@ -346,7 +346,6 @@ foreach(type ${RUST_LIBS})
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
       ${CMAKE_COMMAND} -E env
-      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
       CFLAGS=${CARGO_C_FLAGS}
@@ -354,7 +353,7 @@ foreach(type ${RUST_LIBS})
       RUSTC_BOOTSTRAP=1
       MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
       LIB_TYPE=${type}
-      ${CARGO}
+      ${CARGO_WRAPPER}
         rustc
         $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv>
         --offline
@@ -400,9 +399,8 @@ endforeach()
 if(CMAKE_CROSSCOMPILING)
   add_custom_target(rust-docs
     COMMAND
-      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       ${CMAKE_COMMAND} -E env
-      ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
+      ${CARGO_WRAPPER} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND
       ${CMAKE_COMMAND} -E echo "See docs at file://${CMAKE_BINARY_DIR}/docs-rust/thumbv7em-none-eabi/doc/bitbox02_rust/index.html"
     WORKING_DIRECTORY

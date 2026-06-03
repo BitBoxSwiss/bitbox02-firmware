@@ -80,13 +80,8 @@ pub type ACTION = c_int;
 pub type posix_spawnattr_t = *mut c_void;
 pub type posix_spawn_file_actions_t = *mut c_void;
 
-#[derive(Debug)]
-pub enum timezone {}
-impl Copy for timezone {}
-impl Clone for timezone {
-    fn clone(&self) -> timezone {
-        *self
-    }
+extern_ty! {
+    pub enum timezone {}
 }
 
 impl siginfo_t {
@@ -281,30 +276,30 @@ s! {
 
     pub struct glob_t {
         pub gl_pathc: size_t,
-        __unused1: size_t,
+        __unused1: Padding<size_t>,
         pub gl_offs: size_t,
-        __unused2: size_t,
+        __unused2: Padding<size_t>,
         pub gl_pathv: *mut *mut c_char,
 
-        __unused3: *mut c_void,
-        __unused4: *mut c_void,
-        __unused5: *mut c_void,
-        __unused6: *mut c_void,
-        __unused7: *mut c_void,
-        __unused8: *mut c_void,
+        __unused3: Padding<*mut c_void>,
+        __unused4: Padding<*mut c_void>,
+        __unused5: Padding<*mut c_void>,
+        __unused6: Padding<*mut c_void>,
+        __unused7: Padding<*mut c_void>,
+        __unused8: Padding<*mut c_void>,
     }
 
     pub struct pthread_mutex_t {
         flags: u32,
         lock: i32,
-        unused: i32,
+        unused: Padding<i32>,
         owner: i32,
         owner_count: i32,
     }
 
     pub struct pthread_cond_t {
         flags: u32,
-        unused: i32,
+        unused: Padding<i32>,
         mutex: *mut c_void,
         waiter_count: i32,
         lock: i32,
@@ -376,7 +371,7 @@ s! {
     pub struct sem_t {
         pub type_: i32,
         pub named_sem_id: i32, // actually a union with unnamed_sem (i32)
-        pub padding: [i32; 2],
+        padding: Padding<[i32; 2]>,
     }
 
     pub struct ucred {
@@ -462,9 +457,7 @@ s! {
         pub flag: *mut c_int,
         pub val: c_int,
     }
-}
 
-s_no_extra_traits! {
     pub struct sockaddr_un {
         pub sun_len: u8,
         pub sun_family: sa_family_t,
@@ -473,9 +466,9 @@ s_no_extra_traits! {
     pub struct sockaddr_storage {
         pub ss_len: u8,
         pub ss_family: sa_family_t,
-        __ss_pad1: [u8; 6],
-        __ss_pad2: u64,
-        __ss_pad3: [u8; 112],
+        __ss_pad1: Padding<[u8; 6]>,
+        __ss_pad2: Padding<u64>,
+        __ss_pad3: Padding<[u8; 112]>,
     }
     pub struct dirent {
         pub d_dev: dev_t,
@@ -490,7 +483,7 @@ s_no_extra_traits! {
         pub sigev_notify: c_int,
         pub sigev_signo: c_int,
         pub sigev_value: crate::sigval,
-        __unused1: *mut c_void, // actually a function pointer
+        __unused1: Padding<*mut c_void>, // actually a function pointer
         pub sigev_notify_attributes: *mut crate::pthread_attr_t,
     }
 
@@ -502,133 +495,7 @@ s_no_extra_traits! {
         pub ut_user: [c_char; 32],
         pub ut_line: [c_char; 16],
         pub ut_host: [c_char; 128],
-        __ut_reserved: [c_char; 64],
-    }
-}
-
-cfg_if! {
-    if #[cfg(feature = "extra_traits")] {
-        impl PartialEq for utmpx {
-            fn eq(&self, other: &utmpx) -> bool {
-                self.ut_type == other.ut_type
-                    && self.ut_tv == other.ut_tv
-                    && self.ut_id == other.ut_id
-                    && self.ut_pid == other.ut_pid
-                    && self.ut_user == other.ut_user
-                    && self.ut_line == other.ut_line
-                    && self
-                        .ut_host
-                        .iter()
-                        .zip(other.ut_host.iter())
-                        .all(|(a, b)| a == b)
-                    && self.__ut_reserved == other.__ut_reserved
-            }
-        }
-
-        impl Eq for utmpx {}
-        impl hash::Hash for utmpx {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.ut_type.hash(state);
-                self.ut_tv.hash(state);
-                self.ut_id.hash(state);
-                self.ut_pid.hash(state);
-                self.ut_user.hash(state);
-                self.ut_line.hash(state);
-                self.ut_host.hash(state);
-                self.__ut_reserved.hash(state);
-            }
-        }
-        impl PartialEq for sockaddr_un {
-            fn eq(&self, other: &sockaddr_un) -> bool {
-                self.sun_len == other.sun_len
-                    && self.sun_family == other.sun_family
-                    && self
-                        .sun_path
-                        .iter()
-                        .zip(other.sun_path.iter())
-                        .all(|(a, b)| a == b)
-            }
-        }
-        impl Eq for sockaddr_un {}
-        impl hash::Hash for sockaddr_un {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.sun_len.hash(state);
-                self.sun_family.hash(state);
-                self.sun_path.hash(state);
-            }
-        }
-
-        impl PartialEq for sockaddr_storage {
-            fn eq(&self, other: &sockaddr_storage) -> bool {
-                self.ss_len == other.ss_len
-                    && self.ss_family == other.ss_family
-                    && self
-                        .__ss_pad1
-                        .iter()
-                        .zip(other.__ss_pad1.iter())
-                        .all(|(a, b)| a == b)
-                    && self.__ss_pad2 == other.__ss_pad2
-                    && self
-                        .__ss_pad3
-                        .iter()
-                        .zip(other.__ss_pad3.iter())
-                        .all(|(a, b)| a == b)
-            }
-        }
-        impl Eq for sockaddr_storage {}
-        impl hash::Hash for sockaddr_storage {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.ss_len.hash(state);
-                self.ss_family.hash(state);
-                self.__ss_pad1.hash(state);
-                self.__ss_pad2.hash(state);
-                self.__ss_pad3.hash(state);
-            }
-        }
-
-        impl PartialEq for dirent {
-            fn eq(&self, other: &dirent) -> bool {
-                self.d_dev == other.d_dev
-                    && self.d_pdev == other.d_pdev
-                    && self.d_ino == other.d_ino
-                    && self.d_pino == other.d_pino
-                    && self.d_reclen == other.d_reclen
-                    && self
-                        .d_name
-                        .iter()
-                        .zip(other.d_name.iter())
-                        .all(|(a, b)| a == b)
-            }
-        }
-        impl Eq for dirent {}
-        impl hash::Hash for dirent {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.d_dev.hash(state);
-                self.d_pdev.hash(state);
-                self.d_ino.hash(state);
-                self.d_pino.hash(state);
-                self.d_reclen.hash(state);
-                self.d_name.hash(state);
-            }
-        }
-
-        impl PartialEq for sigevent {
-            fn eq(&self, other: &sigevent) -> bool {
-                self.sigev_notify == other.sigev_notify
-                    && self.sigev_signo == other.sigev_signo
-                    && self.sigev_value == other.sigev_value
-                    && self.sigev_notify_attributes == other.sigev_notify_attributes
-            }
-        }
-        impl Eq for sigevent {}
-        impl hash::Hash for sigevent {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.sigev_notify.hash(state);
-                self.sigev_signo.hash(state);
-                self.sigev_value.hash(state);
-                self.sigev_notify_attributes.hash(state);
-            }
-        }
+        __ut_reserved: Padding<[c_char; 64]>,
     }
 }
 
@@ -751,9 +618,6 @@ pub const F_OK: c_int = 0;
 pub const R_OK: c_int = 4;
 pub const W_OK: c_int = 2;
 pub const X_OK: c_int = 1;
-pub const STDIN_FILENO: c_int = 0;
-pub const STDOUT_FILENO: c_int = 1;
-pub const STDERR_FILENO: c_int = 2;
 
 pub const SIGHUP: c_int = 1;
 pub const SIGINT: c_int = 2;
@@ -1227,13 +1091,13 @@ pub const PTHREAD_STACK_MIN: size_t = 8192;
 pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = pthread_mutex_t {
     flags: 0,
     lock: 0,
-    unused: -42,
+    unused: Padding::uninit(),
     owner: -1,
     owner_count: 0,
 };
 pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = pthread_cond_t {
     flags: 0,
-    unused: -42,
+    unused: Padding::uninit(),
     mutex: 0 as *mut _,
     waiter_count: 0,
     lock: 0,

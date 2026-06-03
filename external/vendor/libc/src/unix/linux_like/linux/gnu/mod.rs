@@ -37,8 +37,8 @@ s! {
             not(target_arch = "x86_64"),
             target_pointer_width = "32"
         ))]
-        __unused1: [c_char; 4],
-        __glibc_reserved: [c_char; 32],
+        __unused1: Padding<[c_char; 4]>,
+        __glibc_reserved: Padding<[c_char; 32]>,
     }
 
     pub struct __exit_status {
@@ -57,11 +57,11 @@ s! {
         pub gl_offs: size_t,
         pub gl_flags: c_int,
 
-        __unused1: *mut c_void,
-        __unused2: *mut c_void,
-        __unused3: *mut c_void,
-        __unused4: *mut c_void,
-        __unused5: *mut c_void,
+        __unused1: Padding<*mut c_void>,
+        __unused2: Padding<*mut c_void>,
+        __unused3: Padding<*mut c_void>,
+        __unused4: Padding<*mut c_void>,
+        __unused5: Padding<*mut c_void>,
     }
 
     pub struct msghdr {
@@ -131,47 +131,6 @@ s! {
         pub uordblks: size_t,
         pub fordblks: size_t,
         pub keepcost: size_t,
-    }
-
-    pub struct nl_pktinfo {
-        pub group: u32,
-    }
-
-    pub struct nl_mmap_req {
-        pub nm_block_size: c_uint,
-        pub nm_block_nr: c_uint,
-        pub nm_frame_size: c_uint,
-        pub nm_frame_nr: c_uint,
-    }
-
-    pub struct nl_mmap_hdr {
-        pub nm_status: c_uint,
-        pub nm_len: c_uint,
-        pub nm_group: u32,
-        pub nm_pid: u32,
-        pub nm_uid: u32,
-        pub nm_gid: u32,
-    }
-
-    pub struct rtentry {
-        pub rt_pad1: c_ulong,
-        pub rt_dst: crate::sockaddr,
-        pub rt_gateway: crate::sockaddr,
-        pub rt_genmask: crate::sockaddr,
-        pub rt_flags: c_ushort,
-        pub rt_pad2: c_short,
-        pub rt_pad3: c_ulong,
-        pub rt_tos: c_uchar,
-        pub rt_class: c_uchar,
-        #[cfg(target_pointer_width = "64")]
-        pub rt_pad4: [c_short; 3usize],
-        #[cfg(not(target_pointer_width = "64"))]
-        pub rt_pad4: c_short,
-        pub rt_metric: c_short,
-        pub rt_dev: *mut c_char,
-        pub rt_mtu: c_ulong,
-        pub rt_window: c_ulong,
-        pub rt_irtt: c_ushort,
     }
 
     pub struct ntptimeval {
@@ -276,7 +235,7 @@ s! {
         pub aio_buf: crate::__u64,
         pub aio_nbytes: crate::__u64,
         pub aio_offset: crate::__s64,
-        aio_reserved2: crate::__u64,
+        aio_reserved2: Padding<crate::__u64>,
         pub aio_flags: crate::__u32,
         pub aio_resfd: crate::__u32,
     }
@@ -360,108 +319,17 @@ s! {
 
     // linux x32 compatibility
     // See https://sourceware.org/bugzilla/show_bug.cgi?id=16437
+    #[derive(Default)]
     pub struct timespec {
         pub tv_sec: time_t,
         #[cfg(all(gnu_time_bits64, target_endian = "big"))]
-        __pad: i32,
+        __pad: Padding<i32>,
         #[cfg(not(all(target_arch = "x86_64", target_pointer_width = "32")))]
         pub tv_nsec: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
         pub tv_nsec: i64,
         #[cfg(all(gnu_time_bits64, target_endian = "little"))]
-        __pad: i32,
-    }
-}
-
-impl siginfo_t {
-    pub unsafe fn si_addr(&self) -> *mut c_void {
-        #[repr(C)]
-        struct siginfo_sigfault {
-            _si_signo: c_int,
-            _si_errno: c_int,
-            _si_code: c_int,
-            si_addr: *mut c_void,
-        }
-        (*(self as *const siginfo_t).cast::<siginfo_sigfault>()).si_addr
-    }
-
-    pub unsafe fn si_value(&self) -> crate::sigval {
-        #[repr(C)]
-        struct siginfo_timer {
-            _si_signo: c_int,
-            _si_errno: c_int,
-            _si_code: c_int,
-            _si_tid: c_int,
-            _si_overrun: c_int,
-            si_sigval: crate::sigval,
-        }
-        (*(self as *const siginfo_t).cast::<siginfo_timer>()).si_sigval
-    }
-}
-
-// Internal, for casts to access union fields
-#[repr(C)]
-struct sifields_sigchld {
-    si_pid: crate::pid_t,
-    si_uid: crate::uid_t,
-    si_status: c_int,
-    si_utime: c_long,
-    si_stime: c_long,
-}
-impl Copy for sifields_sigchld {}
-impl Clone for sifields_sigchld {
-    fn clone(&self) -> sifields_sigchld {
-        *self
-    }
-}
-
-// Internal, for casts to access union fields
-#[repr(C)]
-union sifields {
-    _align_pointer: *mut c_void,
-    sigchld: sifields_sigchld,
-}
-
-// Internal, for casts to access union fields. Note that some variants
-// of sifields start with a pointer, which makes the alignment of
-// sifields vary on 32-bit and 64-bit architectures.
-#[repr(C)]
-struct siginfo_f {
-    _siginfo_base: [c_int; 3],
-    sifields: sifields,
-}
-
-impl siginfo_t {
-    unsafe fn sifields(&self) -> &sifields {
-        &(*(self as *const siginfo_t).cast::<siginfo_f>()).sifields
-    }
-
-    pub unsafe fn si_pid(&self) -> crate::pid_t {
-        self.sifields().sigchld.si_pid
-    }
-
-    pub unsafe fn si_uid(&self) -> crate::uid_t {
-        self.sifields().sigchld.si_uid
-    }
-
-    pub unsafe fn si_status(&self) -> c_int {
-        self.sifields().sigchld.si_status
-    }
-
-    pub unsafe fn si_utime(&self) -> c_long {
-        self.sifields().sigchld.si_utime
-    }
-
-    pub unsafe fn si_stime(&self) -> c_long {
-        self.sifields().sigchld.si_stime
-    }
-}
-
-s_no_extra_traits! {
-    pub union __c_anonymous_ptrace_syscall_info_data {
-        pub entry: __c_anonymous_ptrace_syscall_info_entry,
-        pub exit: __c_anonymous_ptrace_syscall_info_exit,
-        pub seccomp: __c_anonymous_ptrace_syscall_info_seccomp,
+        __pad: Padding<i32>,
     }
 
     pub struct utmpx {
@@ -505,50 +373,97 @@ s_no_extra_traits! {
         pub ut_tv: __timeval,
 
         pub ut_addr_v6: [i32; 4],
-        __glibc_reserved: [c_char; 20],
+        __glibc_reserved: Padding<[c_char; 20]>,
+    }
+}
+
+impl siginfo_t {
+    pub unsafe fn si_addr(&self) -> *mut c_void {
+        #[repr(C)]
+        struct siginfo_sigfault {
+            _si_signo: c_int,
+            _si_errno: c_int,
+            _si_code: c_int,
+            si_addr: *mut c_void,
+        }
+        (*(self as *const siginfo_t).cast::<siginfo_sigfault>()).si_addr
+    }
+
+    pub unsafe fn si_value(&self) -> crate::sigval {
+        #[repr(C)]
+        struct siginfo_timer {
+            _si_signo: c_int,
+            _si_errno: c_int,
+            _si_code: c_int,
+            _si_tid: c_int,
+            _si_overrun: c_int,
+            si_sigval: crate::sigval,
+        }
+        (*(self as *const siginfo_t).cast::<siginfo_timer>()).si_sigval
+    }
+}
+
+s_no_extra_traits! {
+    // Internal, for casts to access union fields
+    struct sifields_sigchld {
+        si_pid: crate::pid_t,
+        si_uid: crate::uid_t,
+        si_status: c_int,
+        si_utime: c_long,
+        si_stime: c_long,
+    }
+
+    // Internal, for casts to access union fields
+    union sifields {
+        _align_pointer: *mut c_void,
+        sigchld: sifields_sigchld,
+    }
+
+    // Internal, for casts to access union fields. Note that some variants
+    // of sifields start with a pointer, which makes the alignment of
+    // sifields vary on 32-bit and 64-bit architectures.
+    struct siginfo_f {
+        _siginfo_base: [c_int; 3],
+        sifields: sifields,
+    }
+}
+
+impl siginfo_t {
+    unsafe fn sifields(&self) -> &sifields {
+        &(*(self as *const siginfo_t).cast::<siginfo_f>()).sifields
+    }
+
+    pub unsafe fn si_pid(&self) -> crate::pid_t {
+        self.sifields().sigchld.si_pid
+    }
+
+    pub unsafe fn si_uid(&self) -> crate::uid_t {
+        self.sifields().sigchld.si_uid
+    }
+
+    pub unsafe fn si_status(&self) -> c_int {
+        self.sifields().sigchld.si_status
+    }
+
+    pub unsafe fn si_utime(&self) -> c_long {
+        self.sifields().sigchld.si_utime
+    }
+
+    pub unsafe fn si_stime(&self) -> c_long {
+        self.sifields().sigchld.si_stime
+    }
+}
+
+s_no_extra_traits! {
+    pub union __c_anonymous_ptrace_syscall_info_data {
+        pub entry: __c_anonymous_ptrace_syscall_info_entry,
+        pub exit: __c_anonymous_ptrace_syscall_info_exit,
+        pub seccomp: __c_anonymous_ptrace_syscall_info_seccomp,
     }
 }
 
 cfg_if! {
     if #[cfg(feature = "extra_traits")] {
-        impl PartialEq for utmpx {
-            fn eq(&self, other: &utmpx) -> bool {
-                self.ut_type == other.ut_type
-                    && self.ut_pid == other.ut_pid
-                    && self.ut_line == other.ut_line
-                    && self.ut_id == other.ut_id
-                    && self.ut_user == other.ut_user
-                    && self
-                        .ut_host
-                        .iter()
-                        .zip(other.ut_host.iter())
-                        .all(|(a, b)| a == b)
-                    && self.ut_exit == other.ut_exit
-                    && self.ut_session == other.ut_session
-                    && self.ut_tv == other.ut_tv
-                    && self.ut_addr_v6 == other.ut_addr_v6
-                    && self.__glibc_reserved == other.__glibc_reserved
-            }
-        }
-
-        impl Eq for utmpx {}
-
-        impl hash::Hash for utmpx {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.ut_type.hash(state);
-                self.ut_pid.hash(state);
-                self.ut_line.hash(state);
-                self.ut_id.hash(state);
-                self.ut_user.hash(state);
-                self.ut_host.hash(state);
-                self.ut_exit.hash(state);
-                self.ut_session.hash(state);
-                self.ut_tv.hash(state);
-                self.ut_addr_v6.hash(state);
-                self.__glibc_reserved.hash(state);
-            }
-        }
-
         impl PartialEq for __c_anonymous_ptrace_syscall_info_data {
             fn eq(&self, other: &__c_anonymous_ptrace_syscall_info_data) -> bool {
                 unsafe {
@@ -710,7 +625,6 @@ pub const BUFSIZ: c_uint = 8192;
 pub const TMP_MAX: c_uint = 238328;
 pub const FOPEN_MAX: c_uint = 16;
 pub const FILENAME_MAX: c_uint = 4096;
-pub const POSIX_MADV_DONTNEED: c_int = 4;
 pub const _CS_GNU_LIBC_VERSION: c_int = 2;
 pub const _CS_GNU_LIBPTHREAD_VERSION: c_int = 3;
 pub const _CS_V6_ENV: c_int = 1148;
@@ -834,6 +748,7 @@ pub const PTRACE_PEEKSIGINFO: c_uint = 0x4209;
 pub const PTRACE_GETSIGMASK: c_uint = 0x420a;
 pub const PTRACE_SETSIGMASK: c_uint = 0x420b;
 pub const PTRACE_GET_SYSCALL_INFO: c_uint = 0x420e;
+pub const PTRACE_SET_SYSCALL_INFO: c_uint = 0x4212;
 pub const PTRACE_SYSCALL_INFO_NONE: crate::__u8 = 0;
 pub const PTRACE_SYSCALL_INFO_ENTRY: crate::__u8 = 1;
 pub const PTRACE_SYSCALL_INFO_EXIT: crate::__u8 = 2;
@@ -877,8 +792,6 @@ pub const NDA_SRC_VNI: c_ushort = 11;
 pub const UNAME26: c_int = 0x0020000;
 pub const FDPIC_FUNCPTRS: c_int = 0x0080000;
 
-pub const MAX_LINKS: c_int = 32;
-
 pub const GENL_UNS_ADMIN_PERM: c_int = 0x10;
 
 pub const GENL_ID_VFS_DQUOT: c_int = crate::NLMSG_MIN_TYPE + 1;
@@ -891,42 +804,6 @@ pub const CLONE_NEWTIME: c_int = 0x80;
 // DIFF(main): changed to `c_ulonglong` in e9abac9ac2
 pub const CLONE_CLEAR_SIGHAND: c_int = 0x100000000;
 pub const CLONE_INTO_CGROUP: c_int = 0x200000000;
-
-// linux/keyctl.h
-pub const KEYCTL_DH_COMPUTE: u32 = 23;
-pub const KEYCTL_PKEY_QUERY: u32 = 24;
-pub const KEYCTL_PKEY_ENCRYPT: u32 = 25;
-pub const KEYCTL_PKEY_DECRYPT: u32 = 26;
-pub const KEYCTL_PKEY_SIGN: u32 = 27;
-pub const KEYCTL_PKEY_VERIFY: u32 = 28;
-pub const KEYCTL_RESTRICT_KEYRING: u32 = 29;
-
-pub const KEYCTL_SUPPORTS_ENCRYPT: u32 = 0x01;
-pub const KEYCTL_SUPPORTS_DECRYPT: u32 = 0x02;
-pub const KEYCTL_SUPPORTS_SIGN: u32 = 0x04;
-pub const KEYCTL_SUPPORTS_VERIFY: u32 = 0x08;
-cfg_if! {
-    if #[cfg(not(any(
-        target_arch = "mips",
-        target_arch = "mips32r6",
-        target_arch = "mips64",
-        target_arch = "mips64r6"
-    )))] {
-        pub const KEYCTL_MOVE: u32 = 30;
-        pub const KEYCTL_CAPABILITIES: u32 = 31;
-
-        pub const KEYCTL_CAPS0_CAPABILITIES: u32 = 0x01;
-        pub const KEYCTL_CAPS0_PERSISTENT_KEYRINGS: u32 = 0x02;
-        pub const KEYCTL_CAPS0_DIFFIE_HELLMAN: u32 = 0x04;
-        pub const KEYCTL_CAPS0_PUBLIC_KEY: u32 = 0x08;
-        pub const KEYCTL_CAPS0_BIG_KEY: u32 = 0x10;
-        pub const KEYCTL_CAPS0_INVALIDATE: u32 = 0x20;
-        pub const KEYCTL_CAPS0_RESTRICT_KEYRING: u32 = 0x40;
-        pub const KEYCTL_CAPS0_MOVE: u32 = 0x80;
-        pub const KEYCTL_CAPS1_NS_KEYRING_NAME: u32 = 0x01;
-        pub const KEYCTL_CAPS1_NS_KEY_TAG: u32 = 0x02;
-    }
-}
 
 pub const M_MXFAST: c_int = 1;
 pub const M_NLBLKS: c_int = 2;
@@ -1223,6 +1100,16 @@ extern "C" {
         val: c_int,
     ) -> c_int;
     pub fn pthread_sigqueue(thread: crate::pthread_t, sig: c_int, value: crate::sigval) -> c_int;
+    pub fn pthread_tryjoin_np(thread: crate::pthread_t, retval: *mut *mut c_void) -> c_int;
+    #[cfg_attr(
+        all(target_pointer_width = "32", gnu_time_bits64),
+        link_name = "__pthread_timedjoin_np64"
+    )]
+    pub fn pthread_timedjoin_np(
+        thread: crate::pthread_t,
+        retval: *mut *mut c_void,
+        abstime: *const crate::timespec,
+    ) -> c_int;
     pub fn mallinfo() -> crate::mallinfo;
     pub fn mallinfo2() -> crate::mallinfo2;
     pub fn malloc_stats();
@@ -1347,6 +1234,8 @@ extern "C" {
     ) -> c_int;
 
     pub fn mempcpy(dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
+
+    pub fn tgkill(tgid: crate::pid_t, tid: crate::pid_t, sig: c_int) -> c_int;
 }
 
 cfg_if! {

@@ -1,5 +1,8 @@
 use crate::prelude::*;
-use crate::{off64_t, off_t};
+use crate::{
+    off64_t,
+    off_t,
+};
 
 pub type wchar_t = i32;
 
@@ -54,21 +57,21 @@ s! {
         pub cgid: crate::gid_t,
         pub mode: crate::mode_t,
         __seq: c_ushort,
-        __pad1: c_ushort,
-        __glibc_reserved1: c_ulong,
-        __glibc_reserved2: c_ulong,
+        __pad1: Padding<c_ushort>,
+        __glibc_reserved1: Padding<c_ulong>,
+        __glibc_reserved2: Padding<c_ulong>,
     }
 
     pub struct stat64 {
         pub st_dev: crate::dev_t,
-        __pad1: c_ushort,
+        __pad1: Padding<c_ushort>,
         pub __st_ino: crate::ino_t,
         pub st_mode: crate::mode_t,
         pub st_nlink: crate::nlink_t,
         pub st_uid: crate::uid_t,
         pub st_gid: crate::gid_t,
         pub st_rdev: crate::dev_t,
-        __pad2: c_ushort,
+        __pad2: Padding<c_ushort>,
         pub st_size: off64_t,
         pub st_blksize: crate::blksize_t,
         pub st_blocks: crate::blkcnt64_t,
@@ -106,7 +109,7 @@ s! {
         pub f_ffree: crate::fsblkcnt64_t,
         pub f_favail: crate::fsblkcnt64_t,
         pub f_fsid: c_ulong,
-        __f_unused: c_int,
+        __f_unused: Padding<c_int>,
         pub f_flag: c_ulong,
         pub f_namemax: c_ulong,
         __f_spare: [c_int; 6],
@@ -116,40 +119,40 @@ s! {
         pub shm_perm: crate::ipc_perm,
         pub shm_segsz: size_t,
         pub shm_atime: crate::time_t,
-        __glibc_reserved1: c_long,
+        __glibc_reserved1: Padding<c_long>,
         pub shm_dtime: crate::time_t,
-        __glibc_reserved2: c_long,
+        __glibc_reserved2: Padding<c_long>,
         pub shm_ctime: crate::time_t,
-        __glibc_reserved3: c_long,
+        __glibc_reserved3: Padding<c_long>,
         pub shm_cpid: crate::pid_t,
         pub shm_lpid: crate::pid_t,
         pub shm_nattch: crate::shmatt_t,
-        __glibc_reserved5: c_ulong,
-        __glibc_reserved6: c_ulong,
+        __glibc_reserved5: Padding<c_ulong>,
+        __glibc_reserved6: Padding<c_ulong>,
     }
 
     pub struct msqid_ds {
         pub msg_perm: crate::ipc_perm,
         pub msg_stime: crate::time_t,
-        __glibc_reserved1: c_uint,
+        __glibc_reserved1: Padding<c_uint>,
         pub msg_rtime: crate::time_t,
-        __glibc_reserved2: c_uint,
+        __glibc_reserved2: Padding<c_uint>,
         pub msg_ctime: crate::time_t,
-        __glibc_reserved3: c_uint,
+        __glibc_reserved3: Padding<c_uint>,
         pub __msg_cbytes: c_ulong,
         pub msg_qnum: crate::msgqnum_t,
         pub msg_qbytes: crate::msglen_t,
         pub msg_lspid: crate::pid_t,
         pub msg_lrpid: crate::pid_t,
-        __glibc_reserved4: c_ulong,
-        __glibc_reserved5: c_ulong,
+        __glibc_reserved4: Padding<c_ulong>,
+        __glibc_reserved5: Padding<c_ulong>,
     }
 
     pub struct siginfo_t {
         pub si_signo: c_int,
         pub si_code: c_int,
         pub si_errno: c_int,
-        _pad: [c_int; 29],
+        _pad: Padding<[c_int; 29]>,
         _align: [usize; 0],
     }
 
@@ -861,3 +864,22 @@ pub const SYS_landlock_restrict_self: c_long = 446;
 pub const SYS_process_mrelease: c_long = 448;
 pub const SYS_futex_waitv: c_long = 449;
 pub const SYS_set_mempolicy_home_node: c_long = 450;
+pub const SYS_cachestat: c_long = 451;
+pub const SYS_fchmodat2: c_long = 452;
+pub const SYS_map_shadow_stack: c_long = 453;
+pub const SYS_futex_wake: c_long = 454;
+pub const SYS_futex_wait: c_long = 455;
+pub const SYS_futex_requeue: c_long = 456;
+pub const SYS_statmount: c_long = 457;
+pub const SYS_listmount: c_long = 458;
+pub const SYS_lsm_get_self_attr: c_long = 459;
+pub const SYS_lsm_set_self_attr: c_long = 460;
+pub const SYS_lsm_list_modules: c_long = 461;
+pub const SYS_mseal: c_long = 462;
+pub const SYS_setxattrat: c_long = 463;
+pub const SYS_getxattrat: c_long = 464;
+pub const SYS_listxattrat: c_long = 465;
+pub const SYS_removexattrat: c_long = 466;
+pub const SYS_open_tree_attr: c_long = 467;
+pub const SYS_file_get_attr: c_long = 468;
+pub const SYS_file_set_attr: c_long = 469;

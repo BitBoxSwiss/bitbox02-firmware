@@ -14,9 +14,9 @@ ARG TARGETARCH
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y wget nano rsync curl gnupg2 jq unzip bzip2 xz-utils
 
-# for clang-*-21, see https://apt.llvm.org/
-RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main" >> /etc/apt/sources.list && \
-    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main" >> /etc/apt/sources.list && \
+# for clang-*-22, see https://apt.llvm.org/
+RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-22 main" >> /etc/apt/sources.list && \
+    echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-22 main" >> /etc/apt/sources.list && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 
 # Install gcc8-arm-none-eabi
@@ -35,7 +35,7 @@ RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
 # Tools for building
 RUN apt-get update && apt-get install -y \
     make \
-    llvm-21 \
+    llvm-22 \
     gcc-10 \
     binutils \
     valgrind \
@@ -67,8 +67,8 @@ RUN update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 100
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    clang-format-21 \
-    clang-tidy-21
+    clang-format-22 \
+    clang-tidy-22
 
 RUN python3 -m pip install --upgrade pip
 

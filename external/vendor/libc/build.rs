@@ -1,5 +1,12 @@
-use std::process::{Command, Output};
-use std::{env, str};
+use std::env::VarError;
+use std::process::{
+    Command,
+    Output,
+};
+use std::{
+    env,
+    str,
+};
 
 // List of cfgs this build script is allowed to set. The list is needed to support check-cfg, as we
 // need to know all the possible cfgs that this script will set. If you need to set another cfg
@@ -18,10 +25,12 @@ const ALLOWED_CFGS: &[&str] = &[
     // Corresponds to `_TIME_BITS=64` in glibc
     "gnu_time_bits64",
     "libc_deny_warnings",
-    "libc_thread_local",
     // Corresponds to `__USE_TIME_BITS64` in UAPI
     "linux_time_bits64",
     "musl_v1_2_3",
+    // Corresponds to `_REDIR_TIME64` in musl
+    "musl32_time64",
+    "vxworks_lt_25_09",
 ];
 
 // Extra values to allow for check-cfg.
@@ -29,7 +38,7 @@ const CHECK_CFG_EXTRA: &[(&str, &[&str])] = &[
     (
         "target_os",
         &[
-            "switch", "aix", "ohos", "hurd", "rtems", "visionos", "nuttx", "cygwin",
+            "switch", "aix", "ohos", "hurd", "rtems", "visionos", "nuttx", "cygwin", "qurt",
         ],
     ),
     (
@@ -42,13 +51,15 @@ const CHECK_CFG_EXTRA: &[(&str, &[&str])] = &[
     ),
 ];
 
+/// Musl architectures that set `#define _REDIR_TIME64 1`.
+const MUSL_REDIR_TIME64_ARCHES: &[&str] = &["arm", "hexagon", "mips", "powerpc", "x86"];
+
 fn main() {
     // Avoid unnecessary re-building.
     println!("cargo:rerun-if-changed=build.rs");
 
     let (rustc_minor_ver, _is_nightly) = rustc_minor_nightly();
-    let rustc_dep_of_std = env::var("CARGO_FEATURE_RUSTC_DEP_OF_STD").is_ok();
-    let libc_ci = env::var("LIBC_CI").is_ok();
+    let libc_ci = env_flag("LIBC_CI");
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let target_ptr_width = env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap_or_default();
@@ -87,13 +98,31 @@ fn main() {
         _ => (),
     }
 
-    let musl_v1_2_3 = env::var("RUST_LIBC_UNSTABLE_MUSL_V1_2_3").is_ok();
-    println!("cargo:rerun-if-env-changed=RUST_LIBC_UNSTABLE_MUSL_V1_2_3");
-    // loongarch64 and ohos have already updated
-    if musl_v1_2_3 || target_arch == "loongarch64" || target_env == "ohos" {
-        // FIXME(musl): enable time64 api as well
-        set_cfg("musl_v1_2_3");
+    match vxworks_version_code() {
+        Some(v) if (v < (25, 9)) => set_cfg("vxworks_lt_25_09"),
+        // VxWorks version >= 25.09
+        _ => (),
     }
+
+    let mut musl_v1_2_3 = env_flag("RUST_LIBC_UNSTABLE_MUSL_V1_2_3");
+    println!("cargo:rerun-if-env-changed=RUST_LIBC_UNSTABLE_MUSL_V1_2_3");
+
+    // OpenHarmony uses a fork of the musl libc
+    let musl = target_env == "musl" || target_env == "ohos";
+
+    // loongarch64, hexagon, and ohos only exist with recent musl
+    if target_arch == "loongarch64" || target_arch == "hexagon" || target_env == "ohos" {
+        musl_v1_2_3 = true;
+    }
+
+    if musl && musl_v1_2_3 {
+        set_cfg("musl_v1_2_3");
+        if MUSL_REDIR_TIME64_ARCHES.contains(&target_arch.as_str()) {
+            set_cfg("musl32_time64");
+            set_cfg("linux_time_bits64");
+        }
+    }
+
     let linux_time_bits64 = env::var("RUST_LIBC_UNSTABLE_LINUX_TIME_BITS64").is_ok();
     println!("cargo:rerun-if-env-changed=RUST_LIBC_UNSTABLE_LINUX_TIME_BITS64");
     if linux_time_bits64 {
@@ -143,28 +172,15 @@ fn main() {
         set_cfg("libc_deny_warnings");
     }
 
-    // #[thread_local] is currently unstable
-    if rustc_dep_of_std {
-        set_cfg("libc_thread_local");
-    }
-
     // Since Rust 1.80, configuration that isn't recognized by default needs to be provided to
     // avoid warnings.
     if rustc_minor_ver >= 80 {
         for cfg in ALLOWED_CFGS {
-            if rustc_minor_ver >= 75 {
-                println!("cargo:rustc-check-cfg=cfg({cfg})");
-            } else {
-                println!("cargo:rustc-check-cfg=values({cfg})");
-            }
+            println!("cargo:rustc-check-cfg=cfg({cfg})");
         }
         for &(name, values) in CHECK_CFG_EXTRA {
             let values = values.join("\",\"");
-            if rustc_minor_ver >= 75 {
-                println!("cargo:rustc-check-cfg=cfg({name},values(\"{values}\"))");
-            } else {
-                println!("cargo:rustc-check-cfg=values({name},\"{values}\")");
-            }
+            println!("cargo:rustc-check-cfg=cfg({name},values(\"{values}\"))");
         }
     }
 }
@@ -289,10 +305,34 @@ fn emcc_version_code() -> Option<u64> {
     Some(major * 10000 + minor * 100 + patch)
 }
 
+/// Retrieve the VxWorks release version from the environment variable set by the VxWorks build
+/// environment, in `(minor, patch)` form. Currently the only major version supported by Rust
+/// is 7.
+fn vxworks_version_code() -> Option<(u32, u32)> {
+    let version = env::var("WIND_RELEASE_ID").ok()?;
+
+    let mut pieces = version.trim().split(['.']);
+
+    let major: u32 = pieces.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+    let minor: u32 = pieces.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+
+    Some((major, minor))
+}
+
 fn set_cfg(cfg: &str) {
     assert!(
         ALLOWED_CFGS.contains(&cfg),
         "trying to set cfg {cfg}, but it is not in ALLOWED_CFGS",
     );
     println!("cargo:rustc-cfg={cfg}");
+}
+
+/// Return true if the env is set to a value other than `0`.
+fn env_flag(key: &str) -> bool {
+    match env::var(key) {
+        Ok(x) if x == "0" => false,
+        Err(VarError::NotPresent) => false,
+        Err(VarError::NotUnicode(_)) => panic!("non-unicode var for `{key}`"),
+        Ok(_) => true,
+    }
 }

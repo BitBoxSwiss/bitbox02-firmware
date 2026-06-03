@@ -1,13 +1,12 @@
 //! Utilities for validating (raw) string, char, and byte literals and
 //! turning escape sequences into the values they represent.
 
-use std::ffi::CStr;
-use std::num::NonZero;
-use std::ops::Range;
-use std::str::Chars;
+#![no_std]
 
-#[cfg(test)]
-mod tests;
+use core::ffi::CStr;
+use core::num::NonZero;
+use core::ops::Range;
+use core::str::Chars;
 
 /// Errors and warnings that can occur during string, char, and byte unescaping.
 ///

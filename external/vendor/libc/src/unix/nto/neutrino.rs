@@ -41,7 +41,7 @@ s! {
         pub srcmsglen: isize,
         pub dstmsglen: isize,
         pub type_id: u32,
-        reserved: u32,
+        reserved: Padding<u32>,
     }
 
     pub struct _cred_info {
@@ -75,7 +75,7 @@ s! {
         pub num_pulses: c_uint,
         pub rearm_threshold: c_uint,
         pub options: c_uint,
-        reserved: [c_uint; 3],
+        reserved: Padding<[c_uint; 3]>,
     }
 
     // TODO: The following structures are defined in a header file which doesn't
@@ -106,7 +106,7 @@ s! {
     //    pub max_num_buffer: c_uint,
     //    pub trigger_num_msg: c_uint,
     //    pub trigger_time: crate::_itimer,
-    //    reserve: c_uint,
+    //    reserve: Padding<c_uint>,
     //}
 
     //pub struct _asyncmsg_connection_descriptor {
@@ -121,9 +121,9 @@ s! {
     //    pub ttimer: crate::timer_t,
     //    pub block_con: crate::pthread_cond_t,
     //    pub mu: crate::pthread_mutex_t,
-    //    reserved: c_uint,
+    //    reserved: Padding<c_uint>,
     //    pub attr: crate::_asyncmsg_connection_attr,
-    //    pub reserves: [c_uint; 3],
+    //    reserves: Padding<[c_uint; 3]>,
     //    pub sendq: [crate::_asyncmsg_put_header; 1], // flexarray
     //}
 
@@ -196,7 +196,7 @@ s! {
         pub priority_max: c_int,
         pub interval: u64,
         pub priority_priv: c_int,
-        reserved: [c_int; 11],
+        reserved: Padding<[c_int; 11]>,
     }
 
     pub struct _timer_info {
@@ -239,7 +239,7 @@ s_no_extra_traits! {
         pub pminfo: syspage_entry_info,
         pub old_mdriver: syspage_entry_info,
         spare0: [u32; 1],
-        __reserved: [u8; 160], // anonymous union with architecture dependent structs
+        __reserved: Padding<[u8; 160]>, // anonymous union with architecture dependent structs
         pub new_asinfo: syspage_array_info,
         pub new_cpuinfo: syspage_array_info,
         pub new_cacheattr: syspage_array_info,

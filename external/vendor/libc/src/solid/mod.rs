@@ -169,6 +169,7 @@ s! {
         pub iov_len: size_t,
     }
 
+    #[derive(Default)]
     pub struct timeval {
         pub tv_sec: c_long,
         pub tv_usec: c_long,
@@ -395,21 +396,9 @@ pub const SIGUSR1: c_int = 30;
 pub const SIGUSR2: c_int = 31;
 pub const SIGPWR: c_int = 32;
 
-#[derive(Debug)]
-pub enum FILE {}
-impl Copy for FILE {}
-impl Clone for FILE {
-    fn clone(&self) -> FILE {
-        *self
-    }
-}
-#[derive(Debug)]
-pub enum fpos_t {}
-impl Copy for fpos_t {}
-impl Clone for fpos_t {
-    fn clone(&self) -> fpos_t {
-        *self
-    }
+extern_ty! {
+    pub enum FILE {}
+    pub enum fpos_t {}
 }
 
 extern "C" {

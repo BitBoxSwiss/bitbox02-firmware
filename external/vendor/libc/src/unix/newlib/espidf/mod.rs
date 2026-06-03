@@ -97,6 +97,8 @@ pub const SIGHUP: c_int = 1;
 pub const SIGQUIT: c_int = 3;
 pub const NSIG: size_t = 32;
 
+pub const SOMAXCONN: c_int = 128;
+
 extern "C" {
     pub fn pthread_create(
         native: *mut crate::pthread_t,
@@ -117,4 +119,8 @@ extern "C" {
     pub fn eventfd(initval: c_uint, flags: c_int) -> c_int;
 }
 
-pub use crate::unix::newlib::generic::{dirent, sigset_t, stat};
+pub use crate::unix::newlib::generic::{
+    dirent,
+    sigset_t,
+    stat,
+};

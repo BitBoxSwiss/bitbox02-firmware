@@ -37,10 +37,11 @@ cfg_if! {
     }
 }
 
-missing! {
-    #[derive(Debug)]
+extern_ty! {
     pub enum DIR {}
 }
+
+#[cfg(not(target_os = "nuttx"))]
 pub type locale_t = *mut c_void;
 
 s! {
@@ -56,10 +57,11 @@ s! {
         pub modtime: time_t,
     }
 
+    #[derive(Default)]
     pub struct timeval {
         pub tv_sec: time_t,
         #[cfg(not(gnu_time_bits64))]
-        pub tv_usec: suseconds_t,
+        pub tv_usec: crate::suseconds_t,
         // For 64 bit time on 32 bit linux glibc, suseconds_t is still
         // a 32 bit type.  Use __suseconds64_t instead
         #[cfg(gnu_time_bits64)]
@@ -68,13 +70,18 @@ s! {
 
     // linux x32 compatibility
     // See https://sourceware.org/bugzilla/show_bug.cgi?id=16437
+    #[derive(Default)]
     #[cfg(not(target_env = "gnu"))]
     pub struct timespec {
         pub tv_sec: time_t,
+        #[cfg(all(musl32_time64, target_endian = "big"))]
+        __pad0: Padding<u32>,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
         pub tv_nsec: i64,
         #[cfg(not(all(target_arch = "x86_64", target_pointer_width = "32")))]
         pub tv_nsec: c_long,
+        #[cfg(all(musl32_time64, target_endian = "little"))]
+        __pad0: Padding<u32>,
     }
 
     pub struct rlimit {
@@ -87,51 +94,52 @@ s! {
         pub ru_stime: timeval,
         pub ru_maxrss: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad1: u32,
+        __pad1: Padding<u32>,
         pub ru_ixrss: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad2: u32,
+        __pad2: Padding<u32>,
         pub ru_idrss: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad3: u32,
+        __pad3: Padding<u32>,
         pub ru_isrss: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad4: u32,
+        __pad4: Padding<u32>,
         pub ru_minflt: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad5: u32,
+        __pad5: Padding<u32>,
         pub ru_majflt: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad6: u32,
+        __pad6: Padding<u32>,
         pub ru_nswap: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad7: u32,
+        __pad7: Padding<u32>,
         pub ru_inblock: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad8: u32,
+        __pad8: Padding<u32>,
         pub ru_oublock: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad9: u32,
+        __pad9: Padding<u32>,
         pub ru_msgsnd: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad10: u32,
+        __pad10: Padding<u32>,
         pub ru_msgrcv: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad11: u32,
+        __pad11: Padding<u32>,
         pub ru_nsignals: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad12: u32,
+        __pad12: Padding<u32>,
         pub ru_nvcsw: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad13: u32,
+        __pad13: Padding<u32>,
         pub ru_nivcsw: c_long,
         #[cfg(all(target_arch = "x86_64", target_pointer_width = "32"))]
-        __pad14: u32,
+        __pad14: Padding<u32>,
 
         #[cfg(any(target_env = "musl", target_env = "ohos", target_os = "emscripten"))]
-        __reserved: [c_long; 16],
+        __reserved: Padding<[c_long; 16]>,
     }
 
+    #[cfg(not(target_os = "nuttx"))]
     pub struct ipv6_mreq {
         pub ipv6mr_multiaddr: in6_addr,
         #[cfg(target_os = "android")]
@@ -140,7 +148,7 @@ s! {
         pub ipv6mr_interface: c_uint,
     }
 
-    #[cfg(not(target_os = "cygwin"))]
+    #[cfg(all(not(target_os = "cygwin"), not(target_os = "horizon")))]
     pub struct hostent {
         pub h_name: *mut c_char,
         pub h_aliases: *mut *mut c_char,
@@ -154,6 +162,7 @@ s! {
         pub iov_len: size_t,
     }
 
+    #[cfg(not(target_os = "horizon"))]
     pub struct pollfd {
         pub fd: c_int,
         pub events: c_short,
@@ -243,7 +252,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(not(target_os = "nto"))] {
+    if #[cfg(not(any(target_os = "nto", target_os = "l4re")))] {
         pub const USRQUOTA: c_int = 0;
         pub const GRPQUOTA: c_int = 1;
     }
@@ -349,7 +358,11 @@ cfg_if! {
 pub const FNM_NOMATCH: c_int = 1;
 
 cfg_if! {
-    if #[cfg(any(target_os = "illumos", target_os = "solaris",))] {
+    if #[cfg(any(
+        target_os = "illumos",
+        target_os = "solaris",
+        target_os = "netbsd"
+    ))] {
         pub const FNM_CASEFOLD: c_int = 1 << 3;
     } else if #[cfg(not(target_os = "aix"))] {
         pub const FNM_CASEFOLD: c_int = 1 << 4;
@@ -363,6 +376,7 @@ cfg_if! {
         target_os = "android",
         target_os = "openbsd",
         target_os = "cygwin",
+        target_os = "netbsd",
     ))] {
         pub const FNM_PATHNAME: c_int = 1 << 1;
     } else {
@@ -376,6 +390,8 @@ cfg_if! {
         target_os = "freebsd",
         target_os = "android",
         target_os = "openbsd",
+        target_os = "netbsd",
+        target_os = "cygwin",
     ))] {
         pub const FNM_NOESCAPE: c_int = 1 << 0;
     } else if #[cfg(target_os = "nto")] {
@@ -567,15 +583,13 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(not(all(target_os = "linux", target_env = "gnu")))] {
-        missing! {
-            #[derive(Debug)]
+        extern_ty! {
             pub enum fpos_t {} // FIXME(unix): fill this out with a struct
         }
     }
 }
 
-missing! {
-    #[derive(Debug)]
+extern_ty! {
     pub enum FILE {}
 }
 
@@ -876,6 +890,7 @@ extern "C" {
         all(not(gnu_time_bits64), gnu_file_offset_bits64),
         link_name = "fstat64"
     )]
+    #[cfg_attr(musl32_time64, link_name = "__fstat_time64")]
     pub fn fstat(fildes: c_int, buf: *mut stat) -> c_int;
 
     pub fn mkdir(path: *const c_char, mode: mode_t) -> c_int;
@@ -894,6 +909,7 @@ extern "C" {
         all(not(gnu_time_bits64), gnu_file_offset_bits64),
         link_name = "stat64"
     )]
+    #[cfg_attr(musl32_time64, link_name = "__stat_time64")]
     pub fn stat(path: *const c_char, buf: *mut stat) -> c_int;
 
     pub fn pclose(stream: *mut crate::FILE) -> c_int;
@@ -966,6 +982,7 @@ extern "C" {
 
     pub fn fchmodat(dirfd: c_int, pathname: *const c_char, mode: mode_t, flags: c_int) -> c_int;
     pub fn fchown(fd: c_int, owner: crate::uid_t, group: crate::gid_t) -> c_int;
+    #[cfg(not(target_os = "l4re"))]
     pub fn fchownat(
         dirfd: c_int,
         pathname: *const c_char,
@@ -986,7 +1003,10 @@ extern "C" {
         all(not(gnu_time_bits64), gnu_file_offset_bits64),
         link_name = "fstatat64"
     )]
+    #[cfg(not(target_os = "l4re"))]
+    #[cfg_attr(musl32_time64, link_name = "__fstatat_time64")]
     pub fn fstatat(dirfd: c_int, pathname: *const c_char, buf: *mut stat, flags: c_int) -> c_int;
+    #[cfg(not(target_os = "l4re"))]
     pub fn linkat(
         olddirfd: c_int,
         oldpath: *const c_char,
@@ -994,13 +1014,16 @@ extern "C" {
         newpath: *const c_char,
         flags: c_int,
     ) -> c_int;
+    #[cfg(not(target_os = "l4re"))]
     pub fn renameat(
         olddirfd: c_int,
         oldpath: *const c_char,
         newdirfd: c_int,
         newpath: *const c_char,
     ) -> c_int;
+    #[cfg(not(target_os = "l4re"))]
     pub fn symlinkat(target: *const c_char, newdirfd: c_int, linkpath: *const c_char) -> c_int;
+    #[cfg(not(target_os = "l4re"))]
     pub fn unlinkat(dirfd: c_int, pathname: *const c_char, flags: c_int) -> c_int;
 
     pub fn access(path: *const c_char, amode: c_int) -> c_int;
@@ -1091,6 +1114,7 @@ extern "C" {
     )]
     #[cfg_attr(target_os = "netbsd", link_name = "__nanosleep50")]
     #[cfg_attr(gnu_time_bits64, link_name = "__nanosleep64")]
+    #[cfg_attr(musl32_time64, link_name = "__nanosleep_time64")]
     pub fn nanosleep(rqtp: *const timespec, rmtp: *mut timespec) -> c_int;
     pub fn tcgetpgrp(fd: c_int) -> pid_t;
     pub fn tcsetpgrp(fd: c_int, pgrp: crate::pid_t) -> c_int;
@@ -1135,7 +1159,7 @@ extern "C" {
     pub fn umask(mask: mode_t) -> mode_t;
 
     #[cfg_attr(target_os = "netbsd", link_name = "__utime50")]
-    #[cfg_attr(gnu_time_bits64, link_name = "__utime64")]
+    #[cfg_attr(any(gnu_time_bits64, musl32_time64), link_name = "__utime64")]
     pub fn utime(file: *const c_char, buf: *const utimbuf) -> c_int;
 
     #[cfg_attr(
@@ -1190,6 +1214,7 @@ extern "C" {
         all(not(gnu_time_bits64), gnu_file_offset_bits64),
         link_name = "lstat64"
     )]
+    #[cfg_attr(musl32_time64, link_name = "__lstat_time64")]
     pub fn lstat(path: *const c_char, buf: *mut stat) -> c_int;
 
     #[cfg_attr(
@@ -1221,6 +1246,7 @@ extern "C" {
 
     #[cfg_attr(target_os = "netbsd", link_name = "__getrusage50")]
     #[cfg_attr(gnu_time_bits64, link_name = "__getrusage64")]
+    #[cfg_attr(musl32_time64, link_name = "__getrusage_time64")]
     pub fn getrusage(resource: c_int, usage: *mut rusage) -> c_int;
 
     #[cfg_attr(
@@ -1259,94 +1285,101 @@ extern "C" {
     #[cfg_attr(target_os = "netbsd", link_name = "__libc_thr_yield")]
     pub fn sched_yield() -> c_int;
     pub fn pthread_key_create(
-        key: *mut pthread_key_t,
+        key: *mut crate::pthread_key_t,
         dtor: Option<unsafe extern "C" fn(*mut c_void)>,
     ) -> c_int;
-    pub fn pthread_key_delete(key: pthread_key_t) -> c_int;
-    pub fn pthread_getspecific(key: pthread_key_t) -> *mut c_void;
-    pub fn pthread_setspecific(key: pthread_key_t, value: *const c_void) -> c_int;
+    pub fn pthread_key_delete(key: crate::pthread_key_t) -> c_int;
+    pub fn pthread_getspecific(key: crate::pthread_key_t) -> *mut c_void;
+    pub fn pthread_setspecific(key: crate::pthread_key_t, value: *const c_void) -> c_int;
     pub fn pthread_mutex_init(
-        lock: *mut pthread_mutex_t,
-        attr: *const pthread_mutexattr_t,
+        lock: *mut crate::pthread_mutex_t,
+        attr: *const crate::pthread_mutexattr_t,
     ) -> c_int;
-    pub fn pthread_mutex_destroy(lock: *mut pthread_mutex_t) -> c_int;
-    pub fn pthread_mutex_lock(lock: *mut pthread_mutex_t) -> c_int;
-    pub fn pthread_mutex_trylock(lock: *mut pthread_mutex_t) -> c_int;
-    pub fn pthread_mutex_unlock(lock: *mut pthread_mutex_t) -> c_int;
+    pub fn pthread_mutex_destroy(lock: *mut crate::pthread_mutex_t) -> c_int;
+    pub fn pthread_mutex_lock(lock: *mut crate::pthread_mutex_t) -> c_int;
+    pub fn pthread_mutex_trylock(lock: *mut crate::pthread_mutex_t) -> c_int;
+    pub fn pthread_mutex_unlock(lock: *mut crate::pthread_mutex_t) -> c_int;
 
-    pub fn pthread_mutexattr_init(attr: *mut pthread_mutexattr_t) -> c_int;
+    pub fn pthread_mutexattr_init(attr: *mut crate::pthread_mutexattr_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_mutexattr_destroy$UNIX2003"
     )]
-    pub fn pthread_mutexattr_destroy(attr: *mut pthread_mutexattr_t) -> c_int;
-    pub fn pthread_mutexattr_settype(attr: *mut pthread_mutexattr_t, _type: c_int) -> c_int;
+    pub fn pthread_mutexattr_destroy(attr: *mut crate::pthread_mutexattr_t) -> c_int;
+    pub fn pthread_mutexattr_settype(attr: *mut crate::pthread_mutexattr_t, _type: c_int) -> c_int;
 
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_cond_init$UNIX2003"
     )]
-    pub fn pthread_cond_init(cond: *mut pthread_cond_t, attr: *const pthread_condattr_t) -> c_int;
+    pub fn pthread_cond_init(
+        cond: *mut crate::pthread_cond_t,
+        attr: *const crate::pthread_condattr_t,
+    ) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_cond_wait$UNIX2003"
     )]
-    pub fn pthread_cond_wait(cond: *mut pthread_cond_t, lock: *mut pthread_mutex_t) -> c_int;
+    pub fn pthread_cond_wait(
+        cond: *mut crate::pthread_cond_t,
+        lock: *mut crate::pthread_mutex_t,
+    ) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_cond_timedwait$UNIX2003"
     )]
     #[cfg_attr(gnu_time_bits64, link_name = "__pthread_cond_timedwait64")]
+    #[cfg_attr(musl32_time64, link_name = "__pthread_cond_timedwait_time64")]
     pub fn pthread_cond_timedwait(
-        cond: *mut pthread_cond_t,
-        lock: *mut pthread_mutex_t,
+        cond: *mut crate::pthread_cond_t,
+        lock: *mut crate::pthread_mutex_t,
         abstime: *const crate::timespec,
     ) -> c_int;
-    pub fn pthread_cond_signal(cond: *mut pthread_cond_t) -> c_int;
-    pub fn pthread_cond_broadcast(cond: *mut pthread_cond_t) -> c_int;
-    pub fn pthread_cond_destroy(cond: *mut pthread_cond_t) -> c_int;
-    pub fn pthread_condattr_init(attr: *mut pthread_condattr_t) -> c_int;
-    pub fn pthread_condattr_destroy(attr: *mut pthread_condattr_t) -> c_int;
+    pub fn pthread_cond_signal(cond: *mut crate::pthread_cond_t) -> c_int;
+    pub fn pthread_cond_broadcast(cond: *mut crate::pthread_cond_t) -> c_int;
+    pub fn pthread_cond_destroy(cond: *mut crate::pthread_cond_t) -> c_int;
+    pub fn pthread_condattr_init(attr: *mut crate::pthread_condattr_t) -> c_int;
+    pub fn pthread_condattr_destroy(attr: *mut crate::pthread_condattr_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_rwlock_init$UNIX2003"
     )]
     pub fn pthread_rwlock_init(
-        lock: *mut pthread_rwlock_t,
-        attr: *const pthread_rwlockattr_t,
+        lock: *mut crate::pthread_rwlock_t,
+        attr: *const crate::pthread_rwlockattr_t,
     ) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_rwlock_destroy$UNIX2003"
     )]
-    pub fn pthread_rwlock_destroy(lock: *mut pthread_rwlock_t) -> c_int;
+    pub fn pthread_rwlock_destroy(lock: *mut crate::pthread_rwlock_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_rwlock_rdlock$UNIX2003"
     )]
-    pub fn pthread_rwlock_rdlock(lock: *mut pthread_rwlock_t) -> c_int;
+    pub fn pthread_rwlock_rdlock(lock: *mut crate::pthread_rwlock_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_rwlock_tryrdlock$UNIX2003"
     )]
-    pub fn pthread_rwlock_tryrdlock(lock: *mut pthread_rwlock_t) -> c_int;
+    pub fn pthread_rwlock_tryrdlock(lock: *mut crate::pthread_rwlock_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_rwlock_wrlock$UNIX2003"
     )]
-    pub fn pthread_rwlock_wrlock(lock: *mut pthread_rwlock_t) -> c_int;
+    pub fn pthread_rwlock_wrlock(lock: *mut crate::pthread_rwlock_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_rwlock_trywrlock$UNIX2003"
     )]
-    pub fn pthread_rwlock_trywrlock(lock: *mut pthread_rwlock_t) -> c_int;
+    pub fn pthread_rwlock_trywrlock(lock: *mut crate::pthread_rwlock_t) -> c_int;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "pthread_rwlock_unlock$UNIX2003"
     )]
-    pub fn pthread_rwlock_unlock(lock: *mut pthread_rwlock_t) -> c_int;
-    pub fn pthread_rwlockattr_init(attr: *mut pthread_rwlockattr_t) -> c_int;
-    pub fn pthread_rwlockattr_destroy(attr: *mut pthread_rwlockattr_t) -> c_int;
+    pub fn pthread_rwlock_unlock(lock: *mut crate::pthread_rwlock_t) -> c_int;
+    pub fn pthread_rwlockattr_init(attr: *mut crate::pthread_rwlockattr_t) -> c_int;
+    pub fn pthread_rwlockattr_destroy(attr: *mut crate::pthread_rwlockattr_t) -> c_int;
 
     #[cfg_attr(
         any(target_os = "illumos", target_os = "solaris"),
@@ -1365,9 +1398,11 @@ extern "C" {
 
     #[cfg_attr(target_os = "netbsd", link_name = "__utimes50")]
     #[cfg_attr(gnu_time_bits64, link_name = "__utimes64")]
+    #[cfg_attr(musl32_time64, link_name = "__utimes_time64")]
     pub fn utimes(filename: *const c_char, times: *const crate::timeval) -> c_int;
     pub fn dlopen(filename: *const c_char, flag: c_int) -> *mut c_void;
     pub fn dlerror() -> *mut c_char;
+    #[cfg_attr(musl32_time64, link_name = "__dlsym_time64")]
     pub fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
     pub fn dlclose(handle: *mut c_void) -> c_int;
 
@@ -1412,52 +1447,48 @@ extern "C" {
         link_name = "res_9_init"
     )]
     #[cfg_attr(target_os = "aix", link_name = "_res_init")]
+    #[cfg(not(target_os = "l4re"))]
     pub fn res_init() -> c_int;
 
     #[cfg_attr(target_os = "netbsd", link_name = "__gmtime_r50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME(time): for `time_t`
     #[cfg_attr(gnu_time_bits64, link_name = "__gmtime64_r")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
+    #[cfg_attr(musl32_time64, link_name = "__gmtime64_r")]
     pub fn gmtime_r(time_p: *const time_t, result: *mut tm) -> *mut tm;
     #[cfg_attr(target_os = "netbsd", link_name = "__localtime_r50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME(time): for `time_t`
     #[cfg_attr(gnu_time_bits64, link_name = "__localtime64_r")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
+    #[cfg_attr(musl32_time64, link_name = "__localtime64_r")]
     pub fn localtime_r(time_p: *const time_t, result: *mut tm) -> *mut tm;
     #[cfg_attr(
         all(target_os = "macos", target_arch = "x86"),
         link_name = "mktime$UNIX2003"
     )]
     #[cfg_attr(target_os = "netbsd", link_name = "__mktime50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
-    #[cfg_attr(gnu_time_bits64, link_name = "__mktime64")]
+    #[cfg_attr(any(gnu_time_bits64, musl32_time64), link_name = "__mktime64")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
     pub fn mktime(tm: *mut tm) -> time_t;
     #[cfg_attr(target_os = "netbsd", link_name = "__time50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME: for `time_t`
-    #[cfg_attr(gnu_time_bits64, link_name = "__time64")]
+    #[cfg_attr(any(gnu_time_bits64, musl32_time64), link_name = "__time64")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
     pub fn time(time: *mut time_t) -> time_t;
     #[cfg_attr(target_os = "netbsd", link_name = "__gmtime50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME(time): for `time_t`
-    #[cfg_attr(gnu_time_bits64, link_name = "__gmtime64")]
+    #[cfg_attr(any(gnu_time_bits64, musl32_time64), link_name = "__gmtime64")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
     pub fn gmtime(time_p: *const time_t) -> *mut tm;
     #[cfg_attr(target_os = "netbsd", link_name = "__locatime50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME(time): for `time_t`
-    #[cfg_attr(gnu_time_bits64, link_name = "__localtime64")]
+    #[cfg_attr(any(gnu_time_bits64, musl32_time64), link_name = "__localtime64")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
     pub fn localtime(time_p: *const time_t) -> *mut tm;
     #[cfg_attr(target_os = "netbsd", link_name = "__difftime50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME(time): for `time_t`
-    #[cfg_attr(gnu_time_bits64, link_name = "__difftime64")]
+    #[cfg_attr(any(gnu_time_bits64, musl32_time64), link_name = "__difftime64")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
     pub fn difftime(time1: time_t, time0: time_t) -> c_double;
     #[cfg(not(target_os = "aix"))]
     #[cfg_attr(target_os = "netbsd", link_name = "__timegm50")]
-    #[cfg_attr(any(target_env = "musl", target_env = "ohos"), allow(deprecated))]
-    // FIXME(time): for `time_t`
     #[cfg_attr(gnu_time_bits64, link_name = "__timegm64")]
+    #[cfg_attr(not(musl32_time64), allow(deprecated))]
+    #[cfg_attr(musl32_time64, link_name = "__timegm_time64")]
     pub fn timegm(tm: *mut crate::tm) -> time_t;
 
     #[cfg_attr(target_os = "netbsd", link_name = "__mknod50")]
@@ -1466,6 +1497,7 @@ extern "C" {
         link_name = "mknod@FBSD_1.0"
     )]
     pub fn mknod(pathname: *const c_char, mode: mode_t, dev: crate::dev_t) -> c_int;
+    #[cfg(not(target_os = "espidf"))]
     pub fn gethostname(name: *mut c_char, len: size_t) -> c_int;
     pub fn endservent();
     pub fn getservbyname(name: *const c_char, proto: *const c_char) -> *mut servent;
@@ -1517,6 +1549,7 @@ extern "C" {
     #[cfg_attr(target_os = "netbsd", link_name = "__select50")]
     #[cfg_attr(target_os = "aix", link_name = "__fd_select")]
     #[cfg_attr(gnu_time_bits64, link_name = "__select64")]
+    #[cfg_attr(musl32_time64, link_name = "__select_time64")]
     pub fn select(
         nfds: c_int,
         readfds: *mut fd_set,
@@ -1536,9 +1569,9 @@ extern "C" {
     pub fn sem_trywait(sem: *mut sem_t) -> c_int;
     pub fn sem_post(sem: *mut sem_t) -> c_int;
     #[cfg_attr(gnu_file_offset_bits64, link_name = "statvfs64")]
-    pub fn statvfs(path: *const c_char, buf: *mut statvfs) -> c_int;
+    pub fn statvfs(path: *const c_char, buf: *mut crate::statvfs) -> c_int;
     #[cfg_attr(gnu_file_offset_bits64, link_name = "fstatvfs64")]
-    pub fn fstatvfs(fd: c_int, buf: *mut statvfs) -> c_int;
+    pub fn fstatvfs(fd: c_int, buf: *mut crate::statvfs) -> c_int;
 
     #[cfg_attr(target_os = "netbsd", link_name = "__sigemptyset14")]
     pub fn sigemptyset(set: *mut sigset_t) -> c_int;
@@ -1570,11 +1603,447 @@ extern "C" {
         link_name = "tcdrain$UNIX2003"
     )]
     pub fn tcdrain(fd: c_int) -> c_int;
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "arm"),
+        link_name = "cfgetispeed@GLIBC_2.4"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "csky"),
+        link_name = "cfgetispeed@GLIBC_2.29"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "m68k"),
+        link_name = "cfgetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips", target_arch = "mips32r6")
+        ),
+        link_name = "cfgetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "powerpc"),
+        link_name = "cfgetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv32"),
+        link_name = "cfgetispeed@GLIBC_2.33"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc"),
+        link_name = "cfgetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "x86"),
+        link_name = "cfgetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "aarch64"),
+        link_name = "cfgetispeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "loongarch64"),
+        link_name = "cfgetispeed@GLIBC_2.36"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips64", target_arch = "mips64r6")
+        ),
+        link_name = "cfgetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "big"
+        ),
+        link_name = "cfgetispeed@GLIBC_2.3"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "little"
+        ),
+        link_name = "cfgetispeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv64"),
+        link_name = "cfgetispeed@GLIBC_2.27"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "s390x"),
+        link_name = "cfgetispeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc64"),
+        link_name = "cfgetispeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "64"
+        ),
+        link_name = "cfgetispeed@GLIBC_2.2.5"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "32"
+        ),
+        link_name = "cfgetispeed@GLIBC_2.16"
+    )]
     pub fn cfgetispeed(termios: *const crate::termios) -> crate::speed_t;
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "arm"),
+        link_name = "cfgetospeed@GLIBC_2.4"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "csky"),
+        link_name = "cfgetospeed@GLIBC_2.29"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "m68k"),
+        link_name = "cfgetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips", target_arch = "mips32r6")
+        ),
+        link_name = "cfgetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "powerpc"),
+        link_name = "cfgetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv32"),
+        link_name = "cfgetospeed@GLIBC_2.33"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc"),
+        link_name = "cfgetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "x86"),
+        link_name = "cfgetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "aarch64"),
+        link_name = "cfgetospeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "loongarch64"),
+        link_name = "cfgetospeed@GLIBC_2.36"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips64", target_arch = "mips64r6")
+        ),
+        link_name = "cfgetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "big"
+        ),
+        link_name = "cfgetospeed@GLIBC_2.3"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "little"
+        ),
+        link_name = "cfgetospeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv64"),
+        link_name = "cfgetospeed@GLIBC_2.27"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "s390x"),
+        link_name = "cfgetospeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc64"),
+        link_name = "cfgetospeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "64"
+        ),
+        link_name = "cfgetospeed@GLIBC_2.2.5"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "32"
+        ),
+        link_name = "cfgetospeed@GLIBC_2.16"
+    )]
     pub fn cfgetospeed(termios: *const crate::termios) -> crate::speed_t;
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "arm"),
+        link_name = "cfsetispeed@GLIBC_2.4"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "csky"),
+        link_name = "cfsetispeed@GLIBC_2.29"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "m68k"),
+        link_name = "cfsetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips", target_arch = "mips32r6")
+        ),
+        link_name = "cfsetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "powerpc"),
+        link_name = "cfsetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv32"),
+        link_name = "cfsetispeed@GLIBC_2.33"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc"),
+        link_name = "cfsetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "x86"),
+        link_name = "cfsetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "aarch64"),
+        link_name = "cfsetispeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "loongarch64"),
+        link_name = "cfsetispeed@GLIBC_2.36"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips64", target_arch = "mips64r6")
+        ),
+        link_name = "cfsetispeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "big"
+        ),
+        link_name = "cfsetispeed@GLIBC_2.3"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "little"
+        ),
+        link_name = "cfsetispeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv64"),
+        link_name = "cfsetispeed@GLIBC_2.27"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "s390x"),
+        link_name = "cfsetispeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc64"),
+        link_name = "cfsetispeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "64"
+        ),
+        link_name = "cfsetispeed@GLIBC_2.2.5"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "32"
+        ),
+        link_name = "cfsetispeed@GLIBC_2.16"
+    )]
     pub fn cfsetispeed(termios: *mut crate::termios, speed: crate::speed_t) -> c_int;
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "arm"),
+        link_name = "cfsetospeed@GLIBC_2.4"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "csky"),
+        link_name = "cfsetospeed@GLIBC_2.29"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "m68k"),
+        link_name = "cfsetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips", target_arch = "mips32r6")
+        ),
+        link_name = "cfsetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "powerpc"),
+        link_name = "cfsetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv32"),
+        link_name = "cfsetospeed@GLIBC_2.33"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc"),
+        link_name = "cfsetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "x86"),
+        link_name = "cfsetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "aarch64"),
+        link_name = "cfsetospeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "loongarch64"),
+        link_name = "cfsetospeed@GLIBC_2.36"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(target_arch = "mips64", target_arch = "mips64r6")
+        ),
+        link_name = "cfsetospeed@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "big"
+        ),
+        link_name = "cfsetospeed@GLIBC_2.3"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "powerpc64",
+            target_endian = "little"
+        ),
+        link_name = "cfsetospeed@GLIBC_2.17"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "riscv64"),
+        link_name = "cfsetospeed@GLIBC_2.27"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "s390x"),
+        link_name = "cfsetospeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc64"),
+        link_name = "cfsetospeed@GLIBC_2.2"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "64"
+        ),
+        link_name = "cfsetospeed@GLIBC_2.2.5"
+    )]
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            target_arch = "x86_64",
+            target_pointer_width = "32"
+        ),
+        link_name = "cfsetospeed@GLIBC_2.16"
+    )]
     pub fn cfsetospeed(termios: *mut crate::termios, speed: crate::speed_t) -> c_int;
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(
+                target_arch = "mips",
+                target_arch = "mips32r6",
+                target_arch = "mips64",
+                target_arch = "mips64r6",
+                target_arch = "sparc"
+            ),
+        ),
+        link_name = "tcgetattr@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc64"),
+        link_name = "tcgetattr@GLIBC_2.2"
+    )]
     pub fn tcgetattr(fd: c_int, termios: *mut crate::termios) -> c_int;
+    #[cfg_attr(
+        all(
+            target_os = "linux",
+            target_env = "gnu",
+            any(
+                target_arch = "mips",
+                target_arch = "mips32r6",
+                target_arch = "mips64",
+                target_arch = "mips64r6",
+                target_arch = "sparc"
+            ),
+        ),
+        link_name = "tcsetattr@GLIBC_2.0"
+    )]
+    #[cfg_attr(
+        all(target_os = "linux", target_env = "gnu", target_arch = "sparc64"),
+        link_name = "tcsetattr@GLIBC_2.2"
+    )]
     pub fn tcsetattr(fd: c_int, optional_actions: c_int, termios: *const crate::termios) -> c_int;
     pub fn tcflow(fd: c_int, action: c_int) -> c_int;
     pub fn tcflush(fd: c_int, action: c_int) -> c_int;
@@ -1597,9 +2066,13 @@ extern "C" {
     )]
     pub fn nice(incr: c_int) -> c_int;
 
+    #[cfg(not(target_os = "l4re"))]
     pub fn grantpt(fd: c_int) -> c_int;
+    #[cfg(not(target_os = "l4re"))]
     pub fn posix_openpt(flags: c_int) -> c_int;
+    #[cfg(not(target_os = "l4re"))]
     pub fn ptsname(fd: c_int) -> *mut c_char;
+    #[cfg(not(target_os = "l4re"))]
     pub fn unlockpt(fd: c_int) -> c_int;
 
     #[cfg(not(target_os = "aix"))]
@@ -1637,9 +2110,11 @@ cfg_if! {
         target_os = "solaris",
         target_os = "cygwin",
         target_os = "aix",
+        target_os = "l4re",
     )))] {
         extern "C" {
-            #[cfg_attr(gnu_time_bits64, link_name = "__adjtime64")]
+            #[cfg_attr(target_os = "netbsd", link_name = "__adjtime50")]
+            #[cfg_attr(any(gnu_time_bits64, musl32_time64), link_name = "__adjtime64")]
             pub fn adjtime(delta: *const timeval, olddelta: *mut timeval) -> c_int;
         }
     } else if #[cfg(target_os = "solaris")] {
@@ -1668,6 +2143,7 @@ cfg_if! {
         target_os = "hurd",
         target_os = "macos",
         target_os = "openbsd",
+        target_os = "l4re",
     )))] {
         extern "C" {
             pub fn sigqueue(pid: pid_t, sig: c_int, value: crate::sigval) -> c_int;
@@ -1722,6 +2198,7 @@ cfg_if! {
             )]
             pub fn pause() -> c_int;
 
+            #[cfg(not(target_os = "l4re"))]
             pub fn mkdirat(dirfd: c_int, pathname: *const c_char, mode: mode_t) -> c_int;
             #[cfg_attr(gnu_file_offset_bits64, link_name = "openat64")]
             pub fn openat(dirfd: c_int, pathname: *const c_char, flags: c_int, ...) -> c_int;
@@ -1789,13 +2266,16 @@ cfg_if! {
         }
     } else {
         extern "C" {
+            #[cfg(not(target_os = "l4re"))]
             pub fn readlinkat(
                 dirfd: c_int,
                 pathname: *const c_char,
                 buf: *mut c_char,
                 bufsiz: size_t,
             ) -> ssize_t;
+            #[cfg(not(target_os = "l4re"))]
             pub fn fmemopen(buf: *mut c_void, size: size_t, mode: *const c_char) -> *mut FILE;
+            #[cfg(not(target_os = "l4re"))]
             pub fn open_memstream(ptr: *mut *mut c_char, sizeloc: *mut size_t) -> *mut FILE;
             pub fn atexit(cb: extern "C" fn()) -> c_int;
             #[cfg_attr(target_os = "netbsd", link_name = "__sigaction14")]
@@ -1812,6 +2292,7 @@ cfg_if! {
             )]
             #[cfg_attr(target_os = "netbsd", link_name = "__pselect50")]
             #[cfg_attr(gnu_time_bits64, link_name = "__pselect64")]
+            #[cfg_attr(musl32_time64, link_name = "__pselect_time64")]
             pub fn pselect(
                 nfds: c_int,
                 readfds: *mut fd_set,
@@ -1825,18 +2306,132 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(target_os = "aix")] {
+    if #[cfg(any(target_os = "aix", target_os = "nto"))] {
         extern "C" {
             pub fn cfmakeraw(termios: *mut crate::termios) -> c_int;
+        }
+    } else if #[cfg(not(any(target_os = "solaris", target_os = "illumos",)))] {
+        extern "C" {
+            pub fn cfmakeraw(termios: *mut crate::termios);
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(any(
+        target_os = "aix",
+        all(target_os = "nto", target_env = "nto80")
+    ))] {
+        extern "C" {
             pub fn cfsetspeed(termios: *mut crate::termios, speed: crate::speed_t) -> c_int;
         }
     } else if #[cfg(not(any(
         target_os = "solaris",
         target_os = "illumos",
-        target_os = "nto",
+        target_os = "nto"
     )))] {
         extern "C" {
-            pub fn cfmakeraw(termios: *mut crate::termios);
+            #[cfg(not(target_os = "l4re"))]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "arm"),
+                link_name = "cfsetspeed@GLIBC_2.4"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "csky"),
+                link_name = "cfsetspeed@GLIBC_2.29"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "m68k"),
+                link_name = "cfsetspeed@GLIBC_2.0"
+            )]
+            #[cfg_attr(
+                all(
+                    target_os = "linux",
+                    target_env = "gnu",
+                    any(target_arch = "mips", target_arch = "mips32r6")
+                ),
+                link_name = "cfsetspeed@GLIBC_2.0"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "powerpc"),
+                link_name = "cfsetspeed@GLIBC_2.0"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "riscv32"),
+                link_name = "cfsetspeed@GLIBC_2.33"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "sparc"),
+                link_name = "cfsetspeed@GLIBC_2.0"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "x86"),
+                link_name = "cfsetspeed@GLIBC_2.0"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "aarch64"),
+                link_name = "cfsetspeed@GLIBC_2.17"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "loongarch64"),
+                link_name = "cfsetspeed@GLIBC_2.36"
+            )]
+            #[cfg_attr(
+                all(
+                    target_os = "linux",
+                    target_env = "gnu",
+                    any(target_arch = "mips64", target_arch = "mips64r6")
+                ),
+                link_name = "cfsetspeed@GLIBC_2.0"
+            )]
+            #[cfg_attr(
+                all(
+                    target_os = "linux",
+                    target_env = "gnu",
+                    target_arch = "powerpc64",
+                    target_endian = "big"
+                ),
+                link_name = "cfsetspeed@GLIBC_2.3"
+            )]
+            #[cfg_attr(
+                all(
+                    target_os = "linux",
+                    target_env = "gnu",
+                    target_arch = "powerpc64",
+                    target_endian = "little"
+                ),
+                link_name = "cfsetspeed@GLIBC_2.17"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "riscv64"),
+                link_name = "cfsetspeed@GLIBC_2.27"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "s390x"),
+                link_name = "cfsetspeed@GLIBC_2.2"
+            )]
+            #[cfg_attr(
+                all(target_os = "linux", target_env = "gnu", target_arch = "sparc64"),
+                link_name = "cfsetspeed@GLIBC_2.2"
+            )]
+            #[cfg_attr(
+                all(
+                    target_os = "linux",
+                    target_env = "gnu",
+                    target_arch = "x86_64",
+                    target_pointer_width = "64"
+                ),
+                link_name = "cfsetspeed@GLIBC_2.2.5"
+            )]
+            #[cfg_attr(
+                all(
+                    target_os = "linux",
+                    target_env = "gnu",
+                    target_arch = "x86_64",
+                    target_pointer_width = "32"
+                ),
+                link_name = "cfsetspeed@GLIBC_2.16"
+            )]
             pub fn cfsetspeed(termios: *mut crate::termios, speed: crate::speed_t) -> c_int;
         }
     }

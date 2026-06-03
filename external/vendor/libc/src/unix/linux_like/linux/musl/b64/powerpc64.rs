@@ -7,6 +7,8 @@ pub type __s64 = c_long;
 pub type nlink_t = u64;
 pub type blksize_t = c_long;
 
+pub type stat64 = stat;
+
 s! {
     pub struct termios {
         pub c_iflag: crate::tcflag_t,
@@ -26,7 +28,7 @@ s! {
         pub st_mode: crate::mode_t,
         pub st_uid: crate::uid_t,
         pub st_gid: crate::gid_t,
-        __pad0: c_int,
+        __pad0: Padding<c_int>,
         pub st_rdev: crate::dev_t,
         pub st_size: off_t,
         pub st_blksize: crate::blksize_t,
@@ -37,28 +39,7 @@ s! {
         pub st_mtime_nsec: c_long,
         pub st_ctime: crate::time_t,
         pub st_ctime_nsec: c_long,
-        __unused: [c_long; 3],
-    }
-
-    pub struct stat64 {
-        pub st_dev: crate::dev_t,
-        pub st_ino: crate::ino64_t,
-        pub st_nlink: crate::nlink_t,
-        pub st_mode: crate::mode_t,
-        pub st_uid: crate::uid_t,
-        pub st_gid: crate::gid_t,
-        __pad0: c_int,
-        pub st_rdev: crate::dev_t,
-        pub st_size: off_t,
-        pub st_blksize: crate::blksize_t,
-        pub st_blocks: crate::blkcnt64_t,
-        pub st_atime: crate::time_t,
-        pub st_atime_nsec: c_long,
-        pub st_mtime: crate::time_t,
-        pub st_mtime_nsec: c_long,
-        pub st_ctime: crate::time_t,
-        pub st_ctime_nsec: c_long,
-        __reserved: [c_long; 3],
+        __unused: Padding<[c_long; 3]>,
     }
 
     pub struct shmid_ds {
@@ -70,7 +51,7 @@ s! {
         pub shm_cpid: crate::pid_t,
         pub shm_lpid: crate::pid_t,
         pub shm_nattch: c_ulong,
-        __unused: [c_ulong; 2],
+        __unused: Padding<[c_ulong; 2]>,
     }
 
     pub struct ipc_perm {
@@ -89,8 +70,8 @@ s! {
         pub cgid: crate::gid_t,
         pub mode: crate::mode_t,
         pub __seq: c_int,
-        __unused1: c_long,
-        __unused2: c_long,
+        __unused1: Padding<c_long>,
+        __unused2: Padding<c_long>,
     }
 }
 
@@ -213,9 +194,6 @@ pub const MAP_SYNC: c_int = 0x080000;
 
 pub const PTRACE_SYSEMU: c_int = 0x1d;
 pub const PTRACE_SYSEMU_SINGLESTEP: c_int = 0x1e;
-
-pub const SOCK_STREAM: c_int = 1;
-pub const SOCK_DGRAM: c_int = 2;
 
 pub const SA_ONSTACK: c_int = 0x08000000;
 pub const SA_SIGINFO: c_int = 0x00000004;

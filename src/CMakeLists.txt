@@ -224,6 +224,11 @@ if(CMAKE_CROSSCOMPILING)
 else()
   set(RUST_TARGET_ARCH_DIR .)
 endif()
+if(CMAKE_CROSSCOMPILING)
+  set(CARGO_CC_FLAGS_ENV "CFLAGS_${RUST_TARGET_ARCH}=${CARGO_C_FLAGS} --sysroot=${CMAKE_SYSROOT}")
+else()
+  set(CARGO_CC_FLAGS_ENV "CFLAGS=${CARGO_C_FLAGS}")
+endif()
 
 set(RUST_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust)
 set(LIBBITBOX02_RUST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rust/bitbox02-rust-c)
@@ -251,7 +256,6 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_custom_target(rust-clippy
     COMMAND
       ${CMAKE_COMMAND} -E env
-        CMAKE_SYSROOT=${CMAKE_SYSROOT}
         CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
         ${CARGO} clippy
           $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-v>
@@ -346,10 +350,9 @@ foreach(type ${RUST_LIBS})
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
       ${CMAKE_COMMAND} -E env
-      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
       RUSTFLAGS=${RUSTFLAGS}
-      CFLAGS=${CARGO_C_FLAGS}
+      ${CARGO_CC_FLAGS_ENV}
       $<$<BOOL:${SCCACHE_PROGRAM}>:RUSTC_WRAPPER=${SCCACHE_PROGRAM}>
       RUSTC_BOOTSTRAP=1
       MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
@@ -400,7 +403,6 @@ endforeach()
 if(CMAKE_CROSSCOMPILING)
   add_custom_target(rust-docs
     COMMAND
-      CMAKE_SYSROOT=${CMAKE_SYSROOT}
       ${CMAKE_COMMAND} -E env
       ${CARGO} doc --document-private-items --target-dir ${CMAKE_BINARY_DIR}/docs-rust --target thumbv7em-none-eabi
     COMMAND

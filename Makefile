@@ -9,24 +9,29 @@ SANITIZE ?= ON
 
 bootstrap:
 	git submodule update --init --recursive
+	./scripts/bootstrap-cargo-config
 
 build/Makefile:
+	./scripts/bootstrap-cargo-config
 	mkdir -p build
 	cd build && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake ..
 	$(MAKE) -C py/bitbox02
 
 build-debug/Makefile:
+	./scripts/bootstrap-cargo-config
 	mkdir -p build-debug
 	cd build-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG ..
 	$(MAKE) -C py/bitbox02
 
 build-build/Makefile:
+	./scripts/bootstrap-cargo-config
 	mkdir -p build-build
 	cd build-build && cmake .. -DCOVERAGE=ON -DSANITIZE_ADDRESS=$(SANITIZE) -DSANITIZE_UNDEFINED=$(SANITIZE)
 	$(MAKE) -C py/bitbox02
 
 # ubsan/asan not supported with simulators and rust unit tests
 build-build-noasan/Makefile:
+	./scripts/bootstrap-cargo-config
 	mkdir -p build-build-noasan
 	cd build-build-noasan && cmake .. -DCOVERAGE=OFF -DSANITIZE_ADDRESS=OFF -DSANITIZE_UNDEFINED=OFF
 	$(MAKE) -C py/bitbox02
@@ -111,6 +116,7 @@ run-unit-tests: | build-build
 # `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex
 # poisoning and very messy output in case of a unit test failure.
 run-rust-unit-tests:
+	./scripts/bootstrap-cargo-config
 	cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1
 run-rust-clippy: | build-build-noasan
 	${MAKE} -C build-build-noasan rust-clippy

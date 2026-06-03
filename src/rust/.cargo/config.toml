@@ -1,3 +1,5 @@
+include = [{ path = "../../../.cargo/config.local.toml", optional = true }]
+
 [source.crates-io]
 replace-with = "vendored-sources"
 

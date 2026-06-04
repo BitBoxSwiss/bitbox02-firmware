@@ -558,6 +558,12 @@ pub struct BtcSignInitRequest {
     /// necessarily the same account (as defined by `script_configs` above).
     #[prost(message, repeated, tag = "10")]
     pub output_script_configs: ::prost::alloc::vec::Vec<BtcScriptConfigWithKeypath>,
+    /// BIP-322: If set, this is a BIP-322 message signing request. The device will
+    /// verify the virtual transaction structure and show message-signing UI.
+    /// Carries the message from the PSBT global field
+    /// PSBT_GLOBAL_GENERIC_SIGNED_MESSAGE (0x09) defined in BIP-322 v1.0.0.
+    #[prost(bytes = "vec", optional, tag = "11")]
+    pub bip322_message: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
 /// Nested message and enum types in `BTCSignInitRequest`.
 pub mod btc_sign_init_request {

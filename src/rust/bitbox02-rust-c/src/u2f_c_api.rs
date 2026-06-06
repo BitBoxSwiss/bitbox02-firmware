@@ -11,7 +11,7 @@ use alloc::string::String;
 use bitbox_hal::ui::{ConfirmParams, UserAbort};
 use bitbox_hal::{Hal, Ui};
 use core::ffi::CStr;
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use grounded::const_init::ConstInit;
 use grounded::uninit::GroundedCell;
 
@@ -26,6 +26,7 @@ impl<O> ConstInit for TaskState<O> {
 }
 
 static NEXT_TASK_TOKEN: AtomicU32 = AtomicU32::new(0);
+static WORKFLOW_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 static UNLOCK_STATE: GroundedCell<TaskState<Result<(), ()>>> = GroundedCell::const_init();
 static CONFIRM_STATE: GroundedCell<TaskState<Result<(), UserAbort>>> = GroundedCell::const_init();
 static BITBOX02_HAL: GroundedCell<crate::HalImpl> = GroundedCell::const_init();
@@ -70,6 +71,12 @@ unsafe fn complete_confirm(token: u32, result: Result<(), UserAbort>) {
 /// threads.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
+    if WORKFLOW_IN_PROGRESS
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return;
+    }
     let token = next_task_token();
     unsafe {
         UNLOCK_STATE.get().write(TaskState::Running(token));
@@ -79,6 +86,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
             bitbox02_rust::workflow::unlock::unlock(BITBOX02_HAL.get().as_mut().unwrap()).await
         };
         unsafe { complete_unlock(token, result) };
+        WORKFLOW_IN_PROGRESS.store(false, Ordering::Release);
     }));
 }
 
@@ -95,6 +103,12 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
 ) {
     let title: String = unsafe { CStr::from_ptr(title).to_str().unwrap().into() };
     let body: String = unsafe { CStr::from_ptr(body).to_str().unwrap().into() };
+    if WORKFLOW_IN_PROGRESS
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return;
+    }
     let token = next_task_token();
     unsafe {
         CONFIRM_STATE.get().write(TaskState::Running(token));
@@ -116,6 +130,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
                 .await
         };
         unsafe { complete_confirm(token, result) };
+        WORKFLOW_IN_PROGRESS.store(false, Ordering::Release);
     }));
 }
 

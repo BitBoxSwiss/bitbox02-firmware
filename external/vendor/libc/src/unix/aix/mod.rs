@@ -1,5 +1,8 @@
 use crate::prelude::*;
-use crate::{in_addr_t, in_port_t};
+use crate::{
+    in_addr_t,
+    in_port_t,
+};
 
 pub type caddr_t = *mut c_char;
 pub type clockid_t = c_longlong;
@@ -247,9 +250,9 @@ s! {
     pub struct sockaddr_storage {
         pub __ss_len: c_uchar,
         pub ss_family: sa_family_t,
-        __ss_pad1: [c_char; 6],
+        __ss_pad1: Padding<[c_char; 6]>,
         __ss_align: crate::int64_t,
-        __ss_pad2: [c_char; 1265],
+        __ss_pad2: Padding<[c_char; 1265]>,
     }
 
     pub struct sockaddr_un {
@@ -304,7 +307,7 @@ s! {
 
     pub struct xutsname {
         pub nid: c_uint,
-        pub reserved: c_int,
+        reserved: Padding<c_int>,
         pub longnid: c_ulonglong,
     }
 
@@ -314,6 +317,8 @@ s! {
         pub cmsg_type: c_int,
     }
 
+    // FIXME(1.0): This should not implement `PartialEq`
+    #[allow(unpredictable_function_pointer_comparisons)]
     pub struct sigevent {
         pub sigev_value: crate::sigval,
         pub sigev_signo: c_int,
@@ -353,7 +358,7 @@ s! {
     pub struct sched_param {
         pub sched_priority: c_int,
         pub sched_policy: c_int,
-        pub sched_reserved: [c_int; 6],
+        sched_reserved: Padding<[c_int; 6]>,
     }
 
     pub struct stack_t {
@@ -428,7 +433,7 @@ s! {
         pub re_esub: [*mut c_void; 24],
         pub re_map: *mut c_uchar,
         pub __maxsub: c_int,
-        pub __unused: [*mut c_void; 34],
+        __unused: Padding<[*mut c_void; 34]>,
     }
 
     pub struct rlimit64 {
@@ -450,8 +455,8 @@ s! {
         pub shm_extshm: c_int,
         pub shm_pagesize: crate::int64_t,
         pub shm_lba: crate::uint64_t,
-        pub shm_reserved0: crate::int64_t,
-        pub shm_reserved1: crate::int64_t,
+        shm_reserved0: Padding<crate::int64_t>,
+        shm_reserved1: Padding<crate::int64_t>,
     }
 
     pub struct stat64 {
@@ -464,16 +469,16 @@ s! {
         pub st_gid: crate::gid_t,
         pub st_rdev: dev_t,
         pub st_ssize: c_int,
-        pub st_atim: crate::timespec,
-        pub st_mtim: crate::timespec,
-        pub st_ctim: crate::timespec,
+        pub st_atim: st_timespec,
+        pub st_mtim: st_timespec,
+        pub st_ctim: st_timespec,
         pub st_blksize: blksize_t,
         pub st_blocks: blkcnt_t,
         pub st_vfstype: c_int,
         pub st_vfs: c_uint,
         pub st_type: c_uint,
         pub st_gen: c_uint,
-        pub st_reserved: [c_uint; 10],
+        st_reserved: Padding<[c_uint; 10]>,
         pub st_size: off64_t,
     }
 
@@ -493,7 +498,7 @@ s! {
         pub cgid: crate::gid_t,
         pub mode: mode_t,
         pub seq: c_ushort,
-        pub __reserved: c_ushort,
+        __reserved: Padding<c_ushort>,
         pub key: key_t,
     }
 
@@ -530,14 +535,6 @@ s! {
         pub sa_mask: sigset_t,
         pub sa_flags: c_int,
     }
-}
-
-s_no_extra_traits! {
-    pub union __poll_ctl_ext_u {
-        pub addr: *mut c_void,
-        pub data32: u32,
-        pub data: u64,
-    }
 
     pub struct poll_ctl_ext {
         pub version: u8,
@@ -545,7 +542,15 @@ s_no_extra_traits! {
         pub events: c_short,
         pub fd: c_int,
         pub u: __poll_ctl_ext_u,
-        pub reserved64: [u64; 6],
+        reserved64: Padding<[u64; 6]>,
+    }
+}
+
+s_no_extra_traits! {
+    pub union __poll_ctl_ext_u {
+        pub addr: *mut c_void,
+        pub data32: u32,
+        pub data: u64,
     }
 }
 
@@ -568,28 +573,6 @@ cfg_if! {
                     self.data32.hash(state);
                     self.data.hash(state);
                 }
-            }
-        }
-
-        impl PartialEq for poll_ctl_ext {
-            fn eq(&self, other: &poll_ctl_ext) -> bool {
-                self.version == other.version
-                    && self.command == other.command
-                    && self.events == other.events
-                    && self.fd == other.fd
-                    && self.reserved64 == other.reserved64
-                    && self.u == other.u
-            }
-        }
-        impl Eq for poll_ctl_ext {}
-        impl hash::Hash for poll_ctl_ext {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.version.hash(state);
-                self.command.hash(state);
-                self.events.hash(state);
-                self.fd.hash(state);
-                self.u.hash(state);
-                self.reserved64.hash(state);
             }
         }
     }
@@ -1261,7 +1244,8 @@ pub const ENOLCK: c_int = 49;
 pub const ENOCONNECT: c_int = 50;
 pub const ESTALE: c_int = 52;
 pub const EDIST: c_int = 53;
-pub const EWOULDBLOCK: c_int = 54;
+// POSIX allows EWOULDBLOCK to be the same value as EAGAIN.
+pub const EWOULDBLOCK: c_int = EAGAIN;
 pub const EINPROGRESS: c_int = 55;
 pub const EALREADY: c_int = 56;
 pub const ENOTSOCK: c_int = 57;
@@ -2260,9 +2244,6 @@ pub const CLOCK_PROCESS_CPUTIME_ID: crate::clockid_t = 11;
 pub const CLOCK_THREAD_CPUTIME_ID: crate::clockid_t = 12;
 
 // unistd.h
-pub const STDIN_FILENO: c_int = 0;
-pub const STDOUT_FILENO: c_int = 1;
-pub const STDERR_FILENO: c_int = 2;
 pub const _POSIX_VDISABLE: c_int = 0xff;
 pub const _PC_LINK_MAX: c_int = 11;
 pub const _PC_MAX_CANON: c_int = 12;

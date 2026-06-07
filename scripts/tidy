@@ -8,7 +8,7 @@ set -e
 # Exit on pipe fail
 set -o pipefail
 
-CLANGTIDY=${CLANGTIDY:-clang-tidy-21}
+CLANGTIDY=${CLANGTIDY:-clang-tidy-22}
 command -v ${CLANGTIDY} >/dev/null 2>&1 || { echo >&2 "${CLANGTIDY} is missing"; exit 1; }
 
 JQ=${JQ:-jq}

@@ -1,7 +1,7 @@
 //! LoongArch-specific definitions for 64-bit linux-like values
 
+use crate::off_t;
 use crate::prelude::*;
-use crate::{off64_t, off_t};
 
 pub type wchar_t = c_int;
 
@@ -9,6 +9,8 @@ pub type nlink_t = c_uint;
 pub type blksize_t = c_int;
 pub type __u64 = c_ulonglong;
 pub type __s64 = c_longlong;
+
+pub type stat64 = stat;
 
 s! {
     pub struct stat {
@@ -19,10 +21,10 @@ s! {
         pub st_uid: crate::uid_t,
         pub st_gid: crate::gid_t,
         pub st_rdev: crate::dev_t,
-        __pad1: crate::dev_t,
+        __pad1: Padding<crate::dev_t>,
         pub st_size: off_t,
         pub st_blksize: crate::blksize_t,
-        __pad2: c_int,
+        __pad2: Padding<c_int>,
         pub st_blocks: crate::blkcnt_t,
         pub st_atime: crate::time_t,
         pub st_atime_nsec: c_long,
@@ -30,29 +32,7 @@ s! {
         pub st_mtime_nsec: c_long,
         pub st_ctime: crate::time_t,
         pub st_ctime_nsec: c_long,
-        __unused: [c_int; 2usize],
-    }
-
-    pub struct stat64 {
-        pub st_dev: crate::dev_t,
-        pub st_ino: crate::ino64_t,
-        pub st_mode: crate::mode_t,
-        pub st_nlink: crate::nlink_t,
-        pub st_uid: crate::uid_t,
-        pub st_gid: crate::gid_t,
-        pub st_rdev: crate::dev_t,
-        pub __pad1: crate::dev_t,
-        pub st_size: off64_t,
-        pub st_blksize: crate::blksize_t,
-        pub __pad2: c_int,
-        pub st_blocks: crate::blkcnt_t,
-        pub st_atime: crate::time_t,
-        pub st_atime_nsec: c_long,
-        pub st_mtime: crate::time_t,
-        pub st_mtime_nsec: c_long,
-        pub st_ctime: crate::time_t,
-        pub st_ctime_nsec: c_long,
-        __unused: [c_int; 2],
+        __unused: Padding<[c_int; 2usize]>,
     }
 
     pub struct ipc_perm {
@@ -63,8 +43,8 @@ s! {
         pub cgid: crate::gid_t,
         pub mode: c_uint,
         pub __seq: c_int,
-        __unused1: c_ulong,
-        __unused2: c_ulong,
+        __unused1: Padding<c_ulong>,
+        __unused2: Padding<c_ulong>,
     }
 
     pub struct user_regs_struct {
@@ -570,9 +550,6 @@ pub const VEOF: usize = 4;
 pub const POLLWRNORM: c_short = 0x100;
 pub const POLLWRBAND: c_short = 0x200;
 
-pub const SOCK_STREAM: c_int = 1;
-pub const SOCK_DGRAM: c_int = 2;
-
 pub const MAP_ANON: c_int = 0x0020;
 pub const MAP_GROWSDOWN: c_int = 0x0100;
 pub const MAP_DENYWRITE: c_int = 0x0800;
@@ -626,7 +603,6 @@ pub const ECHOPRT: crate::tcflag_t = 0x00000400;
 pub const ECHOCTL: crate::tcflag_t = 0x00000200;
 pub const ISIG: crate::tcflag_t = 0x00000001;
 pub const ICANON: crate::tcflag_t = 0x00000002;
-pub const XCASE: crate::tcflag_t = 0x00000004;
 pub const PENDIN: crate::tcflag_t = 0x00004000;
 pub const NOFLSH: crate::tcflag_t = 0x00000080;
 pub const CIBAUD: crate::tcflag_t = 0o02003600000;

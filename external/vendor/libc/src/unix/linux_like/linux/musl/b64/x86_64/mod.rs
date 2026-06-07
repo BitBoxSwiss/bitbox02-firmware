@@ -8,6 +8,8 @@ pub type __u64 = c_ulonglong;
 pub type __s64 = c_longlong;
 pub type greg_t = i64;
 
+pub type stat64 = stat;
+
 s! {
     pub struct stat {
         pub st_dev: crate::dev_t,
@@ -16,39 +18,27 @@ s! {
         pub st_mode: crate::mode_t,
         pub st_uid: crate::uid_t,
         pub st_gid: crate::gid_t,
-        __pad0: c_int,
+        __pad0: Padding<c_int>,
         pub st_rdev: crate::dev_t,
         pub st_size: off_t,
         pub st_blksize: crate::blksize_t,
         pub st_blocks: crate::blkcnt_t,
         pub st_atime: crate::time_t,
+        #[cfg(all(musl32_time64, target_pointer_width = "32"))]
+        pub st_atime_nsec: i64,
+        #[cfg(not(all(musl32_time64, target_pointer_width = "32")))]
         pub st_atime_nsec: c_long,
         pub st_mtime: crate::time_t,
+        #[cfg(all(musl32_time64, target_pointer_width = "32"))]
+        pub st_mtime_nsec: i64,
+        #[cfg(not(all(musl32_time64, target_pointer_width = "32")))]
         pub st_mtime_nsec: c_long,
         pub st_ctime: crate::time_t,
+        #[cfg(all(musl32_time64, target_pointer_width = "32"))]
+        pub st_ctime_nsec: i64,
+        #[cfg(not(all(musl32_time64, target_pointer_width = "32")))]
         pub st_ctime_nsec: c_long,
-        __unused: [c_long; 3],
-    }
-
-    pub struct stat64 {
-        pub st_dev: crate::dev_t,
-        pub st_ino: crate::ino64_t,
-        pub st_nlink: crate::nlink_t,
-        pub st_mode: crate::mode_t,
-        pub st_uid: crate::uid_t,
-        pub st_gid: crate::gid_t,
-        __pad0: c_int,
-        pub st_rdev: crate::dev_t,
-        pub st_size: off_t,
-        pub st_blksize: crate::blksize_t,
-        pub st_blocks: crate::blkcnt64_t,
-        pub st_atime: crate::time_t,
-        pub st_atime_nsec: c_long,
-        pub st_mtime: crate::time_t,
-        pub st_mtime_nsec: c_long,
-        pub st_ctime: crate::time_t,
-        pub st_ctime_nsec: c_long,
-        __reserved: [c_long; 3],
+        __unused: Padding<[c_long; 3]>,
     }
 
     pub struct user_regs_struct {
@@ -91,12 +81,12 @@ s! {
         pub start_code: c_ulong,
         pub start_stack: c_ulong,
         pub signal: c_long,
-        __reserved: c_int,
+        __reserved: Padding<c_int>,
         #[cfg(target_pointer_width = "32")]
-        __pad1: u32,
+        __pad1: Padding<u32>,
         pub u_ar0: *mut user_regs_struct,
         #[cfg(target_pointer_width = "32")]
-        __pad2: u32,
+        __pad2: Padding<u32>,
         pub u_fpstate: *mut user_fpregs_struct,
         pub magic: c_ulong,
         pub u_comm: [c_char; 32],
@@ -127,8 +117,8 @@ s! {
         pub cgid: crate::gid_t,
         pub mode: crate::mode_t,
         pub __seq: c_int,
-        __unused1: c_long,
-        __unused2: c_long,
+        __unused1: Padding<c_long>,
+        __unused2: Padding<c_long>,
     }
 
     #[repr(align(8))]
@@ -145,9 +135,7 @@ s! {
         pub set_tid_size: c_ulonglong,
         pub cgroup: c_ulonglong,
     }
-}
 
-s_no_extra_traits! {
     pub struct user_fpregs_struct {
         pub cwd: c_ushort,
         pub swd: c_ushort,
@@ -159,7 +147,7 @@ s_no_extra_traits! {
         pub mxcr_mask: c_uint,
         pub st_space: [c_uint; 32],
         pub xmm_space: [c_uint; 64],
-        padding: [c_uint; 24],
+        padding: Padding<[c_uint; 24]>,
     }
 
     pub struct ucontext_t {
@@ -170,79 +158,12 @@ s_no_extra_traits! {
         pub uc_sigmask: crate::sigset_t,
         __private: [u8; 512],
     }
+}
 
+s_no_extra_traits! {
     #[repr(align(16))]
     pub struct max_align_t {
         priv_: [f64; 4],
-    }
-}
-
-cfg_if! {
-    if #[cfg(feature = "extra_traits")] {
-        impl PartialEq for user_fpregs_struct {
-            fn eq(&self, other: &user_fpregs_struct) -> bool {
-                self.cwd == other.cwd
-                    && self.swd == other.swd
-                    && self.ftw == other.ftw
-                    && self.fop == other.fop
-                    && self.rip == other.rip
-                    && self.rdp == other.rdp
-                    && self.mxcsr == other.mxcsr
-                    && self.mxcr_mask == other.mxcr_mask
-                    && self.st_space == other.st_space
-                    && self
-                        .xmm_space
-                        .iter()
-                        .zip(other.xmm_space.iter())
-                        .all(|(a, b)| a == b)
-                // Ignore padding field
-            }
-        }
-
-        impl Eq for user_fpregs_struct {}
-
-        impl hash::Hash for user_fpregs_struct {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.cwd.hash(state);
-                self.ftw.hash(state);
-                self.fop.hash(state);
-                self.rip.hash(state);
-                self.rdp.hash(state);
-                self.mxcsr.hash(state);
-                self.mxcr_mask.hash(state);
-                self.st_space.hash(state);
-                self.xmm_space.hash(state);
-                // Ignore padding field
-            }
-        }
-
-        impl PartialEq for ucontext_t {
-            fn eq(&self, other: &ucontext_t) -> bool {
-                self.uc_flags == other.uc_flags
-                    && self.uc_link == other.uc_link
-                    && self.uc_stack == other.uc_stack
-                    && self.uc_mcontext == other.uc_mcontext
-                    && self.uc_sigmask == other.uc_sigmask
-                    && self
-                        .__private
-                        .iter()
-                        .zip(other.__private.iter())
-                        .all(|(a, b)| a == b)
-            }
-        }
-
-        impl Eq for ucontext_t {}
-
-        impl hash::Hash for ucontext_t {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.uc_flags.hash(state);
-                self.uc_link.hash(state);
-                self.uc_stack.hash(state);
-                self.uc_mcontext.hash(state);
-                self.uc_sigmask.hash(state);
-                self.__private.hash(state);
-            }
-        }
     }
 }
 
@@ -817,9 +738,6 @@ pub const VEOF: usize = 4;
 
 pub const POLLWRNORM: c_short = 0x100;
 pub const POLLWRBAND: c_short = 0x200;
-
-pub const SOCK_STREAM: c_int = 1;
-pub const SOCK_DGRAM: c_int = 2;
 
 pub const MAP_ANON: c_int = 0x0020;
 pub const MAP_GROWSDOWN: c_int = 0x0100;

@@ -2,8 +2,7 @@ use crate::off_t;
 use crate::prelude::*;
 
 // Define lock_data_instrumented as an empty enum
-missing! {
-    #[derive(Debug)]
+extern_ty! {
     pub enum lock_data_instrumented {}
 }
 
@@ -69,16 +68,16 @@ s! {
         pub st_gid: crate::gid_t,
         pub st_rdev: crate::dev_t,
         pub st_ssize: c_int,
-        pub st_atim: crate::timespec,
-        pub st_mtim: crate::timespec,
-        pub st_ctim: crate::timespec,
+        pub st_atim: crate::st_timespec,
+        pub st_mtim: crate::st_timespec,
+        pub st_ctim: crate::st_timespec,
         pub st_blksize: crate::blksize_t,
         pub st_blocks: crate::blkcnt_t,
         pub st_vfstype: c_int,
         pub st_vfs: c_uint,
         pub st_type: c_uint,
         pub st_gen: c_uint,
-        pub st_reserved: [c_uint; 9],
+        st_reserved: Padding<[c_uint; 9]>,
         pub st_padto_ll: c_uint,
         pub st_size: off_t,
     }
@@ -118,7 +117,7 @@ s! {
         pub aio_word2: c_int,
         pub aio_fp: c_int,
         pub aio_handle: *mut aiocb,
-        pub aio_reserved: [c_uint; 2],
+        aio_reserved: Padding<[c_uint; 2]>,
         pub aio_sigev_tid: c_long,
     }
 
@@ -192,7 +191,7 @@ s! {
         pub __ukeys: [c_uint; 2],
         pub __vsx: crate::__vsx_context_t,
         pub __tm: crate::__tm_context_t,
-        pub __reserved: [c_char; 1860],
+        __reserved: Padding<[c_char; 1860]>,
         pub __extctx_magic: c_int,
     }
 
@@ -245,9 +244,7 @@ s! {
         pub msg_wwait: c_int,
         pub msg_reqevents: c_ushort,
     }
-}
 
-s_no_extra_traits! {
     pub struct siginfo_t {
         pub si_signo: c_int,
         pub si_errno: c_int,
@@ -262,6 +259,15 @@ s_no_extra_traits! {
         pub __pad: [c_int; 3],
     }
 
+    pub struct pollfd_ext {
+        pub fd: c_int,
+        pub events: c_short,
+        pub revents: c_short,
+        pub data: __pollfd_ext_u,
+    }
+}
+
+s_no_extra_traits! {
     pub union _kernel_simple_lock {
         pub _slock: c_long,
         pub _slockp: *mut lock_data_instrumented,
@@ -336,13 +342,6 @@ s_no_extra_traits! {
         pub data: u64,
     }
 
-    pub struct pollfd_ext {
-        pub fd: c_int,
-        pub events: c_short,
-        pub revents: c_short,
-        pub data: __pollfd_ext_u,
-    }
-
     pub struct fpreg_t {
         pub d: c_double,
     }
@@ -372,36 +371,6 @@ impl siginfo_t {
 
 cfg_if! {
     if #[cfg(feature = "extra_traits")] {
-        impl PartialEq for siginfo_t {
-            fn eq(&self, other: &siginfo_t) -> bool {
-                self.si_signo == other.si_signo
-                    && self.si_errno == other.si_errno
-                    && self.si_code == other.si_code
-                    && self.si_pid == other.si_pid
-                    && self.si_uid == other.si_uid
-                    && self.si_status == other.si_status
-                    && self.si_addr == other.si_addr
-                    && self.si_band == other.si_band
-                    && self.__si_flags == other.__si_flags
-                    && self.si_value == other.si_value
-            }
-        }
-        impl Eq for siginfo_t {}
-        impl hash::Hash for siginfo_t {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.si_signo.hash(state);
-                self.si_errno.hash(state);
-                self.si_code.hash(state);
-                self.si_pid.hash(state);
-                self.si_uid.hash(state);
-                self.si_status.hash(state);
-                self.si_addr.hash(state);
-                self.si_band.hash(state);
-                self.si_value.hash(state);
-                self.__si_flags.hash(state);
-            }
-        }
-
         impl PartialEq for __pollfd_ext_u {
             fn eq(&self, other: &__pollfd_ext_u) -> bool {
                 unsafe {
@@ -422,34 +391,15 @@ cfg_if! {
             }
         }
 
-        impl PartialEq for pollfd_ext {
-            fn eq(&self, other: &pollfd_ext) -> bool {
-                self.fd == other.fd
-                    && self.events == other.events
-                    && self.revents == other.revents
-                    && self.data == other.data
-            }
-        }
-        impl Eq for pollfd_ext {}
-        impl hash::Hash for pollfd_ext {
-            fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                self.fd.hash(state);
-                self.events.hash(state);
-                self.revents.hash(state);
-                self.data.hash(state);
-            }
-        }
         impl PartialEq for fpreg_t {
             fn eq(&self, other: &fpreg_t) -> bool {
                 self.d == other.d
             }
         }
-
         impl Eq for fpreg_t {}
-
         impl hash::Hash for fpreg_t {
             fn hash<H: hash::Hasher>(&self, state: &mut H) {
-                let d: u64 = unsafe { mem::transmute(self.d) };
+                let d: u64 = self.d.to_bits();
                 d.hash(state);
             }
         }

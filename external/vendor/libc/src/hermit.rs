@@ -87,9 +87,9 @@ s! {
     pub struct sockaddr_storage {
         pub ss_len: u8,
         pub ss_family: sa_family_t,
-        __ss_pad1: [u8; 6],
+        __ss_pad1: Padding<[u8; 6]>,
         __ss_align: i64,
-        __ss_pad2: [u8; 112],
+        __ss_pad2: Padding<[u8; 112]>,
     }
 
     pub struct stat {
@@ -108,6 +108,7 @@ s! {
         pub st_ctim: timespec,
     }
 
+    #[derive(Default)]
     pub struct timespec {
         pub tv_sec: time_t,
         pub tv_nsec: i32,

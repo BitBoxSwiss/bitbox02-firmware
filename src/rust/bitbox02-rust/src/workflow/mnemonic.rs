@@ -233,17 +233,7 @@ async fn get_12th_18th_word(
     // these.
     loop {
         let choices = lastword_choices(entered_words);
-        let word = hal_ui
-            .enter_string(
-                &crate::hal::ui::EnterStringParams {
-                    title,
-                    wordlist: Some(&choices),
-                    ..Default::default()
-                },
-                CanCancel::Yes,
-                "",
-            )
-            .await?;
+        let word = enter_word_from_wordlist(hal_ui, title, &choices, "").await?;
 
         // Confirm word picked again, as a typo here would be extremely annoying.  Double checking
         // is also safer, as the user might not even realize they made a typo.
@@ -257,6 +247,41 @@ async fn get_12th_18th_word(
         {
             return Ok(word);
         }
+    }
+}
+
+fn wordlist_contains(wordlist: &[u16], word: &str) -> bool {
+    wordlist
+        .iter()
+        .any(|word_idx| match crate::bip39::get_word(*word_idx) {
+            Ok(candidate) => candidate.as_str() == word,
+            Err(()) => false,
+        })
+}
+
+async fn enter_word_from_wordlist(
+    hal_ui: &mut impl crate::hal::Ui,
+    title: &str,
+    wordlist: &[u16],
+    preset: &str,
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+    loop {
+        let word = hal_ui
+            .enter_string(
+                &crate::hal::ui::EnterStringParams {
+                    title,
+                    wordlist: Some(wordlist),
+                    ..Default::default()
+                },
+                CanCancel::Yes,
+                preset,
+            )
+            .await?;
+
+        if wordlist_contains(wordlist, &word) {
+            return Ok(word);
+        }
+        hal_ui.status("Invalid word\nTry again", false).await;
     }
 }
 
@@ -307,17 +332,7 @@ pub async fn get(
                 get_12th_18th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await
             }
         } else {
-            hal_ui
-                .enter_string(
-                    &crate::hal::ui::EnterStringParams {
-                        title: &title,
-                        wordlist: Some(&bip39_wordlist),
-                        ..Default::default()
-                    },
-                    CanCancel::Yes,
-                    preset,
-                )
-                .await
+            enter_word_from_wordlist(hal_ui, &title, &bip39_wordlist, preset).await
         };
 
         match user_entry {
@@ -382,6 +397,9 @@ mod tests {
     use super::*;
 
     use crate::hal::testing::{TestingRandom, TestingUi};
+    use alloc::boxed::Box;
+    use alloc::collections::VecDeque;
+    use alloc::string::String;
 
     fn bruteforce_lastword(mnemonic: &[&str]) -> Vec<zeroize::Zeroizing<String>> {
         let mut result = Vec::new();
@@ -444,6 +462,58 @@ mod tests {
             Err(_) => panic!("unexpected user abort"),
         };
         assert_eq!(mnemonic.as_str(), words.join(" "));
+    }
+
+    #[async_test::test]
+    async fn test_get_retries_invalid_word() {
+        let words: Vec<&str> = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
+            .split(' ')
+            .collect();
+        let mut entries: VecDeque<String> = ["notaword"]
+            .into_iter()
+            .chain(words[..23].iter().copied())
+            .map(String::from)
+            .collect();
+        let last_word = words[23];
+        let mut ui = TestingUi::new();
+
+        ui.set_trinary_choice(Box::new(
+            |message, label_left, label_middle, label_right| {
+                assert_eq!(message, "How many words?");
+                assert_eq!(label_left, Some("12"));
+                assert_eq!(label_middle, None);
+                assert_eq!(label_right, Some("24"));
+                TrinaryChoice::Right
+            },
+        ));
+        ui.set_menu(Box::new(move |menu_words, title| {
+            assert_eq!(title, Some("24 of 24"));
+            Ok(menu_words
+                .iter()
+                .position(|word| *word == last_word)
+                .unwrap()
+                .try_into()
+                .unwrap())
+        }));
+        ui.set_enter_string(Box::new(move |params| {
+            assert!(params.wordlist.is_some());
+            assert!(params.title.ends_with(" of 24"));
+            Ok(entries.pop_front().unwrap())
+        }));
+
+        let result = get(&mut ui).await;
+        assert!(result.is_ok());
+        let mnemonic = match result {
+            Ok(mnemonic) => mnemonic,
+            Err(_) => panic!("unexpected user abort"),
+        };
+        assert_eq!(mnemonic.as_str(), words.join(" "));
+        assert!(ui.screens.iter().any(
+            |screen| matches!(screen, crate::hal::testing::Screen::Status {
+                    title,
+                    success: false,
+                } if title == "Invalid word\nTry again")
+        ));
     }
 
     #[test]

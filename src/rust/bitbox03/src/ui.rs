@@ -11,8 +11,10 @@ use core::marker::PhantomData;
 use tracing::info;
 use util::futures::completion;
 
+mod choice;
 mod confirm;
 mod enter_string;
+mod menu;
 mod status;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
@@ -145,32 +147,74 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
 
     async fn menu(
         &mut self,
-        _words: &[&str],
-        _title: Option<&str>,
+        words: &[&str],
+        title: Option<&str>,
     ) -> Result<u8, bitbox_hal::ui::UserAbort> {
-        todo!()
+        match self.menu_impl(words, title, true, false, 0).await {
+            menu::MenuResult::Selected(choice_idx) => Ok(choice_idx),
+            menu::MenuResult::Cancel(_) => Err(bitbox_hal::ui::UserAbort),
+            menu::MenuResult::Continue => panic!("unexpected menu continue"),
+        }
     }
 
     async fn trinary_choice(
         &mut self,
-        _message: &str,
-        _label_left: Option<&str>,
-        _label_middle: Option<&str>,
-        _label_right: Option<&str>,
+        message: &str,
+        label_left: Option<&str>,
+        label_middle: Option<&str>,
+        label_right: Option<&str>,
     ) -> bitbox_hal::ui::TrinaryChoice {
-        todo!()
+        self.with_result_screen(|responder| {
+            choice::build_trinary_choice_screen(
+                message,
+                label_left,
+                label_middle,
+                label_right,
+                responder,
+            )
+        })
+        .await
     }
 
-    async fn show_mnemonic(&mut self, _words: &[&str]) -> Result<(), bitbox_hal::ui::UserAbort> {
-        todo!()
+    async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), bitbox_hal::ui::UserAbort> {
+        let mut index = 0usize;
+        loop {
+            match self.menu_impl(words, None, false, true, index).await {
+                menu::MenuResult::Continue => return Ok(()),
+                menu::MenuResult::Cancel(cancelled_index) => {
+                    index = cancelled_index;
+                    match menu::confirm_recovery_words_cancel(self).await {
+                        Ok(()) => return Err(bitbox_hal::ui::UserAbort),
+                        Err(bitbox_hal::ui::UserAbort) => {}
+                    }
+                }
+                menu::MenuResult::Selected(_) => panic!("unexpected mnemonic word selection"),
+            }
+        }
     }
 
     async fn quiz_mnemonic_word(
         &mut self,
-        _choices: &[&str],
-        _title: &str,
+        choices: &[&str],
+        title: &str,
     ) -> Result<u8, bitbox_hal::ui::UserAbort> {
-        todo!()
+        let mut index = 0usize;
+        loop {
+            match self
+                .menu_impl(choices, Some(title), true, false, index)
+                .await
+            {
+                menu::MenuResult::Selected(choice_idx) => return Ok(choice_idx),
+                menu::MenuResult::Cancel(cancelled_index) => {
+                    index = cancelled_index;
+                    match menu::confirm_recovery_words_cancel(self).await {
+                        Ok(()) => return Err(bitbox_hal::ui::UserAbort),
+                        Err(bitbox_hal::ui::UserAbort) => {}
+                    }
+                }
+                menu::MenuResult::Continue => panic!("unexpected mnemonic quiz continue"),
+            }
+        }
     }
 }
 
@@ -295,6 +339,49 @@ impl<Timer> BitBox03Ui<Timer> {
             let current = display.screen_active().expect("No active screen?!");
             self.stack.push(current);
             display.screen_load(screen);
+        }
+    }
+}
+
+impl<Timer: bitbox_hal::timer::Timer> BitBox03Ui<Timer> {
+    async fn menu_impl(
+        &mut self,
+        words: &[&str],
+        title: Option<&str>,
+        select_word: bool,
+        continue_on_last: bool,
+        start_index: usize,
+    ) -> menu::MenuResult {
+        assert!(!words.is_empty(), "menu requires at least one word");
+        let mut index = start_index.min(words.len() - 1);
+        loop {
+            let action = self
+                .with_result_screen(|responder| {
+                    menu::build_menu_screen(
+                        words,
+                        title,
+                        index,
+                        select_word,
+                        continue_on_last,
+                        responder,
+                    )
+                })
+                .await;
+            match action {
+                menu::MenuAction::Previous => index = index.saturating_sub(1),
+                menu::MenuAction::Next => {
+                    if index + 1 < words.len() {
+                        index += 1;
+                    }
+                }
+                menu::MenuAction::Select => {
+                    return menu::MenuResult::Selected(
+                        index.try_into().expect("menu supports at most 256 items"),
+                    );
+                }
+                menu::MenuAction::Continue => return menu::MenuResult::Continue,
+                menu::MenuAction::Cancel => return menu::MenuResult::Cancel(index),
+            }
         }
     }
 }

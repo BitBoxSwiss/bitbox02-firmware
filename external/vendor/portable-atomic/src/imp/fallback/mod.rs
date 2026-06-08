@@ -16,94 +16,55 @@ type and the value type must be the same.
 #![cfg_attr(
     any(
         all(
-            target_arch = "x86_64",
-            not(portable_atomic_no_outline_atomics),
-            not(any(target_env = "sgx", miri)),
-        ),
-        all(
-            target_arch = "powerpc64",
-            feature = "fallback",
-            not(portable_atomic_no_outline_atomics),
-            any(
-                all(
-                    target_os = "linux",
-                    any(
-                        all(
-                            target_env = "gnu",
-                            any(target_endian = "little", not(target_feature = "crt-static")),
-                        ),
-                        all(
-                            any(target_env = "musl", target_env = "ohos", target_env = "uclibc"),
-                            not(target_feature = "crt-static"),
-                        ),
-                        portable_atomic_outline_atomics,
-                    ),
-                ),
-                target_os = "android",
-                target_os = "freebsd",
-                target_os = "openbsd",
-            ),
-            not(any(miri, portable_atomic_sanitize_thread)),
-        ),
-        all(
             target_arch = "riscv32",
             not(any(miri, portable_atomic_sanitize_thread)),
-            not(portable_atomic_no_asm),
-            any(
-                target_feature = "experimental-zacas",
-                portable_atomic_target_feature = "experimental-zacas",
-                all(
-                    feature = "fallback",
-                    not(portable_atomic_no_outline_atomics),
-                    any(test, portable_atomic_outline_atomics), // TODO(riscv): currently disabled by default
-                    any(target_os = "linux", target_os = "android"),
-                ),
-            ),
-        ),
-        all(
-            target_arch = "riscv64",
-            not(portable_atomic_no_asm),
-            any(
-                target_feature = "experimental-zacas",
-                portable_atomic_target_feature = "experimental-zacas",
-                all(
-                    feature = "fallback",
-                    not(portable_atomic_no_outline_atomics),
-                    any(test, portable_atomic_outline_atomics), // TODO(riscv): currently disabled by default
-                    any(target_os = "linux", target_os = "android"),
-                    not(any(miri, portable_atomic_sanitize_thread)),
-                ),
-            ),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+            not(portable_atomic_no_outline_atomics),
+            any(target_os = "linux", target_os = "android"),
         ),
         all(
             target_arch = "arm",
+            not(any(miri, portable_atomic_sanitize_thread)),
             any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
             any(target_os = "linux", target_os = "android"),
+            any(test, not(any(target_feature = "v6", portable_atomic_target_feature = "v6"))),
             not(portable_atomic_no_outline_atomics),
         ),
     ),
     allow(dead_code)
 )]
 
-#[macro_use]
-pub(crate) mod utils;
+// This module requires CAS and this crate only provides atomics up to 128-bit.
+// I don't believe there are any 16-bit multi-core systems with CAS, and
+// at least no such architecture is currently supported in Rust.
+// 128-bit targets that lack atomic usize CAS also do not reach this module.
+#[cfg(target_pointer_width = "16")]
+compile_error!(
+    "internal error: unreachable since atomics for 16-bit targets can always be provided by disable interrupts"
+);
+#[cfg(target_pointer_width = "128")]
+compile_error!(
+    "internal error: unreachable since 128-bit target either has atomic CAS for the pointer width or does not have CAS"
+);
+
+mod utils;
 
 // Use "wide" sequence lock if the pointer width <= 32 for preventing its counter against wrap
 // around.
 //
-// In narrow architectures (pointer width <= 16), the counter is still <= 32-bit and may be
-// vulnerable to wrap around. But it's mostly okay, since in such a primitive hardware, the
-// counter will not be increased that fast.
-//
 // Some 64-bit architectures have ABI with 32-bit pointer width (e.g., x86_64 X32 ABI,
 // AArch64 ILP32 ABI, mips64 N32 ABI). On those targets, AtomicU64 is available and fast,
-// so use it to implement normal sequence lock.
+// so use it to implement normal sequence lock and reduce chunks of byte-wise atomic memcpy.
 cfg_has_fast_atomic_64! {
     mod seq_lock;
+    type AtomicChunk = core::sync::atomic::AtomicU64;
+    type Chunk = u64;
 }
 cfg_no_fast_atomic_64! {
     #[path = "seq_lock_wide.rs"]
     mod seq_lock;
+    type AtomicChunk = core::sync::atomic::AtomicU32;
+    type Chunk = u32;
 }
 
 use core::{cell::UnsafeCell, mem, sync::atomic::Ordering};
@@ -112,21 +73,16 @@ use self::{
     seq_lock::{SeqLock, SeqLockWriteGuard},
     utils::CachePadded,
 };
+#[cfg(portable_atomic_no_strict_provenance)]
+use crate::utils::ptr::PtrExt as _;
+use crate::utils::unlikely;
 
-// Some 64-bit architectures have ABI with 32-bit pointer width (e.g., x86_64 X32 ABI,
-// AArch64 ILP32 ABI, mips64 N32 ABI). On those targets, AtomicU64 is fast,
-// so use it to reduce chunks of byte-wise atomic memcpy.
-use self::seq_lock::{AtomicChunk, Chunk};
-
-// Adapted from https://github.com/crossbeam-rs/crossbeam/blob/crossbeam-utils-0.8.7/crossbeam-utils/src/atomic/atomic_cell.rs#L969-L1016.
+// Adapted from https://github.com/crossbeam-rs/crossbeam/blob/crossbeam-utils-0.8.21/crossbeam-utils/src/atomic/atomic_cell.rs#L970-L1010.
 #[inline]
 #[must_use]
 fn lock(addr: usize) -> &'static SeqLock {
     // The number of locks is a prime number because we want to make sure `addr % LEN` gets
     // dispersed across all locks.
-    //
-    // crossbeam-utils 0.8.7 uses 97 here but does not use CachePadded,
-    // so the actual concurrency level will be smaller.
     const LEN: usize = 67;
     const L: CachePadded<SeqLock> = CachePadded::new(SeqLock::new());
     static LOCKS: [CachePadded<SeqLock>; LEN] = [
@@ -173,7 +129,7 @@ macro_rules! atomic {
                 // in SeqLock implementations:
                 //
                 // - https://github.com/Amanieu/seqlock/issues/2
-                // - https://github.com/crossbeam-rs/crossbeam/blob/crossbeam-utils-0.8.7/crossbeam-utils/src/atomic/atomic_cell.rs#L1111-L1116
+                // - https://github.com/crossbeam-rs/crossbeam/blob/crossbeam-utils-0.8.21/crossbeam-utils/src/atomic/atomic_cell.rs#L1063-L1069
                 // - https://rust-lang.zulipchat.com/#narrow/stream/136281-t-lang.2Fwg-unsafe-code-guidelines/topic/avoiding.20UB.20due.20to.20races.20by.20discarding.20result.3F
                 //
                 // However, in our use case, the implementation that loads/stores value as
@@ -216,37 +172,193 @@ macro_rules! atomic {
         // SAFETY: any data races are prevented by the lock and atomic operation.
         unsafe impl Sync for $atomic_type {}
 
-        impl_default_no_fetch_ops!($atomic_type, $int_type);
-        impl_default_bit_opts!($atomic_type, $int_type);
+        #[cfg(any(
+            test,
+            not(any(
+                all(
+                    target_arch = "x86_64",
+                    not(all(
+                        any(miri, portable_atomic_sanitize_thread),
+                        portable_atomic_no_cmpxchg16b_intrinsic,
+                    )),
+                    any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+                    not(portable_atomic_no_outline_atomics),
+                    not(any(target_env = "sgx", miri)),
+                ),
+                all(
+                    target_arch = "powerpc64",
+                    not(portable_atomic_no_asm),
+                    not(portable_atomic_no_outline_atomics),
+                    any(
+                        all(
+                            target_os = "linux",
+                            any(
+                                all(
+                                    target_env = "gnu",
+                                    any(target_endian = "little", not(target_feature = "crt-static")),
+                                ),
+                                all(
+                                    target_env = "musl",
+                                    any(not(target_feature = "crt-static"), feature = "std"),
+                                ),
+                                target_env = "ohos",
+                                all(target_env = "uclibc", not(target_feature = "crt-static")),
+                                portable_atomic_outline_atomics,
+                            ),
+                        ),
+                        target_os = "android",
+                        all(
+                            target_os = "freebsd",
+                            any(
+                                target_endian = "little",
+                                not(target_feature = "crt-static"),
+                                portable_atomic_outline_atomics,
+                            ),
+                        ),
+                        target_os = "openbsd",
+                        all(
+                            target_os = "aix",
+                            not(portable_atomic_pre_llvm_20),
+                            portable_atomic_outline_atomics, // TODO(aix): currently disabled by default
+                        ),
+                    ),
+                    not(any(miri, portable_atomic_sanitize_thread)),
+                ),
+                all(
+                    target_arch = "riscv64",
+                    not(any(miri, portable_atomic_sanitize_thread)),
+                    any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+                    not(portable_atomic_no_outline_atomics),
+                    any(target_os = "linux", target_os = "android"),
+                ),
+            )),
+        ))]
+        items!({
+            impl_default_no_fetch_ops!($atomic_type, $int_type);
+            impl_default_bit_opts!($atomic_type, $int_type);
+            impl $atomic_type {
+                #[inline]
+                pub(crate) const fn new(v: $int_type) -> Self {
+                    Self { v: UnsafeCell::new(v) }
+                }
+
+                #[inline]
+                pub(crate) fn is_lock_free() -> bool {
+                    Self::IS_ALWAYS_LOCK_FREE
+                }
+                pub(crate) const IS_ALWAYS_LOCK_FREE: bool = false;
+
+                #[inline]
+                #[cfg_attr(
+                    all(debug_assertions, not(portable_atomic_no_track_caller)),
+                    track_caller
+                )]
+                pub(crate) fn compare_exchange_weak(
+                    &self,
+                    current: $int_type,
+                    new: $int_type,
+                    success: Ordering,
+                    failure: Ordering,
+                ) -> Result<$int_type, $int_type> {
+                    self.compare_exchange(current, new, success, failure)
+                }
+
+                #[inline]
+                pub(crate) fn not(&self, order: Ordering) {
+                    self.fetch_not(order);
+                }
+                #[inline]
+                pub(crate) fn neg(&self, order: Ordering) {
+                    self.fetch_neg(order);
+                }
+
+                #[inline]
+                pub(crate) const fn as_ptr(&self) -> *mut $int_type {
+                    self.v.get()
+                }
+            }
+        });
+        #[cfg_attr(
+            any(
+                all(
+                    target_arch = "x86_64",
+                    not(all(
+                        any(miri, portable_atomic_sanitize_thread),
+                        portable_atomic_no_cmpxchg16b_intrinsic,
+                    )),
+                    any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+                    not(portable_atomic_no_outline_atomics),
+                    not(any(target_env = "sgx", miri)),
+                ),
+                all(
+                    target_arch = "powerpc64",
+                    not(portable_atomic_no_asm),
+                    not(portable_atomic_no_outline_atomics),
+                    any(
+                        all(
+                            target_os = "linux",
+                            any(
+                                all(
+                                    target_env = "gnu",
+                                    any(target_endian = "little", not(target_feature = "crt-static")),
+                                ),
+                                all(
+                                    target_env = "musl",
+                                    any(not(target_feature = "crt-static"), feature = "std"),
+                                ),
+                                target_env = "ohos",
+                                all(target_env = "uclibc", not(target_feature = "crt-static")),
+                                portable_atomic_outline_atomics,
+                            ),
+                        ),
+                        target_os = "android",
+                        all(
+                            target_os = "freebsd",
+                            any(
+                                target_endian = "little",
+                                not(target_feature = "crt-static"),
+                                portable_atomic_outline_atomics,
+                            ),
+                        ),
+                        target_os = "openbsd",
+                        all(
+                            target_os = "aix",
+                            not(portable_atomic_pre_llvm_20),
+                            portable_atomic_outline_atomics, // TODO(aix): currently disabled by default
+                        ),
+                    ),
+                    not(any(miri, portable_atomic_sanitize_thread)),
+                ),
+                all(
+                    target_arch = "riscv64",
+                    not(any(miri, portable_atomic_sanitize_thread)),
+                    any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+                    not(portable_atomic_no_outline_atomics),
+                    any(target_os = "linux", target_os = "android"),
+                ),
+            ),
+            allow(dead_code)
+        )]
         impl $atomic_type {
-            #[inline]
-            pub(crate) const fn new(v: $int_type) -> Self {
-                Self { v: UnsafeCell::new(v) }
-            }
-
-            #[inline]
-            pub(crate) fn is_lock_free() -> bool {
-                Self::IS_ALWAYS_LOCK_FREE
-            }
-            pub(crate) const IS_ALWAYS_LOCK_FREE: bool = false;
-
             #[inline]
             #[cfg_attr(all(debug_assertions, not(portable_atomic_no_track_caller)), track_caller)]
             pub(crate) fn load(&self, order: Ordering) -> $int_type {
                 crate::utils::assert_load_ordering(order);
-                let lock = lock(self.v.get() as usize);
+                let lock = lock(self.v.get().addr());
 
                 // Try doing an optimistic read first.
-                if let Some(stamp) = lock.optimistic_read() {
+                if let Some(stamp) = lock.optimistic_read(order) {
                     let val = self.optimistic_read();
 
-                    if lock.validate_read(stamp) {
+                    if lock.validate_read(stamp, order) {
                         return val;
                     }
                 }
 
                 // Grab a regular write lock so that writers don't starve this load.
-                let guard = lock.write();
+                let guard = lock.write(
+                    Ordering::AcqRel, // we already emit sc fence in optimistic_read if needed
+                );
                 let val = self.read(&guard);
                 // The value hasn't been changed. Drop the guard without incrementing the stamp.
                 guard.abort();
@@ -257,13 +369,13 @@ macro_rules! atomic {
             #[cfg_attr(all(debug_assertions, not(portable_atomic_no_track_caller)), track_caller)]
             pub(crate) fn store(&self, val: $int_type, order: Ordering) {
                 crate::utils::assert_store_ordering(order);
-                let guard = lock(self.v.get() as usize).write();
+                let guard = lock(self.v.get().addr()).write(order);
                 self.write(val, &guard)
             }
 
             #[inline]
-            pub(crate) fn swap(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn swap(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(val, &guard);
                 prev
@@ -279,7 +391,13 @@ macro_rules! atomic {
                 failure: Ordering,
             ) -> Result<$int_type, $int_type> {
                 crate::utils::assert_compare_exchange_ordering(success, failure);
-                let guard = lock(self.v.get() as usize).write();
+                let order = if unlikely(success == Ordering::SeqCst || failure == Ordering::SeqCst)
+                {
+                    Ordering::SeqCst
+                } else {
+                    Ordering::AcqRel
+                };
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 if prev == current {
                     self.write(new, &guard);
@@ -292,114 +410,104 @@ macro_rules! atomic {
             }
 
             #[inline]
-            #[cfg_attr(all(debug_assertions, not(portable_atomic_no_track_caller)), track_caller)]
-            pub(crate) fn compare_exchange_weak(
-                &self,
-                current: $int_type,
-                new: $int_type,
-                success: Ordering,
-                failure: Ordering,
-            ) -> Result<$int_type, $int_type> {
-                self.compare_exchange(current, new, success, failure)
-            }
-
-            #[inline]
-            pub(crate) fn fetch_add(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_add(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(prev.wrapping_add(val), &guard);
                 prev
             }
 
             #[inline]
-            pub(crate) fn fetch_sub(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_sub(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(prev.wrapping_sub(val), &guard);
                 prev
             }
 
             #[inline]
-            pub(crate) fn fetch_and(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_and(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(prev & val, &guard);
                 prev
             }
 
             #[inline]
-            pub(crate) fn fetch_nand(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_nand(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(!(prev & val), &guard);
                 prev
             }
 
             #[inline]
-            pub(crate) fn fetch_or(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_or(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(prev | val, &guard);
                 prev
             }
 
             #[inline]
-            pub(crate) fn fetch_xor(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_xor(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(prev ^ val, &guard);
                 prev
             }
 
             #[inline]
-            pub(crate) fn fetch_max(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_not(&self, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
+                let prev = self.read(&guard);
+                self.write(!prev, &guard);
+                prev
+            }
+
+            #[inline]
+            pub(crate) fn fetch_neg(&self, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
+                let prev = self.read(&guard);
+                self.write(prev.wrapping_neg(), &guard);
+                prev
+            }
+        }
+        impl $atomic_type {
+            #[inline]
+            pub(crate) fn fetch_max(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(core::cmp::max(prev, val), &guard);
                 prev
             }
 
             #[inline]
-            pub(crate) fn fetch_min(&self, val: $int_type, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
+            pub(crate) fn fetch_min(&self, val: $int_type, order: Ordering) -> $int_type {
+                let guard = lock(self.v.get().addr()).write(order);
                 let prev = self.read(&guard);
                 self.write(core::cmp::min(prev, val), &guard);
                 prev
-            }
-
-            #[inline]
-            pub(crate) fn fetch_not(&self, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
-                let prev = self.read(&guard);
-                self.write(!prev, &guard);
-                prev
-            }
-            #[inline]
-            pub(crate) fn not(&self, order: Ordering) {
-                self.fetch_not(order);
-            }
-
-            #[inline]
-            pub(crate) fn fetch_neg(&self, _order: Ordering) -> $int_type {
-                let guard = lock(self.v.get() as usize).write();
-                let prev = self.read(&guard);
-                self.write(prev.wrapping_neg(), &guard);
-                prev
-            }
-            #[inline]
-            pub(crate) fn neg(&self, order: Ordering) {
-                self.fetch_neg(order);
-            }
-
-            #[inline]
-            pub(crate) const fn as_ptr(&self) -> *mut $int_type {
-                self.v.get()
             }
         }
     };
 }
 
-#[cfg_attr(portable_atomic_no_cfg_target_has_atomic, cfg(any(test, portable_atomic_no_atomic_64)))]
+#[cfg_attr(
+    portable_atomic_no_cfg_target_has_atomic,
+    cfg(any(
+        test,
+        not(any(
+            not(portable_atomic_no_atomic_64),
+            all(
+                target_arch = "riscv32",
+                not(any(miri, portable_atomic_sanitize_thread)),
+                any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+                any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
+            ),
+        ))
+    ))
+)]
 #[cfg_attr(
     not(portable_atomic_no_cfg_target_has_atomic),
     cfg(any(
@@ -409,11 +517,8 @@ macro_rules! atomic {
             all(
                 target_arch = "riscv32",
                 not(any(miri, portable_atomic_sanitize_thread)),
-                not(portable_atomic_no_asm),
-                any(
-                    target_feature = "experimental-zacas",
-                    portable_atomic_target_feature = "experimental-zacas",
-                ),
+                any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+                any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
             ),
         ))
     ))

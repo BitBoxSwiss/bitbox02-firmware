@@ -95,11 +95,9 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/memory_spi.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_11.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_12.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_9.c
+  ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_9_bootloader.c
   ${CMAKE_SOURCE_DIR}/src/ui/fonts/lvgl_font_compat.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_16.c
+  ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_16_bootloader.c
   ${CMAKE_SOURCE_DIR}/src/ui/graphics/graphics.c
   ${CMAKE_SOURCE_DIR}/src/screen.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c

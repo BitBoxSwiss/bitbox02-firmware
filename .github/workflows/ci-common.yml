@@ -238,6 +238,9 @@ jobs:
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      - name: Bootstrap Cargo config
+        run: ./scripts/bootstrap-cargo-config
+
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
 

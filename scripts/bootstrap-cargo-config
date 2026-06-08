@@ -43,6 +43,24 @@ while (($# > 0)); do
     esac
 done
 
+host_os="$(uname -s)"
+case "${host_os}" in
+Linux)
+    cc="clang-22"
+    ar="llvm-ar-22"
+    ranlib="llvm-ranlib-22"
+    ;;
+Darwin)
+    cc="clang"
+    ar="llvm-ar"
+    ranlib="llvm-ranlib"
+    ;;
+*)
+    echo "error: unsupported host OS: ${host_os}" >&2
+    exit 1
+    ;;
+esac
+
 if [[ -z "${sysroot}" ]]; then
     if ! command -v arm-none-eabi-gcc >/dev/null 2>&1; then
         echo "warning: arm-none-eabi-gcc not found; writing config without an ARM sysroot" >&2
@@ -98,9 +116,34 @@ write_cc_env() {
         args="${args} -mcpu=cortex-m4 -mfloat-abi=softfp -mfpu=fpv4-sp-d16"
     fi
 
+    if [[ "${target}" == thumbv8* ]]; then
+        args="${args} -mcpu=cortex-m33 -mthumb -flto"
+    fi
+
     printf '"%s" = "%s"\n' \
         "$(toml_escape "CFLAGS_${target}")" \
         "$(toml_escape "${args}")"
+}
+
+cc_env_target() {
+    local target="$1"
+    # The cc crate replaces target hyphens, but not dots, in target-specific env names.
+    printf '%s' "${target//-/_}"
+}
+
+write_llvm_tool_env() {
+    local target
+    target="$(cc_env_target "$1")"
+
+    printf '"%s" = "%s"\n' \
+        "$(toml_escape "CC_${target}")" \
+        "$(toml_escape "${cc}")"
+    printf '"%s" = "%s"\n' \
+        "$(toml_escape "AR_${target}")" \
+        "$(toml_escape "${ar}")"
+    printf '"%s" = "%s"\n' \
+        "$(toml_escape "RANLIB_${target}")" \
+        "$(toml_escape "${ranlib}")"
 }
 
 mkdir -p "${config_dir}"
@@ -115,6 +158,9 @@ trap 'rm -f "${tmp}"' EXIT
     echo "[env]"
     write_cc_env "thumbv7em-none-eabi"
     write_cc_env "thumbv8m.main-none-eabihf"
+    echo "# The Rust profiles enable LTO, and cc forwards that to C objects."
+    echo "# Use LLVM tools for ARM C objects so linker-plugin LTO stays in the same toolchain."
+    write_llvm_tool_env "thumbv8m.main-none-eabihf"
     write_bindgen_env "thumbv7em-none-eabi"
     write_bindgen_env "thumbv8m.main-none-eabihf"
 } >"${tmp}"

@@ -13,7 +13,7 @@ use super::sighash::DataProducer;
 use super::truncating_hex_preview_byte_cap;
 
 use crate::hal::Ui;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Font};
 use crate::keystore;
 use crate::workflow::confirm;
 
@@ -358,12 +358,15 @@ fn encode_value(typ: &MemberType, value: Vec<u8>) -> Result<(Vec<u8>, String), E
             (encoded, super::address::format_display_address(&value_str))
         }
         DataType::String => {
-            if !util::ascii::is_printable_ascii(&value, util::ascii::Charset::AllNewline) {
+            let value_str = String::from_utf8(value).or(Err(Error::InvalidInput))?;
+            if !util::display::is_safe_text(&value_str, true) {
                 return Err(Error::InvalidInput);
             }
             (
-                sha3::Keccak256::digest(&value).as_slice().to_vec(),
-                String::from_utf8(value).or(Err(Error::InvalidInput))?,
+                sha3::Keccak256::digest(value_str.as_bytes())
+                    .as_slice()
+                    .to_vec(),
+                value_str,
             )
         }
         DataType::Array | DataType::Struct => panic!("encode_value"),
@@ -474,6 +477,16 @@ async fn encode_member<U: sha3::digest::Update>(
         } else {
             let value_len = req.value.len();
             let (value_encoded, fmt) = encode_value(member_type, req.value)?;
+            if data_type == DataType::String {
+                let has_all_glyphs = {
+                    let ui = hal.ui();
+                    fmt.chars()
+                        .all(|c| c == '\n' || ui.has_glyph(Font::Default, c))
+                };
+                if !has_all_glyphs {
+                    return Err(Error::InvalidInput);
+                }
+            }
             hasher.update(&value_encoded);
             if data_type == DataType::Bytes {
                 display_size = value_len;
@@ -1243,6 +1256,28 @@ mod tests {
         assert_eq!(encode_value(&typ, value(19)), Err(Error::InvalidInput));
         assert!(encode_value(&typ, value(20)).is_ok());
         assert_eq!(encode_value(&typ, value(21)), Err(Error::InvalidInput));
+    }
+
+    #[test]
+    fn test_encode_value_string() {
+        let typ = mk_type(DataType::String);
+        let value = "Zürich\nµ";
+        let (encoded, formatted) = encode_value(&typ, value.as_bytes().to_vec()).unwrap();
+        assert_eq!(
+            encoded,
+            sha3::Keccak256::digest(value.as_bytes()).as_slice()
+        );
+        assert_eq!(formatted, value);
+
+        assert_eq!(
+            encode_value(&typ, "tab\t".as_bytes().to_vec()),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            encode_value(&typ, "東京".as_bytes().to_vec()),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(encode_value(&typ, vec![0xff]), Err(Error::InvalidInput));
     }
 
     #[test]

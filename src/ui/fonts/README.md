@@ -1,27 +1,40 @@
-# ttf2ugui
+# ttf2lvgl
 
-We have converted the fonts in this directory with the ttf2ugui tool provided in `tools` directory.
+We convert LVGL fonts in this directory with the ttf2lvgl tool provided in the `tools` directory.
 
 Example execution:
 
 ```
-./ttf2ugui --dump --font <PATH-TO-FONT>  --size <SIZE>
+./ttf2lvgl --dump --font <PATH-TO-FONT> --size <SIZE> --range <RANGES> \
+  --name <FONT_SYMBOL> --output <FONT_SYMBOL>.c
 ```
+
+`<RANGES>` is a comma-separated list of individual code points and ranges, for example
+`32-127,160,U+0100-U+017F`.
+Code points in the requested ranges that are not present in the font are omitted from the generated
+LVGL cmaps.
 
 To check the conversion of the font to bitmap you can use the `--show <STRING>` parameter. The tool
-will then print out the `<STRING>` with asterixes in the terminal:
+decodes `<STRING>` as UTF-8 and prints it with asterixes in the terminal:
 
 ```
-./ttf2ugui --show ABCDEF --font <PATH-TO-FONT>  --size <SIZE>
+./ttf2lvgl --show ABCDEF --font <PATH-TO-FONT> --size <SIZE> --range <RANGES>
 ```
 
-Once you have `dump`ed the font there will be a `.c` and `.h` file in the current directory named
-somthing like `FontName_<WIDTH>X<HEIGHT>`. Move this file to this directory and make some small
-adjustments to it so that it compiles.
+Once you have `dump`ed the font there will be a `.c` and `.h` file in the current directory. Move
+these files to this directory. BitBox02 OLED fonts are exported directly as `font_*` LVGL font
+objects and the generated headers include `<ugui.h>` and declare `extern const UG_FONT font_*`.
+`UG_FONT` is an alias for `lv_font_t`, so no separate uGUI wrapper is needed.
+
+For BitBox02 uGUI use, keep the generated font in the compact subset consumed by `ugui.c`: 1bpp,
+`stride = 0`, no kerning, and `LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY` cmaps only. The local
+`lv_font_get_glyph_dsc_fmt_txt` and `lv_font_get_bitmap_fmt_txt` callbacks only support this subset.
+If the historical uGUI layout height differs from the generated FreeType line height, set
+`.line_height` to the uGUI layout height.
 
 ## libfreetype note
 
-Since `ttf2ugui` uses `libfreetype` it actually supports the following font types:
+Since `ttf2lvgl` uses `libfreetype` it actually supports the following font types:
 
 * TrueType fonts (TTF) and TrueType collections (TTC)
 * CFF fonts
@@ -36,11 +49,11 @@ Since `ttf2ugui` uses `libfreetype` it actually supports the following font type
 * PFR fonts
 * Type 42 fonts (limited support)
 
-# ugui font format
+# LVGL font format
 
-The bitmaps are layed out line by line and every line uses `ceil(width/8)` bytes. A 9 pixel wide
-font will use 16 bits per line (7 bits per line are not used). See for example underscore `_` and
-exclamation mark `!` to get a good understanding of the layout.
+The tool emits LVGL's uncompressed `lv_font_fmt_txt` format with tight glyph bounding boxes. For
+1bpp fonts, pixels are packed in LVGL bit order over the tight glyph bitmap. For 8bpp fonts, each
+pixel stores the same 16x16 downsampled coverage value that the old `ttf2ugui` tool produced.
 
 Each item in the array is suffixed with a comment that shows which character the bytes correspond
 to.

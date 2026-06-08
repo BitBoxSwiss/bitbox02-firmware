@@ -120,14 +120,14 @@ set(QTOUCH-SOURCES
 )
 set(QTOUCH-SOURCES ${QTOUCH-SOURCES} PARENT_SCOPE)
 
-# The additional files required for the plus platform
-set(PLATFORM-BITBOX02-PLUS-SOURCES
+# The additional files required for the Nova platform
+set(PLATFORM-BITBOX02-NOVA-SOURCES
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531_protocol.c
   ${CMAKE_SOURCE_DIR}/src/da14531/da14531_handler.c
   ${CMAKE_SOURCE_DIR}/src/uart.c
 )
-set(PLATFORM-BITBOX02-PLUS-SOURCES ${PLATFORM-BITBOX02-PLUS-SOURCES} PARENT_SCOPE)
+set(PLATFORM-BITBOX02-NOVA-SOURCES ${PLATFORM-BITBOX02-NOVA-SOURCES} PARENT_SCOPE)
 
 set(PLATFORM-BITBOX02-SOURCES
   ${CMAKE_SOURCE_DIR}/src/sd_mmc/sd_mmc_start.c
@@ -192,7 +192,7 @@ set(FIRMWARE-SOURCES
   ${DRIVER-SOURCES}
   ${QTOUCH-SOURCES}
   ${SECURECHIP-SOURCES}
-  ${PLATFORM-BITBOX02-PLUS-SOURCES}
+  ${PLATFORM-BITBOX02-NOVA-SOURCES}
   ${CMAKE_SOURCE_DIR}/src/common_main.c
 )
 
@@ -296,7 +296,7 @@ set(BOOTLOADERS-BITBOX02
   bb02-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
   bb02-bl-btconly-production # Runs signed (btc-only keys) firmware and bootloader is locked
   )
-set(BOOTLOADERS-BITBOX02PLUS
+set(BOOTLOADERS-BITBOX02NOVA
   bb02p-bl-multi # Runs signed firmware
   bb02p-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
   bb02p-bl-multi-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
@@ -307,7 +307,7 @@ set(BOOTLOADERS-BITBOX02PLUS
 )
 set(BOOTLOADERS
   ${BOOTLOADERS-BITBOX02}
-  ${BOOTLOADERS-BITBOX02PLUS}
+  ${BOOTLOADERS-BITBOX02NOVA}
   )
 set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 
@@ -321,6 +321,8 @@ set(DEVDEVICE-BOOTLOADERS
 set(FIRMWARES
   firmware # Firmware MULTI
   firmware-btc # Firmware BTC-ONLY
+  firmware-nova # Firmware NOVA MULTI
+  firmware-nova-btc # Firmware NOVA BTC-ONLY
   factory-setup # Factory-setup
   )
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
@@ -440,15 +442,15 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE -Wl,--print-memory-usage)
   endforeach(bootloader)
 
-  foreach(bootloader ${DEVDEVICE-BOOTLOADERS} ${BOOTLOADERS-BITBOX02PLUS})
+  foreach(bootloader ${DEVDEVICE-BOOTLOADERS} ${BOOTLOADERS-BITBOX02NOVA})
     set(elf ${bootloader}.elf)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
     target_sources(${elf} PRIVATE ${QTOUCH-SOURCES})
   endforeach(bootloader)
 
-  foreach(bootloader ${BOOTLOADERS-BITBOX02PLUS})
+  foreach(bootloader ${BOOTLOADERS-BITBOX02NOVA})
     set(elf ${bootloader}.elf)
-    target_sources(${elf} PRIVATE ${PLATFORM-BITBOX02-PLUS-SOURCES})
+    target_sources(${elf} PRIVATE ${PLATFORM-BITBOX02-NOVA-SOURCES})
     target_link_libraries(${bootloader}.elf PRIVATE embedded-swd)
   endforeach(bootloader)
 
@@ -468,20 +470,20 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(bb02-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
   set_property(TARGET bb02-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  # BB02PLUS definitions
+  # BB02NOVA definitions
 
-  target_compile_definitions(bb02p-bl-multi.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
-  target_compile_definitions(bb02p-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02p-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bb02p-bl-multi.elf PRIVATE PRODUCT_BITBOX_NOVA_MULTI)
+  target_compile_definitions(bb02p-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_NOVA_MULTI BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bb02p-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_NOVA_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
   set_property(TARGET bb02p-bl-multi-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
 
-  target_compile_definitions(bb02p-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bb02p-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_NOVA_MULTI BOOTLOADER_PRODUCTION)
   set_property(TARGET bb02p-bl-multi-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
-  target_compile_definitions(bb02p-bl-btconly.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
-  target_compile_definitions(bb02p-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02p-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_PRODUCTION)
+  target_compile_definitions(bb02p-bl-btconly.elf PRIVATE PRODUCT_BITBOX_NOVA_BTCONLY)
+  target_compile_definitions(bb02p-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_NOVA_BTCONLY BOOTLOADER_DEVDEVICE)
+  target_compile_definitions(bb02p-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_NOVA_BTCONLY BOOTLOADER_PRODUCTION)
   set_property(TARGET bb02p-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   foreach(firmware ${FIRMWARES})
@@ -536,6 +538,14 @@ if(CMAKE_CROSSCOMPILING)
   target_sources(firmware-btc.elf PRIVATE firmware.c)
   target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
   target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+
+  target_sources(firmware-nova.elf PRIVATE firmware.c)
+  target_compile_definitions(firmware-nova.elf PRIVATE PRODUCT_BITBOX_NOVA_MULTI "APP_U2F=1")
+  target_sources(firmware-nova.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+
+  target_sources(firmware-nova-btc.elf PRIVATE firmware.c)
+  target_compile_definitions(firmware-nova-btc.elf PRIVATE PRODUCT_BITBOX_NOVA_BTCONLY "APP_U2F=0")
+  target_sources(firmware-nova-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_U2F=0")

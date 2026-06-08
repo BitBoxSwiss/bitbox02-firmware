@@ -13,7 +13,7 @@ void bootloader_jump(void);
  */
 void bootloader_render_default_screen(void);
 
-#if PLATFORM_BITBOX02PLUS
+#if PLATFORM_BITBOX02NOVA
 /**
  * Renders a BLE pairing confirmations screen. Use the `confirmed` argument to display the
  * "user has confirmed on bitbox" version.

@@ -28,7 +28,7 @@ fn has_ble(hal: &mut impl crate::hal::Hal) -> bool {
 
     let has_ble = matches!(
         hal.memory().get_platform(),
-        Ok(memory::Platform::BitBox02Plus),
+        Ok(memory::Platform::BitBox02Nova),
     );
     HAS_BLE.write(Some(has_ble));
     has_ble
@@ -46,7 +46,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ble_disabled_on_non_plus() {
+    fn test_ble_disabled_on_non_nova() {
         reset_for_testing();
         let mut hal = TestingHal::new();
         hal.memory.set_platform(memory::Platform::BitBox02);
@@ -61,7 +61,7 @@ mod tests {
     fn test_ble_enabled_until_usb_request_seen() {
         reset_for_testing();
         let mut hal = TestingHal::new();
-        hal.memory.set_platform(memory::Platform::BitBox02Plus);
+        hal.memory.set_platform(memory::Platform::BitBox02Nova);
 
         assert!(ble_enabled(&mut hal));
 

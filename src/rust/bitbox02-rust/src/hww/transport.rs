@@ -33,7 +33,7 @@ fn info_response<H: Hal>(hal: &mut H) -> Vec<u8> {
     response.push(version.len() as u8);
     response.extend_from_slice(version);
     response.push(match hal.memory().get_platform() {
-        Ok(crate::hal::memory::Platform::BitBox02Plus) => 0x02,
+        Ok(crate::hal::memory::Platform::BitBox02Nova) => 0x02,
         Ok(crate::hal::memory::Platform::BitBox03) => 0x03,
         _ => 0x00,
     });
@@ -218,7 +218,7 @@ mod tests {
     fn test_req_info() {
         let _guard = test_guard();
         let mut handler = handler();
-        handler.hal.memory.set_platform(Platform::BitBox02Plus);
+        handler.hal.memory.set_platform(Platform::BitBox02Nova);
         handler.hal.system.set_btconly(true);
         handler.hal.memory.set_initialized().unwrap();
         let response = handler

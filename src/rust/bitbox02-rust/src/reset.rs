@@ -66,7 +66,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     // The ble chip needs to be restarted to load the new secrets.
     if matches!(
         hal.memory().get_platform(),
-        Ok(memory::Platform::BitBox02Plus)
+        Ok(memory::Platform::BitBox02Nova)
     ) {
         hal.system().reset_ble();
     }

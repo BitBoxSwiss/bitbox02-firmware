@@ -54,6 +54,10 @@ firmware: | build
 	$(MAKE) -C build firmware.elf
 firmware-btc: | build
 	$(MAKE) -C build firmware-btc.elf
+firmware-nova: | build
+	$(MAKE) -C build firmware-nova.elf
+firmware-nova-btc: | build
+	$(MAKE) -C build firmware-nova-btc.elf
 firmware-debug: | build-debug
 	$(MAKE) -C build-debug firmware.elf
 
@@ -75,20 +79,20 @@ bootloader-btc-development: | build
 bootloader-btc-production: | build
 	$(MAKE) -C build bb02-bl-btconly-production.elf
 
-bootloader-plus: | build
+bootloader-nova: | build
 	$(MAKE) -C build bb02p-bl-multi.elf
-bootloader-plus-development: | build
+bootloader-nova-development: | build
 	$(MAKE) -C build bb02p-bl-multi-development.elf
-bootloader-plus-production: | build
+bootloader-nova-production: | build
 	$(MAKE) -C build bb02p-bl-multi-production.elf
-bootloader-plus-debug: | build-debug
+bootloader-nova-debug: | build-debug
 	$(MAKE) -C build-debug bb02p-bl-multi-development.elf
 
-bootloader-plus-btc: | build
+bootloader-nova-btc: | build
 	$(MAKE) -C build bb02p-bl-btconly.elf
-bootloader-plus-btc-development: | build
+bootloader-nova-btc-development: | build
 	$(MAKE) -C build bb02p-bl-btconly-development.elf
-bootloader-plus-btc-production: | build
+bootloader-nova-btc-production: | build
 	$(MAKE) -C build bb02p-bl-btconly-production.elf
 
 factory-setup: | build
@@ -131,9 +135,9 @@ flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
 jlink-flash-bootloader-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development.jlink
-jlink-flash-bootloader-plus-development: | build
+jlink-flash-bootloader-nova-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-multi-development.jlink
-jlink-flash-bootloader-btc-plus-development: | build
+jlink-flash-bootloader-btc-nova-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-btconly-development.jlink
 jlink-flash-bootloader-development-locked: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development-locked.jlink
@@ -159,8 +163,8 @@ jlink-flash-reset-version:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/reset-version.jlink
 jlink-flash-set-securechip-optiga:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-securechip-optiga.jlink
-jlink-flash-set-bb02plus:
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-bb02plus.jlink
+jlink-flash-set-bb02nova:
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-bb02nova.jlink
 jlink-flash-bb02-set-factory-randomness:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/bb02-set-factory-randomness.jlink
 jlink-erase-firmware-quick:

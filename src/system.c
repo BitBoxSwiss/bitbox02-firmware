@@ -30,7 +30,7 @@ static void _ble_clear_product(void)
 
 void reboot_to_bootloader(void)
 {
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         _ble_clear_product();
     }
     auto_enter_t auto_enter = {
@@ -50,7 +50,7 @@ void reboot_to_bootloader(void)
 
 void reboot(void)
 {
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         _ble_clear_product();
     }
 #ifndef TESTING

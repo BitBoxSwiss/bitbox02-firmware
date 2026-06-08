@@ -4,7 +4,7 @@
 #ifndef TESTING
     #include "hid_hww.h"
     #include "usb_desc.h"
-    #include "usb_desc_bitbox02plus.h"
+    #include "usb_desc_bitbox02nova.h"
     #include "usb_size.h"
     #include "usbdc.h"
     #include <da14531/da14531.h>
@@ -31,11 +31,11 @@ static uint8_t _descriptor_bytes[] = {
     USB_DESC_FS}; // Device descriptors and Configuration descriptors list.
 static struct usbd_descriptors _descriptor[] = {
     {_descriptor_bytes, _descriptor_bytes + sizeof(_descriptor_bytes)}};
-static uint8_t _descriptor_bytes_bitbox02plus[] = {
-    USB_DESC_BB02PLUS_FS}; // Device descriptors and Configuration descriptors list.
-static struct usbd_descriptors _descriptor_bitbox02plus[] = {
-    {_descriptor_bytes_bitbox02plus,
-     _descriptor_bytes_bitbox02plus + sizeof(_descriptor_bytes_bitbox02plus)}};
+static uint8_t _descriptor_bytes_bitbox02nova[] = {
+    USB_DESC_BB02NOVA_FS}; // Device descriptors and Configuration descriptors list.
+static struct usbd_descriptors _descriptor_bitbox02nova[] = {
+    {_descriptor_bytes_bitbox02nova,
+     _descriptor_bytes_bitbox02nova + sizeof(_descriptor_bytes_bitbox02nova)}};
 static void _hww_endpoint_available(void);
     #if APP_U2F == 1
 static void _u2f_endpoint_available(void);
@@ -101,8 +101,8 @@ int32_t usb_start(void)
     }
     #endif
     switch (memory_get_platform()) {
-    case MEMORY_PLATFORM_BITBOX02_PLUS:
-        usbdc_start(_descriptor_bitbox02plus);
+    case MEMORY_PLATFORM_BITBOX02_NOVA:
+        usbdc_start(_descriptor_bitbox02nova);
         break;
     default:
         usbdc_start(_descriptor);

@@ -132,7 +132,7 @@ uint8_t memory_get_platform(void)
     uint8_t platform = chunk.fields.platform;
     util_zero(&chunk, sizeof(chunk));
     switch (platform) {
-    case MEMORY_PLATFORM_BITBOX02_PLUS:
+    case MEMORY_PLATFORM_BITBOX02_NOVA:
         return platform;
     default:
         return MEMORY_PLATFORM_BITBOX02;

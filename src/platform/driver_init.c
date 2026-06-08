@@ -368,7 +368,7 @@ void system_init(void)
     // USB
     _usb_init();
 
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         // External MX25 flash memory
         _spi_mem_init();
         // DA14531
@@ -383,7 +383,7 @@ void bootloader_init(void)
     _oled_set_pins();
     _ptc_clock_init();
 
-#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02PLUS == 1
+#if defined(BOOTLOADER_DEVDEVICE) || PLATFORM_BITBOX02NOVA == 1
     // Only needed for qtouch, which is only needed in the devdevice bootloader.
     _timer_peripheral_init();
 #endif
@@ -401,7 +401,7 @@ void bootloader_init(void)
     // USB
     _usb_init();
 
-    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
+    if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_NOVA) {
         // External MX25 flash memory
         _spi_mem_init();
         // DA14531

@@ -206,7 +206,7 @@ pub async fn process_api(
 ) -> Result<Response, Error> {
     if !matches!(
         hal.memory().get_platform().map_err(|_| Error::Memory)?,
-        hal_memory::Platform::BitBox02Plus
+        hal_memory::Platform::BitBox02Nova
     ) {
         return Err(Error::Disabled);
     }

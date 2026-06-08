@@ -21,7 +21,7 @@ fn to_hal_securechip_type(securechip_type: crate::memory::SecurechipType) -> Sec
 fn to_hal_platform(platform: crate::memory::Platform) -> Platform {
     match platform {
         crate::memory::Platform::BitBox02 => Platform::BitBox02,
-        crate::memory::Platform::BitBox02Plus => Platform::BitBox02Plus,
+        crate::memory::Platform::BitBox02Nova => Platform::BitBox02Nova,
     }
 }
 
@@ -284,8 +284,8 @@ mod tests {
             Platform::BitBox02,
         );
         assert_eq!(
-            to_hal_platform(crate::memory::Platform::BitBox02Plus),
-            Platform::BitBox02Plus,
+            to_hal_platform(crate::memory::Platform::BitBox02Nova),
+            Platform::BitBox02Nova,
         );
     }
 

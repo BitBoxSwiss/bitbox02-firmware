@@ -116,9 +116,9 @@ void image_sdcard(bool mirror)
 
 // Logo images:
 // In the bootloader we hardcode by target. We currently have one firmware for both BB02 and
-// BB02-Plus, so we include both in the firmware.
+// BB02 Nova, so we include both in the firmware.
 
-#if (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_PLUS_BTCONLY == 1)
+#if (PRODUCT_BITBOX_BTCONLY == 1) || (PRODUCT_BITBOX_NOVA_BTCONLY == 1)
 
     #if !defined(BOOTLOADER) || (PRODUCT_BITBOX_BTCONLY == 1)
         #define IMAGE_BITBOX02_LOGO_W 79
@@ -142,10 +142,10 @@ const uint8_t IMAGE_BITBOX02_LOGO[] = {
     0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00};
     #endif
 
-    #if !defined(BOOTLOADER) || (PRODUCT_BITBOX_PLUS_BTCONLY == 1)
-        #define IMAGE_BITBOX02_PLUS_LOGO_W 125
-        #define IMAGE_BITBOX02_PLUS_LOGO_H 25
-static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
+    #if !defined(BOOTLOADER) || (PRODUCT_BITBOX_NOVA_BTCONLY == 1)
+        #define IMAGE_BITBOX02_NOVA_LOGO_W 125
+        #define IMAGE_BITBOX02_NOVA_LOGO_H 25
+static const uint8_t IMAGE_BITBOX02_NOVA_LOGO[] = {
     0xfe, 0x0c, 0x30, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x0c, 0x00, 0x00, 0x00, 0x07,
     0xf8, 0x61, 0x83, 0xfc, 0x00, 0x00, 0x00, 0x1e, 0x03, 0xc0, 0xe0, 0x60, 0x00, 0x00, 0x00, 0x30,
     0x60, 0x0c, 0x18, 0x30, 0x00, 0x00, 0x01, 0x08, 0x21, 0x07, 0x83, 0x00, 0x00, 0x00, 0x01, 0x83,
@@ -174,7 +174,7 @@ static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
 };
     #endif
 
-#elif (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_PLUS_MULTI == 1) || \
+#elif (PRODUCT_BITBOX_MULTI == 1) || (PRODUCT_BITBOX_NOVA_MULTI == 1) || \
     PRODUCT_BITBOX02_FACTORYSETUP == 1
 
     #if !defined(BOOTLOADER) || (PRODUCT_BITBOX_MULTI == 1)
@@ -198,10 +198,10 @@ static const uint8_t IMAGE_BITBOX02_LOGO[] = {
     0x00, 0x00, 0x00, 0x00};
     #endif
 
-    #if !defined(BOOTLOADER) || (PRODUCT_BITBOX_PLUS_MULTI == 1)
-        #define IMAGE_BITBOX02_PLUS_LOGO_W 125
-        #define IMAGE_BITBOX02_PLUS_LOGO_H 23
-static const uint8_t IMAGE_BITBOX02_PLUS_LOGO[] = {
+    #if !defined(BOOTLOADER) || (PRODUCT_BITBOX_NOVA_MULTI == 1)
+        #define IMAGE_BITBOX02_NOVA_LOGO_W 125
+        #define IMAGE_BITBOX02_NOVA_LOGO_H 23
+static const uint8_t IMAGE_BITBOX02_NOVA_LOGO[] = {
     0xfe, 0x0c, 0x30, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x0c, 0x00, 0x00, 0x00, 0x07,
     0xf8, 0x61, 0x83, 0xfc, 0x00, 0x00, 0x00, 0x1e, 0x03, 0xc0, 0xe0, 0x60, 0x00, 0x00, 0x00, 0x30,
     0x60, 0x0c, 0x18, 0x30, 0x00, 0x00, 0x01, 0x08, 0x21, 0x07, 0x83, 0x00, 0x00, 0x00, 0x01, 0x83,
@@ -253,17 +253,17 @@ image_logo_data_t image_logo_data(void)
             },
     };
     return result;
-    #elif (PRODUCT_BITBOX_PLUS_BTCONLY == 1) || (PRODUCT_BITBOX_PLUS_MULTI == 1)
+    #elif (PRODUCT_BITBOX_NOVA_BTCONLY == 1) || (PRODUCT_BITBOX_NOVA_MULTI == 1)
     image_logo_data_t result = {
         .buffer =
             {
-                .data = IMAGE_BITBOX02_PLUS_LOGO,
-                .len = sizeof(IMAGE_BITBOX02_PLUS_LOGO),
+                .data = IMAGE_BITBOX02_NOVA_LOGO,
+                .len = sizeof(IMAGE_BITBOX02_NOVA_LOGO),
             },
         .dimensions =
             {
-                .width = IMAGE_BITBOX02_PLUS_LOGO_W,
-                .height = IMAGE_BITBOX02_PLUS_LOGO_H,
+                .width = IMAGE_BITBOX02_NOVA_LOGO_W,
+                .height = IMAGE_BITBOX02_NOVA_LOGO_H,
             },
     };
     return result;
@@ -276,17 +276,17 @@ image_logo_data_t image_logo_data(void)
 image_logo_data_t image_logo_data(void)
 {
     switch (memory_get_platform()) {
-    case MEMORY_PLATFORM_BITBOX02_PLUS: {
+    case MEMORY_PLATFORM_BITBOX02_NOVA: {
         image_logo_data_t result = {
             .buffer =
                 {
-                    .data = IMAGE_BITBOX02_PLUS_LOGO,
-                    .len = sizeof(IMAGE_BITBOX02_PLUS_LOGO),
+                    .data = IMAGE_BITBOX02_NOVA_LOGO,
+                    .len = sizeof(IMAGE_BITBOX02_NOVA_LOGO),
                 },
             .dimensions =
                 {
-                    .width = IMAGE_BITBOX02_PLUS_LOGO_W,
-                    .height = IMAGE_BITBOX02_PLUS_LOGO_H,
+                    .width = IMAGE_BITBOX02_NOVA_LOGO_W,
+                    .height = IMAGE_BITBOX02_NOVA_LOGO_H,
                 },
         };
         return result;

@@ -198,13 +198,13 @@ pub fn multisig_get_by_hash(hash: &[u8]) -> Option<String> {
 #[derive(Clone, Copy)]
 pub enum Platform {
     BitBox02,
-    BitBox02Plus,
+    BitBox02Nova,
 }
 
 pub fn get_platform() -> Result<Platform, ()> {
     match unsafe { bitbox02_sys::memory_get_platform() as u32 } {
         bitbox02_sys::MEMORY_PLATFORM_BITBOX02 => Ok(Platform::BitBox02),
-        bitbox02_sys::MEMORY_PLATFORM_BITBOX02_PLUS => Ok(Platform::BitBox02Plus),
+        bitbox02_sys::MEMORY_PLATFORM_BITBOX02_NOVA => Ok(Platform::BitBox02Nova),
         _ => Err(()),
     }
 }

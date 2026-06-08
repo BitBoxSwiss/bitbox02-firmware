@@ -6,7 +6,7 @@
 #include <stddef.h>
 void platform_init(void);
 
-#if !(defined(BOOTLOADER) && PLATFORM_BITBOX02PLUS == 0)
+#if !(defined(BOOTLOADER) && PLATFORM_BITBOX02NOVA == 0)
 // Returns a json string representing the firmware type and version
 const char* platform_product(size_t* len);
 #endif

@@ -207,15 +207,17 @@ jobs:
           - bootloader-btc
           - bootloader-btc-development
           - bootloader-btc-production
-          - bootloader-plus
-          - bootloader-plus-development
-          - bootloader-plus-production
-          - bootloader-plus-debug
-          - bootloader-plus-btc
-          - bootloader-plus-btc-development
-          - bootloader-plus-btc-production
+          - bootloader-nova
+          - bootloader-nova-development
+          - bootloader-nova-production
+          - bootloader-nova-debug
+          - bootloader-nova-btc
+          - bootloader-nova-btc-development
+          - bootloader-nova-btc-production
           - firmware
           - firmware-btc
+          - firmware-nova
+          - firmware-nova-btc
           - factory-setup
           - firmware-debug
           - simulator
@@ -242,7 +244,7 @@ jobs:
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
 
       - name: Check unwanted symbols
-        if: (matrix.target == 'firmware' || (startsWith(matrix.target, 'bootloader') && endsWith(matrix.target, 'production'))) && !cancelled()
+        if: ((matrix.target == 'firmware' || matrix.target == 'firmware-nova') || (startsWith(matrix.target, 'bootloader') && endsWith(matrix.target, 'production'))) && !cancelled()
         run: ./.ci/check-unwanted-symbols
 
       - name: Print hashes

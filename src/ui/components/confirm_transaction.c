@@ -121,14 +121,14 @@ static component_t* _confirm_transaction_create(
     }
     if (strlens(fee)) {
         ui_util_add_sub_component(
-            confirm, label_create_offset("Fee", &font_font_a_9X9, CENTER_TOP, 0, 38, confirm));
+            confirm, label_create_offset("Fee", &font_arial_9, CENTER_TOP, 0, 38, confirm));
 
         ui_util_add_sub_component(
-            confirm, label_create_offset(fee, &font_font_a_9X9, CENTER_TOP, 0, 50, confirm));
+            confirm, label_create_offset(fee, &font_arial_9, CENTER_TOP, 0, 50, confirm));
     }
     const UG_FONT* amount_font = NULL;
     if (strlen(amount) > BIG_FONT_MAX_CHARS) {
-        amount_font = &font_font_a_9X9;
+        amount_font = &font_arial_9;
     }
     if (verify_total) {
         ui_util_add_sub_component(

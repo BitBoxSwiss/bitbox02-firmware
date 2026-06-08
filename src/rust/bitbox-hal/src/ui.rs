@@ -5,12 +5,12 @@ use core::time::Duration;
 
 pub struct UserAbort;
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Default, Eq, PartialEq)]
 pub enum Font {
     #[default]
     Default,
-    Password11X12,
-    Monogram5X9,
+    Password12,
+    Monogram16,
 }
 
 #[derive(Default)]
@@ -77,6 +77,12 @@ pub trait Ui {
 
     /// Returns `Ok(())` if the user accepts, `Err(UserAbort)` if the user rejects.
     async fn confirm(&mut self, params: &ConfirmParams<'_>) -> Result<(), UserAbort>;
+
+    /// Returns true if `font` can render `c`.
+    ///
+    /// Control characters such as newlines are workflow-specific layout markers and are not
+    /// considered font glyphs here.
+    fn has_glyph(&self, font: Font, c: char) -> bool;
 
     /// Returns `Ok(())` if the user accepts the swap, `Err(UserAbort)` if the user rejects it.
     async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort>;

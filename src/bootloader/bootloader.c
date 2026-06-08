@@ -365,9 +365,9 @@ void bootloader_render_ble_confirm_screen(bool confirmed)
         image_cross(SCREEN_WIDTH / 16, 0, IMAGE_DEFAULT_CROSS_HEIGHT);
         image_checkmark(SCREEN_WIDTH * 15 / 16 - check_width, 0, IMAGE_DEFAULT_CHECKMARK_HEIGHT);
     }
-    UG_FontSelect(&font_monogram_5X9);
+    UG_FontSelect(&font_monogram_16);
     UG_PutString(45, SCREEN_HEIGHT / 2 - 9, code_str);
-    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSelect(&font_arial_9);
     UG_SendBuffer();
 }
 #endif
@@ -397,8 +397,8 @@ static void _render_hash(const char* title, const uint8_t* hash)
     // If you change this, check the timer_buf size below.
     const uint8_t seconds = 10; // how many seconds to show screen
     const UG_S16 title_margin = 7; // Margin between title and hash
-    const UG_FONT* f_mono = &font_monogram_5X9; // monospaced font
-    const UG_FONT* f_regular = &font_font_a_9X9; // regular font
+    const UG_FONT* f_mono = &font_monogram_16; // monospaced font
+    const UG_FONT* f_regular = &font_arial_9; // regular font
 
     // Convert hash to ascii hex
     char hash_hex[2 * SHA256_DIGEST_LENGTH + 1];
@@ -420,10 +420,10 @@ static void _render_hash(const char* title, const uint8_t* hash)
         bootloader_format_timer(timer_buf, sizeof(timer_buf), seconds - i);
         UG_MeasureString(&timer_str_width, NULL, timer_buf);
         UG_PutString(
-            SCREEN_WIDTH - timer_str_width, SCREEN_HEIGHT - f_regular->char_height, timer_buf);
+            SCREEN_WIDTH - timer_str_width, SCREEN_HEIGHT - f_regular->line_height, timer_buf);
 
         UG_FontSelect(f_mono);
-        UG_PutString(0, title_margin + f_regular->char_height, hash_multiline);
+        UG_PutString(0, title_margin + f_regular->line_height, hash_multiline);
 
         UG_FontSelect(f_regular);
 
@@ -1054,7 +1054,7 @@ void bootloader_jump(void)
         screen_rotate();
     }
 
-    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSelect(&font_arial_9);
 
     if (shared_data.fields.auto_enter != sectrue_u8) {
 #ifdef BOOTLOADER_DEVDEVICE

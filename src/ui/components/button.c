@@ -31,7 +31,7 @@ typedef struct {
 static void _render(component_t* component)
 {
     button_data_t* data = (button_data_t*)component->data;
-    UG_FontSelect(&font_font_a_11X10);
+    UG_FontSelect(&font_arial_11);
     UG_FontSetHSpace(0);
     UG_PutStringCentered(
         component->position.left,
@@ -163,7 +163,7 @@ void button_update(component_t* button, const char* text, void (*callback)(compo
     button_data_t* data = (button_data_t*)button->data;
     data->callback = callback;
     snprintf(data->text, sizeof(data->text), "%s", text);
-    UG_FontSelect(&font_font_a_11X10);
+    UG_FontSelect(&font_arial_11);
     UG_FontSetHSpace(0);
     UG_MeasureString(&(button->dimension.width), &(button->dimension.height), text);
     if (button->dimension.width < MIN_BUTTON_WIDTH) {

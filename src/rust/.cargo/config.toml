@@ -3,9 +3,9 @@ include = [{ path = "../../../.cargo/config.local.toml", optional = true }]
 [source.crates-io]
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"]
-git = "https://github.com/probe-rs/rtt-target.git"
-rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
+[source."git+https://github.com/BitBoxSwiss/rtt-target?rev=c04cef567e77ee263ee0621c07202dff6a73ef45"]
+git = "https://github.com/BitBoxSwiss/rtt-target"
+rev = "c04cef567e77ee263ee0621c07202dff6a73ef45"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/BitBoxSwiss/rust-bip32-ed25519?tag=v0.2.1"]

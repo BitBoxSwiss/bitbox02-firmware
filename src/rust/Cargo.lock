@@ -127,6 +127,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-board-stm32u5a9j-dk-build"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "bitbox-board-stm32u5a9j-dk-sys"
 version = "0.1.0"
 dependencies = [

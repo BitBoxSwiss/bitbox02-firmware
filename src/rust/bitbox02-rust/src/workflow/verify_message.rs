@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Font};
 use alloc::vec::Vec;
 
-use util::ascii;
+use crate::hal::Ui;
 
 pub enum Error {
     InvalidInput,
@@ -16,10 +16,20 @@ impl core::convert::From<crate::hal::ui::UserAbort> for Error {
     }
 }
 
+fn is_displayable_with_default_font(ui: &impl Ui, bytes: &[u8]) -> bool {
+    let Ok(msg) = core::str::from_utf8(bytes) else {
+        return false;
+    };
+    util::display::is_safe_text(msg, true)
+        && msg
+            .chars()
+            .all(|c| c == '\n' || ui.has_glyph(Font::Default, c))
+}
+
 /// Verify a message.
 ///
-/// If the bytes are all printable ascii chars, the message is
-/// confirmed one line at a time (the str is split into lines).
+/// If the bytes are valid UTF-8 and all codepoints are safe and covered by the default display
+/// font, the message is confirmed one line at a time (the str is split into lines).
 ///
 /// Otherwise, it is displayed as hex.
 ///
@@ -34,10 +44,13 @@ pub async fn verify(
     msg: &[u8],
     is_final: bool,
 ) -> Result<(), Error> {
-    if ascii::is_printable_ascii(msg, ascii::Charset::AllNewline) {
-        // The message is all ascii and printable.
-        // SAFETY: `is_printable_ascii()` accepted every byte above.
-        let msg = unsafe { core::str::from_utf8_unchecked(msg) };
+    let is_displayable = {
+        let ui = hal.ui();
+        is_displayable_with_default_font(&*ui, msg)
+    };
+
+    if is_displayable {
+        let msg = core::str::from_utf8(msg).unwrap();
         if msg.is_empty() {
             return Err(Error::InvalidInput);
         }
@@ -83,6 +96,8 @@ pub async fn verify(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use alloc::boxed::Box;
 
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
@@ -297,21 +312,118 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_is_displayable_with_default_font() {
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.set_has_glyph(Box::new(|_, _| true));
+        assert!(is_displayable_with_default_font(
+            &mock_hal.ui,
+            "Zürich".as_bytes()
+        ));
+        assert!(is_displayable_with_default_font(
+            &mock_hal.ui,
+            "µ\nA".as_bytes()
+        ));
+        assert!(!is_displayable_with_default_font(
+            &mock_hal.ui,
+            "Aȑ".as_bytes()
+        ));
+        assert!(!is_displayable_with_default_font(
+            &mock_hal.ui,
+            "東京".as_bytes()
+        ));
+        assert!(!is_displayable_with_default_font(
+            &mock_hal.ui,
+            "tab\t".as_bytes()
+        ));
+        assert!(!is_displayable_with_default_font(
+            &mock_hal.ui,
+            "non\u{a0}breaking space".as_bytes()
+        ));
+        assert!(!is_displayable_with_default_font(
+            &mock_hal.ui,
+            "soft\u{ad}hyphen".as_bytes()
+        ));
+        assert!(!is_displayable_with_default_font(&mock_hal.ui, &[0xff]));
+
+        mock_hal.ui.set_has_glyph(Box::new(|_, c| c != 'ü'));
+        assert!(!is_displayable_with_default_font(
+            &mock_hal.ui,
+            "Zürich".as_bytes()
+        ));
+    }
+
     #[async_test::test]
-    async fn test_verify_non_ascii_utf8_as_hex() {
-        let mut hal = TestingHal::new();
-        assert!(
-            verify(&mut hal, "Sign message", "Sign", "tä".as_bytes(), true)
-                .await
-                .is_ok()
-        );
+    async fn test_verify_displayable_with_default_font() {
+        let mut mock_hal = TestingHal::new();
+        let result = verify(
+            &mut mock_hal,
+            "Sign message",
+            "Sign",
+            "Zürich\nµ".as_bytes(),
+            true,
+        )
+        .await;
+        assert!(matches!(result, Ok(())));
+
         assert_eq!(
-            hal.ui.screens,
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign 1/2".into(),
+                    body: "Zürich".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign 2/2".into(),
+                    body: "µ".into(),
+                    longtouch: true,
+                },
+            ]
+        );
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![0, 0]);
+    }
+
+    #[async_test::test]
+    async fn test_verify_hex_if_not_displayable_with_default_font() {
+        let mut mock_hal = TestingHal::new();
+        let result = verify(
+            &mut mock_hal,
+            "Sign message",
+            "Sign",
+            "東京".as_bytes(),
+            true,
+        )
+        .await;
+        assert!(matches!(result, Ok(())));
+
+        assert_eq!(
+            mock_hal.ui.screens,
             vec![Screen::Confirm {
                 title: "Sign message\ndata (hex)".into(),
-                body: "74c3a4".into(),
+                body: "e69db1e4baac".into(),
                 longtouch: true,
             }]
         );
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![6]);
+    }
+
+    #[async_test::test]
+    async fn test_verify_hex_if_glyph_missing_from_default_font() {
+        let mut mock_hal = TestingHal::new();
+        mock_hal.ui.set_has_glyph(Box::new(|_font, c| c != 'ȑ'));
+
+        let result = verify(&mut mock_hal, "Sign message", "Sign", "Aȑ".as_bytes(), true).await;
+        assert!(matches!(result, Ok(())));
+
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![Screen::Confirm {
+                title: "Sign message\ndata (hex)".into(),
+                body: "41c891".into(),
+                longtouch: true,
+            }]
+        );
+        assert_eq!(mock_hal.ui.confirm_display_sizes, vec![3]);
     }
 }

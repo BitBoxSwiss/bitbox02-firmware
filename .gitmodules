@@ -1,9 +1,6 @@
 [submodule "external/cryptoauthlib"]
 	path = external/cryptoauthlib
 	url = https://github.com/BitBoxSwiss/cryptoauthlib.git
-[submodule "tools/ttf2ugui"]
-	path = tools/ttf2ugui
-	url = https://github.com/BitBoxSwiss/ttf2ugui
 [submodule "external/optiga-trust-m"]
 	path = external/optiga-trust-m
 	url = https://github.com/BitBoxSwiss/optiga-trust-m.git

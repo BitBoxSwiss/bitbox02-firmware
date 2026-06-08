@@ -75,23 +75,12 @@ static void test_util_utf8_copy(void** state)
     assert_string_equal(out, "");
 }
 
-static void test_util_is_printable_ascii(void** state)
-{
-    (void)state;
-
-    assert_true(util_is_printable_ascii("printable ASCII", false));
-    assert_false(util_is_printable_ascii("line one\nline two", false));
-    assert_true(util_is_printable_ascii("line one\nline two", true));
-    assert_false(util_is_printable_ascii("t\xC3\xA4st", true));
-}
-
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_minmax),
         cmocka_unit_test(test_util_strlcpy),
         cmocka_unit_test(test_util_utf8_copy),
-        cmocka_unit_test(test_util_is_printable_ascii),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

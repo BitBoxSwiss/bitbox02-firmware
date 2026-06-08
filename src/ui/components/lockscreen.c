@@ -46,10 +46,6 @@ static void _truncate_to_fit(
         out[0] = 0;
         return;
     }
-    if (!util_is_printable_ascii(in, false)) {
-        out[0] = 0;
-        return;
-    }
     UG_S16 width = 0;
     UG_S16 height = 0;
     UG_FontSelect(font);
@@ -57,7 +53,9 @@ static void _truncate_to_fit(
 
     // Name fits without truncation.
     if (width <= max_width) {
-        util_utf8_strlcpy(out, in, out_len);
+        if (util_utf8_strlcpy(out, in, out_len) < 0) {
+            out[0] = 0;
+        }
         return;
     }
 
@@ -92,7 +90,7 @@ component_t* lockscreen_create(void)
     component->dimension.width = SCREEN_WIDTH;
     component->dimension.height = SCREEN_HEIGHT;
 
-    const UG_FONT* device_name_font = &font_font_a_9X9;
+    const UG_FONT* device_name_font = &font_arial_9;
 
     char device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     memory_get_device_name(device_name);

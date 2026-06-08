@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use super::ascii;
-
 /// Validate a user given name. The name must be smaller or equal to `max_len` and larger than 0 in
-/// size, consist of printable ASCII characters only (and space), not
-/// start or end with whitespace, and contain no whitespace other than space.
+/// size, consist only of safe display characters, not start or end with whitespace, and contain no
+/// whitespace other than space.
 pub fn validate(name: &str, max_len: usize) -> bool {
     if name.is_empty() || name.len() > max_len {
         return false;
     }
-    if !ascii::is_printable_ascii(name, ascii::Charset::All) {
+    if !super::display::is_safe_text(name, false) {
         return false;
     }
-    // Safe because all_ascii passed.
-    let bytes = name.as_bytes();
-    if bytes[0] == b' ' || bytes[bytes.len() - 1] == b' ' {
+    if name.starts_with(' ') || name.ends_with(' ') {
         return false;
     }
     true
@@ -56,13 +52,18 @@ mod tests {
         assert!(validate("foo", 4));
         assert!(validate("foo", 3));
         assert!(!validate("foo", 2));
+        assert!(validate("ä", 2));
+        assert!(!validate("ä", 1));
         // Min len.
         assert!(!validate("", 100));
 
-        // Ascii.
+        // Safe display characters.
         assert!(validate("some name", 100));
+        assert!(validate("BïtBöx Łódź", 100));
         assert!(!validate("\n", 100));
         assert!(!validate("\t", 100));
+        assert!(!validate("東京", 100));
+        assert!(!validate("non\u{a0}breaking", 100));
 
         // Starts / ends with space.
         assert!(!validate(" foo", 100));
@@ -78,6 +79,7 @@ mod tests {
             // Valid
             assert!(rust_util_is_name_valid("foo\0".as_ptr(), 4));
             assert!(rust_util_is_name_valid("foo\0........".as_ptr(), 12));
+            assert!(rust_util_is_name_valid("BïtBöx\0".as_ptr(), 10));
 
             // Invalid
             assert!(!rust_util_is_name_valid("fo\no\0".as_ptr(), 5));

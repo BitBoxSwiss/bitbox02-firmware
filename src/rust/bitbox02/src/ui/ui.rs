@@ -19,11 +19,14 @@ use core::task::{Poll, Waker};
 // Rust-side cut moves back to a UTF-8 boundary.
 const LABEL_TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 4;
 
-/// BitBox02 fonts contain glyphs for printable ASCII only. Keep this check at the common UI
-/// boundary so unsupported text cannot be silently omitted by the renderer.
+/// Keep this check at the common UI boundary so unsupported text cannot be silently omitted by
+/// the renderer.
 fn display_str_to_cstr_vec(text: &str) -> Vec<c_char> {
     assert!(
-        util::ascii::is_printable_ascii(text, util::ascii::Charset::AllNewline),
+        util::display::is_safe_text(text, true)
+            && text
+                .chars()
+                .all(|c| c == '\n' || Font::Default.has_glyph(c)),
         "BitBox02 UI text contains unsupported characters"
     );
     let mut result: Vec<c_char> = text.bytes().map(|byte| byte as c_char).collect();
@@ -38,16 +41,16 @@ fn label_fits_width(text: &str, font: *const bitbox02_sys::UG_FONT) -> bool {
 
 /// Returns true if the amount fits the transaction screen, using the smaller font if necessary.
 pub fn transaction_amount_fits(amount: &str) -> bool {
-    if label_fits_width(amount, unsafe { &bitbox02_sys::font_font_a_11X10 }) {
+    if label_fits_width(amount, unsafe { &bitbox02_sys::font_arial_11 }) {
         true
     } else {
-        label_fits_width(amount, unsafe { &bitbox02_sys::font_font_a_9X9 })
+        label_fits_width(amount, unsafe { &bitbox02_sys::font_arial_9 })
     }
 }
 
 /// Returns true if the fee fits the transaction screen's smaller fee font.
 pub fn transaction_fee_fits(fee: &str) -> bool {
-    label_fits_width(fee, unsafe { &bitbox02_sys::font_font_a_9X9 })
+    label_fits_width(fee, unsafe { &bitbox02_sys::font_arial_9 })
 }
 
 /// Wraps the C component_t to be used in Rust.

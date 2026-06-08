@@ -31,7 +31,7 @@ async fn confirm_mnemonic_passphrase(
     let params = ConfirmParams {
         title: "Confirm",
         body: passphrase,
-        font: crate::hal::ui::Font::Password11X12,
+        font: crate::hal::ui::Font::Password12,
         scrollable: true,
         longtouch: true,
         ..Default::default()

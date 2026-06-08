@@ -23,7 +23,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+
+#include <ui/fonts/lvgl.h>
 
 /* -------------------------------------------------------------------------------- */
 /* -- TYPEDEFS                                                                   -- */
@@ -40,22 +41,7 @@ typedef UG_U8          UG_COLOR;
 /* -------------------------------------------------------------------------------- */
 /* -- µGUI FONTS                                                                 -- */
 /* -------------------------------------------------------------------------------- */
-typedef enum {
-    FONT_TYPE_1BPP,
-    FONT_TYPE_8BPP
-} FONT_TYPE;
-
-typedef struct {
-    unsigned char *p;
-    FONT_TYPE font_type;
-    UG_S16 char_width;
-    UG_S16 char_height;
-    UG_U16 start_char;
-    UG_U16 end_char;
-    UG_U8  *widths;
-} UG_FONT;
-
-#define UG_FONT_DATA const
+typedef lv_font_t UG_FONT;
 
 /* -------------------------------------------------------------------------------- */
 /* -- µGUI CORE STRUCTURE                                                        -- */
@@ -64,7 +50,7 @@ typedef struct {
     void (*pset)(UG_S16, UG_S16, UG_COLOR);
     UG_S16 x_dim;
     UG_S16 y_dim;
-    UG_FONT font;
+    const UG_FONT *font;
     UG_S8 char_h_space;
     UG_S8 char_v_space;
     UG_COLOR fore_color;
@@ -120,6 +106,7 @@ void UG_PutStringNoBreak( UG_S16 x, UG_S16 y, const char *str);
 void UG_MeasureString( UG_S16 *xout, UG_S16 *yout, const char *str);
 void UG_MeasureStringNoBreak(UG_S16 *xout, UG_S16 *yout, const char *str);
 void UG_MeasureStringCentered( UG_S16 *xout, UG_S16 *yout, const char *str);
+bool UG_GetCharWidth(const UG_FONT* font, uint32_t codepoint, UG_U16* width);
 void UG_PutStringNoBreakCenter( UG_S16 x, UG_S16 y, UG_S16 width, const char *str);
 void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, const char *str);
 void UG_PutChar( char chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc );

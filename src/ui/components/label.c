@@ -34,7 +34,7 @@ bool label_fits_width(const char* text, const UG_FONT* font, uint16_t max_width)
 {
     UG_S16 width;
     UG_S16 height;
-    UG_FontSelect(font != NULL ? font : &font_font_a_11X10);
+    UG_FontSelect(font != NULL ? font : &font_arial_11);
     UG_MeasureStringNoBreak(&width, &height, text);
     return width <= max_width;
 }
@@ -42,9 +42,6 @@ bool label_fits_width(const char* text, const UG_FONT* font, uint16_t max_width)
 void label_update(component_t* component, const char* text)
 {
     data_t* data = (data_t*)component->data;
-    if (!util_is_printable_ascii(text, true)) {
-        Abort("Unsupported label character");
-    }
     const intptr_t result = util_utf8_strlcpy(data->text, text, MAX_LABEL_SIZE + 1);
     if (result < 0) {
         Abort("Invalid UTF-8 label");
@@ -231,7 +228,7 @@ static component_t* _label_create(
     memset(data, 0, sizeof(data_t));
     memset(label, 0, sizeof(component_t));
 
-    data->font = font != NULL ? font : &font_font_a_11X10;
+    data->font = font != NULL ? font : &font_arial_11;
     data->scrollable = scrollable;
     data->position = position;
     data->xoffset = xoffset;

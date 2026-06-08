@@ -70,11 +70,11 @@ pub fn id(seed: &[u8]) -> String {
     hex::encode(mac.finalize_reset().into_bytes())
 }
 
-/// Replaces non-printable-ASCII characters in legacy backup names with `?`.
-pub(crate) fn sanitize_name(name: &str) -> String {
+/// Replaces characters that cannot be displayed safely in legacy backup names with `?`.
+pub(crate) fn sanitize_name(name: &str, mut has_glyph: impl FnMut(char) -> bool) -> String {
     name.chars()
         .map(|character| {
-            if util::ascii::Charset::All.contains(character) {
+            if util::display::is_safe_char(character) && has_glyph(character) {
                 character
             } else {
                 '?'
@@ -476,6 +476,12 @@ mod tests {
         _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb\x28\xca\x69\xb5\x16\x95\xed\x7c"[..]).await;
         _test_create_load(&b"\x52\x20\xa4\xe9\xce\xea\xc6\x80\x5d\xf2\x36\x09\xf6\xb4\x78\xbb"[..])
             .await;
+    }
+
+    #[test]
+    fn test_sanitize_name() {
+        assert_eq!(sanitize_name("Bït\nBox\t東京", |_| true), "Bït?Box???");
+        assert_eq!(sanitize_name("BïtBox", |c| c != 'ï'), "B?tBox");
     }
 
     #[test]

@@ -3,7 +3,7 @@
 use super::Error;
 use super::params;
 use super::pb;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Font};
 
 use alloc::string::String;
 
@@ -91,7 +91,11 @@ async fn get_name(
     } else {
         request.name.clone()
     };
-    if !util::name::validate(&name, bitbox_hal::memory::MULTISIG_NAME_MAX_LEN) {
+    let has_all_glyphs = {
+        let ui = hal.ui();
+        name.chars().all(|c| ui.has_glyph(Font::Default, c))
+    };
+    if !util::name::validate(&name, bitbox_hal::memory::MULTISIG_NAME_MAX_LEN) || !has_all_glyphs {
         return Err(Error::InvalidInput);
     }
     Ok(name)
@@ -171,6 +175,24 @@ mod tests {
     use util::bip32::HARDENED;
 
     use crate::hal::testing::TestingHal;
+
+    #[async_test::test]
+    async fn test_get_name_utf8() {
+        let request = pb::BtcRegisterScriptConfigRequest {
+            name: "Müller".into(),
+            ..Default::default()
+        };
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(get_name(&mut mock_hal, &request).await.unwrap(), "Müller");
+
+        mock_hal
+            .ui
+            .set_has_glyph(alloc::boxed::Box::new(|_, character| character != 'ü'));
+        assert!(matches!(
+            get_name(&mut mock_hal, &request).await,
+            Err(Error::InvalidInput)
+        ));
+    }
 
     use pb::btc_script_config::{Multisig, multisig::ScriptType};
 

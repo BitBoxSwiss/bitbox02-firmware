@@ -6,8 +6,8 @@
 
 #include <hardfault.h>
 #include <touch/gestures.h>
-#include <ui/fonts/password_11X12.h>
-#include <ui/fonts/password_9X9.h>
+#include <ui/fonts/password_12.h>
+#include <ui/fonts/password_9.h>
 #include <ui/ui_util.h>
 #include <util.h>
 
@@ -33,6 +33,13 @@ typedef struct {
 
 // Each of the three groups can occupy roughly a third of the width.
 static const UG_S16 _group_width = SCREEN_WIDTH / 3;
+
+static UG_U16 _char_width(const UG_FONT* font, char chr)
+{
+    UG_U16 width = 0;
+    UG_GetCharWidth(font, (uint8_t)chr, &width);
+    return width;
+}
 
 // Stack entry for navigation history
 typedef struct {
@@ -256,7 +263,7 @@ static void _put_string(
     UG_S16 total_width = 0;
     for (size_t idx = 0; idx < elements_size; idx++) {
         char c = elements[idx]->character;
-        total_width += font->widths[c - font->start_char];
+        total_width += _char_width(font, c);
         total_width += horiz_space;
     }
 
@@ -264,7 +271,7 @@ static void _put_string(
     if (elements_size > 6) {
         // split in two halfs; size/2 rounded up
         const size_t half = (elements_size + 1) / 2;
-        _put_string(font, x_offset, y_offset - font->char_height - 1, horiz_space, elements, half);
+        _put_string(font, x_offset, y_offset - font->line_height - 1, horiz_space, elements, half);
         _put_string(font, x_offset, y_offset, horiz_space, elements + half, elements_size - half);
         return;
     }
@@ -275,8 +282,7 @@ static void _put_string(
         char c = elements[idx]->character;
         bool update_position = !element->newly_born;
         element->target_x = x;
-        x += c == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH
-                      : font->widths[element->character - font->start_char];
+        x += c == ' ' ? UI_UTIL_VISIBLE_SPACE_WIDTH : _char_width(font, element->character);
         x += horiz_space;
         element->target_y = y_offset;
         if (!update_position) {
@@ -301,9 +307,9 @@ static void _set_alphabet_internal(
 
     // Switch to larger font for fewer characters
     if (len < 12) {
-        data->font = &font_password_11X12;
+        data->font = &font_password_12;
     } else {
-        data->font = &font_password_9X9;
+        data->font = &font_password_9;
     }
 
     size_t a = 0;
@@ -354,7 +360,7 @@ static void _set_alphabet_internal(
         element->character = alphabet[char_idx];
     }
 
-    UG_S16 y_offset = SCREEN_HEIGHT - data->font->char_height;
+    UG_S16 y_offset = SCREEN_HEIGHT - data->font->line_height;
     { // left
         _put_string(data->font, 0, y_offset, data->horiz_space, elements_lookup, left_size);
     }
@@ -425,7 +431,7 @@ component_t* trinary_input_char_create(
     }
     memset(component, 0, sizeof(component_t));
 
-    data->font = &font_password_9X9;
+    data->font = &font_password_9;
     component->data = data;
     component->parent = parent;
     component->f = &_component_functions;

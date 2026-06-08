@@ -100,6 +100,7 @@ type BuildResult<T> = Result<T, String>;
 
 pub fn main() -> BuildResult<()> {
     ensure_command_exists("bindgen")?;
+    emit_bindgen_env_rerun_if_changed();
 
     let manifest_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
@@ -122,28 +123,16 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed(external_dir.join("optiga-trust-m/config"));
     emit_rerun_if_changed(&optiga_include_dir);
 
-    let target = env::var("TARGET").expect("TARGET not set");
-    let cross_compiling = target == "thumbv7em-none-eabi";
-    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
-    let arm_sysroot = format!("--sysroot={arm_sysroot}");
-
-    let mut extra_flags = if cross_compiling {
-        vec![
-            // Generate bindings for the firmware target ABI, not the host ABI.
-            "--target=thumbv7em-none-eabi",
-            &arm_sysroot,
-            // The firmware C code is compiled with arm-none-eabi-gcc, which uses
-            // -fshort-enums by default. Bindgen must match those enum sizes.
-            "-fshort-enums",
-        ]
-    } else {
-        vec![]
-    };
+    let mut definitions = vec![
+        // Expose the U2F counter declarations guarded by APP_U2F in atecc.h/optiga.h.
+        "-DAPP_U2F=1",
+        "-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"",
+    ];
 
     if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
         for flag in rustflags.split('\x1f') {
             if flag == "-Dwarnings" {
-                extra_flags.push("-Werror");
+                definitions.push("-Werror");
             }
         }
     }
@@ -151,84 +140,83 @@ pub fn main() -> BuildResult<()> {
     let out_path = out_dir.join("bindings.rs");
     let out_path = out_path.into_os_string().into_string().unwrap();
 
-    let mut definitions = vec![
-        // Expose the U2F counter declarations guarded by APP_U2F in atecc.h/optiga.h.
-        "-DAPP_U2F=1",
-        "-DOPTIGA_LIB_EXTERNAL=\"optiga_config.h\"",
-    ];
-    definitions.extend(&extra_flags);
+    let mut bindgen = Command::new("bindgen");
+    bindgen
+        .args(["--output", &out_path])
+        .arg("--use-core")
+        .arg("--with-derive-default")
+        .args(
+            ALLOWLIST_FNS
+                .iter()
+                .flat_map(|item| ["--allowlist-function", item]),
+        )
+        .args(
+            ALLOWLIST_TYPES
+                .iter()
+                .flat_map(|item| ["--allowlist-type", item]),
+        )
+        .args(
+            ALLOWLIST_VARS
+                .iter()
+                .flat_map(|item| ["--allowlist-var", item]),
+        )
+        .args(
+            RUSTIFIED_ENUMS
+                .iter()
+                .flat_map(|item| ["--rustified-enum", item]),
+        )
+        .arg(&wrapper)
+        .arg("--")
+        .args(&definitions)
+        .arg(format!("-I{}", src_dir.display()))
+        .arg(format!("-I{}", external_dir.display()))
+        .arg(format!(
+            "-I{}",
+            external_dir.join("optiga-trust-m/config").display()
+        ))
+        .arg(format!("-I{}", optiga_include_dir.display()))
+        .arg(format!(
+            "-I{}",
+            external_dir.join("optiga-trust-m/include/cmd").display()
+        ))
+        .arg(format!(
+            "-I{}",
+            external_dir.join("optiga-trust-m/include/common").display()
+        ))
+        .arg(format!(
+            "-I{}",
+            external_dir
+                .join("optiga-trust-m/include/ifx_i2c")
+                .display()
+        ))
+        .arg(format!(
+            "-I{}",
+            external_dir.join("optiga-trust-m/include/pal").display()
+        ))
+        .arg(format!(
+            "-I{}",
+            external_dir.join("optiga-trust-m/include/comms").display()
+        ))
+        .arg(format!(
+            "-I{}",
+            external_dir
+                .join("optiga-trust-m/external/mbedtls/include")
+                .display()
+        ));
 
-    run_command(
-        Command::new("bindgen")
-            .args(["--output", &out_path])
-            .arg("--use-core")
-            .arg("--with-derive-default")
-            .args(
-                ALLOWLIST_FNS
-                    .iter()
-                    .flat_map(|item| ["--allowlist-function", item]),
-            )
-            .args(
-                ALLOWLIST_TYPES
-                    .iter()
-                    .flat_map(|item| ["--allowlist-type", item]),
-            )
-            .args(
-                ALLOWLIST_VARS
-                    .iter()
-                    .flat_map(|item| ["--allowlist-var", item]),
-            )
-            .args(
-                RUSTIFIED_ENUMS
-                    .iter()
-                    .flat_map(|item| ["--rustified-enum", item]),
-            )
-            .arg(&wrapper)
-            .arg("--")
-            .args(&definitions)
-            .arg(format!("-I{}", src_dir.display()))
-            .arg(format!("-I{}", external_dir.display()))
-            .arg(format!(
-                "-I{}",
-                external_dir.join("optiga-trust-m/config").display()
-            ))
-            .arg(format!("-I{}", optiga_include_dir.display()))
-            .arg(format!(
-                "-I{}",
-                external_dir.join("optiga-trust-m/include/cmd").display()
-            ))
-            .arg(format!(
-                "-I{}",
-                external_dir.join("optiga-trust-m/include/common").display()
-            ))
-            .arg(format!(
-                "-I{}",
-                external_dir
-                    .join("optiga-trust-m/include/ifx_i2c")
-                    .display()
-            ))
-            .arg(format!(
-                "-I{}",
-                external_dir.join("optiga-trust-m/include/pal").display()
-            ))
-            .arg(format!(
-                "-I{}",
-                external_dir.join("optiga-trust-m/include/comms").display()
-            ))
-            .arg(format!(
-                "-I{}",
-                external_dir
-                    .join("optiga-trust-m/external/mbedtls/include")
-                    .display()
-            )),
-        "run bindgen",
-    )?;
+    run_command(&mut bindgen, "run bindgen")?;
 
     Ok(())
 }
 
 fn emit_rerun_if_changed(path: impl AsRef<std::path::Path>) {
     println!("cargo::rerun-if-changed={}", path.as_ref().display());
+}
+
+fn emit_bindgen_env_rerun_if_changed() {
+    let target = env::var("TARGET").expect("TARGET not set");
+    println!("cargo::rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS");
+    println!("cargo::rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_{target}");
 }
 
 fn ensure_command_exists(command: &str) -> BuildResult<()> {

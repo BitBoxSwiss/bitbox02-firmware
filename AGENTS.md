@@ -27,6 +27,11 @@ for the current scope.
 Run regular Unix commands such as `git`, `rg`, `grep`, `ls`, `find`, `sed`, and `cat` directly on
 the host.
 
+Before running Rust workspace commands directly, run `./scripts/bootstrap-cargo-config` once in the
+environment where Cargo will run. It writes `.cargo/config.local.toml` with the bindgen and `cc`
+crate target settings for the local ARM sysroot. The generated file is included by Cargo config
+files. Re-run it after changing ARM toolchains or sysroots.
+
 Cargo commands for the Rust workspace, such as `cargo test`, `cargo check`, and `cargo clippy`, may
 also be run directly on the host by passing `--manifest-path src/rust/Cargo.toml`.
 
@@ -78,7 +83,8 @@ bindings (`cbindgen`, protobuf) when interfaces change. When changing protobuf i
 Place new C specs in `test/unit-test` and add doubles to `test/hardware-fakes` when hardware
 behavior is mocked; follow the `test_<feature>.c` naming pattern and update CMake lists. Rust crates
 use standard `tests/` modules or `#[cfg(test)]` blocks. Before opening a PR, run both `make
-run-unit-tests` and `cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1`,
+run-unit-tests` and
+`cargo test --manifest-path src/rust/Cargo.toml --all-features -- --test-threads 1`,
 and refresh `make coverage` for cryptography or security-sensitive areas.
 
 - in Rust unit tests, prefer .unwrap() over .expect().

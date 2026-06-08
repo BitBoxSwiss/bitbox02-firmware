@@ -237,6 +237,7 @@ fn main() -> Result<(), &'static str> {
         }
         return Err("failed to execute `bindgen --version`");
     }
+    emit_bindgen_env_rerun_if_changed();
 
     let cflags = [
         format!("-I{}", lvgl_dir.display()),
@@ -270,4 +271,10 @@ fn main() -> Result<(), &'static str> {
     }
     fonts.compile("lvgl_fonts");
     run_bindgen(&wrapper, &out_path, &cflags)
+}
+
+fn emit_bindgen_env_rerun_if_changed() {
+    let target = env::var("TARGET").expect("TARGET not set");
+    println!("cargo::rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS");
+    println!("cargo::rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_{target}");
 }

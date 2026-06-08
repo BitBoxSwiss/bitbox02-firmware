@@ -3,6 +3,7 @@
 /releases/temp/
 .vagrant/
 # LSP caches and local configs
+.cargo/config.local.toml
 .clangd
 .cquery
 .ccls

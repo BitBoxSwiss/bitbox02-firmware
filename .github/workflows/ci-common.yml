@@ -297,7 +297,7 @@ jobs:
         run: cargo install --path tools/prost-build-proto --locked
 
       - name: Build ${{ matrix.target }}
-        run: make -j$(($(nproc)+1)) ${{ matrix.target }}
+        run: make -j$(($(sysctl -n hw.ncpu)+1)) ${{ matrix.target }}
 
       - name: Print hashes
         run: sha256sum build*/bin/*
@@ -326,6 +326,7 @@ jobs:
 
       - name: Build ${{ matrix.target }}
         run: |
+          make bootstrap
           (mkdir -p build; cd build; cmake -DDOC_GRAPHS=NO ..)
           make -j$(($(nproc)+1)) docs
 

@@ -328,33 +328,19 @@ pub fn main() -> BuildResult<()> {
     ensure_command_exists("bindgen")?;
 
     let target = env::var("TARGET").expect("TARGET not set");
-    let cross_compiling = target == "thumbv7em-none-eabi";
+    emit_bindgen_env_rerun_if_changed(&target);
+    let cross_compiling = target.starts_with("thumb");
 
-    let arm_sysroot = env::var("CMAKE_SYSROOT").unwrap_or("/usr/local/arm-none-eabi".to_string());
-    let arm_sysroot = format!("--sysroot={arm_sysroot}");
-
-    let mut extra_flags = if cross_compiling {
-        vec![
-            "-D__SAMD51J20A__",
-            "--target=thumbv7em-none-eabi",
-            "-mcpu=cortex-m4",
-            "-mthumb",
-            "-mfloat-abi=soft",
-            &arm_sysroot,
-            "-fshort-enums",
-        ]
+    let target_definitions = if cross_compiling {
+        vec!["-D__SAMD51J20A__"]
     } else {
         vec!["-DTESTING", "-D_UNIT_TEST_", "-DPRODUCT_BITBOX_MULTI=1"]
     };
 
-    // If user enables -Dwarnings for rust we also want to enable -Werror for C.
-    if let Ok(rustflags) = std::env::var("CARGO_ENCODED_RUSTFLAGS") {
-        for flag in rustflags.split('\x1f') {
-            if flag == "-Dwarnings" {
-                extra_flags.push("-Werror");
-            }
-        }
-    }
+    // If user enables -Dwarnings for Rust we also want to enable -Werror for C.
+    let warnings_as_errors = std::env::var("CARGO_ENCODED_RUSTFLAGS")
+        .map(|rustflags| rustflags.split('\x1f').any(|flag| flag == "-Dwarnings"))
+        .unwrap_or(false);
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
@@ -425,28 +411,31 @@ pub fn main() -> BuildResult<()> {
     // Needs to match the definitions in `CMakeList.txt' files (unit tests, hardware fakes and
     // simulator)
     let mut definitions = vec!["-DAPP_U2F=1"];
-    definitions.extend(&extra_flags);
+    definitions.extend(target_definitions);
+    if warnings_as_errors {
+        definitions.push("-Werror");
+    }
 
-    run_command(
-        Command::new("bindgen")
-            .args(["--output", &out_path])
-            .arg("--use-core")
-            .arg("--with-derive-default")
-            .args(
-                ALLOWLIST_FNS
-                    .iter()
-                    .flat_map(|s| ["--allowlist-function", s]),
-            )
-            .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
-            .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
-            .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
-            .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
-            .arg("wrapper.h")
-            .arg("--")
-            .args(&definitions)
-            .args(includes.iter().map(|s| format!("-I{s}"))),
-        "run bindgen",
-    )?;
+    let mut bindgen = Command::new("bindgen");
+    bindgen
+        .args(["--output", &out_path])
+        .arg("--use-core")
+        .arg("--with-derive-default")
+        .args(
+            ALLOWLIST_FNS
+                .iter()
+                .flat_map(|s| ["--allowlist-function", s]),
+        )
+        .args(ALLOWLIST_TYPES.iter().flat_map(|s| ["--allowlist-type", s]))
+        .args(ALLOWLIST_VARS.iter().flat_map(|s| ["--allowlist-var", s]))
+        .args(RUSTIFIED_ENUMS.iter().flat_map(|s| ["--rustified-enum", s]))
+        .args(OPAQUE_TYPES.iter().flat_map(|s| ["--opaque-type", s]))
+        .arg("wrapper.h")
+        .arg("--")
+        .args(&definitions)
+        .args(includes.iter().map(|s| format!("-I{s}")));
+
+    run_command(&mut bindgen, "run bindgen")?;
 
     let excludes = if let Ok(libtype) = env::var("LIB_TYPE") {
         match libtype.as_str() {
@@ -490,6 +479,11 @@ pub fn main() -> BuildResult<()> {
 
 fn emit_rerun_if_changed(path: &str) {
     println!("cargo::rerun-if-changed={path}");
+}
+
+fn emit_bindgen_env_rerun_if_changed(target: &str) {
+    println!("cargo::rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS");
+    println!("cargo::rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_{target}");
 }
 
 fn emit_git_rerun_if_changed(repo_root: &Path) {

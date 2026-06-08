@@ -141,8 +141,12 @@ Run the following commands to enter the container and build the firmware:
 
 ```sh
 make dockerdev
+make bootstrap
 make firmware
 ```
+
+`make bootstrap` must be run before compiling firmware. It initializes submodules and writes the
+local Cargo configuration needed for the firmware ARM targets.
 
 > [!TIP]
 > If you have multiple cores you can speed up compilation by passing `-j<N>`, for example `-j8`.

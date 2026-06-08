@@ -42,10 +42,11 @@ use glutin_winit::DisplayBuilder;
 use tracing::{debug, error, info};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
-use bitbox_hal::{Hal, system::System};
+use bitbox_hal::{Hal, Memory, system::System};
 
 use bitbox03::io::touchscreen::{TouchScreen, TouchScreenEvent};
 use hal::BitBox03;
+use util::bb02_async::block_on;
 
 use bitbox_lvgl as lvgl;
 use lvgl::LvDisplayRenderMode;
@@ -204,7 +205,7 @@ fn my_flush_cb(display: lvgl::LvDisplay, _area: &lvgl::LvArea, _px_map: *mut u8)
 }
 
 fn init_hww(
-    _bitbox: &mut BitBox03,
+    bitbox: &mut BitBox03,
     preseed: bool,
 ) -> Option<bitbox02_rust::hww::transport::HwwTransport<BitBox03>> {
     //bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
@@ -228,11 +229,13 @@ fn init_hww(
     info!("Memory setup: success");
 
     if preseed {
-        //let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
-        //let seed = bitbox02_rust::bip39::mnemonic_to_seed(&mnemonic).unwrap();
-        //let mut hal = bitbox03::hal::BitBox02Hal::new();
-        //bitbox02_rust::keystore::encrypt_and_store_seed(&mut hal, &seed, "").unwrap();
-        //bitbox.memory().set_initialized().unwrap();
+        let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
+        let seed = bitbox02_rust::bip39::mnemonic_to_seed(mnemonic).unwrap();
+        block_on(bitbox02_rust::keystore::encrypt_and_store_seed(
+            bitbox, &seed, "",
+        ))
+        .unwrap();
+        bitbox.memory().set_initialized().unwrap();
     }
 
     Some(bitbox02_rust::hww::transport::hww_transport::<BitBox03>())

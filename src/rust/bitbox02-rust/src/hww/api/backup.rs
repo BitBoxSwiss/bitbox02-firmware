@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::ui::{CanCancel, ConfirmParams};
+use crate::hal::ui::{CanCancel, ConfirmParams, Font};
 use crate::pb;
 use alloc::vec::Vec;
 
@@ -29,7 +29,10 @@ pub async fn check(
         return Err(Error::Generic);
     }
     if !silent {
-        let name = backup::sanitize_name(&metadata.name);
+        let name = {
+            let ui = hal.ui();
+            backup::sanitize_name(&metadata.name, |c| ui.has_glyph(Font::Default, c))
+        };
         hal.ui()
             .confirm(&ConfirmParams {
                 title: "Name?",

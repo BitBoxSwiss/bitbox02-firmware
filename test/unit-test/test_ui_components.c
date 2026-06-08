@@ -16,7 +16,6 @@
 #include <ui/components/right_arrow.h>
 #include <ui/components/status.h>
 #include <ui/fonts/arial_fonts.h>
-#include <ui/fonts/monogram_5X9.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 
@@ -35,7 +34,7 @@ static void _set_pixel(UG_S16 x, UG_S16 y, UG_COLOR color)
 static int _setup(void** state)
 {
     (void)state;
-    UG_Init(&gui, _set_pixel, &font_font_a_11X10, 128, 64);
+    UG_Init(&gui, _set_pixel, &font_arial_11, 128, 64);
     return 0;
 }
 
@@ -58,10 +57,9 @@ static void assert_ui_component_functions(component_t* component)
 
 static void test_ui_components_label(void** state)
 {
-    assert_true(label_fits_width("Test", &font_font_a_11X10, 128));
-    assert_true(label_fits_width("11111111111111111 BNB", &font_font_a_9X9, 128));
-    assert_false(
-        label_fits_width("This label is much wider than the screen", &font_font_a_9X9, 128));
+    assert_true(label_fits_width("Test", &font_arial_11, 128));
+    assert_true(label_fits_width("11111111111111111 BNB", &font_arial_9, 128));
+    assert_false(label_fits_width("This label is much wider than the screen", &font_arial_9, 128));
 
     component_t* mock_component = fake_component_create();
 
@@ -132,7 +130,7 @@ static void test_ui_components_confirm(void** state)
     const confirm_params_t params = {
         .title = "Is the Code correct?",
         .body = "CODE",
-        .font = &font_monogram_5X9,
+        .font = &font_monogram_16,
     };
     component_t* confirm = confirm_create(&params, confirm_callback, NULL);
     assert_non_null(confirm);

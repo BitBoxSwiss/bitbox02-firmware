@@ -417,6 +417,10 @@ mod tests {
         set_device_name(new_name).unwrap();
         assert_eq!(get_device_name(), new_name);
 
+        let utf8_name = "BïtBöx Łódź";
+        set_device_name(utf8_name).unwrap();
+        assert_eq!(get_device_name(), utf8_name);
+
         // A name with the maximum allowed length is accepted.
         let max_len_name = "DeviceName_ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxy";
         assert_eq!(max_len_name.len(), DEVICE_NAME_MAX_LEN);
@@ -435,8 +439,8 @@ mod tests {
             " name",    // leading space
             "name ",    // trailing space
             "foo\nbar", // control character
-            "Ä",        // non-ASCII
-            "漢字",     // non-ASCII
+            "漢字",     // not covered by the display font
+            "emoji 😃", // not covered by the display font
         ];
 
         for invalid in invalid_names {

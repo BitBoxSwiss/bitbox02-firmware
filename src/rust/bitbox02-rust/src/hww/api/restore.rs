@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Error;
-use crate::hal::ui::ConfirmParams;
+use crate::hal::ui::{ConfirmParams, Font};
 use crate::pb;
 
 use pb::response::Response;
@@ -32,7 +32,10 @@ pub async fn from_file(
         }
     };
 
-    let device_name = crate::backup::sanitize_name(&metadata.name);
+    let device_name = {
+        let ui = hal.ui();
+        crate::backup::sanitize_name(&metadata.name, |c| ui.has_glyph(Font::Default, c))
+    };
     hal.ui()
         .confirm(&ConfirmParams {
             body: &format!("Name: {}. ID: {}", &device_name, &request.id),
@@ -208,11 +211,11 @@ mod tests {
             mock_hal.ui.screens[1],
             Screen::Confirm {
                 title: "".into(),
-                body: format!("Name: B?t?Box?. ID: {id}"),
+                body: format!("Name: Bït?Box?. ID: {id}"),
                 longtouch: false,
             }
         );
-        assert_eq!(mock_hal.memory.get_device_name(), "B?t?Box?");
+        assert_eq!(mock_hal.memory.get_device_name(), "Bït?Box?");
     }
 
     #[async_test::test]

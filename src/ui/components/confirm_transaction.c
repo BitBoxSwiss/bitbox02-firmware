@@ -117,13 +117,13 @@ static component_t* _confirm_transaction_create(
     }
     if (strlens(fee)) {
         ui_util_add_sub_component(
-            confirm, label_create_offset("Fee", &font_font_a_9X9, CENTER_TOP, 0, 38, confirm));
+            confirm, label_create_offset("Fee", &font_arial_9, CENTER_TOP, 0, 38, confirm));
 
         ui_util_add_sub_component(
-            confirm, label_create_offset(fee, &font_font_a_9X9, CENTER_TOP, 0, 50, confirm));
+            confirm, label_create_offset(fee, &font_arial_9, CENTER_TOP, 0, 50, confirm));
     }
     const UG_FONT* amount_font =
-        label_fits_width(amount, NULL, SCREEN_WIDTH) ? NULL : &font_font_a_9X9;
+        label_fits_width(amount, NULL, SCREEN_WIDTH) ? NULL : &font_arial_9;
     if (verify_total) {
         ui_util_add_sub_component(
             confirm, label_create_offset("Total", NULL, CENTER_TOP, 0, 8, confirm));

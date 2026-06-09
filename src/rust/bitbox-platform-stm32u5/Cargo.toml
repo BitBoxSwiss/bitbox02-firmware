@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 bitbox-mcu-stm32u5 = { path = "../bitbox-mcu-stm32u5" }
 bitbox-platform-stm32u5-sys = { path = "../bitbox-platform-stm32u5-sys" }
+critical-section = { workspace = true }
 # Set stack pointer and vector offset in startup code to make it easier to run
 # firmware from debugger / non-bootloader environments. Not strictly necessary
 # in release builds.

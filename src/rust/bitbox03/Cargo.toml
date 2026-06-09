@@ -10,6 +10,7 @@ util = { path = "../util" }
 tracing = { version = "0.1.41", features = ["log"], default-features = false }
 png-decoder = { version="0.2"}
 zeroize = {workspace=true}
+littlefs2 = { workspace = true }
 
 [features]
 app-u2f = ["bitbox-hal/app-u2f"]

@@ -18,6 +18,11 @@ git = "https://github.com/BitBoxSwiss/rust-bip39.git"
 branch = "bitbox-20250922"
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/BitBoxSwiss/littlefs2-sys?rev=8eaf0fbc7eca5e3ab6ea9a50e519c536e901f538"]
+git = "https://github.com/BitBoxSwiss/littlefs2-sys"
+rev = "8eaf0fbc7eca5e3ab6ea9a50e519c536e901f538"
+replace-with = "vendored-sources"
+
 [source.vendored-sources]
 directory = "../../external/vendor"
 

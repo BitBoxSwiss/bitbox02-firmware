@@ -74,9 +74,11 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 grounded = { version = "0.2.0", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.2.0", default-features = false }
+littlefs2 = { version = "0.7.1", default-features = false, features = ["c-stubs"] }
 
 [patch.crates-io]
 rtt-target = { git = "https://github.com/BitBoxSwiss/rtt-target.git", rev = "c04cef567e77ee263ee0621c07202dff6a73ef45" }
+littlefs2-sys = { git = "https://github.com/BitBoxSwiss/littlefs2-sys", rev = "8eaf0fbc7eca5e3ab6ea9a50e519c536e901f538" }
 
 [profile.release]
 # This only affects the .elf output. Debug info is stripped from the final .bin.

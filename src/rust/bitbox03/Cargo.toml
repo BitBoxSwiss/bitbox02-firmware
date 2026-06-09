@@ -12,5 +12,8 @@ png-decoder = { version="0.2"}
 zeroize = {workspace=true}
 littlefs2 = { workspace = true }
 
+[dev-dependencies]
+bitbox-platform-host = { path = "../bitbox-platform-host", features = ["app-u2f"] }
+
 [features]
 app-u2f = ["bitbox-hal/app-u2f"]

@@ -123,6 +123,7 @@ name = "bitbox-board-stm32u5a9j-dk"
 version = "0.1.0"
 dependencies = [
  "bitbox-board-stm32u5a9j-dk-sys",
+ "bitbox-platform-stm32u5",
  "bitbox-platform-stm32u5-sys",
 ]
 
@@ -252,6 +253,7 @@ dependencies = [
  "bitbox-hal",
  "bitcoin",
  "hex_lit",
+ "littlefs2",
  "util",
  "zeroize",
 ]
@@ -264,6 +266,7 @@ dependencies = [
  "bitbox-platform-stm32u5-sys",
  "cortex-m-rt",
  "critical-section",
+ "littlefs2",
 ]
 
 [[package]]
@@ -436,6 +439,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-hal",
  "bitbox-lvgl",
+ "bitbox-platform-host",
  "littlefs2",
  "png-decoder",
  "tracing",

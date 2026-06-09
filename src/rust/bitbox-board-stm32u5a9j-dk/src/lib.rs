@@ -10,6 +10,8 @@ pub mod ffi {
 }
 
 pub mod memory;
+#[cfg(all(target_arch = "arm", target_os = "none"))]
+pub mod storage;
 
 #[cfg(all(target_arch = "arm", target_os = "none"))]
 pub fn init() {

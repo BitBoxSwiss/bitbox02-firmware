@@ -3,8 +3,16 @@
 use core::marker::PhantomData;
 
 use bitbox_platform_stm32u5_sys as ffi;
+use littlefs2::{
+    consts::{U1, U256},
+    driver::Storage,
+    io::{Error as LfsError, Result as LfsResult},
+};
 
 const FLASH_BANK_SIZE: u32 = ffi::FLASH_SIZE_DEFAULT / 2;
+const FLASH_PAGE_SIZE: usize = ffi::FLASH_PAGE_SIZE as usize;
+const FLASH_PROGRAM_SIZE: usize = 16;
+const LFS_BLOCK_CYCLES: isize = 500;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -28,6 +36,107 @@ pub enum HalError {
 pub enum BootAddressConfig {
     NonSecure0,
     NonSecure1,
+}
+
+pub struct FlashStorage<const BASE: usize, const LEN: usize> {
+    _private: PhantomData<()>,
+}
+
+impl<const BASE: usize, const LEN: usize> FlashStorage<BASE, LEN> {
+    pub const fn new() -> Self {
+        Self {
+            _private: PhantomData,
+        }
+    }
+
+    fn checked_address(off: usize, len: usize) -> LfsResult<u32> {
+        let end = off.checked_add(len).ok_or(LfsError::IO)?;
+        if end > LEN {
+            return Err(LfsError::IO);
+        }
+        u32::try_from(BASE.checked_add(off).ok_or(LfsError::IO)?).map_err(|_| LfsError::IO)
+    }
+}
+
+impl<const BASE: usize, const LEN: usize> Default for FlashStorage<BASE, LEN> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const BASE: usize, const LEN: usize> Storage for FlashStorage<BASE, LEN> {
+    type CACHE_SIZE = U256;
+    type LOOKAHEAD_SIZE = U1;
+
+    const READ_SIZE: usize = FLASH_PROGRAM_SIZE;
+    const WRITE_SIZE: usize = FLASH_PROGRAM_SIZE;
+    const BLOCK_SIZE: usize = FLASH_PAGE_SIZE;
+    const BLOCK_COUNT: usize = LEN / FLASH_PAGE_SIZE;
+    const BLOCK_CYCLES: isize = LFS_BLOCK_CYCLES;
+
+    fn read(&mut self, off: usize, buf: &mut [u8]) -> LfsResult<usize> {
+        let address = Self::checked_address(off, buf.len())?;
+        read(address, buf).map_err(|_| LfsError::IO)?;
+        Ok(buf.len())
+    }
+
+    fn write(&mut self, off: usize, data: &[u8]) -> LfsResult<usize> {
+        if data.len() % FLASH_PROGRAM_SIZE != 0 {
+            return Err(LfsError::IO);
+        }
+        let address = Self::checked_address(off, data.len())?;
+        if data.is_empty() {
+            return Ok(0);
+        }
+
+        let mut flash = UnlockedFlash::unlock().map_err(|_| LfsError::IO)?;
+        for (index, chunk) in data.chunks_exact(FLASH_PROGRAM_SIZE).enumerate() {
+            let mut quadword = [0u8; FLASH_PROGRAM_SIZE];
+            quadword.copy_from_slice(chunk);
+            let chunk_address = address + (index * FLASH_PROGRAM_SIZE) as u32;
+            flash
+                .program_quadword(chunk_address, &quadword)
+                .map_err(|_| LfsError::IO)?;
+        }
+        Ok(data.len())
+    }
+
+    fn erase(&mut self, off: usize, len: usize) -> LfsResult<usize> {
+        if off % FLASH_PAGE_SIZE != 0 || len % FLASH_PAGE_SIZE != 0 {
+            return Err(LfsError::IO);
+        }
+        let address = Self::checked_address(off, len)?;
+        if len == 0 {
+            return Ok(0);
+        }
+
+        let mut flash = UnlockedFlash::unlock().map_err(|_| LfsError::IO)?;
+        for page in 0..(len / FLASH_PAGE_SIZE) {
+            flash
+                .erase_page(address + (page * FLASH_PAGE_SIZE) as u32)
+                .map_err(|_| LfsError::IO)?;
+        }
+        Ok(len)
+    }
+}
+
+pub fn storage_is_erased<S: Storage>(storage: &mut S) -> bool {
+    let Some(len) = S::BLOCK_SIZE.checked_mul(S::BLOCK_COUNT) else {
+        return false;
+    };
+    let mut buf = [0u8; 256];
+    let mut off = 0;
+    while off < len {
+        let read_len = core::cmp::min(buf.len(), len - off);
+        if storage.read(off, &mut buf[..read_len]).is_err() {
+            return false;
+        }
+        if buf[..read_len].iter().any(|&byte| byte != 0xff) {
+            return false;
+        }
+        off += read_len;
+    }
+    true
 }
 
 impl BootAddressConfig {

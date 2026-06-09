@@ -20,3 +20,6 @@ critical-section = { workspace = true }
 # firmware from debugger / non-bootloader environments. Not strictly necessary
 # in release builds.
 cortex-m-rt = { version = "0.7", features = ["set-sp", "set-vtor", "device"]}
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+littlefs2 = { workspace = true }

@@ -10,4 +10,5 @@ license = "Apache-2.0"
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
 bitbox-board-stm32u5a9j-dk-sys = { path = "../bitbox-board-stm32u5a9j-dk-sys" }
+bitbox-platform-stm32u5 = { path = "../bitbox-platform-stm32u5" }
 bitbox-platform-stm32u5-sys = { path = "../bitbox-platform-stm32u5-sys" }

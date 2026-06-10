@@ -1,0 +1,30 @@
+[package]
+name = "bitbox03-firmware"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "bitbox03-firmware"
+path = "src/main.rs"
+test = false
+bench = false
+
+[features]
+board-stm32u5a9j-dk = [
+    "dep:bitbox-board-stm32u5a9j-dk",
+    "dep:bitbox-board-stm32u5a9j-dk-build",
+]
+rtt = ["bitbox-debug/rtt", "dep:rtt-target"]
+
+[dependencies]
+bitbox-board-stm32u5a9j-dk = { path = "../../bitbox-board-stm32u5a9j-dk", optional = true }
+bitbox-mcu-stm32u5 = { path = "../../bitbox-mcu-stm32u5" }
+bitbox-platform-stm32u5 = { path = "../../bitbox-platform-stm32u5" }
+bitbox-debug = { path = "../../bitbox-debug" }
+cortex-m-rt = "0.7"
+cortex-m = { workspace = true }
+log = { version = "0.4.22", default-features = false }
+rtt-target = { version = "0.6.1", features = ["log"], optional = true }
+
+[build-dependencies]
+bitbox-board-stm32u5a9j-dk-build = { path = "../../bitbox-board-stm32u5a9j-dk-build", optional = true }

@@ -184,6 +184,12 @@ class BitBox02(BitBoxCommonAPI):
         request.device_name.name = device_name
         self._msg_query(request, expected_response="success")
 
+    def set_device_language(self, language: str) -> None:
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.device_language.language = language
+        self._msg_query(request, expected_response="success")
+
     def set_password(self, entropy_size: int = 32) -> bool:
         """
         Returns True if the user entered the password correctly (passwords match).

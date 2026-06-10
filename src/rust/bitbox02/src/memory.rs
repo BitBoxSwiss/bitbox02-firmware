@@ -7,6 +7,7 @@ use bitbox_hal::memory::{DEVICE_NAME_MAX_LEN, MULTISIG_NAME_MAX_LEN};
 
 pub use bitbox02_sys::memory_ble_metadata_t as BleMetadata;
 
+pub use bitbox02_sys::memory_device_language_t as DeviceLanguage;
 pub use bitbox02_sys::memory_optiga_config_version_t as OptigaConfigVersion;
 pub use bitbox02_sys::memory_password_stretch_algo_t as PasswordStretchAlgo;
 pub use bitbox02_sys::memory_result_t as MemoryError;
@@ -28,6 +29,30 @@ pub fn set_device_name(name: &str) -> Result<(), MemoryError> {
                 .cast(),
         )
     } {
+        true => Ok(()),
+        false => Err(MemoryError::MEMORY_ERR_UNKNOWN),
+    }
+}
+
+pub fn get_device_language() -> bitbox_hal::memory::Language {
+    match unsafe { bitbox02_sys::memory_get_device_language() } {
+        bitbox02_sys::memory_device_language_t_MEMORY_DEVICE_LANGUAGE_DE => {
+            bitbox_hal::memory::Language::German
+        }
+        _ => bitbox_hal::memory::Language::English,
+    }
+}
+
+pub fn set_device_language(language: bitbox_hal::memory::Language) -> Result<(), MemoryError> {
+    let language = match language {
+        bitbox_hal::memory::Language::English => {
+            bitbox02_sys::memory_device_language_t_MEMORY_DEVICE_LANGUAGE_EN
+        }
+        bitbox_hal::memory::Language::German => {
+            bitbox02_sys::memory_device_language_t_MEMORY_DEVICE_LANGUAGE_DE
+        }
+    };
+    match unsafe { bitbox02_sys::memory_set_device_language(language) } {
         true => Ok(()),
         false => Err(MemoryError::MEMORY_ERR_UNKNOWN),
     }
@@ -433,6 +458,19 @@ mod tests {
             assert!(set_device_name(invalid).is_err());
             assert_eq!(get_device_name(), stored);
         }
+    }
+
+    #[test]
+    fn test_get_set_device_language() {
+        mock_memory();
+
+        assert_eq!(get_device_language(), bitbox_hal::memory::Language::English);
+
+        set_device_language(bitbox_hal::memory::Language::German).unwrap();
+        assert_eq!(get_device_language(), bitbox_hal::memory::Language::German);
+
+        set_device_language(bitbox_hal::memory::Language::English).unwrap();
+        assert_eq!(get_device_language(), bitbox_hal::memory::Language::English);
     }
 
     #[test]

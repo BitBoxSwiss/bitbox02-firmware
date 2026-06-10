@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use alloc::vec::Vec;
 
 use sha2::{Digest, Sha256};
@@ -61,17 +62,19 @@ pub async fn process(
     .await?;
     let address_formatted = util::strings::format_address(&address);
 
-    let basic_info = format!("Coin: {}", super::params::get(coin).name);
+    let basic_info = crate::tr_format!(hal, "Coin: {}", &[super::params::get(coin).name]);
+    let title = crate::tr!(hal, "Sign message");
     let confirm_params = ConfirmParams {
-        title: "Sign message",
+        title: &title,
         body: &basic_info,
         accept_is_nextarrow: true,
         ..Default::default()
     };
     hal.ui().confirm(&confirm_params).await?;
 
+    let title = crate::tr!(hal, "Address");
     let confirm_params = ConfirmParams {
-        title: "Address",
+        title: &title,
         body: &address_formatted,
         scrollable: true,
         accept_is_nextarrow: true,
@@ -79,7 +82,9 @@ pub async fn process(
     };
     hal.ui().confirm(&confirm_params).await?;
 
-    verify_message::verify(hal, "Sign message", "Sign", &request.msg, true).await?;
+    let title_long = crate::tr!(hal, "Sign message");
+    let title_short = crate::tr!(hal, "Sign");
+    verify_message::verify(hal, &title_long, &title_short, &request.msg, true).await?;
 
     // See
     // https://github.com/spesmilo/electrum/blob/84dc181b6e7bb20e88ef6b98fb8925c5f645a765/electrum/ecc.py#L355-L358.

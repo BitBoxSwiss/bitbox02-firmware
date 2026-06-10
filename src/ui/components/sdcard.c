@@ -5,6 +5,7 @@
 #include "label.h"
 #include "ui_images.h"
 #include <hardfault.h>
+#include <rust/rust.h>
 #include <screen.h>
 #include <sd.h>
 #include <touch/gestures.h>
@@ -84,13 +85,12 @@ component_t* sdcard_create(void (*callback)(bool inserted, void* user_data), voi
     component->dimension.width = SCREEN_WIDTH;
     component->dimension.height = SCREEN_HEIGHT;
 
+    char insert_text[MAX_LABEL_SIZE + 1] = {0};
+    rust_i18n_translate_copy("Insert SD card\nto continue", insert_text, sizeof(insert_text));
     ui_util_add_sub_component(
         component,
         label_create(
-            "Insert SD card\nto continue",
-            NULL,
-            screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER,
-            component));
+            insert_text, NULL, screen_is_upside_down() ? RIGHT_CENTER : LEFT_CENTER, component));
     ui_util_add_sub_component(
         component, icon_button_create(top_slider, ICON_BUTTON_CROSS, _cancel_callback, component));
     return component;

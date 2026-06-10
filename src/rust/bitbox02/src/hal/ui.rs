@@ -236,12 +236,13 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     async fn show_mnemonic(&mut self, words: &[&str]) -> Result<(), UserAbort> {
+        let cancel_confirm_title = crate::i18n::translate_current("Recovery\nwords");
         match crate::ui::menu(crate::ui::MenuParams {
             words,
             title: None,
             select_word: false,
             continue_on_last: true,
-            cancel_confirm_title: Some("Recovery\nwords"),
+            cancel_confirm_title: Some(&cancel_confirm_title),
         })
         .await
         {
@@ -252,12 +253,13 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
     }
 
     async fn quiz_mnemonic_word(&mut self, choices: &[&str], title: &str) -> Result<u8, UserAbort> {
+        let cancel_confirm_title = crate::i18n::translate_current("Recovery\nwords");
         match crate::ui::menu(crate::ui::MenuParams {
             words: choices,
             title: Some(title),
             select_word: true,
             continue_on_last: false,
-            cancel_confirm_title: Some("Recovery\nwords"),
+            cancel_confirm_title: Some(&cancel_confirm_title),
         })
         .await
         {

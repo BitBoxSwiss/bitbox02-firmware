@@ -37,6 +37,7 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
 {
     char app_string[100] = {0};
     const char* title;
+    bool translate_app_string = false;
     switch (type) {
     case U2F_APP_REGISTER:
         if (!_is_app_id_bogus(app_id)) {
@@ -47,6 +48,7 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
             // registrations to make the device blink.
             title = "";
             snprintf(app_string, sizeof(app_string), "%s", "Use U2F?");
+            translate_app_string = true;
         }
         break;
     case U2F_APP_AUTHENTICATE:
@@ -58,7 +60,18 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
     }
     _state.outstanding_confirm = type;
     memcpy(_state.app_id, app_id, 32);
-    rust_workflow_spawn_confirm(title, app_string);
+    char translated_title[64] = {0};
+    if (title[0] != '\0') {
+        rust_i18n_translate_copy(title, translated_title, sizeof(translated_title));
+        title = translated_title;
+    }
+    if (translate_app_string) {
+        char translated_app_string[sizeof(app_string)] = {0};
+        rust_i18n_translate_copy(app_string, translated_app_string, sizeof(translated_app_string));
+        rust_workflow_spawn_confirm(title, translated_app_string);
+    } else {
+        rust_workflow_spawn_confirm(title, app_string);
+    }
 }
 
 async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)

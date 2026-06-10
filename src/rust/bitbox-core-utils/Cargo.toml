@@ -13,6 +13,9 @@ digest = { workspace = true }
 sha2 = { workspace = true }
 zeroize = { workspace = true }
 
+[build-dependencies]
+serde_json = { workspace = true }
+
 [dev-dependencies]
 async_test = { path = "../async_test" }
 bitbox-platform-host = { path = "../bitbox-platform-host" }

@@ -304,6 +304,7 @@ version = "0.1.0"
 dependencies = [
  "bitbox-hal",
  "digest",
+ "serde_json",
  "sha2",
  "zeroize",
 ]
@@ -413,6 +414,7 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-bytequeue",
+ "bitbox-core-utils",
  "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox-noise",

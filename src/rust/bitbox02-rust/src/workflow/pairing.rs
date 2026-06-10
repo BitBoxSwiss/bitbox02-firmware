@@ -2,6 +2,7 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::{ConfirmParams, Font, UserAbort};
+use crate::i18n::I18n as _;
 
 use alloc::string::String;
 
@@ -21,8 +22,9 @@ pub fn format_hash(hash: &[u8; 32]) -> String {
 }
 
 pub async fn confirm(hal: &mut impl crate::hal::Hal, hash: &[u8; 32]) -> Result<(), UserAbort> {
+    let title = crate::tr!(hal, "Pairing code");
     let params = ConfirmParams {
-        title: "Pairing code",
+        title: &title,
         body: &format_hash(hash),
         font: Font::Monogram5X9,
         ..Default::default()

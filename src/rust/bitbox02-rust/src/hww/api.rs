@@ -25,6 +25,7 @@ mod reset;
 mod restore;
 mod rootfingerprint;
 mod sdcard;
+mod set_device_language;
 mod set_device_name;
 mod set_mnemonic_passphrase_enabled;
 mod set_password;
@@ -158,6 +159,7 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         Request::Reboot(request) => system::reboot_to_bootloader(hal, request).await,
         Request::DeviceInfo(_) => device_info::process(hal).await,
         Request::DeviceName(request) => set_device_name::process(hal, request).await,
+        Request::DeviceLanguage(request) => set_device_language::process(hal, request).await,
         Request::SetPassword(request) => set_password::process(hal, request).await,
         Request::ChangePassword(_) => change_password::process(hal).await,
         Request::Reset(_) => reset::process(hal).await,

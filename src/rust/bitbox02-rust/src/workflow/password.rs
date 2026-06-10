@@ -2,15 +2,17 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::{CanCancel, ConfirmParams, UserAbort};
+use crate::i18n::I18n as _;
 
 use crate::hal::{Memory, memory::SecurechipType};
 
 use alloc::string::String;
 
 async fn prompt_cancel(hal: &mut impl crate::hal::Hal) -> Result<(), crate::hal::ui::UserAbort> {
+    let body = crate::tr!(hal, "Do you really\nwant to cancel?");
     hal.ui()
         .confirm(&ConfirmParams {
-            body: "Do you really\nwant to cancel?",
+            body: &body,
             ..Default::default()
         })
         .await
@@ -100,31 +102,27 @@ impl core::convert::From<EnterError> for EnterTwiceError {
 pub async fn enter_twice(
     hal: &mut impl crate::hal::Hal,
 ) -> Result<zeroize::Zeroizing<String>, EnterTwiceError> {
-    let password = enter(
-        hal,
-        "Set password",
-        PasswordType::DevicePassword,
-        CanCancel::Yes,
-    )
-    .await?;
-    let password_repeat = enter(
-        hal,
-        "Repeat password",
-        PasswordType::DevicePassword,
-        CanCancel::Yes,
-    )
-    .await?;
+    let title = crate::tr!(hal, "Set password");
+    let password = enter(hal, &title, PasswordType::DevicePassword, CanCancel::Yes).await?;
+    let title = crate::tr!(hal, "Repeat password");
+    let password_repeat = enter(hal, &title, PasswordType::DevicePassword, CanCancel::Yes).await?;
     if password.as_str() != password_repeat.as_str() {
-        hal.ui().status("Passwords\ndo not match", false).await;
+        let status = crate::tr!(hal, "Passwords\ndo not match");
+        hal.ui().status(&status, false).await;
         return Err(EnterTwiceError::DoNotMatch);
     }
     if password.as_str().len() < 4 {
+        let title = crate::tr!(hal, "WARNING");
+        let body = crate::tr!(
+            hal,
+            "Your password\n has fewer than\n 4 characters.\nContinue?"
+        );
         loop {
             match hal
                 .ui()
                 .confirm(&ConfirmParams {
-                    title: "WARNING",
-                    body: "Your password\n has fewer than\n 4 characters.\nContinue?",
+                    title: &title,
+                    body: &body,
                     longtouch: true,
                     ..Default::default()
                 })
@@ -138,7 +136,8 @@ pub async fn enter_twice(
             }
         }
     }
-    hal.ui().status("Success", true).await;
+    let status = crate::tr!(hal, "Success");
+    hal.ui().status(&status, true).await;
     Ok(password)
 }
 

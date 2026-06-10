@@ -64,6 +64,22 @@ static void test_timer(void** state)
     assert_string_equal(out, "10s");
 }
 
+static void test_ble_firmware_version(void** state)
+{
+    (void)state;
+    char out[sizeof("ble: 65535 (00112233)")];
+    const uint8_t hash[] = {
+        0x00,
+        0x11,
+        0x22,
+        0x33,
+        0x44,
+    };
+
+    bootloader_format_ble_firmware_version(out, sizeof(out), 65535, hash);
+    assert_string_equal(out, "ble: 65535 (00112233)");
+}
+
 static void test_unknown_command(void** state)
 {
     (void)state;
@@ -80,6 +96,7 @@ int main(void)
         cmocka_unit_test(test_progress),
         cmocka_unit_test(test_hash_multiline),
         cmocka_unit_test(test_timer),
+        cmocka_unit_test(test_ble_firmware_version),
         cmocka_unit_test(test_unknown_command),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);

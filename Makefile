@@ -198,3 +198,47 @@ clean:
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:
 	./external/vendor-rust.sh
+
+# It is important that cargo is executed from `src/rust` so that it loads the
+# configuration for the vendored dependencies.
+bitbox03-boot0:
+	(cd src/rust; cargo bitbox03-boot0-stm32u5a9j-dk)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot0
+bitbox03-boot0-release:
+	(cd src/rust; cargo bitbox03-boot0-stm32u5a9j-dk-release)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot0
+bitbox03-boot1:
+	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-boot1
+bitbox03-boot1-release:
+	(cd src/rust; cargo bitbox03-boot1-stm32u5a9j-dk-release)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-boot1
+bitbox03-factorysetup:
+	(cd src/rust; cargo bitbox03-factorysetup-stm32u5a9j-dk)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-factorysetup
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-factorysetup
+bitbox03-factorysetup-release:
+	(cd src/rust; cargo bitbox03-factorysetup-stm32u5a9j-dk-release)
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-factorysetup
+bitbox03-firmware:
+	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-firmware
+bitbox03-firmware-release:
+	(cd src/rust; cargo bitbox03-firmware-stm32u5a9j-dk-release)
+	python3 scripts/bitbox03_image_header.py finalize-elf src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	arm-none-eabi-size src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+	arm-none-eabi-size -Ax src/rust/target/thumbv8m.main-none-eabihf/release/bitbox03-firmware
+
+flash-bitbox03-boot0-openocd:
+	./scripts/flash-bitbox03-boot0-openocd.sh
+flash-bitbox03-boot1-openocd:
+	./scripts/flash-bitbox03-boot1-openocd.sh

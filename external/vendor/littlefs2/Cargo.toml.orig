@@ -1,0 +1,67 @@
+[workspace]
+members = ["core"]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/trussed-dev/littlefs2"
+
+[package]
+name = "littlefs2"
+description = "Idiomatic Rust API for littlefs"
+version = "0.7.1"
+authors = ["Nicolas Stalder <n@stalder.io>", "Brandon Edens <brandonedens@gmail.com>", "The Trussed developers"]
+readme = "README.md"
+categories = ["embedded", "filesystem", "no-std"]
+documentation = "https://docs.rs/littlefs2"
+rust-version = "1.87"
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dependencies]
+bitflags = "2.9.0"
+delog = "0.1.0"
+generic-array = "0.14"
+heapless = "0.9"
+littlefs2-core = { version = "0.1", path = "core" }
+littlefs2-sys = { version = "0.3.2", features = ["multiversion"] }
+
+[dev-dependencies]
+ssmarshal = "1"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+# trybuild = "1"
+
+[features]
+default = ["serde"]
+alloc = []
+serde = ["littlefs2-core/serde"]
+# enable assertions in backend C code
+ll-assertions = ["littlefs2-sys/assertions"]
+# enable trace in backend C code
+ll-trace = ["littlefs2-sys/trace"]
+c-stubs = []
+
+log-all = []
+log-none = []
+log-info = []
+log-trace = []
+log-debug = []
+log-warn = []
+log-error = []
+
+# unstable features -- enabling one of the following features may break semantic versioning guarantees
+
+# Use a patched version of littlefs, see littlefs2-sys.
+# If this feature is enabled, you should pin littlefs2-sys and littlefs2 to compatible versions.
+unstable-littlefs-patched = ["littlefs2-sys/unstable-littlefs-patched"]
+
+# TODO: LFS_NAME_MAX (and maybe other sizes) are baked into the
+# compiled C library. For instance, the `lfs_info` struct has a
+# member `char name[LFS_NAME_MAX+1]`.
+# This means that if we change `traits::Storage::FILENAME_MAX_PLUS_ONE`,
+# we need to pass this on!

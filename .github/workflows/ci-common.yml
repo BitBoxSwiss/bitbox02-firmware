@@ -218,6 +218,10 @@ jobs:
           - firmware-btc
           - factory-setup
           - firmware-debug
+          - bitbox03-boot0
+          - bitbox03-boot1
+          - bitbox03-factorysetup
+          - bitbox03-firmware
           - simulator
           - simulator-graphical
           - simulator-graphical-bb03
@@ -238,6 +242,9 @@ jobs:
       - name: Mark directory as safe
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      - name: Bootstrap Cargo config
+        run: ./scripts/bootstrap-cargo-config
+
       - name: Build ${{ matrix.target }}
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
 
@@ -246,7 +253,15 @@ jobs:
         run: ./.ci/check-unwanted-symbols
 
       - name: Print hashes
-        run: sha256sum build*/bin/*
+        run: |
+          {
+            for dir in build*/bin src/rust/target/thumbv8m.main-none-eabihf/debug; do
+              if [ -d "$dir" ]; then
+                find "$dir" -maxdepth 1 -type f -print0
+              fi
+            done
+            true
+          } | xargs -0 -r sha256sum
 
       - name: Upload artifact
         if: github.event_name == 'push' && !cancelled()
@@ -258,6 +273,7 @@ jobs:
             build*/bin/*.elf
             build*/bin/*.map
             build*/bin/simulator*
+            src/rust/target/thumbv8m.main-none-eabihf/debug/bitbox03-*
 
   # Build simulators for macos aarch64
   build-macos:

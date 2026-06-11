@@ -6,14 +6,14 @@ use crate::ChannelMode;
 use core::cmp::min;
 use core::fmt;
 use core::ptr;
-use portable_atomic::{AtomicUsize, Ordering::SeqCst};
+use portable_atomic::{AtomicU32, Ordering::SeqCst};
 
 // Note: this is zero-initialized in the initialization macro so all zeros must be a valid value
 #[repr(C)]
 pub struct RttHeader {
     id: [u8; 16],
-    max_up_channels: usize,
-    max_down_channels: usize,
+    max_up_channels: u32,
+    max_down_channels: u32,
     // Followed in memory by:
     // up_channels: [Channel; max_up_channels]
     // down_channels: [Channel; down_up_channels]
@@ -26,21 +26,41 @@ impl RttHeader {
     ///
     /// The arguments must correspond to the sizes of the arrays that follow the header in memory.
     pub unsafe fn init(&mut self, max_up_channels: usize, max_down_channels: usize) {
-        ptr::write_volatile(&mut self.max_up_channels, max_up_channels);
-        ptr::write_volatile(&mut self.max_down_channels, max_down_channels);
+        ptr::write_volatile(&mut self.max_up_channels, max_up_channels as u32);
+        ptr::write_volatile(&mut self.max_down_channels, max_down_channels as u32);
 
         // Copy the ID backward to avoid storing the magic string in the binary. The ID is
         // written backwards to make it less likely an unfinished control block is detected by the host.
 
         const MAGIC_STR_BACKWARDS: &[u8; 16] = b"\0\0\0\0\0\0TTR REGGES";
 
-        for (idx, byte) in MAGIC_STR_BACKWARDS.into_iter().enumerate() {
+        for (idx, byte) in MAGIC_STR_BACKWARDS.iter().enumerate() {
             ptr::write_volatile(&mut self.id[15 - idx], *byte);
         }
     }
 
+    pub fn is_valid(&self, max_up_channels: usize, max_down_channels: usize) -> bool {
+        if unsafe { ptr::read_volatile(&self.max_up_channels) } != max_up_channels as u32 {
+            return false;
+        }
+
+        if unsafe { ptr::read_volatile(&self.max_down_channels) } != max_down_channels as u32 {
+            return false;
+        }
+
+        const MAGIC_STR_BACKWARDS: &[u8; 16] = b"\0\0\0\0\0\0TTR REGGES";
+
+        for (idx, byte) in MAGIC_STR_BACKWARDS.iter().enumerate() {
+            if unsafe { ptr::read_volatile(&self.id[15 - idx]) } != *byte {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn max_up_channels(&self) -> usize {
-        self.max_up_channels
+        self.max_up_channels as usize
     }
 }
 
@@ -49,10 +69,10 @@ impl RttHeader {
 pub struct RttChannel {
     name: *const u8,
     buffer: *mut u8,
-    size: usize,
-    write: AtomicUsize,
-    read: AtomicUsize,
-    flags: AtomicUsize,
+    size: u32,
+    write: AtomicU32,
+    read: AtomicU32,
+    flags: AtomicU32,
 }
 
 impl RttChannel {
@@ -63,7 +83,7 @@ impl RttChannel {
     /// The pointer arguments must point to a valid null-terminated name and writable buffer.
     pub unsafe fn init(&mut self, name: *const u8, mode: ChannelMode, buffer: *mut [u8]) {
         ptr::write_volatile(&mut self.name, name);
-        ptr::write_volatile(&mut self.size, (*buffer).len());
+        ptr::write_volatile(&mut self.size, (&(*buffer)).len() as u32);
         self.set_mode(mode);
 
         // Set buffer last as it can be used to detect if the channel has been initialized
@@ -72,7 +92,11 @@ impl RttChannel {
 
     /// Returns true on a non-null value of the (raw) buffer pointer
     pub fn is_initialized(&self) -> bool {
-        !self.buffer.is_null()
+        !unsafe { ptr::read_volatile(&self.buffer) }.is_null()
+    }
+
+    pub fn is_initialized_with_size(&self, size: usize) -> bool {
+        self.is_initialized() && unsafe { ptr::read_volatile(&self.size) } as usize == size
     }
 
     pub(crate) fn mode(&self) -> ChannelMode {
@@ -88,7 +112,7 @@ impl RttChannel {
 
     pub(crate) fn set_mode(&self, mode: ChannelMode) {
         self.flags
-            .store((self.flags.load(SeqCst) & !3) | mode as usize, SeqCst);
+            .store((self.flags.load(SeqCst) & !3) | mode as u32, SeqCst);
     }
 
     // This method should only be called for down channels.
@@ -111,7 +135,7 @@ impl RttChannel {
             total += count;
             read += count;
 
-            if read >= self.size {
+            if read >= self.size as usize {
                 // Wrap around to start
                 read = 0;
             }
@@ -119,7 +143,7 @@ impl RttChannel {
             buf = &mut buf[count..];
         }
 
-        self.read.store(read, SeqCst);
+        self.read.store(read as u32, SeqCst);
 
         total
     }
@@ -137,7 +161,7 @@ impl RttChannel {
     /// Gets the amount of contiguous data available for reading
     fn readable_contiguous(&self, write: usize, read: usize) -> usize {
         if read > write {
-            self.size - read
+            self.size as usize - read
         } else {
             write - read
         }
@@ -156,7 +180,7 @@ impl RttChannel {
             return (0, 0);
         }
 
-        (write, read)
+        (write as usize, read as usize)
     }
 }
 
@@ -208,7 +232,7 @@ impl RttWriter<'_> {
 
                     ChannelMode::BlockIfFull => {
                         // Commit everything written so far and spin until more can be written
-                        self.chan.write.store(self.write, SeqCst);
+                        self.chan.write.store(self.write as u32, SeqCst);
                         continue;
                     }
                 }
@@ -221,7 +245,7 @@ impl RttWriter<'_> {
             self.write += count;
             self.total += count;
 
-            if self.write >= self.chan.size {
+            if self.write >= self.chan.size as usize {
                 // Wrap around to start
                 self.write = 0;
             }
@@ -237,9 +261,9 @@ impl RttWriter<'_> {
         if read > self.write {
             read - self.write - 1
         } else if read == 0 {
-            self.chan.size - self.write - 1
+            self.chan.size as usize - self.write - 1
         } else {
-            self.chan.size - self.write
+            self.chan.size as usize - self.write
         }
     }
 
@@ -258,7 +282,7 @@ impl RttWriter<'_> {
             WriteState::Finished => (),
             WriteState::Full | WriteState::Writable => {
                 // Commit the write pointer so the host can see the new data
-                self.chan.write.store(self.write, SeqCst);
+                self.chan.write.store(self.write as u32, SeqCst);
                 self.state = WriteState::Finished;
             }
         }
@@ -275,5 +299,55 @@ impl fmt::Write for RttWriter<'_> {
     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
         self.write(s.as_bytes());
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use portable_atomic::AtomicU32;
+
+    #[test]
+    fn test_header_is_valid() {
+        let mut header = RttHeader {
+            id: [0; 16],
+            max_up_channels: 0,
+            max_down_channels: 0,
+        };
+
+        unsafe {
+            header.init(2, 1);
+        }
+
+        assert!(header.is_valid(2, 1));
+        assert!(!header.is_valid(1, 1));
+        assert!(!header.is_valid(2, 2));
+
+        header.id[0] = 0;
+        assert!(!header.is_valid(2, 1));
+    }
+
+    #[test]
+    fn test_channel_is_initialized_with_size() {
+        let mut buffer = [0; 16];
+        let mut channel = RttChannel {
+            name: ptr::null(),
+            buffer: ptr::null_mut(),
+            size: 0,
+            write: AtomicU32::new(0),
+            read: AtomicU32::new(0),
+            flags: AtomicU32::new(0),
+        };
+
+        unsafe {
+            channel.init(
+                ptr::null(),
+                ChannelMode::NoBlockSkip,
+                ptr::slice_from_raw_parts_mut(buffer.as_mut_ptr(), buffer.len()),
+            );
+        }
+
+        assert!(channel.is_initialized_with_size(16));
+        assert!(!channel.is_initialized_with_size(15));
     }
 }

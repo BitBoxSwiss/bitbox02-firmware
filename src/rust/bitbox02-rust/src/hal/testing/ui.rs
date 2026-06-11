@@ -2,7 +2,7 @@
 
 use crate::hal::Ui;
 use crate::hal::ui::{
-    CanCancel, ConfirmParams, Empty, EnterStringParams, Progress, TrinaryChoice, UserAbort,
+    CanCancel, ConfirmParams, Empty, EnterStringParams, Font, Progress, TrinaryChoice, UserAbort,
 };
 
 use alloc::boxed::Box;
@@ -54,6 +54,7 @@ pub enum Screen {
 }
 
 type EnterStringCb<'a> = Box<dyn FnMut(&EnterStringParams<'_>) -> Result<String, UserAbort> + 'a>;
+type HasGlyphCb<'a> = Box<dyn Fn(Font, char) -> bool + 'a>;
 type MenuCb<'a> = Box<dyn FnMut(&[&str], Option<&str>) -> Result<u8, UserAbort> + 'a>;
 type TrinaryChoiceCb<'a> =
     Box<dyn FnMut(&str, Option<&str>, Option<&str>, Option<&str>) -> TrinaryChoice + 'a>;
@@ -65,6 +66,7 @@ pub struct TestingUi<'a> {
     pub screens: Vec<Screen>,
     pub confirm_display_sizes: Vec<usize>,
     _enter_string: Option<EnterStringCb<'a>>,
+    _has_glyph: Option<HasGlyphCb<'a>>,
     _menu: Option<MenuCb<'a>>,
     _trinary_choice: Option<TrinaryChoiceCb<'a>>,
     _quiz_choices: VecDeque<u8>,
@@ -119,6 +121,13 @@ impl Ui for TestingUi<'_> {
             return Err(UserAbort);
         }
         Ok(())
+    }
+
+    fn has_glyph(&self, font: Font, c: char) -> bool {
+        if let Some(has_glyph) = self._has_glyph.as_ref() {
+            return has_glyph(font, c);
+        }
+        matches!(c, ' '..='~' | 'µ' | 'ä' | 'ö' | 'ü' | 'Ä' | 'Ö' | 'Ü')
     }
 
     async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort> {
@@ -276,6 +285,7 @@ impl<'a> TestingUi<'a> {
             confirm_display_sizes: vec![],
             _abort_nth: None,
             _enter_string: None,
+            _has_glyph: None,
             _menu: None,
             _trinary_choice: None,
             _quiz_choices: VecDeque::new(),
@@ -301,6 +311,10 @@ impl<'a> TestingUi<'a> {
 
     pub fn remove_enter_string(&mut self) {
         self._enter_string = None;
+    }
+
+    pub fn set_has_glyph(&mut self, cb: Box<dyn Fn(Font, char) -> bool + 'a>) {
+        self._has_glyph = Some(cb);
     }
 
     pub fn set_menu(&mut self, cb: MenuCb<'a>) {

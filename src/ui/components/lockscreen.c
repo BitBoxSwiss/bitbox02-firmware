@@ -74,7 +74,7 @@ component_t* lockscreen_create(void)
     component->dimension.width = SCREEN_WIDTH;
     component->dimension.height = SCREEN_HEIGHT;
 
-    const UG_FONT* device_name_font = &font_font_a_9X9;
+    const UG_FONT* device_name_font = &font_arial_9;
 
     char device_name[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
     memory_get_device_name(device_name);

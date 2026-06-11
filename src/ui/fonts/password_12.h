@@ -2,4 +2,4 @@
 
 #include <ugui.h>
 
-extern const UG_FONT font_password_11X12;
+extern const UG_FONT font_password_12;

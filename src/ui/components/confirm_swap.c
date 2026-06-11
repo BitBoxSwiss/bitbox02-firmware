@@ -97,16 +97,16 @@ component_t* confirm_swap_create(
     ui_util_add_sub_component(
         confirm, icon_button_create(top_slider, ICON_BUTTON_NEXT, _confirm_cb, confirm));
 
-    component_t* title_component = label_create(title, &font_font_a_11X10, CENTER_TOP, confirm);
+    component_t* title_component = label_create(title, &font_arial_11, CENTER_TOP, confirm);
     ui_util_add_sub_component(confirm, title_component);
 
     const UG_FONT* from_font = NULL;
     if (strlen(from) > BIG_FONT_MAX_CHARS) {
-        from_font = &font_font_a_9X9;
+        from_font = &font_arial_9;
     }
     const UG_FONT* to_font = NULL;
     if (strlen(to) > BIG_FONT_MAX_CHARS) {
-        to_font = &font_font_a_9X9;
+        to_font = &font_arial_9;
     }
 
     ui_util_add_sub_component(

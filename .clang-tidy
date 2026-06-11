@@ -24,7 +24,7 @@ Checks: >-
   -clang-analyzer-core.FixedAddressDereference,
   -clang-diagnostic-cast-qual
 HeaderFilterRegex: '.*'
-ExcludeHeaderFilterRegex: '.*/external/asf4-drivers/.*'
+ExcludeHeaderFilterRegex: '/external/'
 ExtraArgs:
   - -Wno-unknown-warning-option
   - -Qunused-arguments

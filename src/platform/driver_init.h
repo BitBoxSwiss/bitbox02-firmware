@@ -10,7 +10,6 @@
     #include <bitbox02_pins.h>
     #include <hal_atomic.h>
     #include <hal_delay.h>
-    #include <hal_flash.h>
     #include <hal_i2c_m_sync.h>
     #include <hal_init.h>
     #include <hal_io.h>
@@ -42,7 +41,6 @@ extern struct i2c_m_sync_desc I2C_0;
 extern struct mci_sync_desc MCI_0;
 extern struct aes_sync_descriptor CRYPTOGRAPHY_0;
 extern struct sha_sync_descriptor HASH_ALGORITHM_0;
-extern struct flash_descriptor FLASH_0;
 extern struct rand_sync_desc RAND_0;
 extern PPUKCL_PARAM pvPUKCLParam;
 extern PUKCL_PARAM PUKCLParam;

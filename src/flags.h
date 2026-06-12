@@ -55,8 +55,7 @@
 // aligned at 16 pages (8kB); app start must be multiple of 8kB.
 #define FLASH_REGION_NUM (32U)
 #define FLASH_REGION_PAGE_NUM (FLASH_SIZE / (FLASH_REGION_NUM * FLASH_PAGE_SIZE)) // = 64
-// Erase granularity: can only erase this many pages at a time in a single flash_erase() call.
-// (erasing more does not work due to a bug (?) with _flash_erase_block() not working as expected.
+// Erase granularity: can only erase this many pages in one hardware erase block.
 #define FLASH_ERASE_PAGE_NUM (16U)
 #define FLASH_ERASE_MIN_LEN \
     (FLASH_ERASE_PAGE_NUM * FLASH_PAGE_SIZE) // 8kB; minimum erase granularity

@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "driver_init.h"
 #include "flags.h"
+#include "flash.h"
 #include "hardfault.h"
 #include "memory.h"
 #include "memory_shared.h"
@@ -188,24 +188,21 @@ static bool _write_to_address(uint32_t base, uint32_t offset, uint8_t* chunk)
         lock_addr = (n_pages - FLASH_REGION_PAGE_NUM) * FLASH_PAGE_SIZE;
     }
 
-    int res = flash_unlock(&FLASH_0, lock_addr, FLASH_REGION_PAGE_NUM);
-    if (res != FLASH_REGION_PAGE_NUM) {
+    if (!flash_unlock_region(lock_addr)) {
         return false;
     }
     if (chunk == NULL) {
-        // Usually has a minimum granularity of 16 pages (one chunk), but the
-        // flash_erase driver manually handles smaller/bigger erases.
-        if (flash_erase(&FLASH_0, addr, FLASH_ERASE_PAGE_NUM) != ERR_NONE) {
+        // The flash driver preserves bytes outside the requested pages.
+        if (!flash_erase_pages(addr, FLASH_ERASE_PAGE_NUM)) {
             return false;
         }
     } else {
-        // Usually flash_erase is needed before flash_write, the flash_write
-        // driver already handles this.
-        if (flash_write(&FLASH_0, addr, chunk, CHUNK_SIZE) != ERR_NONE) {
+        // flash_write handles the erase and preserves bytes outside the write.
+        if (!flash_write(addr, chunk, CHUNK_SIZE)) {
             return false;
         }
     }
-    if (flash_lock(&FLASH_0, lock_addr, FLASH_REGION_PAGE_NUM) != FLASH_REGION_PAGE_NUM) {
+    if (!flash_lock_region(lock_addr)) {
         // pass, not a critical error.
     }
     return true;

@@ -4,6 +4,7 @@
 
 #include "driver_init.h"
 #include "bitbox02_pins.h"
+#include "flash.h"
 #include "memory/memory_shared.h"
 #include "util.h"
 #include <compiler.h>
@@ -16,7 +17,6 @@
 
 struct sha_sync_descriptor HASH_ALGORITHM_0;
 struct timer_descriptor TIMER_0;
-struct flash_descriptor FLASH_0;
 struct i2c_m_sync_desc I2C_0;
 struct mci_sync_desc MCI_0;
 struct rand_sync_desc RAND_0;
@@ -63,7 +63,16 @@ static void _sha_init(void)
 static void _flash_memory_init(void)
 {
     hri_mclk_set_AHBMASK_NVMCTRL_bit(MCLK);
-    flash_init(&FLASH_0, NVMCTRL);
+    flash_init();
+}
+
+/**
+ * Disables FLASH memory access
+ */
+static void _flash_memory_deinit(void)
+{
+    flash_deinit();
+    hri_mclk_clear_AHBMASK_NVMCTRL_bit(MCLK);
 }
 
 /**
@@ -424,12 +433,13 @@ void system_close_interfaces(void)
     // Display remains on last screen
     SPI_OLED_disable();
     // Flash
-    flash_deinit(&FLASH_0);
+    _flash_memory_deinit();
     // USB
     usb_d_deinit();
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);
+    _is_initialized = false;
 }
 
 void bootloader_close_interfaces(void)
@@ -441,10 +451,11 @@ void bootloader_close_interfaces(void)
     // Display remains on last screen
     SPI_OLED_disable();
     // Flash
-    flash_deinit(&FLASH_0);
+    _flash_memory_deinit();
     // USB
     usb_d_deinit();
     // Hardware crypto
     sha_sync_deinit(&HASH_ALGORITHM_0);
     rand_sync_deinit(&RAND_0);
+    _is_initialized = false;
 }

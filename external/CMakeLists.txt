@@ -48,7 +48,6 @@ if(CMAKE_CROSSCOMPILING)
     asf4-drivers/hal/src/hal_timer.c
     asf4-drivers/hal/src/hal_usb_device.c
     asf4-drivers/hal/src/hal_rand_sync.c
-    asf4-drivers/hal/src/hal_flash.c
     asf4-drivers/hal/src/hal_pac.c
     asf4-drivers/hal/src/hal_io.c
     asf4-drivers/hal/src/hal_sha_sync.c

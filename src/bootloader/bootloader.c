@@ -8,6 +8,7 @@
 
 #include <driver_init.h>
 #include <flags.h>
+#include <flash.h>
 #include <memory/memory.h>
 #include <memory/memory_shared.h>
 #include <memory/nvmctrl.h>
@@ -476,15 +477,10 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
         return _report_status(OP_STATUS_OK, output);
     }
 
-    // Erase is handled inside of flash_write
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-    if (flash_write(
-            &FLASH_0, FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN), buf, FIRMWARE_CHUNK_LEN) !=
-        ERR_NONE) {
+    // Erase is handled inside of flash_write.
+    if (!flash_write(FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN), buf, FIRMWARE_CHUNK_LEN)) {
         return _report_status(OP_STATUS_ERR_WRITE, output);
     }
-#pragma GCC diagnostic pop
 
     if (!MEMEQ(
             (const void*)(FLASH_APP_START + (chunknum * FIRMWARE_CHUNK_LEN)),
@@ -515,8 +511,7 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
     }
     _loading_ready = false;
     for (uint32_t i = 0; i < (uint32_t)FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
-        if (flash_unlock(&FLASH_0, FLASH_APP_START + i * FLASH_PAGE_SIZE, FLASH_REGION_PAGE_NUM) !=
-            FLASH_REGION_PAGE_NUM) {
+        if (!flash_unlock_region(FLASH_APP_START + i * FLASH_PAGE_SIZE)) {
             return _report_status(OP_STATUS_ERR_UNLOCK, output);
         }
     }
@@ -529,7 +524,7 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
         if (MEMEQ((const void*)addr, empty_page, sizeof(empty_page))) {
             continue;
         }
-        if (flash_erase(&FLASH_0, addr, FLASH_ERASE_PAGE_NUM) != ERR_NONE) {
+        if (!flash_erase_pages(addr, FLASH_ERASE_PAGE_NUM)) {
             return _report_status(OP_STATUS_ERR_ERASE, output);
         }
         if (!MEMEQ((const void*)addr, empty_page, sizeof(empty_page))) {
@@ -630,7 +625,7 @@ static secbool_u32 _firmware_verified_jump(const boot_data_t* data, secbool_u32 
     }
 
     for (uint32_t i = 0; i < (uint32_t)FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
-        flash_lock(&FLASH_0, FLASH_APP_START + i * FLASH_PAGE_SIZE, FLASH_REGION_PAGE_NUM);
+        flash_lock_region(FLASH_APP_START + i * FLASH_PAGE_SIZE);
     }
 
     // Verify the firmware, signed by the signing keys
@@ -672,19 +667,14 @@ static secbool_u32 _firmware_verified_jump(const boot_data_t* data, secbool_u32 
 static uint8_t _write_chunk(uint32_t address, const uint8_t* data)
 {
     const uint32_t lock_size = FLASH_ERASE_PAGE_NUM * FLASH_PAGE_SIZE;
-    if (flash_unlock(&FLASH_0, address & ~(lock_size - 1), FLASH_REGION_PAGE_NUM) !=
-        FLASH_REGION_PAGE_NUM) {
+    if (!flash_unlock_region(address & ~(lock_size - 1))) {
         return OP_STATUS_ERR_UNLOCK;
     }
-    // Erase is handled inside of flash_write
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-    if (flash_write(&FLASH_0, address, data, FLASH_BOOTDATA_LEN) != ERR_NONE) {
+    // Erase is handled inside of flash_write.
+    if (!flash_write(address, data, FLASH_BOOTDATA_LEN)) {
         return OP_STATUS_ERR_WRITE;
     }
-#pragma GCC diagnostic pop
-    if (flash_lock(&FLASH_0, address & ~(lock_size - 1), FLASH_REGION_PAGE_NUM) !=
-        FLASH_REGION_PAGE_NUM) {
+    if (!flash_lock_region(address & ~(lock_size - 1))) {
         return OP_STATUS_ERR_LOCK;
     }
     return OP_STATUS_OK;

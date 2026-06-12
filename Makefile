@@ -293,8 +293,6 @@ jlink-flash-firmware-btc: | build-btconly
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-btconly/scripts/firmware.jlink
 jlink-flash-factory-setup: | build-factory-setup
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-factory-setup/scripts/firmware.jlink
-jlink-flash-firmware-debug: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-debug/scripts/firmware.jlink
 jlink-flash-set-new-screen:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-new-screen.jlink
 jlink-flash-set-original-screen:

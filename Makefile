@@ -23,6 +23,12 @@ build-debug/Makefile:
 	cd build-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG ..
 	$(MAKE) -C py/bitbox02
 
+build-bootloader-locked/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-locked
+	cd build-bootloader-locked && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBOOTLOADER_LOCKED=ON ..
+	$(MAKE) -C py/bitbox02
+
 build-build/Makefile:
 	./scripts/bootstrap-cargo-config
 	mkdir -p build-build
@@ -41,6 +47,9 @@ build: build/Makefile
 
 # Directory for building debug build for "host" machine according to gcc convention
 build-debug: build-debug/Makefile
+
+# Directory for building locked bootloaders
+build-bootloader-locked: build-bootloader-locked/Makefile
 
 # Directory for building for "build" machine according to gcc convention
 build-build: build-build/Makefile
@@ -61,10 +70,10 @@ bootloader: | build
 	$(MAKE) -C build bb02-bl-multi.elf
 bootloader-development: | build
 	$(MAKE) -C build bb02-bl-multi-development.elf
-bootloader-development-locked: | build
-	$(MAKE) -C build bb02-bl-multi-development-locked.elf
-bootloader-production: | build
-	$(MAKE) -C build bb02-bl-multi-production.elf
+bootloader-development-locked: | build-bootloader-locked
+	$(MAKE) -C build-bootloader-locked bb02-bl-multi-development.elf
+bootloader-production: | build-bootloader-locked
+	$(MAKE) -C build-bootloader-locked bb02-bl-multi.elf
 bootloader-debug: | build-debug
 	$(MAKE) -C build-debug bb02-bl-multi-development.elf
 
@@ -72,15 +81,15 @@ bootloader-btc: | build
 	$(MAKE) -C build bb02-bl-btconly.elf
 bootloader-btc-development: | build
 	$(MAKE) -C build bb02-bl-btconly-development.elf
-bootloader-btc-production: | build
-	$(MAKE) -C build bb02-bl-btconly-production.elf
+bootloader-btc-production: | build-bootloader-locked
+	$(MAKE) -C build-bootloader-locked bb02-bl-btconly.elf
 
 bootloader-plus: | build
 	$(MAKE) -C build bb02p-bl-multi.elf
 bootloader-plus-development: | build
 	$(MAKE) -C build bb02p-bl-multi-development.elf
-bootloader-plus-production: | build
-	$(MAKE) -C build bb02p-bl-multi-production.elf
+bootloader-plus-production: | build-bootloader-locked
+	$(MAKE) -C build-bootloader-locked bb02p-bl-multi.elf
 bootloader-plus-debug: | build-debug
 	$(MAKE) -C build-debug bb02p-bl-multi-development.elf
 
@@ -88,8 +97,8 @@ bootloader-plus-btc: | build
 	$(MAKE) -C build bb02p-bl-btconly.elf
 bootloader-plus-btc-development: | build
 	$(MAKE) -C build bb02p-bl-btconly-development.elf
-bootloader-plus-btc-production: | build
-	$(MAKE) -C build bb02p-bl-btconly-production.elf
+bootloader-plus-btc-production: | build-bootloader-locked
+	$(MAKE) -C build-bootloader-locked bb02p-bl-btconly.elf
 
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
@@ -135,8 +144,8 @@ jlink-flash-bootloader-plus-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-multi-development.jlink
 jlink-flash-bootloader-btc-plus-development: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-btconly-development.jlink
-jlink-flash-bootloader-development-locked: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development-locked.jlink
+jlink-flash-bootloader-development-locked: | build-bootloader-locked
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-bootloader-locked/scripts/bb02-bl-multi-development.jlink
 jlink-flash-bootloader: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi.jlink
 jlink-flash-bootloader-btc-development: | build
@@ -193,7 +202,7 @@ prepare-tidy: | build build-build
 	$(MAKE) -C build rust-cbindgen
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-build build-debug build-build-noasan src/rust/target
+	rm -rf build build-bootloader-locked build-build build-debug build-build-noasan src/rust/target
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:

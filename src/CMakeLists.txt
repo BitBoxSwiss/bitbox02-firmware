@@ -290,20 +290,14 @@ endif()
 set(BOOTLOADERS-BITBOX02
   bb02-bl-multi # Runs signed firmware
   bb02-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02-bl-multi-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
-  bb02-bl-multi-production # Runs signed firmware and bootloader is locked
   bb02-bl-btconly # Runs signed (btc-only keys) firmware
   bb02-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02-bl-btconly-production # Runs signed (btc-only keys) firmware and bootloader is locked
   )
 set(BOOTLOADERS-BITBOX02PLUS
   bb02p-bl-multi # Runs signed firmware
   bb02p-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02p-bl-multi-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
-  bb02p-bl-multi-production # Runs signed firmware and bootloader is locked
   bb02p-bl-btconly # Runs signed (btc-only keys) firmware
   bb02p-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02p-bl-btconly-production # Runs signed (btc-only keys) firmware and bootloader is locked
 )
 set(BOOTLOADERS
   ${BOOTLOADERS-BITBOX02}
@@ -314,7 +308,6 @@ set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 # Used to add QTouch to development bootloaders of bb02 bootloaders
 set(DEVDEVICE-BOOTLOADERS
   bb02-bl-multi-development
-  bb02-bl-multi-development-locked
   bb02-bl-btconly-development
 )
 
@@ -423,6 +416,9 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_U2F=0")
+    if(BOOTLOADER_LOCKED)
+      target_compile_definitions(${elf} PRIVATE BOOTLOADER_PRODUCTION)
+    endif()
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     # needed to find bootloader_version.h
@@ -456,33 +452,17 @@ if(CMAKE_CROSSCOMPILING)
 
   target_compile_definitions(bb02-bl-multi.elf PRIVATE PRODUCT_BITBOX_MULTI)
   target_compile_definitions(bb02-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02-bl-multi-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-
-  target_compile_definitions(bb02-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02-bl-multi-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   target_compile_definitions(bb02-bl-btconly.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
   target_compile_definitions(bb02-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   # BB02PLUS definitions
 
   target_compile_definitions(bb02p-bl-multi.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
   target_compile_definitions(bb02p-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02p-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02p-bl-multi-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-
-  target_compile_definitions(bb02p-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02p-bl-multi-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   target_compile_definitions(bb02p-bl-btconly.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
   target_compile_definitions(bb02p-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02p-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02p-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
 
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)

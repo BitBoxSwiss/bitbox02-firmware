@@ -288,26 +288,15 @@ endif()
 
 # BOOTLOADER_LOCKED and BOOTLOADER_DEVDEVICE are configured in separate build directories.
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
-set(BOOTLOADERS-BITBOX02
-  bb02-bl
-  )
-set(BOOTLOADERS-BITBOX02PLUS
-  bb02p-bl
-)
-set(BOOTLOADERS
-  ${BOOTLOADERS-BITBOX02}
-  ${BOOTLOADERS-BITBOX02PLUS}
-  )
-set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 
 set(FIRMWARES
-  firmware
+  ${FIRMWARE_TARGET}
   factory-setup # Factory-setup
   )
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
 
 if(CMAKE_CROSSCOMPILING)
-  set(RUST_LIBS ${FIRMWARES} ${BOOTLOADERS})
+  set(RUST_LIBS ${FIRMWARES} ${BOOTLOADER_TARGET})
 else()
   set(RUST_LIBS c-unit-tests)
 endif()
@@ -325,7 +314,7 @@ foreach(type ${RUST_LIBS})
   endif()
   if(type STREQUAL "c-unit-tests")
     set(rust_features "app-bitcoin,app-litecoin,app-ethereum,app-cardano,app-u2f,firmware,c-unit-testing")
-  elseif(type STREQUAL "firmware")
+  elseif(type STREQUAL "${FIRMWARE_TARGET}")
     if(BITBOX02_EDITION STREQUAL "btconly")
       set(rust_features "firmware,platform-bitbox02,app-bitcoin")
     else()
@@ -333,10 +322,12 @@ foreach(type ${RUST_LIBS})
     endif()
   elseif(type STREQUAL "factory-setup")
     set(rust_features "factory-setup")
-  elseif(type STREQUAL "bb02-bl")
-    set(rust_features "bootloader,platform-bitbox02")
-  elseif(type STREQUAL "bb02p-bl")
-    set(rust_features "bootloader,platform-bitbox02plus")
+  elseif(type STREQUAL "${BOOTLOADER_TARGET}")
+    if(BITBOX02_PLATFORM STREQUAL "nova")
+      set(rust_features "bootloader,platform-bitbox02-nova")
+    else()
+      set(rust_features "bootloader,platform-bitbox02")
+    endif()
   else()
     message(FATAL_ERROR "No Rust features configured for ${type}")
   endif()
@@ -413,66 +404,57 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
-  foreach(bootloader ${BOOTLOADERS})
-    set(elf ${bootloader}.elf)
-    add_executable(${elf} ${BOOTLOADER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
-    target_compile_options(${elf} PRIVATE -fno-lto)
-    target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
-    target_include_directories(${elf} PRIVATE ${INCLUDES})
-    target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_U2F=0")
-    if(BOOTLOADER_LOCKED)
-      target_compile_definitions(${elf} PRIVATE BOOTLOADER_PRODUCTION)
-    endif()
-    if(BOOTLOADER_DEVDEVICE)
-      target_compile_definitions(${elf} PRIVATE BOOTLOADER_DEVDEVICE)
-    endif()
-    # needed to find version.h
-    target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-    # needed to find bootloader_version.h
-    target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bootloader)
-    target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bootloader}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader.ld\"")
-    target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
-
-    target_link_libraries(${elf} PRIVATE ${bootloader}_rust_c)
-
-    # Select the smaller version of libc called nano.
-    target_compile_options(${elf} PRIVATE --specs=nano.specs)
-    target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    target_compile_options(${elf} PRIVATE --specs=nosys.specs)
-    target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
-    target_link_libraries(${elf} PRIVATE -Wl,--print-memory-usage)
-  endforeach(bootloader)
-
-  set(QTOUCH-BOOTLOADERS ${BOOTLOADERS-BITBOX02PLUS})
+  add_executable(${BOOTLOADER_TARGET}.elf ${BOOTLOADER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+  target_compile_options(${BOOTLOADER_TARGET}.elf PRIVATE -fno-lto)
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
+  target_include_directories(${BOOTLOADER_TARGET}.elf PRIVATE ${INCLUDES})
+  target_compile_definitions(${BOOTLOADER_TARGET}.elf PRIVATE BOOTLOADER "APP_U2F=0")
+  if(BOOTLOADER_LOCKED)
+    target_compile_definitions(${BOOTLOADER_TARGET}.elf PRIVATE BOOTLOADER_PRODUCTION)
+  endif()
   if(BOOTLOADER_DEVDEVICE)
-    list(APPEND QTOUCH-BOOTLOADERS ${BOOTLOADERS-BITBOX02})
+    target_compile_definitions(${BOOTLOADER_TARGET}.elf PRIVATE BOOTLOADER_DEVDEVICE)
   endif()
-  foreach(bootloader ${QTOUCH-BOOTLOADERS})
-    set(elf ${bootloader}.elf)
-    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
-    target_sources(${elf} PRIVATE ${QTOUCH-SOURCES})
-  endforeach(bootloader)
+  # needed to find version.h
+  target_include_directories(${BOOTLOADER_TARGET}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  # needed to find bootloader_version.h
+  target_include_directories(${BOOTLOADER_TARGET}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bootloader)
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BOOTLOADER_TARGET}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader.ld\"")
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
-  foreach(bootloader ${BOOTLOADERS-BITBOX02PLUS})
-    set(elf ${bootloader}.elf)
-    target_sources(${elf} PRIVATE ${PLATFORM-BITBOX02-PLUS-SOURCES})
-    target_link_libraries(${bootloader}.elf PRIVATE embedded-swd)
-  endforeach(bootloader)
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE ${BOOTLOADER_TARGET}_rust_c)
 
-  # BB02 definitions
+  # Select the smaller version of libc called nano.
+  target_compile_options(${BOOTLOADER_TARGET}.elf PRIVATE --specs=nano.specs)
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE --specs=nano.specs)
+  target_compile_options(${BOOTLOADER_TARGET}.elf PRIVATE --specs=nosys.specs)
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE --specs=nosys.specs)
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE -Wl,--print-memory-usage)
+
+  if(BITBOX02_PLATFORM STREQUAL "nova" OR BOOTLOADER_DEVDEVICE)
+    target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+    target_sources(${BOOTLOADER_TARGET}.elf PRIVATE ${QTOUCH-SOURCES})
+  endif()
+
+  if(BITBOX02_PLATFORM STREQUAL "nova")
+    target_sources(${BOOTLOADER_TARGET}.elf PRIVATE ${PLATFORM-BITBOX02-PLUS-SOURCES})
+    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+      target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE embedded-swd)
+    endif()
+  endif()
 
   if(BITBOX02_EDITION STREQUAL "btconly")
-    target_compile_definitions(bb02-bl.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
+    if(BITBOX02_PLATFORM STREQUAL "nova")
+      target_compile_definitions(${BOOTLOADER_TARGET}.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
+    else()
+      target_compile_definitions(${BOOTLOADER_TARGET}.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
+    endif()
   else()
-    target_compile_definitions(bb02-bl.elf PRIVATE PRODUCT_BITBOX_MULTI)
-  endif()
-
-  # BB02PLUS definitions
-
-  if(BITBOX02_EDITION STREQUAL "btconly")
-    target_compile_definitions(bb02p-bl.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
-  else()
-    target_compile_definitions(bb02p-bl.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
+    if(BITBOX02_PLATFORM STREQUAL "nova")
+      target_compile_definitions(${BOOTLOADER_TARGET}.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
+    else()
+      target_compile_definitions(${BOOTLOADER_TARGET}.elf PRIVATE PRODUCT_BITBOX_MULTI)
+    endif()
   endif()
 
   foreach(firmware ${FIRMWARES})
@@ -490,7 +472,6 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf}
       PRIVATE
         optiga
-        embedded-swd
         cryptoauthlib
         c
         ${firmware}_rust_c
@@ -498,6 +479,9 @@ if(CMAKE_CROSSCOMPILING)
         asf4-drivers-min
         asf4-drivers
         -Wl,-u,exception_table)
+    if(firmware STREQUAL "factory-setup" OR CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+      target_link_libraries(${elf} PRIVATE embedded-swd)
+    endif()
     target_include_directories(${elf} PRIVATE ${INCLUDES})
 
     # needed to find version.h
@@ -520,13 +504,13 @@ if(CMAKE_CROSSCOMPILING)
     target_compile_definitions(${elf} PRIVATE OPTIGA_LIB_EXTERNAL="optiga_config.h")
   endforeach(firmware)
 
-  target_sources(firmware.elf PRIVATE firmware.c)
+  target_sources(${FIRMWARE_TARGET}.elf PRIVATE firmware.c)
   if(BITBOX02_EDITION STREQUAL "btconly")
-    target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
-    target_sources(firmware.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+    target_compile_definitions(${FIRMWARE_TARGET}.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
+    target_sources(${FIRMWARE_TARGET}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
   else()
-    target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_U2F=1")
-    target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+    target_compile_definitions(${FIRMWARE_TARGET}.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_U2F=1")
+    target_sources(${FIRMWARE_TARGET}.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
   endif()
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
@@ -551,7 +535,21 @@ if(CMAKE_CROSSCOMPILING)
   target_link_libraries(factory-setup.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bitbox-da14531-firmware.o)
 
 
-  foreach(name ${BOOTLOADERS} ${FIRMWARES})
+  add_custom_command(
+    TARGET ${BOOTLOADER_TARGET}.elf POST_BUILD
+    COMMAND ${CMAKE_SIZE} ${BOOTLOADER_TARGET}.elf
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${BOOTLOADER_TARGET}.elf ${BOOTLOADER_TARGET}.bin
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COMMENT "\nGenerating binary ${BOOTLOADER_TARGET}.bin"
+  )
+  # Fail on warnings for our release builds
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    target_compile_options(${BOOTLOADER_TARGET}.elf PRIVATE "-Werror")
+  endif()
+
+  target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE -Wl,--print-memory-usage)
+
+  foreach(name ${FIRMWARES})
     add_custom_command(
       TARGET ${name}.elf POST_BUILD
       COMMAND ${CMAKE_SIZE} ${name}.elf

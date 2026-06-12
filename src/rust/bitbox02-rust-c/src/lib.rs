@@ -14,7 +14,7 @@ extern crate alloc;
 pub mod async_usb;
 #[cfg(any(
     feature = "firmware",
-    all(feature = "bootloader", feature = "platform-bitbox02plus")
+    all(feature = "bootloader", feature = "platform-bitbox02-nova")
 ))]
 mod communication_mode;
 #[cfg(feature = "firmware")]
@@ -40,7 +40,7 @@ extern crate bitbox_aes;
 // Enable for firmware and for Nova bootloader (BitBox02 bootloader currently does not need it).
 #[cfg(any(
     feature = "firmware",
-    all(feature = "bootloader", feature = "platform-bitbox02plus")
+    all(feature = "bootloader", feature = "platform-bitbox02-nova")
 ))]
 extern crate bitbox02_rust;
 
@@ -61,7 +61,7 @@ extern crate util;
 #[allow(unused)]
 #[cfg(any(
     feature = "firmware",
-    all(feature = "bootloader", feature = "platform-bitbox02plus")
+    all(feature = "bootloader", feature = "platform-bitbox02-nova")
 ))]
 type HalImpl = bitbox02::hal::BitBox02Hal;
 

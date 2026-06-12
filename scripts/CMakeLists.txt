@@ -10,10 +10,8 @@ if(PYTHONINTERP_FOUND)
   endforeach()
 
   # This template flashes without an offset
-  foreach(target ${BOOTLOADERS})
-    execute_process(
-      COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/expand_template ${CMAKE_CURRENT_SOURCE_DIR}/template-bootloader.jlink file=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.bin -o ${target}.jlink
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    )
-  endforeach()
+  execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/expand_template ${CMAKE_CURRENT_SOURCE_DIR}/template-bootloader.jlink file=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BOOTLOADER_TARGET}.bin -o ${BOOTLOADER_TARGET}.jlink
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
 endif()

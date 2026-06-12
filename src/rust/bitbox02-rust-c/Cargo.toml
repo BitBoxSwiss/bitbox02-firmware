@@ -30,7 +30,7 @@ zeroize = { workspace = true }
 
 [features]
 platform-bitbox02 = []
-platform-bitbox02plus = ["util/sha2", "bitbox-noise", "bitbox02-rust"]
+platform-bitbox02-nova = ["util/sha2", "bitbox-noise", "bitbox02-rust"]
 
 bootloader = []
 firmware = [

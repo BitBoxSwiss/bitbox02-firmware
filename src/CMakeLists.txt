@@ -289,12 +289,10 @@ endif()
 # BOOTLOADER_LOCKED and BOOTLOADER_DEVDEVICE are configured in separate build directories.
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
 set(BOOTLOADERS-BITBOX02
-  bb02-bl-multi
-  bb02-bl-btconly
+  bb02-bl
   )
 set(BOOTLOADERS-BITBOX02PLUS
-  bb02p-bl-multi
-  bb02p-bl-btconly
+  bb02p-bl
 )
 set(BOOTLOADERS
   ${BOOTLOADERS-BITBOX02}
@@ -303,8 +301,7 @@ set(BOOTLOADERS
 set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
 
 set(FIRMWARES
-  firmware # Firmware MULTI
-  firmware-btc # Firmware BTC-ONLY
+  firmware
   factory-setup # Factory-setup
   )
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
@@ -319,13 +316,29 @@ endif()
 #  *  c-unit-tests_rust_c
 #  or
 #  *  firmware_rust_c
-#  *  firmware-btc_rust_c
 #  *  factory-setup_rust_c
 foreach(type ${RUST_LIBS})
   # We build the rust standard libs so that everything from the rust runtime
   # is included (like eh_personality).
   if(type STREQUAL "c-unit-tests")
       set(RUST_CARGO_FLAGS ${RUST_CARGO_FLAGS} -Zbuild-std=std,panic_abort)
+  endif()
+  if(type STREQUAL "c-unit-tests")
+    set(rust_features "app-bitcoin,app-litecoin,app-ethereum,app-cardano,app-u2f,firmware,c-unit-testing")
+  elseif(type STREQUAL "firmware")
+    if(BITBOX02_EDITION STREQUAL "btconly")
+      set(rust_features "firmware,platform-bitbox02,app-bitcoin")
+    else()
+      set(rust_features "firmware,platform-bitbox02,app-bitcoin,app-litecoin,app-ethereum,app-u2f,app-cardano")
+    endif()
+  elseif(type STREQUAL "factory-setup")
+    set(rust_features "factory-setup")
+  elseif(type STREQUAL "bb02-bl")
+    set(rust_features "bootloader,platform-bitbox02")
+  elseif(type STREQUAL "bb02p-bl")
+    set(rust_features "bootloader,platform-bitbox02plus")
+  else()
+    message(FATAL_ERROR "No Rust features configured for ${type}")
   endif()
   set(lib ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
   # The dummy output is to always trigger rebuild (cargo is clever enough to
@@ -346,7 +359,7 @@ foreach(type ${RUST_LIBS})
         $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv>
         --offline
         $ENV{CARGOFLAGS}
-        --features target-${type}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt>
+        --features ${rust_features}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt>
         --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml
         --target-dir ${RUST_BINARY_DIR}/feature-${type}
         ${RUST_CARGO_FLAGS}
@@ -448,15 +461,19 @@ if(CMAKE_CROSSCOMPILING)
 
   # BB02 definitions
 
-  target_compile_definitions(bb02-bl-multi.elf PRIVATE PRODUCT_BITBOX_MULTI)
-
-  target_compile_definitions(bb02-bl-btconly.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
+  if(BITBOX02_EDITION STREQUAL "btconly")
+    target_compile_definitions(bb02-bl.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
+  else()
+    target_compile_definitions(bb02-bl.elf PRIVATE PRODUCT_BITBOX_MULTI)
+  endif()
 
   # BB02PLUS definitions
 
-  target_compile_definitions(bb02p-bl-multi.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
-
-  target_compile_definitions(bb02p-bl-btconly.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
+  if(BITBOX02_EDITION STREQUAL "btconly")
+    target_compile_definitions(bb02p-bl.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
+  else()
+    target_compile_definitions(bb02p-bl.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
+  endif()
 
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
@@ -504,12 +521,13 @@ if(CMAKE_CROSSCOMPILING)
   endforeach(firmware)
 
   target_sources(firmware.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_U2F=1")
-  target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
-
-  target_sources(firmware-btc.elf PRIVATE firmware.c)
-  target_compile_definitions(firmware-btc.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
-  target_sources(firmware-btc.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  if(BITBOX02_EDITION STREQUAL "btconly")
+    target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
+    target_sources(firmware.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  else()
+    target_compile_definitions(firmware.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_U2F=1")
+    target_sources(firmware.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
+  endif()
 
   target_sources(factory-setup.elf PRIVATE factorysetup.c)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_U2F=0")

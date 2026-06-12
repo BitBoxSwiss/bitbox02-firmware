@@ -289,14 +289,8 @@ endif()
 # BOOTLOADER_LOCKED and BOOTLOADER_DEVDEVICE are configured in separate build directories.
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
 
-set(FIRMWARES
-  ${FIRMWARE_TARGET}
-  factory-setup # Factory-setup
-  )
-set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
-
 if(CMAKE_CROSSCOMPILING)
-  set(RUST_LIBS ${FIRMWARES} ${BOOTLOADER_TARGET})
+  set(RUST_LIBS ${FIRMWARE_TARGET} ${BOOTLOADER_TARGET})
 else()
   set(RUST_LIBS c-unit-tests)
 endif()
@@ -305,7 +299,6 @@ endif()
 #  *  c-unit-tests_rust_c
 #  or
 #  *  firmware_rust_c
-#  *  factory-setup_rust_c
 foreach(type ${RUST_LIBS})
   # We build the rust standard libs so that everything from the rust runtime
   # is included (like eh_personality).
@@ -315,13 +308,13 @@ foreach(type ${RUST_LIBS})
   if(type STREQUAL "c-unit-tests")
     set(rust_features "app-bitcoin,app-litecoin,app-ethereum,app-cardano,app-u2f,firmware,c-unit-testing")
   elseif(type STREQUAL "${FIRMWARE_TARGET}")
-    if(BITBOX02_EDITION STREQUAL "btconly")
+    if(FACTORY_SETUP)
+      set(rust_features "factory-setup")
+    elseif(BITBOX02_EDITION STREQUAL "btconly")
       set(rust_features "firmware,platform-bitbox02,app-bitcoin")
     else()
       set(rust_features "firmware,platform-bitbox02,app-bitcoin,app-litecoin,app-ethereum,app-u2f,app-cardano")
     endif()
-  elseif(type STREQUAL "factory-setup")
-    set(rust_features "factory-setup")
   elseif(type STREQUAL "${BOOTLOADER_TARGET}")
     if(BITBOX02_PLATFORM STREQUAL "nova")
       set(rust_features "bootloader,platform-bitbox02-nova")
@@ -350,7 +343,7 @@ foreach(type ${RUST_LIBS})
         $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:-vv>
         --offline
         $ENV{CARGOFLAGS}
-        --features ${rust_features}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<STREQUAL:${type},factory-setup>>:,rtt>
+        --features ${rust_features}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<BOOL:${FACTORY_SETUP}>>:,rtt>
         --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml
         --target-dir ${RUST_BINARY_DIR}/feature-${type}
         ${RUST_CARGO_FLAGS}
@@ -457,83 +450,80 @@ if(CMAKE_CROSSCOMPILING)
     endif()
   endif()
 
-  foreach(firmware ${FIRMWARES})
-    set(elf ${firmware}.elf)
-    add_executable(${elf} ${FIRMWARE-SOURCES})
-    # Static libraries are LTO-capable for firmware size, but only firmware images do the LTO link.
-    if(firmware STREQUAL "factory-setup")
-      target_compile_options(${elf} PRIVATE -fno-lto)
-      target_link_libraries(${elf} PRIVATE -fno-lto)
-    else()
-      target_compile_options(${elf} PRIVATE -flto -ffat-lto-objects)
-      target_link_libraries(${elf} PRIVATE -flto)
-    endif()
-    # Must manually link against C so that malloc can find _sbrk
-    target_link_libraries(${elf}
-      PRIVATE
-        optiga
-        cryptoauthlib
-        c
-        ${firmware}_rust_c
-        samd51a-ds
-        asf4-drivers-min
-        asf4-drivers
-        -Wl,-u,exception_table)
-    if(firmware STREQUAL "factory-setup" OR CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-      target_link_libraries(${elf} PRIVATE embedded-swd)
-    endif()
-    target_include_directories(${elf} PRIVATE ${INCLUDES})
+  set(firmware_elf ${FIRMWARE_TARGET}.elf)
+  add_executable(${firmware_elf} ${FIRMWARE-SOURCES})
+  # Static libraries are LTO-capable for firmware size, but only firmware images do the LTO link.
+  if(FACTORY_SETUP)
+    target_compile_options(${firmware_elf} PRIVATE -fno-lto)
+    target_link_libraries(${firmware_elf} PRIVATE -fno-lto)
+  else()
+    target_compile_options(${firmware_elf} PRIVATE -flto -ffat-lto-objects)
+    target_link_libraries(${firmware_elf} PRIVATE -flto)
+  endif()
+  # Must manually link against C so that malloc can find _sbrk
+  target_link_libraries(${firmware_elf}
+    PRIVATE
+      optiga
+      cryptoauthlib
+      c
+      ${FIRMWARE_TARGET}_rust_c
+      samd51a-ds
+      asf4-drivers-min
+      asf4-drivers
+      -Wl,-u,exception_table)
+  if(FACTORY_SETUP OR CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    target_link_libraries(${firmware_elf} PRIVATE embedded-swd)
+  endif()
+  target_include_directories(${firmware_elf} PRIVATE ${INCLUDES})
 
-    # needed to find version.h
-    target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-    target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${firmware}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")
-    target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
+  # needed to find version.h
+  target_include_directories(${firmware_elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  target_link_libraries(${firmware_elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${FIRMWARE_TARGET}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware.ld\"")
+  target_link_libraries(${firmware_elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
 
-    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
+  target_link_libraries(${firmware_elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
 
-    # Select the smaller version of libc called nano.
-    target_compile_options(${elf} PRIVATE --specs=nano.specs)
-    target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    target_compile_options(${elf} PRIVATE --specs=nosys.specs)
-    target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
+  # Select the smaller version of libc called nano.
+  target_compile_options(${firmware_elf} PRIVATE --specs=nano.specs)
+  target_link_libraries(${firmware_elf} PRIVATE --specs=nano.specs)
+  target_compile_options(${firmware_elf} PRIVATE --specs=nosys.specs)
+  target_link_libraries(${firmware_elf} PRIVATE --specs=nosys.specs)
 
-    # Optiga config must be defined both when compiling the optiga lib, and also when compiling our
-    # sources. We can verify this include is indeed used by our sources - when you point it to a
-    # non-existing file, compilation fails.
-    # This definition is also added in external/CMakeLists.txt for the optiga lib.
-    target_compile_definitions(${elf} PRIVATE OPTIGA_LIB_EXTERNAL="optiga_config.h")
-  endforeach(firmware)
+  # Optiga config must be defined both when compiling the optiga lib, and also when compiling our
+  # sources. We can verify this include is indeed used by our sources - when you point it to a
+  # non-existing file, compilation fails.
+  # This definition is also added in external/CMakeLists.txt for the optiga lib.
+  target_compile_definitions(${firmware_elf} PRIVATE OPTIGA_LIB_EXTERNAL="optiga_config.h")
 
-  target_sources(${FIRMWARE_TARGET}.elf PRIVATE firmware.c)
-  if(BITBOX02_EDITION STREQUAL "btconly")
+  if(FACTORY_SETUP)
+    target_sources(${firmware_elf} PRIVATE factorysetup.c)
+    target_compile_definitions(${firmware_elf} PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_U2F=0")
+    target_sources(${firmware_elf} PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+  else()
+    target_sources(${firmware_elf} PRIVATE firmware.c)
+  endif()
+
+  if(NOT FACTORY_SETUP AND BITBOX02_EDITION STREQUAL "btconly")
     target_compile_definitions(${FIRMWARE_TARGET}.elf PRIVATE PRODUCT_BITBOX_BTCONLY "APP_U2F=0")
     target_sources(${FIRMWARE_TARGET}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
-  else()
+  elseif(NOT FACTORY_SETUP)
     target_compile_definitions(${FIRMWARE_TARGET}.elf PRIVATE PRODUCT_BITBOX_MULTI "APP_U2F=1")
     target_sources(${FIRMWARE_TARGET}.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
   endif()
 
-  target_sources(factory-setup.elf PRIVATE factorysetup.c)
-  target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_U2F=0")
-  target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
-
-  # Copy the binary file to the output directory because the symbol names in
-  # the object file depend on the path to the binary file
-  add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bitbox-da14531-firmware.o
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin ${CMAKE_CURRENT_BINARY_DIR}
-    COMMAND ${CMAKE_OBJCOPY} -Ibinary -Oelf32-littlearm --rename-section .data=.rodata,alloc,load,readonly,data,contents bitbox-da14531-firmware.bin bitbox-da14531-firmware.o
-    DEPENDS ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin
-    COMMENT "Convert da14531 firmware to object file using ${CMAKE_OBJCOPY}")
-
-  add_custom_target(
-    da14531-firmware-object
-    DEPENDS bitbox-da14531-firmware.o
-  )
-  add_dependencies(factory-setup.elf da14531-firmware-object)
-
-  target_link_libraries(factory-setup.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bitbox-da14531-firmware.o)
-
+  if(FACTORY_SETUP)
+    # Copy the binary file to the output directory because the symbol names in
+    # the object file depend on the path to the binary file.
+    set(DA14531_FIRMWARE_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/bitbox-da14531-firmware.o)
+    add_custom_command(
+      OUTPUT ${DA14531_FIRMWARE_OBJECT}
+      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin ${CMAKE_CURRENT_BINARY_DIR}
+      COMMAND ${CMAKE_OBJCOPY} -Ibinary -Oelf32-littlearm --rename-section .data=.rodata,alloc,load,readonly,data,contents bitbox-da14531-firmware.bin bitbox-da14531-firmware.o
+      DEPENDS ${CMAKE_SOURCE_DIR}/bitbox-da14531-firmware.bin
+      COMMENT "Convert da14531 firmware to object file using ${CMAKE_OBJCOPY}")
+    set_source_files_properties(${DA14531_FIRMWARE_OBJECT} PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+    target_sources(${firmware_elf} PRIVATE ${DA14531_FIRMWARE_OBJECT})
+  endif()
 
   add_custom_command(
     TARGET ${BOOTLOADER_TARGET}.elf POST_BUILD
@@ -549,19 +539,17 @@ if(CMAKE_CROSSCOMPILING)
 
   target_link_libraries(${BOOTLOADER_TARGET}.elf PRIVATE -Wl,--print-memory-usage)
 
-  foreach(name ${FIRMWARES})
-    add_custom_command(
-      TARGET ${name}.elf POST_BUILD
-      COMMAND ${CMAKE_SIZE} ${name}.elf
-      COMMAND ${CMAKE_OBJCOPY} -O binary ${name}.elf ${name}.bin
-      WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-      COMMENT "\nGenerating binary ${name}.bin"
-    )
-    # Fail on warnings for our release builds
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-      target_compile_options(${name}.elf PRIVATE "-Werror")
-    endif()
+  add_custom_command(
+    TARGET ${FIRMWARE_TARGET}.elf POST_BUILD
+    COMMAND ${CMAKE_SIZE} ${FIRMWARE_TARGET}.elf
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${FIRMWARE_TARGET}.elf ${FIRMWARE_TARGET}.bin
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COMMENT "\nGenerating binary ${FIRMWARE_TARGET}.bin"
+  )
+  # Fail on warnings for our release builds
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    target_compile_options(${FIRMWARE_TARGET}.elf PRIVATE "-Werror")
+  endif()
 
-    target_link_libraries(${name}.elf PRIVATE -Wl,--print-memory-usage)
-  endforeach()
+  target_link_libraries(${FIRMWARE_TARGET}.elf PRIVATE -Wl,--print-memory-usage)
 endif()

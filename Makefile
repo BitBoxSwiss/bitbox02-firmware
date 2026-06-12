@@ -23,6 +23,18 @@ build-debug/Makefile:
 	cd build-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG ..
 	$(MAKE) -C py/bitbox02
 
+build-factory-setup/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-factory-setup
+	cd build-factory-setup && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DFACTORY_SETUP=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-factory-setup-debug/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-factory-setup-debug
+	cd build-factory-setup-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG -DFACTORY_SETUP=ON ..
+	$(MAKE) -C py/bitbox02
+
 build-btconly/Makefile:
 	./scripts/bootstrap-cargo-config
 	mkdir -p build-btconly
@@ -126,6 +138,12 @@ build: build/Makefile
 # Directory for building debug build for "host" machine according to gcc convention
 build-debug: build-debug/Makefile
 
+# Directory for building factory setup firmware
+build-factory-setup: build-factory-setup/Makefile
+
+# Directory for building debug factory setup firmware
+build-factory-setup-debug: build-factory-setup-debug/Makefile
+
 # Directory for building BTC-only firmware and bootloaders
 build-btconly: build-btconly/Makefile
 
@@ -217,10 +235,10 @@ bootloader-plus-btc-development: | build-bootloader-nova-btconly-development
 bootloader-plus-btc-production: | build-bootloader-nova-btconly-locked
 	$(MAKE) -C build-bootloader-nova-btconly-locked bootloader.elf
 
-factory-setup: | build
-	$(MAKE) -C build factory-setup.elf
-factory-setup-debug: | build-debug
-	$(MAKE) -C build-debug factory-setup.elf
+factory-setup: | build-factory-setup
+	$(MAKE) -C build-factory-setup firmware.elf
+factory-setup-debug: | build-factory-setup-debug
+	$(MAKE) -C build-factory-setup-debug firmware.elf
 docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build
@@ -273,8 +291,8 @@ jlink-flash-firmware: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
 jlink-flash-firmware-btc: | build-btconly
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-btconly/scripts/firmware.jlink
-jlink-flash-factory-setup: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/factory-setup.jlink
+jlink-flash-factory-setup: | build-factory-setup
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-factory-setup/scripts/firmware.jlink
 jlink-flash-firmware-debug: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-debug/scripts/firmware.jlink
 jlink-flash-set-new-screen:
@@ -300,7 +318,7 @@ run-debug:
 run-bootloader:
 	arm-none-eabi-gdb -x scripts/jlink-bootloader.gdb build-bootloader-nova-development/bin/bootloader.elf
 run-factory-setup-debug:
-	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/factory-setup.elf
+	arm-none-eabi-gdb -x scripts/jlink.gdb build-factory-setup-debug/bin/firmware.elf
 dockerinit:
 	./scripts/container.sh build --pull -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:
@@ -319,7 +337,7 @@ prepare-tidy: | build build-build
 	$(MAKE) -C build rust-cbindgen
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-btconly build-nova build-nova-btconly build-bootloader-development build-bootloader-nova-development build-bootloader-btconly-development build-bootloader-nova-btconly-development build-bootloader-locked build-bootloader-nova-locked build-bootloader-btconly-locked build-bootloader-nova-btconly-locked build-bootloader-development-locked build-bootloader-development-debug build-bootloader-nova-development-debug build-build build-debug build-build-noasan src/rust/target
+	rm -rf build build-btconly build-nova build-nova-btconly build-factory-setup build-factory-setup-debug build-bootloader-development build-bootloader-nova-development build-bootloader-btconly-development build-bootloader-nova-btconly-development build-bootloader-locked build-bootloader-nova-locked build-bootloader-btconly-locked build-bootloader-nova-btconly-locked build-bootloader-development-locked build-bootloader-development-debug build-bootloader-nova-development-debug build-build build-debug build-build-noasan src/rust/target
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:

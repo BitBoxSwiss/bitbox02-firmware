@@ -2,12 +2,10 @@
 
 if(PYTHONINTERP_FOUND)
   # This template flashes with an offset
-  foreach(target ${FIRMWARES})
-    execute_process(
-      COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/expand_template ${CMAKE_CURRENT_SOURCE_DIR}/template-firmware.jlink file=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.bin -o ${target}.jlink
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    )
-  endforeach()
+  execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/expand_template ${CMAKE_CURRENT_SOURCE_DIR}/template-firmware.jlink file=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${FIRMWARE_TARGET}.bin -o ${FIRMWARE_TARGET}.jlink
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
 
   # This template flashes without an offset
   execute_process(

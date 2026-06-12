@@ -23,6 +23,102 @@ build-debug/Makefile:
 	cd build-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG ..
 	$(MAKE) -C py/bitbox02
 
+build-factory-setup/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-factory-setup
+	cd build-factory-setup && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DFACTORY_SETUP=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-factory-setup-debug/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-factory-setup-debug
+	cd build-factory-setup-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG -DFACTORY_SETUP=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-btconly/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-btconly
+	cd build-btconly && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_EDITION=btconly ..
+	$(MAKE) -C py/bitbox02
+
+build-nova/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-nova
+	cd build-nova && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_PLATFORM=nova ..
+	$(MAKE) -C py/bitbox02
+
+build-nova-btconly/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-nova-btconly
+	cd build-nova-btconly && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_PLATFORM=nova -DBITBOX02_EDITION=btconly ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-development/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-development
+	cd build-bootloader-development && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBOOTLOADER_DEVDEVICE=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-nova-development/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-nova-development
+	cd build-bootloader-nova-development && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_PLATFORM=nova -DBOOTLOADER_DEVDEVICE=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-btconly-development/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-btconly-development
+	cd build-bootloader-btconly-development && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_EDITION=btconly -DBOOTLOADER_DEVDEVICE=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-nova-btconly-development/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-nova-btconly-development
+	cd build-bootloader-nova-btconly-development && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_PLATFORM=nova -DBITBOX02_EDITION=btconly -DBOOTLOADER_DEVDEVICE=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-locked/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-locked
+	cd build-bootloader-locked && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBOOTLOADER_LOCKED=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-nova-locked/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-nova-locked
+	cd build-bootloader-nova-locked && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_PLATFORM=nova -DBOOTLOADER_LOCKED=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-btconly-locked/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-btconly-locked
+	cd build-bootloader-btconly-locked && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_EDITION=btconly -DBOOTLOADER_LOCKED=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-nova-btconly-locked/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-nova-btconly-locked
+	cd build-bootloader-nova-btconly-locked && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBITBOX02_PLATFORM=nova -DBITBOX02_EDITION=btconly -DBOOTLOADER_LOCKED=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-development-locked/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-development-locked
+	cd build-bootloader-development-locked && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DBOOTLOADER_DEVDEVICE=ON -DBOOTLOADER_LOCKED=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-development-debug/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-development-debug
+	cd build-bootloader-development-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG -DBOOTLOADER_DEVDEVICE=ON ..
+	$(MAKE) -C py/bitbox02
+
+build-bootloader-nova-development-debug/Makefile:
+	./scripts/bootstrap-cargo-config
+	mkdir -p build-bootloader-nova-development-debug
+	cd build-bootloader-nova-development-debug && cmake -DCMAKE_TOOLCHAIN_FILE=arm.cmake -DCMAKE_BUILD_TYPE=DEBUG -DBITBOX02_PLATFORM=nova -DBOOTLOADER_DEVDEVICE=ON ..
+	$(MAKE) -C py/bitbox02
+
 build-build/Makefile:
 	./scripts/bootstrap-cargo-config
 	mkdir -p build-build
@@ -42,6 +138,54 @@ build: build/Makefile
 # Directory for building debug build for "host" machine according to gcc convention
 build-debug: build-debug/Makefile
 
+# Directory for building factory setup firmware
+build-factory-setup: build-factory-setup/Makefile
+
+# Directory for building debug factory setup firmware
+build-factory-setup-debug: build-factory-setup-debug/Makefile
+
+# Directory for building BTC-only firmware and bootloaders
+build-btconly: build-btconly/Makefile
+
+# Directory for building Nova bootloaders
+build-nova: build-nova/Makefile
+
+# Directory for building BTC-only Nova bootloaders
+build-nova-btconly: build-nova-btconly/Makefile
+
+# Directory for building development bootloaders
+build-bootloader-development: build-bootloader-development/Makefile
+
+# Directory for building Nova development bootloaders
+build-bootloader-nova-development: build-bootloader-nova-development/Makefile
+
+# Directory for building BTC-only development bootloaders
+build-bootloader-btconly-development: build-bootloader-btconly-development/Makefile
+
+# Directory for building BTC-only Nova development bootloaders
+build-bootloader-nova-btconly-development: build-bootloader-nova-btconly-development/Makefile
+
+# Directory for building locked bootloaders
+build-bootloader-locked: build-bootloader-locked/Makefile
+
+# Directory for building Nova locked bootloaders
+build-bootloader-nova-locked: build-bootloader-nova-locked/Makefile
+
+# Directory for building BTC-only locked bootloaders
+build-bootloader-btconly-locked: build-bootloader-btconly-locked/Makefile
+
+# Directory for building BTC-only Nova locked bootloaders
+build-bootloader-nova-btconly-locked: build-bootloader-nova-btconly-locked/Makefile
+
+# Directory for building development locked bootloaders
+build-bootloader-development-locked: build-bootloader-development-locked/Makefile
+
+# Directory for building development debug bootloaders
+build-bootloader-development-debug: build-bootloader-development-debug/Makefile
+
+# Directory for building Nova development debug bootloaders
+build-bootloader-nova-development-debug: build-bootloader-nova-development-debug/Makefile
+
 # Directory for building for "build" machine according to gcc convention
 build-build: build-build/Makefile
 
@@ -52,49 +196,49 @@ build-build-noasan: build-build-noasan/Makefile
 
 firmware: | build
 	$(MAKE) -C build firmware.elf
-firmware-btc: | build
-	$(MAKE) -C build firmware-btc.elf
+firmware-btc: | build-btconly
+	$(MAKE) -C build-btconly firmware.elf
 firmware-debug: | build-debug
 	$(MAKE) -C build-debug firmware.elf
 
 bootloader: | build
-	$(MAKE) -C build bb02-bl-multi.elf
-bootloader-development: | build
-	$(MAKE) -C build bb02-bl-multi-development.elf
-bootloader-development-locked: | build
-	$(MAKE) -C build bb02-bl-multi-development-locked.elf
-bootloader-production: | build
-	$(MAKE) -C build bb02-bl-multi-production.elf
-bootloader-debug: | build-debug
-	$(MAKE) -C build-debug bb02-bl-multi-development.elf
+	$(MAKE) -C build bootloader.elf
+bootloader-development: | build-bootloader-development
+	$(MAKE) -C build-bootloader-development bootloader.elf
+bootloader-development-locked: | build-bootloader-development-locked
+	$(MAKE) -C build-bootloader-development-locked bootloader.elf
+bootloader-production: | build-bootloader-locked
+	$(MAKE) -C build-bootloader-locked bootloader.elf
+bootloader-debug: | build-bootloader-development-debug
+	$(MAKE) -C build-bootloader-development-debug bootloader.elf
 
-bootloader-btc: | build
-	$(MAKE) -C build bb02-bl-btconly.elf
-bootloader-btc-development: | build
-	$(MAKE) -C build bb02-bl-btconly-development.elf
-bootloader-btc-production: | build
-	$(MAKE) -C build bb02-bl-btconly-production.elf
+bootloader-btc: | build-btconly
+	$(MAKE) -C build-btconly bootloader.elf
+bootloader-btc-development: | build-bootloader-btconly-development
+	$(MAKE) -C build-bootloader-btconly-development bootloader.elf
+bootloader-btc-production: | build-bootloader-btconly-locked
+	$(MAKE) -C build-bootloader-btconly-locked bootloader.elf
 
-bootloader-plus: | build
-	$(MAKE) -C build bb02p-bl-multi.elf
-bootloader-plus-development: | build
-	$(MAKE) -C build bb02p-bl-multi-development.elf
-bootloader-plus-production: | build
-	$(MAKE) -C build bb02p-bl-multi-production.elf
-bootloader-plus-debug: | build-debug
-	$(MAKE) -C build-debug bb02p-bl-multi-development.elf
+bootloader-plus: | build-nova
+	$(MAKE) -C build-nova bootloader.elf
+bootloader-plus-development: | build-bootloader-nova-development
+	$(MAKE) -C build-bootloader-nova-development bootloader.elf
+bootloader-plus-production: | build-bootloader-nova-locked
+	$(MAKE) -C build-bootloader-nova-locked bootloader.elf
+bootloader-plus-debug: | build-bootloader-nova-development-debug
+	$(MAKE) -C build-bootloader-nova-development-debug bootloader.elf
 
-bootloader-plus-btc: | build
-	$(MAKE) -C build bb02p-bl-btconly.elf
-bootloader-plus-btc-development: | build
-	$(MAKE) -C build bb02p-bl-btconly-development.elf
-bootloader-plus-btc-production: | build
-	$(MAKE) -C build bb02p-bl-btconly-production.elf
+bootloader-plus-btc: | build-nova-btconly
+	$(MAKE) -C build-nova-btconly bootloader.elf
+bootloader-plus-btc-development: | build-bootloader-nova-btconly-development
+	$(MAKE) -C build-bootloader-nova-btconly-development bootloader.elf
+bootloader-plus-btc-production: | build-bootloader-nova-btconly-locked
+	$(MAKE) -C build-bootloader-nova-btconly-locked bootloader.elf
 
-factory-setup: | build
-	$(MAKE) -C build factory-setup.elf
-factory-setup-debug: | build-debug
-	$(MAKE) -C build-debug factory-setup.elf
+factory-setup: | build-factory-setup
+	$(MAKE) -C build-factory-setup firmware.elf
+factory-setup-debug: | build-factory-setup-debug
+	$(MAKE) -C build-factory-setup-debug firmware.elf
 docs: | build
 	$(MAKE) -C build doc
 rust-docs: | build
@@ -129,28 +273,26 @@ run-valgrind-on-unit-tests:
 	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
 flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
-jlink-flash-bootloader-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development.jlink
-jlink-flash-bootloader-plus-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-multi-development.jlink
-jlink-flash-bootloader-btc-plus-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-btconly-development.jlink
-jlink-flash-bootloader-development-locked: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development-locked.jlink
+jlink-flash-bootloader-development: | build-bootloader-development
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-bootloader-development/scripts/bootloader.jlink
+jlink-flash-bootloader-plus-development: | build-bootloader-nova-development
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-bootloader-nova-development/scripts/bootloader.jlink
+jlink-flash-bootloader-btc-plus-development: | build-bootloader-nova-btconly-development
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-bootloader-nova-btconly-development/scripts/bootloader.jlink
+jlink-flash-bootloader-development-locked: | build-bootloader-development-locked
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-bootloader-development-locked/scripts/bootloader.jlink
 jlink-flash-bootloader: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi.jlink
-jlink-flash-bootloader-btc-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btconly-development.jlink
-jlink-flash-bootloader-btc: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btc.jlink
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader.jlink
+jlink-flash-bootloader-btc-development: | build-bootloader-btconly-development
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-bootloader-btconly-development/scripts/bootloader.jlink
+jlink-flash-bootloader-btc: | build-btconly
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-btconly/scripts/bootloader.jlink
 jlink-flash-firmware: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
-jlink-flash-firmware-btc: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-btc.jlink
-jlink-flash-factory-setup: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/factory-setup.jlink
-jlink-flash-firmware-debug: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-debug/scripts/firmware.jlink
+jlink-flash-firmware-btc: | build-btconly
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-btconly/scripts/firmware.jlink
+jlink-flash-factory-setup: | build-factory-setup
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-factory-setup/scripts/firmware.jlink
 jlink-flash-set-new-screen:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-new-screen.jlink
 jlink-flash-set-original-screen:
@@ -172,9 +314,9 @@ rtt-client:
 run-debug:
 	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/firmware.elf
 run-bootloader:
-	arm-none-eabi-gdb -x scripts/jlink-bootloader.gdb build/bin/bb02p-bl-multi-development.elf
+	arm-none-eabi-gdb -x scripts/jlink-bootloader.gdb build-bootloader-nova-development/bin/bootloader.elf
 run-factory-setup-debug:
-	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/factory-setup.elf
+	arm-none-eabi-gdb -x scripts/jlink.gdb build-factory-setup-debug/bin/firmware.elf
 dockerinit:
 	./scripts/container.sh build --pull -t shiftcrypto/firmware_v2:$(shell cat .containerversion) .
 dockerpull:
@@ -193,7 +335,7 @@ prepare-tidy: | build build-build
 	$(MAKE) -C build rust-cbindgen
 	$(MAKE) -C build-build rust-cbindgen
 clean:
-	rm -rf build build-build build-debug build-build-noasan src/rust/target
+	rm -rf build build-btconly build-nova build-nova-btconly build-factory-setup build-factory-setup-debug build-bootloader-development build-bootloader-nova-development build-bootloader-btconly-development build-bootloader-nova-btconly-development build-bootloader-locked build-bootloader-nova-locked build-bootloader-btconly-locked build-bootloader-nova-btconly-locked build-bootloader-development-locked build-bootloader-development-debug build-bootloader-nova-development-debug build-build build-debug build-build-noasan src/rust/target
 
 # When you vendor rust libs avoid duplicates
 vendor-rust-deps:

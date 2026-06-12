@@ -8,7 +8,7 @@
 #include <rust/rust.h>
 #include <stdlib.h>
 #include <utils_assert.h>
-#ifndef TESTING
+#if (FACTORYSETUP == 1 || !defined(NDEBUG)) && !defined(TESTING)
     #include "dap.h"
 #endif
 

@@ -286,30 +286,21 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_dependencies(rust-clippy rust-cbindgen)
 endif()
 
+# BOOTLOADER_LOCKED and BOOTLOADER_DEVDEVICE are configured in separate build directories.
 # If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
 set(BOOTLOADERS-BITBOX02
-  bb02-bl-multi # Runs signed firmware
-  bb02-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02-bl-btconly # Runs signed (btc-only keys) firmware
-  bb02-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
+  bb02-bl-multi
+  bb02-bl-btconly
   )
 set(BOOTLOADERS-BITBOX02PLUS
-  bb02p-bl-multi # Runs signed firmware
-  bb02p-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02p-bl-btconly # Runs signed (btc-only keys) firmware
-  bb02p-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
+  bb02p-bl-multi
+  bb02p-bl-btconly
 )
 set(BOOTLOADERS
   ${BOOTLOADERS-BITBOX02}
   ${BOOTLOADERS-BITBOX02PLUS}
   )
 set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
-
-# Used to add QTouch to development bootloaders of bb02 bootloaders
-set(DEVDEVICE-BOOTLOADERS
-  bb02-bl-multi-development
-  bb02-bl-btconly-development
-)
 
 set(FIRMWARES
   firmware # Firmware MULTI
@@ -419,6 +410,9 @@ if(CMAKE_CROSSCOMPILING)
     if(BOOTLOADER_LOCKED)
       target_compile_definitions(${elf} PRIVATE BOOTLOADER_PRODUCTION)
     endif()
+    if(BOOTLOADER_DEVDEVICE)
+      target_compile_definitions(${elf} PRIVATE BOOTLOADER_DEVDEVICE)
+    endif()
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     # needed to find bootloader_version.h
@@ -436,7 +430,11 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE -Wl,--print-memory-usage)
   endforeach(bootloader)
 
-  foreach(bootloader ${DEVDEVICE-BOOTLOADERS} ${BOOTLOADERS-BITBOX02PLUS})
+  set(QTOUCH-BOOTLOADERS ${BOOTLOADERS-BITBOX02PLUS})
+  if(BOOTLOADER_DEVDEVICE)
+    list(APPEND QTOUCH-BOOTLOADERS ${BOOTLOADERS-BITBOX02})
+  endif()
+  foreach(bootloader ${QTOUCH-BOOTLOADERS})
     set(elf ${bootloader}.elf)
     target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
     target_sources(${elf} PRIVATE ${QTOUCH-SOURCES})
@@ -451,18 +449,14 @@ if(CMAKE_CROSSCOMPILING)
   # BB02 definitions
 
   target_compile_definitions(bb02-bl-multi.elf PRIVATE PRODUCT_BITBOX_MULTI)
-  target_compile_definitions(bb02-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
 
   target_compile_definitions(bb02-bl-btconly.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
-  target_compile_definitions(bb02-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
 
   # BB02PLUS definitions
 
   target_compile_definitions(bb02p-bl-multi.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
-  target_compile_definitions(bb02p-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE)
 
   target_compile_definitions(bb02p-bl-btconly.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
-  target_compile_definitions(bb02p-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_DEVDEVICE)
 
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)

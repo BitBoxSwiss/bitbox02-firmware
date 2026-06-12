@@ -286,47 +286,17 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_dependencies(rust-clippy rust-cbindgen)
 endif()
 
-# BOOTLOADER_LOCKED and BOOTLOADER_DEVDEVICE are configured in separate build directories.
-# If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
-
-if(CMAKE_CROSSCOMPILING)
-  set(RUST_LIBS ${FIRMWARE_TARGET} ${BOOTLOADER_TARGET})
-else()
-  set(RUST_LIBS c-unit-tests)
-endif()
-
-#  Create static libraries from rust code. Either:
-#  *  c-unit-tests_rust_c
-#  or
-#  *  firmware_rust_c
-foreach(type ${RUST_LIBS})
+function(add_rust_static_library type rust_features)
+  set(rust_cargo_flags ${RUST_CARGO_FLAGS})
   # We build the rust standard libs so that everything from the rust runtime
   # is included (like eh_personality).
   if(type STREQUAL "c-unit-tests")
-      set(RUST_CARGO_FLAGS ${RUST_CARGO_FLAGS} -Zbuild-std=std,panic_abort)
+    list(APPEND rust_cargo_flags -Zbuild-std=std,panic_abort)
   endif()
-  if(type STREQUAL "c-unit-tests")
-    set(rust_features "app-bitcoin,app-litecoin,app-ethereum,app-cardano,app-u2f,firmware,c-unit-testing")
-  elseif(type STREQUAL "${FIRMWARE_TARGET}")
-    if(FACTORY_SETUP)
-      set(rust_features "factory-setup")
-    elseif(BITBOX02_EDITION STREQUAL "btconly")
-      set(rust_features "firmware,platform-bitbox02,app-bitcoin")
-    else()
-      set(rust_features "firmware,platform-bitbox02,app-bitcoin,app-litecoin,app-ethereum,app-u2f,app-cardano")
-    endif()
-  elseif(type STREQUAL "${BOOTLOADER_TARGET}")
-    if(BITBOX02_PLATFORM STREQUAL "nova")
-      set(rust_features "bootloader,platform-bitbox02-nova")
-    else()
-      set(rust_features "bootloader,platform-bitbox02")
-    endif()
-  else()
-    message(FATAL_ERROR "No Rust features configured for ${type}")
-  endif()
+
   set(lib ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.a)
   # The dummy output is to always trigger rebuild (cargo is clever enough to
-  # only rebuild if something changed)
+  # only rebuild if something changed).
   add_custom_command(
     OUTPUT ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a dummy
     COMMAND
@@ -346,12 +316,12 @@ foreach(type ${RUST_LIBS})
         --features ${rust_features}$<$<OR:$<STREQUAL:${CMAKE_BUILD_TYPE},DEBUG>,$<BOOL:${FACTORY_SETUP}>>:,rtt>
         --manifest-path ${LIBBITBOX02_RUST_SOURCE_DIR}/Cargo.toml
         --target-dir ${RUST_BINARY_DIR}/feature-${type}
-        ${RUST_CARGO_FLAGS}
+        ${rust_cargo_flags}
         ${RUST_TARGET_ARCH_ARG}
         --crate-type=staticlib
     COMMAND
       ${CMAKE_COMMAND} -E copy_if_different ${lib} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a
-    # DEPFILES are only supported with the Ninja build tool
+    # DEPFILES are only supported with the Ninja build tool.
     #DEPFILE ${RUST_BINARY_DIR}/feature-${type}/${RUST_TARGET_ARCH_DIR}/${RUST_PROFILE}/libbitbox02_rust_c.d
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_SOURCE_DIR}/rust
@@ -362,10 +332,10 @@ foreach(type ${RUST_LIBS})
   add_library(${type}_rust_c STATIC IMPORTED GLOBAL)
   add_dependencies(${type}_rust_c ${type}-rust-target)
   set_property(TARGET ${type}_rust_c PROPERTY IMPORTED_LOCATION ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${type}_rust_c.a)
-  # Add the include directory to find rust/rust.h
+  # Add the include directory to find rust/rust.h.
   target_include_directories(${type}_rust_c INTERFACE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/rust/fatfs-sys/depend/fatfs/source)
   if (NOT CMAKE_CROSSCOMPILING)
-    # Needs to match the definitions in `bitbox02-sys/build.rs`
+    # Needs to match the definitions in `bitbox02-sys/build.rs`.
     target_compile_definitions(${type}_rust_c INTERFACE
         TESTING
         _UNIT_TEST_
@@ -378,7 +348,19 @@ foreach(type ${RUST_LIBS})
         ${CMAKE_CURRENT_SOURCE_DIR}/../test/hardware-fakes/include
     )
   endif()
-endforeach()
+endfunction()
+
+if(CMAKE_CROSSCOMPILING)
+  if(FACTORY_SETUP)
+    add_rust_static_library(${FIRMWARE_TARGET} "factory-setup,bitbox02-platform-${BITBOX02_PLATFORM}")
+  else()
+    add_rust_static_library(${FIRMWARE_TARGET} "firmware,bitbox02-platform-${BITBOX02_PLATFORM},bitbox02-edition-${BITBOX02_EDITION}")
+  endif()
+
+  add_rust_static_library(${BOOTLOADER_TARGET} "bootloader,bitbox02-platform-${BITBOX02_PLATFORM}")
+else()
+  add_rust_static_library(c-unit-tests "bitbox02-edition-multi,firmware,c-unit-testing")
+endif()
 
 
 if(CMAKE_CROSSCOMPILING)

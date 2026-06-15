@@ -94,12 +94,22 @@ void memory_read_shared_bootdata(chunk_shared_t* chunk_out)
 #endif
 }
 
+static const chunk_shared_t* _shared_chunk(void)
+{
+#ifdef TESTING
+    static chunk_shared_t chunk;
+    util_zero(&chunk, sizeof(chunk));
+    memory_read_shared_bootdata(&chunk);
+    return &chunk;
+#else
+    return (const chunk_shared_t*)FLASH_SHARED_DATA_START;
+#endif
+}
+
 uint8_t memory_get_screen_type(void)
 {
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
-    uint8_t screen_type = chunk.fields.screen_type;
-    util_zero(&chunk, sizeof(chunk));
+    const chunk_shared_t* chunk = _shared_chunk();
+    uint8_t screen_type = chunk->fields.screen_type;
     switch (screen_type) {
     case MEMORY_SCREEN_TYPE_SSD1312:
         return screen_type;
@@ -113,10 +123,8 @@ uint8_t memory_get_screen_type(void)
 
 uint8_t memory_get_securechip_type(void)
 {
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
-    uint8_t securechip_type = chunk.fields.securechip_type;
-    util_zero(&chunk, sizeof(chunk));
+    const chunk_shared_t* chunk = _shared_chunk();
+    uint8_t securechip_type = chunk->fields.securechip_type;
     switch (securechip_type) {
     case MEMORY_SECURECHIP_TYPE_OPTIGA:
         return securechip_type;
@@ -127,10 +135,8 @@ uint8_t memory_get_securechip_type(void)
 
 uint8_t memory_get_platform(void)
 {
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
-    uint8_t platform = chunk.fields.platform;
-    util_zero(&chunk, sizeof(chunk));
+    const chunk_shared_t* chunk = _shared_chunk();
+    uint8_t platform = chunk->fields.platform;
     switch (platform) {
     case MEMORY_PLATFORM_BITBOX02_PLUS:
         return platform;
@@ -145,11 +151,9 @@ uint8_t memory_get_platform(void)
 
 bool memory_ble_enabled(void)
 {
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
-    uint8_t ble_enabled = chunk.fields.ble_enabled;
+    const chunk_shared_t* chunk = _shared_chunk();
+    uint8_t ble_enabled = chunk->fields.ble_enabled;
     util_log("ble enabled %x", ble_enabled);
-    util_zero(&chunk, sizeof(chunk));
     return ble_enabled != MEMORY_BLE_DISABLED;
 }
 
@@ -160,14 +164,12 @@ int16_t memory_get_ble_bond_db(uint8_t* data)
     // chip to always set the bond db when it has booted.
     return -1;
 #endif
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
-    int16_t len = chunk.fields.ble_bond_db_len;
+    const chunk_shared_t* chunk = _shared_chunk();
+    int16_t len = chunk->fields.ble_bond_db_len;
     if (len != -1) {
-        memcpy(data, &chunk.fields.ble_bond_db[0], len);
+        memcpy(data, &chunk->fields.ble_bond_db[0], len);
     }
 
-    util_zero(&chunk, sizeof(chunk));
     return len;
 }
 
@@ -194,46 +196,38 @@ bool memory_set_ble_bond_db(const uint8_t* data, int16_t data_len)
 
 void memory_get_ble_irk(uint8_t* data)
 {
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
+    const chunk_shared_t* chunk = _shared_chunk();
 
     memcpy(
         data,
-        &chunk.fields.ble_identity_resolving_key,
-        sizeof(chunk.fields.ble_identity_resolving_key));
-
-    util_zero(&chunk, sizeof(chunk));
+        &chunk->fields.ble_identity_resolving_key,
+        sizeof(chunk->fields.ble_identity_resolving_key));
 }
 
 void memory_get_ble_identity_address(uint8_t* data)
 {
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
+    const chunk_shared_t* chunk = _shared_chunk();
 #if defined(DEBUG)
     uint8_t ones[MEMORY_BLE_ADDR_LEN] = {-1, -1, -1, -1, -1, -1};
     uint8_t zeros[MEMORY_BLE_ADDR_LEN] = {0};
 #endif
     // In case address isn't valid, factory setup / hww reset needs to be run
     ASSERT(
-        memcmp(&ones[0], &chunk.fields.ble_identity_address[0], sizeof(ones)) != 0 &&
-        memcmp(&zeros[0], &chunk.fields.ble_identity_address[0], sizeof(zeros)) != 0);
+        memcmp(&ones[0], &chunk->fields.ble_identity_address[0], sizeof(ones)) != 0 &&
+        memcmp(&zeros[0], &chunk->fields.ble_identity_address[0], sizeof(zeros)) != 0);
 
-    memcpy(data, &chunk.fields.ble_identity_address, sizeof(chunk.fields.ble_identity_address));
-
-    util_zero(&chunk, sizeof(chunk));
+    memcpy(data, &chunk->fields.ble_identity_address, sizeof(chunk->fields.ble_identity_address));
 }
 
 void memory_get_ble_metadata(memory_ble_metadata_t* metadata_out)
 {
-    chunk_shared_t chunk = {0};
-    memory_read_shared_bootdata(&chunk);
-    metadata_out->active_index = chunk.fields.ble_active_index;
-    memcpy(metadata_out->allowed_firmware_hash, chunk.fields.ble_allowed_firmware_hash, 32);
-    metadata_out->firmware_sizes[0] = chunk.fields.ble_firmware_sizes[0];
-    metadata_out->firmware_sizes[1] = chunk.fields.ble_firmware_sizes[1];
-    metadata_out->firmware_checksums[0] = chunk.fields.ble_firmware_checksums[0];
-    metadata_out->firmware_checksums[1] = chunk.fields.ble_firmware_checksums[1];
-    util_zero(&chunk, sizeof(chunk));
+    const chunk_shared_t* chunk = _shared_chunk();
+    metadata_out->active_index = chunk->fields.ble_active_index;
+    memcpy(metadata_out->allowed_firmware_hash, chunk->fields.ble_allowed_firmware_hash, 32);
+    metadata_out->firmware_sizes[0] = chunk->fields.ble_firmware_sizes[0];
+    metadata_out->firmware_sizes[1] = chunk->fields.ble_firmware_sizes[1];
+    metadata_out->firmware_checksums[0] = chunk->fields.ble_firmware_checksums[0];
+    metadata_out->firmware_checksums[1] = chunk->fields.ble_firmware_checksums[1];
 }
 
 void memory_random_name(char* name_out)

@@ -40,9 +40,7 @@ impl<Timer> Drop for ScreenGuard<'_, Timer> {
 }
 
 impl hal::ui::Progress for BitBox03UiProgress {
-    fn set_fraction(&mut self, _numerator: u32, _denominator: u32) {
-        todo!()
-    }
+    fn set_fraction(&mut self, _numerator: u32, _denominator: u32) {}
 }
 
 impl hal::ui::Empty for BitBox03UiEmpty {}
@@ -78,19 +76,33 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
 
     async fn verify_recipient(
         &mut self,
-        _recipient: &str,
-        _amount: &str,
+        recipient: &str,
+        amount: &str,
     ) -> Result<(), bitbox_hal::ui::UserAbort> {
-        todo!()
+        let body = format!("{amount}\n\n{recipient}");
+        self.confirm(&bitbox_hal::ui::ConfirmParams {
+            title: "Send",
+            body: &body,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        })
+        .await
     }
 
     async fn verify_total_fee(
         &mut self,
-        _total: &str,
-        _fee: &str,
-        _longtouch: bool,
+        total: &str,
+        fee: &str,
+        longtouch: bool,
     ) -> Result<(), bitbox_hal::ui::UserAbort> {
-        todo!()
+        let body = format!("Total amount\n{total}\n\nFee\n{fee}");
+        self.confirm(&bitbox_hal::ui::ConfirmParams {
+            title: "Transaction",
+            body: &body,
+            longtouch,
+            ..Default::default()
+        })
+        .await
     }
 
     async fn status(&mut self, title: &str, status_success: bool) {
@@ -114,11 +126,11 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     }
 
     fn progress_create(&mut self, _title: &str) -> Self::Progress {
-        todo!()
+        BitBox03UiProgress
     }
 
     fn empty_create(&mut self) -> Self::Empty {
-        todo!()
+        BitBox03UiEmpty
     }
 
     fn unlock_animation_create(&mut self) -> Self::UnlockAnimation {

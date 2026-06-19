@@ -13,4 +13,4 @@ good-names=i,j,tx
 
 [TYPECHECK]
 # Ignore protobuf generated modules for no-member checks
-ignored-modules=bitbox02.communication.generated.btc_pb2,bitbox02.communication.generated.cardano_pb2,bitbox02.communication.generated.common_pb2,bitbox02.communication.generated.eth_pb2,bitbox02.communication.generated.hww_pb2
+ignored-modules=bitbox02.communication.generated.bitboxsync_pb2,bitbox02.communication.generated.btc_pb2,bitbox02.communication.generated.cardano_pb2,bitbox02.communication.generated.common_pb2,bitbox02.communication.generated.eth_pb2,bitbox02.communication.generated.hww_pb2

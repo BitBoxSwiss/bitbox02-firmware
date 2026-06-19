@@ -9,7 +9,7 @@ import argparse
 import socket
 import pprint
 import sys
-from typing import List, Any, Optional, Callable, Union, Tuple, Sequence
+from typing import List, Any, Optional, Callable, Union, Tuple, Sequence, cast
 import base64
 import binascii
 import textwrap
@@ -74,6 +74,16 @@ def ask_user(
         print("Invalid input")
         return None
     return choices[ans - 1][1]
+
+
+BITBOXSYNC_CHALLENGE = bytes([0x10]) * 32
+BITBOXSYNC_NAMESPACE_ID = bytes(range(0x20, 0x30))
+BITBOXSYNC_INVITE_ID = bytes(range(0x30, 0x40))
+BITBOXSYNC_INVITE_SERVER_SECRET_HASH = bytes(range(0x40, 0x60))
+BITBOXSYNC_NAMESPACE_DEK = bytes(range(0x60, 0x80))
+BITBOXSYNC_EXPIRES_AT = 1893456000  # 2030-01-01 00:00:00 UTC
+BITBOXSYNC_SERVER_ORIGIN = "https://sync.example.com"
+BITBOXSYNC_MAX_ACCEPTED = 5
 
 
 def _btc_demo_inputs_outputs(
@@ -1585,6 +1595,110 @@ class SendMessage:
         except UserAbortException:
             eprint("Aborted by user")
 
+    @staticmethod
+    def _bitboxsync_wrap_namespace_dek(
+        recipient_public_key: bytes,
+        namespace_id: bytes,
+        namespace_dek: bytes,
+    ) -> bytes:
+        # pylint: disable=import-outside-toplevel
+        try:
+            from pyhpke import AEADId, CipherSuite, KDFId, KEMId
+        except ModuleNotFoundError as err:
+            raise RuntimeError(
+                "pyhpke is required to generate BitBoxSync wrapped DEK test data"
+            ) from err
+
+        suite = CipherSuite.new(
+            KEMId.DHKEM_X25519_HKDF_SHA256,
+            KDFId.HKDF_SHA256,
+            AEADId.CHACHA20_POLY1305,
+        )
+        recipient_public = suite.kem.deserialize_public_key(recipient_public_key)
+        enc, sender = suite.create_sender_context(
+            recipient_public,
+            info=b"bitboxsync-wrap-dek-v1",
+        )
+        # TODO: Add pyhpke to the Dockerfile and remove these casts.
+        enc = cast(bytes, enc)
+        ciphertext = cast(bytes, sender.seal(namespace_id + namespace_dek))
+        return cast(bytes, b"\x01" + enc + ciphertext)
+
+    def _bitboxsync_print_identity(self) -> None:
+        response = self._device.bitboxsync_identity()
+        print("Auth public key:", response["auth_public_key"].hex())
+        print("Wrap public key:", response["wrap_public_key"].hex())
+
+    def _bitboxsync_sign_login_intent(self) -> None:
+        signature = self._device.bitboxsync_sign_login_intent(BITBOXSYNC_CHALLENGE)
+        print("Login signature:", signature.hex())
+
+    def _bitboxsync_sign_refresh_intent(self) -> None:
+        signature = self._device.bitboxsync_sign_refresh_intent(BITBOXSYNC_CHALLENGE)
+        print("Refresh signature:", signature.hex())
+
+    def _bitboxsync_sign_revoke_all_tokens_intent(self) -> None:
+        signature = self._device.bitboxsync_sign_revoke_all_tokens_intent(BITBOXSYNC_CHALLENGE)
+        print("Revoke all tokens signature:", signature.hex())
+
+    def _bitboxsync_sign_create_namespace_invite_intent(self) -> None:
+        signature = self._device.bitboxsync_sign_create_namespace_invite_intent(
+            BITBOXSYNC_CHALLENGE,
+            BITBOXSYNC_NAMESPACE_ID,
+            BITBOXSYNC_INVITE_ID,
+            BITBOXSYNC_INVITE_SERVER_SECRET_HASH,
+            BITBOXSYNC_EXPIRES_AT,
+            BITBOXSYNC_MAX_ACCEPTED,
+        )
+        print("Create namespace invite signature:", signature.hex())
+
+    def _bitboxsync_sign_join_request_intent(self) -> None:
+        signature = self._device.bitboxsync_sign_join_request_intent(
+            BITBOXSYNC_NAMESPACE_ID,
+            BITBOXSYNC_INVITE_ID,
+            BITBOXSYNC_SERVER_ORIGIN,
+            BITBOXSYNC_EXPIRES_AT,
+        )
+        print("Join request signature:", signature.hex())
+
+    def _bitboxsync_unwrap_namespace_dek(self) -> None:
+        identity = self._device.bitboxsync_identity()
+        wrapped_dek = self._bitboxsync_wrap_namespace_dek(
+            identity["wrap_public_key"],
+            BITBOXSYNC_NAMESPACE_ID,
+            BITBOXSYNC_NAMESPACE_DEK,
+        )
+        namespace_dek = self._device.bitboxsync_unwrap_namespace_dek(
+            BITBOXSYNC_NAMESPACE_ID,
+            wrapped_dek,
+        )
+        print("Unwrapped namespace DEK:", namespace_dek.hex())
+        if namespace_dek != BITBOXSYNC_NAMESPACE_DEK:
+            raise Exception("Unexpected namespace DEK returned")
+
+    def _bitboxsync(self) -> None:
+        choices = (
+            ("Identity", self._bitboxsync_print_identity),
+            ("Sign login intent", self._bitboxsync_sign_login_intent),
+            ("Sign refresh intent", self._bitboxsync_sign_refresh_intent),
+            (
+                "Sign revoke all tokens intent",
+                self._bitboxsync_sign_revoke_all_tokens_intent,
+            ),
+            (
+                "Sign create namespace invite intent",
+                self._bitboxsync_sign_create_namespace_invite_intent,
+            ),
+            ("Sign join request intent", self._bitboxsync_sign_join_request_intent),
+            ("Unwrap namespace DEK", self._bitboxsync_unwrap_namespace_dek),
+        )
+        choice = ask_user(choices)
+        if callable(choice):
+            try:
+                choice()
+            except UserAbortException:
+                eprint("Aborted by user")
+
     def _menu_notinit(self) -> None:
         """TODO: Document
 
@@ -1650,6 +1764,7 @@ class SendMessage:
             ("BIP85 - LN", self._bip85_ln),
             ("Upgrade Bluetooth firmware", self._bluetooth_upgrade),
             ("Toggle bluetooth", self._bluetooth_toggle_enabled),
+            ("BitBoxSync", self._bitboxsync),
             ("Reset Device", self._reset_device),
             ("Change Password", self._change_password_workflow),
         )

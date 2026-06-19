@@ -28,6 +28,7 @@ try:
     from bitbox02.communication.generated import mnemonic_pb2 as mnemonic
     from bitbox02.communication.generated import bitbox02_system_pb2 as bitbox02_system
     from bitbox02.communication.generated import backup_commands_pb2 as backup
+    from bitbox02.communication.generated import bitboxsync_pb2 as bitboxsync
     from bitbox02.communication.generated import common_pb2 as common
     from bitbox02.communication.generated import keystore_pb2 as keystore
     from bitbox02.communication.generated import antiklepto_pb2 as antiklepto
@@ -140,6 +141,11 @@ class BTCOutputExternal:
 
 
 BTCOutputType = Union[BTCOutputInternal, BTCOutputExternal]
+
+
+class BitBoxSyncIdentity(TypedDict):
+    auth_public_key: bytes
+    wrap_public_key: bytes
 
 
 class BitBox02(BitBoxCommonAPI):
@@ -1403,3 +1409,122 @@ class BitBox02(BitBoxCommonAPI):
         request.toggle_enabled.CopyFrom(bluetooth.BluetoothToggleEnabledRequest())
 
         self._bluetooth_msg_query(request, expected_response="success")
+
+    def bitboxsync_msg_query(
+        self,
+        bitboxsync_request: bitboxsync.BitBoxSyncRequest,
+        expected_response: Optional[str] = None,
+    ) -> bitboxsync.BitBoxSyncResponse:
+        """
+        Same as _msg_query, but one nesting deeper for BitBoxSync messages.
+        """
+        # pylint: disable=no-member
+        request = hww.Request()
+        request.bitbox_sync.CopyFrom(bitboxsync_request)
+        bitboxsync_response = self._msg_query(request, expected_response="bitbox_sync").bitbox_sync
+        if (
+            expected_response is not None
+            and bitboxsync_response.WhichOneof("response") != expected_response
+        ):
+            raise Exception(
+                "Unexpected response: {}, expected: {}".format(
+                    bitboxsync_response.WhichOneof("response"), expected_response
+                )
+            )
+        return bitboxsync_response
+
+    def bitboxsync_identity(self) -> BitBoxSyncIdentity:
+        """Return the device's BitBoxSync identity public keys."""
+        # pylint: disable=no-member
+        request = bitboxsync.BitBoxSyncRequest()
+        request.identity.CopyFrom(bitboxsync.BitBoxSyncIdentityRequest())
+        identity = self.bitboxsync_msg_query(request, expected_response="identity").identity
+        return {
+            "auth_public_key": identity.auth_public_key,
+            "wrap_public_key": identity.wrap_public_key,
+        }
+
+    def bitboxsync_sign_login_intent(self, challenge: bytes) -> bytes:
+        """Sign a BitBoxSync login intent challenge."""
+        # pylint: disable=no-member
+        request = bitboxsync.BitBoxSyncRequest()
+        request.sign_login_intent.CopyFrom(
+            bitboxsync.BitBoxSyncSignLoginIntentRequest(challenge=challenge)
+        )
+        return self.bitboxsync_msg_query(request, expected_response="signature").signature.signature
+
+    def bitboxsync_sign_refresh_intent(self, challenge: bytes) -> bytes:
+        """Sign a BitBoxSync refresh intent challenge."""
+        # pylint: disable=no-member
+        request = bitboxsync.BitBoxSyncRequest()
+        request.sign_refresh_intent.CopyFrom(
+            bitboxsync.BitBoxSyncSignRefreshIntentRequest(challenge=challenge)
+        )
+        return self.bitboxsync_msg_query(request, expected_response="signature").signature.signature
+
+    def bitboxsync_sign_revoke_all_tokens_intent(self, challenge: bytes) -> bytes:
+        """Sign a BitBoxSync revoke-all-tokens intent challenge."""
+        # pylint: disable=no-member
+        request = bitboxsync.BitBoxSyncRequest()
+        request.sign_revoke_all_tokens_intent.CopyFrom(
+            bitboxsync.BitBoxSyncSignRevokeAllTokensIntentRequest(challenge=challenge)
+        )
+        return self.bitboxsync_msg_query(request, expected_response="signature").signature.signature
+
+    def bitboxsync_sign_create_namespace_invite_intent(
+        self,
+        challenge: bytes,
+        namespace_id: bytes,
+        invite_id: bytes,
+        invite_server_secret_hash: bytes,
+        expires_at: int,
+        max_accepted: int,
+    ) -> bytes:
+        """Sign a BitBoxSync create-namespace-invite intent."""
+        # pylint: disable=no-member
+        request = bitboxsync.BitBoxSyncRequest()
+        request.sign_create_namespace_invite_intent.CopyFrom(
+            bitboxsync.BitBoxSyncSignCreateNamespaceInviteIntentRequest(
+                challenge=challenge,
+                namespace_id=namespace_id,
+                invite_id=invite_id,
+                invite_server_secret_hash=invite_server_secret_hash,
+                expires_at=expires_at,
+                max_accepted=max_accepted,
+            )
+        )
+        return self.bitboxsync_msg_query(request, expected_response="signature").signature.signature
+
+    def bitboxsync_sign_join_request_intent(
+        self,
+        namespace_id: bytes,
+        invite_id: bytes,
+        server_origin: str,
+        expires_at: int,
+    ) -> bytes:
+        """Sign a BitBoxSync join-request intent."""
+        # pylint: disable=no-member
+        request = bitboxsync.BitBoxSyncRequest()
+        request.sign_join_request_intent.CopyFrom(
+            bitboxsync.BitBoxSyncSignJoinRequestIntentRequest(
+                namespace_id=namespace_id,
+                invite_id=invite_id,
+                server_origin=server_origin,
+                expires_at=expires_at,
+            )
+        )
+        return self.bitboxsync_msg_query(request, expected_response="signature").signature.signature
+
+    def bitboxsync_unwrap_namespace_dek(self, namespace_id: bytes, wrapped_dek: bytes) -> bytes:
+        """Unwrap a BitBoxSync namespace data encryption key."""
+        # pylint: disable=no-member
+        request = bitboxsync.BitBoxSyncRequest()
+        request.unwrap_namespace_dek.CopyFrom(
+            bitboxsync.BitBoxSyncUnwrapNamespaceDEKRequest(
+                namespace_id=namespace_id,
+                wrapped_dek=wrapped_dek,
+            )
+        )
+        return self.bitboxsync_msg_query(
+            request, expected_response="unwrap_namespace_dek"
+        ).unwrap_namespace_dek.namespace_dek

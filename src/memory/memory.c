@@ -233,6 +233,66 @@ static void _read_chunk(uint32_t chunk_num, uint8_t* chunk_out)
 #endif
 }
 
+static const chunk_0_t* _chunk_0(void)
+{
+#ifdef TESTING
+    static chunk_0_t chunk;
+    util_zero(&chunk, sizeof(chunk));
+    _read_chunk(CHUNK_0_PERMANENT, chunk.bytes);
+    return &chunk;
+#else
+    return (const chunk_0_t*)(FLASH_APPDATA_START + CHUNK_0_PERMANENT * CHUNK_SIZE);
+#endif
+}
+
+static const chunk_1_t* _chunk_1(void)
+{
+#ifdef TESTING
+    static chunk_1_t chunk;
+    util_zero(&chunk, sizeof(chunk));
+    _read_chunk(CHUNK_1, chunk.bytes);
+    return &chunk;
+#else
+    return (const chunk_1_t*)(FLASH_APPDATA_START + CHUNK_1 * CHUNK_SIZE);
+#endif
+}
+
+static const chunk_2_t* _chunk_2(void)
+{
+#ifdef TESTING
+    static chunk_2_t chunk;
+    util_zero(&chunk, sizeof(chunk));
+    _read_chunk(CHUNK_2, chunk.bytes);
+    return &chunk;
+#else
+    return (const chunk_2_t*)(FLASH_APPDATA_START + CHUNK_2 * CHUNK_SIZE);
+#endif
+}
+
+static const chunk_7_t* _chunk_7(void)
+{
+#ifdef TESTING
+    static chunk_7_t chunk;
+    util_zero(&chunk, sizeof(chunk));
+    _read_chunk(CHUNK_7_PERMANENT, chunk.bytes);
+    return &chunk;
+#else
+    return (const chunk_7_t*)(FLASH_APPDATA_START + CHUNK_7_PERMANENT * CHUNK_SIZE);
+#endif
+}
+
+static const chunk_shared_t* _shared_chunk(void)
+{
+#ifdef TESTING
+    static chunk_shared_t chunk;
+    util_zero(&chunk, sizeof(chunk));
+    memory_read_shared_bootdata(&chunk);
+    return &chunk;
+#else
+    return (const chunk_shared_t*)FLASH_SHARED_DATA_START;
+#endif
+}
+
 static const memory_interface_functions_t* _interface_functions = NULL;
 
 /********* Exposed functions ****************/
@@ -258,11 +318,9 @@ bool memory_set_device_name(const char* name)
 
 void memory_get_device_name(char* name_out)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-    if (chunk.fields.device_name[0] == 0xFF ||
-        !rust_util_is_name_valid(chunk.fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
+    const chunk_1_t* chunk = _chunk_1();
+    if (chunk->fields.device_name[0] == 0xFF ||
+        !rust_util_is_name_valid(chunk->fields.device_name, MEMORY_DEVICE_MAX_LEN_WITH_NULL)) {
         if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
             // For Bluetooth, we want to use an unambiguous default name so this BitBox can be
             // identified if multiple BitBoxes are advertising at the same time.
@@ -271,7 +329,12 @@ void memory_get_device_name(char* name_out)
             snprintf(name_out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", MEMORY_DEFAULT_DEVICE_NAME);
         }
     } else {
-        snprintf(name_out, MEMORY_DEVICE_MAX_LEN_WITH_NULL, "%s", chunk.fields.device_name);
+        snprintf(
+            name_out,
+            MEMORY_DEVICE_MAX_LEN_WITH_NULL,
+            "%.*s",
+            MEMORY_DEVICE_MAX_LEN_WITH_NULL - 1,
+            chunk->fields.device_name);
     }
 }
 
@@ -286,13 +349,11 @@ bool memory_set_seed_birthdate(uint32_t timestamp)
 
 void memory_get_seed_birthdate(uint32_t* timestamp_out)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-    if (chunk.fields.seed_birthdate == 0xFFFFFFFF) {
+    const chunk_1_t* chunk = _chunk_1();
+    if (chunk->fields.seed_birthdate == 0xFFFFFFFF) {
         *timestamp_out = 0;
     } else {
-        *timestamp_out = chunk.fields.seed_birthdate;
+        *timestamp_out = chunk->fields.seed_birthdate;
     }
 }
 
@@ -411,10 +472,8 @@ bool memory_reset_hww(void)
 
 static bool _is_bitmask_flag_set(uint8_t flag)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-    return ~chunk.fields.bitmask & flag;
+    const chunk_1_t* chunk = _chunk_1();
+    return ~chunk->fields.bitmask & flag;
 }
 
 bool memory_is_seeded(void)
@@ -463,10 +522,8 @@ bool memory_set_mnemonic_passphrase_enabled(bool enabled)
 
 uint8_t memory_get_failed_unlock_attempts(void)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-    return 0xFF - chunk.fields.failed_unlock_attempts;
+    const chunk_1_t* chunk = _chunk_1();
+    return 0xFF - chunk->fields.failed_unlock_attempts;
 }
 
 bool memory_increment_failed_unlock_attempts(void)
@@ -538,16 +595,14 @@ bool memory_get_encrypted_seed_and_hmac(
     if (!memory_is_seeded()) {
         return false;
     }
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
+    const chunk_1_t* chunk = _chunk_1();
     memcpy(
         encrypted_seed_and_hmac_out,
-        chunk.fields.encrypted_seed_and_hmac,
-        sizeof(chunk.fields.encrypted_seed_and_hmac));
-    *len_out = chunk.fields.encrypted_seed_and_hmac_len;
+        chunk->fields.encrypted_seed_and_hmac,
+        sizeof(chunk->fields.encrypted_seed_and_hmac));
+    *len_out = chunk->fields.encrypted_seed_and_hmac_len;
 
-    switch (chunk.fields.password_stretch_algo) {
+    switch (chunk->fields.password_stretch_algo) {
     case 0xFF:
         *password_stretch_algo_out = MEMORY_PASSWORD_STRETCH_ALGO_V0;
         break;
@@ -563,73 +618,61 @@ bool memory_get_encrypted_seed_and_hmac(
 
 void memory_get_io_protection_key(uint8_t* key_out)
 {
-    chunk_0_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
+    const chunk_0_t* chunk = _chunk_0();
 
-    memcpy(key_out, chunk.fields.io_protection_key, sizeof(chunk.fields.io_protection_key));
+    memcpy(key_out, chunk->fields.io_protection_key, sizeof(chunk->fields.io_protection_key));
 
     // xor with the second part
 
-    chunk_shared_t shared_chunk = {0};
-    CLEANUP_CHUNK(shared_chunk);
-    memory_read_shared_bootdata(&shared_chunk);
+    const chunk_shared_t* shared_chunk = _shared_chunk();
 
     // check assumption
-    if (sizeof(shared_chunk.fields.io_protection_key_split) !=
-        sizeof(chunk.fields.io_protection_key)) {
+    if (sizeof(shared_chunk->fields.io_protection_key_split) !=
+        sizeof(chunk->fields.io_protection_key)) {
         Abort("size mismatch");
     }
 
-    for (size_t i = 0; i < sizeof(shared_chunk.fields.io_protection_key_split); i++) {
-        key_out[i] ^= shared_chunk.fields.io_protection_key_split[i];
+    for (size_t i = 0; i < sizeof(shared_chunk->fields.io_protection_key_split); i++) {
+        key_out[i] ^= shared_chunk->fields.io_protection_key_split[i];
     }
 }
 
 void memory_get_authorization_key(uint8_t* key_out)
 {
-    chunk_0_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
-    memcpy(key_out, chunk.fields.authorization_key, sizeof(chunk.fields.authorization_key));
+    const chunk_0_t* chunk = _chunk_0();
+    memcpy(key_out, chunk->fields.authorization_key, sizeof(chunk->fields.authorization_key));
 
     // xor with the second part
 
-    chunk_shared_t shared_chunk = {0};
-    CLEANUP_CHUNK(shared_chunk);
-    memory_read_shared_bootdata(&shared_chunk);
+    const chunk_shared_t* shared_chunk = _shared_chunk();
 
     // check assumption
-    if (sizeof(shared_chunk.fields.authorization_key_split) !=
-        sizeof(chunk.fields.authorization_key)) {
+    if (sizeof(shared_chunk->fields.authorization_key_split) !=
+        sizeof(chunk->fields.authorization_key)) {
         Abort("size mismatch");
     }
 
-    for (size_t i = 0; i < sizeof(shared_chunk.fields.authorization_key_split); i++) {
-        key_out[i] ^= shared_chunk.fields.authorization_key_split[i];
+    for (size_t i = 0; i < sizeof(shared_chunk->fields.authorization_key_split); i++) {
+        key_out[i] ^= shared_chunk->fields.authorization_key_split[i];
     }
 }
 
 void memory_get_encryption_key(uint8_t* key_out)
 {
-    chunk_0_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
-    memcpy(key_out, chunk.fields.encryption_key, sizeof(chunk.fields.encryption_key));
+    const chunk_0_t* chunk = _chunk_0();
+    memcpy(key_out, chunk->fields.encryption_key, sizeof(chunk->fields.encryption_key));
 
     // xor with the second part
 
-    chunk_shared_t shared_chunk = {0};
-    CLEANUP_CHUNK(shared_chunk);
-    memory_read_shared_bootdata(&shared_chunk);
+    const chunk_shared_t* shared_chunk = _shared_chunk();
 
     // check assumption
-    if (sizeof(shared_chunk.fields.encryption_key_split) != sizeof(chunk.fields.encryption_key)) {
+    if (sizeof(shared_chunk->fields.encryption_key_split) != sizeof(chunk->fields.encryption_key)) {
         Abort("size mismatch");
     }
 
-    for (size_t i = 0; i < sizeof(shared_chunk.fields.encryption_key_split); i++) {
-        key_out[i] ^= shared_chunk.fields.encryption_key_split[i];
+    for (size_t i = 0; i < sizeof(shared_chunk->fields.encryption_key_split); i++) {
+        key_out[i] ^= shared_chunk->fields.encryption_key_split[i];
     }
 }
 
@@ -638,13 +681,11 @@ void memory_get_encryption_key(uint8_t* key_out)
  */
 static bool _is_attestation_setup_done(void)
 {
-    chunk_0_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
+    const chunk_0_t* chunk = _chunk_0();
 
     uint8_t empty[64] = {0};
     memset(empty, 0xFF, sizeof(empty));
-    return !MEMEQ(chunk.fields.attestation.certificate, empty, 64);
+    return !MEMEQ(chunk->fields.attestation.certificate, empty, 64);
 }
 
 bool memory_set_attestation_bootloader_hash(const uint8_t* salt)
@@ -662,17 +703,15 @@ bool memory_set_attestation_bootloader_hash(const uint8_t* salt)
 
 void memory_get_attestation_bootloader_hash(uint8_t* hash_out)
 {
-    chunk_7_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_7_PERMANENT, chunk_bytes);
+    const chunk_7_t* chunk = _chunk_7();
     uint8_t empty[32];
     memset(empty, 0xff, sizeof(empty));
-    if (chunk.fields.attestation_bootloader_hash_set != sectrue_u8 ||
-        MEMEQ(chunk.fields.attestation_bootloader_hash, empty, sizeof(empty))) {
+    if (chunk->fields.attestation_bootloader_hash_set != sectrue_u8 ||
+        MEMEQ(chunk->fields.attestation_bootloader_hash, empty, sizeof(empty))) {
         memory_bootloader_hash(hash_out);
         return;
     }
-    memcpy(hash_out, chunk.fields.attestation_bootloader_hash, 32);
+    memcpy(hash_out, chunk->fields.attestation_bootloader_hash, 32);
 }
 
 bool memory_set_attestation_device_pubkey(const uint8_t* attestation_device_pubkey)
@@ -708,21 +747,19 @@ bool memory_get_attestation_pubkey_and_certificate(
     if (!_is_attestation_setup_done()) {
         return false;
     }
-    chunk_0_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_0_PERMANENT, chunk_bytes);
+    const chunk_0_t* chunk = _chunk_0();
     memcpy(
         pubkey_out,
-        chunk.fields.attestation.device_pubkey,
-        sizeof(chunk.fields.attestation.device_pubkey));
+        chunk->fields.attestation.device_pubkey,
+        sizeof(chunk->fields.attestation.device_pubkey));
     memcpy(
         certificate_out,
-        chunk.fields.attestation.certificate,
-        sizeof(chunk.fields.attestation.certificate));
+        chunk->fields.attestation.certificate,
+        sizeof(chunk->fields.attestation.certificate));
     memcpy(
         root_pubkey_identifier_out,
-        chunk.fields.attestation.root_pubkey_identifier,
-        sizeof(chunk.fields.attestation.root_pubkey_identifier));
+        chunk->fields.attestation.root_pubkey_identifier,
+        sizeof(chunk->fields.attestation.root_pubkey_identifier));
     return true;
 }
 
@@ -781,10 +818,8 @@ bool memory_set_ble_metadata(const memory_ble_metadata_t* metadata)
 
 bool memory_get_salt_root(uint8_t* salt_root_out)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
-    memcpy(salt_root_out, chunk.fields.salt_root, sizeof(chunk.fields.salt_root));
+    const chunk_1_t* chunk = _chunk_1();
+    memcpy(salt_root_out, chunk->fields.salt_root, sizeof(chunk->fields.salt_root));
     uint8_t empty[32];
     memset(empty, 0xff, sizeof(empty));
     return !MEMEQ(salt_root_out, empty, sizeof(empty));
@@ -803,13 +838,11 @@ bool memory_set_salt_root(const uint8_t* salt_root)
 
 bool memory_get_noise_static_private_key(uint8_t* private_key_out)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
+    const chunk_1_t* chunk = _chunk_1();
     memcpy(
         private_key_out,
-        chunk.fields.noise_static_private_key,
-        sizeof(chunk.fields.noise_static_private_key));
+        chunk->fields.noise_static_private_key,
+        sizeof(chunk->fields.noise_static_private_key));
     uint8_t empty[32];
     memset(empty, 0xff, sizeof(empty));
     return !MEMEQ(private_key_out, empty, sizeof(empty));
@@ -817,15 +850,13 @@ bool memory_get_noise_static_private_key(uint8_t* private_key_out)
 
 bool memory_check_noise_remote_static_pubkey(const uint8_t* pubkey)
 {
-    chunk_1_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_1, chunk_bytes);
+    const chunk_1_t* chunk = _chunk_1();
 
-    const size_t number_of_slots = sizeof(chunk.fields.noise_remote_static_pubkeys) /
-                                   sizeof(chunk.fields.noise_remote_static_pubkeys[0]);
+    const size_t number_of_slots = sizeof(chunk->fields.noise_remote_static_pubkeys) /
+                                   sizeof(chunk->fields.noise_remote_static_pubkeys[0]);
 
     for (size_t slot = 0; slot < number_of_slots; slot++) {
-        const uint8_t* stored_pubkey = chunk.fields.noise_remote_static_pubkeys[slot];
+        const uint8_t* stored_pubkey = chunk->fields.noise_remote_static_pubkeys[slot];
         if (MEMEQ(stored_pubkey, pubkey, NOISE_PUBKEY_SIZE)) {
             return true;
         }
@@ -930,12 +961,10 @@ memory_result_t memory_multisig_set_by_hash(const uint8_t* hash, const char* nam
 
 bool memory_multisig_get_by_hash(const uint8_t* hash, char* name_out)
 {
-    chunk_2_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_2, chunk.bytes);
+    const chunk_2_t* chunk = _chunk_2();
 
     for (size_t i = 0; i < MEMORY_MULTISIG_NUM_ENTRIES; i++) {
-        const multisig_configuration_t* multisig = &chunk.fields.multisig_configs[i];
+        const multisig_configuration_t* multisig = &chunk->fields.multisig_configs[i];
         if (MEMEQ(multisig->hash, hash, sizeof(multisig->hash))) {
             if (name_out != NULL) {
                 snprintf(name_out, sizeof(multisig->name), "%s", multisig->name);
@@ -965,10 +994,8 @@ bool memory_ble_enable(bool enable)
 
 bool memory_get_optiga_config_version(memory_optiga_config_version_t* version_out)
 {
-    chunk_0_t chunk = {0};
-    CLEANUP_CHUNK(chunk);
-    _read_chunk(CHUNK_0_PERMANENT, chunk.bytes);
-    switch (chunk.fields.optiga_config_version) {
+    const chunk_0_t* chunk = _chunk_0();
+    switch (chunk->fields.optiga_config_version) {
     case 0xFF:
         *version_out = MEMORY_OPTIGA_CONFIG_V0;
         return true;

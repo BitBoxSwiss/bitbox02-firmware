@@ -10,6 +10,8 @@ use bitbox_lvgl::{
 };
 use util::futures::completion::Responder;
 
+use super::nav_button::{NavIcon, build_nav_button};
+
 fn snapshot_text(textarea: &LvTextarea) -> String {
     textarea
         .get_text()
@@ -276,7 +278,7 @@ fn add_button<F>(
     button_label.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
 }
 
-pub(super) fn build_enter_string_screen(
+pub fn build_enter_string_screen(
     params: &EnterStringParams<'_>,
     can_cancel: CanCancel,
     preset: &str,
@@ -419,9 +421,11 @@ pub(super) fn build_enter_string_screen(
 
     let actions = LvObj::with_parent(&screen).unwrap();
     actions.set_width(380);
-    actions.set_height(72);
+    actions.set_height(82);
     actions.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);
     actions.set_flex_flow(lvgl::LvFlexFlow::LV_FLEX_FLOW_ROW);
+    actions.set_style_flex_main_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_SPACE_BETWEEN, 0);
+    actions.set_style_flex_cross_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_CENTER, 0);
     actions.set_style_pad_top(0, 0);
     actions.set_style_pad_bottom(0, 0);
     actions.set_style_pad_left(0, 0);
@@ -434,42 +438,55 @@ pub(super) fn build_enter_string_screen(
         LvPart::LV_PART_MAIN as u32,
     );
 
-    if matches!(can_cancel, CanCancel::Yes) {
-        let cancel_label = if params.cancel_is_backbutton {
-            "Back"
+    let cancel_present = matches!(can_cancel, CanCancel::Yes);
+    if cancel_present {
+        // Cancel / Back is always a tap action -> icon button.
+        let icon = if params.cancel_is_backbutton {
+            NavIcon::Back
         } else {
-            "Cancel"
+            NavIcon::Cancel
         };
         let reject_responder = responder.clone();
-        add_button(&actions, 180, 72, cancel_label, false, false, move || {
-            reject_responder.resolve(Err(UserAbort));
-        });
+        let cancel = build_nav_button(&actions, icon);
+        cancel
+            .add_click_cb(move || {
+                reject_responder.resolve(Err(UserAbort));
+            })
+            .expect("failed to register cancel callback");
     }
 
-    let accept_label = if params.longtouch && matches!(can_cancel, CanCancel::No) {
-        "Hold to confirm"
-    } else if params.longtouch {
-        "Hold"
-    } else {
-        "Confirm"
-    };
-    add_button(
-        &actions,
-        if matches!(can_cancel, CanCancel::Yes) {
-            180
+    if params.longtouch {
+        // The long-press confirm keeps its text instruction; an icon can't convey "hold".
+        let accept_label = if matches!(can_cancel, CanCancel::No) {
+            "Hold to confirm"
         } else {
-            380
-        },
-        72,
-        accept_label,
-        true,
-        params.longtouch,
-        move || {
-            responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
-                textarea.as_ref(),
-            ))));
-        },
-    );
+            "Hold"
+        };
+        let accept_width = if cancel_present { 180 } else { 380 };
+        add_button(
+            &actions,
+            accept_width,
+            72,
+            accept_label,
+            true,
+            true,
+            move || {
+                responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
+                    textarea.as_ref(),
+                ))));
+            },
+        );
+    } else {
+        // Plain tap confirm -> icon button.
+        let accept = build_nav_button(&actions, NavIcon::Confirm);
+        accept
+            .add_click_cb(move || {
+                responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
+                    textarea.as_ref(),
+                ))));
+            })
+            .expect("failed to register confirm callback");
+    }
 
     screen
 }

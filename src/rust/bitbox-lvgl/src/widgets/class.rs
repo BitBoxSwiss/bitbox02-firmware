@@ -46,6 +46,9 @@ pub struct ButtonmatrixTag;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct KeyboardTag;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LineTag;
+
 macro_rules! impl_lv_class {
     ($class:ty, $ffi_symbol:ident) => {
         impl LvClass for $class {
@@ -69,6 +72,7 @@ impl_lv_class!(SpangroupTag, lv_spangroup_class);
 impl_lv_class!(TextareaTag, lv_textarea_class);
 impl_lv_class!(ButtonmatrixTag, lv_buttonmatrix_class);
 impl_lv_class!(KeyboardTag, lv_keyboard_class);
+impl_lv_class!(LineTag, lv_line_class);
 
 #[cfg(test)]
 mod tests {

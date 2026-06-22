@@ -2,7 +2,7 @@
 
 use core::ffi::{c_char, c_void};
 
-pub use bitbox_core_utils::i18n::{format, language_code, language_from_code, translate};
+pub use bitbox_i18n::{format, language_code, language_from_code, translate};
 
 pub fn translate_current<'a>(english: &'a str) -> alloc::borrow::Cow<'a, str> {
     translate(crate::memory::get_device_language(), english)

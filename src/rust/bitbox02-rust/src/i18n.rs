@@ -8,9 +8,7 @@ use bitbox_hal::memory::Language;
 
 use crate::hal::{Hal, Memory};
 
-pub use bitbox_core_utils::i18n::{
-    format, is_translatable, language_code, language_from_code, translate,
-};
+pub use bitbox_i18n::{format, is_translatable, language_code, language_from_code, translate};
 
 /// Verifying at compile time that the literal exists in the English source file.
 /// Prevents literals to drift from the locale file i.e. translations silently falling back to English.

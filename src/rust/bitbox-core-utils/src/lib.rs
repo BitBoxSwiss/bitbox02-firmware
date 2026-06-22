@@ -4,6 +4,5 @@
 
 extern crate alloc;
 
-pub mod i18n;
 pub mod random;
 pub mod salt;

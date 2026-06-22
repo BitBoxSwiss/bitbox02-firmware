@@ -342,7 +342,6 @@ version = "0.1.0"
 dependencies = [
  "bitbox-hal",
  "digest",
- "serde_json",
  "sha2",
  "zeroize",
 ]
@@ -377,6 +376,14 @@ name = "bitbox-hal"
 version = "0.1.0"
 dependencies = [
  "zeroize",
+]
+
+[[package]]
+name = "bitbox-i18n"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "serde_json",
 ]
 
 [[package]]
@@ -469,9 +476,9 @@ version = "0.1.0"
 dependencies = [
  "bip39",
  "bitbox-bytequeue",
- "bitbox-core-utils",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-i18n",
  "bitbox-noise",
  "bitbox-securechip",
  "bitbox-securechip-sys",
@@ -500,6 +507,7 @@ dependencies = [
  "bitbox-da14531",
  "bitbox-executor",
  "bitbox-hal",
+ "bitbox-i18n",
  "bitbox-noise",
  "bitbox-proto",
  "bitbox-secp256k1",

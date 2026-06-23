@@ -1,3 +1,15 @@
-loadfile $file
+// Reset and halt the device
 r
+
+// Temporarily disable bootloader protection before flashing.
+// NVMCTRL_CTRLB = NVMCTRL_CTRLB_CMDEX_KEY | NVMCTRL_CTRLB_CMD_SBPDIS.
+w2 0x41004004 0xA51A
+
+// Flash
+loadfile $file 0 noreset
+
+// Reset
+r
+
+// Quit
 q

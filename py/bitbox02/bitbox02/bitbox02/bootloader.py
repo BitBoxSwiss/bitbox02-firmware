@@ -215,6 +215,12 @@ class Bootloader:
         """
         self._erase(0)
 
+    def chip_erase(self) -> None:
+        """
+        Issues a chip erase. Only supported by development bootloaders.
+        """
+        self._query(b"c")
+
     def erased(self) -> bool:
         """
         Returns True if the the device contains no firmware.

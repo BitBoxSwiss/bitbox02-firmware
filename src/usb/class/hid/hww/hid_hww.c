@@ -81,6 +81,11 @@ bool hid_hww_write_poll(const uint8_t* data)
     return false;
 }
 
+bool hid_hww_write_busy(void)
+{
+    return _send_busy;
+}
+
 /**
  * The callback function is called after usb data has been received (endpoint = OUT).
  */

@@ -156,6 +156,9 @@ int main(void)
                 // screen_sprintf_debug(1000, "got frame");
                 da14531_handler(frame, uart_write_queue);
             }
+            if (!hww_data && rust_bytequeue_num(uart_write_queue) == 0) {
+                bootloader_process_pending_action();
+            }
         }
 #endif
 
@@ -166,6 +169,9 @@ int main(void)
                 if (hid_hww_write_poll(hww_data)) {
                     hww_data = NULL;
                 }
+            }
+            if (!hww_data && !hid_hww_write_busy()) {
+                bootloader_process_pending_action();
             }
 #if PLATFORM_BITBOX02PLUS == 1
         }

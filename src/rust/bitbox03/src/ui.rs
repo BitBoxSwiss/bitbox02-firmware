@@ -59,6 +59,10 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
             .await
     }
 
+    fn has_glyph(&self, _font: bitbox_hal::ui::Font, c: char) -> bool {
+        matches!(c, ' '..='~')
+    }
+
     async fn confirm_swap(
         &mut self,
         title: &str,

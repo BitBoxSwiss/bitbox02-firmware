@@ -34,7 +34,7 @@ void screen_print_debug(const char* message, int duration)
     char print[100];
     util_strlcpy(print, message, sizeof(print));
     screen_clear();
-    UG_FontSelect(&font_font_a_9X9);
+    UG_FontSelect(&font_arial_9);
     UG_PutString(0, 0, print);
     UG_SendBuffer();
 #ifndef TESTING
@@ -103,9 +103,9 @@ void screen_init(
     _mirror_fn = mirror_fn;
     _clear_fn = clear_fn;
 #ifdef BOOTLOADER
-    UG_Init(&guioled, pixel_fn, &font_font_a_9X9, SCREEN_WIDTH, SCREEN_HEIGHT);
+    UG_Init(&guioled, pixel_fn, &font_arial_9, SCREEN_WIDTH, SCREEN_HEIGHT);
 #else
-    UG_Init(&guioled, pixel_fn, &font_font_a_11X10, SCREEN_WIDTH, SCREEN_HEIGHT);
+    UG_Init(&guioled, pixel_fn, &font_arial_11, SCREEN_WIDTH, SCREEN_HEIGHT);
 #endif
 }
 

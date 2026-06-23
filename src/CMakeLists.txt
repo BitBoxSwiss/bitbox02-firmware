@@ -37,15 +37,13 @@ set(DBB-FIRMWARE-UI-SOURCES
     ${CMAKE_SOURCE_DIR}/src/screen.c
     ${CMAKE_SOURCE_DIR}/src/ui/graphics/graphics.c
     ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X10.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X12.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_13X14.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_15X16.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_17X18.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_5X9.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_9X9.c
-    ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_11X12.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_11.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_12.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_9.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/lvgl_font_compat.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_16.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_9.c
+    ${CMAKE_SOURCE_DIR}/src/ui/fonts/password_12.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_saver.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_stack.c
     ${CMAKE_SOURCE_DIR}/src/ui/screen_process.c
@@ -97,9 +95,9 @@ set(DBB-BOOTLOADER-SOURCES
   ${CMAKE_SOURCE_DIR}/src/memory/memory_spi.c
   ${CMAKE_SOURCE_DIR}/src/usb/usb_processing.c
   ${CMAKE_SOURCE_DIR}/src/ui/ugui/ugui.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_9X9.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/font_a_11X10.c
-  ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_5X9.c
+  ${CMAKE_SOURCE_DIR}/src/ui/fonts/arial_9_bootloader.c
+  ${CMAKE_SOURCE_DIR}/src/ui/fonts/lvgl_font_compat.c
+  ${CMAKE_SOURCE_DIR}/src/ui/fonts/monogram_16_bootloader.c
   ${CMAKE_SOURCE_DIR}/src/ui/graphics/graphics.c
   ${CMAKE_SOURCE_DIR}/src/screen.c
   ${CMAKE_SOURCE_DIR}/src/hardfault.c
@@ -180,8 +178,16 @@ set(INCLUDES
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/hww
   ${CMAKE_SOURCE_DIR}/src/usb/class/hid/u2f
+  ${CMAKE_SOURCE_DIR}/external/lvgl
 )
 set(INCLUDES ${INCLUDES} PARENT_SCOPE)
+
+set(LVGL_DEFINITIONS
+  LV_KCONFIG_IGNORE
+  LV_LVGL_H_INCLUDE_SIMPLE
+  LV_CONF_PATH="${CMAKE_SOURCE_DIR}/src/rust/bitbox-lvgl-sys/lv_conf.h"
+  LV_CONF_INCLUDE_SIMPLE
+)
 
 #-----------------------------------------------------------------------------
 # Build embedded firmware
@@ -390,6 +396,7 @@ foreach(type ${RUST_LIBS})
         _UNIT_TEST_
         PRODUCT_BITBOX_MULTI=1
         APP_U2F=1
+        ${LVGL_DEFINITIONS}
     )
     # For tests all C-files are built into the rust lib.
     target_include_directories(${type}_rust_c INTERFACE
@@ -423,6 +430,7 @@ if(CMAKE_CROSSCOMPILING)
     target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
     target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_U2F=0")
+    target_compile_definitions(${elf} PRIVATE ${LVGL_DEFINITIONS})
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     # needed to find bootloader_version.h
@@ -508,6 +516,7 @@ if(CMAKE_CROSSCOMPILING)
         asf4-drivers
         -Wl,-u,exception_table)
     target_include_directories(${elf} PRIVATE ${INCLUDES})
+    target_compile_definitions(${elf} PRIVATE ${LVGL_DEFINITIONS})
 
     # needed to find version.h
     target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

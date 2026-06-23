@@ -13,7 +13,7 @@
 #include <rust/rust.h>
 #include <ui/components/confirm.h>
 #include <ui/components/ui_images.h>
-#include <ui/fonts/monogram_5X9.h>
+#include <ui/fonts/monogram_16.h>
 #include <utils_assert.h>
 
 const uint8_t* da14531_handler_current_product = NULL;
@@ -155,7 +155,7 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
         const confirm_params_t confirm_params = {
             .title = "Pairing code",
             .body = pairing_code,
-            .font = &font_monogram_5X9,
+            .font = &font_monogram_16,
         };
         _ble_pairing_component = confirm_create(
             &confirm_params, _ble_pairing_callback, (void*)&_ble_pairing_callback_data);

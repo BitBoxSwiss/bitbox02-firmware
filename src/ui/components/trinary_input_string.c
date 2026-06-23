@@ -14,7 +14,7 @@
 #include <touch/gestures.h>
 #include <ui/event.h>
 #include <ui/event_handler.h>
-#include <ui/fonts/password_11X12.h>
+#include <ui/fonts/password_12.h>
 #include <ui/ugui/ugui.h>
 #include <ui/ui_util.h>
 #include <util.h>
@@ -47,7 +47,14 @@ static char _digits[] = "0123456789";
 // after tuning the font.
 static char _special_chars[] = " !\"#$%&'()*+,-./:;<=>?^[\\]@_{|}";
 
-static const UG_FONT* _font = &font_password_11X12;
+static const UG_FONT* _font = &font_password_12;
+
+static UG_U16 _char_width(char chr)
+{
+    UG_U16 width = 0;
+    UG_GetCharWidth(_font, (uint8_t)chr, &width);
+    return width;
+}
 
 static void _get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)
 {
@@ -124,10 +131,10 @@ static UG_S16 _constant_string_width(const component_t* component)
     for (size_t i = 0; i <= data->string_index; i++) {
         if (i == data->string_index) {
             char chr = EMPTY_CHAR;
-            width += _font->widths[chr - _font->start_char];
+            width += _char_width(chr);
         } else if (!data->hide) {
             char chr = data->string[i];
-            width += _font->widths[chr - _font->start_char];
+            width += _char_width(chr);
         } else {
             width += MASK_CHAR_WIDTH;
         }
@@ -177,14 +184,14 @@ static void _render(component_t* component)
         }
 
         char chr;
-        uint8_t width;
+        UG_U16 width;
         if (i == data->string_index) {
             chr = EMPTY_CHAR;
-            width = _font->widths[chr - _font->start_char];
+            width = _char_width(chr);
         } else if ((data->show_last_character && i == data->string_index - 1) || !data->hide) {
             // Show character (or only last entered character in if input is hidden).
             chr = data->string[i];
-            width = _font->widths[chr - _font->start_char];
+            width = _char_width(chr);
         } else {
             // ad-hoc encoding of the masked char, which will be drawn as a filled circle below.
             chr = '\0';
@@ -207,7 +214,7 @@ static void _render(component_t* component)
     // Draw '...' when the left part scrolled out of view.
     if (data->target_x < STRING_POS_X_START) {
         // HACK: blank out the chars rendered at this position first.
-        UG_FillFrame(0, STRING_POS_Y, 11, STRING_POS_Y + _font->char_height, screen_back_color);
+        UG_FillFrame(0, STRING_POS_Y, 11, STRING_POS_Y + _font->line_height, screen_back_color);
         UG_PutString(0, STRING_POS_Y, "...");
     }
 

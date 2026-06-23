@@ -70,6 +70,8 @@
 #define OP_SET_SHOW_FIRMWARE_HASH ((uint8_t)'H') /* 0x4A */
 // OP_HARDWARE - Return the secure chip variant.
 #define OP_HARDWARE ((uint8_t)'W') /* 0x57 */
+// OP_CHIP_ERASE - Issue a chip erase. Only available in non-production dev builds.
+#define OP_CHIP_ERASE ((uint8_t)'c') /* 0x63 */
 
 // API return codes
 #define OP_STATUS_OK ((uint8_t)0)
@@ -113,6 +115,9 @@ static_assert(sizeof(((boot_data_t*)0)->fields) <= FLASH_BOOTDATA_LEN, "boot_dat
 
 static bool _loading_ready = false;
 static uint8_t _firmware_num_chunks = 0;
+#if defined(BOOTLOADER_DEVDEVICE) && !defined(BOOTLOADER_PRODUCTION)
+static bool _chip_erase_requested = false;
+#endif
 // Indicates whether the whole app flash contains only 0xFF.
 // This controls bootloader text messages on the screen.
 // The value is computed at bootloader enter.
@@ -317,7 +322,9 @@ static void _render_message(const char* message, int duration)
     UG_ClearBuffer();
     UG_PutString(0, 0, message);
     UG_SendBuffer();
-    delay_ms(duration);
+    if (duration > 0) {
+        delay_ms(duration);
+    }
 }
 
 void bootloader_render_default_screen(void)
@@ -854,6 +861,21 @@ static size_t _api_hardware(uint8_t* output)
     return _report_status(OP_STATUS_OK, output) + 1;
 }
 
+#if defined(BOOTLOADER_DEVDEVICE) && !defined(BOOTLOADER_PRODUCTION)
+static size_t _api_chip_erase(uint8_t* output)
+{
+    _loading_ready = false;
+    if (DSU->STATUSB.bit.CELCK) {
+        return _report_status(OP_STATUS_ERR_LOCK, output);
+    }
+    if (periph_unlock(DSU) != ERR_NONE) {
+        return _report_status(OP_STATUS_ERR_UNLOCK, output);
+    }
+    _chip_erase_requested = true;
+    return _report_status(OP_STATUS_OK, output);
+}
+#endif
+
 static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t max_out_len)
 {
     memset(output, 0, max_out_len);
@@ -907,6 +929,11 @@ static size_t _api_command(const uint8_t* input, uint8_t* output, const size_t m
     case OP_HARDWARE:
         len = _api_hardware(output);
         break;
+#if defined(BOOTLOADER_DEVDEVICE) && !defined(BOOTLOADER_PRODUCTION)
+    case OP_CHIP_ERASE:
+        len = _api_chip_erase(output);
+        break;
+#endif
     default:
         len = _report_status(OP_STATUS_ERR_INVALID_CMD, output);
         _loading_ready = false;
@@ -932,9 +959,25 @@ static void _api_setup(void)
     usb_processing_register_cmds(usb_processing_hww(), cmd_callbacks, 1);
 }
 
+void bootloader_process_pending_action(void)
+{
+#if defined(BOOTLOADER_DEVDEVICE) && !defined(BOOTLOADER_PRODUCTION)
+    if (!_chip_erase_requested) {
+        return;
+    }
+    _render_message("Chip erase", 0);
+    bootloader_close_interfaces();
+    __disable_irq();
+    DSU->STATUSA.reg = DSU_STATUSA_DONE | DSU_STATUSA_BERR | DSU_STATUSA_FAIL | DSU_STATUSA_PERR;
+    DSU->CTRL.reg = DSU_CTRL_CE;
+    while (DSU->STATUSA.bit.DONE == 0) {
+    }
+    _reset_mcu();
+#endif
+}
+
 static void _check_init(boot_data_t* data)
 {
-#ifdef BOOTLOADER_PRODUCTION
     // Enable boot protection if not already enabled. The
     // BOOTPROT fuse is persistent and not erased on chip erase.
     while (NVMCTRL->STATUS.bit.READY == 0) {
@@ -957,6 +1000,7 @@ static void _check_init(boot_data_t* data)
         _reset_mcu();
     }
 
+#ifdef BOOTLOADER_PRODUCTION
     // Hard lock the Device Service Unit, i.e., set the PAC write-protection bit,
     // which can only be cleared by a hardware reset. Because the DSU is soft
     // locked by default on reset, an unlock is required before a hard lock.

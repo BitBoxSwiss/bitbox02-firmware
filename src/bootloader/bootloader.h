@@ -13,6 +13,11 @@ void bootloader_jump(void);
  */
 void bootloader_render_default_screen(void);
 
+/**
+ * Runs pending bootloader actions that must happen after a USB response was sent.
+ */
+void bootloader_process_pending_action(void);
+
 #if PLATFORM_BITBOX02PLUS
 /**
  * Renders a BLE pairing confirmations screen. Use the `confirmed` argument to display the

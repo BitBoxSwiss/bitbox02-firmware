@@ -1704,6 +1704,14 @@ class SendMessageBootloader:
     def _erase(self) -> None:
         self._device.erase()
 
+    def _chip_erase(self) -> None:
+        print("You will need to backup the flash to avoid permanently bricking the device")
+        if input("Type CHIP ERASE to erase the chip: ") != "CHIP ERASE":
+            print("Chip erase aborted")
+            return
+        self._device.chip_erase()
+        self._stop = True
+
     def _show_fw_hash(self) -> None:
         self._device.set_show_firmware_hash(True)
 
@@ -1727,6 +1735,7 @@ class SendMessageBootloader:
             ("Print versions", self._get_versions),
             ("Print hardware variant", self._get_hardware),
             ("Erase firmware", self._erase),
+            ("Chip erase", self._chip_erase),
             ("Show firmware hash at startup", self._show_fw_hash),
             ("Don't show firmware hash at startup", self._dont_show_fw_hash),
             ("Get firmware & sigkey hashes", self._get_hashes),

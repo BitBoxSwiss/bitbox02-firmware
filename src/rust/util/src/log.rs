@@ -7,7 +7,12 @@ pub use ::rtt_target;
 /// Macro to log over RTT if `rtt` feature is set, otherwise noop
 #[macro_export]
 macro_rules! log {
-    ($($arg:tt)*) => { #[cfg(feature="rtt")] {$crate::log::rtt_target::rprintln!($($arg)*) }};
+    ($($arg:tt)*) => {
+        #[cfg(all(feature = "rtt", target_os = "none"))]
+        {
+            $crate::log::rtt_target::rprintln!($($arg)*)
+        }
+    };
 }
 
 // Make log macro usable in crate

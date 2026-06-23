@@ -87,6 +87,7 @@ unsafe fn init_racy(logger: &'static Logger) {
 ///
 /// [`rtt_init`]: crate::rtt_init
 #[macro_export]
+#[cfg(feature = "log")]
 macro_rules! rtt_init_log {
     ($level:path, $mode:path, $size:expr) => {{
         $crate::rtt_init_print!($mode, $size);

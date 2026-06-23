@@ -47,6 +47,8 @@ RUN apt-get update && apt-get install -y \
     libtool \
     pkg-config \
     libcmocka-dev \
+    libfreetype6-dev \
+    libicu-dev \
     libusb-1.0-0-dev \
     libudev-dev \
     libhidapi-dev

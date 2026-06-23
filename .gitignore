@@ -1,5 +1,6 @@
 /build/
 /build-*/
+/bitbox02-flash-data-backup-*/
 /releases/temp/
 .vagrant/
 # LSP caches and local configs

@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+
+set -euo pipefail
+
+readonly DEVICE="ATSAMD51J20"
+readonly INTERFACE="SWD"
+readonly SPEED="4000"
+readonly SHARED_DATA_SIZE_DEC="8192"
+readonly SHARED_DATA_SIZE_HEX="0x2000"
+readonly APPDATA_SIZE_DEC="65536"
+readonly APPDATA_SIZE_HEX="0x10000"
+readonly BOOTDATA_SIZE_DEC="8192"
+readonly BOOTDATA_SIZE_HEX="0x2000"
+readonly SHARED_DATA_ADDR="0x0000e000"
+readonly APPDATA_ADDR="0x000e8000"
+readonly BOOTDATA_ADDR="0x000f8000"
+readonly MCU_SERIAL_WORD0_ADDR="0x008061fc"
+readonly MCU_SERIAL_WORD1_ADDR="0x00806010"
+readonly MCU_SERIAL_WORD2_ADDR="0x00806014"
+readonly MCU_SERIAL_WORD3_ADDR="0x00806018"
+
+usage() {
+    cat <<EOF
+Usage: $0 [backup-dir]
+
+Backs up the BitBox02 flash data areas through J-Link.
+If no backup directory is given, one is created in the current directory.
+The default directory name contains the connected MCU serial number.
+
+The backup contains secret key material and user data. Keep it private.
+EOF
+}
+
+file_size() {
+    if stat -c '%s' "$1" >/dev/null 2>&1; then
+        stat -c '%s' "$1"
+    else
+        stat -f '%z' "$1"
+    fi
+}
+
+sha256_files() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$@"
+    else
+        shasum -a 256 "$@"
+    fi
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+if [[ $# -gt 1 ]]; then
+    usage >&2
+    exit 1
+fi
+
+if ! command -v JLinkExe >/dev/null 2>&1; then
+    echo "error: JLinkExe not found in PATH" >&2
+    exit 1
+fi
+
+if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+    echo "error: neither sha256sum nor shasum found in PATH" >&2
+    exit 1
+fi
+
+umask 077
+
+requested_backup_dir="${1:-}"
+created_temp_backup_dir=0
+backup_dir_finalized=0
+
+if [[ -n "$requested_backup_dir" ]]; then
+    backup_dir="$requested_backup_dir"
+    mkdir -p "$backup_dir"
+
+    if [[ -n "$(find "$backup_dir" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+        echo "error: backup directory is not empty: $backup_dir" >&2
+        exit 1
+    fi
+else
+    backup_dir="$(mktemp -d "$PWD/.bitbox02-flash-data-backup.XXXXXX")"
+    created_temp_backup_dir=1
+fi
+
+backup_dir="$(cd "$backup_dir" && pwd)"
+cmd_file="$(mktemp "$backup_dir/.jlink-backup.XXXXXX")"
+
+cleanup() {
+    rm -f "$cmd_file" "$backup_dir"/.mcu-serial-word*.bin
+    if [[ "$created_temp_backup_dir" == "1" && "$backup_dir_finalized" != "1" ]]; then
+        rm -rf "$backup_dir"
+    fi
+}
+trap cleanup EXIT
+
+cat >"$cmd_file" <<EOF
+h
+savebin shared-data.bin, $SHARED_DATA_ADDR, $SHARED_DATA_SIZE_HEX
+savebin appdata.bin, $APPDATA_ADDR, $APPDATA_SIZE_HEX
+savebin bootdata.bin, $BOOTDATA_ADDR, $BOOTDATA_SIZE_HEX
+savebin .mcu-serial-word0.bin, $MCU_SERIAL_WORD0_ADDR, 0x4
+savebin .mcu-serial-word1.bin, $MCU_SERIAL_WORD1_ADDR, 0x4
+savebin .mcu-serial-word2.bin, $MCU_SERIAL_WORD2_ADDR, 0x4
+savebin .mcu-serial-word3.bin, $MCU_SERIAL_WORD3_ADDR, 0x4
+q
+EOF
+
+(
+    cd "$backup_dir"
+    JLinkExe \
+        -NoGui 1 \
+        -if "$INTERFACE" \
+        -device "$DEVICE" \
+        -speed "$SPEED" \
+        -autoconnect 1 \
+        -CommanderScript "$cmd_file"
+)
+
+size="$(file_size "$backup_dir/shared-data.bin")"
+if [[ "$size" != "$SHARED_DATA_SIZE_DEC" ]]; then
+    echo "error: unexpected size for shared-data.bin: $size bytes" >&2
+    exit 1
+fi
+
+size="$(file_size "$backup_dir/appdata.bin")"
+if [[ "$size" != "$APPDATA_SIZE_DEC" ]]; then
+    echo "error: unexpected size for appdata.bin: $size bytes" >&2
+    exit 1
+fi
+
+size="$(file_size "$backup_dir/bootdata.bin")"
+if [[ "$size" != "$BOOTDATA_SIZE_DEC" ]]; then
+    echo "error: unexpected size for bootdata.bin: $size bytes" >&2
+    exit 1
+fi
+
+for i in 0 1 2 3; do
+    file="$backup_dir/.mcu-serial-word${i}.bin"
+    size="$(file_size "$file")"
+    if [[ "$size" != "4" ]]; then
+        echo "error: unexpected size for .mcu-serial-word${i}.bin: $size bytes" >&2
+        exit 1
+    fi
+done
+cat \
+    "$backup_dir/.mcu-serial-word0.bin" \
+    "$backup_dir/.mcu-serial-word1.bin" \
+    "$backup_dir/.mcu-serial-word2.bin" \
+    "$backup_dir/.mcu-serial-word3.bin" \
+    >"$backup_dir/mcu-serial-number.bin"
+
+(
+    cd "$backup_dir"
+    mcu_serial_number_hex="$(od -An -tx1 -v mcu-serial-number.bin | tr -d ' \n')"
+    sha256_files shared-data.bin appdata.bin bootdata.bin mcu-serial-number.bin >SHA256SUMS
+    cat >metadata.txt <<EOF
+format=bitbox02-flash-data-v1
+created_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+mcu_serial_number_le_hex=$mcu_serial_number_hex
+EOF
+)
+
+mcu_serial_number_hex="$(od -An -tx1 -v "$backup_dir/mcu-serial-number.bin" | tr -d ' \n')"
+
+rm -f "$cmd_file" "$backup_dir"/.mcu-serial-word*.bin
+
+if [[ -z "$requested_backup_dir" ]]; then
+    final_backup_dir="$PWD/bitbox02-flash-data-backup-mcu-sn-${mcu_serial_number_hex}-$(date -u +%Y%m%dT%H%M%SZ)"
+    if [[ -e "$final_backup_dir" ]]; then
+        echo "error: backup directory already exists: $final_backup_dir" >&2
+        exit 1
+    fi
+    mv "$backup_dir" "$final_backup_dir"
+    backup_dir="$final_backup_dir"
+    backup_dir_finalized=1
+fi
+
+echo "Backed up BitBox02 flash data areas to: $backup_dir"
+echo "Treat shared-data.bin, appdata.bin, and bootdata.bin as private data."

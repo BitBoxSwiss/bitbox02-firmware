@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+
+set -euo pipefail
+
+readonly DEVICE="ATSAMD51J20"
+readonly INTERFACE="SWD"
+readonly SPEED="4000"
+readonly SHARED_DATA_SIZE_DEC="8192"
+readonly APPDATA_SIZE_DEC="65536"
+readonly BOOTDATA_SIZE_DEC="8192"
+readonly SHARED_DATA_ADDR="0x0000e000"
+readonly APPDATA_ADDR="0x000e8000"
+readonly BOOTDATA_ADDR="0x000f8000"
+readonly MCU_SERIAL_WORD0_ADDR="0x008061fc"
+readonly MCU_SERIAL_WORD1_ADDR="0x00806010"
+readonly MCU_SERIAL_WORD2_ADDR="0x00806014"
+readonly MCU_SERIAL_WORD3_ADDR="0x00806018"
+
+usage() {
+    cat <<EOF
+Usage: $0 [-f] <backup-dir>
+
+Restores a backup created by scripts/bitbox02-flash-data-backup through J-Link.
+This overwrites the BitBox02 shared-data, appdata, and bootdata flash areas.
+
+By default, the connected MCU serial number must match the backup. Use -f/--force to override.
+EOF
+}
+
+file_size() {
+    if stat -c '%s' "$1" >/dev/null 2>&1; then
+        stat -c '%s' "$1"
+    else
+        stat -f '%z' "$1"
+    fi
+}
+
+sha256_check() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum --check --status SHA256SUMS
+    else
+        shasum -a 256 -c SHA256SUMS >/dev/null
+    fi
+}
+
+force=0
+cmd_file=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+    -f | --force)
+        force=1
+        shift
+        ;;
+    --)
+        shift
+        break
+        ;;
+    -*)
+        usage >&2
+        exit 1
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
+
+if [[ $# -ne 1 ]]; then
+    usage >&2
+    exit 1
+fi
+
+if ! command -v JLinkExe >/dev/null 2>&1; then
+    echo "error: JLinkExe not found in PATH" >&2
+    exit 1
+fi
+
+if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+    echo "error: neither sha256sum nor shasum found in PATH" >&2
+    exit 1
+fi
+
+backup_dir="$1"
+if [[ ! -d "$backup_dir" ]]; then
+    echo "error: backup directory does not exist: $backup_dir" >&2
+    exit 1
+fi
+
+backup_dir="$(cd "$backup_dir" && pwd)"
+
+check_backup_file() {
+    local file="$1"
+    local expected_size="$2"
+    if [[ ! -f "$backup_dir/$file" ]]; then
+        echo "error: missing $file in $backup_dir" >&2
+        exit 1
+    fi
+    size="$(file_size "$backup_dir/$file")"
+    if [[ "$size" != "$expected_size" ]]; then
+        echo "error: unexpected size for $file: $size bytes" >&2
+        exit 1
+    fi
+}
+
+check_backup_file shared-data.bin "$SHARED_DATA_SIZE_DEC"
+check_backup_file appdata.bin "$APPDATA_SIZE_DEC"
+check_backup_file bootdata.bin "$BOOTDATA_SIZE_DEC"
+
+check_mcu_serial_number() {
+    local current_serial="$backup_dir/.current-mcu-serial-number.bin"
+    local read_id_cmd_file
+    read_id_cmd_file="$(mktemp "$backup_dir/.jlink-read-id.XXXXXX")"
+
+    cat >"$read_id_cmd_file" <<EOF
+h
+savebin .current-mcu-serial-word0.bin, $MCU_SERIAL_WORD0_ADDR, 0x4
+savebin .current-mcu-serial-word1.bin, $MCU_SERIAL_WORD1_ADDR, 0x4
+savebin .current-mcu-serial-word2.bin, $MCU_SERIAL_WORD2_ADDR, 0x4
+savebin .current-mcu-serial-word3.bin, $MCU_SERIAL_WORD3_ADDR, 0x4
+q
+EOF
+
+    (
+        cd "$backup_dir"
+        JLinkExe \
+            -NoGui 1 \
+            -if "$INTERFACE" \
+            -device "$DEVICE" \
+            -speed "$SPEED" \
+            -autoconnect 1 \
+            -CommanderScript "$read_id_cmd_file"
+        cat \
+            .current-mcu-serial-word0.bin \
+            .current-mcu-serial-word1.bin \
+            .current-mcu-serial-word2.bin \
+            .current-mcu-serial-word3.bin \
+            >"$current_serial"
+    )
+
+    rm -f \
+        "$read_id_cmd_file" \
+        "$backup_dir"/.current-mcu-serial-word*.bin
+
+    if [[ ! -f "$backup_dir/mcu-serial-number.bin" ]]; then
+        echo "error: backup has no MCU serial number file" >&2
+        return 1
+    fi
+
+    if ! cmp --silent "$backup_dir/mcu-serial-number.bin" "$current_serial"; then
+        if [[ "$force" == "1" ]]; then
+            echo "warning: MCU serial number does not match backup; restoring because -f was used" >&2
+            return 0
+        fi
+        echo "error: MCU serial number does not match backup; use -f to restore anyway" >&2
+        return 1
+    fi
+}
+
+trap 'rm -f "$backup_dir"/.current-mcu-*.bin "$backup_dir"/.jlink-read-id.* "$cmd_file"' EXIT
+
+if [[ -f "$backup_dir/SHA256SUMS" ]]; then
+    (
+        cd "$backup_dir"
+        sha256_check
+    )
+fi
+
+check_mcu_serial_number
+
+cmd_file="$(mktemp "$backup_dir/.jlink-restore.XXXXXX")"
+
+cat >"$cmd_file" <<EOF
+h
+exec SetFlashDLNoRMWThreshold = 0xFFFFFFFF
+loadfile shared-data.bin $SHARED_DATA_ADDR noreset
+loadfile appdata.bin $APPDATA_ADDR noreset
+loadfile bootdata.bin $BOOTDATA_ADDR noreset
+r
+q
+EOF
+
+(
+    cd "$backup_dir"
+    JLinkExe \
+        -NoGui 1 \
+        -if "$INTERFACE" \
+        -device "$DEVICE" \
+        -speed "$SPEED" \
+        -autoconnect 1 \
+        -CommanderScript "$cmd_file"
+)
+
+echo "Restored BitBox02 flash data areas from: $backup_dir"

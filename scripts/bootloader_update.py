@@ -254,7 +254,10 @@ def _stage0_expected_flags(development: bool) -> int:
 
 
 def _update_payload(signed_stage1: bytes, product_id: int, development: bool) -> bytes:
-    header = _validate_complete_stage1(signed_stage1, product_id, require_signatures=True)
+    # Development stage0 skips stage1 signature verification; keep signature slots zero.
+    header = _validate_complete_stage1(
+        signed_stage1, product_id, require_signatures=not development
+    )
     if header["flags"] != _stage1_expected_flags(development):
         raise RuntimeError("unexpected stage1 update payload flags")
     if len(signed_stage1) > BOOTLOADER_UPGRADE_PAYLOAD_LEN:
@@ -324,7 +327,7 @@ def main() -> None:
         "create-stage1-fw-embedding",
         help="create the stage1 update payload consumed by blupgrade firmware",
         description=(
-            "Validate a signed stage1 image for the requested product and production "
+            "Validate a stage1 image for the requested product and production "
             "or development mode, then pad it with erased-flash bytes to the fixed "
             "bootloader update slot size. The output is an intermediate binary that "
             "CMake converts into a firmware object file to be linked into the upgrader firmware."

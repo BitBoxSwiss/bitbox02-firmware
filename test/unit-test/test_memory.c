@@ -430,6 +430,44 @@ static void _test_memory_reset_hww_ble(void** state)
     assert_true(memory_reset_hww());
 }
 
+static void _test_memory_get_ble_bond_db(void** state)
+{
+    (void)state;
+    const uint8_t bond_db[] = {0x01, 0x02, 0x03};
+    chunk_shared_t shared_chunk = {0};
+    shared_chunk.fields.ble_bond_db_len = sizeof(bond_db);
+    memcpy(shared_chunk.fields.ble_bond_db, bond_db, sizeof(bond_db));
+    will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk.bytes);
+
+    uint8_t data[MEMORY_BLE_BOND_DB_LEN] = {0};
+    assert_int_equal(memory_get_ble_bond_db(data), sizeof(bond_db));
+    assert_memory_equal(data, bond_db, sizeof(bond_db));
+}
+
+static void _test_memory_get_ble_bond_db_invalid_negative_length(void** state)
+{
+    (void)state;
+    chunk_shared_t shared_chunk = {0};
+    shared_chunk.fields.ble_bond_db_len = -2;
+    memset(shared_chunk.fields.ble_bond_db, 0x42, sizeof(shared_chunk.fields.ble_bond_db));
+    will_return(__wrap_memory_read_shared_bootdata_fake, shared_chunk.bytes);
+
+    uint8_t data[MEMORY_BLE_BOND_DB_LEN];
+    uint8_t expected[MEMORY_BLE_BOND_DB_LEN];
+    memset(data, 0xa5, sizeof(data));
+    memset(expected, 0xa5, sizeof(expected));
+
+    assert_int_equal(memory_get_ble_bond_db(data), -1);
+    assert_memory_equal(data, expected, sizeof(data));
+}
+
+static void _test_memory_set_ble_bond_db_invalid_negative_length(void** state)
+{
+    (void)state;
+    const uint8_t bond_db[] = {0x01};
+    assert_false(memory_set_ble_bond_db(bond_db, -1));
+}
+
 static void _test_memory_get_device_name_default(void** state)
 {
     char name_out[MEMORY_DEVICE_MAX_LEN_WITH_NULL] = {0};
@@ -633,6 +671,9 @@ int main(void)
         cmocka_unit_test(_test_memory_set_mnemonic_passphrase_enabled),
         cmocka_unit_test(_test_memory_reset_hww),
         cmocka_unit_test(_test_memory_reset_hww_ble),
+        cmocka_unit_test(_test_memory_get_ble_bond_db),
+        cmocka_unit_test(_test_memory_get_ble_bond_db_invalid_negative_length),
+        cmocka_unit_test(_test_memory_set_ble_bond_db_invalid_negative_length),
         cmocka_unit_test(_test_memory_get_device_name_default),
         cmocka_unit_test(_test_memory_get_device_name_default_bluetooth),
         cmocka_unit_test(_test_memory_get_device_name_invalid),

@@ -135,11 +135,12 @@ const ALLOWLIST_FNS: &[&str] = &[
     "random_32_bytes_mcu",
     "random_32_bytes",
     "random_fake_reset",
-    "reboot_to_bootloader",
+    "boot_bootloader_wait",
     "reboot",
     "reset_ble",
     "screen_clear",
     "screen_init",
+    "screen_is_upside_down",
     "screen_print_debug",
     "screen_process_waiting_switch_to_lockscreen",
     "screen_process_waiting_switch_to_logo",
@@ -319,10 +320,11 @@ pub fn main() -> BuildResult<()> {
     emit_rerun_if_changed("../../../versions.json");
     emit_rerun_if_changed("../../../src/version.h.tmpl");
     emit_rerun_if_changed("../../../src/bootloader/bootloader_version.h.tmpl");
+    emit_rerun_if_changed("../../../src/bootloader/stage0/stage0_version.h.tmpl");
     emit_rerun_if_changed("../../../scripts/generate_version_headers.py");
     emit_rerun_if_changed("../../../scripts/generate_rust_header.sh");
 
-    // Generating version.h/bootloader_version.h depends on the current state of the git repo
+    // Generating version headers depends on the current state of the git repo.
     emit_git_rerun_if_changed(&repo_root);
 
     ensure_command_exists("bindgen")?;

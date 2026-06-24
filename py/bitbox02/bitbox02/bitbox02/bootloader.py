@@ -10,6 +10,8 @@ import hashlib
 import enum
 from typing import TypedDict
 
+import semver
+
 from bitbox02.communication import TransportLayer
 
 from bitbox02.communication.devices import (
@@ -24,6 +26,7 @@ from bitbox02.communication.devices import (
 BOOTLOADER_CMD = 0x80 + 0x40 + 0x03
 NUM_ROOT_KEYS = 3
 NUM_SIGNING_KEYS = 3
+BOOTLOADER_NEW_SIGHASH_VERSION = semver.VersionInfo(1, 2, 0)
 
 MAX_FIRMWARE_SIZE = 884736  # 928kB - 64kB
 CHUNK_SIZE = 4096
@@ -35,6 +38,11 @@ SIGDATA_MAGIC_BITBOX02_MULTI = struct.pack(">I", 0x653F362B)
 SIGDATA_MAGIC_BITBOX02_BTCONLY = struct.pack(">I", 0x11233B0B)
 SIGDATA_MAGIC_BITBOX02PLUS_MULTI = struct.pack(">I", 0x5B648CEB)
 SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY = struct.pack(">I", 0x48714774)
+
+PRODUCT_ID_BITBOX02_MULTI = 1
+PRODUCT_ID_BITBOX02_BTCONLY = 2
+PRODUCT_ID_BITBOX02PLUS_MULTI = 3
+PRODUCT_ID_BITBOX02PLUS_BTCONLY = 4
 
 MAGIC_LEN = 4
 
@@ -90,11 +98,18 @@ class Bootloader:
             BITBOX02PLUS_MULTI_BOOTLOADER: SIGDATA_MAGIC_BITBOX02PLUS_MULTI,
             BITBOX02PLUS_BTC_BOOTLOADER: SIGDATA_MAGIC_BITBOX02PLUS_BTCONLY,
         }.get(device_info["product_string"])
+        self.product_id = {
+            BB02MULTI_BOOTLOADER: PRODUCT_ID_BITBOX02_MULTI,
+            BB02BTC_BOOTLOADER: PRODUCT_ID_BITBOX02_BTCONLY,
+            BITBOX02PLUS_MULTI_BOOTLOADER: PRODUCT_ID_BITBOX02PLUS_MULTI,
+            BITBOX02PLUS_BTC_BOOTLOADER: PRODUCT_ID_BITBOX02PLUS_BTCONLY,
+        }.get(device_info["product_string"])
         self.version = parse_device_version(device_info["serial_number"])
         # Delete the prelease part, as it messes with the comparison (e.g. 3.0.0-pre < 3.0.0 is
         # True, but the 3.0.0-pre has already the same API breaking changes like 3.0.0...).
         self.version = self.version.replace(prerelease=None)
         assert self.expected_magic
+        assert self.product_id
 
     def _query(self, msg: bytes) -> bytes:
         cid = self._transport.generate_cid()
@@ -215,6 +230,12 @@ class Bootloader:
         """
         self._erase(0)
 
+    def _empty_firmware_hash(self, firmware_v: int) -> bytes:
+        empty_firmware = struct.pack("<I", firmware_v) + b"\xff" * MAX_FIRMWARE_SIZE
+        if self.version >= BOOTLOADER_NEW_SIGHASH_VERSION:
+            return hashlib.sha256(struct.pack("<H", self.product_id) + empty_firmware).digest()
+        return hashlib.sha256(hashlib.sha256(empty_firmware).digest()).digest()
+
     def erased(self) -> bool:
         """
         Returns True if the the device contains no firmware.
@@ -222,8 +243,7 @@ class Bootloader:
         # We check by comparing the device reported firmware hash.
         # If erased, the firmware is all '\xFF'.
         firmware_v, _ = self.versions()
-        empty_firmware = struct.pack("<I", firmware_v) + b"\xff" * MAX_FIRMWARE_SIZE
-        empty_firmware_hash = hashlib.sha256(hashlib.sha256(empty_firmware).digest()).digest()
+        empty_firmware_hash = self._empty_firmware_hash(firmware_v)
         reported_firmware_hash, _ = self.get_hashes()
         return empty_firmware_hash == reported_firmware_hash
 

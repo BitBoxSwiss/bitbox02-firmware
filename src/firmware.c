@@ -17,6 +17,10 @@
 #include <rust/rust.h>
 #include <ui/oled/oled.h>
 
+#ifdef BOOTLOADER_UPGRADE
+    #include "bootloader_upgrade/firmware_installer.h"
+#endif
+
 #if APP_U2F == 1
     #include <u2f.h>
 #endif
@@ -36,6 +40,9 @@ int main(void)
     qtouch_init();
     common_main();
     bitbox02_smarteeprom_init();
+#ifdef BOOTLOADER_UPGRADE
+    bootloader_upgrade_install_or_reboot();
+#endif
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         da14531_protocol_init();
     }

@@ -3,6 +3,7 @@
 #include "bootloader.h"
 #include "mpu_regions.h"
 #include <bootloader/bootloader_version.h>
+#include <bootloader_upgrade/bootloader_upgrade.h>
 #include <driver_init.h>
 #include <hardfault.h>
 #include <platform_config.h>
@@ -56,8 +57,8 @@ struct RustByteQueue* uart_write_queue = NULL;
 
 int main(void)
 {
-    // When in bootloader mode, the vector table should be 0. If not, halt.
-    if (SCB->VTOR) {
+    // Stage0 enters stage1 with VTOR at the stage1 vector table.
+    if (SCB->VTOR != BB02_STAGE1_VECTOR_ADDR) {
         while (1) {
         };
     }

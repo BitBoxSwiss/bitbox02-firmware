@@ -9,6 +9,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 - Fixed a crash when listing many backups over Bluetooth
 
+### v9.26.2
+- Intermediate release to update the bootloader to v1.2.0
+
 ### v9.26.1
 - Fix a payment request validation issue
 
@@ -198,6 +201,11 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Multisig script type and derivation keypath are now also verified during account regisration.
 
 ## Bootloader
+
+### v1.2.0
+- Convert to stage1
+- Security improvements
+- Bugfix to allow full-sized firmware upgrades
 
 ### v1.1.2
 - BitBox02 Nova: correctly orient bootloader screen

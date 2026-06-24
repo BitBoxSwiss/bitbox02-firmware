@@ -99,7 +99,7 @@ if [[ -f "$firmware_elf" ]]; then
 fi
 
 shopt -s nullglob
-for bootloader_elf in build/bin/bb02-bl-*.elf build/bin/bb02p-bl-*.elf; do
+for bootloader_elf in build/bin/bootloader-stage0-*.elf build/bin/bootloader-stage1-*.elf; do
     check_bootloader "$bootloader_elf"
 done
 shopt -u nullglob

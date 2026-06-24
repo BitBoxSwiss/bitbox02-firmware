@@ -2,10 +2,9 @@
 
 #include "system.h"
 #include "da14531/da14531.h"
-#include <memory/memory.h>
+#include <bootloader/boot_args.h>
 #include <memory/memory_shared.h>
 #include <rust/rust.h>
-#include <screen.h>
 #ifndef TESTING
     #include "uart.h"
     #include <driver_init.h>
@@ -28,22 +27,13 @@ static void _ble_clear_product(void)
     rust_bytequeue_free(uart_queue);
 }
 
-void reboot_to_bootloader(void)
+void boot_bootloader_wait(bool upside_down)
 {
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
         _ble_clear_product();
     }
-    auto_enter_t auto_enter = {
-        .value = sectrue_u8,
-    };
-    upside_down_t upside_down = {
-        .value = screen_is_upside_down(),
-    };
-    if (!memory_bootloader_set_flags(auto_enter, upside_down)) {
-        // If this failed, we might not be able to reboot into the bootloader.
-        // We will try anyway, no point in aborting here.
-    }
 #ifndef TESTING
+    boot_args_write_bootloader_wait(upside_down);
     _reset_mcu();
 #endif
 }

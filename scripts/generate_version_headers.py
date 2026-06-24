@@ -193,6 +193,9 @@ def load_manifest(manifest_path):
         value = manifest.get(key)
         if not isinstance(value, str) or not RELEASE_VERSION_RE.match(value):
             raise ValueError("Manifest entry '{}' must be a semver string like v1.2.3".format(key))
+    stage0 = manifest.get("stage0")
+    if not isinstance(stage0, int) or isinstance(stage0, bool) or stage0 < 0 or stage0 > 0xFFFF:
+        raise ValueError("Manifest entry 'stage0' must be an integer in the uint16_t range")
     return manifest
 
 
@@ -295,6 +298,7 @@ def generate_headers(repo_root, output_dir, cmake_vars_out=None, manifest_path=N
         "BOOTLOADER_VERSION_FULL": bootloader_info["full"],
         "BOOTLOADER_VERSION_FULL_W16": bootloader_info["full_w16"],
         "BOOTLOADER_VERSION_FULL_LEN": str(bootloader_info["full_len"]),
+        "STAGE0_IMAGE_VERSION": str(manifest["stage0"]),
     }
 
     write_file(
@@ -308,6 +312,13 @@ def generate_headers(repo_root, output_dir, cmake_vars_out=None, manifest_path=N
         os.path.join(output_dir, "bootloader", "bootloader_version.h"),
         render_template(
             os.path.join(repo_root, "src", "bootloader", "bootloader_version.h.tmpl"),
+            substitutions,
+        ),
+    )
+    write_file(
+        os.path.join(output_dir, "bootloader", "stage0", "stage0_version.h"),
+        render_template(
+            os.path.join(repo_root, "src", "bootloader", "stage0", "stage0_version.h.tmpl"),
             substitutions,
         ),
     )

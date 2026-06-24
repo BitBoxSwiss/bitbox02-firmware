@@ -199,21 +199,12 @@ jobs:
     strategy:
       matrix:
         target:
-          - bootloader
-          - bootloader-development
-          - bootloader-development-locked
-          - bootloader-production
-          - bootloader-debug
-          - bootloader-btc
-          - bootloader-btc-development
-          - bootloader-btc-production
-          - bootloader-plus
-          - bootloader-plus-development
-          - bootloader-plus-production
-          - bootloader-plus-debug
-          - bootloader-plus-btc
-          - bootloader-plus-btc-development
-          - bootloader-plus-btc-production
+          - bootloader-stage0
+          - bootloader-stage1
+          # Re-enable after the stage1 upgrade binaries are signed with the
+          # stage0 root keys embedded in this branch.
+          # - bootloader-upgrade-assets
+          # - bootloader-upgrade-assets-development
           - firmware
           - firmware-btc
           - factory-setup
@@ -242,7 +233,7 @@ jobs:
         run: make -j$(($(nproc)+1)) ${{ matrix.target }}
 
       - name: Check unwanted symbols
-        if: (matrix.target == 'firmware' || (startsWith(matrix.target, 'bootloader') && !endsWith(matrix.target, 'debug'))) && !cancelled()
+        if: (matrix.target == 'firmware' || startsWith(matrix.target, 'bootloader-stage')) && !cancelled()
         run: ./.ci/check-unwanted-symbols
 
       - name: Print hashes

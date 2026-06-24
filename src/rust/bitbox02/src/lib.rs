@@ -118,7 +118,7 @@ pub fn reset_ble() {
 
 #[allow(clippy::empty_loop)]
 pub fn reboot_to_bootloader() -> ! {
-    unsafe { bitbox02_sys::reboot_to_bootloader() }
+    unsafe { bitbox02_sys::boot_bootloader_wait(bitbox02_sys::screen_is_upside_down()) }
     loop {}
 }
 

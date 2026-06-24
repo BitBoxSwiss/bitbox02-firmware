@@ -411,6 +411,30 @@ void bootloader_init(void)
     _is_initialized = true;
 }
 
+void stage0_init(void)
+{
+    _delay_driver_init();
+    _oled_set_pins();
+    _spi_init();
+    _flash_memory_init();
+    _sha_init();
+    _rand_init();
+#ifndef BB02_STAGE0_DEVELOPMENT
+    _ecdsa_init();
+#endif
+}
+
+void stage0_deinit(void)
+{
+    // OLED interface bus. Display remains on last screen.
+    SPI_OLED_disable();
+    // Flash
+    flash_deinit(&FLASH_0);
+    // Hardware crypto
+    sha_sync_deinit(&HASH_ALGORITHM_0);
+    rand_sync_deinit(&RAND_0);
+}
+
 void system_close_interfaces(void)
 {
     if (!_is_initialized) {

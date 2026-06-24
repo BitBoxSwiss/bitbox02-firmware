@@ -1,0 +1,101 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target:
+          - thumbv7em-none-eabi
+          - thumbv6m-none-eabi # like the Cortex-M0+
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+
+    steps:
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          env && pwd && sudo apt-get update -y -qq && sudo apt-get install -y -qq llvm libc6-dev-i386 libclang-dev
+      - uses: fiam/arm-none-eabi-gcc@v1
+        with:
+          release: "9-2020-q2"
+
+      - name: Install rust
+        run: rustup show
+
+      - uses: actions/checkout@v3
+
+      - name: Check
+        run: |
+          cargo check --package littlefs2-core
+          cargo check --package littlefs2-core --features heapless-bytes03
+          cargo check --package littlefs2-core --features heapless-bytes04
+          cargo check --package littlefs2-core --features heapless07
+          cargo check --package littlefs2-core --features heapless08
+          cargo check --package littlefs2-core --features serde
+          cargo check --package littlefs2-core --all-features
+          cargo check --workspace --all-targets
+          cargo check --workspace --all-targets --all-features
+          cargo check --workspace --all-targets --no-default-features
+          cargo check --workspace --all-targets --no-default-features --features serde
+
+      - name: Build
+        run: cargo build --workspace --release --verbose
+
+      - name: Run clippy
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: cargo clippy --workspace --all-features --all-targets -- --deny warnings
+
+      - name: Check code format
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: cargo fmt --all -- --check
+
+      - name: Run tests
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: >
+          cargo test --workspace &&
+          cargo test --workspace --release &&
+          cargo test --workspace --features unstable-littlefs-patched
+
+      - name: Check documentation
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace
+
+  build-avr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          env && pwd && sudo apt-get update -y -qq && sudo apt-get install -y -qq llvm gcc-avr avr-libc libclang-dev
+
+      - name: Install rust
+        run: rustup toolchain install --profile minimal --component=rust-src nightly
+
+      - uses: actions/checkout@v3
+
+      - name: Patch delog
+        run: |
+          echo '[patch.crates-io]' >> Cargo.toml
+          echo 'delog = { version = "0.1.6", git = "https://github.com/LechevSpace/delog.git", rev = "e83f3fd" }' >> Cargo.toml
+
+      - name: Build avr
+        run: RUSTFLAGS="-C target-cpu=atmega328p" cargo +nightly build -Z build-std=core --target=avr-none --workspace --release
+
+  build-msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust toolchain for littlefs2-core
+        run: rustup override set 1.74
+      - name: Build littlefs2-core
+        # do not enable heapless09 and debug-error features as they require a newer Rust version
+        run: cargo build --package littlefs2-core --features heapless-bytes03,heapless-bytes04,heapless07,heapless08,serde
+      - name: Install Rust toolchain for littlefs2
+        run: rustup override set 1.87
+      - name: Build littlefs2
+        run: cargo build --package littlefs2 --all-features

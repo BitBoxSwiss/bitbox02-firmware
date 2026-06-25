@@ -7,5 +7,5 @@ sha256sum --check bitbox-da14531-firmware.bin.sha256
 
 (
   cd src/bootloader_upgrade/bin
-  sha256sum --check *.sha256
+  sha256sum --check checksums.txt
 )

@@ -201,12 +201,13 @@ jobs:
         target:
           - bootloader-stage0
           - bootloader-stage1
-          # Re-enable after the stage1 upgrade binaries are signed with the
-          # stage0 root keys embedded in this branch.
-          # - bootloader-upgrade-assets
-          # - bootloader-upgrade-assets-development
           - firmware
           - firmware-btc
+          - firmware-blupgrade-bitbox02-btconly
+          - firmware-blupgrade-bitbox02-multi
+          - firmware-blupgrade-bitbox02nova-btconly
+          - firmware-blupgrade-bitbox02nova-multi
+          - firmware-blupgrade-bitbox02-btconly-development
           - factory-setup
           - firmware-debug
           - simulator

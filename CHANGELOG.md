@@ -202,10 +202,12 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Bootloader
 
+### v1.2.1
+- Bugfix to allow full-sized firmware upgrades
+
 ### v1.2.0
 - Convert to stage1
 - Security improvements
-- Bugfix to allow full-sized firmware upgrades
 
 ### v1.1.2
 - BitBox02 Nova: correctly orient bootloader screen

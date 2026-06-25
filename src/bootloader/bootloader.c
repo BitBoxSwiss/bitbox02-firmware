@@ -518,7 +518,7 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
  */
 static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
 {
-    if (firmware_num_chunks > FIRMWARE_MAX_NUM_CHUNKS - 1) {
+    if (firmware_num_chunks > FIRMWARE_MAX_NUM_CHUNKS) {
         return _report_status(OP_STATUS_ERR_LEN, output);
     }
     if (firmware_num_chunks > 0) {

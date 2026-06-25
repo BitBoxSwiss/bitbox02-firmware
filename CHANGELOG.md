@@ -8,6 +8,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 
+### v9.26.3
+- Security improvements
+
 ### v9.26.1
 - Fix a payment request validation issue
 
@@ -197,6 +200,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Multisig script type and derivation keypath are now also verified during account regisration.
 
 ## Bootloader
+
+### v1.1.3
+- Allow full sized firmware images
 
 ### v1.1.2
 - BitBox02 Nova: correctly orient bootloader screen

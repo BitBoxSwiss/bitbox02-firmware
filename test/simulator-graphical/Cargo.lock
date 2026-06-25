@@ -954,6 +954,7 @@ dependencies = [
  "fiat-crypto",
  "rustc_version 0.4.0",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -1050,6 +1051,7 @@ dependencies = [
  "sha2",
  "signature",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -3946,6 +3948,7 @@ checksum = "fb66477291e7e8d2b0ff1bcb900bf29489a9692816d79874bea351e7a8b6de96"
 dependencies = [
  "curve25519-dalek",
  "rand_core",
+ "zeroize",
 ]
 
 [[package]]

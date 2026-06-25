@@ -5,6 +5,7 @@
 #if !defined(TESTING)
     #include "usb_protocol.h"
 #endif
+#include <assert.h>
 #include <string.h>
 
 /**
@@ -188,15 +189,22 @@ int32_t hid_req(
         case 0x0B: /* Set Protocol */
             func_data->protocol = req->wValue;
             return usbdc_xfer(ep, NULL, 0, 0);
-        case USB_REQ_HID_SET_REPORT:
+        case USB_REQ_HID_SET_REPORT: {
+            static_assert(
+                USB_HID_REPORT_OUT_SIZE == USB_REPORT_SIZE,
+                "USB_HID_REPORT_OUT_SIZE must match USB_REPORT_SIZE");
+            if (len > USB_HID_REPORT_OUT_SIZE) {
+                return ERR_INVALID_ARG;
+            }
             if (USB_SETUP_STAGE == stage) {
                 return usbdc_xfer(ep, ctrl_buf, len, false);
-            } else {
-                if (NULL != func_data->hid_set_report) {
-                    func_data->hid_set_report(ctrl_buf, len);
-                }
-                return ERR_NONE;
             }
+
+            if (NULL != func_data->hid_set_report) {
+                func_data->hid_set_report(ctrl_buf, len);
+            }
+            return ERR_NONE;
+        }
         default:
             return ERR_INVALID_ARG;
         }

@@ -861,8 +861,8 @@ async fn _process(
     // receiving the first output.
     let mut empty_component = None;
 
-    // Will contain the sum of all our output values (change or receive to self).
-    let mut outputs_sum_ours: u64 = 0;
+    // Will contain the sum of all change output values.
+    let mut outputs_sum_change: u64 = 0;
     // Will contain the sum of all outgoing output values (non-change outputs).
     let mut outputs_sum_out: u64 = 0;
 
@@ -883,7 +883,11 @@ async fn _process(
         // We don't allow regular outputs to have 0 value.
         // OP_RETURN outputs however we require to have 0 value.
         if output_type == pb::BtcOutputType::OpReturn {
-            if tx_output.value != 0 {
+            if tx_output.value != 0
+                || tx_output.ours
+                || tx_output.silent_payment.is_some()
+                || tx_output.payment_request_index.is_some()
+            {
                 return Err(Error::InvalidInput);
             }
         } else if tx_output.value == 0 {
@@ -893,6 +897,12 @@ async fn _process(
         // Get payload. If the output is marked ours, we compute the payload from the keystore,
         // otherwise it is provided in tx_output.payload.
         let payload: common::Payload = if tx_output.ours {
+            // Only external outputs can belong to a payment request. Receiving on silent payments
+            // is not supported yet.
+            if tx_output.payment_request_index.is_some() || tx_output.silent_payment.is_some() {
+                return Err(Error::InvalidInput);
+            }
+
             // Compute the payload from the keystore.
             let script_config_account =
                 if let Some(output_script_config_index) = tx_output.output_script_config_index {
@@ -968,15 +978,6 @@ async fn _process(
         } else {
             false
         };
-
-        // Only non-change outputs can belong to a payment request.
-        if is_change && tx_output.payment_request_index.is_some() {
-            return Err(Error::InvalidInput);
-        }
-
-        if is_change && tx_output.silent_payment.is_some() {
-            return Err(Error::InvalidInput);
-        }
 
         if !is_change {
             // Verify output if it is not a change output.
@@ -1075,7 +1076,7 @@ async fn _process(
 
         if is_change {
             num_changes += 1;
-            outputs_sum_ours = outputs_sum_ours
+            outputs_sum_change = outputs_sum_change
                 .checked_add(tx_output.value)
                 .ok_or(Error::InvalidInput)?;
         } else {
@@ -1137,7 +1138,7 @@ async fn _process(
 
     // Total out, including fee.
     let total_out: u64 = inputs_sum_pass1
-        .checked_sub(outputs_sum_ours)
+        .checked_sub(outputs_sum_change)
         .ok_or(Error::InvalidInput)?;
     let fee: u64 = total_out
         .checked_sub(outputs_sum_out)
@@ -2648,6 +2649,34 @@ mod tests {
         );
     }
 
+    #[async_test::test]
+    async fn test_silent_payment_rejects_ours_output() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        {
+            let mut tx = transaction.borrow_mut();
+            let silent_payment_output_index = 5;
+            assert!(tx.outputs[silent_payment_output_index].ours);
+            // A receive-branch self-transfer is not change, but it is still marked as ours and
+            // must not carry a silent payment address.
+            tx.outputs[silent_payment_output_index].keypath[3] = 0;
+            tx.outputs[silent_payment_output_index].silent_payment =
+                Some(pb::btc_sign_output_request::SilentPayment {
+                    address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
+                });
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        let init_request = transaction.borrow().init_request();
+
+        assert_eq!(
+            process(&mut TestingHal::new(), &init_request).await,
+            Err(Error::InvalidInput)
+        );
+    }
+
     // Test an output that is sending to the same account, but is not a change output by keypath.
     #[async_test::test]
     async fn test_self_send_non_change_output_same_account() {
@@ -3791,6 +3820,50 @@ mod tests {
         );
     }
 
+    #[async_test::test]
+    pub async fn test_payment_request_rejects_ours_output() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        {
+            let mut tx = transaction.borrow_mut();
+            let payment_request_output_index = 5;
+            assert!(tx.outputs[payment_request_output_index].ours);
+            let output_value = tx.outputs[payment_request_output_index].value;
+            let mut payment_request = pb::BtcPaymentRequestRequest {
+                recipient_name: "Test Merchant".into(),
+                memos: vec![Memo {
+                    memo: Some(memo::Memo::TextMemo(memo::TextMemo {
+                        note: "Test memo".into(),
+                    })),
+                }],
+                nonce: vec![],
+                total_amount: output_value,
+                signature: vec![],
+            };
+            payment_request::tst_sign_payment_request_btc(
+                tx.coin,
+                &mut payment_request,
+                output_value,
+                "bc1qnu4x8dlrx6dety47gehf4uhk5tj3q7yhywgry6",
+            );
+            tx.payment_request = Some(payment_request);
+            // A receive-branch self-transfer is not change, but it is still marked as ours and
+            // must not belong to a payment request.
+            tx.outputs[payment_request_output_index].keypath[3] = 0;
+            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        let init_request = transaction.borrow().init_request();
+
+        assert_eq!(
+            process(&mut TestingHal::new(), &init_request).await,
+            Err(Error::InvalidInput)
+        );
+    }
+
     #[cfg(feature = "app-ethereum")]
     #[test]
     pub fn test_validate_swap_source_account() {
@@ -4095,6 +4168,82 @@ mod tests {
         let mut mock_hal = TestingHal::new();
         assert_eq!(
             process(&mut mock_hal, &init_request).await,
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[async_test::test]
+    async fn test_op_return_rejects_ours_output() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        {
+            let mut tx = transaction.borrow_mut();
+            let output_index = 5;
+            assert!(tx.outputs[output_index].ours);
+            tx.outputs[output_index].r#type = pb::BtcOutputType::OpReturn as _;
+            tx.outputs[output_index].value = 0;
+            tx.outputs[output_index].payload = b"hello world".to_vec();
+            tx.outputs[output_index].keypath[3] = 0;
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        let init_request = transaction.borrow().init_request();
+
+        assert_eq!(
+            process(&mut TestingHal::new(), &init_request).await,
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[async_test::test]
+    async fn test_op_return_rejects_silent_payment_output() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        {
+            let mut tx = transaction.borrow_mut();
+            tx.outputs[0].r#type = pb::BtcOutputType::OpReturn as _;
+            tx.outputs[0].value = 0;
+            tx.outputs[0].payload = b"hello world".to_vec();
+            tx.outputs[0].silent_payment = Some(pb::btc_sign_output_request::SilentPayment {
+                address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
+            });
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        let init_request = transaction.borrow().init_request();
+
+        assert_eq!(
+            process(&mut TestingHal::new(), &init_request).await,
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[async_test::test]
+    async fn test_op_return_rejects_payment_request_output() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+        {
+            let mut tx = transaction.borrow_mut();
+            tx.outputs.push(pb::BtcSignOutputRequest {
+                r#type: pb::BtcOutputType::OpReturn as _,
+                value: 0,
+                payload: b"hello world".to_vec(),
+                payment_request_index: Some(0),
+                ..Default::default()
+            });
+        }
+
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        let init_request = transaction.borrow().init_request();
+
+        assert_eq!(
+            process(&mut TestingHal::new(), &init_request).await,
             Err(Error::InvalidInput)
         );
     }

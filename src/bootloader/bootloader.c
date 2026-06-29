@@ -433,9 +433,22 @@ static size_t _api_write_chunk(const uint8_t* buf, uint8_t chunknum, uint8_t* ou
     return len;
 }
 
+static bool _flash_pages_erased(uint32_t addr, uint32_t num_pages)
+{
+    const uint32_t* words = (const uint32_t*)addr;
+    const uint32_t num_words = num_pages * FLASH_PAGE_SIZE / sizeof(uint32_t);
+    for (uint32_t i = 0; i < num_words; i++) {
+        if (words[i] != UINT32_MAX) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
- * This function erases only the padding bytes, if not already erased. Other
- * bytes get erased and written when writing the firmware chunks.
+ * This function erases the padding bytes, if not already erased. Erasing starts
+ * at an erase-block boundary, so if the firmware ends halfway through a block,
+ * the last firmware chunk is erased here and written again later.
  *
  * The number of chunks is put into RAM in order to show the correct
  * progress in the next step flashing the firmware.
@@ -455,19 +468,18 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
             return _report_status(OP_STATUS_ERR_UNLOCK, output);
         }
     }
-    uint8_t empty_page[FLASH_PAGE_SIZE];
-    memset(empty_page, 0xff, sizeof(empty_page));
     uint16_t firmware_num_pages = firmware_num_chunks * FIRMWARE_CHUNK_LEN / FLASH_PAGE_SIZE;
-    for (uint32_t i = firmware_num_pages; i < (uint32_t)FLASH_APP_PAGE_NUM;
+    uint16_t erase_start_page = firmware_num_pages - (firmware_num_pages % FLASH_ERASE_PAGE_NUM);
+    for (uint32_t i = erase_start_page; i < (uint32_t)FLASH_APP_PAGE_NUM;
          i += FLASH_ERASE_PAGE_NUM) {
         const uint32_t addr = FLASH_APP_START + i * FLASH_PAGE_SIZE;
-        if (MEMEQ((const void*)addr, empty_page, sizeof(empty_page))) {
+        if (_flash_pages_erased(addr, FLASH_ERASE_PAGE_NUM)) {
             continue;
         }
         if (flash_erase(&FLASH_0, addr, FLASH_ERASE_PAGE_NUM) != ERR_NONE) {
             return _report_status(OP_STATUS_ERR_ERASE, output);
         }
-        if (!MEMEQ((const void*)addr, empty_page, sizeof(empty_page))) {
+        if (!_flash_pages_erased(addr, FLASH_ERASE_PAGE_NUM)) {
             return _report_status(OP_STATUS_ERR_CHECK, output);
         }
     }

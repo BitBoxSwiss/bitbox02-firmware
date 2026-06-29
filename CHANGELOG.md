@@ -202,6 +202,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ## Bootloader
 
+### v1.2.2
+- Fix stage1 firmware erase handling for partially erased flash blocks
+
 ### v1.2.1
 - Bugfix to allow full-sized firmware upgrades
 

@@ -263,10 +263,10 @@ or the following if you built the graphical one:
 ./build-build-noasan/bin/simulator-graphical --preseed
 ```
 
-This launches a server simulating the firmware. The send_message tool can
+This launches a server simulating the firmware. The BitBox02 CLI tool can
 connect to it with:
 
-    ./py/send_message.py --simulator
+    ./py/bitbox02_cli.py --simulator --interactive
 
 Both simulators can load the following seed:
 
@@ -406,5 +406,5 @@ Run `pip install -r py/requirements.txt` to install the deps (virtualenv recomme
 To kick off some api calls:
 
 ```sh
-./py/send_message.py
+./py/bitbox02_cli.py --interactive
 ```

@@ -4,8 +4,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use bitbox_hal::memory::{
-    BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
-    SecurechipType,
+    BleFirmwareSlot, BleMetadata, Error, Language, OptigaConfigVersion, PasswordStretchAlgo,
+    Platform, SecurechipType,
 };
 
 pub struct FakeMemory {
@@ -25,6 +25,7 @@ pub struct FakeMemory {
     noise_static_private_key: [u8; 32],
     noise_remote_static_pubkeys: Vec<[u8; 32]>,
     device_name: Option<String>,
+    device_language: Language,
     salt_root: [u8; 32],
     attestation_device_pubkey: Option<[u8; 64]>,
     attestation_certificate: Option<[u8; 64]>,
@@ -72,6 +73,7 @@ impl FakeMemory {
             noise_static_private_key: make_noise_static_private_key(0),
             noise_remote_static_pubkeys: Vec::new(),
             device_name: None,
+            device_language: Language::English,
             salt_root: *b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             attestation_device_pubkey: None,
             attestation_certificate: None,
@@ -197,6 +199,15 @@ impl bitbox_hal::Memory for FakeMemory {
         Ok(())
     }
 
+    fn get_device_language(&mut self) -> Language {
+        self.device_language
+    }
+
+    fn set_device_language(&mut self, language: Language) -> Result<(), Error> {
+        self.device_language = language;
+        Ok(())
+    }
+
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
         self.mnemonic_passphrase_enabled
     }
@@ -258,6 +269,7 @@ impl bitbox_hal::Memory for FakeMemory {
             make_noise_static_private_key(self.noise_static_private_key_generation);
         self.noise_remote_static_pubkeys = Vec::new();
         self.device_name = None;
+        self.device_language = Language::English;
         self.multisig_entries = Vec::new();
         Ok(())
     }

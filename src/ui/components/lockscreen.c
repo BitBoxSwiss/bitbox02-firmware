@@ -90,8 +90,9 @@ component_t* lockscreen_create(void)
         sizeof(display_name),
         device_name_font,
         component->dimension.width);
-    ui_util_add_sub_component(
-        component, label_create("See the BitBoxApp", NULL, CENTER, component));
+    char lockscreen_text[MAX_LABEL_SIZE + 1] = {0};
+    rust_i18n_translate_copy("See the BitBoxApp", lockscreen_text, sizeof(lockscreen_text));
+    ui_util_add_sub_component(component, label_create(lockscreen_text, NULL, CENTER, component));
     ui_util_add_sub_component(
         component, label_create(display_name, device_name_font, CENTER_BOTTOM, component));
 

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::hal::memory::Language;
 use crate::hal::ui::{CanCancel, ConfirmParams, TrinaryChoice, UserAbort};
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use sha2::{Digest, Sha256};
@@ -64,11 +65,13 @@ pub async fn show_and_confirm_mnemonic(
     hal_ui: &mut impl crate::hal::Ui,
     hal_random: &mut impl crate::hal::Random,
     words: &[&str],
+    language: Language,
 ) -> Result<(), UserAbort> {
+    let body = crate::i18n::format(language, "{} words follow", &[&words.len().to_string()]);
     hal_ui
         .confirm(&ConfirmParams {
             title: "",
-            body: &format!("{} words follow", words.len()),
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -79,10 +82,11 @@ pub async fn show_and_confirm_mnemonic(
     hal_ui.show_mnemonic(words).await?;
 
     // Can only succeed due to `accept_only`.
+    let body = crate::i18n::translate(language, "Please confirm\neach word");
     let _ = hal_ui
         .confirm(&ConfirmParams {
             title: "",
-            body: "Please confirm\neach word",
+            body: &body,
             accept_only: true,
             accept_is_nextarrow: true,
             ..Default::default()
@@ -94,13 +98,17 @@ pub async fn show_and_confirm_mnemonic(
         let title = format!("{:02}", word_idx + 1);
         let (correct_idx, choices) = create_random_unique_words(hal_random, word, NUM_RANDOM_WORDS);
         let mut choices: Vec<&str> = choices.iter().map(|c| c.as_ref()).collect();
-        choices.push("Back to\nrecovery words");
+        let back_to_words = crate::i18n::translate(language, "Back to\nrecovery words");
+        choices.push(&back_to_words);
         let back_idx = (choices.len() - 1) as u8;
         loop {
             match hal_ui.quiz_mnemonic_word(&choices, &title).await? {
                 selected_idx if selected_idx == correct_idx => break,
                 selected_idx if selected_idx == back_idx => hal_ui.show_mnemonic(words).await?,
-                _ => hal_ui.status("Incorrect word\nTry again", false).await,
+                _ => {
+                    let status = crate::i18n::translate(language, "Incorrect word\nTry again");
+                    hal_ui.status(&status, false).await
+                }
             }
         }
     }
@@ -180,20 +188,25 @@ async fn get_24th_word(
     hal_ui: &mut impl crate::hal::Ui,
     title: &str,
     entered_words: &[&str],
+    language: Language,
 ) -> Result<Option<zeroize::Zeroizing<String>>, UserAbort> {
     let mut choices = lastword_choices_strings(entered_words);
     // Add one more menu entry.
     let none_of_them_idx = {
-        choices.push(zeroize::Zeroizing::new("None of them".into()));
+        choices.push(zeroize::Zeroizing::new(
+            crate::i18n::translate(language, "None of them").into_owned(),
+        ));
         choices.len() - 1
     };
     loop {
         match hal_ui.menu(&as_str_vec(&choices), Some(title)).await {
             Err(UserAbort) => return Err(UserAbort),
             Ok(choice_idx) if choice_idx as usize == none_of_them_idx => {
+                let body =
+                    crate::i18n::translate(language, "Invalid. Check\nrecovery words.\nRestart?");
                 let params = ConfirmParams {
                     title: "",
-                    body: "Invalid. Check\nrecovery words.\nRestart?",
+                    body: &body,
                     ..Default::default()
                 };
                 if let Ok(()) = hal_ui.confirm(&params).await {
@@ -289,8 +302,17 @@ async fn enter_word_from_wordlist(
 pub async fn get(
     hal_ui: &mut impl crate::hal::Ui,
 ) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+    get_with_language(hal_ui, Language::English).await
+}
+
+/// Retrieve a localized BIP39 mnemonic sentence of 12 or 24 words from the user.
+pub async fn get_with_language(
+    hal_ui: &mut impl crate::hal::Ui,
+    language: Language,
+) -> Result<zeroize::Zeroizing<String>, UserAbort> {
+    let how_many_words = crate::i18n::translate(language, "How many words?");
     let num_words: usize = match hal_ui
-        .trinary_choice("How many words?", Some("12"), None, Some("24"))
+        .trinary_choice(&how_many_words, Some("12"), None, Some("24"))
         .await
     {
         TrinaryChoice::Left => 12,
@@ -298,9 +320,8 @@ pub async fn get(
         TrinaryChoice::Right => 24,
     };
 
-    hal_ui
-        .status(&format!("Enter {} words", num_words), true)
-        .await;
+    let body = crate::i18n::format(language, "Enter {} words", &[&num_words.to_string()]);
+    hal_ui.status(&body, true).await;
 
     // Provide all bip39 words to restrict the keyboard entry.
     let bip39_wordlist: Vec<u16> = (0..BIP39_WORDLIST_LEN).collect();
@@ -308,7 +329,11 @@ pub async fn get(
     let mut word_idx: usize = 0;
     let mut entered_words = vec![zeroize::Zeroizing::new(String::new()); num_words];
     while word_idx < num_words {
-        let title = format!("{} of {}", word_idx + 1, num_words);
+        let title = crate::i18n::format(
+            language,
+            "{} of {}",
+            &[&(word_idx + 1).to_string(), &num_words.to_string()],
+        );
 
         // The already entered word will already be filled out (if not empty, i.e. not entered
         // before). This happens when one goes back to edit previous words, and also when the user
@@ -323,7 +348,14 @@ pub async fn get(
             // throws, for example.
             if num_words == 24 {
                 // With 24 words there are only 8 valid candidates. We presnet them as a menu.
-                match get_24th_word(hal_ui, &title, &as_str_vec(&entered_words[..word_idx])).await {
+                match get_24th_word(
+                    hal_ui,
+                    &title,
+                    &as_str_vec(&entered_words[..word_idx]),
+                    language,
+                )
+                .await
+                {
                     Ok(None) => return Err(UserAbort),
                     Ok(Some(r)) => Ok(r),
                     Err(e) => Err(e),
@@ -350,10 +382,11 @@ pub async fn get(
                 } else {
                     // In all other words, we give the choice between editing the previous word and
                     // cancelling.
-                    match hal_ui
-                        .menu(&["Edit previous word", "Cancel restore"], Some("Choose"))
-                        .await
-                    {
+                    let edit_previous = crate::i18n::translate(language, "Edit previous word");
+                    let cancel_restore = crate::i18n::translate(language, "Cancel restore");
+                    let choose = crate::i18n::translate(language, "Choose");
+                    let choices = [edit_previous.as_ref(), cancel_restore.as_ref()];
+                    match hal_ui.menu(&choices, Some(choose.as_ref())).await {
                         Err(UserAbort) => {
                             // Cancel cancelled.
                             continue;
@@ -367,9 +400,12 @@ pub async fn get(
                 match cancel_choice {
                     GetWordError::EditPrevious => word_idx -= 1,
                     GetWordError::Cancel => {
+                        let title = crate::i18n::translate(language, "Restore");
+                        let body =
+                            crate::i18n::translate(language, "Do you really\nwant to cancel?");
                         let params = ConfirmParams {
-                            title: "Restore",
-                            body: "Do you really\nwant to cancel?",
+                            title: &title,
+                            body: &body,
                             ..Default::default()
                         };
 
@@ -442,7 +478,8 @@ mod tests {
         let mut random = TestingRandom::new();
         ui.prepare_show_and_confirm_mnemonic(&mut random, words.len());
 
-        let result = show_and_confirm_mnemonic(&mut ui, &mut random, &words).await;
+        let result =
+            show_and_confirm_mnemonic(&mut ui, &mut random, &words, Language::English).await;
         assert!(result.is_ok());
         TestingUi::assert_show_and_confirm_mnemonic_screens(&ui.screens, &words);
     }

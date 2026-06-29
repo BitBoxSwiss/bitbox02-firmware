@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::ui::{CanCancel, ConfirmParams};
+use crate::i18n::I18n as _;
 use alloc::vec::Vec;
 
 use super::Error;
@@ -18,7 +19,8 @@ use crate::workflow::unlock;
 pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let mnemonic_sentence = {
         let seed = if hal.memory().is_initialized() {
-            unlock::unlock_keystore(hal, "Unlock device", CanCancel::Yes).await?
+            let title = crate::tr!(hal, "Unlock device");
+            unlock::unlock_keystore(hal, &title, CanCancel::Yes).await?
         } else {
             crate::keystore::copy_seed(hal).await?
         };
@@ -26,19 +28,23 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
         crate::bip39::mnemonic_from_seed(&seed)?
     };
 
+    let title = crate::tr!(hal, "Warning");
+    let body = crate::tr!(hal, "DO NOT share your\nrecovery words with\nanyone!");
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "Warning",
-            body: "DO NOT share your\nrecovery words with\nanyone!",
+            title: &title,
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
         .await?;
 
+    let title = crate::tr!(hal, "Recovery\nwords");
+    let body = crate::tr!(hal, "Please write down\nthe following words");
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "Recovery\nwords",
-            body: "Please write down\nthe following words",
+            title: &title,
+            body: &body,
             accept_is_nextarrow: true,
             ..Default::default()
         })
@@ -47,13 +53,15 @@ pub async fn process(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> 
     let words: Vec<&str> = mnemonic_sentence.split(' ').collect();
 
     {
+        let language = hal.memory().get_device_language();
         let crate::hal::HalSubsystems { ui, random, .. } = hal.as_mut();
-        crate::workflow::mnemonic::show_and_confirm_mnemonic(ui, random, &words).await?;
+        crate::workflow::mnemonic::show_and_confirm_mnemonic(ui, random, &words, language).await?;
     }
 
     hal.memory().set_initialized().or(Err(Error::Memory))?;
 
-    hal.ui().status("Backup created", true).await;
+    let status = crate::tr!(hal, "Backup created");
+    hal.ui().status(&status, true).await;
     Ok(Response::Success(pb::Success {}))
 }
 

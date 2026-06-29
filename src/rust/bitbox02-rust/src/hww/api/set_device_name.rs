@@ -2,6 +2,7 @@
 
 use super::Error;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use crate::pb;
 
 use pb::response::Response;
@@ -16,8 +17,9 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
 
+    let title = crate::tr!(hal, "Name");
     let params = ConfirmParams {
-        title: "Name",
+        title: &title,
         body: name,
         scrollable: true,
         ..Default::default()

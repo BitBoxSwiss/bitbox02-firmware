@@ -611,7 +611,7 @@ void UG_MeasureStringCentered(UG_S16 *xout, UG_S16 *yout, const char *str)
     UG_S16 calc_width_line = 0;
     UG_S16 calc_height_line = 0;
     const char* c;
-    const uint8_t max_line = 128;
+    enum { max_line = 128 };
     char line[max_line];
     const char* start = str;
     for (c = str; *c != '\0'; c++) {
@@ -778,8 +778,8 @@ void UG_PutStringCentered( UG_S16 x, UG_S16 y, UG_S16 width, UG_S16 height, cons
         }
     }
     uint8_t current_line = 0;
-    const uint8_t max_line = UG_MAX_LINE_COLS;
-    char lines[num_lines][max_line];
+    enum { max_line = UG_MAX_LINE_COLS };
+    char lines[UG_MAX_LINE_ROWS][max_line];
     const char* start = str;
     for (c = str; *c != '\0'; c++) {
         if (*c == '\n' && current_line < UG_MAX_LINE_ROWS) {

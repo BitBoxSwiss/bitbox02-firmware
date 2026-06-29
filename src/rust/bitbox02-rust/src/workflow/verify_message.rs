@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use alloc::vec::Vec;
 
 use crate::hal::Ui;
@@ -63,8 +64,14 @@ pub async fn verify(
         }
         Ok(())
     } else {
+        let title_base = if title_long.contains('\n') {
+            title_short
+        } else {
+            title_long
+        };
+        let title = crate::tr_format!(hal, "{}\ndata (hex)", &[title_base]);
         let params = ConfirmParams {
-            title: &format!("{}\ndata (hex)", title_long),
+            title: &title,
             body: &hex::encode(msg),
             scrollable: true,
             display_size: msg.len(),
@@ -74,5 +81,43 @@ pub async fn verify(
         };
         hal.ui().confirm(&params).await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::hal::Memory as _;
+    use crate::hal::testing::TestingHal;
+    use crate::hal::testing::ui::Screen;
+
+    #[async_test::test]
+    async fn test_verify_hex_german_uses_short_title() {
+        let mut mock_hal = TestingHal::new();
+        mock_hal
+            .memory
+            .set_device_language(bitbox_hal::memory::Language::German)
+            .unwrap();
+
+        assert!(
+            verify(
+                &mut mock_hal,
+                "Nachricht\nsignieren",
+                "Signieren",
+                &[0],
+                true
+            )
+            .await
+            .is_ok()
+        );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![Screen::Confirm {
+                title: "Signieren\nDaten (Hex)".into(),
+                body: "00".into(),
+                longtouch: true,
+            }]
+        );
     }
 }

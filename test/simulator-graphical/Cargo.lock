@@ -341,6 +341,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitbox-i18n"
+version = "0.1.0"
+dependencies = [
+ "bitbox-hal",
+ "serde_json",
+]
+
+[[package]]
 name = "bitbox-noise"
 version = "0.1.0"
 dependencies = [
@@ -415,6 +423,7 @@ dependencies = [
  "bitbox-bytequeue",
  "bitbox-framed-serial-link",
  "bitbox-hal",
+ "bitbox-i18n",
  "bitbox-noise",
  "bitbox-securechip",
  "bitbox-securechip-sys",
@@ -443,6 +452,7 @@ dependencies = [
  "bitbox-da14531",
  "bitbox-executor",
  "bitbox-hal",
+ "bitbox-i18n",
  "bitbox-noise",
  "bitbox-proto",
  "bitbox-secp256k1",

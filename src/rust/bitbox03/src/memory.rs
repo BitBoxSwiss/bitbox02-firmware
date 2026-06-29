@@ -55,6 +55,17 @@ impl hal::memory::Memory for BitBox03Memory {
         todo!()
     }
 
+    fn get_device_language(&mut self) -> bitbox_hal::memory::Language {
+        bitbox_hal::memory::Language::English
+    }
+
+    fn set_device_language(
+        &mut self,
+        _language: bitbox_hal::memory::Language,
+    ) -> Result<(), bitbox_hal::memory::Error> {
+        todo!()
+    }
+
     fn is_mnemonic_passphrase_enabled(&mut self) -> bool {
         todo!()
     }

@@ -14,6 +14,7 @@ members = [
     "bitbox-platform-host",
     "bitbox-hal",
     "bitbox-core-utils",
+    "bitbox-i18n",
     "bitbox-framed-serial-link",
     "util",
     "bitbox-noise",

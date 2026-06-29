@@ -3,6 +3,7 @@
 use super::Error;
 use super::pb;
 use crate::hal::ui::{ConfirmParams, Progress};
+use crate::i18n::I18n as _;
 
 use hex_lit::hex;
 
@@ -132,16 +133,19 @@ async fn process_upgrade(
         }
     }
 
+    let title = crate::tr!(hal, "Bluetooth");
+    let body = crate::tr!(hal, "Upgrade\nfirmware?");
     hal.ui()
         .confirm(&ConfirmParams {
-            title: "Bluetooth",
-            body: "Upgrade\nfirmware?",
+            title: &title,
+            body: &body,
             longtouch: true,
             ..Default::default()
         })
         .await?;
 
-    let mut progress = hal.ui().progress_create("Upgrading...");
+    let progress_title = crate::tr!(hal, "Upgrading...");
+    let mut progress = hal.ui().progress_create(&progress_title);
     let response = process_upgrade_helper(
         hal.memory(),
         &mut RealFuncs,
@@ -153,7 +157,8 @@ async fn process_upgrade(
     drop(progress);
 
     if response.is_ok() {
-        hal.ui().status("Upgrade\nsuccessful", true).await;
+        let status = crate::tr!(hal, "Upgrade\nsuccessful");
+        hal.ui().status(&status, true).await;
         hal.system().reset_ble();
         if crate::communication_mode::ble_enabled(hal) {
             // Since the Bluetooth host will not be there anymore to read this response, this task
@@ -162,7 +167,8 @@ async fn process_upgrade(
             crate::async_usb::cancel();
         }
     } else {
-        hal.ui().status("Upgrade failed", false).await;
+        let status = crate::tr!(hal, "Upgrade failed");
+        hal.ui().status(&status, false).await;
     }
     response
 }
@@ -170,14 +176,14 @@ async fn process_upgrade(
 async fn process_toggle_enabled(hal: &mut impl crate::hal::Hal) -> Result<Response, Error> {
     let enabled = hal.memory().ble_enabled();
     let body = if enabled {
-        "Disable Bluetooth?"
+        crate::tr!(hal, "Disable Bluetooth?")
     } else {
-        "Enable Bluetooth?"
+        crate::tr!(hal, "Enable Bluetooth?")
     };
 
     hal.ui()
         .confirm(&ConfirmParams {
-            body,
+            body: &body,
             longtouch: true,
             ..Default::default()
         })
@@ -188,11 +194,11 @@ async fn process_toggle_enabled(hal: &mut impl crate::hal::Hal) -> Result<Respon
         .map_err(|_| Error::Memory)?;
 
     let status_text = if enabled {
-        "Bluetooth\ndisabled"
+        crate::tr!(hal, "Bluetooth\ndisabled")
     } else {
-        "Bluetooth\nenabled"
+        crate::tr!(hal, "Bluetooth\nenabled")
     };
-    hal.ui().status(status_text, true).await;
+    hal.ui().status(&status_text, true).await;
 
     Ok(pb::bluetooth_response::Response::Success(
         pb::BluetoothSuccess {},

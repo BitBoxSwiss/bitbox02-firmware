@@ -15,6 +15,7 @@ use super::truncating_hex_preview_byte_cap;
 
 use crate::hal::Ui;
 use crate::hal::ui::ConfirmParams;
+use crate::i18n::I18n as _;
 use crate::keystore;
 
 use pb::eth_request::Request;
@@ -270,9 +271,17 @@ fn confirm_title(root_object: RootObject) -> &'static str {
     }
 }
 
-fn format_display_line_prefix(display_path: &str, line_num: usize, num_lines: usize) -> String {
+fn format_display_line_prefix(
+    display_path: &str,
+    line_num: usize,
+    num_lines: usize,
+    line_suffix: Option<&str>,
+) -> String {
     if num_lines > 1 {
-        format!("{display_path}, line {}/{}", line_num + 1, num_lines)
+        match line_suffix {
+            Some(line_suffix) => format!("{display_path}{line_suffix}"),
+            None => format!("{display_path}, line {}/{}", line_num + 1, num_lines),
+        }
     } else {
         display_path.to_string()
     }
@@ -283,10 +292,11 @@ fn format_display_line_body(
     line_num: usize,
     num_lines: usize,
     line: &str,
+    line_suffix: Option<&str>,
 ) -> String {
     format!(
         "{}: {}",
-        format_display_line_prefix(display_path, line_num, num_lines),
+        format_display_line_prefix(display_path, line_num, num_lines, line_suffix),
         line
     )
 }
@@ -346,7 +356,11 @@ async fn encode_member<U: sha3::digest::Update>(
 
             display_size = req.data_length as usize;
             let display_cap = truncating_hex_preview_byte_cap(
-                format!("{}: 0x", format_display_line_prefix(&display_path, 0, 1)).len(),
+                format!(
+                    "{}: 0x",
+                    format_display_line_prefix(&display_path, 0, 1, None)
+                )
+                .len(),
                 display_size,
             );
             let mut producer = super::sighash::ChunkingProducer::from_host(req.data_length)
@@ -371,24 +385,41 @@ async fn encode_member<U: sha3::digest::Update>(
         // Display value, splitting multi-line strings into separate screens.
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
-            let body = format_display_line_body(&display_path, i, lines.len(), line);
+            let line_suffix = (lines.len() > 1).then(|| {
+                crate::tr_format!(
+                    hal,
+                    ", line {}/{}",
+                    &[&(i + 1).to_string(), &lines.len().to_string()],
+                )
+            });
+            let body = format_display_line_body(
+                &display_path,
+                i,
+                lines.len(),
+                line,
+                line_suffix.as_deref(),
+            );
             if body.len() > MAX_CONFIRM_BODY_SIZE {
+                let title = crate::tr!(hal, "Warning");
+                let warning_body =
+                    crate::tr!(hal, "The next value is\ntoo large to display\nin full");
                 hal.ui()
                     .confirm(&ConfirmParams {
-                        title: "Warning",
-                        body: "The next value is\ntoo large to display\nin full",
+                        title: &title,
+                        body: &warning_body,
                         accept_is_nextarrow: true,
                         ..Default::default()
                     })
                     .await?;
             }
+            let title = format!(
+                "{}{}",
+                hal.tr(confirm_title(root_object)),
+                title_suffix.as_deref().unwrap_or("")
+            );
             hal.ui()
                 .confirm(&ConfirmParams {
-                    title: &format!(
-                        "{}{}",
-                        confirm_title(root_object),
-                        title_suffix.as_deref().unwrap_or("")
-                    ),
+                    title: &title,
                     body: &body,
                     scrollable: true,
                     display_size,
@@ -422,22 +453,21 @@ async fn hash_array(
 
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
+    let title = format!(
+        "{}{}",
+        hal.tr(confirm_title(root_object)),
+        title_suffix.as_deref().unwrap_or("")
+    );
+    let list_description = if array_size == 0 {
+        crate::tr!(hal, "(empty list)").into_owned()
+    } else {
+        crate::tr_format!(hal, "list with {} elements", &[&array_size.to_string()])
+    };
+    let body = format!("{}: {}", formatted_path.join("."), list_description);
     hal.ui()
         .confirm(&ConfirmParams {
-            title: &format!(
-                "{}{}",
-                confirm_title(root_object),
-                title_suffix.as_deref().unwrap_or("")
-            ),
-            body: &format!(
-                "{}: {}",
-                formatted_path.join("."),
-                if array_size == 0 {
-                    "(empty list)".into()
-                } else {
-                    format!("list with {} elements", array_size)
-                }
-            ),
+            title: &title,
+            body: &body,
             scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
@@ -614,9 +644,10 @@ pub async fn process(
 
     let sighash: [u8; 32] = eip712_sighash(hal, &request.types, &request.primary_type).await?;
 
+    let body = crate::tr!(hal, "Sign data?");
     hal.ui()
         .confirm(&ConfirmParams {
-            body: "Sign data?",
+            body: &body,
             longtouch: true,
             ..Default::default()
         })
@@ -1136,6 +1167,7 @@ mod tests {
             0,
             1,
             &format!("0x{}", hex::encode(vec![0u8; exact_fit])),
+            None,
         );
         assert_eq!(exact_fit_body.len(), MAX_CONFIRM_BODY_SIZE);
 
@@ -1146,6 +1178,7 @@ mod tests {
             0,
             1,
             &format!("0x{}", hex::encode(vec![0u8; truncated])),
+            None,
         );
         assert!(truncated_body.len() > MAX_CONFIRM_BODY_SIZE);
     }

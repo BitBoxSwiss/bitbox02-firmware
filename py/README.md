@@ -1,7 +1,7 @@
 # BitBox python scripts
 
 This directory contains scripts to talk to the BitBox device directly via the command line
- (e.g. `send_message.py`, `load_firmware.py`).
+ (e.g. `bitbox02_cli.py`; `send_message.py` and `load_firmware.py` are compatibility wrappers).
 
 ## Setup
 
@@ -47,15 +47,19 @@ firmware manually read the next section or install with the official BitBoxApp.
 
 Connect your BitBox and "tap this side".
 
-List and execute all available commands by running:
+List available commands by running:
 
 ```bash
-python ./send_message.py
+python ./bitbox02_cli.py
 ```
 
-This command will list what commands are currently possible, depending on which
-mode the device currently is, i.e "Bootloader mode" accepts different commands.
-From here you can execute any command the BitBox accepts.
+Run the old interactive menu with:
+
+```bash
+python ./bitbox02_cli.py --interactive
+```
+
+The legacy `python ./send_message.py` command still opens the interactive menu.
 
 ```
 What would you like to do?
@@ -80,7 +84,7 @@ The script will prompt to enter the bootloader on the device before flashing.
 Production devices only accept `./firmware.signed.bin` signed by BitBox.
 
 ```bash
-python ./load_firmware.py ./firmware.signed.bin
+python ./bitbox02_cli.py firmware flash ./firmware.signed.bin
 ```
 
 Please note:
@@ -91,7 +95,7 @@ firmware versions and
 On dev-devices use the `--debug` flag to flash unsigned `./firmware.bin`.
 
 ```bash
-python ./load_firmware.py --debug ./firmware.bin
+python ./bitbox02_cli.py firmware flash --unsigned ./firmware.bin
 ```
 
 Contributors that don't have a dev-devices please refer to the

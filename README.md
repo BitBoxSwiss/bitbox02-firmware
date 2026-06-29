@@ -72,8 +72,8 @@ one without. See more details in [BUILD.md](BUILD.md#build-the-simulator).
 There are two main ways to install or upgrade firmware on a BitBox02:
 
 1. by running the [BitBoxApp](https://github.com/BitBoxSwiss/bitbox-wallet-app/)
-2. by running [./py/load_firmware.py](./py/load_firmware.py) after installing the [bitbox02](./py)
-   Python package, e.g. `./py/load_firmware.py firmware-btc.v9.12.0.signed.bin`.
+2. by running [./py/bitbox02_cli.py](./py/bitbox02_cli.py) after installing the [bitbox02](./py)
+   Python package, e.g. `./py/bitbox02_cli.py firmware flash firmware-btc.v9.12.0.signed.bin`.
 
 ## Reporting a vulnerability
 

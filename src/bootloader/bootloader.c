@@ -125,6 +125,7 @@ COMPILER_PACK_RESET()
 static bool _firmware_block_cache_valid = false;
 static uint8_t _firmware_cached_block = 0;
 static uint8_t _firmware_next_chunk = 0;
+static bool _firmware_app_erased = false;
 // Indicates whether the whole app flash contains only 0xFF.
 // This controls bootloader text messages on the screen.
 // The value is computed at bootloader enter.
@@ -487,6 +488,9 @@ static uint8_t _firmware_erase_block(uint32_t addr)
         addr % FIRMWARE_BLOCK_LEN != 0) {
         return OP_STATUS_ERR_ERASE;
     }
+    if (_is_erased((const void*)addr, FIRMWARE_BLOCK_LEN)) {
+        return OP_STATUS_OK;
+    }
     if (flash_erase(&FLASH_0, addr, FLASH_ERASE_PAGE_NUM) != ERR_NONE) {
         return OP_STATUS_ERR_ERASE;
     }
@@ -508,7 +512,7 @@ static uint8_t _firmware_block_cache_flush(void)
         return OP_STATUS_OK;
     }
 
-    if (_is_erased((const void*)addr, FIRMWARE_BLOCK_LEN)) {
+    if (_firmware_app_erased || _is_erased((const void*)addr, FIRMWARE_BLOCK_LEN)) {
         if (flash_append(&FLASH_0, addr, _firmware_block_cache, FIRMWARE_BLOCK_LEN) != ERR_NONE) {
             return OP_STATUS_ERR_WRITE;
         }
@@ -581,6 +585,7 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
     }
     _loading_ready = false;
     _firmware_num_chunks = 0;
+    _firmware_app_erased = false;
     _firmware_block_cache_reset();
     for (uint32_t i = 0; i < (uint32_t)FLASH_APP_PAGE_NUM; i += FLASH_REGION_PAGE_NUM) {
         if (flash_unlock(&FLASH_0, FLASH_APP_START + i * FLASH_PAGE_SIZE, FLASH_REGION_PAGE_NUM) !=
@@ -596,6 +601,7 @@ static size_t _api_firmware_erase(uint8_t firmware_num_chunks, uint8_t* output)
             return _report_status(status, output);
         }
     }
+    _firmware_app_erased = true;
 
     if (firmware_num_chunks > 0) {
         _firmware_num_chunks = firmware_num_chunks;

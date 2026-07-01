@@ -32,6 +32,7 @@ except AttributeError:
 from .bitbox02 import (
     btc_sign_needs_prevtxs,
     Backup,
+    BitBoxSyncIdentity,
     BitBox02,
     BTCInputType,
     BTCOutputExternal,
@@ -41,6 +42,7 @@ from .bitbox02 import (
     BTCPrevTxOutputType,
     DuplicateEntryException,
     hww,
+    bitboxsync,
     btc,
     cardano,
     common,

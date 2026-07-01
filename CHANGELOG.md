@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Fixed a crash when listing many backups over Bluetooth
+- Add support for BitBoxSync
 
 ### v9.26.1
 - Fix a payment request validation issue

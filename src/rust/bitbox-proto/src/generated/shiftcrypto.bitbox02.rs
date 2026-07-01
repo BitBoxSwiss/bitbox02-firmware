@@ -217,6 +217,129 @@ pub struct SetPasswordRequest {
 pub struct ChangePasswordRequest {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncIdentityRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncIdentityResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub auth_public_key: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub wrap_public_key: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncSignLoginIntentRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub challenge: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncSignRefreshIntentRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub challenge: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncSignRevokeAllTokensIntentRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub challenge: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncSignCreateNamespaceInviteIntentRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub challenge: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub namespace_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub invite_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub invite_server_secret_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "5")]
+    pub expires_at: u64,
+    #[prost(uint32, tag = "6")]
+    pub max_accepted: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncSignJoinRequestIntentRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub namespace_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub invite_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub server_origin: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub expires_at: u64,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncUnwrapNamespaceDekRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub namespace_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub wrapped_dek: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncSignatureResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub signature: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncUnwrapNamespaceDekResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub namespace_dek: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncRequest {
+    #[prost(oneof = "bit_box_sync_request::Request", tags = "1, 2, 3, 4, 5, 6, 7")]
+    pub request: ::core::option::Option<bit_box_sync_request::Request>,
+}
+/// Nested message and enum types in `BitBoxSyncRequest`.
+pub mod bit_box_sync_request {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Request {
+        #[prost(message, tag = "1")]
+        Identity(super::BitBoxSyncIdentityRequest),
+        #[prost(message, tag = "2")]
+        SignLoginIntent(super::BitBoxSyncSignLoginIntentRequest),
+        #[prost(message, tag = "3")]
+        SignRefreshIntent(super::BitBoxSyncSignRefreshIntentRequest),
+        #[prost(message, tag = "4")]
+        SignRevokeAllTokensIntent(super::BitBoxSyncSignRevokeAllTokensIntentRequest),
+        #[prost(message, tag = "5")]
+        SignCreateNamespaceInviteIntent(super::BitBoxSyncSignCreateNamespaceInviteIntentRequest),
+        #[prost(message, tag = "6")]
+        SignJoinRequestIntent(super::BitBoxSyncSignJoinRequestIntentRequest),
+        #[prost(message, tag = "7")]
+        UnwrapNamespaceDek(super::BitBoxSyncUnwrapNamespaceDekRequest),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BitBoxSyncResponse {
+    #[prost(oneof = "bit_box_sync_response::Response", tags = "1, 2, 3")]
+    pub response: ::core::option::Option<bit_box_sync_response::Response>,
+}
+/// Nested message and enum types in `BitBoxSyncResponse`.
+pub mod bit_box_sync_response {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Response {
+        #[prost(message, tag = "1")]
+        Identity(super::BitBoxSyncIdentityResponse),
+        #[prost(message, tag = "2")]
+        Signature(super::BitBoxSyncSignatureResponse),
+        #[prost(message, tag = "3")]
+        UnwrapNamespaceDek(super::BitBoxSyncUnwrapNamespaceDekResponse),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct BluetoothToggleEnabledRequest {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -1930,7 +2053,7 @@ pub struct Success {}
 pub struct Request {
     #[prost(
         oneof = "request::Request",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31"
     )]
     pub request: ::core::option::Option<request::Request>,
 }
@@ -1997,6 +2120,8 @@ pub mod request {
         Bluetooth(super::BluetoothRequest),
         #[prost(message, tag = "30")]
         ChangePassword(super::ChangePasswordRequest),
+        #[prost(message, tag = "31")]
+        BitboxSync(super::BitBoxSyncRequest),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -2004,7 +2129,7 @@ pub mod request {
 pub struct Response {
     #[prost(
         oneof = "response::Response",
-        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17"
+        tags = "1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
     )]
     pub response: ::core::option::Option<response::Response>,
 }
@@ -2046,5 +2171,7 @@ pub mod response {
         Bip85(super::Bip85Response),
         #[prost(message, tag = "17")]
         Bluetooth(super::BluetoothResponse),
+        #[prost(message, tag = "18")]
+        BitboxSync(super::BitBoxSyncResponse),
     }
 }

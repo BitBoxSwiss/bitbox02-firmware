@@ -6,6 +6,7 @@
 - Add `change_password()`
 - Backups: return non-naive timestamps with UTC timezone
 - Disabling anti-klepto for EIP-712 typed message signing requires firmware version v9.26.0 or newer
+- Add support for BitBoxSync
 
 # 7.0.0
 - get_info: add optional device initialized boolean to returned tuple

@@ -507,6 +507,7 @@ dependencies = [
  "bitcoin",
  "bitcoin_hashes",
  "blake2",
+ "chacha20poly1305",
  "crc",
  "digest",
  "ed25519-dalek",
@@ -514,6 +515,7 @@ dependencies = [
  "futures-lite",
  "hex",
  "hex_lit",
+ "hkdf",
  "hmac",
  "keccak",
  "minicbor",
@@ -526,6 +528,7 @@ dependencies = [
  "sha3",
  "streaming-silent-payments",
  "util",
+ "x25519-dalek",
  "zeroize",
 ]
 
@@ -1046,6 +1049,7 @@ dependencies = [
  "fiat-crypto",
  "rustc_version 0.4.1",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -1142,6 +1146,7 @@ dependencies = [
  "sha2",
  "signature",
  "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -1564,6 +1569,15 @@ name = "hex_lit"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3011d1213f159867b13cfd6ac92d2cd5f1345762c63be3554e84092d85a50bbd"
+
+[[package]]
+name = "hkdf"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
+dependencies = [
+ "hmac",
+]
 
 [[package]]
 name = "hmac"
@@ -3927,6 +3941,7 @@ checksum = "c7e468321c81fb07fa7f4c636c3972b9100f0346e5b6a9f2bd0603a52f7ed277"
 dependencies = [
  "curve25519-dalek",
  "rand_core 0.6.4",
+ "zeroize",
 ]
 
 [[package]]

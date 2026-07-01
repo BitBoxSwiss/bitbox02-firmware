@@ -49,6 +49,7 @@ setuptools.setup(
             "backup_commands_pb2.pyi",
             "bitbox02_system_pb2.pyi",
             "bitboxbase_pb2.pyi",
+            "bitboxsync_pb2.pyi",
             "btc_pb2.pyi",
             "common_pb2.pyi",
             "eth_pb2.pyi",

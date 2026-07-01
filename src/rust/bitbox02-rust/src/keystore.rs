@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#[cfg(feature = "ed25519")]
 pub mod ed25519;
 
 use alloc::boxed::Box;
@@ -843,6 +842,24 @@ pub async fn bip85_ln(
 
     let mut entropy = bip85_entropy(hal, &keypath).await?;
     entropy.truncate(16);
+    Ok(entropy)
+}
+
+/// Computes 32 byte deterministic root entropy for BitBoxSync identities.
+/// It is the same as BIP-85, but using app number 1112758606' (= 0x4253594e = 'BSYN').
+pub async fn bip85_bitboxsync(
+    hal: &mut impl crate::hal::Hal,
+) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
+    let keypath = [
+        83696968 + HARDENED,
+        0x4253594e + HARDENED,
+        0 + HARDENED,
+        0 + HARDENED,
+        0 + HARDENED,
+    ];
+
+    let mut entropy = bip85_entropy(hal, &keypath).await?;
+    entropy.truncate(32);
     Ok(entropy)
 }
 
@@ -2087,6 +2104,25 @@ mod tests {
 
         // Index too high.
         assert!(bip85_ln(&mut TestingHal::new(), HARDENED).await.is_err());
+    }
+
+    #[async_test::test]
+    async fn test_bip85_bitboxsync() {
+        lock();
+        assert!(bip85_bitboxsync(&mut TestingHal::new()).await.is_err());
+
+        mock_unlocked_using_mnemonic(
+            "virtual weapon code laptop defy cricket vicious target wave leopard garden give",
+            "",
+        );
+
+        assert_eq!(
+            bip85_bitboxsync(&mut TestingHal::new())
+                .await
+                .unwrap()
+                .as_slice(),
+            hex!("849f3df6b47006f4a6dd74c8fd078101bff22a124214472a4dd7859da04a5a17"),
+        );
     }
 
     #[async_test::test]

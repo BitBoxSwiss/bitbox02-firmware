@@ -5,3 +5,4 @@ bitbox02
 requests
 types-requests
 rlp
+pyhpke>=0.6.4,<0.7

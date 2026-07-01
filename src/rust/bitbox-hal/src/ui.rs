@@ -96,6 +96,10 @@ pub trait Ui {
 
     async fn status(&mut self, title: &str, status_success: bool);
 
+    /// Demo/testing only: show a screen with all navigation icon buttons. Defaults to a no-op so
+    /// only platforms that implement it (BitBox03) do anything.
+    async fn show_demo_nav_buttons(&mut self) {}
+
     /// Render a debug/error message directly to the screen.
     /// If `duration` is zero, the message remains visible indefinitely.
     fn print_screen(&mut self, duration: Duration, msg: &str);

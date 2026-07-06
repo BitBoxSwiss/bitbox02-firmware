@@ -4,13 +4,14 @@ use alloc::format;
 
 use bitbox_hal::ui::UserAbort;
 use bitbox_lvgl::{
-    self as lvgl, LabelExt, LvAlign, LvButton, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel,
-    ObjExt,
+    self as lvgl, LabelExt, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel, ObjExt,
 };
 use util::futures::completion::Responder;
 
+use super::nav_button::{NavIcon, build_close_button, build_nav_button};
+
 #[derive(Clone, Copy)]
-pub(super) enum MenuAction {
+pub enum MenuAction {
     Previous,
     Next,
     Select,
@@ -22,51 +23,6 @@ pub(super) enum MenuResult {
     Selected(u8),
     Continue,
     Cancel(usize),
-}
-
-fn add_button<F>(parent: &LvObj, width: i32, height: i32, label: &str, primary: bool, cb: F)
-where
-    F: FnMut() + 'static,
-{
-    let button = LvButton::new(parent).unwrap();
-    button.set_size(width, height);
-    button.set_style_bg_color(
-        if primary {
-            lvgl::color::white()
-        } else {
-            lvgl::color::hex(0x30333a)
-        },
-        0,
-    );
-    button.set_style_bg_opa(LvOpacityLevel::LV_OPA_COVER as u8, 0);
-    button.set_style_border_width(2, 0);
-    button.set_style_border_color(
-        if primary {
-            lvgl::color::black()
-        } else {
-            lvgl::color::white()
-        },
-        0,
-    );
-    button
-        .add_click_cb(cb)
-        .expect("failed to register menu callback");
-
-    let button_label = LvLabel::new(&button).unwrap();
-    button_label.set_text(label).unwrap();
-    button_label.set_style_text_font(
-        lvgl::fonts::INTER_BOLD_32,
-        lvgl::LvState::LV_STATE_DEFAULT as u32,
-    );
-    button_label.set_style_text_color(
-        if primary {
-            lvgl::color::black()
-        } else {
-            lvgl::color::white()
-        },
-        0,
-    );
-    button_label.align(LvAlign::LV_ALIGN_CENTER, 0, 0);
 }
 
 fn transparent_row(parent: &LvObj, height: i32) -> LvObj {
@@ -85,7 +41,7 @@ fn transparent_row(parent: &LvObj, height: i32) -> LvObj {
     row
 }
 
-pub(super) fn build_menu_screen(
+pub fn build_menu_screen(
     words: &[&str],
     title: Option<&str>,
     index: usize,
@@ -134,65 +90,64 @@ pub(super) fn build_menu_screen(
     let can_go_previous = index > 0;
     let can_go_next = index + 1 < words.len();
     if can_go_previous || can_go_next {
-        let navigation = transparent_row(&screen, 64);
-        let navigation_button_width = if can_go_previous && can_go_next {
-            180
-        } else {
-            380
-        };
+        let navigation = transparent_row(&screen, 82);
+        // Keep Back on the left and Next on the right, whichever are present.
+        navigation.set_style_flex_main_place(
+            match (can_go_previous, can_go_next) {
+                (true, true) => lvgl::LvFlexAlign::LV_FLEX_ALIGN_SPACE_BETWEEN,
+                (false, true) => lvgl::LvFlexAlign::LV_FLEX_ALIGN_END,
+                _ => lvgl::LvFlexAlign::LV_FLEX_ALIGN_START,
+            },
+            0,
+        );
         if can_go_previous {
             let previous_responder = responder.clone();
-            add_button(
-                &navigation,
-                navigation_button_width,
-                64,
-                "Back",
-                false,
-                move || {
-                    previous_responder.resolve(MenuAction::Previous);
-                },
-            );
+            let back = build_nav_button(&navigation, NavIcon::Back);
+            back.add_click_cb(move || {
+                previous_responder.resolve(MenuAction::Previous);
+            })
+            .expect("failed to register previous callback");
         }
         if can_go_next {
             let next_responder = responder.clone();
-            add_button(
-                &navigation,
-                navigation_button_width,
-                64,
-                "Next",
-                false,
-                move || {
-                    next_responder.resolve(MenuAction::Next);
-                },
-            );
+            let next = build_nav_button(&navigation, NavIcon::Next);
+            next.add_click_cb(move || {
+                next_responder.resolve(MenuAction::Next);
+            })
+            .expect("failed to register next callback");
         }
     }
 
-    let actions = transparent_row(&screen, 72);
-    let show_continue = continue_on_last && index + 1 == words.len();
-    let show_primary = select_word || show_continue;
-    let action_button_width = if show_primary { 180 } else { 380 };
-
+    // Cancel lives in the top-right corner so it doesn't crowd the bottom navigation.
     let cancel_responder = responder.clone();
-    add_button(
-        &actions,
-        action_button_width,
-        72,
-        "Cancel",
-        false,
-        move || {
+    let close = build_close_button(&screen);
+    close
+        .add_click_cb(move || {
             cancel_responder.resolve(MenuAction::Cancel);
-        },
-    );
+        })
+        .expect("failed to register cancel callback");
 
-    if select_word {
-        add_button(&actions, 180, 72, "Select", true, move || {
-            responder.resolve(MenuAction::Select);
-        });
-    } else if show_continue {
-        add_button(&actions, 180, 72, "Continue", true, move || {
-            responder.resolve(MenuAction::Continue);
-        });
+    let show_continue = continue_on_last && index + 1 == words.len();
+    if select_word || show_continue {
+        let actions = transparent_row(&screen, 82);
+        // Primary action sits on the right, under the Next button.
+        actions.set_style_flex_main_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_END, 0);
+        if select_word {
+            // Confirming the highlighted word.
+            let select = build_nav_button(&actions, NavIcon::Confirm);
+            select
+                .add_click_cb(move || {
+                    responder.resolve(MenuAction::Select);
+                })
+                .expect("failed to register select callback");
+        } else {
+            // Advancing to the next step of the workflow.
+            let cont = build_nav_button(&actions, NavIcon::Next);
+            cont.add_click_cb(move || {
+                responder.resolve(MenuAction::Continue);
+            })
+            .expect("failed to register continue callback");
+        }
     }
 
     screen

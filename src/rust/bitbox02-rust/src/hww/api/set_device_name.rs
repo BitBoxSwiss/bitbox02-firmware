@@ -12,6 +12,14 @@ pub async fn process(
     hal: &mut impl crate::hal::Hal,
     pb::SetDeviceNameRequest { name }: &pb::SetDeviceNameRequest,
 ) -> Result<Response, Error> {
+    // Simulator-only: a sentinel name shows the navigation-button demo screen instead of setting a
+    // name. Gated behind `simulator-graphical` so it cannot reach production firmware.
+    #[cfg(feature = "simulator-graphical")]
+    if name == "__demo_nav__" {
+        hal.ui().show_demo_nav_buttons().await;
+        return Ok(Response::Success(pb::Success {}));
+    }
+
     if !util::name::validate(name, bitbox_hal::memory::DEVICE_NAME_MAX_LEN) {
         return Err(Error::InvalidInput);
     }

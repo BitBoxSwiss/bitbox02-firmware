@@ -8,7 +8,8 @@ use core::ptr::NonNull;
 
 use crate::{
     LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvEventCode, LvFlexAlign, LvFlexFlow,
-    LvFont, LvGradDir, LvGridAlign, LvOpa, LvStyleSelector, LvTextAlign, LvTextDecor, class, ffi,
+    LvFont, LvGradDir, LvGridAlign, LvObjFlag, LvOpa, LvState, LvStyleSelector, LvTextAlign,
+    LvTextDecor, class, ffi,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -131,6 +132,32 @@ pub trait ObjExt {
 
     fn set_height(&self, height: i32) {
         unsafe { ffi::lv_obj_set_height(self.as_ptr(), height) }
+    }
+
+    /// Adds an object flag (e.g. [`LvObjFlag::LV_OBJ_FLAG_FLOATING`] to take the object out of its
+    /// parent's layout so it can be positioned absolutely). Other flags are unchanged.
+    fn add_flag(&self, flag: LvObjFlag) {
+        unsafe { ffi::lv_obj_add_flag(self.as_ptr(), flag) }
+    }
+
+    /// Removes an object flag. Other flags are unchanged.
+    fn remove_flag(&self, flag: LvObjFlag) {
+        unsafe { ffi::lv_obj_remove_flag(self.as_ptr(), flag) }
+    }
+
+    /// Adds one or more states (e.g. [`LvState::LV_STATE_PRESSED`]). Other state bits are unchanged.
+    fn add_state(&self, state: LvState) {
+        unsafe { ffi::lv_obj_add_state(self.as_ptr(), state) }
+    }
+
+    /// Removes one or more states. Other state bits are unchanged.
+    fn remove_state(&self, state: LvState) {
+        unsafe { ffi::lv_obj_remove_state(self.as_ptr(), state) }
+    }
+
+    /// Returns the child at `index`, or `None` if out of range.
+    fn child(&self, index: i32) -> Option<LvObj> {
+        NonNull::new(unsafe { ffi::lv_obj_get_child(self.as_ptr(), index) }).map(LvHandle::from_ptr)
     }
 
     fn add_event_cb<F>(&self, filter: LvEventCode, cb: F) -> Result<(), LvEventRegistrationError>

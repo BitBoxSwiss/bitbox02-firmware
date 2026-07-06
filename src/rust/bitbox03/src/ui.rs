@@ -12,9 +12,11 @@ use tracing::info;
 use util::futures::completion;
 
 mod choice;
-mod confirm;
-mod enter_string;
-mod menu;
+pub mod confirm;
+pub mod demo;
+pub mod enter_string;
+pub mod menu;
+pub mod nav_button;
 mod status;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
@@ -57,6 +59,10 @@ impl<Timer: bitbox_hal::timer::Timer> hal::ui::Ui for BitBox03Ui<Timer> {
     ) -> Result<(), bitbox_hal::ui::UserAbort> {
         self.with_result_screen(|responder| confirm::build_confirm_screen(params, responder))
             .await
+    }
+
+    async fn show_demo_nav_buttons(&mut self) {
+        self.with_result_screen(demo::build_demo_screen).await
     }
 
     async fn confirm_swap(

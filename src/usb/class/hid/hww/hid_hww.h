@@ -55,6 +55,11 @@ void hid_hww_setup(void);
 bool hid_hww_write_poll(const uint8_t* data);
 
 /**
+ * Returns true while an outgoing HID report transfer is in flight.
+ */
+bool hid_hww_write_busy(void);
+
+/**
  * Read data
  *
  * data must fit 64 bytes data.

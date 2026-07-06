@@ -29,6 +29,10 @@ unsafe impl Sync for LvStyleTransition {}
 impl LvStyleTransition {
     /// `props` must be a `'static` slice terminated by [`prop::INV`].
     pub const fn new(props: &'static [u8], time_ms: u32, delay_ms: u32) -> Self {
+        if props.is_empty() || props[props.len() - 1] != prop::INV {
+            panic!("style transition props must be terminated by prop::INV");
+        }
+
         Self(ffi::lv_style_transition_dsc_t {
             props: props.as_ptr(),
             user_data: core::ptr::null_mut(),
@@ -42,5 +46,33 @@ impl LvStyleTransition {
     /// a `static`, the returned reference is `'static`.
     pub fn as_dsc(&self) -> &ffi::lv_style_transition_dsc_t {
         &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_PROPS: &[u8] = &[prop::BG_OPA, prop::BG_COLOR, prop::INV];
+    const VALID_TRANSITION: LvStyleTransition = LvStyleTransition::new(VALID_PROPS, 1, 2);
+
+    #[test]
+    fn test_style_transition_new() {
+        let dsc = VALID_TRANSITION.as_dsc();
+        assert_eq!(dsc.props, VALID_PROPS.as_ptr());
+        assert_eq!(dsc.time, 1);
+        assert_eq!(dsc.delay, 2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_style_transition_new_rejects_missing_terminator() {
+        let _ = LvStyleTransition::new(&[prop::BG_OPA, prop::BG_COLOR], 1, 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_style_transition_new_rejects_empty_props() {
+        let _ = LvStyleTransition::new(&[], 1, 0);
     }
 }

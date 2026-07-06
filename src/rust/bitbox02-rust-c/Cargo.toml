@@ -29,43 +29,17 @@ bip39 = { workspace = true }
 zeroize = { workspace = true }
 
 [features]
-# Only one of the "target-" should be activated, which in turn defines/activates the dependent features.
-target-bb02-bl-multi = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-multi-development = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-multi-development-locked = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-multi-production = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-btconly = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-btconly-development = ["bootloader", "platform-bitbox02"]
-target-bb02-bl-btconly-production = ["bootloader", "platform-bitbox02"]
-target-bb02p-bl-multi = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-multi-development = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-multi-development-locked = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-multi-production = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-btconly = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-btconly-development = ["bootloader", "platform-bitbox02plus"]
-target-bb02p-bl-btconly-production = ["bootloader", "platform-bitbox02plus"]
-target-firmware = ["firmware", "platform-bitbox02", "app-bitcoin", "app-litecoin", "app-ethereum", "app-u2f", "app-cardano"]
-target-firmware-btc = ["firmware", "platform-bitbox02", "app-bitcoin"]
-target-factory-setup = [
-  # enable these features
-  "factory-setup",
-  "firmware",
-  "platform-bitbox02",
-  "dep:bitcoin",
-]
-# add Rust features which are called in the C unit tests (currently there is only one target for C tests).
-target-c-unit-tests = [
+bitbox02-platform-classic = []
+bitbox02-platform-nova = ["util/sha2", "bitbox-noise", "bitbox02-rust"]
+
+bitbox02-edition-btconly = ["app-bitcoin"]
+bitbox02-edition-multi = [
   "app-bitcoin",
   "app-litecoin",
   "app-ethereum",
-  "app-cardano",
   "app-u2f",
-  "firmware",
-  "c-unit-testing",
+  "app-cardano",
 ]
-
-platform-bitbox02 = []
-platform-bitbox02plus = ["util/sha2", "bitbox-noise", "bitbox02-rust"]
 
 bootloader = []
 firmware = [
@@ -118,6 +92,10 @@ app-cardano = [
   "bitbox02-rust/app-cardano",
 ]
 
-factory-setup = ["bitbox02/factory-setup"]
+factory-setup = [
+  "firmware",
+  "dep:bitcoin",
+  "bitbox02/factory-setup",
+]
 
 rtt = ["util/rtt"]

@@ -71,7 +71,7 @@ pub use display::{LvDisplay, LvDisplayBufferError};
 pub use font::LvFont;
 pub use font::fonts;
 pub use indev::LvIndev;
-pub use style::LvStyleTransition;
+pub use style::{LvGridTemplate, LvStyleTransition};
 pub use widgets::arc::{ArcExt, LvArc};
 pub use widgets::bar::{BarExt, LvBar};
 pub use widgets::button::{ButtonExt, LvButton};

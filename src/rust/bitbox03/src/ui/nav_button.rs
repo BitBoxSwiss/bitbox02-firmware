@@ -85,8 +85,8 @@ fn enable_press_invert(button: &LvButton, parts: Vec<LvObj>) {
     button.set_style_transform_width(0, PRESSED_SELECTOR);
     button.set_style_transform_height(0, PRESSED_SELECTOR);
     // Override the theme's ~80ms fade so the fill appears/clears instantly.
-    button.set_style_transition(Some(PRESS_TRANSITION.as_dsc()), PRESSED_SELECTOR);
-    button.set_style_transition(Some(PRESS_TRANSITION.as_dsc()), 0);
+    button.set_style_transition(Some(&PRESS_TRANSITION), PRESSED_SELECTOR);
+    button.set_style_transition(Some(&PRESS_TRANSITION), 0);
 
     let parts = Rc::new(parts);
     let on_press = Rc::clone(&parts);

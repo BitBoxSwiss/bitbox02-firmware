@@ -8,8 +8,8 @@ use core::ptr::NonNull;
 
 use crate::{
     LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvEventCode, LvFlexAlign, LvFlexFlow,
-    LvFont, LvGradDir, LvGridAlign, LvObjFlag, LvOpa, LvState, LvStyleSelector, LvTextAlign,
-    LvTextDecor, class, ffi,
+    LvFont, LvGradDir, LvGridAlign, LvGridTemplate, LvObjFlag, LvOpa, LvState, LvStyleSelector,
+    LvStyleTransition, LvTextAlign, LvTextDecor, class, ffi,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -64,6 +64,14 @@ impl LvHandle<class::ObjTag> {
     }
 }
 
+fn remove_local_style_prop(
+    obj: *mut ffi::lv_obj_t,
+    prop: ffi::_lv_style_id_t,
+    selector: LvStyleSelector,
+) -> bool {
+    unsafe { ffi::lv_obj_remove_local_style_prop(obj, prop as ffi::lv_style_prop_t, selector) }
+}
+
 macro_rules! impl_obj_style_setter_methods {
     ($($name:ident => $ffi_name:ident: $value_ty:ty),+ $(,)?) => {
         $(
@@ -75,15 +83,23 @@ macro_rules! impl_obj_style_setter_methods {
 }
 
 macro_rules! impl_obj_style_optional_ref_setter_methods {
-    ($($name:ident => $ffi_name:ident: $value_ty:ty),+ $(,)?) => {
+    ($($name:ident => $ffi_name:ident: $prop:ident: $value_ty:ty),+ $(,)?) => {
         $(
-            fn $name(&self, value: Option<&'static $value_ty>, selector: LvStyleSelector) {
+            /// # Safety
+            /// LVGL stores the raw pointer in the style state. The pointed value and any
+            /// transitive pointers it contains must remain valid and must not be repurposed for as
+            /// long as the style can be used.
+            unsafe fn $name(&self, value: Option<&'static $value_ty>, selector: LvStyleSelector) {
                 unsafe {
-                    ffi::$ffi_name(
-                        self.as_ptr(),
-                        value.map_or(core::ptr::null(), |value| value as *const $value_ty),
-                        selector,
-                    )
+                    if let Some(value) = value {
+                        ffi::$ffi_name(self.as_ptr(), value as *const $value_ty, selector);
+                    } else {
+                        remove_local_style_prop(
+                            self.as_ptr(),
+                            ffi::_lv_style_id_t::$prop,
+                            selector,
+                        );
+                    }
                 }
             }
         )+
@@ -91,7 +107,7 @@ macro_rules! impl_obj_style_optional_ref_setter_methods {
 }
 
 macro_rules! impl_obj_style_optional_void_ptr_setter_methods {
-    ($($name:ident => $ffi_name:ident),+ $(,)?) => {
+    ($($name:ident => $ffi_name:ident: $prop:ident),+ $(,)?) => {
         $(
             /// # Safety
             /// The pointed value type must exactly match what LVGL expects for this style field.
@@ -100,11 +116,15 @@ macro_rules! impl_obj_style_optional_void_ptr_setter_methods {
             /// fields must also satisfy LVGL's image source tagging rules.
             unsafe fn $name<T>(&self, value: Option<&'static T>, selector: LvStyleSelector) {
                 unsafe {
-                    ffi::$ffi_name(
-                        self.as_ptr(),
-                        value.map_or(core::ptr::null(), |value| value as *const T as *const c_void),
-                        selector,
-                    )
+                    if let Some(value) = value {
+                        ffi::$ffi_name(self.as_ptr(), value as *const T as *const c_void, selector);
+                    } else {
+                        remove_local_style_prop(
+                            self.as_ptr(),
+                            ffi::_lv_style_id_t::$prop,
+                            selector,
+                        );
+                    }
                 }
             }
         )+
@@ -304,63 +324,97 @@ pub trait ObjExt {
     );
 
     impl_obj_style_optional_ref_setter_methods!(
-        set_style_bg_grad => lv_obj_set_style_bg_grad: ffi::lv_grad_dsc_t,
-        set_style_image_colorkey => lv_obj_set_style_image_colorkey: ffi::lv_image_colorkey_t,
-        set_style_color_filter_dsc => lv_obj_set_style_color_filter_dsc: ffi::lv_color_filter_dsc_t,
-        set_style_anim => lv_obj_set_style_anim: ffi::lv_anim_t,
-        set_style_transition => lv_obj_set_style_transition: ffi::lv_style_transition_dsc_t,
+        set_style_bg_grad => lv_obj_set_style_bg_grad: LV_STYLE_BG_GRAD: ffi::lv_grad_dsc_t,
+        set_style_image_colorkey => lv_obj_set_style_image_colorkey: LV_STYLE_IMAGE_COLORKEY: ffi::lv_image_colorkey_t,
+        set_style_color_filter_dsc => lv_obj_set_style_color_filter_dsc: LV_STYLE_COLOR_FILTER_DSC: ffi::lv_color_filter_dsc_t,
+        set_style_anim => lv_obj_set_style_anim: LV_STYLE_ANIM: ffi::lv_anim_t,
     );
 
     impl_obj_style_optional_void_ptr_setter_methods!(
-        set_style_bg_image_src => lv_obj_set_style_bg_image_src,
-        set_style_arc_image_src => lv_obj_set_style_arc_image_src,
-        set_style_bitmap_mask_src => lv_obj_set_style_bitmap_mask_src,
+        set_style_bg_image_src => lv_obj_set_style_bg_image_src: LV_STYLE_BG_IMAGE_SRC,
+        set_style_arc_image_src => lv_obj_set_style_arc_image_src: LV_STYLE_ARC_IMAGE_SRC,
+        set_style_bitmap_mask_src => lv_obj_set_style_bitmap_mask_src: LV_STYLE_BITMAP_MASK_SRC,
     );
+
+    /// Sets or removes the local transition style property.
+    ///
+    /// LVGL dereferences a present transition descriptor during state changes, so `None` removes
+    /// the local property instead of storing a null transition pointer. This can reveal a
+    /// themed/shared-style transition again. To locally suppress one, set a static
+    /// [`LvStyleTransition`] listing the same properties with a near-zero duration; local
+    /// transition properties are collected first and de-duplicated by LVGL. See
+    /// `bitbox03/src/ui/nav_button.rs`'s `PRESS_TRANSITION` for the pattern.
+    fn set_style_transition(
+        &self,
+        value: Option<&'static LvStyleTransition>,
+        selector: LvStyleSelector,
+    ) {
+        unsafe {
+            if let Some(value) = value {
+                ffi::lv_obj_set_style_transition(self.as_ptr(), value.as_dsc(), selector);
+            } else {
+                self.remove_style_transition(selector);
+            }
+        }
+    }
+
+    /// Removes the local transition style property. Returns whether a property was removed.
+    fn remove_style_transition(&self, selector: LvStyleSelector) -> bool {
+        remove_local_style_prop(
+            self.as_ptr(),
+            ffi::_lv_style_id_t::LV_STYLE_TRANSITION,
+            selector,
+        )
+    }
 
     fn set_style_text_font(&self, value: LvFont, selector: LvStyleSelector) {
         unsafe { ffi::lv_obj_set_style_text_font(self.as_ptr(), value.as_ptr(), selector) }
     }
 
     fn remove_style_text_font(&self, selector: LvStyleSelector) -> bool {
-        unsafe {
-            ffi::lv_obj_remove_local_style_prop(
-                self.as_ptr(),
-                ffi::_lv_style_id_t::LV_STYLE_TEXT_FONT as ffi::lv_style_prop_t,
-                selector,
-            )
-        }
+        remove_local_style_prop(
+            self.as_ptr(),
+            ffi::_lv_style_id_t::LV_STYLE_TEXT_FONT,
+            selector,
+        )
     }
 
     fn set_style_grid_column_dsc_array(
         &self,
-        value: Option<&'static [i32]>,
+        value: Option<LvGridTemplate>,
         selector: LvStyleSelector,
     ) {
-        if let Some(value) = value
-            && let Some(last) = value.last()
-        {
-            if *last != ffi::LV_GRID_TEMPLATE_LAST as i32 {
-                panic!("invalid input");
-            }
-            unsafe {
-                ffi::lv_obj_set_style_grid_column_dsc_array(self.as_ptr(), value.as_ptr(), selector)
+        unsafe {
+            if let Some(value) = value {
+                ffi::lv_obj_set_style_grid_column_dsc_array(
+                    self.as_ptr(),
+                    value.as_ptr(),
+                    selector,
+                );
+            } else {
+                remove_local_style_prop(
+                    self.as_ptr(),
+                    ffi::_lv_style_id_t::LV_STYLE_GRID_COLUMN_DSC_ARRAY,
+                    selector,
+                );
             }
         }
     }
 
     fn set_style_grid_row_dsc_array(
         &self,
-        value: Option<&'static [i32]>,
+        value: Option<LvGridTemplate>,
         selector: LvStyleSelector,
     ) {
-        if let Some(value) = value
-            && let Some(last) = value.last()
-        {
-            if *last != ffi::LV_GRID_TEMPLATE_LAST as i32 {
-                panic!("invalid input");
-            }
-            unsafe {
-                ffi::lv_obj_set_style_grid_row_dsc_array(self.as_ptr(), value.as_ptr(), selector)
+        unsafe {
+            if let Some(value) = value {
+                ffi::lv_obj_set_style_grid_row_dsc_array(self.as_ptr(), value.as_ptr(), selector);
+            } else {
+                remove_local_style_prop(
+                    self.as_ptr(),
+                    ffi::_lv_style_id_t::LV_STYLE_GRID_ROW_DSC_ARRAY,
+                    selector,
+                );
             }
         }
     }
@@ -389,6 +443,9 @@ mod tests {
         let _: fn(&LvObj, LvStyleSelector) -> bool = <LvObj as ObjExt>::remove_style_text_font;
         let _: unsafe fn(&LvObj, Option<&'static u8>, LvStyleSelector) =
             <LvObj as ObjExt>::set_style_bg_image_src::<u8>;
+        let _: fn(&LvObj, Option<&'static LvStyleTransition>, LvStyleSelector) =
+            <LvObj as ObjExt>::set_style_transition;
+        let _: fn(&LvObj, LvStyleSelector) -> bool = <LvObj as ObjExt>::remove_style_transition;
         let _: fn(&LvObj, crate::LvEventCode, fn()) -> Result<(), crate::LvEventRegistrationError> =
             <LvObj as ObjExt>::add_event_cb::<fn()>;
         let _: fn(&LvObj, fn()) -> Result<(), crate::LvEventRegistrationError> =
@@ -420,6 +477,97 @@ mod tests {
         assert_eq!(called.get(), 1);
 
         unsafe { obj.delete() };
+    }
+
+    #[test]
+    fn test_set_style_transition_none_removes_property() {
+        const TRANSITION_PROPS: &[u8] = &[crate::style::prop::BG_OPA, crate::style::prop::INV];
+        static TRANSITION: LvStyleTransition = LvStyleTransition::new(TRANSITION_PROPS, 1, 0);
+
+        let _lock = crate::test_util::lock_and_init();
+
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = display.screen_active().unwrap();
+        let obj = LvObj::with_parent(&screen).unwrap();
+
+        obj.set_style_transition(Some(&TRANSITION), 0);
+        assert!(unsafe {
+            ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_TRANSITION as ffi::lv_style_prop_t,
+            )
+        });
+
+        obj.set_style_transition(None, 0);
+        assert!(!unsafe {
+            ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_TRANSITION as ffi::lv_style_prop_t,
+            )
+        });
+
+        obj.set_style_transition(Some(&TRANSITION), 0);
+        assert!(obj.remove_style_transition(0));
+        assert!(!obj.remove_style_transition(0));
+
+        unsafe { obj.delete() };
+    }
+
+    #[test]
+    fn test_set_optional_pointer_style_none_removes_property() {
+        let _lock = crate::test_util::lock_and_init();
+
+        let display = crate::LvDisplay::new(16, 16).unwrap();
+        let screen = display.screen_active().unwrap();
+        let obj = LvObj::with_parent(&screen).unwrap();
+
+        unsafe {
+            ffi::lv_obj_set_style_anim(obj.as_ptr(), core::ptr::null(), 0);
+            assert!(ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_ANIM as ffi::lv_style_prop_t,
+            ));
+
+            obj.set_style_anim(None, 0);
+            assert!(!ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_ANIM as ffi::lv_style_prop_t,
+            ));
+
+            ffi::lv_obj_set_style_bg_image_src(obj.as_ptr(), core::ptr::null(), 0);
+            assert!(ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_BG_IMAGE_SRC as ffi::lv_style_prop_t,
+            ));
+
+            obj.set_style_bg_image_src::<u8>(None, 0);
+            assert!(!ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_BG_IMAGE_SRC as ffi::lv_style_prop_t,
+            ));
+
+            ffi::lv_obj_set_style_grid_column_dsc_array(obj.as_ptr(), core::ptr::null(), 0);
+            assert!(ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_GRID_COLUMN_DSC_ARRAY as ffi::lv_style_prop_t,
+            ));
+
+            obj.set_style_grid_column_dsc_array(None, 0);
+            assert!(!ffi::lv_obj_has_style_prop(
+                obj.as_ptr(),
+                0,
+                ffi::_lv_style_id_t::LV_STYLE_GRID_COLUMN_DSC_ARRAY as ffi::lv_style_prop_t,
+            ));
+
+            obj.delete();
+        }
     }
 
     #[test]

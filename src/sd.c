@@ -29,6 +29,20 @@
 static const char* ROOTDIR = "0:/bitbox02";
 FATFS fs;
 
+static bool _mounted_geometry_valid(const FATFS* fatfs)
+{
+    if (fatfs->fs_type != FS_FAT12 && fatfs->fs_type != FS_FAT16 && fatfs->fs_type != FS_FAT32) {
+        return false;
+    }
+    if (fatfs->n_fats < 1 || fatfs->n_fats > 2 || fatfs->fsize == 0) {
+        return false;
+    }
+    if (fatfs->volbase > fatfs->fatbase || fatfs->fatbase > fatfs->database) {
+        return false;
+    }
+    return (QWORD)fatfs->fatbase + (QWORD)fatfs->fsize * fatfs->n_fats <= (QWORD)fatfs->database;
+}
+
 /**
  * Gets the full directory for an optionally given sub-directory.
  * Also creates the sub-directory if it doesn't exist yet.
@@ -105,6 +119,13 @@ static bool _mount(void)
         res = f_mount(&fs, "", 1);
     }
     if (res != FR_OK) {
+#ifndef TESTING
+        sd_mmc_pause_clock();
+#endif
+        return false;
+    }
+    if (!_mounted_geometry_valid(&fs)) {
+        f_unmount("");
 #ifndef TESTING
         sd_mmc_pause_clock();
 #endif

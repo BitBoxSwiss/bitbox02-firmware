@@ -370,6 +370,10 @@ static bool _delete_file(const char* fn, const char* subdir)
     if (result != FR_OK) {
         return false;
     }
+    if (f_size(&file_object) > SD_MAX_FILE_SIZE) {
+        f_close(&file_object);
+        return false;
+    }
     for (DWORD f_ps = 0; f_ps < file_object.obj.objsize; f_ps++) {
         f_putc('\xAC', &file_object); // overwrite data
     }

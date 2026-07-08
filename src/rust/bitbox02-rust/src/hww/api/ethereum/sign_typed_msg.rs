@@ -35,8 +35,72 @@ const DOMAIN_TYPE_NAME: &str = "EIP712Domain";
 
 const MAX_TYPED_MSG_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
 
+struct CachedChainId {
+    index: u32,
+    req: pb::EthTypedMessageValueRequest,
+}
+
+fn cached_chain_id_value(
+    cached_chain_id: Option<&CachedChainId>,
+    root_object: RootObject,
+    path: &[u32],
+) -> Option<pb::EthTypedMessageValueRequest> {
+    let cached_chain_id = cached_chain_id?;
+    if root_object != RootObject::Domain {
+        return None;
+    }
+    match path {
+        [index] if *index == cached_chain_id.index => Some(cached_chain_id.req.clone()),
+        _ => None,
+    }
+}
+
 fn get_type<'a>(types: &'a [StructType], name: &str) -> Option<&'a StructType> {
     types.iter().find(|t| t.name == name)
+}
+
+fn is_identifier_start(byte: u8) -> bool {
+    matches!(byte, b'A'..=b'Z' | b'a'..=b'z' | b'_' | b'$')
+}
+
+fn is_identifier_byte(byte: u8) -> bool {
+    is_identifier_start(byte) || byte.is_ascii_digit()
+}
+
+fn validate_identifier(name: &str) -> Result<(), Error> {
+    let mut bytes = name.bytes();
+    match bytes.next() {
+        Some(byte) if is_identifier_start(byte) => {}
+        _ => return Err(Error::InvalidInput),
+    }
+    if bytes.all(is_identifier_byte) {
+        Ok(())
+    } else {
+        Err(Error::InvalidInput)
+    }
+}
+
+fn validate_member_type_identifiers(typ: &MemberType) -> Result<(), Error> {
+    match DataType::try_from(typ.r#type)? {
+        DataType::Unknown => Err(Error::InvalidInput),
+        DataType::Array => {
+            validate_member_type_identifiers(typ.array_type.as_ref().ok_or(Error::InvalidInput)?)
+        }
+        DataType::Struct => validate_identifier(&typ.struct_name),
+        _ => Ok(()),
+    }
+}
+
+fn validate_typed_msg_schema(types: &[StructType], primary_type: &str) -> Result<(), Error> {
+    validate_identifier(primary_type)?;
+    for typ in types {
+        validate_identifier(&typ.name)?;
+        for member in &typ.members {
+            validate_identifier(&member.name)?;
+            validate_member_type_identifiers(member.r#type.as_ref().ok_or(Error::InvalidInput)?)?;
+        }
+    }
+    Ok(())
 }
 
 fn get_transitive_types<'a>(types: &'a [StructType], name: &'a str) -> Result<Vec<&'a str>, Error> {
@@ -291,44 +355,35 @@ fn format_display_line_body(
     )
 }
 
-#[allow(clippy::too_many_arguments)]
+struct HashContext<'a> {
+    types: &'a [StructType],
+    root_object: RootObject,
+    path: &'a [u32],
+    formatted_path: &'a [String],
+    title_suffix: Option<String>,
+    cached_chain_id: Option<&'a CachedChainId>,
+}
+
 async fn encode_member<U: sha3::digest::Update>(
     hal: &mut impl crate::hal::Hal,
     hasher: &mut U,
-    types: &[StructType],
     member_type: &MemberType,
-    root_object: RootObject,
-    path: &[u32],
-    formatted_path: &[String],
-    title_suffix: Option<String>,
+    context: &HashContext<'_>,
 ) -> Result<(), Error> {
     if member_type.r#type == DataType::Struct as i32 {
-        let value_encoded = Box::pin(hash_struct(
-            hal,
-            types,
-            root_object,
-            &member_type.struct_name,
-            path,
-            formatted_path,
-            title_suffix,
-        ))
-        .await?;
+        let value_encoded = Box::pin(hash_struct(hal, &member_type.struct_name, context)).await?;
         hasher.update(&value_encoded);
     } else if member_type.r#type == DataType::Array as i32 {
-        let encoded_value = Box::pin(hash_array(
-            hal,
-            types,
-            member_type,
-            root_object,
-            path,
-            formatted_path,
-            title_suffix,
-        ))
-        .await?;
+        let encoded_value = Box::pin(hash_array(hal, member_type, context)).await?;
         hasher.update(&encoded_value);
     } else {
-        let req = get_value_from_host(root_object, path).await?;
-        let display_path = formatted_path.join(".");
+        let req =
+            match cached_chain_id_value(context.cached_chain_id, context.root_object, context.path)
+            {
+                Some(req) => req,
+                None => get_value_from_host(context.root_object, context.path).await?,
+            };
+        let display_path = context.formatted_path.join(".");
         let data_type = DataType::try_from(member_type.r#type)?;
         let mut display_size = 0usize;
 
@@ -386,8 +441,8 @@ async fn encode_member<U: sha3::digest::Update>(
                 .confirm(&ConfirmParams {
                     title: &format!(
                         "{}{}",
-                        confirm_title(root_object),
-                        title_suffix.as_deref().unwrap_or("")
+                        confirm_title(context.root_object),
+                        context.title_suffix.as_deref().unwrap_or("")
                     ),
                     body: &body,
                     scrollable: true,
@@ -403,17 +458,13 @@ async fn encode_member<U: sha3::digest::Update>(
 
 async fn hash_array(
     hal: &mut impl crate::hal::Hal,
-    types: &[StructType],
     member_type: &MemberType,
-    root_object: RootObject,
-    path: &[u32],
-    formatted_path: &[String],
-    title_suffix: Option<String>,
+    context: &HashContext<'_>,
 ) -> Result<Vec<u8>, Error> {
     let array_size = if member_type.size > 0 {
         member_type.size
     } else {
-        let req = get_value_from_host(root_object, path).await?;
+        let req = get_value_from_host(context.root_object, context.path).await?;
         if req.data_length > 0 {
             return Err(Error::InvalidInput);
         }
@@ -426,12 +477,12 @@ async fn hash_array(
         .confirm(&ConfirmParams {
             title: &format!(
                 "{}{}",
-                confirm_title(root_object),
-                title_suffix.as_deref().unwrap_or("")
+                confirm_title(context.root_object),
+                context.title_suffix.as_deref().unwrap_or("")
             ),
             body: &format!(
                 "{}: {}",
-                formatted_path.join("."),
+                context.formatted_path.join("."),
                 if array_size == 0 {
                     "(empty list)".into()
                 } else {
@@ -445,8 +496,8 @@ async fn hash_array(
         .await?;
 
     let mut hasher = sha3::Keccak256::new();
-    let mut child_path = path.to_vec();
-    let mut child_formatted_path = formatted_path.to_vec();
+    let mut child_path = context.path.to_vec();
+    let mut child_formatted_path = context.formatted_path.to_vec();
     child_path.push(0);
     let member_name = child_formatted_path.last().unwrap().clone();
     for index in 0..array_size {
@@ -454,37 +505,31 @@ async fn hash_array(
         *child_formatted_path.last_mut().unwrap() =
             format!("{}[{}/{}]", member_name, index + 1, array_size);
 
-        encode_member(
-            hal,
-            &mut hasher,
-            types,
-            array_type,
-            root_object,
-            &child_path,
-            &child_formatted_path,
-            title_suffix.clone(),
-        )
-        .await?;
+        let child_context = HashContext {
+            types: context.types,
+            root_object: context.root_object,
+            path: &child_path,
+            formatted_path: &child_formatted_path,
+            title_suffix: context.title_suffix.clone(),
+            cached_chain_id: context.cached_chain_id,
+        };
+        encode_member(hal, &mut hasher, array_type, &child_context).await?;
     }
     Ok(hasher.finalize().to_vec())
 }
 
 async fn hash_struct(
     hal: &mut impl crate::hal::Hal,
-    types: &[StructType],
-    root_object: RootObject,
     struct_name: &str,
-    path: &[u32],
-    formatted_path: &[String],
-    title_suffix: Option<String>,
+    context: &HashContext<'_>,
 ) -> Result<Vec<u8>, Error> {
     let mut hasher = sha3::Keccak256::new();
-    hasher.update(&type_hash(types, struct_name)?);
+    hasher.update(&type_hash(context.types, struct_name)?);
 
-    let typ = get_type(types, struct_name).ok_or(Error::InvalidInput)?;
-    let mut child_path = path.to_vec();
+    let typ = get_type(context.types, struct_name).ok_or(Error::InvalidInput)?;
+    let mut child_path = context.path.to_vec();
     child_path.push(0);
-    let mut child_formatted_path = formatted_path.to_vec();
+    let mut child_formatted_path = context.formatted_path.to_vec();
     child_formatted_path.push("".into());
     for (index, member) in typ.members.iter().enumerate() {
         *child_path.last_mut().unwrap() = index as u32;
@@ -493,21 +538,19 @@ async fn hash_struct(
             .unwrap()
             .clone_from(&member.name);
         let member_type = member.r#type.as_ref().ok_or(Error::InvalidInput)?;
-        encode_member(
-            hal,
-            &mut hasher,
-            types,
-            member_type,
-            root_object,
-            &child_path,
-            &child_formatted_path,
-            if title_suffix.is_some() {
-                title_suffix.clone()
+        let child_context = HashContext {
+            types: context.types,
+            root_object: context.root_object,
+            path: &child_path,
+            formatted_path: &child_formatted_path,
+            title_suffix: if context.title_suffix.is_some() {
+                context.title_suffix.clone()
             } else {
                 Some(format!(" ({}/{})", index + 1, typ.members.len()))
             },
-        )
-        .await?;
+            cached_chain_id: context.cached_chain_id,
+        };
+        encode_member(hal, &mut hasher, member_type, &child_context).await?;
     }
 
     Ok(hasher.finalize().to_vec())
@@ -517,7 +560,9 @@ async fn hash_struct(
 /// it matches chain ID provided in the request. In theory, the chain ID can be known to the wallet
 /// app without including it in the domain to be signed, which is why it is provided directly in the
 /// request regardless of whether it is present in the domain.
-async fn validate_chain_id(request: &pb::EthSignTypedMessageRequest) -> Result<(), Error> {
+async fn validate_chain_id(
+    request: &pb::EthSignTypedMessageRequest,
+) -> Result<Option<CachedChainId>, Error> {
     let domain_type = get_type(&request.types, DOMAIN_TYPE_NAME).ok_or(Error::InvalidInput)?;
     let chain_id_index = match domain_type
         .members
@@ -526,10 +571,19 @@ async fn validate_chain_id(request: &pb::EthSignTypedMessageRequest) -> Result<(
     {
         Some(i) => i,
         None => {
-            // Chain ID is not part of the domain - skip validation
-            return Ok(());
+            return Ok(None);
         }
     };
+    let chain_id_type = domain_type.members[chain_id_index]
+        .r#type
+        .as_ref()
+        .ok_or(Error::InvalidInput)?;
+    if DataType::try_from(chain_id_type.r#type)? != DataType::Uint
+        || chain_id_type.size == 0
+        || chain_id_type.size > 32
+    {
+        return Err(Error::InvalidInput);
+    }
     let req = get_value_from_host(RootObject::Domain, &[chain_id_index as u32]).await?;
     if req.data_length > 0 {
         return Err(Error::InvalidInput);
@@ -540,41 +594,43 @@ async fn validate_chain_id(request: &pb::EthSignTypedMessageRequest) -> Result<(
     if chain_id != request.chain_id {
         return Err(Error::InvalidInput);
     }
-    Ok(())
+    Ok(Some(CachedChainId {
+        index: chain_id_index as u32,
+        req,
+    }))
 }
 
 async fn eip712_sighash(
     hal: &mut impl crate::hal::Hal,
     types: &[StructType],
     primary_type: &str,
+    cached_chain_id: Option<&CachedChainId>,
 ) -> Result<[u8; 32], Error> {
     let mut hasher = sha3::Keccak256::new();
     hasher.update([0x19u8, 0x01]);
-    let domain_separator = hash_struct(
-        hal,
+    let domain_context = HashContext {
         types,
-        RootObject::Domain,
-        DOMAIN_TYPE_NAME,
-        &[],
-        &[],
-        None,
-    )
-    .await?;
+        root_object: RootObject::Domain,
+        path: &[],
+        formatted_path: &[],
+        title_suffix: None,
+        cached_chain_id,
+    };
+    let domain_separator = hash_struct(hal, DOMAIN_TYPE_NAME, &domain_context).await?;
     hasher.update(&domain_separator);
     // If primaryType is the domain type, skip the message hashing. This does not seem to conform to
     // the spec, but eth-sig-util implements it like that:
     // https://github.com/MetaMask/eth-sig-util/pull/51#issuecomment-1135089739
     if primary_type != DOMAIN_TYPE_NAME {
-        let message_struct_hash = hash_struct(
-            hal,
+        let message_context = HashContext {
             types,
-            RootObject::Message,
-            primary_type,
-            &[],
-            &[],
-            None,
-        )
-        .await?;
+            root_object: RootObject::Message,
+            path: &[],
+            formatted_path: &[],
+            title_suffix: None,
+            cached_chain_id: None,
+        };
+        let message_struct_hash = hash_struct(hal, primary_type, &message_context).await?;
         hasher.update(&message_struct_hash);
     }
     Ok(hasher.finalize().into())
@@ -590,7 +646,20 @@ pub async fn process(
     hal: &mut impl crate::hal::Hal,
     request: &pb::EthSignTypedMessageRequest,
 ) -> Result<Response, Error> {
-    validate_chain_id(request).await?;
+    validate_typed_msg_schema(&request.types, &request.primary_type)?;
+
+    let cached_chain_id = validate_chain_id(request).await?;
+    if cached_chain_id.is_none() {
+        hal.ui()
+            .confirm(&ConfirmParams {
+                title: "Warning",
+                body: "Typed data has no chain ID. Message is valid for every chain.",
+                scrollable: true,
+                accept_is_nextarrow: true,
+                ..Default::default()
+            })
+            .await?;
+    }
 
     // Base component on the screen stack during signing, which is shown while the device is waiting
     // for the next signing api call. Without this, the 'See the BitBoxApp' waiting screen would
@@ -612,7 +681,13 @@ pub async fn process(
     )
     .await?;
 
-    let sighash: [u8; 32] = eip712_sighash(hal, &request.types, &request.primary_type).await?;
+    let sighash: [u8; 32] = eip712_sighash(
+        hal,
+        &request.types,
+        &request.primary_type,
+        cached_chain_id.as_ref(),
+    )
+    .await?;
 
     hal.ui()
         .confirm(&ConfirmParams {
@@ -706,6 +781,58 @@ mod tests {
         }
     }
 
+    fn chain_id_value(chain_id: Option<u64>) -> Vec<u8> {
+        chain_id
+            .map(|chain_id| BigUint::from(chain_id).to_bytes_be())
+            .unwrap_or_default()
+    }
+
+    fn setup_chain_id_responder_panicking_on_second_request(
+        chain_id: Option<u64>,
+    ) -> alloc::rc::Rc<core::cell::Cell<usize>> {
+        let request_count = alloc::rc::Rc::new(core::cell::Cell::new(0usize));
+        let request_count_clone = request_count.clone();
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response| match &response {
+                pb::response::Response::Eth(pb::EthResponse {
+                    response:
+                        Some(Response::TypedMsgValue(pb::EthTypedMessageValueResponse {
+                            root_object,
+                            path,
+                        })),
+                }) => {
+                    assert_eq!(*root_object, RootObject::Domain as i32);
+                    assert_eq!(path, &[0]);
+                    let count = request_count_clone.get();
+                    if count > 0 {
+                        panic!("chain_id requested more than once");
+                    }
+                    request_count_clone.set(count + 1);
+                    Ok(pb::request::Request::Eth(pb::EthRequest {
+                        request: Some(Request::TypedMsgValue(pb::EthTypedMessageValueRequest {
+                            value: chain_id_value(chain_id),
+                            data_length: 0,
+                        })),
+                    }))
+                }
+                _ => panic!("unexpected response"),
+            }));
+        request_count
+    }
+
+    fn make_chain_id_only_request(chain_id: u64) -> pb::EthSignTypedMessageRequest {
+        pb::EthSignTypedMessageRequest {
+            chain_id,
+            keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+            types: vec![StructType {
+                name: "EIP712Domain".into(),
+                members: vec![mk_member("chainId", mk_sized_type(DataType::Uint, 32))],
+            }],
+            primary_type: DOMAIN_TYPE_NAME.into(),
+            host_nonce_commitment: None,
+        }
+    }
+
     fn make_types() -> Vec<StructType> {
         vec![
             StructType {
@@ -766,9 +893,14 @@ mod tests {
             }));
         }
         let mut mock_hal = TestingHal::new();
-        eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
-            .await
-            .unwrap();
+        eip712_sighash(
+            &mut mock_hal,
+            &typed_msg.types,
+            typed_msg.primary_type,
+            None,
+        )
+        .await
+        .unwrap();
         mock_hal
     }
 
@@ -1246,11 +1378,117 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_identifier() {
+        for name in ["field", "_spender", "$value", "chainId", "value2", "from"] {
+            assert_eq!(validate_identifier(name), Ok(()));
+        }
+
+        for name in [
+            "",
+            "123amount",
+            "field:name",
+            "field\nname",
+            "field.name",
+            "foo[0]",
+            "uint256 amount",
+            "recipiént",
+        ] {
+            assert_eq!(validate_identifier(name), Err(Error::InvalidInput));
+        }
+    }
+
+    #[test]
+    fn test_validate_typed_msg_schema() {
+        let valid_types = vec![
+            StructType {
+                name: "EIP712Domain".into(),
+                members: vec![mk_member("name", mk_type(DataType::String))],
+            },
+            StructType {
+                name: "Inner".into(),
+                members: vec![mk_member("value", mk_type(DataType::String))],
+            },
+            StructType {
+                name: "Msg".into(),
+                members: vec![
+                    mk_member("data", mk_struct_type("Inner")),
+                    mk_member("items", mk_arr_type(mk_struct_type("Inner"))),
+                ],
+            },
+        ];
+        assert_eq!(validate_typed_msg_schema(&valid_types, "Msg"), Ok(()));
+
+        assert_eq!(
+            validate_typed_msg_schema(&valid_types, "Bad\nType"),
+            Err(Error::InvalidInput)
+        );
+
+        let mut types = valid_types.clone();
+        types[1].name = "Bad\nType".into();
+        assert_eq!(
+            validate_typed_msg_schema(&types, "Msg"),
+            Err(Error::InvalidInput)
+        );
+
+        let mut types = valid_types.clone();
+        types[2].members[0] = mk_member("field\nname", mk_type(DataType::String));
+        assert_eq!(
+            validate_typed_msg_schema(&types, "Msg"),
+            Err(Error::InvalidInput)
+        );
+
+        let mut types = valid_types.clone();
+        types[2].members[0] = mk_member("data", mk_struct_type("Bad\nType"));
+        assert_eq!(
+            validate_typed_msg_schema(&types, "Msg"),
+            Err(Error::InvalidInput)
+        );
+
+        let mut types = valid_types;
+        types[2].members[1] = mk_member("items", mk_arr_type(mk_struct_type("Bad\nType")));
+        assert_eq!(
+            validate_typed_msg_schema(&types, "Msg"),
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[test]
     fn test_type_hash() {
         assert_eq!(
             type_hash(&make_types(), "EIP712Domain").unwrap(),
             b"\x8b\x73\xc3\xc6\x9b\xb8\xfe\x3d\x51\x2e\xcc\x4c\xf7\x59\xcc\x79\x23\x9f\x7b\x17\x9b\x0f\xfa\xca\xa9\xa7\x5d\x52\x2b\x39\x40\x0f".to_vec(),
         );
+    }
+
+    #[async_test::test]
+    async fn test_process_rejects_invalid_member_name() {
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(|_| panic!("value requested for invalid schema")));
+
+        let mut mock_hal = TestingHal::new();
+        let result = process(
+            &mut mock_hal,
+            &pb::EthSignTypedMessageRequest {
+                chain_id: 1,
+                keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                types: vec![
+                    StructType {
+                        name: "EIP712Domain".into(),
+                        members: vec![mk_member("name", mk_type(DataType::String))],
+                    },
+                    StructType {
+                        name: "Msg".into(),
+                        members: vec![mk_member("field\nname", mk_type(DataType::String))],
+                    },
+                ],
+                primary_type: "Msg".into(),
+                host_nonce_commitment: None,
+            },
+        )
+        .await;
+
+        assert_eq!(result, Err(Error::InvalidInput));
+        assert!(mock_hal.ui.screens.is_empty());
     }
 
     /// Test computation of the domain separator, which is `hashStruct(domain)`.
@@ -1274,17 +1512,17 @@ mod tests {
             }));
         }
         let mut mock_hal = TestingHal::new();
-        let domain_separator = hash_struct(
-            &mut mock_hal,
-            &typed_msg.types,
-            RootObject::Domain,
-            "EIP712Domain",
-            &[],
-            &[],
-            None,
-        )
-        .await
-        .unwrap();
+        let context = HashContext {
+            types: &typed_msg.types,
+            root_object: RootObject::Domain,
+            path: &[],
+            formatted_path: &[],
+            title_suffix: None,
+            cached_chain_id: None,
+        };
+        let domain_separator = hash_struct(&mut mock_hal, "EIP712Domain", &context)
+            .await
+            .unwrap();
         assert_eq!(
             domain_separator,
             b"\xf2\xce\xe3\x75\xfa\x42\xb4\x21\x43\x80\x40\x25\xfc\x44\x9d\xea\xfd\x50\xcc\x03\x1c\xa2\x57\xe0\xb1\x94\xa6\x50\xa9\x12\x09\x0f".to_vec());
@@ -1314,6 +1552,91 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[async_test::test]
+    async fn test_validate_chain_id_returns_none_if_missing() {
+        let result = validate_chain_id(&pb::EthSignTypedMessageRequest {
+            chain_id: 1,
+            types: vec![StructType {
+                name: "EIP712Domain".into(),
+                members: vec![mk_member("name", mk_type(DataType::String))],
+            }],
+            ..Default::default()
+        })
+        .await;
+        assert!(matches!(result, Ok(None)));
+    }
+
+    #[async_test::test]
+    async fn test_process_warns_if_chain_id_missing() {
+        mock_unlocked();
+        let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
+            vec![StructType {
+                name: "EIP712Domain".into(),
+                members: vec![mk_member("name", mk_type(DataType::String))],
+            }],
+            DOMAIN_TYPE_NAME,
+            Object::Struct(vec![Object::String("test")]),
+            Object::Struct(vec![]),
+        ));
+        {
+            let typed_msg = typed_msg.clone();
+            *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
+                Ok(typed_msg.handle_host_response(&response).unwrap())
+            }));
+        }
+        let mut mock_hal = TestingHal::new();
+        let result = process(
+            &mut mock_hal,
+            &pb::EthSignTypedMessageRequest {
+                chain_id: 1,
+                keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                types: typed_msg.types.clone(),
+                primary_type: typed_msg.primary_type.into(),
+                host_nonce_commitment: None,
+            },
+        )
+        .await;
+
+        assert!(matches!(result, Ok(Response::Sign(_))));
+        assert_eq!(
+            mock_hal.ui.screens[0],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: "Typed data has no chain ID. Message is valid for every chain.".into(),
+                longtouch: false,
+            }
+        );
+    }
+
+    #[async_test::test]
+    async fn test_validate_chain_id_rejects_non_uint_type() {
+        let result = validate_chain_id(&pb::EthSignTypedMessageRequest {
+            chain_id: 1,
+            types: vec![StructType {
+                name: "EIP712Domain".into(),
+                members: vec![mk_member("chainId", mk_sized_type(DataType::Int, 32))],
+            }],
+            ..Default::default()
+        })
+        .await;
+        assert!(matches!(result, Err(Error::InvalidInput)));
+    }
+
+    #[async_test::test]
+    async fn test_validate_chain_id_reuses_cached_value() {
+        for (request_chain_id, chain_id) in [(1, Some(1)), (0, None)] {
+            mock_unlocked();
+            let request_count = setup_chain_id_responder_panicking_on_second_request(chain_id);
+            let result = process(
+                &mut TestingHal::new(),
+                &make_chain_id_only_request(request_chain_id),
+            )
+            .await;
+            assert!(matches!(result, Ok(Response::Sign(_))));
+            assert_eq!(request_count.get(), 1);
+        }
     }
 
     /// A typed data object which contains almost every type possible.
@@ -1799,9 +2122,14 @@ mod tests {
             }));
         }
         let mut mock_hal = TestingHal::new();
-        let sighash = eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
-            .await
-            .unwrap();
+        let sighash = eip712_sighash(
+            &mut mock_hal,
+            &typed_msg.types,
+            typed_msg.primary_type,
+            None,
+        )
+        .await
+        .unwrap();
         assert_eq!(
             sighash,
             *b"\x0e\xfe\x31\xa8\x81\x9b\x6c\x38\x1c\x9e\x97\xcf\xd2\x99\x5a\xa6\xf2\x1e\x4a\x72\x87\x9a\xc1\x31\xb2\xf6\x48\xd0\x83\x28\x1c\x83",
@@ -1885,6 +2213,7 @@ mod tests {
             &mut TestingHal::new(),
             &typed_msg.types,
             typed_msg.primary_type,
+            None,
         )
         .await
         .unwrap();
@@ -2007,6 +2336,7 @@ mod tests {
                     &mut TestingHal::new(),
                     &typed_msg.types,
                     typed_msg.primary_type,
+                    None,
                 )
                 .await
                 .unwrap();
@@ -2031,10 +2361,14 @@ mod tests {
                     Ok(typed_msg_clone.handle_host_response(&response).unwrap())
                 }));
                 let mut mock_hal = TestingHal::new();
-                let streaming_sighash =
-                    eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
-                        .await
-                        .unwrap();
+                let streaming_sighash = eip712_sighash(
+                    &mut mock_hal,
+                    &typed_msg.types,
+                    typed_msg.primary_type,
+                    None,
+                )
+                .await
+                .unwrap();
                 assert_eq!(
                     streaming_sighash, expected,
                     "streaming sighash mismatch for: {}",
@@ -2067,10 +2401,14 @@ mod tests {
                     Ok(typed_msg_clone.handle_host_response(&response).unwrap())
                 }));
                 let mut mock_hal = TestingHal::new();
-                let sighash =
-                    eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type)
-                        .await
-                        .unwrap();
+                let sighash = eip712_sighash(
+                    &mut mock_hal,
+                    &typed_msg.types,
+                    typed_msg.primary_type,
+                    None,
+                )
+                .await
+                .unwrap();
                 assert_eq!(
                     sighash, expected,
                     "sighash mismatch for: {}",
@@ -2127,11 +2465,25 @@ mod tests {
                     "signature mismatch for: {}",
                     tc.description
                 );
-                let mut expected_screens = vec![Screen::Confirm {
+                let mut expected_screens = Vec::new();
+                if !get_type(&types, DOMAIN_TYPE_NAME)
+                    .unwrap()
+                    .members
+                    .iter()
+                    .any(|member| member.name == "chainId")
+                {
+                    expected_screens.push(Screen::Confirm {
+                        title: "Warning".into(),
+                        body: "Typed data has no chain ID. Message is valid for every chain."
+                            .into(),
+                        longtouch: false,
+                    });
+                }
+                expected_screens.push(Screen::Confirm {
                     title: "Ethereum".into(),
                     body: address.clone(),
                     longtouch: false,
-                }];
+                });
                 expected_screens.extend(tc.expected_screens.iter().map(|(title, body)| {
                     Screen::Confirm {
                         title: title.clone(),
@@ -2178,7 +2530,13 @@ mod tests {
             }));
         }
         let mut mock_hal = TestingHal::new();
-        let result = eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type).await;
+        let result = eip712_sighash(
+            &mut mock_hal,
+            &typed_msg.types,
+            typed_msg.primary_type,
+            None,
+        )
+        .await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
@@ -2207,7 +2565,13 @@ mod tests {
             }));
         }
         let mut mock_hal = TestingHal::new();
-        let result = eip712_sighash(&mut mock_hal, &typed_msg.types, typed_msg.primary_type).await;
+        let result = eip712_sighash(
+            &mut mock_hal,
+            &typed_msg.types,
+            typed_msg.primary_type,
+            None,
+        )
+        .await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
@@ -2253,7 +2617,7 @@ mod tests {
             },
         ];
         let mut mock_hal = TestingHal::new();
-        let result = eip712_sighash(&mut mock_hal, &types, "Msg").await;
+        let result = eip712_sighash(&mut mock_hal, &types, "Msg", None).await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
@@ -2301,7 +2665,7 @@ mod tests {
             },
         ];
         let mut mock_hal = TestingHal::new();
-        let result = eip712_sighash(&mut mock_hal, &types, "Msg").await;
+        let result = eip712_sighash(&mut mock_hal, &types, "Msg", None).await;
         assert_eq!(result, Err(Error::InvalidInput));
     }
 }

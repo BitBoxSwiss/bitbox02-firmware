@@ -77,6 +77,15 @@ pub async fn create(
         })
         .await?;
 
+    hal.ui()
+        .confirm(&ConfirmParams {
+            title: "",
+            body: "Create backup?",
+            longtouch: true,
+            ..Default::default()
+        })
+        .await?;
+
     // Wait for sd card
     super::sdcard::process(
         hal,
@@ -191,6 +200,11 @@ mod tests {
                     body: "Mon 2020-09-28".into(),
                     longtouch: false
                 },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Create backup?".into(),
+                    longtouch: true
+                },
                 Screen::Status {
                     title: "Backup created".into(),
                     success: true
@@ -245,6 +259,11 @@ mod tests {
                     title: "Is today?".into(),
                     body: "Mon 2020-09-28".into(),
                     longtouch: false
+                },
+                Screen::Confirm {
+                    title: "".into(),
+                    body: "Create backup?".into(),
+                    longtouch: true
                 },
                 Screen::Status {
                     title: "Backup created".into(),

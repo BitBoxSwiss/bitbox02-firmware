@@ -104,6 +104,7 @@ set(VERSION_MANIFEST ${CMAKE_SOURCE_DIR}/versions.json)
 set(VERSION_GENERATOR ${CMAKE_SOURCE_DIR}/scripts/generate_version_headers.py)
 set(VERSION_TEMPLATE ${CMAKE_SOURCE_DIR}/src/version.h.tmpl)
 set(BOOTLOADER_VERSION_TEMPLATE ${CMAKE_SOURCE_DIR}/src/bootloader/bootloader_version.h.tmpl)
+set(STAGE0_VERSION_TEMPLATE ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_version.h.tmpl)
 set(GENERATED_VERSION_HEADERS_DIR ${CMAKE_BINARY_DIR}/src)
 set(GENERATED_VERSION_CMAKE ${CMAKE_BINARY_DIR}/generated_versions.cmake)
 set_property(
@@ -114,6 +115,7 @@ set_property(
     ${VERSION_GENERATOR}
     ${VERSION_TEMPLATE}
     ${BOOTLOADER_VERSION_TEMPLATE}
+    ${STAGE0_VERSION_TEMPLATE}
 )
 execute_process(
   COMMAND

@@ -45,6 +45,14 @@ else()
      ""
      memory
      "-Wl,--wrap=memory_read_chunk_fake,--wrap=memory_write_chunk_fake,--wrap=rust_noise_generate_static_private_key,--wrap=memory_read_shared_bootdata_fake,--wrap=memory_write_to_address_fake,--wrap=random_32_bytes_mcu"
+     stage0_sigcheck
+     "-Wl,--wrap=pukcc_ecdsa_verify,--wrap=sha_sync_sha256_start,--wrap=sha_sync_sha256_update,--wrap=sha_sync_sha256_finish"
+     stage0_flash
+     ""
+     stage0_descriptor
+     ""
+     bootloader_upgrade_check
+     ""
      util
      ""
      ugui
@@ -77,6 +85,26 @@ else()
       target_include_directories(${EXE} PRIVATE
           ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
       )
+    endif()
+    if(TEST_NAME STREQUAL "stage0_sigcheck")
+      target_sources(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage1_sigcheck.c
+          ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
+      )
+      target_compile_definitions(${EXE} PRIVATE PRODUCT_BITBOX_MULTI=1)
+      target_include_directories(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/include
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
+      )
+    endif()
+    if(TEST_NAME STREQUAL "stage0_descriptor")
+      target_sources(${EXE} PRIVATE ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_descriptor.c)
+    endif()
+    if(TEST_NAME STREQUAL "bootloader_upgrade_check")
+      target_sources(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/firmware_installer_check.c
+      )
+      target_compile_definitions(${EXE} PRIVATE PRODUCT_BITBOX_MULTI=1)
     endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()

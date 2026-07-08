@@ -35,6 +35,67 @@ if(CMAKE_CROSSCOMPILING)
     PUBLIC
       CMSIS
   )
+  target_compile_options(samd51a-ds PRIVATE
+    -flto
+    -ffat-lto-objects
+  )
+
+  # Advanced Software Framework Drivers
+  # Only drivers needed for stage0.
+  add_library(asf4-drivers-stage0 STATIC
+    asf4-drivers/hal/src/hal_delay.c
+    asf4-drivers/hal/src/hal_flash.c
+    asf4-drivers/hal/src/hal_pac.c
+    asf4-drivers/hal/src/hal_rand_sync.c
+    asf4-drivers/hal/src/hal_sha_sync.c
+    asf4-drivers/hpl/gclk/hpl_gclk.c
+    asf4-drivers/hpl/oscctrl/hpl_oscctrl.c
+    asf4-drivers/hpl/mclk/hpl_mclk.c
+    asf4-drivers/hpl/osc32kctrl/hpl_osc32kctrl.c
+    asf4-drivers/hpl/core/hpl_init.c
+    asf4-drivers/hpl/core/hpl_core_m4.c
+    asf4-drivers/hpl/systick/hpl_systick.c
+    asf4-drivers/hpl/nvmctrl/hpl_nvmctrl.c
+    asf4-drivers/hpl/pac/hpl_pac.c
+    asf4-drivers/hpl/icm/hpl_icm.c
+    asf4-drivers/hpl/trng/hpl_trng.c
+    asf4-drivers/hpl/spi/spi_lite.c
+  )
+
+  target_compile_options(asf4-drivers-stage0 PRIVATE
+    -flto
+    -ffat-lto-objects
+    -Wno-cast-qual
+    -Wno-unused-parameter
+    -Wno-missing-prototypes
+    -Wno-missing-declarations
+    -Wno-bad-function-cast
+    -Wno-strict-prototypes
+    -Wno-old-style-definition
+    -Wno-cast-align
+  )
+
+  if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+      target_compile_definitions(asf4-drivers-stage0 PUBLIC DEBUG USE_SIMPLE_ASSERT)
+  endif()
+
+  target_link_libraries(asf4-drivers-stage0 samd51a-ds)
+  set_property(TARGET asf4-drivers-stage0 PROPERTY INTERFACE_LINK_LIBRARIES "")
+
+  target_include_directories(asf4-drivers-stage0 SYSTEM
+    PUBLIC
+      asf4-drivers
+      asf4-drivers/Config
+      asf4-drivers/hal/include
+      asf4-drivers/hal/utils/include
+      asf4-drivers/hpl/core
+      asf4-drivers/hpl/gclk
+      asf4-drivers/hpl/port
+      asf4-drivers/hpl/pukcc
+      asf4-drivers/hpl/rtc
+      asf4-drivers/hpl/spi
+      asf4-drivers/hri
+  )
 
   # Advanced Software Framework Drivers
   # Only drivers needed for bootloader (minimal set)

@@ -16,7 +16,7 @@ ARGS=("$@")
 
 if [ $# -eq 0 ] ; then
 	# Store default files as array in ARGS
-	ARGS=($(find py -name '*.py' | grep -v -e generated -e old))
+	ARGS=($(git ls-files '*.py' | grep -v -e "old/" -e "generated/" -e "rust/vendor/" -e "external/"))
 fi
 
 LC_ALL=C.UTF-8 ${BLACK} --config py/pyproject.toml --fast "${ARGS[@]}"

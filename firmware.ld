@@ -36,7 +36,7 @@ SEARCH_DIR(.)
 MEMORY
 {
   rom      (rx)  : ORIGIN = 0x00010000, LENGTH = 0x000D8000
-  ram      (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00040000
+  ram      (rwx) : ORIGIN = 0x20000200, LENGTH = 0x0003FE00
   bkupram  (rwx) : ORIGIN = 0x47000000, LENGTH = 0x00002000
   qspi     (rwx) : ORIGIN = 0x04000000, LENGTH = 0x01000000
 }

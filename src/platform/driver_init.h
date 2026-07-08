@@ -23,7 +23,6 @@
     #include <hal_usart_async.h>
     #include <hal_usb_device.h>
     #include <hpl_rtc_base.h>
-    #include <sd_mmc.h>
     #include <spi_lite.h>
 #endif
 #include <utils.h>
@@ -70,5 +69,15 @@ void bootloader_close_interfaces(void);
  * peripherals
  */
 void bootloader_init(void);
+
+/**
+ * Perform the subset of system initialization needed by stage0.
+ */
+void stage0_init(void);
+
+/**
+ * Close peripheral interfaces initialized by stage0.
+ */
+void stage0_deinit(void);
 
 #endif

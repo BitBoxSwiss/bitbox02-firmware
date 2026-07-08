@@ -286,36 +286,16 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_dependencies(rust-clippy rust-cbindgen)
 endif()
 
-# If a bootloader that locks the bootloader is flashed the bootloader area is permanently read-only.
-set(BOOTLOADERS-BITBOX02
-  bb02-bl-multi # Runs signed firmware
-  bb02-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02-bl-multi-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
-  bb02-bl-multi-production # Runs signed firmware and bootloader is locked
-  bb02-bl-btconly # Runs signed (btc-only keys) firmware
-  bb02-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02-bl-btconly-production # Runs signed (btc-only keys) firmware and bootloader is locked
-  )
-set(BOOTLOADERS-BITBOX02PLUS
-  bb02p-bl-multi # Runs signed firmware
-  bb02p-bl-multi-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02p-bl-multi-development-locked # Runs signed/unsigned firmware, has bootloader menu and bootloader is locked
-  bb02p-bl-multi-production # Runs signed firmware and bootloader is locked
-  bb02p-bl-btconly # Runs signed (btc-only keys) firmware
-  bb02p-bl-btconly-development # Runs signed/unsigned firmware and has bootloader menu
-  bb02p-bl-btconly-production # Runs signed (btc-only keys) firmware and bootloader is locked
-)
-set(BOOTLOADERS
-  ${BOOTLOADERS-BITBOX02}
-  ${BOOTLOADERS-BITBOX02PLUS}
-  )
-set(BOOTLOADERS ${BOOTLOADERS} PARENT_SCOPE)
-
-# Used to add QTouch to development bootloaders of bb02 bootloaders
-set(DEVDEVICE-BOOTLOADERS
-  bb02-bl-multi-development
-  bb02-bl-multi-development-locked
+# Stage1 uses the legacy bootloader Rust feature names internally.
+set(BB02_STAGE1_RUST_LIBS
   bb02-bl-btconly-development
+  bb02-bl-btconly-production
+  bb02-bl-multi-development
+  bb02-bl-multi-production
+  bb02p-bl-btconly-development
+  bb02p-bl-btconly-production
+  bb02p-bl-multi-development
+  bb02p-bl-multi-production
 )
 
 set(FIRMWARES
@@ -326,7 +306,7 @@ set(FIRMWARES
 set(FIRMWARES ${FIRMWARES} PARENT_SCOPE)
 
 if(CMAKE_CROSSCOMPILING)
-  set(RUST_LIBS ${FIRMWARES} ${BOOTLOADERS})
+  set(RUST_LIBS ${FIRMWARES} ${BB02_STAGE1_RUST_LIBS})
 else()
   set(RUST_LIBS c-unit-tests)
 endif()
@@ -416,74 +396,6 @@ if(CMAKE_CROSSCOMPILING)
   set(HEAP_SIZE "0x18000" CACHE STRING "Specify heap size for bootloader/firmware")
   set(HEAP_SIZE ${HEAP_SIZE} PARENT_SCOPE)
 
-  foreach(bootloader ${BOOTLOADERS})
-    set(elf ${bootloader}.elf)
-    add_executable(${elf} ${BOOTLOADER-SOURCES} ${PLATFORM-BITBOX02-SOURCES})
-    target_compile_options(${elf} PRIVATE -fno-lto)
-    target_link_libraries(${elf} PRIVATE c asf4-drivers-min samd51a-ds -Wl,-u,exception_table)
-    target_include_directories(${elf} PRIVATE ${INCLUDES})
-    target_compile_definitions(${elf} PRIVATE BOOTLOADER "APP_U2F=0")
-    # needed to find version.h
-    target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-    # needed to find bootloader_version.h
-    target_include_directories(${elf} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bootloader)
-    target_link_libraries(${elf} PRIVATE "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${bootloader}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader.ld\"")
-    target_link_libraries(${elf} PRIVATE -Wl,--defsym=STACK_SIZE=${STACK_SIZE} -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE})
-
-    target_link_libraries(${elf} PRIVATE ${bootloader}_rust_c)
-
-    # Select the smaller version of libc called nano.
-    target_compile_options(${elf} PRIVATE --specs=nano.specs)
-    target_link_libraries(${elf} PRIVATE --specs=nano.specs)
-    target_compile_options(${elf} PRIVATE --specs=nosys.specs)
-    target_link_libraries(${elf} PRIVATE --specs=nosys.specs)
-    target_link_libraries(${elf} PRIVATE -Wl,--print-memory-usage)
-  endforeach(bootloader)
-
-  foreach(bootloader ${DEVDEVICE-BOOTLOADERS} ${BOOTLOADERS-BITBOX02PLUS})
-    set(elf ${bootloader}.elf)
-    target_link_libraries(${elf} PRIVATE ${QTOUCHLIB_A} ${QTOUCHLIB_B} ${QTOUCHLIB_T})
-    target_sources(${elf} PRIVATE ${QTOUCH-SOURCES})
-  endforeach(bootloader)
-
-  foreach(bootloader ${BOOTLOADERS-BITBOX02PLUS})
-    set(elf ${bootloader}.elf)
-    target_sources(${elf} PRIVATE ${PLATFORM-BITBOX02-PLUS-SOURCES})
-    target_link_libraries(${bootloader}.elf PRIVATE embedded-swd)
-  endforeach(bootloader)
-
-  # BB02 definitions
-
-  target_compile_definitions(bb02-bl-multi.elf PRIVATE PRODUCT_BITBOX_MULTI)
-  target_compile_definitions(bb02-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02-bl-multi-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-
-  target_compile_definitions(bb02-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_MULTI BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02-bl-multi-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-  target_compile_definitions(bb02-bl-btconly.elf PRIVATE PRODUCT_BITBOX_BTCONLY)
-  target_compile_definitions(bb02-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_BTCONLY BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-  # BB02PLUS definitions
-
-  target_compile_definitions(bb02p-bl-multi.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI)
-  target_compile_definitions(bb02p-bl-multi-development.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02p-bl-multi-development-locked.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_DEVDEVICE BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02p-bl-multi-development-locked.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-
-  target_compile_definitions(bb02p-bl-multi-production.elf PRIVATE PRODUCT_BITBOX_PLUS_MULTI BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02p-bl-multi-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
-  target_compile_definitions(bb02p-bl-btconly.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY)
-  target_compile_definitions(bb02p-bl-btconly-development.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_DEVDEVICE)
-  target_compile_definitions(bb02p-bl-btconly-production.elf PRIVATE PRODUCT_BITBOX_PLUS_BTCONLY BOOTLOADER_PRODUCTION)
-  set_property(TARGET bb02p-bl-btconly-production.elf PROPERTY EXCLUDE_FROM_ALL ON)
-
   foreach(firmware ${FIRMWARES})
     set(elf ${firmware}.elf)
     add_executable(${elf} ${FIRMWARE-SOURCES})
@@ -541,6 +453,630 @@ if(CMAKE_CROSSCOMPILING)
   target_compile_definitions(factory-setup.elf PRIVATE PRODUCT_BITBOX02_FACTORYSETUP "APP_U2F=0")
   target_sources(factory-setup.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
 
+  set(BB02_BLUPD_BIN_DIR ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02_BTCONLY_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02-btconly-production.v1.bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02-multi-production.v1.bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02NOVA_BTCONLY_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02nova-btconly-production.v1.bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02NOVA_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02nova-multi-production.v1.bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02-btconly-development.v1.bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02-multi-development.v1.bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02nova-btconly-development.v1.bin)
+  set(BB02_BLUPD_STAGE0_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage0-bitbox02nova-multi-development.v1.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-btconly-production.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-production.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-production.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_PRODUCTION_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-production.v1.2.2.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-btconly-development.v1.2.0.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02-multi-development.v1.2.0.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-btconly-development.v1.2.0.signed.bin)
+  set(BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN ${BB02_BLUPD_BIN_DIR}/bootloader-stage1-bitbox02nova-multi-development.v1.2.0.signed.bin)
+
+  set(BB02_BLUPD_FIRMWARE_TARGETS
+    firmware-blupgrade-bitbox02-btconly
+    firmware-blupgrade-bitbox02-multi
+    firmware-blupgrade-bitbox02nova-btconly
+    firmware-blupgrade-bitbox02nova-multi
+    firmware-blupgrade-bitbox02-btconly-development
+    firmware-blupgrade-bitbox02-multi-development
+    firmware-blupgrade-bitbox02nova-btconly-development
+    firmware-blupgrade-bitbox02nova-multi-development
+  )
+  set(BB02_BLUPD_FIRMWARE_TARGETS ${BB02_BLUPD_FIRMWARE_TARGETS} PARENT_SCOPE)
+
+  function(add_bb02_stage1_target target rustlib product bootloader_type is_plus)
+    add_executable(${target}.elf
+      ${BOOTLOADER-SOURCES}
+      ${PLATFORM-BITBOX02-SOURCES}
+      ${QTOUCH-SOURCES}
+      ${CMAKE_SOURCE_DIR}/src/bootloader/stage1_header.c
+    )
+    target_compile_options(${target}.elf PRIVATE -fno-lto)
+    target_link_libraries(${target}.elf PRIVATE
+      c
+      asf4-drivers-min
+      samd51a-ds
+      ${QTOUCHLIB_A}
+      ${QTOUCHLIB_B}
+      ${QTOUCHLIB_T}
+      -Wl,-u,exception_table
+      "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader-stage1.ld\""
+      -Wl,--defsym=STACK_SIZE=${STACK_SIZE}
+      -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE}
+      ${rustlib}
+      --specs=nano.specs
+      --specs=nosys.specs
+      -Wl,--print-memory-usage
+    )
+    target_include_directories(${target}.elf PRIVATE ${INCLUDES})
+    target_include_directories(${target}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    target_include_directories(${target}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bootloader)
+    target_compile_definitions(${target}.elf PRIVATE
+      BOOTLOADER
+      ${bootloader_type}
+      ${product}
+      "APP_U2F=0"
+    )
+    target_compile_options(${target}.elf PRIVATE --specs=nano.specs --specs=nosys.specs)
+    if(is_plus)
+      target_sources(${target}.elf PRIVATE ${PLATFORM-BITBOX02-PLUS-SOURCES})
+      target_link_libraries(${target}.elf PRIVATE embedded-swd)
+    endif()
+    add_custom_command(
+      TARGET ${target}.elf POST_BUILD
+      COMMAND ${CMAKE_SIZE} ${target}.elf
+      COMMAND ${CMAKE_OBJCOPY} -O binary ${target}.elf ${target}.raw.bin
+      COMMAND
+        ${PYTHON_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/scripts/bootloader_update.py
+        prepare-stage1-unsigned
+        --raw-bin ${target}.raw.bin
+        --unsigned-bin ${target}.bin
+      WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+      COMMENT "\nGenerating binary ${target}.bin"
+    )
+    set_property(TARGET ${target}.elf PROPERTY EXCLUDE_FROM_ALL ON)
+  endfunction()
+
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02-btconly-development
+    bb02-bl-btconly-development_rust_c
+    PRODUCT_BITBOX_BTCONLY
+    BOOTLOADER_DEVDEVICE
+    FALSE)
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02-btconly-production
+    bb02-bl-btconly-production_rust_c
+    PRODUCT_BITBOX_BTCONLY
+    BOOTLOADER_PRODUCTION
+    FALSE)
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02-multi-development
+    bb02-bl-multi-development_rust_c
+    PRODUCT_BITBOX_MULTI
+    BOOTLOADER_DEVDEVICE
+    FALSE)
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02-multi-production
+    bb02-bl-multi-production_rust_c
+    PRODUCT_BITBOX_MULTI
+    BOOTLOADER_PRODUCTION
+    FALSE)
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02nova-btconly-development
+    bb02p-bl-btconly-development_rust_c
+    PRODUCT_BITBOX_PLUS_BTCONLY
+    BOOTLOADER_DEVDEVICE
+    TRUE)
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02nova-btconly-production
+    bb02p-bl-btconly-production_rust_c
+    PRODUCT_BITBOX_PLUS_BTCONLY
+    BOOTLOADER_PRODUCTION
+    TRUE)
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02nova-multi-development
+    bb02p-bl-multi-development_rust_c
+    PRODUCT_BITBOX_PLUS_MULTI
+    BOOTLOADER_DEVDEVICE
+    TRUE)
+  add_bb02_stage1_target(
+    bootloader-stage1-bitbox02nova-multi-production
+    bb02p-bl-multi-production_rust_c
+    PRODUCT_BITBOX_PLUS_MULTI
+    BOOTLOADER_PRODUCTION
+    TRUE)
+
+  # Bare stage1 target names are exported for J-Link script generation.
+  set(BB02_STAGE1_TARGETS
+    bootloader-stage1-bitbox02-btconly-production
+    bootloader-stage1-bitbox02-multi-production
+    bootloader-stage1-bitbox02nova-btconly-production
+    bootloader-stage1-bitbox02nova-multi-production
+    bootloader-stage1-bitbox02-btconly-development
+    bootloader-stage1-bitbox02-multi-development
+    bootloader-stage1-bitbox02nova-btconly-development
+    bootloader-stage1-bitbox02nova-multi-development
+  )
+  set(BB02_STAGE1_TARGETS ${BB02_STAGE1_TARGETS} PARENT_SCOPE)
+
+  # Builds one stage0 ELF/bin for a product. Production stage0 includes stage1 signature
+  # verification; development stage0 skips that path and shows a visible development marker.
+  function(add_bb02_stage0_target stage0_target product target_product_id development)
+    set(stage0_sources
+      ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0.c
+      ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_descriptor.c
+      ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_runtime.c
+      ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_startup.c
+      ${CMAKE_SOURCE_DIR}/src/platform/driver_init.c
+      ${CMAKE_SOURCE_DIR}/src/ui/oled/oled.c
+      ${CMAKE_SOURCE_DIR}/src/ui/oled/oled_writer.c
+      ${CMAKE_SOURCE_DIR}/src/ui/oled/sh1107.c
+      ${CMAKE_SOURCE_DIR}/src/ui/oled/ssd1312.c
+    )
+    set_source_files_properties(
+      ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage0_startup.c
+      PROPERTIES COMPILE_OPTIONS -fno-stack-protector
+    )
+    set(stage0_compile_definitions)
+    if(development)
+      list(APPEND stage0_compile_definitions BB02_STAGE0_DEVELOPMENT)
+    else()
+      list(APPEND stage0_sources
+        ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/stage1_pubkeys.c
+        ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage1_sigcheck.c
+        ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
+        ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
+      )
+    endif()
+
+    add_executable(${stage0_target}.elf ${stage0_sources})
+    target_compile_options(${stage0_target}.elf PRIVATE -flto -ffat-lto-objects)
+    target_include_directories(${stage0_target}.elf PRIVATE ${INCLUDES})
+    target_include_directories(${stage0_target}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    target_compile_definitions(${stage0_target}.elf PRIVATE
+      ${product}
+      BB02_STAGE1_TARGET_PRODUCT_ID=${target_product_id}
+      ${stage0_compile_definitions}
+    )
+    target_link_libraries(${stage0_target}.elf
+      PRIVATE
+        -flto
+        -nostdlib
+        samd51a-ds
+        asf4-drivers-stage0
+        -Wl,-u,exception_table
+        "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${stage0_target}.map\" -T\"${CMAKE_SOURCE_DIR}/bootloader-stage0.ld\""
+        -Wl,--defsym=STACK_SIZE=0x1000
+        -Wl,-defsym=HEAP_SIZE=0
+        -Wl,--print-memory-usage
+    )
+    set_property(TARGET ${stage0_target}.elf PROPERTY EXCLUDE_FROM_ALL ON)
+
+    add_custom_command(
+      TARGET ${stage0_target}.elf POST_BUILD
+      COMMAND ${CMAKE_SIZE} ${stage0_target}.elf
+      COMMAND ${CMAKE_OBJCOPY} --gap-fill 0xff -O binary ${stage0_target}.elf ${stage0_target}.bin
+      WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+      COMMENT "\nGenerating binary ${stage0_target}.bin"
+    )
+  endfunction()
+
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02-btconly-production
+    PRODUCT_BITBOX_BTCONLY
+    BB02_STAGE1_PRODUCT_ID_BITBOX_BTCONLY
+    FALSE)
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02-multi-production
+    PRODUCT_BITBOX_MULTI
+    BB02_STAGE1_PRODUCT_ID_BITBOX_MULTI
+    FALSE)
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02nova-btconly-production
+    PRODUCT_BITBOX_PLUS_BTCONLY
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_BTCONLY
+    FALSE)
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02nova-multi-production
+    PRODUCT_BITBOX_PLUS_MULTI
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_MULTI
+    FALSE)
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02-btconly-development
+    PRODUCT_BITBOX_BTCONLY
+    BB02_STAGE1_PRODUCT_ID_BITBOX_BTCONLY
+    TRUE)
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02-multi-development
+    PRODUCT_BITBOX_MULTI
+    BB02_STAGE1_PRODUCT_ID_BITBOX_MULTI
+    TRUE)
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02nova-btconly-development
+    PRODUCT_BITBOX_PLUS_BTCONLY
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_BTCONLY
+    TRUE)
+  add_bb02_stage0_target(
+    bootloader-stage0-bitbox02nova-multi-development
+    PRODUCT_BITBOX_PLUS_MULTI
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_MULTI
+    TRUE)
+
+  # Bare stage0 target names are exported for J-Link script generation.
+  set(BB02_STAGE0_TARGETS
+    bootloader-stage0-bitbox02-btconly-production
+    bootloader-stage0-bitbox02-multi-production
+    bootloader-stage0-bitbox02nova-btconly-production
+    bootloader-stage0-bitbox02nova-multi-production
+    bootloader-stage0-bitbox02-btconly-development
+    bootloader-stage0-bitbox02-multi-development
+    bootloader-stage0-bitbox02nova-btconly-development
+    bootloader-stage0-bitbox02nova-multi-development
+  )
+  set(BB02_STAGE0_TARGETS ${BB02_STAGE0_TARGETS} PARENT_SCOPE)
+
+  # Creates the embedded prebuilt stage0 image object and stage1 update payload object used by one
+  # bootloader-upgrade firmware target.
+  function(add_bb02_blupgrade_assets
+      name
+      out_prefix
+      product_id
+      stage0_bin
+      stage1_signed_bin
+      development)
+    set(asset_dir ${CMAKE_CURRENT_BINARY_DIR}/bootloader_upgrade_${name})
+    set(stage0_image_bin ${asset_dir}/bootloader_upgrade_stage0_image.bin)
+    set(stage0_image_obj ${asset_dir}/bootloader_upgrade_stage0_image.o)
+    set(payload_bin ${asset_dir}/bootloader_upgrade_payload.bin)
+    set(payload_obj ${asset_dir}/bootloader_upgrade_payload.o)
+    set(development_arg)
+    if(development)
+      set(development_arg --development)
+    endif()
+
+    add_custom_command(
+      OUTPUT ${stage0_image_bin}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${asset_dir}
+      COMMAND
+        ${PYTHON_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/scripts/bootloader_update.py
+        create-stage0-fw-embedding
+        --stage0-bin ${stage0_bin}
+        --out-bin ${stage0_image_bin}
+        --product-id ${product_id}
+        ${development_arg}
+      DEPENDS ${stage0_bin} ${CMAKE_SOURCE_DIR}/scripts/bootloader_update.py
+      COMMENT "Creating stage0 firmware embedding input from ${stage0_bin}"
+    )
+
+    add_custom_command(
+      OUTPUT ${stage0_image_obj}
+      COMMAND
+        ${CMAKE_OBJCOPY}
+        -Ibinary
+        -Oelf32-littlearm
+        --rename-section .data=.rodata,alloc,load,readonly,data,contents
+        --set-section-alignment .rodata=512
+        bootloader_upgrade_stage0_image.bin
+        bootloader_upgrade_stage0_image.o
+      DEPENDS ${stage0_image_bin}
+      WORKING_DIRECTORY ${asset_dir}
+      COMMENT "Convert stage0 upgrade image to object file using ${CMAKE_OBJCOPY}"
+    )
+
+    add_custom_command(
+      OUTPUT ${payload_bin}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${asset_dir}
+      COMMAND
+        ${PYTHON_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/scripts/bootloader_update.py
+        create-stage1-fw-embedding
+        --signed-bin ${stage1_signed_bin}
+        --out-bin ${payload_bin}
+        --product-id ${product_id}
+        ${development_arg}
+      DEPENDS ${stage1_signed_bin} ${CMAKE_SOURCE_DIR}/scripts/bootloader_update.py
+      COMMENT "Creating stage1 firmware embedding input from ${stage1_signed_bin}"
+    )
+
+    add_custom_command(
+      OUTPUT ${payload_obj}
+      COMMAND
+        ${CMAKE_OBJCOPY}
+        -Ibinary
+        -Oelf32-littlearm
+        --rename-section .data=.bootloader_update,alloc,load,readonly,data,contents
+        --set-section-alignment .bootloader_update=512
+        bootloader_upgrade_payload.bin
+        bootloader_upgrade_payload.o
+      DEPENDS ${payload_bin}
+      WORKING_DIRECTORY ${asset_dir}
+      COMMENT "Convert stage1 upgrade payload to object file using ${CMAKE_OBJCOPY}"
+    )
+    set_source_files_properties(
+      ${stage0_image_obj}
+      ${payload_obj}
+      PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+    add_custom_target(
+      bootloader-upgrade-assets-${name}
+      DEPENDS
+        ${stage0_image_bin}
+        ${stage0_image_obj}
+        ${payload_bin}
+        ${payload_obj}
+    )
+    set(${out_prefix}_STAGE0_IMAGE_OBJ ${stage0_image_obj} PARENT_SCOPE)
+    set(${out_prefix}_PAYLOAD_OBJ ${payload_obj} PARENT_SCOPE)
+    set(${out_prefix}_ASSETS_TARGET bootloader-upgrade-assets-${name} PARENT_SCOPE)
+  endfunction()
+
+  add_bb02_blupgrade_assets(
+    bitbox02-btconly
+    BB02_BLUPD_BITBOX02_BTCONLY
+    bitbox-btconly
+    ${BB02_BLUPD_STAGE0_BITBOX02_BTCONLY_PRODUCTION_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_PRODUCTION_BIN}
+    FALSE)
+  add_bb02_blupgrade_assets(
+    bitbox02-multi
+    BB02_BLUPD_BITBOX02_MULTI
+    bitbox-multi
+    ${BB02_BLUPD_STAGE0_BITBOX02_MULTI_PRODUCTION_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02_MULTI_PRODUCTION_BIN}
+    FALSE)
+  add_bb02_blupgrade_assets(
+    bitbox02nova-btconly
+    BB02_BLUPD_BITBOX02NOVA_BTCONLY
+    bitbox-plus-btconly
+    ${BB02_BLUPD_STAGE0_BITBOX02NOVA_BTCONLY_PRODUCTION_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_PRODUCTION_BIN}
+    FALSE)
+  add_bb02_blupgrade_assets(
+    bitbox02nova-multi
+    BB02_BLUPD_BITBOX02NOVA_MULTI
+    bitbox-plus-multi
+    ${BB02_BLUPD_STAGE0_BITBOX02NOVA_MULTI_PRODUCTION_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_PRODUCTION_BIN}
+    FALSE)
+
+  add_bb02_blupgrade_assets(
+    bitbox02-btconly-development
+    BB02_BLUPD_BITBOX02_BTCONLY_DEVELOPMENT
+    bitbox-btconly
+    ${BB02_BLUPD_STAGE0_BITBOX02_BTCONLY_DEVELOPMENT_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02_BTCONLY_DEVELOPMENT_BIN}
+    TRUE)
+  add_bb02_blupgrade_assets(
+    bitbox02-multi-development
+    BB02_BLUPD_BITBOX02_MULTI_DEVELOPMENT
+    bitbox-multi
+    ${BB02_BLUPD_STAGE0_BITBOX02_MULTI_DEVELOPMENT_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02_MULTI_DEVELOPMENT_BIN}
+    TRUE)
+  add_bb02_blupgrade_assets(
+    bitbox02nova-btconly-development
+    BB02_BLUPD_BITBOX02NOVA_BTCONLY_DEVELOPMENT
+    bitbox-plus-btconly
+    ${BB02_BLUPD_STAGE0_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02NOVA_BTCONLY_DEVELOPMENT_BIN}
+    TRUE)
+  add_bb02_blupgrade_assets(
+    bitbox02nova-multi-development
+    BB02_BLUPD_BITBOX02NOVA_MULTI_DEVELOPMENT
+    bitbox-plus-multi
+    ${BB02_BLUPD_STAGE0_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN}
+    ${BB02_BLUPD_STAGE1_BITBOX02NOVA_MULTI_DEVELOPMENT_BIN}
+    TRUE)
+
+  # Aggregate targets for building all production/development stage1 variants.
+  add_custom_target(
+    bootloader-stage1-production
+    DEPENDS
+      bootloader-stage1-bitbox02-btconly-production.elf
+      bootloader-stage1-bitbox02-multi-production.elf
+      bootloader-stage1-bitbox02nova-btconly-production.elf
+      bootloader-stage1-bitbox02nova-multi-production.elf
+  )
+
+  add_custom_target(
+    bootloader-stage1-development
+    DEPENDS
+      bootloader-stage1-bitbox02-btconly-development.elf
+      bootloader-stage1-bitbox02-multi-development.elf
+      bootloader-stage1-bitbox02nova-btconly-development.elf
+      bootloader-stage1-bitbox02nova-multi-development.elf
+  )
+
+  add_custom_target(
+    bootloader-stage1
+    DEPENDS
+      bootloader-stage1-production
+      bootloader-stage1-development
+  )
+
+  # Aggregate targets for building all production/development stage0 variants.
+  add_custom_target(
+    bootloader-stage0-production
+    DEPENDS
+      bootloader-stage0-bitbox02-btconly-production.elf
+      bootloader-stage0-bitbox02-multi-production.elf
+      bootloader-stage0-bitbox02nova-btconly-production.elf
+      bootloader-stage0-bitbox02nova-multi-production.elf
+  )
+
+  add_custom_target(
+    bootloader-stage0-development
+    DEPENDS
+      bootloader-stage0-bitbox02-btconly-development.elf
+      bootloader-stage0-bitbox02-multi-development.elf
+      bootloader-stage0-bitbox02nova-btconly-development.elf
+      bootloader-stage0-bitbox02nova-multi-development.elf
+  )
+
+  add_custom_target(
+    bootloader-stage0
+    DEPENDS
+      bootloader-stage0-production
+      bootloader-stage0-development
+  )
+
+  add_custom_target(
+    bootloader-upgrade-assets
+    DEPENDS
+      ${BB02_BLUPD_BITBOX02_BTCONLY_ASSETS_TARGET}
+      ${BB02_BLUPD_BITBOX02_MULTI_ASSETS_TARGET}
+      ${BB02_BLUPD_BITBOX02NOVA_BTCONLY_ASSETS_TARGET}
+      ${BB02_BLUPD_BITBOX02NOVA_MULTI_ASSETS_TARGET}
+  )
+
+  add_custom_target(
+    bootloader-upgrade-assets-development
+    DEPENDS
+      ${BB02_BLUPD_BITBOX02_BTCONLY_DEVELOPMENT_ASSETS_TARGET}
+      ${BB02_BLUPD_BITBOX02_MULTI_DEVELOPMENT_ASSETS_TARGET}
+      ${BB02_BLUPD_BITBOX02NOVA_BTCONLY_DEVELOPMENT_ASSETS_TARGET}
+      ${BB02_BLUPD_BITBOX02NOVA_MULTI_DEVELOPMENT_ASSETS_TARGET}
+  )
+
+  function(add_bb02_blupgrade_firmware target rustlib product app_u2f target_product_id stage0_image_obj payload_obj development)
+    add_executable(${target}.elf
+      ${FIRMWARE-SOURCES}
+      ${CMAKE_SOURCE_DIR}/src/firmware.c
+      ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/firmware_installer_check.c
+      ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/firmware_installer.c
+      ${stage0_image_obj}
+      ${payload_obj}
+    )
+    target_compile_options(${target}.elf PRIVATE -flto -ffat-lto-objects)
+    target_link_libraries(${target}.elf PRIVATE
+      optiga
+      embedded-swd
+      cryptoauthlib
+      c
+      ${rustlib}
+      samd51a-ds
+      asf4-drivers-min
+      asf4-drivers
+      -Wl,-u,exception_table
+      -flto
+      "-Wl,-Map=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.map\" -T\"${CMAKE_SOURCE_DIR}/firmware-blupgrade.ld\""
+      -Wl,--defsym=STACK_SIZE=${STACK_SIZE}
+      -Wl,-defsym=HEAP_SIZE=${HEAP_SIZE}
+      ${QTOUCHLIB_A}
+      ${QTOUCHLIB_B}
+      ${QTOUCHLIB_T}
+      --specs=nano.specs
+      --specs=nosys.specs
+      -Wl,--print-memory-usage
+    )
+    target_compile_options(${target}.elf PRIVATE --specs=nano.specs --specs=nosys.specs)
+    target_include_directories(${target}.elf PRIVATE ${INCLUDES})
+    target_include_directories(${target}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    set(blupgrade_compile_definitions BOOTLOADER_UPGRADE)
+    if(development)
+      list(APPEND blupgrade_compile_definitions BOOTLOADER_UPGRADE_DEVELOPMENT)
+    endif()
+    target_compile_definitions(${target}.elf PRIVATE
+      ${product}
+      "APP_U2F=${app_u2f}"
+      BB02_STAGE1_TARGET_PRODUCT_ID=${target_product_id}
+      ${blupgrade_compile_definitions}
+      OPTIGA_LIB_EXTERNAL="optiga_config.h"
+    )
+    target_sources(${target}.elf PRIVATE ${PLATFORM-BITBOX02-SOURCES})
+    if(${app_u2f} EQUAL 1)
+      target_sources(${target}.elf PRIVATE ${FIRMWARE-U2F-SOURCES} ${FIRMWARE-U2F-DRIVER-SOURCES})
+    endif()
+    if(NOT development)
+      target_sources(${target}.elf PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/stage1_pubkeys.c
+        ${CMAKE_SOURCE_DIR}/src/bootloader/stage0/stage1_sigcheck.c
+        ${CMAKE_SOURCE_DIR}/src/pukcc/pukcc.c
+        ${CMAKE_SOURCE_DIR}/src/pukcc/curve_p256.c
+      )
+    endif()
+    add_custom_command(
+      TARGET ${target}.elf POST_BUILD
+      COMMAND ${CMAKE_SIZE} ${target}.elf
+      COMMAND ${CMAKE_OBJCOPY} -O binary ${target}.elf ${target}.bin
+      WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+      COMMENT "\nGenerating binary ${target}.bin"
+    )
+  endfunction()
+
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02-btconly
+    firmware-btc_rust_c
+    PRODUCT_BITBOX_BTCONLY
+    0
+    BB02_STAGE1_PRODUCT_ID_BITBOX_BTCONLY
+    ${BB02_BLUPD_BITBOX02_BTCONLY_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02_BTCONLY_PAYLOAD_OBJ}
+    FALSE)
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02-multi
+    firmware_rust_c
+    PRODUCT_BITBOX_MULTI
+    1
+    BB02_STAGE1_PRODUCT_ID_BITBOX_MULTI
+    ${BB02_BLUPD_BITBOX02_MULTI_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02_MULTI_PAYLOAD_OBJ}
+    FALSE)
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02nova-btconly
+    firmware-btc_rust_c
+    PRODUCT_BITBOX_BTCONLY
+    0
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_BTCONLY
+    ${BB02_BLUPD_BITBOX02NOVA_BTCONLY_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02NOVA_BTCONLY_PAYLOAD_OBJ}
+    FALSE)
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02nova-multi
+    firmware_rust_c
+    PRODUCT_BITBOX_MULTI
+    1
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_MULTI
+    ${BB02_BLUPD_BITBOX02NOVA_MULTI_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02NOVA_MULTI_PAYLOAD_OBJ}
+    FALSE)
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02-btconly-development
+    firmware-btc_rust_c
+    PRODUCT_BITBOX_BTCONLY
+    0
+    BB02_STAGE1_PRODUCT_ID_BITBOX_BTCONLY
+    ${BB02_BLUPD_BITBOX02_BTCONLY_DEVELOPMENT_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02_BTCONLY_DEVELOPMENT_PAYLOAD_OBJ}
+    TRUE)
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02-multi-development
+    firmware_rust_c
+    PRODUCT_BITBOX_MULTI
+    1
+    BB02_STAGE1_PRODUCT_ID_BITBOX_MULTI
+    ${BB02_BLUPD_BITBOX02_MULTI_DEVELOPMENT_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02_MULTI_DEVELOPMENT_PAYLOAD_OBJ}
+    TRUE)
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02nova-btconly-development
+    firmware-btc_rust_c
+    PRODUCT_BITBOX_BTCONLY
+    0
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_BTCONLY
+    ${BB02_BLUPD_BITBOX02NOVA_BTCONLY_DEVELOPMENT_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02NOVA_BTCONLY_DEVELOPMENT_PAYLOAD_OBJ}
+    TRUE)
+  add_bb02_blupgrade_firmware(
+    firmware-blupgrade-bitbox02nova-multi-development
+    firmware_rust_c
+    PRODUCT_BITBOX_MULTI
+    1
+    BB02_STAGE1_PRODUCT_ID_BITBOX_PLUS_MULTI
+    ${BB02_BLUPD_BITBOX02NOVA_MULTI_DEVELOPMENT_STAGE0_IMAGE_OBJ}
+    ${BB02_BLUPD_BITBOX02NOVA_MULTI_DEVELOPMENT_PAYLOAD_OBJ}
+    TRUE)
+
   # Copy the binary file to the output directory because the symbol names in
   # the object file depend on the path to the binary file
   add_custom_command(
@@ -559,7 +1095,7 @@ if(CMAKE_CROSSCOMPILING)
   target_link_libraries(factory-setup.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/bitbox-da14531-firmware.o)
 
 
-  foreach(name ${BOOTLOADERS} ${FIRMWARES})
+  foreach(name ${FIRMWARES})
     add_custom_command(
       TARGET ${name}.elf POST_BUILD
       COMMAND ${CMAKE_SIZE} ${name}.elf

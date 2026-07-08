@@ -133,6 +133,17 @@ fn load_from_buffer(buf: &[u8]) -> Result<(Zeroizing<BackupData>, pb_backup::Bac
     }
 }
 
+fn load_from_buffer_for_dir(
+    buf: &[u8],
+    dir: &str,
+) -> Result<(Zeroizing<BackupData>, pb_backup::BackupMetaData), ()> {
+    let (backup_data, metadata) = load_from_buffer(buf)?;
+    if id(backup_data.get_seed()) != dir {
+        return Err(());
+    }
+    Ok((backup_data, metadata))
+}
+
 /// Does a bitwise majority vote to recover the contents of potentially corrupted data. All three
 /// buffers be of the same length.
 fn bitwise_recovery(buf1: &[u8], buf2: &[u8], buf3: &[u8]) -> Result<Zeroizing<Vec<u8>>, ()> {
@@ -171,18 +182,17 @@ pub async fn load(
         hal.sd().load_bin(&files[2], dir).await?,
     ];
     for contents in file_contents.iter() {
-        if let o @ Ok(_) = load_from_buffer(contents) {
+        if let o @ Ok(_) = load_from_buffer_for_dir(contents, dir) {
             return o;
         }
     }
     // If we arrived here, it means all three copies of the backup are corrupted (couldn't decode or
     // failed the checksum verification). We try to recover with a bit-wise majority vote using the
     // three copies of the backup. This only works if all three files have the same size.
-    load_from_buffer(&bitwise_recovery(
-        &file_contents[0],
-        &file_contents[1],
-        &file_contents[2],
-    )?)
+    load_from_buffer_for_dir(
+        &bitwise_recovery(&file_contents[0], &file_contents[1], &file_contents[2])?,
+        dir,
+    )
 }
 
 pub async fn create(
@@ -354,6 +364,16 @@ mod tests {
             contents[0].as_slice() == contents[1].as_slice()
                 && contents[0].as_slice() == contents[2].as_slice()
         );
+
+        let wrong_dir = "0000000000000000000000000000000000000000000000000000000000000000";
+        for (file, contents) in files.iter().zip(contents.iter()) {
+            mock_hal
+                .sd
+                .write_bin(file, wrong_dir, contents)
+                .await
+                .unwrap();
+        }
+        assert!(load(&mut mock_hal, wrong_dir).await.is_err());
 
         // Recreating the backup removes the previous files.
         assert!(

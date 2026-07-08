@@ -39,8 +39,11 @@ pub async fn verify(
     if ascii::is_printable_ascii(msg, ascii::Charset::AllNewline) {
         // The message is all ascii and printable.
         let msg = core::str::from_utf8(msg).unwrap();
+        if msg.is_empty() {
+            return Err(Error::InvalidInput);
+        }
 
-        let pages: Vec<&str> = msg.split('\n').filter(|line| !line.is_empty()).collect();
+        let pages: Vec<&str> = msg.split('\n').collect();
         if pages.is_empty() {
             return Err(Error::InvalidInput);
         }
@@ -74,5 +77,113 @@ pub async fn verify(
         };
         hal.ui().confirm(&params).await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::hal::testing::TestingHal;
+    use crate::hal::testing::ui::Screen;
+
+    #[async_test::test]
+    async fn test_verify_multiline_text() {
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", b"A\nB", true)
+                .await
+                .is_ok()
+        );
+
+        assert_eq!(
+            hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign 1/2".into(),
+                    body: "A".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign 2/2".into(),
+                    body: "B".into(),
+                    longtouch: true,
+                },
+            ]
+        );
+    }
+
+    #[async_test::test]
+    async fn test_verify_blank_lines() {
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", b"A\n\nB", true)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign 1/3".into(),
+                    body: "A".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign 2/3".into(),
+                    body: "".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign 3/3".into(),
+                    body: "B".into(),
+                    longtouch: true,
+                },
+            ]
+        );
+
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", b"\nA", true)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign 1/2".into(),
+                    body: "".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign 2/2".into(),
+                    body: "A".into(),
+                    longtouch: true,
+                },
+            ]
+        );
+
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", b"A\n", true)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign 1/2".into(),
+                    body: "A".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign 2/2".into(),
+                    body: "".into(),
+                    longtouch: true,
+                },
+            ]
+        );
     }
 }

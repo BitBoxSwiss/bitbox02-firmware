@@ -10,6 +10,9 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Fixed a crash when listing many backups over Bluetooth
 - Add support for BitBoxSync
 
+### v9.26.3
+- Security improvements
+
 ### v9.26.2
 - Intermediate release to update the bootloader to v1.2.2
 

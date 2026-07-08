@@ -25,6 +25,11 @@ use num_bigint::BigUint;
 
 // 1 ETH = 1e18 wei.
 const WEI_DECIMALS: usize = 18;
+
+// Streaming data size limits
+const MAX_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
+const MAX_NONSTREAMING_DATA_LENGTH: usize = 6144;
+
 pub enum Transaction<'a> {
     Legacy(&'a pb::EthSignRequest),
     Eip1559(&'a pb::EthSignEip1559Request),
@@ -508,13 +513,13 @@ pub async fn _process(
     }
 
     // Size limits.
-    const MAX_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
-    const MAX_NONSTREAMING_DATA_LENGTH: usize = 6144;
     if request.nonce().len() > 16
         || request.gas_limit().len() > 16
         || request.value().len() > 32
         || request.data().len() > MAX_NONSTREAMING_DATA_LENGTH
         || request.data_length() > MAX_STREAMING_DATA_LENGTH
+        || (request.data_length() > 0
+            && request.data_length() <= MAX_NONSTREAMING_DATA_LENGTH as u32)
     {
         return Err(Error::InvalidInput);
     }
@@ -1869,7 +1874,7 @@ mod tests {
     }
 
     #[async_test::test]
-    pub async fn test_streaming_equivalence_legacy() {
+    pub async fn test_process_streaming_below_threshold_rejected_legacy() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
         let test_data: Vec<u8> = (0..4000u32).map(|i| (i % 256) as u8).collect();
 
@@ -1918,74 +1923,7 @@ mod tests {
         clear_chunk_responder();
 
         assert!(nonstreaming_result.is_ok());
-        assert!(streaming_result.is_ok());
-        match (&nonstreaming_result, &streaming_result) {
-            (Ok(Response::Sign(trad)), Ok(Response::Sign(stream))) => {
-                assert_eq!(trad.signature, stream.signature);
-            }
-            _ => panic!("Expected Sign responses from both modes"),
-        }
-    }
-
-    #[async_test::test]
-    pub async fn test_streaming_equivalence_eip1559() {
-        const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        let test_data: Vec<u8> = (0..4000u32).map(|i| (i % 256) as u8).collect();
-
-        mock_unlocked();
-        let mut mock_hal_nonstreaming = TestingHal::new();
-        let nonstreaming_result = process(
-            &mut mock_hal_nonstreaming,
-            &Transaction::Eip1559(&pb::EthSignEip1559Request {
-                keypath: KEYPATH.to_vec(),
-                nonce: hex!("01").to_vec(),
-                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
-                max_fee_per_gas: hex!("04a817c800").to_vec(),
-                gas_limit: hex!("0f4240").to_vec(),
-                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
-                value: b"".to_vec(),
-                data: test_data.clone(),
-                host_nonce_commitment: None,
-                chain_id: 1,
-                address_case: pb::EthAddressCase::Mixed as _,
-                data_length: 0,
-                payment_request: None,
-            }),
-        )
-        .await;
-
-        setup_chunk_responder(test_data.clone());
-        mock_unlocked();
-        let mut mock_hal_streaming = TestingHal::new();
-        let streaming_result = process(
-            &mut mock_hal_streaming,
-            &Transaction::Eip1559(&pb::EthSignEip1559Request {
-                keypath: KEYPATH.to_vec(),
-                nonce: hex!("01").to_vec(),
-                max_priority_fee_per_gas: hex!("3b9aca00").to_vec(),
-                max_fee_per_gas: hex!("04a817c800").to_vec(),
-                gas_limit: hex!("0f4240").to_vec(),
-                recipient: hex!("112233445566778899aabbccddeeff0011223344").to_vec(),
-                value: b"".to_vec(),
-                data: vec![],
-                host_nonce_commitment: None,
-                chain_id: 1,
-                address_case: pb::EthAddressCase::Mixed as _,
-                data_length: 4000,
-                payment_request: None,
-            }),
-        )
-        .await;
-        clear_chunk_responder();
-
-        assert!(nonstreaming_result.is_ok());
-        assert!(streaming_result.is_ok());
-        match (&nonstreaming_result, &streaming_result) {
-            (Ok(Response::Sign(trad)), Ok(Response::Sign(stream))) => {
-                assert_eq!(trad.signature, stream.signature);
-            }
-            _ => panic!("Expected Sign responses from both modes"),
-        }
+        assert_eq!(streaming_result, Err(Error::InvalidInput));
     }
 
     #[async_test::test]
@@ -2135,9 +2073,11 @@ mod tests {
     }
 
     #[async_test::test]
-    pub async fn test_streaming_1_byte_legacy() {
+    pub async fn test_process_streaming_at_threshold_rejected_legacy() {
         const KEYPATH: &[u32] = &[44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0];
-        let test_data: Vec<u8> = vec![0x42];
+        let test_data: Vec<u8> = (0..MAX_NONSTREAMING_DATA_LENGTH as u32)
+            .map(|i| (i % 256) as u8)
+            .collect();
 
         setup_chunk_responder(test_data);
         mock_unlocked();
@@ -2156,17 +2096,12 @@ mod tests {
                 host_nonce_commitment: None,
                 chain_id: 1,
                 address_case: pb::EthAddressCase::Mixed as _,
-                data_length: 1,
+                data_length: MAX_NONSTREAMING_DATA_LENGTH as u32,
             }),
         )
         .await;
         clear_chunk_responder();
-        match result {
-            Ok(Response::Sign(ref sig)) => {
-                assert_eq!(sig.signature.len(), 65);
-            }
-            other => panic!("expected Ok(Sign), got {:?}", other),
-        }
+        assert_eq!(result, Err(Error::InvalidInput));
     }
 
     #[async_test::test]

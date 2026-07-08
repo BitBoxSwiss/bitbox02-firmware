@@ -122,6 +122,12 @@ fn validate_asset_groups(
     Ok(())
 }
 
+fn commits_to_network(request: &pb::CardanoSignTransactionRequest) -> bool {
+    // The tx body network_id field is not encoded. Outputs and withdrawals still bind the selected
+    // network through their address bytes.
+    !request.outputs.is_empty() || !request.withdrawals.is_empty()
+}
+
 async fn _process(
     hal: &mut impl crate::hal::Hal,
     request: &pb::CardanoSignTransactionRequest,
@@ -180,6 +186,17 @@ async fn _process(
                 verify_slot(hal, params, "Can be mined until", request.ttl).await?;
             }
         }
+    }
+    if !commits_to_network(request) {
+        hal.ui()
+            .confirm(&ConfirmParams {
+                title: "Warning",
+                body: "This transaction does not encode a Cardano network and may be valid on another Cardano network.",
+                accept_is_nextarrow: true,
+                scrollable: true,
+                ..Default::default()
+            })
+            .await?;
     }
     certificates::verify(
         hal,
@@ -245,7 +262,7 @@ async fn _process(
                 hal.ui()
                     .verify_recipient(&displayed_address, &formatted_value)
                     .await?;
-                total += output.value;
+                total = total.checked_add(output.value).ok_or(Error::InvalidInput)?;
 
                 for asset_group in output.asset_groups.iter() {
                     for token in asset_group.tokens.iter() {
@@ -278,10 +295,11 @@ async fn _process(
             })
             .await?;
     } else {
+        let total_with_fee = total.checked_add(request.fee).ok_or(Error::InvalidInput)?;
         let fee_percentage: f64 = 100. * (request.fee as f64) / (total as f64);
         transaction::verify_total_fee_maybe_warn(
             hal,
-            &format_value(params, total + request.fee),
+            &format_value(params, total_with_fee),
             &format_value(params, request.fee),
             Some(fee_percentage),
         )
@@ -587,6 +605,64 @@ mod tests {
     }
 
     #[async_test::test]
+    async fn test_sign_stake_registration_no_network_commitment_warning() {
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x64\xc3\x9d\x60\xf9\xd6\xb4\xf8\x83\xd0\x5a\xe3\x58\x5d\x06\x21\xd0\xfe\xbc\x06\xad\x0e\xa3\x40\x3b\xdc\x00\xbc\x23\x67\x16\x15".to_vec(),
+                prev_out_index: 1,
+            }],
+            fee: 191681,
+            ttl: 41539125,
+            certificates: vec![Certificate {
+                cert: Some(Cert::StakeRegistration(pb::Keypath {
+                    keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                })),
+            }],
+            ..Default::default()
+        };
+
+        mock_unlocked();
+
+        let mut mock_hal = TestingHal::new();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
+        let Response::SignTransaction(response) = result else {
+            panic!("unexpected response");
+        };
+        assert_eq!(response.shelley_witnesses.len(), 2);
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Can be mined until\nslot 326325 in\nepoch 293".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: "This transaction does not encode a Cardano network and may be valid on another Cardano network.".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Register staking key for account #1?".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Fee\n0.191681 ADA".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
+    }
+
+    #[async_test::test]
     async fn test_sign_stake_deregistration() {
         let tx = pb::CardanoSignTransactionRequest {
             network: CardanoNetwork::CardanoMainnet as _,
@@ -819,6 +895,58 @@ mod tests {
                 ]
             })
         );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Can be mined until\nslot 143908 in\nepoch 294".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Withdraw 1.234567 ADA in staking rewards for account #1?".into(),
+                    longtouch: false
+                },
+                Screen::Confirm {
+                    title: "Cardano".into(),
+                    body: "Fee\n0.175157 ADA".into(),
+                    longtouch: true
+                },
+                Screen::Status {
+                    title: "Transaction\nconfirmed".into(),
+                    success: true
+                }
+            ]
+        );
+    }
+
+    #[async_test::test]
+    async fn test_sign_withdrawal_no_outputs_commits_to_network() {
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\xb7\xb2\x33\x3e\x72\xf2\x67\x0a\xb8\x20\x51\xf4\x26\xcc\x84\x00\x04\x31\x97\x5a\x34\xe7\x1d\x5e\xdf\x70\xea\x6c\x0d\xdc\x9b\xf8".to_vec(),
+                prev_out_index: 0,
+            }],
+            fee: 175157,
+            ttl: 41788708,
+            withdrawals: vec![pb::cardano_sign_transaction_request::Withdrawal {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 2, 0],
+                value: 1234567,
+            }],
+            ..Default::default()
+        };
+
+        mock_unlocked();
+
+        let mut mock_hal = TestingHal::new();
+        let result = process(&mut mock_hal, &tx).await.unwrap();
+        let Response::SignTransaction(response) = result else {
+            panic!("unexpected response");
+        };
+        assert_eq!(response.shelley_witnesses.len(), 2);
         assert_eq!(
             mock_hal.ui.screens,
             vec![
@@ -1231,6 +1359,67 @@ mod tests {
                 .ui
                 .contains_confirm("High fee", "The fee is 17.0%\nthe send amount.\nProceed?")
         );
+    }
+
+    #[async_test::test]
+    async fn test_reject_external_output_total_overflow() {
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: u64::MAX,
+                    script_config: None,
+                    asset_groups: vec![],
+                },
+                pb::cardano_sign_transaction_request::Output {
+                    encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                    value: 1,
+                    script_config: None,
+                    asset_groups: vec![],
+                },
+            ],
+            ..Default::default()
+        };
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert!(matches!(
+            process(&mut mock_hal, &tx).await,
+            Err(Error::InvalidInput)
+        ));
+    }
+
+    #[async_test::test]
+    async fn test_reject_total_with_fee_overflow() {
+        let tx = pb::CardanoSignTransactionRequest {
+            network: CardanoNetwork::CardanoMainnet as _,
+            inputs: vec![pb::cardano_sign_transaction_request::Input {
+                keypath: vec![1852 + HARDENED, 1815 + HARDENED, HARDENED, 0, 0],
+                prev_out_hash: b"\x59\x86\x4e\xe7\x3c\xa5\xd9\x10\x98\xa3\x2b\x3c\xe9\x81\x1b\xac\x19\x96\xdc\xba\xef\xa6\xb6\x24\x7d\xca\xaf\xb5\x77\x9c\x25\x38".to_vec(),
+                prev_out_index: 0,
+            }],
+            outputs: vec![pb::cardano_sign_transaction_request::Output {
+                encoded_address: "addr1q9qfllpxg2vu4lq6rnpel4pvpp5xnv3kvvgtxk6k6wp4ff89xrhu8jnu3p33vnctc9eklee5dtykzyag5penc6dcmakqsqqgpt".into(),
+                value: u64::MAX,
+                script_config: None,
+                asset_groups: vec![],
+            }],
+            fee: 1,
+            ..Default::default()
+        };
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert!(matches!(
+            process(&mut mock_hal, &tx).await,
+            Err(Error::InvalidInput)
+        ));
     }
 
     #[async_test::test]

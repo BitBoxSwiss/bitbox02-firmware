@@ -3,10 +3,12 @@
 #ifndef _SYSTEM_H_
 #define _SYSTEM_H_
 
+#include <stdbool.h>
+
 /**
- * Reboots the device to bootloader
+ * Reboots the device to stage1 and waits there.
  */
-void reboot_to_bootloader(void);
+void boot_bootloader_wait(bool upside_down);
 
 /**
  * Reboots the device.

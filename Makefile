@@ -57,39 +57,78 @@ firmware-btc: | build
 firmware-debug: | build-debug
 	$(MAKE) -C build-debug firmware.elf
 
-bootloader: | build
-	$(MAKE) -C build bb02-bl-multi.elf
-bootloader-development: | build
-	$(MAKE) -C build bb02-bl-multi-development.elf
-bootloader-development-locked: | build
-	$(MAKE) -C build bb02-bl-multi-development-locked.elf
-bootloader-production: | build
-	$(MAKE) -C build bb02-bl-multi-production.elf
-bootloader-debug: | build-debug
-	$(MAKE) -C build-debug bb02-bl-multi-development.elf
+firmware-blupgrade-bitbox02-btconly: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02-btconly.elf
+firmware-blupgrade-bitbox02-multi: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02-multi.elf
+firmware-blupgrade-bitbox02nova-btconly: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02nova-btconly.elf
+firmware-blupgrade-bitbox02nova-multi: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02nova-multi.elf
+firmware-blupgrade-bitbox02-btconly-development: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02-btconly-development.elf
+firmware-blupgrade-bitbox02-multi-development: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02-multi-development.elf
+firmware-blupgrade-bitbox02nova-btconly-development: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02nova-btconly-development.elf
+firmware-blupgrade-bitbox02nova-multi-development: | build
+	$(MAKE) -C build firmware-blupgrade-bitbox02nova-multi-development.elf
 
-bootloader-btc: | build
-	$(MAKE) -C build bb02-bl-btconly.elf
-bootloader-btc-development: | build
-	$(MAKE) -C build bb02-bl-btconly-development.elf
-bootloader-btc-production: | build
-	$(MAKE) -C build bb02-bl-btconly-production.elf
+# Stage0 aggregate targets build all production/development variants.
+bootloader-stage0: | build
+	$(MAKE) -C build bootloader-stage0
+bootloader-stage0-production: | build
+	$(MAKE) -C build bootloader-stage0-production
+bootloader-stage0-development: | build
+	$(MAKE) -C build bootloader-stage0-development
 
-bootloader-plus: | build
-	$(MAKE) -C build bb02p-bl-multi.elf
-bootloader-plus-development: | build
-	$(MAKE) -C build bb02p-bl-multi-development.elf
-bootloader-plus-production: | build
-	$(MAKE) -C build bb02p-bl-multi-production.elf
-bootloader-plus-debug: | build-debug
-	$(MAKE) -C build-debug bb02p-bl-multi-development.elf
+# Per-product stage0 targets build their matching ELF/bin.
+bootloader-stage0-bitbox02-btconly-development: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02-btconly-development.elf
+bootloader-stage0-bitbox02-btconly-production: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02-btconly-production.elf
+bootloader-stage0-bitbox02-multi-development: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02-multi-development.elf
+bootloader-stage0-bitbox02-multi-production: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02-multi-production.elf
+bootloader-stage0-bitbox02nova-btconly-development: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02nova-btconly-development.elf
+bootloader-stage0-bitbox02nova-btconly-production: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02nova-btconly-production.elf
+bootloader-stage0-bitbox02nova-multi-development: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02nova-multi-development.elf
+bootloader-stage0-bitbox02nova-multi-production: | build
+	$(MAKE) -C build bootloader-stage0-bitbox02nova-multi-production.elf
 
-bootloader-plus-btc: | build
-	$(MAKE) -C build bb02p-bl-btconly.elf
-bootloader-plus-btc-development: | build
-	$(MAKE) -C build bb02p-bl-btconly-development.elf
-bootloader-plus-btc-production: | build
-	$(MAKE) -C build bb02p-bl-btconly-production.elf
+# Stage1 aggregate targets build all production/development variants.
+# The per-product stage1 targets build their matching ELF/bin.
+bootloader-stage1: | build
+	$(MAKE) -C build bootloader-stage1
+bootloader-stage1-production: | build
+	$(MAKE) -C build bootloader-stage1-production
+bootloader-stage1-development: | build
+	$(MAKE) -C build bootloader-stage1-development
+bootloader-stage1-bitbox02-btconly-development: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02-btconly-development.elf
+bootloader-stage1-bitbox02-btconly-production: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02-btconly-production.elf
+bootloader-stage1-bitbox02-multi-development: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02-multi-development.elf
+bootloader-stage1-bitbox02-multi-production: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02-multi-production.elf
+bootloader-stage1-bitbox02nova-btconly-development: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02nova-btconly-development.elf
+bootloader-stage1-bitbox02nova-btconly-production: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02nova-btconly-production.elf
+bootloader-stage1-bitbox02nova-multi-development: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02nova-multi-development.elf
+bootloader-stage1-bitbox02nova-multi-production: | build
+	$(MAKE) -C build bootloader-stage1-bitbox02nova-multi-production.elf
+
+bootloader-upgrade-assets: | build
+	$(MAKE) -C build bootloader-upgrade-assets
+bootloader-upgrade-assets-development: | build
+	$(MAKE) -C build bootloader-upgrade-assets-development
 
 factory-setup: | build
 	$(MAKE) -C build factory-setup.elf
@@ -129,20 +168,25 @@ run-valgrind-on-unit-tests:
 	bash -ec 'for exe in build-build/bin/test_*; do  valgrind --leak-check=yes --track-origins=yes --error-exitcode=1 --exit-on-first-error=yes $$exe; done'
 flash-dev-firmware:
 	./py/load_firmware.py build/bin/firmware.bin --debug
-jlink-flash-bootloader-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development.jlink
-jlink-flash-bootloader-plus-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-multi-development.jlink
-jlink-flash-bootloader-btc-plus-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02p-bl-btconly-development.jlink
-jlink-flash-bootloader-development-locked: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi-development-locked.jlink
-jlink-flash-bootloader: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-multi.jlink
-jlink-flash-bootloader-btc-development: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btconly-development.jlink
-jlink-flash-bootloader-btc: | build
-	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bb02-bl-btc.jlink
+
+# Per-product development stage0/stage1 J-Link wrappers flash already-built images.
+jlink-flash-bootloader-stage0-bitbox02-btconly-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02-btconly-development.jlink
+jlink-flash-bootloader-stage0-bitbox02-multi-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02-multi-development.jlink
+jlink-flash-bootloader-stage0-bitbox02nova-btconly-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02nova-btconly-development.jlink
+jlink-flash-bootloader-stage0-bitbox02nova-multi-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage0-bitbox02nova-multi-development.jlink
+jlink-flash-bootloader-stage1-bitbox02-btconly-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02-btconly-development.jlink
+jlink-flash-bootloader-stage1-bitbox02-multi-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02-multi-development.jlink
+jlink-flash-bootloader-stage1-bitbox02nova-btconly-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02nova-btconly-development.jlink
+jlink-flash-bootloader-stage1-bitbox02nova-multi-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/bootloader-stage1-bitbox02nova-multi-development.jlink
+
 jlink-flash-firmware: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware.jlink
 jlink-flash-firmware-btc: | build
@@ -151,6 +195,16 @@ jlink-flash-factory-setup: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/factory-setup.jlink
 jlink-flash-firmware-debug: | build
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build-debug/scripts/firmware.jlink
+
+jlink-flash-firmware-blupgrade-bitbox02-btconly-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02-btconly-development.jlink
+jlink-flash-firmware-blupgrade-bitbox02-multi-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02-multi-development.jlink
+jlink-flash-firmware-blupgrade-bitbox02nova-btconly-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02nova-btconly-development.jlink
+jlink-flash-firmware-blupgrade-bitbox02nova-multi-development: | build
+	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./build/scripts/firmware-blupgrade-bitbox02nova-multi-development.jlink
+
 jlink-flash-set-new-screen:
 	JLinkExe -NoGui 1 -if SWD -device ATSAMD51J20 -speed 4000 -autoconnect 1 -CommanderScript ./scripts/set-new-screen.jlink
 jlink-flash-set-original-screen:
@@ -171,8 +225,10 @@ rtt-client:
 	telnet localhost 19021
 run-debug:
 	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/firmware.elf
-run-bootloader:
-	arm-none-eabi-gdb -x scripts/jlink-bootloader.gdb build/bin/bb02p-bl-multi-development.elf
+run-bootloader-stage0:
+	arm-none-eabi-gdb -x scripts/jlink-bootloader-stage0.gdb build/bin/bootloader-stage0-bitbox02-multi-development.elf
+run-bootloader-stage1:
+	arm-none-eabi-gdb -x scripts/jlink-bootloader-stage1.gdb build/bin/bootloader-stage1-bitbox02-multi-development.elf
 run-factory-setup-debug:
 	arm-none-eabi-gdb -x scripts/jlink.gdb build-debug/bin/factory-setup.elf
 dockerinit:

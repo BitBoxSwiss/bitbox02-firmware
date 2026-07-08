@@ -106,13 +106,13 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
         // util_log("da14531: bond db len %d", len);
         uint16_t tmp_len;
         uint8_t tmp[12 + sizeof(response) * 2];
-        if (len != -1) {
+        if (len >= 0) {
             tmp_len = da14531_protocol_format(
                 &tmp[0],
                 sizeof(tmp),
                 DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA,
                 &response[0],
-                1 + len);
+                1 + (uint16_t)len);
         } else {
             tmp_len = da14531_protocol_format(
                 &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, &response[0], 1);
@@ -129,7 +129,11 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
             ASSERT(false);
             break;
         }
-        memory_set_ble_bond_db(&frame->cmd_data[0], frame->payload_length - 1);
+        if (!memory_set_ble_bond_db(&frame->cmd_data[0], frame->payload_length - 1)) {
+            util_log("da14531: set bond db failed");
+            ASSERT(false);
+            break;
+        }
 #if FACTORYSETUP == 1
         _bond_db_set = true;
 #endif

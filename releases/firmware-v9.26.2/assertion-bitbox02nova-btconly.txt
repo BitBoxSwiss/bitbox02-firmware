@@ -1,0 +1,8 @@
+By signing this file, the signer confirms that the BitBox02 Nova Bitcoin-only firmware binary built from:
+
+git tag firmware/v9.26.2
+git commit hash 11a9f81e015ffdad624d97364eedc9082a00e32c
+
+resulted, at the time of signing, in a firmware binary file with the following sha256sum:
+
+3f38bf0fc6f4766044a6f86ad6fae7cf52fbf825d59a9e7afbe17e795348e68c

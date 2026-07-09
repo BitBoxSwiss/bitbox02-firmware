@@ -17,6 +17,12 @@ cd temp;
 # keep current and previous releases buildable.
 git fetch --tags;
 
+# The v9.26.3 release binaries accidentally included pre-release metadata. Delete the tag after
+# fetching tags to reproduce the released binaries.
+if [[ "$1" == "firmware/v9.26.3" ]]; then
+  git tag --delete "$1"
+fi
+
 # For v9.15.0, the reproducible build using this script failed with this error:
 # ```
 # error: failed to compile `bindgen-cli v0.65.1`, intermediate artifacts can be found at `/tmp/cargo-installmxLBVh`

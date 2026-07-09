@@ -8,7 +8,6 @@
 //! using SignTypedDataVersion.V4.
 
 use super::Error;
-use super::MAX_CONFIRM_BODY_SIZE;
 use super::pb;
 use super::sighash::DataProducer;
 use super::truncating_hex_preview_byte_cap;
@@ -16,6 +15,7 @@ use super::truncating_hex_preview_byte_cap;
 use crate::hal::Ui;
 use crate::hal::ui::ConfirmParams;
 use crate::keystore;
+use crate::workflow::confirm;
 
 use pb::eth_request::Request;
 use pb::eth_response::Response;
@@ -427,18 +427,9 @@ async fn encode_member<U: sha3::digest::Update>(
         let lines: Vec<&str> = value_formatted.split('\n').collect();
         for (i, &line) in lines.iter().enumerate() {
             let body = format_display_line_body(&display_path, i, lines.len(), line);
-            if body.len() > MAX_CONFIRM_BODY_SIZE {
-                hal.ui()
-                    .confirm(&ConfirmParams {
-                        title: "Warning",
-                        body: "The next value is\ntoo large to display\nin full",
-                        accept_is_nextarrow: true,
-                        ..Default::default()
-                    })
-                    .await?;
-            }
-            hal.ui()
-                .confirm(&ConfirmParams {
+            confirm::confirm_value(
+                hal,
+                &ConfirmParams {
                     title: &format!(
                         "{}{}",
                         confirm_title(context.root_object),
@@ -449,8 +440,9 @@ async fn encode_member<U: sha3::digest::Update>(
                     display_size,
                     accept_is_nextarrow: true,
                     ..Default::default()
-                })
-                .await?;
+                },
+            )
+            .await?;
         }
     }
     Ok(())
@@ -741,6 +733,7 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
+    use crate::workflow::confirm::MAX_CONFIRM_BODY_SIZE;
     use util::bip32::HARDENED;
 
     use alloc::boxed::Box;

@@ -97,6 +97,7 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
+    use crate::workflow::confirm::{MAX_CONFIRM_BODY_SIZE, TRUNCATION_WARNING_BODY};
     use alloc::boxed::Box;
     use hex_lit::hex;
     use util::bip32::HARDENED;
@@ -137,6 +138,48 @@ mod tests {
                 Screen::Confirm {
                     title: "Sign message".into(),
                     body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
+    }
+
+    #[async_test::test]
+    pub async fn test_process_long_message_warning() {
+        let msg = "m".repeat(MAX_CONFIRM_BODY_SIZE + 1);
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert!(
+            process(
+                &mut mock_hal,
+                &pb::EthSignMessageRequest {
+                    coin: pb::EthCoin::Eth as _,
+                    keypath: KEYPATH.to_vec(),
+                    msg: msg.as_bytes().to_vec(),
+                    host_nonce_commitment: None,
+                    chain_id: 0,
+                },
+            )
+            .await
+            .is_ok()
+        );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Ethereum".into(),
+                    body: EXPECTED_ADDRESS.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: TRUNCATION_WARNING_BODY.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: msg,
                     longtouch: true,
                 },
             ]

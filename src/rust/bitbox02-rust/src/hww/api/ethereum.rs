@@ -23,9 +23,7 @@ use pb::eth_response::Response;
 
 use core::convert::TryInto;
 
-// Keep this in sync with src/ui/components/label.h:MAX_LABEL_SIZE. `MAX_CONFIRM_BODY_SIZE` is the
-// effective confirmation body limit and intentionally matches that UI label size limit.
-const MAX_CONFIRM_BODY_SIZE: usize = 640;
+use crate::workflow::confirm::MAX_CONFIRM_BODY_SIZE;
 
 /// Returns how many bytes of hex-encoded data to include in a preview body.
 ///

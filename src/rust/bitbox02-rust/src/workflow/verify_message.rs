@@ -3,8 +3,6 @@
 use crate::hal::ui::ConfirmParams;
 use alloc::vec::Vec;
 
-use crate::hal::Ui;
-
 use util::ascii;
 
 pub enum Error {
@@ -62,20 +60,21 @@ pub async fn verify(
                 longtouch: is_last && is_final,
                 ..Default::default()
             };
-            hal.ui().confirm(&params).await?;
+            crate::workflow::confirm::confirm_value(hal, &params).await?;
         }
         Ok(())
     } else {
+        let body = hex::encode(msg);
         let params = ConfirmParams {
             title: &format!("{}\ndata (hex)", title_long),
-            body: &hex::encode(msg),
+            body: &body,
             scrollable: true,
             display_size: msg.len(),
             accept_is_nextarrow: true, // longtouch takes priority over this if enabled
             longtouch: is_final,
             ..Default::default()
         };
-        hal.ui().confirm(&params).await?;
+        crate::workflow::confirm::confirm_value(hal, &params).await?;
         Ok(())
     }
 }
@@ -86,6 +85,7 @@ mod tests {
 
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
+    use crate::workflow::confirm::{MAX_CONFIRM_BODY_SIZE, TRUNCATION_WARNING_BODY};
 
     #[async_test::test]
     async fn test_verify_multiline_text() {
@@ -185,5 +185,114 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[async_test::test]
+    async fn test_verify_long_ascii_boundary() {
+        let msg = "a".repeat(MAX_CONFIRM_BODY_SIZE);
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", msg.as_bytes(), true)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens,
+            vec![Screen::Confirm {
+                title: "Sign message".into(),
+                body: msg,
+                longtouch: true,
+            }]
+        );
+
+        let msg = "a".repeat(MAX_CONFIRM_BODY_SIZE + 1);
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", msg.as_bytes(), true)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: TRUNCATION_WARNING_BODY.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: msg,
+                    longtouch: true,
+                },
+            ]
+        );
+    }
+
+    #[async_test::test]
+    async fn test_verify_multiline_warns_only_for_overlong_lines() {
+        let overlong_line = "b".repeat(MAX_CONFIRM_BODY_SIZE + 1);
+        let msg = format!("ok\n{overlong_line}");
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "Sign message", "Sign", msg.as_bytes(), true)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign 1/2".into(),
+                    body: "ok".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: TRUNCATION_WARNING_BODY.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign 2/2".into(),
+                    body: overlong_line,
+                    longtouch: true,
+                },
+            ]
+        );
+    }
+
+    #[async_test::test]
+    async fn test_verify_binary_hex_boundary() {
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "OP_RETURN", "OP_RETURN", &[0xff; 320], false)
+                .await
+                .is_ok()
+        );
+        assert_eq!(hal.ui.screens.len(), 1);
+        assert_eq!(hal.ui.confirm_display_sizes, vec![320]);
+
+        let mut hal = TestingHal::new();
+        assert!(
+            verify(&mut hal, "OP_RETURN", "OP_RETURN", &[0xff; 321], false)
+                .await
+                .is_ok()
+        );
+        assert_eq!(
+            hal.ui.screens[0],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: TRUNCATION_WARNING_BODY.into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(hal.ui.confirm_display_sizes, vec![0, 321]);
+        match &hal.ui.screens[1] {
+            Screen::Confirm { title, body, .. } => {
+                assert_eq!(title, "OP_RETURN\ndata (hex)");
+                assert_eq!(body.len(), MAX_CONFIRM_BODY_SIZE + 2);
+            }
+            _ => panic!("unexpected screen"),
+        }
     }
 }

@@ -9,6 +9,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ### [Unreleased]
 - Fixed a crash when listing many backups over Bluetooth
 - Add support for BitBoxSync
+- Ethereum: allow ':' in EIP-712 type names, used by some dapps as a namespace separator
 
 ### v9.26.3
 - Security improvements

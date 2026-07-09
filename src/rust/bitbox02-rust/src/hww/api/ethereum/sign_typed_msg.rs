@@ -80,21 +80,28 @@ fn validate_identifier(name: &str) -> Result<(), Error> {
     }
 }
 
+// Some deployed dapps use ':' as a namespace separator in struct type names. A colon
+// cannot forge encodeType boundaries ('(', ')', ',', ' '), so it is safe to accept
+// despite EIP-712's Solidity-identifier wording. Member names stay strict.
+fn validate_type_name(name: &str) -> Result<(), Error> {
+    name.split(':').try_for_each(validate_identifier)
+}
+
 fn validate_member_type_identifiers(typ: &MemberType) -> Result<(), Error> {
     match DataType::try_from(typ.r#type)? {
         DataType::Unknown => Err(Error::InvalidInput),
         DataType::Array => {
             validate_member_type_identifiers(typ.array_type.as_ref().ok_or(Error::InvalidInput)?)
         }
-        DataType::Struct => validate_identifier(&typ.struct_name),
+        DataType::Struct => validate_type_name(&typ.struct_name),
         _ => Ok(()),
     }
 }
 
 fn validate_typed_msg_schema(types: &[StructType], primary_type: &str) -> Result<(), Error> {
-    validate_identifier(primary_type)?;
+    validate_type_name(primary_type)?;
     for typ in types {
-        validate_identifier(&typ.name)?;
+        validate_type_name(&typ.name)?;
         for member in &typ.members {
             validate_identifier(&member.name)?;
             validate_member_type_identifiers(member.r#type.as_ref().ok_or(Error::InvalidInput)?)?;
@@ -1398,6 +1405,29 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_type_name() {
+        for name in ["Msg", "Namespace:Type", "Foo:Bar:Baz", "_Type1"] {
+            assert_eq!(validate_type_name(name), Ok(()));
+        }
+
+        for name in [
+            "",
+            ":Type",
+            "Type:",
+            "Foo::Bar",
+            "Foo:123Bar",
+            "123Type",
+            "Bad\nType",
+            "Bad Type",
+            "Type(",
+            "Type,",
+            "Typé",
+        ] {
+            assert_eq!(validate_type_name(name), Err(Error::InvalidInput));
+        }
+    }
+
+    #[test]
     fn test_validate_typed_msg_schema() {
         let valid_types = vec![
             StructType {
@@ -1417,6 +1447,19 @@ mod tests {
             },
         ];
         assert_eq!(validate_typed_msg_schema(&valid_types, "Msg"), Ok(()));
+
+        // Colons are allowed in type names, but not in member names.
+        let mut types = valid_types.clone();
+        types[2].name = "Namespace:Msg".into();
+        types[2].members[0] = mk_member("data", mk_struct_type("Inner"));
+        assert_eq!(validate_typed_msg_schema(&types, "Namespace:Msg"), Ok(()));
+
+        let mut types = valid_types.clone();
+        types[2].members[0] = mk_member("field:name", mk_type(DataType::String));
+        assert_eq!(
+            validate_typed_msg_schema(&types, "Msg"),
+            Err(Error::InvalidInput)
+        );
 
         assert_eq!(
             validate_typed_msg_schema(&valid_types, "Bad\nType"),

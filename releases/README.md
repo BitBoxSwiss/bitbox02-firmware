@@ -5,7 +5,8 @@ tagged: `firmware/vX.Y.Z` for the Multi edition, and `firmware-btc-only/vX.Y.Z` 
 edition. The binaries are built from those tags in a reproducible manner, based on fixed versions of
 all dependencies. We use Docker to fix those dependencies.
 
-The unsigned firmware binaries are the same for both **BitBox02** and **BitBox02 Nova**.
+The unsigned firmware binaries are the same for both **BitBox02** and **BitBox02 Nova**, except for
+v9.26.2, where each of the four product/edition binaries are unique.
 
 *Note*: it is possible to reproduce the binaries without Docker by installing the correct
 dependencies. The instructions below use Docker however, as it makes it a easier to get started.
@@ -90,11 +91,26 @@ quality of the binary itself.
 Run `./build.sh <version tag> <make command>`, e.g.:
 
 ```sh
+# Multi
 ./build.sh firmware/v4.1.0 "make firmware"
 # or Bitcoin-only, from v9.25.0:
 ./build.sh firmware/v9.25.0 "make firmware-btc"
 # or Bitcoin-only, until v9.24.0:
 ./build.sh firmware-btc-only/v9.24.0 "make firmware-btc"
+
+# v9.26.2 is an exception with one target per product/edition binary:
+./build.sh firmware/v9.26.2 "make firmware-blupgrade-bitbox02-btconly"
+# matches assertion-bitbox02-btconly.txt:
+# temp/build/bin/firmware-blupgrade-bitbox02-btconly.bin
+./build.sh firmware/v9.26.2 "make firmware-blupgrade-bitbox02-multi"
+# matches assertion-bitbox02-multi.txt:
+# temp/build/bin/firmware-blupgrade-bitbox02-multi.bin
+./build.sh firmware/v9.26.2 "make firmware-blupgrade-bitbox02nova-btconly"
+# matches assertion-bitbox02nova-btconly.txt:
+# temp/build/bin/firmware-blupgrade-bitbox02nova-btconly.bin
+./build.sh firmware/v9.26.2 "make firmware-blupgrade-bitbox02nova-multi"
+# matches assertion-bitbox02nova-multi.txt:
+# temp/build/bin/firmware-blupgrade-bitbox02nova-multi.bin
 ```
 
 This script is very simple and you can review it or run all the steps inside manually.

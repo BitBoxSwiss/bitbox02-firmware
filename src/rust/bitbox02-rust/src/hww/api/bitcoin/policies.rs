@@ -17,6 +17,7 @@ use util::bip32::HARDENED;
 
 use crate::bip32;
 use crate::hal::{Memory, Ui};
+use crate::workflow::confirm;
 use crate::xpubcache::Bip32XpubCache;
 
 use bitcoin::taproot::{LeafVersion, TapLeafHash, TapTweakHash};
@@ -395,15 +396,17 @@ impl ParsedPolicy<'_> {
             })
             .await?;
 
-        hal.ui()
-            .confirm(&ConfirmParams {
+        confirm::confirm_value(
+            hal,
+            &ConfirmParams {
                 title: "Name",
                 body: name,
                 scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
-            })
-            .await?;
+            },
+        )
+        .await?;
 
         if matches!(mode, Mode::Basic) {
             if let Err(crate::hal::ui::UserAbort) = hal
@@ -419,15 +422,17 @@ impl ParsedPolicy<'_> {
             }
         }
 
-        hal.ui()
-            .confirm(&ConfirmParams {
+        confirm::confirm_value(
+            hal,
+            &ConfirmParams {
                 title: "Policy",
                 body: &policy.policy,
                 scrollable: true,
                 accept_is_nextarrow: true,
                 ..Default::default()
-            })
-            .await?;
+            },
+        )
+        .await?;
 
         let output_xpub_type = match params.coin {
             BtcCoin::Btc | BtcCoin::Ltc => bip32::XPubType::Xpub,

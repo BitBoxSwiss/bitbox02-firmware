@@ -2,7 +2,6 @@
 
 use super::super::payment_request;
 use super::Error;
-use super::MAX_CONFIRM_BODY_SIZE;
 use super::amount::{Amount, calculate_percentage};
 use super::params::Params;
 use super::pb;
@@ -13,6 +12,7 @@ use crate::hal::ui::ConfirmParams;
 use crate::keystore;
 
 use crate::hal::Ui;
+use crate::workflow::confirm;
 use crate::workflow::transaction;
 
 use alloc::string::String;
@@ -452,26 +452,18 @@ async fn verify_standard_transaction(
         } else {
             (request.data().len(), hex::encode(request.data()))
         };
-        if body.len() > MAX_CONFIRM_BODY_SIZE {
-            hal.ui()
-                .confirm(&ConfirmParams {
-                    title: "Warning",
-                    body: "The next value is\ntoo large to display\nin full",
-                    accept_is_nextarrow: true,
-                    ..Default::default()
-                })
-                .await?;
-        }
-        hal.ui()
-            .confirm(&ConfirmParams {
+        confirm::confirm_value(
+            hal,
+            &ConfirmParams {
                 title: "Transaction\ndata",
                 body: &body,
                 scrollable: true,
                 display_size,
                 accept_is_nextarrow: true,
                 ..Default::default()
-            })
-            .await?;
+            },
+        )
+        .await?;
     }
 
     let address = super::address::from_pubkey_hash(&recipient, request.case()?);
@@ -659,6 +651,7 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
+    use crate::workflow::confirm::MAX_CONFIRM_BODY_SIZE;
     use alloc::boxed::Box;
     use util::bip32::HARDENED;
 

@@ -140,6 +140,7 @@ mod tests {
     use crate::hal::testing::TestingHal;
     use crate::hal::testing::ui::Screen;
     use crate::keystore::testing::mock_unlocked;
+    use crate::workflow::confirm::{MAX_CONFIRM_BODY_SIZE, TRUNCATION_WARNING_BODY};
     use alloc::boxed::Box;
     use util::bip32::HARDENED;
 
@@ -183,6 +184,51 @@ mod tests {
                 Screen::Confirm {
                     title: "Sign message".into(),
                     body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
+    }
+
+    #[async_test::test]
+    pub async fn test_p2wpkh_long_message_warning() {
+        let msg = "m".repeat(MAX_CONFIRM_BODY_SIZE + 1);
+        let request = pb::BtcSignMessageRequest {
+            coin: BtcCoin::Btc as _,
+            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
+                }),
+                keypath: vec![84 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0],
+            }),
+            msg: msg.as_bytes().to_vec(),
+            host_nonce_commitment: None,
+        };
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert!(process(&mut mock_hal, &request).await.is_ok());
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: "Coin: Bitcoin".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Address".into(),
+                    body: "bc1q k5f9 em9q c8yf pks8 ngfg 3h8h 02n2 e3ye qdyh pt".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Warning".into(),
+                    body: TRUNCATION_WARNING_BODY.into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: msg,
                     longtouch: true,
                 },
             ]

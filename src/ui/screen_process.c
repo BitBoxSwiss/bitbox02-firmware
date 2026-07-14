@@ -84,9 +84,19 @@ static bool _screen_has_changed(const component_t* current_component)
 }
 #endif
 
-void screen_process(void)
+void screen_process(bool hold_last_frame)
 {
     screen_saver_process();
+
+    if (hold_last_frame && screen_saver_get() == NULL && ui_screen_stack_top() == NULL) {
+#ifndef TESTING
+        // The previous component may be cleaned up and its address reused for the next component.
+        // Forget it so gesture detection is reset when the next component appears.
+        (void)_screen_has_changed(NULL);
+#endif
+        ui_screen_stack_cleanup();
+        return;
+    }
 
     component_t* component = screen_process_get_top_component();
     _screen_draw(component);

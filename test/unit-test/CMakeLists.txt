@@ -37,6 +37,8 @@ else()
      ""
      random
      "-Wl,--wrap=rand,--wrap=rust_sha256"
+     screen_process
+     "-Wl,--wrap=screen_saver_get,--wrap=screen_saver_process,--wrap=waiting_create"
      ui_components
      ""
      ui_util

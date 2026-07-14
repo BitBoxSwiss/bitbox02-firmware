@@ -160,7 +160,7 @@ pub fn main_loop<H: crate::hal::Hal>(hal: &mut H) -> ! {
         #[cfg(feature = "app-u2f")]
         bitbox02::u2f::process();
 
-        bitbox02::screen::process();
+        bitbox02::screen::process(crate::async_usb::is_processing_request());
 
         /* And finally, run the high-level event processing. */
         crate::async_usb::spin();

@@ -150,7 +150,11 @@ unit-test: | build-build
 	$(MAKE) -C build-build
 # Must compile C tests before running them
 run-unit-tests: | build-build
-	CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test
+	if command -v setarch >/dev/null 2>&1 && setarch "$$(uname -m)" -R true >/dev/null 2>&1; then \
+		CTEST_OUTPUT_ON_FAILURE=1 setarch "$$(uname -m)" -R $(MAKE) -C build-build test; \
+	else \
+		CTEST_OUTPUT_ON_FAILURE=1 $(MAKE) -C build-build test; \
+	fi
 # Only one test thread because of unsafe concurrent access to `SafeData`,
 # `mock_sd()` and `mock_memory()`. Using mutexes instead leads to mutex
 # poisoning and very messy output in case of a unit test failure.

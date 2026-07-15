@@ -47,23 +47,6 @@ typedef enum {
     SECURECHIP_PASSWORD_STRETCH_ALGO_V1,
 } securechip_password_stretch_algo_t;
 
-typedef struct {
-    /**
-     * @param[out] key_out must be of size 32
-     */
-    void (*const get_auth_key)(uint8_t* key_out);
-    /**
-     * @param[out] key_out must be of size 32
-     */
-    void (*const get_io_protection_key)(uint8_t* key_out);
-    /**
-     * @param[out] key_out must be of size 32
-     */
-    void (*const get_encryption_key)(uint8_t* key_out);
-
-    void (*const random_32_bytes)(uint8_t* buf);
-} securechip_interface_functions_t;
-
 /* The common securechip ABI is implemented in Rust and declared in rust/rust.h. */
 
 typedef enum {

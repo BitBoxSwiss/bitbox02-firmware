@@ -55,6 +55,8 @@ else()
      ""
      bootloader_upgrade_check
      ""
+     atecc_ops
+     "-Wl,--gc-sections"
      util
      ""
      ugui
@@ -107,6 +109,23 @@ else()
           ${CMAKE_SOURCE_DIR}/src/bootloader_upgrade/firmware_installer_check.c
       )
       target_compile_definitions(${EXE} PRIVATE PRODUCT_BITBOX_MULTI=1)
+    endif()
+    if(TEST_NAME STREQUAL "atecc_ops")
+      target_sources(${EXE} PRIVATE
+          ${CMAKE_SOURCE_DIR}/src/atecc/atecc_ops.c
+          ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/calib/calib_basic.c
+          ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/calib/calib_command.c
+      )
+      set_source_files_properties(
+          ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/calib/calib_basic.c
+          ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib/calib/calib_command.c
+          PROPERTIES COMPILE_OPTIONS "-w"
+      )
+      target_compile_options(${EXE} PRIVATE -ffunction-sections)
+      target_include_directories(${EXE} SYSTEM PRIVATE
+          ${CMAKE_SOURCE_DIR}/external
+          ${CMAKE_SOURCE_DIR}/external/cryptoauthlib/lib
+      )
     endif()
     add_test(NAME test_${TEST_NAME} COMMAND ${EXE})
   endforeach()

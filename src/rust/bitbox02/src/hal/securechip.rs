@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::boxed::Box;
+use core::marker::PhantomData;
 
 use bitbox_hal::SecureChip;
 use bitbox_hal::memory::PasswordStretchAlgo;
 use bitbox_hal::securechip::{Error, Model, SecureChipError};
 
-pub struct BitBox02SecureChip;
+pub struct BitBox02SecureChip<Timer = crate::hal::timer::BitBox02Timer>(PhantomData<Timer>);
+
+impl<Timer> BitBox02SecureChip<Timer> {
+    pub const fn new() -> Self {
+        Self(PhantomData)
+    }
+}
 
 fn to_hal_model(model: bitbox_securechip::Model) -> Model {
     match model {
@@ -76,9 +83,11 @@ fn to_c_password_stretch_algo(algo: PasswordStretchAlgo) -> bitbox_securechip::P
     }
 }
 
-impl SecureChip for BitBox02SecureChip {
+impl<Timer: bitbox_hal::timer::Timer> SecureChip for BitBox02SecureChip<Timer> {
     async fn random(&mut self) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
-        crate::securechip::random().await.map_err(to_hal_error)
+        crate::securechip::random::<Timer>()
+            .await
+            .map_err(to_hal_error)
     }
 
     async fn init_new_password(
@@ -88,7 +97,7 @@ impl SecureChip for BitBox02SecureChip {
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
-        crate::securechip::init_new_password(
+        crate::securechip::init_new_password::<Timer>(
             random,
             memory,
             password,
@@ -104,7 +113,7 @@ impl SecureChip for BitBox02SecureChip {
         password: &str,
         password_stretch_algo: PasswordStretchAlgo,
     ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
-        crate::securechip::stretch_password(
+        crate::securechip::stretch_password::<Timer>(
             memory,
             password,
             to_c_password_stretch_algo(password_stretch_algo),
@@ -113,24 +122,31 @@ impl SecureChip for BitBox02SecureChip {
         .map_err(to_hal_error)
     }
 
-    async fn kdf(&mut self, msg: &[u8; 32]) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
-        crate::securechip::kdf(msg).await.map_err(to_hal_error)
+    async fn kdf(
+        &mut self,
+        memory: &mut impl bitbox_hal::Memory,
+        msg: &[u8; 32],
+    ) -> Result<Box<zeroize::Zeroizing<[u8; 32]>>, Error> {
+        crate::securechip::kdf::<Timer>(memory, msg)
+            .await
+            .map_err(to_hal_error)
     }
 
     async fn attestation_sign(
         &mut self,
+        memory: &mut impl bitbox_hal::Memory,
         challenge: &[u8; 32],
         signature: &mut [u8; 64],
     ) -> Result<(), ()> {
-        crate::securechip::attestation_sign(challenge, signature).await
+        crate::securechip::attestation_sign::<Timer>(memory, challenge, signature).await
     }
 
     async fn monotonic_increments_remaining(&mut self) -> Result<u32, ()> {
-        crate::securechip::monotonic_increments_remaining().await
+        crate::securechip::monotonic_increments_remaining::<Timer>().await
     }
 
-    fn model(&mut self) -> Result<Model, ()> {
-        crate::securechip::model().map(to_hal_model)
+    async fn model(&mut self) -> Result<Model, ()> {
+        crate::securechip::model::<Timer>().await.map(to_hal_model)
     }
 
     async fn reset_keys(
@@ -138,17 +154,26 @@ impl SecureChip for BitBox02SecureChip {
         random: &mut impl bitbox_hal::Random,
         memory: &mut impl bitbox_hal::Memory,
     ) -> Result<(), ()> {
-        crate::securechip::reset_keys(random, memory).await
+        crate::securechip::reset_keys::<Timer>(random, memory).await
     }
 
     #[cfg(feature = "app-u2f")]
-    async fn u2f_counter_set(&mut self, counter: u32) -> Result<(), ()> {
-        crate::securechip::u2f_counter_set(counter).await
+    async fn u2f_counter_set(
+        &mut self,
+        random: &mut impl bitbox_hal::Random,
+        memory: &mut impl bitbox_hal::Memory,
+        counter: u32,
+    ) -> Result<(), ()> {
+        crate::securechip::u2f_counter_set::<Timer>(random, memory, counter).await
     }
 
     #[cfg(feature = "app-u2f")]
-    async fn u2f_counter_inc(&mut self) -> Result<u32, ()> {
-        crate::securechip::u2f_counter_inc().await
+    async fn u2f_counter_inc(
+        &mut self,
+        random: &mut impl bitbox_hal::Random,
+        memory: &mut impl bitbox_hal::Memory,
+    ) -> Result<u32, ()> {
+        crate::securechip::u2f_counter_inc::<Timer>(random, memory).await
     }
 }
 
@@ -288,16 +313,17 @@ mod tests {
 
     #[async_test::test]
     async fn test_kdf() {
-        let mut securechip = BitBox02SecureChip;
+        let mut securechip = BitBox02SecureChip::<crate::hal::timer::BitBox02Timer>::new();
+        let mut memory = crate::hal::memory::BitBox02Memory;
         let msg = [0u8; 32];
-        let result = securechip.kdf(&msg).await.unwrap();
+        let result = securechip.kdf(&mut memory, &msg).await.unwrap();
         let expected = hex!("1c723ccd9597e76deb55f9fd6808014007bcb3d67fc060f1149aefb9be88f423");
         assert_eq!(result.as_slice(), expected.as_slice());
     }
 
     #[async_test::test]
     async fn test_init_new_password_invalid_password_stretch_algo() {
-        let mut securechip = BitBox02SecureChip;
+        let mut securechip = BitBox02SecureChip::<crate::hal::timer::BitBox02Timer>::new();
         let mut random = TestRandom;
         let mut memory = crate::hal::memory::BitBox02Memory;
         assert_eq!(

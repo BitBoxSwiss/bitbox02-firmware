@@ -42,10 +42,30 @@ impl LvStyleTransition {
         })
     }
 
-    /// Borrows the underlying descriptor for [`crate::ObjExt::set_style_transition`]. When `self` is
-    /// a `static`, the returned reference is `'static`.
-    pub fn as_dsc(&self) -> &ffi::lv_style_transition_dsc_t {
+    pub(crate) fn as_dsc(&self) -> &ffi::lv_style_transition_dsc_t {
         &self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LvGridTemplate {
+    values: &'static [i32],
+}
+
+impl LvGridTemplate {
+    /// `values` must be a non-empty `'static` slice terminated by `LV_GRID_TEMPLATE_LAST`.
+    pub const fn new(values: &'static [i32]) -> Self {
+        if values.is_empty() {
+            panic!("grid template must not be empty");
+        }
+        if values[values.len() - 1] != ffi::LV_GRID_TEMPLATE_LAST as i32 {
+            panic!("grid template must be terminated by LV_GRID_TEMPLATE_LAST");
+        }
+        Self { values }
+    }
+
+    pub(crate) fn as_ptr(self) -> *const i32 {
+        self.values.as_ptr()
     }
 }
 
@@ -74,5 +94,25 @@ mod tests {
     #[should_panic]
     fn test_style_transition_new_rejects_empty_props() {
         let _ = LvStyleTransition::new(&[], 1, 0);
+    }
+
+    #[test]
+    fn test_grid_template_new() {
+        const TEMPLATE_VALUES: &[i32] = &[42, ffi::LV_GRID_TEMPLATE_LAST as i32];
+        const TEMPLATE: LvGridTemplate = LvGridTemplate::new(TEMPLATE_VALUES);
+
+        assert_eq!(TEMPLATE.as_ptr(), TEMPLATE_VALUES.as_ptr());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_grid_template_new_rejects_empty_values() {
+        let _ = LvGridTemplate::new(&[]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_grid_template_new_rejects_missing_terminator() {
+        let _ = LvGridTemplate::new(&[42]);
     }
 }

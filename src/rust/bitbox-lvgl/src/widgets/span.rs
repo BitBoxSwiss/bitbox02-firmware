@@ -9,8 +9,8 @@ use alloc::ffi::CString;
 
 use crate::{
     LvAlign, LvBaseDir, LvBlendMode, LvBorderSide, LvColor, LvFlexAlign, LvFlexFlow, LvFont,
-    LvGradDir, LvGridAlign, LvHandle, LvObj, LvOpa, LvPoint, LvSpanCoords, LvSpanMode,
-    LvSpanOverflow, LvTextAlign, LvTextDecor, ObjExt, class, ffi,
+    LvGradDir, LvGridAlign, LvGridTemplate, LvHandle, LvObj, LvOpa, LvPoint, LvSpanCoords,
+    LvSpanMode, LvSpanOverflow, LvTextAlign, LvTextDecor, ObjExt, class, ffi,
 };
 
 pub type LvSpanTextError = super::LvTextError;
@@ -31,15 +31,24 @@ macro_rules! impl_span_style_setter_methods {
     };
 }
 
+fn remove_style_prop(style: *mut ffi::lv_style_t, prop: ffi::_lv_style_id_t) -> bool {
+    unsafe { ffi::lv_style_remove_prop(style, prop as ffi::lv_style_prop_t) }
+}
+
 macro_rules! impl_span_style_optional_ref_setter_methods {
-    ($($name:ident => $ffi_name:ident: $value_ty:ty),+ $(,)?) => {
+    ($($name:ident => $ffi_name:ident: $prop:ident: $value_ty:ty),+ $(,)?) => {
         $(
-            pub fn $name(&self, value: Option<&'static $value_ty>) {
+            /// # Safety
+            /// LVGL stores the raw pointer in the span style. The pointed value and any transitive
+            /// pointers it contains must remain valid and must not be repurposed for as long as the
+            /// style can be used.
+            pub unsafe fn $name(&self, value: Option<&'static $value_ty>) {
                 unsafe {
-                    ffi::$ffi_name(
-                        self.style_ptr(),
-                        value.map_or(core::ptr::null(), |value| value as *const $value_ty),
-                    )
+                    if let Some(value) = value {
+                        ffi::$ffi_name(self.style_ptr(), value as *const $value_ty);
+                    } else {
+                        remove_style_prop(self.style_ptr(), ffi::_lv_style_id_t::$prop);
+                    }
                 }
             }
         )+
@@ -47,7 +56,7 @@ macro_rules! impl_span_style_optional_ref_setter_methods {
 }
 
 macro_rules! impl_span_style_optional_void_ptr_setter_methods {
-    ($($name:ident => $ffi_name:ident),+ $(,)?) => {
+    ($($name:ident => $ffi_name:ident: $prop:ident),+ $(,)?) => {
         $(
             /// # Safety
             /// The pointed value type must exactly match what LVGL expects for this style field.
@@ -56,12 +65,11 @@ macro_rules! impl_span_style_optional_void_ptr_setter_methods {
             /// fields must also satisfy LVGL's image source tagging rules.
             pub unsafe fn $name<T>(&self, value: Option<&'static T>) {
                 unsafe {
-                    ffi::$ffi_name(
-                        self.style_ptr(),
-                        value.map_or(core::ptr::null(), |value| {
-                            value as *const T as *const core::ffi::c_void
-                        }),
-                    )
+                    if let Some(value) = value {
+                        ffi::$ffi_name(self.style_ptr(), value as *const T as *const core::ffi::c_void);
+                    } else {
+                        remove_style_prop(self.style_ptr(), ffi::_lv_style_id_t::$prop);
+                    }
                 }
             }
         )+
@@ -223,17 +231,16 @@ impl LvSpan {
     );
 
     impl_span_style_optional_ref_setter_methods!(
-        set_style_bg_grad => lv_style_set_bg_grad: ffi::lv_grad_dsc_t,
-        set_style_image_colorkey => lv_style_set_image_colorkey: ffi::lv_image_colorkey_t,
-        set_style_color_filter_dsc => lv_style_set_color_filter_dsc: ffi::lv_color_filter_dsc_t,
-        set_style_anim => lv_style_set_anim: ffi::lv_anim_t,
-        set_style_transition => lv_style_set_transition: ffi::lv_style_transition_dsc_t,
+        set_style_bg_grad => lv_style_set_bg_grad: LV_STYLE_BG_GRAD: ffi::lv_grad_dsc_t,
+        set_style_image_colorkey => lv_style_set_image_colorkey: LV_STYLE_IMAGE_COLORKEY: ffi::lv_image_colorkey_t,
+        set_style_color_filter_dsc => lv_style_set_color_filter_dsc: LV_STYLE_COLOR_FILTER_DSC: ffi::lv_color_filter_dsc_t,
+        set_style_anim => lv_style_set_anim: LV_STYLE_ANIM: ffi::lv_anim_t,
     );
 
     impl_span_style_optional_void_ptr_setter_methods!(
-        set_style_bg_image_src => lv_style_set_bg_image_src,
-        set_style_arc_image_src => lv_style_set_arc_image_src,
-        set_style_bitmap_mask_src => lv_style_set_bitmap_mask_src,
+        set_style_bg_image_src => lv_style_set_bg_image_src: LV_STYLE_BG_IMAGE_SRC,
+        set_style_arc_image_src => lv_style_set_arc_image_src: LV_STYLE_ARC_IMAGE_SRC,
+        set_style_bitmap_mask_src => lv_style_set_bitmap_mask_src: LV_STYLE_BITMAP_MASK_SRC,
     );
 
     pub fn set_style_text_font(&self, value: LvFont) {
@@ -241,33 +248,32 @@ impl LvSpan {
     }
 
     pub fn remove_style_text_font(&self) -> bool {
+        remove_style_prop(self.style_ptr(), ffi::_lv_style_id_t::LV_STYLE_TEXT_FONT)
+    }
+
+    pub fn set_style_grid_column_dsc_array(&self, value: Option<LvGridTemplate>) {
         unsafe {
-            ffi::lv_style_remove_prop(
-                self.style_ptr(),
-                ffi::_lv_style_id_t::LV_STYLE_TEXT_FONT as ffi::lv_style_prop_t,
-            )
+            if let Some(value) = value {
+                ffi::lv_style_set_grid_column_dsc_array(self.style_ptr(), value.as_ptr());
+            } else {
+                remove_style_prop(
+                    self.style_ptr(),
+                    ffi::_lv_style_id_t::LV_STYLE_GRID_COLUMN_DSC_ARRAY,
+                );
+            }
         }
     }
 
-    pub fn set_style_grid_column_dsc_array(&self, value: Option<&'static [i32]>) {
-        if let Some(value) = value
-            && let Some(last) = value.last()
-        {
-            if *last != ffi::LV_GRID_TEMPLATE_LAST as i32 {
-                panic!("invalid input");
+    pub fn set_style_grid_row_dsc_array(&self, value: Option<LvGridTemplate>) {
+        unsafe {
+            if let Some(value) = value {
+                ffi::lv_style_set_grid_row_dsc_array(self.style_ptr(), value.as_ptr());
+            } else {
+                remove_style_prop(
+                    self.style_ptr(),
+                    ffi::_lv_style_id_t::LV_STYLE_GRID_ROW_DSC_ARRAY,
+                );
             }
-            unsafe { ffi::lv_style_set_grid_column_dsc_array(self.style_ptr(), value.as_ptr()) }
-        }
-    }
-
-    pub fn set_style_grid_row_dsc_array(&self, value: Option<&'static [i32]>) {
-        if let Some(value) = value
-            && let Some(last) = value.last()
-        {
-            if *last != ffi::LV_GRID_TEMPLATE_LAST as i32 {
-                panic!("invalid input");
-            }
-            unsafe { ffi::lv_style_set_grid_row_dsc_array(self.style_ptr(), value.as_ptr()) }
         }
     }
 }
@@ -408,8 +414,8 @@ mod tests {
         let _: fn(&LvSpan, crate::LvColor) = LvSpan::set_style_text_color;
         let _: fn(&LvSpan, crate::LvFont) = LvSpan::set_style_text_font;
         let _: fn(&LvSpan) -> bool = LvSpan::remove_style_text_font;
-        let _: fn(&LvSpan, Option<&'static [i32]>) = LvSpan::set_style_grid_column_dsc_array;
-        let _: fn(&LvSpan, Option<&'static [i32]>) = LvSpan::set_style_grid_row_dsc_array;
+        let _: fn(&LvSpan, Option<crate::LvGridTemplate>) = LvSpan::set_style_grid_column_dsc_array;
+        let _: fn(&LvSpan, Option<crate::LvGridTemplate>) = LvSpan::set_style_grid_row_dsc_array;
         let _: unsafe fn(&LvSpan, Option<&'static u8>) = LvSpan::set_style_bg_image_src::<u8>;
     }
 }

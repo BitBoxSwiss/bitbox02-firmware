@@ -8,7 +8,10 @@ pub struct LvFont {
 }
 
 impl LvFont {
-    pub const fn new(raw: &'static ffi::lv_font_t) -> Self {
+    /// # Safety
+    /// `raw` must point to a valid LVGL font descriptor and all pointers reachable from it must
+    /// remain valid for the program lifetime.
+    pub const unsafe fn new(raw: &'static ffi::lv_font_t) -> Self {
         Self { raw }
     }
 
@@ -44,7 +47,7 @@ mod tests {
         let font = fonts::INTER_BOLD_48;
         assert_eq!(
             font.as_ptr(),
-            LvFont::new(unsafe { &crate::ffi::inter_bold_48 }).as_ptr()
+            unsafe { LvFont::new(&crate::ffi::inter_bold_48) }.as_ptr()
         );
     }
 }

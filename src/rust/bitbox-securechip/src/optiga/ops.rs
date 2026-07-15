@@ -9,6 +9,16 @@ use grounded::uninit::{GroundedArrayCell, GroundedCell};
 use util::cell::SyncCell;
 use zeroize::{Zeroize, Zeroizing};
 
+#[cfg(not(test))]
+#[path = "raw_ffi.rs"]
+mod raw;
+#[cfg(test)]
+#[path = "raw_fake.rs"]
+mod raw;
+#[cfg(test)]
+#[path = "testing.rs"]
+pub(super) mod testing;
+
 const ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE: usize =
     bitbox_securechip_sys::ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE as usize;
 
@@ -131,7 +141,7 @@ impl Drop for AsyncOpGuard {
         }
 
         WAKER.clear();
-        let status = unsafe { bitbox_securechip_sys::optiga_ops_get_status() };
+        let status = raw::status();
         if status == bitbox_securechip_sys::OPTIGA_LIB_BUSY as _ {
             STATE.write(AsyncOpState::Detached);
         } else {
@@ -175,9 +185,7 @@ async fn begin_async_op() -> AsyncOpGuard {
                 // to hand their addresses to the C library and reuse the global waker slot.
                 STATE.write(AsyncOpState::Running);
                 WAKER.clear();
-                unsafe {
-                    bitbox_securechip_sys::optiga_ops_set_status_busy();
-                }
+                raw::set_status_busy();
                 return AsyncOpGuard::new();
             }
             AsyncOpState::Running => {
@@ -212,12 +220,12 @@ async fn wait_with_cleanup(
 
 async fn wait_until_not_busy() -> bitbox_securechip_sys::optiga_lib_status_t {
     poll_fn(|cx| {
-        let status = unsafe { bitbox_securechip_sys::optiga_ops_get_status() };
+        let status = raw::status();
         if status == bitbox_securechip_sys::OPTIGA_LIB_BUSY as _ {
             // Register first, then re-check status to avoid missing a callback that fires between
             // the initial busy check and storing the waker.
             WAKER.register(cx.waker());
-            let status = unsafe { bitbox_securechip_sys::optiga_ops_get_status() };
+            let status = raw::status();
             if status == bitbox_securechip_sys::OPTIGA_LIB_BUSY as _ {
                 Poll::Pending
             } else {
@@ -255,7 +263,7 @@ pub(super) async fn util_read_data(oid: u16, offset: u16, out: &mut [u8]) -> Res
     }
     let requested_len: u16 = out.len().try_into().unwrap();
 
-    let util = unsafe { bitbox_securechip_sys::optiga_util_instance() };
+    let util = raw::util_instance();
 
     let guard = begin_async_op().await;
     BUF.clear();
@@ -263,7 +271,7 @@ pub(super) async fn util_read_data(oid: u16, offset: u16, out: &mut [u8]) -> Res
         LEN.get().write(requested_len);
     }
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_util_read_data(util, oid, offset, BUF.as_mut_ptr(), LEN.get())
+        raw::util_read_data(util, oid, offset, BUF.as_mut_ptr(), LEN.get())
     })
     .await
     .map_err(|status| Error::from_status(status as i32));
@@ -295,7 +303,7 @@ pub(super) async fn crypt_hmac(
     static MAC: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
     static MAC_LEN: GroundedCell<u32> = GroundedCell::const_init();
 
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
 
     let guard = begin_async_op().await;
     INPUT.copy_from_slice(msg);
@@ -304,7 +312,7 @@ pub(super) async fn crypt_hmac(
         MAC_LEN.get().write(super::KDF_LEN as u32);
     }
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_hmac(
+        raw::crypt_hmac(
             crypt,
             hmac_type,
             secret,
@@ -349,19 +357,12 @@ pub(super) async fn util_write_data(
         panic!("optiga async write larger than max supported size");
     }
     let input_len: u16 = buffer.len().try_into().unwrap();
-    let util = unsafe { bitbox_securechip_sys::optiga_util_instance() };
+    let util = raw::util_instance();
 
     let guard = begin_async_op().await;
     INPUT.copy_from_slice(buffer);
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_util_write_data(
-            util,
-            oid,
-            write_type,
-            offset,
-            INPUT.as_mut_ptr(),
-            input_len,
-        )
+        raw::util_write_data(util, oid, write_type, offset, INPUT.as_mut_ptr(), input_len)
     })
     .await
     .map_err(|status| Error::from_status(status as i32));
@@ -381,7 +382,7 @@ pub(super) async fn crypt_symmetric_encrypt(
     static OUTPUT: StaticBytes<16> = StaticBytes::const_init();
     static OUTPUT_LEN: GroundedCell<u32> = GroundedCell::const_init();
 
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
     let input_len = super::KDF_LEN as u32;
 
     let guard = begin_async_op().await;
@@ -391,7 +392,7 @@ pub(super) async fn crypt_symmetric_encrypt(
         OUTPUT_LEN.get().write(16);
     }
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_symmetric_encrypt(
+        raw::crypt_symmetric_encrypt(
             crypt,
             encryption_mode,
             symmetric_key_oid,
@@ -434,12 +435,12 @@ pub(super) async fn crypt_generate_auth_code(
     // callback completes, and the Rust future may be dropped before that happens.
     static RANDOM: StaticBytes<32> = StaticBytes::const_init();
 
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
 
     let guard = begin_async_op().await;
     RANDOM.clear();
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_generate_auth_code(
+        raw::crypt_generate_auth_code(
             crypt,
             rng_type,
             core::ptr::null(),
@@ -472,7 +473,7 @@ pub(super) async fn crypt_ecdsa_sign(
     static SIGNATURE: StaticBytes<ECDSA_SIGNATURE_MAX_LEN> = StaticBytes::const_init();
     static SIGNATURE_LEN: GroundedCell<u16> = GroundedCell::const_init();
 
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
 
     let guard = begin_async_op().await;
     DIGEST.copy_from_slice(digest);
@@ -481,7 +482,7 @@ pub(super) async fn crypt_ecdsa_sign(
         SIGNATURE_LEN.get().write(ECDSA_SIGNATURE_MAX_LEN as u16);
     }
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_ecdsa_sign(
+        raw::crypt_ecdsa_sign(
             crypt,
             DIGEST.as_mut_ptr(),
             super::KDF_LEN as u8,
@@ -525,13 +526,13 @@ pub(super) async fn crypt_hmac_verify(
     static INPUT: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
     static HMAC: StaticBytes<{ super::KDF_LEN }> = StaticBytes::const_init();
 
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
 
     let guard = begin_async_op().await;
     INPUT.copy_from_slice(input_data);
     HMAC.copy_from_slice(hmac);
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_hmac_verify(
+        raw::crypt_hmac_verify(
             crypt,
             hmac_type,
             secret,
@@ -556,7 +557,7 @@ pub(super) async fn crypt_symmetric_generate_key(
     // callback completes, and the Rust future may be dropped before that happens.
     static KEYID: GroundedCell<bitbox_securechip_sys::optiga_key_id_t> = GroundedCell::uninit();
 
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
 
     let guard = begin_async_op().await;
     unsafe {
@@ -565,26 +566,18 @@ pub(super) async fn crypt_symmetric_generate_key(
             .write(super::key_id_from_oid(super::OID_AES_SYMKEY));
     }
     wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_symmetric_generate_key(
-            crypt,
-            key_type,
-            key_usage as u8,
-            0,
-            KEYID.get().cast(),
-        )
+        raw::crypt_symmetric_generate_key(crypt, key_type, key_usage as u8, 0, KEYID.get().cast())
     })
     .await
     .map_err(|status| Error::from_status(status as i32))
 }
 
 pub(super) async fn crypt_clear_auto_state(secret: u16) -> Result<(), Error> {
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
     let guard = begin_async_op().await;
-    wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_clear_auto_state(crypt, secret)
-    })
-    .await
-    .map_err(|status| Error::from_status(status as i32))
+    wait_with_cleanup(guard, unsafe { raw::crypt_clear_auto_state(crypt, secret) })
+        .await
+        .map_err(|status| Error::from_status(status as i32))
 }
 
 pub(super) async fn crypt_random(
@@ -595,12 +588,12 @@ pub(super) async fn crypt_random(
     // callback completes, and the Rust future may be dropped before that happens.
     static BUF: StaticBytes<32> = StaticBytes::const_init();
 
-    let crypt = unsafe { bitbox_securechip_sys::optiga_crypt_instance() };
+    let crypt = raw::crypt_instance();
 
     let guard = begin_async_op().await;
     BUF.clear();
     let result = wait_with_cleanup(guard, unsafe {
-        bitbox_securechip_sys::optiga_crypt_random(crypt, rng_type, BUF.as_mut_ptr(), 32)
+        raw::crypt_random(crypt, rng_type, BUF.as_mut_ptr(), 32)
     })
     .await
     .map_err(|status| Error::from_status(status as i32));

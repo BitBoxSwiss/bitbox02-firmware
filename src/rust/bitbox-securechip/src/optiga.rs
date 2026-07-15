@@ -8,11 +8,7 @@ use zeroize::Zeroizing;
 
 mod der;
 
-#[cfg(not(test))]
 #[path = "optiga/ops.rs"]
-mod ops;
-#[cfg(test)]
-#[path = "optiga/ops_fake.rs"]
 mod ops;
 
 const OID_AES_SYMKEY: u16 = bitbox_securechip_sys::OID_AES_SYMKEY as u16;
@@ -542,31 +538,32 @@ pub async fn model() -> Result<Model, ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitbox_platform_host::memory::FakeMemory;
+    use bitbox_platform_host::{memory::FakeMemory, random::TestingRandom};
+    use core::task::Poll;
     use hex_lit::hex;
 
     //------------------------------------------------------------------------------
     // Fixed test vectors / keys (deterministic fakes).
 
     const SALT_ROOT_FIXED: [u8; 32] = [0x42; 32];
+    const MCU_RANDOM_HMAC_KEY: [u8; 32] =
+        hex!("b40711a88c7039756fb8a73827eabe2c0fe5a0346ca7e0a104adc0fc764f528d");
+    const MCU_RANDOM_PASSWORD_SECRET: [u8; 32] =
+        hex!("433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a");
+    const MCU_RANDOM_HMAC_WRITEPROTECTED_KEY: [u8; 32] =
+        hex!("88185d128d9922e0e6bcd32b07b6c7f20f27968eab447a1d8d1cdf250f79f7d3");
 
-    struct TestRandom;
-
-    // Unused in these unit tests. The fake `ops::random_32_bytes()` implementation ignores the
-    // HAL RNG and returns fixed test vectors instead.
-    impl bitbox_hal::Random for TestRandom {
-        fn factory_randomness(&mut self) -> &'static [u8; 32] {
-            unreachable!("unused in optiga unit tests")
-        }
-
-        fn mcu_32_bytes(&mut self, _out: &mut [u8; 32]) {
-            unreachable!("unused in optiga unit tests")
-        }
+    fn testing_random() -> TestingRandom {
+        let mut random = TestingRandom::new();
+        random.mock_next(MCU_RANDOM_HMAC_KEY);
+        random.mock_next(MCU_RANDOM_PASSWORD_SECRET);
+        random.mock_next(MCU_RANDOM_HMAC_WRITEPROTECTED_KEY);
+        random
     }
 
     fn setup_test() -> (std::sync::MutexGuard<'static, ()>, FakeMemory) {
-        let guard = ops::test_lock();
-        ops::test_reset();
+        let guard = ops::testing::lock();
+        ops::testing::reset();
         let mut memory = FakeMemory::new();
         // Provides a fixed salt root for deterministic hash_data() results.
         memory.set_salt_root(&SALT_ROOT_FIXED);
@@ -588,6 +585,80 @@ mod tests {
         );
     }
 
+    /// A dropped future must leave its retained buffer pointer valid until the late callback, and
+    /// a second operation must not start before that callback completes.
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_async_op_drop_waits_for_callback() {
+        let (_guard, _memory) = setup_test();
+        ops::testing::block_next_operation();
+
+        let mut first_out = [0xAAu8; 32];
+        let mut first: util::bb02_async::Task<_> =
+            alloc::boxed::Box::pin(ops::crypt_random(OPTIGA_RNG_TYPE_TRNG, &mut first_out));
+        assert!(matches!(util::bb02_async::spin(&mut first), Poll::Pending));
+        assert_eq!(ops::testing::started_operations(), 1);
+        assert_eq!(ops::testing::completed_pointer_accesses(), 0);
+        drop(first);
+        assert_eq!(first_out, [0xAA; 32]);
+
+        let mut second_out = [0u8; 32];
+        let mut second: util::bb02_async::Task<_> =
+            alloc::boxed::Box::pin(ops::crypt_random(OPTIGA_RNG_TYPE_TRNG, &mut second_out));
+        assert!(matches!(util::bb02_async::spin(&mut second), Poll::Pending));
+        assert_eq!(ops::testing::started_operations(), 1);
+
+        ops::testing::complete_blocked_operation();
+        assert_eq!(ops::testing::completed_pointer_accesses(), 1);
+        assert_eq!(first_out, [0xAA; 32]);
+        second.await.unwrap();
+        assert_eq!(ops::testing::started_operations(), 2);
+    }
+
+    /// Immediate start failures and asynchronous completion failures must both release the engine
+    /// so it remains usable by later operations.
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_async_op_errors_release_engine() {
+        let (_guard, _memory) = setup_test();
+        let mut out = [0u8; 32];
+
+        ops::testing::fail_next_start(0x1234);
+        assert_eq!(
+            ops::crypt_random(OPTIGA_RNG_TYPE_TRNG, &mut out).await,
+            Err(Error::Status(0x1234)),
+        );
+
+        ops::testing::fail_next_completion(0x1235);
+        assert_eq!(
+            ops::crypt_random(OPTIGA_RNG_TYPE_TRNG, &mut out).await,
+            Err(Error::Status(0x1235)),
+        );
+
+        ops::crypt_random(OPTIGA_RNG_TYPE_TRNG, &mut out)
+            .await
+            .unwrap();
+    }
+
+    /// A successful read with a device-reported length different from the requested length must be
+    /// rejected without leaving the async engine stuck.
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_async_read_rejects_unexpected_length() {
+        let (_guard, _memory) = setup_test();
+        let mut out = [0u8; 4];
+
+        ops::testing::set_next_read_len(0);
+        assert_eq!(
+            ops::util_read_data(OID_COUNTER, 0, &mut out).await,
+            Err(Error::SecureChip(
+                SecureChipError::SC_OPTIGA_ERR_UNEXPECTED_LEN,
+            )),
+        );
+
+        ops::util_read_data(OID_COUNTER, 0, &mut out).await.unwrap();
+    }
+
     #[cfg(feature = "app-u2f")]
     #[async_test::test]
     #[allow(clippy::await_holding_lock)]
@@ -607,8 +678,8 @@ mod tests {
         assert_eq!(read_arbitrary_data().await.unwrap().u2f_counter(), 43);
     }
 
-    // Expected stretched_out for password "pw" for the V0 algorithm given the deterministic fake
-    // constants in ops_fake.rs.
+    // Expected stretched_out for password "pw" for the V0 algorithm given TestingRandom and the
+    // deterministic raw fake.
     //
     // Repro script (mirrors stretch_password() with the unit test fakes):
     // ```python
@@ -631,10 +702,33 @@ mod tests {
     //     # crypt_hmac_sync fake: HMAC-SHA256(hmac_key, msg)
     //     return hmac_sha256(hmac_key, msg)
     //
+    // def random_32_bytes(mcu_random: bytes) -> bytes:
+    //     # random_32_bytes_with_mixin(), with the raw fake's all-zero chip random value.
+    //     factory_randomness = bytes.fromhex(
+    //         "f71df5932e61dbaab9b9eca90e59c4b45ec91fadf803db15578c260c608eb46b"
+    //     )
+    //     chip_random = bytes(32)
+    //     mixed = bytes(
+    //         m ^ c ^ f for m, c, f in zip(mcu_random, chip_random, factory_randomness)
+    //     )
+    //     return sha256(mixed)
+    //
     // salt_root = bytes([0x42]) * 32
     // cmac_key = bytes([0xA0]) * 32
-    // hmac_key = bytes([0xB0]) * 32
-    // password_secret = bytes([0x99]) * 32
+    // mcu_hmac_key = bytes.fromhex(
+    //     "b40711a88c7039756fb8a73827eabe2c0fe5a0346ca7e0a104adc0fc764f528d"
+    // )
+    // mcu_password_secret = bytes.fromhex(
+    //     "433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a"
+    // )
+    // hmac_key = random_32_bytes(mcu_hmac_key)
+    // password_secret = random_32_bytes(mcu_password_secret)
+    // assert hmac_key.hex() == (
+    //     "39dfec3e1c0088b4dadc06ee8f5e0187fb2b93a957b0fc9fa7b80e303ab2f3c5"
+    // )
+    // assert password_secret.hex() == (
+    //     "0abf2413d2f222b1c1b3ff60ff8392684bb5a33a1e3f7e94f45291172602b25b"
+    // )
     // password = b"pw"
     //
     // kdf_in = salt_hash_data(password, b"optiga_password_stretch_in", salt_root)
@@ -647,10 +741,10 @@ mod tests {
     // print(stretched.hex())
     // ```
     const EXPECTED_STRETCHED_OUT_V0: [u8; 32] =
-        hex!("c41f87b7c9f3169c14f3f26287093c311819067776f6163b8a0fdf3dfb8b8ebb");
+        hex!("bcd3fdd35ca51ddc3005dc4fc662bfe143210ebd27c9acfdba289b6ccd4b0c4f");
 
-    // Expected stretched_out for password "pw" for the V1 algorithm given the deterministic fake
-    // constants in ops_fake.rs.
+    // Expected stretched_out for password "pw" for the V1 algorithm given TestingRandom and the
+    // deterministic raw fake.
     //
     // Repro script (mirrors stretch_password() with the unit test fakes):
     // ```python
@@ -673,10 +767,40 @@ mod tests {
     //     # crypt_hmac_sync fake: HMAC-SHA256(hmac_key, msg)
     //     return hmac_sha256(hmac_key, msg)
     //
+    // def random_32_bytes(mcu_random: bytes) -> bytes:
+    //     # random_32_bytes_with_mixin(), with the raw fake's all-zero chip random value.
+    //     factory_randomness = bytes.fromhex(
+    //         "f71df5932e61dbaab9b9eca90e59c4b45ec91fadf803db15578c260c608eb46b"
+    //     )
+    //     chip_random = bytes(32)
+    //     mixed = bytes(
+    //         m ^ c ^ f for m, c, f in zip(mcu_random, chip_random, factory_randomness)
+    //     )
+    //     return sha256(mixed)
+    //
     // salt_root = bytes([0x42]) * 32
     // cmac_key = bytes([0xA0]) * 32
-    // hmac_writeprotected_key = bytes([0xC0]) * 32
-    // password_secret = bytes([0x99]) * 32
+    // mcu_hmac_key = bytes.fromhex(
+    //     "b40711a88c7039756fb8a73827eabe2c0fe5a0346ca7e0a104adc0fc764f528d"
+    // )
+    // mcu_password_secret = bytes.fromhex(
+    //     "433ebf5bc03dffa38536673207a21281612cef5faa9bc7a4d5b9be2fdb12cf1a"
+    // )
+    // mcu_hmac_writeprotected_key = bytes.fromhex(
+    //     "88185d128d9922e0e6bcd32b07b6c7f20f27968eab447a1d8d1cdf250f79f7d3"
+    // )
+    // hmac_key = random_32_bytes(mcu_hmac_key)
+    // password_secret = random_32_bytes(mcu_password_secret)
+    // hmac_writeprotected_key = random_32_bytes(mcu_hmac_writeprotected_key)
+    // assert hmac_key.hex() == (
+    //     "39dfec3e1c0088b4dadc06ee8f5e0187fb2b93a957b0fc9fa7b80e303ab2f3c5"
+    // )
+    // assert password_secret.hex() == (
+    //     "0abf2413d2f222b1c1b3ff60ff8392684bb5a33a1e3f7e94f45291172602b25b"
+    // )
+    // assert hmac_writeprotected_key.hex() == (
+    //     "cb47020ccd1aaa6d7fc64ab812f83ff1996be6987c83d39cbdb9720f3501ce99"
+    // )
     // password = b"pw"
     //
     // kdf_in = salt_hash_data(password, b"optiga_password_stretch_in", salt_root)
@@ -688,7 +812,7 @@ mod tests {
     // print(stretched.hex())
     // ```
     const EXPECTED_STRETCHED_OUT_V1: [u8; 32] =
-        hex!("c59ec3c3b1c45f7e7639a629f5b34d1e4dc508f3b5b9577dd9dd57eecf496751");
+        hex!("c25485dda75fdd0bc0e30f4a231594b74767af40cb5042832a206bd45eb99b1e");
 
     fn seed_v0_password(memory: &mut FakeMemory, password: &str) {
         // Seed the OID_PASSWORD and OID_PASSWORD_COUNTER objects as if they were
@@ -696,8 +820,8 @@ mod tests {
         let oid_password =
             bitbox_core_utils::salt::hash_data(memory, password.as_bytes(), "optiga_password")
                 .unwrap();
-        ops::test_seed_oid_password(&oid_password);
-        ops::test_set_counter(OID_COUNTER_PASSWORD, 0, SMALL_MONOTONIC_COUNTER_MAX_USE);
+        ops::testing::seed_oid_password(&oid_password);
+        ops::testing::set_counter(OID_COUNTER_PASSWORD, 0, SMALL_MONOTONIC_COUNTER_MAX_USE);
     }
 
     #[async_test::test]
@@ -719,9 +843,9 @@ mod tests {
             EXPECTED_STRETCHED_OUT_V0.as_slice()
         );
         // Successful password verification resets the small monotonic counter/threshold.
-        assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 0);
+        assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 0);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_PASSWORD),
+            ops::testing::threshold(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
     }
@@ -743,9 +867,9 @@ mod tests {
                 SecureChipError::SC_ERR_INCORRECT_PASSWORD,
             )),
         );
-        assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 1);
+        assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 1);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_PASSWORD),
+            ops::testing::threshold(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
 
@@ -760,9 +884,9 @@ mod tests {
                 SecureChipError::SC_ERR_INCORRECT_PASSWORD,
             )),
         );
-        assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 2);
+        assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 2);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_PASSWORD),
+            ops::testing::threshold(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
 
@@ -773,9 +897,9 @@ mod tests {
         )
         .await
         .unwrap();
-        assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 0);
+        assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 0);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_PASSWORD),
+            ops::testing::threshold(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
 
@@ -793,7 +917,7 @@ mod tests {
             );
         }
         assert_eq!(
-            ops::test_get_counter(OID_COUNTER_PASSWORD),
+            ops::testing::counter(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
 
@@ -810,7 +934,7 @@ mod tests {
             )),
         );
         assert_eq!(
-            ops::test_get_counter(OID_COUNTER_PASSWORD),
+            ops::testing::counter(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
     }
@@ -822,7 +946,7 @@ mod tests {
     // Attempts after init are special because the PASSWORD_COUNTER init/threshold are offset by 1.
     async fn test_optiga_password_v1_stretch_exhaust_fails_after_init() {
         let (_guard, mut memory) = setup_test();
-        let mut random = TestRandom;
+        let mut random = testing_random();
 
         let stretched = init_new_password(
             &mut random,
@@ -836,15 +960,15 @@ mod tests {
 
         // Counter & threshold of password counter. After init, it is at 1, but the threshold is
         // increased by 1, so the number of attempts is still 10.
-        assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 1);
+        assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 1);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_PASSWORD),
+            ops::testing::threshold(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE + 1,
         );
         // Counter & threshold of hmac_writeprotected counter.
-        assert_eq!(ops::test_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
+        assert_eq!(ops::testing::counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
+            ops::testing::threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
 
@@ -863,15 +987,15 @@ mod tests {
             );
 
             // Counter & threshold of password counter.
-            assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 1 + i);
+            assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 1 + i);
             assert_eq!(
-                ops::test_get_threshold(OID_COUNTER_PASSWORD),
+                ops::testing::threshold(OID_COUNTER_PASSWORD),
                 SMALL_MONOTONIC_COUNTER_MAX_USE + 1,
             );
             // Counter & threshold of hmac_writeprotected counter.
-            assert_eq!(ops::test_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
+            assert_eq!(ops::testing::counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
             assert_eq!(
-                ops::test_get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
+                ops::testing::threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
                 SMALL_MONOTONIC_COUNTER_MAX_USE,
             );
         }
@@ -898,7 +1022,7 @@ mod tests {
     // that doing a correct attempt resets the counters.
     async fn test_optiga_password_v1() {
         let (_guard, mut memory) = setup_test();
-        let mut random = TestRandom;
+        let mut random = testing_random();
 
         let stretched = init_new_password(
             &mut random,
@@ -912,15 +1036,15 @@ mod tests {
 
         // Counter & threshold of password counter. After init, it is at 1, but the threshold is
         // increased by 1, so the number of attempts is still 10.
-        assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 1);
+        assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 1);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_PASSWORD),
+            ops::testing::threshold(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE + 1,
         );
         // Counter & threshold of hmac_writeprotected counter.
-        assert_eq!(ops::test_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
+        assert_eq!(ops::testing::counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
+            ops::testing::threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
 
@@ -939,15 +1063,15 @@ mod tests {
             );
 
             // Counter & threshold of password counter.
-            assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 1 + i);
+            assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 1 + i);
             assert_eq!(
-                ops::test_get_threshold(OID_COUNTER_PASSWORD),
+                ops::testing::threshold(OID_COUNTER_PASSWORD),
                 SMALL_MONOTONIC_COUNTER_MAX_USE + 1,
             );
             // Counter & threshold of hmac_writeprotected counter.
-            assert_eq!(ops::test_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
+            assert_eq!(ops::testing::counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
             assert_eq!(
-                ops::test_get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
+                ops::testing::threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
                 SMALL_MONOTONIC_COUNTER_MAX_USE,
             );
         }
@@ -962,15 +1086,15 @@ mod tests {
         .unwrap();
         assert_eq!(stretched.as_slice(), EXPECTED_STRETCHED_OUT_V1.as_slice());
         // Counter & threshold of password counter.
-        assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), 0);
+        assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), 0);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_PASSWORD),
+            ops::testing::threshold(OID_COUNTER_PASSWORD),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
         // Counter & threshold of hmac_writeprotected counter.
-        assert_eq!(ops::test_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
+        assert_eq!(ops::testing::counter(OID_COUNTER_HMAC_WRITEPROTECTED), 0);
         assert_eq!(
-            ops::test_get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
+            ops::testing::threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
             SMALL_MONOTONIC_COUNTER_MAX_USE,
         );
 
@@ -990,15 +1114,15 @@ mod tests {
             );
 
             // Counter & threshold of password counter.
-            assert_eq!(ops::test_get_counter(OID_COUNTER_PASSWORD), i);
+            assert_eq!(ops::testing::counter(OID_COUNTER_PASSWORD), i);
             assert_eq!(
-                ops::test_get_threshold(OID_COUNTER_PASSWORD),
+                ops::testing::threshold(OID_COUNTER_PASSWORD),
                 SMALL_MONOTONIC_COUNTER_MAX_USE,
             );
             // Counter & threshold of hmac_writeprotected counter.
-            assert_eq!(ops::test_get_counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
+            assert_eq!(ops::testing::counter(OID_COUNTER_HMAC_WRITEPROTECTED), i);
             assert_eq!(
-                ops::test_get_threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
+                ops::testing::threshold(OID_COUNTER_HMAC_WRITEPROTECTED),
                 SMALL_MONOTONIC_COUNTER_MAX_USE,
             );
         }

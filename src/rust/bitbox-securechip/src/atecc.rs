@@ -9,11 +9,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use util::sha2::hmac_sha256_overwrite;
 use zeroize::Zeroizing;
 
-#[cfg(not(test))]
 #[path = "atecc/ops.rs"]
-mod ops;
-#[cfg(test)]
-#[path = "atecc/ops_fake.rs"]
 mod ops;
 
 const ATECC_OPS_STATUS_BUSY: i32 = bitbox_securechip_sys::ATECC_OPS_STATUS_BUSY as i32;
@@ -607,7 +603,21 @@ mod tests {
     struct TestTimer;
 
     impl Timer for TestTimer {
-        async fn delay_for(_duration: Duration) {}
+        async fn delay_for(_duration: Duration) {
+            // Yield once so the command remains busy for one poll, as it would while a real timer
+            // is running, before the fake backend is polled for completion.
+            let mut first_poll = true;
+            core::future::poll_fn(move |cx| {
+                if first_poll {
+                    first_poll = false;
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
+                } else {
+                    Poll::Ready(())
+                }
+            })
+            .await;
+        }
     }
 
     fn setup_test() -> (
@@ -615,8 +625,8 @@ mod tests {
         FakeMemory,
         TestingRandom,
     ) {
-        let guard = ops::test_lock();
-        ops::test_reset();
+        let guard = ops::testing::lock();
+        ops::testing::reset();
         let mut memory = FakeMemory::new();
         memory.set_salt_root(&SALT_ROOT_FIXED);
         (guard, memory, TestingRandom::new())
@@ -629,9 +639,9 @@ mod tests {
         reset_keys::<TestTimer>(&mut random, &mut memory)
             .await
             .unwrap();
-        assert_eq!(ops::test_get_derivekey_rollkey_calls(), 1);
-        assert_eq!(ops::test_get_kdf_key_write_calls(), 1);
-        assert!(!ops::test_io_temp_key_active());
+        assert_eq!(ops::testing::derivekey_rollkey_calls(), 1);
+        assert_eq!(ops::testing::kdf_key_write_calls(), 1);
+        assert!(!ops::testing::io_temp_key_active());
     }
 
     #[async_test::test]
@@ -646,53 +656,66 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(stretched.as_slice(), EXPECTED_STRETCHED_OUT_V0.as_slice(),);
-        assert_eq!(ops::test_get_rollkey_kdf_calls(), 1);
-        assert_eq!(ops::test_get_kdf_calls(), KDF_NUM_ITERATIONS);
+        assert_eq!(ops::testing::rollkey_kdf_calls(), 1);
+        assert_eq!(ops::testing::kdf_calls(), KDF_NUM_ITERATIONS);
     }
 
-    #[test]
-    fn test_random_busy() {
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_random_busy() {
         let (_guard, _memory, _random) = setup_test();
-        ops::test_block_next_chip_command();
+        ops::testing::block_next_chip_command();
         let mut first: util::bb02_async::Task<_> = alloc::boxed::Box::pin(random::<TestTimer>());
         assert!(matches!(util::bb02_async::spin(&mut first), Poll::Pending));
 
         assert_eq!(
-            util::bb02_async::block_on(random::<TestTimer>()),
+            random::<TestTimer>().await,
             Err(Error::Status(ATECC_OPS_STATUS_BUSY)),
         );
 
-        ops::test_unblock_chip_command();
-        drop(util::bb02_async::block_on(first).unwrap());
+        ops::testing::unblock_chip_command();
+        drop(first.await.unwrap());
     }
 
-    #[test]
-    fn test_model_busy() {
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_model_busy() {
         let (_guard, _memory, _random) = setup_test();
-        ops::test_block_next_chip_command();
+        ops::testing::block_next_chip_command();
         let mut first: util::bb02_async::Task<_> = alloc::boxed::Box::pin(random::<TestTimer>());
         assert!(matches!(util::bb02_async::spin(&mut first), Poll::Pending));
 
-        assert_eq!(util::bb02_async::block_on(model::<TestTimer>()), Err(()));
+        assert_eq!(model::<TestTimer>().await, Err(()));
 
-        ops::test_unblock_chip_command();
-        drop(util::bb02_async::block_on(first).unwrap());
+        ops::testing::unblock_chip_command();
+        drop(first.await.unwrap());
     }
 
-    #[test]
-    fn test_drop_releases_high_level_guard() {
+    /// Dropping an in-flight operation must keep the command context reserved until the detached
+    /// command completes, after which the next operation may reuse it.
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_drop_releases_high_level_guard() {
         let (_guard, _memory, _random) = setup_test();
-        ops::test_block_next_chip_command();
+        ops::testing::block_next_chip_command();
         let mut first: util::bb02_async::Task<_> = alloc::boxed::Box::pin(random::<TestTimer>());
         assert!(matches!(util::bb02_async::spin(&mut first), Poll::Pending));
+        assert_eq!(ops::testing::started_commands(), 1);
 
         drop(first);
 
-        assert!(util::bb02_async::block_on(random::<TestTimer>()).is_ok());
+        let mut second: util::bb02_async::Task<_> = alloc::boxed::Box::pin(random::<TestTimer>());
+        assert!(matches!(util::bb02_async::spin(&mut second), Poll::Pending));
+        assert_eq!(ops::testing::started_commands(), 1);
+
+        ops::testing::unblock_chip_command();
+        assert!(second.await.is_ok());
+        assert_eq!(ops::testing::started_commands(), 2);
     }
 
-    #[test]
-    fn test_drop_clears_io_temp_key() {
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_drop_clears_io_temp_key() {
         let (_guard, _memory, _random) = setup_test();
         let mut task: util::bb02_async::Task<_> = alloc::boxed::Box::pin(async {
             let _guard = begin_high_level_op().unwrap();
@@ -702,10 +725,29 @@ mod tests {
             core::future::pending::<()>().await;
         });
         assert!(matches!(util::bb02_async::spin(&mut task), Poll::Pending));
-        assert!(ops::test_io_temp_key_active());
+        assert!(ops::testing::io_temp_key_active());
 
         drop(task);
 
-        assert!(!ops::test_io_temp_key_active());
+        assert!(!ops::testing::io_temp_key_active());
+    }
+
+    /// Start, completion, and response errors must all release the async engine so a subsequent
+    /// command can succeed.
+    #[async_test::test]
+    #[allow(clippy::await_holding_lock)]
+    async fn test_chip_random_errors_release_engine() {
+        let (_guard, _memory, _random) = setup_test();
+
+        ops::testing::fail_next_start(21);
+        assert_eq!(ops::chip_random::<TestTimer>().await, Err(21));
+
+        ops::testing::fail_next_completion(22);
+        assert_eq!(ops::chip_random::<TestTimer>().await, Err(22));
+
+        ops::testing::fail_next_response(23);
+        assert_eq!(ops::chip_random::<TestTimer>().await, Err(23));
+
+        assert!(ops::chip_random::<TestTimer>().await.is_ok());
     }
 }

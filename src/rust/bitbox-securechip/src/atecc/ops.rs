@@ -6,6 +6,16 @@ use core::time::Duration;
 use util::cell::SyncCell;
 use zeroize::Zeroizing;
 
+#[cfg(not(test))]
+#[path = "raw_ffi.rs"]
+mod raw;
+#[cfg(test)]
+#[path = "raw_fake.rs"]
+mod raw;
+#[cfg(test)]
+#[path = "testing.rs"]
+pub(super) mod testing;
+
 const ATECC_OPS_STATUS_BUSY: i32 = bitbox_securechip_sys::ATECC_OPS_STATUS_BUSY as i32;
 pub(super) const NONCE_NUMIN_SIZE: usize = bitbox_securechip_sys::NONCE_NUMIN_SIZE as usize;
 const BLOCK_SIZE: usize = 32;
@@ -58,7 +68,7 @@ impl Drop for AsyncOpGuard {
 }
 
 fn poll_status() -> i32 {
-    unsafe { bitbox_securechip_sys::atecc_ops_get_status() }
+    raw::status()
 }
 
 fn ensure_success(status: i32) -> Result<(), i32> {
@@ -66,19 +76,15 @@ fn ensure_success(status: i32) -> Result<(), i32> {
 }
 
 pub(super) fn clear_io_temp_key() {
-    unsafe {
-        bitbox_securechip_sys::atecc_io_clear_tempkey();
-    }
+    raw::clear_io_temp_key();
 }
 
 async fn poll_once<T: Timer>() {
-    let delay_ms = unsafe { bitbox_securechip_sys::atecc_ops_get_poll_delay_ms() } as u64;
+    let delay_ms = raw::poll_delay_ms() as u64;
     if delay_ms > 0 {
         T::delay_for(Duration::from_millis(delay_ms)).await;
     }
-    unsafe {
-        bitbox_securechip_sys::atecc_ops_poll();
-    }
+    raw::poll();
 }
 
 async fn reclaim_detached_op<T: Timer>() {
@@ -175,60 +181,37 @@ pub(super) async fn chip_nonce_rand<T: Timer>(
 ) -> Result<Zeroizing<[u8; 32]>, i32> {
     let mut rand_out = Zeroizing::new([0u8; 32]);
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_nonce_rand(num_in.as_ptr())
-    })
-    .await?;
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_cmd_read_random_response((*rand_out).as_mut_ptr())
-    })?;
+    wait_with_cleanup::<T>(guard, raw::start_nonce_rand(num_in)).await?;
+    ensure_success(raw::read_random_response(&mut rand_out))?;
     Ok(rand_out)
 }
 
 pub(super) async fn chip_checkmac<T: Timer>(response: &Zeroizing<[u8; 32]>) -> Result<(), i32> {
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_checkmac(response.as_ptr())
-    })
-    .await
+    wait_with_cleanup::<T>(guard, raw::start_checkmac(response)).await
 }
 
 pub(super) async fn chip_random<T: Timer>() -> Result<Zeroizing<[u8; 32]>, i32> {
     let mut rand_out = Zeroizing::new([0u8; 32]);
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_random()
-    })
-    .await?;
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_cmd_read_random_response((*rand_out).as_mut_ptr())
-    })?;
+    wait_with_cleanup::<T>(guard, raw::start_random()).await?;
+    ensure_success(raw::read_random_response(&mut rand_out))?;
     Ok(rand_out)
 }
 
 pub(super) async fn chip_counter_read<T: Timer>() -> Result<u32, i32> {
     let mut counter = 0u32;
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_counter_read()
-    })
-    .await?;
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_cmd_read_counter_response(&mut counter)
-    })?;
+    wait_with_cleanup::<T>(guard, raw::start_counter_read()).await?;
+    ensure_success(raw::read_counter_response(&mut counter))?;
     Ok(counter)
 }
 
 pub(super) async fn chip_info_revision<T: Timer>() -> Result<[u8; 4], i32> {
     let mut revision = [0u8; 4];
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_info_revision()
-    })
-    .await?;
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_cmd_read_info_response(revision.as_mut_ptr())
-    })?;
+    wait_with_cleanup::<T>(guard, raw::start_info_revision()).await?;
+    ensure_success(raw::read_info_response(&mut revision))?;
     Ok(revision)
 }
 
@@ -239,54 +222,32 @@ pub(super) async fn chip_kdf<T: Timer>(
     let mut kdf_out = Zeroizing::new([0u8; 32]);
     let mut nonce_out = Zeroizing::new([0u8; 32]);
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_kdf(slot, msg.as_ptr(), msg.len())
-    })
-    .await?;
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_cmd_read_kdf_response(
-            (*kdf_out).as_mut_ptr(),
-            (*nonce_out).as_mut_ptr(),
-        )
-    })?;
+    wait_with_cleanup::<T>(guard, raw::start_kdf(slot, msg)).await?;
+    ensure_success(raw::read_kdf_response(&mut kdf_out, &mut nonce_out))?;
     Ok((kdf_out, nonce_out))
 }
 
 pub(super) async fn chip_derivekey_rollkey<T: Timer>() -> Result<(), i32> {
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_derivekey_rollkey()
-    })
-    .await
+    wait_with_cleanup::<T>(guard, raw::start_derivekey_rollkey()).await
 }
 
 pub(super) async fn chip_nonce_load_msgdigest<T: Timer>(msg: &[u8; 32]) -> Result<(), i32> {
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_nonce_load_msgdigest(msg.as_ptr())
-    })
-    .await
+    wait_with_cleanup::<T>(guard, raw::start_nonce_load_msgdigest(msg)).await
 }
 
 pub(super) async fn chip_sign_attestation<T: Timer>() -> Result<[u8; SIGNATURE_SIZE], i32> {
     let mut signature = [0u8; SIGNATURE_SIZE];
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_sign_attestation()
-    })
-    .await?;
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_cmd_read_sign_response(signature.as_mut_ptr())
-    })?;
+    wait_with_cleanup::<T>(guard, raw::start_sign_attestation()).await?;
+    ensure_success(raw::read_sign_response(&mut signature))?;
     Ok(signature)
 }
 
 pub(super) async fn chip_gendig_encryption_key<T: Timer>() -> Result<(), i32> {
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_gendig_encryption_key()
-    })
-    .await
+    wait_with_cleanup::<T>(guard, raw::start_gendig_encryption_key()).await
 }
 
 #[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
@@ -296,13 +257,8 @@ pub(super) async fn chip_read_block<T: Timer>(
 ) -> Result<Zeroizing<[u8; BLOCK_SIZE]>, i32> {
     let mut data = Zeroizing::new([0u8; BLOCK_SIZE]);
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_read_block(slot as u16, block)
-    })
-    .await?;
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_cmd_read_block_response((*data).as_mut_ptr())
-    })?;
+    wait_with_cleanup::<T>(guard, raw::start_read_block(slot, block)).await?;
+    ensure_success(raw::read_block_response(&mut data))?;
     Ok(data)
 }
 
@@ -313,14 +269,10 @@ pub(super) async fn chip_write_encrypted_block<T: Timer>(
     mac: &Zeroizing<[u8; BLOCK_SIZE]>,
 ) -> Result<(), i32> {
     let guard = begin_async_op::<T>().await;
-    wait_with_cleanup::<T>(guard, unsafe {
-        bitbox_securechip_sys::atecc_cmd_start_write_encrypted_block(
-            slot as u16,
-            block,
-            value.as_ptr(),
-            mac.as_ptr(),
-        )
-    })
+    wait_with_cleanup::<T>(
+        guard,
+        raw::start_write_encrypted_block(slot, block, value, mac),
+    )
     .await
 }
 
@@ -333,14 +285,12 @@ pub(super) fn host_check_mac(
     auth_key: &[u8; 32],
 ) -> Result<Zeroizing<[u8; 32]>, i32> {
     let mut response = Zeroizing::new([0u8; 32]);
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_auth_compute_response(
-            num_in.as_ptr(),
-            rand_out.as_ptr(),
-            auth_key.as_ptr(),
-            (*response).as_mut_ptr(),
-        )
-    })?;
+    ensure_success(raw::auth_compute_response(
+        num_in,
+        rand_out,
+        auth_key,
+        &mut response,
+    ))?;
     Ok(response)
 }
 
@@ -349,27 +299,18 @@ pub(super) fn host_kdf_decrypt(
     nonce_out: &Zeroizing<[u8; 32]>,
     data: &mut Zeroizing<[u8; 32]>,
 ) -> Result<(), i32> {
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_kdf_decrypt(
-            io_protection_key.as_ptr(),
-            nonce_out.as_ptr(),
-            (*data).as_mut_ptr(),
-            BLOCK_SIZE,
-        )
-    })
+    ensure_success(raw::kdf_decrypt(io_protection_key, nonce_out, data))
 }
 
 pub(super) fn host_nonce(
     num_in: &[u8; NONCE_NUMIN_SIZE],
     rand_out: &Zeroizing<[u8; 32]>,
 ) -> Result<(), i32> {
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_io_prepare_tempkey(num_in.as_ptr(), rand_out.as_ptr())
-    })
+    ensure_success(raw::io_prepare_tempkey(num_in, rand_out))
 }
 
 pub(super) fn host_gendig(encryption_key: &[u8; 32]) -> Result<(), i32> {
-    ensure_success(unsafe { bitbox_securechip_sys::atecc_io_apply_gendig(encryption_key.as_ptr()) })
+    ensure_success(raw::io_apply_gendig(encryption_key))
 }
 
 pub(super) fn host_write_auth_mac(
@@ -379,21 +320,17 @@ pub(super) fn host_write_auth_mac(
 ) -> Result<(Zeroizing<[u8; BLOCK_SIZE]>, Zeroizing<[u8; BLOCK_SIZE]>), i32> {
     let mut encrypted = Zeroizing::new([0u8; BLOCK_SIZE]);
     let mut mac = Zeroizing::new([0u8; BLOCK_SIZE]);
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_io_prepare_encrypted_write(
-            slot as u16,
-            block,
-            input_data.as_ptr(),
-            (*encrypted).as_mut_ptr(),
-            (*mac).as_mut_ptr(),
-        )
-    })?;
+    ensure_success(raw::io_prepare_encrypted_write(
+        slot,
+        block,
+        input_data,
+        &mut encrypted,
+        &mut mac,
+    ))?;
     Ok((encrypted, mac))
 }
 
 #[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
 pub(super) fn host_io_decrypt(data: &mut Zeroizing<[u8; BLOCK_SIZE]>) -> Result<(), i32> {
-    ensure_success(unsafe {
-        bitbox_securechip_sys::atecc_io_decrypt_block((*data).as_mut_ptr(), BLOCK_SIZE)
-    })
+    ensure_success(raw::io_decrypt_block(data))
 }

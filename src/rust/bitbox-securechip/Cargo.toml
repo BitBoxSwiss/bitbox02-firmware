@@ -26,4 +26,5 @@ factory-setup = []
 [dev-dependencies]
 async_test = { path = "../async_test" }
 bitbox-platform-host = { path = "../bitbox-platform-host" }
+critical-section = { workspace = true, features = ["std"] }
 hex_lit = { workspace = true, features = ["rust_v_1_46"] }

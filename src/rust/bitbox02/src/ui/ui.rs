@@ -279,7 +279,7 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
 
 pub fn screen_process() {
     unsafe {
-        bitbox02_sys::screen_process();
+        bitbox02_sys::screen_process(false);
     }
 }
 

@@ -109,6 +109,17 @@ pub fn is_idle() -> bool {
     matches!(*USB_TASK_STATE.0.borrow(), UsbTaskState::Nothing)
 }
 
+/// Returns true while a request is actively being processed locally.
+///
+/// Waiting to send an intermediate response or receive the next request is not local processing:
+/// in those states, the waiting screen should be allowed to render.
+pub fn is_processing_request() -> bool {
+    matches!(
+        *USB_TASK_STATE.0.borrow(),
+        UsbTaskState::Running(_, WaitingForNextRequestState::Idle)
+    )
+}
+
 /// Resolves the `next_request()` future. `waiting_for_next_request()` must be true when calling
 /// this, otherwise this function panics.
 pub fn on_next_request(usb_in: &[u8]) {
@@ -271,8 +282,10 @@ mod tests {
         for _ in 0..3 {
             // No task running, can't take response.
             assert_eq!(Err(CopyResponseErr::NotRunning), take_response());
+            assert!(!is_processing_request());
 
             spawn(task, &[1, 2, 3]);
+            assert!(is_processing_request());
 
             // Can't spawn: task already running.
             assert_spawn_fails();
@@ -281,6 +294,7 @@ mod tests {
             assert_eq!(Err(CopyResponseErr::NotReady), take_response());
 
             spin();
+            assert!(!is_processing_request());
 
             // Can't spawn: result not fetched yet
             assert_spawn_fails();
@@ -305,14 +319,19 @@ mod tests {
         }
 
         spawn(task, &[1, 2, 3]);
+        assert!(is_processing_request());
         spin();
+        assert!(!is_processing_request());
         // Intermediate response.
         assert_eq!(Ok(vec![4, 5, 6, 7]), take_response());
+        assert!(!is_processing_request());
 
         // Send follow-up request.
         assert!(waiting_for_next_request());
         on_next_request(&[8, 9, 10]);
+        assert!(is_processing_request());
         spin();
+        assert!(!is_processing_request());
 
         // Intermediate response.
         assert_eq!(Ok(vec![11, 12]), take_response());
@@ -320,7 +339,9 @@ mod tests {
         // Send follow-up request.
         assert!(waiting_for_next_request());
         on_next_request(&[13, 14]);
+        assert!(is_processing_request());
         spin();
+        assert!(!is_processing_request());
 
         // Final response.
         assert_eq!(Ok(vec![15, 16, 17]), take_response());
@@ -407,8 +428,10 @@ mod tests {
         assert!(waiting_for_next_request());
 
         on_next_request(&[3, 4]);
+        assert!(is_processing_request());
         cancel();
         assert!(is_idle());
+        assert!(!is_processing_request());
 
         spawn(second_task, &[]);
         spin();

@@ -30,8 +30,11 @@ void screen_process_waiting_switch_to_lockscreen(void);
  *
  * This function will update the screen (if needed)
  * and process gesture-related events.
+ *
+ * If `hold_last_frame` is true and there is no active screen component, the waiting screen is not
+ * rendered and the existing framebuffer remains visible.
  */
-void screen_process(void);
+void screen_process(bool hold_last_frame);
 
 /**
  * The screen is refreshed every SCREEN_FRAME_RATE event loops cycles.

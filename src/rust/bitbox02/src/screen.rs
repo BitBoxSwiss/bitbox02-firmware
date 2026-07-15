@@ -36,6 +36,6 @@ pub fn splash() {
     unsafe { bitbox02_sys::screen_splash() }
 }
 
-pub fn process() {
-    unsafe { bitbox02_sys::screen_process() }
+pub fn process(hold_last_frame: bool) {
+    unsafe { bitbox02_sys::screen_process(hold_last_frame) }
 }

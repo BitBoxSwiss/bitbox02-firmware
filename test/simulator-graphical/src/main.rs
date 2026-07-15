@@ -677,7 +677,7 @@ impl ApplicationHandler<UserEvent> for App {
                 }
                 // Business logic
                 bitbox02_rust::async_usb::spin();
-                bitbox02::screen::process();
+                bitbox02::screen::process(bitbox02_rust::async_usb::is_processing_request());
 
                 if let Some(ref mut task) = self.startup_task {
                     if let Ready(_startup) = util::bb02_async::spin(task) {

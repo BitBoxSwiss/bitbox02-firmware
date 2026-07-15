@@ -2,6 +2,7 @@
 tzlocal>=1.5,<2.0
 types-tzlocal
 bitbox02
+bech32>=1.2.0
 requests
 types-requests
 rlp

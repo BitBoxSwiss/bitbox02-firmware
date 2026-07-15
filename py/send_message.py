@@ -6,6 +6,7 @@
 # pylint: disable=too-many-lines
 
 import argparse
+import hashlib
 import socket
 import pprint
 import sys
@@ -18,6 +19,7 @@ from pathlib import Path
 import os
 
 import requests
+import base58
 import hid
 import semver
 from tzlocal import get_localzone
@@ -43,6 +45,13 @@ try:
     # Optional rlp dependency only needed to sign ethereum transactions.
     # pylint: disable=import-error
     import rlp
+except ModuleNotFoundError:
+    pass
+
+try:
+    # Optional bech32 dependency only needed for Bitcoin signing demos.
+    # pylint: disable=import-error
+    import bech32
 except ModuleNotFoundError:
     pass
 
@@ -87,69 +96,110 @@ BITBOXSYNC_MAX_ACCEPTED = 5
 
 
 def _btc_demo_inputs_outputs(
+    device: bitbox02.BitBox02,
     bip44_account: int,
+    coin: "bitbox02.btc.BTCCoin.V" = bitbox02.btc.BTC,
+    script_configs: Optional[Sequence[bitbox02.btc.BTCScriptConfigWithKeypath]] = None,
 ) -> Tuple[List[bitbox02.BTCInputType], List[bitbox02.BTCOutputType]]:
     """
     Returns a sample btc tx.
     """
-    inputs: List[bitbox02.BTCInputType] = [
-        {
-            "prev_out_hash": binascii.unhexlify(
-                "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+
+    def address_to_pkscript(address: str) -> bytes:
+        lowercase_address = address.lower()
+        if lowercase_address.startswith(("bc1", "tb1", "bcrt1", "ltc1", "tltc1")):
+            separator_pos = lowercase_address.rfind("1")
+            assert separator_pos > 0
+            witness_version, witness_program = bech32.decode(
+                lowercase_address[:separator_pos], address
+            )
+            assert witness_version == 0
+            assert witness_program is not None
+            return bytes([0, len(witness_program)]) + bytes(witness_program)
+
+        decoded = base58.b58decode_check(address)
+        assert len(decoded) == 21
+        return b"\xa9\x14" + decoded[1:] + b"\x87"
+
+    def make_prev_tx(
+        pubkey_script: bytes,
+    ) -> Tuple[bytes, Any]:
+        version = 1
+        locktime = 0
+        value = int(1e8 * 0.60005)
+        prev_out_hash = b"11111111111111111111111111111111"
+        prev_out_index = 0
+        signature_script = b"some signature script"
+        sequence = 0xFFFFFFFF
+        prev_tx = {
+            "version": version,
+            "locktime": locktime,
+            "inputs": [
+                {
+                    "prev_out_hash": prev_out_hash,
+                    "prev_out_index": prev_out_index,
+                    "signature_script": signature_script,
+                    "sequence": sequence,
+                }
+            ],
+            "outputs": [{"value": value, "pubkey_script": pubkey_script}],
+        }
+        serialized = (
+            version.to_bytes(4, "little")
+            + b"\x01"
+            + prev_out_hash
+            + prev_out_index.to_bytes(4, "little")
+            + bytes([len(signature_script)])
+            + signature_script
+            + sequence.to_bytes(4, "little")
+            + b"\x01"
+            + value.to_bytes(8, "little")
+            + bytes([len(pubkey_script)])
+            + pubkey_script
+            + locktime.to_bytes(4, "little")
+        )
+        return hashlib.sha256(hashlib.sha256(serialized).digest()).digest(), prev_tx
+
+    if script_configs is None:
+        script_configs = [
+            bitbox02.btc.BTCScriptConfigWithKeypath(
+                script_config=bitbox02.btc.BTCScriptConfig(
+                    simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+                ),
+                keypath=[84 + HARDENED, 0 + HARDENED, bip44_account],
             ),
-            "prev_out_index": 0,
-            "prev_out_value": int(1e8 * 0.60005),
-            "sequence": 0xFFFFFFFF,
-            "keypath": [84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
-            "script_config_index": 0,
-            "prev_tx": {
-                "version": 1,
-                "locktime": 0,
-                "inputs": [
-                    {
-                        "prev_out_hash": b"11111111111111111111111111111111",
-                        "prev_out_index": 0,
-                        "signature_script": b"some signature script",
-                        "sequence": 0xFFFFFFFF,
-                    }
-                ],
-                "outputs": [
-                    {
-                        "value": int(1e8 * 0.60005),
-                        "pubkey_script": b"some pubkey script",
-                    }
-                ],
-            },
-        },
-        {
-            "prev_out_hash": binascii.unhexlify(
-                "c58b7e3f1200e0c0ec9a5e81e925baface2cc1d4715514f2d8205be2508b48ee"
+            bitbox02.btc.BTCScriptConfigWithKeypath(
+                script_config=bitbox02.btc.BTCScriptConfig(
+                    simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH_P2SH
+                ),
+                keypath=[49 + HARDENED, 0 + HARDENED, bip44_account],
             ),
-            "prev_out_index": 0,
-            "prev_out_value": int(1e8 * 0.60005),
-            "sequence": 0xFFFFFFFF,
-            "keypath": [49 + HARDENED, 0 + HARDENED, bip44_account, 0, 1],
-            "script_config_index": 1,
-            "prev_tx": {
-                "version": 1,
-                "locktime": 0,
-                "inputs": [
-                    {
-                        "prev_out_hash": b"11111111111111111111111111111111",
-                        "prev_out_index": 0,
-                        "signature_script": b"some signature script",
-                        "sequence": 0xFFFFFFFF,
-                    }
-                ],
-                "outputs": [
-                    {
-                        "value": int(1e8 * 0.60005),
-                        "pubkey_script": b"some pubkey script",
-                    }
-                ],
-            },
-        },
-    ]
+        ]
+    assert len(script_configs) in (1, 2)
+
+    inputs: List[bitbox02.BTCInputType] = []
+    for input_index in range(2):
+        script_config_index = input_index if len(script_configs) == 2 else 0
+        script_config = script_configs[script_config_index]
+        keypath = list(script_config.keypath) + [0, input_index]
+        address = device.btc_address(
+            coin=coin,
+            keypath=keypath,
+            script_config=script_config.script_config,
+            display=False,
+        )
+        prev_out_hash, prev_tx = make_prev_tx(address_to_pkscript(address))
+        inputs.append(
+            {
+                "prev_out_hash": prev_out_hash,
+                "prev_out_index": 0,
+                "prev_out_value": int(1e8 * 0.60005),
+                "sequence": 0xFFFFFFFF,
+                "keypath": keypath,
+                "script_config_index": script_config_index,
+                "prev_tx": prev_tx,
+            }
+        )
     outputs: List[bitbox02.BTCOutputType] = [
         bitbox02.BTCOutputInternal(
             keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 1, 0],
@@ -518,7 +568,7 @@ class SendMessage:
     ) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
             [
@@ -548,7 +598,7 @@ class SendMessage:
     ) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         outputs[1] = bitbox02.BTCOutputInternal(
             keypath=[84 + HARDENED, 0 + HARDENED, bip44_account, 0, 0],
             value=int(1e8 * 0.2),
@@ -583,7 +633,7 @@ class SendMessage:
     ) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         outputs[1] = bitbox02.BTCOutputInternal(
             keypath=[84 + HARDENED, 0 + HARDENED, 1 + HARDENED, 0, 0],
             value=int(1e8 * 0.2),
@@ -624,7 +674,7 @@ class SendMessage:
     def _sign_btc_high_fee(self) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         outputs[1].value = int(1e8 * 0.18)
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
@@ -651,7 +701,7 @@ class SendMessage:
     def _sign_btc_multiple_changes(self) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         # Add a change output.
         outputs.append(
             bitbox02.BTCOutputInternal(
@@ -685,7 +735,7 @@ class SendMessage:
     def _sign_btc_locktime_rbf(self) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         inputs[0]["sequence"] = 0xFFFFFFFF - 2
         sigs = self._device.btc_sign(
             bitbox02.btc.BTC,
@@ -713,7 +763,7 @@ class SendMessage:
     def _sign_btc_taproot_inputs(self) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         for inp in inputs:
             inp["keypath"] = [86 + HARDENED] + list(inp["keypath"][1:])
             inp["prev_tx"] = None
@@ -742,7 +792,7 @@ class SendMessage:
     def _sign_btc_taproot_output(self) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         assert isinstance(outputs[1], bitbox02.BTCOutputExternal)
         outputs[1].type = bitbox02.btc.P2TR
         outputs[1].payload = bytes.fromhex(
@@ -773,22 +823,25 @@ class SendMessage:
     def _sign_btc_policy(self) -> None:
         bip44_account: int = 0 + HARDENED
         account_keypath = [48 + HARDENED, 1 + HARDENED, bip44_account, 3 + HARDENED]
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
-        for i, inp in enumerate(inputs):
-            inp["keypath"] = account_keypath + [0, i]
-            inp["script_config_index"] = 0
+        coin = bitbox02.btc.TBTC
+        script_configs = [
+            bitbox02.btc.BTCScriptConfigWithKeypath(
+                script_config=self._btc_policy_config(coin),
+                keypath=account_keypath,
+            ),
+        ]
+        inputs, outputs = _btc_demo_inputs_outputs(
+            self._device,
+            bip44_account,
+            coin=coin,
+            script_configs=script_configs,
+        )
         assert isinstance(outputs[0], bitbox02.BTCOutputInternal)
         outputs[0].keypath = account_keypath + [1, 0]
 
-        coin = bitbox02.btc.TBTC
         sigs = self._device.btc_sign(
             coin,
-            [
-                bitbox02.btc.BTCScriptConfigWithKeypath(
-                    script_config=self._btc_policy_config(coin),
-                    keypath=account_keypath,
-                ),
-            ],
+            script_configs,
             inputs=inputs,
             outputs=outputs,
         )
@@ -801,7 +854,7 @@ class SendMessage:
     ) -> None:
         # pylint: disable=no-member
         bip44_account: int = 0 + HARDENED
-        inputs, outputs = _btc_demo_inputs_outputs(bip44_account)
+        inputs, outputs = _btc_demo_inputs_outputs(self._device, bip44_account)
         outputs.append(
             bitbox02.BTCOutputExternal(
                 output_type=bitbox02.btc.OP_RETURN,

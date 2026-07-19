@@ -26,9 +26,31 @@ impl<O> ConstInit for TaskState<O> {
 }
 
 static NEXT_TASK_TOKEN: AtomicU32 = AtomicU32::new(0);
+static ACTIVE_WORKFLOW_COUNT: AtomicU32 = AtomicU32::new(0);
 static UNLOCK_STATE: GroundedCell<TaskState<Result<(), ()>>> = GroundedCell::const_init();
 static CONFIRM_STATE: GroundedCell<TaskState<Result<(), UserAbort>>> = GroundedCell::const_init();
 static BITBOX02_HAL: GroundedCell<crate::HalImpl> = GroundedCell::const_init();
+
+struct ActiveWorkflowGuard;
+
+impl ActiveWorkflowGuard {
+    fn new() -> Self {
+        ACTIVE_WORKFLOW_COUNT.fetch_add(1, Ordering::Relaxed);
+        Self
+    }
+}
+
+impl Drop for ActiveWorkflowGuard {
+    fn drop(&mut self) {
+        ACTIVE_WORKFLOW_COUNT.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
+/// Returns whether a detached U2F workflow future is still alive.
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_workflow_u2f_is_active() -> bool {
+    ACTIVE_WORKFLOW_COUNT.load(Ordering::Relaxed) != 0
+}
 
 fn next_task_token() -> u32 {
     NEXT_TASK_TOKEN.fetch_add(1, Ordering::Relaxed)
@@ -71,10 +93,12 @@ unsafe fn complete_confirm(token: u32, result: Result<(), UserAbort>) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
     let token = next_task_token();
+    let active_workflow_guard = ActiveWorkflowGuard::new();
     unsafe {
         UNLOCK_STATE.get().write(TaskState::Running(token));
     }
     bitbox02_rust::main_loop::spawn(Box::pin(async move {
+        let _active_workflow_guard = active_workflow_guard;
         let result = unsafe {
             bitbox02_rust::workflow::unlock::unlock(BITBOX02_HAL.get().as_mut().unwrap()).await
         };
@@ -96,10 +120,12 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     let title: String = unsafe { CStr::from_ptr(title).to_str().unwrap().into() };
     let body: String = unsafe { CStr::from_ptr(body).to_str().unwrap().into() };
     let token = next_task_token();
+    let active_workflow_guard = ActiveWorkflowGuard::new();
     unsafe {
         CONFIRM_STATE.get().write(TaskState::Running(token));
     }
     bitbox02_rust::main_loop::spawn(Box::pin(async move {
+        let _active_workflow_guard = active_workflow_guard;
         let params = ConfirmParams {
             title: &title,
             body: &body,
@@ -173,5 +199,27 @@ pub unsafe extern "C" fn rust_workflow_abort_current() {
     unsafe {
         UNLOCK_STATE.get().write(TaskState::Nothing);
         CONFIRM_STATE.get().write(TaskState::Nothing);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rust_workflow_u2f_is_active() {
+        assert!(!rust_workflow_u2f_is_active());
+
+        let first_guard = ActiveWorkflowGuard::new();
+        assert!(rust_workflow_u2f_is_active());
+
+        {
+            let _second_guard = ActiveWorkflowGuard::new();
+            assert!(rust_workflow_u2f_is_active());
+        }
+        assert!(rust_workflow_u2f_is_active());
+
+        drop(first_guard);
+        assert!(!rust_workflow_u2f_is_active());
     }
 }

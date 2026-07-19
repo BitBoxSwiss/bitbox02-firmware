@@ -133,6 +133,13 @@ static void _maybe_write_response(hww_packet_rsp_t* response)
 static void _process_packet(const in_buffer_t* in_req, hww_packet_rsp_t* out_rsp)
 {
     out_rsp->status = HWW_RSP_NACK;
+#if APP_U2F == 1
+    // U2F workflows outlive their USB response and can still own the shared UI.
+    if (rust_workflow_u2f_is_active()) {
+        out_rsp->status = HWW_RSP_BUSY;
+        return;
+    }
+#endif
     // Spawn async task, which is polled in the main loop.
     rust_async_usb_on_request_hww(rust_util_bytes(in_req->data, in_req->len));
     // Lock USB stack so U2F requests get a BUSY response.

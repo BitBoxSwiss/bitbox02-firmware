@@ -32,6 +32,7 @@ pub mod fonts {
     use super::LvFont;
     use crate::ffi;
 
+    pub const INTER_REGULAR_24: LvFont = unsafe { LvFont::new(&ffi::inter_regular_24) };
     pub const INTER_REGULAR_32: LvFont = unsafe { LvFont::new(&ffi::inter_regular_32) };
     pub const INTER_REGULAR_48: LvFont = unsafe { LvFont::new(&ffi::inter_regular_48) };
     pub const INTER_BOLD_32: LvFont = unsafe { LvFont::new(&ffi::inter_bold_32) };

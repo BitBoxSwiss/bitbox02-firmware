@@ -6,7 +6,8 @@ use bitbox_lvgl::{
 };
 use util::futures::completion::Responder;
 
-use super::nav_button::{NavIcon, build_nav_button};
+use super::nav_button::{NavIcon, build_close_button, build_nav_button};
+use super::slide_to_confirm::build_slide_to_confirm;
 
 pub fn build_confirm_screen(
     params: &ConfirmParams<'_>,
@@ -41,6 +42,21 @@ pub fn build_confirm_screen(
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
     body.set_style_flex_grow(1, 0);
+
+    if params.longtouch {
+        // High-stakes confirmation: the accept action is a slide gesture instead of a tap, and
+        // cancel moves to the corner close button (the slide track occupies the bottom row).
+        if !params.accept_only {
+            let reject_responder = responder.clone();
+            let close = build_close_button(&screen);
+            close
+                .add_click_cb(move || reject_responder.resolve(Err(UserAbort)))
+                .expect("failed to register reject callback");
+        }
+        let slide = build_slide_to_confirm(&screen, move || responder.resolve(Ok(())));
+        slide.set_style_margin_top(16, 0);
+        return screen;
+    }
 
     let actions = LvObj::with_parent(&screen).unwrap();
     actions.set_width(380);

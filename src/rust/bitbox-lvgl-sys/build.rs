@@ -262,6 +262,7 @@ fn main() -> Result<(), &'static str> {
     lvgl_build.compile("lvgl");
 
     let mut fonts = cc::Build::new();
+    fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_24.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_32.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_regular_48.c"));
     fonts.file(manifest_dir.join("../../ui/fonts/inter_bold_32.c"));

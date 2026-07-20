@@ -571,6 +571,16 @@ impl ApplicationHandler<UserEvent> for App {
                     self.touch_pos = Some((x, y));
                     if self.touch_active {
                         debug!("drag x={x}, y={y}");
+                        // Stream the motion like a real touch controller does: drag-based UI
+                        // (e.g. slide-to-confirm) needs continuous samples, not just the
+                        // press/release end points.
+                        if let Some(touchscreen) = &mut self.touchscreen {
+                            touchscreen.push(TouchScreenEvent {
+                                x,
+                                y,
+                                pressed: true,
+                            });
+                        }
                     }
                 }
             }

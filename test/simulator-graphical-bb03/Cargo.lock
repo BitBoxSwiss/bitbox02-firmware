@@ -360,7 +360,7 @@ name = "bitbox-executor"
 version = "0.1.0"
 dependencies = [
  "async-task",
- "concurrent-queue",
+ "critical-section",
 ]
 
 [[package]]

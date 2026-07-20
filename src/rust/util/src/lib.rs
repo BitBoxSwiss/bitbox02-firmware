@@ -12,7 +12,6 @@ pub mod futures;
 pub mod log;
 pub mod name;
 pub mod strings;
-mod waker_fn;
 
 #[cfg(feature = "p256")]
 mod p256;

@@ -11,6 +11,7 @@ license = "Apache-2.0"
 bitbox-hal = { path = "../bitbox-hal" }
 bitcoin = { workspace = true }
 hex_lit = { workspace = true }
+littlefs2 = { workspace = true }
 zeroize = { workspace = true }
 
 [features]

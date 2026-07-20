@@ -79,6 +79,7 @@ fn do_write(bytes: &[u8]) {
 ///
 /// [`rtt_init`]: crate::rtt_init
 #[macro_export]
+#[cfg(feature = "defmt")]
 macro_rules! rtt_init_defmt {
     ($mode:path, $size:expr) => {{
         let channels = $crate::rtt_init! {

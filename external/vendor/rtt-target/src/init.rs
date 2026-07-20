@@ -17,29 +17,60 @@ macro_rules! rtt_init_channels {
     (
         $field:expr;
         $number:literal: {
-            size: $size:expr
-            $(, mode: $mode:path )?
-            $(, name: $name:literal )?
-            $(, section: $section:literal )?
-            $(,)?
+            $(
+                size: $size:expr
+                $(, mode: $mode:path )?
+                $(, name: $name:literal )?
+                $(, section: $section:literal )?
+                $(,)?
+            )?
         }
         $($tail:tt)*
     ) => {
-        let mut name: *const u8 = core::ptr::null();
-        $( name = concat!($name, "\0").as_bytes().as_ptr(); )?
+        $(
+            let mut name: *const u8 = core::ptr::null();
+            $( name = concat!($name, "\0").as_bytes().as_ptr(); )?
 
-        let mut mode = $crate::ChannelMode::NoBlockSkip;
-        $( mode = $mode; )?
+            let mut mode = $crate::ChannelMode::NoBlockSkip;
+            $( mode = $mode; )?
 
-        $field[$number].init(name, mode, {
-            $( #[link_section = $section] )?
-            static mut _RTT_CHANNEL_BUFFER: MaybeUninit<[u8; $size]> = MaybeUninit::uninit();
-            _RTT_CHANNEL_BUFFER.as_mut_ptr()
-        });
+            $field[$number].init(name, mode, {
+                $( #[link_section = $section] )?
+                static mut _RTT_CHANNEL_BUFFER: MaybeUninit<[u8; $size]> = MaybeUninit::uninit();
+                _RTT_CHANNEL_BUFFER.as_mut_ptr()
+            });
+        )?
 
         $crate::rtt_init_channels!($field; $($tail)*);
     };
     ($field:expr;) => { };
+}
+
+/// rtt_init! implementation detail
+#[macro_export]
+#[doc(hidden)]
+macro_rules! rtt_init_channels_are_reusable {
+    (
+        $field:expr;
+        $number:literal: {
+            $(
+                size: $size:expr
+                $(, mode: $mode:path )?
+                $(, name: $name:literal )?
+                $(, section: $section:literal )?
+                $(,)?
+            )?
+        }
+        $($tail:tt)*
+    ) => {{
+        let mut reusable = true;
+        $(
+            reusable = $field[$number].is_initialized_with_size($size);
+        )?
+
+        reusable && $crate::rtt_init_channels_are_reusable!($field; $($tail)*)
+    }};
+    ($field:expr;) => { true };
 }
 
 /// rtt_init! implementation detail
@@ -64,6 +95,9 @@ macro_rules! rtt_init_wrappers {
 /// Initializes RTT with the specified channels. Channel numbers, buffer sizes and names can be
 /// defined.
 ///
+/// It is also possible to pre-allocate uninitialized channels to let crates accessing RTT via FFI
+/// play nicely with crates using rtt-target directly.
+///
 /// The syntax looks as follows (note that commas are not allowed anywhere):
 ///
 /// ```
@@ -72,12 +106,13 @@ macro_rules! rtt_init_wrappers {
 ///         0: { // channel number
 ///             size: 1024, // buffer size in bytes
 ///             mode: NoBlockSkip, // mode (optional, default: NoBlockSkip, see enum ChannelMode)
-///             name: "Terminal" // name (optional, default: no name)
+///             name: "Terminal", // name (optional, default: no name)
 ///             section: ".segger_term_buf" // Buffer linker section (optional, default: no section)
 ///         }
 ///         1: {
 ///             size: 32
 ///         }
+///         2: { } // pre-allocated channel without buffer
 ///     }
 ///     down: {
 ///         0: {
@@ -86,17 +121,34 @@ macro_rules! rtt_init_wrappers {
 ///         }
 ///     }
 ///     section_cb: ".segger_rtt" // Control block linker section (optional, default: no section)
+///     reuse_if_initialized: true // Reuse an already valid control block (optional, default: false)
 /// };
 /// ```
 ///
 /// The channel numbers must start from 0 and not skip any numbers, or otherwise odd things will
 /// happen. The order of the channel parameters is fixed, but optional parameters can be left out.
+///
+/// If no size is given, then an RTT channel header entry will be allocated with its buffer pointer
+/// set to `null`. This allows third-party FFI crates (e.g. [`rtos-trace`][rtos_trace]/
+/// [`systemview-target`][systemview_target]) to identify and initialize the channel with its own
+/// name and buffer from C code.
+///
+/// Note: Rust crates should rely on channels initialized through `rtt_init!`. That's why this crate
+/// does not provide an API to initialize pre-allocated channels from Rust.
+///
 /// This macro should be called once within a function, preferably close to the start of your entry
 /// point. The macro must only be called once - if it's called twice in the same program a duplicate
 /// symbol error will occur.
 ///
 /// At compile time the macro will statically reserve space for the RTT control block and the
 /// channel buffers. At runtime the macro fills in the structures and prepares them for use.
+///
+/// If `reuse_if_initialized: true` is specified, the macro first checks if the control block is
+/// already valid and matches the requested channel count. Configured channels with a buffer must
+/// also already be initialized with the requested size. If all checks pass, the existing control
+/// block is reused without resetting buffers or read/write pointers; otherwise the macro performs a
+/// normal full initialization. This is useful when consecutive firmware stages intentionally share
+/// the same RTT memory and must not desynchronize from an already attached host.
 ///
 /// The macro returns a generate struct that contains the channels. The struct for the example above
 /// would look as follows:
@@ -117,12 +169,16 @@ macro_rules! rtt_init_wrappers {
 /// let mut output = channels.up.0;
 /// writeln!(output, "Hello, world!").ok();
 /// ```
+///
+/// [rtos_trace]: https://docs.rs/rtos-trace
+/// [systemview_target]: https://docs.rs/systemview-target/
 #[macro_export]
 macro_rules! rtt_init {
     {
         $(up: { $($up:tt)* } )?
         $(down: { $($down:tt)* } )?
         $(section_cb: $section_cb:literal )?
+        $(reuse_if_initialized: $reuse_if_initialized:literal )?
     } => {{
         use core::mem::MaybeUninit;
         use core::ptr;
@@ -159,17 +215,34 @@ macro_rules! rtt_init {
         });
 
         unsafe {
-            ptr::write_bytes(CONTROL_BLOCK.as_mut_ptr(), 0, 1);
+            let cb_ptr = CONTROL_BLOCK.as_mut_ptr();
+            let reuse_if_initialized = false $(|| $reuse_if_initialized)?;
 
-            let cb = &mut *CONTROL_BLOCK.as_mut_ptr();
+            let should_reuse = if reuse_if_initialized {
+                let cb = &mut *cb_ptr;
 
-            $( $crate::rtt_init_channels!(cb.up_channels; $($up)*); )?
-            $( $crate::rtt_init_channels!(cb.down_channels; $($down)*); )?
+                cb.header.is_valid(cb.up_channels.len(), cb.down_channels.len())
+                    $(&& $crate::rtt_init_channels_are_reusable!(cb.up_channels; $($up)*))?
+                    $(&& $crate::rtt_init_channels_are_reusable!(cb.down_channels; $($down)*))?
+            } else {
+                false
+            };
 
-            // The header is initialized last to make it less likely an unfinished control block is
-            // detected by the host.
+            if !should_reuse {
+                ptr::write_bytes(cb_ptr, 0, 1);
 
-            cb.header.init(cb.up_channels.len(), cb.down_channels.len());
+                let cb = &mut *cb_ptr;
+
+                $( $crate::rtt_init_channels!(cb.up_channels; $($up)*); )?
+                $( $crate::rtt_init_channels!(cb.down_channels; $($down)*); )?
+
+                // The header is initialized last to make it less likely an unfinished control block is
+                // detected by the host.
+
+                cb.header.init(cb.up_channels.len(), cb.down_channels.len());
+            }
+
+            let cb = &mut *cb_ptr;
 
             pub struct Channels {
                 $( pub up: $crate::rtt_init_repeat!({ UpChannel, } {}; $($up)*), )?

@@ -1,0 +1,46 @@
+[package]
+name = "delog"
+version = "0.1.8"
+description = "Deferred logging, an implementation and extension of Rust's standard logging facade."
+authors = ["Trussed Developers"]
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/trussed-dev/delog"
+documentation = "https://docs.rs/delog"
+readme = "README.md"
+categories = ["algorithms", "development-tools", "embedded", "no-std"]
+keywords = ["log", "logging", "formatting"]
+edition = "2021"
+
+[package.metadata.docs.rs]
+features = ["example"]
+targets = []
+
+[dependencies]
+log = "0.4"
+portable-atomic = { version = "1", optional = true }
+
+[dev-dependencies]
+insta = "1.7"
+
+[features]
+example = ["std"]
+# sole reason for this is to enable `print!` in the example's `Std{err,out}Flusher`
+std = []
+# replace deferred logging with log::log
+std-log = []
+
+max_level_off   = ["log/max_level_off"]
+max_level_error = ["log/max_level_error"]
+max_level_warn  = ["log/max_level_warn"]
+max_level_info  = ["log/max_level_info"]
+max_level_debug = ["log/max_level_debug"]
+max_level_trace = ["log/max_level_trace"]
+
+release_max_level_off   = ["log/release_max_level_off"]
+release_max_level_error = ["log/release_max_level_error"]
+release_max_level_warn  = ["log/release_max_level_warn"]
+release_max_level_info  = ["log/release_max_level_info"]
+release_max_level_debug = ["log/release_max_level_debug"]
+release_max_level_trace = ["log/release_max_level_trace"]
+
+knock-it-off = ["max_level_off", "release_max_level_off"]

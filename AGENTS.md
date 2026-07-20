@@ -41,6 +41,11 @@ toolchain or compiler environment.
 In practice, the repository `make` targets in this file are project-specific toolchain commands.
 When running from the host, invoke them via `./scripts/dev_exec.sh make <target>`.
 
+Treat the top-level Makefile as a collection of command aliases, not as a dependency graph. Do not
+add prerequisites or dependency edges to Make targets to encode setup requirements. If a target needs
+setup such as `./scripts/bootstrap-cargo-config`, run that setup explicitly before invoking the
+alias, or add an explicit setup step in CI.
+
 Do not wrap `./scripts/dev_exec.sh` itself in `bash -lc`. Prefer changing CWD
 with CLI args like `tar -C <PATH>`. If a command genuinely needs shell features such as pipes, pass
 an explicit shell as the command, e.g. `./scripts/dev_exec.sh bash -lc 'cat versions.json | jq'`.

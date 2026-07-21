@@ -58,7 +58,7 @@ const CLOSE_PNG: &[u8] = include_bytes!("../../icons/cancel2.png");
 
 /// Decodes an icon PNG, adds it centred in `button` as a canvas, and sets it to recolour white
 /// normally and black in the pressed state. Returns the canvas as an [`LvObj`] for press wiring.
-fn add_icon(button: &LvButton, png: &[u8]) -> LvObj {
+pub(super) fn add_icon(button: &LvButton, png: &[u8]) -> LvObj {
     // `png_decoder` returns ARGB8888 pixels as RGBA; LVGL expects BGRA in memory.
     let (header, mut data) = png_decoder::decode(png).expect("valid icon png");
     for px in data.iter_mut() {
@@ -76,7 +76,7 @@ fn add_icon(button: &LvButton, png: &[u8]) -> LvObj {
 /// Wires the pressed-state look: the interior fills white (cancelling the theme's grow + dim, with
 /// an instant transition) and the icon inverts to black. A child does not inherit the button's
 /// pressed state, so it is propagated to the icon via press/release events.
-fn enable_press_invert(button: &LvButton, parts: Vec<LvObj>) {
+pub(super) fn enable_press_invert(button: &LvButton, parts: Vec<LvObj>) {
     button.set_style_bg_color(lvgl::color::white(), PRESSED_SELECTOR);
     button.set_style_bg_opa(LvOpacityLevel::LV_OPA_COVER as u8, PRESSED_SELECTOR);
     // The default theme dims pressed objects (black recolor); disable so the fill is pure white.
@@ -116,7 +116,7 @@ fn enable_press_invert(button: &LvButton, parts: Vec<LvObj>) {
 
 /// Common frame styling for an outline icon button (transparent fill, white border, no shadow,
 /// no padding).
-fn style_outline_button(button: &LvButton, border_width: i32) {
+pub(super) fn style_outline_button(button: &LvButton, border_width: i32) {
     button.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0); // fill: none
     button.set_style_border_width(border_width, 0);
     button.set_style_border_color(lvgl::color::white(), 0);

@@ -206,7 +206,7 @@ fn my_flush_cb(display: lvgl::LvDisplay, _area: &lvgl::LvArea, _px_map: *mut u8)
 
 fn init_hww(
     bitbox: &mut BitBox03,
-    preseed: bool,
+    args: &Args,
 ) -> Option<bitbox02_rust::hww::transport::HwwTransport<BitBox03>> {
     //bitbox02::screen::init(pixel_fn, mirror_fn, clear_fn);
     //bitbox02::screen::splash();
@@ -228,7 +228,7 @@ fn init_hww(
     //bitbox02::memory::fake_nova();
     info!("Memory setup: success");
 
-    if preseed {
+    if args.preseed {
         let mnemonic = "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide";
         let seed = bitbox02_rust::bip39::mnemonic_to_seed(mnemonic).unwrap();
         block_on(bitbox02_rust::keystore::encrypt_and_store_seed(
@@ -236,6 +236,17 @@ fn init_hww(
         ))
         .unwrap();
         bitbox.memory().set_initialized().unwrap();
+    }
+
+    if args.passphrase {
+        bitbox
+            .memory()
+            .set_mnemonic_passphrase_enabled(true)
+            .unwrap();
+    }
+
+    if args.lock {
+        bitbox02_rust::keystore::lock();
     }
 
     Some(bitbox02_rust::hww::transport::hww_transport::<BitBox03>())
@@ -722,6 +733,16 @@ struct Args {
     /// Pre seed the simulated bitbox with empty password and the following bip39 seed phrase "boring mistake dish oyster truth pigeon viable emerge sort crash wire portion cannon couple enact box walk height pull today solid off enable tide"
     #[arg(long)]
     preseed: bool,
+
+    /// Enable the BIP39 mnemonic passphrase setting, so the unlock/setup/restore workflows prompt
+    /// for an optional passphrase.
+    #[arg(long)]
+    passphrase: bool,
+
+    /// Start with the keystore locked. Combined with --preseed, the first client connection
+    /// triggers the on-device unlock workflow (--preseed alone leaves the keystore unlocked).
+    #[arg(long)]
+    lock: bool,
 }
 
 pub fn main() -> Result<(), Box<dyn Error>> {
@@ -741,7 +762,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let mut app = App::new(bitbox);
-    app.transport = init_hww(&mut bitbox, args.preseed);
+    app.transport = init_hww(&mut bitbox, &args);
     if app.transport.is_none() {
         return Err(Box::new(AppError::new("Failed to init hww")));
     }

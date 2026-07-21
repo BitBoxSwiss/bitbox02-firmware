@@ -1361,6 +1361,8 @@ mod tests {
     use crate::hal::{Memory, testing::TestingHal};
     use crate::keystore::testing::{mock_unlocked, mock_unlocked_using_mnemonic};
     use alloc::boxed::Box;
+    use alloc::collections::{BTreeMap, BTreeSet};
+    use bitbox_test_vectors::btc_transaction as btc_test_vectors;
     use hex_lit::hex;
     use pb::btc_payment_request_request::{Memo, memo};
     use util::bip32::HARDENED;
@@ -1740,6 +1742,670 @@ mod tests {
             }));
     }
 
+    fn keypath_components(keypath: &bitcoin::bip32::DerivationPath) -> Vec<u32> {
+        keypath.as_ref().iter().copied().map(u32::from).collect()
+    }
+
+    fn vector_keypath(keypath: &str) -> Vec<u32> {
+        keypath_components(&keypath.parse().unwrap())
+    }
+
+    fn vector_coin(coin: btc_test_vectors::Coin) -> pb::BtcCoin {
+        match coin {
+            btc_test_vectors::Coin::Btc => pb::BtcCoin::Btc,
+            btc_test_vectors::Coin::Tbtc => pb::BtcCoin::Tbtc,
+            btc_test_vectors::Coin::Ltc => pb::BtcCoin::Ltc,
+        }
+    }
+
+    fn vector_script_config(config: &btc_test_vectors::ScriptConfig) -> pb::BtcScriptConfig {
+        use btc_test_vectors::ScriptConfig;
+
+        let config = match config {
+            ScriptConfig::Simple { script_type } => {
+                let simple_type = match script_type {
+                    btc_test_vectors::SimpleType::P2wpkh => SimpleType::P2wpkh,
+                    btc_test_vectors::SimpleType::P2wpkhP2sh => SimpleType::P2wpkhP2sh,
+                    btc_test_vectors::SimpleType::P2tr => SimpleType::P2tr,
+                };
+                pb::btc_script_config::Config::SimpleType(simple_type as _)
+            }
+            ScriptConfig::Multisig {
+                threshold,
+                xpubs,
+                our_xpub_index,
+                script_type,
+            } => {
+                let script_type = match script_type {
+                    btc_test_vectors::MultisigScriptType::P2wsh => {
+                        pb::btc_script_config::multisig::ScriptType::P2wsh
+                    }
+                    btc_test_vectors::MultisigScriptType::P2wshP2sh => {
+                        pb::btc_script_config::multisig::ScriptType::P2wshP2sh
+                    }
+                };
+                pb::btc_script_config::Config::Multisig(pb::btc_script_config::Multisig {
+                    threshold: *threshold,
+                    xpubs: xpubs.iter().map(|xpub| parse_xpub(xpub).unwrap()).collect(),
+                    our_xpub_index: *our_xpub_index,
+                    script_type: script_type as _,
+                })
+            }
+            ScriptConfig::Policy { policy, keys } => {
+                pb::btc_script_config::Config::Policy(pb::btc_script_config::Policy {
+                    policy: policy.clone(),
+                    keys: keys
+                        .iter()
+                        .map(|key| pb::KeyOriginInfo {
+                            root_fingerprint: key
+                                .root_fingerprint
+                                .as_deref()
+                                .map(hex::decode)
+                                .transpose()
+                                .unwrap()
+                                .unwrap_or_default(),
+                            keypath: key
+                                .keypath
+                                .as_deref()
+                                .map(vector_keypath)
+                                .unwrap_or_default(),
+                            xpub: Some(parse_xpub(&key.xpub).unwrap()),
+                        })
+                        .collect(),
+                })
+            }
+        };
+        pb::BtcScriptConfig {
+            config: Some(config),
+        }
+    }
+
+    fn vector_script_config_with_keypath(
+        config: &btc_test_vectors::ScriptConfigWithKeypath,
+    ) -> pb::BtcScriptConfigWithKeypath {
+        pb::BtcScriptConfigWithKeypath {
+            script_config: Some(vector_script_config(&config.script_config)),
+            keypath: vector_keypath(&config.keypath),
+        }
+    }
+
+    fn vector_prevtx(
+        input: &btc_test_vectors::FirmwareInput,
+    ) -> (
+        u32,
+        Vec<pb::BtcPrevTxInputRequest>,
+        Vec<pb::BtcPrevTxOutputRequest>,
+        u32,
+    ) {
+        let Some(prev_tx) = input.prev_tx.as_ref() else {
+            return (0, vec![], vec![], 0);
+        };
+        let inputs = prev_tx
+            .input
+            .iter()
+            .map(|input| pb::BtcPrevTxInputRequest {
+                prev_out_hash: input.previous_output.txid.to_byte_array().to_vec(),
+                prev_out_index: input.previous_output.vout,
+                signature_script: input.script_sig.as_bytes().to_vec(),
+                sequence: input.sequence.0,
+            })
+            .collect();
+        let outputs = prev_tx
+            .output
+            .iter()
+            .map(|output| pb::BtcPrevTxOutputRequest {
+                value: output.value.to_sat(),
+                pubkey_script: output.script_pubkey.as_bytes().to_vec(),
+            })
+            .collect();
+        (
+            u32::try_from(prev_tx.version.0).unwrap(),
+            inputs,
+            outputs,
+            prev_tx.lock_time.to_consensus_u32(),
+        )
+    }
+
+    fn vector_input(
+        vector: &btc_test_vectors::TestVector,
+        input_index: usize,
+        input: &btc_test_vectors::FirmwareInput,
+    ) -> TxInput {
+        let signature = vector
+            .expected_signatures
+            .iter()
+            .find(|signature| signature.input_index == input_index);
+        let host_nonce = signature
+            .is_some_and(|signature| signature.kind == btc_test_vectors::SignatureKind::Ecdsa)
+            .then(|| vec![u8::try_from(input_index + 1).unwrap(); 32]);
+        let host_nonce_commitment =
+            host_nonce
+                .as_ref()
+                .map(|host_nonce| pb::AntiKleptoHostNonceCommitment {
+                    commitment: bitbox_secp256k1::ecdsa_anti_exfil_host_commit(
+                        SECP256K1, host_nonce,
+                    )
+                    .unwrap(),
+                });
+        let (prevtx_version, prevtx_inputs, prevtx_outputs, prevtx_locktime) = vector_prevtx(input);
+
+        TxInput {
+            input: pb::BtcSignInputRequest {
+                prev_out_hash: input.prev_out_hash.to_byte_array().to_vec(),
+                prev_out_index: input.prev_out_index,
+                prev_out_value: input.prev_out_value,
+                sequence: input.sequence,
+                keypath: keypath_components(&input.keypath),
+                script_config_index: input.script_config_index,
+                host_nonce_commitment,
+            },
+            prevtx_version,
+            prevtx_inputs,
+            prevtx_outputs,
+            prevtx_locktime,
+            host_nonce,
+        }
+    }
+
+    fn vector_output(output: &btc_test_vectors::FirmwareOutput) -> pb::BtcSignOutputRequest {
+        let output_type = match output.output_type {
+            btc_test_vectors::OutputType::Unknown => pb::BtcOutputType::Unknown,
+            btc_test_vectors::OutputType::P2pkh => pb::BtcOutputType::P2pkh,
+            btc_test_vectors::OutputType::P2sh => pb::BtcOutputType::P2sh,
+            btc_test_vectors::OutputType::P2wpkh => pb::BtcOutputType::P2wpkh,
+            btc_test_vectors::OutputType::P2wsh => pb::BtcOutputType::P2wsh,
+            btc_test_vectors::OutputType::P2tr => pb::BtcOutputType::P2tr,
+            btc_test_vectors::OutputType::OpReturn => pb::BtcOutputType::OpReturn,
+        };
+        pb::BtcSignOutputRequest {
+            ours: output.ours,
+            r#type: output_type as _,
+            value: output.value,
+            payload: output.payload.clone(),
+            keypath: output
+                .keypath
+                .as_ref()
+                .map(keypath_components)
+                .unwrap_or_default(),
+            script_config_index: output.script_config_index,
+            payment_request_index: output.payment_request_index,
+            silent_payment: output.silent_payment_address.as_ref().map(|address| {
+                pb::btc_sign_output_request::SilentPayment {
+                    address: address.clone(),
+                }
+            }),
+            output_script_config_index: output.output_script_config_index,
+        }
+    }
+
+    fn vector_payment_request(
+        request: &btc_test_vectors::PaymentRequest,
+    ) -> pb::BtcPaymentRequestRequest {
+        pb::BtcPaymentRequestRequest {
+            recipient_name: request.recipient_name.clone(),
+            memos: request
+                .memos
+                .iter()
+                .map(|memo| match memo {
+                    btc_test_vectors::PaymentRequestMemo::Text { note } => Memo {
+                        memo: Some(memo::Memo::TextMemo(memo::TextMemo { note: note.clone() })),
+                    },
+                    btc_test_vectors::PaymentRequestMemo::CoinPurchase {
+                        coin_type,
+                        amount,
+                        address,
+                        address_keypath,
+                    } => Memo {
+                        memo: Some(memo::Memo::CoinPurchaseMemo(memo::CoinPurchaseMemo {
+                            coin_type: *coin_type,
+                            amount: amount.clone(),
+                            address: address.clone(),
+                            address_derivation: Some(
+                                memo::coin_purchase_memo::AddressDerivation::Eth(
+                                    memo::coin_purchase_memo::EthAddressDerivation {
+                                        keypath: vector_keypath(address_keypath),
+                                    },
+                                ),
+                            ),
+                        })),
+                    },
+                })
+                .collect(),
+            nonce: hex::decode(&request.nonce).unwrap(),
+            total_amount: request.total_amount,
+            signature: hex::decode(&request.signature).unwrap(),
+        }
+    }
+
+    fn vector_transaction(
+        vector: &btc_test_vectors::TestVector,
+        request: &btc_test_vectors::FirmwareSignRequest,
+    ) -> Transaction {
+        Transaction {
+            coin: vector_coin(vector.coin),
+            total_confirmations: 0,
+            version: request.version,
+            inputs: request
+                .inputs
+                .iter()
+                .enumerate()
+                .map(|(index, input)| vector_input(vector, index, input))
+                .collect(),
+            outputs: request.outputs.iter().map(vector_output).collect(),
+            locktime: request.locktime,
+            payment_request: request.payment_requests.first().map(vector_payment_request),
+        }
+    }
+
+    fn vector_init_request(
+        vector: &btc_test_vectors::TestVector,
+        request: &btc_test_vectors::FirmwareSignRequest,
+    ) -> pb::BtcSignInitRequest {
+        pb::BtcSignInitRequest {
+            coin: vector_coin(vector.coin) as _,
+            script_configs: request
+                .script_configs
+                .iter()
+                .map(vector_script_config_with_keypath)
+                .collect(),
+            output_script_configs: request
+                .output_script_configs
+                .iter()
+                .map(vector_script_config_with_keypath)
+                .collect(),
+            version: request.version,
+            num_inputs: request.inputs.len() as _,
+            num_outputs: request.outputs.len() as _,
+            locktime: request.locktime,
+            format_unit: match request.format_unit {
+                btc_test_vectors::FormatUnit::Default => FormatUnit::Default,
+                btc_test_vectors::FormatUnit::Sat => FormatUnit::Sat,
+            } as _,
+            contains_silent_payment_outputs: request
+                .outputs
+                .iter()
+                .any(|output| output.silent_payment_address.is_some()),
+        }
+    }
+
+    fn register_vector_configs(hal: &mut TestingHal<'_>, vector: &btc_test_vectors::TestVector) {
+        let coin = vector_coin(vector.coin);
+        for registration in &vector.registrations {
+            let config = vector_script_config(&registration.script_config);
+            match config.config.as_ref().unwrap() {
+                pb::btc_script_config::Config::Multisig(multisig) => {
+                    let keypath = vector_keypath(registration.keypath.as_deref().unwrap());
+                    let hash = super::super::multisig::get_hash(
+                        coin,
+                        multisig,
+                        super::super::multisig::SortXpubs::Yes,
+                        &keypath,
+                    )
+                    .unwrap();
+                    hal.memory
+                        .multisig_set_by_hash(&hash, &registration.name)
+                        .unwrap();
+                }
+                pb::btc_script_config::Config::Policy(policy) => {
+                    let hash = super::super::policies::get_hash(coin, policy).unwrap();
+                    hal.memory
+                        .multisig_set_by_hash(&hash, &registration.name)
+                        .unwrap();
+                }
+                pb::btc_script_config::Config::SimpleType(_) => {
+                    panic!("simple script configs cannot be registered")
+                }
+            }
+        }
+    }
+
+    #[derive(Default)]
+    struct VectorObservations {
+        pending_request: Option<(NextType, usize)>,
+        prevtx_inputs: BTreeSet<usize>,
+        antiklepto_inputs: BTreeSet<usize>,
+        signatures: BTreeMap<usize, Vec<u8>>,
+        generated_outputs: BTreeMap<usize, Vec<u8>>,
+    }
+
+    impl VectorObservations {
+        fn observe(&mut self, response: &Response) {
+            let next = extract_next(response);
+            if let Some((request_type, index)) = self.pending_request.take() {
+                if next.has_signature {
+                    assert!(matches!(
+                        request_type,
+                        NextType::Input | NextType::HostNonce
+                    ));
+                    assert!(
+                        self.signatures
+                            .insert(index, next.signature.clone())
+                            .is_none()
+                    );
+                }
+                if !next.generated_output_pkscript.is_empty() {
+                    assert_eq!(request_type, NextType::Output);
+                    assert!(!next.silent_payment_dleq_proof.is_empty());
+                    assert!(
+                        self.generated_outputs
+                            .insert(index, next.generated_output_pkscript.clone())
+                            .is_none()
+                    );
+                } else {
+                    assert!(next.silent_payment_dleq_proof.is_empty());
+                }
+            }
+
+            let request_type = NextType::try_from(next.r#type).unwrap();
+            match request_type {
+                NextType::PrevtxInit => {
+                    self.prevtx_inputs.insert(next.index as usize);
+                }
+                NextType::HostNonce => {
+                    assert!(next.anti_klepto_signer_commitment.is_some());
+                    self.antiklepto_inputs.insert(next.index as usize);
+                }
+                _ => assert!(next.anti_klepto_signer_commitment.is_none()),
+            }
+            if request_type != NextType::Done {
+                self.pending_request = Some((request_type, next.index as usize));
+            }
+        }
+    }
+
+    fn current_vector_expectation(
+        vector: &btc_test_vectors::TestVector,
+    ) -> &btc_test_vectors::VersionExpectation {
+        let current = semver::Version::parse(
+            crate::version::FIRMWARE_VERSION_SHORT
+                .strip_prefix('v')
+                .unwrap(),
+        )
+        .unwrap();
+        vector
+            .expectations
+            .iter()
+            .find(|expectation| {
+                let after_min = expectation
+                    .min_version
+                    .as_deref()
+                    .is_none_or(|min| current >= semver::Version::parse(min).unwrap());
+                let before_max = expectation
+                    .max_version_exclusive
+                    .as_deref()
+                    .is_none_or(|max| current < semver::Version::parse(max).unwrap());
+                after_min && before_max
+            })
+            .unwrap()
+    }
+
+    fn observed_vector_screens(screens: &[Screen]) -> Vec<btc_test_vectors::Screen> {
+        screens
+            .iter()
+            .map(|screen| match screen {
+                Screen::Confirm {
+                    title,
+                    body,
+                    longtouch,
+                } => btc_test_vectors::Screen::Confirm {
+                    title: title.clone(),
+                    body: body.clone(),
+                    longtouch: *longtouch,
+                },
+                Screen::TotalFee {
+                    total,
+                    fee,
+                    longtouch,
+                } => btc_test_vectors::Screen::TransactionFee {
+                    amount: total.clone(),
+                    fee: fee.clone(),
+                    longtouch: *longtouch,
+                },
+                Screen::Swap { title, from, to } => btc_test_vectors::Screen::Swap {
+                    title: title.clone(),
+                    from: from.clone(),
+                    to: to.clone(),
+                },
+                Screen::Recipient { recipient, amount } => {
+                    btc_test_vectors::Screen::TransactionAddress {
+                        amount: amount.clone(),
+                        address: recipient.clone(),
+                    }
+                }
+                Screen::Status { title, success } => {
+                    let (title, body) = title.split_once('\n').unwrap();
+                    assert_eq!(*success, body == "confirmed");
+                    btc_test_vectors::Screen::Status {
+                        title: title.into(),
+                        body: body.into(),
+                    }
+                }
+                _ => panic!("unexpected screen in transaction vector: {screen:?}"),
+            })
+            .collect()
+    }
+
+    fn assert_vector_observations(
+        vector: &btc_test_vectors::TestVector,
+        request: &btc_test_vectors::FirmwareSignRequest,
+        observations: &VectorObservations,
+    ) {
+        assert!(
+            observations.pending_request.is_none(),
+            "transaction vector '{}' ended with an unanswered request",
+            vector.id
+        );
+
+        let expected_prevtx_inputs = if vector.expected_needs_prevtxs {
+            (0..request.inputs.len()).collect()
+        } else {
+            BTreeSet::new()
+        };
+        assert_eq!(
+            observations.prevtx_inputs, expected_prevtx_inputs,
+            "unexpected previous-transaction requests for vector '{}'",
+            vector.id
+        );
+
+        let expected_antiklepto_inputs: BTreeSet<_> = vector
+            .expected_signatures
+            .iter()
+            .filter(|signature| signature.kind == btc_test_vectors::SignatureKind::Ecdsa)
+            .map(|signature| signature.input_index)
+            .collect();
+        assert_eq!(
+            observations.antiklepto_inputs, expected_antiklepto_inputs,
+            "unexpected anti-klepto requests for vector '{}'",
+            vector.id
+        );
+
+        let expected_signature_inputs: BTreeSet<_> = vector
+            .expected_signatures
+            .iter()
+            .map(|signature| signature.input_index)
+            .collect();
+        assert_eq!(
+            observations
+                .signatures
+                .keys()
+                .copied()
+                .collect::<BTreeSet<_>>(),
+            expected_signature_inputs,
+            "unexpected signature inputs for vector '{}'",
+            vector.id
+        );
+        for expected in &vector.expected_signatures {
+            let signature = &observations.signatures[&expected.input_index];
+            match expected.kind {
+                btc_test_vectors::SignatureKind::Ecdsa => {
+                    bitcoin::secp256k1::ecdsa::Signature::from_compact(signature).unwrap();
+                    assert_eq!(expected.sighash, btc_test_vectors::Sighash::All);
+                }
+                btc_test_vectors::SignatureKind::TaprootKey
+                | btc_test_vectors::SignatureKind::TaprootScript => {
+                    bitcoin::secp256k1::schnorr::Signature::from_slice(signature).unwrap();
+                    assert_eq!(expected.sighash, btc_test_vectors::Sighash::Default);
+                }
+            }
+        }
+
+        let generated_outputs = observations
+            .generated_outputs
+            .iter()
+            .map(|(index, output)| (*index, hex::encode(output)))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(
+            generated_outputs, vector.expected_generated_outputs,
+            "unexpected generated outputs for vector '{}'",
+            vector.id
+        );
+
+        assert_vector_signature_fixture(vector, observations);
+    }
+
+    fn assert_vector_signature_fixture(
+        vector: &btc_test_vectors::TestVector,
+        observations: &VectorObservations,
+    ) {
+        // Pin exact bytes only for representative signing paths. The assertions above cover the
+        // signature kind, input, sighash and anti-klepto exchange for every vector.
+        // The ECDSA fixture proves that its deterministic host nonce affected the signature;
+        // keystore::tests::test_secp256k1_antiklepto_protocol verifies the host-side check.
+        let expected = match vector.id.as_str() {
+            "high-fee-rounding" => hex!(
+                "fe00a74372509991256c691a98e42792ee8eddb2cd57f34af37fd0f1490716b11e15c53bafa7897912c11749955c5b0b2922dc136a32270637606970cb5bf27e"
+            ),
+            "policy-tr-keyspend-with-script-tree" => hex!(
+                "8ea290ef0b90388bc23380e7e017f4c412f84d106f6f55c38bd4e658932c371da64ea2e75147c3dde8bfbc0f124930ebb681a0bc34c4943d89fdcb9dc5de0a5f"
+            ),
+            "policy-tr-unspendable-internal-key-complex" => hex!(
+                "8e9c801a430d7b5b48cd8c37ae42ff150bca17abb0ee6bb4543cf144e5b96ed9a359b3e30c672d75698b99b36a20a0930c754576242c1f95dbc9fa74d93d5ae8"
+            ),
+            _ => return,
+        };
+        assert_eq!(
+            observations.signatures[&0].as_slice(),
+            expected.as_slice(),
+            "signature fixture changed for vector '{}'",
+            vector.id
+        );
+    }
+
+    async fn assert_vector_pubkeys(
+        hal: &mut TestingHal<'_>,
+        vector: &btc_test_vectors::TestVector,
+        request: &btc_test_vectors::FirmwareSignRequest,
+    ) {
+        for expected in &vector.expected_signatures {
+            let input = &request.inputs[expected.input_index];
+            let keypath = keypath_components(&input.keypath);
+            let xpub = crate::keystore::get_xpub(hal, &keypath, crate::keystore::Compute::Once)
+                .await
+                .unwrap();
+            let pubkey = bitcoin::secp256k1::PublicKey::from_slice(xpub.public_key()).unwrap();
+            let actual_pubkey = match expected.kind {
+                btc_test_vectors::SignatureKind::Ecdsa => hex::encode(pubkey.serialize()),
+                btc_test_vectors::SignatureKind::TaprootKey
+                | btc_test_vectors::SignatureKind::TaprootScript => {
+                    hex::encode(pubkey.x_only_public_key().0.serialize())
+                }
+            };
+            assert_eq!(
+                Some(actual_pubkey.as_str()),
+                expected.pubkey.as_deref(),
+                "unexpected pubkey for input {} of vector '{}'",
+                expected.input_index,
+                vector.id
+            );
+
+            if let Some(expected_bip352_pubkey) = &input.bip352_pubkey {
+                let bip352_pubkey = match expected.kind {
+                    btc_test_vectors::SignatureKind::Ecdsa => pubkey.serialize().to_vec(),
+                    btc_test_vectors::SignatureKind::TaprootKey
+                    | btc_test_vectors::SignatureKind::TaprootScript => {
+                        // Taproot silent-payment inputs use the tweaked key-spend private key.
+                        pubkey
+                            .x_only_public_key()
+                            .0
+                            .tap_tweak(SECP256K1, None)
+                            .0
+                            .serialize()
+                            .to_vec()
+                    }
+                };
+                assert_eq!(
+                    bip352_pubkey.as_slice(),
+                    expected_bip352_pubkey.as_slice(),
+                    "unexpected BIP352 pubkey for input {} of vector '{}'",
+                    expected.input_index,
+                    vector.id
+                );
+            }
+        }
+    }
+
+    #[async_test::test]
+    async fn test_transaction_vectors() {
+        let vectors = btc_test_vectors::test_vectors();
+
+        for vector in &vectors.vectors {
+            let sign_request = btc_test_vectors::derive_sign_request(vector).unwrap();
+            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(vector_transaction(
+                vector,
+                &sign_request,
+            )));
+            let observations =
+                alloc::rc::Rc::new(core::cell::RefCell::new(VectorObservations::default()));
+            *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
+                let transaction = transaction.clone();
+                let observations = observations.clone();
+                Some(Box::new(move |response: Response| {
+                    observations.borrow_mut().observe(&response);
+                    Ok(transaction.borrow().make_host_request(response))
+                }))
+            };
+
+            mock_unlocked_using_mnemonic(&vectors.simulator_seed, "");
+            let mut mock_hal = TestingHal::new();
+            register_vector_configs(&mut mock_hal, vector);
+            let expectation = current_vector_expectation(vector);
+            let result = process(&mut mock_hal, &vector_init_request(vector, &sign_request)).await;
+            assert_eq!(
+                observed_vector_screens(&mock_hal.ui.screens).as_slice(),
+                expectation.screens.as_slice(),
+                "unexpected screens for transaction vector '{}'",
+                vector.id
+            );
+
+            match expectation.outcome {
+                btc_test_vectors::Outcome::Success => {
+                    let response = result.unwrap_or_else(|error| {
+                        panic!("transaction vector '{}' failed: {error:?}", vector.id)
+                    });
+                    observations.borrow_mut().observe(&response);
+                    assert_vector_observations(vector, &sign_request, &observations.borrow());
+                    assert_vector_pubkeys(&mut mock_hal, vector, &sign_request).await;
+                }
+                btc_test_vectors::Outcome::InvalidInput => {
+                    let error = result.expect_err(&format!(
+                        "transaction vector '{}' unexpectedly succeeded",
+                        vector.id
+                    ));
+                    assert_eq!(
+                        error,
+                        Error::InvalidInput,
+                        "unexpected error for transaction vector '{}'",
+                        vector.id
+                    );
+                }
+                btc_test_vectors::Outcome::Unsupported => panic!(
+                    "transaction vector '{}' is unsupported by this firmware version",
+                    vector.id
+                ),
+            }
+        }
+    }
+
     #[async_test::test]
     pub async fn test_sign_init_fail() {
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = None;
@@ -1993,153 +2659,6 @@ mod tests {
         }
     }
 
-    #[async_test::test]
-    pub async fn test_process() {
-        static mut UI_COUNTER: u32 = 0;
-        static mut PREVTX_REQUESTED: u32 = 0;
-
-        for (coin, format_unit) in [
-            (pb::BtcCoin::Btc, FormatUnit::Default),
-            (pb::BtcCoin::Btc, FormatUnit::Sat),
-            (pb::BtcCoin::Ltc, FormatUnit::Default),
-        ] {
-            unsafe {
-                PREVTX_REQUESTED = 0;
-            }
-
-            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(coin)));
-
-            let tx = transaction.clone();
-            *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-                Some(Box::new(move |response: Response| {
-                    let next = extract_next(&response);
-                    if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
-                        unsafe { PREVTX_REQUESTED += 1 }
-                    }
-                    Ok(tx.borrow().make_host_request(response))
-                }));
-
-            mock_unlocked();
-            let mut init_request = transaction.borrow().init_request();
-            init_request.format_unit = format_unit as _;
-
-            let mut mock_hal = TestingHal::new();
-            let result = process(&mut mock_hal, &init_request).await;
-
-            assert_eq!(
-                mock_hal.ui.screens,
-                vec![
-                    match coin {
-                        pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient: "12ZE w5Hc v1hT b6YU QJ69 y1V7 uhco Dz92 PH".into(),
-                            amount: match format_unit {
-                                FormatUnit::Default => "1.00000000 BTC".into(),
-                                FormatUnit::Sat => "100000000 sat".into(),
-                            },
-                        },
-                        pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient: "LLnC CHbS zfwW quEd aS5T F2Yt 7uz5 Qb1S Z1".into(),
-                            amount: "1.00000000 LTC".into(),
-                        },
-                        _ => panic!("unexpected coin"),
-                    },
-                    match coin {
-                        pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient: "34oV nh4g NviJ GMnN vgqu MeLA xvXJ uaRV MZ".into(),
-                            amount: match format_unit {
-                                FormatUnit::Default => "12.34567890 BTC".into(),
-                                FormatUnit::Sat => "1234567890 sat".into(),
-                            },
-                        },
-                        pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient: "MB1e 6aUe L3Zj 4s4H 2ZqF BHaa Hd7k vvzT co".into(),
-                            amount: "12.34567890 LTC".into(),
-                        },
-                        _ => panic!("unexpected coin"),
-                    },
-                    match coin {
-                        pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),
-                            amount: match format_unit {
-                                FormatUnit::Default => "0.00006000 BTC".into(),
-                                FormatUnit::Sat => "6000 sat".into(),
-                            },
-                        },
-                        pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient: "ltc1 qxve nxve nxve nxve nxve nxve nxve nxve nwcp knh".into(),
-                            amount: "0.00006000 LTC".into(),
-                        },
-                        _ => panic!("unexpected coin"),
-                    },
-                    match coin {
-                        pb::BtcCoin::Btc => Screen::Recipient {
-                            recipient: "bc1q g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zq d8sx w4".into(),
-                            amount: match format_unit {
-                                FormatUnit::Default => "0.00007000 BTC".into(),
-                                FormatUnit::Sat => "7000 sat".into(),
-                            },
-                        },
-                        pb::BtcCoin::Ltc => Screen::Recipient {
-                            recipient: "ltc1 qg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z yg3z qwr7 k5s".into(),
-                            amount: "0.00007000 LTC".into(),
-                        },
-                        _ => panic!("unexpected coin"),
-                    },
-                    Screen::Confirm {
-                        title: "Warning".into(),
-                        body: "There are 2\nchange outputs.\nProceed?".into(),
-                        longtouch: false,
-                    },
-                    match coin {
-                        pb::BtcCoin::Btc => match format_unit {
-                            FormatUnit::Default => Screen::TotalFee {
-                                total: "13.39999900 BTC".into(),
-                                fee: "0.05419010 BTC".into(),
-                                longtouch: true,
-                            },
-                            FormatUnit::Sat => Screen::TotalFee {
-                                total: "1339999900 sat".into(),
-                                fee: "5419010 sat".into(),
-                                longtouch: true,
-                            },
-                        },
-                        pb::BtcCoin::Ltc => Screen::TotalFee {
-                            total: "13.39999900 LTC".into(),
-                            fee: "0.05419010 LTC".into(),
-                            longtouch: true,
-                        },
-                        _ => panic!("unexpected coin"),
-                    },
-                    Screen::Status {
-                        title: "Transaction\nconfirmed".into(),
-                        success: true,
-                    },
-                ],
-            );
-            match result {
-                Ok(Response::BtcSignNext(next)) => {
-                    assert!(next.has_signature);
-                    match coin {
-                        pb::BtcCoin::Btc => {
-                            assert_eq!(
-                                next.signature,
-                                hex!(
-                                    "2e084a0a5f9babb35df6ec3a89720bcfc088d4ba6aee47973c55fec3b3ddaa6007c7b11c8b5a1a6820ca74a85aeb4cf545c1b3375370f44f24d53d61fe676e4c"
-                                )
-                            );
-                        }
-                        _ => {}
-                    }
-                }
-                _ => panic!("wrong result"),
-            }
-            assert_eq!(
-                unsafe { PREVTX_REQUESTED },
-                transaction.borrow().inputs.len() as u32
-            );
-        }
-    }
-
     /// Test that receiving an unexpected message from the host results in an invalid state error.
     #[async_test::test]
     pub async fn test_invalid_state() {
@@ -2160,154 +2679,6 @@ mod tests {
         let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidState));
         assert_eq!(unsafe { COUNTER }, 2);
-    }
-
-    /// Test signing if all inputs are of type P2WPKH-P2SH.
-    #[async_test::test]
-    pub async fn test_script_type_p2wpkh_p2sh() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        for input in transaction.borrow_mut().inputs.iter_mut() {
-            input.input.keypath[0] = 49 + HARDENED;
-        }
-        for output in transaction.borrow_mut().outputs.iter_mut() {
-            if output.ours {
-                output.keypath[0] = 49 + HARDENED;
-            }
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let mut init_request = transaction.borrow().init_request();
-        init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
-            script_config: Some(pb::BtcScriptConfig {
-                config: Some(pb::btc_script_config::Config::SimpleType(
-                    SimpleType::P2wpkhP2sh as _,
-                )),
-            }),
-            keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
-        };
-        let result = process(&mut TestingHal::new(), &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "3a4618f6163c1d553bebc2c6ac08866d9f027ca663eea743658bb0581c4233a432984ccaeb52044f70474794c55446a5d823e1fb969a39132f7da230d2dd3375"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-    }
-
-    /// Test signing if all inputs are of type P2TR.
-    #[async_test::test]
-    pub async fn test_script_type_p2tr() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        for input in transaction.borrow_mut().inputs.iter_mut() {
-            input.input.keypath[0] = 86 + HARDENED;
-        }
-        for output in transaction.borrow_mut().outputs.iter_mut() {
-            if output.ours {
-                output.keypath[0] = 86 + HARDENED;
-            }
-        }
-
-        let tx = transaction.clone();
-        // Check that previous transactions are not streamed, as all inputs are taproot.
-        static mut PREVTX_REQUESTED: bool = false;
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-            Some(Box::new(move |response: Response| {
-                let next = extract_next(&response);
-                if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
-                    unsafe { PREVTX_REQUESTED = true }
-                }
-                Ok(tx.borrow().make_host_request(response))
-            }));
-
-        mock_unlocked();
-        let mut init_request = transaction.borrow().init_request();
-        init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
-            script_config: Some(pb::BtcScriptConfig {
-                config: Some(pb::btc_script_config::Config::SimpleType(
-                    SimpleType::P2tr as _,
-                )),
-            }),
-            keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
-        };
-        let result = process(&mut TestingHal::new(), &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "87f00346f53b11e03175eaf5254e3aec432bfd9585465c83fb483e8ddaf0893b0460d764711b4adf5865419d06116abc174b1578372e11fcd41cd2db18c306a7"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-        assert!(unsafe { !PREVTX_REQUESTED });
-    }
-
-    /// Test signing if with mixed inputs, one of them being taproot. Previous transactions of all
-    /// inputs should be streamed in this case.
-    #[async_test::test]
-    pub async fn test_script_type_p2tr_mixed() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        transaction.borrow_mut().inputs[0].input.script_config_index = 1;
-        transaction.borrow_mut().inputs[0].input.keypath[0] = 86 + HARDENED;
-
-        let tx = transaction.clone();
-        // Check that previous transactions are streamed, as not all input are taproot.
-        static mut PREVTX_REQUESTED: u32 = 0;
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-            Some(Box::new(move |response: Response| {
-                let next = extract_next(&response);
-                if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
-                    unsafe { PREVTX_REQUESTED += 1 }
-                }
-                Ok(tx.borrow().make_host_request(response))
-            }));
-
-        mock_unlocked();
-        let mut init_request = transaction.borrow().init_request();
-        init_request
-            .script_configs
-            .push(pb::BtcScriptConfigWithKeypath {
-                script_config: Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::SimpleType(
-                        SimpleType::P2tr as _,
-                    )),
-                }),
-                keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
-            });
-        assert!(process(&mut TestingHal::new(), &init_request).await.is_ok());
-        assert_eq!(
-            unsafe { PREVTX_REQUESTED },
-            transaction.borrow().inputs.len() as u32
-        );
-    }
-
-    /// Test signing UTXOs with high keypath address indices. Even though we don't support verifying
-    /// receive addresses at these indices (to mitigate ransom attacks), we should still be able to
-    /// spend them.
-    #[async_test::test]
-    pub async fn test_spend_high_address_index() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        transaction.borrow_mut().inputs[0].input.keypath[4] = 100000;
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-        let result = process(&mut TestingHal::new(), &init_request).await;
-        assert!(result.is_ok());
     }
 
     /// Test invalid input cases.
@@ -2419,29 +2790,6 @@ mod tests {
         }
     }
 
-    /// Test signing with mixed input types.
-    #[async_test::test]
-    pub async fn test_mixed_inputs() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        transaction.borrow_mut().inputs[0].input.script_config_index = 1;
-        transaction.borrow_mut().inputs[0].input.keypath[0] = 49 + HARDENED;
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let mut init_request = transaction.borrow().init_request();
-        init_request
-            .script_configs
-            .push(pb::BtcScriptConfigWithKeypath {
-                script_config: Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::SimpleType(
-                        SimpleType::P2wpkhP2sh as _,
-                    )),
-                }),
-                keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
-            });
-        assert!(process(&mut TestingHal::new(), &init_request).await.is_ok());
-    }
-
     #[async_test::test]
     async fn test_user_aborts() {
         let transaction =
@@ -2458,370 +2806,6 @@ mod tests {
                 process(&mut mock_hal, &init_request).await,
                 Err(Error::UserAbort)
             );
-        }
-    }
-
-    /// Check workflow when a locktime applies.
-    #[async_test::test]
-    async fn test_locktime() {
-        struct Test {
-            coin: pb::BtcCoin,
-            locktime: u32,
-            sequence: u32,
-            // If None: no user confirmation expected.
-            // If Some: confirmation body.
-            confirm: Option<&'static str>,
-        }
-        for test_case in &[
-            Test {
-                coin: pb::BtcCoin::Btc,
-                locktime: 0,
-                sequence: 0xffffffff,
-                confirm: None,
-            },
-            Test {
-                coin: pb::BtcCoin::Btc,
-                locktime: 0,
-                sequence: 0xffffffff - 1,
-                confirm: None,
-            },
-            Test {
-                coin: pb::BtcCoin::Btc,
-                locktime: 0,
-                sequence: 0xffffffff - 2,
-                confirm: None,
-            },
-            Test {
-                coin: pb::BtcCoin::Btc,
-                locktime: 1,
-                sequence: 0xffffffff - 1,
-                confirm: Some("Locktime on block:\n1\nTransaction is not RBF"),
-            },
-            Test {
-                coin: pb::BtcCoin::Btc,
-                locktime: 10,
-                sequence: 0xffffffff - 1,
-                confirm: Some("Locktime on block:\n10\nTransaction is not RBF"),
-            },
-            Test {
-                coin: pb::BtcCoin::Btc,
-                locktime: 10,
-                sequence: 0xffffffff - 2,
-                confirm: Some("Locktime on block:\n10\nTransaction is RBF"),
-            },
-            Test {
-                coin: pb::BtcCoin::Ltc,
-                locktime: 10,
-                sequence: 0xffffffff - 1,
-                confirm: Some("Locktime on block:\n10\n"),
-            },
-            Test {
-                coin: pb::BtcCoin::Ltc,
-                locktime: 10,
-                sequence: 0xffffffff - 2,
-                confirm: Some("Locktime on block:\n10\n"),
-            },
-        ] {
-            let transaction =
-                alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(test_case.coin)));
-            transaction.borrow_mut().inputs[0].input.sequence = test_case.sequence;
-            mock_host_responder(transaction.clone());
-
-            mock_unlocked();
-
-            let mut init_request = transaction.borrow().init_request();
-            init_request.locktime = test_case.locktime;
-
-            let mut mock_hal = TestingHal::new();
-            let result = process(&mut mock_hal, &init_request).await;
-            let mut found_locktime = false;
-            for screen in mock_hal.ui.screens.iter() {
-                match screen {
-                    Screen::Confirm { title, body, .. } if body.contains("Locktime") => {
-                        found_locktime = true;
-                        if let Some(confirm_str) = test_case.confirm {
-                            assert_eq!(title.as_str(), "");
-                            assert_eq!(body.as_str(), confirm_str);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            assert_eq!(found_locktime, test_case.confirm.is_some());
-            assert!(result.is_ok());
-        }
-    }
-
-    // Test a transaction with an unusually high fee.
-    #[async_test::test]
-    async fn test_high_fee_warning() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        transaction.borrow_mut().outputs[1].value = 1034567890;
-        // One more confirmation for the high fee warning.
-        transaction.borrow_mut().total_confirmations += 1;
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-        let total_confirmations = transaction.borrow().total_confirmations;
-
-        let mut mock_hal = TestingHal::new();
-        assert!(process(&mut mock_hal, &init_request).await.is_ok());
-
-        assert!(mock_hal.ui.screens.contains(&Screen::TotalFee {
-            total: "13.39999900 BTC".into(),
-            fee: "2.05419010 BTC".into(),
-            longtouch: false
-        }));
-        assert!(
-            mock_hal
-                .ui
-                .contains_confirm("High fee", "The fee is 18.1%\nthe send amount.\nProceed?")
-        );
-        assert_eq!(
-            mock_hal.ui.screens.len() as u32,
-            total_confirmations + 1 // plus status screen
-        );
-    }
-
-    // Test a P2TR output. It is not part of the default test transaction because Taproot is not
-    // active on Litecoin yet.
-    #[async_test::test]
-    async fn test_p2tr_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::P2tr as _;
-        transaction.borrow_mut().outputs[0].payload =
-            hex!("a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c").to_vec();
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-
-        let mut mock_hal = TestingHal::new();
-        let init_request = transaction.borrow().init_request();
-        let result = process(&mut mock_hal, &init_request).await;
-        assert_eq!(
-            mock_hal.ui.screens[0],
-            Screen::Recipient {
-                recipient:
-                    "bc1p 5cyx nuxm euwu vkwf em96 lqzs zd02 n6xd cjrs 20ca c6yq jjwu dpxq kedr cr"
-                        .into(),
-                amount: "1.00000000 BTC".into(),
-            }
-        );
-
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "8f1e0e8f98d36db1196264f1a300fae317f1508d2c489fbbd660e048c4529c612f59576c86a26ffa476d97351e469ef6ed2784aecb71053a5166775ccb4d7b9b"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-    }
-
-    #[async_test::test]
-    async fn test_silent_payment_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        // Make an input a P2TR input to verify the right (tweaked) private key is used in the
-        // derivation of the silent payment output.
-        transaction.borrow_mut().inputs[0].input.script_config_index = 1;
-        transaction.borrow_mut().inputs[0].input.keypath[0] = 86 + HARDENED;
-
-        // Make first output a silent payment output. type and payload
-        // are ignored.
-        transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::Unknown as _;
-        transaction.borrow_mut().outputs[0].payload = vec![];
-        transaction.borrow_mut().outputs[0].silent_payment =
-            Some(pb::btc_sign_output_request::SilentPayment {
-                address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
-            });
-        let tx = transaction.clone();
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-            Some(Box::new(move |response: Response| {
-                let next = extract_next(&response);
-
-                if NextType::try_from(next.r#type).unwrap() == NextType::Output && next.index == 1 {
-                    assert_eq!(
-                        next.generated_output_pkscript,
-                        hex!(
-                            "51207b9101d60c6461ff3e18f0832e7f1e952084205062d7e0b7b08812c264cfe713"
-                        )
-                    );
-                }
-                Ok(tx.borrow().make_host_request(response))
-            }));
-        mock_unlocked();
-
-        let mut init_request = transaction.borrow().init_request();
-        init_request
-            .script_configs
-            .push(pb::BtcScriptConfigWithKeypath {
-                script_config: Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::SimpleType(
-                        pb::btc_script_config::SimpleType::P2tr as _,
-                    )),
-                }),
-                keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
-            });
-
-        let mut mock_hal = TestingHal::new();
-        assert!(process(&mut mock_hal, &init_request).await.is_ok());
-
-        assert_eq!(
-            mock_hal.ui.screens[0],
-            Screen::Recipient {
-                recipient: "sp1q qgst e7k9 hx0q ftg6 qmwl kqtw uy6c ycya vzmz j85c 6qdf hjdp djtd gqju exzk 6mur w56s uy3e 0rd2 cgqv ycxt tddw svgx e2us fpxu mr70 xc9p kqwv".into(),
-                amount: "1.00000000 BTC".into(),
-            }
-        );
-    }
-
-    #[async_test::test]
-    async fn test_silent_payment_rejects_ours_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        {
-            let mut tx = transaction.borrow_mut();
-            let silent_payment_output_index = 5;
-            assert!(tx.outputs[silent_payment_output_index].ours);
-            // A receive-branch self-transfer is not change, but it is still marked as ours and
-            // must not carry a silent payment address.
-            tx.outputs[silent_payment_output_index].keypath[3] = 0;
-            tx.outputs[silent_payment_output_index].silent_payment =
-                Some(pb::btc_sign_output_request::SilentPayment {
-                    address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
-                });
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        assert_eq!(
-            process(&mut TestingHal::new(), &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
-    // Test an output that is sending to the same account, but is not a change output by keypath.
-    #[async_test::test]
-    async fn test_self_send_non_change_output_same_account() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        transaction.borrow_mut().outputs[5].keypath[3] = 0;
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-
-        let mut mock_hal = TestingHal::new();
-        let init_request = transaction.borrow().init_request();
-        let result = process(&mut mock_hal, &init_request).await;
-        assert_eq!(
-            mock_hal.ui.screens[4],
-            Screen::Recipient {
-                recipient: "This BitBox (same account): bc1q nu4x 8dlr x6de ty47 gehf 4uhk 5tj3 q7yh ywgr y6".into(),
-                amount: "0.00000100 BTC".into(),
-            }
-        );
-        assert!(mock_hal.ui.screens.contains(&Screen::TotalFee {
-            total: "13.40000000 BTC".into(),
-            fee: "0.05419010 BTC".into(),
-            longtouch: true,
-        }));
-
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "e115d7d2d2b7ef068e7b89de83ec791744d46b8bae8a5931a73ef644c0db01cf2f2e2a02797a29a181fe74ea1f5d2bcaba4d70e0e7742412a680fd62957a90f7"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-    }
-
-    // Test an output that is sending to another account of our keystore.
-    #[async_test::test]
-    async fn test_self_send_different_account() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        const DIFFERENT_ACCOUNT: u32 = 20 + HARDENED;
-        transaction.borrow_mut().outputs[5].keypath[2] = DIFFERENT_ACCOUNT;
-        transaction.borrow_mut().outputs[5].keypath[3] = 0;
-        transaction.borrow_mut().outputs[5].output_script_config_index = Some(0);
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let coin = transaction.borrow().coin;
-        let mut init_request = transaction.borrow().init_request();
-        init_request.output_script_configs = vec![pb::BtcScriptConfigWithKeypath {
-            script_config: Some(pb::BtcScriptConfig {
-                config: Some(pb::btc_script_config::Config::SimpleType(
-                    SimpleType::P2wpkh as _,
-                )),
-            }),
-            keypath: vec![
-                84 + HARDENED,
-                super::super::params::get(coin).bip44_coin,
-                DIFFERENT_ACCOUNT,
-            ],
-        }];
-
-        let mut mock_hal = TestingHal::new();
-        assert!(process(&mut mock_hal, &init_request).await.is_ok());
-
-        assert_eq!(
-            mock_hal.ui.screens[4],
-            Screen::Recipient {
-                recipient: "This BitBox (account #21): bc1q r9t2 u35g zrtz nzv6 n99f 2dj3 7j9m sfff v78c v2".into(),
-                amount: "0.00000100 BTC".into(),
-            }
-        );
-    }
-
-    /// Exercise the antiklepto protocol
-    #[async_test::test]
-    async fn test_antiklepto() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-        let host_nonce = hex!("abababababababababababababababababababababababababababababababab");
-        // The host nonce commitment value does not impact this test, but an invalid commitment
-        // would fail the antiklepto signature check on the host. The host check is skipped here and
-        // tested in keystore::tests::test_secp256k1_antiklepto_protocol. That the host nonce was included in the sig is
-        // tested by the signature fixture test below.
-        let host_nonce_commitment = pb::AntiKleptoHostNonceCommitment {
-            commitment: bitbox_secp256k1::ecdsa_anti_exfil_host_commit(SECP256K1, &host_nonce)
-                .unwrap(),
-        };
-        transaction.borrow_mut().inputs[1].host_nonce = Some(host_nonce.to_vec());
-        transaction.borrow_mut().inputs[1]
-            .input
-            .host_nonce_commitment = Some(host_nonce_commitment);
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-        let result = process(&mut TestingHal::new(), &init_request).await;
-        match result {
-            Ok(Response::Btc(pb::BtcResponse {
-                response: Some(pb::btc_response::Response::SignNext(next)),
-            })) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "2e6de654626ee912bf2e0cf5a56749891aa98956d40e29e38b8a644d5c62cfcc44e7729284ff30f9248cd70a5457b0e2324e7c473f6600432acdc8d92fb16766"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
         }
     }
 
@@ -2967,986 +2951,6 @@ mod tests {
         assert_eq!(result, Err(Error::InvalidInput));
     }
 
-    #[async_test::test]
-    async fn test_multisig_p2wsh() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
-        mock_host_responder(transaction.clone());
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
-        let multisig_hash =
-            hex!("89751d19e4e26fbeee2fd2c4f56ab7ae5be6dc46482e81241f4accfbc0a1584e");
-        let mut mock_hal = TestingHal::new();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&multisig_hash, "test multisig account name")
-            .unwrap();
-
-        let init_request = {
-            let tx = transaction.borrow();
-            pb::BtcSignInitRequest {
-                coin: tx.coin as _,
-                script_configs: vec![pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::Multisig(
-                            pb::btc_script_config::Multisig {
-                                threshold: 1,
-                                xpubs: vec![
-                                    // sudden tenant fault inject concert weather maid people chunk
-                                    // youth stumble grit / 48'/1'/0'/2'
-                                    parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF").unwrap(),
-                                    // dumb rough room report huge dry sudden hamster wait foot crew
-                                    // obvious / 48'/1'/0'/2'
-                                    parse_xpub("xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLKX8Q8keZPd67kRGmrD1WJj").unwrap(),
-                                ],
-                                our_xpub_index: 0,
-                                script_type: pb::btc_script_config::multisig::ScriptType::P2wsh
-                                    as _,
-                            },
-                        )),
-                    }),
-                    keypath: vec![
-                        48 + HARDENED,
-                        super::super::params::get(tx.coin).bip44_coin,
-                        0 + HARDENED,
-                        2 + HARDENED,
-                    ],
-                }],
-                output_script_configs: vec![],
-                version: tx.version,
-                num_inputs: tx.inputs.len() as _,
-                num_outputs: tx.outputs.len() as _,
-                locktime: tx.locktime,
-                format_unit: FormatUnit::Default as _,
-                contains_silent_payment_outputs: false,
-            }
-        };
-
-        let result = process(&mut mock_hal, &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "1bee37e9123fd37fb8be2dd253ea810a021302e14962f46eeea979d96ffb4c6769d007de360f50e1de378de48e7a9fc79c47245b360daf27647529c92e86b203"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-        assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Confirm {
-                    title: "Spend from".into(),
-                    body: "1-of-2\nBTC Testnet multisig".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Spend from".into(),
-                    body: "test multisig account name".into(),
-                    longtouch: false,
-                },
-                Screen::Recipient {
-                    recipient: "tb1q txyq ynfx wsk8 f5gu 8v5g 8e6h s3nj tglk ywhv yztk 6v8z nvx5 kdds mhuv e2".into(),
-                    amount: "0.00090000 TBTC".into(),
-                },
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Locktime on block:\n1663289\nTransaction is not RBF".into(),
-                    longtouch: false,
-                },
-                Screen::TotalFee {
-                    total: "0.00090175 TBTC".into(),
-                    fee: "0.00000175 TBTC".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true
-                },
-            ]
-        );
-    }
-
-    /// If the multisig has not been registered before, signing fails.
-    #[async_test::test]
-    async fn test_multisig_not_registered() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
-        mock_host_responder(transaction.clone());
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-        let init_request = {
-            let tx = transaction.borrow();
-            pb::BtcSignInitRequest {
-                coin: tx.coin as _,
-                script_configs: vec![pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::Multisig(
-                            pb::btc_script_config::Multisig {
-                                threshold: 1,
-                                xpubs: vec![
-                                    // sudden tenant fault inject concert weather maid people chunk
-                                    // youth stumble grit / 48'/1'/0'/2'
-                                    parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF").unwrap(),
-                                    // dumb rough room report huge dry sudden hamster wait foot crew
-                                    // obvious / 48'/1'/0'/2'
-                                    parse_xpub("xpub6ERxBysTYfQyY4USv6c6J1HNVv9hpZFN9LHVPu47Ac4rK8fLy6NnAeeAHyEsMvG4G66ay5aFZii2VM7wT3KxLKX8Q8keZPd67kRGmrD1WJj").unwrap(),
-                                ],
-                                our_xpub_index: 0,
-                                script_type: pb::btc_script_config::multisig::ScriptType::P2wsh
-                                    as _,
-                            },
-                        )),
-                    }),
-                    keypath: vec![
-                        48 + HARDENED,
-                        super::super::params::get(tx.coin).bip44_coin,
-                        0 + HARDENED,
-                        2 + HARDENED,
-                    ],
-                }],
-                output_script_configs: vec![],
-                version: tx.version,
-                num_inputs: tx.inputs.len() as _,
-                num_outputs: tx.outputs.len() as _,
-                locktime: tx.locktime,
-                format_unit: FormatUnit::Default as _,
-                contains_silent_payment_outputs: false,
-            }
-        };
-        assert_eq!(
-            process(&mut TestingHal::new(), &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
-    #[async_test::test]
-    async fn test_multisig_p2wsh_p2sh() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
-        for input in transaction.borrow_mut().inputs.iter_mut() {
-            input.input.keypath[3] = 1 + HARDENED;
-        }
-        for output in transaction.borrow_mut().outputs.iter_mut() {
-            if output.ours {
-                output.keypath[3] = 1 + HARDENED;
-            }
-        }
-
-        mock_host_responder(transaction.clone());
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
-        let multisig_hash =
-            hex!("a0a982a6f5ba9286ee45cd140fd763d43443d685a89bc60772553cc5418fccc4");
-        let mut mock_hal = TestingHal::new();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&multisig_hash, "test multisig account name")
-            .unwrap();
-
-        let init_request = {
-            let tx = transaction.borrow();
-            pb::BtcSignInitRequest {
-                coin: tx.coin as _,
-                script_configs: vec![pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::Multisig(
-                            pb::btc_script_config::Multisig {
-                                threshold: 1,
-                                xpubs: vec![
-                                    // sudden tenant fault inject concert weather maid people chunk
-                                    // youth stumble grit / 48'/1'/0'/1'
-                                    parse_xpub("xpub6EMfjyGVUvwhn1H2BwoVysVJi9cX78eyNTkoM3d26NHW4Zd75zrAcikT3dmoii4eZPwobzK4pMBYrLmE2y918UayfqBQFr6HpVze5mQHGyu").unwrap(),
-                                    // dumb rough room report huge dry sudden hamster wait foot crew
-                                    // obvious / 48'/1'/0'/1'
-                                    parse_xpub("xpub6ERxBysTYfQyV5NYAV6WZVj1dfTzESVGkWUiqERomNKCA6nCA8qX4qSLX2RRGNqckn3ps9B9sdfDkpg11nsJwCjXYXSZvkTED2Jx8jFpB9M").unwrap(),
-                                ],
-                                our_xpub_index: 0,
-                                script_type: pb::btc_script_config::multisig::ScriptType::P2wshP2sh
-                                    as _,
-                            },
-                        )),
-                    }),
-                    keypath: vec![
-                        48 + HARDENED,
-                        super::super::params::get(tx.coin).bip44_coin,
-                        0 + HARDENED,
-                        1 + HARDENED,
-                    ],
-                }],
-                output_script_configs: vec![],
-                version: tx.version,
-                num_inputs: tx.inputs.len() as _,
-                num_outputs: tx.outputs.len() as _,
-                locktime: tx.locktime,
-                format_unit: FormatUnit::Default as _,
-                contains_silent_payment_outputs: false,
-            }
-        };
-        let result = process(&mut mock_hal, &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "a72342869a29b02433faae2ac5c49f033effd3a6b60623878ef7bf8b14dee2a03a76511b37baf15e707507f48b10cdf5a8f30b0ada4da22a38a5476f69911d8e"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-    }
-
-    #[async_test::test]
-    async fn test_multisig_large() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_multisig()));
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        // Hash of the multisig configuration as computed by `btc_common_multisig_hash_sorted()`.
-        let multisig_hash =
-            hex!("9dfc0652e2a305c8b9949620f98ee14650302e385f23941bc607cc35fd7a7781");
-        let mut mock_hal = TestingHal::new();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&multisig_hash, "test multisig account name")
-            .unwrap();
-
-        let init_request = {
-            let tx = transaction.borrow();
-            pb::BtcSignInitRequest {
-                coin: tx.coin as _,
-                script_configs: vec![pb::BtcScriptConfigWithKeypath {
-                    script_config: Some(pb::BtcScriptConfig {
-                        config: Some(pb::btc_script_config::Config::Multisig(
-                            pb::btc_script_config::Multisig {
-                                threshold: 7,
-                                xpubs: vec![
-                                    parse_xpub("xpub6Eu7xJRyXRCi4eLYhJPnfZVjgAQtM7qFaEZwUhvgxGf4enEZMxevGzWvZTawCj9USP2MFTEhKQAwnqHwoaPHetTLqGuvq5r5uaLKyGx5QDZ").unwrap(),
-                                    parse_xpub("xpub6EQcxF2jFkYGn89AwoQJEEJkYMbRjED9AZgt7bkxQA5BLhZEoaQpUHcADbB5GxcMrTdDSGmjP7M3u462Q9otyE2PPam66P5KFLWitPVfYz9").unwrap(),
-                                    parse_xpub("xpub6EP4EycVS5dq1PN7ZqsxBtptkYhfLvLGokZjnB3fvPshMiAohh6E5TaJjAafZWoPRjo6uiZxhtDXLgCuk81ooQgwrsnEdfSWSfa4VUtX8nu").unwrap(),
-                                    parse_xpub("xpub6Eszd4BGGmHShcGtys5gbvV2zrBtW1gaorKf9YuvV4L3bePw7XePyyb2DKswZ5AhFfkcQwjQsiJEUTKhfRstRdHZUjQnJ2RJoQqL8g7FS4b").unwrap(),
-                                    parse_xpub("xpub6Df3nbvH6P3FTvjgKaZcSuydyEofK545U4Bb15JY8R9MtFkKrhYrc3bpEF6fHtNM7xQ1qHwsVpS56TJWUjbKcmRwPkQr17ovV2RaVSJaBq3").unwrap(),
-                                    parse_xpub("xpub6FQQ62gUYzS9wnHWHMPLWrpVnzS8xAf8XvfW1xzXEXTkTCtBrfbeww2zNeCgm3PbueMoq8opQvQDzp5Yf9EtiqVd7d1ASDoWSC1m7g1KHza").unwrap(),
-                                    parse_xpub("xpub6EQNZUUAzJAoFAVVetYUrFVrf7mLyYsnHiQihkA3KPhoRHx7m6SgKBYV4z5Rd9CvUc11ACN8Ap5Wxigt6GYRPUqXGFfm3833ezJpjAmvJKt").unwrap(),
-                                    parse_xpub("xpub6EGZy7cizYn2zUf9NT4qJ3Kr1ZrxdzPRcv2CwAnB1BTGWw7n9ZgDYvwmzzJXM6V7AgZ6CL3DrARZk5DzM9o8tz2RVTeC7QoHh9SxbW3b7Pw").unwrap(),
-                                    parse_xpub("xpub6DaV7oCAkm4HJQMoProrrKYq1RvcgpStgYUCzLRaaeJSBSy9WBRFMNnQyAWJUYy9myUFRTvogq1C2f7x4A2yhtYgr7gL6eZXv2eJvzU12pe").unwrap(),
-                                    parse_xpub("xpub6FFVRbdHt5DgHqR69KuWXRVDp93e1xKxv8rRLwhhCGnWaoF1ecnfdxpg2Nf1pvJTgT1UYg28CVt7YbUXFJL86vi9FaPN9QGtWLeCmf9dA24").unwrap(),
-                                    parse_xpub("xpub6FNywxebMjvSSginZrk7DfNmAHvPJAy3j6pJ9FmUQCoh4FKPzNymdHnkA1z77Ke4GK7g5GkdrBhpyXfWTbZkH6Yo1t4v524wDwF8SAKny9J").unwrap(),
-                                    parse_xpub("xpub6F1V9y6gXejomurTy2hN1UDCJidYahVkqtQJSZLYmcPcPDWkxGgWTrrLnCrCkGESSUSq6GpVVQx9kejPV97BEa9F85utABNL9r6xyPZFiDm").unwrap(),
-                                    parse_xpub("xpub6ECHc4kmTC2tQg2ZoAoazwyag9C4V6yFsZEhjwMJixdVNsUibot6uEvsZY38ZLVqWCtyc9gbzFEwHQLHCT8EiDDKSNNsFAB8NQYRgkiAQwu").unwrap(),
-                                    parse_xpub("xpub6F7CaxXzBCtvXwpRi61KYyhBRkgT1856ujHV5AbJK6ySCUYoDruBH6Pnsi6eHkDiuKuAJ2tSc9x3emP7aax9Dc3u7nP7RCQXEjLKihQu6w1").unwrap(),
-                                    // sudden tenant fault inject concert weather maid people chunk
-                                    // youth stumble grit / 48'/1'/0'/2'
-                                    parse_xpub("xpub6EMfjyGVUvwhpc3WKN1zXhMFGKJGMaSBPqbja4tbGoYvRBSXeTBCaqrRDjcuGTcaY95JrrAnQvDG3pdQPdtnYUCugjeksHSbyZT7rq38VQF").unwrap(),
-                                ],
-                                our_xpub_index: 14,
-                                script_type: pb::btc_script_config::multisig::ScriptType::P2wsh
-                                    as _,
-                            },
-                        )),
-                    }),
-                    keypath: vec![
-                        48 + HARDENED,
-                        super::super::params::get(tx.coin).bip44_coin,
-                        0 + HARDENED,
-                        2 + HARDENED,
-                    ],
-                }],
-                output_script_configs: vec![],
-                version: tx.version,
-                num_inputs: tx.inputs.len() as _,
-                num_outputs: tx.outputs.len() as _,
-                locktime: tx.locktime,
-                format_unit: FormatUnit::Default as _,
-                contains_silent_payment_outputs: false,
-            }
-        };
-        let result = process(&mut mock_hal, &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "dbed8b1aefbdcfd7f3e6d9dff5ec83c5ed77cad7278b06c5f4d33072f300c2d613d166171c54d202415b5344a92d4f6f9b36ac314dc93e18bdcf6135de4d11bf"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-    }
-
-    #[async_test::test]
-    async fn test_policy() {
-        let mut mock_hal = TestingHal::new();
-
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
-        // Check that previous transactions are streamed, as not all inputs are taproot.
-        static mut PREVTX_REQUESTED: bool = false;
-        let tx = transaction.clone();
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-            Some(Box::new(move |response: Response| {
-                let next = extract_next(&response);
-                if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
-                    unsafe { PREVTX_REQUESTED = true }
-                }
-                Ok(tx.borrow().make_host_request(response))
-            }));
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
-
-        let policy = pb::btc_script_config::Policy {
-            policy: "wsh(multi(2,@0/**,@1/**))".into(),
-            keys: vec![
-                pb::KeyOriginInfo {
-                    root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
-                    keypath: keypath_account.to_vec(),
-                    xpub: Some(
-                        crate::keystore::get_xpub(
-                            &mut mock_hal,
-                            keypath_account,
-                            crate::keystore::Compute::Once,
-                        )
-                        .await
-                        .unwrap()
-                        .into(),
-                    ),
-                },
-                pb::KeyOriginInfo {
-                    root_fingerprint: vec![],
-                    keypath: vec![],
-                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
-                },
-            ],
-        };
-
-        // Register policy.
-        let hash = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&hash, "test policy account name")
-            .unwrap();
-
-        let init_request = transaction
-            .borrow()
-            .init_request_policy(policy, keypath_account);
-        let result = process(&mut mock_hal, &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "5736b8eec7594ad906daf8d3fac64d58aed35fc50726b0ed6d5fb1c8019fcab0606ced7d09bc9a75fadf5ba45cc95dc15fb6796997466739a9f6383bd159dae4"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-        assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Confirm {
-                    title: "Spend from".into(),
-                    body: "BTC Testnet\npolicy with\n2 keys".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Name".into(),
-                    body: "test policy account name".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Show policy\ndetails?".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Policy".into(),
-                    body: "wsh(multi(2,@0/**,@1/**))".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Key 1/2".into(),
-                    body: "This device: [93531fa9/48'/1'/0'/3']tpubDEjJGD6BCCuA7VHrbk3gMeQ5HocbZ4eSQ121DcvCkC8xaeRFjyoJC9iVrSz1bWfNwAY5K2Vfz5bnHR3y4RrqVpkc5ikz4trfhSyosZPrcnk".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Key 2/2".into(),
-                    body: "tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8".into(),
-                    longtouch: false,
-                },
-                Screen::Recipient {
-                    recipient: "tb1q txyq ynfx wsk8 f5gu 8v5g 8e6h s3nj tglk ywhv yztk 6v8z nvx5 kdds mhuv e2".into(),
-                    amount: "0.00090000 TBTC".into(),
-                },
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Locktime on block:\n1663289\nTransaction is not RBF".into(),
-                    longtouch: false,
-                },
-                Screen::TotalFee {
-                    total: "0.00090175 TBTC".into(),
-                    fee: "0.00000175 TBTC".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true
-                },
-            ]
-        );
-        assert!(unsafe { PREVTX_REQUESTED });
-    }
-
-    /// Same as `test_policy()`, but for a tr() Taproot policy.
-    /// We check that the previous transactions are not streamed as they are not needed for Taproot.
-    #[async_test::test]
-    async fn test_policy_tr() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
-
-        let tx = transaction.clone();
-        // Check that previous transactions are not streamed, as all inputs are taproot.
-        static mut PREVTX_REQUESTED: bool = false;
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-            Some(Box::new(move |response: Response| {
-                let next = extract_next(&response);
-                if NextType::try_from(next.r#type).unwrap() == NextType::PrevtxInit {
-                    unsafe { PREVTX_REQUESTED = true }
-                }
-                Ok(tx.borrow().make_host_request(response))
-            }));
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
-
-        let policy = pb::btc_script_config::Policy {
-            policy: "tr(@0/**,pk(@1/**))".into(),
-            keys: vec![
-                pb::KeyOriginInfo {
-                    root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
-                    keypath: keypath_account.to_vec(),
-                    xpub: Some(
-                        crate::keystore::get_xpub(
-                            &mut TestingHal::new(),
-                            keypath_account,
-                            crate::keystore::Compute::Once,
-                        )
-                        .await
-                        .unwrap()
-                        .into(),
-                    ),
-                },
-                pb::KeyOriginInfo {
-                    root_fingerprint: vec![],
-                    keypath: vec![],
-                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
-                },
-            ],
-        };
-
-        // Register policy.
-        let mut mock_hal = TestingHal::new();
-        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&hash32, "test policy account name")
-            .unwrap();
-
-        let init_request = transaction
-            .borrow()
-            .init_request_policy(policy, keypath_account);
-        let result = process(&mut mock_hal, &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "d2816fd56495bac5815283381775e0a0dec837a5d646a0e5602c2451ed173ffae16d10bfe391458aa9499dd908fe6ab669ef571f8a78e98ea8de27d82013a76d"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-        assert!(unsafe { !PREVTX_REQUESTED });
-    }
-
-    // Tests that unspendable internal Taproot keys are displayed as such.
-    #[async_test::test]
-    async fn test_policy_tr_unspendable_internal_key() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
-
-        mock_host_responder(transaction.clone());
-
-        let policy_str = "tr(@0/<0;1>/*,{and_v(v:multi_a(1,@1/<2;3>/*,@2/<2;3>/*),older(2)),multi_a(2,@1/<0;1>/*,@2/<0;1>/*)})";
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
-
-        let policy = pb::btc_script_config::Policy {
-            policy: policy_str.into(),
-            keys: vec![
-                pb::KeyOriginInfo {
-                    root_fingerprint: vec![],
-                    keypath: vec![],
-                    xpub: Some(parse_xpub("tpubD6NzVbkrYhZ4WNrreqKvZr3qeJR7meg2BgaGP9upLkt7bp5SY6AAhY8vaN8ThfCjVcK6ZzE6kZbinszppNoGKvypeTmhyQ6uvUptXEXqknv").unwrap()),
-                },
-                pb::KeyOriginInfo {
-                    root_fingerprint: hex!("ffd63c8d").to_vec(),
-                    keypath: vec![48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 2 + HARDENED],
-                    xpub: Some(parse_xpub("tpubDExA3EC3iAsPxPhFn4j6gMiVup6V2eH3qKyk69RcTc9TTNRfFYVPad8bJD5FCHVQxyBT4izKsvr7Btd2R4xmQ1hZkvsqGBaeE82J71uTK4N").unwrap()),
-                },
-                pb::KeyOriginInfo {
-                    root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
-                    keypath: keypath_account.to_vec(),
-                    xpub: Some(
-                        crate::keystore::get_xpub(
-                            &mut TestingHal::new(),
-                            keypath_account,
-                            crate::keystore::Compute::Once,
-                        )
-                        .await
-                        .unwrap()
-                        .into(),
-                    ),
-                },
-            ],
-        };
-
-        // Register policy.
-        let mut mock_hal = TestingHal::new();
-        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&hash32, "test policy account name")
-            .unwrap();
-
-        let init_request = transaction
-            .borrow()
-            .init_request_policy(policy, keypath_account);
-        assert!(process(&mut mock_hal, &init_request).await.is_ok());
-
-        assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Confirm {
-                    title: "Spend from".into(),
-                    body: "BTC Testnet\npolicy with\n3 keys".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Name".into(),
-                    body: "test policy account name".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Show policy\ndetails?".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Policy".into(),
-                    body: policy_str.into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Key 1/3".into(),
-                    body: "Provably unspendable: tpubD6NzVbkrYhZ4WNrreqKvZr3qeJR7meg2BgaGP9upLkt7bp5SY6AAhY8vaN8ThfCjVcK6ZzE6kZbinszppNoGKvypeTmhyQ6uvUptXEXqknv".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Key 2/3".into(),
-                    body: "[ffd63c8d/48'/1'/0'/2']tpubDExA3EC3iAsPxPhFn4j6gMiVup6V2eH3qKyk69RcTc9TTNRfFYVPad8bJD5FCHVQxyBT4izKsvr7Btd2R4xmQ1hZkvsqGBaeE82J71uTK4N".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Key 3/3".into(),
-                    body: "This device: [93531fa9/48'/1'/0'/3']tpubDEjJGD6BCCuA7VHrbk3gMeQ5HocbZ4eSQ121DcvCkC8xaeRFjyoJC9iVrSz1bWfNwAY5K2Vfz5bnHR3y4RrqVpkc5ikz4trfhSyosZPrcnk".into(),
-                    longtouch: false,
-                },
-                Screen::Recipient {
-                    recipient: "tb1q txyq ynfx wsk8 f5gu 8v5g 8e6h s3nj tglk ywhv yztk 6v8z nvx5 kdds mhuv e2".into(),
-                    amount: "0.00090000 TBTC".into(),
-                },
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Locktime on block:\n1663289\nTransaction is not RBF".into(),
-                    longtouch: false,
-                },
-                Screen::TotalFee {
-                    total: "0.00090175 TBTC".into(),
-                    fee: "0.00000175 TBTC".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true
-                },
-            ]
-        );
-    }
-
-    /// Test that a policy with derivations other than `/**` work.
-    #[async_test::test]
-    async fn test_policy_different_multipath_derivations() {
-        let policy_str = "wsh(multi(2,@0/<10;11>/*,@1/<20;21>/*))";
-
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
-        transaction.borrow_mut().inputs[0].input.keypath[4] = 10; // receive path at /10/*
-        transaction.borrow_mut().outputs[0].keypath[4] = 11; // change path at /11/*
-
-        mock_host_responder(transaction.clone());
-
-        static mut UI_COUNTER: u32 = 0;
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
-
-        let policy = pb::btc_script_config::Policy {
-            policy: policy_str.into(),
-            keys: vec![
-                pb::KeyOriginInfo {
-                    root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
-                    keypath: keypath_account.to_vec(),
-                    xpub: Some(
-                        crate::keystore::get_xpub(
-                            &mut TestingHal::new(),
-                            keypath_account,
-                            crate::keystore::Compute::Once,
-                        )
-                        .await
-                        .unwrap()
-                        .into(),
-                    ),
-                },
-                pb::KeyOriginInfo {
-                    root_fingerprint: vec![],
-                    keypath: vec![],
-                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
-                },
-            ],
-        };
-
-        // Register policy.
-        let mut mock_hal = TestingHal::new();
-        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&hash32, "test policy account name")
-            .unwrap();
-
-        let init_request = transaction
-            .borrow()
-            .init_request_policy(policy, keypath_account);
-        let result = process(&mut mock_hal, &init_request).await;
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "1c6b5465859db7dbd88f174d07a9df416d6dfa1e742903989584cd72e989d141485ad9d712df2852a6500e06856404959c010d5254353d11ab3167377ed4ee88"
-                    )
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-    }
-
-    #[async_test::test]
-    async fn test_policy_wrong_account_keypath() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
-        mock_host_responder(transaction.clone());
-
-        static mut UI_COUNTER: u32 = 0;
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
-        let wrong_keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 4 + HARDENED];
-
-        let policy = pb::btc_script_config::Policy {
-            policy: "wsh(multi(2,@0/**,@1/**))".into(),
-            keys: vec![
-                pb::KeyOriginInfo {
-                    root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
-                    keypath: keypath_account.to_vec(),
-                    xpub: Some(
-                        crate::keystore::get_xpub(
-                            &mut TestingHal::new(),
-                            keypath_account,
-                            crate::keystore::Compute::Once,
-                        )
-                        .await
-                        .unwrap()
-                        .into(),
-                    ),
-                },
-                pb::KeyOriginInfo {
-                    root_fingerprint: vec![],
-                    keypath: vec![],
-                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
-                },
-            ],
-        };
-
-        // Register policy.
-        let mut mock_hal = TestingHal::new();
-        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&hash32, "test policy account name")
-            .unwrap();
-
-        let init_request = transaction
-            .borrow()
-            .init_request_policy(policy, wrong_keypath_account);
-        assert_eq!(
-            process(&mut mock_hal, &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
-    /// Avoid change keypaths with a too high address index.
-    #[async_test::test]
-    async fn test_policy_wrong_change_keypath() {
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new_policy()));
-        transaction.borrow_mut().outputs[0].keypath[5] = 10000; // Too high change address index.
-        mock_host_responder(transaction.clone());
-
-        static mut UI_COUNTER: u32 = 0;
-
-        mock_unlocked_using_mnemonic(
-            "sudden tenant fault inject concert weather maid people chunk youth stumble grit",
-            "",
-        );
-
-        let keypath_account = &[48 + HARDENED, 1 + HARDENED, 0 + HARDENED, 3 + HARDENED];
-
-        let policy = pb::btc_script_config::Policy {
-            policy: "wsh(multi(2,@0/**,@1/**))".into(),
-            keys: vec![
-                pb::KeyOriginInfo {
-                    root_fingerprint: crate::keystore::root_fingerprint().unwrap(),
-                    keypath: keypath_account.to_vec(),
-                    xpub: Some(
-                        crate::keystore::get_xpub(
-                            &mut TestingHal::new(),
-                            keypath_account,
-                            crate::keystore::Compute::Once,
-                        )
-                        .await
-                        .unwrap()
-                        .into(),
-                    ),
-                },
-                pb::KeyOriginInfo {
-                    root_fingerprint: vec![],
-                    keypath: vec![],
-                    xpub: Some(parse_xpub("tpubDFGkUYFfEhAALSXQ9VNssUq71HWYLWLK7sAEqFyqJBQxQ4uGSBW1RSBkoVfijE6iEHZFs2kZrVzzV1nZCSEXYKudtsfEWcWKVXvjjLeRyd8").unwrap()),
-                },
-            ],
-        };
-
-        // Register policy.
-        let mut mock_hal = TestingHal::new();
-        let hash_vec = super::super::policies::get_hash(pb::BtcCoin::Tbtc, &policy).unwrap();
-        let hash32: [u8; 32] = hash_vec.as_slice().try_into().unwrap();
-        mock_hal
-            .memory
-            .multisig_set_by_hash(&hash32, "test policy account name")
-            .unwrap();
-
-        let init_request = transaction
-            .borrow()
-            .init_request_policy(policy, keypath_account);
-        assert_eq!(
-            process(&mut mock_hal, &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
-    #[async_test::test]
-    pub async fn test_payment_request() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        // Attach second output to a payment request.
-        {
-            let mut tx = transaction.borrow_mut();
-            // An additional confirmation for the text memo.
-            tx.total_confirmations += 3;
-            let payment_request_output_index = 1;
-            let output_value = tx.outputs[payment_request_output_index].value;
-            let mut payment_request = pb::BtcPaymentRequestRequest {
-                recipient_name: "Test Merchant".into(),
-                memos: vec![Memo {
-                    memo: Some(memo::Memo::TextMemo(memo::TextMemo {
-                        note: "Test memo line1\nTest memo line2".into(),
-                    })),
-                }],
-                nonce: vec![],
-                total_amount: output_value,
-                signature: vec![],
-            };
-            payment_request::tst_sign_payment_request_btc(
-                tx.coin,
-                &mut payment_request,
-                output_value,
-                "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ",
-            );
-            tx.payment_request = Some(payment_request);
-            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        let mut mock_hal = TestingHal::new();
-        let result = process(&mut mock_hal, &init_request).await;
-        assert!(result.is_ok());
-
-        assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Recipient {
-                    recipient: "12ZE w5Hc v1hT b6YU QJ69 y1V7 uhco Dz92 PH".into(),
-                    amount: "1.00000000 BTC".into(),
-                },
-                // Payment request
-                Screen::Recipient {
-                    recipient: "Test Merchant".into(),
-                    amount: "12.34567890 BTC".into(),
-                },
-                Screen::Confirm {
-                    title: "".into(),
-                    body: "Memo from\n\nTest Merchant".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Memo 1/2".into(),
-                    body: "Test memo line1".into(),
-                    longtouch: false,
-                },
-                Screen::Confirm {
-                    title: "Memo 2/2".into(),
-                    body: "Test memo line2".into(),
-                    longtouch: false,
-                },
-                Screen::Recipient {
-                    recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),
-                    amount: "0.00006000 BTC".into(),
-                },
-                Screen::Recipient {
-                    recipient: "bc1q g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zq d8sx w4".into(),
-                    amount: "0.00007000 BTC".into(),
-                },
-                Screen::Confirm {
-                    title: "Warning".into(),
-                    body: "There are 2\nchange outputs.\nProceed?".into(),
-                    longtouch: false,
-                },
-                Screen::TotalFee {
-                    total: "13.39999900 BTC".into(),
-                    fee: "0.05419010 BTC".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true
-                },
-            ]
-        );
-    }
-
-    #[async_test::test]
-    pub async fn test_payment_request_rejects_ours_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        {
-            let mut tx = transaction.borrow_mut();
-            let payment_request_output_index = 5;
-            assert!(tx.outputs[payment_request_output_index].ours);
-            let output_value = tx.outputs[payment_request_output_index].value;
-            let mut payment_request = pb::BtcPaymentRequestRequest {
-                recipient_name: "Test Merchant".into(),
-                memos: vec![Memo {
-                    memo: Some(memo::Memo::TextMemo(memo::TextMemo {
-                        note: "Test memo".into(),
-                    })),
-                }],
-                nonce: vec![],
-                total_amount: output_value,
-                signature: vec![],
-            };
-            payment_request::tst_sign_payment_request_btc(
-                tx.coin,
-                &mut payment_request,
-                output_value,
-                "bc1qnu4x8dlrx6dety47gehf4uhk5tj3q7yhywgry6",
-            );
-            tx.payment_request = Some(payment_request);
-            // A receive-branch self-transfer is not change, but it is still marked as ours and
-            // must not belong to a payment request.
-            tx.outputs[payment_request_output_index].keypath[3] = 0;
-            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        assert_eq!(
-            process(&mut TestingHal::new(), &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
     #[cfg(feature = "app-ethereum")]
     #[test]
     pub fn test_validate_swap_source_account() {
@@ -4020,241 +3024,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "app-ethereum")]
-    #[async_test::test]
-    pub async fn test_swap_payment_request() {
-        // End-to-end swap signing: swap screens appear, then the regular BTC confirmations continue.
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        {
-            let mut tx = transaction.borrow_mut();
-            tx.total_confirmations += 1;
-            let payment_request_output_index = 1;
-            let output_value = tx.outputs[payment_request_output_index].value;
-            let mut payment_request = pb::BtcPaymentRequestRequest {
-                recipient_name: "Test Merchant".into(),
-                memos: vec![Memo {
-                    memo: Some(memo::Memo::CoinPurchaseMemo(memo::CoinPurchaseMemo {
-                        coin_type: 60,
-                        amount: "0.25 ETH".into(),
-                        address: "0x773A77b9D32589be03f9132AF759e294f7851be9".into(),
-                        address_derivation: Some(memo::coin_purchase_memo::AddressDerivation::Eth(
-                            memo::coin_purchase_memo::EthAddressDerivation {
-                                keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
-                            },
-                        )),
-                    })),
-                }],
-                nonce: vec![],
-                total_amount: output_value,
-                signature: vec![],
-            };
-            payment_request::tst_sign_payment_request_btc(
-                tx.coin,
-                &mut payment_request,
-                output_value,
-                "34oVnh4gNviJGMnNvgquMeLAxvXJuaRVMZ",
-            );
-            tx.payment_request = Some(payment_request);
-            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
-        }
-
-        mock_host_responder(transaction.clone());
-        let init_request = transaction.borrow().init_request();
-
-        let mut mock_hal = TestingHal::new();
-        let result = process(&mut mock_hal, &init_request).await;
-        assert!(result.is_ok());
-
-        assert_eq!(
-            mock_hal.ui.screens,
-            vec![
-                Screen::Recipient {
-                    recipient: "12ZE w5Hc v1hT b6YU QJ69 y1V7 uhco Dz92 PH".into(),
-                    amount: "1.00000000 BTC".into(),
-                },
-                Screen::Recipient {
-                    recipient: "Test Merchant".into(),
-                    amount: "12.34567890 BTC".into(),
-                },
-                Screen::Swap {
-                    title: "Swap".into(),
-                    from: "12.34567890 BTC".into(),
-                    to: "0.25 ETH".into(),
-                },
-                Screen::Recipient {
-                    recipient: "bc1q xven xven xven xven xven xven xven xven 2ymj t8".into(),
-                    amount: "0.00006000 BTC".into(),
-                },
-                Screen::Recipient {
-                    recipient: "bc1q g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zy g3zq d8sx w4".into(),
-                    amount: "0.00007000 BTC".into(),
-                },
-                Screen::Confirm {
-                    title: "Warning".into(),
-                    body: "There are 2\nchange outputs.\nProceed?".into(),
-                    longtouch: false,
-                },
-                Screen::TotalFee {
-                    total: "13.39999900 BTC".into(),
-                    fee: "0.05419010 BTC".into(),
-                    longtouch: true,
-                },
-                Screen::Status {
-                    title: "Transaction\nconfirmed".into(),
-                    success: true
-                },
-            ]
-        );
-    }
-
-    #[cfg(feature = "app-ethereum")]
-    #[async_test::test]
-    pub async fn test_swap_payment_request_unsupported_source_coin() {
-        // Swap UI is restricted to BTC/LTC source accounts; other BTC-like coins must fail early.
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(
-            pb::BtcCoin::Tbtc,
-        )));
-
-        {
-            let mut tx = transaction.borrow_mut();
-            let payment_request_output_index = 1;
-            let output_value = tx.outputs[payment_request_output_index].value;
-            let mut payment_request = pb::BtcPaymentRequestRequest {
-                recipient_name: "Test Merchant".into(),
-                memos: vec![Memo {
-                    memo: Some(memo::Memo::CoinPurchaseMemo(memo::CoinPurchaseMemo {
-                        coin_type: 60,
-                        amount: "0.25 ETH".into(),
-                        address: "0x773A77b9D32589be03f9132AF759e294f7851be9".into(),
-                        address_derivation: Some(memo::coin_purchase_memo::AddressDerivation::Eth(
-                            memo::coin_purchase_memo::EthAddressDerivation {
-                                keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
-                            },
-                        )),
-                    })),
-                }],
-                nonce: vec![],
-                total_amount: output_value,
-                signature: vec![],
-            };
-            payment_request::tst_sign_payment_request_btc(
-                tx.coin,
-                &mut payment_request,
-                output_value,
-                "2MvdL2uD2Ubr4Zx8e6CQqNQEHjQ75sGH1NN",
-            );
-            tx.payment_request = Some(payment_request);
-            tx.outputs[payment_request_output_index].payment_request_index = Some(0);
-        }
-
-        mock_host_responder(transaction.clone());
-        let init_request = transaction.borrow().init_request();
-
-        assert_eq!(
-            process(&mut TestingHal::new(), &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
-    #[async_test::test]
-    async fn test_op_return() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        // Attach OP_RETURN output
-        {
-            let mut tx = transaction.borrow_mut();
-            tx.outputs.push(pb::BtcSignOutputRequest {
-                r#type: pb::BtcOutputType::OpReturn as _,
-                value: 0,
-                payload: b"hello world".to_vec(),
-                ..Default::default()
-            });
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        let mut mock_hal = TestingHal::new();
-        let result = process(&mut mock_hal, &init_request).await;
-
-        match result {
-            Ok(Response::BtcSignNext(next)) => {
-                assert!(next.has_signature);
-                assert_eq!(
-                    next.signature,
-                    hex!(
-                        "f49c71b89ec3510ebebae9aff9f967ad9bb6cc0c4cddbdf851f97e47e9922646622459e522b0751fa246e49a8e48417344a5384a9f68c1c85cd03804b35e1e1e"
-                    ),
-                );
-            }
-            _ => panic!("wrong result"),
-        }
-
-        assert!(mock_hal.ui.contains_confirm("OP_RETURN", "hello world"));
-    }
-
-    #[async_test::test]
-    async fn test_op_return_nonascii() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        // Attach OP_RETURN output
-        {
-            let mut tx = transaction.borrow_mut();
-            tx.outputs.push(pb::BtcSignOutputRequest {
-                r#type: pb::BtcOutputType::OpReturn as _,
-                value: 0,
-                payload: vec![1, 2, 3, 4, 5],
-                ..Default::default()
-            });
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        let mut mock_hal = TestingHal::new();
-        let result = process(&mut mock_hal, &init_request).await;
-        assert!(result.is_ok());
-
-        assert!(
-            mock_hal
-                .ui
-                .contains_confirm("OP_RETURN\ndata (hex)", "0102030405")
-        );
-    }
-
-    #[async_test::test]
-    async fn test_op_return_fail_nonzero_value() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        // Attach OP_RETURN output
-        {
-            let mut tx = transaction.borrow_mut();
-            tx.outputs.push(pb::BtcSignOutputRequest {
-                r#type: pb::BtcOutputType::OpReturn as _,
-                value: 100,
-                payload: b"hello world".to_vec(),
-                ..Default::default()
-            });
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        let mut mock_hal = TestingHal::new();
-        assert_eq!(
-            process(&mut mock_hal, &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
     #[async_test::test]
     async fn test_op_return_rejects_ours_output() {
         let transaction =
@@ -4268,57 +3037,6 @@ mod tests {
             tx.outputs[output_index].value = 0;
             tx.outputs[output_index].payload = b"hello world".to_vec();
             tx.outputs[output_index].keypath[3] = 0;
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        assert_eq!(
-            process(&mut TestingHal::new(), &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
-    #[async_test::test]
-    async fn test_op_return_rejects_silent_payment_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        {
-            let mut tx = transaction.borrow_mut();
-            tx.outputs[0].r#type = pb::BtcOutputType::OpReturn as _;
-            tx.outputs[0].value = 0;
-            tx.outputs[0].payload = b"hello world".to_vec();
-            tx.outputs[0].silent_payment = Some(pb::btc_sign_output_request::SilentPayment {
-                address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
-            });
-        }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
-        let init_request = transaction.borrow().init_request();
-
-        assert_eq!(
-            process(&mut TestingHal::new(), &init_request).await,
-            Err(Error::InvalidInput)
-        );
-    }
-
-    #[async_test::test]
-    async fn test_op_return_rejects_payment_request_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
-
-        {
-            let mut tx = transaction.borrow_mut();
-            tx.outputs.push(pb::BtcSignOutputRequest {
-                r#type: pb::BtcOutputType::OpReturn as _,
-                value: 0,
-                payload: b"hello world".to_vec(),
-                payment_request_index: Some(0),
-                ..Default::default()
-            });
         }
 
         mock_host_responder(transaction.clone());

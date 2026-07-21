@@ -30,6 +30,7 @@ members = [
     "bitbox-executor",
     "bitbox03",
     "bitbox-lvgl",
+    "bitbox-test-vectors",
 ]
 
 resolver = "2"

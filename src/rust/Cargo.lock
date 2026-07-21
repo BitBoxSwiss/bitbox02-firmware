@@ -250,6 +250,20 @@ name = "bitbox-securechip-sys"
 version = "0.1.0"
 
 [[package]]
+name = "bitbox-test-vectors"
+version = "0.1.0"
+dependencies = [
+ "bitbox-secp256k1",
+ "bitcoin",
+ "hex",
+ "miniscript",
+ "semver 1.0.20",
+ "serde",
+ "serde_json",
+ "sha3",
+]
+
+[[package]]
 name = "bitbox-u2fhid"
 version = "0.1.0"
 dependencies = [
@@ -306,6 +320,7 @@ dependencies = [
  "bitbox-platform-host",
  "bitbox-proto",
  "bitbox-secp256k1",
+ "bitbox-test-vectors",
  "bitbox-u2fhid",
  "bitbox-usb-report-queue",
  "bitbox02",
@@ -328,6 +343,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "prost",
+ "semver 1.0.20",
  "serde",
  "serde_json",
  "sha2",

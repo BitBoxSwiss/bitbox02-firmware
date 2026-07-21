@@ -7,6 +7,8 @@
 //! ```sh
 //! # Render the start state, or a mid-drag state at a given slider value (0..=304):
 //! cargo run -p bitbox03 --example render_slide_confirm -- /tmp/slide.bmp [value]
+//! # Render the string-entry screen (slide-to-confirm accept, e.g. passphrase):
+//! cargo run -p bitbox03 --example render_slide_confirm -- /tmp/enter.bmp enter
 //! sips -s format png /tmp/slide.bmp --out /tmp/slide.png   # macOS; or ImageMagick `convert`
 //! ```
 
@@ -16,9 +18,10 @@ use std::rc::Rc;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
-use bitbox_hal::ui::ConfirmParams;
+use bitbox_hal::ui::{CanCancel, ConfirmParams, EnterStringParams};
 use bitbox_lvgl::{self as lvgl, LvArea, LvDisplay, LvDisplayRenderMode, ObjExt};
 use bitbox03::ui::confirm::build_confirm_screen;
+use bitbox03::ui::enter_string::build_enter_string_screen;
 use util::futures::completion;
 
 const WIDTH: usize = 480;
@@ -68,7 +71,9 @@ fn main() {
     let out_path = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "slide_preview.bmp".to_string());
-    let value: Option<i32> = std::env::args().nth(2).and_then(|s| s.parse().ok());
+    let mode = std::env::args().nth(2);
+    let enter_screen = mode.as_deref() == Some("enter");
+    let value: Option<i32> = mode.as_deref().and_then(|s| s.parse().ok());
 
     lvgl::system::init();
     lvgl::tick::set_cb(Some(now_ms));
@@ -114,17 +119,31 @@ fn main() {
         });
     }
 
-    let (responder, _result) = completion::completion();
-    let body = "Total amount\n0.005 BTC\n\nFee\n0.0001 BTC";
-    let screen = build_confirm_screen(
-        &ConfirmParams {
-            title: "Transaction",
-            body,
-            longtouch: true,
-            ..Default::default()
-        },
-        responder,
-    );
+    let screen = if enter_screen {
+        let (responder, _result) = completion::completion();
+        build_enter_string_screen(
+            &EnterStringParams {
+                title: "Enter account name",
+                longtouch: true,
+                ..Default::default()
+            },
+            CanCancel::Yes,
+            "My account",
+            responder,
+        )
+    } else {
+        let (responder, _result) = completion::completion();
+        let body = "Total amount\n0.005 BTC\n\nFee\n0.0001 BTC";
+        build_confirm_screen(
+            &ConfirmParams {
+                title: "Transaction",
+                body,
+                longtouch: true,
+                ..Default::default()
+            },
+            responder,
+        )
+    };
 
     if let Some(value) = value {
         // Children in longtouch mode: title, body, close button, slide component; the slide

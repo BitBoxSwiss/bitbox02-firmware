@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "bitbox-test-vectors"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+bitcoin = { workspace = true, features = ["std"] }
+bitbox-secp256k1 = { path = "../bitbox-secp256k1" }
+hex = { workspace = true, features = ["std"] }
+miniscript = "13.0.0"
+semver = "1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha3 = { workspace = true }
+
+[[bin]]
+name = "generate-btc-test-vectors"
+path = "src/main.rs"

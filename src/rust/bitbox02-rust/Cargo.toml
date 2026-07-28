@@ -96,6 +96,9 @@ app-cardano = [
   "dep:crc"
 ]
 
+# Temporarily disabled pending API changes.
+bitboxsync = []
+
 testing = [
   "dep:bitbox-platform-host",
   "bitbox-platform-host?/testing",

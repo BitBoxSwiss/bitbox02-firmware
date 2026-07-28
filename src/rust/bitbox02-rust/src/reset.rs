@@ -13,9 +13,9 @@ use crate::hal::{Eeprom, Memory, SecureChip, System, Ui, memory};
 /// `status` selects whether the status message indicates success or failure (user invoked vs forced).
 pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
     crate::keystore::lock();
-    // Resetting takes longer than the default 500 ms watchdog. Bump the watchdog timeout to roughly
-    // 7 seconds (longer than needed) so we don't assume communication was lost and this task gets
-    // dropped at an await point.
+    // Resetting takes longer than the watchdog window. Bump the watchdog timeout by roughly
+    // 7 seconds (longer than needed) so we don't assume communication was lost and this task
+    // gets dropped at an await point.
     const LONG_TIMEOUT: i16 = -70;
     hal.system().communication_timeout_reset(LONG_TIMEOUT);
 

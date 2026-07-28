@@ -59,6 +59,8 @@ else()
      ""
      ugui
      ""
+     usb_processing
+     "-Wl,--wrap=rust_communication_mode_ble_enabled,--wrap=hww_abort_outstanding_op,--wrap=u2f_abort_outstanding_op"
   )
 
   list(LENGTH TEST_LIST TEST_LIST_LEN)

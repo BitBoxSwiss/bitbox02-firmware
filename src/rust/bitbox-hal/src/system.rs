@@ -14,8 +14,10 @@ pub trait System {
     /// This watchdog tracks the amount of time to wait before an outstanding
     /// operation times out (for example, if the client closes).
     /// Use this for long running operations that are expected to take longer
-    /// than about 300ms (a bit less than the 500ms timeout before a task is
-    /// cancelled).
+    /// than the timeout window, which depends on the active transport.
+    ///
+    /// `value` counts in 100ms units: `0` restarts the normal window, a
+    /// negative value extends it by `abs(value)` units.
     fn communication_timeout_reset(&mut self, value: i16);
 
     fn is_btconly(&mut self) -> bool;

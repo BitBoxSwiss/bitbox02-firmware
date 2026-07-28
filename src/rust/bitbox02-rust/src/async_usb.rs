@@ -90,8 +90,8 @@ where
             *state = UsbTaskState::Running(Some(task), WaitingForNextRequestState::Idle);
         }
         // This panic could happen e.g. if someone reconnects to the BitBox while a task is running,
-        // before the 500ms timeout cancels the task. The proper way to handle would be to let the
-        // host know we are busy so the host can re-retry after some time.
+        // before the outstanding-operation timeout cancels the task. The proper way to handle
+        // would be to let the host know we are busy so the host can re-retry after some time.
         _ => panic!("spawn: wrong state"),
     }
 }

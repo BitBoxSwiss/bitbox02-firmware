@@ -19,8 +19,8 @@ use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256, sha512};
 /// aes256cbc-hmac cipher adds 16 bytes IV, 16 bytes padding, 32 bytes hmac.
 const ENCRYPTION_OVERHEAD: usize = 64;
 
-// Unlocking the keystore takes longer than the default 500 ms watchdog. Bump the watchdog timeout
-// to roughly seven seconds so we don't assume communication was lost mid-unlock.
+// Unlocking the keystore takes longer than the watchdog window. Bump the watchdog timeout by
+// roughly seven seconds so we don't assume communication was lost mid-unlock.
 const LONG_TIMEOUT: i16 = -70;
 
 // After this many failed unlock attempts, the keystore becomes locked until a device reset.

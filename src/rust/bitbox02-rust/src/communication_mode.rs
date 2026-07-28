@@ -35,15 +35,16 @@ fn has_ble(hal: &mut impl crate::hal::Hal) -> bool {
 }
 
 #[cfg(test)]
+pub(crate) fn reset_for_testing() {
+    USB_HWW_REQUEST_SEEN.write(false);
+    HAS_BLE.write(None);
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     use crate::hal::testing::TestingHal;
-
-    fn reset_for_testing() {
-        USB_HWW_REQUEST_SEEN.write(false);
-        HAS_BLE.write(None);
-    }
 
     #[test]
     fn test_ble_disabled_on_non_plus() {

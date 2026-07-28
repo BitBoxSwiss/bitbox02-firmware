@@ -16,7 +16,10 @@ const HWW_RSP_ACK: u8 = 0;
 const HWW_RSP_NOT_READY: u8 = 1;
 const HWW_RSP_BUSY: u8 = 2;
 const HWW_RSP_NACK: u8 = 3;
+// Bluetooth needs a larger window than USB, because its round trip eats into the time the host
+// has to poll.
 const USB_OUTSTANDING_OP_TIMEOUT_MS: u64 = 500;
+const USB_OUTSTANDING_OP_TIMEOUT_BLE_MS: u64 = 3000;
 
 pub type HwwTransport<H> = U2fHid<HwwVendorHandler<H>>;
 
@@ -80,12 +83,19 @@ impl<H> HwwVendorHandler<H> {
             deadline_ms: None,
         }
     }
+}
 
+impl<H: Hal> HwwVendorHandler<H> {
     fn refresh_timeout(&mut self, now_ms: u64) {
         self.deadline_ms = if crate::async_usb::is_idle() {
             None
         } else {
-            Some(now_ms.saturating_add(USB_OUTSTANDING_OP_TIMEOUT_MS))
+            let timeout_ms = if crate::communication_mode::ble_enabled(&mut self.hal) {
+                USB_OUTSTANDING_OP_TIMEOUT_BLE_MS
+            } else {
+                USB_OUTSTANDING_OP_TIMEOUT_MS
+            };
+            Some(now_ms.saturating_add(timeout_ms))
         };
     }
 }
@@ -207,6 +217,8 @@ mod tests {
     fn test_guard() -> MutexGuard<'static, ()> {
         let guard = TEST_LOCK.lock().unwrap();
         crate::async_usb::cancel();
+        // Reset communication-mode statics so BLE state cannot leak between tests.
+        crate::communication_mode::reset_for_testing();
         guard
     }
 
@@ -320,6 +332,31 @@ mod tests {
         assert!(!crate::async_usb::is_idle());
 
         bitbox_u2fhid::VendorCommandHandler::tick(&mut handler, USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
+        assert!(crate::async_usb::is_idle());
+    }
+
+    #[test]
+    fn test_outstanding_request_over_ble_uses_longer_timeout() {
+        let _guard = test_guard();
+        crate::async_usb::spawn(pending_task, &[]);
+        let mut handler = handler();
+        handler.hal.memory.set_platform(Platform::BitBox02Plus);
+
+        let response = handler
+            .handle_vendor_command(1, HWW_CMD, &[HWW_REQ_RETRY], 0)
+            .unwrap();
+        assert_eq!(response, vec![HWW_RSP_NOT_READY]);
+        assert!(!crate::async_usb::is_idle());
+
+        // USB timeout must not abort a healthy BLE operation.
+        bitbox_u2fhid::VendorCommandHandler::tick(&mut handler, USB_OUTSTANDING_OP_TIMEOUT_MS + 1);
+        assert!(!crate::async_usb::is_idle());
+
+        // BLE timeout does abort after the longer window.
+        bitbox_u2fhid::VendorCommandHandler::tick(
+            &mut handler,
+            USB_OUTSTANDING_OP_TIMEOUT_BLE_MS + 1,
+        );
         assert!(crate::async_usb::is_idle());
     }
 

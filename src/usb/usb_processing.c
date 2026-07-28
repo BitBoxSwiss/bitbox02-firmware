@@ -25,11 +25,15 @@ extern struct timer_descriptor TIMER_0;
 
 /**
  * Amount of time to wait before an outstanding operation times out
- * (if the client is closed).
+ * (if the client is closed). Bluetooth needs a larger window than USB,
+ * because its round trip is slower.
  */
 #define USB_OUTSTANDING_OP_TIMEOUT_MS (500)
+#define USB_OUTSTANDING_OP_TIMEOUT_BLE_MS (3000)
 #define USB_TIMER_TICK_PERIOD_MS (100)
 #define USB_OUTSTANDING_OP_TIMEOUT_TICKS (USB_OUTSTANDING_OP_TIMEOUT_MS / USB_TIMER_TICK_PERIOD_MS)
+#define USB_OUTSTANDING_OP_TIMEOUT_BLE_TICKS \
+    (USB_OUTSTANDING_OP_TIMEOUT_BLE_MS / USB_TIMER_TICK_PERIOD_MS)
 
 struct usb_processing {
     CMD_Callback* registered_cmds;
@@ -104,10 +108,10 @@ typedef struct {
     struct usb_processing* blocking_ctx;
     /**
      * Timeout counter. This is increased every 100ms by a timer,
-     * and is reset to 0 every time a new packet is send to one of the
-     * underlying stacks. When the timeout counter becomes greater then
-     * USB_OUTSTANDING_OP_TIMEOUT_TICKS, any outstanding operation is aborted
-     * and the USB stack is forcefully unlocked.
+     * and is reset to 0 every time a new packet is sent to one of the
+     * underlying stacks. When the timeout counter becomes greater than
+     * the timeout of the currently locked context, any outstanding
+     * operation is aborted and the USB stack is forcefully unlocked.
      */
     int16_t timeout_counter;
 #endif
@@ -305,6 +309,17 @@ static void _usb_consume_incoming_packets(struct usb_processing* ctx)
 
 #if !defined(BOOTLOADER)
 /**
+ * Bluetooth carries HWW traffic only, so U2F always uses the USB timeout.
+ */
+static int16_t _outstanding_op_timeout_ticks(const struct usb_processing* ctx)
+{
+    if (ctx == usb_processing_hww() && rust_communication_mode_ble_enabled()) {
+        return USB_OUTSTANDING_OP_TIMEOUT_BLE_TICKS;
+    }
+    return USB_OUTSTANDING_OP_TIMEOUT_TICKS;
+}
+
+/**
  * Check if the lock timer has expired for this context.
  * If it has, call the abort_outstanding_op function and unlock
  * the USB stack.
@@ -316,7 +331,7 @@ static void _check_lock_timeout(struct usb_processing* ctx)
     if (_usb_state.blocking_ctx != ctx) {
         return;
     }
-    if (_usb_state.timeout_counter > USB_OUTSTANDING_OP_TIMEOUT_TICKS) {
+    if (_usb_state.timeout_counter > _outstanding_op_timeout_ticks(ctx)) {
         util_log("usb_processing: timed out!");
         // ASSERT(false);
         if (!ctx->abort_outstanding_op) {

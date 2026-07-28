@@ -7,8 +7,11 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
-- Fixed a crash when listing many backups over Bluetooth
 - Add support for BitBoxSync
+
+### v9.26.5
+- Fixed a crash when listing many backups over Bluetooth
+- Fix unexpected NACK responses on iOS due to slow securechip operations
 
 ### v9.26.4
 - Ethereum: allow ':' in EIP-712 type names, used by some dapps as a namespace separator

@@ -1994,12 +1994,8 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
     Connects and runs the main menu on a BitBox02 connected
     over USB.
     """
-    try:
-        bitbox = devices.get_any_bitbox02()
-    except devices.TooManyFoundException:
-        print("Multiple bitboxes detected. Only one supported")
-        return 1
-    except devices.NoneFoundException:
+
+    def connect_to_bootloader() -> int:
         try:
             bootloader = devices.get_any_bitbox02_bootloader()
         except devices.TooManyFoundException:
@@ -2019,6 +2015,14 @@ def connect_to_usb_bitbox(debug: bool, use_cache: bool) -> int:
         bootloader_connection = Bootloader(u2fhid.U2FHid(hid_device), bootloader)
         boot_app = SendMessageBootloader(bootloader_connection)
         return boot_app.run()
+
+    try:
+        bitbox = devices.get_any_bitbox02()
+    except devices.TooManyFoundException:
+        print("Multiple bitboxes detected. Only one supported")
+        return 1
+    except devices.NoneFoundException:
+        return connect_to_bootloader()
 
     def show_pairing(code: str, device_response: Callable[[], bool]) -> bool:
         print("Please compare and confirm the pairing code on your BitBox02:")

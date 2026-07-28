@@ -1383,6 +1383,7 @@ mod tests {
     use alloc::collections::{BTreeMap, BTreeSet};
     use bitbox_test_vectors::btc_transaction as btc_test_vectors;
     use hex_lit::hex;
+    use miniscript::psbt::PsbtExt;
     use pb::btc_payment_request_request::{Memo, memo};
     use util::bip32::HARDENED;
 
@@ -2390,6 +2391,88 @@ mod tests {
         );
     }
 
+    /// Adds firmware responses to the vector PSBT and checks that the transaction, including its
+    /// signatures, is valid.
+    fn assert_vector_transaction_valid(
+        vector: &btc_test_vectors::TestVector,
+        observations: &VectorObservations,
+    ) {
+        let serialized = hex::decode(&vector.psbt.transaction).unwrap_or_else(|error| {
+            panic!(
+                "transaction vector '{}' contains invalid PSBT hex: {error}",
+                vector.id
+            )
+        });
+        let mut psbt = bitcoin::psbt::Psbt::deserialize(&serialized).unwrap_or_else(|error| {
+            panic!(
+                "transaction vector '{}' contains an invalid PSBT: {error}",
+                vector.id
+            )
+        });
+
+        for (index, pkscript) in &observations.generated_outputs {
+            psbt.unsigned_tx.output[*index].script_pubkey =
+                bitcoin::ScriptBuf::from_bytes(pkscript.clone());
+        }
+
+        for expected in &vector.expected_signatures {
+            let signature = &observations.signatures[&expected.input_index];
+            let input = &mut psbt.inputs[expected.input_index];
+            match expected.kind {
+                btc_test_vectors::SignatureKind::Ecdsa => {
+                    let pubkey = expected
+                        .pubkey
+                        .as_deref()
+                        .unwrap()
+                        .parse::<bitcoin::PublicKey>()
+                        .unwrap();
+                    let signature = bitcoin::ecdsa::Signature::sighash_all(
+                        bitcoin::secp256k1::ecdsa::Signature::from_compact(signature).unwrap(),
+                    );
+                    assert!(input.partial_sigs.insert(pubkey, signature).is_none());
+                }
+                btc_test_vectors::SignatureKind::TaprootKey => {
+                    assert!(input.tap_key_sig.is_none());
+                    input.tap_key_sig =
+                        Some(bitcoin::taproot::Signature::from_slice(signature).unwrap());
+                }
+                btc_test_vectors::SignatureKind::TaprootScript => {
+                    let pubkey = expected
+                        .pubkey
+                        .as_deref()
+                        .unwrap()
+                        .parse::<bitcoin::secp256k1::XOnlyPublicKey>()
+                        .unwrap();
+                    let leaf_hash = bitcoin::TapLeafHash::from_slice(
+                        &hex::decode(expected.leaf_hash.as_deref().unwrap()).unwrap(),
+                    )
+                    .unwrap();
+                    let signature = bitcoin::taproot::Signature::from_slice(signature).unwrap();
+                    assert!(
+                        input
+                            .tap_script_sigs
+                            .insert((pubkey, leaf_hash), signature)
+                            .is_none()
+                    );
+                }
+            }
+        }
+
+        let secp = bitcoin::secp256k1::Secp256k1::verification_only();
+        psbt.finalize_mut(&secp).unwrap_or_else(|errors| {
+            panic!(
+                "transaction vector '{}' failed PSBT finalization: {errors:?}",
+                vector.id
+            )
+        });
+        miniscript::psbt::interpreter_check(&psbt, &secp).unwrap_or_else(|error| {
+            panic!(
+                "transaction vector '{}' failed script verification: {error:?}",
+                vector.id
+            )
+        });
+    }
+
     async fn assert_vector_pubkeys(
         hal: &mut TestingHal<'_>,
         vector: &btc_test_vectors::TestVector,
@@ -2482,7 +2565,11 @@ mod tests {
                         panic!("transaction vector '{}' failed: {error:?}", vector.id)
                     });
                     observations.borrow_mut().observe(&response);
-                    assert_vector_observations(vector, &sign_request, &observations.borrow());
+                    {
+                        let observations = observations.borrow();
+                        assert_vector_observations(vector, &sign_request, &observations);
+                        assert_vector_transaction_valid(vector, &observations);
+                    }
                     assert_vector_pubkeys(&mut mock_hal, vector, &sign_request).await;
                 }
                 btc_test_vectors::Outcome::InvalidInput => {

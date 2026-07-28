@@ -35,6 +35,8 @@ else()
      "-Wl,--wrap=util_cleanup_32"
      gestures
      ""
+     hww
+     "-Wl,--wrap=rust_workflow_u2f_is_active"
      random
      "-Wl,--wrap=rand,--wrap=rust_sha256"
      screen_process

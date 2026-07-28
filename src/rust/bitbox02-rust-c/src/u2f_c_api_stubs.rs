@@ -4,6 +4,11 @@
 pub unsafe extern "C" fn rust_workflow_spawn_unlock() {}
 
 #[unsafe(no_mangle)]
+pub extern "C" fn rust_workflow_u2f_is_active() -> bool {
+    false
+}
+
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     _title: *const core::ffi::c_char,
     _body: *const core::ffi::c_char,

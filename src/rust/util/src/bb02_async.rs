@@ -13,10 +13,8 @@ pub type Task<'a, O> = Pin<Box<dyn core::future::Future<Output = O> + 'a>>;
 
 /// A primitive poll invocation for a task, with no waking functionality.
 pub fn spin<O>(task: &mut Task<O>) -> Poll<O> {
-    // TODO: statically allocate the context.
-    let waker = crate::waker_fn::waker_fn(|| {});
-    let context = &mut Context::from_waker(&waker);
-    task.as_mut().poll(context)
+    let mut context = Context::from_waker(core::task::Waker::noop());
+    task.as_mut().poll(&mut context)
 }
 
 /// Implements the Option future, see `option()`.

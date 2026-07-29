@@ -141,10 +141,13 @@ impl FrameBuffer {
     ) -> FrameBuffer {
         let front_buffer =
             DynamicImage::ImageRgba8(RgbaImage::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32));
+        // Linear filtering: the screen is drawn scaled (the window opens at 50% and is freely
+        // resizable), and NEAREST sampling at non-integer scales drops different source rows per
+        // screen position — identical borders then render with visibly different thickness.
         let screen_id = canvas
             .create_image(
                 ImageSource::try_from(&front_buffer).unwrap(),
-                ImageFlags::NEAREST,
+                ImageFlags::empty(),
             )
             .unwrap();
         FrameBuffer {

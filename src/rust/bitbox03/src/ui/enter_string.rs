@@ -11,6 +11,7 @@ use bitbox_lvgl::{
 use util::futures::completion::Responder;
 
 use super::keyboard::build_keyboard;
+use super::keypad::build_keypad;
 use super::nav_button::{NavIcon, build_close_button, build_nav_button};
 use super::slide_to_confirm::build_slide_to_confirm;
 
@@ -28,7 +29,7 @@ fn snapshot_text(textarea: &LvTextarea) -> String {
 
 /// Whether the textarea is empty, read in place from LVGL's buffer — unlike [`snapshot_text`]
 /// this does not copy the (possibly secret) content to the heap.
-fn textarea_is_empty(textarea: &LvTextarea) -> bool {
+pub(super) fn textarea_is_empty(textarea: &LvTextarea) -> bool {
     let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
     text.is_null() || unsafe { *text == 0 }
 }
@@ -366,16 +367,93 @@ pub fn build_passphrase_screen(
 ) -> LvObj {
     const DISABLED: u32 = lvgl::LvState::LV_STATE_DISABLED as u32;
 
+    let screen = build_entry_screen_frame();
+
+    add_title(&screen, params.title);
+
+    let textarea = add_masked_display(&screen, preset);
+
+    // The keyboard and the navigation row are anchored to the bottom of the screen (taken out
+    // of the flex flow), so the Back/Confirm buttons sit exactly where the other workflows put
+    // them — flush above the standard 32px bottom padding — with the keyboard right above,
+    // independent of how many lines the title wraps to.
+    let keyboard = build_keyboard(&screen, Rc::clone(&textarea));
+    keyboard.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
+    keyboard.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, -(82 + 20));
+
+    let actions = add_actions_row(&screen);
+    actions.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
+    actions.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    // The flex-flow stand-in for the floating keyboard and navigation row: it makes the growing
+    // entry display above end a standard gap over the keyboard.
+    add_bottom_region_spacer(&screen, super::keyboard::KEYBOARD_HEIGHT + 20 + 82);
+
+    // Backspace (the mockup's left chevron): deletes the last character; gray and inert while
+    // the input is empty.
+    let backspace = build_nav_button(&actions, NavIcon::Back);
+    let backspace_icon = backspace.child(0).expect("backspace icon");
+    backspace.set_style_border_color(super::keyboard::gray(), DISABLED);
+    backspace_icon.set_style_image_recolor(super::keyboard::gray(), DISABLED);
+    let delete_textarea = Rc::clone(&textarea);
+    backspace
+        .add_click_cb(move || delete_textarea.delete_char())
+        .expect("failed to register backspace callback");
+
+    let refresh_textarea = Rc::clone(&textarea);
+    let refresh_backspace = Rc::new(move || {
+        if textarea_is_empty(refresh_textarea.as_ref()) {
+            backspace.add_state(lvgl::LvState::LV_STATE_DISABLED);
+            backspace_icon.add_state(lvgl::LvState::LV_STATE_DISABLED);
+            backspace.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+        } else {
+            backspace.remove_state(lvgl::LvState::LV_STATE_DISABLED);
+            backspace_icon.remove_state(lvgl::LvState::LV_STATE_DISABLED);
+            backspace.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+        }
+    });
+    refresh_backspace();
+    let refresh_backspace_cb = Rc::clone(&refresh_backspace);
+    textarea
+        .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
+            refresh_backspace_cb()
+        })
+        .expect("failed to register textarea change callback");
+
+    if matches!(can_cancel, CanCancel::Yes) {
+        let reject_responder = responder.clone();
+        let close = build_close_button(&screen);
+        // This screen has no side padding; re-anchor the corner button ~12px from the edges.
+        close.align(lvgl::LvAlign::LV_ALIGN_TOP_RIGHT, -12, -28);
+        close
+            .add_click_cb(move || reject_responder.resolve(Err(UserAbort)))
+            .expect("failed to register cancel callback");
+    }
+
+    let accept = build_nav_button(&actions, NavIcon::Confirm);
+    accept
+        .add_click_cb(move || {
+            responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
+                textarea.as_ref(),
+            ))));
+        })
+        .expect("failed to register confirm callback");
+
+    screen
+}
+
+/// Builds a screen skeleton shared by the passphrase and PIN screens: black background, flex
+/// column with both cross alignments centred (content is wider than the standard 380px on the
+/// passphrase screen), standard outer padding, no scrolling.
+fn build_entry_screen_frame() -> LvObj {
     let screen = LvObj::new().unwrap();
     screen.set_layout(lvgl::LvLayout::LV_LAYOUT_FLEX);
     screen.set_flex_flow(lvgl::LvFlexFlow::LV_FLEX_FLOW_COLUMN);
     screen.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
     screen.set_style_bg_color(lvgl::color::black(), 0);
     screen.set_style_text_color(lvgl::color::white(), 0);
-    // The keyboard is wider (445px) than the standard 380px content width, so the screen keeps
-    // no side padding and centres each child instead. Centring needs both alignments: CROSS
-    // centres items within their flex track (which is only as wide as the widest child), TRACK
-    // centres that track on the screen.
+    // Centring needs both alignments: CROSS centres items within their flex track (which is
+    // only as wide as the widest child), TRACK centres that track on the screen.
     screen.set_style_flex_cross_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_CENTER, 0);
     screen.set_style_flex_track_place(lvgl::LvFlexAlign::LV_FLEX_ALIGN_CENTER, 0);
     screen.set_style_pad_top(40, 0);
@@ -383,15 +461,74 @@ pub fn build_passphrase_screen(
     screen.set_style_pad_bottom(32, 0);
     screen.set_style_pad_left(0, 0);
     screen.set_style_pad_row(20, 0);
+    screen
+}
 
-    add_title(&screen, params.title);
+/// Adds the invisible flex-flow stand-in for a bottom-anchored (floating) input widget region,
+/// so the growing entry display above it ends a standard gap over that region.
+fn add_bottom_region_spacer(screen: &LvObj, height: i32) {
+    let spacer = LvObj::with_parent(screen).unwrap();
+    spacer.set_size(0, height);
+    spacer.set_style_border_width(0, 0);
+    spacer.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
+    spacer.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
+}
 
-    // The entry display (no input box, per the mockup): a bare centred row of one filled circle
-    // per masked character — drawn as LVGL objects, since the ASCII-only fonts have no bullet
-    // glyph — with the last entered character in plaintext until the next keystroke (deleting
-    // re-masks everything). The textarea is an invisible storage/event widget inside the row;
-    // the keyboard, backspace and confirm all operate on it.
-    let display = LvObj::with_parent(&screen).unwrap();
+/// The device PIN entry screen ("PIN entry mockup"): title, the masked entry display and a
+/// numeric 3×4 keypad whose bottom row carries backspace, 0 and a tap confirm.
+///
+/// The keypad is bottom-anchored so its bottom row sits exactly where the other workflows put
+/// their navigation buttons. The BitBox03's device unlock secret is a numeric PIN, so titles
+/// show "PIN" where the (BitBox02-shared) workflow strings say "password", and the input
+/// accepts digits only. As on the passphrase screen, accepting is a plain tap despite the
+/// params' `longtouch`; with `CanCancel::Yes` (set/repeat PIN) a corner close button rejects.
+pub fn build_pin_screen(
+    params: &EnterStringParams<'_>,
+    can_cancel: CanCancel,
+    preset: &str,
+    responder: Responder<Result<zeroize::Zeroizing<String>, UserAbort>>,
+) -> LvObj {
+    let screen = build_entry_screen_frame();
+
+    add_title(&screen, &params.title.replace("password", "PIN"));
+
+    let textarea = add_masked_display(&screen, preset);
+    textarea.set_accepted_chars(Some(c"0123456789"));
+
+    let confirm_textarea = Rc::clone(&textarea);
+    let confirm_responder = responder.clone();
+    let keypad = build_keypad(&screen, Rc::clone(&textarea), move || {
+        confirm_responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
+            confirm_textarea.as_ref(),
+        ))));
+    });
+    keypad.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
+    keypad.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, 0);
+    add_bottom_region_spacer(&screen, super::keypad::KEYPAD_HEIGHT);
+
+    if matches!(can_cancel, CanCancel::Yes) {
+        let reject_responder = responder.clone();
+        let close = build_close_button(&screen);
+        // This screen has no side padding; re-anchor the corner button ~12px from the edges.
+        close.align(lvgl::LvAlign::LV_ALIGN_TOP_RIGHT, -12, -28);
+        close
+            .add_click_cb(move || reject_responder.resolve(Err(UserAbort)))
+            .expect("failed to register cancel callback");
+    }
+
+    screen
+}
+
+/// Adds the masked entry display: a bare centred row of one filled circle per masked character —
+/// drawn as LVGL objects, since the ASCII-only fonts have no bullet glyph — with the last
+/// entered character in plaintext until the next keystroke (deleting re-masks everything). The
+/// row has `flex_grow`, so it fills and centres within the space the screen's flex flow leaves
+/// between the title and whatever follows.
+///
+/// Returns the invisible storage/event textarea (the display row's child 0) that the input
+/// widgets operate on.
+fn add_masked_display(screen: &LvObj, preset: &str) -> Rc<LvTextarea> {
+    let display = LvObj::with_parent(screen).unwrap();
     display.set_size(380, 72);
     // Fill the whole area between the title and the (bottom-anchored) keyboard, so the centred
     // circle row sits in the middle of it; a spacer below reserves the keyboard/nav region,
@@ -494,77 +631,7 @@ pub fn build_passphrase_screen(
         })
         .expect("failed to register entry display callback");
 
-    // The keyboard and the navigation row are anchored to the bottom of the screen (taken out
-    // of the flex flow), so the Back/Confirm buttons sit exactly where the other workflows put
-    // them — flush above the standard 32px bottom padding — with the keyboard right above,
-    // independent of how many lines the title wraps to.
-    let keyboard = build_keyboard(&screen, Rc::clone(&textarea));
-    keyboard.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
-    keyboard.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, -(82 + 20));
-
-    let actions = add_actions_row(&screen);
-    actions.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
-    actions.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, 0);
-
-    // The flex-flow stand-in for the floating keyboard and navigation row: it makes the growing
-    // entry display above end a standard gap over the keyboard.
-    let keyboard_region = LvObj::with_parent(&screen).unwrap();
-    keyboard_region.set_size(0, super::keyboard::KEYBOARD_HEIGHT + 20 + 82);
-    keyboard_region.set_style_border_width(0, 0);
-    keyboard_region.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
-    keyboard_region.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
-
-    // Backspace (the mockup's left chevron): deletes the last character; gray and inert while
-    // the input is empty.
-    let backspace = build_nav_button(&actions, NavIcon::Back);
-    let backspace_icon = backspace.child(0).expect("backspace icon");
-    backspace.set_style_border_color(super::keyboard::gray(), DISABLED);
-    backspace_icon.set_style_image_recolor(super::keyboard::gray(), DISABLED);
-    let delete_textarea = Rc::clone(&textarea);
-    backspace
-        .add_click_cb(move || delete_textarea.delete_char())
-        .expect("failed to register backspace callback");
-
-    let refresh_textarea = Rc::clone(&textarea);
-    let refresh_backspace = Rc::new(move || {
-        if textarea_is_empty(refresh_textarea.as_ref()) {
-            backspace.add_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace_icon.add_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace.remove_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
-        } else {
-            backspace.remove_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace_icon.remove_state(lvgl::LvState::LV_STATE_DISABLED);
-            backspace.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_CLICKABLE);
-        }
-    });
-    refresh_backspace();
-    let refresh_backspace_cb = Rc::clone(&refresh_backspace);
     textarea
-        .add_event_cb(lvgl::LvEventCode::LV_EVENT_VALUE_CHANGED, move || {
-            refresh_backspace_cb()
-        })
-        .expect("failed to register textarea change callback");
-
-    if matches!(can_cancel, CanCancel::Yes) {
-        let reject_responder = responder.clone();
-        let close = build_close_button(&screen);
-        // This screen has no side padding; re-anchor the corner button ~12px from the edges.
-        close.align(lvgl::LvAlign::LV_ALIGN_TOP_RIGHT, -12, -28);
-        close
-            .add_click_cb(move || reject_responder.resolve(Err(UserAbort)))
-            .expect("failed to register cancel callback");
-    }
-
-    let accept = build_nav_button(&actions, NavIcon::Confirm);
-    accept
-        .add_click_cb(move || {
-            responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
-                textarea.as_ref(),
-            ))));
-        })
-        .expect("failed to register confirm callback");
-
-    screen
 }
 
 pub fn build_enter_string_screen(
@@ -573,6 +640,9 @@ pub fn build_enter_string_screen(
     preset: &str,
     responder: Responder<Result<zeroize::Zeroizing<String>, UserAbort>>,
 ) -> LvObj {
+    if params.pin && params.wordlist.is_none() {
+        return build_pin_screen(params, can_cancel, preset, responder);
+    }
     if params.passphrase && params.wordlist.is_none() && !params.number_input {
         return build_passphrase_screen(params, can_cancel, preset, responder);
     }
@@ -760,6 +830,18 @@ mod tests {
         }
     }
 
+    /// The device password params as `password::enter` builds them (the PIN screen renders the
+    /// title with "password" replaced by "PIN").
+    fn pin_params() -> EnterStringParams<'static> {
+        EnterStringParams {
+            title: "Enter password",
+            hide: true,
+            longtouch: true,
+            pin: true,
+            ..Default::default()
+        }
+    }
+
     /// Polls a completion future once with a no-op waker.
     fn poll_once<T>(result: &mut completion::Result<T>) -> Option<T> {
         fn noop(_: *const ()) {}
@@ -782,10 +864,10 @@ mod tests {
     }
 
     impl Harness {
-        fn new(can_cancel: CanCancel) -> Self {
+        fn with_params(params: &EnterStringParams<'_>, can_cancel: CanCancel) -> Self {
             let touch = ScriptedTouch::new();
             let (responder, result) = completion::completion();
-            let screen = build_enter_string_screen(&passphrase_params(), can_cancel, "", responder);
+            let screen = build_enter_string_screen(params, can_cancel, "", responder);
             unsafe { ffi::lv_screen_load(screen.as_ptr()) };
             pump_for(60); // layout + first render
             Self {
@@ -793,6 +875,37 @@ mod tests {
                 screen,
                 result,
             }
+        }
+
+        fn new(can_cancel: CanCancel) -> Self {
+            Self::with_params(&passphrase_params(), can_cancel)
+        }
+
+        fn new_pin(can_cancel: CanCancel) -> Self {
+            Self::with_params(&pin_params(), can_cancel)
+        }
+
+        /// The PIN keypad container (screen child 2 on the PIN screen).
+        fn keypad(&self) -> LvObj {
+            self.screen.child(2).expect("keypad container")
+        }
+
+        /// Taps the PIN keypad key at grid position (`row`, `col`).
+        fn tap_pin_key(&mut self, row: usize, col: usize) {
+            let area = coords(&self.keypad());
+            let (x, y) = super::super::keypad::key_center(row, col);
+            self.touch.tap(area.x1 + x, area.y1 + y);
+        }
+
+        /// The title label's current text.
+        fn title_text(&self) -> String {
+            let title = self
+                .screen
+                .child(0)
+                .expect("title")
+                .try_downcast::<class::LabelTag>()
+                .expect("child 0 is the title label");
+            String::from(title.get_text().unwrap().to_str().unwrap())
         }
 
         /// The entry display row (screen child 1): hidden textarea, `MASK_DOT_COUNT_MAX`
@@ -1225,5 +1338,69 @@ mod tests {
         harness.touch.push(x, y, true);
         pump_for(120);
         assert_eq!(label.get_text().unwrap().to_str().unwrap(), "?");
+    }
+
+    #[test]
+    fn test_pin_types_digits_and_confirms() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new_pin(CanCancel::No);
+
+        // Workflow titles say "password"; the PIN screen renders them with "PIN".
+        assert_eq!(harness.title_text(), "Enter PIN");
+
+        harness.tap_pin_key(0, 0); // 1
+        harness.tap_pin_key(1, 1); // 5
+        harness.tap_pin_key(2, 2); // 9
+        harness.tap_pin_key(3, 1); // 0
+        assert_eq!(harness.text(), "1590");
+        // The masked display shows circles plus the last entered digit.
+        assert_eq!(harness.shown_dots(), 3);
+        assert_eq!(harness.revealed_char().as_deref(), Some("0"));
+
+        assert!(poll_once(&mut harness.result).is_none());
+        harness.tap_pin_key(3, 2); // confirm
+        let result = poll_once(&mut harness.result).expect("confirm resolves");
+        let Ok(text) = result else {
+            panic!("unexpected abort")
+        };
+        assert_eq!(text.as_str(), "1590");
+    }
+
+    #[test]
+    fn test_pin_backspace_deletes_and_disables_when_empty() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new_pin(CanCancel::No);
+
+        let backspace = harness.keypad().child(9).expect("backspace key");
+        assert!(Harness::disabled(&backspace));
+
+        harness.tap_pin_key(0, 1); // 2
+        harness.tap_pin_key(0, 2); // 3
+        assert!(!Harness::disabled(&backspace));
+
+        harness.tap_pin_key(3, 0); // backspace
+        assert_eq!(harness.text(), "2");
+        harness.tap_pin_key(3, 0);
+        assert_eq!(harness.text(), "");
+        assert!(Harness::disabled(&backspace));
+
+        // Tapping the disabled key is inert.
+        harness.tap_pin_key(3, 0);
+        assert_eq!(harness.text(), "");
+    }
+
+    #[test]
+    fn test_pin_close_button_rejects() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new_pin(CanCancel::Yes);
+
+        // Children on the PIN screen: title, display, keypad, spacer, corner close button.
+        let close = harness.screen.child(4).expect("corner close button");
+        let area = coords(&close);
+        harness
+            .touch
+            .tap((area.x1 + area.x2) / 2, (area.y1 + area.y2) / 2);
+        let result = poll_once(&mut harness.result).expect("close resolves");
+        assert!(result.is_err(), "close must reject with UserAbort");
     }
 }

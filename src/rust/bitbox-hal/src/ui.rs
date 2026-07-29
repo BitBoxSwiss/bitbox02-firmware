@@ -55,6 +55,10 @@ pub struct EnterStringParams<'a> {
     /// The string being entered is a BIP39 passphrase. On the BitBox03 this renders a full
     /// QWERTY keyboard screen with a tap-to-confirm checkmark; the BitBox02 ignores it.
     pub passphrase: bool,
+    /// The string being entered is the device unlock password. On the BitBox03 this renders a
+    /// digits-only PIN keypad screen (titles show "PIN" instead of "password"); the BitBox02
+    /// ignores it and keeps its full keyboard.
+    pub pin: bool,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]

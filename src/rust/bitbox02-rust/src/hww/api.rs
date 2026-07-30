@@ -17,6 +17,7 @@ mod cardano;
 
 mod backup;
 mod bip85;
+#[cfg(feature = "bitboxsync")]
 mod bitboxsync;
 mod bluetooth;
 mod change_password;
@@ -201,7 +202,10 @@ async fn process_api(hal: &mut impl crate::hal::Hal, request: &Request) -> Resul
         #[cfg(not(feature = "app-cardano"))]
         Request::Cardano(_) => Err(Error::Disabled),
         Request::Bip85(request) => bip85::process(hal, request).await,
+        #[cfg(feature = "bitboxsync")]
         Request::BitboxSync(request) => bitboxsync::process(hal, request).await,
+        #[cfg(not(feature = "bitboxsync"))]
+        Request::BitboxSync(_) => Err(Error::Disabled),
         Request::Bluetooth(pb::BluetoothRequest {
             request: Some(request),
         }) => bluetooth::process_api(hal, request)

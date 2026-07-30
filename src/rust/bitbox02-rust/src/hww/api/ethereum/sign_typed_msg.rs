@@ -35,6 +35,10 @@ const DOMAIN_TYPE_NAME: &str = "EIP712Domain";
 
 const MAX_TYPED_MSG_STREAMING_DATA_LENGTH: u32 = 1024 * 1024;
 
+// Conservative rather than exact stack threshold. EIP-712's async traversal has relatively large
+// recursion frames, so cap attacker-controlled nesting at 16 while retaining ample useful depth.
+const MAX_RECURSION_DEPTH: usize = 16;
+
 struct CachedChainId {
     index: u32,
     req: pb::EthTypedMessageValueRequest,
@@ -88,14 +92,24 @@ fn validate_type_name(name: &str) -> Result<(), Error> {
 }
 
 fn validate_member_type_identifiers(typ: &MemberType) -> Result<(), Error> {
-    match DataType::try_from(typ.r#type)? {
-        DataType::Unknown => Err(Error::InvalidInput),
-        DataType::Array => {
-            validate_member_type_identifiers(typ.array_type.as_ref().ok_or(Error::InvalidInput)?)
+    fn rec(typ: &MemberType, array_depth: usize) -> Result<(), Error> {
+        match DataType::try_from(typ.r#type)? {
+            DataType::Unknown => Err(Error::InvalidInput),
+            DataType::Array => {
+                // The containing root struct already consumes one value-depth level.
+                if array_depth >= MAX_RECURSION_DEPTH - 1 {
+                    return Err(Error::InvalidInput);
+                }
+                rec(
+                    typ.array_type.as_ref().ok_or(Error::InvalidInput)?,
+                    array_depth + 1,
+                )
+            }
+            DataType::Struct => validate_type_name(&typ.struct_name),
+            _ => Ok(()),
         }
-        DataType::Struct => validate_type_name(&typ.struct_name),
-        _ => Ok(()),
     }
+    rec(typ, 0)
 }
 
 fn validate_typed_msg_schema(types: &[StructType], primary_type: &str) -> Result<(), Error> {
@@ -107,6 +121,13 @@ fn validate_typed_msg_schema(types: &[StructType], primary_type: &str) -> Result
             validate_member_type_identifiers(member.r#type.as_ref().ok_or(Error::InvalidInput)?)?;
         }
     }
+    if get_type(types, DOMAIN_TYPE_NAME).is_none() || get_type(types, primary_type).is_none() {
+        return Err(Error::InvalidInput);
+    }
+    // Validate every possible type-hash root before callbacks or user interaction.
+    for typ in types {
+        get_transitive_types(types, &typ.name)?;
+    }
     Ok(())
 }
 
@@ -115,7 +136,11 @@ fn get_transitive_types<'a>(types: &'a [StructType], name: &'a str) -> Result<Ve
         types: &'a [StructType],
         name: &'a str,
         result: &mut Vec<&'a str>,
+        depth: usize,
     ) -> Result<(), Error> {
+        if depth >= MAX_RECURSION_DEPTH {
+            return Err(Error::InvalidInput);
+        }
         let typ = get_type(types, name).ok_or(Error::InvalidInput)?;
         if result.contains(&name) {
             return Ok(());
@@ -127,59 +152,68 @@ fn get_transitive_types<'a>(types: &'a [StructType], name: &'a str) -> Result<Ve
                 member_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
             }
             if member_type.r#type == DataType::Struct as i32 {
-                rec(types, &member_type.struct_name, result)?;
+                rec(types, &member_type.struct_name, result, depth + 1)?;
             }
         }
         Ok(())
     }
     let mut result = Vec::new();
-    rec(types, name, &mut result)?;
+    rec(types, name, &mut result, 0)?;
     Ok(result)
 }
 
 fn format_member_type(typ: &MemberType) -> Result<String, Error> {
-    let formatted = match DataType::try_from(typ.r#type)? {
-        DataType::Unknown => return Err(Error::InvalidInput),
-        DataType::Bytes => {
-            if typ.size == 0 {
-                "bytes".into()
-            } else if typ.size >= 1 && typ.size <= 32 {
-                format!("bytes{}", typ.size)
-            } else {
-                return Err(Error::InvalidInput);
+    fn rec(typ: &MemberType, array_depth: usize) -> Result<String, Error> {
+        let formatted = match DataType::try_from(typ.r#type)? {
+            DataType::Unknown => return Err(Error::InvalidInput),
+            DataType::Bytes => {
+                if typ.size == 0 {
+                    "bytes".into()
+                } else if typ.size >= 1 && typ.size <= 32 {
+                    format!("bytes{}", typ.size)
+                } else {
+                    return Err(Error::InvalidInput);
+                }
             }
-        }
-        DataType::Uint => {
-            if typ.size < 1 || typ.size > 32 {
-                return Err(Error::InvalidInput);
+            DataType::Uint => {
+                if typ.size < 1 || typ.size > 32 {
+                    return Err(Error::InvalidInput);
+                }
+                format!("uint{}", typ.size * 8)
             }
-            format!("uint{}", typ.size * 8)
-        }
-        DataType::Int => {
-            if typ.size < 1 || typ.size > 32 {
-                return Err(Error::InvalidInput);
+            DataType::Int => {
+                if typ.size < 1 || typ.size > 32 {
+                    return Err(Error::InvalidInput);
+                }
+                format!("int{}", typ.size * 8)
             }
-            format!("int{}", typ.size * 8)
-        }
-        DataType::Bool => "bool".into(),
-        DataType::Address => "address".into(),
-        DataType::String => "string".into(),
-        DataType::Array => {
-            let name = format_member_type(typ.array_type.as_ref().ok_or(Error::InvalidInput)?)?;
-            if typ.size == 0 {
-                format!("{}[]", name)
-            } else {
-                format!("{}[{}]", name, typ.size)
+            DataType::Bool => "bool".into(),
+            DataType::Address => "address".into(),
+            DataType::String => "string".into(),
+            DataType::Array => {
+                if array_depth >= MAX_RECURSION_DEPTH - 1 {
+                    return Err(Error::InvalidInput);
+                }
+                let name = rec(
+                    typ.array_type.as_ref().ok_or(Error::InvalidInput)?,
+                    array_depth + 1,
+                )?;
+                if typ.size == 0 {
+                    format!("{}[]", name)
+                } else {
+                    format!("{}[{}]", name, typ.size)
+                }
             }
-        }
-        DataType::Struct => {
-            if typ.struct_name.is_empty() {
-                return Err(Error::InvalidInput);
+            DataType::Struct => {
+                if typ.struct_name.is_empty() {
+                    return Err(Error::InvalidInput);
+                }
+                typ.struct_name.clone()
             }
-            typ.struct_name.clone()
-        }
-    };
-    Ok(formatted)
+        };
+        Ok(formatted)
+    }
+    rec(typ, 0)
 }
 
 /// https://eips.ethereum.org/EIPS/eip-712#definition-of-encodetype
@@ -377,6 +411,14 @@ async fn encode_member<U: sha3::digest::Update>(
     member_type: &MemberType,
     context: &HashContext<'_>,
 ) -> Result<(), Error> {
+    if context.path.len() >= MAX_RECURSION_DEPTH
+        && matches!(
+            DataType::try_from(member_type.r#type)?,
+            DataType::Struct | DataType::Array
+        )
+    {
+        return Err(Error::InvalidInput);
+    }
     if member_type.r#type == DataType::Struct as i32 {
         let value_encoded = Box::pin(hash_struct(hal, &member_type.struct_name, context)).await?;
         hasher.update(&value_encoded);
@@ -460,6 +502,9 @@ async fn hash_array(
     member_type: &MemberType,
     context: &HashContext<'_>,
 ) -> Result<Vec<u8>, Error> {
+    if context.path.len() >= MAX_RECURSION_DEPTH {
+        return Err(Error::InvalidInput);
+    }
     let array_size = if member_type.size > 0 {
         member_type.size
     } else {
@@ -522,6 +567,9 @@ async fn hash_struct(
     struct_name: &str,
     context: &HashContext<'_>,
 ) -> Result<Vec<u8>, Error> {
+    if context.path.len() >= MAX_RECURSION_DEPTH {
+        return Err(Error::InvalidInput);
+    }
     let mut hasher = sha3::Keccak256::new();
     hasher.update(&type_hash(context.types, struct_name)?);
 
@@ -867,6 +915,36 @@ mod tests {
         ]
     }
 
+    fn make_type_chain(len: usize) -> Vec<StructType> {
+        assert!(len > 0);
+        (0..len)
+            .map(|index| StructType {
+                name: format!("T{index}"),
+                members: if index + 1 < len {
+                    vec![mk_member(
+                        "next",
+                        mk_struct_type(&format!("T{}", index + 1)),
+                    )]
+                } else {
+                    vec![]
+                },
+            })
+            .collect()
+    }
+
+    fn make_too_deep_types() -> Vec<StructType> {
+        let mut types = vec![StructType {
+            name: DOMAIN_TYPE_NAME.into(),
+            members: vec![
+                mk_member("$", mk_struct_type(DOMAIN_TYPE_NAME)),
+                mk_member("chainId", mk_sized_type(DataType::Uint, 1)),
+                mk_member("_", mk_struct_type("T0")),
+            ],
+        }];
+        types.extend(make_type_chain(MAX_RECURSION_DEPTH));
+        types
+    }
+
     async fn run_single_message_typed_msg(
         member_type: MemberType,
         message_obj: Object<'static>,
@@ -1125,6 +1203,15 @@ mod tests {
             get_transitive_types(&types, "Mail",).unwrap(),
             vec!["Mail", "Person", "Attachment"] as Vec<&str>,
         );
+
+        let types = make_type_chain(MAX_RECURSION_DEPTH);
+        assert_eq!(
+            get_transitive_types(&types, "T0").unwrap().len(),
+            MAX_RECURSION_DEPTH
+        );
+
+        let types = make_type_chain(MAX_RECURSION_DEPTH + 1);
+        assert_eq!(get_transitive_types(&types, "T0"), Err(Error::InvalidInput));
     }
 
     #[test]
@@ -1256,6 +1343,20 @@ mod tests {
         assert_eq!(
             format_member_type(&mk_struct_type("Person")).unwrap(),
             "Person",
+        );
+
+        let mut nested_array = mk_type(DataType::String);
+        for _ in 0..MAX_RECURSION_DEPTH - 1 {
+            nested_array = mk_arr_type(nested_array);
+        }
+        assert!(format_member_type(&nested_array).is_ok());
+        assert_eq!(validate_member_type_identifiers(&nested_array), Ok(()));
+
+        nested_array = mk_arr_type(nested_array);
+        assert_eq!(format_member_type(&nested_array), Err(Error::InvalidInput));
+        assert_eq!(
+            validate_member_type_identifiers(&nested_array),
+            Err(Error::InvalidInput)
         );
     }
 
@@ -1486,6 +1587,11 @@ mod tests {
             validate_typed_msg_schema(&types, "Msg"),
             Err(Error::InvalidInput)
         );
+
+        assert_eq!(
+            validate_typed_msg_schema(&make_too_deep_types(), DOMAIN_TYPE_NAME),
+            Err(Error::InvalidInput)
+        );
     }
 
     #[test]
@@ -1518,6 +1624,28 @@ mod tests {
                     },
                 ],
                 primary_type: "Msg".into(),
+                host_nonce_commitment: None,
+            },
+        )
+        .await;
+
+        assert_eq!(result, Err(Error::InvalidInput));
+        assert!(mock_hal.ui.screens.is_empty());
+    }
+
+    #[async_test::test]
+    async fn test_process_rejects_max_depth() {
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(|_| panic!("value requested for too-deep schema")));
+
+        let mut mock_hal = TestingHal::new();
+        let result = process(
+            &mut mock_hal,
+            &pb::EthSignTypedMessageRequest {
+                chain_id: 1,
+                keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                types: make_too_deep_types(),
+                primary_type: DOMAIN_TYPE_NAME.into(),
                 host_nonce_commitment: None,
             },
         )
@@ -1588,6 +1716,29 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[async_test::test]
+    async fn test_hash_struct_rejects_max_depth() {
+        let types = vec![StructType {
+            name: DOMAIN_TYPE_NAME.into(),
+            members: vec![mk_member("$", mk_struct_type(DOMAIN_TYPE_NAME))],
+        }];
+        let context = HashContext {
+            types: &types,
+            root_object: RootObject::Domain,
+            path: &[],
+            formatted_path: &[],
+            title_suffix: None,
+            cached_chain_id: None,
+        };
+        let mut mock_hal = TestingHal::new();
+
+        assert_eq!(
+            hash_struct(&mut mock_hal, DOMAIN_TYPE_NAME, &context).await,
+            Err(Error::InvalidInput)
+        );
+        assert!(mock_hal.ui.screens.is_empty());
     }
 
     #[async_test::test]

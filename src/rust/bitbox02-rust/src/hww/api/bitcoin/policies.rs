@@ -27,6 +27,24 @@ use sha2::{Digest, Sha256};
 // Arbitrary limit of keys that can be present in a policy.
 const MAX_KEYS: usize = 20;
 
+// Conservative rather than exact stack threshold. Miniscript encoding uses relatively small
+// synchronous recursion frames, so 64 preserves useful policy depth while bounding stack use.
+const MAX_MINISCRIPT_ENCODE_DEPTH: usize = 64;
+
+fn validate_miniscript_depth<Pk, Ctx>(
+    miniscript: &miniscript::Miniscript<Pk, Ctx>,
+) -> Result<(), Error>
+where
+    Pk: miniscript::MiniscriptKey,
+    Ctx: miniscript::ScriptContext,
+{
+    // tree_height counts edges, while encoding also creates a frame for the root.
+    if miniscript.ext.tree_height >= MAX_MINISCRIPT_ENCODE_DEPTH {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
 // We only support Bitcoin for now.
 fn check_enabled(coin: BtcCoin) -> Result<(), Error> {
     if !matches!(coin, BtcCoin::Btc | BtcCoin::Tbtc) {
@@ -704,6 +722,7 @@ pub async fn parse<'a>(
             let miniscript_expr: miniscript::Miniscript<String, miniscript::Segwitv0> =
                 miniscript::Miniscript::from_str(&desc[4..desc.len() - 1])
                     .or(Err(Error::InvalidInput))?;
+            validate_miniscript_depth(&miniscript_expr)?;
             miniscript_expr
                 .sanity_check()
                 .map_err(|_| Error::InvalidInput)?;
@@ -719,6 +738,9 @@ pub async fn parse<'a>(
             // calls the equivalent of the sanity check. We call it anyway below in case the
             // miniscript library extends/changes the main sanity_check function.
             let tr = miniscript::descriptor::Tr::from_str(desc).map_err(|_| Error::InvalidInput)?;
+            for leaf in tr.leaves() {
+                validate_miniscript_depth(leaf.miniscript())?;
+            }
             tr.sanity_check().map_err(|_| Error::InvalidInput)?;
 
             ParsedPolicy {
@@ -911,6 +933,93 @@ mod tests {
             .collect();
             assert_eq!(pks.as_slice(), test.expected_pks);
         }
+    }
+
+    #[test]
+    fn test_validate_miniscript_depth() {
+        let miniscript: miniscript::Miniscript<String, miniscript::Segwitv0> =
+            miniscript::Miniscript::from_str(&format!(
+                "{}:pk(A)",
+                "n".repeat(MAX_MINISCRIPT_ENCODE_DEPTH - 2)
+            ))
+            .unwrap();
+        assert_eq!(miniscript.ext.tree_height + 1, MAX_MINISCRIPT_ENCODE_DEPTH);
+        assert_eq!(validate_miniscript_depth(&miniscript), Ok(()));
+
+        let miniscript: miniscript::Miniscript<String, miniscript::Segwitv0> =
+            miniscript::Miniscript::from_str(&format!(
+                "{}:pk(A)",
+                "n".repeat(MAX_MINISCRIPT_ENCODE_DEPTH - 1)
+            ))
+            .unwrap();
+        assert_eq!(
+            miniscript.ext.tree_height + 1,
+            MAX_MINISCRIPT_ENCODE_DEPTH + 1
+        );
+        assert_eq!(
+            validate_miniscript_depth(&miniscript),
+            Err(Error::InvalidInput)
+        );
+    }
+
+    #[async_test::test]
+    async fn test_parse_rejects_deep_miniscript() {
+        mock_unlocked();
+        let coin = BtcCoin::Tbtc;
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
+        let accepted_leaf = format!("{}:pk(@1/**)", "n".repeat(MAX_MINISCRIPT_ENCODE_DEPTH - 2));
+        let rejected_leaf = format!("{}:pk(@1/**)", "n".repeat(MAX_MINISCRIPT_ENCODE_DEPTH - 1));
+
+        for (descriptor, keys) in [
+            (
+                format!("wsh({})", accepted_leaf.replace("@1", "@0")),
+                vec![our_key.clone()],
+            ),
+            (
+                format!("tr(@0/**,{accepted_leaf})"),
+                vec![our_key.clone(), make_key(SOME_XPUB_1)],
+            ),
+        ] {
+            let policy = make_policy(&descriptor, &keys);
+            assert!(
+                parse(&mut crate::hal::testing::TestingHal::new(), &policy, coin)
+                    .await
+                    .is_ok()
+            );
+        }
+
+        for (descriptor, keys) in [
+            (
+                format!("wsh({})", rejected_leaf.replace("@1", "@0")),
+                vec![our_key.clone()],
+            ),
+            (
+                format!("tr(@0/**,{rejected_leaf})"),
+                vec![our_key.clone(), make_key(SOME_XPUB_1)],
+            ),
+        ] {
+            let policy = make_policy(&descriptor, &keys);
+            assert!(
+                parse(&mut crate::hal::testing::TestingHal::new(), &policy, coin)
+                    .await
+                    .is_err()
+            );
+        }
+
+        let deep_policy = format!("wsh({}{}:pk(@0/**))", "n".repeat(155), "tv".repeat(45));
+        let deep_miniscript: miniscript::Miniscript<String, miniscript::Segwitv0> =
+            miniscript::Miniscript::from_str(&deep_policy[4..deep_policy.len() - 1]).unwrap();
+        assert!(deep_miniscript.sanity_check().is_ok());
+        assert_eq!(
+            validate_miniscript_depth(&deep_miniscript),
+            Err(Error::InvalidInput)
+        );
+        let policy = make_policy(&deep_policy, &[our_key]);
+        assert!(
+            parse(&mut crate::hal::testing::TestingHal::new(), &policy, coin)
+                .await
+                .is_err()
+        );
     }
 
     #[async_test::test]

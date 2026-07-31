@@ -880,6 +880,11 @@ static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
             screen_print_debug_hex(buffer, read, 5000);
             return false;
         }
+        if ((size_t)len > (size_t)read - LENSIZE) {
+            screen_sprintf_debug(
+                2000, "Error: incomplete message: %d bytes (total read: %d)", len, read);
+            return false;
+        }
         *len_out = (size_t)len;
         memcpy(msg_out, buffer + LENSIZE, (size_t)len);
         return true;

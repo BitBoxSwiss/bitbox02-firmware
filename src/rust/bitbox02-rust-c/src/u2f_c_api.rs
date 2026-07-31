@@ -181,8 +181,8 @@ pub unsafe extern "C" fn rust_workflow_confirm_poll(result_out: &mut bool) -> bo
     unsafe {
         match CONFIRM_STATE.get().as_ref().unwrap() {
             TaskState::ResultAvailable(result) => {
-                CONFIRM_STATE.get().write(TaskState::Nothing);
                 *result_out = result.is_ok();
+                CONFIRM_STATE.get().write(TaskState::Nothing);
                 true
             }
             TaskState::Running(_) => false,

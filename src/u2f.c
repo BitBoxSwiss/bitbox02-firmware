@@ -15,6 +15,7 @@
 #include <ui/components/info_centered.h>
 #include <ui/screen_process.h>
 #include <ui/screen_stack.h>
+#include <ui/ui_util.h>
 #include <usb/u2f/u2f.h>
 #include <usb/u2f/u2f_hid.h>
 #include <usb/u2f/u2f_keys.h>
@@ -120,23 +121,37 @@ static void _clear_state(void)
 
 static component_t* _nudge_label = NULL;
 
+static void _nudge_label_cleanup(component_t* component)
+{
+    if (_nudge_label == component) {
+        _nudge_label = NULL;
+    }
+    ui_util_component_cleanup(component);
+}
+
+static const component_functions_t _nudge_label_component_functions = {
+    .cleanup = _nudge_label_cleanup,
+    .render = ui_util_component_render_subcomponents,
+    .on_event = NULL,
+};
+
 static void _nudge_label_cb(component_t* component)
 {
     if (ui_screen_stack_top() == component->parent) {
-        _nudge_label = NULL;
         ui_screen_stack_pop();
     }
 }
 
 static void _create_nudge_label(void)
 {
-    if (!_nudge_label) {
-        _nudge_label =
-            info_centered_create("Initialize with BitBoxApp\nto use U2F", _nudge_label_cb);
+    if (_nudge_label) {
+        // The screen stack owns the existing component until its cleanup runs.
+        return;
     }
-    if (ui_screen_stack_top() != _nudge_label) {
-        ui_screen_stack_push(_nudge_label);
-    }
+
+    _nudge_label = info_centered_create("Initialize with BitBoxApp\nto use U2F", _nudge_label_cb);
+    _nudge_label->f = &_nudge_label_component_functions;
+    ui_screen_stack_push(_nudge_label);
 }
 
 static void _start_refresh_webpage_screen(void)

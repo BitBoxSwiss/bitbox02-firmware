@@ -10,12 +10,14 @@
 void bootloader_format_pairing_code(char* out, size_t out_len, uint32_t pairing_code)
 {
     ASSERT(out_len >= sizeof("000000"));
+    memset(out, 0, out_len);
     rust_format_uint(rust_util_bytes_mut((uint8_t*)out, out_len), pairing_code, 6, '0');
 }
 
 void bootloader_format_progress(char* out, size_t out_len, float progress)
 {
     ASSERT(out_len >= sizeof("100%"));
+    memset(out, 0, out_len);
     size_t out_pos = rust_format_uint(
         rust_util_bytes_mut((uint8_t*)out, out_len - 1), (uint32_t)(100 * progress), 2, ' ');
     out[out_pos++] = '%';
@@ -35,6 +37,7 @@ void bootloader_format_hash_multiline(char* out, size_t out_len, const char* has
 void bootloader_format_timer(char* out, size_t out_len, uint8_t seconds)
 {
     ASSERT(out_len >= sizeof("99s"));
+    memset(out, 0, out_len);
     size_t out_pos =
         rust_format_uint(rust_util_bytes_mut((uint8_t*)out, out_len - 1), seconds, 1, '0');
     out[out_pos++] = 's';
@@ -48,6 +51,7 @@ void bootloader_format_ble_firmware_version(
     const uint8_t* hash)
 {
     ASSERT(out_len >= sizeof("ble: 65535 (00112233)"));
+    memset(out, 0, out_len);
 
     util_strlcpy(out, "ble: ", out_len);
     size_t out_pos = strlen(out);
@@ -66,6 +70,7 @@ void bootloader_format_unknown_command(char* out, size_t out_len, uint8_t comman
     const char suffix[] = " unknown";
 
     ASSERT(out_len >= sizeof("Command: 255 unknown"));
+    memset(out, 0, out_len);
     size_t out_pos = sizeof(prefix) - 1;
     memcpy(out, prefix, out_pos);
     out_pos += rust_format_uint(

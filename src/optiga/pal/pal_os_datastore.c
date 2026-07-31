@@ -37,6 +37,7 @@
 
 #include "pal_os_datastore.h"
 #include <rust/rust.h>
+#include <string.h>
 #include <util.h>
 
 /// @cond hidden
@@ -64,6 +65,7 @@ pal_status_t pal_os_datastore_read(
 
     switch (datastore_id) {
     case OPTIGA_PLATFORM_BINDING_SHARED_SECRET_ID: {
+        memset(p_buffer, 0, 32);
         rust_memory_get_io_protection_key(rust_util_bytes_mut(p_buffer, 32));
         *p_buffer_length = 32;
         return_status = PAL_STATUS_SUCCESS;

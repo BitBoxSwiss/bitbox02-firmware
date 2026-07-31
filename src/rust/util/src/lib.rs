@@ -38,12 +38,18 @@ pub fn zero(dst: &mut [u8]) {
 /// Zero a buffer using volatile writes. Accepts null-ptr and 0-length buffers and does nothing.
 ///
 /// * `dst` - Buffer to zero
+///
+/// # Safety
+///
+/// `dst` must point to a writable memory area of size `len`, unless it is null or `len == 0`.
 #[unsafe(no_mangle)]
-pub extern "C" fn rust_util_zero(mut dst: bytes::BytesMut) {
-    if dst.buf.is_null() || dst.len == 0 {
+pub unsafe extern "C" fn rust_util_zero(dst: *mut u8, len: usize) {
+    if dst.is_null() || len == 0 {
         return;
     }
-    zero(dst.as_mut())
+    for i in 0..len {
+        unsafe { core::ptr::write_volatile(dst.add(i), 0) };
+    }
 }
 
 // # Tests
@@ -78,18 +84,18 @@ mod tests {
     #[test]
     fn zeroing_ciface() {
         let mut buf = [1u8, 2, 3, 4];
-        rust_util_zero(unsafe { bytes::rust_util_bytes_mut(buf.as_mut_ptr(), buf.len() - 1) });
+        unsafe { rust_util_zero(buf.as_mut_ptr(), buf.len() - 1) };
         assert_eq!(&buf[..], &[0, 0, 0, 4]);
     }
 
     #[test]
     fn zeroing_ciface_empty() {
         let mut buf = [];
-        rust_util_zero(unsafe { bytes::rust_util_bytes_mut(buf.as_mut_ptr(), 0) });
+        unsafe { rust_util_zero(buf.as_mut_ptr(), 0) };
     }
 
     #[test]
     fn zeroing_ciface_null() {
-        rust_util_zero(unsafe { bytes::rust_util_bytes_mut(core::ptr::null_mut(), 0) });
+        unsafe { rust_util_zero(core::ptr::null_mut(), 0) };
     }
 }

@@ -95,7 +95,7 @@ pub unsafe extern "C" fn rust_log(ptr: *const core::ffi::c_char) {
 
 /// # Safety
 ///
-/// The pointer `data` must point to a buffer of length `len`.
+/// The pointer `data` must point to an initialized, readable buffer of length `len`.
 #[unsafe(no_mangle)]
 #[allow(static_mut_refs)]
 #[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn rust_rtt_ch1_write(data: *const u8, len: usize) {
 
 /// # Safety
 ///
-/// The pointer `data` must point to a buffer of length `len`.
+/// The pointer `data` must point to an initialized, writable buffer of length `len`.
 #[unsafe(no_mangle)]
 #[allow(static_mut_refs)]
 #[cfg_attr(not(all(feature = "rtt", target_os = "none")), allow(unused))]

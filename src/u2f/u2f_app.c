@@ -9,6 +9,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 
 #define APPID_BOGUS_CHROMIUM "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 #define APPID_BOGUS_FIREFOX "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -24,6 +25,7 @@ static struct {
 // out: string,
 static void _app_string(const uint8_t* app_id, char* out, size_t out_len)
 {
+    memset(out, 0, out_len);
     rust_u2f_app_string(rust_util_bytes(app_id, 32), rust_util_bytes_mut((uint8_t*)out, out_len));
 }
 

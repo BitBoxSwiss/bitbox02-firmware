@@ -20,6 +20,11 @@ fn hmac_sha256_result(key: &[u8], data: &[u8]) -> [u8; 32] {
     hmac_result.to_byte_array()
 }
 
+unsafe fn write_output(out: *mut c_uchar, value: &[u8]) {
+    assert!(!out.is_null());
+    unsafe { core::ptr::copy(value.as_ptr(), out, value.len()) };
+}
+
 pub fn sha256(data: &[u8], out: &mut [u8; 32]) {
     out.copy_from_slice(&sha256_result(data));
 }
@@ -60,11 +65,10 @@ pub unsafe extern "C" fn rust_sha256_update(ctx: *mut c_void, data: *const c_voi
 /// used anymore.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_sha256_finish(ctx: *mut *mut c_void, out: *mut c_uchar) {
-    let out = unsafe { core::slice::from_raw_parts_mut(out, 32) };
     #[allow(clippy::cast_ptr_alignment)] // ctx is properly aligned, see `Box::into_raw`.
     let hasher = unsafe { Box::from_raw(*ctx as *mut Sha256) }; // dropped at the end
     let hash = hasher.finalize();
-    out.copy_from_slice(&hash[..]);
+    unsafe { write_output(out, &hash) };
     unsafe { *ctx = core::ptr::null_mut() };
 }
 
@@ -77,8 +81,7 @@ pub unsafe extern "C" fn rust_sha256(data: *const c_void, len: usize, out: *mut 
         let data = unsafe { core::slice::from_raw_parts(data as *const u8, len) };
         sha256_result(data)
     };
-    let out = unsafe { core::slice::from_raw_parts_mut(out, 32) };
-    out.copy_from_slice(&result);
+    unsafe { write_output(out, &result) };
 }
 
 /// # Safety
@@ -101,8 +104,7 @@ pub unsafe extern "C" fn rust_hmac_sha256(
         let data = unsafe { core::slice::from_raw_parts(data as *const u8, data_len) };
         hmac_sha256_result(key, data)
     };
-    let out = unsafe { core::slice::from_raw_parts_mut(out, 32) };
-    out.copy_from_slice(&result);
+    unsafe { write_output(out, &result) };
 }
 
 /// # Safety
@@ -132,8 +134,7 @@ pub unsafe extern "C" fn rust_hmac_sha512(
         hmac_result.to_byte_array()
     };
 
-    let out = unsafe { core::slice::from_raw_parts_mut(out, 64) };
-    out.copy_from_slice(&result);
+    unsafe { write_output(out, &result) };
 }
 
 #[cfg(test)]
@@ -169,10 +170,15 @@ mod tests {
     #[test]
     fn test_sha256() {
         let data = b"foo abc def xyz bar";
-        let mut result = [0u8; 32];
-        unsafe {
-            rust_sha256(data.as_ptr() as *const _, data.len(), result.as_mut_ptr());
-        }
+        let mut result = core::mem::MaybeUninit::<[u8; 32]>::uninit();
+        let result = unsafe {
+            rust_sha256(
+                data.as_ptr() as *const _,
+                data.len(),
+                result.as_mut_ptr().cast(),
+            );
+            result.assume_init()
+        };
         assert_eq!(result, &Sha256::digest(b"foo abc def xyz bar")[..]);
     }
 

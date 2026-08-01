@@ -13,6 +13,7 @@ bitbox02-sys = {path="../bitbox02-sys"}
 bitbox-securechip = { path = "../bitbox-securechip" }
 bitbox-securechip-sys = { path = "../bitbox-securechip-sys" }
 bitbox-noise = { path = "../bitbox-noise" }
+bitbox-core-utils = { path = "../bitbox-core-utils" }
 bitbox-hal = { path = "../bitbox-hal" }
 bitbox-bytequeue = { path = "../bitbox-bytequeue" }
 bitbox-framed-serial-link = { path = "../bitbox-framed-serial-link" }

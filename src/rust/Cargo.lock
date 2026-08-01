@@ -271,6 +271,7 @@ dependencies = [
  "bip39",
  "bitbox-aes",
  "bitbox-bytequeue",
+ "bitbox-core-utils",
  "bitbox-framed-serial-link",
  "bitbox-hal",
  "bitbox-noise",

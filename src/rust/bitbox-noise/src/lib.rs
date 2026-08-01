@@ -16,6 +16,6 @@ pub mod testing;
 mod x25519;
 
 pub use noise_xx::{Error, HandshakeHash, HandshakeResult, State};
-pub use x25519::{X25519, genkey};
+pub use x25519::{X25519, genkey, genkey_from_entropy};
 
 pub use noise_rust_crypto::sensitive::Sensitive;

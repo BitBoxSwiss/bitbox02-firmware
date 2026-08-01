@@ -23,7 +23,19 @@ pub extern "C" fn rust_noise_generate_static_private_key(
     mut private_key_out: util::bytes::BytesMut,
 ) {
     let mut random = crate::hal::random::BitBox02Random;
-    let key = bitbox_noise::genkey(&mut random);
+    let mut securechip = crate::hal::securechip::BitBox02SecureChip;
+    // Use the same multi-source entropy as other persistent secrets (e.g. the salt root):
+    // sha256(MCU TRNG XOR securechip TRNG XOR factory randomness).
+    let entropy = match util::bb02_async::block_on(bitbox_core_utils::random::random_32_bytes(
+        &mut random,
+        &mut securechip,
+    )) {
+        Ok(entropy) => entropy,
+        // Mirrors the C `random_32_bytes()`, which aborts if the securechip cannot provide
+        // randomness rather than silently falling back to fewer sources.
+        Err(_) => panic!("securechip randomness unavailable"),
+    };
+    let key = bitbox_noise::genkey_from_entropy(&entropy);
     private_key_out.as_mut().copy_from_slice(&key[..]);
 }
 

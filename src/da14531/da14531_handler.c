@@ -10,6 +10,7 @@
 #include "usb/class/usb_size.h"
 #include "usb/usb_frame.h"
 #include "usb/usb_packet.h"
+#include "usb/usb_processing.h"
 #include <rust/rust.h>
 #include <ui/components/confirm.h>
 #include <ui/components/ui_images.h>
@@ -37,13 +38,11 @@ struct pairing_callback {
 
 static struct pairing_callback _ble_pairing_callback_data;
 
-static void _ble_pairing_callback(bool ok, void* param)
+static void _ble_pairing_respond(const uint8_t* key, struct RustByteQueue* queue, bool ok)
 {
-    struct pairing_callback* data = (struct pairing_callback*)param;
-
     uint8_t payload[18] = {0};
     payload[0] = CTRL_CMD_TK_CONFIRM;
-    memcpy(&payload[1], &data->key[0], sizeof(data->key));
+    memcpy(&payload[1], key, sizeof(_ble_pairing_callback_data.key));
     payload[17] = ok ? 1 : 0; /* 1 yes, 0 no */
 
     uint8_t tmp[12 + sizeof(payload) * 2];
@@ -51,8 +50,15 @@ static void _ble_pairing_callback(bool ok, void* param)
         &tmp[0], sizeof(tmp), DA14531_PROTOCOL_PACKET_TYPE_CTRL_DATA, payload, sizeof(payload));
     ASSERT(len <= sizeof(tmp));
     for (int i = 0; i < len; i++) {
-        rust_bytequeue_put(data->queue, tmp[i]);
+        rust_bytequeue_put(queue, tmp[i]);
     }
+}
+
+static void _ble_pairing_callback(bool ok, void* param)
+{
+    struct pairing_callback* data = (struct pairing_callback*)param;
+
+    _ble_pairing_respond(data->key, data->queue, ok);
 
     ui_screen_stack_pop();
     _ble_pairing_component = NULL;
@@ -145,6 +151,12 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
             break;
         }
 #if !defined(BOOTLOADER)
+        // A running HWW task can own a Rust-backed screen. Do not overlay it: if its watchdog
+        // cancels the task, the Rust screen owner assumes that its component is still on top.
+        if (usb_processing_locked(usb_processing_hww())) {
+            _ble_pairing_respond(&frame->cmd_data[0], queue, false);
+            break;
+        }
         memcpy(
             &(_ble_pairing_callback_data.key)[0],
             &frame->cmd_data[0],

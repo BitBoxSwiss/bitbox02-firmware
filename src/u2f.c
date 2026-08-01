@@ -107,9 +107,25 @@ typedef struct __attribute__((__packed__)) {
 
 #pragma GCC diagnostic pop
 
+static void _refresh_webpage_cleanup(component_t* component)
+{
+    if (_state.refresh_webpage == component) {
+        _state.refresh_webpage = NULL;
+    }
+    ui_util_component_cleanup(component);
+}
+
+static const component_functions_t _refresh_webpage_component_functions = {
+    .cleanup = _refresh_webpage_cleanup,
+    .render = ui_util_component_render_subcomponents,
+    .on_event = NULL,
+};
+
 static component_t* _create_refresh_webpage(void)
 {
-    return info_centered_create("Refresh webpage", NULL);
+    component_t* component = info_centered_create("Refresh webpage", NULL);
+    component->f = &_refresh_webpage_component_functions;
+    return component;
 }
 
 /* Resets the internal state to idle. */

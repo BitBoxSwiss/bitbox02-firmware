@@ -7,6 +7,7 @@
 #include "memory/memory_shared.h"
 #include "screen.h"
 #include "ui/screen_stack.h"
+#include "ui/ui_util.h"
 #include "usb/class/usb_size.h"
 #include "usb/usb_frame.h"
 #include "usb/usb_packet.h"
@@ -37,6 +38,20 @@ struct pairing_callback {
 };
 
 static struct pairing_callback _ble_pairing_callback_data;
+
+static void _ble_pairing_cleanup(component_t* component)
+{
+    if (_ble_pairing_component == component) {
+        _ble_pairing_component = NULL;
+    }
+    ui_util_component_cleanup(component);
+}
+
+static const component_functions_t _ble_pairing_component_functions = {
+    .cleanup = _ble_pairing_cleanup,
+    .render = ui_util_component_render_subcomponents,
+    .on_event = NULL,
+};
 
 static void _ble_pairing_respond(const uint8_t* key, struct RustByteQueue* queue, bool ok)
 {
@@ -175,6 +190,7 @@ static void _ctrl_handler(const struct da14531_ctrl_frame* frame, struct RustByt
         };
         _ble_pairing_component = confirm_create(
             &confirm_params, _ble_pairing_callback, (void*)&_ble_pairing_callback_data);
+        _ble_pairing_component->f = &_ble_pairing_component_functions;
         ui_screen_stack_push(_ble_pairing_component);
 #else
         memcpy(

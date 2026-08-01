@@ -18,12 +18,12 @@ void util_zero(volatile void* dst, size_t len)
 #if defined(__clang__)
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
-    rust_util_zero(rust_util_bytes_mut(dst, len));
+    rust_util_zero(dst, len);
     #pragma clang diagnostic pop
 #else
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-    rust_util_zero(rust_util_bytes_mut(dst, len));
+    rust_util_zero(dst, len);
     #pragma GCC diagnostic pop
 #endif
 }
@@ -41,6 +41,7 @@ void util_strlcpy(char* dst, const char* src, size_t dst_len)
 
 void util_uint8_to_hex(const uint8_t* in_bin, const size_t in_len, char* out)
 {
+    memset(out, 0, in_len * 2 + 1);
     rust_util_uint8_to_hex(
         rust_util_bytes(in_bin, in_len), rust_util_bytes_mut((uint8_t*)out, in_len * 2 + 1));
 }

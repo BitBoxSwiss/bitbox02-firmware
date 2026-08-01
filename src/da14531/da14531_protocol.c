@@ -329,6 +329,7 @@ uint16_t da14531_protocol_format(
     const uint8_t* payload,
     uint16_t payload_len)
 {
+    memset(buf, 0, buf_len);
     return rust_da14531_protocol_format(
         rust_util_bytes_mut(buf, buf_len),
         (ProtocolPacketType)type,

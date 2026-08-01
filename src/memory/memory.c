@@ -445,7 +445,7 @@ bool memory_reset_hww(void)
 
     // Reset bond-db and reinitialize IRK and identity address
     if (memory_get_platform() == MEMORY_PLATFORM_BITBOX02_PLUS) {
-        uint8_t random_bytes[32];
+        uint8_t random_bytes[32] = {0};
         _interface_functions->random_32_bytes(&random_bytes[0]);
         chunk_shared_t chunk_shared = {0};
         memory_read_shared_bootdata(&chunk_shared);

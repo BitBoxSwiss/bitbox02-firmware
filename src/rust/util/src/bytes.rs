@@ -153,8 +153,9 @@ pub unsafe extern "C" fn rust_util_bytes(buf: *const c_uchar, len: usize) -> Byt
 ///
 /// # Safety
 ///
-/// `buf` must point to a valid memory area of size `len`, unless `len == 0`, in which case `buf`
-/// may be NULL.
+/// `buf` must point to an initialized, valid memory area of size `len`, unless `len == 0`, in
+/// which case `buf` may be NULL. The memory must remain writable and exclusively borrowed for the
+/// lifetime of the returned value.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_util_bytes_mut(buf: *mut c_uchar, len: usize) -> BytesMut {
     BytesMut { buf, len }

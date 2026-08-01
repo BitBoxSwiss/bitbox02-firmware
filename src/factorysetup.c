@@ -860,7 +860,7 @@ static void _rtt_send(const uint8_t* msg, size_t len)
 
 static bool _rtt_receive(uint8_t* msg_out, size_t* len_out)
 {
-    uint8_t buffer[BUFFER_SIZE_DOWN]; // Adjust size as needed
+    uint8_t buffer[BUFFER_SIZE_DOWN] = {0}; // Adjust size as needed
     while (1) {
         int read = rust_rtt_ch0_read(buffer, sizeof(buffer));
         if (read == 0) {

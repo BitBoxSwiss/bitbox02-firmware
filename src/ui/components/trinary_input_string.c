@@ -51,6 +51,7 @@ static const UG_FONT* _font = &font_password_11X12;
 
 static void _get_bip39_word_stack(uint16_t idx, char* word_out, size_t word_out_size)
 {
+    memset(word_out, 0, word_out_size);
     if (!rust_get_bip39_word(idx, rust_util_bytes_mut((uint8_t*)word_out, word_out_size))) {
         Abort("_get_bip39_word_stack");
     }

@@ -80,8 +80,8 @@ impl State {
 
     /// Can be called at any time to start waiting for a new communication channel.
     ///
-    /// `static_private_key` is the local static key. It can be generated using
-    /// `genkey()` with a HAL random source and then persisted. `random` is used to generate a
+    /// `static_private_key` is the local static key. It is generated using
+    /// `genkey_from_entropy()` and then persisted. `random` is used to generate a
     /// fresh ephemeral private key for each session.
     pub fn init(&mut self, static_private_key: Sensitive<PrivateKey>, random: &mut impl Random) {
         let ephemeral_private_key = genkey(random);

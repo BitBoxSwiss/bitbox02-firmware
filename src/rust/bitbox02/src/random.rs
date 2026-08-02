@@ -33,7 +33,7 @@ pub extern "C" fn rust_noise_generate_static_private_key(
         Ok(entropy) => entropy,
         // Mirrors the C `random_32_bytes()`, which aborts if the securechip cannot provide
         // randomness rather than silently falling back to fewer sources.
-        Err(_) => panic!("securechip randomness unavailable"),
+        Err(e) => panic!("securechip randomness unavailable: {e:?}"),
     };
     let key = bitbox_noise::genkey_from_entropy(&entropy);
     private_key_out.as_mut().copy_from_slice(&key[..]);
@@ -57,8 +57,10 @@ mod tests {
         assert!([0; 32] != result);
     }
 
+    // `genkey()` is the ephemeral-key path; the static key is built with
+    // `genkey_from_entropy()`, whose clamping is covered in `bitbox-noise`.
     #[test]
-    fn test_generate_static_private_key() {
+    fn test_genkey() {
         let mut random = crate::hal::random::BitBox02Random;
         let key = bitbox_noise::genkey(&mut random);
         assert_eq!(key[0] & 0b111, 0);

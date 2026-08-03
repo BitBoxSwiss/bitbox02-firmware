@@ -490,6 +490,9 @@ impl ParsedPolicy<'_> {
             } else if Some(i) == taproot_unspendable_internal_key_index {
                 key_str = format!("Provably unspendable: {}", key_str)
             }
+            if key_str.len() > confirm::MAX_CONFIRM_BODY_SIZE {
+                return Err(Error::InvalidInput);
+            }
             hal.ui()
                 .confirm(&ConfirmParams {
                     title: &format!("Key {}/{}", i + 1, num_keys),
@@ -1360,6 +1363,46 @@ mod tests {
                 .await
                 .is_err()
         );
+    }
+
+    #[async_test::test]
+    async fn test_confirm_rejects_oversized_key() {
+        mock_unlocked();
+
+        let coin = BtcCoin::Tbtc;
+        let params = super::super::params::get(coin);
+        let our_key = make_our_key(KEYPATH_ACCOUNT).await;
+
+        for (last_path_element, expected_len, expected_ok) in [
+            (HARDENED, confirm::MAX_CONFIRM_BODY_SIZE, true),
+            (HARDENED + 10, confirm::MAX_CONFIRM_BODY_SIZE + 1, false),
+        ] {
+            let mut external_key = make_key(SOME_XPUB_1);
+            external_key.root_fingerprint = vec![0x12, 0x34, 0x56, 0x78];
+            external_key.keypath = vec![u32::MAX; 43];
+            external_key.keypath.push(last_path_element);
+            let key_str = format!(
+                "[{}/{}]{}",
+                hex::encode(&external_key.root_fingerprint),
+                util::bip32::to_string_no_prefix(&external_key.keypath),
+                bip32::Xpub::from(external_key.xpub.as_ref().unwrap())
+                    .serialize_str(bip32::XPubType::Tpub)
+                    .unwrap(),
+            );
+            assert_eq!(key_str.len(), expected_len);
+            let policy = make_policy(
+                "wsh(or_b(pk(@0/**),s:pk(@1/**)))",
+                &[external_key, our_key.clone()],
+            );
+            let mut hal = crate::hal::testing::TestingHal::new();
+            let parsed = parse(&mut hal, &policy, coin).await.unwrap();
+
+            let result = parsed
+                .confirm(&mut hal, "Register", params, "Test", Mode::Advanced)
+                .await;
+            assert_eq!(result.is_ok(), expected_ok);
+            assert_eq!(hal.ui.screens.len(), if expected_ok { 5 } else { 3 });
+        }
     }
 
     #[async_test::test]

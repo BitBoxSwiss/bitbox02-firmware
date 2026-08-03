@@ -2,8 +2,8 @@
 
 //! Numeric keypad for PIN entry: a 3×4 grid of navigation-button-sized keys — digits 1–9, then a
 //! bottom row of backspace, 0 and confirm ("PIN entry mockup"). Digits are inserted into the
-//! textarea on release with the standard press-invert feedback; backspace is grayed out and inert
-//! while the input is empty.
+//! textarea on release with the standard press-invert feedback; sliding off a key aborts the tap
+//! (see `ObjExt::add_click_cb`); backspace is grayed out and inert while the input is empty.
 
 use alloc::rc::Rc;
 use alloc::vec;

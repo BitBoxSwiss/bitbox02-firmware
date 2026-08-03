@@ -17,6 +17,7 @@ pub mod demo;
 pub mod enter_string;
 pub mod menu;
 pub mod nav_button;
+pub mod slide_to_confirm;
 mod status;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");

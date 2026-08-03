@@ -6,7 +6,7 @@ use bitbox_hal::ui::{CanCancel, EnterStringParams, UserAbort};
 use bitbox_lvgl::{
     self as lvgl, KeyboardExt, LabelExt, LvAlign, LvButton, LvButtonmatrixCtrl, LvKeyboard,
     LvKeyboardMapEntry, LvLabel, LvLabelLongMode, LvObj, LvOpacityLevel, LvPart, LvTextarea,
-    ObjExt, TextareaExt,
+    ObjExt, TextareaExt, class,
 };
 use util::futures::completion::Responder;
 
@@ -694,6 +694,33 @@ pub fn build_enter_string_screen(
     // Safe because the textarea and keyboard are siblings on the same screen and remain alive
     // until the whole screen is popped.
     unsafe { keyboard.set_textarea(Some(textarea.as_ref())) };
+    // Discard the key selection once an interaction ends (after the class handler has processed
+    // a legitimate click): LVGL keeps the lastly clicked key selected forever, and a press
+    // sliding in from the Delete/switch buttons below reaches the keyboard without a PRESSED
+    // event (which is what re-derives the selection) — a stale selection would retype that key
+    // via the long-press repeat path.
+    for code in [
+        lvgl::LvEventCode::LV_EVENT_RELEASED,
+        lvgl::LvEventCode::LV_EVENT_PRESS_LOST,
+    ] {
+        // A second handle to the keyboard, for the `'static` callback (the keyboard is screen
+        // child 2, after the title and the textarea).
+        let keyboard_cb = screen
+            .child(2)
+            .expect("keyboard")
+            .try_downcast::<class::KeyboardTag>()
+            .expect("screen child 2 is the keyboard");
+        keyboard
+            .add_event_cb(code, move || {
+                // Fully qualified: importing `ButtonmatrixExt` would make the keyboard's
+                // `set_map` calls above ambiguous with `KeyboardExt::set_map`.
+                lvgl::ButtonmatrixExt::set_selected_button(
+                    &keyboard_cb,
+                    lvgl::ffi::LV_BUTTONMATRIX_BUTTON_NONE,
+                );
+            })
+            .expect("failed to register keyboard release callback");
+    }
 
     let input_controls = LvObj::with_parent(&screen).unwrap();
     input_controls.set_width(380);
@@ -1013,6 +1040,10 @@ mod tests {
         fn disabled(obj: &LvObj) -> bool {
             unsafe { ffi::lv_obj_has_state(obj.as_ptr(), lvgl::LvState::LV_STATE_DISABLED) }
         }
+
+        fn pressed(obj: &LvObj) -> bool {
+            unsafe { ffi::lv_obj_has_state(obj.as_ptr(), lvgl::LvState::LV_STATE_PRESSED) }
+        }
     }
 
     impl Drop for Harness {
@@ -1312,6 +1343,31 @@ mod tests {
     }
 
     #[test]
+    fn test_slide_from_space_onto_previous_key_does_not_type() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new(CanCancel::No);
+
+        // Type 'x' with a normal tap; the buttonmatrix must not keep it armed afterwards.
+        harness.tap_char_key(false, false, 3, 1);
+        assert_eq!(harness.text(), "x");
+
+        // Press the space bar, slide along it until under 'x', then up into the key row
+        // directly over 'x', and release there. The press migrates onto the row without a
+        // PRESSED event, so a stale selection from the earlier tap must not fire: neither
+        // space nor 'x' may be typed.
+        let (space_x, space_y) = harness.on_keyboard(keyboard::space_center());
+        let (key_x, key_y) = harness.on_keyboard(keyboard::char_key_center(false, false, 3, 1));
+        harness.touch.push(space_x, space_y, true);
+        harness.touch.push(space_x, space_y, true);
+        harness.touch.push(key_x, space_y, true); // still on the space bar, under 'x'
+        harness.touch.push(key_x, key_y, true); // entered the key row directly over 'x'
+        harness.touch.push(key_x, key_y, true);
+        harness.touch.push(key_x, key_y, false);
+        pump_for(280);
+        assert_eq!(harness.text(), "x");
+    }
+
+    #[test]
     fn test_preview_tracks_modes() {
         let _lock = lock_and_init();
         let mut harness = Harness::new(CanCancel::No);
@@ -1387,6 +1443,77 @@ mod tests {
         // Tapping the disabled key is inert.
         harness.tap_pin_key(3, 0);
         assert_eq!(harness.text(), "");
+    }
+
+    #[test]
+    fn test_pin_key_slide_off_does_not_type() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new_pin(CanCancel::No);
+
+        // Press '5', slide off the key into the grid gap, release: leaving the key clears its
+        // pressed state (LV_EVENT_PRESS_LOST) and the release must not type.
+        let area = coords(&harness.keypad());
+        let (x, y) = super::super::keypad::key_center(1, 1);
+        let (x, y) = (area.x1 + x, area.y1 + y);
+        let key = harness.keypad().child(4).expect("digit key 5");
+        harness.touch.push(x, y, true);
+        harness.touch.push(x, y, true);
+        pump_for(120);
+        assert!(Harness::pressed(&key));
+
+        // Two steps to the right: past the key edge (41px half-width), into the 50px gap.
+        harness.touch.push(x + 30, y, true);
+        harness.touch.push(x + 60, y, true);
+        pump_for(120);
+        assert!(!Harness::pressed(&key));
+
+        harness.touch.push(x + 60, y, false);
+        pump_for(120);
+        assert_eq!(harness.text(), "");
+
+        // Sliding back onto the key before releasing does not re-arm it either: once the press
+        // left the key, that tap is abandoned for good (same as the keyboard's character keys).
+        harness.touch.push(x, y, true);
+        harness.touch.push(x + 60, y, true);
+        harness.touch.push(x, y, true);
+        harness.touch.push(x, y, false);
+        pump_for(200);
+        assert_eq!(harness.text(), "");
+
+        // A regular tap still types.
+        harness.tap_pin_key(1, 1);
+        assert_eq!(harness.text(), "5");
+    }
+
+    #[test]
+    fn test_pin_confirm_slide_off_does_not_resolve() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new_pin(CanCancel::No);
+
+        harness.tap_pin_key(0, 0); // 1
+
+        // Press the confirm key, slide off it, release: the workflow must not resolve.
+        let area = coords(&harness.keypad());
+        let (x, y) = super::super::keypad::key_center(3, 2);
+        let (x, y) = (area.x1 + x, area.y1 + y);
+        let key = harness.keypad().child(11).expect("confirm key");
+        harness.touch.push(x, y, true);
+        harness.touch.push(x, y, true);
+        pump_for(120);
+        assert!(Harness::pressed(&key));
+        harness.touch.push(x + 30, y, true);
+        harness.touch.push(x + 60, y, true);
+        harness.touch.push(x + 60, y, false);
+        pump_for(240);
+        assert!(poll_once(&mut harness.result).is_none());
+
+        // A regular tap on confirm still resolves.
+        harness.tap_pin_key(3, 2);
+        let result = poll_once(&mut harness.result).expect("confirm resolves");
+        let Ok(text) = result else {
+            panic!("unexpected abort")
+        };
+        assert_eq!(text.as_str(), "1");
     }
 
     #[test]

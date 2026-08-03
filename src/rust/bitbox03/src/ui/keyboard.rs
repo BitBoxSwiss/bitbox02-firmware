@@ -555,9 +555,19 @@ pub fn build_keyboard(parent: &LvObj, textarea: Rc<LvTextarea>) -> LvObj {
             LvEventCode::LV_EVENT_RELEASED,
             LvEventCode::LV_EVENT_PRESS_LOST,
         ] {
+            let matrix_cb = matrix_handle(&container, row);
             let preview = Rc::clone(&preview);
             matrix
-                .add_event_cb(code, move || preview.hide())
+                .add_event_cb(code, move || {
+                    preview.hide();
+                    // Discard the selection once the interaction ends (this callback runs after
+                    // the class handler has fired VALUE_CHANGED for a legitimate click). LVGL
+                    // keeps the lastly clicked key selected forever, and a press sliding in from
+                    // a neighbouring key reaches the matrix without a PRESSED event (which is
+                    // what re-derives the selection) but still gets RELEASED — a stale selection
+                    // would type that key again.
+                    matrix_cb.set_selected_button(lvgl::ffi::LV_BUTTONMATRIX_BUTTON_NONE);
+                })
                 .expect("failed to register key release callback");
         }
     }

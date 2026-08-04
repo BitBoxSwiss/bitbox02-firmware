@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  # need atomic CAS, so Cortex-M0/1 are out
+  QEMU_TARGET: thumbv7m-none-eabi
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        rust:
+          - stable
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Check that all crates build without warning
+        run: RUSTFLAGS='--deny warnings' cargo check --all
+        shell: bash
+
+      - name: Check clippy output (lenient mode)
+        # run: RUSTFLAGS='--deny warnings' cargo clippy --all
+        run: cargo clippy --all
+        shell: bash
+
+      - name: Run non-QEMU tests
+        run: make non-qemu-tests
+
+  build-thumbv6m-none-eabi:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_TARGET: thumbv6m-none-eabi
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install rust
+        run: rustup target add ${CARGO_BUILD_TARGET}
+      - name: Build
+        run: cargo build --features portable-atomic,portable-atomic/critical-section
+
+  qemu-test:
+    strategy:
+      matrix:
+        rust:
+          - stable
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          target: ${{ env.QEMU_TARGET }}
+          override: true
+
+      - name: Install QEMU (want >= 4)
+        run: |
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install -qq qemu-system-arm >/dev/null
+          qemu-system-arm --version
+
+      - name: Build the QEMU tests
+        working-directory: qemu-tests
+        run: make build build-release
+
+      - name: Run the QEMU tests
+        working-directory: qemu-tests
+        run: make test
+

@@ -1,0 +1,29 @@
+[package]
+name = "littlefs2-core"
+version = "0.1.2"
+authors = ["The Trussed developers"]
+description = "Core types for the littlefs2 crate"
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+bitflags = "2.6.0"
+heapless-bytes03 = { package = "heapless-bytes", version = "0.3", optional = true }
+heapless-bytes04 = { package = "heapless-bytes", version = "0.4", optional = true }
+heapless-bytes05 = { package = "heapless-bytes", version = "0.5", optional = true }
+heapless07 = { package = "heapless", version = "0.7", optional = true }
+heapless08 = { package = "heapless", version = "0.8", optional = true }
+heapless09 = { package = "heapless", version = "0.9", optional = true }
+serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+
+[features]
+heapless-bytes03 = ["dep:heapless-bytes03"]
+heapless-bytes04 = ["dep:heapless-bytes04"]
+heapless-bytes05 = ["dep:heapless-bytes05"]
+heapless07 = ["dep:heapless07"]
+heapless08 = ["dep:heapless08"]
+heapless09 = ["dep:heapless09"]
+serde = ["dep:serde"]
+debug-error = []

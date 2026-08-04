@@ -4,32 +4,44 @@
 
 members = [
     "async_test",
-    "bitbox-u2fhid",
-    "bitbox-proto",
-    "bitbox02-rust-c",
-    "bitbox02-rust",
-    "bitbox-usb-report-queue",
+    "bins/bitbox03-boot0",
+    "bins/bitbox03-boot1",
+    "bins/bitbox03-factorysetup",
+    "bins/bitbox03-firmware",
+    "bitbox-aes",
+    "bitbox-board-stm32u5a9j-dk",
+    "bitbox-board-stm32u5a9j-dk-build",
+    "bitbox-board-stm32u5a9j-dk-sys",
+    "bitbox-boot-utils",
     "bitbox-bytequeue",
-    "bitbox-da14531",
-    "bitbox-platform-host",
-    "bitbox-hal",
     "bitbox-core-utils",
+    "bitbox-da14531",
+    "bitbox-debug",
+    "bitbox-executor",
     "bitbox-framed-serial-link",
-    "util",
+    "bitbox-hal",
+    "bitbox-lvgl",
+    "bitbox-lvgl-sys",
+    "bitbox-mcu-stm32u5",
     "bitbox-noise",
-    "bitbox02",
+    "bitbox-platform-host",
+    "bitbox-platform-stm32u5",
+    "bitbox-platform-stm32u5-sys",
+    "bitbox-proto",
     "bitbox-secp256k1",
-    "bitbox02-sys",
     "bitbox-securechip",
     "bitbox-securechip-sys",
-    "bitbox-lvgl-sys",
-    "erc20_params",
-    "streaming-silent-payments",
-    "bitbox-aes",
-    "fatfs-sys",
-    "bitbox-executor",
+    "bitbox-u2fhid",
+    "bitbox-usb-report-queue",
+    "bitbox02",
+    "bitbox02-rust",
+    "bitbox02-rust-c",
+    "bitbox02-sys",
     "bitbox03",
-    "bitbox-lvgl",
+    "erc20_params",
+    "fatfs-sys",
+    "streaming-silent-payments",
+    "util",
 ]
 
 resolver = "2"
@@ -62,9 +74,11 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 grounded = { version = "0.2.0", default-features = false, features = ["critical-section"] }
 critical-section = { version = "1.2.0", default-features = false }
+littlefs2 = { version = "0.7.1", default-features = false, features = ["c-stubs"] }
 
 [patch.crates-io]
-rtt-target = { git = "https://github.com/probe-rs/rtt-target.git", rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5" }
+rtt-target = { git = "https://github.com/BitBoxSwiss/rtt-target.git", rev = "c04cef567e77ee263ee0621c07202dff6a73ef45" }
+littlefs2-sys = { git = "https://github.com/BitBoxSwiss/littlefs2-sys", rev = "8eaf0fbc7eca5e3ab6ea9a50e519c536e901f538" }
 
 [profile.release]
 # This only affects the .elf output. Debug info is stripped from the final .bin.

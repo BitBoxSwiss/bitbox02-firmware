@@ -2,11 +2,192 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::marker::PhantomData;
 
 use bitbox_hal::memory::{
     BleFirmwareSlot, BleMetadata, Error, OptigaConfigVersion, PasswordStretchAlgo, Platform,
     SecurechipType,
 };
+use littlefs2::{
+    consts::{U1, U256},
+    driver::Storage,
+    io::{Error as LfsError, Result as LfsResult},
+};
+use std::sync::{Mutex, OnceLock};
+
+const FLASH_PAGE_SIZE: usize = 8 * 1024;
+const FLASH_PROGRAM_SIZE: usize = 16;
+const LFS_BLOCK_CYCLES: isize = 500;
+
+static SIMULATOR_STORAGE_0: OnceLock<Mutex<Vec<u8>>> = OnceLock::new();
+static SIMULATOR_STORAGE_1: OnceLock<Mutex<Vec<u8>>> = OnceLock::new();
+
+pub struct SimulatorStorage<const LEN: usize, const ID: usize> {
+    _private: PhantomData<()>,
+}
+
+impl<const LEN: usize, const ID: usize> SimulatorStorage<LEN, ID> {
+    pub const fn new() -> Self {
+        Self {
+            _private: PhantomData,
+        }
+    }
+
+    pub fn reset() {
+        if let Ok(mut data) = Self::data().lock() {
+            data.clear();
+            data.resize(LEN, 0xff);
+        }
+    }
+
+    fn data() -> &'static Mutex<Vec<u8>> {
+        match ID {
+            0 => SIMULATOR_STORAGE_0.get_or_init(|| Mutex::new(vec![0xff; LEN])),
+            1 => SIMULATOR_STORAGE_1.get_or_init(|| Mutex::new(vec![0xff; LEN])),
+            _ => panic!("unsupported simulator storage ID"),
+        }
+    }
+}
+
+impl<const LEN: usize, const ID: usize> Default for SimulatorStorage<LEN, ID> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const LEN: usize, const ID: usize> Storage for SimulatorStorage<LEN, ID> {
+    type CACHE_SIZE = U256;
+    type LOOKAHEAD_SIZE = U1;
+
+    const READ_SIZE: usize = FLASH_PROGRAM_SIZE;
+    const WRITE_SIZE: usize = FLASH_PROGRAM_SIZE;
+    const BLOCK_SIZE: usize = FLASH_PAGE_SIZE;
+    const BLOCK_COUNT: usize = LEN / FLASH_PAGE_SIZE;
+    const BLOCK_CYCLES: isize = LFS_BLOCK_CYCLES;
+
+    fn read(&mut self, off: usize, buf: &mut [u8]) -> LfsResult<usize> {
+        let end = off.checked_add(buf.len()).ok_or(LfsError::IO)?;
+        if end > LEN {
+            return Err(LfsError::IO);
+        }
+        let data = Self::data().lock().map_err(|_| LfsError::IO)?;
+        if data.len() != LEN {
+            return Err(LfsError::IO);
+        }
+        buf.copy_from_slice(&data[off..end]);
+        Ok(buf.len())
+    }
+
+    fn write(&mut self, off: usize, input: &[u8]) -> LfsResult<usize> {
+        if !input.len().is_multiple_of(FLASH_PROGRAM_SIZE) {
+            return Err(LfsError::IO);
+        }
+        let end = off.checked_add(input.len()).ok_or(LfsError::IO)?;
+        if end > LEN {
+            return Err(LfsError::IO);
+        }
+        let mut data = Self::data().lock().map_err(|_| LfsError::IO)?;
+        if data.len() != LEN {
+            return Err(LfsError::IO);
+        }
+        for (dst, src) in data[off..end].iter_mut().zip(input) {
+            *dst &= *src;
+        }
+        Ok(input.len())
+    }
+
+    fn erase(&mut self, off: usize, len: usize) -> LfsResult<usize> {
+        let end = off.checked_add(len).ok_or(LfsError::IO)?;
+        if !off.is_multiple_of(FLASH_PAGE_SIZE) || !len.is_multiple_of(FLASH_PAGE_SIZE) || end > LEN
+        {
+            return Err(LfsError::IO);
+        }
+        let mut data = Self::data().lock().map_err(|_| LfsError::IO)?;
+        if data.len() != LEN {
+            return Err(LfsError::IO);
+        }
+        data[off..end].fill(0xff);
+        Ok(len)
+    }
+}
+
+pub struct RamStorage<const LEN: usize> {
+    data: [u8; LEN],
+}
+
+impl<const LEN: usize> RamStorage<LEN> {
+    pub fn erased() -> Self {
+        Self { data: [0xff; LEN] }
+    }
+
+    pub fn nonblank_unformatted() -> Self {
+        let mut storage = Self::erased();
+        storage.data[0] = 0;
+        storage
+    }
+}
+
+impl<const LEN: usize> Storage for RamStorage<LEN> {
+    type CACHE_SIZE = U256;
+    type LOOKAHEAD_SIZE = U1;
+
+    const READ_SIZE: usize = FLASH_PROGRAM_SIZE;
+    const WRITE_SIZE: usize = FLASH_PROGRAM_SIZE;
+    const BLOCK_SIZE: usize = FLASH_PAGE_SIZE;
+    const BLOCK_COUNT: usize = LEN / FLASH_PAGE_SIZE;
+    const BLOCK_CYCLES: isize = LFS_BLOCK_CYCLES;
+
+    fn read(&mut self, off: usize, buf: &mut [u8]) -> LfsResult<usize> {
+        let end = off.checked_add(buf.len()).ok_or(LfsError::IO)?;
+        if end > self.data.len() {
+            return Err(LfsError::IO);
+        }
+        buf.copy_from_slice(&self.data[off..end]);
+        Ok(buf.len())
+    }
+
+    fn write(&mut self, off: usize, data: &[u8]) -> LfsResult<usize> {
+        let end = off.checked_add(data.len()).ok_or(LfsError::IO)?;
+        if end > self.data.len() {
+            return Err(LfsError::IO);
+        }
+        for (dst, src) in self.data[off..end].iter_mut().zip(data) {
+            *dst &= *src;
+        }
+        Ok(data.len())
+    }
+
+    fn erase(&mut self, off: usize, len: usize) -> LfsResult<usize> {
+        let end = off.checked_add(len).ok_or(LfsError::IO)?;
+        if !off.is_multiple_of(FLASH_PAGE_SIZE)
+            || !len.is_multiple_of(FLASH_PAGE_SIZE)
+            || end > self.data.len()
+        {
+            return Err(LfsError::IO);
+        }
+        self.data[off..end].fill(0xff);
+        Ok(len)
+    }
+}
+
+pub fn storage_is_erased<S: Storage>(storage: &mut S) -> bool {
+    let Some(len) = S::BLOCK_SIZE.checked_mul(S::BLOCK_COUNT) else {
+        return false;
+    };
+    let mut buf = [0u8; 256];
+    let mut off = 0;
+    while off < len {
+        let read_len = core::cmp::min(buf.len(), len - off);
+        if storage.read(off, &mut buf[..read_len]).is_err() {
+            return false;
+        }
+        if buf[..read_len].iter().any(|&byte| byte != 0xff) {
+            return false;
+        }
+        off += read_len;
+    }
+    true
+}
 
 pub struct FakeMemory {
     ble_enabled: bool,
@@ -49,12 +230,7 @@ impl FakeMemory {
     pub fn new() -> Self {
         Self {
             ble_enabled: true,
-            ble_metadata: BleMetadata {
-                allowed_firmware_hash: [0; 32],
-                active_index: 0,
-                firmware_sizes: [0; 2],
-                firmware_checksums: [0; 2],
-            },
+            ble_metadata: BleMetadata::default(),
             ble_firmware_slots: [
                 vec![0xff; bitbox_hal::memory::BLE_FIRMWARE_MAX_SIZE],
                 vec![0xff; bitbox_hal::memory::BLE_FIRMWARE_MAX_SIZE],

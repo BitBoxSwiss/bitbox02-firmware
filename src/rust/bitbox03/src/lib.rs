@@ -3,7 +3,11 @@
 #![no_std]
 
 extern crate alloc;
-use core::cell::UnsafeCell;
+#[cfg(test)]
+extern crate std;
+
+use littlefs2::driver::Storage;
+
 mod eeprom;
 pub mod io;
 mod memory;
@@ -14,74 +18,67 @@ mod system;
 pub mod timer;
 pub mod ui;
 
+pub use memory::BitBox03Memory;
+
 use bitbox_hal as hal;
 use bitbox_lvgl::LvDisplay;
 
-struct BitBox03State {
+struct BitBox03State<UserStorage, VendorStorage> {
     ui: ui::BitBox03Ui,
     random: random::BitBox03Random,
     sd: sd::BitBox03Sd,
     securechip: securechip::BitBox03SecureChip,
-    memory: memory::BitBox03Memory,
+    memory: memory::BitBox03Memory<UserStorage, VendorStorage>,
     eeprom: eeprom::BitBox03Eeprom,
     system: system::BitBox03System,
 }
 
-impl BitBox03State {
+impl<UserStorage, VendorStorage> BitBox03State<UserStorage, VendorStorage> {
     const fn new() -> Self {
         Self {
             ui: ui::BitBox03Ui::new(),
             random: random::BitBox03Random {},
             sd: sd::BitBox03Sd {},
             securechip: securechip::BitBox03SecureChip {},
-            memory: memory::BitBox03Memory {},
+            memory: memory::BitBox03Memory::new(),
             eeprom: eeprom::BitBox03Eeprom::new(),
             system: system::BitBox03System {},
         }
     }
 }
 
-struct Singleton<T>(UnsafeCell<T>);
-
-impl<T> Singleton<T> {
-    const fn new(value: T) -> Self {
-        Self(UnsafeCell::new(value))
-    }
-
-    fn get(&self) -> *mut T {
-        self.0.get()
-    }
+pub struct BitBox03<UserStorage, VendorStorage> {
+    state: BitBox03State<UserStorage, VendorStorage>,
 }
 
-// The BitBox03 HAL is intentionally shared across all handles.
-// This keeps all constructions pointed at the same state.
-unsafe impl<T> Sync for Singleton<T> {}
-
-static BITBOX03: Singleton<BitBox03State> = Singleton::new(BitBox03State::new());
-
-fn state() -> &'static mut BitBox03State {
-    unsafe { &mut *BITBOX03.get() }
-}
-
-#[derive(Copy, Clone, Default)]
-pub struct BitBox03;
-
-impl BitBox03 {
-    pub const fn new() -> BitBox03 {
-        BitBox03
+impl<UserStorage, VendorStorage> BitBox03<UserStorage, VendorStorage> {
+    pub const fn new() -> Self {
+        Self {
+            state: BitBox03State::new(),
+        }
     }
 
     pub fn init(&mut self, display: LvDisplay) {
-        state().ui.init(display);
+        self.state.ui.init(display);
     }
 }
 
-impl hal::Hal for BitBox03 {
+impl<UserStorage, VendorStorage> Default for BitBox03<UserStorage, VendorStorage> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<UserStorage, VendorStorage> hal::Hal for BitBox03<UserStorage, VendorStorage>
+where
+    UserStorage: Storage + Default,
+    VendorStorage: Storage + Default,
+{
     type Ui = ui::BitBox03Ui;
     type Random = random::BitBox03Random;
     type Sd = sd::BitBox03Sd;
     type SecureChip = securechip::BitBox03SecureChip;
-    type Memory = memory::BitBox03Memory;
+    type Memory = memory::BitBox03Memory<UserStorage, VendorStorage>;
     type Eeprom = eeprom::BitBox03Eeprom;
     type System = system::BitBox03System;
 
@@ -97,15 +94,14 @@ impl hal::Hal for BitBox03 {
         Self::Eeprom,
         Self::System,
     > {
-        let state = state();
         hal::HalSubsystems {
-            ui: &mut state.ui,
-            random: &mut state.random,
-            sd: &mut state.sd,
-            securechip: &mut state.securechip,
-            memory: &mut state.memory,
-            eeprom: &mut state.eeprom,
-            system: &mut state.system,
+            ui: &mut self.state.ui,
+            random: &mut self.state.random,
+            sd: &mut self.state.sd,
+            securechip: &mut self.state.securechip,
+            memory: &mut self.state.memory,
+            eeprom: &mut self.state.eeprom,
+            system: &mut self.state.system,
         }
     }
 }

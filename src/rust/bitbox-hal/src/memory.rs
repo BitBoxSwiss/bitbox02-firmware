@@ -44,12 +44,60 @@ pub enum Error {
     Unknown,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct BleMetadata {
     pub allowed_firmware_hash: [u8; 32],
     pub active_index: u8,
     pub firmware_sizes: [u16; 2],
     pub firmware_checksums: [u8; 2],
+}
+
+impl BleMetadata {
+    const VERSION: u8 = 1;
+    pub const ENCODED_LEN: usize = 40;
+
+    pub fn encode(&self) -> [u8; Self::ENCODED_LEN] {
+        let mut out = [0u8; Self::ENCODED_LEN];
+        out[0] = Self::VERSION;
+        out[1] = self.active_index;
+        out[2..4].copy_from_slice(&self.firmware_sizes[0].to_le_bytes());
+        out[4..6].copy_from_slice(&self.firmware_sizes[1].to_le_bytes());
+        out[6] = self.firmware_checksums[0];
+        out[7] = self.firmware_checksums[1];
+        out[8..40].copy_from_slice(&self.allowed_firmware_hash);
+        out
+    }
+
+    pub fn decode(data: &[u8]) -> Option<Self> {
+        if data.len() != Self::ENCODED_LEN {
+            return None;
+        }
+        if data[0] != Self::VERSION {
+            return None;
+        }
+        let active_index = data[1];
+        if active_index > 1 {
+            return None;
+        }
+        let firmware_sizes = [
+            u16::from_le_bytes(data[2..4].try_into().unwrap()),
+            u16::from_le_bytes(data[4..6].try_into().unwrap()),
+        ];
+        if firmware_sizes
+            .iter()
+            .any(|&size| size as usize > BLE_FIRMWARE_MAX_SIZE)
+        {
+            return None;
+        }
+        let mut allowed_firmware_hash = [0u8; 32];
+        allowed_firmware_hash.copy_from_slice(&data[8..40]);
+        Some(Self {
+            allowed_firmware_hash,
+            active_index,
+            firmware_sizes,
+            firmware_checksums: [data[6], data[7]],
+        })
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

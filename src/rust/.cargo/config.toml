@@ -3,9 +3,9 @@ include = [{ path = "../../../.cargo/config.local.toml", optional = true }]
 [source.crates-io]
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/probe-rs/rtt-target.git?rev=117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"]
-git = "https://github.com/probe-rs/rtt-target.git"
-rev = "117d9519a5d3b1f4bc024bc05f9e3c5dec0a57f5"
+[source."git+https://github.com/BitBoxSwiss/rtt-target?rev=c04cef567e77ee263ee0621c07202dff6a73ef45"]
+git = "https://github.com/BitBoxSwiss/rtt-target"
+rev = "c04cef567e77ee263ee0621c07202dff6a73ef45"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/BitBoxSwiss/rust-bip32-ed25519?tag=v0.2.1"]
@@ -18,12 +18,20 @@ git = "https://github.com/BitBoxSwiss/rust-bip39.git"
 branch = "bitbox-20250922"
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/BitBoxSwiss/littlefs2-sys?rev=8eaf0fbc7eca5e3ab6ea9a50e519c536e901f538"]
+git = "https://github.com/BitBoxSwiss/littlefs2-sys"
+rev = "8eaf0fbc7eca5e3ab6ea9a50e519c536e901f538"
+replace-with = "vendored-sources"
+
 [source.vendored-sources]
 directory = "../../external/vendor"
 
-[build]
-# Use our own copy of libsecp256k1-zpk instead of the one bundled with secp256k1-sys, also in `cargo
-# test` and other cargo-based builds. This is replicated in src/CMakeLists.txt,
-# test/simulator-graphical*/CMakeLists.txt for CMake-based builds.
-# See https://github.com/rust-bitcoin/rust-secp256k1/tree/7c8270a8506e31731e540fab7ee1abde1f48314e/secp256k1-sys#linking-to-external-symbols
-rustflags = ["--cfg", "rust_secp_no_symbol_renaming"]
+[alias]
+bitbox03-boot0-stm32u5a9j-dk = "build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk,rtt"
+bitbox03-boot0-stm32u5a9j-dk-release = "build -p bitbox03-boot0 --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"
+bitbox03-boot1-stm32u5a9j-dk = "build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk,rtt"
+bitbox03-boot1-stm32u5a9j-dk-release = "build -p bitbox03-boot1 --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"
+bitbox03-factorysetup-stm32u5a9j-dk = "build -p bitbox03-factorysetup --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk"
+bitbox03-factorysetup-stm32u5a9j-dk-release = "build -p bitbox03-factorysetup --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"
+bitbox03-firmware-stm32u5a9j-dk = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --features board-stm32u5a9j-dk,rtt"
+bitbox03-firmware-stm32u5a9j-dk-release = "build -p bitbox03-firmware --target=thumbv8m.main-none-eabihf --release --features board-stm32u5a9j-dk"

@@ -1,0 +1,6 @@
+[submodule "littlefs"]
+	path = littlefs
+	url = https://github.com/ARMmbed/littlefs
+[submodule "littlefs-patched"]
+	path = littlefs-patched
+	url = https://github.com/trussed-dev/littlefs

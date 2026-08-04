@@ -117,6 +117,9 @@ fn load_from_buffer(buf: &[u8]) -> Result<(Zeroizing<BackupData>, pb_backup::Bac
         })) => {
             let mut backup_data: Zeroizing<BackupData> = Default::default();
             backup_data.0.merge(content.data.as_slice()).or(Err(()))?;
+            if backup_data.0.seed_length > 32 {
+                return Err(());
+            }
 
             let checksum = compute_checksum(
                 content.metadata.as_ref().unwrap(),
@@ -317,6 +320,37 @@ mod tests {
         assert_eq!(id(&seed_16), expected_output_16);
         assert_eq!(id(&seed_24), expected_output_24);
         assert_eq!(id(&seed_32), expected_output_32);
+    }
+
+    #[test]
+    fn test_load_from_buffer_oversized_seed_length() {
+        let data = pb_backup::BackupData {
+            seed_length: 33,
+            seed: vec![0; 32],
+            birthdate: 0,
+            generator: String::new(),
+        };
+        let metadata = pb_backup::BackupMetaData {
+            timestamp: 0,
+            name: String::new(),
+            mode: pb_backup::BackupMode::Plaintext as _,
+        };
+        let length = 0;
+        let checksum = compute_checksum(&metadata, &data, length).unwrap();
+        let backup = pb_backup::Backup {
+            backup_version: Some(pb_backup::backup::BackupVersion::BackupV1(
+                pb_backup::BackupV1 {
+                    content: Some(pb_backup::BackupContent {
+                        checksum,
+                        metadata: Some(metadata),
+                        length,
+                        data: data.encode_to_vec(),
+                    }),
+                },
+            )),
+        };
+
+        assert!(load_from_buffer(&backup.encode_to_vec()).is_err());
     }
 
     async fn _test_create_load(seed: &[u8]) {

@@ -570,9 +570,9 @@ pub async fn copy_bip39_seed(
         .map_err(|_| ())
 }
 
-/// Generates the seed, mixes it with host_entropy, and stores it encrypted with the
-/// password. The size of the host entropy determines the size of the seed. Can be either 16 or 32
-/// bytes, resulting in 12 or 24 BIP39 recovery words.
+/// Generates the seed, mixes it with host_entropy and password_salted_hashed, and stores it
+/// encrypted with the password. The size of the host entropy determines the size of the seed.
+/// Can be either 16 or 32 bytes, resulting in 12 or 24 BIP39 recovery words.
 /// This also unlocks the keystore with the new seed.
 pub async fn create_and_store_seed(
     hal: &mut impl crate::hal::Hal,
@@ -584,6 +584,10 @@ pub async fn create_and_store_seed(
         return Err(Error::SeedSize);
     }
 
+    // Generate seed which already includes:
+    // * Entropy from the secure chip TRNG.
+    // * Entropy from the MCU TRNG.
+    // * Entropy set during factory installation.
     let mut seed_vec = bitbox_core_utils::random::random_32_bytes_from_hal(hal).await?;
     let seed = &mut seed_vec[..seed_len];
 

@@ -635,6 +635,7 @@ if(CMAKE_CROSSCOMPILING)
     target_include_directories(${stage0_target}.elf PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     target_compile_definitions(${stage0_target}.elf PRIVATE
       ${product}
+      BOOTLOADER_STAGE0
       BB02_STAGE1_TARGET_PRODUCT_ID=${target_product_id}
       ${stage0_compile_definitions}
     )

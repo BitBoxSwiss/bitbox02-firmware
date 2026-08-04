@@ -157,7 +157,7 @@
 //! ```
 
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg), feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 use core::convert::Infallible;
 use core::fmt;
@@ -225,7 +225,7 @@ impl UpChannel {
     /// let mut output = channels.up.0;
     /// uwriteln!(output.u(), "Hello, ufmt!");
     /// ```
-    pub fn u(&mut self) -> uWriter {
+    pub fn u(&mut self) -> uWriter<'_> {
         uWriter(self.channel().writer())
     }
 
@@ -394,7 +394,7 @@ impl TerminalChannel {
     /// The writer supports formatted writing with the standard [`Write`] and [`ufmt_write::uWrite`].
     ///
     /// [`Write`]: fmt::Write
-    pub fn write(&mut self, number: u8) -> TerminalWriter {
+    pub fn write(&mut self, number: u8) -> TerminalWriter<'_> {
         const TERMINAL_ID: [u8; 16] = *b"0123456789ABCDEF";
 
         let mut writer = self.channel.channel().writer();

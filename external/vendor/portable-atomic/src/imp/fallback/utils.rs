@@ -2,7 +2,7 @@
 
 use core::ops;
 
-// Adapted from https://github.com/crossbeam-rs/crossbeam/blob/9384f1eb2b356364e201ad38545e03c837d55f3a/crossbeam-utils/src/cache_padded.rs.
+// Adapted from https://github.com/crossbeam-rs/crossbeam/blob/crossbeam-utils-0.8.21/crossbeam-utils/src/cache_padded.rs.
 /// Pads and aligns a value to the length of a cache line.
 // Starting from Intel's Sandy Bridge, spatial prefetcher is now pulling pairs of 64-byte cache
 // lines at a time, so we have to align to 128 bytes rather than 64.
@@ -11,7 +11,7 @@ use core::ops;
 // - https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-optimization-manual.pdf
 // - https://github.com/facebook/folly/blob/1b5288e6eea6df074758f877c849b6e73bbb9fbb/folly/lang/Align.h#L107
 //
-// ARM's big.LITTLE architecture has asymmetric cores and "big" cores have 128-byte cache line size.
+// aarch64/arm64ec's big.LITTLE architecture has asymmetric cores and "big" cores have 128-byte cache line size.
 //
 // Sources:
 // - https://www.mono-project.com/news/2016/09/12/arm64-icache/
@@ -109,7 +109,7 @@ impl<T> ops::Deref for CachePadded<T> {
     }
 }
 
-// Adapted from https://github.com/crossbeam-rs/crossbeam/blob/crossbeam-utils-0.8.7/crossbeam-utils/src/backoff.rs.
+// Adapted from https://github.com/crossbeam-rs/crossbeam/blob/crossbeam-utils-0.8.21/crossbeam-utils/src/backoff.rs.
 // Adjusted to reduce spinning.
 /// Performs exponential backoff in spin loops.
 pub(crate) struct Backoff {
@@ -144,4 +144,22 @@ impl Backoff {
             std::thread::yield_now();
         }
     }
+}
+
+#[inline]
+pub(crate) fn sc_fence() {
+    cfg_sel!({
+        #[cfg(all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+        ))]
+        {
+            crate::imp::x86::sc_fence();
+        }
+        #[cfg(else)]
+        {
+            core::sync::atomic::fence(core::sync::atomic::Ordering::SeqCst);
+        }
+    });
 }

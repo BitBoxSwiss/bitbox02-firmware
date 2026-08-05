@@ -10,6 +10,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Add support for BitBoxSync
 
 ### v9.26.5
+- Security improvements
 - Fixed a crash when listing many backups over Bluetooth
 - Fix unexpected NACK responses on iOS due to slow securechip operations
 

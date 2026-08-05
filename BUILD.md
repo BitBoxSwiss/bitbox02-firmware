@@ -104,6 +104,20 @@ brew tap osx-cross/arm
 brew install arm-gcc-bin
 ```
 
+Install [rustup](https://rustup.rs). The toolchain version is pinned by
+`src/rust/rust-toolchain.toml`; rustup will download it automatically once you run `cargo` from
+ within `src/rust` (or after setting a rustup override for the repository).
+
+The build also invokes three tools that are not installed by the brew commands
+above. Install them with the same versions as the container (see the
+[Dockerfile](Dockerfile)):
+
+```sh
+cargo install cbindgen --version 0.29.2 --locked
+cargo install bindgen-cli --version 0.72.1 --locked
+cargo install --path tools/prost-build-proto --locked
+```
+
 ## Contributor instructions
 
 ### Check out the repository

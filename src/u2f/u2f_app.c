@@ -35,7 +35,7 @@ static bool _is_app_id_bogus(const uint8_t* app_id)
            MEMEQ(app_id, APPID_BOGUS_FIREFOX, U2F_APPID_SIZE);
 }
 
-void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
+bool u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
 {
     char app_string[100] = {0};
     const char* title;
@@ -58,9 +58,12 @@ void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id)
     default:
         Abort("u2f_app_confirm: Internal error");
     }
+    if (!rust_workflow_spawn_confirm(title, app_string)) {
+        return false;
+    }
     _state.outstanding_confirm = type;
     memcpy(_state.app_id, app_id, 32);
-    rust_workflow_spawn_confirm(title, app_string);
+    return true;
 }
 
 async_op_result_t u2f_app_confirm_retry(enum u2f_app_confirm_t type, const uint8_t* app_id)

@@ -39,6 +39,8 @@ else()
      ""
      hww
      "-Wl,--wrap=rust_workflow_u2f_is_active"
+     u2f_state
+     ""
      random
      "-Wl,--wrap=rand,--wrap=rust_sha256"
      screen_process
@@ -100,6 +102,11 @@ else()
       target_compile_definitions(${EXE} PRIVATE PRODUCT_BITBOX_MULTI=1)
       target_include_directories(${EXE} PRIVATE
           ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/include
+          ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
+      )
+    endif()
+    if(TEST_NAME STREQUAL "u2f_state")
+      target_include_directories(${EXE} PRIVATE
           ${CMAKE_SOURCE_DIR}/external/asf4-drivers/hal/utils/include
       )
     endif()

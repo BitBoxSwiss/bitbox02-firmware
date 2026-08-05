@@ -153,7 +153,15 @@ impl hal::memory::Memory for BitBox03Memory {
         todo!()
     }
 
+    fn get_auth_key(&mut self, _out: &mut [u8; 32]) {
+        todo!()
+    }
+
     fn get_io_protection_key(&mut self, _out: &mut [u8; 32]) {
+        todo!()
+    }
+
+    fn get_encryption_key(&mut self, _out: &mut [u8; 32]) {
         todo!()
     }
 }

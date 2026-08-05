@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bitbox_hal::System;
+#[cfg(not(any(
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+)))]
+use bitbox_hal::{Memory, memory::SecurechipType};
 use core::marker::PhantomData;
 use core::time::Duration;
 
@@ -22,12 +28,43 @@ impl<Timer> Default for BitBox02System<Timer> {
     }
 }
 
+#[cfg(not(any(
+    feature = "testing",
+    feature = "c-unit-testing",
+    feature = "simulator-graphical"
+)))]
+async fn manual_atecc_selftest<Timer: bitbox_hal::timer::Timer>() {
+    let mut memory = super::memory::BitBox02Memory;
+    match memory.get_securechip_type() {
+        Ok(SecurechipType::Atecc) => {
+            let mut random = super::random::BitBox02Random;
+            bitbox_securechip::atecc::manual_selftest::<Timer>(
+                &mut random,
+                &mut memory,
+                |message| crate::screen_print_debug(message, 5000),
+            )
+            .await;
+        }
+        Ok(SecurechipType::Optiga) => {
+            crate::screen_print_debug("ATECC self-test\nskip: optiga", 5000)
+        }
+        Err(()) => crate::screen_print_debug("ATECC self-test\nsecurechip type err", 5000),
+    }
+}
+
 impl<Timer: bitbox_hal::timer::Timer> System for BitBox02System<Timer> {
     async fn startup() {
         let upside_down = crate::ui::choose_orientation().await;
         if upside_down {
             crate::screen_rotate();
         }
+
+        #[cfg(not(any(
+            feature = "testing",
+            feature = "c-unit-testing",
+            feature = "simulator-graphical"
+        )))]
+        manual_atecc_selftest::<Timer>().await;
 
         // During this delay the bb02 logotype is shown.
         Timer::delay_for(Duration::from_millis(1300)).await;

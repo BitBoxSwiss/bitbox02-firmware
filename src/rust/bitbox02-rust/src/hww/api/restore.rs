@@ -79,7 +79,17 @@ pub async fn from_file(
     {
         // Ignore error - the U2f counter not being set can lead to problems with U2F, but it should
         // not fail the recovery, so the user can access their coins.
-        let _ = hal.securechip().u2f_counter_set(request.timestamp).await;
+        let _ = {
+            let crate::hal::HalSubsystems {
+                securechip,
+                random,
+                memory,
+                ..
+            } = hal.as_mut();
+            securechip
+                .u2f_counter_set(random, memory, request.timestamp)
+                .await
+        };
     }
 
     hal.memory().set_initialized().or(Err(Error::Memory))?;
@@ -160,7 +170,15 @@ pub async fn from_mnemonic(
     {
         // Ignore error - the U2f counter not being set can lead to problems with U2F, but it should
         // not fail the recovery, so the user can access their coins.
-        let _ = hal.securechip().u2f_counter_set(timestamp).await;
+        let _ = {
+            let crate::hal::HalSubsystems {
+                securechip,
+                random,
+                memory,
+                ..
+            } = hal.as_mut();
+            securechip.u2f_counter_set(random, memory, timestamp).await
+        };
     }
 
     hal.memory().set_initialized().or(Err(Error::Memory))?;

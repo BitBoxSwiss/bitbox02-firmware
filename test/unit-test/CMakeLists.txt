@@ -33,6 +33,8 @@ else()
      ""
      cleanup
      "-Wl,--wrap=util_cleanup_32"
+     da14531_handler
+     "-Wl,--wrap=confirm_create"
      gestures
      ""
      hww

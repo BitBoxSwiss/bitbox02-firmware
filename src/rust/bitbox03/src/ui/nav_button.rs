@@ -17,6 +17,8 @@ use bitbox_lvgl::{
 
 /// Style selector for the pressed state.
 const PRESSED_SELECTOR: u32 = LvState::LV_STATE_PRESSED as u32;
+/// Style selector for the disabled state.
+const DISABLED_SELECTOR: u32 = LvState::LV_STATE_DISABLED as u32;
 
 /// Properties that change between the normal and pressed look (the button's white fill).
 const PRESS_TRANSITION_PROPS: [u8; 3] = [prop::BG_OPA, prop::BG_COLOR, prop::INV];
@@ -125,6 +127,14 @@ pub(super) fn style_outline_button(button: &LvButton, border_width: i32) {
     button.set_style_pad_bottom(0, 0);
     button.set_style_pad_left(0, 0);
     button.set_style_pad_right(0, 0);
+    // The default theme's disabled style recolors the button — and everything drawn inside it —
+    // 50% grey, and the theme's state-change transition animates RECOLOR/RECOLOR_OPA with a 70ms
+    // delay + 80ms fade. Callers style their own instant gray disabled look (border and icon), so
+    // the delayed overlay would arrive ~150ms late as a second visible change: the button
+    // flickers on every enable/disable. Pin both props to their default-state values so the
+    // disabled style differs in nothing the theme animates and the switch is a single frame.
+    button.set_style_recolor_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, DISABLED_SELECTOR);
+    button.set_style_recolor(lvgl::color::black(), DISABLED_SELECTOR);
 }
 
 /// Builds a navigation icon button and appends it to `parent`. Returns the button so the caller can

@@ -1044,6 +1044,19 @@ mod tests {
         fn pressed(obj: &LvObj) -> bool {
             unsafe { ffi::lv_obj_has_state(obj.as_ptr(), lvgl::LvState::LV_STATE_PRESSED) }
         }
+
+        /// The resolved whole-widget recolor opacity (`LV_STYLE_RECOLOR_OPA`) in the object's
+        /// current state.
+        fn recolor_opa(obj: &LvObj) -> u8 {
+            let value = unsafe {
+                ffi::lv_obj_get_style_prop(
+                    obj.as_ptr(),
+                    LvPart::LV_PART_MAIN,
+                    ffi::_lv_style_id_t::LV_STYLE_RECOLOR_OPA as ffi::lv_style_prop_t,
+                )
+            };
+            unsafe { value.num as u8 }
+        }
     }
 
     impl Drop for Harness {
@@ -1131,6 +1144,59 @@ mod tests {
         // Tapping the disabled button is inert.
         harness.tap_button(&backspace);
         assert_eq!(harness.text(), "");
+    }
+
+    /// Enabling/disabling a button must swap its whole look in a single style update. The
+    /// default theme dims disabled widgets with a 50% grey whole-widget recolor and animates
+    /// `RECOLOR`/`RECOLOR_OPA` on state changes with a delay — left in place, that overlay lands
+    /// ~150ms after the gray border/icon colors snap in, so the button visibly flickers
+    /// (regression test for the `style_outline_button` disabled-state override).
+    #[test]
+    fn test_disable_enable_is_not_animated() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new(CanCancel::No);
+
+        // Canary for the assumption the zero-assertions below rest on: the default theme dims a
+        // disabled widget with a (delayed) 50% whole-widget recolor. An unstyled button must
+        // show that overlay once the transition has settled — if an LVGL bump changes the
+        // mechanism, fail loudly here instead of letting the assertions below pass vacuously.
+        let canary = LvButton::new(&harness.screen).unwrap().to_obj();
+        canary.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
+        canary.add_state(lvgl::LvState::LV_STATE_DISABLED);
+        pump_for(300);
+        assert_eq!(
+            Harness::recolor_opa(&canary),
+            LvOpacityLevel::LV_OPA_50 as u8
+        );
+
+        // Backspace: enabled by typing, disabled again by deleting the only character. The tap
+        // pumps past the theme transition's 70ms delay, so with the transition in effect the
+        // overlay would already be fading in here; after a further 300ms it would be fully on.
+        let backspace = harness.backspace();
+        harness.tap_char_key(false, false, 1, 0); // q
+        harness.tap_button(&backspace);
+        assert!(Harness::disabled(&backspace));
+        assert_eq!(Harness::recolor_opa(&backspace), 0);
+        pump_for(300);
+        assert_eq!(Harness::recolor_opa(&backspace), 0);
+
+        // Caps lock: disabled by switching to the symbols layout.
+        let capslock = harness
+            .keyboard()
+            .child(keyboard::CHILD_INDEX_CAPSLOCK)
+            .expect("caps lock");
+        harness.tap_symbols();
+        assert!(Harness::disabled(&capslock));
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
+        pump_for(300);
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
+
+        // Re-enabling must not fade the overlay back out either.
+        harness.tap_symbols();
+        assert!(!Harness::disabled(&capslock));
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
+        pump_for(300);
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
     }
 
     #[test]

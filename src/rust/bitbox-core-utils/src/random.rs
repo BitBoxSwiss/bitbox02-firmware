@@ -13,10 +13,12 @@ pub fn random_32_bytes_with_mixin(
     let mut mixed = zeroize::Zeroizing::new([0u8; 32]);
     hal_random.mcu_32_bytes(&mut mixed);
 
+    // Mix MCU TRNG entropy with secure chip TRNG entropy.
     for (byte, mixin_byte) in mixed.iter_mut().zip(mixin.iter()) {
         *byte ^= *mixin_byte;
     }
 
+    // Mix in factory randomness.
     let factory_randomness = hal_random.factory_randomness();
     for (byte, factory_randomness_byte) in mixed.iter_mut().zip(factory_randomness.iter()) {
         *byte ^= *factory_randomness_byte;

@@ -5,9 +5,10 @@ use alloc::boxed::Box;
 
 pub use bitbox02_sys::trinary_choice_t as TrinaryChoice;
 
-// Taking the constant straight from C, as it's excluding the null terminator.
+// Keep this in sync with src/ui/components/label.h:MAX_LABEL_SIZE.
 #[cfg_attr(any(feature = "testing", feature = "c-unit-testing"), allow(dead_code))]
-pub(crate) const MAX_LABEL_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as _;
+pub(crate) const MAX_LABEL_SIZE: usize = bitbox_hal::ui::MAX_CONFIRM_BODY_SIZE;
+const _: () = assert!(MAX_LABEL_SIZE == bitbox02_sys::MAX_LABEL_SIZE as usize);
 
 #[derive(Default)]
 pub enum Font {

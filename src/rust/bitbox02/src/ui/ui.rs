@@ -228,7 +228,7 @@ pub async fn confirm(params: &ConfirmParams<'_>) -> ConfirmResponse {
 
     // We truncate at a bit higher than MAX_LABEL_SIZE, so the label component will correctly
     // truncate and append '...'.
-    const TRUNCATE_SIZE: usize = bitbox02_sys::MAX_LABEL_SIZE as usize + 1;
+    const TRUNCATE_SIZE: usize = super::types::MAX_LABEL_SIZE + 1;
     let title =
         util::strings::str_to_cstr_vec(util::strings::truncate_str(params.title, TRUNCATE_SIZE))
             .unwrap();

@@ -110,6 +110,14 @@ pub async fn confirm_transaction_fee(
     ConfirmResponse::Approved
 }
 
+pub fn transaction_amount_fits(_amount: &str) -> bool {
+    true
+}
+
+pub fn transaction_fee_fits(_fee: &str) -> bool {
+    true
+}
+
 pub fn screen_stack_pop_all() {}
 
 pub fn progress_create(_title: &str) -> Component {

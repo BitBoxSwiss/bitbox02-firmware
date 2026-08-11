@@ -30,6 +30,15 @@ typedef struct {
 
 static void _measure_label_dimensions(component_t* label);
 
+bool label_fits_width(const char* text, const UG_FONT* font, uint16_t max_width)
+{
+    UG_S16 width;
+    UG_S16 height;
+    UG_FontSelect(font != NULL ? font : &font_font_a_11X10);
+    UG_MeasureStringNoBreak(&width, &height, text);
+    return width <= max_width;
+}
+
 void label_update(component_t* component, const char* text)
 {
     data_t* data = (data_t*)component->data;

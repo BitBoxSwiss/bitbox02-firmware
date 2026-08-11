@@ -8,6 +8,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 
 ### [Unreleased]
 - Add support for BitBoxSync
+- Display long transaction and swap amounts in full instead of truncating them
 
 ### v9.26.5
 - Fixed a crash when listing many backups over Bluetooth

@@ -84,6 +84,11 @@ fn parse_coin_purchase_amount(amount: &str) -> Result<(&str, &str), Error> {
     if parts.next().is_some() {
         return Err(Error::InvalidInput);
     }
+    if amount.len() != destination_amount.len() + 1 + destination_unit.len()
+        || amount.as_bytes()[destination_amount.len()] != b' '
+    {
+        return Err(Error::InvalidInput);
+    }
 
     let mut decimal_parts = destination_amount.split('.');
     let integer = match decimal_parts.next() {
@@ -611,6 +616,13 @@ mod tests {
             "foo ETH",
             "foo bar baz",
             "1 ETH extra",
+            " 1 ETH",
+            "1  ETH",
+            "1 ETH ",
+            "1\tETH",
+            "1\nETH",
+            "\n\n\n\n\n1 ETH",
+            "1\rETH",
         ] {
             assert_eq!(parse_coin_purchase_amount(amount), Err(Error::InvalidInput));
         }

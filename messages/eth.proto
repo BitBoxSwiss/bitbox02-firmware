@@ -48,6 +48,8 @@ message ETHSignRequest {
   bytes recipient = 6; // 20 byte recipient
   bytes value = 7; // smallest big endian serialization, max. 32 bytes
   bytes data = 8;
+  // If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+  // This differs from plain RFC6979 and does not provide anti-klepto protection.
   AntiKleptoHostNonceCommitment host_nonce_commitment = 9;
   // If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
   uint64 chain_id = 10;
@@ -67,6 +69,8 @@ message ETHSignEIP1559Request {
   bytes recipient = 7; // 20 byte recipient
   bytes value = 8; // smallest big endian serialization, max. 32 bytes
   bytes data = 9;
+  // If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+  // This differs from plain RFC6979 and does not provide anti-klepto protection.
   AntiKleptoHostNonceCommitment host_nonce_commitment = 10;
   ETHAddressCase address_case = 11;
   // For streaming: if non-zero, data field should be empty and data will be requested in chunks
@@ -88,6 +92,8 @@ message ETHSignMessageRequest {
   ETHCoin coin = 1;
   repeated uint32 keypath = 2;
   bytes msg = 3;
+  // If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+  // This differs from plain RFC6979 and does not provide anti-klepto protection.
   AntiKleptoHostNonceCommitment host_nonce_commitment = 4;
   // If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
   uint64 chain_id = 5;
@@ -131,6 +137,7 @@ message ETHSignTypedMessageRequest {
   repeated uint32 keypath = 2;
   repeated StructType types = 3;
   string primary_type = 4;
+  // If omitted, plain RFC6979 signing is used without anti-klepto protection.
   AntiKleptoHostNonceCommitment host_nonce_commitment = 5;
 }
 

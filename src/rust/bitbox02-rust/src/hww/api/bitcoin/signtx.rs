@@ -1314,7 +1314,9 @@ async fn _process(
                         .try_into()
                         .or(Err(Error::InvalidInput))?
                 }
-                // Return signature directly without the anti-klepto protocol, for backwards compatibility.
+                // Return the signature directly without the anti-klepto protocol for backwards
+                // compatibility. Preserve the historical zero-contribution S2C signature; this
+                // differs from plain RFC6979 and does not provide anti-klepto protection.
                 None => [0; 32],
             };
 

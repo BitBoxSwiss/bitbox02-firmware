@@ -804,6 +804,8 @@ pub struct BtcSignInputRequest {
     /// References a script config from BTCSignInitRequest
     #[prost(uint32, tag = "7")]
     pub script_config_index: u32,
+    /// If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+    /// This differs from plain RFC6979 and does not provide anti-klepto protection.
     #[prost(message, optional, tag = "8")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
 }
@@ -1047,6 +1049,8 @@ pub struct BtcSignMessageRequest {
     pub script_config: ::core::option::Option<BtcScriptConfigWithKeypath>,
     #[prost(bytes = "vec", tag = "3")]
     pub msg: ::prost::alloc::vec::Vec<u8>,
+    /// If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+    /// This differs from plain RFC6979 and does not provide anti-klepto protection.
     #[prost(message, optional, tag = "4")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
 }
@@ -1564,6 +1568,8 @@ pub struct EthSignRequest {
     pub value: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "8")]
     pub data: ::prost::alloc::vec::Vec<u8>,
+    /// If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+    /// This differs from plain RFC6979 and does not provide anti-klepto protection.
     #[prost(message, optional, tag = "9")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
     /// If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
@@ -1603,6 +1609,8 @@ pub struct EthSignEip1559Request {
     pub value: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "9")]
     pub data: ::prost::alloc::vec::Vec<u8>,
+    /// If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+    /// This differs from plain RFC6979 and does not provide anti-klepto protection.
     #[prost(message, optional, tag = "10")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
     #[prost(enumeration = "EthAddressCase", tag = "11")]
@@ -1637,6 +1645,8 @@ pub struct EthSignMessageRequest {
     pub keypath: ::prost::alloc::vec::Vec<u32>,
     #[prost(bytes = "vec", tag = "3")]
     pub msg: ::prost::alloc::vec::Vec<u8>,
+    /// If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+    /// This differs from plain RFC6979 and does not provide anti-klepto protection.
     #[prost(message, optional, tag = "4")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
     /// If non-zero, `coin` is ignored and `chain_id` is used to identify the network.
@@ -1661,6 +1671,7 @@ pub struct EthSignTypedMessageRequest {
     pub types: ::prost::alloc::vec::Vec<eth_sign_typed_message_request::StructType>,
     #[prost(string, tag = "4")]
     pub primary_type: ::prost::alloc::string::String,
+    /// If omitted, plain RFC6979 signing is used without anti-klepto protection.
     #[prost(message, optional, tag = "5")]
     pub host_nonce_commitment: ::core::option::Option<AntiKleptoHostNonceCommitment>,
 }

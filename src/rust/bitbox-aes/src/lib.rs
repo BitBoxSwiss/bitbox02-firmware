@@ -8,6 +8,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use bitcoin::hashes::{Hash, HashEngine, Hmac, HmacEngine, sha256};
+use zeroize::Zeroizing;
 
 // AES block size.
 const BLOCK_SIZE: usize = 16;
@@ -64,8 +65,8 @@ fn decrypt(key: &[u8; 32], cipher: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>,
     Ok(result)
 }
 
-fn sha512(buf: &[u8]) -> [u8; 64] {
-    bitcoin::hashes::sha512::Hash::hash(buf).to_byte_array()
+fn sha512(buf: &[u8]) -> Zeroizing<[u8; 64]> {
+    Zeroizing::new(bitcoin::hashes::sha512::Hash::hash(buf).to_byte_array())
 }
 
 fn hmac_sha256(key: &[u8], msg: &[u8]) -> [u8; 32] {
@@ -76,7 +77,7 @@ fn hmac_sha256(key: &[u8], msg: &[u8]) -> [u8; 32] {
 }
 
 pub fn encrypt_with_hmac(iv: &[u8; 16], key: &[u8], plain: &[u8]) -> Vec<u8> {
-    let hash: [u8; 64] = sha512(key);
+    let hash = sha512(key);
     let (encryption_key, authentication_key) = hash.split_at(32);
     let mut cipher = encrypt(iv, encryption_key.try_into().unwrap(), plain);
     let mac: [u8; 32] = hmac_sha256(authentication_key, &cipher);
@@ -85,7 +86,7 @@ pub fn encrypt_with_hmac(iv: &[u8; 16], key: &[u8], plain: &[u8]) -> Vec<u8> {
 }
 
 pub fn decrypt_with_hmac(key: &[u8], cipher: &[u8]) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
-    let hash: [u8; 64] = sha512(key);
+    let hash = sha512(key);
     let (encryption_key, authentication_key) = hash.split_at(32);
     if cipher.len() < 32 {
         return Err(());

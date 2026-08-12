@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+use alloc::format;
 use alloc::string::String;
 use core::marker::PhantomData;
 use core::time::Duration;
@@ -83,6 +84,25 @@ impl<Timer> BitBox02Ui<Timer> {
     }
 }
 
+impl<Timer: bitbox_hal::timer::Timer> BitBox02Ui<Timer> {
+    async fn review_value(
+        &mut self,
+        title: &str,
+        value: &str,
+        longtouch: bool,
+    ) -> Result<(), UserAbort> {
+        self.confirm(&ConfirmParams {
+            title,
+            body: value,
+            scrollable: true,
+            longtouch,
+            accept_is_nextarrow: !longtouch,
+            ..Default::default()
+        })
+        .await
+    }
+}
+
 impl<Timer> Default for BitBox02Ui<Timer> {
     fn default() -> Self {
         Self::new()
@@ -128,6 +148,12 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
 
     #[inline(always)]
     async fn confirm_swap(&mut self, title: &str, from: &str, to: &str) -> Result<(), UserAbort> {
+        if !crate::ui::transaction_amount_fits(from) || !crate::ui::transaction_amount_fits(to) {
+            let from_title = format!("{title} from");
+            self.review_value(&from_title, from, false).await?;
+            let to_title = format!("{title} to");
+            return self.review_value(&to_title, to, false).await;
+        }
         match crate::ui::confirm_swap(title, from, to).await {
             crate::ui::ConfirmResponse::Approved => Ok(()),
             crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),
@@ -136,6 +162,10 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
 
     #[inline(always)]
     async fn verify_recipient(&mut self, recipient: &str, amount: &str) -> Result<(), UserAbort> {
+        if !crate::ui::transaction_amount_fits(amount) {
+            self.review_value("Amount", amount, false).await?;
+            return self.review_value("Recipient", recipient, false).await;
+        }
         match crate::ui::confirm_transaction_address(amount, recipient).await {
             crate::ui::ConfirmResponse::Approved => Ok(()),
             crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),
@@ -149,6 +179,10 @@ impl<Timer: bitbox_hal::timer::Timer> Ui for BitBox02Ui<Timer> {
         fee: &str,
         longtouch: bool,
     ) -> Result<(), UserAbort> {
+        if !crate::ui::transaction_amount_fits(total) || !crate::ui::transaction_fee_fits(fee) {
+            self.review_value("Total", total, false).await?;
+            return self.review_value("Fee", fee, longtouch).await;
+        }
         match crate::ui::confirm_transaction_fee(total, fee, longtouch).await {
             crate::ui::ConfirmResponse::Approved => Ok(()),
             crate::ui::ConfirmResponse::Cancelled => Err(UserAbort),

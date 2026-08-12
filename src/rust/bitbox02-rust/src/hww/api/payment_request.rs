@@ -4,7 +4,6 @@ use super::Error;
 use crate::hal::ui::ConfirmParams;
 use crate::pb;
 
-use alloc::string::String;
 use alloc::vec::Vec;
 #[cfg(feature = "app-ethereum")]
 use num_bigint::BigUint;
@@ -23,8 +22,9 @@ use bitcoin::secp256k1;
 
 // Arbitrary limit on number of memos that a payment request can show to the user.
 const MAX_MEMOS_NUM: usize = 3;
-// Keep in sync with `hww/api/ethereum/amount.rs`.
-const COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE: usize = 13;
+// Coin purchase amounts are externally supplied display strings. Keep them within the documented
+// UI text limit so every supported device can show them in full.
+const MAX_COIN_PURCHASE_AMOUNT_LEN: usize = 200;
 
 struct Identity {
     name: &'static str,
@@ -78,6 +78,9 @@ pub(super) fn contains_coin_purchase_memo(payment_request: &pb::BtcPaymentReques
 /// "<positive-number> <unit>", where the number may be an integer or decimal,
 /// and returns the amount/unit parts.
 fn parse_coin_purchase_amount(amount: &str) -> Result<(&str, &str), Error> {
+    if amount.len() > MAX_COIN_PURCHASE_AMOUNT_LEN {
+        return Err(Error::InvalidInput);
+    }
     let mut parts = amount.split_ascii_whitespace();
     let destination_amount = parts.next().ok_or(Error::InvalidInput)?;
     let destination_unit = parts.next().ok_or(Error::InvalidInput)?;
@@ -114,34 +117,11 @@ fn parse_coin_purchase_amount(amount: &str) -> Result<(&str, &str), Error> {
     if integer.bytes().chain(fractional.bytes()).all(|b| b == b'0') {
         return Err(Error::InvalidInput);
     }
+    if !destination_unit.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return Err(Error::InvalidInput);
+    }
 
     Ok((destination_amount, destination_unit))
-}
-
-/// Formats a coin purchase amount for display on the swap screen.
-///
-/// This matches the truncation budget used by Ethereum amount formatting, but only truncates after
-/// the decimal point so integer digits are always preserved.
-fn format_coin_purchase_amount_for_display(amount: &str) -> Result<String, Error> {
-    let (destination_amount, destination_unit) = parse_coin_purchase_amount(amount)?;
-
-    if destination_amount.len() <= COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE {
-        return Ok(amount.into());
-    }
-
-    let Some(decimal_position) = destination_amount.find('.') else {
-        return Ok(amount.into());
-    };
-
-    if decimal_position + 1 >= COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE {
-        return Ok(amount.into());
-    }
-
-    Ok(format!(
-        "{}... {}",
-        &destination_amount[..COIN_PURCHASE_AMOUNT_TRUNCATE_SIZE],
-        destination_unit,
-    ))
 }
 
 /// Prompt the user to verify the payment request UI flow.
@@ -183,14 +163,9 @@ pub async fn user_verify(
             Memo {
                 memo: Some(memo::Memo::CoinPurchaseMemo(coin_purchase_memo)),
             } => {
-                let displayed_destination_amount =
-                    format_coin_purchase_amount_for_display(&coin_purchase_memo.amount)?;
+                parse_coin_purchase_amount(&coin_purchase_memo.amount)?;
                 hal.ui()
-                    .confirm_swap(
-                        "Swap",
-                        displayed_source_amount,
-                        &displayed_destination_amount,
-                    )
+                    .confirm_swap("Swap", displayed_source_amount, &coin_purchase_memo.amount)
                     .await?;
             }
             _ => return Err(Error::InvalidInput),
@@ -623,35 +598,17 @@ mod tests {
             "1\nETH",
             "\n\n\n\n\n1 ETH",
             "1\rETH",
+            "1 ETH!",
+            "1 Ξ",
         ] {
             assert_eq!(parse_coin_purchase_amount(amount), Err(Error::InvalidInput));
         }
-    }
 
-    #[test]
-    fn test_format_coin_purchase_amount_for_display() {
+        let max_amount = format!("{} ETH", "1".repeat(MAX_COIN_PURCHASE_AMOUNT_LEN - 4));
+        assert!(parse_coin_purchase_amount(&max_amount).is_ok());
+        let oversized_amount = format!("{} ETH", "1".repeat(MAX_COIN_PURCHASE_AMOUNT_LEN - 3));
         assert_eq!(
-            format_coin_purchase_amount_for_display("0.25 ETH"),
-            Ok("0.25 ETH".into())
-        );
-        assert_eq!(
-            format_coin_purchase_amount_for_display("12.45678901234 ETH"),
-            Ok("12.4567890123... ETH".into())
-        );
-        assert_eq!(
-            format_coin_purchase_amount_for_display("1.2345678901234 BTC"),
-            Ok("1.23456789012... BTC".into())
-        );
-        assert_eq!(
-            format_coin_purchase_amount_for_display("12345678901234 ETH"),
-            Ok("12345678901234 ETH".into())
-        );
-        assert_eq!(
-            format_coin_purchase_amount_for_display("123456789012.34 ETH"),
-            Ok("123456789012.34 ETH".into())
-        );
-        assert_eq!(
-            format_coin_purchase_amount_for_display("foo ETH"),
+            parse_coin_purchase_amount(&oversized_amount),
             Err(Error::InvalidInput)
         );
     }
@@ -1649,7 +1606,7 @@ mod tests {
 
     #[cfg(feature = "app-ethereum")]
     #[async_test::test]
-    async fn test_user_verify_swap_truncated_destination_amount() {
+    async fn test_user_verify_swap_long_destination_amount() {
         let mut mock_hal = TestingHal::new();
         user_verify(
             &mut mock_hal,
@@ -1680,7 +1637,7 @@ mod tests {
                 Screen::Swap {
                     title: "Swap".into(),
                     from: "0.25000000 BTC".into(),
-                    to: "12.4567890123... ETH".into(),
+                    to: "12.45678901234 ETH".into(),
                 },
             ]
         );

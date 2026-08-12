@@ -86,6 +86,7 @@ const ALLOWLIST_FNS: &[&str] = &[
     "keystore_bip39_mnemonic_to_seed",
     "keystore_get_bip39_word",
     "label_create",
+    "label_fits_width",
     "memory_add_noise_remote_static_pubkey",
     "memory_ble_enable",
     "memory_ble_enabled",

@@ -15,6 +15,25 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::task::{Poll, Waker};
 
+fn label_fits_width(text: &str, font: *const bitbox02_sys::UG_FONT) -> bool {
+    let text = util::strings::str_to_cstr_vec(text).unwrap();
+    unsafe { bitbox02_sys::label_fits_width(text.as_ptr(), font, bitbox02_sys::SCREEN_WIDTH as _) }
+}
+
+/// Returns true if the amount fits the transaction screen, using the smaller font if necessary.
+pub fn transaction_amount_fits(amount: &str) -> bool {
+    if label_fits_width(amount, unsafe { &bitbox02_sys::font_font_a_11X10 }) {
+        true
+    } else {
+        label_fits_width(amount, unsafe { &bitbox02_sys::font_font_a_9X9 })
+    }
+}
+
+/// Returns true if the fee fits the transaction screen's smaller fee font.
+pub fn transaction_fee_fits(fee: &str) -> bool {
+    label_fits_width(fee, unsafe { &bitbox02_sys::font_font_a_9X9 })
+}
+
 /// Wraps the C component_t to be used in Rust.
 pub struct Component {
     component: *mut bitbox02_sys::component_t,

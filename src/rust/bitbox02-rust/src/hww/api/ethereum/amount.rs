@@ -11,26 +11,16 @@ pub struct Amount<'a> {
 }
 
 impl Amount<'_> {
-    /// Formats the amount with the right number of decimal places, suffixed with the unit. If the
-    /// value (without the unit suffix) is too long to fit on the screen, it will be truncated and
-    /// ellipsis ('...')  are appended.
+    /// Formats the full amount with the right number of decimal places, suffixed with the unit.
     ///
     /// Example:
     /// - unit: ETH,
     /// - decimals: 18,
     /// - value: 38723987932742983742983742
-    /// - returns: "38723987.9327... ETH"
+    /// - returns: "38723987.932742983742983742 ETH"
     pub fn format(&self) -> String {
-        // Truncate the number at this many chars and append '...' if truncated.
-        // Empirically found to fit on one line on the screen (including unit).
-        // TODO: take into account long unit strings.
-        const TRUNCATE_SIZE: usize = 13;
         let v = util::decimal::format(&self.value, self.decimals);
-        if v.len() > TRUNCATE_SIZE {
-            format!("{}... {}", &v[..TRUNCATE_SIZE], self.unit)
-        } else {
-            format!("{} {}", v, self.unit)
-        }
+        format!("{} {}", v, self.unit)
     }
 }
 
@@ -83,7 +73,7 @@ mod tests {
                 bigendian: b"\x20\x08\x1f\x97\x9a\x5c\x8d\x47\x29\x0e\x3e",
                 decimals: 18,
                 unit: "ETH",
-                expected_result: "38723987.9327... ETH",
+                expected_result: "38723987.932742983742983742 ETH",
             },
             Test {
                 // 123456
@@ -111,7 +101,7 @@ mod tests {
                 bigendian: b"\x01\x22\x08\x3f\x97\xf2",
                 decimals: 11,
                 unit: "ETH",
-                expected_result: "12.4567890123... ETH",
+                expected_result: "12.45678901234 ETH",
             },
             Test {
                 // 123456

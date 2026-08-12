@@ -1094,10 +1094,10 @@ class SendMessage:
             eprint("Aborted by user")
 
     def _sign_eth_tx(self) -> None:
-        # pylint: disable=line-too-long,too-many-branches
+        # pylint: disable=line-too-long,too-many-branches,too-many-statements
 
         inp = input(
-            "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field; 6=BSC; 7=unknown network; 8=eip1559; 9=Arbitrum; 10=streaming (10KB data): "
+            "Select one of: 1=normal; 2=erc20; 3=erc721; 4=unknown erc20; 5=large data field; 6=BSC; 7=unknown network; 8=eip1559; 9=Arbitrum; 10=streaming (10KB data); 11=long amounts: "
         ).strip()
 
         chain_id = 1  # mainnet
@@ -1155,6 +1155,20 @@ class SendMessage:
             tx = rlp.encode([nonce, gas_price, gas_limit, recipient, value, data, v, r, s])
             if self._debug:
                 print(f"Streaming test transaction: {len(data)} bytes of data")
+        elif inp == "11":
+            # Exercise overflow handling for the send amount, total, and fee screens.
+            nonce = b"\x01"
+            gas_price = b"\xff" * 8
+            gas_limit = b"\xff" * 8
+            recipient = (
+                b"\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\x00\x11\x22\x33\x44"
+            )
+            value = b"\xff" * 32
+            data = b""
+            v = b"\x25"  # chain_id=1
+            r = b"\x01" * 32
+            s = b"\x01" * 32
+            tx = rlp.encode([nonce, gas_price, gas_limit, recipient, value, data, v, r, s])
         else:
             print("None selected")
             return

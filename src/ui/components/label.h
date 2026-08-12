@@ -13,6 +13,14 @@
 #define MAX_LABEL_SIZE 640
 
 /**
+ * Returns true if the text fits within max_width without wrapping using the given font.
+ * @param[in] text The text to measure.
+ * @param[in] font The font to use. If NULL, the default 11x10 font is used.
+ * @param[in] max_width The available width in pixels.
+ */
+bool label_fits_width(const char* text, const UG_FONT* font, uint16_t max_width);
+
+/**
  * Creates a label with the given font and positions it in the center.
  * @param[in] component The component to update.
  * @param[in] text The new text of the label.

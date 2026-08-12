@@ -11,10 +11,6 @@
 #include <ui/fonts/arial_fonts.h>
 #include <util.h>
 
-// Empirically measured when the amount goes out of screen with the 11x10 font and we should switch
-// to the smaller 9x9 font.
-#define BIG_FONT_MAX_CHARS 19
-
 typedef struct {
     void (*callback)(bool accepted, void* user_data);
     void* user_data;
@@ -100,14 +96,8 @@ component_t* confirm_swap_create(
     component_t* title_component = label_create(title, &font_font_a_11X10, CENTER_TOP, confirm);
     ui_util_add_sub_component(confirm, title_component);
 
-    const UG_FONT* from_font = NULL;
-    if (strlen(from) > BIG_FONT_MAX_CHARS) {
-        from_font = &font_font_a_9X9;
-    }
-    const UG_FONT* to_font = NULL;
-    if (strlen(to) > BIG_FONT_MAX_CHARS) {
-        to_font = &font_font_a_9X9;
-    }
+    const UG_FONT* from_font = label_fits_width(from, NULL, SCREEN_WIDTH) ? NULL : &font_font_a_9X9;
+    const UG_FONT* to_font = label_fits_width(to, NULL, SCREEN_WIDTH) ? NULL : &font_font_a_9X9;
 
     ui_util_add_sub_component(
         confirm, label_create_offset(from, from_font, CENTER_TOP, 0, 17, confirm));

@@ -58,6 +58,11 @@ static void assert_ui_component_functions(component_t* component)
 
 static void test_ui_components_label(void** state)
 {
+    assert_true(label_fits_width("Test", &font_font_a_11X10, 128));
+    assert_true(label_fits_width("11111111111111111 BNB", &font_font_a_9X9, 128));
+    assert_false(
+        label_fits_width("This label is much wider than the screen", &font_font_a_9X9, 128));
+
     component_t* mock_component = fake_component_create();
 
     component_t* label = label_create("Test", NULL, CENTER, mock_component);

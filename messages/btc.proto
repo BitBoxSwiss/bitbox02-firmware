@@ -152,6 +152,8 @@ message BTCSignInputRequest {
   repeated uint32 keypath = 6; // all inputs must be ours.
   // References a script config from BTCSignInitRequest
   uint32 script_config_index = 7;
+  // If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+  // This differs from plain RFC6979 and does not provide anti-klepto protection.
   AntiKleptoHostNonceCommitment host_nonce_commitment = 8;
 }
 
@@ -281,6 +283,8 @@ message BTCSignMessageRequest {
   BTCCoin coin = 1;
   BTCScriptConfigWithKeypath script_config = 2;
   bytes msg = 3;
+  // If omitted, the signature uses the historical deterministic zero-contribution S2C fallback.
+  // This differs from plain RFC6979 and does not provide anti-klepto protection.
   AntiKleptoHostNonceCommitment host_nonce_commitment = 4;
 }
 

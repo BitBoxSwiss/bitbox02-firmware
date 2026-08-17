@@ -316,6 +316,10 @@ Set _stext to an address within the FLASH region.");
 ASSERT(SIZEOF(.segger_rtt) + SIZEOF(.segger_rtt_buf) <= 4K, "
 ERROR(bitbox03): RTT sections do not fit into the reserved RTT window.");
 
+ASSERT(!DEFINED(__bitbox03_production) ||
+       (SIZEOF(.segger_rtt) == 0 && SIZEOF(.segger_rtt_buf) == 0), "
+ERROR(bitbox03): RTT sections must not be linked into production builds.");
+
 /* # Other checks */
 ASSERT(SIZEOF(.got) == 0, "
 ERROR(cortex-m-rt): .got section detected in the input object files

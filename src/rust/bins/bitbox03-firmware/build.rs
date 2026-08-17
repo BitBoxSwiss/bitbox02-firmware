@@ -77,6 +77,9 @@ fn main() {
             out_dir.join("bitbox03-firmware.map").display()
         );
         println!("cargo::rustc-link-arg=-Tbitbox03-firmware.ld");
+        if std::env::var("PROFILE").expect("PROFILE not set") == "release" {
+            println!("cargo::rustc-link-arg=--defsym=__bitbox03_production=1");
+        }
 
         #[cfg(feature = "board-stm32u5a9j-dk")]
         build_hal_overrides_object(&repo_root, &out_dir);

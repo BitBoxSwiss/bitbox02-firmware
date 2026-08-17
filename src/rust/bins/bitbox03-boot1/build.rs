@@ -74,5 +74,8 @@ fn main() {
             "cargo::rustc-link-arg=-Map={}",
             out_dir.join("bitbox03-boot1.map").display()
         );
+        if std::env::var("PROFILE").expect("PROFILE not set") == "release" {
+            println!("cargo::rustc-link-arg=--defsym=__bitbox03_production=1");
+        }
     }
 }

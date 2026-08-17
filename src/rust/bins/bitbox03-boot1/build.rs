@@ -24,12 +24,12 @@ fn generate_header_object(manifest_dir: &Path, out_dir: &Path) {
     run_command(
         Command::new("python3")
             .arg(&script)
-            .arg("render-dev-header")
+            .arg("render-header")
             .arg("--manifest")
             .arg(&header_manifest)
             .arg("--output")
             .arg(&header_bin),
-        "render boot1 dev image header",
+        "render boot1 image header",
     );
 
     run_command(

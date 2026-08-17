@@ -25,12 +25,12 @@ fn generate_header_object(manifest_dir: &Path, out_dir: &Path, repo_root: &Path)
     run_command(
         Command::new("python3")
             .arg(&script)
-            .arg("render-dev-header")
+            .arg("render-header")
             .arg("--manifest")
             .arg(&header_manifest)
             .arg("--output")
             .arg(&header_bin),
-        "render firmware dev image header",
+        "render firmware image header",
     );
 
     run_command(

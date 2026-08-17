@@ -18,13 +18,9 @@ class HeaderManifest(TypedDict):
     magic: bytes
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as infile:
-        return cast(dict[str, Any], json.load(infile))
-
-
 def _load_header_manifest(path: Path) -> HeaderManifest:
-    manifest = _read_json(path)
+    with path.open("r", encoding="utf-8") as infile:
+        manifest = cast(dict[str, Any], json.load(infile))
     magic = manifest.get("magic")
     if not isinstance(magic, str) or len(magic.encode("ascii")) != 4:
         raise ValueError("manifest field 'magic' must be a 4-byte ASCII string")
@@ -51,10 +47,6 @@ def finalize_header_code_size(header_bytes: bytes, code_size: int) -> bytes:
     updated = bytearray(header_bytes)
     updated[8:12] = code_size.to_bytes(4, "little")
     return bytes(updated)
-
-
-def finalize_code_size(header_bytes: bytes, payload: bytes) -> bytes:
-    return finalize_header_code_size(header_bytes, len(payload))
 
 
 def _read_u16(data: bytes, offset: int) -> int:
@@ -154,7 +146,7 @@ def cmd_render(args: argparse.Namespace) -> None:
 def cmd_finalize_code_size(args: argparse.Namespace) -> None:
     header = args.header.read_bytes()
     payload = args.payload.read_bytes()
-    args.output.write_bytes(finalize_code_size(header, payload))
+    args.output.write_bytes(finalize_header_code_size(header, len(payload)))
 
 
 def cmd_finalize_elf(args: argparse.Namespace) -> None:
@@ -180,10 +172,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    for command in ("render-dev-header", "render-release-header"):
-        subparser = subparsers.add_parser(command)
-        subparser.add_argument("--manifest", type=Path, required=True)
-        subparser.add_argument("--output", type=Path, required=True)
+    render = subparsers.add_parser("render-header")
+    render.add_argument("--manifest", type=Path, required=True)
+    render.add_argument("--output", type=Path, required=True)
 
     finalize = subparsers.add_parser("finalize-code-size")
     finalize.add_argument("--header", type=Path, required=True)
@@ -197,7 +188,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    if args.command in ("render-dev-header", "render-release-header"):
+    if args.command == "render-header":
         cmd_render(args)
     elif args.command == "finalize-code-size":
         cmd_finalize_code_size(args)

@@ -346,7 +346,11 @@ fn encode_value(typ: &MemberType, value: Vec<u8>) -> Result<(Vec<u8>, String), E
             // The address is sent as a string by the host, so we can display it in the same way as
             // it is displayed on the host (mixed case vs lowercase, etc.).
             let encoded = if let [b'0', b'x' | b'X', rest @ ..] = value.as_slice() {
-                leftpad32(&hex::decode(rest).or(Err(Error::InvalidInput))?, false)?
+                let address = hex::decode(rest).or(Err(Error::InvalidInput))?;
+                if address.len() != 20 {
+                    return Err(Error::InvalidInput);
+                }
+                leftpad32(&address, false)?
             } else {
                 return Err(Error::InvalidInput);
             };
@@ -1192,6 +1196,20 @@ mod tests {
             leftpad32(b"\x80", true),
             Ok(b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x80".to_vec()),
         );
+    }
+
+    #[test]
+    fn test_encode_value_address() {
+        let value = |len: usize| {
+            let mut value = b"0x".to_vec();
+            value.resize(2 + len * 2, b'1');
+            value
+        };
+        let typ = mk_type(DataType::Address);
+
+        assert_eq!(encode_value(&typ, value(19)), Err(Error::InvalidInput));
+        assert!(encode_value(&typ, value(20)).is_ok());
+        assert_eq!(encode_value(&typ, value(21)), Err(Error::InvalidInput));
     }
 
     #[test]

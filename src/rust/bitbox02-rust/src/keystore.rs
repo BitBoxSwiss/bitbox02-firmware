@@ -764,7 +764,8 @@ pub async fn stretch_retained_seed_encryption_key(
 
     let mut engine = HmacEngine::<sha256::Hash>::new(salted_out.as_slice());
     engine.input(kdf.as_slice());
-    let stretched = Hmac::<sha256::Hash>::from_engine(engine).to_byte_array();
+    let stretched =
+        zeroize::Zeroizing::new(Hmac::<sha256::Hash>::from_engine(engine).to_byte_array());
 
     Ok(zeroize::Zeroizing::new(stretched.to_vec()))
 }

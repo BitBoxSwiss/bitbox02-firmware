@@ -112,11 +112,16 @@ const _: [(); 0] = [(); (BITBOX02_MEMORY_SPI_BLE_FIRMWARE_2_ADDR
 // handler will print the available information on the screen and over RTT. If we compile with
 // `panic=abort` this code will never get executed.
 #[cfg_attr(feature = "bootloader", allow(unused_variables))]
-#[cfg(not(any(
-    feature = "testing",
-    feature = "c-unit-testing",
-    feature = "simulator-graphical"
-)))]
+#[cfg(all(
+    target_arch = "arm",
+    target_os = "none",
+    not(any(
+        test,
+        feature = "testing",
+        feature = "c-unit-testing",
+        feature = "simulator-graphical"
+    ))
+))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     #[cfg(feature = "firmware")]

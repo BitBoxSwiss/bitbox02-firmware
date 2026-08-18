@@ -18,7 +18,7 @@ const OP_STATUS_FAILURE_UNINITIALIZED: u8 = 2;
 /// Must be called during the execution of a usb task. This sends out the response to the host and
 /// awaits the next request. If the request is not a valid noise encrypted protofbuf api request
 /// message, `Err(Error::InvalidInput)` is returned.
-#[cfg(not(feature = "testing"))]
+#[cfg(not(any(test, feature = "testing")))]
 pub async fn next_request(
     response: crate::pb::response::Response,
 ) -> Result<crate::pb::request::Request, api::error::Error> {
@@ -35,13 +35,13 @@ pub async fn next_request(
     }
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 pub struct SafeData<T>(T);
 // Safety: must not be accessed concurrently.
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 unsafe impl<T> Sync for SafeData<T> {}
 
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 pub static MOCK_NEXT_REQUEST: SafeData<
     core::cell::RefCell<
         Option<
@@ -55,7 +55,7 @@ pub static MOCK_NEXT_REQUEST: SafeData<
 > = SafeData(core::cell::RefCell::new(None));
 
 /// Set `MOCK_NEXT_REQUEST` to mock requests from the host.
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 pub async fn next_request(
     response: crate::pb::response::Response,
 ) -> Result<crate::pb::request::Request, api::error::Error> {
@@ -468,6 +468,7 @@ mod tests {
     }
 
     /// Test creating a seed, backing it up on SD, checking the backup, and restoring from the that backup.
+    #[cfg(feature = "app-u2f")]
     #[async_test::test]
     async fn test_backup_create_check_list_restore() {
         // Test everything with a 32 and 16 byte seed (determined by the host entropy when creating the seed).

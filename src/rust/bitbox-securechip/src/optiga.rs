@@ -16,7 +16,7 @@ mod ops;
 mod ops;
 
 const OID_AES_SYMKEY: u16 = bitbox_securechip_sys::OID_AES_SYMKEY as u16;
-#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+#[cfg(any(test, feature = "app-u2f", feature = "factory-setup"))]
 const OID_ARBITRARY_DATA: u16 = bitbox_securechip_sys::OID_ARBITRARY_DATA as u16;
 const OID_COUNTER: u16 = bitbox_securechip_sys::OID_COUNTER as u16;
 const OID_COUNTER_HMAC_WRITEPROTECTED: u16 =
@@ -28,7 +28,7 @@ const OID_PASSWORD: u16 = bitbox_securechip_sys::OID_PASSWORD as u16;
 const OID_PASSWORD_SECRET: u16 = bitbox_securechip_sys::OID_PASSWORD_SECRET as u16;
 const MONOTONIC_COUNTER_MAX_USE: u32 = bitbox_securechip_sys::MONOTONIC_COUNTER_MAX_USE;
 const SMALL_MONOTONIC_COUNTER_MAX_USE: u32 = bitbox_securechip_sys::SMALL_MONOTONIC_COUNTER_MAX_USE;
-#[cfg(any(feature = "app-u2f", feature = "factory-setup"))]
+#[cfg(any(test, feature = "app-u2f", feature = "factory-setup"))]
 const ARBITRARY_DATA_LEN: usize =
     bitbox_securechip_sys::ARBITRARY_DATA_OBJECT_TYPE_3_MAX_SIZE as usize;
 const KDF_LEN: usize = 32;

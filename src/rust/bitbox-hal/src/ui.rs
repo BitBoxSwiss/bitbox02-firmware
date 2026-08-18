@@ -3,6 +3,11 @@
 use alloc::string::String;
 use core::time::Duration;
 
+/// Maximum confirmation body length in bytes that can be displayed without truncation.
+/// Longer bodies are truncated and suffixed with `...`.
+/// Keep this in sync with `src/ui/components/label.h:MAX_LABEL_SIZE`.
+pub const MAX_CONFIRM_BODY_SIZE: usize = 640;
+
 pub struct UserAbort;
 
 #[derive(Copy, Clone, Default)]
@@ -18,7 +23,8 @@ pub struct ConfirmParams<'a> {
     /// The confirmation title of the screen. Max 200 chars, otherwise **panic**.
     pub title: &'a str,
     pub title_autowrap: bool,
-    /// The confirmation body of the screen. Max 200 chars, otherwise **panic**.
+    /// The confirmation body of the screen. UIs truncate bodies longer than
+    /// [`MAX_CONFIRM_BODY_SIZE`].
     pub body: &'a str,
     pub font: Font,
     /// If true, the body is horizontally scrollable.

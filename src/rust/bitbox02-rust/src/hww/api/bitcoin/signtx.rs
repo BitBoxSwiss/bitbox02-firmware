@@ -1165,16 +1165,28 @@ async fn _process(
     let fee: u64 = total_out
         .checked_sub(outputs_sum_out)
         .ok_or(Error::InvalidInput)?;
-    let fee_percentage: Option<f64> = if outputs_sum_out == 0 {
-        None
+    let (fee_percentage, fee_percentage_basis) = if outputs_sum_out == 0 {
+        // All-change and OP_RETURN-only transactions have no send amount to use as a denominator.
+        // Compare the fee to the verified input total instead, so consuming a large share of the
+        // inputs as fees still triggers the warning.
+        let fee_percentage = if inputs_sum_pass1 == 0 {
+            None
+        } else {
+            Some(100. * (fee as f64) / (inputs_sum_pass1 as f64))
+        };
+        (fee_percentage, transaction::FeePercentageBasis::TotalInputs)
     } else {
-        Some(100. * (fee as f64) / (outputs_sum_out as f64))
+        (
+            Some(100. * (fee as f64) / (outputs_sum_out as f64)),
+            transaction::FeePercentageBasis::SendAmount,
+        )
     };
-    transaction::verify_total_fee_maybe_warn(
+    transaction::verify_total_fee_maybe_warn_with_basis(
         hal,
         &format_amount(coin_params, format_unit, total_out)?,
         &format_amount(coin_params, format_unit, fee)?,
         fee_percentage,
+        fee_percentage_basis,
     )
     .await?;
     hal.ui().status("Transaction\nconfirmed", true).await;
@@ -2676,6 +2688,73 @@ mod tests {
             mock_hal.ui.screens.len() as u32,
             total_confirmations + 1 // plus status screen
         );
+    }
+
+    #[async_test::test]
+    async fn test_high_fee_warning_total_inputs() {
+        for with_op_return in [false, true] {
+            let transaction =
+                alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+            {
+                let mut tx = transaction.borrow_mut();
+                tx.outputs.retain(|output| output.ours);
+                if with_op_return {
+                    tx.outputs.push(pb::BtcSignOutputRequest {
+                        r#type: pb::BtcOutputType::OpReturn as _,
+                        payload: b"metadata".to_vec(),
+                        ..Default::default()
+                    });
+                }
+            }
+            mock_host_responder(transaction.clone());
+            mock_unlocked();
+            let init_request = transaction.borrow().init_request();
+
+            let mut mock_hal = TestingHal::new();
+            assert!(process(&mut mock_hal, &init_request).await.is_ok());
+
+            assert!(mock_hal.ui.screens.contains(&Screen::TotalFee {
+                total: "13.39999900 BTC".into(),
+                fee: "13.39999900 BTC".into(),
+                longtouch: false,
+            }));
+            assert!(
+                mock_hal
+                    .ui
+                    .contains_confirm("High fee", "The fee is 66.0%\nof all inputs.\nProceed?")
+            );
+            assert_eq!(
+                mock_hal.ui.contains_confirm("OP_RETURN", "metadata"),
+                with_op_return
+            );
+        }
+    }
+
+    #[async_test::test]
+    async fn test_no_high_fee_warning_total_inputs_below_threshold() {
+        let transaction =
+            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        {
+            let mut tx = transaction.borrow_mut();
+            tx.outputs.retain(|output| output.ours);
+            tx.outputs.truncate(1);
+            tx.outputs[0].value = 2_000_000_000;
+        }
+        mock_host_responder(transaction.clone());
+        mock_unlocked();
+        let init_request = transaction.borrow().init_request();
+
+        let mut mock_hal = TestingHal::new();
+        assert!(process(&mut mock_hal, &init_request).await.is_ok());
+
+        assert!(mock_hal.ui.screens.contains(&Screen::TotalFee {
+            total: "0.30000000 BTC".into(),
+            fee: "0.30000000 BTC".into(),
+            longtouch: true,
+        }));
+        assert!(!mock_hal.ui.screens.iter().any(|screen| {
+            matches!(screen, Screen::Confirm { title, .. } if title == "High fee")
+        }));
     }
 
     // Test a P2TR output. It is not part of the default test transaction because Taproot is not

@@ -1010,12 +1010,14 @@ class SendMessage:
             coin: "bitbox02.btc.BTCCoin.V",
             keypath: Sequence[int],
             script_config: bitbox02.btc.BTCScriptConfig,
+            print_address: bool = True,
         ) -> None:
-            address = self._device.btc_address(
-                coin=coin, keypath=keypath, script_config=script_config, display=False
-            )
+            if print_address:
+                address = self._device.btc_address(
+                    coin=coin, keypath=keypath, script_config=script_config, display=False
+                )
 
-            print("Address:", address)
+                print("Address:", address)
 
             msg = input(r"Message to sign (\n = newline): ")
             if msg.startswith("0x"):
@@ -1049,9 +1051,19 @@ class SendMessage:
             )
             sign(bitbox02.btc.TBTC, keypath, script_config)
 
+        def sign_external_service() -> None:
+            keypath = [45 + HARDENED, 0 + HARDENED, 0 + HARDENED, 0, 0]
+            script_config = bitbox02.btc.BTCScriptConfig(
+                simple_type=bitbox02.btc.BTCScriptConfig.P2WPKH
+            )
+            # The address endpoint only accepts standard keypaths. The sign-message workflow
+            # derives and displays the address itself.
+            sign(bitbox02.btc.BTC, keypath, script_config, print_address=False)
+
         choices = (
             ("Mainnet", sign_mainnet),
             ("Testnet", sign_testnet),
+            ("External service (m/45')", sign_external_service),
         )
         choice = ask_user(choices)
         if callable(choice):

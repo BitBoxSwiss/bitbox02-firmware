@@ -243,7 +243,7 @@ fn compute_sighash(
     Ok(sighash.finalize().to_vec())
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 #[allow(dead_code)]
 pub fn tst_sign_payment_request_btc(
     coin: pb::BtcCoin,
@@ -260,7 +260,7 @@ pub fn tst_sign_payment_request_btc(
     );
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 #[allow(dead_code)]
 pub fn tst_sign_payment_request_eth(
     source_coin_type: u32,
@@ -276,7 +276,7 @@ pub fn tst_sign_payment_request_eth(
     );
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 #[allow(dead_code)]
 fn tst_sign_payment_request(
     source_coin_type: u32,

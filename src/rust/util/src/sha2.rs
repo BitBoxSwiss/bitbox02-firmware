@@ -90,7 +90,7 @@ pub unsafe extern "C" fn rust_sha256(data: *const c_void, len: usize, out: *mut 
 /// long.
 /// `out` may overlap with `data` (and/or `key`). This is supported safely: the HMAC is computed
 /// first and only then written to `out`.
-#[cfg(feature = "firmware")]
+#[cfg(any(test, feature = "firmware"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_hmac_sha256(
     key: *const c_void,
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn rust_hmac_sha256(
 /// long.
 /// `out` may overlap with `data` (and/or `key`). This is supported safely: the HMAC is computed
 /// first and only then written to `out`.
-#[cfg(feature = "firmware")]
+#[cfg(any(test, feature = "firmware"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rust_hmac_sha512(
     key: *const c_void,

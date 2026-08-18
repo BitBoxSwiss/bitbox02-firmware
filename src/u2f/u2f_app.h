@@ -26,10 +26,9 @@ enum u2f_app_confirm_t {
  *
  * @param[in] type show registration or authentication screen.
  * @param[in] app_id U2F app ID to identify the website.
- * @param[out] result true if the user accepts, false for rejection.
- * @return Ready if result is ready, NotReady otherwise
+ * @return true if the confirmation workflow was started, false if another U2F workflow is active.
  */
-void u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id);
+bool u2f_app_confirm_start(enum u2f_app_confirm_t type, const uint8_t* app_id);
 
 /**
  * Polls an outstanding confirmation for completion.

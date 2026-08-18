@@ -2,6 +2,7 @@
 
 #include "u2f.h"
 #include "u2f/u2f_app.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -39,6 +40,8 @@ typedef struct {
 #define U2F_KEYHANDLE_LEN (U2F_NONCE_LENGTH + SHA256_LEN)
 #define SHA256_LEN 32
 #define HMAC_SHA256_LEN 32
+#define U2F_AUTHENTICATE_REQ_LEN (offsetof(U2F_AUTHENTICATE_REQ, keyHandle) + U2F_KEYHANDLE_LEN)
+#define U2F_MAX_PENDING_APDU_LEN (sizeof(USB_APDU) + U2F_AUTHENTICATE_REQ_LEN)
 
 #if (U2F_EC_KEY_SIZE != SHA256_LEN) || (U2F_EC_KEY_SIZE != U2F_NONCE_LENGTH)
     #error "Incorrect macro values for u2f"
@@ -60,13 +63,13 @@ typedef enum {
 
 typedef struct {
     /**
-     * CID and last command are used to check that we eventually respond to the right command after
-     * the user has confirmed on screen. U2F is normally stateless between transactions, but since
-     * we have a display and Yes/No input we can ask the user on the first request and later respond
-     * that the user is present only if the user confirmed specifically that app-id.
+     * Last command and pending APDU are used to check that we eventually respond to the exact
+     * request that the user confirmed on screen. The transport CID is deliberately not part of the
+     * pending request, as U2F clients can use a new CID for every transaction.
      */
-    uint32_t cid;
     uint8_t last_cmd;
+    uint8_t pending_apdu[U2F_MAX_PENDING_APDU_LEN];
+    size_t pending_apdu_len;
     /**
      * Keeps track of which part of a registration we're currently in.
      */
@@ -133,6 +136,29 @@ static void _clear_state(void)
 {
     _state.reg = U2F_REGISTER_IDLE;
     _state.auth = U2F_AUTHENTICATE_IDLE;
+    _state.pending_apdu_len = 0;
+}
+
+static size_t _apdu_len(const USB_APDU* apdu)
+{
+    return sizeof(USB_APDU) + APDU_LEN(*apdu);
+}
+
+static void _set_pending_apdu(const USB_APDU* apdu)
+{
+    const size_t len = _apdu_len(apdu);
+    if (len > sizeof(_state.pending_apdu)) {
+        Abort("U2F pending APDU too large");
+    }
+    memcpy(_state.pending_apdu, apdu, len);
+    _state.pending_apdu_len = len;
+}
+
+static bool _is_pending_apdu(const USB_APDU* apdu)
+{
+    const size_t len = _apdu_len(apdu);
+    return len == _state.pending_apdu_len && len <= sizeof(_state.pending_apdu) &&
+           MEMEQ(apdu, _state.pending_apdu, len);
 }
 
 static component_t* _nudge_label = NULL;
@@ -198,35 +224,33 @@ static void _stop_refresh_webpage_screen(void)
  *
  * @return Unlock success status:
  *           * ASYNC_OP_TRUE if the BB02 is unlocked;
- *           * ASYNC_OP_NOT_READY if the BB02 wasn't unlocked, but is now
- *                                ("Refresh webpage" screen was started).
- *           * ASYNC_OP_FALSE if the BB02 couldn't be unlocked.
+ *           * ASYNC_OP_NOT_READY if an unlock workflow was started;
+ *           * ASYNC_OP_FALSE if another U2F workflow is already active.
  */
-static bool _unlock_if_locked(void)
+static async_op_result_t _unlock_if_locked(void)
 {
     if (rust_keystore_is_locked()) {
-        rust_workflow_spawn_unlock();
-        return false;
+        return rust_workflow_spawn_unlock() ? ASYNC_OP_NOT_READY : ASYNC_OP_FALSE;
     }
     /* Pop the "refresh webpage" screen if any */
     _stop_refresh_webpage_screen();
-    return true;
+    return ASYNC_OP_TRUE;
 }
 
 static uint32_t _next_cid(void)
 {
+    uint32_t cid;
     do {
-        _state.cid = (random_byte_mcu() << 0) + (random_byte_mcu() << 8) +
-                     (random_byte_mcu() << 16) + (random_byte_mcu() << 24);
-    } while (_state.cid == 0 || _state.cid == U2FHID_CID_BROADCAST);
-    return _state.cid;
+        cid = ((uint32_t)random_byte_mcu() << 0) | ((uint32_t)random_byte_mcu() << 8) |
+              ((uint32_t)random_byte_mcu() << 16) | ((uint32_t)random_byte_mcu() << 24);
+    } while (cid == 0 || cid == U2FHID_CID_BROADCAST);
+    return cid;
 }
 
 static void _fill_message(const uint8_t* data, const uint32_t len, Packet* out_packet)
 {
     util_zero(out_packet->data_addr, sizeof(out_packet->data_addr));
     memcpy(out_packet->data_addr, data, len);
-    out_packet->cid = _state.cid;
     out_packet->cmd = U2FHID_MSG;
     out_packet->len = len;
 }
@@ -360,8 +384,7 @@ static int _sig_to_der(const uint8_t* sig, uint8_t* der)
  */
 static void _assert_unlocked(void)
 {
-    bool was_unlocked = _unlock_if_locked();
-    if (!was_unlocked) {
+    if (_unlock_if_locked() != ASYNC_OP_TRUE) {
         Abort("Bad BB02 lock status after refresh");
     }
 }
@@ -376,7 +399,7 @@ static void _assert_unlocked(void)
  */
 static uint16_t _register_sanity_check_req(const USB_APDU* apdu)
 {
-    if (APDU_LEN(*apdu) < U2F_KEYHANDLE_LEN) { // actual size could vary
+    if (APDU_LEN(*apdu) != sizeof(U2F_REGISTER_REQ)) {
         return U2F_SW_WRONG_LENGTH;
     }
 
@@ -390,10 +413,13 @@ static uint16_t _register_sanity_check_req(const USB_APDU* apdu)
 /**
  * Starts the registration "confirm" screen.
  */
-static void _register_start_confirm(const uint8_t* app_id)
+static void _register_start_confirm(const USB_APDU* apdu)
 {
-    _state.reg = U2F_REGISTER_CONFIRMING;
-    u2f_app_confirm_start(U2F_APP_REGISTER, app_id);
+    const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
+    if (u2f_app_confirm_start(U2F_APP_REGISTER, reg_request->appId)) {
+        _set_pending_apdu(apdu);
+        _state.reg = U2F_REGISTER_CONFIRMING;
+    }
 }
 
 /**
@@ -402,7 +428,6 @@ static void _register_start_confirm(const uint8_t* app_id)
  */
 static void _register_start(const USB_APDU* apdu, Packet* out_packet)
 {
-    const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
     uint16_t req_error = _register_sanity_check_req(apdu);
     if (req_error) {
         _clear_state();
@@ -410,12 +435,11 @@ static void _register_start(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    // If it fails to unlock it will call _unlock()
-    bool is_unlocked = _unlock_if_locked();
-    if (!is_unlocked) {
+    async_op_result_t unlock_result = _unlock_if_locked();
+    if (unlock_result == ASYNC_OP_NOT_READY) {
         _state.reg = U2F_REGISTER_UNLOCKING;
-    } else {
-        _register_start_confirm(reg_request->appId);
+    } else if (unlock_result == ASYNC_OP_TRUE) {
+        _register_start_confirm(apdu);
     }
     _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
 }
@@ -423,8 +447,12 @@ static void _register_start(const USB_APDU* apdu, Packet* out_packet)
 static void _register_wait_refresh(const USB_APDU* apdu, Packet* out_packet)
 {
     _assert_unlocked();
-    const U2F_REGISTER_REQ* reg_request = (const U2F_REGISTER_REQ*)apdu->data;
-    _register_start_confirm(reg_request->appId);
+    uint16_t req_error = _register_sanity_check_req(apdu);
+    if (req_error) {
+        _error(req_error, out_packet);
+        return;
+    }
+    _register_start_confirm(apdu);
     _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
 }
 
@@ -516,7 +544,13 @@ static void _register_continue(const USB_APDU* apdu, Packet* out_packet)
  */
 static uint16_t _authenticate_sanity_check_req(const USB_APDU* apdu)
 {
-    if (APDU_LEN(*apdu) < U2F_KEYHANDLE_LEN) { // actual size could vary
+    const uint32_t len = APDU_LEN(*apdu);
+    if (len < offsetof(U2F_AUTHENTICATE_REQ, keyHandle)) {
+        return U2F_SW_WRONG_LENGTH;
+    }
+    const U2F_AUTHENTICATE_REQ* auth_request = (const U2F_AUTHENTICATE_REQ*)apdu->data;
+    if (auth_request->keyHandleLength != U2F_KEYHANDLE_LEN ||
+        len != offsetof(U2F_AUTHENTICATE_REQ, keyHandle) + auth_request->keyHandleLength) {
         return U2F_SW_WRONG_LENGTH;
     }
 
@@ -557,8 +591,11 @@ static uint16_t _authenticate_start_confirm(const USB_APDU* apdu)
     if (key_error) {
         return key_error;
     }
+    if (!u2f_app_confirm_start(U2F_APP_AUTHENTICATE, auth_request->appId)) {
+        return U2F_SW_CONDITIONS_NOT_SATISFIED;
+    }
+    _set_pending_apdu(apdu);
     _state.auth = U2F_AUTHENTICATE_CONFIRMING;
-    u2f_app_confirm_start(U2F_APP_AUTHENTICATE, auth_request->appId);
     return 0;
 }
 
@@ -571,10 +608,13 @@ static void _authenticate_start(const USB_APDU* apdu, Packet* out_packet)
         return;
     }
 
-    // If it fails to unlock it will call _unlock()
-    bool is_unlocked = _unlock_if_locked();
-    if (!is_unlocked) {
+    async_op_result_t unlock_result = _unlock_if_locked();
+    if (unlock_result == ASYNC_OP_NOT_READY) {
         _state.auth = U2F_AUTHENTICATE_UNLOCKING;
+        _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+        return;
+    }
+    if (unlock_result == ASYNC_OP_FALSE) {
         _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
         return;
     }
@@ -590,6 +630,11 @@ static void _authenticate_start(const USB_APDU* apdu, Packet* out_packet)
 static void _authenticate_wait_refresh(const USB_APDU* apdu, Packet* out_packet)
 {
     _assert_unlocked();
+    uint16_t req_error = _authenticate_sanity_check_req(apdu);
+    if (req_error) {
+        _error(req_error, out_packet);
+        return;
+    }
     uint16_t key_error = _authenticate_start_confirm(apdu);
     if (key_error) {
         _clear_state();
@@ -606,16 +651,16 @@ static void _authenticate_continue(const USB_APDU* apdu, Packet* out_packet)
     uint8_t mac[HMAC_SHA256_LEN];
     uint8_t sig[64] = {0};
     U2F_AUTHENTICATE_SIG_STR sig_base;
+    // Keep the outstanding confirmation on malformed retries so a valid retry can still consume
+    // its result.
     uint16_t req_error = _authenticate_sanity_check_req(apdu);
     if (req_error) {
-        _clear_state();
         _error(req_error, out_packet);
         return;
     }
 
     uint16_t key_error = _authenticate_verify_key_valid(apdu);
     if (key_error) {
-        _clear_state();
         _error(key_error, out_packet);
         return;
     }
@@ -816,8 +861,7 @@ static void _cmd_authenticate(const Packet* in_packet, Packet* out_packet)
 {
     const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
     /* Sanity-check our state. */
-    if (_state.auth != U2F_AUTHENTICATE_IDLE &&
-        (_state.last_cmd != U2F_AUTHENTICATE || _state.cid != in_packet->cid)) {
+    if (_state.auth != U2F_AUTHENTICATE_IDLE && _state.last_cmd != U2F_AUTHENTICATE) {
         util_log("u2f: ERROR authenticate invalid state");
         _clear_state();
         return;
@@ -848,15 +892,14 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
 {
     (void)max_out_len;
 
-    // By default always use the recieved cid
-    _state.cid = in_packet->cid;
-
     const USB_APDU* apdu = (const USB_APDU*)in_packet->data_addr;
 
     if ((APDU_LEN(*apdu) + sizeof(USB_APDU)) > in_packet->len) {
         return;
     }
 
+    // The CID routes only this response; workflow ownership is bound to the pending APDU.
+    out_packet->cid = in_packet->cid;
     usb_processing_lock(usb_processing_u2f());
 
     if (apdu->cla != 0) {
@@ -866,10 +909,20 @@ static void _cmd_msg(const Packet* in_packet, Packet* out_packet, const size_t m
 
     switch (apdu->ins) {
     case U2F_REGISTER:
+        if (_state.auth != U2F_AUTHENTICATE_IDLE ||
+            (_state.reg == U2F_REGISTER_CONFIRMING && !_is_pending_apdu(apdu))) {
+            _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+            return;
+        }
         _cmd_register(in_packet, out_packet);
         _state.last_cmd = apdu->ins;
         break;
     case U2F_AUTHENTICATE:
+        if (_state.reg != U2F_REGISTER_IDLE ||
+            (_state.auth == U2F_AUTHENTICATE_CONFIRMING && !_is_pending_apdu(apdu))) {
+            _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+            return;
+        }
         _cmd_authenticate(in_packet, out_packet);
         _state.last_cmd = apdu->ins;
         break;
@@ -892,8 +945,8 @@ bool u2f_blocking_request_can_go_through(const Packet* in_packet)
 
 void u2f_blocked_req_error(Packet* out_packet, const Packet* in_packet)
 {
-    (void)in_packet;
     _error(U2F_SW_CONDITIONS_NOT_SATISFIED, out_packet);
+    out_packet->cid = in_packet->cid;
 }
 
 static void _process_register_wait_unlock(void)

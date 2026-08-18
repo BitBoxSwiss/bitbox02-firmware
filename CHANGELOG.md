@@ -11,6 +11,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 - Display long transaction and swap amounts in full instead of truncating them
 
 ### v9.26.5
+- Security improvements
 - Fixed a crash when listing many backups over Bluetooth
 - Fix unexpected NACK responses on iOS due to slow securechip operations
 

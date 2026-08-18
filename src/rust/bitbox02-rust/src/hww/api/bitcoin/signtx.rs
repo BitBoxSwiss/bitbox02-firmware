@@ -340,10 +340,12 @@ async fn sighash_script(
 }
 
 /// Stream an input's previous transaction and verify that the prev_out_hash in the input matches
-/// the hash of the previous transaction, as well as that the amount provided in the input is correct.
+/// the hash of the previous transaction, as well as that the amount and scriptPubKey of the
+/// previous output are correct.
 async fn handle_prevtx(
     input_index: u32,
     input: &pb::BtcSignInputRequest,
+    expected_pubkey_script: &[u8],
     num_inputs: u32,
     progress_component: &mut impl Progress,
     next_response: &mut NextResponse,
@@ -404,10 +406,12 @@ async fn handle_prevtx(
 
         let prevtx_output =
             get_prevtx_output(input_index, prevtx_output_index, next_response).await?;
-        if prevtx_output_index == input.prev_out_index
-            && input.prev_out_value != prevtx_output.value
-        {
-            return Err(Error::InvalidInput);
+        if prevtx_output_index == input.prev_out_index {
+            if input.prev_out_value != prevtx_output.value
+                || expected_pubkey_script != prevtx_output.pubkey_script.as_slice()
+            {
+                return Err(Error::InvalidInput);
+            }
         }
         hasher.update(prevtx_output.value.to_le_bytes());
         hasher.update(serialize(&VarInt(prevtx_output.pubkey_script.len() as u64)));
@@ -675,10 +679,10 @@ impl<'a> TryFrom<&'a ValidatedScriptConfigWithKeypath<'a>>
 ///
 /// The hash_prevout and hash_sequence and total_in are accumulated in inputs_pass1.
 ///
-/// For each input in pass1, the input's prevtx is streamed to compute and compare the prevOutHash
-/// and input amount. This only happens if the script_configs in the init request contain
-/// non-taproot (legacy and v0 segwit) configs. If all inputs are taproot, this step is not needed
-/// as the input amounts and pubkey scripts are committed to in the signature hash. With
+/// For each input in pass1, the input's prevtx is streamed to compute and compare the prevOutHash,
+/// input amount and pubkey script. This only happens if the script_configs in the init request
+/// contain non-taproot (legacy and v0 segwit) configs. If all inputs are taproot, this step is not
+/// needed as the input amounts and pubkey scripts are committed to in the signature hash. With
 /// SIGHASH_ALL/SIGHASH_DEFAULT, it would technically be enough if there was only one taproot input
 /// to skip streaming the previous transactions, even if there are non-taproot inputs (every input
 /// commits to the taproot inputs presence, and the taproot input commits to all amounts and pubkey
@@ -822,6 +826,7 @@ async fn _process(
             handle_prevtx(
                 input_index,
                 &tx_input,
+                pk_script.as_slice(),
                 request.num_inputs,
                 progress_component.as_mut().unwrap(),
                 &mut next_response,
@@ -1396,6 +1401,83 @@ mod tests {
         payment_request: Option<pb::BtcPaymentRequestRequest>,
     }
 
+    /// Computes the transaction hash of the previous transaction in an input test fixture.
+    fn prevtx_hash(input: &TxInput) -> Vec<u8> {
+        let mut hasher = Sha256::new();
+        hasher.update(input.prevtx_version.to_le_bytes());
+        hasher.update(serialize(&VarInt(input.prevtx_inputs.len() as u64)));
+        for prevtx_input in input.prevtx_inputs.iter() {
+            hasher.update(prevtx_input.prev_out_hash.as_slice());
+            hasher.update(prevtx_input.prev_out_index.to_le_bytes());
+            hasher.update(serialize(&VarInt(
+                prevtx_input.signature_script.len() as u64
+            )));
+            hasher.update(prevtx_input.signature_script.as_slice());
+            hasher.update(prevtx_input.sequence.to_le_bytes());
+        }
+        hasher.update(serialize(&VarInt(input.prevtx_outputs.len() as u64)));
+        for prevtx_output in input.prevtx_outputs.iter() {
+            hasher.update(prevtx_output.value.to_le_bytes());
+            hasher.update(serialize(&VarInt(prevtx_output.pubkey_script.len() as u64)));
+            hasher.update(prevtx_output.pubkey_script.as_slice());
+        }
+        hasher.update(input.prevtx_locktime.to_le_bytes());
+        Sha256::digest(hasher.finalize()).to_vec()
+    }
+
+    /// Sets the selected previous outputs to scripts derived from the signing request and updates
+    /// their transaction hashes. The mock keystore must be unlocked, and the HAL must contain any
+    /// required multisig or policy registrations.
+    async fn set_prevout_scripts(
+        hal: &mut impl crate::hal::Hal,
+        transaction: &alloc::rc::Rc<core::cell::RefCell<Transaction>>,
+        init_request: &pb::BtcSignInitRequest,
+    ) {
+        let (coin_params, num_inputs) = {
+            let transaction = transaction.borrow();
+            (
+                super::super::params::get(transaction.coin),
+                transaction.inputs.len(),
+            )
+        };
+        let validated_script_configs =
+            validate_script_configs(hal, coin_params, &init_request.script_configs)
+                .await
+                .unwrap();
+        let mut xpub_cache = Bip32XpubCache::new(Compute::Once);
+        for input_index in 0..num_inputs {
+            let (script_config_index, keypath) = {
+                let transaction = transaction.borrow();
+                let input = &transaction.inputs[input_index];
+                (
+                    input.input.script_config_index as usize,
+                    input.input.keypath.clone(),
+                )
+            };
+            let script_config = validated_script_configs.get(script_config_index).unwrap();
+            let script =
+                common::Payload::from(hal, &mut xpub_cache, coin_params, &keypath, script_config)
+                    .await
+                    .unwrap()
+                    .pk_script(coin_params)
+                    .unwrap();
+
+            let mut transaction = transaction.borrow_mut();
+            let input = &mut transaction.inputs[input_index];
+            input.prevtx_outputs[input.input.prev_out_index as usize].pubkey_script = script;
+            input.input.prev_out_hash = prevtx_hash(input);
+        }
+    }
+
+    /// Creates the default transaction fixture with previous-output scripts matching its inputs.
+    /// The mock keystore must be unlocked before calling this helper.
+    async fn new_transaction(coin: pb::BtcCoin) -> alloc::rc::Rc<core::cell::RefCell<Transaction>> {
+        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(coin)));
+        let init_request = transaction.borrow().init_request();
+        set_prevout_scripts(&mut TestingHal::new(), &transaction, &init_request).await;
+        transaction
+    }
+
     impl Transaction {
         /// An arbitrary test transaction with some inputs and outputs.
         fn new(coin: pb::BtcCoin) -> Self {
@@ -1451,7 +1533,8 @@ mod tests {
                             },
                             pb::BtcPrevTxOutputRequest {
                                 value: 1010000000, // btc 10.1
-                                pubkey_script: b"pubkey script 2".to_vec(),
+                                // Overwritten with the derived pubkey script before signing.
+                                pubkey_script: b"placeholder".to_vec(),
                             },
                         ],
                         prevtx_locktime: 0,
@@ -1484,7 +1567,8 @@ mod tests {
                         }],
                         prevtx_outputs: vec![pb::BtcPrevTxOutputRequest {
                             value: 1020000000, // btc 10.2
-                            pubkey_script: b"pubkey script".to_vec(),
+                            // Overwritten with the derived pubkey script before signing.
+                            pubkey_script: b"placeholder".to_vec(),
                         }],
                         prevtx_locktime: 87654,
                         host_nonce: None,
@@ -1589,7 +1673,8 @@ mod tests {
                     }],
                     prevtx_outputs: vec![pb::BtcPrevTxOutputRequest {
                         value: 100000, // btc 0.001
-                        pubkey_script: b"pubkey script".to_vec(),
+                        // Overwritten with the derived pubkey script before signing.
+                        pubkey_script: b"placeholder".to_vec(),
                     }],
                     prevtx_locktime: 0,
                     host_nonce: None,
@@ -2009,7 +2094,8 @@ mod tests {
                 PREVTX_REQUESTED = 0;
             }
 
-            let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(coin)));
+            mock_unlocked();
+            let transaction = new_transaction(coin).await;
 
             let tx = transaction.clone();
             *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
@@ -2021,7 +2107,6 @@ mod tests {
                     Ok(tx.borrow().make_host_request(response))
                 }));
 
-            mock_unlocked();
             let mut init_request = transaction.borrow().init_request();
             init_request.format_unit = format_unit as _;
 
@@ -2126,7 +2211,7 @@ mod tests {
                             assert_eq!(
                                 next.signature,
                                 hex!(
-                                    "2e084a0a5f9babb35df6ec3a89720bcfc088d4ba6aee47973c55fec3b3ddaa6007c7b11c8b5a1a6820ca74a85aeb4cf545c1b3375370f44f24d53d61fe676e4c"
+                                    "2738445c66add4a23ba457ddd678bc9ea3dab27030fa6a73b31c1aac7893c9aa0dd848ab8d27ff660a1f23213e0156937c9d46c261a3f809beae93760d2bce72"
                                 )
                             );
                         }
@@ -2145,9 +2230,8 @@ mod tests {
     /// Test that receiving an unexpected message from the host results in an invalid state error.
     #[async_test::test]
     pub async fn test_invalid_state() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         let tx = transaction.clone();
         static mut COUNTER: u32 = 0;
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
@@ -2167,6 +2251,7 @@ mod tests {
     /// Test signing if all inputs are of type P2WPKH-P2SH.
     #[async_test::test]
     pub async fn test_script_type_p2wpkh_p2sh() {
+        mock_unlocked();
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         for input in transaction.borrow_mut().inputs.iter_mut() {
@@ -2177,9 +2262,6 @@ mod tests {
                 output.keypath[0] = 49 + HARDENED;
             }
         }
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
         let mut init_request = transaction.borrow().init_request();
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {
@@ -2189,6 +2271,8 @@ mod tests {
             }),
             keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
         };
+        set_prevout_scripts(&mut TestingHal::new(), &transaction, &init_request).await;
+        mock_host_responder(transaction.clone());
         let result = process(&mut TestingHal::new(), &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
@@ -2196,7 +2280,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "3a4618f6163c1d553bebc2c6ac08866d9f027ca663eea743658bb0581c4233a432984ccaeb52044f70474794c55446a5d823e1fb969a39132f7da230d2dd3375"
+                        "157bca77b0af6618659c78bf4d7a758ac520e6088a7e648f5fb44fefeecca54c0dcc128a6a1141b2786e8618f12ecd618e81f87205fe456de4ce3d368e89d936"
                     )
                 );
             }
@@ -2207,8 +2291,8 @@ mod tests {
     /// Test signing if all inputs are of type P2TR.
     #[async_test::test]
     pub async fn test_script_type_p2tr() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         for input in transaction.borrow_mut().inputs.iter_mut() {
             input.input.keypath[0] = 86 + HARDENED;
         }
@@ -2230,7 +2314,6 @@ mod tests {
                 Ok(tx.borrow().make_host_request(response))
             }));
 
-        mock_unlocked();
         let mut init_request = transaction.borrow().init_request();
         init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
             script_config: Some(pb::BtcScriptConfig {
@@ -2247,7 +2330,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "87f00346f53b11e03175eaf5254e3aec432bfd9585465c83fb483e8ddaf0893b0460d764711b4adf5865419d06116abc174b1578372e11fcd41cd2db18c306a7"
+                        "c62342dc6a5e438b18cfc6b58d07394ec3dd4bb1687d520ac2576b219e2e45987e922a8d488a4ae058cda1a40e64835de2c2c796fa5ad579659fa7e3106b1a57"
                     )
                 );
             }
@@ -2260,10 +2343,24 @@ mod tests {
     /// inputs should be streamed in this case.
     #[async_test::test]
     pub async fn test_script_type_p2tr_mixed() {
+        mock_unlocked();
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
         transaction.borrow_mut().inputs[0].input.keypath[0] = 86 + HARDENED;
+
+        let mut init_request = transaction.borrow().init_request();
+        init_request
+            .script_configs
+            .push(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(
+                        SimpleType::P2tr as _,
+                    )),
+                }),
+                keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
+            });
+        set_prevout_scripts(&mut TestingHal::new(), &transaction, &init_request).await;
 
         let tx = transaction.clone();
         // Check that previous transactions are streamed, as not all input are taproot.
@@ -2277,18 +2374,6 @@ mod tests {
                 Ok(tx.borrow().make_host_request(response))
             }));
 
-        mock_unlocked();
-        let mut init_request = transaction.borrow().init_request();
-        init_request
-            .script_configs
-            .push(pb::BtcScriptConfigWithKeypath {
-                script_config: Some(pb::BtcScriptConfig {
-                    config: Some(pb::btc_script_config::Config::SimpleType(
-                        SimpleType::P2tr as _,
-                    )),
-                }),
-                keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
-            });
         assert!(process(&mut TestingHal::new(), &init_request).await.is_ok());
         assert_eq!(
             unsafe { PREVTX_REQUESTED },
@@ -2301,13 +2386,13 @@ mod tests {
     /// spend them.
     #[async_test::test]
     pub async fn test_spend_high_address_index() {
+        mock_unlocked();
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.keypath[4] = 100000;
-
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
+        set_prevout_scripts(&mut TestingHal::new(), &transaction, &init_request).await;
+        mock_host_responder(transaction.clone());
         let result = process(&mut TestingHal::new(), &init_request).await;
         assert!(result.is_ok());
     }
@@ -2338,6 +2423,8 @@ mod tests {
             WrongInputValue,
             // input's prevtx hash does not match input's prevOutHash
             WrongPrevoutHash,
+            // selected prevtx output's script does not match the input keypath
+            WrongPrevoutScript,
             // input's prev_out_index too high
             WrongPrevoutIndex,
             // no inputs in prevtx
@@ -2357,12 +2444,13 @@ mod tests {
             TestCase::WrongOutputValue,
             TestCase::WrongInputValue,
             TestCase::WrongPrevoutHash,
+            TestCase::WrongPrevoutScript,
             TestCase::WrongPrevoutIndex,
             TestCase::PrevTxNoInputs,
             TestCase::PrevTxNoOutputs,
         ] {
-            let transaction =
-                alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+            mock_unlocked();
+            let transaction = new_transaction(pb::BtcCoin::Btc).await;
             match value {
                 TestCase::WrongCoinInput => {
                     transaction.borrow_mut().inputs[0].input.keypath[1] = 1 + HARDENED;
@@ -2402,6 +2490,13 @@ mod tests {
                 TestCase::WrongPrevoutHash => {
                     transaction.borrow_mut().inputs[0].input.prev_out_hash[0] += 1;
                 }
+                TestCase::WrongPrevoutScript => {
+                    let mut transaction = transaction.borrow_mut();
+                    let input = &mut transaction.inputs[0];
+                    let prev_out_index = input.input.prev_out_index as usize;
+                    input.prevtx_outputs[prev_out_index].pubkey_script[0] ^= 1;
+                    input.input.prev_out_hash = prevtx_hash(input);
+                }
                 TestCase::WrongPrevoutIndex => {
                     let mut tx = transaction.borrow_mut();
                     tx.inputs[0].input.prev_out_index = tx.inputs[0].prevtx_outputs.len() as _;
@@ -2414,7 +2509,6 @@ mod tests {
                 }
             }
             mock_host_responder(transaction.clone());
-            mock_unlocked();
             let init_request = transaction.borrow().init_request();
             let result = process(&mut TestingHal::new(), &init_request).await;
             assert_eq!(result, Err(Error::InvalidInput));
@@ -2424,12 +2518,11 @@ mod tests {
     /// Test signing with mixed input types.
     #[async_test::test]
     pub async fn test_mixed_inputs() {
+        mock_unlocked();
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
         transaction.borrow_mut().inputs[0].input.script_config_index = 1;
         transaction.borrow_mut().inputs[0].input.keypath[0] = 49 + HARDENED;
-        mock_host_responder(transaction.clone());
-        mock_unlocked();
         let mut init_request = transaction.borrow().init_request();
         init_request
             .script_configs
@@ -2441,13 +2534,15 @@ mod tests {
                 }),
                 keypath: vec![49 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
+        set_prevout_scripts(&mut TestingHal::new(), &transaction, &init_request).await;
+        mock_host_responder(transaction.clone());
         assert!(process(&mut TestingHal::new(), &init_request).await.is_ok());
     }
 
     #[async_test::test]
     async fn test_user_aborts() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         mock_host_responder(transaction.clone());
         // We go through all possible user confirmations and abort one of them at a time.
         let total_confirmations = transaction.borrow().total_confirmations;
@@ -2524,12 +2619,10 @@ mod tests {
                 confirm: Some("Locktime on block:\n10\n"),
             },
         ] {
-            let transaction =
-                alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(test_case.coin)));
+            mock_unlocked();
+            let transaction = new_transaction(test_case.coin).await;
             transaction.borrow_mut().inputs[0].input.sequence = test_case.sequence;
             mock_host_responder(transaction.clone());
-
-            mock_unlocked();
 
             let mut init_request = transaction.borrow().init_request();
             init_request.locktime = test_case.locktime;
@@ -2557,13 +2650,12 @@ mod tests {
     // Test a transaction with an unusually high fee.
     #[async_test::test]
     async fn test_high_fee_warning() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         transaction.borrow_mut().outputs[1].value = 1034567890;
         // One more confirmation for the high fee warning.
         transaction.borrow_mut().total_confirmations += 1;
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
         let total_confirmations = transaction.borrow().total_confirmations;
 
@@ -2590,13 +2682,12 @@ mod tests {
     // active on Litecoin yet.
     #[async_test::test]
     async fn test_p2tr_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::P2tr as _;
         transaction.borrow_mut().outputs[0].payload =
             hex!("a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c").to_vec();
         mock_host_responder(transaction.clone());
-        mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
         let init_request = transaction.borrow().init_request();
@@ -2617,7 +2708,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "8f1e0e8f98d36db1196264f1a300fae317f1508d2c489fbbd660e048c4529c612f59576c86a26ffa476d97351e469ef6ed2784aecb71053a5166775ccb4d7b9b"
+                        "63d8442f327c59f50baacfa64726d01d6325042e9c79a03be14504a52cfbb1cc0e9a0b7ce419b6448e280bab107abb969b5eb4c149399f23e3c479d37e99ac31"
                     )
                 );
             }
@@ -2627,6 +2718,7 @@ mod tests {
 
     #[async_test::test]
     async fn test_silent_payment_output() {
+        mock_unlocked();
         let transaction =
             alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
 
@@ -2643,23 +2735,6 @@ mod tests {
             Some(pb::btc_sign_output_request::SilentPayment {
                 address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
             });
-        let tx = transaction.clone();
-        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
-            Some(Box::new(move |response: Response| {
-                let next = extract_next(&response);
-
-                if NextType::try_from(next.r#type).unwrap() == NextType::Output && next.index == 1 {
-                    assert_eq!(
-                        next.generated_output_pkscript,
-                        hex!(
-                            "51207b9101d60c6461ff3e18f0832e7f1e952084205062d7e0b7b08812c264cfe713"
-                        )
-                    );
-                }
-                Ok(tx.borrow().make_host_request(response))
-            }));
-        mock_unlocked();
-
         let mut init_request = transaction.borrow().init_request();
         init_request
             .script_configs
@@ -2671,6 +2746,22 @@ mod tests {
                 }),
                 keypath: vec![86 + HARDENED, 0 + HARDENED, 10 + HARDENED],
             });
+        set_prevout_scripts(&mut TestingHal::new(), &transaction, &init_request).await;
+        let tx = transaction.clone();
+        *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+            Some(Box::new(move |response: Response| {
+                let next = extract_next(&response);
+
+                if NextType::try_from(next.r#type).unwrap() == NextType::Output && next.index == 1 {
+                    assert_eq!(
+                        next.generated_output_pkscript,
+                        hex!(
+                            "5120d93dcc0bfa6bd3f53dff16446ed4a6687272fd00966d462c269e4ec11ed98f9e"
+                        )
+                    );
+                }
+                Ok(tx.borrow().make_host_request(response))
+            }));
 
         let mut mock_hal = TestingHal::new();
         assert!(process(&mut mock_hal, &init_request).await.is_ok());
@@ -2685,9 +2776,67 @@ mod tests {
     }
 
     #[async_test::test]
+    async fn test_silent_payment_rejects_input_keypath_mismatch() {
+        for (simple_type, purpose) in [
+            (SimpleType::P2wpkh, 84 + HARDENED),
+            (SimpleType::P2wpkhP2sh, 49 + HARDENED),
+        ] {
+            mock_unlocked();
+            let transaction =
+                alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+
+            for input in transaction.borrow_mut().inputs.iter_mut() {
+                input.input.keypath[0] = purpose;
+            }
+            transaction.borrow_mut().outputs[0].r#type = pb::BtcOutputType::Unknown as _;
+            transaction.borrow_mut().outputs[0].payload = vec![];
+            transaction.borrow_mut().outputs[0].silent_payment =
+                Some(pb::btc_sign_output_request::SilentPayment {
+                    address: "sp1qqgste7k9hx0qftg6qmwlkqtwuy6cycyavzmzj85c6qdfhjdpdjtdgqjuexzk6murw56suy3e0rd2cgqvycxttddwsvgxe2usfpxumr70xc9pkqwv".into(),
+                });
+
+            let mut init_request = transaction.borrow().init_request();
+            init_request.script_configs[0] = pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(pb::btc_script_config::Config::SimpleType(simple_type as _)),
+                }),
+                keypath: vec![purpose, 0 + HARDENED, 10 + HARDENED],
+            };
+            set_prevout_scripts(&mut TestingHal::new(), &transaction, &init_request).await;
+
+            let tx = transaction.clone();
+            let first_input_seen = alloc::rc::Rc::new(core::cell::Cell::new(false));
+            let first_input_seen_callback = first_input_seen.clone();
+            *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() =
+                Some(Box::new(move |response: Response| {
+                    let next = extract_next(&response);
+                    let next_type = NextType::try_from(next.r#type).unwrap();
+                    let index = next.index;
+                    let mut request = tx.borrow().make_host_request(response);
+                    if next_type == NextType::Input
+                        && index == 0
+                        && !first_input_seen_callback.replace(true)
+                    {
+                        match &mut request {
+                            Request::BtcSignInput(input) => input.keypath[4] += 1,
+                            _ => panic!("wrong request type"),
+                        }
+                    }
+                    Ok(request)
+                }));
+
+            assert_eq!(
+                process(&mut TestingHal::new(), &init_request).await,
+                Err(Error::InvalidInput)
+            );
+            assert!(first_input_seen.get());
+        }
+    }
+
+    #[async_test::test]
     async fn test_silent_payment_rejects_ours_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         {
             let mut tx = transaction.borrow_mut();
@@ -2703,7 +2852,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         assert_eq!(
@@ -2715,11 +2863,10 @@ mod tests {
     // Test an output that is sending to the same account, but is not a change output by keypath.
     #[async_test::test]
     async fn test_self_send_non_change_output_same_account() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         transaction.borrow_mut().outputs[5].keypath[3] = 0;
         mock_host_responder(transaction.clone());
-        mock_unlocked();
 
         let mut mock_hal = TestingHal::new();
         let init_request = transaction.borrow().init_request();
@@ -2743,7 +2890,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "e115d7d2d2b7ef068e7b89de83ec791744d46b8bae8a5931a73ef644c0db01cf2f2e2a02797a29a181fe74ea1f5d2bcaba4d70e0e7742412a680fd62957a90f7"
+                        "1d4cab467bb114fd62fa803407d514980e5b18f45a66a34d31078129627d2e892894a8035b67781bae22bd8b326c3c2de7555b0bd9509a2d0adb4971ca34ae1e"
                     )
                 );
             }
@@ -2754,14 +2901,13 @@ mod tests {
     // Test an output that is sending to another account of our keystore.
     #[async_test::test]
     async fn test_self_send_different_account() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         const DIFFERENT_ACCOUNT: u32 = 20 + HARDENED;
         transaction.borrow_mut().outputs[5].keypath[2] = DIFFERENT_ACCOUNT;
         transaction.borrow_mut().outputs[5].keypath[3] = 0;
         transaction.borrow_mut().outputs[5].output_script_config_index = Some(0);
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let coin = transaction.borrow().coin;
         let mut init_request = transaction.borrow().init_request();
         init_request.output_script_configs = vec![pb::BtcScriptConfigWithKeypath {
@@ -2792,8 +2938,8 @@ mod tests {
     /// Exercise the antiklepto protocol
     #[async_test::test]
     async fn test_antiklepto() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         let host_nonce = hex!("abababababababababababababababababababababababababababababababab");
         // The host nonce commitment value does not impact this test, but an invalid commitment
         // would fail the antiklepto signature check on the host. The host check is skipped here and
@@ -2808,7 +2954,6 @@ mod tests {
             .input
             .host_nonce_commitment = Some(host_nonce_commitment);
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
         let result = process(&mut TestingHal::new(), &init_request).await;
         match result {
@@ -2819,7 +2964,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "2e6de654626ee912bf2e0cf5a56749891aa98956d40e29e38b8a644d5c62cfcc44e7729284ff30f9248cd70a5457b0e2324e7c473f6600432acdc8d92fb16766"
+                        "07b9c8df1b71fc841d5a379a9f568faffc4f7311e74a7ab3ec1f8f1b0d1e8b1234ded6bacb2532b653f0c1f3039fd348a86d1663db763b7e2c445fe9988c3f60"
                     )
                 );
             }
@@ -2830,8 +2975,8 @@ mod tests {
     /// The sum of the inputs in the 2nd pass can't be higher than in the first for all inputs.
     #[async_test::test]
     async fn test_input_sum_changes() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         static mut PASS2_INPUT_REQUESTS_COUNTER: u32 = 0;
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
             let tx = transaction.clone();
@@ -2861,7 +3006,6 @@ mod tests {
                 Ok(tx.make_host_request(response))
             }))
         };
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
         let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
@@ -2874,8 +3018,8 @@ mod tests {
     /// inputs in the first pass.
     #[async_test::test]
     async fn test_input_sum_last_mismatch() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         static mut PASS2_INPUT_REQUESTS_COUNTER: u32 = 0;
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
             let tx = transaction.clone();
@@ -2899,7 +3043,6 @@ mod tests {
                 Ok(tx.make_host_request(response))
             }))
         };
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
         let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
@@ -2914,8 +3057,8 @@ mod tests {
     /// Outgoing sum overflows.
     #[async_test::test]
     async fn test_overflow_output_out() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
             let tx = transaction.clone();
             Some(Box::new(move |response: Response| {
@@ -2934,7 +3077,6 @@ mod tests {
                 }
             }))
         };
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
         let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
@@ -2943,8 +3085,8 @@ mod tests {
     /// Outgoing change overflows.
     #[async_test::test]
     async fn test_overflow_output_ours() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
         *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = {
             let tx = transaction.clone();
             Some(Box::new(move |response: Response| {
@@ -2963,7 +3105,6 @@ mod tests {
                 }
             }))
         };
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
         let result = process(&mut TestingHal::new(), &init_request).await;
         assert_eq!(result, Err(Error::InvalidInput));
@@ -3028,6 +3169,7 @@ mod tests {
             }
         };
 
+        set_prevout_scripts(&mut mock_hal, &transaction, &init_request).await;
         let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
@@ -3035,7 +3177,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "1bee37e9123fd37fb8be2dd253ea810a021302e14962f46eeea979d96ffb4c6769d007de360f50e1de378de48e7a9fc79c47245b360daf27647529c92e86b203"
+                        "5f4ff35de020fdf55813f1bab8eda330440199329c02fbb9aa58292fda61c35873c44c9328d29e3f6f6a1dd20d6863aa0ad956cb8bcfbe3b023f16b99d4b89ee"
                     )
                 );
             }
@@ -3197,6 +3339,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
+        set_prevout_scripts(&mut mock_hal, &transaction, &init_request).await;
         let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
@@ -3204,7 +3347,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "a72342869a29b02433faae2ac5c49f033effd3a6b60623878ef7bf8b14dee2a03a76511b37baf15e707507f48b10cdf5a8f30b0ada4da22a38a5476f69911d8e"
+                        "e80ddbc806ba13e34239af24668267e6aae4a8522f56a9ee2c94496088da614614ddd85f80f15d87fed85086dce56521b3c32fc7f809483cdd1a75c36bb43bde"
                     )
                 );
             }
@@ -3281,6 +3424,7 @@ mod tests {
                 contains_silent_payment_outputs: false,
             }
         };
+        set_prevout_scripts(&mut mock_hal, &transaction, &init_request).await;
         let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
@@ -3288,7 +3432,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "dbed8b1aefbdcfd7f3e6d9dff5ec83c5ed77cad7278b06c5f4d33072f300c2d613d166171c54d202415b5344a92d4f6f9b36ac314dc93e18bdcf6135de4d11bf"
+                        "b6fc8262c84c39a8ea9ec9e59378f5290838835909f20ab6f9ae9eb4c35ad3fb06a05407f1297694d26976f3d1ae5e8bad0130dc3fd2d7ca02e653d9f5aeeb03"
                     )
                 );
             }
@@ -3355,6 +3499,7 @@ mod tests {
         let init_request = transaction
             .borrow()
             .init_request_policy(policy, keypath_account);
+        set_prevout_scripts(&mut mock_hal, &transaction, &init_request).await;
         let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
@@ -3362,7 +3507,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "5736b8eec7594ad906daf8d3fac64d58aed35fc50726b0ed6d5fb1c8019fcab0606ced7d09bc9a75fadf5ba45cc95dc15fb6796997466739a9f6383bd159dae4"
+                        "bef93371f3c8fdf8c844a09b0bf0a3414767f68ba87d07ff3441a03c681cab887c337e3a982ecfdc84a8c15f0ebf50ae4ae92772f56431142fbe21ee8878a96c"
                     )
                 );
             }
@@ -3679,6 +3824,7 @@ mod tests {
         let init_request = transaction
             .borrow()
             .init_request_policy(policy, keypath_account);
+        set_prevout_scripts(&mut mock_hal, &transaction, &init_request).await;
         let result = process(&mut mock_hal, &init_request).await;
         match result {
             Ok(Response::BtcSignNext(next)) => {
@@ -3686,7 +3832,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "1c6b5465859db7dbd88f174d07a9df416d6dfa1e742903989584cd72e989d141485ad9d712df2852a6500e06856404959c010d5254353d11ab3167377ed4ee88"
+                        "2454a136a45a0af77632475a901bad2324123ed65cf9c9ec3ba2847a65e749b0718a0d1968b524739bee4e38aa119924733ee09d016093b32b6861eb57ba0e5f"
                     )
                 );
             }
@@ -3813,8 +3959,8 @@ mod tests {
 
     #[async_test::test]
     pub async fn test_payment_request() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         // Attach second output to a payment request.
         {
@@ -3845,7 +3991,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
@@ -3907,8 +4052,8 @@ mod tests {
 
     #[async_test::test]
     pub async fn test_payment_request_rejects_ours_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         {
             let mut tx = transaction.borrow_mut();
@@ -3940,7 +4085,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         assert_eq!(
@@ -4026,8 +4170,8 @@ mod tests {
     #[async_test::test]
     pub async fn test_swap_payment_request() {
         // End-to-end swap signing: swap screens appear, then the regular BTC confirmations continue.
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         {
             let mut tx = transaction.borrow_mut();
@@ -4115,9 +4259,8 @@ mod tests {
     #[async_test::test]
     pub async fn test_swap_payment_request_unsupported_source_coin() {
         // Swap UI is restricted to BTC/LTC source accounts; other BTC-like coins must fail early.
-        let transaction = alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(
-            pb::BtcCoin::Tbtc,
-        )));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Tbtc).await;
 
         {
             let mut tx = transaction.borrow_mut();
@@ -4162,8 +4305,8 @@ mod tests {
 
     #[async_test::test]
     async fn test_op_return() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         // Attach OP_RETURN output
         {
@@ -4177,7 +4320,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
@@ -4189,7 +4331,7 @@ mod tests {
                 assert_eq!(
                     next.signature,
                     hex!(
-                        "f49c71b89ec3510ebebae9aff9f967ad9bb6cc0c4cddbdf851f97e47e9922646622459e522b0751fa246e49a8e48417344a5384a9f68c1c85cd03804b35e1e1e"
+                        "6c3c1156a5ce8c3382d81f1858649c9f595d4e251df361c90b7498f3907d756c7aded53e9eb668c81b50607b35e04127cd6eabd3dc4e36538bae283d89900ad0"
                     ),
                 );
             }
@@ -4201,8 +4343,8 @@ mod tests {
 
     #[async_test::test]
     async fn test_op_return_nonascii() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         // Attach OP_RETURN output
         {
@@ -4216,7 +4358,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
@@ -4232,8 +4373,8 @@ mod tests {
 
     #[async_test::test]
     async fn test_op_return_fail_nonzero_value() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         // Attach OP_RETURN output
         {
@@ -4247,7 +4388,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         let mut mock_hal = TestingHal::new();
@@ -4259,8 +4399,8 @@ mod tests {
 
     #[async_test::test]
     async fn test_op_return_rejects_ours_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         {
             let mut tx = transaction.borrow_mut();
@@ -4273,7 +4413,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         assert_eq!(
@@ -4284,8 +4423,8 @@ mod tests {
 
     #[async_test::test]
     async fn test_op_return_rejects_silent_payment_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         {
             let mut tx = transaction.borrow_mut();
@@ -4298,7 +4437,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         assert_eq!(
@@ -4309,8 +4447,8 @@ mod tests {
 
     #[async_test::test]
     async fn test_op_return_rejects_payment_request_output() {
-        let transaction =
-            alloc::rc::Rc::new(core::cell::RefCell::new(Transaction::new(pb::BtcCoin::Btc)));
+        mock_unlocked();
+        let transaction = new_transaction(pb::BtcCoin::Btc).await;
 
         {
             let mut tx = transaction.borrow_mut();
@@ -4324,7 +4462,6 @@ mod tests {
         }
 
         mock_host_responder(transaction.clone());
-        mock_unlocked();
         let init_request = transaction.borrow().init_request();
 
         assert_eq!(

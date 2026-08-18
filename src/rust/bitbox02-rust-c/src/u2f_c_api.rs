@@ -34,9 +34,11 @@ static BITBOX02_HAL: GroundedCell<crate::HalImpl> = GroundedCell::const_init();
 struct ActiveWorkflowGuard;
 
 impl ActiveWorkflowGuard {
-    fn new() -> Self {
-        ACTIVE_WORKFLOW_COUNT.fetch_add(1, Ordering::Relaxed);
-        Self
+    fn try_new() -> Option<Self> {
+        ACTIVE_WORKFLOW_COUNT
+            .compare_exchange(0, 1, Ordering::Relaxed, Ordering::Relaxed)
+            .ok()
+            .map(|_| Self)
     }
 }
 
@@ -54,6 +56,21 @@ pub extern "C" fn rust_workflow_u2f_is_active() -> bool {
 
 fn next_task_token() -> u32 {
     NEXT_TASK_TOKEN.fetch_add(1, Ordering::Relaxed)
+}
+
+/// # Safety
+/// Must be called from the same single-threaded, non-reentrant execution context as all other
+/// U2F workflow C API calls.
+unsafe fn try_start_workflow() -> Option<ActiveWorkflowGuard> {
+    let guard = ActiveWorkflowGuard::try_new()?;
+    unsafe {
+        if !matches!(UNLOCK_STATE.get().as_ref().unwrap(), TaskState::Nothing)
+            || !matches!(CONFIRM_STATE.get().as_ref().unwrap(), TaskState::Nothing)
+        {
+            return None;
+        }
+    }
+    Some(guard)
 }
 
 /// # Safety
@@ -91,9 +108,11 @@ unsafe fn complete_confirm(token: u32, result: Result<(), UserAbort>) {
 /// U2F workflow C API calls. In particular, do not call this from interrupts or from multiple
 /// threads.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
+pub unsafe extern "C" fn rust_workflow_spawn_unlock() -> bool {
+    let Some(active_workflow_guard) = (unsafe { try_start_workflow() }) else {
+        return false;
+    };
     let token = next_task_token();
-    let active_workflow_guard = ActiveWorkflowGuard::new();
     unsafe {
         UNLOCK_STATE.get().write(TaskState::Running(token));
     }
@@ -104,6 +123,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
         };
         unsafe { complete_unlock(token, result) };
     }));
+    true
 }
 
 /// # Safety
@@ -116,11 +136,13 @@ pub unsafe extern "C" fn rust_workflow_spawn_unlock() {
 pub unsafe extern "C" fn rust_workflow_spawn_confirm(
     title: *const core::ffi::c_char,
     body: *const core::ffi::c_char,
-) {
+) -> bool {
     let title: String = unsafe { CStr::from_ptr(title).to_str().unwrap().into() };
     let body: String = unsafe { CStr::from_ptr(body).to_str().unwrap().into() };
+    let Some(active_workflow_guard) = (unsafe { try_start_workflow() }) else {
+        return false;
+    };
     let token = next_task_token();
-    let active_workflow_guard = ActiveWorkflowGuard::new();
     unsafe {
         CONFIRM_STATE.get().write(TaskState::Running(token));
     }
@@ -143,6 +165,7 @@ pub unsafe extern "C" fn rust_workflow_spawn_confirm(
         };
         unsafe { complete_confirm(token, result) };
     }));
+    true
 }
 
 /// Returns true if there was a result.
@@ -207,19 +230,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_rust_workflow_u2f_is_active() {
+    fn test_try_start_workflow() {
         assert!(!rust_workflow_u2f_is_active());
 
-        let first_guard = ActiveWorkflowGuard::new();
+        let first_guard = unsafe { try_start_workflow() }.unwrap();
         assert!(rust_workflow_u2f_is_active());
-
-        {
-            let _second_guard = ActiveWorkflowGuard::new();
-            assert!(rust_workflow_u2f_is_active());
-        }
-        assert!(rust_workflow_u2f_is_active());
+        assert!(unsafe { try_start_workflow() }.is_none());
 
         drop(first_guard);
         assert!(!rust_workflow_u2f_is_active());
+
+        unsafe {
+            UNLOCK_STATE.get().write(TaskState::ResultAvailable(Ok(())));
+        }
+        assert!(unsafe { try_start_workflow() }.is_none());
+        assert!(!rust_workflow_u2f_is_active());
+        unsafe {
+            UNLOCK_STATE.get().write(TaskState::Nothing);
+        }
     }
 }

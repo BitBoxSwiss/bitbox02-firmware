@@ -1,0 +1,8 @@
+By signing this file, the signer confirms that the BitBox02 Multi firmware binary built from:
+
+git tag firmware/v9.26.5
+git commit hash 4745c8414e81cbb0cb0b6dc8e41c599490ab2621
+
+resulted, at the time of signing, in a firmware binary file with the following sha256sum:
+
+2bbf787c6564d52c46a9e283add0fc50a431bd6e69d0b2b6da4a514267ccc92f

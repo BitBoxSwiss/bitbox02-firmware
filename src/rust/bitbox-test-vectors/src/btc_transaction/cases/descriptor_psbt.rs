@@ -8,7 +8,7 @@ use super::common::{
 };
 use super::screens;
 use crate::btc_transaction::{
-    Coin, KeyOriginInfo, MultisigScriptType, PsbtSignOptions, Registration, ScriptConfig,
+    Coin, KeyOriginInfo, MultisigScriptType, PsbtSignOptions, Registration, Screen, ScriptConfig,
     ScriptConfigWithKeypath, TestVector,
 };
 use bitcoin::bip32::{ChainCode, ChildNumber, DerivationPath, Fingerprint, KeySource, Xpriv, Xpub};
@@ -243,6 +243,8 @@ fn policy_spend(policy: &str, change_index: u32, sign_cosigner: bool) -> PolicyS
     let our_xpub = simulator_xpub_at(&secp, &account);
     let cosigner_root = seeded_xpriv(100);
     let cosigner_xpub = account_xpub(&cosigner_root, &account);
+    let has_cosigner = policy.contains("@1/");
+    assert!(!sign_cosigner || has_cosigner);
     let descriptor = policy
         .replace("/**", "/<0;1>/*")
         .replace(
@@ -265,20 +267,23 @@ fn policy_spend(policy: &str, change_index: u32, sign_cosigner: bool) -> PolicyS
     if sign_cosigner {
         add_cosigner_signature(&mut psbt, &cosigner_root);
     }
+    let mut keys = vec![KeyOriginInfo {
+        root_fingerprint: Some(simulator_xprv().fingerprint(&secp).to_string()),
+        keypath: Some(keypath(&account)),
+        xpub: our_xpub.to_string(),
+    }];
+    let mut display_keys = vec![format!("This device: {}", screens::DEVICE_POLICY_XPUB)];
+    if has_cosigner {
+        keys.push(KeyOriginInfo {
+            root_fingerprint: None,
+            keypath: None,
+            xpub: cosigner_xpub.to_string(),
+        });
+        display_keys.push(cosigner_xpub.to_string());
+    }
     let config = ScriptConfig::Policy {
         policy: policy.into(),
-        keys: vec![
-            KeyOriginInfo {
-                root_fingerprint: Some(simulator_xprv().fingerprint(&secp).to_string()),
-                keypath: Some(keypath(&account)),
-                xpub: our_xpub.to_string(),
-            },
-            KeyOriginInfo {
-                root_fingerprint: None,
-                keypath: None,
-                xpub: cosigner_xpub.to_string(),
-            },
-        ],
+        keys,
     };
     let input_branch = if policy.contains("<10;11>") { 10 } else { 0 };
     let input_path = path(&format!("{account}/{input_branch}/0"));
@@ -287,10 +292,7 @@ fn policy_spend(policy: &str, change_index: u32, sign_cosigner: bool) -> PolicyS
         config,
         account,
         input_pubkey: simulator_xpub_at(&secp, &input_path).public_key,
-        display_keys: vec![
-            format!("This device: {}", screens::DEVICE_POLICY_XPUB),
-            cosigner_xpub.to_string(),
-        ],
+        display_keys,
     }
 }
 
@@ -570,6 +572,42 @@ fn policy_tr_unspendable_internal_key_complex() -> TestVector {
     })
 }
 
+fn policy_timestamp_locktime() -> TestVector {
+    const LOCKTIME: u32 = 1_800_000_000;
+
+    let policy = "wsh(and_v(v:pk(@0/**),after(1800000000)))";
+    let name = "test timestamp locktime";
+    let mut spend = policy_spend(policy, 0, false);
+    spend.psbt.unsigned_tx.lock_time = bitcoin::absolute::LockTime::from_consensus(LOCKTIME);
+    spend.psbt.unsigned_tx.input[0].sequence = Sequence(Sequence::MAX.0 - 1);
+    let locktime_screen = Screen::Confirm {
+        title: String::new(),
+        body: "Locktime (UTC):\n2027-01-15\n08:00:00".into(),
+        longtouch: false,
+    };
+    let mut vector = transaction_vector(
+        "policy-timestamp-locktime",
+        "Signs and finalizes a registered WSH policy whose absolute locktime is a Unix timestamp.",
+        Coin::Tbtc,
+        spend.psbt,
+        PsbtSignOptions {
+            force_script_config: Some(ScriptConfigWithKeypath {
+                script_config: spend.config.clone(),
+                keypath: keypath(&spend.account),
+            }),
+            ..Default::default()
+        },
+        vec![ecdsa_signature(0, spend.input_pubkey)],
+        screens::policy_timestamp_locktime(policy, name, &spend.display_keys, locktime_screen),
+    );
+    vector.registrations.push(Registration {
+        script_config: spend.config,
+        keypath: None,
+        name: name.into(),
+    });
+    vector
+}
+
 pub fn all() -> Vec<TestVector> {
     let multipath_policy = "wsh(multi(2,@0/<10;11>/*,@1/<20;21>/*))";
     let standard_policy = "wsh(multi(2,@0/**,@1/**))";
@@ -604,6 +642,7 @@ pub fn all() -> Vec<TestVector> {
         policy_tr_keyspend_with_script_tree(),
         policy_tr_unspendable_internal_key(),
         policy_tr_unspendable_internal_key_complex(),
+        policy_timestamp_locktime(),
         policy_vector(
             "policy-different-multipath-derivations",
             "Signs and finalizes a registered WSH policy whose two keys use different receive and change branches.",

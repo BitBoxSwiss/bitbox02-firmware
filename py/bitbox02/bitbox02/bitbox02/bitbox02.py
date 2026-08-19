@@ -458,7 +458,8 @@ class BitBox02(BitBoxCommonAPI):
           if `btc_sign_needs_prevtxs()` returns True.
         outputs: transaction outputs. Can be an external output
         (BTCOutputExternal) or an internal output for change (BTCOutputInternal).
-        version, locktime: reserved for future use.
+        version: transaction version, 1 or 2.
+        locktime: consensus nLockTime, interpreted as a block height or Unix timestamp.
         format_unit: defines in which unit amounts will be displayed
         output_script_configs: script types for outputs belonging to the same keystore
         Returns: list of (input index, signature) tuples.
@@ -466,8 +467,11 @@ class BitBox02(BitBoxCommonAPI):
         """
         # pylint: disable=no-member,too-many-branches,too-many-statements
 
-        # Reserved for future use.
         assert version in (1, 2)
+
+        if locktime >= 500_000_000:
+            # Timestamp-based nLockTime supported since v9.27.0.
+            self._require_atleast(semver.VersionInfo(9, 27, 0))
 
         if any(map(is_taproot, script_configs)):
             self._require_atleast(semver.VersionInfo(9, 10, 0))

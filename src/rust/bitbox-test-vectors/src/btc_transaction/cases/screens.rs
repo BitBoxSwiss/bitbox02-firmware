@@ -24,6 +24,7 @@ const PSBT_OTHER_ACCOUNT_ADDRESS_GROUPED: &str =
 // only earlier difference would be such an incomplete capture start at v9.20, so their screen lists
 // cannot be mistaken for the screens shown by the device.
 const COMPLETE_TRANSACTION_SCREEN_CAPTURE_VERSION: &str = "9.20.0";
+const LOCKTIME_CONFIRMATION_UPDATE_VERSION: &str = "9.27.0";
 pub const DEVICE_POLICY_XPUB: &str = "[4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv";
 
 fn success(
@@ -195,6 +196,42 @@ fn simple_expectations(
     ]
 }
 
+fn simple_locktime_expectations(
+    previous_middle: &[Screen],
+    current_middle: &[Screen],
+    external_address: &str,
+    grouped_external_address: &str,
+    unit: &str,
+) -> Vec<VersionExpectation> {
+    let amount = format!("0.20000000 {unit}");
+    let total = format!("0.30000000 {unit}");
+    let fee_amount = format!("0.10000000 {unit}");
+    let suffix = |address_value: &str, middle: &[Screen]| {
+        let mut screens = vec![address(&amount, address_value)];
+        screens.extend_from_slice(middle);
+        screens.extend([warning_fee(&total, &fee_amount), high_fee(50), status()]);
+        screens
+    };
+
+    vec![
+        success(
+            Some(COMPLETE_TRANSACTION_SCREEN_CAPTURE_VERSION),
+            Some("9.26.0"),
+            suffix(external_address, previous_middle),
+        ),
+        success(
+            Some("9.26.0"),
+            Some(LOCKTIME_CONFIRMATION_UPDATE_VERSION),
+            suffix(grouped_external_address, previous_middle),
+        ),
+        success(
+            Some(LOCKTIME_CONFIRMATION_UPDATE_VERSION),
+            None,
+            suffix(grouped_external_address, current_middle),
+        ),
+    ]
+}
+
 fn taproot_policy_expectations(prefix: Vec<Screen>) -> Vec<VersionExpectation> {
     let suffix_920 = vec![
         address("0.20000000 TBTC", TBTC_EXTERNAL_ADDRESS),
@@ -237,9 +274,26 @@ pub fn simple_tbtc(middle: &[Screen]) -> Vec<VersionExpectation> {
     )
 }
 
-pub fn simple_ltc(middle: &[Screen]) -> Vec<VersionExpectation> {
-    simple_expectations(
-        middle,
+pub fn simple_tbtc_locktime(
+    previous_middle: &[Screen],
+    current_middle: &[Screen],
+) -> Vec<VersionExpectation> {
+    simple_locktime_expectations(
+        previous_middle,
+        current_middle,
+        TBTC_EXTERNAL_ADDRESS,
+        TBTC_EXTERNAL_ADDRESS_GROUPED,
+        "TBTC",
+    )
+}
+
+pub fn simple_ltc_locktime(
+    previous_middle: &[Screen],
+    current_middle: &[Screen],
+) -> Vec<VersionExpectation> {
+    simple_locktime_expectations(
+        previous_middle,
+        current_middle,
         LTC_EXTERNAL_ADDRESS,
         LTC_EXTERNAL_ADDRESS_GROUPED,
         "LTC",
@@ -564,6 +618,26 @@ pub fn policy(policy: &str, name: &str, keys: &[String], taproot: bool) -> Vec<V
     } else {
         standard_expectations(prefix, "0.30000000 TBTC", "0.10000000 TBTC", 50)
     }
+}
+
+pub fn policy_timestamp_locktime(
+    policy: &str,
+    name: &str,
+    keys: &[String],
+    locktime_screen: Screen,
+) -> Vec<VersionExpectation> {
+    let mut screens = policy_prefix(policy, name, keys);
+    screens.extend([
+        address("0.20000000 TBTC", TBTC_EXTERNAL_ADDRESS_GROUPED),
+        locktime_screen,
+        warning_fee("0.30000000 TBTC", "0.10000000 TBTC"),
+        high_fee(50),
+        status(),
+    ]);
+    vec![
+        invalid_input_before(LOCKTIME_CONFIRMATION_UPDATE_VERSION),
+        success(Some(LOCKTIME_CONFIRMATION_UPDATE_VERSION), None, screens),
+    ]
 }
 
 pub fn policy_wsh() -> Vec<VersionExpectation> {

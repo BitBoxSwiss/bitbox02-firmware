@@ -660,7 +660,31 @@ impl<'a> TryFrom<&'a ValidatedScriptConfigWithKeypath<'a>>
     }
 }
 
-/// Singing flow:
+/// Formats the transaction's consensus nLockTime for confirmation.
+///
+/// Timestamp locktimes are shown in UTC. Whether a locktime has passed is determined using chain
+/// state, which the device does not have, so only the exact signed value is displayed.
+fn format_locktime(locktime: u32) -> Result<String, Error> {
+    let locktime = bitcoin::absolute::LockTime::from_consensus(locktime);
+    if locktime.is_block_height() {
+        return Ok(format!(
+            "Locktime on block:\n{}",
+            locktime.to_consensus_u32()
+        ));
+    }
+
+    let tm = util::datetime::get_datetime(locktime.to_consensus_u32())
+        .map_err(|_| Error::InvalidInput)?;
+    Ok(format!(
+        "Locktime (UTC):\n{}\n{}:{}:{}",
+        tm.date(),
+        tm.hour(),
+        tm.minute(),
+        tm.second(),
+    ))
+}
+
+/// Signing flow:
 ///
 /// init
 /// for each input:
@@ -689,7 +713,7 @@ impl<'a> TryFrom<&'a ValidatedScriptConfigWithKeypath<'a>>
 /// scripts), but we only skip streaming previous transactions if all inputs are taproot, for
 /// simplicity.
 ///
-/// For each output, the recipient is confirmed. At the last output, the total out, fee, locktime/RBF
+/// For each output, the recipient is confirmed. At the last output, the total out, fee and locktime
 /// are confirmed.
 ///
 /// The inputs are signed in inputs_pass2.
@@ -715,10 +739,6 @@ async fn _process(
     let coin_params = super::params::get(coin);
     // Validate the format_unit.
     let format_unit = FormatUnit::try_from(request.format_unit)?;
-    // Currently we do not support time-based nlocktime
-    if request.locktime >= 500000000 {
-        return Err(Error::InvalidInput);
-    }
     // Currently only support version 1 or version 2 tx.
     // Version 2: https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
     if request.version != 1 && request.version != 2 {
@@ -752,8 +772,6 @@ async fn _process(
     let mut inputs_sum_pass1: u64 = 0;
 
     let mut locktime_applies: bool = false;
-    let mut rbf: bool = false;
-
     let mut hasher_prevouts = Sha256::new();
     let mut hasher_sequence = Sha256::new();
     let mut hasher_amounts = Sha256::new();
@@ -783,9 +801,6 @@ async fn _process(
             .get(tx_input.script_config_index as usize)
             .ok_or(Error::InvalidInput)?;
         validate_input(&tx_input, coin_params, script_config_account)?;
-        if tx_input.sequence < 0xffffffff - 1 {
-            rbf = true;
-        }
         if tx_input.sequence < 0xffffffff {
             locktime_applies = true;
         }
@@ -1127,31 +1142,13 @@ async fn _process(
             .await?;
     }
 
-    // Verify locktime/rbf.
-    // A locktime of 0 will also not be verified, as it's certainly in the past and can't do any
-    // harm.
-    //
-    // This is not a security feature, the extra locktime/RBF user confirmation is skipped if the tx
-    // is not rbf or has a locktime of 0.
+    // Confirm an effective non-zero nLockTime because it can defer when the signed transaction
+    // becomes valid. nLockTime is ignored if every input uses the final sequence number.
     if request.locktime > 0 && locktime_applies {
-        // The RBF nsequence bytes are often set in conjunction with a locktime,
-        // so verify both simultaneously.
+        let body = format_locktime(request.locktime)?;
         hal.ui()
             .confirm(&ConfirmParams {
-                body: &format!(
-                    "Locktime on block:\n{}\n{}",
-                    request.locktime,
-                    if coin_params.rbf_support {
-                        if rbf {
-                            "Transaction is RBF"
-                        } else {
-                            "Transaction is not RBF"
-                        }
-                    } else {
-                        // There is no RBF in Litecoin.
-                        ""
-                    }
-                ),
+                body: &body,
                 accept_is_nextarrow: true,
                 ..Default::default()
             })
@@ -1386,6 +1383,26 @@ mod tests {
     use miniscript::psbt::PsbtExt;
     use pb::btc_payment_request_request::{Memo, memo};
     use util::bip32::HARDENED;
+
+    #[test]
+    fn test_format_locktime() {
+        assert_eq!(
+            format_locktime(499_999_999).unwrap(),
+            "Locktime on block:\n499999999"
+        );
+        assert_eq!(
+            format_locktime(500_000_000).unwrap(),
+            "Locktime (UTC):\n1985-11-05\n00:53:20"
+        );
+        assert_eq!(
+            format_locktime(1_800_000_000).unwrap(),
+            "Locktime (UTC):\n2027-01-15\n08:00:00"
+        );
+        assert_eq!(
+            format_locktime(u32::MAX).unwrap(),
+            "Locktime (UTC):\n2106-02-07\n06:28:15"
+        );
+    }
 
     fn extract_next(response: &Response) -> &pb::BtcSignNextResponse {
         match response {
@@ -2645,15 +2662,6 @@ mod tests {
                     Err(Error::InvalidInput)
                 );
             }
-        }
-        {
-            // test invalid locktime
-            let mut init_req_invalid = init_req_valid.clone();
-            init_req_invalid.locktime = 500000000;
-            assert_eq!(
-                process(&mut TestingHal::new(), &init_req_invalid).await,
-                Err(Error::InvalidInput)
-            );
         }
         {
             // test invalid inputs

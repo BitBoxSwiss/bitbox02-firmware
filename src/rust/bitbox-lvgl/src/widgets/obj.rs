@@ -187,10 +187,20 @@ pub trait ObjExt {
         util::add_event_cb(self.as_ptr(), filter, cb)
     }
 
+    /// Registers `cb` to run when the object is tapped, with standard tap semantics: sliding the
+    /// finger off the object aborts the tap, so releasing outside it does not click. LVGL's
+    /// default `LV_OBJ_FLAG_PRESS_LOCK` keeps a press attached to the originally pressed object
+    /// wherever the finger goes, which would deliver the click on any release; removing it makes
+    /// LVGL track the object under the finger instead, so leaving the object sends it
+    /// `LV_EVENT_PRESS_LOST` (clearing `LV_STATE_PRESSED`) and no click fires.
+    ///
+    /// Do not combine with widgets that track their own press/drag gesture (sliders, button
+    /// matrices): those rely on keeping the press, so wire them via [`ObjExt::add_event_cb`].
     fn add_click_cb<F>(&self, cb: F) -> Result<(), LvEventRegistrationError>
     where
         F: FnMut() + 'static,
     {
+        self.remove_flag(LvObjFlag::LV_OBJ_FLAG_PRESS_LOCK);
         self.add_event_cb(crate::LvEventCode::LV_EVENT_CLICKED, cb)
     }
 

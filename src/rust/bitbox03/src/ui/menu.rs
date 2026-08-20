@@ -72,7 +72,7 @@ pub fn build_menu_screen(
     title_label.set_text(&title_text).unwrap();
     title_label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title_label.set_style_text_font(
-        lvgl::fonts::INTER_BOLD_48,
+        lvgl::fonts::INTER_REGULAR_32,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
 

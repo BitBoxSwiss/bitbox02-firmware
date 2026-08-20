@@ -47,7 +47,7 @@ pub(super) fn build_status_screen(title: &str, status_success: bool) -> LvObj {
     title_label.set_text(title).unwrap();
     title_label.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title_label.set_style_text_font(
-        lvgl::fonts::INTER_BOLD_48,
+        lvgl::fonts::INTER_REGULAR_32,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
 

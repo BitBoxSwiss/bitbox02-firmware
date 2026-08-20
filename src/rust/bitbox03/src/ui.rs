@@ -15,10 +15,14 @@ mod choice;
 pub mod confirm;
 pub mod demo;
 pub mod enter_string;
+pub mod keyboard;
+pub mod keypad;
 pub mod menu;
 pub mod nav_button;
 pub mod slide_to_confirm;
 mod status;
+#[cfg(test)]
+mod test_util;
 
 const LOGO: &[u8] = include_bytes!("../splash.png");
 

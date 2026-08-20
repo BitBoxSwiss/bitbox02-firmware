@@ -58,8 +58,9 @@ pub(super) fn build_trinary_choice_screen(
     title.set_width(380);
     title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
     title.set_text(message).unwrap();
+    title.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title.set_style_text_font(
-        lvgl::fonts::INTER_BOLD_48,
+        lvgl::fonts::INTER_REGULAR_32,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
     title.set_style_flex_grow(1, 0);

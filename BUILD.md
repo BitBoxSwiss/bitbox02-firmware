@@ -33,6 +33,7 @@ development machine to follow the instructions below.
 | [cmake](https://cmake.org/download/) | 3.10 |
 | [git](https://git-scm.com/downloads) | 2.34 |
 | [Protobuf Compiler](https://github.com/protocolbuffers/protobuf/releases) | 21.2 |
+| Python | >= 3.10 |
 | [Python Probobuf Runtime](https://github.com/protocolbuffers/protobuf/tree/master/python#installation) | 5.27.3 |
 | [SEGGER J-Link Software and Documentation Pack](https://www.segger.com/downloads/jlink) | 6.34g |
 | Graphviz | 2.42.2 |
@@ -408,7 +409,8 @@ docker exec -u 0 -it bitbox02-firmware-dev bash -c 'apt update && apt install -y
 There is a Python api library in `py/bitbox02`.
 
 > [!IMPORTANT]
-> The Python scripts and editable installs require **pip ≥ 25**. Older pip versions will fail.
+> The Python scripts require **Python ≥ 3.10**, and editable installs require **pip ≥ 25**.
+> Older versions will fail.
 > For setup and usage instructions, see [`py/README.md`](py/README.md).
 
 ### BitBox02 CLI client

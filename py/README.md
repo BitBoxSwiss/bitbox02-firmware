@@ -5,14 +5,14 @@ This directory contains scripts to talk to the BitBox device directly via the co
 
 ## Setup
 
-These instructions use Python 3, pip, and venv (a lightweight "virtual environment").
-Inside the virtual environment, `python` and `pip` refer to Python 3.
+These instructions require Python 3.10 or newer, pip, and venv (a lightweight "virtual
+environment"). Inside the virtual environment, `python` and `pip` refer to Python 3.
 
 All commands below assume you are in the `py/bitbox02` directory.
 
 ### Requirements
 
-- python
+- Python >= 3.10
 - pip >= 25
 
 Editable installs (`pip install -e …`) are only supported with pip 25 or newer.  

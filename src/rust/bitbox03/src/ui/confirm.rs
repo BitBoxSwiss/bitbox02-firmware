@@ -60,6 +60,9 @@ pub fn build_confirm_screen(
     body_container.set_style_pad_left(0, 0);
     body_container.set_style_border_width(0, 0);
     body_container.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0);
+    // The theme's card style sets its own dark grey text color, which would otherwise shadow
+    // the screen's white for the label below.
+    body_container.set_style_text_color(lvgl::color::white(), 0);
     body_container.add_flag(LvObjFlag::LV_OBJ_FLAG_SCROLLABLE);
 
     let body = LvLabel::new(&body_container).unwrap();

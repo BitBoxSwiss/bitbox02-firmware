@@ -7,6 +7,7 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
+- Ethereum: display the EIP-712 message type before signing
 
 ### v9.27.0
 - Display long transaction and swap amounts in full instead of truncating them

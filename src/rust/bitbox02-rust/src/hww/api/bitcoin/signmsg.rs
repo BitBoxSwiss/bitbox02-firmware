@@ -18,8 +18,21 @@ use crate::keystore;
 use crate::hal::Ui;
 use crate::workflow::verify_message;
 use bitcoin::consensus::encode::{VarInt, serialize};
+use util::bip32::HARDENED;
 
 const MAX_MESSAGE_SIZE: usize = 1024;
+const MAX_KEYPATH_DEPTH: usize = 10;
+const EXTERNAL_SERVICE_PURPOSE: u32 = 45 + HARDENED;
+
+/// Validate a keypath in the external service application namespace.
+fn validate_external_service_keypath(keypath: &[u32]) -> Result<(), Error> {
+    match keypath.first() {
+        Some(first) if *first == EXTERNAL_SERVICE_PURPOSE && keypath.len() <= MAX_KEYPATH_DEPTH => {
+            Ok(())
+        }
+        _ => Err(Error::InvalidInput),
+    }
+}
 
 /// Process a sign message request.
 ///
@@ -50,8 +63,22 @@ pub async fn process(
         return Err(Error::InvalidInput);
     }
 
-    // Keypath and script_config are validated in address_simple().
-    let address = super::derive_address_simple(
+    // Standard Bitcoin keypaths keep the existing UI. Keypaths in the external service
+    // application namespace are accepted and identified as external service keys.
+    let coin_params = super::params::get(coin);
+    let is_standard_keypath = super::keypath::validate_address_simple(
+        keypath,
+        coin_params.bip44_coin,
+        simple_type,
+        coin_params.taproot_support,
+        super::keypath::ReceiveSpend::Receive,
+    )
+    .is_ok();
+    if !is_standard_keypath {
+        validate_external_service_keypath(keypath)?;
+    }
+
+    let address = super::derive_address_simple_unvalidated(
         hal,
         coin,
         simple_type,
@@ -61,7 +88,11 @@ pub async fn process(
     .await?;
     let address_formatted = util::strings::format_address(&address);
 
-    let basic_info = format!("Coin: {}", super::params::get(coin).name);
+    let basic_info = if is_standard_keypath {
+        format!("Coin: {}", coin_params.name)
+    } else {
+        format!("Coin: {}\nExternal service key", coin_params.name)
+    };
     let confirm_params = ConfirmParams {
         title: "Sign message",
         body: &basic_info,
@@ -144,9 +175,50 @@ mod tests {
     use crate::keystore::testing::mock_unlocked;
     use crate::workflow::confirm::{MAX_CONFIRM_BODY_SIZE, TRUNCATION_WARNING_BODY};
     use alloc::boxed::Box;
-    use util::bip32::HARDENED;
+    use hex_lit::hex;
 
     const MESSAGE: &str = "message";
+
+    #[test]
+    fn test_validate_external_service_keypath() {
+        assert!(validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE]).is_ok());
+        assert!(
+            validate_external_service_keypath(&[
+                EXTERNAL_SERVICE_PURPOSE,
+                0 + HARDENED,
+                0,
+                1 + HARDENED,
+                1,
+                2 + HARDENED,
+                2,
+                3 + HARDENED,
+                3,
+                4,
+            ])
+            .is_ok()
+        );
+
+        assert_eq!(
+            validate_external_service_keypath(&[]),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            validate_external_service_keypath(&[45]),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            validate_external_service_keypath(&[44 + HARDENED]),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            validate_external_service_keypath(&[46 + HARDENED]),
+            Err(Error::InvalidInput)
+        );
+        assert_eq!(
+            validate_external_service_keypath(&[EXTERNAL_SERVICE_PURPOSE; MAX_KEYPATH_DEPTH + 1]),
+            Err(Error::InvalidInput)
+        );
+    }
 
     #[async_test::test]
     pub async fn test_p2wpkh() {
@@ -181,6 +253,53 @@ mod tests {
                 Screen::Confirm {
                     title: "Address".into(),
                     body: "bc1q k5f9 em9q c8yf pks8 ngfg 3h8h 02n2 e3ye qdyh pt".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: MESSAGE.into(),
+                    longtouch: true,
+                },
+            ]
+        );
+    }
+
+    #[async_test::test]
+    pub async fn test_p2wpkh_nonstandard_keypath() {
+        let request = pb::BtcSignMessageRequest {
+            coin: BtcCoin::Btc as _,
+            script_config: Some(pb::BtcScriptConfigWithKeypath {
+                script_config: Some(pb::BtcScriptConfig {
+                    config: Some(Config::SimpleType(SimpleType::P2wpkh as _)),
+                }),
+                keypath: vec![EXTERNAL_SERVICE_PURPOSE, 0 + HARDENED, 0 + HARDENED, 0, 0],
+            }),
+            msg: MESSAGE.as_bytes().to_vec(),
+            host_nonce_commitment: None,
+        };
+
+        mock_unlocked();
+        let mut mock_hal = TestingHal::new();
+        assert_eq!(
+            process(&mut mock_hal, &request).await,
+            Ok(Response::SignMessage(pb::BtcSignMessageResponse {
+                signature: hex!(
+                    "29eae5774a7cd1393746121a5533a683d7927fe29066982b88b342a52d216217720610ef451ab9d60e8bbe519057c6619d16a06351aa76d695fe6fb13c5b1f1b00"
+                )
+                .to_vec(),
+            }))
+        );
+        assert_eq!(
+            mock_hal.ui.screens,
+            vec![
+                Screen::Confirm {
+                    title: "Sign message".into(),
+                    body: "Coin: Bitcoin\nExternal service key".into(),
+                    longtouch: false,
+                },
+                Screen::Confirm {
+                    title: "Address".into(),
+                    body: "bc1q y5mk a6rf x0ek uwfx 5nkk 098y kfec xxfn 6uja 5z".into(),
                     longtouch: false,
                 },
                 Screen::Confirm {

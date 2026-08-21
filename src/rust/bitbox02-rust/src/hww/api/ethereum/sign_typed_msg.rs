@@ -732,6 +732,18 @@ pub async fn process(
     )
     .await?;
 
+    confirm::confirm_value(
+        hal,
+        &ConfirmParams {
+            title: "Action",
+            body: &request.primary_type,
+            scrollable: true,
+            accept_is_nextarrow: true,
+            ..Default::default()
+        },
+    )
+    .await?;
+
     let sighash: [u8; 32] = eip712_sighash(
         hal,
         &request.types,
@@ -1671,6 +1683,78 @@ mod tests {
 
         assert_eq!(result, Err(Error::InvalidInput));
         assert!(mock_hal.ui.screens.is_empty());
+    }
+
+    #[async_test::test]
+    async fn test_process_displays_primary_type() {
+        async fn run(primary_type: &'static str) -> Vec<Screen> {
+            mock_unlocked();
+            let typed_msg = alloc::rc::Rc::new(TypedMessage::new(
+                vec![
+                    StructType {
+                        name: DOMAIN_TYPE_NAME.into(),
+                        members: vec![mk_member("chainId", mk_sized_type(DataType::Uint, 32))],
+                    },
+                    StructType {
+                        name: "Authorize".into(),
+                        members: vec![mk_member("amount", mk_sized_type(DataType::Uint, 32))],
+                    },
+                    StructType {
+                        name: "Revoke".into(),
+                        members: vec![mk_member("amount", mk_sized_type(DataType::Uint, 32))],
+                    },
+                ],
+                primary_type,
+                Object::Struct(vec![Object::BigUint(BigUint::from(1u32))]),
+                Object::Struct(vec![Object::BigUint(BigUint::from(42u32))]),
+            ));
+            {
+                let typed_msg = typed_msg.clone();
+                *crate::hww::MOCK_NEXT_REQUEST.0.borrow_mut() = Some(Box::new(move |response| {
+                    Ok(typed_msg.handle_host_response(&response).unwrap())
+                }));
+            }
+
+            let mut mock_hal = TestingHal::new();
+            let result = process(
+                &mut mock_hal,
+                &pb::EthSignTypedMessageRequest {
+                    chain_id: 1,
+                    keypath: vec![44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, 0],
+                    types: typed_msg.types.clone(),
+                    primary_type: primary_type.into(),
+                    host_nonce_commitment: None,
+                },
+            )
+            .await;
+
+            assert!(matches!(result, Ok(Response::Sign(_))));
+            mock_hal.ui.screens
+        }
+
+        let mut authorize_screens = run("Authorize").await;
+        let mut revoke_screens = run("Revoke").await;
+
+        assert_eq!(
+            authorize_screens[1],
+            Screen::Confirm {
+                title: "Action".into(),
+                body: "Authorize".into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            revoke_screens[1],
+            Screen::Confirm {
+                title: "Action".into(),
+                body: "Revoke".into(),
+                longtouch: false,
+            }
+        );
+
+        authorize_screens.remove(1);
+        revoke_screens.remove(1);
+        assert_eq!(authorize_screens, revoke_screens);
     }
 
     /// Test computation of the domain separator, which is `hashStruct(domain)`.
@@ -2687,6 +2771,11 @@ mod tests {
                 expected_screens.push(Screen::Confirm {
                     title: "Ethereum".into(),
                     body: address.clone(),
+                    longtouch: false,
+                });
+                expected_screens.push(Screen::Confirm {
+                    title: "Action".into(),
+                    body: tc.primary_type.clone(),
                     longtouch: false,
                 });
                 expected_screens.extend(tc.expected_screens.iter().map(|(title, body)| {

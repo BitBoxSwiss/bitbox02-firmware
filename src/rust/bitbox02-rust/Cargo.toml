@@ -122,7 +122,10 @@ firmware = []
 
 [dev-dependencies]
 async_test = { path = "../async_test" }
+bitbox-platform-host = { path = "../bitbox-platform-host", features = ["testing"] }
+bitbox-secp256k1 = { path = "../bitbox-secp256k1", features = ["testing"] }
 bitbox-test-vectors = { path = "../bitbox-test-vectors" }
+bitbox02 = { path = "../bitbox02", features = ["testing"] }
 semver = "1"
 serde = { workspace = true }
 serde_json = { workspace = true }

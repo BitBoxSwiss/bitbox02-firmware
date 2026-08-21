@@ -71,7 +71,7 @@ pub(crate) async fn reset(hal: &mut impl crate::hal::Hal, status: bool) {
         hal.system().reset_ble();
     }
 
-    #[cfg(not(any(feature = "testing", feature = "c-unit-testing")))]
+    #[cfg(not(any(test, feature = "testing", feature = "c-unit-testing")))]
     hal.system().reboot();
 }
 
@@ -98,6 +98,7 @@ mod tests {
         hal.securechip.mock_reset_keys_fails();
 
         // Simulate a non-zero U2F counter before reset.
+        #[cfg(feature = "app-u2f")]
         hal.securechip.u2f_counter_set(42).await.unwrap();
 
         hal.securechip.event_counter_reset();
@@ -115,6 +116,7 @@ mod tests {
         // SmartEEPROM was disabled as part of the reset.
         assert!(!hal.eeprom.enabled);
 
+        #[cfg(feature = "app-u2f")]
         assert_eq!(hal.securechip.get_u2f_counter(), 0);
 
         assert_eq!(

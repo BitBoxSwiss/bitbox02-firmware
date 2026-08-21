@@ -903,7 +903,7 @@ pub async fn secp256k1_schnorr_sign(
 }
 
 /// Get the seed to be used for u2f
-#[cfg(feature = "app-u2f")]
+#[cfg(any(test, feature = "app-u2f"))]
 pub async fn get_u2f_seed(
     hal: &mut impl crate::hal::Hal,
 ) -> Result<zeroize::Zeroizing<Vec<u8>>, ()> {
@@ -917,7 +917,7 @@ pub async fn get_u2f_seed(
     ))
 }
 
-#[cfg(feature = "testing")]
+#[cfg(any(test, feature = "testing"))]
 pub mod testing {
     /// This mocks an unlocked keystore with the given bip39 recovery words and bip39 passphrase.
     pub fn mock_unlocked_using_mnemonic(mnemonic: &str, passphrase: &str) {

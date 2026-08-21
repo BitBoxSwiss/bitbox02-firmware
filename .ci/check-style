@@ -43,3 +43,18 @@ RUST_SOURCES=$(git ls-files | grep "^src/rust.*\.rs\$" | grep -v "^src/rust/vend
 if [ -n "$RUST_SOURCES" ] ; then
 	"$RUSTFMT" --check $RUST_SOURCES
 fi
+
+# Keep Rust workspace members in alphabetical order.
+RUST_WORKSPACE_MEMBERS=$(
+	sed -En '/^members = \[$/,/^\]$/s/^[[:space:]]*"([^"]*)",?[[:space:]]*(#.*)?$/\1/p' src/rust/Cargo.toml
+)
+if [ -z "$RUST_WORKSPACE_MEMBERS" ]; then
+	echo >&2 "Could not read Rust workspace members"
+	exit 1
+fi
+if ! diff -u --label current-order --label expected-order \
+	<(printf '%s\n' "$RUST_WORKSPACE_MEMBERS") \
+	<(printf '%s\n' "$RUST_WORKSPACE_MEMBERS" | LC_ALL=C sort); then
+	echo >&2 "Rust workspace members are not sorted"
+	exit 1
+fi

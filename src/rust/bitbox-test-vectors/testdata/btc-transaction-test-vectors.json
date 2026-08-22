@@ -1335,6 +1335,7 @@
         },
         {
           "min_version": "9.24.0",
+          "max_version_exclusive": "9.27.2",
           "outcome": "success",
           "screens": [
             {
@@ -1346,6 +1347,52 @@
               "type": "confirm",
               "title": "",
               "body": "Memo from\n\nTest Merchant",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Memo 1/2",
+              "body": "TextMemo line1",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Memo 2/2",
+              "body": "TextMemo line2",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.50000000 TBTC",
+              "fee": "0.30000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "The fee is 150.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.27.2",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "Test Merchant"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Memo from: Test Merchant",
               "longtouch": false
             },
             {

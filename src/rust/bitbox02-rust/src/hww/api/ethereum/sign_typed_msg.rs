@@ -521,8 +521,9 @@ async fn hash_array(
 
     let array_type = member_type.array_type.as_ref().ok_or(Error::InvalidInput)?;
 
-    hal.ui()
-        .confirm(&ConfirmParams {
+    confirm::confirm_value(
+        hal,
+        &ConfirmParams {
             title: &format!(
                 "{}{}",
                 confirm_title(context.root_object),
@@ -540,8 +541,9 @@ async fn hash_array(
             scrollable: true,
             accept_is_nextarrow: true,
             ..Default::default()
-        })
-        .await?;
+        },
+    )
+    .await?;
 
     let mut hasher = sha3::Keccak256::new();
     let mut child_path = context.path.to_vec();
@@ -950,6 +952,7 @@ mod tests {
     }
 
     async fn run_single_message_typed_msg(
+        member_name: &str,
         member_type: MemberType,
         message_obj: Object<'static>,
     ) -> TestingHal<'static> {
@@ -961,7 +964,7 @@ mod tests {
                 },
                 StructType {
                     name: "Msg".into(),
-                    members: vec![mk_member("data", member_type)],
+                    members: vec![mk_member(member_name, member_type)],
                 },
             ],
             "Msg",
@@ -988,11 +991,17 @@ mod tests {
 
     async fn run_single_string_message(message: String) -> TestingHal<'static> {
         let message = Box::leak(message.into_boxed_str());
-        run_single_message_typed_msg(mk_type(DataType::String), Object::String(message)).await
+        run_single_message_typed_msg("data", mk_type(DataType::String), Object::String(message))
+            .await
     }
 
     async fn run_single_streaming_bytes_message(data: Vec<u8>) -> TestingHal<'static> {
-        run_single_message_typed_msg(mk_type(DataType::Bytes), Object::StreamingBytes(data)).await
+        run_single_message_typed_msg(
+            "data",
+            mk_type(DataType::Bytes),
+            Object::StreamingBytes(data),
+        )
+        .await
     }
 
     /// A utility structure to build domain/message objects for testing.
@@ -1458,6 +1467,35 @@ mod tests {
                     longtouch: false,
                 },
             ]
+        );
+    }
+
+    #[async_test::test]
+    async fn test_hash_array_truncation_warning() {
+        let member_name = "a".repeat(MAX_CONFIRM_BODY_SIZE);
+        let mock_hal = run_single_message_typed_msg(
+            &member_name,
+            mk_arr_type(mk_type(DataType::String)),
+            Object::List(vec![]),
+        )
+        .await;
+
+        assert_eq!(mock_hal.ui.screens.len(), 3);
+        assert_eq!(
+            mock_hal.ui.screens[1],
+            Screen::Confirm {
+                title: "Warning".into(),
+                body: confirm::TRUNCATION_WARNING_BODY.into(),
+                longtouch: false,
+            }
+        );
+        assert_eq!(
+            mock_hal.ui.screens[2],
+            Screen::Confirm {
+                title: "Message (1/1)".into(),
+                body: format!("{member_name}: (empty list)"),
+                longtouch: false,
+            }
         );
     }
 

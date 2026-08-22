@@ -561,7 +561,7 @@ fn high_address_index() -> TestVector {
     )
 }
 
-fn locktime(block: u32, sequence: u32, rbf: bool) -> TestVector {
+fn locktime(block: u32, sequence: u32, previous_body: &str) -> TestVector {
     let spend = simple_spend(
         SimpleType::P2wpkh,
         "m/84'/1'/0'",
@@ -570,23 +570,24 @@ fn locktime(block: u32, sequence: u32, rbf: bool) -> TestVector {
         block,
         p2tr_script(TBTC_EXTERNAL_XONLY),
     );
-    let qualifier = if rbf { "rbf" } else { "non-rbf" };
+    let previous_locktime_screen = Screen::Confirm {
+        title: String::new(),
+        body: previous_body.into(),
+        longtouch: false,
+    };
     let locktime_screen = Screen::Confirm {
         title: String::new(),
-        body: format!(
-            "Locktime on block:\n{block}\nTransaction is {}RBF",
-            if rbf { "" } else { "not " }
-        ),
+        body: format!("Locktime on block:\n{block}"),
         longtouch: false,
     };
     transaction_vector(
-        &format!("locktime-{qualifier}"),
-        &format!("Displays block locktime {block} and its {qualifier} sequence semantics."),
+        &format!("locktime-sequence-{sequence:08x}"),
+        &format!("Displays block locktime {block} for transaction sequence {sequence:#010x}."),
         Coin::Tbtc,
         spend.psbt,
         PsbtSignOptions::default(),
         vec![spend.expected_signature],
-        screens::simple_tbtc(&[locktime_screen]),
+        screens::simple_tbtc_locktime(&[previous_locktime_screen], &[locktime_screen]),
     )
 }
 
@@ -601,7 +602,7 @@ fn zero_locktime() -> TestVector {
     );
     transaction_vector(
         "locktime-zero",
-        "Suppresses the locktime confirmation when locktime is zero even if the sequence signals RBF.",
+        "Suppresses the locktime confirmation when locktime is zero even if the sequence is non-final.",
         Coin::Tbtc,
         spend.psbt,
         PsbtSignOptions::default(),
@@ -670,7 +671,7 @@ fn silent_payment_rejects_owned_output() -> TestVector {
     )
 }
 
-fn ltc_locktime(sequence: u32, qualifier: &str) -> TestVector {
+fn ltc_locktime(sequence: u32) -> TestVector {
     let spend = simple_spend(
         SimpleType::P2wpkh,
         "m/84'/2'/0'",
@@ -679,19 +680,24 @@ fn ltc_locktime(sequence: u32, qualifier: &str) -> TestVector {
         10,
         ltc_external_script(),
     );
-    let locktime_screen = Screen::Confirm {
+    let previous_locktime_screen = Screen::Confirm {
         title: String::new(),
         body: "Locktime on block:\n10\n".into(),
         longtouch: false,
     };
+    let locktime_screen = Screen::Confirm {
+        title: String::new(),
+        body: "Locktime on block:\n10".into(),
+        longtouch: false,
+    };
     transaction_vector(
-        &format!("locktime-litecoin-{qualifier}"),
-        "Displays a Litecoin block locktime without Bitcoin-specific RBF wording.",
+        &format!("locktime-litecoin-sequence-{sequence:08x}"),
+        &format!("Displays a Litecoin block locktime for transaction sequence {sequence:#010x}."),
         Coin::Ltc,
         spend.psbt,
         PsbtSignOptions::default(),
         vec![spend.expected_signature],
-        screens::simple_ltc(&[locktime_screen]),
+        screens::simple_ltc_locktime(&[previous_locktime_screen], &[locktime_screen]),
     )
 }
 
@@ -706,10 +712,18 @@ pub fn all() -> Vec<TestVector> {
         p2wpkh_p2sh(),
         high_address_index(),
         zero_locktime(),
-        locktime(10, Sequence::MAX.0 - 1, false),
-        locktime(10, Sequence::MAX.0 - 2, true),
-        ltc_locktime(Sequence::MAX.0 - 1, "non-rbf-sequence"),
-        ltc_locktime(Sequence::MAX.0 - 2, "rbf-sequence"),
+        locktime(
+            10,
+            Sequence::MAX.0 - 1,
+            "Locktime on block:\n10\nTransaction is not RBF",
+        ),
+        locktime(
+            10,
+            Sequence::MAX.0 - 2,
+            "Locktime on block:\n10\nTransaction is RBF",
+        ),
+        ltc_locktime(Sequence::MAX.0 - 1),
+        ltc_locktime(Sequence::MAX.0 - 2),
         p2tr_output_btc(),
         silent_payment_rejects_owned_output(),
         op_return_nonascii(),

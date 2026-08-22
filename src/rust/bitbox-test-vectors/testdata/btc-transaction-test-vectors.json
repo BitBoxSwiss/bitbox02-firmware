@@ -2227,7 +2227,7 @@
     },
     {
       "id": "locktime-zero",
-      "description": "Suppresses the locktime confirmation when locktime is zero even if the sequence signals RBF.",
+      "description": "Suppresses the locktime confirmation when locktime is zero even if the sequence is non-final.",
       "coin": "tbtc",
       "psbt": {
         "transaction": "70736274ff01007d0200000001703a366633ea48d0ffd13c1dd1d33c7a0cdcb9b29fb7174ac23842ea36b897c20000000000fdffffff02801d2c04000000001600149e2597ee0b2fbffec6275bd6cab7d2b4737b6e95002d3101000000002251204a4ecb00ef0f15842f9e5ad1d6a8537694c57d1cbbb4158c2174e1a98c20ef14000000000001005202000000010000000000000000000000000000000000000000000000000000000000000000ffffffff00ffffffff0100e1f50500000000160014fc6b321f780a2401be6884e5bf84520a278209440000000001011f00e1f50500000000160014fc6b321f780a2401be6884e5bf84520a27820944220603a9a6f11db052a402ccd0e2a2a31c4ad196b93db5b1ad1a3bdf8f23882d42b3c3184c00739d540000800100008000000080000000000000000000220202dca870342cf7bc12c2d6c23dc6a0761160b1ff54e820be4b48c8f3ba9a8dc239184c00739d54000080010000800000008001000000000000000000"
@@ -2302,8 +2302,8 @@
       ]
     },
     {
-      "id": "locktime-non-rbf",
-      "description": "Displays block locktime 10 and its non-rbf sequence semantics.",
+      "id": "locktime-sequence-fffffffe",
+      "description": "Displays block locktime 10 for transaction sequence 0xfffffffe.",
       "coin": "tbtc",
       "psbt": {
         "transaction": "70736274ff01007d0200000001703a366633ea48d0ffd13c1dd1d33c7a0cdcb9b29fb7174ac23842ea36b897c20000000000feffffff02801d2c04000000001600149e2597ee0b2fbffec6275bd6cab7d2b4737b6e95002d3101000000002251204a4ecb00ef0f15842f9e5ad1d6a8537694c57d1cbbb4158c2174e1a98c20ef140a0000000001005202000000010000000000000000000000000000000000000000000000000000000000000000ffffffff00ffffffff0100e1f50500000000160014fc6b321f780a2401be6884e5bf84520a278209440000000001011f00e1f50500000000160014fc6b321f780a2401be6884e5bf84520a27820944220603a9a6f11db052a402ccd0e2a2a31c4ad196b93db5b1ad1a3bdf8f23882d42b3c3184c00739d540000800100008000000080000000000000000000220202dca870342cf7bc12c2d6c23dc6a0761160b1ff54e820be4b48c8f3ba9a8dc239184c00739d54000080010000800000008001000000000000000000"
@@ -2347,6 +2347,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.27.0",
           "outcome": "success",
           "screens": [
             {
@@ -2358,6 +2359,40 @@
               "type": "confirm",
               "title": "",
               "body": "Locktime on block:\n10\nTransaction is not RBF",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.27.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
               "longtouch": false
             },
             {
@@ -2390,8 +2425,8 @@
       ]
     },
     {
-      "id": "locktime-rbf",
-      "description": "Displays block locktime 10 and its rbf sequence semantics.",
+      "id": "locktime-sequence-fffffffd",
+      "description": "Displays block locktime 10 for transaction sequence 0xfffffffd.",
       "coin": "tbtc",
       "psbt": {
         "transaction": "70736274ff01007d0200000001703a366633ea48d0ffd13c1dd1d33c7a0cdcb9b29fb7174ac23842ea36b897c20000000000fdffffff02801d2c04000000001600149e2597ee0b2fbffec6275bd6cab7d2b4737b6e95002d3101000000002251204a4ecb00ef0f15842f9e5ad1d6a8537694c57d1cbbb4158c2174e1a98c20ef140a0000000001005202000000010000000000000000000000000000000000000000000000000000000000000000ffffffff00ffffffff0100e1f50500000000160014fc6b321f780a2401be6884e5bf84520a278209440000000001011f00e1f50500000000160014fc6b321f780a2401be6884e5bf84520a27820944220603a9a6f11db052a402ccd0e2a2a31c4ad196b93db5b1ad1a3bdf8f23882d42b3c3184c00739d540000800100008000000080000000000000000000220202dca870342cf7bc12c2d6c23dc6a0761160b1ff54e820be4b48c8f3ba9a8dc239184c00739d54000080010000800000008001000000000000000000"
@@ -2435,6 +2470,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.27.0",
           "outcome": "success",
           "screens": [
             {
@@ -2446,6 +2482,40 @@
               "type": "confirm",
               "title": "",
               "body": "Locktime on block:\n10\nTransaction is RBF",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.27.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
               "longtouch": false
             },
             {
@@ -2478,8 +2548,8 @@
       ]
     },
     {
-      "id": "locktime-litecoin-non-rbf-sequence",
-      "description": "Displays a Litecoin block locktime without Bitcoin-specific RBF wording.",
+      "id": "locktime-litecoin-sequence-fffffffe",
+      "description": "Displays a Litecoin block locktime for transaction sequence 0xfffffffe.",
       "coin": "ltc",
       "psbt": {
         "transaction": "70736274ff01007102000000018660b164e26bff1622e4172600f4011bd824211a4ef4201d92c0b0fb290f9b730000000000feffffff02801d2c04000000001600146514c2779c7ee0f8e09ae4f2999c334e5254c70e002d310100000000160014751e76e8199196d454941c45d1b3a323f1433bd60a0000000001005202000000010000000000000000000000000000000000000000000000000000000000000000ffffffff00ffffffff0100e1f50500000000160014da2f19386bd475b275e76917886fc8340cce9f160000000001011f00e1f50500000000160014da2f19386bd475b275e76917886fc8340cce9f162206032780e5412e19ac486f2be57004bc34d0f9957468bfa2b0fa1c8e689819d97df2184c00739d5400008002000080000000800000000000000000002202039537a5fa4fa947baa7b215407914d5fcb3709c554ff5750bf0ba931b3cda24ae184c00739d54000080020000800000008001000000000000000000"
@@ -2523,6 +2593,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.27.0",
           "outcome": "success",
           "screens": [
             {
@@ -2534,6 +2605,40 @@
               "type": "confirm",
               "title": "",
               "body": "Locktime on block:\n10\n",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 LTC",
+              "fee": "0.10000000 LTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.27.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 LTC",
+              "address": "ltc1 qw50 8d6q ejxt dg4y 5r3z arva ry0c 5xw7 kgmn 4n9"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
               "longtouch": false
             },
             {
@@ -2566,8 +2671,8 @@
       ]
     },
     {
-      "id": "locktime-litecoin-rbf-sequence",
-      "description": "Displays a Litecoin block locktime without Bitcoin-specific RBF wording.",
+      "id": "locktime-litecoin-sequence-fffffffd",
+      "description": "Displays a Litecoin block locktime for transaction sequence 0xfffffffd.",
       "coin": "ltc",
       "psbt": {
         "transaction": "70736274ff01007102000000018660b164e26bff1622e4172600f4011bd824211a4ef4201d92c0b0fb290f9b730000000000fdffffff02801d2c04000000001600146514c2779c7ee0f8e09ae4f2999c334e5254c70e002d310100000000160014751e76e8199196d454941c45d1b3a323f1433bd60a0000000001005202000000010000000000000000000000000000000000000000000000000000000000000000ffffffff00ffffffff0100e1f50500000000160014da2f19386bd475b275e76917886fc8340cce9f160000000001011f00e1f50500000000160014da2f19386bd475b275e76917886fc8340cce9f162206032780e5412e19ac486f2be57004bc34d0f9957468bfa2b0fa1c8e689819d97df2184c00739d5400008002000080000000800000000000000000002202039537a5fa4fa947baa7b215407914d5fcb3709c554ff5750bf0ba931b3cda24ae184c00739d54000080020000800000008001000000000000000000"
@@ -2611,6 +2716,7 @@
         },
         {
           "min_version": "9.26.0",
+          "max_version_exclusive": "9.27.0",
           "outcome": "success",
           "screens": [
             {
@@ -2622,6 +2728,40 @@
               "type": "confirm",
               "title": "",
               "body": "Locktime on block:\n10\n",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 LTC",
+              "fee": "0.10000000 LTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        },
+        {
+          "min_version": "9.27.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 LTC",
+              "address": "ltc1 qw50 8d6q ejxt dg4y 5r3z arva ry0c 5xw7 kgmn 4n9"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime on block:\n10",
               "longtouch": false
             },
             {
@@ -4147,6 +4287,126 @@
           "pubkey": "3a1712b41eb509147fbbd80c3fac4af4ad0f0eaeaef36e6e08918002afd8e9b2",
           "leaf_hash": "b2edc93766200490b5d77842a9424fd5686d22c4c14fb13dec8784164160521a",
           "sighash": "default"
+        }
+      ]
+    },
+    {
+      "id": "policy-timestamp-locktime",
+      "description": "Signs and finalizes a registered WSH policy whose absolute locktime is a Unix timestamp.",
+      "coin": "tbtc",
+      "psbt": {
+        "transaction": "70736274ff01008902000000014c02333380544b73235a544a4cd8e1f9342fb18d6be6d836b2d2af267dc012830000000000feffffff02801d2c0400000000220020924e71bdb1a95ebe4ef83a1f0ac8eff1d958dc339353f0dfe70069f5eeb6c205002d3101000000002251204a4ecb00ef0f15842f9e5ad1d6a8537694c57d1cbbb4158c2174e1a98c20ef1400d2496b0001005e02000000010000000000000000000000000000000000000000000000000000000000000000ffffffff00ffffffff0100e1f5050000000022002077f8b061c8bfd7bc8ee3aac678b20cbdfbc4aa0ac90339b54f38c99ca911208b0000000001012b00e1f5050000000022002077f8b061c8bfd7bc8ee3aac678b20cbdfbc4aa0ac90339b54f38c99ca911208b01052921033a1712b41eb509147fbbd80c3fac4af4ad0f0eaeaef36e6e08918002afd8e9b2ad0400d2496bb12206033a1712b41eb509147fbbd80c3fac4af4ad0f0eaeaef36e6e08918002afd8e9b21c4c00739d3000008001000080000000800300008000000000000000000001012921028c35dddf5bd951db2bf053d944200d11f029f37af9b5255025338f7eb9aae44aad0400d2496bb12202028c35dddf5bd951db2bf053d944200d11f029f37af9b5255025338f7eb9aae44a1c4c00739d3000008001000080000000800300008001000000000000000000",
+        "options": {
+          "force_script_config": {
+            "script_config": {
+              "type": "policy",
+              "policy": "wsh(and_v(v:pk(@0/**),after(1800000000)))",
+              "keys": [
+                {
+                  "root_fingerprint": "4c00739d",
+                  "keypath": "m/48'/1'/0'/3'",
+                  "xpub": "xpub6EhivkawbkKDTyZXUfDUntyKvkx4fcniJY3RRMdcvvkKTEt7gX7CfotifBsm1iDYzLpRk9pspB6g2r2sjxVePkCScgDmkPiGUAWg2ESMKNA"
+                }
+              ]
+            },
+            "keypath": "m/48'/1'/0'/3'"
+          }
+        }
+      },
+      "expected_needs_prevtxs": true,
+      "expectations": [
+        {
+          "max_version_exclusive": "9.27.0",
+          "outcome": "invalid_input",
+          "screens": []
+        },
+        {
+          "min_version": "9.27.0",
+          "outcome": "success",
+          "screens": [
+            {
+              "type": "confirm",
+              "title": "Spend from",
+              "body": "BTC Testnet\npolicy with\n1 keys",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Name",
+              "body": "test timestamp locktime",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Show policy\ndetails?",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Policy",
+              "body": "wsh(and_v(v:pk(@0/**),after(1800000000)))",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "Key 1/1",
+              "body": "This device: [4c00739d/48'/1'/0'/3']tpubDF5MSzQdK2GfjmkNvrCZzpJhFt3if1HmrAdimugmGqWDCXYpkjxHpFZYuDxYYDAnnFMLMjLkMGvij2XV8pLtHBejgGy5RvNW4875nFGBDWv",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_address",
+              "amount": "0.20000000 TBTC",
+              "address": "tb1p ff8v kq80 pu2c gtu7 ttga d2zn w62v 2lgu hw6p trpp wns6 nrpq au2q cuz3 7d"
+            },
+            {
+              "type": "confirm",
+              "title": "",
+              "body": "Locktime (UTC):\n2027-01-15\n08:00:00",
+              "longtouch": false
+            },
+            {
+              "type": "transaction_fee",
+              "amount": "0.30000000 TBTC",
+              "fee": "0.10000000 TBTC",
+              "longtouch": false
+            },
+            {
+              "type": "confirm",
+              "title": "High fee",
+              "body": "The fee is 50.0%\nthe send amount.\nProceed?",
+              "longtouch": true
+            },
+            {
+              "type": "status",
+              "title": "Transaction",
+              "body": "confirmed"
+            }
+          ]
+        }
+      ],
+      "registrations": [
+        {
+          "script_config": {
+            "type": "policy",
+            "policy": "wsh(and_v(v:pk(@0/**),after(1800000000)))",
+            "keys": [
+              {
+                "root_fingerprint": "4c00739d",
+                "keypath": "m/48'/1'/0'/3'",
+                "xpub": "xpub6EhivkawbkKDTyZXUfDUntyKvkx4fcniJY3RRMdcvvkKTEt7gX7CfotifBsm1iDYzLpRk9pspB6g2r2sjxVePkCScgDmkPiGUAWg2ESMKNA"
+              }
+            ]
+          },
+          "name": "test timestamp locktime"
+        }
+      ],
+      "expected_signatures": [
+        {
+          "input_index": 0,
+          "kind": "ecdsa",
+          "pubkey": "033a1712b41eb509147fbbd80c3fac4af4ad0f0eaeaef36e6e08918002afd8e9b2",
+          "sighash": "all"
         }
       ]
     },

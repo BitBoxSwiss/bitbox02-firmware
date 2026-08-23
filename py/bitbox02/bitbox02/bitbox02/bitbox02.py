@@ -472,6 +472,9 @@ class BitBox02(BitBoxCommonAPI):
         """
         # pylint: disable=no-member,too-many-branches,too-many-statements
 
+        # Anti-klepto support for BTC transaction signing was added in v9.4.0.
+        self._require_atleast(semver.VersionInfo(9, 4, 0))
+
         assert version in (1, 2)
 
         if locktime >= 500_000_000:
@@ -494,8 +497,6 @@ class BitBox02(BitBoxCommonAPI):
         ):
             # OP_RETURN supported sice v9.24.0
             self._require_atleast(semver.VersionInfo(9, 24, 0))
-
-        supports_antiklepto = self.version >= semver.VersionInfo(9, 4, 0)
 
         sigs: List[Tuple[int, bytes]] = []
 
@@ -535,9 +536,7 @@ class BitBox02(BitBoxCommonAPI):
 
                 # Anti-Klepto protocol not supported yet for Schnorr signatures.
                 input_is_schnorr = is_taproot(script_configs[tx_input["script_config_index"]])
-                perform_antiklepto = (
-                    supports_antiklepto and is_inputs_pass2 and not input_is_schnorr
-                )
+                perform_antiklepto = is_inputs_pass2 and not input_is_schnorr
 
                 if perform_antiklepto:
                     host_nonce = os.urandom(32)
@@ -669,7 +668,8 @@ class BitBox02(BitBoxCommonAPI):
         """
         # pylint: disable=no-member
 
-        self._require_atleast(semver.VersionInfo(9, 2, 0))
+        # Anti-klepto support for BTC message signing was added in v9.5.0.
+        self._require_atleast(semver.VersionInfo(9, 5, 0))
         if coin in (btc.TBTC, btc.RBTC):
             self._require_atleast(semver.VersionInfo(9, 23, 0))
 
@@ -678,34 +678,25 @@ class BitBox02(BitBoxCommonAPI):
             btc.BTCSignMessageRequest(coin=coin, script_config=script_config, msg=msg)
         )
 
-        supports_antiklepto = self.version >= semver.VersionInfo(9, 5, 0)
-        if supports_antiklepto:
-            host_nonce = os.urandom(32)
+        host_nonce = os.urandom(32)
 
-            request.sign_message.host_nonce_commitment.commitment = antiklepto_host_commit(
-                host_nonce
-            )
-            signer_commitment = self._btc_msg_query(
-                request, expected_response="antiklepto_signer_commitment"
-            ).antiklepto_signer_commitment.commitment
+        request.sign_message.host_nonce_commitment.commitment = antiklepto_host_commit(host_nonce)
+        signer_commitment = self._btc_msg_query(
+            request, expected_response="antiklepto_signer_commitment"
+        ).antiklepto_signer_commitment.commitment
 
-            request = btc.BTCRequest()
-            request.antiklepto_signature.CopyFrom(
-                antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
-            )
+        request = btc.BTCRequest()
+        request.antiklepto_signature.CopyFrom(
+            antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
+        )
 
-            signature = self._btc_msg_query(
-                request, expected_response="sign_message"
-            ).sign_message.signature
-            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+        signature = self._btc_msg_query(
+            request, expected_response="sign_message"
+        ).sign_message.signature
+        antiklepto_verify(host_nonce, signer_commitment, signature[:64])
 
-            if self.debug:
-                print("Antiklepto nonce verification PASSED")
-
-        else:
-            signature = self._btc_msg_query(
-                request, expected_response="sign_message"
-            ).sign_message.signature
+        if self.debug:
+            print("Antiklepto nonce verification PASSED")
 
         sig, recid = signature[:64], signature[64]
 
@@ -908,6 +899,9 @@ class BitBox02(BitBoxCommonAPI):
         """
         # pylint: disable=no-member
 
+        # Anti-klepto support for ETH transaction signing was added in v9.5.0.
+        self._require_atleast(semver.VersionInfo(9, 5, 0))
+
         is_eip1559 = transaction.startswith(b"\x02")
 
         def handle_antiklepto(request: eth.ETHRequest) -> bytes:
@@ -1013,29 +1007,16 @@ class BitBox02(BitBoxCommonAPI):
             )
         )
 
-        supports_antiklepto = self.version >= semver.VersionInfo(9, 5, 0)
-        if supports_antiklepto:
-            return handle_antiklepto(request)
-
-        # Non-antiklepto path: handle chunking if needed
-        response = self._eth_msg_query(request)
-        if require_streaming and response.WhichOneof("response") == "data_request_chunk":
-            response = self._handle_eth_chunking(response, data)
-            if response.WhichOneof("response") != "sign":
-                raise Exception(
-                    f"Unexpected response after chunking: {response.WhichOneof('response')}, expected: sign"
-                )
-        elif response.WhichOneof("response") != "sign":
-            raise Exception(
-                f"Unexpected response: {response.WhichOneof('response')}, expected: sign"
-            )
-        return response.sign.signature
+        return handle_antiklepto(request)
 
     def eth_sign_msg(self, msg: bytes, keypath: Sequence[int], chain_id: int = 1) -> bytes:
         """
         Signs message, the msg will be prefixed with "\x19Ethereum message\n" + len(msg) in the
         hardware. 27 is added to the recID to denote an uncompressed pubkey.
         """
+
+        # Anti-klepto support for ETH message signing was added in v9.5.0.
+        self._require_atleast(semver.VersionInfo(9, 5, 0))
 
         def format_as_uncompressed(sig: bytes) -> bytes:
             # 27 is the magic constant to add to the recoverable ID to denote an uncompressed
@@ -1052,29 +1033,24 @@ class BitBox02(BitBoxCommonAPI):
             )
         )
 
-        supports_antiklepto = self.version >= semver.VersionInfo(9, 5, 0)
-        if supports_antiklepto:
-            host_nonce = os.urandom(32)
+        host_nonce = os.urandom(32)
 
-            request.sign_msg.host_nonce_commitment.commitment = antiklepto_host_commit(host_nonce)
-            signer_commitment = self._eth_msg_query(
-                request, expected_response="antiklepto_signer_commitment"
-            ).antiklepto_signer_commitment.commitment
+        request.sign_msg.host_nonce_commitment.commitment = antiklepto_host_commit(host_nonce)
+        signer_commitment = self._eth_msg_query(
+            request, expected_response="antiklepto_signer_commitment"
+        ).antiklepto_signer_commitment.commitment
 
-            request = eth.ETHRequest()
-            request.antiklepto_signature.CopyFrom(
-                antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
-            )
-
-            signature = self._eth_msg_query(request, expected_response="sign").sign.signature
-            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
-
-            if self.debug:
-                print("Antiklepto nonce verification PASSED")
-
-            return format_as_uncompressed(signature)
+        request = eth.ETHRequest()
+        request.antiklepto_signature.CopyFrom(
+            antiklepto.AntiKleptoSignatureRequest(host_nonce=host_nonce)
+        )
 
         signature = self._eth_msg_query(request, expected_response="sign").sign.signature
+        antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+
+        if self.debug:
+            print("Antiklepto nonce verification PASSED")
+
         return format_as_uncompressed(signature)
 
     def eth_sign_typed_msg(

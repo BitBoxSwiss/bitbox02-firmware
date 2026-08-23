@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- Require firmware v9.4.0 or newer for BTC transaction signing and v9.5.0 or newer for
+  BTC/ETH message and ETH transaction signing
 - `device_info()`: add the installed bootloader version to the returned device info
 - Add `btc_xpubs()` to fetch multiple xpubs at once
 - Bitcoin: add support for OP_RETURN outputs

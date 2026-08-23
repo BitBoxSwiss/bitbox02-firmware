@@ -18,7 +18,12 @@ from bitbox02.communication import (
     ERR_DUPLICATE_ENTRY,
 )
 
-from .secp256k1 import antiklepto_host_commit, antiklepto_verify
+from .secp256k1 import (
+    antiklepto_host_commit,
+    antiklepto_verify,
+    antiklepto_verify_recoverable,
+    validate_recoverable_ecdsa_signature,
+)
 
 try:
     from bitbox02.communication.generated import hww_pb2 as hww
@@ -693,7 +698,7 @@ class BitBox02(BitBoxCommonAPI):
         signature = self._btc_msg_query(
             request, expected_response="sign_message"
         ).sign_message.signature
-        antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+        antiklepto_verify_recoverable(host_nonce, signer_commitment, signature)
 
         if self.debug:
             print("Antiklepto nonce verification PASSED")
@@ -932,7 +937,7 @@ class BitBox02(BitBoxCommonAPI):
             )
 
             signature = self._eth_msg_query(request, expected_response="sign").sign.signature
-            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+            antiklepto_verify_recoverable(host_nonce, signer_commitment, signature)
 
             if self.debug:
                 print("Antiklepto nonce verification PASSED")
@@ -1046,7 +1051,7 @@ class BitBox02(BitBoxCommonAPI):
         )
 
         signature = self._eth_msg_query(request, expected_response="sign").sign.signature
-        antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+        antiklepto_verify_recoverable(host_nonce, signer_commitment, signature)
 
         if self.debug:
             print("Antiklepto nonce verification PASSED")
@@ -1249,13 +1254,14 @@ class BitBox02(BitBoxCommonAPI):
             )
 
             signature = self._eth_msg_query(request, expected_response="sign").sign.signature
-            antiklepto_verify(host_nonce, signer_commitment, signature[:64])
+            antiklepto_verify_recoverable(host_nonce, signer_commitment, signature)
 
             if self.debug:
                 print("Antiklepto nonce verification PASSED")
         else:
             assert response.WhichOneof("response") == "sign"
             signature = response.sign.signature
+            validate_recoverable_ecdsa_signature(signature)
 
         return format_as_uncompressed(signature)
 

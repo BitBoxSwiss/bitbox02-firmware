@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Validate ECDSA signatures and recovery IDs in Anti-Klepto and direct signing flows
 - Require firmware v9.4.0 or newer for BTC transaction signing and v9.5.0 or newer for
   BTC/ETH message and ETH transaction signing
 - `device_info()`: add the installed bootloader version to the returned device info

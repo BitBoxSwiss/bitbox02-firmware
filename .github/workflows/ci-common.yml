@@ -59,6 +59,9 @@ jobs:
           make -C py
           ./.ci/check-pep8
 
+      - name: Run Python unit tests
+        run: PYTHONPATH=py/bitbox02 python3 -m unittest discover -s py/bitbox02/tests
+
   lint-src:
     runs-on: ubuntu-22.04
     container:

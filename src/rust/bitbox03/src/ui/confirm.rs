@@ -43,8 +43,9 @@ pub fn build_confirm_screen(
     title.set_width(380);
     title.set_long_mode(LvLabelLongMode::LV_LABEL_LONG_MODE_WRAP);
     title.set_text(params.title).unwrap();
+    title.set_style_text_align(lvgl::LvTextAlign::LV_TEXT_ALIGN_CENTER, 0);
     title.set_style_text_font(
-        lvgl::fonts::INTER_BOLD_48,
+        lvgl::fonts::INTER_REGULAR_32,
         lvgl::LvState::LV_STATE_DEFAULT as u32,
     );
 

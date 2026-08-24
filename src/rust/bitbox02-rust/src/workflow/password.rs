@@ -50,6 +50,14 @@ pub async fn enter(
             PasswordType::DevicePassword => false,
             PasswordType::Bip39Passphrase => true,
         },
+        passphrase: match password_type {
+            PasswordType::DevicePassword => false,
+            PasswordType::Bip39Passphrase => true,
+        },
+        pin: match password_type {
+            PasswordType::DevicePassword => true,
+            PasswordType::Bip39Passphrase => false,
+        },
         longtouch: true,
         default_to_digits: match password_type {
             PasswordType::DevicePassword => {

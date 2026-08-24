@@ -17,6 +17,8 @@ use bitbox_lvgl::{
 
 /// Style selector for the pressed state.
 const PRESSED_SELECTOR: u32 = LvState::LV_STATE_PRESSED as u32;
+/// Style selector for the disabled state.
+const DISABLED_SELECTOR: u32 = LvState::LV_STATE_DISABLED as u32;
 
 /// Properties that change between the normal and pressed look (the button's white fill).
 const PRESS_TRANSITION_PROPS: [u8; 3] = [prop::BG_OPA, prop::BG_COLOR, prop::INV];
@@ -58,7 +60,7 @@ const CLOSE_PNG: &[u8] = include_bytes!("../../icons/cancel2.png");
 
 /// Decodes an icon PNG, adds it centred in `button` as a canvas, and sets it to recolour white
 /// normally and black in the pressed state. Returns the canvas as an [`LvObj`] for press wiring.
-fn add_icon(button: &LvButton, png: &[u8]) -> LvObj {
+pub(super) fn add_icon(button: &LvButton, png: &[u8]) -> LvObj {
     // `png_decoder` returns ARGB8888 pixels as RGBA; LVGL expects BGRA in memory.
     let (header, mut data) = png_decoder::decode(png).expect("valid icon png");
     for px in data.iter_mut() {
@@ -76,7 +78,7 @@ fn add_icon(button: &LvButton, png: &[u8]) -> LvObj {
 /// Wires the pressed-state look: the interior fills white (cancelling the theme's grow + dim, with
 /// an instant transition) and the icon inverts to black. A child does not inherit the button's
 /// pressed state, so it is propagated to the icon via press/release events.
-fn enable_press_invert(button: &LvButton, parts: Vec<LvObj>) {
+pub(super) fn enable_press_invert(button: &LvButton, parts: Vec<LvObj>) {
     button.set_style_bg_color(lvgl::color::white(), PRESSED_SELECTOR);
     button.set_style_bg_opa(LvOpacityLevel::LV_OPA_COVER as u8, PRESSED_SELECTOR);
     // The default theme dims pressed objects (black recolor); disable so the fill is pure white.
@@ -116,7 +118,7 @@ fn enable_press_invert(button: &LvButton, parts: Vec<LvObj>) {
 
 /// Common frame styling for an outline icon button (transparent fill, white border, no shadow,
 /// no padding).
-fn style_outline_button(button: &LvButton, border_width: i32) {
+pub(super) fn style_outline_button(button: &LvButton, border_width: i32) {
     button.set_style_bg_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, 0); // fill: none
     button.set_style_border_width(border_width, 0);
     button.set_style_border_color(lvgl::color::white(), 0);
@@ -125,6 +127,14 @@ fn style_outline_button(button: &LvButton, border_width: i32) {
     button.set_style_pad_bottom(0, 0);
     button.set_style_pad_left(0, 0);
     button.set_style_pad_right(0, 0);
+    // The default theme's disabled style recolors the button — and everything drawn inside it —
+    // 50% grey, and the theme's state-change transition animates RECOLOR/RECOLOR_OPA with a 70ms
+    // delay + 80ms fade. Callers style their own instant gray disabled look (border and icon), so
+    // the delayed overlay would arrive ~150ms late as a second visible change: the button
+    // flickers on every enable/disable. Pin both props to their default-state values so the
+    // disabled style differs in nothing the theme animates and the switch is a single frame.
+    button.set_style_recolor_opa(LvOpacityLevel::LV_OPA_TRANSP as u8, DISABLED_SELECTOR);
+    button.set_style_recolor(lvgl::color::black(), DISABLED_SELECTOR);
 }
 
 /// Builds a navigation icon button and appends it to `parent`. Returns the button so the caller can

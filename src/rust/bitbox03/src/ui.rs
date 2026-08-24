@@ -20,7 +20,7 @@ pub mod keypad;
 pub mod menu;
 pub mod nav_button;
 pub mod slide_to_confirm;
-mod status;
+pub mod status;
 #[cfg(test)]
 mod test_util;
 

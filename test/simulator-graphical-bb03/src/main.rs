@@ -239,6 +239,19 @@ fn init_hww(
         ))
         .unwrap();
         bitbox.memory().set_initialized().unwrap();
+
+        if args.unlock {
+            // Storing the seed retains it but does not unlock BIP39; the keystore counts as
+            // locked (and the first client connection prompts for the password) until the BIP39
+            // seed is retained too.
+            block_on(bitbox02_rust::keystore::unlock_bip39(
+                &mut bitbox02_rust::keystore::KeystoreHalImpl::from_hal(bitbox),
+                &seed,
+                "",
+                async || {},
+            ))
+            .unwrap();
+        }
     }
 
     if args.passphrase {
@@ -248,7 +261,7 @@ fn init_hww(
             .unwrap();
     }
 
-    if args.lock {
+    if !args.unlock {
         bitbox02_rust::keystore::lock();
     }
 
@@ -742,10 +755,10 @@ struct Args {
     #[arg(long)]
     passphrase: bool,
 
-    /// Start with the keystore locked. Combined with --preseed, the first client connection
-    /// triggers the on-device unlock workflow (--preseed alone leaves the keystore unlocked).
-    #[arg(long)]
-    lock: bool,
+    /// Start with the keystore unlocked (requires --preseed). By default the simulator starts
+    /// locked and the first client connection triggers the on-device unlock workflow.
+    #[arg(long, requires = "preseed")]
+    unlock: bool,
 }
 
 pub fn main() -> Result<(), Box<dyn Error>> {

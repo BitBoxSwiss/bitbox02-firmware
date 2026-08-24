@@ -15,16 +15,18 @@ use super::keypad::build_keypad;
 use super::nav_button::{NavIcon, build_close_button, build_nav_button};
 use super::slide_to_confirm::build_slide_to_confirm;
 
-fn snapshot_text(textarea: &LvTextarea) -> String {
-    textarea
-        .get_text()
-        .map(|text| {
-            text.as_c_str()
-                .to_str()
-                .expect("textarea content must be valid UTF-8")
-                .into()
-        })
-        .unwrap_or_default()
+/// Snapshots the (possibly secret) textarea content into a zeroized-on-drop string. Reads LVGL's
+/// buffer in place — `TextareaExt::get_text` would copy the content into an intermediate
+/// `CString` that is dropped without zeroizing. The single `push_str` into the empty string
+/// allocates exactly once, so no reallocation leaves an unzeroized copy behind either.
+fn snapshot_text(textarea: &LvTextarea) -> zeroize::Zeroizing<String> {
+    let mut snapshot = zeroize::Zeroizing::new(String::new());
+    let text = unsafe { lvgl::ffi::lv_textarea_get_text(textarea.as_ptr()) };
+    if !text.is_null() {
+        let text = unsafe { core::ffi::CStr::from_ptr(text) };
+        snapshot.push_str(text.to_str().expect("textarea content must be valid UTF-8"));
+    }
+    snapshot
 }
 
 /// Whether the textarea is empty, read in place from LVGL's buffer — unlike [`snapshot_text`]
@@ -433,9 +435,7 @@ pub fn build_passphrase_screen(
     let accept = build_nav_button(&actions, NavIcon::Confirm);
     accept
         .add_click_cb(move || {
-            responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
-                textarea.as_ref(),
-            ))));
+            responder.resolve(Ok(snapshot_text(textarea.as_ref())));
         })
         .expect("failed to register confirm callback");
 
@@ -498,9 +498,7 @@ pub fn build_pin_screen(
     let confirm_textarea = Rc::clone(&textarea);
     let confirm_responder = responder.clone();
     let keypad = build_keypad(&screen, Rc::clone(&textarea), move || {
-        confirm_responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
-            confirm_textarea.as_ref(),
-        ))));
+        confirm_responder.resolve(Ok(snapshot_text(confirm_textarea.as_ref())));
     });
     keypad.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_FLOATING);
     keypad.align(LvAlign::LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -790,9 +788,7 @@ pub fn build_enter_string_screen(
                 .expect("failed to register cancel callback");
         }
         let slide = build_slide_to_confirm(&screen, move || {
-            responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
-                textarea.as_ref(),
-            ))));
+            responder.resolve(Ok(snapshot_text(textarea.as_ref())));
         });
         slide.set_style_margin_top(8, 0);
         return screen;
@@ -822,9 +818,7 @@ pub fn build_enter_string_screen(
     let accept = build_nav_button(&actions, NavIcon::Confirm);
     accept
         .add_click_cb(move || {
-            responder.resolve(Ok(zeroize::Zeroizing::new(snapshot_text(
-                textarea.as_ref(),
-            ))));
+            responder.resolve(Ok(snapshot_text(textarea.as_ref())));
         })
         .expect("failed to register confirm callback");
 
@@ -975,7 +969,7 @@ mod tests {
             Some(String::from(label.get_text().unwrap().to_str().unwrap()))
         }
 
-        fn text(&self) -> String {
+        fn text(&self) -> zeroize::Zeroizing<String> {
             snapshot_text(&self.textarea())
         }
 
@@ -1044,6 +1038,19 @@ mod tests {
         fn pressed(obj: &LvObj) -> bool {
             unsafe { ffi::lv_obj_has_state(obj.as_ptr(), lvgl::LvState::LV_STATE_PRESSED) }
         }
+
+        /// The resolved whole-widget recolor opacity (`LV_STYLE_RECOLOR_OPA`) in the object's
+        /// current state.
+        fn recolor_opa(obj: &LvObj) -> u8 {
+            let value = unsafe {
+                ffi::lv_obj_get_style_prop(
+                    obj.as_ptr(),
+                    LvPart::LV_PART_MAIN,
+                    ffi::_lv_style_id_t::LV_STYLE_RECOLOR_OPA as ffi::lv_style_prop_t,
+                )
+            };
+            unsafe { value.num as u8 }
+        }
     }
 
     impl Drop for Harness {
@@ -1069,7 +1076,7 @@ mod tests {
         harness.tap_char_key(false, false, 0, 9); // 0
         harness.tap_space();
 
-        assert_eq!(harness.text(), "qam0 ");
+        assert_eq!(harness.text().as_str(), "qam0 ");
     }
 
     #[test]
@@ -1083,7 +1090,7 @@ mod tests {
         harness.tap_capslock();
         harness.tap_char_key(false, false, 1, 0); // q
 
-        assert_eq!(harness.text(), "Q1q");
+        assert_eq!(harness.text().as_str(), "Q1q");
     }
 
     #[test]
@@ -1108,7 +1115,7 @@ mod tests {
         harness.tap_symbols();
         harness.tap_char_key(false, false, 1, 1); // w: back to (lowercase) letters
 
-        assert_eq!(harness.text(), "!,}1\"w");
+        assert_eq!(harness.text().as_str(), "!,}1\"w");
     }
 
     #[test]
@@ -1123,14 +1130,67 @@ mod tests {
 
         let backspace = harness.backspace();
         harness.tap_button(&backspace);
-        assert_eq!(harness.text(), "q");
+        assert_eq!(harness.text().as_str(), "q");
         harness.tap_button(&backspace);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
         assert!(Harness::disabled(&harness.backspace()));
 
         // Tapping the disabled button is inert.
         harness.tap_button(&backspace);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
+    }
+
+    /// Enabling/disabling a button must swap its whole look in a single style update. The
+    /// default theme dims disabled widgets with a 50% grey whole-widget recolor and animates
+    /// `RECOLOR`/`RECOLOR_OPA` on state changes with a delay — left in place, that overlay lands
+    /// ~150ms after the gray border/icon colors snap in, so the button visibly flickers
+    /// (regression test for the `style_outline_button` disabled-state override).
+    #[test]
+    fn test_disable_enable_is_not_animated() {
+        let _lock = lock_and_init();
+        let mut harness = Harness::new(CanCancel::No);
+
+        // Canary for the assumption the zero-assertions below rest on: the default theme dims a
+        // disabled widget with a (delayed) 50% whole-widget recolor. An unstyled button must
+        // show that overlay once the transition has settled — if an LVGL bump changes the
+        // mechanism, fail loudly here instead of letting the assertions below pass vacuously.
+        let canary = LvButton::new(&harness.screen).unwrap().to_obj();
+        canary.add_flag(lvgl::LvObjFlag::LV_OBJ_FLAG_HIDDEN);
+        canary.add_state(lvgl::LvState::LV_STATE_DISABLED);
+        pump_for(300);
+        assert_eq!(
+            Harness::recolor_opa(&canary),
+            LvOpacityLevel::LV_OPA_50 as u8
+        );
+
+        // Backspace: enabled by typing, disabled again by deleting the only character. The tap
+        // pumps past the theme transition's 70ms delay, so with the transition in effect the
+        // overlay would already be fading in here; after a further 300ms it would be fully on.
+        let backspace = harness.backspace();
+        harness.tap_char_key(false, false, 1, 0); // q
+        harness.tap_button(&backspace);
+        assert!(Harness::disabled(&backspace));
+        assert_eq!(Harness::recolor_opa(&backspace), 0);
+        pump_for(300);
+        assert_eq!(Harness::recolor_opa(&backspace), 0);
+
+        // Caps lock: disabled by switching to the symbols layout.
+        let capslock = harness
+            .keyboard()
+            .child(keyboard::CHILD_INDEX_CAPSLOCK)
+            .expect("caps lock");
+        harness.tap_symbols();
+        assert!(Harness::disabled(&capslock));
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
+        pump_for(300);
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
+
+        // Re-enabling must not fade the overlay back out either.
+        harness.tap_symbols();
+        assert!(!Harness::disabled(&capslock));
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
+        pump_for(300);
+        assert_eq!(Harness::recolor_opa(&capslock), 0);
     }
 
     #[test]
@@ -1208,7 +1268,7 @@ mod tests {
         harness.touch.push(x, y, false);
         pump_for(120);
         assert!(Harness::hidden(&preview));
-        assert_eq!(harness.text(), "w");
+        assert_eq!(harness.text().as_str(), "w");
     }
 
     #[test]
@@ -1231,14 +1291,14 @@ mod tests {
         harness.tap_char_key(false, false, 0, 0); // 1
         assert_eq!(harness.shown_dots(), 2);
         assert_eq!(harness.revealed_char().as_deref(), Some("1"));
-        assert_eq!(harness.text(), "qw1");
+        assert_eq!(harness.text().as_str(), "qw1");
 
         // Deleting re-masks everything (the deleted character was the last one entered).
         let backspace = harness.backspace();
         harness.tap_button(&backspace);
         assert_eq!(harness.shown_dots(), 2);
         assert_eq!(harness.revealed_char(), None);
-        assert_eq!(harness.text(), "qw");
+        assert_eq!(harness.text().as_str(), "qw");
 
         // The circles must not shift vertically when the last-character label hides (the flex
         // track shrinks to the tallest visible child; the track must stay centred).
@@ -1262,10 +1322,10 @@ mod tests {
         harness.touch.push(x, y, true);
         harness.touch.push(x, y, true);
         pump_for(700);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
         harness.touch.push(x, y, false);
         pump_for(120);
-        assert_eq!(harness.text(), "w");
+        assert_eq!(harness.text().as_str(), "w");
     }
 
     #[test]
@@ -1339,7 +1399,7 @@ mod tests {
 
         harness.touch.push(x_next, y, false);
         pump_for(120);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
     }
 
     #[test]
@@ -1349,7 +1409,7 @@ mod tests {
 
         // Type 'x' with a normal tap; the buttonmatrix must not keep it armed afterwards.
         harness.tap_char_key(false, false, 3, 1);
-        assert_eq!(harness.text(), "x");
+        assert_eq!(harness.text().as_str(), "x");
 
         // Press the space bar, slide along it until under 'x', then up into the key row
         // directly over 'x', and release there. The press migrates onto the row without a
@@ -1364,7 +1424,7 @@ mod tests {
         harness.touch.push(key_x, key_y, true);
         harness.touch.push(key_x, key_y, false);
         pump_for(280);
-        assert_eq!(harness.text(), "x");
+        assert_eq!(harness.text().as_str(), "x");
     }
 
     #[test]
@@ -1408,7 +1468,7 @@ mod tests {
         harness.tap_pin_key(1, 1); // 5
         harness.tap_pin_key(2, 2); // 9
         harness.tap_pin_key(3, 1); // 0
-        assert_eq!(harness.text(), "1590");
+        assert_eq!(harness.text().as_str(), "1590");
         // The masked display shows circles plus the last entered digit.
         assert_eq!(harness.shown_dots(), 3);
         assert_eq!(harness.revealed_char().as_deref(), Some("0"));
@@ -1435,14 +1495,14 @@ mod tests {
         assert!(!Harness::disabled(&backspace));
 
         harness.tap_pin_key(3, 0); // backspace
-        assert_eq!(harness.text(), "2");
+        assert_eq!(harness.text().as_str(), "2");
         harness.tap_pin_key(3, 0);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
         assert!(Harness::disabled(&backspace));
 
         // Tapping the disabled key is inert.
         harness.tap_pin_key(3, 0);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
     }
 
     #[test]
@@ -1469,7 +1529,7 @@ mod tests {
 
         harness.touch.push(x + 60, y, false);
         pump_for(120);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
 
         // Sliding back onto the key before releasing does not re-arm it either: once the press
         // left the key, that tap is abandoned for good (same as the keyboard's character keys).
@@ -1478,11 +1538,11 @@ mod tests {
         harness.touch.push(x, y, true);
         harness.touch.push(x, y, false);
         pump_for(200);
-        assert_eq!(harness.text(), "");
+        assert_eq!(harness.text().as_str(), "");
 
         // A regular tap still types.
         harness.tap_pin_key(1, 1);
-        assert_eq!(harness.text(), "5");
+        assert_eq!(harness.text().as_str(), "5");
     }
 
     #[test]

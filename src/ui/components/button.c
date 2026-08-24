@@ -11,6 +11,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <util.h>
 
 static const uint8_t MIN_BUTTON_WIDTH = 32; // 0:SCREEN_WIDTH
 
@@ -162,10 +163,15 @@ void button_update(component_t* button, const char* text, void (*callback)(compo
 {
     button_data_t* data = (button_data_t*)button->data;
     data->callback = callback;
-    snprintf(data->text, sizeof(data->text), "%s", text);
+    if (!util_is_printable_ascii(text, true)) {
+        Abort("Unsupported button character");
+    }
+    if (util_utf8_strlcpy(data->text, text, sizeof(data->text)) < 0) {
+        Abort("Invalid UTF-8 button");
+    }
     UG_FontSelect(&font_font_a_11X10);
     UG_FontSetHSpace(0);
-    UG_MeasureString(&(button->dimension.width), &(button->dimension.height), text);
+    UG_MeasureString(&(button->dimension.width), &(button->dimension.height), data->text);
     if (button->dimension.width < MIN_BUTTON_WIDTH) {
         button->dimension.width = MIN_BUTTON_WIDTH;
     }

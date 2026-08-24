@@ -9,7 +9,7 @@ use alloc::string::String;
 pub fn format_hash(hash: &[u8; 32]) -> String {
     let mut encoded = [0u8; 60];
     let encoded = binascii::b32encode(&hash[..], &mut encoded).unwrap();
-    // Base32 contains only utf-8 valid chars.
+    // SAFETY: Base32 output contains only ASCII characters.
     let encoded = unsafe { core::str::from_utf8_unchecked(encoded) };
     format!(
         "{} {}\n{} {}",

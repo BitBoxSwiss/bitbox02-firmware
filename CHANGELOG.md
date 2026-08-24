@@ -7,12 +7,12 @@ customers cannot upgrade their bootloader, its changes are recorded separately.
 ## Firmware
 
 ### [Unreleased]
-- Add support for BitBoxSync
 - Display long transaction and swap amounts in full instead of truncating them
 - Bitcoin: allow signing messages with keys in the m/45' application namespace
 - Bitcoin: support timestamp-based absolute locktimes and remove the RBF status display
 
 ### v9.26.5
+- Experimental support for BitBoxSync (disabled for now, feature-flag required)
 - Security improvements
 - Fixed a crash when listing many backups over Bluetooth
 - Fix unexpected NACK responses on iOS due to slow securechip operations
